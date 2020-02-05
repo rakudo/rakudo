@@ -26,7 +26,7 @@ role Perl6::Metamodel::BUILDPLAN {
     #   10 class attr_name = touch/vivify attribute if part of mixin
     #   11 same as 0, but init to nqp::list if value absent (nqp only)
     #   12 same as 0, but init to nqp::hash if value absent (nqp only)
-    #   13 same as 0 but *bind* the received value
+    #   13 same as 0 but *bind* the received value + optional type constraint
     #   14 same as 4 but *bind* the default value
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
@@ -102,12 +102,22 @@ role Perl6::Metamodel::BUILDPLAN {
 #?endif
 
                 if $_.is_built {
-                    nqp::push(@plan,[
-                      ($primspec || !$_.is_bound ?? 0 + $primspec !! 13),
-                      $obj,
-                      $_.name,
-                      nqp::substr($_.name, 2)
-                    ]);
+                    my $name := $_.name;
+                    my $action := $primspec || !$_.is_bound
+                      ?? 0 + $primspec
+                      !! 13;
+
+                    my $info := [$action,$obj,$name,nqp::substr($name,2)];
+
+                    # binding may need type info for runtime checks
+                    if $action == 13 {
+                        my $type := $_.type;
+                        unless $type =:= $*W.find_symbol(["Mu"]) {
+                            nqp::push($info,$type);
+                        }
+                    }
+
+                    nqp::push(@plan,$info);
                 }
             }
         }

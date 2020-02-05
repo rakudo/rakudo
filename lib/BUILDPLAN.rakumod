@@ -97,7 +97,7 @@ sub build-description(@plan --> Str:D) is export {
 #   10 class attr_name = touch/vivify attribute if part of mixin
 #   11 same as 0, but init to nqp::list if value absent (nqp only)
 #   12 same as 0, but init to nqp::hash if value absent (nqp only)
-#   13 same as 0 but *bind* the received value
+#   13 same as 0 but *bind* the received value + optional type constraint
 #   14 same as 4 but *bind* the default value
 #===================================================
 
@@ -147,7 +147,9 @@ sub showop(@actions --> Str:D) {
           ~ $op == 11 ?? 'list' !! 'hash'
     }
     elsif $op == 13 {
-        "nqp::bindattr\(obj,$type,$attr,:\$@actions[3]) if possible"
+        @actions == 5
+          ?? "nqp::bindattr\(obj,$type,{@actions[4].^name} $attr,:\$@actions[3]) if specified"
+          !! "nqp::bindattr\(obj,$type,$attr,:\$@actions[3]) if specified"
     }
     elsif $op == 14 {
         "nqp::bindattr(obj,$type,$attr,"

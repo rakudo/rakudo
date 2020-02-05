@@ -302,9 +302,6 @@ sub unwanted($ast, $by) {
             elsif $ast.name eq '&term:<now>' {
                 $ast.node.worry("Useless use of 'now' in sink context");
             }
-            else {
-                $ast[0] := UNWANTED($ast[0], $byby) if nqp::elems(@($ast));
-            }
             $ast.sunk(1);
         }
         elsif $ast.op eq 'p6capturelex' {

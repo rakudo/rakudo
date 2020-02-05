@@ -157,6 +157,8 @@ class Version {
     method parts() { nqp::hllize($!parts) }
     method plus()  { nqp::hllbool($!plus) }
     method whatever() { nqp::hllbool($!whatever) }
+
+    method Version() { self }
 }
 
 

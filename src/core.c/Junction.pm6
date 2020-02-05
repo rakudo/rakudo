@@ -262,6 +262,14 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
+    multi method iterator(Junction:D:) {
+        # If we're asked for an iterator, we should really give one rather than
+        # auto-thread over the `iterator` method. Otherwise we get decidedly
+        # confusing outcomes from things that do `.iterator` and then expect it
+        # to follow the iterator API.
+        list(self).iterator
+    }
+
     multi method gist(Junction:D:) {
         my int $elems = nqp::elems($!storage);
         my int $i     = -1;

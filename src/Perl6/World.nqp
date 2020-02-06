@@ -3613,12 +3613,16 @@ class Perl6::World is HLL::World {
 
 # nqp::bindattr(self,Foo,'$!a',tmp)
                             elsif $code == 13 {
+                                my $arg := QAST::Var.new( :name($tmp), :scope<local> );
+                                if nqp::elems($task) == 5 {
+                                    $arg := QAST::Op.new(
+                                      :op('p6bindassert'),$arg,
+                                      QAST::WVal.new(:value(nqp::atpos($task,4)))
+                                    );
+                                }
                                 $if.push(
                                   QAST::Op.new(
-                                    :op('bindattr'),
-                                    $self, $class, $attr,
-                                    QAST::Var.new( :name($tmp), :scope<local> )
-                                  )
+                                    :op('bindattr'),$self,$class,$attr,$arg)
                                 );
                             }
 

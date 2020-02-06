@@ -324,7 +324,14 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                                   nqp::existskey($init,nqp::atpos($task,3)),
                                   nqp::bindattr(self,
                                     nqp::atpos($task,1),nqp::atpos($task,2),
-                                    %attrinit.AT-KEY(nqp::atpos($task,3)))
+                                    nqp::if(
+                                      nqp::elems($task) == 5,
+                                      nqp::p6bindassert(
+                                        %attrinit.AT-KEY(nqp::atpos($task,3)),
+                                        nqp::atpos($task,4)),
+                                      %attrinit.AT-KEY(nqp::atpos($task,3))
+                                    )
+                                  )
                                 ),
 
                                 nqp::if(
@@ -566,7 +573,14 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                                     nqp::existskey($init,nqp::atpos($task,3)),
                                     nqp::bindattr(self,
                                       nqp::atpos($task,1),nqp::atpos($task,2),
-                                      %attrinit.AT-KEY(nqp::atpos($task,3))),
+                                      nqp::if(
+                                        nqp::elems($task) == 5,
+                                        nqp::p6bindassert(
+                                          %attrinit.AT-KEY(nqp::atpos($task,3)),
+                                          nqp::atpos($task,4)),
+                                        %attrinit.AT-KEY(nqp::atpos($task,3))
+                                      )
+                                    )
                                   ),
 
                                   nqp::if(

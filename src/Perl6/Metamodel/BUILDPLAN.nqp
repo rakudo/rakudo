@@ -27,7 +27,7 @@ role Perl6::Metamodel::BUILDPLAN {
     #   11 same as 0, but init to nqp::list if value absent (nqp only)
     #   12 same as 0, but init to nqp::hash if value absent (nqp only)
     #   13 same as 0 but *bind* the received value + optional type constraint
-    #   14 same as 4 but *bind* the default value
+    #   14 same as 4 but *bind* the default value + optional type constraint
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
@@ -132,60 +132,77 @@ role Perl6::Metamodel::BUILDPLAN {
 
         # Check if there's any default values to put in place.
         for @attrs {
-            if nqp::can($_, 'build') {
-                my $default := $_.build;
-                my $type    := $_.type;
-                my int $primspec := nqp::objprimspec($type);
+            next unless nqp::can($_, 'build');
+
+            my $default := $_.build;
+            my $type    := $_.type;
+            my int $primspec := nqp::objprimspec($type);
 #?if js
-                my int $is_oversized_int := $primspec == 4 || $primspec == 5;
-                $primspec := $is_oversized_int ?? 0 !! $primspec;
+            my int $is_oversized_int := $primspec == 4 || $primspec == 5;
+            $primspec := $is_oversized_int ?? 0 !! $primspec;
 #?endif
 
-                # compile check constants for correct type
-                if nqp::isconcrete($default) {
-                    if !nqp::isnull(nqp::getlexdyn('$*W')) && $*W.in_unit_parse {
-                        # We're not currently compiling, skip typechecking for now.
-                        if nqp::istype(nqp::decont($default), $*W.find_symbol(["Code"])) {
-                            # cannot typecheck code to be run later
-                        }
-                        # natives
-                        elsif $primspec {
-                            my $destination := $*W.find_symbol([
-                              $primspec == 2
-                                ?? "Num"
-                                !! $primspec == 3
-                                  ?? "Str"
-                                  !! "Int"  # 1,4,5
-                            ]);
-                            self.throw_typecheck($_, $default, $destination)
-                              unless nqp::istype($default,$destination);
-                        }
-                        elsif nqp::istype($default,$type) {
-                            # type checks out ok
-                        }
-                        elsif nqp::istype($type,$*W.find_symbol(["Associative"])) {
-                            # cannot do type checks on associatives
-                        }
-                        elsif nqp::istype(
-                          $type,
-                          my $Positional := $*W.find_symbol(["Positional"])
-                        ) && nqp::istype($default,$Positional.of) {
-                            # type of positional checks out ok
-                        }
-                        else {
-                            self.throw_typecheck($_, $default, $type);
-                        }
+            # compile check constants for correct type
+            if nqp::isconcrete($default) {
+                my $name   := $_.name;
+                my $opcode := $primspec || !$_.is_bound ?? 4 + $primspec !! 14;
+                my @action := [$opcode, $obj, $name, $default];
+
+                # binding defaults to additional check at runtime
+                my $check-at-runtime := $opcode == 14;
+
+                # currently compiling, so we can do typechecking now.
+                if !nqp::isnull(nqp::getlexdyn('$*W')) && $*W.in_unit_parse {
+                    if nqp::istype(nqp::decont($default), $*W.find_symbol(["Code"])) {
+                        # cannot typecheck code to be run later
                     }
 
-                    # all ok, push the action
-                    nqp::push(@plan,[
-                      ($primspec || !$_.is_bound ?? 4 + $primspec !! 14),
-                      $obj,
-                      $_.name,
-                      $default
-                    ]);
-                    nqp::deletekey(%attrs_untouched, $_.name);
+                    # check native attribute
+                    elsif $primspec {
+                        my $destination := $*W.find_symbol([
+                          $primspec == 2
+                            ?? "Num"
+                            !! $primspec == 3
+                              ?? "Str"
+                              !! "Int"  # 1,4,5
+                        ]);
+                        nqp::istype($default,$destination)
+                          ?? ($check-at-runtime := 0)
+                          !! self.throw_typecheck($_, $default, $destination)
+                    }
+
+                    # check opaque attribute
+                    elsif nqp::istype($default,$type) {
+                        $check-at-runtime := 0;
+                    }
+
+                    # associatives need to be checked at runtime
+                    elsif nqp::istype($type,$*W.find_symbol(["Associative"])) {
+                        # cannot do type checks on associatives
+                    }
+
+                    # positionals could be checked now
+                    elsif nqp::istype(
+                      $type,
+                      my $Positional := $*W.find_symbol(["Positional"])
+                    ) && nqp::istype($default,$Positional.of) {
+                        $check-at-runtime := 0;
+                    }
+
+                    # alas, something is wrong
+                    else {
+                        self.throw_typecheck($_, $default, $type);
+                    }
                 }
+
+                # add type if we need to check at runtime
+                nqp::push(@action,$type)
+                  if $check-at-runtime
+                  && !nqp::eqaddr($type,$*W.find_symbol(["Mu"]));
+
+                # store the action, mark as seen
+                nqp::push(@plan,@action);
+                nqp::deletekey(%attrs_untouched, $name);
             }
         }
 

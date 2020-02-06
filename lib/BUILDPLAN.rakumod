@@ -98,7 +98,7 @@ sub build-description(@plan --> Str:D) is export {
 #   11 same as 0, but init to nqp::list if value absent (nqp only)
 #   12 same as 0, but init to nqp::hash if value absent (nqp only)
 #   13 same as 0 but *bind* the received value + optional type constraint
-#   14 same as 4 but *bind* the default value
+#   14 same as 4 but *bind* the default value + optional type constraint
 #===================================================
 
 # description of the action of a single op
@@ -152,7 +152,10 @@ sub showop(@actions --> Str:D) {
           !! "nqp::bindattr\(obj,$type,$attr,:\$@actions[3]) if specified"
     }
     elsif $op == 14 {
-        "nqp::bindattr(obj,$type,$attr,"
+        my $attrspec = @actions == 5
+          ?? "{@actions[4].^name} $attr"
+          !! $attr;
+        "nqp::bindattr(obj,$type,$attrspec,"
           ~ (nqp::istype(@actions[3],Callable)
               ?? "execute-code()"
               !! @actions[3].raku)

@@ -12,11 +12,14 @@ my class Match is Capture is Cool does NQPMatchRole {
     method Int(--> Int:D) { self.Str.Int }
 
     method STR() {
-        nqp::if(
-          nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
-          self.Str,
-          self!MATCH.Str
-        )
+        nqp::getattr(self,Match,'$!regexsub').CAPS.has-captures
+          ?? self!MATCH.Str
+          !! nqp::substr(
+               self.orig,
+               nqp::getattr_i(self,Match,'$!from'),
+               nqp::getattr_i(self,Match,'$!pos')
+                 - nqp::getattr_i(self,Match,'$!from')
+             )
     }
 
     method MATCH() {

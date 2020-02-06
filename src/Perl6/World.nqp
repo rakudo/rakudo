@@ -3725,6 +3725,12 @@ class Perl6::World is HLL::World {
 
                             elsif $code == 14 {
 # (nqp::bindattr(self,Foo,'$!a',$code(self,nqp::getattr(self,Foo,'$!a'))))
+                                if nqp::elems($task) == 5 {
+                                    $initializer := QAST::Op.new(
+                                      :op('p6bindassert'),$initializer,
+                                      QAST::WVal.new(:value(nqp::atpos($task,4)))
+                                    );
+                                }
                                 $unless.push(
                                   QAST::Op.new(
                                     :op('bindattr'),

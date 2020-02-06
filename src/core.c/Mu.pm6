@@ -346,11 +346,22 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                                       nqp::atpos($task,2),
                                       nqp::if(
                                         nqp::istype(nqp::atpos($task,3),Block),
-                                        nqp::atpos($task,3)(self,
-                                          nqp::getattr(self,
+                                        nqp::if(
+                                          nqp::elems($task) == 5,
+                                          nqp::p6bindassert(
+                                            nqp::atpos($task,3)(self,
+                                              nqp::getattr(self,
+                                              nqp::atpos($task,1),
+                                              nqp::atpos($task,2)
+                                            )),
+                                            nqp::atpos($task,4)
+                                          ),
+                                          nqp::atpos($task,3)(self,
+                                            nqp::getattr(self,
                                             nqp::atpos($task,1),
                                             nqp::atpos($task,2)
                                           )),
+                                        ),
                                         nqp::atpos($task,3)
                                       )
                                     )
@@ -595,11 +606,22 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                                         nqp::if(
                                           nqp::istype(
                                             nqp::atpos($task,3),Block),
-                                          nqp::atpos($task,3)(self,
-                                            nqp::getattr(self,
-                                            nqp::atpos($task,1),
-                                            nqp::atpos($task,2)
-                                          )),
+                                          nqp::if(
+                                            nqp::elems($task) == 5,
+                                            nqp::p6bindassert(
+                                              nqp::atpos($task,3)(self,
+                                                nqp::getattr(self,
+                                                nqp::atpos($task,1),
+                                                nqp::atpos($task,2)
+                                              )),
+                                              nqp::atpos($task,4)
+                                            ),
+                                            nqp::atpos($task,3)(self,
+                                              nqp::getattr(self,
+                                              nqp::atpos($task,1),
+                                              nqp::atpos($task,2)
+                                            )),
+                                          ),
                                           nqp::atpos($task,3)
                                         )
                                       )

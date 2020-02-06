@@ -265,7 +265,7 @@ sub WANTED($ast, $by) {
         $ast.wanted(1);  # force in case it's just a thunk
     }
     else {
-        note("Non ast passed to WANTED: " ~ $ast.HOW.name($ast));
+#        note("Non ast passed to WANTED: " ~ $ast.HOW.name($ast));
     }
     $ast;
 }
@@ -1009,6 +1009,10 @@ sub monkey_see_no_eval($/) {
 }
 
 role STDActions {
+    method rakuast($node) {
+        $*W.find_symbol(['RakuAST', $node], :setting-only)
+    }
+
     method quibble($/) {
         make $<nibble>.ast;
     }
@@ -8181,7 +8185,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method numish($/) {
         if $<integer> {
-            make $*W.add_numeric_constant($/, 'Int', $<integer>.ast);
+            make self.rakuast('IntLiteral').new($*W.intern_constant('Int', 'bigint', $<integer>.ast));
         }
         elsif $<dec_number>     { make $<dec_number>.ast; }
         elsif $<rad_number>     { make $<rad_number>.ast; }

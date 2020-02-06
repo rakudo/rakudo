@@ -3011,9 +3011,8 @@ class Perl6::World is HLL::World {
         $value
     }
 
-    # Adds a constant value to the constants table. Returns PAST to do
-    # the lookup of the constant.
-    method add_constant($type, $primitive, :$nocache, *@value, *%named) {
+    # Interns a constant in the constant cache, creating it if needed.
+    method intern_constant($type, $primitive, :$nocache, *@value, *%named) {
         # If we already built this, find it in the cache and
         # just return that.
         my %const_cache := self.context().const_cache();
@@ -3032,8 +3031,7 @@ class Perl6::World is HLL::World {
                     ~ $namedkey;
             }
             if nqp::existskey(%const_cache, $cache_key) {
-                my $value := %const_cache{$cache_key};
-                return QAST::WVal.new( :value($value), :returns($value.WHAT) );
+                return %const_cache{$cache_key};
             }
         }
 
@@ -3065,14 +3063,18 @@ class Perl6::World is HLL::World {
         # Add to SC.
         self.add_object_if_no_sc($constant);
 
-        # Build QAST for getting the boxed constant from the constants
-        # table, but also annotate it with the constant itself in case
-        # we need it. Add to cache.
-        my $qast := QAST::WVal.new( :value($constant), :returns($constant.WHAT) );
+        # Add to cache.
         if !$nocache {
             %const_cache{$cache_key} := $constant;
         }
-        return $qast;
+        return $constant;
+    }
+
+    # Adds a constant value to the constants table. Returns QAST to do
+    # the lookup of the constant.
+    method add_constant(*@pos, *%named) {
+        my $constant := self.intern_constant(|@pos, |%named);
+        return QAST::WVal.new( :value($constant), :returns($constant.WHAT) );
     }
 
     # Adds a numeric constant value (int or num) to the constants table.

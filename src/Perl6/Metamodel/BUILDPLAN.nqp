@@ -148,8 +148,17 @@ role Perl6::Metamodel::BUILDPLAN {
                         if nqp::istype(nqp::decont($default), $*W.find_symbol(["Code"])) {
                             # cannot typecheck code to be run later
                         }
+                        # natives
                         elsif $primspec {
-                            # add typecheck on natives
+                            my $destination := $*W.find_symbol([
+                              $primspec == 2
+                                ?? "Num"
+                                !! $primspec == 3
+                                  ?? "Str"
+                                  !! "Int"  # 1,4,5
+                            ]);
+                            self.throw_typecheck($_, $default, $destination)
+                              unless nqp::istype($default,$destination);
                         }
                         elsif nqp::istype($default,$type) {
                             # type checks out ok

@@ -8520,10 +8520,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         elsif $<uinf> {
-            make $*W.add_numeric_constant($/, 'Num', nqp::inf);
+            make self.rakuast('NumLiteral').new:
+                    $*W.intern_constant('Num', 'num', nqp::inf);
         }
         else {
-            make $*W.add_numeric_constant($/, 'Num', nqp::numify($/));
+            make self.rakuast('NumLiteral').new:
+                    $*W.intern_constant('Num', 'num', nqp::numify($/));
         }
     }
 
@@ -8536,8 +8538,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method dec_number($/) {
         my $world := $*W;
         if $<escale> { # wants a Num
-            make $world.add_numeric_constant: $/, 'Num', nqp::numify($/);
-        } else { # wants a Rat
+            make self.rakuast('NumLiteral').new:
+                    $*W.intern_constant('Num', 'num', nqp::numify($/));
+        }
+        else { # wants a Rat
             my $Int := $world.find_single_symbol_in_setting('Int');
             my $Num := $world.find_single_symbol_in_setting('Num');
             my $parti;

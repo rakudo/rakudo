@@ -8,6 +8,7 @@ stub RakuAST metaclass Perl6::Metamodel::PackageHOW { ... };
 BEGIN { Perl6::Metamodel::PackageHOW.add_stash(RakuAST); }
 stub RakuAST::Node metaclass Perl6::Metamodel::ClassHOW { ... };
 stub RakuAST::IntLiteral metaclass Perl6::Metamodel::ClassHOW { ... };
+stub RakuAST::NumLiteral metaclass Perl6::Metamodel::ClassHOW { ... };
 
 BEGIN {
     ##
@@ -67,6 +68,9 @@ BEGIN {
     add-method(RakuAST::Node, 'flat', [], sub ($self) {
         Mu
     });
+    add-method(RakuAST::Node, 'okifnil', [], sub ($self, $value?) {
+        Mu
+    });
     add-method(RakuAST::Node, 'named', [], sub ($self, $value?) {
        if nqp::isconcrete($value) {
             nqp::bindattr(nqp::decont($self), RakuAST::Node, '$!named', $value);
@@ -83,7 +87,7 @@ BEGIN {
     add-attribute(RakuAST::IntLiteral, Int, '$!value');
     add-method(RakuAST::IntLiteral, 'new', [Int, '$value'], sub ($self, $value) {
         my $obj := nqp::create($self);
-        nqp::bindattr($obj, RakuAST::IntLiteral, '$!value', $value);
+        nqp::bindattr($obj, RakuAST::IntLiteral, '$!value', nqp::decont($value));
         $obj
     });
     add-method(RakuAST::IntLiteral, 'type', [], sub ($self) {
@@ -97,9 +101,29 @@ BEGIN {
         my $wval := QAST::WVal.new( :$value );
         nqp::isbig_I($value)
             ?? $wval
-            !! QAST::Want.new( $wval, 'Ii', QAST::IVal.new( :value(nqp::unbox_i($!value)) ) )
+            !! QAST::Want.new( $wval, 'Ii', QAST::IVal.new( :value(nqp::unbox_i($value)) ) )
     });
     compose(RakuAST::IntLiteral);
+
+    parent(RakuAST::NumLiteral, RakuAST::Node);
+    add-attribute(RakuAST::NumLiteral, Num, '$!value');
+    add-method(RakuAST::NumLiteral, 'new', [Num, '$value'], sub ($self, $value) {
+        my $obj := nqp::create($self);
+        nqp::bindattr($obj, RakuAST::NumLiteral, '$!value', nqp::decont($value));
+        $obj
+    });
+    add-method(RakuAST::NumLiteral, 'type', [], sub ($self) {
+        nqp::getattr(nqp::decont($self), RakuAST::NumLiteral, '$!value').WHAT
+    });
+    add-method(RakuAST::NumLiteral, 'value', [], sub ($self) {
+        nqp::getattr(nqp::decont($self), RakuAST::NumLiteral, '$!value')
+    });
+    add-method(RakuAST::NumLiteral, 'QAST', [], sub ($self) {
+        my $value := nqp::getattr(nqp::decont($self), RakuAST::NumLiteral, '$!value');
+        my $wval := QAST::WVal.new( :$value );
+        QAST::Want.new( $wval, 'Nn', QAST::NVal.new( :value(nqp::unbox_n($value)) ) )
+    });
+    compose(RakuAST::NumLiteral);
     
     ##
     ## Export of what we set up

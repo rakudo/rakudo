@@ -11,7 +11,6 @@ class Distro does Systemic {
     submethod TWEAK (--> Nil) {
         # https://github.com/rakudo/rakudo/issues/3436
         nqp::bind($!name,$!name.lc.trans(" " => ""));  # lowercase spaceless
-        nqp::bind($!version,$!version.Version);
         $!is-win := so $!name eq any <mswin32 mingw msys cygwin>;
     }
 
@@ -75,6 +74,7 @@ sub INITIALIZE-A-DISTRO-NOW() {
             $release := ~$4;
         }
     }
+    $version := $version.Version;  # make sure it is a Version
     Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
 }
 

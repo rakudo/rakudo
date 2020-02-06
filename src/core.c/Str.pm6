@@ -19,6 +19,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my $empty := nqp::list;   # for nqp::splice
 
+    # cache cursor initialization lookup
+    my $cursor-init := Match.^lookup("!cursor_init");
+
+    my \CURSOR-GLOBAL     := Match.^lookup("CURSOR_MORE"   );  # :g
+    my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
+    my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
+
+    my \POST-MATCH  := Match.^lookup("MATCH" );  # Match object
+    my \POST-STR    := Match.^lookup("STR"   );  # Str object
+
     multi method WHY('Life, the Universe and Everything': --> 42) { }
 
     multi method WHICH(Str:D: --> ValueObjAt:D) {
@@ -177,6 +187,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method contains(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::isne_i(nqp::index($!value,$needle,0),-1))
     }
+    multi method contains(Str:D: Regex:D $needle --> Bool:D) {
+        nqp::hllbool(
+          nqp::isge_i(
+            nqp::getattr_i($needle($cursor-init(Match,self,:0c)),Match,'$!pos'),
+            0
+          )
+        )
+    }
     multi method contains(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::isge_i($pos,0)
@@ -191,10 +209,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
             && nqp::isne_i(nqp::index(self,$needle,$pos),-1)
         )
     }
+    multi method contains(Str:D: Regex:D $needle, Int:D $pos --> Bool:D) {
+        nqp::hllbool(
+          nqp::isge_i($pos,0)
+            && nqp::islt_i($pos,nqp::chars(self))
+            && nqp::getattr_i(
+                 $needle($cursor-init(Match,self,:c($pos))),Match,'$!pos'
+               ) >= 0
+        )
+    }
     multi method contains(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
         self.contains($needle.Str, $pos.Int)
     }
     multi method contains(Str:D: Str:D $needle, Cool:D $pos --> Bool:D) {
+        self.contains($needle, $pos.Int)
+    }
+    multi method contains(Str:D: Regex:D $needle, Cool:D $pos --> Bool:D) {
         self.contains($needle, $pos.Int)
     }
 
@@ -582,16 +612,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? Seq.new(CombPatLimit.new(self,$pat,$limit))
             !! self.comb(1,$limit)
     }
-
-    # cache cursor initialization lookup
-    my $cursor-init := Match.^lookup("!cursor_init");
-
-    my \CURSOR-GLOBAL     := Match.^lookup("CURSOR_MORE"   );  # :g
-    my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
-    my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
-
-    my \POST-MATCH  := Match.^lookup("MATCH" );  # Match object
-    my \POST-STR    := Match.^lookup("STR"   );  # Str object
 
     # iterate with post-processing
     class POST-ITERATOR does Iterator {

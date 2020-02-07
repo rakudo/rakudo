@@ -84,21 +84,17 @@ my class DateTime does Dateish {
             &formatter,
             %extra,
     --> DateTime:D) {
-        1 <= $month <= 12
-          || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
-          || X::OutOfRange.new(
-               :what<Day>,
-               :got($day),
-               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
-             ).throw;
-        0 <= $hour <= 23
-          || X::OutOfRange.new(:what<Hour>,:got($hour),:range<0..23>).throw;
-        0 <= $minute <= 59
-          || X::OutOfRange.new(:what<Minute>,:got($minute),:range<0..59>).throw;
+        self!oor("Month",$month,"1..12")
+          unless 1 <= $month <= 12;
+        self!oor("Day",$day,"1..{self!DAYS-IN-MONTH($year,$month)}")
+          unless 1 <= $day <= self!DAYS-IN-MONTH($year,$month);
+        self!oor("Hour",$hour,"0..23")
+          unless 0 <= $hour <= 23;
+        self!oor("Minute",$minute,"0..59")
+          unless 0 <= $minute <= 59;
         (^61).in-range($second,'Second'); # some weird semantics need this
 
-        my $dt = nqp::eqaddr(self.WHAT,DateTime)
+        my $dt := nqp::eqaddr(self.WHAT,DateTime)
           ?? nqp::create(self)!SET-SELF(
                $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
           !! self.bless(
@@ -107,6 +103,10 @@ my class DateTime does Dateish {
              )!SET-DAYCOUNT;
 
         $second >= 60 ?? $dt!check-leap-second !! $dt
+    }
+
+    method !oor($what, $got, $range) {
+        X::OutOfRange.new(:$what, :$got, :$range).throw
     }
 
     method !check-leap-second(--> DateTime:D) {

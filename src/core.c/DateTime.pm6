@@ -225,27 +225,35 @@ my class DateTime does Dateish {
           (\d\d)                                         # minute
           ':'
           (\d\d[<[\.,]>\d ** 1..12]?)                    # second
-          (<[Zz]> || (<[\-\+]>) (\d\d) (':'? (\d\d))? )? # timezone
+          [<[Zz]> | (<[\-\+]> \d\d) [':'? (\d\d)]? ]?    # timezone
         $/;
+
+        my $string := $5.Str;
+        my $second := $string.Numeric;
+        $second := $string.subst(",",".").Numeric
+          if nqp::istype($second,Failure);
 
         if $6 {
             X::DateTime::TimezoneClash.new.throw with $timezone;
-            if $6.chars != 1 {
-                X::OutOfRange.new(
-                  what  => "minutes of timezone",
-                  got   => +$6[2][0],
-                  range => "0..^60",
-                ).throw if $6[2] && $6[2][0] > 59;
+            my $seconds := $7 ?? $7.Int * 60 !! 0;
+            X::OutOfRange.new(
+              what  => "minutes of timezone",
+              got   => $seconds / 60,
+              range => "0..^60",
+            ).throw if $seconds >= 3600;
 
-                $timezone = (($6[1]*60 + ($6[2][0] // 0)) * 60).Int;
-                  # RAKUDO: .Int is needed to avoid to avoid the nasty '-0'.
-                $timezone = -$timezone if $6[0] eq '-';
-            }
+            $timezone := $6.Int * 3600;
+            $timezone := $timezone < 0
+              || $timezone == 0 && $6.Str.starts-with('-')
+              ?? $timezone - $seconds
+              !! $timezone + $seconds;
         }
-        $timezone //= 0;
+        else {
+            $timezone := 0 unless nqp::isconcrete($timezone);
+        }
 
         self!new-from-positional(
-          $0,$1,$2,$3,$4,+(~$5.subst(",",".")),$timezone,&formatter,%_)
+          $0,$1,$2,$3,$4,$second,$timezone,&formatter,%_)
     }
 
     method now(:$timezone=$*TZ, :&formatter --> DateTime:D) {

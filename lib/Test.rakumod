@@ -602,6 +602,11 @@ multi sub is-deeply(Mu $got, Mu $expected, $reason = '') is export {
 }
 
 sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
+    for %matcher.kv -> $k, $v {
+        if $v === True|False {
+            X::Match::Bool.new(:type(".$k")).throw;
+        }
+    }
     my $caller-context = $*THROWS-LIKE-CONTEXT // CALLER::; # Don't guess our caller context, know it!
     subtest {
         plan 2 + %matcher.keys.elems;
@@ -644,6 +649,11 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
 sub fails-like (
     \test where Callable:D|Str:D, $ex-type, $reason?, *%matcher
 ) is export {
+    for %matcher.kv -> $k, $v {
+        if $v === True|False {
+            X::Match::Bool.new(:type(".$k")).throw;
+        }
+    }
     my $*THROWS-LIKE-CONTEXT = CALLER::;
     subtest sub {
         plan 2;

@@ -34,6 +34,11 @@ my role Dateish {
     # noop for subclasses
     method !SET-DAYCOUNT() { self }
 
+    # shortcut for out of range throwing
+    method !oor($what, $got, $range) {
+        X::OutOfRange.new(:$what, :$got, :$range).throw
+    }
+
     multi method new(Dateish:) {
         Failure.new(
             "Cannot call {self.^name}.new with "

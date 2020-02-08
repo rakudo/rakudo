@@ -105,10 +105,6 @@ my class DateTime does Dateish {
         $second >= 60 ?? $dt!check-leap-second !! $dt
     }
 
-    method !oor($what, $got, $range) {
-        X::OutOfRange.new(:$what, :$got, :$range).throw
-    }
-
     method !check-leap-second(--> DateTime:D) {
         my $utc := $!timezone ?? self.utc !! self;
         X::OutOfRange.new(

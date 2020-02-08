@@ -39,6 +39,11 @@ my role Dateish {
         X::OutOfRange.new(:$what, :$got, :$range).throw
     }
 
+    # shortcut for invalid format throwing
+    method !tif($invalid-str, $target, $format) {
+        X::Temporal::InvalidFormat.new(:$invalid-str,:$target,:$format).throw
+    }
+
     multi method new(Dateish:) {
         Failure.new(
             "Cannot call {self.^name}.new with "

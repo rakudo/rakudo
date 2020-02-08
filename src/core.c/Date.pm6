@@ -68,11 +68,8 @@ my class Date does Dateish {
           !! self!bless($year, $month, $day, &formatter, %_)
     }
     multi method new(Date: Str $date, :&formatter --> Date:D) {
-        X::Temporal::InvalidFormat.new(
-          invalid-str => $date,
-          target      => 'Date',
-          format      => 'yyyy-mm-dd',
-        ).throw unless $date.codes == $date.chars and $date ~~ /^
+        self!tif($date,'Date','yyyy-mm-dd')
+          unless $date.codes == $date.chars and $date ~~ /^
           (<[+-]>? \d**4 \d*)                            # year
           '-'
           (\d\d)                                         # month

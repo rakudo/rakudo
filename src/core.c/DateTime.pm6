@@ -205,11 +205,11 @@ my class DateTime does Dateish {
     multi method new(DateTime:
       Str:D $datetime, :$timezone is copy, :&formatter, *%_
     --> DateTime:D) {
-        X::Temporal::InvalidFormat.new(
-          invalid-str => $datetime,
-          target      => 'DateTime',
-          format      => 'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)',
-        ).throw unless $datetime.chars == $datetime.codes and $datetime ~~ /^
+        self!tif(
+          $datetime,
+          'DateTime',
+          'an ISO 8601 timestamp (yyyy-mm-ddThh:mm:ssZ or yyyy-mm-ddThh:mm:ss+01:00)'
+        ) unless $datetime.chars == $datetime.codes and $datetime ~~ /^
           (<[+-]>? \d**4 \d*)                            # year
           '-'
           (\d\d)                                         # month

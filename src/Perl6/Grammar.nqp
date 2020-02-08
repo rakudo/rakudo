@@ -2695,7 +2695,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         # enforce zone constraints
         {
             my $kind :=
-                $<named_param>                      ?? '*' !!
+                $<named_param>                      ?? 'n' !!
                 $<quant> eq '?' || $<default_value> ?? '?' !!
                 $<quant> eq '!'                     ?? '!' !!
                 $<quant> ne '' && $<quant> ne '\\'  ?? '*' !!
@@ -2708,6 +2708,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 elsif $*zone eq 'var' {
                     $/.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'variadic', parameter => $name);
                 }
+                elsif $*zone eq 'named' {
+                    $/.typed_panic('X::Parameter::WrongOrder', misplaced => 'required', after => 'named', parameter => $name);
+                }
             }
             elsif $kind eq '?' {
                 if $*zone  eq 'posreq' {
@@ -2716,9 +2719,15 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 elsif $*zone eq  'var' {
                     $/.typed_panic('X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'variadic', parameter => $name);
                 }
+                elsif $*zone eq 'named' {
+                    $/.typed_panic('X::Parameter::WrongOrder', misplaced => 'optional positional', after => 'named', parameter => $name);
+                }
             }
             elsif $kind eq '*' {
                 $*zone := 'var';
+            }
+            elsif $kind eq 'n' {
+                $*zone := 'named';
             }
 
             %*PARAM_INFO<is_multi_invocant> := $*multi_invocant;

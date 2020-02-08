@@ -26,47 +26,48 @@ my class Date does Dateish {
           !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
     }
 
+    # fast object creation with sanity check on month/day
     method !SET-SELF(\year,\month,\day,\formatter,$daycount? --> Date:D) {
-        nqp::bind($!year,      year);  # R#2581
-        nqp::bind($!month,     month);
-        nqp::bind($!day,       day);
-        nqp::bind(&!formatter, formatter);
-        nqp::bind($!daycount,$daycount) if nqp::isconcrete($!daycount);
+        self!oor("Month",month,"1..12")
+          unless 1 <= month <= 12;
+        self!oor("Day",day,"1..{self!DAYS-IN-MONTH(year,month)}")
+          unless 1 <= day <= self!DAYS-IN-MONTH(year,month);
+
+        nqp::bindattr(self,Date,'$!year',year);
+        nqp::bindattr(self,Date,'$!month',month);
+        nqp::bindattr(self,Date,'$!day',day);
+        nqp::bindattr(self,Date,'&!formatter',formatter);
+        nqp::bindattr(self,Date,'$!daycount',$daycount)
+          if nqp::isconcrete($daycount);
         self
+    }
+
+    # object creation for subclasses, wit sanity check on month/day
+    method !bless($year, $month, $day, &formatter, %nameds) {
+        self!oor("Month",$month,"1..12")
+          unless 1 <= $month <= 12;
+        self!oor("Day",$day,"1..{self!DAYS-IN-MONTH($year,$month)}")
+          unless 1 <= $day <= self!DAYS-IN-MONTH($year,$month);
+
+        self.bless(:$year,:$month,:$day,:&formatter,|%nameds)!SET-DAYCOUNT
     }
 
     proto method new(|) {*}
     multi method new(Date:
-      Int:D() $year, Int:D() $month, Int:D() $day, :&formatter, *%_
+      Int:D() $year, Int:D() $month, Int:D() $day, :&formatter
     --> Date:D) {
-        1 <= $month <= 12
-          || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
-          || X::OutOfRange.new(
-               :what<Day>,
-               :got($day),
-               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
-             ).throw;
         nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
-          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)!SET-DAYCOUNT
+          ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
+          !! self!bless($year, $month, $day, &formatter, %_)
     }
     multi method new(Date:
-      Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter, *%_
+      Int:D() :$year!, Int:D() :$month = 1, Int:D() :$day = 1, :&formatter
     --> Date:D) {
-        1 <= $month <= 12
-          || X::OutOfRange.new(:what<Month>,:got($month),:range<1..12>).throw;
-        1 <= $day <= self!DAYS-IN-MONTH($year,$month)
-          || X::OutOfRange.new(
-               :what<Day>,
-               :got($day),
-               :range("1..{self!DAYS-IN-MONTH($year,$month)}")
-             ).throw;
         nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter)
-          !! self.bless(:$year,:$month,:$day,:&formatter,|%_)!SET-DAYCOUNT
+          ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
+          !! self!bless($year, $month, $day, &formatter, %_)
     }
-    multi method new(Date: Str $date, :&formatter, *%_ --> Date:D) {
+    multi method new(Date: Str $date, :&formatter --> Date:D) {
         X::Temporal::InvalidFormat.new(
           invalid-str => $date,
           target      => 'Date',
@@ -78,7 +79,9 @@ my class Date does Dateish {
           '-'
           (\d\d)                                         # day
         $/;
-        self.new($0,$1,$2,:&formatter,|%_)
+        nqp::eqaddr(self.WHAT,Date)
+          ?? nqp::create(self)!SET-SELF($0.Int, $1.Int, $2.Int, &formatter)
+          !! self!bless($0.Int, $1.Int, $2.Int, &formatter, %_)
     }
     multi method new(Date: Dateish $d, :&formatter, *%_ --> Date:D) {
         nqp::eqaddr(self.WHAT,Date)
@@ -88,7 +91,7 @@ my class Date does Dateish {
              )!SET-DAYCOUNT
     }
     multi method new(Date: Instant $i, :&formatter, *%_ --> Date:D) {
-        self.new(DateTime.new($i),:&formatter,|%_)
+        self.new(DateTime.new($i),:&formatter,|%_)   # XXX could be faster
     }
     proto method new-from-daycount($) {*}
     multi method new-from-daycount(Date:U: $daycount,:&formatter --> Date:D) {

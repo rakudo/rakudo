@@ -8,31 +8,26 @@ my class Instant is Cool does Real {
       # Rakudo::Internals.initial-offset. Thus, $.tai matches TAI from 1970
       # to the present.
 
-    # cannot be private because of operators
-    method SET-SELF(\tai) { $!tai := tai; self }
-
     method new(*@) { X::Cannot::New.new(class => self).throw }
 
     proto method from-posix(|) {*}
     multi method from-posix($posix --> Instant:D) {
-        nqp::create(Instant).SET-SELF(
-          Rakudo::Internals.tai-from-posix($posix,0).Rat
-        )
+        nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+          Rakudo::Internals.tai-from-posix($posix,0).Rat)
     }
     multi method from-posix($posix, Bool $prefer-leap-second --> Instant:D) {
     # $posix is in general not expected to be an integer.
     # If $prefer-leap-second is true, 915148800 is interpreted to
     # mean 1998-12-31T23:59:60Z rather than 1999-01-01T00:00:00Z.
-        nqp::create(Instant).SET-SELF(
-          Rakudo::Internals.tai-from-posix($posix,$prefer-leap-second).Rat
-        )
+        nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+          Rakudo::Internals.tai-from-posix($posix,$prefer-leap-second).Rat)
     }
 
     method to-posix(--> List:D) {
     # The inverse of .from-posix, except that the second return
     # value is true if *and only if* this Instant is in a leap
     # second.
-        Rakudo::Internals.posix-and-leap-from-tai($!tai);
+        Rakudo::Internals.posix-and-leap-from-tai($!tai)
     }
 
     multi method Str(Instant:D: --> Str:D) {
@@ -94,38 +89,42 @@ multi sub infix:<+>(Instant:D $a, Instant:D $b) {
 Did you mean to subtract?  Perhaps you need to convert to .Numeric first?"
 }
 multi sub infix:<+>(Instant:D $a, Real:D $b --> Instant:D) {
-    nqp::create(Instant).SET-SELF($a.tai + $b.Rat)
+    nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+      $a.tai + $b.Rat)
 }
 multi sub infix:<+>(Real:D $a, Instant:D $b --> Instant:D) {
-    nqp::create(Instant).SET-SELF($a.Rat + $b.tai)
+    nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+      $a.Rat + $b.tai)
 }
 multi sub infix:<+>(Instant:D $a, Duration:D $b --> Instant:D) {
-    nqp::create(Instant).SET-SELF($a.tai + $b.tai)
+    nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+      $a.tai + $b.tai)
 }
 multi sub infix:<+>(Duration:D $a, Instant:D $b --> Instant:D) {
-    nqp::create(Instant).SET-SELF($a.tai + $b.tai)
+    nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+      $a.tai + $b.tai)
 }
 
 multi sub infix:<->(Instant:D $a, Instant:D $b --> Duration:D) {
     Duration.new: $a.tai - $b.tai;
 }
 multi sub infix:<->(Instant:D $a, Real:D $b --> Instant:D) {
-    nqp::create(Instant).SET-SELF($a.tai - $b.Rat)
+    nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+      $a.tai - $b.Rat)
 }
 
 sub term:<time>(--> Int:D) { nqp::p6box_i(nqp::time_i()) }
 sub term:<now>(--> Instant:D) {
     # FIXME: During a leap second, the returned value is one
     # second greater than it should be.
-    nqp::create(Instant).SET-SELF(
-      Rakudo::Internals.tai-from-posix(nqp::time_n,0).Rat
-    )
+    nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+      Rakudo::Internals.tai-from-posix(nqp::time_n,0).Rat)
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {
-    PROCESS::<$INIT-INSTANT> := nqp::create(Instant).SET-SELF(
-      Rakudo::Internals.tai-from-posix(Rakudo::Internals.INITTIME,0).Rat
-    )
+    PROCESS::<$INIT-INSTANT> :=
+        nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
+          Rakudo::Internals.tai-from-posix(Rakudo::Internals.INITTIME,0).Rat)
 }
 
 # vim: ft=perl6 expandtab sw=4

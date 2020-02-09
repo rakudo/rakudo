@@ -67,18 +67,54 @@ my class Date does Dateish {
           ?? nqp::create(self)!SET-SELF($year, $month, $day, &formatter)
           !! self!bless($year, $month, $day, &formatter, %_)
     }
-    multi method new(Date: Str $date, :&formatter --> Date:D) {
-        self!tif($date,'Date','yyyy-mm-dd')
-          unless $date.codes == $date.chars and $date ~~ /^
-          (<[+-]>? \d**4 \d*)                            # year
-          '-'
-          (\d\d)                                         # month
-          '-'
-          (\d\d)                                         # day
-        $/;
-        nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF($0.Int, $1.Int, $2.Int, &formatter)
-          !! self!bless($0.Int, $1.Int, $2.Int, &formatter, %_)
+    multi method new(Date: Str:D $date, :&formatter --> Date:D) {
+
+        # do we have non-ascii chars in there?
+        if nqp::chars($date) == nqp::codes($date) {
+
+            # no, can we fastpath?
+            if nqp::chars($date) == 10
+              && nqp::eqat($date,'-',4)
+              && nqp::eqat($date,'-',7) {
+                nqp::eqaddr(self.WHAT,Date)
+                 ?? nqp::create(self)!SET-SELF(
+                      nqp::substr($date,0,4).Int,
+                      nqp::substr($date,5,2).Int,
+                      nqp::substr($date,8,2).Int,
+                      &formatter
+                    )
+                 !! self!bless(
+                      nqp::substr($date,0,4).Int,
+                      nqp::substr($date,5,2).Int,
+                      nqp::substr($date,8,2).Int,
+                      &formatter,
+                      %_
+                    )
+            }
+
+            # no, can we use regex?
+            elsif $date.match(/^
+                  (<[+-]>? \d**4 \d*)  # year
+                  '-'
+                  (\d\d)               # month
+                  '-'
+                  (\d\d)               # day
+                $/) {
+                nqp::eqaddr(self.WHAT,Date)
+                  ?? nqp::create(self)!SET-SELF($0.Int,$1.Int,$2.Int,&formatter)
+                  !! self!bless($0.Int, $1.Int, $2.Int, &formatter, %_)
+            }
+
+            # no, too bad
+            else {
+                self!tif($date,'Date','yyyy-mm-dd');
+            }
+        }
+
+        # has non-ascii chars
+        else {
+            self!tif($date,'Date','yyyy-mm-dd');
+        }
     }
     multi method new(Date: Dateish $d, :&formatter, *%_ --> Date:D) {
         nqp::eqaddr(self.WHAT,Date)

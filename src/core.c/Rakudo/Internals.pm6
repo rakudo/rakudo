@@ -898,21 +898,32 @@ implementation detail and has no serviceable parts inside"
         )
     }
 
+    # take TAI, return epoch
     method posix-from-tai(\tai) {
-        nqp::stmts(
-          (my int $t = tai.floor - $initial-offset),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-              && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
-            nqp::null
-          ),
-          (tai - nqp::add_i($initial-offset,$i),
-            nqp::hllbool(
-              nqp::islt_i($i,$elems)
-                && nqp::iseq_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i))
-            )
-          )
+        my int $t = tai.floor - $initial-offset;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
+          nqp::null
+        );
+        tai - nqp::add_i($initial-offset,$i);
+    }
+
+    # take TAI, return epoch and if in leap-second
+    method posix-and-leap-from-tai(\tai) {
+        my int $t = tai.floor - $initial-offset;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
+          nqp::null
+        );
+        (tai - nqp::add_i($initial-offset,$i),
+         nqp::hllbool(
+           nqp::islt_i($i,$elems)
+             && nqp::iseq_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i))
+         )
         )
     }
 

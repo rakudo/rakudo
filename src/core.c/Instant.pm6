@@ -32,7 +32,7 @@ my class Instant is Cool does Real {
     # The inverse of .from-posix, except that the second return
     # value is true if *and only if* this Instant is in a leap
     # second.
-        Rakudo::Internals.posix-from-tai($!tai)
+        Rakudo::Internals.posix-and-leap-from-tai($!tai);
     }
 
     multi method Str(Instant:D: --> Str:D) {

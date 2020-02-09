@@ -213,17 +213,7 @@ my class Date does Dateish {
     # helper method for moving a Date
     method !move(str $unit, int $amount) {
         if nqp::atkey($valid-units,$unit) -> int $multiplier {
-            my int $daycount = self.daycount + nqp::mul_i($multiplier,$amount);
-            self!ymd-from-daycount(
-              $daycount, my int $year, my int $month, my int $day);
-
-            my $new := nqp::clone(self);
-            nqp::bindattr($new,Date,'$!year',$year);
-            nqp::bindattr($new,Date,'$!month',$month);
-            nqp::bindattr($new,Date,'$!day',
-              $day < 28 ?? $day !! self!clip-day($year,$month,$day));
-            nqp::bindattr($new,Date,'$!daycount',$daycount);
-            $new
+            self!move-days(nqp::mul_i($multiplier,$amount));
         }
         elsif nqp::eqat($unit,'month',0) {
             my int $month = $!month + $amount;
@@ -255,6 +245,30 @@ my class Date does Dateish {
             nqp::bindattr($new,Date,'$!daycount',Int);
             $new
         }
+    }
+
+    # Helper method to move a number of days within a month
+    method !move-days-within-month(int $days --> Date:D) {
+        my $new := nqp::clone(self);
+        nqp::bindattr($new,Date,'$!day', $!day + $days);
+        nqp::bindattr($new,Date,'$!daycount',$!daycount + $days)
+          if nqp::isconcrete($!daycount);
+        $new
+    }
+
+    # Helper method to move a number of days
+    method !move-days(int $days --> Date:D) {
+        my int $daycount = self.daycount + $days;
+        self!ymd-from-daycount(
+          $daycount, my int $year, my int $month, my int $day);
+
+        my $new := nqp::clone(self);
+        nqp::bindattr($new,Date,'$!year',$year);
+        nqp::bindattr($new,Date,'$!month',$month);
+        nqp::bindattr($new,Date,'$!day',
+          $day < 28 ?? $day !! self!clip-day($year,$month,$day));
+        nqp::bindattr($new,Date,'$!daycount',$daycount);
+        $new
     }
 
     # If we overflow on days in the month, rather than throw an
@@ -298,14 +312,14 @@ my class Date does Dateish {
     }
 
     method succ(Date:D: --> Date:D) {
-        $!day < 28 && nqp::eqaddr(self.WHAT,Date)
-          ?? self.new-from-diff(1)
-          !! self.new-from-daycount(self.daycount + 1)
+        $!day < 28
+          ?? self!move-days-within-month(1)
+          !! self!move-days(1)
     }
     method pred(Date:D: --> Date:D) {
-        $!day > 1 && nqp::eqaddr(self.WHAT,Date)
-          ?? self.new-from-diff(-1)
-          !! self.new-from-daycount(self.daycount - 1)
+        $!day > 1
+          ?? self!move-days-within-month(-1)
+          !! self!move-days(-1)
     }
 
     multi method raku(Date:D: --> Str:D) {

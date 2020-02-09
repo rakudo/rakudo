@@ -122,7 +122,9 @@ my class Date does Dateish {
              )!SET-DAYCOUNT
     }
     multi method new(Date: Instant $i, :&formatter, *%_ --> Date:D) {
-        self.new(DateTime.new($i),:&formatter,|%_)   # XXX could be faster
+        self!new-from-daycount(
+          (Rakudo::Internals.epoch-from-tai($i) div 86400) + 40587,
+          &formatter, %_)
     }
     proto method new-from-daycount($) {*}
     multi method new-from-daycount(Date:U:

@@ -127,20 +127,23 @@ my class Date does Dateish {
         self.new(DateTime.new($i),:&formatter,|%_)   # XXX could be faster
     }
     proto method new-from-daycount($) {*}
-    multi method new-from-daycount(Date:U: $daycount,:&formatter --> Date:D) {
-        self!ymd-from-daycount($daycount, my $year, my $month, my $day);
-        nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
-          !! self.bless(
-               :$year,:$month,:$day,:&formatter,:$daycount
-             )!SET-DAYCOUNT
+    multi method new-from-daycount(Date:U:
+      $daycount, :&formatter
+    --> Date:D) {
+        self!new-from-daycount($daycount, &formatter, %_)
     }
-    multi method new-from-daycount(Date:D: $daycount,:&formatter = &!formatter --> Date:D) {
+    multi method new-from-daycount(Date:D:
+      $daycount, :&formatter = &!formatter
+    --> Date:D) {
+        self!new-from-daycount($daycount, &formatter, %_)
+    }
+
+    method !new-from-daycount($daycount, &formatter, %nameds --> Date:D) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
         nqp::eqaddr(self.WHAT,Date)
           ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
           !! self.bless(
-               :$year,:$month,:$day,:&formatter,:$daycount
+               :$year,:$month,:$day,:&formatter,:$daycount,|%nameds
              )!SET-DAYCOUNT
     }
 

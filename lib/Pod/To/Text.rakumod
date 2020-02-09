@@ -99,6 +99,9 @@ sub declarator2text($pod) {
         when .HOW ~~ Metamodel::ModuleHOW {
             'module ' ~ $_.raku
         }
+        when .HOW ~~ Metamodel::SubsetHOW {
+            'subset ' ~ $_.raku ~ ' of ' ~ $_.^refinee().raku
+        }
         when .HOW ~~ Metamodel::PackageHOW {
             'package ' ~ $_.raku
         }

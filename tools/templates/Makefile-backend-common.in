@@ -36,6 +36,8 @@
 @bsv(RAKUDO_S)@   = @nfp(@bpm(BLIB_RAKUDO)@/SysConfig.@bext@)@
 @bsv(RAKUDO_M)@   = @nfp(@bpm(BLIB_RAKUDO)@/Metamodel.@bext@)@
 @for_specs(@bsv(RAKUDO_BOOTSTRAP_@ucspec@)@   = @nfp(@bpm(BLIB_RAKUDO)@/BOOTSTRAP/v6@lcspec@.@bext@)@
+@bsv(RAKU_AST_SOURCES)@ = \
+		@insert_filelist(raku_ast_sources)@
 @bsv(SETTING_@ucspec@)@ = @nfp(@bpm(BLIB)@/CORE.@lcspec@.setting.@bext@)@
 )@
 
@@ -166,6 +168,10 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 @gencat(@nfp(@bpm(BUILD_DIR)@/World.nqp)@: 			@nfp(src/Perl6/World.nqp)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/rakudo.nqp)@:			@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@ @nfp(src/main.nqp)@)@
 @gencat(@nfp(@bpm(BUILD_DIR)@/rakudo-debug.nqp)@:	@nfp(src/rakudo-debug.nqp)@ @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@)@
+
+# compile Raku AST specs into NQP
+gen/ast.nqp: @bsm(RAKU_AST_SOURCES)@
+	nqp tools/build/raku-ast-compiler.nqp @bsm(RAKU_AST_SOURCES)@ > gen/ast.nqp
 
 # Generate precompilations
 @comp(@bsm(RAKUDO_A)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@)@ @bsm(RAKUDO_P)@ @bsm(RAKUDO_OPS)@)@

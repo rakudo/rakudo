@@ -213,11 +213,17 @@ my class Date does Dateish {
     # helper method for moving a Date
     method !move(str $unit, int $amount) {
         if nqp::atkey($valid-units,$unit) -> int $multiplier {
-            self!new-from-daycount(
-              self.daycount + nqp::mul_i($multiplier,$amount),
-              &!formatter,
-              nqp::hash()
-            )
+            my int $daycount = self.daycount + nqp::mul_i($multiplier,$amount);
+            self!ymd-from-daycount(
+              $daycount, my int $year, my int $month, my int $day);
+
+            my $new := nqp::clone(self);
+            nqp::bindattr($new,Date,'$!year',$year);
+            nqp::bindattr($new,Date,'$!month',$month);
+            nqp::bindattr($new,Date,'$!day',
+              $day < 28 ?? $day !! self!clip-day($year,$month,$day));
+            nqp::bindattr($new,Date,'$!daycount',$daycount);
+            $new
         }
         elsif nqp::eqat($unit,'month',0) {
             my int $month = $!month + $amount;
@@ -231,23 +237,22 @@ my class Date does Dateish {
                 $year = $!year;
             }
 
-            my $new := nqp::create(self);
+            my $new := nqp::clone(self);
             nqp::bindattr($new,Date,'$!year',$year);
             nqp::bindattr($new,Date,'$!month',$month);
-            nqp::bindattr($new,Date,'$!day',
-              $!day > 28 ?? self!clip-day($year,$month,$!day) !! $!day);
-            nqp::bindattr($new,Date,'&!formatter',&!formatter);
+            nqp::bindattr($new,Date,'$!day',self!clip-day($year,$month,$!day))
+              if $!day > 28;
+            nqp::bindattr($new,Date,'$!daycount',Int);
             $new
         }
         else { # year
             my int $year = $!year + $amount;
 
-            my $new := nqp::create(self);
+            my $new := nqp::clone(self);
             nqp::bindattr($new,Date,'$!year',$year);
-            nqp::bindattr($new,Date,'$!month',$!month);
-            nqp::bindattr($new,Date,'$!day',
-              $!day > 28 ?? self!clip-day($year,$!month,$!day) !! $!day);
-            nqp::bindattr($new,Date,'&!formatter',&!formatter);
+            nqp::bindattr($new,Date,'$!day',self!clip-day($year,$!month,$!day))
+              if $!day > 28;
+            nqp::bindattr($new,Date,'$!daycount',Int);
             $new
         }
     }

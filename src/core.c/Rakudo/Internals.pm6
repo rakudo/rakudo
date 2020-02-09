@@ -899,6 +899,20 @@ implementation detail and has no serviceable parts inside"
     }
 
     # take TAI, return epoch
+    method epoch-from-tai(\tai) {
+        my int $tai = tai.floor;
+        my int $t = $tai - $initial-offset;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
+          nqp::null
+        );
+        nqp::sub_i($tai,nqp::add_i($initial-offset,$i))
+    }
+
+
+    # take TAI, return posix
     method posix-from-tai(\tai) {
         my int $t = tai.floor - $initial-offset;
         my int $i = -1;
@@ -907,7 +921,7 @@ implementation detail and has no serviceable parts inside"
             && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
           nqp::null
         );
-        tai - nqp::add_i($initial-offset,$i);
+        tai - nqp::add_i($initial-offset,$i)
     }
 
     # take TAI, return epoch and if in leap-second

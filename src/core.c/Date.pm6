@@ -27,7 +27,7 @@ my class Date does Dateish {
     }
 
     # fast object creation with sanity check on month/day
-    method !SET-SELF(\year,\month,\day,\formatter,$daycount? --> Date:D) {
+    method !SET-SELF(\year,\month,\day,\formatter --> Date:D) {
         self!oor("Month",month,"1..12")
           unless 1 <= month <= 12;
         self!oor("Day",day,"1..{self!DAYS-IN-MONTH(year,month)}")
@@ -37,8 +37,6 @@ my class Date does Dateish {
         nqp::bindattr(self,Date,'$!month',month);
         nqp::bindattr(self,Date,'$!day',day);
         nqp::bindattr(self,Date,'&!formatter',formatter);
-        nqp::bindattr(self,Date,'$!daycount',$daycount)
-          if nqp::isconcrete($daycount);
         self
     }
 
@@ -140,11 +138,20 @@ my class Date does Dateish {
 
     method !new-from-daycount($daycount, &formatter, %nameds --> Date:D) {
         self!ymd-from-daycount($daycount, my $year, my $month, my $day);
-        nqp::eqaddr(self.WHAT,Date)
-          ?? nqp::create(self)!SET-SELF($year,$month,$day,&formatter,$daycount)
-          !! self.bless(
-               :$year,:$month,:$day,:&formatter,:$daycount,|%nameds
-             )!SET-DAYCOUNT
+        if nqp::eqaddr(self.WHAT,Date) {
+            my $new := nqp::create(self);
+            nqp::bindattr($new,Date,'$!year',nqp::decont($year));
+            nqp::bindattr($new,Date,'$!month',nqp::decont($month));
+            nqp::bindattr($new,Date,'$!day',nqp::decont($day));
+            nqp::bindattr($new,Date,'&!formatter',nqp::decont(&formatter));
+            nqp::bindattr($new,Date,'$!daycount',nqp::decont($daycount));
+            $new
+        }
+        else {
+           self.bless(
+             :$year,:$month,:$day,:&formatter,:$daycount,|%nameds
+           )!SET-DAYCOUNT
+        }
     }
 
     method today(:&formatter --> Date:D) { self.new(DateTime.now, :&formatter) }

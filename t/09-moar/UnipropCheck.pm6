@@ -8,12 +8,12 @@ my %prop-data =
 my %expected-loses =
     "extracted/DerivedGeneralCategory.txt" => {
         General_Category => {
-            Cn => 97,
+            Cn => 78,
         },
     },
     "LineBreak.txt" => {
         Line_Break => {
-            ID => 72315,
+            ID => 72079,
             PR => 16
         }
     }

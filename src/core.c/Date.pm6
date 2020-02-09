@@ -300,15 +300,12 @@ my class Date does Dateish {
         )
     }
 
-    method new-from-diff(Date:D: Int:D $diff --> Date:D) {
-        nqp::isconcrete($!daycount)
-          ?? nqp::stmts(
-               (my \new := nqp::clone(self)),
-               nqp::bindattr(new,Date,'$!day', $!day + $diff),
-               nqp::bindattr(new,Date,'$!daycount',$!daycount + $diff),
-               new
-             )
-          !! nqp::p6bindattrinvres(nqp::clone(self),Date,'$!day',$!day + $diff)
+    # internal method that needs to be public for operators
+    method MOVE-DAYS(Date:D: int $diff --> Date:D) {
+        my int $day = $!day + $diff;
+        $day > 0 && $day < 28
+          ?? self!move-days-within-month($diff)
+          !! self!move-days($diff)
     }
 
     method succ(Date:D: --> Date:D) {
@@ -337,20 +334,14 @@ my class Date does Dateish {
     method Date(--> Date) { self }
 }
 
-multi sub infix:<+>(Date:D $d, Int:D $x --> Date:D) {
-    nqp::eqaddr($d.WHAT,Date) && 0 < $d.day + $x <= 28
-      ?? $d.new-from-diff($x)
-      !! Date.new-from-daycount($d.daycount + $x, formatter => $d.formatter)
+multi sub infix:<+>(Date:D \date, Int:D $x --> Date:D) {
+    date.MOVE-DAYS($x)
 }
-multi sub infix:<+>(Int:D $x, Date:D $d --> Date:D) {
-    nqp::eqaddr($d.WHAT,Date) && 0 < $d.day + $x <= 28
-      ?? $d.new-from-diff($x)
-      !! Date.new-from-daycount($d.daycount + $x, formatter => $d.formatter)
+multi sub infix:<+>(Int:D $x, Date:D \date --> Date:D) {
+    date.MOVE-DAYS($x)
 }
-multi sub infix:<->(Date:D $d, Int:D $x --> Date:D) {
-    nqp::eqaddr($d.WHAT,Date) && 0 < $d.day - $x <= 28
-      ?? $d.new-from-diff(-$x)
-      !! Date.new-from-daycount($d.daycount - $x, formatter => $d.formatter)
+multi sub infix:<->(Date:D \date, Int:D $x --> Date:D) {
+    date.MOVE-DAYS(nqp::neg_i($x))
 }
 multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
     $a.daycount - $b.daycount;

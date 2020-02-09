@@ -184,47 +184,80 @@ my class Date does Dateish {
           |self!truncate-ymd(self!VALID-UNIT($unit)));
     }
 
-    method later(:$earlier, *%unit --> Date:D) {
+    method earlier(*%unit --> Date:D) {
+        my $units := nqp::getattr(%unit,Map,'$!storage');
+        nqp::elems($units) == 1
+          ?? self!move(
+               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
+               nqp::neg_i(nqp::atkey($units,$u))
+             )
+          !! self!move-die(nqp::elems($units))
+    }
+    method later(*%unit --> Date:D) {
+        my $units := nqp::getattr(%unit,Map,'$!storage');
+        nqp::elems($units) == 1
+          ?? self!move(
+               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
+               nqp::atkey($units,$u)
+             )
+          !! self!move-die(nqp::elems($units))
+    }
 
-        # basic sanity check
-        nqp::if(
-          nqp::eqaddr(
-            (my \later := (my \iterator := %unit.iterator).pull-one),
-            IterationEnd
-          ),
-          (die "No time unit supplied"),
-          nqp::unless(
-            nqp::eqaddr(iterator.pull-one,IterationEnd),
-            (die "More than one time unit supplied")
-          )
-        );
-        my $unit  := later.key;
-        my $amount = later.value;
-        $amount = -$amount if $earlier;
+    # die for improper number of units when moving a Date
+    method !move-die(int $elems) {
+        die $elems
+          ?? "More than one time unit supplied"
+          !! die "No time unit supplied";
+    }
 
-        if nqp::atkey($valid-units,$unit) -> $multiplier {
-            self.new-from-daycount(self.daycount + $multiplier * $amount )
+    # helper method for moving a Date
+    method !move(str $unit, int $amount) {
+        if nqp::atkey($valid-units,$unit) -> int $multiplier {
+            self!new-from-daycount(
+              self.daycount + nqp::mul_i($multiplier,$amount),
+              &!formatter,
+              nqp::hash()
+            )
         }
-        elsif $unit.starts-with('month') {
-            my Int $month = $!month;
-            my Int $year  = $!year;
-            $month += $amount;
-            $year += floor(($month - 1) / 12);
-            $month = ($month - 1) % 12 + 1;
-            # If we overflow on days in the month, rather than throw an
-            # exception, we just clip to the last of the month
-            self.new($year,$month,$!day > 28
-              ?? $!day min self!DAYS-IN-MONTH($year,$month)
-              !! $!day,
-              :&!formatter)
+        elsif nqp::eqat($unit,'month',0) {
+            my int $month = $!month + $amount;
+            my int $year;
+            if $month < 1 || $month > 12 {
+                $year  = $!year + nqp::div_i(nqp::sub_i($month,1),12);
+                $month = nqp::add_i(nqp::mod_i(nqp::sub_i($month,1),12),1);
+                $month = nqp::add_i($month,12) if $month < 1;
+            }
+            else {
+                $year = $!year;
+            }
+
+            my $new := nqp::create(self);
+            nqp::bindattr($new,Date,'$!year',$year);
+            nqp::bindattr($new,Date,'$!month',$month);
+            nqp::bindattr($new,Date,'$!day',
+              $!day > 28 ?? self!clip-day($year,$month,$!day) !! $!day);
+            nqp::bindattr($new,Date,'&!formatter',&!formatter);
+            $new
         }
         else { # year
-            my Int $year = $!year + $amount;
-            self.new($year,$!month,$!day > 28
-              ?? $!day min self!DAYS-IN-MONTH($year,$!month)
-              !! $!day,
-              :&!formatter)
+            my int $year = $!year + $amount;
+
+            my $new := nqp::create(self);
+            nqp::bindattr($new,Date,'$!year',$year);
+            nqp::bindattr($new,Date,'$!month',$!month);
+            nqp::bindattr($new,Date,'$!day',
+              $!day > 28 ?? self!clip-day($year,$!month,$!day) !! $!day);
+            nqp::bindattr($new,Date,'&!formatter',&!formatter);
+            $new
         }
+    }
+
+    # If we overflow on days in the month, rather than throw an
+    # exception, we just clip to the last of the month
+    method !clip-day(int $year, int $month, int $day) {
+        (my int $max = self!DAYS-IN-MONTH($year, $month)) < $day
+          ?? $max
+          !! $day
     }
 
     method clone(Date:D: *%_ --> Date:D) {

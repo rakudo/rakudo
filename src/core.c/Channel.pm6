@@ -119,8 +119,11 @@ my class Channel does Awaitable {
     method Capture(Channel:D:) { self.List.Capture }
     multi method Supply(Channel:D:) {
         supply {
+            my $closed = False;
+
             # Tap the async notification for new values supply.
             whenever $!async-notify.unsanitized-supply.schedule-on($*SCHEDULER) {
+                done if $closed;
                 my Mu \got = self.poll;
                 if nqp::eqaddr(got, Nil) {
                     if $!closed_promise {
@@ -149,6 +152,7 @@ my class Channel does Awaitable {
             # `last if ...` check in this loop is still essential.
             my int $initial-items = nqp::elems($!queue);
             while $initial-items-- {
+                done if $closed;
                 my Mu \got = self.poll;
                 last if nqp::eqaddr(got, Nil);
                 emit got;
@@ -158,6 +162,10 @@ my class Channel does Awaitable {
                 $!closed_promise.status == Kept
                     ?? done()
                     !! X::AdHoc.new( payload => $!closed_promise.cause ).throw
+            }
+
+            CLOSE {
+                $closed = True;
             }
         }
     }

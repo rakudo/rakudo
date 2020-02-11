@@ -124,7 +124,7 @@ my class Date does Dateish {
     multi method new(Date: Instant $i, :&formatter, *%_ --> Date:D) {
         self!new-from-daycount(
           nqp::add_i(
-            nqp::div_i(Rakudo::Internals.epoch-from-tai($i),86400),
+            nqp::div_i(Rakudo::Internals.epoch-from-tai($i) + $*TZ,86400),
             40587
           ),
           &formatter, %_)
@@ -161,7 +161,7 @@ my class Date does Dateish {
 
     method today(:&formatter --> Date:D) {
         self!new-from-daycount(
-          nqp::add_i(nqp::div_i(nqp::time_i(),86400),40587),
+          nqp::add_i(nqp::div_i(nqp::time_i() + $*TZ,86400),40587),
           &formatter, %_)
     }
 

@@ -535,8 +535,8 @@
               nqp::getattr(self,Array,'$!descriptor'));
             nqp::bindattr(obj,::?CLASS,'$!shape',
               nqp::getattr(self,::?CLASS,'$!shape'));
-            nqp::p6bindattrinvres(obj,List,'$!reified',
-              nqp::clone(nqp::getattr(self,List,'$!reified')))
+            obj.STORE(self);
+            obj
         }
     }
 

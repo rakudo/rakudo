@@ -146,11 +146,67 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.chop($chopping.Int)
     }
 
-    multi method starts-with(Str:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self, $needle.Str, 0))
+    multi method starts-with(Str:D:
+      Str:D $needle, :i($ignorecase)!, :m($ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool($ignorecase
+          ?? $ignoremark
+#?if moar
+            ?? nqp::eqaticim(self,$needle,0)
+            !! nqp::eqatic(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!die-named('ignorecase and :ignoremark')
+            !! nqp::eqat(nqp::fc(self),nqp::fc($needle),0)
+#?endif
+          !! $ignoremark
+#?if moar
+            ?? nqp::eqatim(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!die-named('ignoremark')
+#?endif
+            !! nqp::eqat(self,$needle,0)
+        )
     }
-    multi method starts-with(Str:D: Str:D $needle --> Bool:D) {
+
+    multi method starts-with(Str:D:
+      Str:D $needle, :i($ignorecase)!
+    --> Bool:D) {
+        nqp::hllbool($ignorecase
+#?if moar
+          ?? nqp::eqatic(self,$needle,0)
+#?endif
+#?if !moar
+          ?? nqp::eqat(nqp::fc(self),nqp::fc($needle),0)
+#?endif
+          !! nqp::eqat(self,$needle,0)
+        )
+    }
+
+    multi method starts-with(Str:D:
+      Str:D $needle, :m($ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool($ignoremark
+#?if moar
+          ?? nqp::eqatim(self,$needle,0)
+#?endif
+#?if !moar
+          ?? self!die-named('ignoremark')
+#?endif
+          !! nqp::eqat(self,$needle,0)
+        )
+    }
+
+    multi method starts-with(Str:D:
+      Str:D $needle
+    --> Bool:D) {
         nqp::hllbool(nqp::eqat(self, $needle, 0))
+    }
+    multi method starts-with(Str:D:
+      Cool:D $needle
+    --> Bool:D) {
+        self.starts-with($needle.Str, |%_)
     }
 
     multi method ends-with(Str:D: Cool:D $needle --> Bool:D) {
@@ -277,9 +333,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
 #?if !moar
     # helper method for quitting if not supported
-    method !index-die(str $type) {
+    method !die-named(str $named) {
         X.NYI.new(
-          feature => "Named parameter ':$type' on 'index'"
+          feature => "Named parameter ':$named' on '{callframe(2).code.name}'"
         ).throw
     }
 #?endif
@@ -294,7 +350,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! nqp::indexic(self,$needle,0)
 #?endif
 #?if !moar
-            ?? self!index-die('ignorecase and :ignoremark')
+            ?? self!die-named('ignorecase and :ignoremark')
             !! nqp::index(nqp::fc(self),nqp::fc($needle),0);
 #?endif
           !! $ignoremark
@@ -302,7 +358,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? nqp::indexim(self,$needle,0)
 #?endif
 #?if !moar
-            ?? self!index-die('ignoremark')
+            ?? self!die-named('ignoremark')
 #?endif
             !! nqp::index(self,$needle,0);
 
@@ -322,7 +378,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! nqp::indexic(self,$needle,$pos)
 #?endif
 #?if !moar
-            ?? self!index-die('ignorecase and :ignoremark')
+            ?? self!die-named('ignorecase and :ignoremark')
             !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos);
 #?endif
           !! $ignoremark
@@ -330,7 +386,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? nqp::indexim(self,$needle,$pos)
 #?endif
 #?if !moar
-            ?? self!index-die('ignoremark')
+            ?? self!die-named('ignoremark')
 #?endif
             !! nqp::index(self,$needle,$pos);
 

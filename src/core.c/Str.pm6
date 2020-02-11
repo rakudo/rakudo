@@ -275,21 +275,134 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    multi method index(Str:D: Cool:D $needle --> Int:D) {
-        nqp::islt_i((my $i := nqp::index(self,$needle.Str)),0) ?? Nil !! $i
+#?if !moar
+    # helper method for quitting if not supported
+    method !index-die(str $type) {
+        X.NYI.new(
+          feature => "Named parameter ':$type' on 'index'"
+        ).throw
     }
+#?endif
+
+    multi method index(Str:D:
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)!
+    --> Int:D) {
+        my $index := $ignorecase
+          ?? $ignoremark
+#?if moar
+            ?? nqp::indexicim(self,$needle,0)
+            !! nqp::indexic(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!index-die('ignorecase and :ignoremark')
+            !! nqp::index(nqp::fc(self),nqp::fc($needle),0);
+#?endif
+          !! $ignoremark
+#?if moar
+            ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!index-die('ignoremark')
+#?endif
+            !! nqp::index(self,$needle,0);
+
+        $index < 0 ?? Nil !! $index
+    }
+
+    multi method index(Str:D:
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)!
+    --> Int:D) {
+        self!INDEX-OOR($pos)
+          if nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0);
+
+        my $index := $ignorecase
+          ?? $ignoremark
+#?if moar
+            ?? nqp::indexicim(self,$needle,$pos)
+            !! nqp::indexic(self,$needle,$pos)
+#?endif
+#?if !moar
+            ?? self!index-die('ignorecase and :ignoremark')
+            !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos);
+#?endif
+          !! $ignoremark
+#?if moar
+            ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+            ?? self!index-die('ignoremark')
+#?endif
+            !! nqp::index(self,$needle,$pos);
+
+        $index < 0 ?? Nil !! $index
+    }
+
+    multi method index(Str:D:
+      Str:D $needle, :m(:$ignoremark)!
+    --> Int:D) {
+        my $index := $ignoremark
+#?if moar
+          ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+          ?? self!index-die('ignoremark')
+#?endif
+          !! nqp::index(self,$needle,0);
+
+        $index < 0 ?? Nil !! $index
+    }
+    multi method index(Str:D:
+      Str:D $needle, Int:D $pos, :m(:$ignoremark)!
+    --> Int:D) {
+        self!INDEX-OOR($pos)
+          if nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0);
+
+        my $index := $ignoremark
+#?if moar
+          ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+          ?? self!index-die('ignoremark');
+#?endif
+          !! nqp::index(self,$needle,$pos);
+
+        $index ?? Nil !! $index
+    }
+
+    multi method index(Str:D:
+      Str:D $needle, :i(:$ignorecase)!
+    --> Int:D) {
+        my $index := $ignorecase
+#?if moar
+          ?? nqp::indexic(self,$needle,0)
+#?endif
+#?if !moar
+          ?? nqp::index(nqp::fc(self),nqp::fc($needle),0)
+#?endif
+          !! nqp::index(self,$needle,0);
+
+        $index < 0 ?? Nil !! $index
+    }
+    multi method index(Str:D:
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!
+    --> Int:D) {
+        self!INDEX-OOR($pos)
+          if nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0);
+
+        my $index := $ignorecase
+#?if moar
+          ?? nqp::indexic(self,$needle,$pos)
+#?endif
+#?if !moar
+          ?? nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
+#?endif
+          !! nqp::index(self,$needle,$pos);
+
+        $index < 0 ?? Nil !! $index
+    }
+
     multi method index(Str:D: Str:D $needle --> Int:D) {
         nqp::islt_i((my $i := nqp::index(self,$needle)),0) ?? Nil !! $i
-    }
-    multi method index(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
-        self.index: $needle.Str, $pos.Int
-    }
-    multi method index(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
-        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
-          ?? self!INDEX-OOR($pos)
-          !! nqp::islt_i((my $i := nqp::index(self,$needle.Str,$pos)),0)
-            ?? Nil
-            !! $i
     }
     multi method index(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
@@ -298,6 +411,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? Nil
             !! $i
     }
+
+    # Cool catchers
+    multi method index(Str:D: Cool:D $needle --> Int:D) {
+        self.index: $needle.Str, |%_
+    }
+    multi method index(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
+        self.index: $needle.Str, $pos.Int, |%_
+    }
+
     method !INDEX-OOR($got) {
         Failure.new(X::OutOfRange.new(
           :what("Position in index"),

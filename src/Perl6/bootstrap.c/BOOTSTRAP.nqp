@@ -3592,12 +3592,12 @@ BEGIN {
                     nqp::die("Cannot coerce to $coercer_name with named arguments")
                       if +%named;
                     if +@pos == 1 {
-                        @pos[0]."$coercer_name"()
+                        nqp::hllizefor(@pos[0]."$coercer_name"(), 'Raku')
                     }
                     else {
                         my $list := nqp::create(List);
                         nqp::bindattr($list, List, '$!reified', @pos);
-                        $list."$coercer_name"()
+                        nqp::hllizefor($list."$coercer_name"(), 'Raku')
                     }
                 }
                 else {

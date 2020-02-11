@@ -10,38 +10,18 @@ use File::Spec;
 use Cwd;
 use FindBin;
 
+
 BEGIN {
-    if ( -d '.git' ) {
-        my $set_config = !qx{git config rakudo.initialized};
-        unless ( -e '3rdparty/nqp-configure/LICENSE' ) {
-            print "Updating nqp-configure submodule...\n";
-            my $msg =
-qx{git submodule sync --quiet 3rdparty/nqp-configure && git submodule --quiet update --init 3rdparty/nqp-configure 2>&1};
-            if ( $? >> 8 == 0 ) {
-                say "OK";
-                $set_config = 1;
-            }
-            else {
-                if ( $msg =~
-                    /[']([^']+)[']\s+already exists and is not an empty/ )
-                {
-                    print "\n===SORRY=== ERROR: "
-                      . "Cannot update submodule because directory exists and is not empty.\n"
-                      . ">>> Please delete the following folder and try again:\n$1\n\n";
-                    exit 1;
-                }
-                else {
-                    print "\n===SORRY=== ERROR: "
-                      . "Updating the submodule failed for an unknown reason. The error message was:\n"
-                      . $msg;
-                    exit 1;
-                }
-            }
-        }
-        if ($set_config) {
-            system("git config submodule.recurse true");
-            system("git config rakudo.initialized 1");
-        }
+    # Download / Update submodules
+    my $set_config = !qx{git config rakudo.initialized};
+    if ( !-e '3rdparty/nqp-configure/LICENSE' ) {
+        my $code = system($^X, 'tools/build/update-submodules.pl', Cwd::cwd(), @ARGV);
+        exit 1 if $code >> 8 != 0;
+        $set_config = 1;
+    }
+    if ($set_config) {
+        system("git config submodule.recurse true");
+        system("git config rakudo.initialized 1");
     }
 }
 
@@ -78,13 +58,13 @@ MAIN: {
         'gen-moar:s',     'moar-option=s@',
         'git-protocol=s', 'ignore-errors!',
         'make-install!',  'makefile-timing!',
-        'git-depth=s',    'git-reference=s',
+        'git-depth=s',    'git-cache-dir=s',
         'github-user=s',  'rakudo-repo=s',
         'nqp-repo=s',     'moar-repo=s',
         'roast-repo=s',   'expand=s',
         'out=s',          'set-var=s@',
         'silent-build!',  'raku-alias!',
-        'force-rebuild!'
+        'force-rebuild!', 'git-reference=s'
       )
       or do {
         print_help();
@@ -163,8 +143,7 @@ General Options:
     --nqp-home=dir     Directory to install NQP files to
     --perl6-home=dir, --rakudo-home=dir   
                        Directory to install Rakudo files to
-    --relocatable
-                       Dynamically locate NQP and Perl6 home dirs instead of
+    --relocatable      Dynamically locate NQP and Perl6 home dirs instead of
                        statically compiling them in. (On AIX and OpenBSD Rakudo
                        is always built non-relocatable, since both OSes miss a
                        necessary mechanism.)
@@ -174,18 +153,15 @@ General Options:
     --sysroot=<path>   When given, use for searching runtime components here
     --backends=jvm,moar,js
                        Which backend(s) to use (or ALL for all of them)
-    --gen-nqp[=branch]
-                       Download, build, and install a copy of NQP before writing
+    --gen-nqp[=branch] Download, build, and install a copy of NQP before writing
                        the Makefile
     --gen-moar[=branch]
                        Download, build, and install a copy of MoarVM to use
                        before writing the Makefile
-    --force-rebuild    
-                       Together with --gen-* options causes corresponding
+    --force-rebuild    Together with --gen-* options causes corresponding
                        components to recompile irrelevant to their existence and
                        version conformance.
-    --with-nqp=<path>
-                       Provide path to already installed nqp
+    --with-nqp=<path>  Provide path to already installed nqp
     --make-install     Install Rakudo after configuration is done
     --moar-option='--option=value'
                        Options to pass to MoarVM's Configure.pl
@@ -197,17 +173,20 @@ General Options:
     --rakudo-repo=<url>
     --nqp-repo=<url>
     --moar-repo=<url>
-    --roast-repo=<url>
-                       User-defined URL to fetch corresponding components
+    --roast-repo=<url> User-defined URL to fetch corresponding components
                        from. The URL will also be used to setup git push.
     --git-protocol={ssh,https,git}
                        Protocol used for cloning git repos
     --git-depth=<number>
-                       Use the --git-depth option for git clone with parameter number
-    --git-reference=<path>
-                       Use --git-reference option to identify local path where git repositories are stored
-                       For example: --git-reference=/home/user/repo/for_perl6
-                       Folders 'nqp' and 'MoarVM' with corresponding git repos should be in for_perl6 folder
+                       Use the --git-depth option for git clone with parameter
+                       number
+    --git-cache-dir=<path>
+                       Use the given path as a git repository cache.
+                       For example: --git-cache-dir=/home/user/git_cache_dir
+                       Each repository ('nqp' and its submodules) will use a
+                       separate subfolder.
+                       If the subfolder does not exist, it will be cloned. If
+                       it exists the contained repository will be updated.
     --makefile-timing  Enable timing of individual makefile commands
     --no-clean         Skip cleanup before installation
     --ignore-errors    Ignore errors (such as the version of NQP)

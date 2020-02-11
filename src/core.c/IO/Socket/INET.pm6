@@ -70,7 +70,6 @@ my class IO::Socket::INET does IO::Socket {
             split-host-port :host($localhost), :port($localport), :$family
         orelse fail $_) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
 
-        #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
             :$localhost,
             :$localport,
@@ -84,6 +83,8 @@ my class IO::Socket::INET does IO::Socket {
     multi method new(
         Str:D :$host! is copy,
         Int   :$port is copy,
+        Str:_ :$localhost is copy,
+        Int:_ :$localport is copy,
         Int   :$family where {
                $family == nqp::const::SOCKET_FAMILY_UNSPEC
             || $family == nqp::const::SOCKET_FAMILY_INET
@@ -99,10 +100,19 @@ my class IO::Socket::INET does IO::Socket {
             :$family,
         ) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
 
-        # TODO: Learn what protocols map to which socket types and then determine which is needed.
+        with $localhost {
+            die 'Cannot set a source host or port for UNIX sockets'
+                if $family == nqp::const::SOCKET_FAMILY_UNIX;
+            ($localhost, $localport) = split-host-port(
+                :host($localhost),
+                :port($localport),
+                :$family
+            ) orelse fail $_;
+        }
+
         self.bless(
-            :$host,
-            :$port,
+            :$host, :$port,
+            :$localhost, :$localport,
             :$family,
             |%rest,
         )!initialize()
@@ -117,20 +127,20 @@ my class IO::Socket::INET does IO::Socket {
     method !initialize() {
         my $PIO := nqp::socket($!listening ?? 10 !! 0);
 
-        # Quoting perl5's SIO::INET:
-        # If Listen is defined then a listen socket is created, else if the socket type,
-        # which is derived from the protocol, is SOCK_STREAM then connect() is called.
-        if $!listening || $!localhost || $!localport {
+        with $!localhost {
             nqp::bindsock($PIO, nqp::unbox_s($!localhost || "0.0.0.0"),
                                  nqp::unbox_i($!localport || 0), nqp::unbox_i($!family));
-            nqp::listen($PIO, nqp::unbox_i($!backlog || 128));
-        }
-
-        if $!listening {
 #?if !js
             $!localport = nqp::getport($PIO)
                    unless $!localport || ($!family == nqp::const::SOCKET_FAMILY_UNIX);
 #?endif
+        }
+
+        # Quoting perl5's SIO::INET:
+        # If Listen is defined then a listen socket is created, else if the socket type,
+        # which is derived from the protocol, is SOCK_STREAM then connect() is called.
+        if $!listening {
+            nqp::listen($PIO, nqp::unbox_i($!backlog || 128));
         }
         elsif $!type == PIO::SOCK_STREAM {
             nqp::connect($PIO, nqp::unbox_s($!host), nqp::unbox_i($!port), nqp::unbox_i($!family));
@@ -140,8 +150,15 @@ my class IO::Socket::INET does IO::Socket {
         self;
     }
 
-    method connect(IO::Socket::INET:U: Str() $host, Int() $port, ProtocolFamily:D :$family = PF_UNSPEC) {
-        self.new(:$host, :$port, :family($family.value))
+    method connect(
+        IO::Socket::INET:U:
+        Str()             $host,
+        Int()             $port,
+        ProtocolFamily:D :$family = PF_UNSPEC,
+        Str:_            :$localhost,
+        Int:_            :$localport
+    ) {
+        self.new(:$host, :$port, :$localhost, :$localport, :family($family.value))
     }
 
     method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport, ProtocolFamily:D :$family = PF_UNSPEC) {

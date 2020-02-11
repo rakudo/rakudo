@@ -590,6 +590,18 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
 } #SLICE_HUH
 
 sub dd(|) {
+
+    # handler for BOOTxxxArrays
+    sub BOOTArray(Mu \array) {
+        my \buffer   := nqp::create(IterationBuffer);
+        my \iterator := nqp::iterator(array);
+        nqp::while(
+          iterator,
+          nqp::push(buffer,nqp::shift(iterator))
+        );
+        array.^name ~ buffer.List.raku
+    }
+
     my Mu $args := nqp::p6argvmarray();
     if nqp::elems($args) {
         while $args {
@@ -600,7 +612,10 @@ sub dd(|) {
               ?? $var.raku
               !! nqp::can($var,'perl')
                 ?? $var.perl
-                !! "($var.^name() without .raku or .perl method)";
+                !! $var.^name.starts-with('BOOT')
+                  && $var.^name.ends-with('Array')
+                  ?? BOOTArray($var)
+                  !! "($var.^name() without .raku or .perl method)";
             note $name ?? "$type $name = $what" !! $what;
         }
     }

@@ -446,7 +446,7 @@ my class DateTime does Dateish {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*TZ', {
-    PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset
+    PROCESS::<$TZ> = Rakudo::Internals.get-local-timezone-offset(nqp::time_i)
 }
 
 multi sub infix:«<»(DateTime:D \a, DateTime:D \b --> Bool:D) {

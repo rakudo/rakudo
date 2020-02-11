@@ -753,18 +753,21 @@ implementation detail and has no serviceable parts inside"
     method PRECOMP-TARGET(--> "js") { }
 #?endif
 
-    method get-local-timezone-offset() {
-        my $utc    := time;
-        my Mu $fia := nqp::decodelocaltime(nqp::unbox_i($utc));
+    method get-local-timezone-offset(int $utc) {
+        my $lt := nqp::decodelocaltime($utc);
 
-        DateTime.new(
-          nqp::atpos_i($fia,5),  # year
-          nqp::atpos_i($fia,4),  # month
-          nqp::atpos_i($fia,3),  # day
-          nqp::atpos_i($fia,2),  # hour
-          nqp::atpos_i($fia,1),  # minute
-          nqp::atpos_i($fia,0),  # second
-        ).posix(True) - $utc;
+        # algorithm from Claus Tøndering
+        my int $a = (14 - nqp::atpos_i($lt,4)) div 12;
+        my int $y = nqp::atpos_i($lt,5) + 4800 - $a;
+        my int $m = nqp::atpos_i($lt,4) + 12 * $a - 3;
+        my int $jd = nqp::atpos_i($lt,3) + (153 * $m + 2) div 5 + 365 * $y
+            + $y div 4 - $y div 100 + $y div 400 - 32045;
+        (
+          ($jd - 2440588) * 86400
+            + nqp::atpos_i($lt,2) * 3600
+            + nqp::atpos_i($lt,1) * 60
+            + nqp::atpos_i($lt,0)
+        ) - $utc
     }
 
 # Keep track of the differences between TAI and UTC for internal use.

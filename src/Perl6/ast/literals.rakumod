@@ -35,3 +35,20 @@ class RakuAST::NumLiteral is RakuAST::Node {
         QAST::Want.new( $wval, 'Nn', QAST::NVal.new( :value(nqp::unbox_n($value)) ) )
     }
 }
+
+class RakuAST::RatLiteral is RakuAST::Node {
+    has Rat $.value;
+
+    method new(Rat $value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::RatLiteral, '$!value', $value);
+        $obj
+    }
+    method type {
+        $!value.WHAT
+    }
+    method QAST {
+        my $value := $!value;
+        QAST::WVal.new( :$value )
+    }
+}

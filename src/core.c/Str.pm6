@@ -209,15 +209,79 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.starts-with($needle.Str, |%_)
     }
 
-    multi method ends-with(Str:D: Cool:D $needle --> Bool:D) {
-        self.ends-with: $needle.Str
+    multi method ends-with(Str:D:
+      Str:D $needle, :i($ignorecase)!, :m($ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool($ignorecase
+          ?? $ignoremark
+#?if moar
+            ?? nqp::eqaticim(self,$needle,
+                 nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+            !! nqp::eqatic(self,$needle,
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+#?if !moar
+            ?? self!die-named('ignorecase and :ignoremark')
+            !! nqp::eqat(nqp::fc(self),nqp::fc($needle),
+                 nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+          !! $ignoremark
+#?if moar
+            ?? nqp::eqatim(self,$needle,
+                 nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+#?if !moar
+            ?? self!die-named('ignoremark')
+#?endif
+            !! nqp::eqat(self,$needle,
+                 nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+        )
     }
-    multi method ends-with(Str:D: Str:D $needle --> Bool:D) {
+
+    multi method ends-with(Str:D:
+      Str:D $needle, :i($ignorecase)!
+    --> Bool:D) {
+        nqp::hllbool($ignorecase
+#?if moar
+          ?? nqp::eqatic(self,$needle,
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+#?if !moar
+          ?? nqp::eqat(nqp::fc(self),nqp::fc($needle),
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+          !! nqp::eqat(self,$needle,
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+        )
+    }
+
+    multi method ends-with(Str:D:
+      Str:D $needle, :m($ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool($ignoremark
+#?if moar
+          ?? nqp::eqatim(self,$needle,
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+#?if !moar
+          ?? self!die-named('ignoremark')
+#?endif
+          !! nqp::eqat(self,$needle,
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+        )
+    }
+
+    multi method ends-with(Str:D:
+      Str:D $needle
+    --> Bool:D) {
         nqp::hllbool(
           nqp::eqat(
             self,$needle,nqp::sub_i(nqp::chars(self),nqp::chars($needle))
           )
         )
+    }
+    multi method ends-with(Str:D: Cool:D $needle --> Bool:D) {
+        self.ends-with($needle.Str, |%_)
     }
 
     multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {

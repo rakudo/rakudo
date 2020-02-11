@@ -8566,9 +8566,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $partf := nqp::box_i(1, $Int);
             }
 
-            my $ast := $world.add_constant('Rat', 'type_new', $parti, $partf, :nocache(1));
-            $ast.node($/);
-            make $ast;
+            make self.rakuast('RatLiteral').new:
+                $*W.intern_constant('Rat', 'type_new', $parti, $partf, :nocache(1));
         }
     }
 

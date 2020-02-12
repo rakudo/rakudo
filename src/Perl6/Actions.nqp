@@ -1770,7 +1770,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 placeholder => $name,
             );
         }
-        ($*W.cur_lexpad())[0].push(my $uninst := QAST::Stmts.new($block));
+        $*W.push_inner_block(my $uninst := QAST::Stmts.new($block));
         $*W.attach_signature($*DECLARAND,
             $*W.create_signature(nqp::hash('parameter_objects', [])));
         $*W.finish_code_object($*DECLARAND, $block);
@@ -8660,7 +8660,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # self.match($rx_coderef, |%options);
         my $past := QAST::Op.new( :node($/), :op('callmethod'), :name('match'),
             WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'s'),
-            $rx_coderef
+            block_closure($rx_coderef)
         );
         self.handle_and_check_adverbs($/, %SUBST_ALLOWED_ADVERBS, 'substitution', $past);
         if $/[0] {

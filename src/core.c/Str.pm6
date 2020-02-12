@@ -446,51 +446,37 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.contains($needle, $pos.Int, |%_)
     }
 
-    multi method indices(Str:D: Cool:D $needle, :$overlap) {
-        self.indices: $needle.Str, :$overlap
+    # create indices using index
+    method !indices(str $needle, int $overlap, int $start) {
+        my $indices := nqp::create(IterationBuffer);
+        my int $add  = $overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $pos  = $start;
+        my int $index;
+        nqp::while(
+          nqp::isne_i(($index = nqp::index(self,$needle,$pos)),-1),
+          nqp::stmts(
+            nqp::push($indices,nqp::p6box_i($index)),
+            ($pos = nqp::add_i($index,$add))
+          )
+        );
+        $indices.List
     }
+
     multi method indices(Str:D: Str:D $needle, :$overlap) {
-        nqp::stmts(
-          (my $need    := nqp::getattr($needle,Str,'$!value')),
-          (my int $add  = nqp::if($overlap,1,nqp::chars($need) || 1)),
-          (my $indices := nqp::create(IterationBuffer)),
-          (my int $pos),
-          (my int $i),
-          nqp::while(
-            nqp::isge_i(($i = nqp::index($!value,$need,$pos)),0),
-            nqp::stmts(
-              nqp::push($indices,nqp::p6box_i($i)),
-              ($pos = nqp::add_i($i,$add))
-            )
-          ),
-          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
-        )
-    }
-    multi method indices(Str:D: Cool:D $needle, Cool:D $start, :$overlap) {
-        self.indices: $needle.Str, $start.Int, :$overlap
+        self!indices($needle, $overlap.Bool, 0)
     }
     multi method indices(Str:D: Str:D $needle, Int:D $start, :$overlap) {
-        nqp::stmts(
-          (my int $pos = $start),
-          nqp::if(
-            nqp::isgt_i($pos,nqp::chars($!value)),
-            nqp::create(List),   # position after string, always empty List
-            nqp::stmts(
-              (my $need   := nqp::getattr($needle,Str,'$!value')),
-              (my int $add = nqp::if($overlap,1,nqp::chars($need) || 1)),
-              (my $indices := nqp::create(IterationBuffer)),
-              (my int $i),
-              nqp::while(
-                nqp::isge_i(($i = nqp::index($!value,$need,$pos)),0),
-                nqp::stmts(
-                  nqp::push($indices,nqp::p6box_i($i)),
-                  ($pos = nqp::add_i($i,$add))
-                )
-              ),
-              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
-            )
-          )
-        )
+        nqp::isbig_I(nqp::decont($start)) || nqp::islt_i($start,0)
+          ?? self!fail-oor($start)
+          !! self!indices($needle, $overlap.Bool, $start)
+    }
+
+    # Cool catchers
+    multi method indices(Str:D: Cool:D $needle) {
+        self.indices: $needle.Str, |%_
+    }
+    multi method indices(Str:D: Cool:D $needle, Cool:D $start) {
+        self.indices: $needle.Str, $start.Int, |%_
     }
 
 #?if !moar
@@ -532,28 +518,28 @@ my class Str does Stringy { # declared in BOOTSTRAP
       Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Int:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
-        ?? self!fail-oor($pos)
-        !! nqp::isne_i(
-             (my $index := $ignorecase
-               ?? $ignoremark
+          ?? self!fail-oor($pos)
+          !! nqp::isne_i(
+               (my $index := $ignorecase
+                 ?? $ignoremark
 #?if moar
-                 ?? nqp::indexicim(self,$needle,$pos)
-                 !! nqp::indexic(self,$needle,$pos)
+                   ?? nqp::indexicim(self,$needle,$pos)
+                   !! nqp::indexic(self,$needle,$pos)
 #?endif
 #?if !moar
-                 ?? self!die-named('ignorecase and :ignoremark')
-                 !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
+                   ?? self!die-named('ignorecase and :ignoremark')
+                   !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
 #?endif
-               !! $ignoremark
+                 !! $ignoremark
 #?if moar
-                 ?? nqp::indexim(self,$needle,$pos)
+                   ?? nqp::indexim(self,$needle,$pos)
 #?endif
 #?if !moar
-                 ?? self!die-named('ignoremark')
+                   ?? self!die-named('ignoremark')
 #?endif
-                 !! nqp::index(self,$needle,$pos)
-             ),-1
-           ) ?? $index !! Nil
+                   !! nqp::index(self,$needle,$pos)
+               ),-1
+             ) ?? $index !! Nil
     }
 
     multi method index(Str:D:

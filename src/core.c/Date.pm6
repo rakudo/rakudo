@@ -160,9 +160,18 @@ my class Date does Dateish {
     }
 
     method today(:&formatter --> Date:D) {
-        self!new-from-daycount(
-          nqp::add_i(nqp::div_i(nqp::time_i() + $*TZ,86400),40587),
-          &formatter, %_)
+        my $lt := nqp::decodelocaltime(time);
+        nqp::eqaddr(self.WHAT,Date)
+          ?? nqp::create(self)!SET-SELF(
+               nqp::atpos_i($lt,5),  # year
+               nqp::atpos_i($lt,4),  # month
+               nqp::atpos_i($lt,3),  # day
+               &formatter)
+          !! self!bless(
+               nqp::atpos_i($lt,5),  # year
+               nqp::atpos_i($lt,4),  # month
+               nqp::atpos_i($lt,3),  # day
+               &formatter, %_)
     }
 
     multi method WHICH(Date:D: --> ValueObjAt:D) {

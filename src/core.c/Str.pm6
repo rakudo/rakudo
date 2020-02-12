@@ -447,9 +447,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # create indices using index
-    method !indices(str $needle, int $overlap, int $start) {
+    method !indices(str $needle, \overlap, int $start) {
         my $indices := nqp::create(IterationBuffer);
-        my int $add  = $overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $add  = overlap ?? 1 !! nqp::chars($needle) || 1;
         my int $pos  = $start;
         my int $index;
         nqp::while(
@@ -462,13 +462,105 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $indices.List
     }
 
-    multi method indices(Str:D: Str:D $needle, :$overlap) {
-        self!indices($needle, $overlap.Bool, 0)
+    # create indices using index with ignorecase
+    method !indicesic(str $needle, \overlap, int $start) {
+        my $indices := nqp::create(IterationBuffer);
+        my int $add  = overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $pos  = $start;
+        my int $index;
+#?if moar
+        nqp::while(
+          nqp::isne_i(($index = nqp::indexic(self,$needle,$pos)),-1),
+#?endif
+#?if !moar
+        my str $fcself   = nqp::fc(self);
+        my str $fcneedle = nqp::fc($needle);
+        nqp::while(
+          nqp::isne_i(($index = nqp::index($fcself,$fcneedle,$pos)),-1),
+#?endif
+          nqp::stmts(
+            nqp::push($indices,nqp::p6box_i($index)),
+            ($pos = nqp::add_i($index,$add))
+          )
+        );
+        $indices.List
     }
-    multi method indices(Str:D: Str:D $needle, Int:D $start, :$overlap) {
-        nqp::isbig_I(nqp::decont($start)) || nqp::islt_i($start,0)
-          ?? self!fail-oor($start)
-          !! self!indices($needle, $overlap.Bool, $start)
+
+    # create indices using index with ignoremark
+    method !indicesim(str $needle, \overlap, int $start) {
+#?if moar
+        my $indices := nqp::create(IterationBuffer);
+        my int $add  = overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $pos  = $start;
+        my int $index;
+        nqp::while(
+          nqp::isne_i(($index = nqp::indexim(self,$needle,$pos)),-1),
+          nqp::stmts(
+            nqp::push($indices,nqp::p6box_i($index)),
+            ($pos = nqp::add_i($index,$add))
+          )
+        );
+        $indices.List
+#?endif
+#?if !moar
+        self!die-named('ignoremark',2)
+#?endif
+    }
+
+    # create indices using index with ignorecase and ignoremark
+    method !indicesicim(str $needle, \overlap, int $start) {
+#?if moar
+        my $indices := nqp::create(IterationBuffer);
+        my int $add  = overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $pos  = $start;
+        my int $index;
+        nqp::while(
+          nqp::isne_i(($index = nqp::indexicim(self,$needle,$pos)),-1),
+          nqp::stmts(
+            nqp::push($indices,nqp::p6box_i($index)),
+            ($pos = nqp::add_i($index,$add))
+          )
+        );
+        $indices.List
+#?endif
+#?if !moar
+        self!die-named('ignorecase and :ignoremark',2)
+#?endif
+    }
+
+    multi method indices(Str:D:
+      Str:D $needle, :i($ignorecase), :m(:$ignoremark), :$overlap
+    ) {
+        $ignorecase
+          ?? $ignoremark
+            ?? self!indicesicim($needle, $overlap, 0)
+            !! self!indicesic($needle, $overlap, 0)
+          !! $ignoremark
+            ?? self!indicesim($needle, $overlap, 0)
+            !! self!indices($needle, $overlap, 0)
+    }
+
+    multi method indices(Str:D:
+      Str:D $needle, Int:D $pos, :i($ignorecase), :m(:$ignoremark), :$overlap
+    ) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! $ignorecase
+            ?? $ignoremark
+              ?? self!indicesicim($needle, $overlap, $pos)
+              !! self!indicesic($needle, $overlap, $pos)
+            !! $ignoremark
+              ?? self!indicesim($needle, $overlap, $pos)
+              !! self!indices($needle, $overlap, $pos)
+    }
+
+    multi method indices(Str:D: Str:D $needle, :$overlap) {
+        self!indices($needle, $overlap, 0)
+    }
+    multi method indices(Str:D: Str:D $needle, Int:D $pos, :$overlap) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! self!indices($needle, $overlap, $pos)
     }
 
     # Cool catchers
@@ -481,9 +573,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
 #?if !moar
     # helper method for quitting if not supported
-    method !die-named(str $named) {
+    method !die-named(str $named, $levels = 1) {
         X.NYI.new(
-          feature => "Named parameter ':$named' on '{callframe(2).code.name}'"
+          feature => "Named parameter ':$named' on '{
+              callframe($levels + 1).code.name
+          }'"
         ).throw
     }
 #?endif

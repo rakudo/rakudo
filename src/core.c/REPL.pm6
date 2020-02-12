@@ -408,7 +408,7 @@ do {
         method history-file(--> Str:D) {
             without $!history-file {
                 if %*ENV<RAKUDO_HIST> -> $history-file {
-                    $!history-file = $history-file;
+                    $!history-file = $history-file.IO;
                 }
                 else {
                     my $dir := $*HOME || $*TMPDIR;

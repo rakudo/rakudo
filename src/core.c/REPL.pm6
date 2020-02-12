@@ -407,9 +407,19 @@ do {
 
         method history-file(--> Str:D) {
             without $!history-file {
-                $!history-file = $*ENV<RAKUDO_HIST>
-                  ?? $*ENV<RAKUDO_HIST>.IO
-                  !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
+                if %*ENV<RAKUDO_HIST> -> $history-file {
+                    $!history-file = $history-file;
+                }
+                else {
+                    my $dir := $*HOME || $*TMPDIR;
+                    my $old := $dir.add('.perl6/rakudo-history');
+                    my $new := $dir.add('.raku/rakudo-history');
+                    if $old.e && !$new.e {  # migrate old hist to new location
+                        $new.spurt($old.slurp);
+                        $old.unlink;
+                    }
+                    $!history-file = $new;
+                }
 
                 without mkdir $!history-file.parent {
                     note "I ran into a problem trying to set up history: {.exception.message}";

@@ -20,6 +20,10 @@ class Compiler does Systemic {
           unless $!version;
     }
 
+    method backend() {
+        nqp::getcomp("Raku").backend.name
+    }
+
     method verbose-config(:$say) {
         my $compiler := nqp::getcomp("Raku");
         my $backend  := $compiler.backend;

@@ -415,7 +415,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 #?if !moar
             ?? self!die-named('ignorecase and :ignoremark')
-            !! nqp::index(nqp::fc(self),nqp::fc($needle),0);
+            !! nqp::index(nqp::fc(self),nqp::fc($needle),0)
 #?endif
           !! $ignoremark
 #?if moar
@@ -443,7 +443,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 #?if !moar
             ?? self!die-named('ignorecase and :ignoremark')
-            !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos);
+            !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
 #?endif
           !! $ignoremark
 #?if moar
@@ -465,7 +465,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? nqp::indexim(self,$needle,0)
 #?endif
 #?if !moar
-          ?? self!index-die('ignoremark')
+          ?? self!die-named('ignoremark')
 #?endif
           !! nqp::index(self,$needle,0);
 
@@ -482,7 +482,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? nqp::indexim(self,$needle,$pos)
 #?endif
 #?if !moar
-          ?? self!index-die('ignoremark');
+          ?? self!die-named('ignoremark')
 #?endif
           !! nqp::index(self,$needle,$pos);
 

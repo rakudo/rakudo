@@ -270,9 +270,44 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    multi method contains(Str:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::isne_i(nqp::index($!value,$needle.Str,0),-1))
+    multi method contains(Str:D:
+      Str:D $needle, :i($ignorecase)!, :m($ignoremark)
+    --> Bool:D) {
+        nqp::hllbool(($ignorecase
+          ?? $ignoremark
+#?if moar
+            ?? nqp::indexicim(self,$needle,0)
+            !! nqp::indexic(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!die-named('ignorecase and :ignoremark')
+            !! nqp::index(nqp::fc(self),nqp::fc($needle),0)
+#?endif
+          !! $ignoremark
+#?if moar
+            ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!die-named('ignoremark')
+#?endif
+            !! nqp::index(self,$needle,0)
+        ) >= 0)
     }
+
+    multi method contains(Str:D:
+      Str:D $needle, :m($ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool(($ignoremark
+#?if moar
+          ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+          ?? self!die-named('ignoremark')
+#?endif
+          !! nqp::index(self,$needle,0)
+        ) >= 0)
+    }
+
     multi method contains(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::isne_i(nqp::index($!value,$needle,0),-1))
     }
@@ -284,13 +319,45 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    multi method contains(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
-        nqp::hllbool(
-          nqp::isge_i($pos,0)
-            && nqp::islt_i($pos,nqp::chars(self))
-            && nqp::isne_i(nqp::index(self,$needle.Str,$pos),-1)
-        )
+
+    multi method contains(Str:D:
+      Str:D $needle, Int:D $pos, :i($ignorecase)!, :m($ignoremark)
+    --> Bool:D) {
+        nqp::hllbool(($ignorecase
+          ?? $ignoremark
+#?if moar
+            ?? nqp::indexicim(self,$needle,$pos)
+            !! nqp::indexic(self,$needle,$pos)
+#?endif
+#?if !moar
+            ?? self!die-named('ignorecase and :ignoremark')
+            !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
+#?endif
+          !! $ignoremark
+#?if moar
+            ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+            ?? self!die-named('ignoremark')
+#?endif
+            !! nqp::index(self,$needle,$pos)
+        ) >= 0)
     }
+
+    multi method contains(Str:D:
+      Str:D $needle, Int:D $pos, :m($ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool(($ignoremark
+#?if moar
+          ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+          ?? self!die-named('ignoremark')
+#?endif
+          !! nqp::index(self,$needle,$pos)
+        ) >= 0)
+    }
+
     multi method contains(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::isge_i($pos,0)
@@ -307,14 +374,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
                ) >= 0
         )
     }
-    multi method contains(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
-        self.contains($needle.Str, $pos.Int)
+
+    multi method contains(Str:D: Cool:D $needle --> Bool:D) {
+        self.contains($needle.Str, |%_)
     }
-    multi method contains(Str:D: Str:D $needle, Cool:D $pos --> Bool:D) {
-        self.contains($needle, $pos.Int)
+    multi method contains(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
+        self.contains($needle.Str, $pos.Int, |%_)
     }
     multi method contains(Str:D: Regex:D $needle, Cool:D $pos --> Bool:D) {
-        self.contains($needle, $pos.Int)
+        self.contains($needle, $pos.Int, |%_)
     }
 
     multi method indices(Str:D: Cool:D $needle, :$overlap) {

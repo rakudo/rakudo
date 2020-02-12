@@ -147,7 +147,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method starts-with(Str:D:
-      Str:D $needle, :i($ignorecase)!, :m($ignoremark)
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {
         nqp::hllbool($ignorecase
           ?? $ignoremark
@@ -171,7 +171,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method starts-with(Str:D:
-      Str:D $needle, :m($ignoremark)!
+      Str:D $needle, :m(:$ignoremark)!
     --> Bool:D) {
         nqp::hllbool($ignoremark
 #?if moar
@@ -194,7 +194,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method ends-with(Str:D:
-      Str:D $needle, :i($ignorecase)!, :m($ignoremark)
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {
         nqp::hllbool($ignorecase
           ?? $ignoremark
@@ -223,7 +223,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method ends-with(Str:D:
-      Str:D $needle, :m($ignoremark)!
+      Str:D $needle, :m(:$ignoremark)!
     --> Bool:D) {
         nqp::hllbool($ignoremark
 #?if moar
@@ -254,7 +254,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method substr-eq(Str:D:
-      Str:D $needle, Int:D $pos, :i($ignorecase)!, :m($ignoremark)
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
           ?? self!fail-oor($pos)
@@ -280,7 +280,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method substr-eq(Str:D:
-      Str:D $needle, Int:D $pos, :m($ignoremark)!
+      Str:D $needle, Int:D $pos, :m(:$ignoremark)!
     --> Bool:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
           ?? self!fail-oor($pos)
@@ -313,7 +313,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method contains(Str:D:
-      Str:D $needle, :i($ignorecase)!, :m($ignoremark)
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {
         nqp::hllbool(
           nqp::isne_i($ignorecase
@@ -340,7 +340,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method contains(Str:D:
-      Str:D $needle, :m($ignoremark)!
+      Str:D $needle, :m(:$ignoremark)!
     --> Bool:D) {
         nqp::hllbool(
           nqp::isne_i($ignoremark
@@ -369,7 +369,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method contains(Str:D:
-      Str:D $needle, Int:D $pos, :i($ignorecase)!, :m($ignoremark)
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
           ?? self!fail-oor($pos)
@@ -398,7 +398,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method contains(Str:D:
-      Str:D $needle, Int:D $pos, :m($ignoremark)!
+      Str:D $needle, Int:D $pos, :m(:$ignoremark)!
     --> Bool:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
           ?? self!fail-oor($pos)
@@ -529,7 +529,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method indices(Str:D:
-      Str:D $needle, :i($ignorecase), :m(:$ignoremark), :$overlap
+      Str:D $needle, :i(:$ignorecase), :m(:$ignoremark), :$overlap
     ) {
         $ignorecase
           ?? $ignoremark
@@ -541,7 +541,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method indices(Str:D:
-      Str:D $needle, Int:D $pos, :i($ignorecase), :m(:$ignoremark), :$overlap
+      Str:D $needle, Int:D $pos, :i(:$ignorecase), :m(:$ignoremark), :$overlap
     ) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
           ?? self!fail-oor($pos)

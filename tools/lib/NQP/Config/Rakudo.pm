@@ -682,8 +682,8 @@ sub gen_nqp {
         push @cmd, $opt_str if $opt_str;
     }
 
-    push @cmd, '--git-cache-dir=' . $self->shell_quote_filename(
-        File::Spec->rel2abs($options->{'git-cache-dir'}))
+    push @cmd, '--git-cache-dir='
+        . File::Spec->rel2abs($options->{'git-cache-dir'})
         if $options->{'git-cache-dir'};
 
     push @cmd, "--backends=" . join( ",", $self->active_backends );

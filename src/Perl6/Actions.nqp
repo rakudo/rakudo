@@ -3410,7 +3410,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $<variable_declarator><variable><sigil> eq '$' {
                 if nqp::istype($past, QAST::Var) {
                     if $*W.cur_lexpad.symbol($past.name) -> %sym {
-                        check_default_value_type($/, %sym<descriptor>, %sym<type>, 'variables');
+                        if %sym<descriptor> {
+                            check_default_value_type($/, %sym<descriptor>, %sym<type>, 'variables');
+                        }
                     }
                 }
                 elsif $past.ann('metaattr') -> $attr {

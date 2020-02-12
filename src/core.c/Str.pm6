@@ -253,13 +253,55 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.ends-with($needle.Str, |%_)
     }
 
+    multi method substr-eq(Str:D:
+      Str:D $needle, Int:D $pos, :i($ignorecase)!, :m($ignoremark)
+    --> Bool:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool($ignorecase
+               ?? $ignoremark
+#?if moar
+                 ?? nqp::eqaticim(self,$needle,$pos)
+                 !! nqp::eqatic(self,$needle,$pos)
+#?endif
+#?if !moar
+                 ?? self!die-named('ignorecase and :ignoremark')
+                 !! nqp::eqat(nqp::fc(self),nqp::fc($needle),$pos)
+#?endif
+               !! $ignoremark
+#?if moar
+                 ?? nqp::eqatim(self,$needle,$pos)
+#?endif
+#?if !moar
+                 ?? self!die-named('ignoremark')
+#?endif
+                 !! nqp::eqat(self,$needle,$pos)
+             )
+    }
+
+    multi method substr-eq(Str:D:
+      Str:D $needle, Int:D $pos, :m($ignoremark)!
+    --> Bool:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool($ignoremark
+#?if moar
+               ?? nqp::eqatim(self,$needle,$pos)
+#?endif
+#?if !moar
+               ?? self!die-named('ignoremark')
+#?endif
+               !! nqp::eqat(self,$needle,$pos)
+             )
+    }
+
     multi method substr-eq(Str:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self,$needle,0))
+        self.starts-with($needle, |%_)
     }
     multi method substr-eq(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
-        nqp::hllbool(
-          nqp::isge_i($pos,0) && nqp::eqat(self,$needle,$pos)
-        )
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(nqp::eqat(self,$needle,$pos))
     }
     multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
         self.starts-with($needle.Str, |%_)

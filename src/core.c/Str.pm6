@@ -253,59 +253,63 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.ends-with($needle.Str, |%_)
     }
 
-    multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self,$needle.Str,0))
-    }
     multi method substr-eq(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::eqat(self,$needle,0))
-    }
-    multi method substr-eq(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
-        nqp::hllbool(
-          nqp::isge_i($pos,0) && nqp::eqat(self,$needle.Str,$pos)
-        )
     }
     multi method substr-eq(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::isge_i($pos,0) && nqp::eqat(self,$needle,$pos)
         )
     }
+    multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
+        self.starts-with($needle.Str, |%_)
+    }
+    multi method substr-eq(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
+        self.substr-eq($needle.Str, $pos.Int, |%_)
+    }
 
     multi method contains(Str:D:
       Str:D $needle, :i($ignorecase)!, :m($ignoremark)
     --> Bool:D) {
-        nqp::hllbool(($ignorecase
-          ?? $ignoremark
+        nqp::hllbool(
+          nqp::isne_i($ignorecase
+            ?? $ignoremark
 #?if moar
-            ?? nqp::indexicim(self,$needle,0)
-            !! nqp::indexic(self,$needle,0)
+              ?? nqp::indexicim(self,$needle,0)
+              !! nqp::indexic(self,$needle,0)
 #?endif
 #?if !moar
-            ?? self!die-named('ignorecase and :ignoremark')
-            !! nqp::index(nqp::fc(self),nqp::fc($needle),0)
+              ?? self!die-named('ignorecase and :ignoremark')
+              !! nqp::index(nqp::fc(self),nqp::fc($needle),0)
 #?endif
-          !! $ignoremark
+            !! $ignoremark
+#?if moar
+              ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+              ?? self!die-named('ignoremark')
+#?endif
+              !! nqp::index(self,$needle,0),
+            -1
+          )
+        )
+    }
+
+    multi method contains(Str:D:
+      Str:D $needle, :m($ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool(
+          nqp::isne_i($ignoremark
 #?if moar
             ?? nqp::indexim(self,$needle,0)
 #?endif
 #?if !moar
             ?? self!die-named('ignoremark')
 #?endif
-            !! nqp::index(self,$needle,0)
-        ) >= 0)
-    }
-
-    multi method contains(Str:D:
-      Str:D $needle, :m($ignoremark)!
-    --> Bool:D) {
-        nqp::hllbool(($ignoremark
-#?if moar
-          ?? nqp::indexim(self,$needle,0)
-#?endif
-#?if !moar
-          ?? self!die-named('ignoremark')
-#?endif
-          !! nqp::index(self,$needle,0)
-        ) >= 0)
+            !! nqp::index(self,$needle,0),
+            -1
+          )
+        )
     }
 
     multi method contains(Str:D: Str:D $needle --> Bool:D) {
@@ -323,55 +327,67 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method contains(Str:D:
       Str:D $needle, Int:D $pos, :i($ignorecase)!, :m($ignoremark)
     --> Bool:D) {
-        nqp::hllbool(($ignorecase
-          ?? $ignoremark
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(
+               nqp::isne_i($ignorecase
+                 ?? $ignoremark
 #?if moar
-            ?? nqp::indexicim(self,$needle,$pos)
-            !! nqp::indexic(self,$needle,$pos)
+                   ?? nqp::indexicim(self,$needle,$pos)
+                   !! nqp::indexic(self,$needle,$pos)
 #?endif
 #?if !moar
-            ?? self!die-named('ignorecase and :ignoremark')
-            !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
+                   ?? self!die-named('ignorecase and :ignoremark')
+                   !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
 #?endif
-          !! $ignoremark
+                 !! $ignoremark
 #?if moar
-            ?? nqp::indexim(self,$needle,$pos)
+                   ?? nqp::indexim(self,$needle,$pos)
 #?endif
 #?if !moar
-            ?? self!die-named('ignoremark')
+                   ?? self!die-named('ignoremark')
 #?endif
-            !! nqp::index(self,$needle,$pos)
-        ) >= 0)
+                   !! nqp::index(self,$needle,$pos),
+                 -1
+               )
+             )
     }
 
     multi method contains(Str:D:
       Str:D $needle, Int:D $pos, :m($ignoremark)!
     --> Bool:D) {
-        nqp::hllbool(($ignoremark
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(
+               nqp::isne_i(
+                 $ignoremark
 #?if moar
-          ?? nqp::indexim(self,$needle,$pos)
+                   ?? nqp::indexim(self,$needle,$pos)
 #?endif
 #?if !moar
-          ?? self!die-named('ignoremark')
+                   ?? self!die-named('ignoremark')
 #?endif
-          !! nqp::index(self,$needle,$pos)
-        ) >= 0)
+                   !! nqp::index(self,$needle,$pos),
+                 -1,
+               )
+             )
     }
 
     multi method contains(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
-        nqp::hllbool(
-          nqp::isge_i($pos,0)
-            && nqp::islt_i($pos,nqp::chars(self))
-            && nqp::isne_i(nqp::index(self,$needle,$pos),-1)
-        )
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(nqp::isne_i(nqp::index(self,$needle,$pos),-1))
     }
     multi method contains(Str:D: Regex:D $needle, Int:D $pos --> Bool:D) {
-        nqp::hllbool(
-          nqp::isge_i($pos,0)
-            && nqp::islt_i($pos,nqp::chars(self))
-            && nqp::getattr_i(
-                 $needle($cursor-init(Match,self,:c($pos))),Match,'$!pos'
-               ) >= 0
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(
+               nqp::islt_i($pos,nqp::chars(self)) && nqp::isge_i(
+                 nqp::getattr_i(
+                   $needle($cursor-init(Match,self,:c($pos))),Match,'$!pos'
+                 ),
+                 0
+               )
         )
     }
 
@@ -444,97 +460,99 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method index(Str:D:
       Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Int:D) {
-        my $index := $ignorecase
-          ?? $ignoremark
+        nqp::isne_i(
+          (my $index := $ignorecase
+            ?? $ignoremark
 #?if moar
-            ?? nqp::indexicim(self,$needle,0)
-            !! nqp::indexic(self,$needle,0)
+              ?? nqp::indexicim(self,$needle,0)
+              !! nqp::indexic(self,$needle,0)
 #?endif
 #?if !moar
-            ?? self!die-named('ignorecase and :ignoremark')
-            !! nqp::index(nqp::fc(self),nqp::fc($needle),0)
+              ?? self!die-named('ignorecase and :ignoremark')
+              !! nqp::index(nqp::fc(self),nqp::fc($needle),0)
 #?endif
-          !! $ignoremark
+            !! $ignoremark
+#?if moar
+              ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+              ?? self!die-named('ignoremark')
+#?endif
+              !! nqp::index(self,$needle,0)
+          ),-1
+        ) ?? $index !! Nil
+    }
+
+    multi method index(Str:D:
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Int:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+        ?? self!fail-oor($pos)
+        !! nqp::isne_i(
+             (my $index := $ignorecase
+               ?? $ignoremark
+#?if moar
+                 ?? nqp::indexicim(self,$needle,$pos)
+                 !! nqp::indexic(self,$needle,$pos)
+#?endif
+#?if !moar
+                 ?? self!die-named('ignorecase and :ignoremark')
+                 !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
+#?endif
+               !! $ignoremark
+#?if moar
+                 ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+                 ?? self!die-named('ignoremark')
+#?endif
+                 !! nqp::index(self,$needle,$pos)
+             ),-1
+           ) ?? $index !! Nil
+    }
+
+    multi method index(Str:D:
+      Str:D $needle, :m(:$ignoremark)!
+    --> Int:D) {
+        nqp::isne_i(
+          (my $index := $ignoremark
 #?if moar
             ?? nqp::indexim(self,$needle,0)
 #?endif
 #?if !moar
             ?? self!die-named('ignoremark')
 #?endif
-            !! nqp::index(self,$needle,0);
-
-        $index < 0 ?? Nil !! $index
-    }
-
-    multi method index(Str:D:
-      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
-    --> Int:D) {
-        self!INDEX-OOR($pos)
-          if nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0);
-
-        my $index := $ignorecase
-          ?? $ignoremark
-#?if moar
-            ?? nqp::indexicim(self,$needle,$pos)
-            !! nqp::indexic(self,$needle,$pos)
-#?endif
-#?if !moar
-            ?? self!die-named('ignorecase and :ignoremark')
-            !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
-#?endif
-          !! $ignoremark
-#?if moar
-            ?? nqp::indexim(self,$needle,$pos)
-#?endif
-#?if !moar
-            ?? self!die-named('ignoremark')
-#?endif
-            !! nqp::index(self,$needle,$pos);
-
-        $index < 0 ?? Nil !! $index
-    }
-
-    multi method index(Str:D:
-      Str:D $needle, :m(:$ignoremark)!
-    --> Int:D) {
-        my $index := $ignoremark
-#?if moar
-          ?? nqp::indexim(self,$needle,0)
-#?endif
-#?if !moar
-          ?? self!die-named('ignoremark')
-#?endif
-          !! nqp::index(self,$needle,0);
-
-        $index < 0 ?? Nil !! $index
+            !! nqp::index(self,$needle,0)
+          ),-1
+        ) ?? $index !! Nil
     }
     multi method index(Str:D:
       Str:D $needle, Int:D $pos, :m(:$ignoremark)!
     --> Int:D) {
-        self!INDEX-OOR($pos)
-          if nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0);
-
-        my $index := $ignoremark
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::isne_i(
+               (my $index := $ignoremark
 #?if moar
-          ?? nqp::indexim(self,$needle,$pos)
+                 ?? nqp::indexim(self,$needle,$pos)
 #?endif
 #?if !moar
-          ?? self!die-named('ignoremark')
+                 ?? self!die-named('ignoremark')
 #?endif
-          !! nqp::index(self,$needle,$pos);
-
-        $index ?? Nil !! $index
+                 !! nqp::index(self,$needle,$pos)
+               ),-1
+             ) ?? $index !! Nil
     }
 
     multi method index(Str:D: Str:D $needle --> Int:D) {
-        nqp::islt_i((my $i := nqp::index(self,$needle)),0) ?? Nil !! $i
+        nqp::isne_i((my $index := nqp::index(self,$needle)),-1)
+          ?? $index !! Nil
     }
     multi method index(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
-          ?? self!INDEX-OOR($pos)
-          !! nqp::islt_i((my $i := nqp::index(self,$needle,$pos)),0)
-            ?? Nil
-            !! $i
+          ?? self!fail-oor($pos)
+          !! nqp::isne_i((my $index := nqp::index(self,$needle,$pos)),-1)
+            ?? $index !! Nil
     }
 
     # Cool catchers
@@ -545,9 +563,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.index: $needle.Str, $pos.Int, |%_
     }
 
-    method !INDEX-OOR($got) {
+    # helper method for failing with out of range exception
+    method !fail-oor($got) {
         Failure.new(X::OutOfRange.new(
-          :what("Position in index"),
+          :what("Position in calling '{ callframe(2).code.name }'"),
           :$got,
           :range("0..{ nqp::chars(self) }")
         ))
@@ -564,24 +583,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method rindex(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
-          ?? self!RINDEX-OOR($pos)
+          ?? self!fail-oor($pos)
           !! nqp::islt_i((my $i := nqp::rindex(self,$needle.Str,$pos)),0)
             ?? Nil
             !! $i
     }
     multi method rindex(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
-          ?? self!RINDEX-OOR($pos)
+          ?? self!fail-oor($pos)
           !! nqp::islt_i((my $i := nqp::rindex(self,$needle,$pos)),0)
             ?? Nil
             !! $i
-    }
-    method !RINDEX-OOR($got) {
-        Failure.new(X::OutOfRange.new(
-          :what("Position in rindex"),
-          :$got,
-          :range("0..{ nqp::chars(self) }")
-        ))
     }
 
     method pred(Str:D: --> Str:D) {

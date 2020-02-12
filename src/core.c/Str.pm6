@@ -184,14 +184,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    multi method starts-with(Str:D:
-      Str:D $needle
-    --> Bool:D) {
+    multi method starts-with(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::eqat(self, $needle, 0))
     }
-    multi method starts-with(Str:D:
-      Cool:D $needle
-    --> Bool:D) {
+
+    # Cool catcher
+    multi method starts-with(Str:D: Cool:D $needle --> Bool:D) {
         self.starts-with($needle.Str, |%_)
     }
 
@@ -249,6 +247,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
+
+    # Cool catcher
     multi method ends-with(Str:D: Cool:D $needle --> Bool:D) {
         self.ends-with($needle.Str, |%_)
     }
@@ -303,6 +303,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? self!fail-oor($pos)
           !! nqp::hllbool(nqp::eqat(self,$needle,$pos))
     }
+
+    # Cool catchers
     multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
         self.starts-with($needle.Str, |%_)
     }
@@ -433,6 +435,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    # Cool catchers
     multi method contains(Str:D: Cool:D $needle --> Bool:D) {
         self.contains($needle.Str, |%_)
     }
@@ -614,28 +617,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
-    multi method rindex(Str:D: Cool:D $needle --> Int:D) {
-        nqp::islt_i((my $i := nqp::rindex($!value,$needle.Str)),0) ?? Nil !! $i
-    }
     multi method rindex(Str:D: Str:D $needle --> Int:D) {
-        nqp::islt_i((my $i := nqp::rindex($!value,$needle)),0) ?? Nil !! $i
-    }
-    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
-        self.rindex: $needle.Str, $pos.Int
-    }
-    multi method rindex(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
-        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
-          ?? self!fail-oor($pos)
-          !! nqp::islt_i((my $i := nqp::rindex(self,$needle.Str,$pos)),0)
-            ?? Nil
-            !! $i
+        nqp::isne_i((my $index := nqp::rindex($!value,$needle)),-1)
+          ?? $index !! Nil
     }
     multi method rindex(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
           ?? self!fail-oor($pos)
-          !! nqp::islt_i((my $i := nqp::rindex(self,$needle,$pos)),0)
-            ?? Nil
-            !! $i
+          !! nqp::isne_i((my $index := nqp::rindex(self,$needle,$pos)),-1)
+            ?? $index !! Nil
+    }
+
+    # Cool catchers
+    multi method rindex(Str:D: Cool:D $needle --> Int:D) {
+        self.rindex: $needle.Str, |%_
+    }
+    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
+        self.rindex: $needle.Str, $pos.Int, |%_
     }
 
     method pred(Str:D: --> Str:D) {

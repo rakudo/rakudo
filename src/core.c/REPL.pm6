@@ -257,6 +257,10 @@ do {
         method init(Mu \compiler, $multi-line-enabled --> Nil) {
             $!compiler := compiler;
             $!multi-line-enabled = $multi-line-enabled;
+            PROCESS::<$SCHEDULER>.uncaught_handler =  -> $exception {
+                note "Uncaught exception on thread $*THREAD.id():\n" ~
+                    $exception.gist.indent(4);
+            }
         }
 
         method teardown {

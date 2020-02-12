@@ -7108,6 +7108,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             for $/.list { if $_.ast { $past.push(WANTED($_.ast,'EXPR/list')); ++$arity; } }
+            if $key eq 'infix' && $<OPER><O>.made<assoc> eq 'chain' {
+                $past.op('chain');
+            }
         }
         if $past.op eq 'xor' {
             $past.push(QAST::WVal.new( :named<false>, :value($*W.find_symbol(['Nil'])) ));

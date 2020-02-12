@@ -12,7 +12,7 @@ import org.perl6.nqp.sixmodel.reprs.NativeRefInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
 /**
- * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
+ * Contains implementation of nqp:: ops specific to Rakudo
  */
 @SuppressWarnings("unused")
 public final class RakOps {
@@ -246,7 +246,7 @@ public final class RakOps {
                 return null;
         }
 
-        /* The binder may, for a variety of reasons, wind up calling Perl 6 code and overwriting flatArgs, so it needs to be set at the end to return reliably */
+        /* The binder may, for a variety of reasons, wind up calling Raku code and overwriting flatArgs, so it needs to be set at the end to return reliably */
         tc.flatArgs = args;
         return csd;
     }

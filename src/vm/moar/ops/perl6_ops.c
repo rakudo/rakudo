@@ -47,7 +47,7 @@ static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
     return MVM_is_null(tc, ex_hash) ? ex_hash : MVM_repr_at_key_o(tc, ex_hash, type);
 }
 
-/* Initializes the Perl 6 extension ops. */
+/* Initializes the Raku extension ops. */
 static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
     if (!initialized) {
         Rakudo_containers_setup(tc);
@@ -67,7 +67,7 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
     }
 }
 
-/* Boxing to Perl 6 types. */
+/* Boxing to Raku types. */
 static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins, MVMObject *type) {
     MVMSpeshFacts *tfacts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
     tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE;

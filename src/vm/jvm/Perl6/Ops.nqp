@@ -1,4 +1,4 @@
-# Type containing Perl 6 specific ops.
+# Type containing Raku specific ops.
 my $TYPE_P6OPS := 'Lorg/perl6/rakudo/RakOps;';
 
 # Other types we'll refer to.
@@ -32,7 +32,7 @@ sub register_op_desugar($name, $desugar, :$inlinable = 1, :$compiler = 'Raku') i
     });
 }
 
-# Perl 6 opcode specific mappings.
+# Raku opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
 $ops.map_classlib_hll_op('Raku', 'p6bigint', $TYPE_P6OPS, 'p6bigint', [$RT_NUM], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('Raku', 'p6configposbindfailover', $TYPE_P6OPS, 'p6configposbindfailover', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);

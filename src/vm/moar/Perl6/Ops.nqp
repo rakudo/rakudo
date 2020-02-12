@@ -75,7 +75,7 @@ sub register_op_desugar($name, $desugar, :$inlinable = 1, :$compiler = 'Raku') i
     });
 }
 
-# Perl 6 opcode specific mappings.
+# Raku opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
 $ops.add_hll_op('Raku', 'p6store', -> $qastcomp, $op {
     my $cont_res  := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));

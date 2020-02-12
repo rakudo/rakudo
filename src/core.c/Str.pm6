@@ -147,7 +147,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method starts-with(Str:D:
-      Str:D $needle, :i($ignorecase)!, :m($ignoremark)!
+      Str:D $needle, :i($ignorecase)!, :m($ignoremark)
     --> Bool:D) {
         nqp::hllbool($ignorecase
           ?? $ignoremark
@@ -167,20 +167,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ?? self!die-named('ignoremark')
 #?endif
             !! nqp::eqat(self,$needle,0)
-        )
-    }
-
-    multi method starts-with(Str:D:
-      Str:D $needle, :i($ignorecase)!
-    --> Bool:D) {
-        nqp::hllbool($ignorecase
-#?if moar
-          ?? nqp::eqatic(self,$needle,0)
-#?endif
-#?if !moar
-          ?? nqp::eqat(nqp::fc(self),nqp::fc($needle),0)
-#?endif
-          !! nqp::eqat(self,$needle,0)
         )
     }
 
@@ -210,7 +196,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method ends-with(Str:D:
-      Str:D $needle, :i($ignorecase)!, :m($ignoremark)!
+      Str:D $needle, :i($ignorecase)!, :m($ignoremark)
     --> Bool:D) {
         nqp::hllbool($ignorecase
           ?? $ignoremark
@@ -235,23 +221,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
             !! nqp::eqat(self,$needle,
                  nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
-        )
-    }
-
-    multi method ends-with(Str:D:
-      Str:D $needle, :i($ignorecase)!
-    --> Bool:D) {
-        nqp::hllbool($ignorecase
-#?if moar
-          ?? nqp::eqatic(self,$needle,
-               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
-#?endif
-#?if !moar
-          ?? nqp::eqat(nqp::fc(self),nqp::fc($needle),
-               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
-#?endif
-          !! nqp::eqat(self,$needle,
-               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
         )
     }
 
@@ -405,7 +374,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
 
     multi method index(Str:D:
-      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)!
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Int:D) {
         my $index := $ignorecase
           ?? $ignoremark
@@ -430,7 +399,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method index(Str:D:
-      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)!
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Int:D) {
         self!INDEX-OOR($pos)
           if nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0);
@@ -487,38 +456,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::index(self,$needle,$pos);
 
         $index ?? Nil !! $index
-    }
-
-    multi method index(Str:D:
-      Str:D $needle, :i(:$ignorecase)!
-    --> Int:D) {
-        my $index := $ignorecase
-#?if moar
-          ?? nqp::indexic(self,$needle,0)
-#?endif
-#?if !moar
-          ?? nqp::index(nqp::fc(self),nqp::fc($needle),0)
-#?endif
-          !! nqp::index(self,$needle,0);
-
-        $index < 0 ?? Nil !! $index
-    }
-    multi method index(Str:D:
-      Str:D $needle, Int:D $pos, :i(:$ignorecase)!
-    --> Int:D) {
-        self!INDEX-OOR($pos)
-          if nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0);
-
-        my $index := $ignorecase
-#?if moar
-          ?? nqp::indexic(self,$needle,$pos)
-#?endif
-#?if !moar
-          ?? nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
-#?endif
-          !! nqp::index(self,$needle,$pos);
-
-        $index < 0 ?? Nil !! $index
     }
 
     multi method index(Str:D: Str:D $needle --> Int:D) {

@@ -145,7 +145,6 @@ $ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {
 $ops.map_classlib_hll_op('Raku', 'p6bindattrinvres', $TYPE_P6OPS, 'p6bindattrinvres', [$RT_OBJ, $RT_OBJ, $RT_STR, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('Raku', 'p6finddispatcher', $TYPE_P6OPS, 'p6finddispatcher', [$RT_STR], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('Raku', 'p6argsfordispatcher', $TYPE_P6OPS, 'p6argsfordispatcher', [$RT_OBJ], $RT_OBJ, :tc);
-$ops.map_classlib_hll_op('Raku', 'p6decodelocaltime', $TYPE_P6OPS, 'p6decodelocaltime', [$RT_INT], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('Raku', 'p6setautothreader', $TYPE_P6OPS, 'p6setautothreader', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('Raku', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
 $ops.map_classlib_hll_op('Raku', 'p6sort', $TYPE_P6OPS, 'p6sort', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);

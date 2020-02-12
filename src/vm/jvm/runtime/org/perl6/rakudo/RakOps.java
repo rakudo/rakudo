@@ -623,30 +623,6 @@ public final class RakOps {
         return result;
     }
 
-    public static SixModelObject p6decodelocaltime(long sinceEpoch, ThreadContext tc) {
-        // Get calendar for current local host's timezone.
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(sinceEpoch * 1000);
-
-        // Populate result int array.
-        SixModelObject BOOTIntArray = tc.gc.BOOTIntArray;
-        SixModelObject result = BOOTIntArray.st.REPR.allocate(tc, BOOTIntArray.st);
-        tc.native_i = c.get(Calendar.SECOND);
-        result.bind_pos_native(tc, 0);
-        tc.native_i = c.get(Calendar.MINUTE);
-        result.bind_pos_native(tc, 1);
-        tc.native_i = c.get(Calendar.HOUR_OF_DAY);
-        result.bind_pos_native(tc, 2);
-        tc.native_i = c.get(Calendar.DAY_OF_MONTH);
-        result.bind_pos_native(tc, 3);
-        tc.native_i = c.get(Calendar.MONTH) + 1;
-        result.bind_pos_native(tc, 4);
-        tc.native_i = c.get(Calendar.YEAR);
-        result.bind_pos_native(tc, 5);
-
-        return result;
-    }
-
     public static SixModelObject p6staticouter(SixModelObject code, ThreadContext tc) {
         if (code instanceof CodeRef)
             return ((CodeRef)code).staticInfo.outerStaticInfo.staticCode;

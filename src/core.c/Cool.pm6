@@ -235,32 +235,33 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method index(|) {*}
-    multi method index(List:D: Str:D \needle) {  # Warn about newbie trap
+    multi method index(List:D: Str:D \needle, *%_) {  # Warn about newbie trap
         self!list-as-string('.first( ..., :k)');
         self.join.index(needle, |%_)
     }
+    multi method index(Cool:D:
+      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D) {
+        self.Str.index($needle.Str, :$ignorecase, :$ignoremark)
+    }
+    multi method index(Cool:D:
+      Cool:D $needle, :m(:$ignoremark)! --> Int:D) {
+        self.Str.index($needle.Str, :$ignoremark)
+    }
     multi method index(Cool:D: Cool:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::index(self.Str,$needle.Str)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
+        self.Str.index($needle.Str)
     }
-    multi method index(Cool:D: Str:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::index(self.Str,$needle)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
-    }
+
+    multi method index(Cool:D:
+      Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Int:D) {
+        self.Str.index: $needle.Str, $pos.Int, :$ignorecase, :$ignoremark
+    }   
+    multi method index(Cool:D:
+      Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Int:D) {
+        self.Str.index: $needle.Str, $pos.Int, :$ignoremark
+    }   
     multi method index(Cool:D: Cool:D $needle, Cool:D $pos --> Int:D) {
         self.Str.index: $needle.Str, $pos.Int
-    }   
-    multi method index(Cool:D: Cool:D $needle, Int:D $pos --> Int:D) {
-        self.Str.index: $needle.Str, $pos
-    }   
-    multi method index(Cool:D: Str:D $needle, Int:D $pos --> Int:D) {
-        self.Str.index: $needle, $pos
     }   
 
     proto method rindex(|) {*}

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 4;
+plan 6;
 
 # https://github.com/rakudo/rakudo/issues/1534
 {
@@ -18,15 +18,18 @@ lives-ok { class C { }; await start { for ^10_0000 { C.^set_name('B') } } xx 4 }
 {
     use nqp;
     nqp::srand(1);
-    my $first := nqp::rand_I(100,Int);
+    my $first  := nqp::rand_I(100,Int);
+    my $second := nqp::rand_I(100,Int);
     nqp::srand(1);
-pass "waiting for fix";
-#    is nqp::rand_I(100,Int), $first, 'does srand produce same rand_I values';
+    is nqp::rand_I(100,Int), $first, 'does srand produce same rand_I values 1';
+    is nqp::rand_I(100,Int), $second, 'does srand produce same rand_I values 2';
 
     nqp::srand(1);
-    $first := nqp::rand_n(100e0);
+    $first  := nqp::rand_n(100e0);
+    $second := nqp::rand_n(100e0);
     nqp::srand(1);
-    is nqp::rand_n(100e0), $first, 'does srand produce same rand_n values';
+    is nqp::rand_n(100e0), $first, 'does srand produce same rand_n values 1';
+    is nqp::rand_n(100e0), $second, 'does srand produce same rand_n values 2';
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

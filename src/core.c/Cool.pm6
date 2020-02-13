@@ -446,19 +446,35 @@ proto sub flip($, *%) {*}
 multi sub flip(Cool $s --> Str:D) { $s.flip }
 
 proto sub index($, $, $?, *%) {*}
-multi sub index(Cool:D $s, Cool:D $needle, *%_) {
-    $s.Str.index($needle.Str, |%_)
+multi sub index(Cool:D $s,
+  Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D) {
+    $s.Str.index($needle.Str, :$ignorecase, :$ignoremark)
 }
-multi sub index(Cool:D $s, Cool:D $needle, Cool:D $pos, *%_) {
-    $s.Str.index($needle.Str,$pos.Int, |%_)
+multi sub index(Cool:D $s, Cool:D $needle, :m(:$ignoremark)!  --> Int:D) {
+    $s.Str.index($needle.Str, :$ignoremark)
+}
+multi sub index(Cool:D $s, Cool:D $needle --> Int:D) {
+    $s.Str.index($needle.Str)
+}
+
+multi sub index(Cool:D $s,
+  Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D) {
+    $s.Str.index($needle.Str,$pos.Int, :$ignorecase, :$ignoremark)
+}
+multi sub index(Cool:D $s,
+  Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Int:D) {
+    $s.Str.index($needle.Str,$pos.Int, :$ignoremark)
+}
+multi sub index(Cool:D $s, Cool:D $needle, Cool:D $pos --> Int:D) {
+    $s.Str.index($needle.Str,$pos.Int)
 }
 
 proto sub rindex($, $, $?, *%) {*}
-multi sub rindex(Cool:D $s, Cool:D $needle, *%_) {
-    $s.Str.rindex($needle.Str, |%_)
+multi sub rindex(Cool:D $s, Cool:D $needle --> Int:D) {
+    $s.Str.rindex($needle.Str)
 }
-multi sub rindex(Cool:D $s, Cool:D $needle, Cool:D $pos, *%_) {
-    $s.Str.rindex($needle.Str,$pos.Int, |%_)
+multi sub rindex(Cool:D $s, Cool:D $needle, Cool:D $pos --> Int:D) {
+    $s.Str.rindex($needle.Str,$pos.Int)
 }
 
 proto sub lc($, *%) {*}

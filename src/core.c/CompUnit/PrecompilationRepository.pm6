@@ -161,7 +161,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
 
         if $resolve {
-            self.store.store-repo-id($compiler-id, $precomp-unit.id, :repo-id($repo.id));
+            if self.store.destination($compiler-id, $precomp-unit.id, :extension<.repo-id>) {
+                self.store.store-repo-id($compiler-id, $precomp-unit.id, :repo-id($repo.id));
+                self.store.unlock;
+            }
         }
         True
     }

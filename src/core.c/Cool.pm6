@@ -446,12 +446,20 @@ proto sub flip($, *%) {*}
 multi sub flip(Cool $s --> Str:D) { $s.flip }
 
 proto sub index($, $, $?, *%) {*}
-multi sub index(Cool $s, Cool $needle)            { $s.index($needle)      }
-multi sub index(Cool $s, Cool $needle, Cool $pos) { $s.index($needle,$pos) }
+multi sub index(Cool:D $s, Cool:D $needle, *%_) {
+    $s.Str.index($needle.Str, |%_)
+}
+multi sub index(Cool:D $s, Cool:D $needle, Cool:D $pos, *%_) {
+    $s.Str.index($needle.Str,$pos.Int, |%_)
+}
 
 proto sub rindex($, $, $?, *%) {*}
-multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) }
-multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) }
+multi sub rindex(Cool:D $s, Cool:D $needle, *%_) {
+    $s.Str.rindex($needle.Str, |%_)
+}
+multi sub rindex(Cool:D $s, Cool:D $needle, Cool:D $pos, *%_) {
+    $s.Str.rindex($needle.Str,$pos.Int, |%_)
+}
 
 proto sub lc($, *%) {*}
 multi sub lc(Cool $s) { $s.lc }

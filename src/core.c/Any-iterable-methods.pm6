@@ -2084,7 +2084,7 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method rotor(Any:D: Int:D $batch, :$partial) {
         Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,$partial))
     }
-    multi method rotor(Any:D: *@cycle, :$partial) {
+    multi method rotor(Any:D: +@cycle, :$partial) {
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
 }

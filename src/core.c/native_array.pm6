@@ -1716,7 +1716,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2238,7 +2238,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2760,7 +2760,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {

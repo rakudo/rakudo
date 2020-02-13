@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 use v6;
 
 # Quick hack to update CREDITS with "git log" type output not perfect since

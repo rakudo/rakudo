@@ -74,6 +74,7 @@
 @bpv(PERL6_BOOTSTRAP_PRECOMPS)@ =@for_specs( @bsm(PERL6_BOOTSTRAP_@ucspec@)@)@
 
 @bpv(RUNNER)@       = perl6-@backend_abbr@@bpm(RUNNER_SUFFIX)@
+@bpv(RUNNER_OPTS)@	= --ll-exception
 
 @bsv(PERL6_DEBUG)@ = perl6-debug.@bext@
 @bsv(RAKUDO_DEBUG)@ = rakudo-debug.@bext@
@@ -223,10 +224,10 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @backend_prefix@-install-post:: @@script(install-core-dist.raku)@@
 	@echo(+++ Preparing installation)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(install-core-dist.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(upgrade-repository.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(upgrade-repository.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(upgrade-repository.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @bpm(RUNNER_OPTS)@ @shquot(@script(install-core-dist.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
 
 @backend_prefix@-install:: @backend_prefix@-all @backend_prefix@-install-pre @backend_prefix@-install-main @backend_prefix@-install-post
 	@echo(+++ @uc(@backend@)@ BACKEND INSTALLED)@

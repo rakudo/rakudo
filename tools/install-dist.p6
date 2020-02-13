@@ -2,9 +2,9 @@
 
 =begin pod
 
-This script is for installing Raku. B<install-dist.raku> does the same module registration like the 'zef' tool.
+This script is for installing Raku modules. B<install-dist.p6> does the same module registration like the 'zef' tool.
 
-B<install-dist.raku> makes it easy to install a module system wide.
+B<install-dist.p6> makes it easy to install a module system wide.
 
 =head1 OPTIONS
 
@@ -22,7 +22,7 @@ If you specify a destination that does not exists then it will be created. The -
 
 The command in the install session for packaging a Raku module could be done in the form:
 
-    install-dist.raku --to=<buildroot/...> --for=vendor
+    install-dist.p6 --to=<buildroot/...> --for=vendor
 
 It is recommended to set the environment variable 'RAKUDO_RERESOLVE_DEPENDENCIES' by using the script:
 

@@ -15,7 +15,7 @@
 @bpv(NQP_RR)@ = @bpm(NQP)@
 @make_pp_pfx@endif
 @make_pp_pfx@ifndef @bpv(NQP_FLAGS)@
-@bpv(NQP_FLAGS)@ = --module-path=blib
+@bpv(NQP_FLAGS)@ = --module-path=blib --ll-exception
 @make_pp_pfx@endif
 @make_pp_pfx@ifndef @bpv(RUNNER_SUFFIX)@
 @bpv(RUNNER_SUFFIX)@ = @runner_suffix@
@@ -221,12 +221,12 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 	$(NOECHO)$(CP)   @bsm(PERL6)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/@bsm(RAKUDO)@)@
 	$(NOECHO)$(CP)   @bsm(PERL6_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/@bsm(RAKUDO_DEBUG)@)@
 
-@backend_prefix@-install-post:: @@script(install-core-dist.p6)@@
+@backend_prefix@-install-post:: @@script(install-core-dist.raku)@@
 	@echo(+++ Preparing installation)@
 	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
 	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
 	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(upgrade-repository.p6)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
-	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(install-core-dist.p6)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
+	$(NOECHO)@nfpq($(BASE_DIR)/@bpm(RUNNER)@)@ @shquot(@script(install-core-dist.raku)@)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/core)@
 
 @backend_prefix@-install:: @backend_prefix@-all @backend_prefix@-install-pre @backend_prefix@-install-main @backend_prefix@-install-post
 	@echo(+++ @uc(@backend@)@ BACKEND INSTALLED)@

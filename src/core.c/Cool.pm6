@@ -195,25 +195,31 @@ my class Cool { # declared in BOOTSTRAP
     proto method contains(|) {*}
     multi method contains(List:D: Str:D \needle) {  # Warn about newbie trap
         self!list-as-string('needle (elem) list');
-        self.Str.contains(needle, |%_)
+        self.Str.contains: needle, |%_
     }
+    multi method contains(Cool:D:
+      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
+        self.Str.contains: $needle.Str, :$ignorecase, :$ignoremark
+    }   
+    multi method contains(Cool:D:
+      Cool:D $needle, :m(:$ignoremark)! --> Bool:D) {
+        self.Str.contains: $needle.Str, :$ignoremark
+    }   
     multi method contains(Cool:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::isne_i(nqp::index(self.Str,$needle.Str,0),-1))
+        self.Str.contains: $needle.Str
     }   
-    multi method contains(Cool:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::isne_i(nqp::index(self.Str,$needle,0),-1))
-    }   
-    multi method contains(Cool:D: Cool:D $needle, Int:D $pos --> Bool:D) {
-        self.Str.contains($needle.Str, $pos)
-    }   
-    multi method contains(Cool:D: Str:D $needle, Int:D $pos --> Bool:D) {
-        self.Str.contains($needle, $pos)
-    }   
+
+    multi method contains(Cool:D:
+      Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
+        self.Str.contains($needle.Str, $pos.Int, :$ignorecase, :$ignoremark)
+    }
+    multi method contains(Cool:D:
+      Cool:D $needle, Cool:D $pos, :m(:$ignoremark)! --> Bool:D) {
+        self.Str.contains($needle.Str, $pos.Int, :$ignoremark)
+    }
     multi method contains(Cool:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
         self.Str.contains($needle.Str, $pos.Int)
-    }
-    multi method contains(Cool:D: Str:D $needle, Cool:D $pos --> Bool:D) {
-        self.Str.contains($needle, $pos.Int)
     }
 
     proto method indices(|) {*}

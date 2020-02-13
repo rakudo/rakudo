@@ -30,7 +30,6 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libtommath)@ \
 	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libuv)@
 
-#@bpv(RUNNER)@ = perl6-m@moar::exe@
 @bpv(PERL6)@ = perl6@moar::exe@
 @bpv(PERL6_DEBUG)@ = perl6-debug@moar::exe@
 @bpv(PERL6_M)@ = perl6-m@moar::exe@

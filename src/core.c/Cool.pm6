@@ -195,7 +195,7 @@ my class Cool { # declared in BOOTSTRAP
     proto method contains(|) {*}
     multi method contains(List:D: Str:D \needle) {  # Warn about newbie trap
         self!list-as-string('needle (elem) list');
-        self.join.contains(needle, |%_)
+        self.Str.contains(needle, |%_)
     }
     multi method contains(Cool:D: Cool:D $needle --> Bool:D) {
         nqp::hllbool(nqp::isne_i(nqp::index(self.Str,$needle.Str,0),-1))
@@ -219,7 +219,7 @@ my class Cool { # declared in BOOTSTRAP
     proto method indices(|) {*}
     multi method indices(List:D: Str:D \needle) {  # Warn about newbie trap
         self!list-as-string('.grep( ..., :k)');
-        self.join.indices(needle, |%_)
+        self.Str.indices(needle, |%_)
     }
     multi method indices(Cool:D: Cool:D $needle, :$overlap) {
         self.Str.indices: $needle.Str, :$overlap
@@ -235,9 +235,9 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method index(|) {*}
-    multi method index(List:D: Str:D \needle, *%_) {  # Warn about newbie trap
+    multi method index(List:D: Str:D \needle) {  # Warn about newbie trap
         self!list-as-string('.first( ..., :k)');
-        self.join.index(needle, |%_)
+        self.Str.index(needle, |%_)
     }
     multi method index(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D) {

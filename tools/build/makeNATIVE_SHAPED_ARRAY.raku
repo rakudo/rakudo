@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 # This script reads the native_array.pm file from STDIN, and generates the
 # shapedintarray, shapednumarray and shapedstrarray roles in it, and writes

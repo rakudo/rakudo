@@ -1,4 +1,5 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
+
 # This script generates the Unicode canonical alternates/shortnames ->
 # canonical full names hash and the mappings of Unicode properties to
 # Str, Bool, and other types.in /src/core/Cool.pm

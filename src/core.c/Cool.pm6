@@ -479,15 +479,9 @@ multi sub index(Cool:D $s,
   Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Int:D) {
     $s.Str.index($needle.Str, :$ignorecase, :$ignoremark)
 }
-multi sub index(Cool:D $s, Cool:D $needle --> Int:D) {
-    $s.Str.index($needle.Str)
-}
 multi sub index(Cool:D $s,
   Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark) --> Int:D) {
     $s.Str.index($needle.Str,$pos.Int, :$ignorecase, :$ignoremark)
-}
-multi sub index(Cool:D $s, Cool:D $needle, Cool:D $pos --> Int:D) {
-    $s.Str.index($needle.Str,$pos.Int)
 }
 
 proto sub rindex($, $, $?, *%) {*}

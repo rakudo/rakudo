@@ -739,7 +739,10 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
         # sub proclaim is not called directly, so 2 is minimum level
         my int $level = 2;
 
-        repeat while $?FILE.ends-with($caller.file) {
+        # The :raw is to accommodate a dirty hack.  See
+        # https://github.com/rakudo/rakudo/issues/2539 for the
+        # whole story.
+        repeat while $?FILE.ends-with($caller.file(:raw)) {
             $caller = callframe($level++);
         }
 

@@ -522,7 +522,7 @@ multi sub fc(Cool $s) { $s.fc }
 proto sub tclc($, *%) {*}
 multi sub tclc(Cool $s) { $s.tclc }
 
-proto sub indices($, |) {*}
+proto sub indices($, $, $?, *%) {*}
 multi sub indices(Cool:D $s,
   Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
     $s.indices($needle, :$ignorecase, :$ignoremark, :$overlap)

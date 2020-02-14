@@ -144,19 +144,29 @@ my class Cool { # declared in BOOTSTRAP
     method trans(|c) { self.Str.trans(|c) }
 
     proto method starts-with(|) {*}
-    multi method starts-with(Cool:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self.Str, $needle.Str, 0))
+    multi method starts-with(Cool:D:
+      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
+        self.Str.starts-with($needle.Str, :$ignorecase, :$ignoremark)
     }   
-    multi method starts-with(Cool:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self.Str, $needle, 0)) 
+    multi method starts-with(Cool:D:
+      Cool:D $needle, :m(:$ignoremark)! --> Bool:D) {
+        self.Str.starts-with($needle.Str, :$ignoremark)
+    }   
+    multi method starts-with(Cool:D: Cool:D $needle --> Bool:D) {
+        self.Str.starts-with($needle.Str)
     }   
 
     proto method ends-with(|) {*}
-    multi method ends-with(Cool:D: Cool:D $suffix --> Bool:D) {
-        self.Str.ends-with: $suffix.Str
+    multi method ends-with(Cool:D:
+      Cool:D $suffix, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
+        self.Str.ends-with($suffix.Str, :$ignorecase, :$ignoremark)
     }
-    multi method ends-with(Cool:D: Str:D $suffix --> Bool:D) {
-        self.Str.ends-with: $suffix
+    multi method ends-with(Cool:D:
+      Cool:D $suffix, :m(:$ignoremark)! --> Bool:D) {
+        self.Str.ends-with($suffix.Str, :$ignoremark)
+    }
+    multi method ends-with(Cool:D: Cool:D $suffix --> Bool:D) {
+        self.Str.ends-with($suffix.Str)
     }
 
     proto method substr(|) {*}
@@ -175,17 +185,29 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr-eq(|) {*}
+    multi method substr-eq(Cool:D:
+      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
+        self.Str.starts-with($needle.Str, :$ignorecase, :$ignoremark)
+    }   
+    multi method substr-eq(Cool:D:
+      Cool:D $needle, :m(:$ignoremark) --> Bool:D) {
+        self.Str.starts-with($needle.Str, :$ignoremark)
+    }   
     multi method substr-eq(Cool:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self.Str,$needle.Str,0))
+        self.Str.starts-with($needle.Str)
     }   
-    multi method substr-eq(Cool:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self.Str,$needle,0))
+
+    multi method substr-eq(Cool:D:
+      Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
+        self.Str.substr-eq($needle.Str, $pos.Int, :$ignorecase, :$ignoremark)
     }   
-    multi method substr-eq(Cool:D: Cool:D $needle, Int:D $pos --> Bool:D) {
-        self.Str.substr-eq($needle.Str, $pos)
+    multi method substr-eq(Cool:D:
+      Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Bool:D) {
+        self.Str.substr-eq($needle.Str, $pos.Int, :$ignoremark)
     }   
-    multi method substr-eq(Cool:D: Str:D $needle, Int:D $pos --> Bool:D) {
-        self.Str.substr-eq($needle, $pos)
+    multi method substr-eq(Cool:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
+        self.Str.substr-eq($needle.Str, $pos.Int)
     }   
 
     method !list-as-string($suggestion) is hidden-from-backtrace {
@@ -195,72 +217,91 @@ my class Cool { # declared in BOOTSTRAP
     proto method contains(|) {*}
     multi method contains(List:D: Str:D \needle) {  # Warn about newbie trap
         self!list-as-string('needle (elem) list');
-        self.join.contains(needle, |%_)
+        self.Str.contains: needle, |%_
     }
+    multi method contains(Cool:D:
+      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
+        self.Str.contains: $needle.Str, :$ignorecase, :$ignoremark
+    }   
+    multi method contains(Cool:D:
+      Cool:D $needle, :m(:$ignoremark)! --> Bool:D) {
+        self.Str.contains: $needle.Str, :$ignoremark
+    }   
     multi method contains(Cool:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::isne_i(nqp::index(self.Str,$needle.Str,0),-1))
+        self.Str.contains: $needle.Str
     }   
-    multi method contains(Cool:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::isne_i(nqp::index(self.Str,$needle,0),-1))
-    }   
-    multi method contains(Cool:D: Cool:D $needle, Int:D $pos --> Bool:D) {
-        self.Str.contains($needle.Str, $pos)
-    }   
-    multi method contains(Cool:D: Str:D $needle, Int:D $pos --> Bool:D) {
-        self.Str.contains($needle, $pos)
-    }   
+
+    multi method contains(Cool:D:
+      Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
+        self.Str.contains($needle.Str, $pos.Int, :$ignorecase, :$ignoremark)
+    }
+    multi method contains(Cool:D:
+      Cool:D $needle, Cool:D $pos, :m(:$ignoremark)! --> Bool:D) {
+        self.Str.contains($needle.Str, $pos.Int, :$ignoremark)
+    }
     multi method contains(Cool:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
         self.Str.contains($needle.Str, $pos.Int)
-    }
-    multi method contains(Cool:D: Str:D $needle, Cool:D $pos --> Bool:D) {
-        self.Str.contains($needle, $pos.Int)
     }
 
     proto method indices(|) {*}
     multi method indices(List:D: Str:D \needle) {  # Warn about newbie trap
         self!list-as-string('.grep( ..., :k)');
-        self.join.indices(needle, |%_)
+        self.Str.indices(needle, |%_)
     }
+    multi method indices(Cool:D: Cool:D $needle,
+      :i(:$ignorecase)!, :m(:$ignoremark), :$overlap) {
+        self.Str.indices($needle.Str, :$ignorecase, :$ignoremark, :$overlap)
+    }   
+    multi method indices(Cool:D: Cool:D $needle,
+      :m(:$ignoremark)!, :$overlap) {
+        self.Str.indices($needle.Str, :$ignoremark, :$overlap)
+    }   
     multi method indices(Cool:D: Cool:D $needle, :$overlap) {
-        self.Str.indices: $needle.Str, :$overlap
+        self.Str.indices($needle.Str, :$overlap)
     }   
-    multi method indices(Cool:D: Str:D $needle, :$overlap) {
-        self.Str.indices: $needle, :$overlap
+
+    multi method indices(Cool:D: Cool:D $needle, Cool:D $pos,
+      :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
+        self.Str.indices($needle.Str, $pos.Int,
+          :$ignorecase, :$ignoremark, :$overlap)
     }   
-    multi method indices(Cool:D: Cool:D $needle, Cool:D $start, :$overlap) {
-        self.Str.indices: $needle.Str, $start.Int, :$overlap
+    multi method indices(Cool:D: Cool:D $needle, Cool:D $pos,
+     :m(:$ignoremark)!, :$overlap) {
+        self.Str.indices($needle.Str, $pos.Int, :$ignoremark, :$overlap)
     }   
-    multi method indices(Cool:D: Str:D $needle, Int:D $start, :$overlap) {
-        self.Str.indices: $needle, $start, :$overlap
-    }
+    multi method indices(Cool:D: Cool:D $needle, Cool:D $pos, :$overlap) {
+        self.Str.indices($needle.Str, $pos.Int, :$overlap)
+    }   
 
     proto method index(|) {*}
     multi method index(List:D: Str:D \needle) {  # Warn about newbie trap
         self!list-as-string('.first( ..., :k)');
-        self.join.index(needle, |%_)
+        self.Str.index(needle, |%_)
+    }
+    multi method index(Cool:D:
+      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D) {
+        self.Str.index($needle.Str, :$ignorecase, :$ignoremark)
+    }
+    multi method index(Cool:D:
+      Cool:D $needle, :m(:$ignoremark)! --> Int:D) {
+        self.Str.index($needle.Str, :$ignoremark)
     }
     multi method index(Cool:D: Cool:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::index(self.Str,$needle.Str)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
+        self.Str.index($needle.Str)
     }
-    multi method index(Cool:D: Str:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::index(self.Str,$needle)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
-    }
+
+    multi method index(Cool:D:
+      Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Int:D) {
+        self.Str.index: $needle.Str, $pos.Int, :$ignorecase, :$ignoremark
+    }   
+    multi method index(Cool:D:
+      Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Int:D) {
+        self.Str.index: $needle.Str, $pos.Int, :$ignoremark
+    }   
     multi method index(Cool:D: Cool:D $needle, Cool:D $pos --> Int:D) {
         self.Str.index: $needle.Str, $pos.Int
-    }   
-    multi method index(Cool:D: Cool:D $needle, Int:D $pos --> Int:D) {
-        self.Str.index: $needle.Str, $pos
-    }   
-    multi method index(Cool:D: Str:D $needle, Int:D $pos --> Int:D) {
-        self.Str.index: $needle, $pos
     }   
 
     proto method rindex(|) {*}
@@ -446,12 +487,22 @@ proto sub flip($, *%) {*}
 multi sub flip(Cool $s --> Str:D) { $s.flip }
 
 proto sub index($, $, $?, *%) {*}
-multi sub index(Cool $s, Cool $needle)            { $s.index($needle)      }
-multi sub index(Cool $s, Cool $needle, Cool $pos) { $s.index($needle,$pos) }
+multi sub index(Cool:D $s,
+  Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Int:D) {
+    $s.index($needle, :$ignorecase, :$ignoremark)
+}
+multi sub index(Cool:D $s,
+  Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark) --> Int:D) {
+    $s.index($needle, $pos, :$ignorecase, :$ignoremark)
+}
 
 proto sub rindex($, $, $?, *%) {*}
-multi sub rindex(Cool $s, Cool $needle, Cool $pos) { $s.rindex($needle, $pos) }
-multi sub rindex(Cool $s, Cool $needle)            { $s.rindex($needle) }
+multi sub rindex(Cool:D $s, Cool:D $needle --> Int:D) {
+    $s.Str.rindex($needle.Str)
+}
+multi sub rindex(Cool:D $s, Cool:D $needle, Cool:D $pos --> Int:D) {
+    $s.Str.rindex($needle.Str,$pos.Int)
+}
 
 proto sub lc($, *%) {*}
 multi sub lc(Cool $s) { $s.lc }
@@ -471,8 +522,15 @@ multi sub fc(Cool $s) { $s.fc }
 proto sub tclc($, *%) {*}
 multi sub tclc(Cool $s) { $s.tclc }
 
-proto sub indices($, |) {*}
-multi sub indices(Cool $s, |c) { $s.indices(|c) }
+proto sub indices($, $, $?, *%) {*}
+multi sub indices(Cool:D $s,
+  Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
+    $s.indices($needle, :$ignorecase, :$ignoremark, :$overlap)
+}
+multi sub indices(Cool:D $s,
+  Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
+    $s.indices($needle, $pos, :$ignorecase, :$ignoremark, :$overlap)
+}
 
 proto sub ords($, *%) {*}
 multi sub ords(Cool:D $s) { $s.ords }

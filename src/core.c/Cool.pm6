@@ -477,11 +477,11 @@ multi sub flip(Cool $s --> Str:D) { $s.flip }
 proto sub index($, $, $?, *%) {*}
 multi sub index(Cool:D $s,
   Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Int:D) {
-    $s.Str.index($needle.Str, :$ignorecase, :$ignoremark)
+    $s.index($needle, :$ignorecase, :$ignoremark)
 }
 multi sub index(Cool:D $s,
   Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark) --> Int:D) {
-    $s.Str.index($needle.Str,$pos.Int, :$ignorecase, :$ignoremark)
+    $s.index($needle, $pos, :$ignorecase, :$ignoremark)
 }
 
 proto sub rindex($, $, $?, *%) {*}

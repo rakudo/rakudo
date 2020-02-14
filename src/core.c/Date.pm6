@@ -1,7 +1,20 @@
 my class Date does Dateish {
 
     method !formatter(--> Str:D) {
-        sprintf '%s-%02d-%02d',self!year-Str,$!month,$!day
+        my $parts := nqp::list_s;
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? sprintf('%+05d',$!year)
+          !! nqp::tostr_I($!year)
+        );
+        nqp::push_s($parts, $!month < 10
+          ?? nqp::concat('0',nqp::tostr_I($!month))
+          !! nqp::tostr_I($!month)
+        );
+        nqp::push_s($parts, $!day < 10
+          ?? nqp::concat('0',nqp::tostr_I($!day))
+          !! nqp::tostr_I($!day)
+        );
+        nqp::join('-',$parts)
     }
 
 #?if moar

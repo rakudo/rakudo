@@ -88,7 +88,7 @@ GetOptions  'impl=s'        => \$impl,
 
 my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
 my $slash    = $^O eq 'MSWin32' ? '\\' : '/';
-$ENV{RAKUDOLIB} = join($path_sep, qw/lib ./) unless $keep_env;
+$ENV{PERL6LIB} = join($path_sep, qw/lib ./) unless $keep_env;
 my $impl_re = quotemeta $impl;
 
 if ($impl eq 'rakudo') {

@@ -62,10 +62,10 @@ my class DateTime does Dateish {
         Int:D \timezone,
               &formatter
     --> DateTime:D) {
-        nqp::bind($!year,      year);  # R#2581
-        nqp::bind($!month,     month);
-        nqp::bind($!day,       day);
-        nqp::bind(&!formatter, &formatter);
+        nqp::bindattr_i(self,DateTime,'$!year',year);
+        nqp::bindattr_i(self,DateTime,'$!month',month);
+        nqp::bindattr_i(self,DateTime,'$!day',day);
+        nqp::bindattr(self,DateTime,'&!formatter',&formatter);
         $!hour      := hour;
         $!minute    := minute;
         $!second    := second;

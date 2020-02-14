@@ -1,8 +1,8 @@
 my role Dateish {
-    has Int $.year;
-    has Int $.month;
-    has Int $.day;
-    has Int $.daycount;
+    has int $.year;
+    has int $.month;
+    has int $.day;
+    has int $.daycount;
     has     &.formatter;
 
     method IO(Dateish:D: --> IO::Path:D) {  # because Dateish is not Cool
@@ -57,25 +57,24 @@ my role Dateish {
     multi method gist(Dateish:D: --> Str:D) { self.Str }
 
     method daycount(--> Int:D) {
-        nqp::if(
-          nqp::isconcrete($!daycount),
-          $!daycount,
-          $!daycount := self!calculate-daycount
-        )
+        $!daycount
+          ?? $!daycount
+          !! ($!daycount = self!calculate-daycount)
     }
-    method !calculate-daycount(--> Int:D) {
+    method !calculate-daycount() {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
         my int $d = $!day;
         my int $m = $!month < 3 ?? $!month + 12 !! $!month;
         my int $y = $!year - ($!month < 3);
+
         -678973 + $d + (153 * $m - 2) div 5
           + 365 * $y + $y div 4
           - $y div 100  + $y div 400
     }
 
-    method !ymd-from-daycount($daycount,\year,\month,\day --> Nil) {
+    method !ymd-from-daycount(int $daycount, \year, \month, \day --> Nil) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        my Int $dc = $daycount.Int + 678881;
+        my Int $dc = $daycount + 678881;
         my Int $ti = (4 * ($dc + 36525)) div 146097 - 1;
         my Int $year = 100 * $ti;
         my int $day = $dc - (36524 * $ti + ($ti div 4));

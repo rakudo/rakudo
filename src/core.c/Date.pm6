@@ -33,9 +33,9 @@ my class Date does Dateish {
         self!oor("Day",day,"1..{self!DAYS-IN-MONTH(year,month)}")
           unless 1 <= day <= self!DAYS-IN-MONTH(year,month);
 
-        nqp::bindattr(self,Date,'$!year',year);
-        nqp::bindattr(self,Date,'$!month',month);
-        nqp::bindattr(self,Date,'$!day',day);
+        nqp::bindattr_i(self,Date,'$!year',year);
+        nqp::bindattr_i(self,Date,'$!month',month);
+        nqp::bindattr_i(self,Date,'$!day',day);
         nqp::bindattr(self,Date,'&!formatter',formatter);
         self
     }
@@ -141,15 +141,16 @@ my class Date does Dateish {
         self!new-from-daycount($daycount, &formatter, %_)
     }
 
-    method !new-from-daycount($daycount, &formatter, %nameds --> Date:D) {
-        self!ymd-from-daycount($daycount, my $year, my $month, my $day);
+    method !new-from-daycount(int $daycount, &formatter, %nameds --> Date:D) {
+        self!ymd-from-daycount($daycount,
+          my int $year, my int $month, my int $day);
         if nqp::eqaddr(self.WHAT,Date) {
             my $new := nqp::create(self);
-            nqp::bindattr($new,Date,'$!year',nqp::decont($year));
-            nqp::bindattr($new,Date,'$!month',nqp::decont($month));
-            nqp::bindattr($new,Date,'$!day',nqp::decont($day));
+            nqp::bindattr_i($new,Date,'$!year',$year);
+            nqp::bindattr_i($new,Date,'$!month',$month);
+            nqp::bindattr_i($new,Date,'$!day',$day);
             nqp::bindattr($new,Date,'&!formatter',nqp::decont(&formatter));
-            nqp::bindattr($new,Date,'$!daycount',nqp::decont($daycount));
+            nqp::bindattr_i($new,Date,'$!daycount',$daycount);
             $new
         }
         else {
@@ -237,21 +238,23 @@ my class Date does Dateish {
             }
 
             my $new := nqp::clone(self);
-            nqp::bindattr($new,Date,'$!year',$year);
-            nqp::bindattr($new,Date,'$!month',$month);
-            nqp::bindattr($new,Date,'$!day',self!clip-day($year,$month,$!day))
+            nqp::bindattr_i($new,Date,'$!year',$year);
+            nqp::bindattr_i($new,Date,'$!month',$month);
+            nqp::bindattr_i($new,Date,'$!day',
+              self!clip-day($year,$month,$!day))
               if $!day > 28;
-            nqp::bindattr($new,Date,'$!daycount',Int);
+            nqp::bindattr_i($new,Date,'$!daycount',0);
             $new
         }
         else { # year
             my int $year = $!year + $amount;
 
             my $new := nqp::clone(self);
-            nqp::bindattr($new,Date,'$!year',$year);
-            nqp::bindattr($new,Date,'$!day',self!clip-day($year,$!month,$!day))
+            nqp::bindattr_i($new,Date,'$!year',$year);
+            nqp::bindattr_i($new,Date,'$!day',
+              self!clip-day($year,$!month,$!day))
               if $!day > 28;
-            nqp::bindattr($new,Date,'$!daycount',Int);
+            nqp::bindattr_i($new,Date,'$!daycount',0);
             $new
         }
     }
@@ -259,8 +262,8 @@ my class Date does Dateish {
     # Helper method to move a number of days within a month
     method !move-days-within-month(int $days --> Date:D) {
         my $new := nqp::clone(self);
-        nqp::bindattr($new,Date,'$!day', $!day + $days);
-        nqp::bindattr($new,Date,'$!daycount',$!daycount + $days)
+        nqp::bindattr_i($new,Date,'$!day', $!day + $days);
+        nqp::bindattr_i($new,Date,'$!daycount',$!daycount + $days)
           if nqp::isconcrete($!daycount);
         $new
     }
@@ -272,11 +275,11 @@ my class Date does Dateish {
           $daycount, my int $year, my int $month, my int $day);
 
         my $new := nqp::clone(self);
-        nqp::bindattr($new,Date,'$!year',$year);
-        nqp::bindattr($new,Date,'$!month',$month);
-        nqp::bindattr($new,Date,'$!day',
+        nqp::bindattr_i($new,Date,'$!year',$year);
+        nqp::bindattr_i($new,Date,'$!month',$month);
+        nqp::bindattr_i($new,Date,'$!day',
           $day < 28 ?? $day !! self!clip-day($year,$month,$day));
-        nqp::bindattr($new,Date,'$!daycount',$daycount);
+        nqp::bindattr_i($new,Date,'$!daycount',$daycount);
         $new
     }
 

@@ -157,11 +157,16 @@ my class Cool { # declared in BOOTSTRAP
     }   
 
     proto method ends-with(|) {*}
-    multi method ends-with(Cool:D: Cool:D $suffix --> Bool:D) {
-        self.Str.ends-with: $suffix.Str
+    multi method ends-with(Cool:D:
+      Cool:D $suffix, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
+        self.Str.ends-with($suffix.Str, :$ignorecase, :$ignoremark)
     }
-    multi method ends-with(Cool:D: Str:D $suffix --> Bool:D) {
-        self.Str.ends-with: $suffix
+    multi method ends-with(Cool:D:
+      Cool:D $suffix, :m(:$ignoremark)! --> Bool:D) {
+        self.Str.ends-with($suffix.Str, :$ignoremark)
+    }
+    multi method ends-with(Cool:D: Cool:D $suffix --> Bool:D) {
+        self.Str.ends-with($suffix.Str)
     }
 
     proto method substr(|) {*}

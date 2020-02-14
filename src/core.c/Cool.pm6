@@ -185,17 +185,29 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr-eq(|) {*}
+    multi method substr-eq(Cool:D:
+      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
+        self.Str.starts-with($needle.Str, :$ignorecase, :$ignoremark)
+    }   
+    multi method substr-eq(Cool:D:
+      Cool:D $needle, :m(:$ignoremark) --> Bool:D) {
+        self.Str.starts-with($needle.Str, :$ignoremark)
+    }   
     multi method substr-eq(Cool:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self.Str,$needle.Str,0))
+        self.Str.starts-with($needle.Str)
     }   
-    multi method substr-eq(Cool:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self.Str,$needle,0))
+
+    multi method substr-eq(Cool:D:
+      Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
+        self.Str.substr-eq($needle.Str, $pos.Int, :$ignorecase, :$ignoremark)
     }   
-    multi method substr-eq(Cool:D: Cool:D $needle, Int:D $pos --> Bool:D) {
-        self.Str.substr-eq($needle.Str, $pos)
+    multi method substr-eq(Cool:D:
+      Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Bool:D) {
+        self.Str.substr-eq($needle.Str, $pos.Int, :$ignoremark)
     }   
-    multi method substr-eq(Cool:D: Str:D $needle, Int:D $pos --> Bool:D) {
-        self.Str.substr-eq($needle, $pos)
+    multi method substr-eq(Cool:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
+        self.Str.substr-eq($needle.Str, $pos.Int)
     }   
 
     method !list-as-string($suggestion) is hidden-from-backtrace {

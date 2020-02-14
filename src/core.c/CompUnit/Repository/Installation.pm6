@@ -280,7 +280,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 $precomp.precompile(
                     $source,
                     CompUnit::PrecompilationId.new-without-check($id),
-                    :source-name($source-file),
+                    :source-name("$source-file ($_.key())"),
                 );
                 %done{$id} = 1;
             }

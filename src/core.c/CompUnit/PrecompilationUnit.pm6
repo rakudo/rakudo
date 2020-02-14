@@ -80,7 +80,9 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
     has Str $!serialized-spec;
     has CompUnit::DependencySpecification $.spec;
 
-    method source-name() { $.src }
+    method source-name() {
+        "$.src ($.spec.short-name())"
+    }
 
     method deserialize(str $str) {
         my $parts := nqp::split("\0", $str);

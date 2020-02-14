@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env rakudo
 
 # note: Due to a limitation in argument parsing options that should be passed
 # through to fudgeall have to come after all other options
@@ -34,7 +34,7 @@ sub MAIN(
     Bool :$stress = False,
     Bool :$randomize = False,
     Bool :$no-mix-slow = $*DISTRO.is-win || $jobs == 1,
-    Str  :$perlpath = ~$*EXECUTABLE,
+    Str  :$rakupath = ~$*EXECUTABLE,
     Str  :$perl5path = 'perl',
     *@files,
 ) {
@@ -42,7 +42,7 @@ sub MAIN(
     with $tests-from-file {
         $tests-from-file .= &convert-to-versioned-file;
         my $inline-perl5-is-installed = run(
-            $perlpath, '-e', 'exit 1 if (try require Inline::Perl5) === Nil'
+            $rakupath, '-e', 'exit 1 if (try require Inline::Perl5) === Nil'
         ).exitcode == 0;
 
         unless $inline-perl5-is-installed {
@@ -91,7 +91,7 @@ sub MAIN(
     }
 
     my $harness = ::('TAP::Harness').new(
-            :handlers[get-handler($vm, :$perlpath)],
+            :handlers[get-handler($vm, :$rakupath)],
             :ignore-exit,
 #            :trap,
             :$jobs,
@@ -139,12 +139,12 @@ sub MAIN(
 
 #    multi sub get-handler('jvm') {
 #        unlink 'TESTTOKEN';
-#        state $server = run ".".IO.child("perl6-eval-server"), <-bind-stdin -cookie TESTTOKEN -app perl6.jar>, :in;
+#        state $server = run ".".IO.child("rakudo-eval-server"), <-bind-stdin -cookie TESTTOKEN -app rakudo.jar>, :in;
 #        sleep 1;
 #        ::('TAP::Harness::SourceHandler::Exec').new($perl5path, './eval-client.pl', 'TESTTOKEN', 'run');
 #    }
-    multi sub get-handler(Any, :$perlpath) {
-       ::('TAP::Harness::SourceHandler::Perl6').new(:incdirs['lib'], :path($perlpath));
+    multi sub get-handler(Any, :$rakupath) {
+       ::('TAP::Harness::SourceHandler::Perl6').new(:incdirs['lib'], :path($rakupath));
     }
 }
 
@@ -196,7 +196,7 @@ Options:
     --stress - run tests marked as stress tests
     --randomize randomize the order in which test-files are processed.
     --no-mixslow - don't spread tests marked "slow" equally over the run (on non-Win)
-    --perlpath - path to perl6 (defaults to $*EXECUTABLE)
+    --rakupath - path to raku (defaults to $*EXECUTABLE)
     --perl5path - path to Perl executable for various helper utilities (defaults to 'perl')
 
 =end pod

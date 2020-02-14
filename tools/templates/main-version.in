@@ -12,7 +12,7 @@ sub hll-config($config) {
     $config<language-revisions> := nqp::hash( 
 @perl(
     # This code is not re-usable, makes no sense to write a dedicated macro
-    for my $spec ( $cfg->perl6_specs ) {
+    for my $spec ( $cfg->raku_specs ) {
         my $letter = $spec->[0];
         my $pfx = "        ";
         $out .= "$pfx'$letter', nqp::hash(\n";

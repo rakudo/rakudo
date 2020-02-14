@@ -166,7 +166,7 @@ sub parse_lang_specs {
     my $self = shift;
 
     my $config = $self->{config};
-    my $tmpl   = 'PERL6_SPECS';
+    my $tmpl   = 'RAKU_SPECS';
     open my $sh, "<", $self->template_file_path( $tmpl, required => 1 )
       or self->sorry("Can't open $tmpl: $!");
 
@@ -213,7 +213,7 @@ sub parse_lang_specs {
         }
     }
 
-    $self->{perl6_specs} = \@specs;
+    $self->{raku_specs} = \@specs;
 
     close $sh;
 }
@@ -239,12 +239,12 @@ sub configure_misc {
     #    return \@elems;
     #};
 
-    #$self->{perl6_specs} = [
+    #$self->{raku_specs} = [
     #    map { $spec_line->($_) }
     #      grep { s/\s*#.*$//; length }
     #      split(
     #        /\n/s,
-    #        slurp( $self->template_file_path( 'PERL6_SPECS', required => 1, ) )
+    #        slurp( $self->template_file_path( 'RAKU_SPECS', required => 1, ) )
     #      )
     #];
 
@@ -319,7 +319,7 @@ sub configure_jvm_backend {
         );
         $config->{'nqp_classpath'} = $nqp_config->{'jvm::runtime.classpath'};
         $config->{'nqp::libdir'}   = $nqp_config->{'nqp::libdir'};
-        $config->{'j_runner'}      = $self->batch_file('perl6-j');
+        $config->{'j_runner'}      = $self->batch_file('rakudo-j');
     }
 }
 
@@ -436,8 +436,8 @@ sub configure_js_backend {
     $config->{js_nqp} = $ijs->{bin};
     $config->{'perl6_runtime'} =
       File::Spec->rel2abs( $self->nfp('src/vm/js/perl6-runtime') );
-    $config->{'perl6_js_runner'} =
-      $self->batch_file( File::Spec->rel2abs('perl6-js') );
+    $config->{'rakudo_js_runner'} =
+      $self->batch_file( File::Spec->rel2abs('rakudo-js') );
 
     if ( $ijs->{ok} ) {
         $nqp_config = $ijs->{config};
@@ -532,9 +532,9 @@ sub clean_old_p6_libs {
 }
 
 # Returns all active language specification entries except for .c
-sub perl6_specs {
+sub raku_specs {
     my $self = shift;
-    return @{ $self->{perl6_specs} };
+    return @{ $self->{raku_specs} };
 }
 
 sub post_active_backends {
@@ -720,7 +720,7 @@ sub _specs_iterate {
 
     $self->not_in_context( specs => 'spec' );
 
-    for my $spec ( $cfg->perl6_specs ) {
+    for my $spec ( $cfg->raku_specs ) {
         my $spec_char   = $spec->[0];
         my $spec_subdir = "6.$spec_char";
         my %config      = (

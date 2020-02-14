@@ -31,10 +31,10 @@ my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $rakudo
 my $sharedir = File::Spec->catfile(
     ($type eq 'install' && $^O ne 'MSWin32' ? '${RAKUDO_HOME}' : File::Spec->catfile($prefix, 'share', 'perl6') ),
     'site', 'lib');
-my $perl6jars = join( $cpsep,
+my $rakudo_jars = join( $cpsep,
     $^O eq 'MSWin32' ? $nqpjars : '${NQP_JARS}',
     File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
-    File::Spec->catfile($jardir, $debugger ? 'perl6-debug.jar' : 'perl6.jar'));
+    File::Spec->catfile($jardir, $debugger ? 'rakudo-debug.jar' : 'rakudo.jar'));
 
 my $NQP_LIB = $blib ? ': ${NQP_LIB:="blib"}' : '';
 
@@ -79,13 +79,13 @@ my $preamble = $^O eq 'MSWin32' ? '@' :
 ? $preamble_unix . ": \${NQP_HOME=\"\$DIR/../share/nqp\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${RAKUDO_HOME:=\"\$DIR/../share/perl6\"}
-: \${PERL6_JARS:=\"$perl6jars\"}
+: \${RAKUDO_JARS:=\"$rakudo_jars\"}
 exec "
 : $preamble_unix . "$NQP_LIB
 : \${NQP_HOME:=\"$nqp_home\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${RAKUDO_HOME:=\"$prefix\"}
-: \${PERL6_JARS:=\"$perl6jars\"}
+: \${RAKUDO_JARS:=\"$rakudo_jars\"}
 exec ";
 my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
 
@@ -104,7 +104,7 @@ sub install {
     chmod 0755, $install_to if $^O ne 'MSWin32';
 }
 
-my $classpath = join($cpsep, ($perl6jars, $jardir, $libdir, $nqplibdir));
+my $classpath = join($cpsep, ($rakudo_jars, $jardir, $libdir, $nqplibdir));
 my $jopts = '-noverify -Xms100m'
           . ' -cp ' . ($^O eq 'MSWin32' ? '"%CLASSPATH%";' : '$CLASSPATH:') . $classpath
           . ' -Dperl6.prefix=' . ($type eq 'install' && $^O ne 'MSWin32' ? '$DIR/..' : $prefix)
@@ -115,10 +115,10 @@ my $jdbopts = '-Xdebug -Xrunjdwp:transport=dt_socket,address='
             . ',server=y,suspend=y';
 
 if ($debugger) {
-    install "perl6-debug-j", "java $jopts perl6-debug";
+    install "rakudo-debug-j", "java $jopts rakudo-debug";
 }
 else {
-    install "perl6-j", "java $jopts perl6 $blib";
-    install "perl6-jdb-server", "java $jdbopts $jopts perl6 $blib";
-    install "perl6-eval-server", "java -Xmx3000m $jopts org.perl6.nqp.tools.EvalServer";
+    install "rakudo-j", "java $jopts perl6 $blib";
+    install "rakudo-jdb-server", "java $jdbopts $jopts perl6 $blib";
+    install "rakudo-eval-server", "java -Xmx3000m $jopts org.perl6.nqp.tools.EvalServer";
 }

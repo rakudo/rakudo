@@ -4,15 +4,15 @@
 @bpv(NQP_BASE_FLAGS)@ = --nqp-runtime @bpm(RUNTIME)@ --perl6-runtime @perl6_runtime@ --libpath "@bpm(BLIB)@|||@nqp::libdir@@nfp(/nqp-js-on-js/)@"
 @bpv(NQP_FLAGS)@ = @bpm(NQP_BASE_FLAGS)@ --substagestats --stagestats --source-map
 @bpv(NQP_FLAGS_EXTRA)@ = --execname @bpm(RUNNER)@ --shebang
-@bpv(RUN_PERL6)@ = node --max-old-space-size=8192 perl6.js @bpm(NQP_BASE_FLAGS)@ --source-map
+@bpv(RUN_RAKUDO)@ = node --max-old-space-size=8192 rakudo.js @bpm(NQP_BASE_FLAGS)@ --source-map
 
 @bpv(CLEANUPS)@ = \
-	@bsm(PERL6)@ \
+	@bsm(RAKUDO)@ \
 	@nfp(@base_dir@/*.js.map)@ \
 	@nfp(@bpm(BLIB)@/*.js.map)@ \
-	@bpm(BLIB_PERL6)@/load-compiler.js \
-	@bpm(BLIB_PERL6)@/*.js.map \
-	@bpm(BLIB_PERL6)@/BOOTSTRAP/*.js.map
+	@bpm(BLIB_RAKUDO)@/load-compiler.js \
+	@bpm(BLIB_RAKUDO)@/*.js.map \
+	@bpm(BLIB_RAKUDO)@/BOOTSTRAP/*.js.map
 
 # Have this target before including Makefile-backend-common to prevent the
 # default js-install from executing.
@@ -24,7 +24,7 @@
 
 # files we create
 
-@nfp(@bpm(BLIB)@/load-compiler.js)@: @nfp(src/vm/js/load-compiler.nqp)@ @bsm(PERL6_G)@ @bsm(PERL6_A)@ @bsm(PERL6_C)@ @bsm(PERL6_P)@
+@nfp(@bpm(BLIB)@/load-compiler.js)@: @nfp(src/vm/js/load-compiler.nqp)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_A)@ @bsm(RAKUDO_C)@ @bsm(RAKUDO_P)@
 	@$(JS_NQP) $(JS_NQP_FLAGS) --target=js --output=$@ $<
 
 @bpm(RUNNER)@:

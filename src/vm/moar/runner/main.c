@@ -309,6 +309,7 @@ int wmain(int argc, wchar_t *wargv[])
 #ifdef STATIC_RAKUDO_HOME
     rakudo_home = STRINGIFY(STATIC_RAKUDO_HOME);
 #else
+    /* XXX Isn't it time to move RAKUDO_HOME in front of PERL6_HOME?? */
     if (getenv("PERL6_HOME")) {
         if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
                 exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
@@ -342,7 +343,7 @@ int wmain(int argc, wchar_t *wargv[])
     strcpy(lib_path[0] +   nqp_home_size, "\\lib");
     strcpy(lib_path[1] + rakudo_home_size, "\\lib");
     strcpy(lib_path[2] + rakudo_home_size, "\\runtime");
-#ifdef MOAR_PERL6_RUNNER_DEBUG
+#ifdef MOAR_RAKUDO_RUNNER_DEBUG
     strcpy(perl6_file  + rakudo_home_size, "\\runtime\\perl6-debug.moarvm");
 #else
     strcpy(perl6_file  + rakudo_home_size, "\\runtime\\perl6.moarvm");
@@ -351,7 +352,7 @@ int wmain(int argc, wchar_t *wargv[])
     strcpy(lib_path[0] +   nqp_home_size, "/lib");
     strcpy(lib_path[1] + rakudo_home_size, "/lib");
     strcpy(lib_path[2] + rakudo_home_size, "/runtime");
-#ifdef MOAR_PERL6_RUNNER_DEBUG
+#ifdef MOAR_RAKUDO_RUNNER_DEBUG
     strcpy(perl6_file  + rakudo_home_size, "/runtime/perl6-debug.moarvm");
 #else
     strcpy(perl6_file  + rakudo_home_size, "/runtime/perl6.moarvm");

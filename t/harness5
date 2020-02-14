@@ -41,8 +41,8 @@ GetOptions(
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
-$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
-$ENV{'PERL6LIB'} = "./lib"; 
+$ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
+$ENV{'RAKUDOLIB'} = "./lib"; 
 
 my @slow;
 if ($list_file) {
@@ -141,7 +141,7 @@ if ($jvm) {
 
     no warnings 'once';
     # leak the filehandle; it will be closed at exit, robustly telling the server to terminate
-    open JVMSERVER, "| .${slash}perl6-eval-server -bind-stdin -cookie TESTTOKEN -app .${slash}perl6.jar" or die "cannot fork eval server: $!\n";
+    open JVMSERVER, "| .${slash}rakudo-eval-server -bind-stdin -cookie TESTTOKEN -app .${slash}rakudo.jar" or die "cannot fork eval server: $!\n";
     sleep 1;
 }
 

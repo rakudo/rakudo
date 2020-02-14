@@ -78,7 +78,8 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   rakudo.c \
   rakudo@moar::obj@ \
   rakudo@moar::exe@ \
-  inst-perl6@moar::obj@ \
+  inst-perl6*@moar::obj@ \
+  inst-perl6*@moar::exe@ \
   @bpm(INST_PERL6)@ \
   perl6@moar::exe@
 

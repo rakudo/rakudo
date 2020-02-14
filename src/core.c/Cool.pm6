@@ -144,11 +144,16 @@ my class Cool { # declared in BOOTSTRAP
     method trans(|c) { self.Str.trans(|c) }
 
     proto method starts-with(|) {*}
-    multi method starts-with(Cool:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self.Str, $needle.Str, 0))
+    multi method starts-with(Cool:D:
+      Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
+        self.Str.starts-with($needle.Str, :$ignorecase, :$ignoremark)
     }   
-    multi method starts-with(Cool:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self.Str, $needle, 0)) 
+    multi method starts-with(Cool:D:
+      Cool:D $needle, :m(:$ignoremark)! --> Bool:D) {
+        self.Str.starts-with($needle.Str, :$ignoremark)
+    }   
+    multi method starts-with(Cool:D: Cool:D $needle --> Bool:D) {
+        self.Str.starts-with($needle.Str)
     }   
 
     proto method ends-with(|) {*}

@@ -70,8 +70,8 @@ perl6.rc
 /perl6-debug.js
 /perl6-js
 /perl6-js.bat
-/rakudo-m.c
-/rakudo-m.exe
+/perl6-m
+/perl6-m.exe
 /perl6-debug-m
 /perl6-debug-m.bat
 /perl6-gdb-m
@@ -80,8 +80,10 @@ perl6.rc
 /perl6-lldb-m.bat
 /perl6-valgrind-m
 /perl6-valgrind-m.bat
+/rakudo-m.c
 /rakudo
 /rakudo-m
+/rakudo-m.exe
 /rakudo-debug-m
 /rakudo-debug-m.bat
 /rakudo-gdb-m

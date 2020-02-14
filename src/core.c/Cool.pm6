@@ -249,18 +249,30 @@ my class Cool { # declared in BOOTSTRAP
         self!list-as-string('.grep( ..., :k)');
         self.Str.indices(needle, |%_)
     }
+    multi method indices(Cool:D: Cool:D $needle,
+      :i(:$ignorecase)!, :m(:$ignoremark), :$overlap) {
+        self.Str.indices($needle.Str, :$ignorecase, :$ignoremark, :$overlap)
+    }   
+    multi method indices(Cool:D: Cool:D $needle,
+      :m(:$ignoremark)!, :$overlap) {
+        self.Str.indices($needle.Str, :$ignoremark, :$overlap)
+    }   
     multi method indices(Cool:D: Cool:D $needle, :$overlap) {
-        self.Str.indices: $needle.Str, :$overlap
+        self.Str.indices($needle.Str, :$overlap)
     }   
-    multi method indices(Cool:D: Str:D $needle, :$overlap) {
-        self.Str.indices: $needle, :$overlap
+
+    multi method indices(Cool:D: Cool:D $needle, Cool:D $pos,
+      :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
+        self.Str.indices($needle.Str, $pos.Int,
+          :$ignorecase, :$ignoremark, :$overlap)
     }   
-    multi method indices(Cool:D: Cool:D $needle, Cool:D $start, :$overlap) {
-        self.Str.indices: $needle.Str, $start.Int, :$overlap
+    multi method indices(Cool:D: Cool:D $needle, Cool:D $pos,
+     :m(:$ignoremark)!, :$overlap) {
+        self.Str.indices($needle.Str, $pos.Int, :$ignoremark, :$overlap)
     }   
-    multi method indices(Cool:D: Str:D $needle, Int:D $start, :$overlap) {
-        self.Str.indices: $needle, $start, :$overlap
-    }
+    multi method indices(Cool:D: Cool:D $needle, Cool:D $pos, :$overlap) {
+        self.Str.indices($needle.Str, $pos.Int, :$overlap)
+    }   
 
     proto method index(|) {*}
     multi method index(List:D: Str:D \needle) {  # Warn about newbie trap

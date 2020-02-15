@@ -1,8 +1,8 @@
 my class DateTime does Dateish {
-    has Int $.hour;
-    has Int $.minute;
+    has int $.hour;
+    has int $.minute;
     has     $.second;
-    has Int $.timezone;  # UTC
+    has int $.timezone;  # UTC
       # Not an optimization but a necessity to ensure that
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
       # DST-induced ambiguity could ruin our day.
@@ -53,23 +53,23 @@ my class DateTime does Dateish {
     }
 
     method !SET-SELF(
-        Int:D \year,
-        Int:D \month,
-        Int:D \day,
-        Int:D \hour,
-        Int:D \minute,
-              \second,
-        Int:D \timezone,
-              &formatter
+        int \year,
+        int \month,
+        int \day,
+        int \hour,
+        int \minute,
+            \second,
+        int \timezone,
+            &formatter
     --> DateTime:D) {
         nqp::bindattr_i(self,DateTime,'$!year',year);
         nqp::bindattr_i(self,DateTime,'$!month',month);
         nqp::bindattr_i(self,DateTime,'$!day',day);
-        nqp::bindattr(self,DateTime,'&!formatter',&formatter);
-        $!hour      := hour;
-        $!minute    := minute;
-        $!second    := second;
-        $!timezone  := timezone;
+        nqp::bindattr_i(self,DateTime,'$!hour',hour);
+        nqp::bindattr_i(self,DateTime,'$!minute',minute);
+        nqp::bindattr(  self,DateTime,'$!second',second);
+        nqp::bindattr(  self,DateTime,'&!formatter',&formatter);
+        nqp::bindattr_i(self,DateTime,'$!timezone',timezone);
         self
     }
 
@@ -358,9 +358,9 @@ my class DateTime does Dateish {
                 my $date :=
                   Date.new($!year,$!month,$!day).later(|($unit => $amount));
                 nqp::create(self)!SET-SELF(
-                  nqp::getattr($date,Date,'$!year'),
-                  nqp::getattr($date,Date,'$!month'),
-                  nqp::getattr($date,Date,'$!day'),
+                  nqp::getattr_i($date,Date,'$!year'),
+                  nqp::getattr_i($date,Date,'$!month'),
+                  nqp::getattr_i($date,Date,'$!day'),
                   $!hour, $!minute, $!second, $!timezone, &!formatter
                 )
             }
@@ -382,9 +382,9 @@ my class DateTime does Dateish {
 
                 my $date := Date.new-from-daycount(self.daycount + $day-delta);
                 nqp::create(self)!SET-SELF(
-                  nqp::getattr($date,Date,'$!year'),
-                  nqp::getattr($date,Date,'$!month'),
-                  nqp::getattr($date,Date,'$!day'),
+                  nqp::getattr_i($date,Date,'$!year'),
+                  nqp::getattr_i($date,Date,'$!month'),
+                  nqp::getattr_i($date,Date,'$!day'),
                   $hour, $minute, $!second, $!timezone, &!formatter)
             }
         }

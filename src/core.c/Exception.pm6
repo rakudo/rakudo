@@ -2943,7 +2943,7 @@ my class X::InvalidType does X::Comp {
 my class X::InvalidTypeSmiley does X::Comp {
     has $.name;
     method message() {
-        "Invalid type smiley '$.name' used in type name";
+        "Invalid type smiley ':$.name' used, only ':D', ':U' and ':_' are allowed";
     }
 }
 

@@ -38,7 +38,7 @@ my class CallFrame {
         # https://github.com/rakudo/rakudo/issues/2539 for the
         # whole story.
         if $raw && nqp::atkey($!annotations,'file') -> $file {
-            my int $index = nqp::index($file,' (');
+            my int $index = nqp::rindex($file,' (');
             $index == -1 ?? $file !! nqp::substr($file,0,$index)
         }
         else {

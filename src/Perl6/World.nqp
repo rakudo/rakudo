@@ -1403,7 +1403,7 @@ class Perl6::World is HLL::World {
             # to be free of extraneous information.  See
             # https://github.com/rakudo/rakudo/issues/2539 for the
             # whole story.
-            my $index := nqp::index($file,' (');
+            my $index := nqp::rindex($file,' (');
             $file := nqp::substr($file,0,$index) if $index != -1;
 
             $file := nqp::cwd ~ '/' ~ $file

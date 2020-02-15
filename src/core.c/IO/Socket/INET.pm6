@@ -100,7 +100,7 @@ my class IO::Socket::INET does IO::Socket {
             :$family,
         ) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
 
-        with $localhost {
+        with $localhost // $localport {
             die 'Cannot set a source host or port for UNIX sockets'
                 if $family == nqp::const::SOCKET_FAMILY_UNIX;
             ($localhost, $localport) = split-host-port(
@@ -127,7 +127,7 @@ my class IO::Socket::INET does IO::Socket {
     method !initialize() {
         my $PIO := nqp::socket($!listening ?? 10 !! 0);
 
-        with $!localhost {
+        with $!localhost // $!localport {
             nqp::bindsock($PIO, nqp::unbox_s($!localhost || "0.0.0.0"),
                                  nqp::unbox_i($!localport || 0), nqp::unbox_i($!family));
 #?if !js

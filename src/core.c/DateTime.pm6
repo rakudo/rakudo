@@ -8,20 +8,81 @@ my class DateTime does Dateish {
       # DST-induced ambiguity could ruin our day.
 
     method !formatter() { # ISO 8601 timestamp
-        sprintf '%s-%02d-%02dT%02d:%02d:%s%s',
-            self!year-Str, $!month, $!day, $!hour, $!minute,
-            $!second.floor == $!second
-              ?? $!second.Int.fmt('%02d')
-              !! $!second.fmt('%09.6f'),
-            $!timezone == 0
-              ?? 'Z'
-              !! $!timezone > 0
-                ?? sprintf('+%02d:%02d',
-                     ($!timezone/3600).floor,
-                     ($!timezone/60%60).floor)
-                !! sprintf('-%02d:%02d',
-                  ($!timezone.abs/3600).floor,
-                  ($!timezone.abs/60%60).floor)
+        my $parts := nqp::list_s;
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? sprintf('%+05d',$!year)
+          !! nqp::tostr_I($!year)
+        );
+
+        nqp::push_s($parts,'-');
+
+        nqp::push_s($parts,nqp::concat(
+          nqp::x('0',nqp::islt_i($!month,10)),
+          nqp::tostr_I($!month)
+        ));
+
+        nqp::push_s($parts,'-');
+
+        nqp::push_s($parts,nqp::concat(
+          nqp::x('0',nqp::islt_i($!day,10)),
+          nqp::tostr_I($!day)
+        ));
+
+        nqp::push_s($parts,'T');
+
+        nqp::push_s($parts,nqp::concat(
+          nqp::x('0',nqp::islt_i($!hour,10)),
+          nqp::tostr_I(nqp::getattr_i(self,DateTime,'$!hour'))
+        ));
+
+        nqp::push_s($parts,':');
+
+        nqp::push_s($parts,nqp::concat(
+          nqp::x('0',nqp::islt_i($!minute,10)),
+          nqp::tostr_I(nqp::getattr_i(self,DateTime,'$!minute'))
+        ));
+
+        nqp::push_s($parts,':');
+
+        my int $second = $!second.floor;
+        if $second == $!second {
+            nqp::push_s($parts,nqp::concat(
+              nqp::x('0',nqp::islt_i($second,10)),
+              $second
+            ));
+        }
+        else {
+            my int $int = ($!second * 1000000 + .5).Int;
+            my int $whole = nqp::substr($int,0,nqp::chars($int) - 6);
+            nqp::push_s($parts,nqp::concat(
+              nqp::x('0',nqp::islt_i($whole,10)),
+              $whole
+            ));
+            nqp::push_s($parts,'.');
+            nqp::push_s($parts,nqp::substr($int,nqp::chars($int) - 6));
+        }
+
+        if nqp::getattr_i(self,DateTime,'$!timezone') -> int $tz {
+            nqp::push_s($parts,nqp::islt_i($tz,0) ?? '-' !! '+');
+            my int $hours = nqp::div_i(nqp::abs_i($tz),3600);
+            nqp::push_s($parts,nqp::concat(
+              nqp::x('0',nqp::islt_i($hours,10)),
+              $hours
+            ));
+
+            nqp::push_s($parts,':');
+
+            my int $minutes = nqp::div_i(nqp::mod_i(nqp::abs_i($tz),3600),60);
+            nqp::push_s($parts,nqp::concat(
+              nqp::x('0',nqp::islt_i($minutes,10)),
+              $minutes
+            ));
+        }
+        else {
+            nqp::push_s($parts,'Z');
+        }
+
+        nqp::join('',$parts)
     }
 
 #?if moar

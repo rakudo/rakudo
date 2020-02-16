@@ -589,7 +589,7 @@ my class ThreadPoolScheduler does Scheduler {
 
                 my @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
-                my int $cpu-cores = nqp::cpucores();
+                my int $cpu-cores = max(nqp::cpucores() - 1,1);
 
                 # These definitions used to live inside the supervisor loop.
                 # Moving them out of the loop does not improve CPU usage

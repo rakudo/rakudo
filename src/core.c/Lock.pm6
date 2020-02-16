@@ -22,10 +22,10 @@ my class Lock {
 
     # use a multi to ensure LEAVE isn't run when bad args are given
     proto method protect(|) {*}
-    multi method protect(Lock:D: &code) {
+    multi method protect(Lock:D: &code) is raw {
         nqp::lock(self);
         LEAVE nqp::unlock(self);
-        nqp::decont(code())
+        code()
     }
 
     method condition(Lock:D:) {

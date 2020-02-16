@@ -134,7 +134,7 @@ my class Signature { # declared in BOOTSTRAP
             }
         }
         if !nqp::isnull($!returns) && !($!returns =:= Mu) {
-            $text = $text ~ ' --> ' ~ $!returns.raku
+            $text = $text ~ ' --> ' ~ (nqp::can($!returns, 'raku') ?? $!returns.raku !! $!returns.^name)
         }
         # Closer.
         $text ~ ')'

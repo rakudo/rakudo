@@ -1,18 +1,54 @@
 use nqp;
 
 package EXPORT::cached {
-    multi sub trait_mod:<is>(Routine $r, :$cached!) {
-        my %cache;
-        $r.wrap(-> |c {
-            my $key := c.gist;
-            %cache.EXISTS-KEY($key)
-              ?? %cache{$key}
-              !! (%cache{$key} := callsame);
-        });
+    sub WRAP(Routine:D $r is raw, &wrapper) {
+        # Multi methods pose a problem with Routine.wrap; Rakudo expects them
+        # to be Code instances, but that's no longer the case after calling
+        # that. Instead, use similar logic to that which NativeCall's `is
+        # native` trait uses to make routines become native routines by
+        # replacing their $!do attribute with that of the wrapper.
+        my Mu $old-do := nqp::getattr($r, Code, '$!do');
+        if nqp::isconcrete(my Mu $W := nqp::getlexdyn('$*W')) {
+            my Mu $compstuff := nqp::getattr($r, Code, '@!compstuff');
+            $compstuff[1]() with $compstuff;
+
+            my str $cuid = nqp::getcodecuid($old-do);
+            nqp::deletekey($W.context.sub_id_to_code_object, $cuid);
+        }
+
+        my Routine:D $replacement := wrapper $r.clone;
+        my str       $name         = nqp::getcodename($old-do);
+        my Mu        $new-do      := nqp::getattr($replacement, Code, '$!do');
+        nqp::bindattr($r, Code, '$!do', $new-do);
+        nqp::setcodename($new-do, $name);
+
+        $r does role { method is-cached(::?CLASS:D: --> True) { } };
     }
 
-    multi sub trait_mod:<is>(Method $m, :$cached!) {
-        X::NYI.new(:feature("'is cached' on methods")).throw;
+    multi sub trait_mod:<is>(Routine:D $r is raw, :$cached!) {
+        WRAP $r, &MAKE-CACHED-ROUTINE unless $r.?is-cached;
+    }
+    sub MAKE-CACHED-ROUTINE(Routine:D $r is raw --> Routine:D) {
+        my Mu %cache{Str:D};
+        sub CACHED-ROUTINE(|args --> Mu) is raw is hidden-from-backtrace {
+            my Str:D $key := args.raku;
+            %cache.EXISTS-KEY($key)
+              ?? %cache.AT-KEY($key)
+              !! %cache.BIND-KEY($key, $r(|args));
+        }
+    }
+
+    multi sub trait_mod:<is>(Method:D $m is raw, :$cached!) {
+        WRAP $m, &MAKE-CACHED-METHOD unless $m.?is-cached;
+    }
+    sub MAKE-CACHED-METHOD(Method:D $m is raw --> Method:D) {
+        my Mu %cache{Str:D};
+        my method CACHED-METHOD(Mu \invocant: |args) is raw is hidden-from-backtrace {
+            my Str:D $key := \(invocant.WHICH, |args).raku;
+            %cache.EXISTS-KEY($key)
+              ?? %cache.AT-KEY($key)
+              !! %cache.BIND-KEY($key, $m(invocant, |args));
+        }
     }
 
     OUR::{'&trait_mod:<is>'} := &trait_mod:<is>;

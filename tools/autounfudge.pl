@@ -103,7 +103,7 @@ sub eval_server {
     return unless $jvm;
     my $token = int(100_000 * rand);
     
-    open my $pipe, "| .${slash}perl6-eval-server -bind-stdin -cookie $token -app .${slash}perl6.jar" or die "cannot fork eval server: $!\n";
+    open my $pipe, "| .${slash}rakudo-eval-server -bind-stdin -cookie $token -app .${slash}rakudo.jar" or die "cannot fork eval server: $!\n";
     $fh{$token} = $pipe;
     sleep 1;
     return $token;
@@ -241,7 +241,7 @@ Valid options:
     --impl impl         Specify a different implementation
     --specfile file     Specification file to read filenames from
     --auto              use t/spectest.data for --specfile
-    --keep-env          Keep PERL6LIB environment variable.
+    --keep-env          Keep RAKUDOLIB environment variable.
     --exclude regex     Don't run the tests that match regex
     --section number    Run only on tests belonging to section <number>
     --unskip            Try to change 'skip' to 'todo' markers
@@ -296,7 +296,7 @@ sub get_harness {
     my $token = shift;
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => $jvm ? [$^X, "./eval-client.pl", $token, "run"] : [$^X, 'tools/perl6-limited.pl'],
+            exec        => $jvm ? [$^X, "./eval-client.pl", $token, "run"] : [$^X, 'tools/rakudo-limited.pl'],
             merge       => 1,
     });
 }

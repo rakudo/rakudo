@@ -3475,10 +3475,10 @@ BEGIN {
     Capture.HOW.compose_repr(Capture);
 
     # class Junction is Mu {
-    #     has Mu $!storage;
+    #     has Mu $!eigenstates;
     #     has str $!type;
     Junction.HOW.add_parent(Junction, Mu);
-    Junction.HOW.add_attribute(Junction, scalar_attr('$!storage', Mu, Junction));
+    Junction.HOW.add_attribute(Junction, scalar_attr('$!eigenstates', Mu, Junction));
     Junction.HOW.add_attribute(Junction, scalar_attr('$!type', str, Junction));
     Junction.HOW.compose_repr(Junction);
 

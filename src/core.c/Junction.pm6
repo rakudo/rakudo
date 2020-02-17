@@ -5,25 +5,24 @@ my class Junction { # declared in BOOTSTRAP
     # Both of these are also accessed directly inside optimizer when
     # optimizing param typechecks with where clauses
 
-    method !SET-SELF(\type,\values) {
-        nqp::stmts(
-          ($!type = type),
-          nqp::if(
-            nqp::iseq_s($!type,"any")
-              || nqp::iseq_s($!type,"all")
-              || nqp::iseq_s($!type,"none")
-              || nqp::iseq_s($!type,"one"),
-            nqp::stmts(
-              ($!eigenstates := nqp::if(
-                nqp::isconcrete(
-                  $_ := nqp::getattr(values.map({nqp::decont($_)}).eager.list,List,'$!reified')),
-                $_,
-                nqp::create(IterationBuffer))),
-              self
-            ),
+    method !SET-SELF(str $type,\values) {
+        if nqp::iseq_s($type,"any")
+          || nqp::iseq_s($type,"all")
+          || nqp::iseq_s($type,"none")
+          || nqp::iseq_s($type,"one") {
+            my \iterator := values.iterator;
+            my \buffer   := nqp::create(IterationBuffer);
+            nqp::until(
+              nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),
+              nqp::push(buffer,nqp::decont(pulled))
+            );
+            $!eigenstates := buffer;
+            $!type         = $type;
+            self
+        }
+        else {
             Failure.new("Junction can only have 'any', 'all', 'none', 'one' type")
-          )
-        )
+        }
     }
 
     # Swap 2 Junctions in place if they need to be for an infix operation

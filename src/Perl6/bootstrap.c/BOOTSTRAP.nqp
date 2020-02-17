@@ -1853,6 +1853,11 @@ BEGIN {
                 }
             }
             nqp::bindattr($ins, Signature, '@!params', @ins_params);
+            my $returns := nqp::getattr($self, Signature, '$!returns');
+            if !nqp::isnull($returns) && $returns.HOW.archetypes.generic {
+                nqp::bindattr($ins, Signature, '$!returns',
+                    $returns.HOW.instantiate_generic($returns, $type_environment));
+            }
             $ins
         }));
     Signature.HOW.add_method(Signature, 'returns', nqp::getstaticcode(sub ($self) {

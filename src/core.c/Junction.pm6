@@ -72,7 +72,7 @@ my class Junction { # declared in BOOTSTRAP
         my int $i = -1;
         nqp::while(
           nqp::islt_i(++$i,nqp::elems(eigenstates))
-            && nqp::isfalse(nqp::atpos(eigenstates,$i)),
+            && nqp::isfalse(nqp::atpos(eigenstates,$i).defined),
           nqp::null
         );
         nqp::hllbool(nqp::islt_i($i,nqp::elems(eigenstates)))

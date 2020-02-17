@@ -52,3 +52,20 @@ class RakuAST::RatLiteral is RakuAST::Node {
         QAST::WVal.new( :$value )
     }
 }
+
+class RakuAST::VersionLiteral is RakuAST::Node {
+    has Any $.value;
+
+    method new($value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::VersionLiteral, '$!value', $value);
+        $obj
+    }
+    method type {
+        $!value.WHAT
+    }
+    method QAST {
+        my $value := $!value;
+        QAST::WVal.new( :$value )
+    }
+}

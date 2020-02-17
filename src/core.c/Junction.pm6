@@ -98,7 +98,7 @@ my class Junction { # declared in BOOTSTRAP
         nqp::hllbool(nqp::iseq_i($i,nqp::elems(eigenstates)))
     }
     method !defined-one() {
-        my \eigenstates := nqp::clone($!eigenstates);
+        my \eigenstates := $!eigenstates;
         my int $i = -1;
         my int $seen;
         nqp::while(
@@ -109,7 +109,7 @@ my class Junction { # declared in BOOTSTRAP
         );
         nqp::hllbool(nqp::iseq_i($seen,1))
     }
-    multi method defined(Junction:D:) {
+    multi method defined(Junction:D: --> Bool:D) {
         nqp::iseq_s($!type,'any')
           ?? self!defined-any
           !! nqp::iseq_s($!type,'all')

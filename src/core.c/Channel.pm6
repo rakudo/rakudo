@@ -207,7 +207,7 @@ my class Channel does Awaitable {
     }
     method iterator(Channel:D:) { Iterate.new($!queue,self) }
 
-    method list(Channel:D:) { self.Seq.list }
+    method list(Channel:D:) { List.from-iterator: self.iterator }
 
     my class ChannelAwaitableHandle does Awaitable::Handle {
         has $!channel;

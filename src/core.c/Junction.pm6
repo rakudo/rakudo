@@ -67,59 +67,56 @@ my class Junction { # declared in BOOTSTRAP
         nqp::create(Junction)!SET-SELF(type,values)
     }
 
+    method !defined-any() {
+        my \eigenstates := $!eigenstates;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,nqp::elems(eigenstates))
+            && nqp::isfalse(nqp::atpos(eigenstates,$i)),
+          nqp::null
+        );
+        nqp::hllbool(nqp::islt_i($i,nqp::elems(eigenstates)))
+    }
+    method !defined-all() {
+        my \eigenstates := $!eigenstates;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,nqp::elems(eigenstates))
+            && nqp::atpos(eigenstates,$i).defined,
+          nqp::null
+        );
+        nqp::hllbool(nqp::iseq_i($i,nqp::elems(eigenstates)))
+    }
+    method !defined-none() {
+        my \eigenstates := $!eigenstates;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,nqp::elems(eigenstates))
+            && nqp::isfalse(nqp::atpos(eigenstates,$i).defined),
+          nqp::null
+        );
+        nqp::hllbool(nqp::iseq_i($i,nqp::elems(eigenstates)))
+    }
+    method !defined-one() {
+        my \eigenstates := nqp::clone($!eigenstates);
+        my int $i = -1;
+        my int $seen;
+        nqp::while(
+          nqp::islt_i(++$i,nqp::elems(eigenstates))
+            && nqp::isfalse(nqp::atpos(eigenstates,$i).defined)
+            && nqp::not_i($seen++),
+          nqp::null
+        );
+        nqp::hllbool(nqp::iseq_i($seen,1))
+    }
     multi method defined(Junction:D:) {
-        nqp::hllbool(
-          nqp::stmts(
-            (my int $elems = nqp::elems($!eigenstates)),
-            (my int $i),
-            nqp::if(
-              nqp::iseq_s($!type,'any'),
-              nqp::stmts(
-                nqp::while(
-                  nqp::islt_i($i,$elems)
-                    && nqp::isfalse(nqp::atpos($!eigenstates,$i).defined),
-                  ($i = nqp::add_i($i,1))
-                ),
-                nqp::islt_i($i,$elems)
-              ),
-              nqp::if(
-                nqp::iseq_s($!type,'all'),
-                nqp::stmts(
-                  nqp::while(
-                    nqp::islt_i($i,$elems)
-                      && nqp::atpos($!eigenstates,$i).defined,
-                    ($i = nqp::add_i($i,1))
-                  ),
-                  nqp::iseq_i($i,$elems)
-                ),
-                nqp::if(
-                  nqp::iseq_s($!type,'none'),
-                  nqp::stmts(
-                    nqp::while(
-                      nqp::islt_i($i,$elems)
-                        && nqp::isfalse(nqp::atpos($!eigenstates,$i).defined),
-                      ($i = nqp::add_i($i,1))
-                    ),
-                    nqp::iseq_i($i,$elems)
-                  ),
-                  nqp::stmts(    # $!type eq 'one'
-                    (my int $seen = 0),
-                    ($i = nqp::sub_i($i,1)),  # increment in condition
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                        && nqp::isle_i($seen,1),
-                      nqp::if(
-                        nqp::atpos($!eigenstates,$i).defined,
-                        ($seen = nqp::add_i($seen,1))
-                      )
-                    ),
-                    nqp::iseq_i($seen,1)
-                  )
-                )
-              )
-            )
-          )
-        )
+        nqp::iseq_s($!type,'any')
+          ?? self!defined-any
+          !! nqp::iseq_s($!type,'all')
+            ?? self!defined-all
+            !! nqp::iseq_s($!type,'none')
+              ?? self!defined-none
+              !! self!defined-one  # nqp::iseq_s($!type,'one')
     }
 
     multi method Bool(Junction:D:) {

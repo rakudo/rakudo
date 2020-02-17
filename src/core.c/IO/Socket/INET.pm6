@@ -13,15 +13,16 @@ my class IO::Socket::INET does IO::Socket {
         constant MAX_PORT       = 65_535; # RFC 793: TCP/UDP port limit
     }
 
-    has Str  $.host;
-    has Int  $.port;
-    has Str  $.localhost;
-    has Int  $.localport;
-    has Int  $.backlog;
-    has Bool $.listening;
-    has      $.family     = nqp::const::SOCKET_FAMILY_UNSPEC;
-    has      $.proto      = PIO::PROTO_TCP;
-    has      $.type       = PIO::SOCK_STREAM;
+    has Str      $.host;
+    has Int      $.port;
+    has Str      $.localhost;
+    has Int      $.localport;
+    has IO::Path $.path;
+    has Int      $.backlog;
+    has Bool     $.listening;
+    has          $.family     = nqp::const::SOCKET_FAMILY_UNSPEC;
+    has          $.proto      = PIO::PROTO_TCP;
+    has          $.type       = PIO::SOCK_STREAM;
 
     # XXX: this could be a bit smarter about how it deals with unspecified
     # families...
@@ -61,14 +62,13 @@ my class IO::Socket::INET does IO::Socket {
                 $family == nqp::const::SOCKET_FAMILY_UNSPEC
              || $family == nqp::const::SOCKET_FAMILY_INET
              || $family == nqp::const::SOCKET_FAMILY_INET6
-             || $family == nqp::const::SOCKET_FAMILY_UNIX
         } = nqp::const::SOCKET_FAMILY_UNSPEC,
                *%rest,
         --> IO::Socket::INET:D) {
 
         ($localhost, $localport) = (
             split-host-port :host($localhost), :port($localport), :$family
-        orelse fail $_) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
+        orelse fail $_);
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
@@ -77,7 +77,7 @@ my class IO::Socket::INET does IO::Socket {
             :$family,
             :listening($listen),
             |%rest,
-        )!initialize()
+        )!initialize-ip()
     }
 
     # Open new connection to socket on $host:$port
@@ -88,7 +88,6 @@ my class IO::Socket::INET does IO::Socket {
                $family == nqp::const::SOCKET_FAMILY_UNSPEC
             || $family == nqp::const::SOCKET_FAMILY_INET
             || $family == nqp::const::SOCKET_FAMILY_INET6
-            || $family == nqp::const::SOCKET_FAMILY_UNIX
         } = nqp::const::SOCKET_FAMILY_UNSPEC,
               *%rest,
         --> IO::Socket::INET:D) {
@@ -97,7 +96,7 @@ my class IO::Socket::INET does IO::Socket {
             :$host,
             :$port,
             :$family,
-        ) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
+        );
 
         # TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
@@ -105,7 +104,25 @@ my class IO::Socket::INET does IO::Socket {
             :$port,
             :$family,
             |%rest,
-        )!initialize()
+        )!initialize-ip()
+    }
+
+    # Create a UNIX socket at $path
+    multi method new(
+        IO::Path:D :$path!,
+        Int        :$family! where {
+            $family == nqp::const::SOCKET_FAMILY_UNIX
+        },
+        Bool       :$listen,
+                   *%rest,
+        --> IO::Socket::INET:D) {
+
+        self.bless(
+            :$path,
+            :$family,
+            :listening($listen),
+            |%rest
+        )!initialize-unix()
     }
 
     # Fail if no valid parameters are passed
@@ -114,7 +131,7 @@ my class IO::Socket::INET does IO::Socket {
             ~ "Invalid arguments to .new?";
     }
 
-    method !initialize() {
+    method !initialize-ip() {
         my $PIO := nqp::socket($!listening ?? 10 !! 0);
 
         # Quoting perl5's SIO::INET:
@@ -128,8 +145,7 @@ my class IO::Socket::INET does IO::Socket {
 
         if $!listening {
 #?if !js
-            $!localport = nqp::getport($PIO)
-                   unless $!localport || ($!family == nqp::const::SOCKET_FAMILY_UNIX);
+            $!localport = nqp::getport($PIO) unless $!localport;
 #?endif
         }
         elsif $!type == PIO::SOCK_STREAM {
@@ -140,12 +156,35 @@ my class IO::Socket::INET does IO::Socket {
         self;
     }
 
-    method connect(IO::Socket::INET:U: Str() $host, Int() $port, ProtocolFamily:D :$family = PF_UNSPEC) {
-        self.new(:$host, :$port, :family($family.value))
+    method !initialize-unix() {
+        my $PIO := nqp::socket($!listening ?? 10 !! 0);
+        if $!listening {
+            nqp::bindsock($PIO,
+              nqp::unbox_s($!path.Str), 0,
+              nqp::unbox_i($!family),
+              nqp::unbox_i($!backlog || 128));
+        }
+        elsif $!type == PIO::SOCK_STREAM {
+            nqp::connect($PIO, nqp::unbox_s($!path.Str), 0, nqp::unbox_i($!family));
+        }
+        nqp::bindattr(self, $?CLASS, '$!PIO', $PIO);
+        self
     }
 
-    method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport, ProtocolFamily:D :$family = PF_UNSPEC) {
+    proto method connect(|) {*}
+    multi method connect(IO::Socket::INET:U: Str() $host, Int() $port, ProtocolFamily:D :$family = PF_UNSPEC) {
+        self.new(:$host, :$port, :family($family.value))
+    }
+    multi method connect(IO::Socket::INET:U: IO() $path, PF_UNIX :$family!) {
+        self.new(:$path, :family($family.value))
+    }
+
+    proto method listen(|) {*}
+    multi method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport, ProtocolFamily:D :$family = PF_UNSPEC) {
         self.new(:$localhost, :$localport, :family($family.value), :listen)
+    }
+    multi method listen(IO::Socket::INET:U: IO() $path, PF_UNIX :$family!) {
+        self.new(:$path, :family($family.value), :listen)
     }
 
     method accept() {

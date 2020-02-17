@@ -2969,7 +2969,7 @@ class Perl6::Optimizer {
             (my $symJunction := $!symbols.find_symbol: ['Junction']))
         && nqp::getattr($j, $symJunction, '$!type') eq 'any'
         {
-            my @types := nqp::getattr($j, $symJunction, '$!storage');
+            my @types := nqp::getattr($j, $symJunction, '$!eigenstates');
             return NQPMu if nqp::isconcrete($_) for @types;
 
             my $op := my $qast := QAST::Stmts.new;

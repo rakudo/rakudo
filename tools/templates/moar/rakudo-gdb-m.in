@@ -2,4 +2,8 @@
 
 @insert(rakudo-debug-notice)@
 
-gdb --quiet --ex=run --args "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"
+GDB="gdb"
+if [ -n "$RAKUDO_GDB" ]; then
+    GDB="$RAKUDO_GDB"
+fi
+"$GDB" --quiet --ex=run --args "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"

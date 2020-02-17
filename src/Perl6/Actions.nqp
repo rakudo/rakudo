@@ -8313,7 +8313,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method version($/) {
         my $v := $*W.find_single_symbol('Version').new(~$<vstr>);
         $*W.add_object_if_no_sc($v);
-        make QAST::WVal.new( :value($v) );
+        make self.rakuast('VersionLiteral').new($v);
     }
 
     method decint($/) {

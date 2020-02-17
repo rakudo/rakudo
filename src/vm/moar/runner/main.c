@@ -72,8 +72,14 @@ static int parse_flag(const char *arg)
 
 int file_exists(const char *path) {
 #ifdef _WIN32
-    struct _stat sb;
-    return _stat(path, &sb) == 0;
+    int             res;
+    struct _stat    sb;
+    const int       len   = MultiByteToWideChar(CP_UTF8, 0, path, -1, NULL, 0);
+    wchar_t * const wpath = (wchar_t *)malloc(len * sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)wpath, len);
+    res = _wstat(wpath, &sb);
+    MVM_free(wpath);
+    return res == 0;
 #else
     struct stat *sb = malloc(sizeof(struct stat));
     int res         = stat(path, sb) == 0;

@@ -110,7 +110,6 @@ t/packages/tap-harness6
 /panda
 MANIFEST
 commits.png
-docs/test_summary.times
 dynext/*.o
 dynext/*.obj
 dynext/*.bundle

@@ -1521,6 +1521,9 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'set_readonly', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!ro', 1);
+            # Explicit set of readonly must reset rw as it might be a result of `is rw` trait.
+            nqp::bindattr_i(nqp::decont($self),
+                Attribute, '$!rw', 0);
             nqp::hllboolfor(1, "Raku")
         }));
     Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {

@@ -277,7 +277,7 @@ my class Date does Dateish {
         my $new := nqp::clone(self);
         nqp::bindattr_i($new,Date,'$!day', $!day + $days);
         nqp::bindattr_i($new,Date,'$!daycount',$!daycount + $days)
-          if nqp::isconcrete($!daycount);
+          if $!daycount;
         $new
     }
 

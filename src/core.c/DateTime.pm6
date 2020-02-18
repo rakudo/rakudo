@@ -10,7 +10,7 @@ my class DateTime does Dateish {
     method !formatter() { # ISO 8601 timestamp
         my $parts := nqp::list_s;
         nqp::push_s($parts, $!year < 1000 || $!year > 9999
-          ?? sprintf('%+05d',$!year)
+          ?? self!year-Str
           !! nqp::tostr_I($!year)
         );
 

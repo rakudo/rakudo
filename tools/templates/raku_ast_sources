@@ -1,2 +1,4 @@
 src/Perl6/ast/base.rakumod
 src/Perl6/ast/literals.rakumod
+src/Perl6/ast/meta.rakumod
+src/Perl6/ast/package.rakumod

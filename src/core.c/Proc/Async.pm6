@@ -54,7 +54,7 @@ my class X::Proc::Async::OpenForWriting does X::Proc::Async {
 }
 
 my class Proc::Async {
-    # An asynchornous process output pipe is a Supply that also can provide
+    # An asynchronous process output pipe is a Supply that also can provide
     # the native descriptor of the underlying pipe.
     class Pipe is Supply {
         my class PermitOnTap does Tappable {

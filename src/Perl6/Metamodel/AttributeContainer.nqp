@@ -50,8 +50,13 @@ role Perl6::Metamodel::AttributeContainer {
     }
 
     # Makes setting the type represented by the meta-object rw mean that its
-    # attributes are rw by default.
+    # attributes are rw by default. For cases when status is late set, like
+    # with 'also is rw', fixup the previously added attributes. Note that we
+    # can safely use 'default_to_rw' because it would pay respect to `is readonly`
     method set_rw($obj) {
+        for @!attributes {
+            $_.default_to_rw();
+        }
         $!attr_rw_by_default := 1;
     }
 

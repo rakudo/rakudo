@@ -33,18 +33,7 @@ my class CallFrame {
     }
 
     method line() { nqp::atkey($!annotations,'line') }
-    method file(:$raw) {
-        # This is to accommodate a dirty hack. See
-        # https://github.com/rakudo/rakudo/issues/2539 for the
-        # whole story.
-        if $raw && nqp::atkey($!annotations,'file') -> $file {
-            my int $index = nqp::rindex($file,' (');
-            $index == -1 ?? $file !! nqp::substr($file,0,$index)
-        }
-        else {
-            nqp::atkey($!annotations,'file')
-        }
-    }
+    method file() { nqp::atkey($!annotations,'file') }
     method code() {
         my \vm-code = nqp::ctxcode(nqp::getattr($!my,Map,'$!storage'));
         nqp::isnull(vm-code) ?? Nil !! nqp::getcodeobj(vm-code)

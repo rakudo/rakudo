@@ -1391,25 +1391,11 @@ class Perl6::World is HLL::World {
 
     method current_file() {
         my $file := nqp::getlexdyn('$?FILES');
-
         if nqp::isnull($file) {
             $file := '<unknown file>';
         }
-        else {
-
-            # This is really a nasty hack to make sure that there is
-            # no garbage in $?FILE.  This should probably be handled
-            # differently, but at least for now it will allow $?FILE
-            # to be free of extraneous information.  See
-            # https://github.com/rakudo/rakudo/issues/2539 for the
-            # whole story.
-            my $index := nqp::rindex($file,' (');
-            $file := nqp::substr($file,0,$index) if $index != -1;
-
-            $file := nqp::cwd ~ '/' ~ $file
-              unless nqp::eqat($file,'/',0)
-                || nqp::eqat($file,'-',0)
-                || nqp::eqat($file,':',1);
+        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
+            $file := nqp::cwd ~ '/' ~ $file;
         }
         $file;
     }

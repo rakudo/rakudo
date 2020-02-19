@@ -50,7 +50,7 @@ grammar RakuASTParser {
     }
 
     rule parameter {
-        <type=.name>? $<name>=['$' <.identifier>] [$<optional>='?']?
+        <type=.name>? [$<named>=':']?$<name>=['$'<.identifier>] [$<optional>=<[?!]>]?
     }
 
     token nqp-code {
@@ -135,9 +135,11 @@ class Method {
 
 class Parameter {
     has $!type;
+    has $!named;
     has $!name;
     has $!optional;
     method type() { $!type }
+    method named() { $!named }
     method name() { $!name }
     method optional() { $!optional }
 }
@@ -196,18 +198,29 @@ class RakuASTActions {
 
     method parameter($/) {
         my $type := $<type> ?? ~$<type> !! NQPMu;
+        my $named := ?$<named>;
         my $name := ~$<name>;
-        my $optional := ?$<optional>;
-        make Parameter.new(:$type, :$name, :$optional);
+        my $optional := $named
+            ?? ($<optional> eq '!' ?? 0 !! 1)
+            !! ($<optional> eq '?' ?? 1 !! 0);
+        make Parameter.new(:$type, :$named, :$name, :$optional);
     }
 
     method nqp-code($/) {
         my @chunks;
         for $/[0] -> $/ {
             if $<name> {
-                # Rewrite `self` into `$SELF`.
+                # Rewrite `self` into `$SELF`, and True/False also.
                 my $name := ~$<name>;
-                @chunks.push($name eq 'self' ?? '$SELF' !! $name);
+                if $name eq 'self' {
+                    @chunks.push('$SELF');
+                }
+                elsif $name eq 'True' || $name eq 'False' {
+                    @chunks.push('(Bool.WHO)<' ~ $name ~ '>');
+                }
+                else {
+                    @chunks.push($name);
+                }
             }
             elsif $<attribute> {
                 my $name := ~$<attribute>;
@@ -344,12 +357,12 @@ sub emit-method($package, $method) {
     my @params-decont;
     for @parameters {
         my $param-name := $_.name;
-        my $mangled-name := $param-name ~ '__CONT';
         my $type := $_.type || 'Any';
-        my $opt := $_.optional ?? '?' !! '';
-        @params-in.push(", $mangled-name$opt");
+        my $named := $_.named ?? ':' !! '';
+        my $opt := $_.optional ?? '?' !! '!';
+        @params-in.push(", $named$param-name$opt");
         @params-desc.push("$type, '$param-name'");
-        @params-decont.push("my $param-name := nqp::decont($mangled-name);");
+        @params-decont.push("$param-name := nqp::decont($param-name);");
     }
     my $params-in := nqp::join("", @params-in);
     my $params-desc := nqp::join(", ", @params-desc);

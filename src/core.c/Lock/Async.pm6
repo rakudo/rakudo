@@ -69,12 +69,12 @@ my class Lock::Async {
                 my $p := Promise.new;
                 my $v := $p.vow;
                 my $holder-update := $holder.queue-vow($v);
-                if nqp::eqaddr(cas($!holder, $holder, $holder-update),$holder) {
+                if nqp::eqaddr(nqp::cas($!holder, $holder, $holder-update),$holder) {
                     return $p;
                 }
             }
             else {
-                if nqp::eqaddr(cas($!holder, NO_HOLDER, SINGLE_HOLDER),NO_HOLDER) {
+                if nqp::eqaddr(nqp::cas($!holder, NO_HOLDER, SINGLE_HOLDER),NO_HOLDER) {
                     # Successfully acquired and we're the only holder
                     return KEPT-PROMISE;
                 }

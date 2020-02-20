@@ -162,30 +162,22 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }
     multi method DELETE-KEY(Hash:D: Str:D \key) {
-        my \storage := nqp::getattr(self, Map, '$!storage');
         nqp::if(
-          nqp::existskey(storage, nqp::unbox_s(key)),
+          nqp::isnull(my \value := nqp::atkey(
+            nqp::getattr(self,Map,'$!storage'),
+            key
+          )),
+          nqp::p6scalarfromcertaindesc($!descriptor),
           nqp::stmts(
-            (my \value := nqp::atkey(storage,nqp::unbox_s(key))),
-            nqp::deletekey(storage,nqp::unbox_s(key)),
+            nqp::deletekey(
+              nqp::getattr(self,Map,'$!storage'),
+              key
+            ),
             value
-          ),
-          nqp::p6scalarfromcertaindesc($!descriptor)
+          )
         )
     }
-    multi method DELETE-KEY(Hash:D: \key) {
-        my \storage := nqp::getattr(self, Map, '$!storage');
-        my str $key = nqp::unbox_s(key.Str);
-        nqp::if(
-          nqp::existskey(storage,$key),
-          nqp::stmts(
-            (my \value = nqp::atkey(storage,$key)),
-            nqp::deletekey(storage,$key),
-            value
-          ),
-          nqp::p6scalarfromcertaindesc($!descriptor)
-        )
-    }
+    multi method DELETE-KEY(Hash:D: \key) { self.DELETE-KEY(key.Str) }
 
     multi method raku(Hash:D \SELF:) {
         SELF.rakuseen(self.^name, {
@@ -541,17 +533,16 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method DELETE-KEY(TKey \key) {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            my str $which = key.WHICH;
             nqp::if(
-              nqp::existskey(storage,$which),
+              nqp::isnull(my \value := nqp::atkey(
+                nqp::getattr(self,Map,'$!storage'),
+                (my str $WHICH = key.WHICH)
+              )),
+              TValue,
               nqp::stmts(
-                (my \value =
-                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value')),
-                nqp::deletekey(storage,$which),
-                value
-              ),
-              TValue
+                nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$WHICH),
+                nqp::getattr(value,Pair,'$!value')
+              )
             )
         }
 

@@ -55,11 +55,7 @@ my class Lock::Async {
     has Holder $!holder = Holder;
 
     # Singleton Promise to be used when there's no need to wait.
-    my \KEPT-PROMISE := do {
-        my \p = Promise.new;
-        p.keep(True);
-        p
-    }
+    my \KEPT-PROMISE := Promise.kept;
 
     method lock(Lock::Async:D: --> Promise) {
 #?if !js

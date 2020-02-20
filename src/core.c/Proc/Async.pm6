@@ -109,6 +109,7 @@ my class Proc::Async {
     has $!merge_supply;
     has CharsOrBytes $!merge_type;
     has $!stdin-fd;
+    has $!stdin-fd-close;
     has $!stdout-fd;
     has $!stderr-fd;
     has $!process_handle;
@@ -240,9 +241,11 @@ my class Proc::Async {
           if nqp::istype($handle,IO::Pipe);
     }
     multi method bind-stdin(Proc::Async::Pipe:D $pipe --> Nil) {
-        $!w
-          ?? X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
-          !! ($!stdin-fd := $pipe.native-descriptor);
+        if $!w {
+            X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
+        }
+        $!stdin-fd := $pipe.native-descriptor;
+        $!stdin-fd-close := True;
     }
 
     method bind-stdout(IO::Handle:D $handle --> Nil) {
@@ -347,6 +350,7 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'buf_type', buf8.new);
         nqp::bindkey($callbacks, 'write', True) if $.w;
         nqp::bindkey($callbacks, 'stdin_fd', $!stdin-fd) if $!stdin-fd.DEFINITE;
+        nqp::bindkey($callbacks, 'stdin_fd_close', True) if $!stdin-fd-close;
         nqp::bindkey($callbacks, 'stdout_fd', $!stdout-fd) if $!stdout-fd.DEFINITE;
         nqp::bindkey($callbacks, 'stderr_fd', $!stderr-fd) if $!stderr-fd.DEFINITE;
 

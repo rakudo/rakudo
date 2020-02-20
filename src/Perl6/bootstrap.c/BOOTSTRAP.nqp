@@ -1415,6 +1415,8 @@ BEGIN {
     #     has Attribute $!orig; # original attribute object used for instantiation
     Attribute.HOW.add_parent(Attribute, Any);
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
+    # The existence of both $!rw and $!ro might be confusing, but they're needed for late trait application with
+    # `also is rw`. In this case we must remember the earlier applied per-attribute traits.
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!rw>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!ro>, :type(int), :package(Attribute)));
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!required>, :type(Mu), :package(Attribute)));
@@ -1521,6 +1523,9 @@ BEGIN {
     Attribute.HOW.add_method(Attribute, 'set_readonly', nqp::getstaticcode(sub ($self) {
             nqp::bindattr_i(nqp::decont($self),
                 Attribute, '$!ro', 1);
+            # Explicit set of readonly must reset rw as it might be a result of `is rw` trait.
+            nqp::bindattr_i(nqp::decont($self),
+                Attribute, '$!rw', 0);
             nqp::hllboolfor(1, "Raku")
         }));
     Attribute.HOW.add_method(Attribute, 'set_required', nqp::getstaticcode(sub ($self, $value) {

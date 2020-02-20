@@ -18,6 +18,7 @@ role Perl6::Metamodel::AttributeContainer {
             nqp::die("Package '" ~ self.name($obj) ~
                 "' already has an attribute named '$name'");
         }
+        if $!attr_rw_by_default { $meta_attr.default_to_rw() }
         @!attributes[+@!attributes] := $meta_attr;
         %!attribute_lookup{$name}   := $meta_attr;
     }
@@ -33,7 +34,6 @@ role Perl6::Metamodel::AttributeContainer {
             %orig_meths{$_.key} := 1;
         }
         for @!attributes {
-            if $!attr_rw_by_default { $_.default_to_rw() }
             if $_.has_accessor() {
                 my $acc_name := nqp::substr($_.name, 2);
                 nqp::die("Two or more attributes declared that both want an accessor method '$acc_name'")
@@ -50,8 +50,13 @@ role Perl6::Metamodel::AttributeContainer {
     }
 
     # Makes setting the type represented by the meta-object rw mean that its
-    # attributes are rw by default.
+    # attributes are rw by default. For cases when status is late set, like
+    # with 'also is rw', fixup the previously added attributes. Note that we
+    # can safely use 'default_to_rw' because it would pay respect to `is readonly`
     method set_rw($obj) {
+        for @!attributes {
+            $_.default_to_rw();
+        }
         $!attr_rw_by_default := 1;
     }
 

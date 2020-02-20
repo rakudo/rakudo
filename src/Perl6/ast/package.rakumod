@@ -1,4 +1,4 @@
-class RakuAST::Package is RakuAST::Meta {
+class RakuAST::Package is RakuAST::StubbyMeta {
     has Str $.package-declarator;
     has Mu $.how;
     has Str $.name;
@@ -13,12 +13,17 @@ class RakuAST::Package is RakuAST::Meta {
         $obj
     }
 
-    method PRODUCE-META-OBJECT() {
-        # Create the meta-object.
+    method PRODUCE-STUBBED-META-OBJECT() {
+        # Create the type object and return it; this stubs the type.
         my %options;
         %options<name> := $!name if $!name;
         %options<repr> := $!repr if $!repr;
-        my $type := $!how.new_type(|%options);
+        $!how.new_type(|%options)
+    }
+
+    method PRODUCE-META-OBJECT() {
+        # Obtain the stubbed meta-object, which is the type object.
+        my $type := self.stubbed-meta-object();
 
         # Compose the meta-object and return it.
         $type.HOW.compose($type);

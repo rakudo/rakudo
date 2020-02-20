@@ -260,7 +260,9 @@ my class Parameter { # declared in BOOTSTRAP
                 ?? '%'
                 !! nqp::bitand_i($!flags,$SIG_ELEM_CODE_SIGIL)
                   ?? '&'
-                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::isnull($!default_value)
+                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
+                    && $.name
+                    && nqp::isnull($!default_value)
                     ?? '\\'
                     !! '$'
             !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::iseq_i(

@@ -92,7 +92,7 @@ my class Lock::Async {
             my $holder := ⚛$!holder;
             if nqp::eqaddr($holder,SINGLE_HOLDER) {
                 # We're the single holder and there's no wait queue.
-                if nqp::eqaddr(cas($!holder, SINGLE_HOLDER, NO_HOLDER),SINGLE_HOLDER) {
+                if nqp::eqaddr(nqp::cas($!holder, SINGLE_HOLDER, NO_HOLDER),SINGLE_HOLDER) {
                     # Successfully released to NO_HOLDER state.
                     return;
                 }
@@ -101,7 +101,7 @@ my class Lock::Async {
                 my int $queue-length = $holder.waiter-queue-length();
                 my $v := $holder.head-vow;
                 if $queue-length == 1 {
-                    if nqp::eqaddr(cas($!holder, $holder, SINGLE_HOLDER),$holder) {
+                    if nqp::eqaddr(nqp::cas($!holder, $holder, SINGLE_HOLDER),$holder) {
                         # Successfully released; keep the head vow, thus
                         # giving the lock to the next waiter.
                         $v.keep(True);
@@ -110,7 +110,7 @@ my class Lock::Async {
                 }
                 else {
                     my $new-holder := $holder.without-head-vow();
-                    if nqp::eqaddr(cas($!holder, $holder, $new-holder),$holder) {
+                    if nqp::eqaddr(nqp::cas($!holder, $holder, $new-holder),$holder) {
                         # Successfully released and installed remaining queue;
                         # keep the head vow which we successfully removed.
                         $v.keep(True);

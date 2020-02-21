@@ -1,4 +1,4 @@
-class RakuAST::Package is RakuAST::StubbyMeta {
+class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term {
     has Str $.package-declarator;
     has Mu $.how;
     has Str $.name;

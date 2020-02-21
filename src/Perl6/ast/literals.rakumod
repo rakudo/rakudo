@@ -1,4 +1,4 @@
-class RakuAST::IntLiteral is RakuAST::Node {
+class RakuAST::IntLiteral is RakuAST::Term {
     has Int $.value;
     
     method new(Int $value) {
@@ -18,7 +18,7 @@ class RakuAST::IntLiteral is RakuAST::Node {
     }
 }
 
-class RakuAST::NumLiteral is RakuAST::Node {
+class RakuAST::NumLiteral is RakuAST::Term {
     has Num $.value;
 
     method new(Num $value) {
@@ -36,7 +36,7 @@ class RakuAST::NumLiteral is RakuAST::Node {
     }
 }
 
-class RakuAST::RatLiteral is RakuAST::Node {
+class RakuAST::RatLiteral is RakuAST::Term {
     has Rat $.value;
 
     method new(Rat $value) {
@@ -53,7 +53,7 @@ class RakuAST::RatLiteral is RakuAST::Node {
     }
 }
 
-class RakuAST::VersionLiteral is RakuAST::Node {
+class RakuAST::VersionLiteral is RakuAST::Term {
     has Any $.value;
 
     method new($value) {

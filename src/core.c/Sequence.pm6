@@ -28,8 +28,13 @@ my role PositionalBindFailover {
           ($!list := List.from-iterator(self.iterator))
         )
     }
+
     multi method list(::?CLASS:D:) {
-        List.from-iterator(self.iterator)
+        nqp::if(
+          nqp::isconcrete($!list),
+          $!list,
+          List.from-iterator(self.iterator)
+        )
     }
 
     method iterator() { ... }

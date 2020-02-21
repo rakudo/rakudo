@@ -953,9 +953,13 @@ my class X::OutOfRange is Exception {
 }
 
 my class X::Buf::AsStr is Exception {
+    has $.object;
     has $.method;
     method message() {
-        "Cannot use a Buf as a string, but you called the $.method method on it";
+        my $message = $.method.starts-with('Str')
+          ?? "Stringification of a {$.object.^name} is not done with '$.method'"
+          !! "A {$.object.^name} is not a Str, so using '$.method' will not work";
+        $message ~ ".\nThe 'decode' method should be used to convert {$.object.^name} to a Str."
     }
 }
 my class X::Buf::Pack is Exception {

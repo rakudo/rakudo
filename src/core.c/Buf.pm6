@@ -283,9 +283,15 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method bytes(Blob:D:) { nqp::mul_i(nqp::elems(self),$bpe) }
 
-    method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
-    multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
-    multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
+    method chars(Blob:D:) {
+        X::Buf::AsStr.new(object => self, method => '.chars').throw
+    }
+    multi method Str(Blob:D:) {
+        X::Buf::AsStr.new(object => self, method => 'Str'  ).throw
+    }
+    multi method Stringy(Blob:D:) {
+        X::Buf::AsStr.new(object => self, method => 'Stringy' ).throw
+    }
 
     proto method decode(|) {*}
     multi method decode(Blob:D: $encoding = self.encoding // "utf-8") {
@@ -1050,6 +1056,10 @@ constant buf8  = Buf[uint8];
 constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
+
+multi sub prefix:<~>(Blob:D \a) {
+    X::Buf::AsStr.new(object => a, method => '~' ).throw
+}
 
 multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {

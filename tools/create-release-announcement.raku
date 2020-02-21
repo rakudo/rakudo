@@ -110,7 +110,7 @@ sub find-contributors(
     :$last_release, :$rakudo, :$doc, :$nqp, :$moar, :$roast,
 ) {
     my $proc = run :out, :!err, $*EXECUTABLE,
-            $*RAKUDO_DIR.child('tools/contributors.p6'),
+            $*RAKUDO_DIR.child('tools/contributors.raku'),
                 "--rakudo=$rakudo",
                 "--doc=$doc",
                 "--nqp=$nqp",
@@ -128,7 +128,7 @@ sub find-next-release-date() {
     my @lines = $release_guide.lines;
     my $this-release = sprintf('%04d-%02d', Date.today.year, Date.today.month);
     my $this-release-index = @lines.first: /^ \s*"$this-release"/, :k;
-    my $next-release = @lines[$this-release-index + 1];
+    my $next-release = @lines[$this-release-index];
     if $next-release ~~ /^ \s* (\d\d\d\d '-' \d\d '-' \d\d)/ {
         ~$0
     } else {

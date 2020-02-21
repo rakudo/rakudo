@@ -21,7 +21,7 @@ my class IO::Path is Cool does IO {
         );
     }
 
-    method !new-from-absolute-path($path, :$SPEC = $*SPEC, Str() :$CWD = $*CWD) {
+    method !new-from-absolute-path($path, $SPEC, $CWD) {
         self.bless(:$path, :$SPEC, :$CWD)!set-absolute($path);
     }
 
@@ -331,7 +331,7 @@ my class IO::Path is Cool does IO {
             }
         }
         $resolved = $volume ~ $sep if $resolved eq $volume;
-        IO::Path!new-from-absolute-path($resolved,:$!SPEC,:CWD($volume ~ $sep));
+        IO::Path!new-from-absolute-path($resolved,$!SPEC,$volume ~ $sep);
     }
     proto method parent(|) {*}
     multi method parent(IO::Path:D: UInt:D $depth) {
@@ -412,7 +412,7 @@ my class IO::Path is Cool does IO {
             @dirs.push('') if !@dirs;  # need at least the rootdir
             $path = join($!SPEC.dir-sep, $volume, @dirs);
         }
-        my $dir = IO::Path!new-from-absolute-path($path,:$!SPEC,:CWD(self));
+        my $dir = IO::Path!new-from-absolute-path($path,$!SPEC,self.Str);
 
         nqp::stmts(
             nqp::unless(
@@ -559,7 +559,7 @@ my class IO::Path is Cool does IO {
                 $test.ACCEPTS($elem) && (
                   $absolute
                     ?? take IO::Path!new-from-absolute-path(
-                        $abspath ~ $elem,:$!SPEC,:$!CWD)
+                        $abspath ~ $elem,$!SPEC,$!CWD)
                     !! take IO::Path.new($path ~ $elem,:$!SPEC,:$!CWD)
                 );
             }
@@ -572,7 +572,7 @@ my class IO::Path is Cool does IO {
                 nqp::if(
                   $absolute,
                   (take IO::Path!new-from-absolute-path(
-                    nqp::concat($abspath,$str-elem),:$!SPEC,:$!CWD)),
+                    nqp::concat($abspath,$str-elem),$!SPEC,$!CWD)),
                   (take IO::Path.new(
                     nqp::concat($path,$str-elem),:$!SPEC,:$!CWD)),)));
             nqp::closedir($dirh);

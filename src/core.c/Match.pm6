@@ -68,8 +68,8 @@ my class Match is Capture is Cool does NQPMatchRole {
         # Initialize capture lists.
         my $rxsub := nqp::getattr(self, Match, '$!regexsub');
         my $capdesc := nqp::findmethod($rxsub, 'CAPS')($rxsub);
-        my $list := nqp::findmethod($capdesc, 'prepare-list')($capdesc);
-        my $hash := nqp::findmethod($capdesc, 'prepare-hash')($capdesc);
+        my $list := nqp::findmethod($capdesc, 'prepare-raku-list')($capdesc);
+        my $hash := nqp::findmethod($capdesc, 'prepare-raku-hash')($capdesc);
         my str $onlyname = $capdesc.onlyname();
 
         # Walk the capture stack and populate the Match.

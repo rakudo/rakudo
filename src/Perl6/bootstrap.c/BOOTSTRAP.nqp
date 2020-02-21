@@ -3305,11 +3305,14 @@ BEGIN {
             nqp::elems(@!named-capture-counts) || nqp::elems(@!pos-capture-counts)
         }
 
+        ## Raku Match object building
+        ## (for use in standard Raku regexes)
+
         # Build a list of positional captures, or return a shared empty list if
         # there are none. This only populates the slots which need an array.
         my $EMPTY-LIST := nqp::list();
         my $EMPTY-HASH := nqp::hash();
-        method prepare-list() {
+        method prepare-raku-list() {
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
                 my $result := nqp::list();
@@ -3334,7 +3337,7 @@ BEGIN {
 
         # Build a hash of named captures, or return a shared empty hash if there
         # are none. This only populates the slots that need an array.
-        method prepare-hash() {
+        method prepare-raku-hash() {
             my int $n := nqp::elems(@!named-capture-counts);
             if $n > 0 {
                 my $result := nqp::hash();
@@ -3357,6 +3360,50 @@ BEGIN {
 #?if !js
                 $EMPTY-HASH
 #?endif
+            }
+        }
+
+        ## NQP Match object building
+        ## (for use when we override stuff from the Rakudo grammar)
+
+        # Build a list of positional captures, or return a shared empty list if
+        # there are none. This only populates the slots which need an array.
+        method prepare-list() {
+            my int $n := nqp::elems(@!pos-capture-counts);
+            if $n > 0 {
+                my $result := nqp::list();
+                my int $i := 0;
+                while $i < $n {
+                    nqp::bindpos($result, $i, nqp::list())
+                        if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
+                    $i++;
+                }
+                $result
+            }
+            else {
+                $EMPTY-LIST
+            }
+        }
+
+        # Build a hash of named camptures, or return a shared empty hash if there
+        # are none. This only poplates the slots that need an array.
+        method prepare-hash() {
+            my int $n := nqp::elems(@!named-capture-counts);
+            if $n > 0 {
+                my $result := nqp::hash();
+                my int $i := 0;
+                while $i < $n {
+                    if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
+                        nqp::bindkey($result,
+                            nqp::atpos_s(@!named-capture-names, $i),
+                            nqp::list());
+                    }
+                    $i++;
+                }
+                $result
+            }
+            else {
+                $EMPTY-HASH
             }
         }
 

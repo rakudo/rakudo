@@ -284,7 +284,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method bytes(Blob:D:) { nqp::mul_i(nqp::elems(self),$bpe) }
 
     method chars(Blob:D:) {
-        X::Buf::AsStr.new(object => self, method => '.chars').throw
+        X::Buf::AsStr.new(object => self, method => 'chars').throw
     }
     multi method Str(Blob:D:) {
         X::Buf::AsStr.new(object => self, method => 'Str'  ).throw

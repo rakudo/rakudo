@@ -21,7 +21,7 @@ class CompUnit {
     # (if known).
     has Distribution $.distribution;
 
-    my $default-from = 'Perl6';
+    my constant $default-from = 'Raku';
 
     method new(CompUnit:U:
       Str                  :$short-name is copy,

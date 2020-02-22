@@ -314,7 +314,7 @@ my class DateTime does Dateish {
     }
 
     method now(:$timezone=$*TZ, :&formatter --> DateTime:D) {
-        self.new(nqp::time_n(), :$timezone, :&formatter)
+        self.new(nqp::p6box_n(nqp::time_n), :$timezone, :&formatter)
     }
 
     method clone(DateTime:D: *%_ --> DateTime:D) {

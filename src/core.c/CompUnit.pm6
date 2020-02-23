@@ -32,7 +32,13 @@ class CompUnit {
           nqp::list_s($!from,$!short-name,$!repo-id,$!precompiled.Str);
         nqp::push_s($parts,$!version.Str)      if $!version;
         nqp::push_s($parts,$!auth)             if $!auth;
-        nqp::push_s($parts,$!distribution.Str) if $!distribution;
+        nqp::push_s($parts,$!distribution
+          ?? CompUnit::Repository::Distribution.new(
+               :dist($!distribution),
+               :repo($!repo-id)
+             ).Str
+          !! $!repo-id
+        );
         $!WHICH := nqp::box_s(
           nqp::concat(
             nqp::concat(self.^name, '|'),

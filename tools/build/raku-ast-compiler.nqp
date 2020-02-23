@@ -16,14 +16,14 @@
 
 grammar RakuASTParser {
     rule TOP {
-        <?> <package>*
+        <?> <package>* [$ || <.panic("Confused")>]
     }
 
     proto rule package {*}
     rule package:sym<class> {
         'class' <name> {}
         :my $*CLASS := ~$<name>;
-        [ 'is' <parent=.name> ]?
+        [ 'is' <parent=.name> ]*
         '{'
         [ <attribute-decl> | <method-decl> ]*
         [ '}' || <.panic('Missing }')> ]
@@ -107,11 +107,11 @@ class CompUnit {
 
 class Package {
     has $!name;
-    has $!parent;
+    has @!parents;
     has @!attributes;
     has @!methods;
     method name() { $!name }
-    method parent() { $!parent }
+    method parents() { @!parents }
     method attributes() { @!attributes }
     method methods() { @!methods }
 }
@@ -160,7 +160,10 @@ class RakuASTActions {
 
     method package:sym<class>($/) {
         my $name := ~$<name>;
-        my $parent := $<parent> ?? ~$<parent> !! NQPMu;
+        my @parents;
+        for $<parent> {
+            nqp::push(@parents, ~$_);
+        }
         my @attributes;
         for $<attribute-decl> {
             @attributes.push($_.ast);
@@ -169,7 +172,7 @@ class RakuASTActions {
         for $<method-decl> {
             @methods.push($_.ast);
         }
-        make Package.new(:$name, :$parent, :@attributes, :@methods);
+        make Package.new(:$name, :@parents, :@attributes, :@methods);
     }
 
     method attribute-decl($/) {
@@ -324,8 +327,10 @@ sub emit-mop-utils() {
 sub emit-package($package) {
     my $name := $package.name;
 
-    my $parent := $package.parent || 'Any';
-    say("    parent($name, $parent);");
+    my @parents := $package.parents;
+    for @parents || ['Any'] {
+        say("    parent($name, $_);");
+    }
 
     my %need-accessor;
     for $package.attributes -> $attr {

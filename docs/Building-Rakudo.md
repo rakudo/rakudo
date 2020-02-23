@@ -6,7 +6,7 @@ Start with:
 
 ```
 cd <your Rakudo sources directory>
-./Configure --gen-moar --gen-nqp
+./Configure.pl --gen-moar --gen-nqp
 make install && make test
 ```
 

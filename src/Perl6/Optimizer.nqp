@@ -2960,6 +2960,10 @@ class Perl6::Optimizer {
         my $qast-block := nqp::getattr($wv-block.value,
             $!symbols.find_symbol(['Code']), '@!compstuff')[0];
 
+        if nqp::istype($qast-block[1], QAST::Stmts) && @($qast-block[1]) == 1 {
+            $qast-block[1] := $qast-block[1][0];
+        }
+
         # do we have an "any" Junction we can inline?
         if nqp::istype($qast-block[1], QAST::Op)
         && $qast-block[1].op eq 'callmethod' && $qast-block[1].name eq 'ACCEPTS'

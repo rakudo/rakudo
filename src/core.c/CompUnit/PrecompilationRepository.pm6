@@ -1,18 +1,16 @@
-{
-    role CompUnit::PrecompilationRepository {
-        method try-load(
-            CompUnit::PrecompilationDependency::File $dependency,
-            IO::Path :$source,
-            CompUnit::PrecompilationStore :@precomp-stores,
-            --> CompUnit::Handle:D) {
-            Nil
-        }
+role CompUnit::PrecompilationRepository {
+    method try-load(
+        CompUnit::PrecompilationDependency::File $dependency,
+        IO::Path :$source,
+        CompUnit::PrecompilationStore :@precomp-stores,
+        --> CompUnit::Handle:D) {
+        Nil
+    }
 
-        method load(CompUnit::PrecompilationId $id --> Nil) { }
+    method load(CompUnit::PrecompilationId $id --> Nil) { }
 
-        method may-precomp(--> Bool:D) {
-            True # would be a good place to check an environment variable
-        }
+    method may-precomp(--> True) {
+        # would be a good place to check an environment variable
     }
 }
 

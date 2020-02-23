@@ -9,14 +9,18 @@ class RakuAST::Blockoid is RakuAST::Node {
     }
 }
 
+# A block, either without signature or with only a placeholder signature.
+class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term {
+}
+
 # A pointy block (-> $foo { ... }).
-class RakuAST::PointyBlock is RakuAST::Node {
+class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term {
     has RakuAST::Signature $.signature;
     has RakuAST::Blockoid $.body;
 }
 
 # Done by all kinds of Routine.
-class RakuAST::Routine is RakuAST::Node {
+class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term {
     has Bool $.is-multi;
     has Bool $.is-proto;
     has RakuAST::Signature $.signature;

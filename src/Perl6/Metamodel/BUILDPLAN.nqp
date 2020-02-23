@@ -134,7 +134,7 @@ role Perl6::Metamodel::BUILDPLAN {
         for @attrs {
             next unless nqp::can($_, 'build');
 
-            my $default := $_.build;
+            my $default := nqp::decont($_.build);
             my $type    := $_.type;
             my int $primspec := nqp::objprimspec($type);
 #?if js

@@ -56,6 +56,6 @@ $*REPO.precomp-repository.precompile(
         :force,
     );
 
-#note "installed!";
+note "    Installed {%provides.elems} core modules in {now - INIT now} seconds!";
 
 # vim: ft=perl6

@@ -796,6 +796,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::isne_i((my $index := nqp::rindex(self,$needle,$pos)),-1)
             ?? $index !! Nil
     }
+    multi method rindex(Str:D: @needles --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        $index = $i
+          if ($i = nqp::rindex(self,.Str)) > $index
+          for @needles;
+        $index == -1 ?? Nil !! $index
+    }
 
     # Cool catchers
     multi method rindex(Str:D: Cool:D $needle --> Int:D) {

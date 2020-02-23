@@ -637,6 +637,62 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method index(Str:D:
+      @needles, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        if $ignorecase {
+            if $ignoremark {
+#?if moar
+                $chars = $index = $i
+                  if ($i =
+                       nqp::indexicim(nqp::substr(self,0,$chars),.Str,0)
+                     ) > -1
+                  for @needles;
+#?endif
+#?if !moar
+                self!die-named('ignorecase and :ignoremark')
+#?endif
+            }
+            else {
+#?if moar
+                $chars = $index = $i
+                  if ($i =
+                        nqp::indexic(nqp::substr(self,0,$chars),.Str,0)
+                     ) > -1
+                  for @needles;
+#?endif
+#?if !moar
+                my str $str = nqp::fc(self);
+                $chars = $index = $i
+                  if ($i =
+                       nqp::index(nqp::substr(self,0,$chars),nqp::fc(.Str))
+                     ) > -1
+                  for @needles;
+#?endif
+            }
+        }
+        elsif $ignoremark {
+#?if moar
+            $chars = $index = $i
+              if ($i = nqp::indexim(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+#?endif
+#?if !moar
+            self!die-named('ignoremark')
+#?endif
+        }
+        else {
+            $chars = $index = $i
+              if ($i = nqp::index(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+        }
+
+        $index == -1 ?? Nil !! $index
+    }
+
+    multi method index(Str:D:
       Str:D $needle, :m(:$ignoremark)!
     --> Int:D) {
         nqp::isne_i(
@@ -668,6 +724,30 @@ my class Str does Stringy { # declared in BOOTSTRAP
                ),-1
              ) ?? $index !! Nil
     }
+    multi method index(Str:D:
+      @needles, :m(:$ignoremark)!
+    --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        if $ignoremark {
+#?if moar
+            $chars = $index = $i
+              if ($i = nqp::indexim(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+#?endif
+#?if !moar
+            self!die-named('ignorecase and :ignoremark')
+#?endif
+        }
+        else {
+            $chars = $index = $i
+              if ($i = nqp::index(nqp::substr(self,0,$chars),.Str)) > -1
+              for @needles;
+        }
+
+        $index == -1 ?? Nil !! $index
+    }
 
     multi method index(Str:D: Str:D $needle --> Int:D) {
         nqp::isne_i((my $index := nqp::index(self,$needle)),-1)
@@ -678,6 +758,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? self!fail-oor($pos)
           !! nqp::isne_i((my $index := nqp::index(self,$needle,$pos)),-1)
             ?? $index !! Nil
+    }
+    multi method index(Str:D: @needles --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        $chars = $index = $i
+          if ($i = nqp::index(nqp::substr(self,0,$chars), .Str)) > -1
+          for @needles;
+         $index == -1 ?? Nil !! $index
     }
 
     # Cool catchers

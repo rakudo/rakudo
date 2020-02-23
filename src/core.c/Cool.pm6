@@ -281,14 +281,21 @@ my class Cool { # declared in BOOTSTRAP
     }
     multi method index(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D) {
-        self.Str.index($needle.Str, :$ignorecase, :$ignoremark)
+        self.Str.index(
+          nqp::istype($needle,List) ?? $needle !! $needle.Str,
+          :$ignorecase,
+          :$ignoremark
+        )
     }
     multi method index(Cool:D:
       Cool:D $needle, :m(:$ignoremark)! --> Int:D) {
-        self.Str.index($needle.Str, :$ignoremark)
+        self.Str.index(
+          nqp::istype($needle,List) ?? $needle !! $needle.Str,
+          :$ignoremark
+        )
     }
     multi method index(Cool:D: Cool:D $needle --> Int:D) {
-        self.Str.index($needle.Str)
+        self.Str.index(nqp::istype($needle,List) ?? $needle !! $needle.Str)
     }
 
     multi method index(Cool:D:

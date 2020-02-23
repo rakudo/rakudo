@@ -124,7 +124,8 @@ commands:
 workflows:
   version: 2
   test:
-    unless: << pipeline.parameters.BUILD_PRECOMP_RELEASE >>
+      #    unless: << pipeline.parameters.BUILD_PRECOMP_RELEASE >>
+      when: False
     jobs:
       - test-linux
       - test-linux:

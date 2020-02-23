@@ -20,9 +20,28 @@ class CompUnit {
     # The distribution that this compilation unit was installed as part of
     # (if known).
     has Distribution $.distribution is built(:bind);
-    has Str $!WHICH;
+    has ValueObjAt $!WHICH;
 
-    multi method WHICH(CompUnit:D:) { $!WHICH //= self.^name }
+    multi method WHICH(CompUnit:D:) {
+        nqp::isconcrete($!WHICH)
+          ?? $!WHICH
+          !! self!WHICH
+    }
+    method !WHICH() {
+        my $parts :=
+          nqp::list_s($!from,$!short-name,$!repo-id,$!precompiled.Str);
+        nqp::push_s($parts,$!version.Str)      if $!version;
+        nqp::push_s($parts,$!auth)             if $!auth;
+        nqp::push_s($parts,$!distribution.Str) if $!distribution;
+        $!WHICH := nqp::box_s(
+          nqp::concat(
+            nqp::concat(self.^name, '|'),
+            nqp::sha1(nqp::join("\0",$parts))
+          ),
+          ValueObjAt
+        )
+    }
+
     multi method Str(CompUnit:D: --> Str:D)  { $!short-name }
     multi method gist(CompUnit:D: --> Str:D) { self.short-name }
 

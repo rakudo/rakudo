@@ -312,7 +312,7 @@ my class Cool { # declared in BOOTSTRAP
     }   
 
     proto method rindex(|) {*}
-    multi method index(List:D: Cool:D $needle) {  # Warn about newbie trap
+    multi method rindex(List:D: Cool:D $needle) {  # Warn about newbie trap
         self!list-as-string('.first( ..., :k, :end)');
         self.Str.rindex(nqp::istype($needle,List) ?? $needle !! $needle.Str,|%_)
     }

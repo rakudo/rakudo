@@ -215,9 +215,9 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method contains(|) {*}
-    multi method contains(List:D: Str:D \needle) {  # Warn about newbie trap
+    multi method contains(List:D: Cool:D \needle) {  # Warn about newbie trap
         self!list-as-string('needle (elem) list');
-        self.Str.contains: needle, |%_
+        self.Str.contains: needle.Str, |%_
     }
     multi method contains(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
@@ -245,9 +245,9 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method indices(|) {*}
-    multi method indices(List:D: Str:D \needle) {  # Warn about newbie trap
+    multi method indices(List:D: Cool:D \needle) {  # Warn about newbie trap
         self!list-as-string('.grep( ..., :k)');
-        self.Str.indices(needle, |%_)
+        self.Str.indices(needle.Str, |%_)
     }
     multi method indices(Cool:D: Cool:D $needle,
       :i(:$ignorecase)!, :m(:$ignoremark), :$overlap) {

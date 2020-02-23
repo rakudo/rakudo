@@ -180,38 +180,4 @@ my class Seq is Cool does Iterable does Sequence {
 
 sub GATHER(&block) { Seq.new(Rakudo::Iterator.Gather(&block)) }
 
-multi sub infix:<eqv>(Seq:D \a, Seq:D \b) {
-    nqp::hllbool(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-        nqp::if(
-          nqp::eqaddr(a.WHAT,b.WHAT),
-          nqp::if(
-            nqp::iseq_i(
-              (my \ia := a.iterator).is-lazy,
-              (my \ib := b.iterator).is-lazy
-            ),
-            nqp::if(
-              ia.is-lazy,
-              die(X::Cannot::Lazy.new: :action<eqv>),
-              nqp::stmts(
-                nqp::until(
-                  nqp::stmts(
-                    (my \pa := ia.pull-one),
-                    (my \pb := ib.pull-one),
-                    nqp::eqaddr(pa,IterationEnd)
-                      || nqp::eqaddr(pb,IterationEnd)
-                      || nqp::not_i(pa eqv pb)
-                  ),
-                  nqp::null
-                ),
-                nqp::eqaddr(pa,pb)  # exhausted if both IterationEnd
-              )
-            )
-          )
-        )
-      )
-    )
-}
-
 # vim: ft=perl6 expandtab sw=4

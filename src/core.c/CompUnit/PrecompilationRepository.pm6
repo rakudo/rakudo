@@ -23,9 +23,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     my $loaded-lock = Lock.new;
     my $first-repo-id;
 
-    my $lle;
-    my $profile;
-    my $optimize;
+    my $lle        := Rakudo::Internals.LL-EXCEPTION;
+    my $profile    := Rakudo::Internals.PROFILE;
+    my $optimize   := Rakudo::Internals.OPTIMIZE;
+    my $stagestats := Rakudo::Internals.STAGESTATS;
+    my $target     := "--target=" ~ Rakudo::Internals.PRECOMP-TARGET;
 
     method try-load(
         CompUnit::PrecompilationDependency::File $dependency,
@@ -258,9 +260,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $source-checksum = nqp::sha1($path.slurp(:enc<iso-8859-1>));
         my $bc = "$io.bc".IO;
 
-        $lle     //= Rakudo::Internals.LL-EXCEPTION;
-        $profile //= Rakudo::Internals.PROFILE;
-        $optimize //= Rakudo::Internals.OPTIMIZE;
         my %env = %*ENV; # Local copy for us to tweak
         %env<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
 
@@ -270,7 +269,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %env<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
         %env<RAKUDO_PRECOMP_DIST> = $*DISTRIBUTION ?? $*DISTRIBUTION.serialize !! '{}';
 
-        $RMD("Precompiling $path into $bc ($lle $profile $optimize)") if $RMD;
+        $RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)") if $RMD;
         my $perl6 = $*EXECUTABLE.absolute
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
             .subst('perl6-gdb', 'perl6')
@@ -294,10 +293,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 $lle,
                 $profile,
                 $optimize,
-                "--target=" ~ Rakudo::Internals.PRECOMP-TARGET,
+                $target,
+                $stagestats,
                 "--output=$bc",
                 "--source-name=$source-name",
-                |("--stagestats" with %*COMPILING<%?OPTIONS><stagestats>),
                 $path
             );
 

@@ -1,7 +1,7 @@
 # A HyperSeq performs batches of work in parallel, but retains order of output
 # values relative to input values.
 #?if !js
-my class HyperSeq does Iterable does Sequence {
+my class HyperSeq does Sequence {
     has HyperConfiguration $.configuration;
     has Rakudo::Internals::HyperWorkStage $!work-stage-head;
 

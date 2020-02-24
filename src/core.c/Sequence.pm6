@@ -18,7 +18,7 @@
 # Sequence role, so other user-defined types can get access to this
 # functionality.
 
-my role PositionalBindFailover {
+my role PositionalBindFailover does Iterable {
     has $!list;
 
     method cache() {
@@ -36,8 +36,6 @@ my role PositionalBindFailover {
           List.from-iterator(self.iterator)
         )
     }
-
-    method iterator() { ... }
 }
 nqp::p6configposbindfailover(Positional, PositionalBindFailover); # Binder
 Routine.'!configure_positional_bind_failover'(Positional, PositionalBindFailover); # Multi-dispatch

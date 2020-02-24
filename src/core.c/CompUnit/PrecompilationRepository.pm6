@@ -270,26 +270,29 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %env<RAKUDO_PRECOMP_DIST> = $*DISTRIBUTION ?? $*DISTRIBUTION.serialize !! '{}';
 
         $RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)") if $RMD;
-        my $perl6 = $*EXECUTABLE.absolute
+        my $raku = $*EXECUTABLE.absolute
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
             .subst('perl6-gdb', 'perl6')
             .subst('perl6-jdb-server', 'perl6-j') ;
+
+#?if !moarvm
         if %env<RAKUDO_PRECOMP_NESTED_JDB> {
-            $perl6.subst-mutate('perl6-j', 'perl6-jdb-server');
+            $raku.subst-mutate('perl6-j', 'perl6-jdb-server');
             note "starting jdb on port " ~ ++%env<RAKUDO_JDB_PORT>;
         }
-        my $out = '';
-        my $err = '';
-        my $status;
-        #note "running PrecompRepo.precompile";
-        #note "is stagestats set? { +%*COMPILING<%?OPTIONS><stagestats> } { ~%*COMPILING<%?OPTIONS><stagestats> }";
-        with %*COMPILING<%?OPTIONS><stagestats> {
+#?endif
+
+        if $stagestats {
             note "\n    precomp $path.relative()";
             $*ERR.flush;
         }
+
+        my $out := nqp::list_s;
+        my $err := nqp::list_s;
+        my $status;
         react {
             my $proc = Proc::Async.new(
-                $perl6,
+                $raku,
                 $lle,
                 $profile,
                 $optimize,
@@ -301,16 +304,16 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             );
 
             whenever $proc.stdout {
-                $out ~= $_
+                nqp::push_s($out,$_);
             }
             unless $RMD {
                 whenever $proc.stderr {
-                    $err ~= $_
+                    nqp::push_s($err,$_);
                 }
             }
-            with %*COMPILING<%?OPTIONS><stagestats> {
+            if $stagestats {
                 whenever $proc.stderr.lines {
-                    note("    $_");
+                    note("    $stagestats");
                     $*ERR.flush;
                 }
             }
@@ -319,41 +322,63 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }
         }
 
-        my @result is List = $out.lines.unique;
         if $status {  # something wrong
             self.store.unlock;
             $RMD("Precompiling $path failed: $status") if $RMD;
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $RMD ?? @result !! $err;
+            die $RMD
+              ?? nqp::join('',$out).lines.unique.List
+              !! nqp::join('',$err);
         }
 
-        if not $RMD and not %*COMPILING<%?OPTIONS><stagestats>:exists and $err -> $warnings {
-            $*ERR.print($warnings);
+        if not $RMD and not $stagestats and nqp::elems($err) {
+            $*ERR.print(nqp::join('',$err));
         }
+
         unless $bc.e {
             $RMD("$path aborted precompilation without failure") if $RMD;
             self.store.unlock;
             return False;
         }
+
         $RMD("Precompiled $path into $bc") if $RMD;
-        my str $dependencies = '';
-        my CompUnit::PrecompilationDependency::File @dependencies;
-        my %dependencies;
-        for @result -> $dependency-str {
-            unless $dependency-str ~~ /^<[A..Z0..9]> ** 40 \0 .+/ {
-                say $dependency-str;
-                next
+        my $dependencies := nqp::create(IterationBuffer);
+        my $seen := nqp::hash;
+
+        for nqp::join('',$out).lines.unique -> str $outstr {
+            if nqp::atpos(nqp::radix_I(16,$outstr,0,0,Int),2) == 40
+              && nqp::eqat($outstr,"\0",40)
+              && nqp::chars($outstr) > 41 {
+                my $dependency :=
+                  CompUnit::PrecompilationDependency::File.deserialize($outstr);
+                if $dependency && $dependency.Str -> str $dependency-str {
+                    unless nqp::existskey($seen,$dependency-str) {
+                        $RMD($dependency-str) if $RMD;
+                        nqp::bindkey($seen,$dependency-str,1);
+                        nqp::push($dependencies,$dependency);
+                    }
+                }
             }
-            my $dependency = CompUnit::PrecompilationDependency::File.deserialize($dependency-str);
-            next if %dependencies{$dependency.Str}++; # already got that one
-            $RMD($dependency.Str()) if $RMD;
-            @dependencies.push: $dependency;
+
+            # huh?  malformed dependency?
+            else {
+                say $outstr;
+            }
         }
+
+        my CompUnit::PrecompilationDependency::File @dependencies;
+        nqp::bindattr(@dependencies,List,'$!reified',$dependencies);
+
         $RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum") if $RMD;
         self.store.store-unit(
             $compiler-id,
             $id,
-            self.store.new-unit(:$id, :@dependencies, :$source-checksum, :bytecode($bc.slurp(:bin))),
+            self.store.new-unit(
+              :$id,
+              :@dependencies
+              :$source-checksum,
+              :bytecode($bc.slurp(:bin))
+            ),
         );
         $bc.unlink;
         self.store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));

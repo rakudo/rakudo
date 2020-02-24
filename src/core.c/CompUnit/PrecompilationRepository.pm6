@@ -20,6 +20,7 @@ class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
     my %loaded;
+    my %resolved;
     my $loaded-lock = Lock.new;
     my $first-repo-id;
 
@@ -124,9 +125,14 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             $RMD("dependency: $dependency") if $RMD;
 
             if $resolve {
-                my $comp-unit = $repo.resolve($dependency.spec);
-                $RMD("Old id: $dependency.id(), new id: {$comp-unit.repo-id}") if $RMD;
-                return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
+                $loaded-lock.protect: {
+                    %resolved{$dependency.serialize} //= do {
+                        my $comp-unit = $repo.resolve($dependency.spec);
+                        $RMD("Old id: $dependency.id(), new id: {$comp-unit.repo-id}") if $RMD;
+                        return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
+                        True
+                    };
+                }
             }
 
             my $dependency-precomp = @precomp-stores

@@ -19,6 +19,9 @@ BEGIN CompUnit::PrecompilationRepository::<None> := CompUnit::PrecompilationRepo
 class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
+    has $!RMD;
+
+    method TWEAK() { $!RMD := $*RAKUDO_MODULE_DEBUG }
 
     my %loaded;
     my $resolved := nqp::hash;
@@ -36,9 +39,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         IO::Path :$source = $dependency.src.IO,
         CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
      --> CompUnit::Handle:D) {
-        my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $id = $dependency.id;
-        $RMD("try-load $id: $source") if $RMD;
+        $!RMD("try-load $id: $source")
+          if $!RMD;
 
         # Even if we may no longer precompile, we should use already loaded files
         $loaded-lock.protect: {
@@ -69,7 +72,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     method !load-handle-for-path(CompUnit::PrecompilationUnit $unit) {
         my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), Mu);
-        if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Loading precompiled\n$unit") }
+        $!RMD("Loading precompiled\n$unit") if $!RMD;
 #?if !jvm
         my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
 #?endif
@@ -93,9 +96,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         :$refresh,
     ) {
         my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
-        my $RMD = $*RAKUDO_MODULE_DEBUG;
         for @precomp-stores -> $store {
-            $RMD("Trying to load {$id ~ ($repo-id ?? '.repo-id' !! '')} from $store.prefix()") if $RMD;
+            $!RMD("Trying to load {
+                $id ~ ($repo-id ?? '.repo-id' !! '')
+            } from $store.prefix()")
+              if $!RMD;
+
             $store.remove-from-cache($id) if $refresh;
             my $file = $repo-id
                 ?? $store.load-repo-id($compiler-id, $id)
@@ -107,23 +113,31 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
     method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, @precomp-stores) {
         my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
-        my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $resolve = False;
         my $repo = $*REPO;
         $first-repo-id //= $repo.id;
         my $repo-id = self!load-file(@precomp-stores, $precomp-unit.id, :repo-id);
         if $repo-id ne $repo.id {
-            $RMD("Repo changed: $repo-id ne {$repo.id}. Need to re-check dependencies.") if $RMD;
+            $!RMD("Repo changed: $repo-id ne {
+                $repo.id
+            }. Need to re-check dependencies.")
+              if $!RMD;
+
             $resolve = True;
         }
         if $repo-id ne $first-repo-id {
-            $RMD("Repo chain changed: $repo-id ne {$first-repo-id}. Need to re-check dependencies.") if $RMD;
+            $!RMD("Repo chain changed: $repo-id ne {
+                $first-repo-id
+            }. Need to re-check dependencies.")
+              if $!RMD;
+
             $resolve = True;
         }
         $resolve = False unless %*ENV<RAKUDO_RERESOLVE_DEPENDENCIES> // 1;
         my @dependencies;
         for $precomp-unit.dependencies -> $dependency {
-            $RMD("dependency: $dependency") if $RMD;
+            $!RMD("dependency: $dependency")
+              if $!RMD;
 
             if $resolve {
                 $loaded-lock.protect: {
@@ -132,7 +146,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                       nqp::atkey($resolved,$serialized-id),
                       nqp::bindkey($resolved,$serialized-id, do {
                         my $comp-unit = $repo.resolve($dependency.spec);
-                        $RMD("Old id: $dependency.id(), new id: {$comp-unit.repo-id}") if $RMD;
+                        $!RMD("Old id: $dependency.id(), new id: {
+                            $comp-unit.repo-id
+                        }")
+                          if $!RMD;
+
                         return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
                         True
                       })
@@ -147,7 +165,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 .map({ $_.load-unit($compiler-id, $dependency.id) })
                 .first(*.defined)
                 or do {
-                    $RMD("Could not find $dependency.spec()") if $RMD;
+                    $!RMD("Could not find $dependency.spec()") if $!RMD;
                     return False;
                 }
             unless $dependency-precomp.is-up-to-date($dependency, :check-source($resolve)) {
@@ -204,7 +222,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $loaded-lock.protect: {
             return %loaded{$id} if %loaded{$id}:exists;
         }
-        my $RMD = $*RAKUDO_MODULE_DEBUG;
         my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
@@ -219,9 +236,15 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 return (loaded, $checksum);
             }
             else {
-                $RMD("Outdated precompiled {$unit}{$source ?? " for $source" !! ''}\n"
-                     ~ "    mtime: {$unit.modified}{$since ?? ", since: $since" !! ''}\n"
-                     ~ "    checksum: {$unit.source-checksum}, expected: $checksum") if $RMD;
+                $!RMD("Outdated precompiled {$unit}{
+                    $source ?? " for $source" !! ''
+                }\n    mtime: {$unit.modified}{
+                    $since ?? ", since: $since" !! ''}
+                \n    checksum: {
+                    $unit.source-checksum
+                }, expected: $checksum")i
+                  if $!RMD;
+
                 $unit.close;
                 fail "Outdated precompiled $unit";
             }
@@ -250,7 +273,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
         my $io = self.store.destination($compiler-id, $id);
         return False unless $io;
-        my $RMD = $*RAKUDO_MODULE_DEBUG;
         if $force
             ?? (
                 $precomp-stores
@@ -263,7 +285,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             )
             !! ($io.e and $io.s)
         {
-            $RMD("$source-name\nalready precompiled into\n{$io}{$force ?? ' by another process' !! ''}") if $RMD;
+            $!RMD("$source-name\nalready precompiled into\n{$io}{
+                $force ?? ' by another process' !! ''
+            }")
+              if $!RMD;
+
             with %*COMPILING<%?OPTIONS><stagestats> {
                 note "\n    load    $path.relative()";
                 $*ERR.flush;
@@ -283,7 +309,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         %env<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
         %env<RAKUDO_PRECOMP_DIST> = $*DISTRIBUTION ?? $*DISTRIBUTION.serialize !! '{}';
 
-        $RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)") if $RMD;
+        $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
+          if $!RMD;
+
         my $raku = $*EXECUTABLE.absolute
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
             .subst('perl6-gdb', 'perl6')
@@ -320,7 +348,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             whenever $proc.stdout {
                 nqp::push_s($out,$_);
             }
-            unless $RMD {
+            unless $!RMD {
                 whenever $proc.stderr {
                     nqp::push_s($err,$_);
                 }
@@ -338,24 +366,30 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
         if $status {  # something wrong
             self.store.unlock;
-            $RMD("Precompiling $path failed: $status") if $RMD;
+            $!RMD("Precompiling $path failed: $status")
+              if $!RMD;
+
             Rakudo::Internals.VERBATIM-EXCEPTION(1);
-            die $RMD
+            die $!RMD
               ?? nqp::join('',$out).lines.unique.List
               !! nqp::join('',$err);
         }
 
-        if not $RMD and not $stagestats and nqp::elems($err) {
+        if not $!RMD and not $stagestats and nqp::elems($err) {
             $*ERR.print(nqp::join('',$err));
         }
 
         unless $bc.e {
-            $RMD("$path aborted precompilation without failure") if $RMD;
+            $!RMD("$path aborted precompilation without failure")
+              if $!RMD;
+
             self.store.unlock;
             return False;
         }
 
-        $RMD("Precompiled $path into $bc") if $RMD;
+        $!RMD("Precompiled $path into $bc")
+          if $!RMD;
+
         my $dependencies := nqp::create(IterationBuffer);
         my $seen := nqp::hash;
 
@@ -367,7 +401,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                   CompUnit::PrecompilationDependency::File.deserialize($outstr);
                 if $dependency && $dependency.Str -> str $dependency-str {
                     unless nqp::existskey($seen,$dependency-str) {
-                        $RMD($dependency-str) if $RMD;
+                        $!RMD($dependency-str)
+                          if $!RMD;
+
                         nqp::bindkey($seen,$dependency-str,1);
                         nqp::push($dependencies,$dependency);
                     }
@@ -383,7 +419,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my CompUnit::PrecompilationDependency::File @dependencies;
         nqp::bindattr(@dependencies,List,'$!reified',$dependencies);
 
-        $RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum") if $RMD;
+        $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
+          if $!RMD;
+
         self.store.store-unit(
             $compiler-id,
             $id,

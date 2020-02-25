@@ -37,6 +37,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     my $stagestats := Rakudo::Internals.STAGESTATS;
     my $target     := "--target=" ~ Rakudo::Internals.PRECOMP-TARGET;
 
+    sub CHECKSUM(IO::Path:D $path --> Str:D) {
+        my \slurped := $path.slurp(:enc<iso-8859-1>);
+        nqp::istype(slurped,Failure)
+          ?? slurped
+          !! nqp::sha1(slurped)
+    }
+
     method try-load(
         CompUnit::PrecompilationDependency::File $dependency,
         IO::Path :$source = $dependency.src.IO,
@@ -231,7 +238,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
             if (not $since or $unit.modified > $since)
-                and (not $source or ($checksum //= nqp::sha1($source.slurp(:enc<iso-8859-1>))) eq $unit.source-checksum)
+                and (not $source or ($checksum //= CHECKSUM($source)) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
                 my $checksum = $unit.checksum;
@@ -283,7 +290,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 and my $unit = self!load-file($precomp-stores, $id, :refresh)
                 and do {
                     LEAVE $unit.close;
-                    nqp::sha1($path.slurp(:enc<iso-8859-1>)) eq $unit.source-checksum
+                    CHECKSUM($path) eq $unit.source-checksum
                     and self!load-dependencies($unit, $precomp-stores)
                 }
             )
@@ -301,7 +308,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             self.store.unlock;
             return True;
         }
-        my $source-checksum = nqp::sha1($path.slurp(:enc<iso-8859-1>));
+        my $source-checksum = CHECKSUM($path);
         my $bc = "$io.bc".IO;
 
         # Local copy for us to tweak

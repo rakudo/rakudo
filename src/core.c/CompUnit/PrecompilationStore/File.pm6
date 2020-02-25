@@ -120,8 +120,8 @@ class CompUnit::PrecompilationStore::File
     has int $!wont-lock;
     has int $!lock-count;
     has $!loaded;
-    has %!compiler-cache;
-    has %!dir-cache;
+    has $!dir-cache;
+    has $!compiler-cache;
     has Lock $!update-lock;
 
     submethod TWEAK(--> Nil) {
@@ -129,7 +129,9 @@ class CompUnit::PrecompilationStore::File
         if $*W -> $World {
             $!wont-lock = 1 if $World.is_precompilation_mode;
         }
-        $!loaded := nqp::hash;
+        $!loaded         := nqp::hash;
+        $!dir-cache      := nqp::hash;
+        $!compiler-cache := nqp::hash;
     }
 
     method new-unit(|c) {
@@ -141,9 +143,19 @@ class CompUnit::PrecompilationStore::File
       CompUnit::PrecompilationId:D $precomp-id
     ) {
         $!update-lock.protect: {
-            %!dir-cache{$compiler-id ~ $precomp-id} //=
-                (%!compiler-cache{$compiler-id} //= self.prefix.add($compiler-id))
-                    .add($precomp-id.substr(0, 2))
+            my str $compiler = $compiler-id.Str;
+            my str $precomp  = $precomp-id.Str;
+            nqp::ifnull(
+              nqp::atkey($!dir-cache,nqp::concat($compiler,$precomp)),
+              nqp::bindkey($!dir-cache,nqp::concat($compiler,$precomp),
+                nqp::ifnull(
+                  nqp::atkey($!compiler-cache,$compiler),
+                  nqp::bindkey($!compiler-cache,$compiler,
+                    self.prefix.add($compiler)
+                  )
+                ).add(nqp::substr($precomp,0,2))
+              )
+            )
         }
     }
 

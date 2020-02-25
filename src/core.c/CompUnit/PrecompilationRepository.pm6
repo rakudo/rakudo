@@ -59,14 +59,16 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             )
         );
 
-        if $*W and $*W.record_precompilation_dependencies {
-            if $handle {
-                $dependency.checksum = $checksum;
-                say $dependency.serialize;
-                $*OUT.flush;
-            }
-            else {
-                nqp::exit(0);
+        if $*W -> $World {
+            if $World.record_precompilation_dependencies {
+                if $handle {
+                    $dependency.checksum = $checksum;
+                    say $dependency.serialize;
+                    $*OUT.flush;
+                }
+                else {
+                    nqp::exit(0);
+                }
             }
         }
 
@@ -187,9 +189,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
 
         # report back id and source location of dependency to dependant
-        if $*W and $*W.record_precompilation_dependencies {
-            for $precomp-unit.dependencies -> $dependency {
-                say $dependency.serialize;
+        if $*W -> $World {
+            if $World.record_precompilation_dependencies {
+                for $precomp-unit.dependencies -> $dependency {
+                    say $dependency.serialize;
+                }
+                $*OUT.flush;
             }
         }
 

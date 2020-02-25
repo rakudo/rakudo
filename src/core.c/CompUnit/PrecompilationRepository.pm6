@@ -19,8 +19,9 @@ BEGIN CompUnit::PrecompilationRepository::<None> := CompUnit::PrecompilationRepo
 class CompUnit { ... }
 class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
     has CompUnit::PrecompilationStore $.store;
+
     my %loaded;
-    my %resolved;
+    my $resolved := nqp::hash;
     my $loaded-lock = Lock.new;
     my $first-repo-id;
 
@@ -126,12 +127,16 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
 
             if $resolve {
                 $loaded-lock.protect: {
-                    %resolved{$dependency.serialize} //= do {
+                    my str $serialized-id = $dependency.serialize;
+                    nqp::ifnull(
+                      nqp::atkey($resolved,$serialized-id),
+                      nqp::bindkey($resolved,$serialized-id, do {
                         my $comp-unit = $repo.resolve($dependency.spec);
                         $RMD("Old id: $dependency.id(), new id: {$comp-unit.repo-id}") if $RMD;
                         return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
                         True
-                    };
+                      })
+                    );
                 }
             }
 

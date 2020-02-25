@@ -24,6 +24,10 @@ class Compiler does Systemic {
         nqp::getcomp("Raku").backend.name
     }
 
+    proto method id(|) {*}
+    multi method id(Compiler:U:) { nqp::ifnull(nqp::atkey($compiler,'id'),$id) }
+    multi method id(Compiler:D:) { $!id }
+
     method verbose-config(:$say) {
         my $compiler := nqp::getcomp("Raku");
         my $backend  := $compiler.backend;

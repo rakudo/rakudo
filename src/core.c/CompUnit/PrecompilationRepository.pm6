@@ -28,6 +28,9 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     my $loaded-lock = Lock.new;
     my $first-repo-id;
 
+    my $compiler-id :=
+      CompUnit::PrecompilationId.new-without-check(Compiler.id);
+
     my $lle        := Rakudo::Internals.LL-EXCEPTION;
     my $profile    := Rakudo::Internals.PROFILE;
     my $optimize   := Rakudo::Internals.OPTIMIZE;
@@ -95,7 +98,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         :$repo-id,
         :$refresh,
     ) {
-        my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
         for @precomp-stores -> $store {
             $!RMD("Trying to load {
                 $id ~ ($repo-id ?? '.repo-id' !! '')
@@ -112,7 +114,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     }
 
     method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, @precomp-stores) {
-        my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
         my $resolve = False;
         my $repo = $*REPO;
         $first-repo-id //= $repo.id;
@@ -222,7 +223,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $loaded-lock.protect: {
             return %loaded{$id} if %loaded{$id}:exists;
         }
-        my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
         my $unit = self!load-file(@precomp-stores, $id);
         if $unit {
             if (not $since or $unit.modified > $since)
@@ -270,7 +270,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         :$source-name = $path.Str,
         :$precomp-stores,
     ) {
-        my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
         my $io = self.store.destination($compiler-id, $id);
         return False unless $io;
         if $force

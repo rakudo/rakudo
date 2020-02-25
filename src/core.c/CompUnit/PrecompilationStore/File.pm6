@@ -4,7 +4,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         has IO::Path $.path;
         has IO::Handle $!file;
         has CompUnit::PrecompilationDependency @!dependencies;
-        has $!initialized = False;
+        has Bool $!initialized;
         has $.checksum;
         has $.source-checksum;
         has $!bytecode;
@@ -21,8 +21,11 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             --> Nil
         ) {
             if $!bytecode {
-                $!initialized = True;
                 $!checksum = nqp::sha1($!bytecode.decode('iso-8859-1'));
+                $!initialized := True;
+            }
+            else {
+                $!initialized := False;
             }
         }
 
@@ -34,8 +37,8 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!path.modified
         }
 
-        method !read-dependencies() {
-            $!update-lock.protect: {
+        method !read-dependencies(--> Nil) {
+            $!initialized || $!update-lock.protect: {
                 return if $!initialized;
                 self!open(:r) unless $!file;
 
@@ -46,7 +49,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                     @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
                     $dependency = $!file.get;
                 }
-                $!initialized = True;
+                $!initialized := True;
             }
         }
 
@@ -85,7 +88,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!update-lock.protect: {
                 $!file.close if $!file;
                 $!file = Nil;
-                $!initialized = False;
+                $!initialized := False;
             }
         }
 

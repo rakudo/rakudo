@@ -104,7 +104,7 @@ class Perl6::Compiler is HLL::Compiler {
     my $moar-options := '';
     if nqp::getcomp("Raku").backend.name eq 'moar' {
         $moar-options := q♥  --profile[=name]     write profile information to a file
-                         Extension controls format:
+                       Extension controls format:
                            .json outputs in JSON
                            .sql  outputs in SQL
                            any other extension outputs in HTML

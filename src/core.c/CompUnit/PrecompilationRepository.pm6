@@ -289,7 +289,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             }")
               if $!RMD;
 
-            with %*COMPILING<%?OPTIONS><stagestats> {
+            if $stagestats {
                 note "\n    load    $path.relative()";
                 $*ERR.flush;
             }

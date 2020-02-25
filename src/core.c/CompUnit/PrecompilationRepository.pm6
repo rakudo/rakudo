@@ -242,7 +242,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                     $since ?? ", since: $since" !! ''}
                 \n    checksum: {
                     $unit.source-checksum
-                }, expected: $checksum")i
+                }, expected: $checksum")
                   if $!RMD;
 
                 $unit.close;

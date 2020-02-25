@@ -316,17 +316,21 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             die "Circular module loading detected trying to precompile $path"
               if $path.Str (elem) @modules;
             nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING',
-              $rpl.chop ~ ',"' ~ $path.Str ~ '"]');
+              $rpl.chop
+                ~ ','
+                ~ Rakudo::Internals::JSON.to-json($path.Str)
+                ~ ']');
         }
         else {
-            nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING','["' ~ $path.Str ~ '"]');
+            nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING',
+              '[' ~ Rakudo::Internals::JSON.to-json($path.Str) ~ ']');
         }
 
         if $*DISTRIBUTION -> $distribution {
             nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',$distribution.serialize);
         }
         else {
-            nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',{});
+            nqp::bindkey($env,'RAKUDO_PRECOMP_DIST','{}');
         }
 
         $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")

@@ -1,5 +1,9 @@
-class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
-    my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
+class CompUnit::PrecompilationStore::File
+  does CompUnit::PrecompilationStore
+{
+    my class CompUnit::PrecompilationUnit::File
+      does CompUnit::PrecompilationUnit
+    {
         has CompUnit::PrecompilationId:D $.id   is built(:bind) is required;
         has IO::Path                     $.path is built(:bind);
         has Str $!checksum        is built;
@@ -29,7 +33,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
         method !read-dependencies(--> Nil) {
             $!initialized || $!update-lock.protect: {
-                return if $!initialized;
+                return if $!initialized;  # another thread beat us
                 $!handle := $!path.open(:r) unless $!handle;
 
                 $!checksum        = $!handle.get;
@@ -110,24 +114,31 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         }
     }
 
-    has IO::Path $.prefix is required;
+    has IO::Path:D $.prefix is built(:bind) is required;
+
     has IO::Handle $!lock;
-    has int $!lock-count = 0;
+    has int $!wont-lock;
+    has int $!lock-count;
     has %!loaded;
     has %!compiler-cache;
     has %!dir-cache;
-    has Lock $!update-lock = Lock.new;
+    has Lock $!update-lock;
 
-    submethod BUILD(IO::Path :$!prefix --> Nil) {
+    submethod TWEAK(--> Nil) {
+        $!update-lock := Lock.new;
+        if $*W -> $World {
+            $!wont-lock = 1 if $World.is_precompilation_mode;
+        }
     }
 
     method new-unit(|c) {
         CompUnit::PrecompilationUnit::File.new(|c, :store(self))
     }
 
-    method !dir(CompUnit::PrecompilationId $compiler-id,
-                CompUnit::PrecompilationId $precomp-id)
-    {
+    method !dir(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id
+    ) {
         $!update-lock.protect: {
             %!dir-cache{$compiler-id ~ $precomp-id} //=
                 (%!compiler-cache{$compiler-id} //= self.prefix.add($compiler-id))
@@ -135,129 +146,143 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
         }
     }
 
-    method path(CompUnit::PrecompilationId $compiler-id,
-                 CompUnit::PrecompilationId $precomp-id,
-                 Str :$extension = '')
-    {
+    method path(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id,
+      Str:D :$extension = ''
+    ) {
         self!dir($compiler-id, $precomp-id).add($precomp-id ~ $extension)
     }
 
     method !lock(--> Nil) {
-        return if $*W && $*W.is_precompilation_mode();
-        $!update-lock.lock;
-        $!lock //= $.prefix.add('.lock').open(:create, :rw);
-        $!lock.lock if $!lock-count++ == 0;
+        unless $!wont-lock {
+            $!update-lock.lock;
+            $!lock := $.prefix.add('.lock').open(:create, :rw)
+              unless $!lock;
+            $!lock.lock if $!lock-count++ == 0;
+        }
     }
 
     method unlock() {
-        return if $*W && $*W.is_precompilation_mode();
-        {
+        if $!wont-lock {
+            Nil
+        }
+        else {
             LEAVE $!update-lock.unlock;
             die "unlock when we're not locked!" if $!lock-count == 0;
+
             $!lock-count-- if $!lock-count > 0;
             if $!lock && $!lock-count == 0 {
                 $!lock.unlock;
                 $!lock.close;
-                $!lock = Nil;
+                $!lock := IO::Handle;
             }
             True
         }
     }
 
-    method load-unit(CompUnit::PrecompilationId $compiler-id,
-                CompUnit::PrecompilationId $precomp-id)
-    {
+    method load-unit(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id
+    ) {
         $!update-lock.protect: {
             %!loaded{$precomp-id} //= do {
-                my $path = self.path($compiler-id, $precomp-id);
-                $path ~~ :e
+                my $path := self.path($compiler-id, $precomp-id);
+                $path.e
                     ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path, :store(self))
                     !! Nil
             }
         }
     }
 
-    method load-repo-id(CompUnit::PrecompilationId $compiler-id,
-                CompUnit::PrecompilationId $precomp-id)
-    {
-        my $path = self.path($compiler-id, $precomp-id, :extension<.repo-id>);
-        if $path ~~ :e {
-            $path.slurp
+    method load-repo-id(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id
+    ) {
+        my $path := self.path($compiler-id, $precomp-id, :extension<.repo-id>);
+        $path.e
+          ?? $path.slurp
+          !! Nil
+    }
+
+    method remove-from-cache(CompUnit::PrecompilationId:D $precomp-id) {
+        $!update-lock.protect: {
+            %!loaded{$precomp-id}:delete
+        }
+    }
+
+    method destination(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id,
+      Str:D :$extension = ''
+    --> IO::Path:D) {
+        $!prefix.mkdir;  # don't care whether worked
+
+        if $!prefix.w {  # have a writable prefix
+            self!lock();
+            self!file($compiler-id, $precomp-id, :$extension);
         }
         else {
             Nil
         }
     }
 
-    method remove-from-cache(CompUnit::PrecompilationId $precomp-id) {
-        $!update-lock.protect: { %!loaded{$precomp-id}:delete };
-    }
-
-    method destination(CompUnit::PrecompilationId $compiler-id,
-                       CompUnit::PrecompilationId $precomp-id,
-                       Str :$extension = ''
-                       --> IO::Path:D)
-    {
-        unless $!prefix.e {
-            $!prefix.mkdir or return;
-        }
-        return unless $!prefix.w;
-        self!lock();
-        self!file($compiler-id, $precomp-id, :$extension);
-    }
-
-    method !file(CompUnit::PrecompilationId $compiler-id,
-                 CompUnit::PrecompilationId $precomp-id,
-                 Str :$extension = ''
-                 --> IO::Path:D)
-    {
-        my $compiler-dir = self.prefix.add($compiler-id);
+    method !file(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id,
+      Str:D :$extension = ''
+    --> IO::Path:D) {
+        my $compiler-dir := self.prefix.add($compiler-id);
         $compiler-dir.mkdir unless $compiler-dir.e;
-        my $dest = self!dir($compiler-id, $precomp-id);
+
+        my $dest := self!dir($compiler-id, $precomp-id);
         $dest.mkdir unless $dest.e;
+
         $dest.add($precomp-id ~ $extension)
     }
 
-    method store-file(CompUnit::PrecompilationId $compiler-id,
-                 CompUnit::PrecompilationId $precomp-id,
-                 IO::Path:D $path,
-                 :$extension = '')
-    {
+    method store-file(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id,
+      IO::Path:D $path,
+      Str:D :$extension = ''
+    ) {
         $path.rename(self!file($compiler-id, $precomp-id, :$extension));
     }
 
-    method store-unit(CompUnit::PrecompilationId $compiler-id,
-                 CompUnit::PrecompilationId $precomp-id,
-                 CompUnit::PrecompilationUnit $unit)
-    {
-        my $precomp-file = self!file($compiler-id, $precomp-id, :extension<.tmp>);
+    method store-unit(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id,
+      CompUnit::PrecompilationUnit:D $unit
+    ) {
+        my $precomp-file := self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
         $precomp-file.rename(self!file($compiler-id, $precomp-id));
         self.remove-from-cache($precomp-id);
     }
 
-    method store-repo-id(CompUnit::PrecompilationId $compiler-id,
-                 CompUnit::PrecompilationId $precomp-id,
-                 :$repo-id!)
-    {
-        my $repo-id-file = self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
+    method store-repo-id(
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id,
+      Str:D :$repo-id!
+    ) {
+        my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
         $repo-id-file.spurt($repo-id);
         $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
     }
 
     method delete(
-        CompUnit::PrecompilationId $compiler-id,
-        CompUnit::PrecompilationId $precomp-id,
-        Str :$extension = '')
-    {
+      CompUnit::PrecompilationId:D $compiler-id,
+      CompUnit::PrecompilationId:D $precomp-id,
+      Str:D :$extension = ''
+    ) {
         self.path($compiler-id, $precomp-id, :$extension).unlink;
     }
 
-    method delete-by-compiler(CompUnit::PrecompilationId $compiler-id)
-    {
-         my $compiler-dir = self.prefix.add($compiler-id);
+    method delete-by-compiler(CompUnit::PrecompilationId:D $compiler-id) {
+         my $compiler-dir := self.prefix.add($compiler-id);
          for $compiler-dir.dir -> $subdir {
-             $subdir.dir>>.unlink;
+             .unlink for $subdir.dir;
              $subdir.rmdir;
          }
          $compiler-dir.rmdir;

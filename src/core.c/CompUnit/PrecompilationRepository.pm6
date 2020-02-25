@@ -299,14 +299,30 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         my $source-checksum = nqp::sha1($path.slurp(:enc<iso-8859-1>));
         my $bc = "$io.bc".IO;
 
-        my %env = %*ENV; # Local copy for us to tweak
-        %env<RAKUDO_PRECOMP_WITH> = $*REPO.repo-chain.map(*.path-spec).join(',');
+        # Local copy for us to tweak
+        my $env := nqp::clone(nqp::getattr(%*ENV,Map,'$!storage'));
 
-        my $rakudo_precomp_loading = %env<RAKUDO_PRECOMP_LOADING>;
-        my $modules = $rakudo_precomp_loading ?? Rakudo::Internals::JSON.from-json: $rakudo_precomp_loading !! [];
-        die "Circular module loading detected trying to precompile $path" if $modules.Set{$path.Str}:exists;
-        %env<RAKUDO_PRECOMP_LOADING> = Rakudo::Internals::JSON.to-json: [|$modules, $path.Str];
-        %env<RAKUDO_PRECOMP_DIST> = $*DISTRIBUTION ?? $*DISTRIBUTION.serialize !! '{}';
+        nqp::bindkey($env,'RAKUDO_PRECOMP_WITH',
+          $*REPO.repo-chain.map(*.path-spec).join(',')
+        );
+
+        if nqp::atkey($env,'RAKUDO_PRECOMP_LOADING') -> $rpl {
+            my @modules := Rakudo::Internals::JSON.from-json: $rpl;
+            die "Circular module loading detected trying to precompile $path"
+              if $path.Str (elem) @modules;
+            nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING',
+              $rpl.chop ~ ',"' ~ $path.Str ~ '"]');
+        }
+        else {
+            nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING','["' ~ $path.Str ~ '"]');
+        }
+
+        if $*DISTRIBUTION -> $distribution {
+            nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',$distribution.serialize);
+        }
+        else {
+            nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',{});
+        }
 
         $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
           if $!RMD;
@@ -317,9 +333,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
             .subst('perl6-jdb-server', 'perl6-j') ;
 
 #?if !moarvm
-        if %env<RAKUDO_PRECOMP_NESTED_JDB> {
+        if nqp::atkey($env,'RAKUDO_PRECOMP_NESTED_JDB') {
             $raku.subst-mutate('perl6-j', 'perl6-jdb-server');
-            note "starting jdb on port " ~ ++%env<RAKUDO_JDB_PORT>;
+            note "starting jdb on port "
+              ~ nqp::bindkey($env,'RAKUDO_JDB_PORT',
+                  nqp::ifnull(nqp::atkey($env,'RAKUDO_JDB_PORT'),0) + 1
+                );
         }
 #?endif
 
@@ -358,7 +377,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                     $*ERR.flush;
                 }
             }
-            whenever $proc.start(ENV => %env) {
+            whenever $proc.start(ENV => nqp::hllize($env)) {
                 $status = .exitcode
             }
         }

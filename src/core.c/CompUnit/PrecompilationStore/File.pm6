@@ -119,7 +119,7 @@ class CompUnit::PrecompilationStore::File
     has IO::Handle $!lock;
     has int $!wont-lock;
     has int $!lock-count;
-    has %!loaded;
+    has $!loaded;
     has %!compiler-cache;
     has %!dir-cache;
     has Lock $!update-lock;
@@ -129,6 +129,7 @@ class CompUnit::PrecompilationStore::File
         if $*W -> $World {
             $!wont-lock = 1 if $World.is_precompilation_mode;
         }
+        $!loaded := nqp::hash;
     }
 
     method new-unit(|c) {
@@ -186,12 +187,18 @@ class CompUnit::PrecompilationStore::File
       CompUnit::PrecompilationId:D $precomp-id
     ) {
         $!update-lock.protect: {
-            %!loaded{$precomp-id} //= do {
-                my $path := self.path($compiler-id, $precomp-id);
-                $path.e
-                    ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path, :store(self))
-                    !! Nil
-            }
+            my str $key = $precomp-id.Str;
+            nqp::ifnull(
+              nqp::atkey($!loaded,$key),
+              nqp::bindkey($!loaded,$key,
+                do {
+                    my $path := self.path($compiler-id, $precomp-id);
+                    $path.e
+                      ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path, :store(self))
+                      !! Nil
+                }
+              )
+            )
         }
     }
 
@@ -207,7 +214,7 @@ class CompUnit::PrecompilationStore::File
 
     method remove-from-cache(CompUnit::PrecompilationId:D $precomp-id) {
         $!update-lock.protect: {
-            %!loaded{$precomp-id}:delete
+            nqp::deletekey($!loaded,$precomp-id.Str);
         }
     }
 

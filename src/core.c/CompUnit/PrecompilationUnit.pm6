@@ -1,32 +1,31 @@
-class CompUnit::PrecompilationId {
-    has $.id;
-
-    my $cache-lock = Lock.new;
+class CompUnit::PrecompilationId is Str {
+    my $cache-lock := Lock.new;
     my %cache;
 
-    method new(Str:D $id) {
+    method !new(str $id) {
+        nqp::bindattr_s((my $self := nqp::create(self)),Str,'$!value',$id);
+        $self
+    }
+
+    method new(str $id) {
         $cache-lock.protect: {
             %cache{$id} //= 2 < $id.chars < 64 && $id ~~ /^<[A..Za..z0..9._-]>+$/
-                ?? self.bless(:$id)
-                !! X::AdHoc.new( payload => "Invalid precompilation id: $id" ).throw
+                ?? self!new($id)
+                !! die "Invalid precompilation id: $id"
         }
     }
 
-    method new-from-string(Str:D $id) {
+    method new-from-string(str $id) {
         $cache-lock.protect: {
-            %cache{$id} //= self.bless(:id(nqp::sha1($id)))
+            %cache{$id} //= self!new(nqp::sha1($id))
         }
     }
 
-    method new-without-check(Str:D $id) {
+    method new-without-check(str $id) {
         $cache-lock.protect: {
-            %cache{$id} //= self.bless(:id($id))
+            %cache{$id} //= self!new($id)
         }
     }
-
-    method Str()      { $!id }
-    method IO()       { $!id.IO }
-    method substr(|c) { $!id.substr(|c) }
 }
 
 role CompUnit::PrecompilationDependency {

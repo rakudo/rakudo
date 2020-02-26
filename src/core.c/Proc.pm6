@@ -49,16 +49,22 @@ my class Proc {
         }
 
         if $merge {
-            my $chan = Channel.new;
-            $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
-                :on-read({ (try $chan.receive) // buf8 }),
-                :on-close({ self!await-if-last-handle }));
-            ++$!active-handles;
-            @!pre-spawn.push({
-                $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
-                    done => { $chan.close },
-                    quit => { $chan.fail($_) }
-            });
+            if nqp::istype($out, IO::Handle) && $out.DEFINITE {
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $out.write($_) }
+                });
+            } else {
+                my $chan = Channel.new;
+                $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                    :on-read({ (try $chan.receive) // buf8 }),
+                    :on-close({ self!await-if-last-handle }));
+                ++$!active-handles;
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
+                        done => { $chan.close },
+                        quit => { $chan.fail($_) }
+                });
+            }
         }
         else {
             if $out === True {

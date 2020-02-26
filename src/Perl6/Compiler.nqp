@@ -174,18 +174,20 @@ Note that only boolean single-letter options may be bundled.
 The following environment variables are respected:
 
   RAKUDOLIB   Modify the module search path
-  PERL6LIB    Modify the module search path
+  RAKULIB     Modify the module search path
+  PERL6LIB    Modify the module search path # to be deprecated
   RAKUDO_HOME Override the path of the Rakudo runtime files
-  PERL6_HOME  Override the path of the Rakudo runtime files
+  RAKU_HOME   Override the path of the Rakudo runtime files
+  PERL6_HOME  Override the path of the Rakudo runtime files # to be deprecated
   NQP_HOME    Override the path of the NQP runtime files
 
 ♥); # end of usage statement
 
         nqp::exit(0);
 
-        # TODO: create and install a man page for Perl 6; then add the following
+        # TODO: create and install a man page for Raku; then add the following
         #       line to the end of the usage text above:
         #
-        #  For more information, see the perl6(1) man page.\n");
+        #  For more information, see the raku(1) man page.\n");
     }
 }

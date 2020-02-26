@@ -143,8 +143,8 @@ class CompUnit::PrecompilationStore::File
       CompUnit::PrecompilationId:D $precomp-id
     ) {
         $!update-lock.protect: {
-            my str $compiler = $compiler-id.Str;
-            my str $precomp  = $precomp-id.Str;
+            my str $compiler = $compiler-id;
+            my str $precomp  = $precomp-id;
             nqp::ifnull(
               nqp::atkey($!dir-cache,nqp::concat($compiler,$precomp)),
               nqp::bindkey($!dir-cache,nqp::concat($compiler,$precomp),
@@ -199,7 +199,7 @@ class CompUnit::PrecompilationStore::File
       CompUnit::PrecompilationId:D $precomp-id
     ) {
         $!update-lock.protect: {
-            my str $key = $precomp-id.Str;
+            my str $key = $precomp-id;
             nqp::ifnull(
               nqp::atkey($!loaded,$key),
               do {
@@ -226,7 +226,7 @@ class CompUnit::PrecompilationStore::File
 
     method remove-from-cache(CompUnit::PrecompilationId:D $precomp-id) {
         $!update-lock.protect: {
-            nqp::deletekey($!loaded,$precomp-id.Str);
+            nqp::deletekey($!loaded,$precomp-id);
         }
     }
 

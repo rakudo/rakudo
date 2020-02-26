@@ -602,6 +602,21 @@ sub dd(|) {
         array.^name ~ buffer.List.raku
     }
 
+    # handler for BOOTContext
+    sub BOOTContext(Mu \context) {
+        my $hash := nqp::hash;
+        my \iterator := nqp::iterator(context);
+        nqp::while(
+          iterator,
+          nqp::bindkey(
+            $hash,
+            nqp::iterkey_s(nqp::shift(iterator)),
+            nqp::iterval(iterator)
+          )
+        );
+        context.^name ~ '(' ~ nqp::substr(nqp::hllize($hash).raku.chop,1) ~ ')'
+    }
+
     my Mu $args := nqp::p6argvmarray();
     if nqp::elems($args) {
         while $args {
@@ -613,9 +628,12 @@ sub dd(|) {
               !! nqp::can($var,'perl')
                 ?? $var.perl
                 !! $var.^name.starts-with('BOOT')
-                  && $var.^name.ends-with('Array')
-                  ?? BOOTArray($var)
-                  !! "($var.^name() without .raku or .perl method)";
+                  ?? $var.^name.ends-with('Array')
+                    ?? BOOTArray($var)
+                    !! $var.^name.ends-with('Context')
+                      ?? BOOTContext($var)
+                      !! "($var.^name() without .raku or .perl method)"
+                !! "($var.^name() without .raku or .perl method)";
             note $name ?? "$type $name = $what" !! $what;
         }
     }

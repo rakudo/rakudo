@@ -202,14 +202,14 @@ class CompUnit::PrecompilationStore::File
             my str $key = $precomp-id.Str;
             nqp::ifnull(
               nqp::atkey($!loaded,$key),
-              nqp::bindkey($!loaded,$key,
-                do {
-                    my $path := self.path($compiler-id, $precomp-id);
-                    $path.e
-                      ?? CompUnit::PrecompilationUnit::File.new(:id($precomp-id), :$path, :store(self))
-                      !! Nil
-                }
-              )
+              do {
+                  my $path := self.path($compiler-id, $precomp-id);
+                  $path.e
+                    ?? nqp::bindkey($!loaded,$key,
+                         CompUnit::PrecompilationUnit::File.new(
+                           :id($precomp-id), :$path, :store(self)))
+                    !! Nil
+              }
             )
         }
     }

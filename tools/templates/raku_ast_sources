@@ -1,3 +1,4 @@
+src/Perl6/ast/impl.rakumod
 src/Perl6/ast/base.rakumod
 src/Perl6/ast/statements.rakumod
 src/Perl6/ast/expressions.rakumod

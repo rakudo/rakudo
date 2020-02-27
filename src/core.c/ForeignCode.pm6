@@ -57,9 +57,13 @@ $lang = 'Raku' if $lang eq 'perl6';
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
 
     if nqp::istype($code, RakuAST::Node) {
+        my $file := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
         $compiled := $compiler.compile:
-            $code.IMPL-TO-QAST-COMP-UNIT(:outer_ctx($eval_ctx), :global(GLOBAL)),
-            :from<optimize>;
+            :from<optimize>,
+            $code.IMPL-TO-QAST-COMP-UNIT:
+                :outer_ctx($eval_ctx),
+                :global(GLOBAL),
+                :comp-unit-name($file);
     }
     else {
         $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;

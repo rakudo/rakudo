@@ -1,50 +1,52 @@
 class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     my class CompUnit::PrecompilationUnit::File does CompUnit::PrecompilationUnit {
-        has CompUnit::PrecompilationId:D $.id   is built(:bind) is required;
-        has IO::Path                     $.path is built(:bind);
-        has Str $!checksum        is built;
-        has Str $!source-checksum is built;
-        has CompUnit::PrecompilationDependency @!dependencies is built(:bind);
-        has $!bytecode            is built(:bind);
-        has $!store               is built(:bind);
+        has CompUnit::PrecompilationId $.id;
+        has IO::Path $.path;
+        has IO::Handle $!file;
+        has CompUnit::PrecompilationDependency @!dependencies;
+        has $!initialized = False;
+        has $.checksum;
+        has $.source-checksum;
+        has $!bytecode;
+        has $!store;
+        has Lock $!update-lock = Lock.new;
 
-        has Bool $!initialized;
-        has IO::Handle $!handle;
-        has Lock $!update-lock;
-
-        submethod TWEAK(--> Nil) {
+        submethod BUILD(
+            CompUnit::PrecompilationId :$!id,
+            IO::Path :$!path,
+            :$!source-checksum,
+            :@!dependencies,
+            :$!bytecode,
+            :$!store,
+            --> Nil
+        ) {
             if $!bytecode {
+                $!initialized = True;
                 $!checksum = nqp::sha1($!bytecode.decode('iso-8859-1'));
-                $!initialized := True;
             }
-            else {
-                $!initialized := False;
-            }
-            $!update-lock := Lock.new;
+        }
+
+        method !open() {
+            $!file = $!path.open(:r);
         }
 
         method modified(--> Instant:D) {
             $!path.modified
         }
 
-        method !read-dependencies(--> Nil) {
-            $!initialized || $!update-lock.protect: {
+        method !read-dependencies() {
+            $!update-lock.protect: {
                 return if $!initialized;
-                $!handle := $!path.open(:r) unless $!handle;
+                self!open(:r) unless $!file;
 
-                $!checksum        = $!handle.get;
-                $!source-checksum = $!handle.get;
-                my $dependency   := $!handle.get;
-                my $dependencies := nqp::create(IterationBuffer);
+                $!checksum        = $!file.get;
+                $!source-checksum = $!file.get;
+                my $dependency    = $!file.get;
                 while $dependency {
-                    nqp::push(
-                      $dependencies,
-                      CompUnit::PrecompilationDependency::File.deserialize($dependency)
-                    );
-                    $dependency := $!handle.get;
+                    @!dependencies.push: CompUnit::PrecompilationDependency::File.deserialize($dependency);
+                    $dependency = $!file.get;
                 }
-                nqp::bindattr(@!dependencies,List,'$!reified',$dependencies);
-                $!initialized := True;
+                $!initialized = True;
             }
         }
 
@@ -55,16 +57,14 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
         method bytecode(--> Buf:D) {
             $!update-lock.protect: {
-                unless $!bytecode {
-                    self!read-dependencies;
-                    $!bytecode := $!handle.slurp(:bin,:close)
-                }
+                self!read-dependencies;
+                $!bytecode //= $!file.slurp-rest(:bin,:close)
             }
         }
 
         method bytecode-handle(--> IO::Handle:D) {
             self!read-dependencies;
-            $!handle
+            $!file
         }
 
         method source-checksum() is rw {
@@ -83,28 +83,25 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
         method close(--> Nil) {
             $!update-lock.protect: {
-                $!handle.close if $!handle;
-                $!handle      := IO::Handle;
-                $!initialized := False;
+                $!file.close if $!file;
+                $!file = Nil;
+                $!initialized = False;
             }
         }
 
         method save-to(IO::Path $precomp-file) {
-            my $handle := $precomp-file.open(:w);
+            my $handle = $precomp-file.open(:w);
             $handle.print($!checksum ~ "\n");
             $handle.print($!source-checksum ~ "\n");
             $handle.print($_.serialize ~ "\n") for @!dependencies;
             $handle.print("\n");
             $handle.write($!bytecode);
             $handle.close;
-            $!path := $precomp-file;
+            $!path = $precomp-file;
         }
 
-        method is-up-to-date(
-          CompUnit::PrecompilationDependency:D $dependency,
-          Bool :$check-source
-        --> Bool:D) {
-            my $result := self.CompUnit::PrecompilationUnit::is-up-to-date($dependency, :$check-source);
+        method is-up-to-date(CompUnit::PrecompilationDependency $dependency, Bool :$check-source --> Bool) {
+            my $result = self.CompUnit::PrecompilationUnit::is-up-to-date($dependency, :$check-source);
             $!store.remove-from-cache($.id) unless $result;
             $result
         }

@@ -130,8 +130,7 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
 
     method vivify_for($sub, $lexpad, $args) {
         my $obj      := $lexpad<self>;
-        my $class    := nqp::getlexrel($lexpad, '::?CLASS');
-        my @methods  := self.add_from_mro([], $class, $sub);
+        my @methods  := self.add_from_mro([], $obj, $sub);
         self.new(:candidates(@methods), :obj($obj), :idx(1))
     }
 

@@ -1,3 +1,4 @@
+# The base of all RakuAST nodes.
 class RakuAST::Node {
     method type { Mu }
 
@@ -41,8 +42,13 @@ class RakuAST::Node {
     # XXX end temporaries
 
     # Entry point for production of a QAST compilation unit from the Raku AST
-    method IMPL-TO-QAST-COMP-UNIT(*%options) {
-        my $top-level := QAST::Block.new: self.QAST;
-        QAST::CompUnit.new($top-level, :hll('Raku'))
+    method IMPL-TO-QAST-COMP-UNIT(Str :$comp-unit-name!, *%options) {
+        # Create compilation context.
+        my $sc := nqp::createsc($comp-unit-name);
+        my $context := RakuAST::IMPL::QASTContext.new(:$sc);
+
+        # Compile into a QAST::CompUnit.
+        my $top-level := QAST::Block.new: self.IMPL-TO-QAST($context);
+        QAST::CompUnit.new($top-level, :hll('Raku'), :$sc)
     }
 }

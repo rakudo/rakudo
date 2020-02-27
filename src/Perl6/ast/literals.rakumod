@@ -9,6 +9,14 @@ class RakuAST::IntLiteral is RakuAST::Term {
     method type {
         $!value.WHAT
     }
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!value;
+        $context.ensure-sc($value);
+        my $wval := QAST::WVal.new( :$value );
+        nqp::isbig_I($value)
+            ?? $wval
+            !! QAST::Want.new( $wval, 'Ii', QAST::IVal.new( :value(nqp::unbox_i($value)) ) )
+    }
     method QAST {
         my $value := $!value;
         my $wval := QAST::WVal.new( :$value );
@@ -29,6 +37,12 @@ class RakuAST::NumLiteral is RakuAST::Term {
     method type {
         $!value.WHAT
     }
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!value;
+        $context.ensure-sc($value);
+        my $wval := QAST::WVal.new( :$value );
+        QAST::Want.new( $wval, 'Nn', QAST::NVal.new( :value(nqp::unbox_n($value)) ) )
+    }
     method QAST {
         my $value := $!value;
         my $wval := QAST::WVal.new( :$value );
@@ -47,6 +61,11 @@ class RakuAST::RatLiteral is RakuAST::Term {
     method type {
         $!value.WHAT
     }
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!value;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
     method QAST {
         my $value := $!value;
         QAST::WVal.new( :$value )
@@ -63,6 +82,11 @@ class RakuAST::VersionLiteral is RakuAST::Term {
     }
     method type {
         $!value.WHAT
+    }
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!value;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
     }
     method QAST {
         my $value := $!value;

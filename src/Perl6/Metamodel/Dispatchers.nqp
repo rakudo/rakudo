@@ -72,9 +72,16 @@ class Perl6::Metamodel::BaseDispatcher {
     }
 
     method shift_callee() {
-        my $callee := @!candidates[$!idx];
-        ++$!idx;
-        nqp::decont($callee)
+        my @call := [nqp::null(), nqp::null()];
+        if self.last_candidate {
+            if $!next_dispatcher {
+                @call := $!next_dispatcher.shift_callee;
+            }
+        }
+        else {
+            @call := self.get_call;
+        }
+        @call;
     }
 
     method add_from_mro(@methods, $class, $sub, :$skip_first = 0) {

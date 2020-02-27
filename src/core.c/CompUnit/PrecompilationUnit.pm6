@@ -1,26 +1,46 @@
 class CompUnit::PrecompilationId {
     has $.id;
 
-    my $cache-lock = Lock.new;
-    my %cache;
+    my $cache-lock := Lock.new;
+    my $cache      := nqp::hash;
 
-    method new(Str:D $id) {
+    method new(str $id) {
         $cache-lock.protect: {
-            %cache{$id} //= 2 < $id.chars < 64 && $id ~~ /^<[A..Za..z0..9._-]>+$/
-                ?? self.bless(:$id)
-                !! X::AdHoc.new( payload => "Invalid precompilation id: $id" ).throw
+            nqp::ifnull(
+              nqp::atkey($cache,$id),
+              do {
+                  2 < nqp::chars($id) < 64 && $id ~~ /^<[A..Za..z0..9._-]>+$/
+                    ?? nqp::bindkey($cache,$id,
+                         nqp::p6bindattrinvres(nqp::create(self),
+                           CompUnit::PrecompilationId,'$!id',$id)
+                       )
+                    !! die "Invalid precompilation id: $id"
+              }
+            )
         }
     }
 
-    method new-from-string(Str:D $id) {
+    method new-from-string(str $id) {
         $cache-lock.protect: {
-            %cache{$id} //= self.bless(:id(nqp::sha1($id)))
+            nqp::ifnull(
+              nqp::atkey($cache,$id),
+              nqp::bindkey($cache,$id,
+                nqp::p6bindattrinvres(nqp::create(self),
+                  CompUnit::PrecompilationId,'$!id',nqp::sha1($id))
+              )
+            )
         }
     }
 
-    method new-without-check(Str:D $id) {
+    method new-without-check(str $id) {
         $cache-lock.protect: {
-            %cache{$id} //= self.bless(:id($id))
+            nqp::ifnull(
+              nqp::atkey($cache,$id),
+              nqp::bindkey($cache,$id,
+                nqp::p6bindattrinvres(nqp::create(self),
+                  CompUnit::PrecompilationId,'$!id',$id)
+              )
+            )
         }
     }
 

@@ -177,8 +177,6 @@ The following environment variables are respected:
   RAKULIB     Modify the module search path
   PERL6LIB    Modify the module search path # to be deprecated
   RAKUDO_HOME Override the path of the Rakudo runtime files
-  RAKU_HOME   Override the path of the Rakudo runtime files
-  PERL6_HOME  Override the path of the Rakudo runtime files # to be deprecated
   NQP_HOME    Override the path of the NQP runtime files
 
 ♥); # end of usage statement

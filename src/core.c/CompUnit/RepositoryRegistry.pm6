@@ -80,11 +80,11 @@ class CompUnit::RepositoryRegistry {
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'RAKUDOLIB'));
             }
-            if nqp::existskey($ENV,'RAKULIB') {
+            elsif nqp::existskey($ENV,'RAKULIB') {
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'RAKULIB'));
             }
-            if nqp::existskey($ENV,'PERL6LIB') {
+            elsif nqp::existskey($ENV,'PERL6LIB') {
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
             }

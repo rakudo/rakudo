@@ -29,4 +29,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
         $type.HOW.compose($type);
         $type
     }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $type-object := self.meta-object;
+        $context.ensure-sc($type-object);
+        QAST::WVal.new( :value($type-object) )
+    }
 }

@@ -48,15 +48,15 @@ if ($git_cache_dir) {
             exit 1;
         }
         if (!-e $modrefdir) {
-            exec_and_check("git clone --quiet --bare $url $modrefdir", "Got clone of $url failed.");
+            exec_and_check("git clone --quiet --bare $url \"$modrefdir\"", "Git clone of $url failed.");
         }
         else {
             my $back = Cwd::cwd();
             chdir $modrefdir;
-            exec_and_check('git fetch --quiet --all', "Got fetch in $modrefdir failed.");
+            exec_and_check('git fetch --quiet --all', "Git fetch in $modrefdir failed.");
             chdir $back;
         }
-        $msg = qx{git submodule --quiet update --reference "$modrefdir" $smodpath 2>&1};
+        $msg = qx{git submodule --quiet update --reference \"$modrefdir\" \"$smodpath\" 2>&1};
         check_update_ok($?, $msg);
     }
 }

@@ -32,6 +32,7 @@ my $install-dir := $execname eq ''
     !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
 
 my $rakudo-home := $comp.config<static_rakudo_home>
+    // nqp::getenvhash()<PERL6_HOME>
     // nqp::getenvhash()<RAKUDO_HOME>
     // $install-dir ~ '/share/perl6';
 if nqp::substr($rakudo-home, nqp::chars($rakudo-home) - 1) eq $sep {

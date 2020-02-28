@@ -39,4 +39,10 @@ class RakuAST::Node {
         }
     }
     # XXX end temporaries
+
+    # Entry point for production of a QAST compilation unit from the Raku AST
+    method IMPL-TO-QAST-COMP-UNIT(*%options) {
+        my $top-level := QAST::Block.new: self.QAST;
+        QAST::CompUnit.new($top-level, :hll('Raku'))
+    }
 }

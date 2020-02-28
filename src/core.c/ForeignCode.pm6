@@ -25,7 +25,7 @@ my class Rakudo::Internals::EvalIdSource {
     }
 }
 proto sub EVAL(
-  $code is copy where Blob|Cool|Callable,
+  $code is copy where Blob|Cool|Callable|RakuAST::Node,
   Str()       :$lang is copy = 'Raku',
   PseudoStash :$context,
   Str()       :$filename = Str,
@@ -50,25 +50,35 @@ $lang = 'Raku' if $lang eq 'perl6';
         }
         return {*};
     }
-    $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;
 
+    my $compiled;
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
-    my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
-    my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
-                  # currently compiling compilation unit
 
-    my $LANG := $context<%?LANG>:exists
-                    ?? $context<%?LANG>
-                    !! (CALLERS::<%?LANG>:exists ?? CALLERS::<%?LANG> !! Nil);
-    my $*INSIDE-EVAL := 1;
-    my $compiled := $compiler.compile:
-        $code,
-        :outer_ctx($eval_ctx),
-        :global(GLOBAL),
-        :language_version(nqp::getcomp('Raku').language_version),
-        |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
-        |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
+    if nqp::istype($code, RakuAST::Node) {
+        $compiled := $compiler.compile:
+            $code.IMPL-TO-QAST-COMP-UNIT(:outer_ctx($eval_ctx), :global(GLOBAL)),
+            :from<optimize>;
+    }
+    else {
+        $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;
+
+        my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
+        my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
+                      # currently compiling compilation unit
+
+        my $LANG := $context<%?LANG>:exists
+                        ?? $context<%?LANG>
+                        !! (CALLERS::<%?LANG>:exists ?? CALLERS::<%?LANG> !! Nil);
+        my $*INSIDE-EVAL := 1;
+        $compiled := $compiler.compile:
+            $code,
+            :outer_ctx($eval_ctx),
+            :global(GLOBAL),
+            :language_version(nqp::getcomp('Raku').language_version),
+            |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
+            |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
+    }
 
     if $check {
         Nil

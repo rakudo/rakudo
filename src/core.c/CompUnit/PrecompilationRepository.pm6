@@ -161,10 +161,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
 
         if $resolve {
-            if self.store.destination($compiler-id, $precomp-unit.id, :extension<.repo-id>) {
-                self.store.store-repo-id($compiler-id, $precomp-unit.id, :repo-id($repo.id));
-                self.store.unlock;
-            }
+            self.store.store-repo-id($compiler-id, $precomp-unit.id, :repo-id($repo.id));
         }
         True
     }
@@ -259,6 +256,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
         my $source-checksum = nqp::sha1($path.slurp(:enc<iso-8859-1>));
         my $bc = "$io.bc".IO;
+
+        #LEAVE { self.store.unlock }
 
         $lle     //= Rakudo::Internals.LL-EXCEPTION;
         $profile //= Rakudo::Internals.PROFILE;

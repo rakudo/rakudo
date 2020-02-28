@@ -114,6 +114,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
     has %!compiler-cache;
     has %!dir-cache;
     has Lock $!update-lock = Lock.new;
+    has $!lock-file;
 
     submethod BUILD(IO::Path :$!prefix --> Nil) {
     }
@@ -148,17 +149,20 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
 
     method unlock() {
         return if $*W && $*W.is_precompilation_mode();
-        {
-            LEAVE $!update-lock.unlock;
-            die "unlock when we're not locked!" if $!lock-count == 0;
-            $!lock-count-- if $!lock-count > 0;
-            if $!lock && $!lock-count == 0 {
-                $!lock.unlock;
-                $!lock.close;
-                $!lock = Nil;
-            }
-            True
-        }
+        # {
+        #     LEAVE $!update-lock.unlock;
+        #     die "unlock when we're not locked!" if $!lock-count == 0;
+        #     $!lock-count-- if $!lock-count > 0;
+        #     if $!lock && $!lock-count == 0 {
+        #         $!lock.unlock;
+        #         $!lock.close;
+        #         $!lock = Nil;
+        #     }
+        #     True
+        # }
+        return unless $!lock-file;
+        $!lock-file.unlock;
+        $!lock-file.close;
     }
 
     method load-unit(CompUnit::PrecompilationId $compiler-id,
@@ -199,7 +203,16 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
             $!prefix.mkdir or return;
         }
         return unless $!prefix.w;
-        self!lock();
+
+        # The file-lock is actually an opened file-handle that is then locked.
+        $!lock-file = self!file(
+          $compiler-id,
+          $precomp-id,
+          :extension( $extension ~ '.lock' )
+        ).open(:w);
+        die 'Cannot open precompiler lock file!' unless $!lock-file;
+        $!lock-file.lock;
+
         self!file($compiler-id, $precomp-id, :$extension);
     }
 
@@ -237,9 +250,7 @@ class CompUnit::PrecompilationStore::File does CompUnit::PrecompilationStore {
                  CompUnit::PrecompilationId $precomp-id,
                  :$repo-id!)
     {
-        my $repo-id-file = self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
-        $repo-id-file.spurt($repo-id);
-        $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
+        try self!file($compiler-id, $precomp-id, :extension<.repo-id>).spurt($repo-id);
     }
 
     method delete(

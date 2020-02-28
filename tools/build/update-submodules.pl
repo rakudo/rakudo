@@ -56,7 +56,7 @@ if ($git_cache_dir) {
             exec_and_check('git fetch --quiet --all', "Git fetch in $modrefdir failed.");
             chdir $back;
         }
-        $msg = qx{git submodule --quiet update --reference \"$modrefdir\" \"$smodpath\" 2>&1};
+        $msg = qx{git submodule --quiet update --reference "$modrefdir" "$smodpath" 2>&1};
         check_update_ok($?, $msg);
     }
 }

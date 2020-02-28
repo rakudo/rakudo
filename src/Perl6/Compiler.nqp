@@ -173,7 +173,6 @@ Note that only boolean single-letter options may be bundled.
 
 The following environment variables are respected:
 
-  RAKUDOLIB   Modify the module search path
   RAKULIB     Modify the module search path
   PERL6LIB    Modify the module search path # to be deprecated
   RAKUDO_HOME Override the path of the Rakudo runtime files

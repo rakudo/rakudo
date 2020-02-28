@@ -51,7 +51,7 @@ grammar RakuASTParser {
 
     rule parameter {
         <type=.name>?
-        [$<named>=':'|$<slurply>='*']?$<name>=[<[$@%]><.identifier>][$<optional>=<[?!]>]?
+        [$<named>=':'|$<slurpy>='*']?$<name>=[<[$@%]><.identifier>][$<optional>=<[?!]>]?
     }
 
     token nqp-code {
@@ -392,7 +392,7 @@ sub emit-method($package, $method) {
         my $type := $_.type || 'Any';
         my $named := $_.named ?? ':' !! '';
         my $slurpy := $_.slurpy ?? '*' !! '';
-        my $opt := $_.optional ?? '?' !! '!';
+        my $opt := $slurpy ?? '' !! ($_.optional ?? '?' !! '!');
         @params-in.push(", $named$slurpy$param-name$opt");
         @params-desc.push("$type, '$param-name'");
         @params-decont.push("$param-name := nqp::decont($param-name);");

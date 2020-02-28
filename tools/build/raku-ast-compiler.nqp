@@ -297,7 +297,7 @@ sub emit-stubs(@compunits) {
 }
 
 sub emit-mop-utils() {
-    say('
+    say(Q[
     ##
     ## Various utility subs to help us produce types that look Raku-like.
     ##
@@ -313,15 +313,39 @@ sub emit-mop-utils() {
     }
 
     sub add-method($class, $name, @parameters, $impl) {
+        # Assemble a signature object for introspection purposes.
+        my @params;
+        my $first := 1;
+        for @parameters -> $type, $name {
+            my $param := nqp::create(Parameter);
+            nqp::bindattr($param, Parameter, '$!nominal_type', $type);
+            nqp::bindattr_s($param, Parameter, '$!variable_name', $name);
+            if $first {
+                nqp::bindattr_i($param, Parameter, '$!flags', 64 + 128); # Invocant
+            }
+            else {
+                nqp::bindattr_i($param, Parameter, '$!flags', 128); # Multi invocant
+            }
+            nqp::push(@params, $param);
+        }
+        my $signature := nqp::create(Signature);
+        nqp::bindattr($signature, Signature, '@!params', @params);
+        nqp::bindattr($signature, Signature, '$!returns', Mu);
+
+        # Wrap code up in a Method object.
         my $static-code := nqp::getstaticcode($impl);
-        nqp::setcodename($static-code, $name);
-        $class.HOW.add_method($class, $name, $static-code);
+        my $wrapper := nqp::create(Method);
+        nqp::bindattr($wrapper, Code, '$!do', $static-code);
+        nqp::bindattr($wrapper, Code, '$!signature', $signature);
+        nqp::bindattr($wrapper, Routine, '$!package', $class);
+        $wrapper.set_name($name);
+        $class.HOW.add_method($class, $name, $wrapper);
     }
 
     sub compose($type) {
         $type.HOW.compose_repr($type)
     }
-');
+]);
 }
 
 sub emit-package($package) {
@@ -350,19 +374,18 @@ sub emit-package($package) {
     for %need-accessor {
         my $method-name := $_.key;
         my $attr-name := $_.value;
-        say("    add-method($name, '$method-name', [], sub (\$self) \{");
+        say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{");
         say("        nqp::getattr(nqp::decont(\$self), $name, '$attr-name')");
         say("    });");
     }
 
     say("    compose($name);");
-    say("");
 }
 
 sub emit-method($package, $method) {
     my @parameters := $method.parameters;
     my @params-in;
-    my @params-desc;
+    my @params-desc := ["$package, ''"];
     my @params-decont;
     for @parameters {
         my $param-name := $_.name;
@@ -378,7 +401,7 @@ sub emit-method($package, $method) {
     my $params-desc := nqp::join(", ", @params-desc);
 
     my $name := $method.name;
-    say("    add-method($package, '$name', [$params-desc], sub (\$SELF_CONT$params-in) \{");
+    say("    add-method($package, '$name', [$params-desc], anon sub $name (\$SELF_CONT$params-in) \{");
     say("        my \$SELF := nqp::decont(\$SELF_CONT);");
     for @params-decont {
         say("        $_");

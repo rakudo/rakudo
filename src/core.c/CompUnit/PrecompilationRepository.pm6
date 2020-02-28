@@ -168,9 +168,6 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                 }
             }
 
-            $loaded-lock.protect: {
-                next if %loaded{$dependency.id}:exists;
-            }
             my $dependency-precomp = @precomp-stores
                 .map({ $_.load-unit($compiler-id, $dependency.id) })
                 .first(*.defined)

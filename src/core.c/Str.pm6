@@ -1,3 +1,4 @@
+my class Date    { ... }
 my class Range   { ... }
 my class Match   { ... }
 my class Version { ... }
@@ -3561,6 +3562,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! Nil;
     }
     multi method ord(Str:U: --> Nil) { }
+
+    method Date(Str:D:)     { Date.new(self)     }
+    method DateTime(Str:D:) { DateTime.new(self) }
 }
 
 multi sub prefix:<~>(Str:D \a --> Str:D) { a.Str }

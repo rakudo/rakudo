@@ -45,7 +45,7 @@ To install modules that require a compiler toolchain, you need to have the
 Microsoft Visual C compiler installed. The freely available
 Microsoft BuildTools contain that compiler. You can use the installer script
 
-    C:\path\to\this\folder\bin\vs_build_tools_install_assistant.ps1
+    C:\path\to\this\folder\scripts\vs_build_tools_install_assistant.ps1
 
 to guide you through the installation.
 
@@ -53,18 +53,18 @@ Alternatively you can install the BuildTools manually. They can be downloaded
 [here](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools).
 You'll need to select the `C++ build tools` and recommended components.
 
-The compiler is only usable in special Build Tools CMD / PowerShell windows.
+The compiler is only usable in a special Build Tools CMD / PowerShell window.
 
 To make use of the Build Tools in Rakudo using CMD:
 - start a CMD window using
     Start Menu -> Visual Studio 2019 ->
     x86 / x64 Native Tools Command Prompt for VS 2019
-- Execute $scriptPath\set-env.bat
+- Execute `C:\path\to\this\folder\scripts\set-env.bat`
 
 To make use of the Build Tools in Rakudo using PowerShell:
 - start a PowerShell window using
     Start Menu -> Visual Studio 2019 -> Developer PowerShell for VS 2019
-- Execute $scriptPath\set-env.ps1
+- Execute `C:\path\to\this\folder\scripts\set-env.ps1`
 
 
 Changes

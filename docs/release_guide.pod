@@ -512,6 +512,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2019-11-26   Rakudo #132 "2019.11"           (AlexDaniel + Releasable)
   2020-01-27   Rakudo #133 "2020.01"           (Altai-man + Releasable)
   2020-02-23   Rakudo #134 "2020.02"           (Altai-man + Releasable)
+  2020-03-01   2020.02.1                       (Altai-man)
 
 =head1 COPYRIGHT
 

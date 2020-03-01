@@ -1,3 +1,7 @@
+New in 2020.02.1:
+ + Fixes:
+    + Fix building on musl [979d384a9f]
+
 New in 2020.02:
   + Changes:
     + `throws-like` sub from `Test` module now throws an exception on

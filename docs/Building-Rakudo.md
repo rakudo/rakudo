@@ -6,7 +6,7 @@ Start with:
 
 ```
 cd <your Rakudo sources directory>
-./Configure --gen-moar --gen-nqp
+./Configure.pl --gen-moar --gen-nqp
 make install && make test
 ```
 
@@ -72,7 +72,7 @@ The life cycle of a release modifier `PREVIEW` must follow these rules:
    `Rakudo` to allow graceful transition for modules which were built specifically for the just released revision.
 
    _Note_ that at this stage corresponding changes are to be done to `roast` repository.
-1. When the transiotion period is considered over the `PREVIEW` modifier must be marked as _deprecated_. With this
+1. When the transition period is considered over the `PREVIEW` modifier must be marked as _deprecated_. With this
    status it's still possible to use it. But the compiler will generate a warning message.
 1. The _deprecation_ period should be over after another few releases and followed by complete removal of `PREVIEW`
    modifier from `PERL6_SPECS` file. At this point its use is considered illegal and compiler will be dying whenever

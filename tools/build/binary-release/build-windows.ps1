@@ -16,6 +16,7 @@ Callstack: $(Get-PSCallStack | Out-String)
     }
 }
 
+$repoPath = Get-Location
 
 # Install Perl
 
@@ -30,7 +31,7 @@ $Env:PATH = (Join-Path -Path $repoPath -ChildPath "\strawberry\perl\bin") + ";" 
 # Download release file
 
 Invoke-WebRequest $Env:RELEASE_URL -OutFile download/rakudo.tgz
-tar -xzf download/rakudo.tgz .
+tar -xzf download/rakudo.tgz
 cd rakudo-*
 
 # Build Rakudo

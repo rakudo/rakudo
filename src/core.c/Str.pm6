@@ -1,3 +1,4 @@
+my class Date    { ... }
 my class Range   { ... }
 my class Match   { ... }
 my class Version { ... }
@@ -188,11 +189,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::hllbool(nqp::eqat(self, $needle, 0))
     }
 
-    # Cool catcher
-    multi method starts-with(Str:D: Cool:D $needle --> Bool:D) {
-        self.starts-with($needle.Str, |%_)
-    }
-
     multi method ends-with(Str:D:
       Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {
@@ -248,11 +244,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    # Cool catcher
-    multi method ends-with(Str:D: Cool:D $needle --> Bool:D) {
-        self.ends-with($needle.Str, |%_)
-    }
-
     multi method substr-eq(Str:D:
       Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {
@@ -302,14 +293,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
           ?? self!fail-oor($pos)
           !! nqp::hllbool(nqp::eqat(self,$needle,$pos))
-    }
-
-    # Cool catchers
-    multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
-        self.starts-with($needle.Str, |%_)
-    }
-    multi method substr-eq(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
-        self.substr-eq($needle.Str, $pos.Int, |%_)
     }
 
     multi method contains(Str:D:
@@ -435,17 +418,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
-    # Cool catchers
-    multi method contains(Str:D: Cool:D $needle --> Bool:D) {
-        self.contains($needle.Str, |%_)
-    }
-    multi method contains(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
-        self.contains($needle.Str, $pos.Int, |%_)
-    }
-    multi method contains(Str:D: Regex:D $needle, Cool:D $pos --> Bool:D) {
-        self.contains($needle, $pos.Int, |%_)
-    }
-
     # create indices using index
     method !indices(str $needle, \overlap, int $start) {
         my $indices := nqp::create(IterationBuffer);
@@ -563,14 +535,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self!indices($needle, $overlap, $pos)
     }
 
-    # Cool catchers
-    multi method indices(Str:D: Cool:D $needle) {
-        self.indices: $needle.Str, |%_
-    }
-    multi method indices(Str:D: Cool:D $needle, Cool:D $start) {
-        self.indices: $needle.Str, $start.Int, |%_
-    }
-
 #?if !moar
     # helper method for quitting if not supported
     method !die-named(str $named, $levels = 1) {
@@ -637,6 +601,62 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method index(Str:D:
+      @needles, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        if $ignorecase {
+            if $ignoremark {
+#?if moar
+                $chars = $index = $i
+                  if ($i =
+                       nqp::indexicim(nqp::substr(self,0,$chars),.Str,0)
+                     ) > -1
+                  for @needles;
+#?endif
+#?if !moar
+                self!die-named('ignorecase and :ignoremark')
+#?endif
+            }
+            else {
+#?if moar
+                $chars = $index = $i
+                  if ($i =
+                        nqp::indexic(nqp::substr(self,0,$chars),.Str,0)
+                     ) > -1
+                  for @needles;
+#?endif
+#?if !moar
+                my str $str = nqp::fc(self);
+                $chars = $index = $i
+                  if ($i =
+                       nqp::index(nqp::substr(self,0,$chars),nqp::fc(.Str))
+                     ) > -1
+                  for @needles;
+#?endif
+            }
+        }
+        elsif $ignoremark {
+#?if moar
+            $chars = $index = $i
+              if ($i = nqp::indexim(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+#?endif
+#?if !moar
+            self!die-named('ignoremark')
+#?endif
+        }
+        else {
+            $chars = $index = $i
+              if ($i = nqp::index(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+        }
+
+        $index == -1 ?? Nil !! $index
+    }
+
+    multi method index(Str:D:
       Str:D $needle, :m(:$ignoremark)!
     --> Int:D) {
         nqp::isne_i(
@@ -668,6 +688,30 @@ my class Str does Stringy { # declared in BOOTSTRAP
                ),-1
              ) ?? $index !! Nil
     }
+    multi method index(Str:D:
+      @needles, :m(:$ignoremark)!
+    --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        if $ignoremark {
+#?if moar
+            $chars = $index = $i
+              if ($i = nqp::indexim(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+#?endif
+#?if !moar
+            self!die-named('ignorecase and :ignoremark')
+#?endif
+        }
+        else {
+            $chars = $index = $i
+              if ($i = nqp::index(nqp::substr(self,0,$chars),.Str)) > -1
+              for @needles;
+        }
+
+        $index == -1 ?? Nil !! $index
+    }
 
     multi method index(Str:D: Str:D $needle --> Int:D) {
         nqp::isne_i((my $index := nqp::index(self,$needle)),-1)
@@ -679,13 +723,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::isne_i((my $index := nqp::index(self,$needle,$pos)),-1)
             ?? $index !! Nil
     }
-
-    # Cool catchers
-    multi method index(Str:D: Cool:D $needle --> Int:D) {
-        self.index: $needle.Str, |%_
-    }
-    multi method index(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
-        self.index: $needle.Str, $pos.Int, |%_
+    multi method index(Str:D: @needles --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        $chars = $index = $i
+          if ($i = nqp::index(nqp::substr(self,0,$chars), .Str)) > -1
+          for @needles;
+         $index == -1 ?? Nil !! $index
     }
 
     # helper method for failing with out of range exception
@@ -707,13 +752,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::isne_i((my $index := nqp::rindex(self,$needle,$pos)),-1)
             ?? $index !! Nil
     }
-
-    # Cool catchers
-    multi method rindex(Str:D: Cool:D $needle --> Int:D) {
-        self.rindex: $needle.Str, |%_
-    }
-    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
-        self.rindex: $needle.Str, $pos.Int, |%_
+    multi method rindex(Str:D: @needles --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        $index = $i
+          if ($i = nqp::rindex(self,.Str)) > $index
+          for @needles;
+        $index == -1 ?? Nil !! $index
     }
 
     method pred(Str:D: --> Str:D) {
@@ -3517,6 +3562,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! Nil;
     }
     multi method ord(Str:U: --> Nil) { }
+
+    method Date(Str:D:)     { Date.new(self)     }
+    method DateTime(Str:D:) { DateTime.new(self) }
 }
 
 multi sub prefix:<~>(Str:D \a --> Str:D) { a.Str }

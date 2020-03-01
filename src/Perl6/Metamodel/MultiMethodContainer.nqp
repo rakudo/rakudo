@@ -95,6 +95,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                         nqp::hash('T', $obj));
                     $proto.set_name($name);
                     $proto.add_dispatchee($code);
+                    $proto.'!set_package'($obj);
                     self.add_method($obj, $name, $proto);
                     nqp::push(@new_protos, $proto);
                 }

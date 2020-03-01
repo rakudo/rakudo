@@ -104,7 +104,7 @@ class Perl6::Compiler is HLL::Compiler {
     my $moar-options := '';
     if nqp::getcomp("Raku").backend.name eq 'moar' {
         $moar-options := q♥  --profile[=name]     write profile information to a file
-                         Extension controls format:
+                       Extension controls format:
                            .json outputs in JSON
                            .sql  outputs in SQL
                            any other extension outputs in HTML
@@ -173,19 +173,18 @@ Note that only boolean single-letter options may be bundled.
 
 The following environment variables are respected:
 
-  RAKUDOLIB   Modify the module search path
-  PERL6LIB    Modify the module search path
+  RAKULIB     Modify the module search path
+  PERL6LIB    Modify the module search path # to be deprecated
   RAKUDO_HOME Override the path of the Rakudo runtime files
-  PERL6_HOME  Override the path of the Rakudo runtime files
   NQP_HOME    Override the path of the NQP runtime files
 
 ♥); # end of usage statement
 
         nqp::exit(0);
 
-        # TODO: create and install a man page for Perl 6; then add the following
+        # TODO: create and install a man page for Raku; then add the following
         #       line to the end of the usage text above:
         #
-        #  For more information, see the perl6(1) man page.\n");
+        #  For more information, see the raku(1) man page.\n");
     }
 }

@@ -121,6 +121,66 @@ my role Iterable {
     multi method SetHash(Iterable:D:) { SETIFY(self,SetHash) }
 }
 
+multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
+    nqp::hllbool(
+      nqp::unless(
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+        nqp::if(                                 # not same object
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(                               # same type
+            nqp::istype(a, Positional),
+            nqp::if(                             # Positional
+              a.is-lazy,
+              nqp::if(                           # a lazy
+                b.is-lazy,
+                die(X::Cannot::Lazy.new: :action<eqv>) # a && b lazy
+              ),
+              nqp::if(                           # a NOT lazy
+                b.is-lazy,
+                0,                               # b lazy
+                nqp::if(                         # a && b NOT lazy
+                  nqp::iseq_i((my int $elems = a.elems),b.elems),
+                  nqp::stmts(                    # same # elems
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems) # not exhausted
+                        && a.AT-POS($i) eqv b.AT-POS($i),         # still same
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)       # exhausted = success!
+                  )
+                )
+              )
+            ),
+            nqp::if(                             # NOT Positional
+              nqp::iseq_i(
+                (my \ia := a.iterator).is-lazy,
+                (my \ib := b.iterator).is-lazy
+              ),
+              nqp::if(
+                ia.is-lazy,
+                die(X::Cannot::Lazy.new: :action<eqv>),
+                nqp::stmts(
+                  nqp::until(
+                    nqp::stmts(
+                      (my \pa := ia.pull-one),
+                      (my \pb := ib.pull-one),
+                      nqp::eqaddr(pa,IterationEnd)
+                        || nqp::eqaddr(pb,IterationEnd)
+                        || nqp::not_i(pa eqv pb)
+                    ),
+                    nqp::null
+                  ),
+                  nqp::eqaddr(pa,pb)     # both IterationEnd = success!
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+}
+
 #?if jvm
 nqp::p6setitertype(Iterable);
 #?endif

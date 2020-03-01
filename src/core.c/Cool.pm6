@@ -215,9 +215,9 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method contains(|) {*}
-    multi method contains(List:D: Str:D \needle) {  # Warn about newbie trap
+    multi method contains(List:D: Cool:D \needle) {  # Warn about newbie trap
         self!list-as-string('needle (elem) list');
-        self.Str.contains: needle, |%_
+        self.Str.contains: needle.Str, |%_
     }
     multi method contains(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
@@ -245,9 +245,9 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method indices(|) {*}
-    multi method indices(List:D: Str:D \needle) {  # Warn about newbie trap
+    multi method indices(List:D: Cool:D \needle) {  # Warn about newbie trap
         self!list-as-string('.grep( ..., :k)');
-        self.Str.indices(needle, |%_)
+        self.Str.indices(needle.Str, |%_)
     }
     multi method indices(Cool:D: Cool:D $needle,
       :i(:$ignorecase)!, :m(:$ignoremark), :$overlap) {
@@ -275,20 +275,27 @@ my class Cool { # declared in BOOTSTRAP
     }   
 
     proto method index(|) {*}
-    multi method index(List:D: Str:D \needle) {  # Warn about newbie trap
+    multi method index(List:D: Cool:D $needle) {  # Warn about newbie trap
         self!list-as-string('.first( ..., :k)');
-        self.Str.index(needle, |%_)
+        self.Str.index(nqp::istype($needle,List) ?? $needle !! $needle.Str,|%_)
     }
     multi method index(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D) {
-        self.Str.index($needle.Str, :$ignorecase, :$ignoremark)
+        self.Str.index(
+          nqp::istype($needle,List) ?? $needle !! $needle.Str,
+          :$ignorecase,
+          :$ignoremark
+        )
     }
     multi method index(Cool:D:
       Cool:D $needle, :m(:$ignoremark)! --> Int:D) {
-        self.Str.index($needle.Str, :$ignoremark)
+        self.Str.index(
+          nqp::istype($needle,List) ?? $needle !! $needle.Str,
+          :$ignoremark
+        )
     }
     multi method index(Cool:D: Cool:D $needle --> Int:D) {
-        self.Str.index($needle.Str)
+        self.Str.index(nqp::istype($needle,List) ?? $needle !! $needle.Str)
     }
 
     multi method index(Cool:D:
@@ -305,28 +312,17 @@ my class Cool { # declared in BOOTSTRAP
     }   
 
     proto method rindex(|) {*}
-    multi method rindex(Cool:D: Cool:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::rindex(self.Str,$needle.Str)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
+    multi method rindex(List:D: Cool:D $needle) {  # Warn about newbie trap
+        self!list-as-string('.first( ..., :k, :end)');
+        self.Str.rindex(nqp::istype($needle,List) ?? $needle !! $needle.Str,|%_)
     }
-    multi method rindex(Cool:D: Str:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::rindex(self.Str,$needle)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
+    multi method rindex(Cool:D: Cool:D $needle --> Int:D) {
+        self.Str.rindex: nqp::istype($needle,List) ?? $needle !! $needle.Str
     }
     multi method rindex(Cool:D: Cool:D $needle, Cool:D $pos --> Int:D) {
-        self.rindex: $needle.Str, $pos.Int
-    }
-    multi method rindex(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
-        self.Str.rindex: $needle.Str, $pos
-    }
-    multi method rindex(Cool:D: Str:D $needle, Int:D $pos --> Int:D) {
-        self.Str.rindex: $needle, $pos
+        self.Str.rindex:
+          nqp::istype($needle,List) ?? $needle !! $needle.Str,
+          $pos.Int
     }
 
     method split(Cool: |c) {
@@ -498,10 +494,10 @@ multi sub index(Cool:D $s,
 
 proto sub rindex($, $, $?, *%) {*}
 multi sub rindex(Cool:D $s, Cool:D $needle --> Int:D) {
-    $s.Str.rindex($needle.Str)
+    $s.rindex($needle)
 }
 multi sub rindex(Cool:D $s, Cool:D $needle, Cool:D $pos --> Int:D) {
-    $s.Str.rindex($needle.Str,$pos.Int)
+    $s.rindex($needle,$pos)
 }
 
 proto sub lc($, *%) {*}

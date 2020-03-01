@@ -230,6 +230,9 @@ my class Cool { # declared in BOOTSTRAP
     multi method contains(Cool:D: Cool:D $needle --> Bool:D) {
         self.Str.contains: $needle.Str
     }   
+    multi method contains(Cool:D: Regex:D $needle --> Bool:D) {
+        self.Str.contains: $needle
+    }
 
     multi method contains(Cool:D:
       Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
@@ -242,6 +245,9 @@ my class Cool { # declared in BOOTSTRAP
     }
     multi method contains(Cool:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
         self.Str.contains($needle.Str, $pos.Int)
+    }
+    multi method contains(Cool:D: Regex:D $needle, Cool:D $pos --> Bool:D) {
+        self.Str.contains($needle, $pos)
     }
 
     proto method indices(|) {*}

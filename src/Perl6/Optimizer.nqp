@@ -1305,13 +1305,14 @@ class Perl6::Optimizer {
 
     # Poisonous calls.
     my %poison_calls := nqp::hash(
-        'EVAL',     NQPMu, '&EVAL',     NQPMu,
-        'EVALFILE', NQPMu, '&EVALFILE', NQPMu,
-        'callwith', NQPMu, '&callwith', NQPMu,
-        'callsame', NQPMu, '&callsame', NQPMu,
-        'nextwith', NQPMu, '&nextwith', NQPMu,
-        'nextsame', NQPMu, '&nextsame', NQPMu,
-        'samewith', NQPMu, '&samewith', NQPMu,
+        'EVAL',       NQPMu, '&EVAL',       NQPMu,
+        'EVALFILE',   NQPMu, '&EVALFILE',   NQPMu,
+        'callwith',   NQPMu, '&callwith',   NQPMu,
+        'callsame',   NQPMu, '&callsame',   NQPMu,
+        'nextcallee', NQPMu, '&nextcallee', NQPMu,
+        'nextwith',   NQPMu, '&nextwith',   NQPMu,
+        'nextsame',   NQPMu, '&nextsame',   NQPMu,
+        'samewith',   NQPMu, '&samewith',   NQPMu,
         # This is a hack to compensate for Test.pm6 using unspecified
         # behavior. The EVAL form of it should be deprecated and then
         # removed, at which point this can go away.
@@ -3041,13 +3042,13 @@ class Perl6::Optimizer {
                 # a symbol, do nothing (we just need it for "fallback" purposes).
                 # Otherwise, copy it and register it in the outer.
                 my $name := $_.name;
-                unless $name eq '$*DISPATCHER' || $name eq '$_' || $outer.symbol($name) {
+                unless $name eq '$*DISPATCHER' || $name eq '$*NEXT-DISPATCHER' || $name eq '$_' || $outer.symbol($name) {
                     @copy_decls.push($_);
                     $outer.symbol($name, :scope('lexical'));
                 }
             }
-            elsif nqp::istype($_, QAST::Op) && $_.op eq 'takedispatcher' {
-                # Don't copy the dispatcher take, since the $*DISPATCHER is
+            elsif nqp::istype($_, QAST::Op) && ($_.op eq 'takedispatcher' || $_.op eq 'takenextdispatcher') {
+                # Don't copy the dispatcher take, since the $*DISPATCHER and $*NEXT-DISPATCHER are
                 # also not copied.
             }
             else {

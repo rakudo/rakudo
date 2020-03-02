@@ -2788,77 +2788,77 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
 nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
 #?endif
   'X::TypeCheck::Binding',
-  -> Mu $got, Mu $expected, $symbol? {
+  -> Mu $got is raw, Mu $expected is raw, $symbol? is raw {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
   },
   'X::TypeCheck::Binding::Parameter',
-  -> Mu $got, Mu $expected, $symbol, $parameter, $is-constraint? {
+  -> Mu $got is raw, Mu $expected is raw, $symbol is raw, $parameter is raw, $is-constraint? is raw {
       my $constraint = $is-constraint ?? True !! False;
       X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter, :$constraint).throw;
   },
   'X::TypeCheck::Assignment',
-  -> Mu $symbol, Mu $got, Mu $expected {
+  -> Mu $symbol is raw, Mu $got is raw, Mu $expected is raw {
       X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
   },
   'X::TypeCheck::Return',
-  -> Mu $got, Mu $expected {
+  -> Mu $got is raw, Mu $expected is raw {
       X::TypeCheck::Return.new(:$got, :$expected).throw;
   },
   'X::Assignment::RO',
-  -> $value = "value" {
+  -> $value is raw = "value" {
       X::Assignment::RO.new(:$value).throw;
   },
   'X::ControlFlow::Return',
-  -> $out-of-dynamic-scope = False {
+  -> $out-of-dynamic-scope is raw = False {
       X::ControlFlow::Return.new(:$out-of-dynamic-scope).throw;
   },
   'X::NoDispatcher',
-  -> $redispatcher {
+  -> $redispatcher is raw {
       X::NoDispatcher.new(:$redispatcher).throw;
   },
   'X::Method::NotFound',
-  -> Mu $invocant, $method, $typename, $private = False {
+  -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False {
       X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private).throw
   },
   'X::Multi::Ambiguous',
-  -> $dispatcher, @ambiguous, $capture {
+  -> $dispatcher is raw, @ambiguous is raw, $capture is raw {
       X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
   },
   'X::Multi::NoMatch',
-  -> $dispatcher, $capture {
+  -> $dispatcher is raw, $capture is raw {
       X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
   },
   'X::Role::Initialization',
-  -> $role {
+  -> $role is raw {
       X::Role::Initialization.new(:$role).throw
   },
   'X::Role::Parametric::NoSuchCandidate',
-  -> Mu $role {
+  -> Mu $role is raw {
       X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
   },
   'X::Inheritance::NotComposed',
-  -> $child-name, $parent-name {
+  -> $child-name is raw, $parent-name is raw {
       X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
   },
   'X::Parameter::RW',
-  -> Mu $got, $symbol {
+  -> Mu $got is raw, $symbol is raw {
       X::Parameter::RW.new(:$got, :$symbol).throw;
   },
   'X::PhaserExceptions',
-  -> @exceptions {
+  -> @exceptions is raw {
       X::PhaserExceptions.new(exceptions =>
         @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
   },
   'X::Trait::Invalid',
-  -> $type, $subtype, $declaring, $name {
+  -> $type is raw, $subtype is raw, $declaring is raw, $name is raw {
       X::Trait::Invalid.new(:$type, :$subtype, :$declaring, :$name).throw;
   },
   'X::Parameter::InvalidConcreteness',
-  -> $expected, $got, $routine, $param, Bool() $should-be-concrete, Bool() $param-is-invocant {
+  -> $expected is raw, $got is raw, $routine is raw, $param is raw, Bool() $should-be-concrete is raw, Bool() $param-is-invocant is raw {
       X::Parameter::InvalidConcreteness.new(:$expected, :$got, :$routine, :$param, :$should-be-concrete, :$param-is-invocant).throw;
   },
   'X::NYI',
-  -> $feature {
+  -> $feature is raw {
       X::NYI.new(:$feature).throw;
   },
 ));

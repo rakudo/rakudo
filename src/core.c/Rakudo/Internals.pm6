@@ -658,15 +658,24 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
-    method MAYBE-GIST(Mu \thing) {
-        nqp::can(nqp::decont(thing), 'gist') ??  thing.gist !! thing.^name;
+    method MAYBE-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
+        nqp::stmts(
+          (my Mu \decont = nqp::decont(thing)),
+          nqp::if(
+            nqp::can(decont, nqp::decont_s($method)),
+            decont."$method"(),
+            nqp::if(
+              nqp::can(decont.HOW, 'name'),
+              decont.^name,
+              '?')))
     }
-    method SHORT-GIST(Mu \thing) {
-        my str $gist = self.MAYBE-GIST(thing);
-        nqp::if(
-          nqp::isgt_i(nqp::chars($gist), 23),
-          nqp::concat(nqp::substr($gist, 0, 20), '...'),
-          $gist);
+    method SHORT-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
+        nqp::stmts(
+          (my str $str = nqp::unbox_s(self.MAYBE-STRING: thing, :$method)),
+          nqp::if(
+            nqp::isgt_i(nqp::chars($str), 23),
+            nqp::p6box_s(nqp::concat(nqp::substr($str, 0, 20), '...')),
+            nqp::p6box_s($str)))
     }
 
     my $IS-WIN = do {

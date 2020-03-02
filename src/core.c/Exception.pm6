@@ -1194,7 +1194,7 @@ my class X::Parameter::Default::TypeCheck does X::Comp {
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method message() {
-        "Default value '{Rakudo::Internals.MAYBE-GIST: $!got}' will never bind to a parameter of type {$!expected.^name}"
+        "Default value '{Rakudo::Internals.MAYBE-STRING: $!got}' will never bind to a parameter of type {$!expected.^name}"
     }
 }
 
@@ -2126,8 +2126,8 @@ my class X::Str::Sprintf::Directives::BadType is Exception {
     has $.value;
     method message() {
         $.expected
-          ??  "Directive $.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
-          !! "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
+          ??  "Directive $.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
+          !! "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
     }
 }
 
@@ -2394,7 +2394,7 @@ my class X::Assignment::RO is Exception {
     method message {
         nqp::isconcrete($!value)
           ?? "Cannot modify an immutable {$!value.^name} ({
-                 Rakudo::Internals.SHORT-GIST: $!value
+                 Rakudo::Internals.SHORT-STRING: $!value
              })"
           !! "Cannot modify an immutable '{$!value.^name}' type object"
     }
@@ -2699,7 +2699,7 @@ my class X::Multi::NoMatch is Exception {
         if $.capture {
             for $.capture.list {
                 try @bits.push(
-                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.raku ~ ':' ~ (.defined ?? "D" !! "U")
+                    $where ?? Rakudo::Internals.SHORT-STRING($_) !! .WHAT.raku ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
                 if nqp::istype($_,Failure) {
@@ -2715,7 +2715,7 @@ my class X::Multi::NoMatch is Exception {
                 }
                 else {
                     try @bits.push(":$(.key)\($($where
-                        ?? Rakudo::Internals.SHORT-GIST: .value
+                        ?? Rakudo::Internals.SHORT-STRING(.value)
                         !! .value.WHAT.raku
                     ))");
                     @bits.push(':' ~ .value.^name) if $!;

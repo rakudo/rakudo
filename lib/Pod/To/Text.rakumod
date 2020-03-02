@@ -86,9 +86,11 @@ sub declarator2text($pod) {
     next unless $pod.WHEREFORE.WHY;
     my $what = do given $pod.WHEREFORE {
         when Method {
-            my @params=$_.signature.params[1..*];
-              @params.pop if @params.tail.name eq '%_';
-              'method ' ~ $_.name ~ signature2text(@params, $_.returns)
+            my @params = $_.signature.params[1..*];
+            with @params.tail.name {
+                @params.pop when '%_';
+            }
+            'method ' ~ $_.name ~ signature2text(@params, $_.returns)
         }
         when Sub {
             'sub ' ~ $_.name ~ signature2text($_.signature.params, $_.returns)

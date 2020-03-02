@@ -89,26 +89,25 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     method wrap(&wrapper) {
-        my \wrp := nqp::clone(&wrapper);
-        my $handle = WrapHandle.new: :wrapper(wrp), :wrappee(self);
+        my $handle = WrapHandle.new: :&wrapper, :wrappee(self);
 
         if $*W {
-            my sub wrp-fixup() { self!do_wrap(wrp) };
-            $*W.add_object_if_no_sc(wrp);
-            $*W.add_object_if_no_sc(&wrp-fixup);
+            my sub wrapper-fixup() { self!do_wrap(&wrapper) };
+            $*W.add_object_if_no_sc(&wrapper);
+            $*W.add_object_if_no_sc(&wrapper-fixup);
             $*W.add_fixup_task(
                 :fixup_ast(
-                    QAST::Op.new(:op<call>, QAST::WVal.new(:value(&wrp-fixup)))
+                    QAST::Op.new(:op<call>, QAST::WVal.new(:value(&wrapper-fixup)))
                 ));
         }
         else {
-            self!do_wrap(wrp);
+            self!do_wrap(&wrapper);
         }
 
         $handle
     }
 
-    method !do_wrap(\wrp) {
+    method !do_wrap(\wrapper) {
         # We can't wrap a hardened routine (that is, one that's been
         # marked inlinable).
         if nqp::istype(self, HardRoutine) {
@@ -116,11 +115,9 @@ my class Routine { # declared in BOOTSTRAP
                 "use the 'soft' pragma to avoid marking routines as hard.";
         }
 
-        # Use clone to make it possible for user to use same wrapper for different routines.
-        my \wrp-do := nqp::getattr(wrp, Code, '$!do');
         if nqp::defined($!wrappers) {
             # Insert next to onlywrap
-            nqp::splice($!wrappers, nqp::list(wrp), 1, 0);
+            nqp::splice($!wrappers, nqp::list(wrapper), 1, 0);
         }
         else {
             my \onlywrap := sub onlywrap(|) is raw is hidden-from-backtrace {
@@ -138,7 +135,7 @@ my class Routine { # declared in BOOTSTRAP
             # static code on `me` pointing at the original Routine instance, which has $!do from onlywrap. It results in
             # dispatchers vivified from `me` receive onlywrap as $sub parameter.
             nqp::setcodeobj(nqp::getattr(me, Code, '$!do'), me);
-            $!wrappers := nqp::list(onlywrap, wrp, me);
+            $!wrappers := nqp::list(onlywrap, wrapper, me);
             my \onlywrap-do := nqp::getattr(onlywrap, Code, '$!do');
             nqp::setcodeobj(onlywrap-do, self);
             nqp::bindattr(self, Code, '$!do', onlywrap-do);

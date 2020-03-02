@@ -2266,26 +2266,30 @@ my class X::ParametricConstant is Exception {
 
 my class X::TypeCheck is Exception {
     has $.operation;
-    has $.got is default(Nil);
-    has $.expected is default(Nil);
+    has $.got      is built(:bind) is default(Nil);
+    has $.expected is built(:bind) is default(Nil);
     method gotn() {
-        my $perl = (try $!got.raku) // "?";
-        my $max-len = 24;
-        $max-len += chars $!got.^name if $perl.starts-with: $!got.^name;
-        $perl = "$perl.substr(0,$max-len-3)..." if $perl.chars > $max-len;
-        (try $!got.^name eq $!expected.^name
-          ?? $perl
-          !! "$!got.^name() ($perl)"
-        ) // "?"
+        nqp::stmts(
+          (my Str:D $raku := Rakudo::Internals.SHORT-STRING: $!got, :method<raku>),
+          nqp::if(
+            nqp::eqaddr($!got.WHAT, $!expected.WHAT),
+            $raku,
+            nqp::if(
+              nqp::can($!got.HOW, 'name'),
+              "$!got.^name() ($raku)",
+              $raku)))
     }
     method expectedn() {
-        (try $!got.^name eq $!expected.^name
-          ?? $!expected.raku
-          !! $!expected.^name
-        ) // "?"
+        nqp::if(
+          nqp::eqaddr($!got.WHAT, $!expected.WHAT),
+          Rakudo::Internals.MAYBE-STRING($!expected, :method<raku>),
+          nqp::if(
+            nqp::can($!expected.HOW, 'name'),
+            $!expected.^name,
+            '?'))
     }
     method priors() {
-        (try nqp::isconcrete($!got) && $!got ~~ Failure)
+        nqp::isconcrete($!got) && nqp::istype($!got, Failure)
           ?? "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n "
           !! ''
     }
@@ -2302,7 +2306,7 @@ my class X::TypeCheck::Binding is X::TypeCheck {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to '$.symbol'"
             !! "";
-        my $expected = (try nqp::eqaddr($.expected,$.got))
+        my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         self.priors() ~ "Type check failed in $.operation$to; $expected";
@@ -2312,7 +2316,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
     has Parameter $.parameter;
     has Bool $.constraint;
     method expectedn() {
-        $.constraint && $.expected ~~ Code
+        $.constraint && nqp::istype(self.expected, Code)
             ?? 'anonymous constraint to be met'
             !! callsame()
     }
@@ -2320,7 +2324,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to parameter '$.symbol'"
             !! " to anonymous parameter";
-        my $expected = (try nqp::eqaddr($.expected,$.got))
+        my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         my $what-check = $.constraint ?? 'Constraint type' !! 'Type';
@@ -2330,7 +2334,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
-        my $expected = $.expected =:= $.got
+        my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected return type $.expectedn cannot be itself " ~
                "(perhaps $.operation a :D type object?)"
             !! "expected $.expectedn but got $.gotn";
@@ -2344,13 +2348,13 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method message {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to $.symbol" !! "";
-        my $is-itself := try $.expected =:= $.got;
+        my $is-itself := nqp::eqaddr(self.expected, self.got);
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         my $maybe-Nil := $is-itself
-          || nqp::istype($.expected.HOW, Metamodel::DefiniteHOW)
-          && $.expected.^base_type =:= $.got
+          || nqp::istype(self.expected.HOW, Metamodel::DefiniteHOW)
+          && nqp::eqaddr(self.expected.^base_type, self.got)
           ?? ' (perhaps Nil was assigned to a :D which had no default?)' !! '';
 
         self.priors() ~ "Type check failed in assignment$to; $expected$maybe-Nil"

@@ -312,7 +312,7 @@ my role Baggy does QuantHash {
         nqp::concat(
           nqp::concat(
             nqp::concat(self.^name,'('),
-            nqp::join(', ',
+            nqp::join(' ',
               Rakudo::Sorting.MERGESORT-str(
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, {
                     nqp::if(

@@ -146,11 +146,7 @@ my role Setty does QuantHash {
     multi method gist(Setty:D $ : --> Str:D) {
         nqp::concat(
           nqp::concat(
-            nqp::if(
-              nqp::istype(self,Set),
-              'set(',
-              nqp::concat(self.^name,'(')
-            ),
+            nqp::concat(self.^name,'('),
             nqp::join(" ",
               Rakudo::Sorting.MERGESORT-str(
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, *.gist)

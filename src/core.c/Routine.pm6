@@ -96,6 +96,9 @@ my class Routine { # declared in BOOTSTRAP
             $*W.add_object_if_no_sc(&wrapper);
             $*W.add_object_if_no_sc(&wrapper-fixup);
             $*W.add_fixup_task(
+                :deserialize_ast(
+                    QAST::Op.new(:op<call>, QAST::WVal.new(:value(&wrapper-fixup)))
+                ),
                 :fixup_ast(
                     QAST::Op.new(:op<call>, QAST::WVal.new(:value(&wrapper-fixup)))
                 ));

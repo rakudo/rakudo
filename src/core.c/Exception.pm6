@@ -2266,8 +2266,10 @@ my class X::ParametricConstant is Exception {
 
 my class X::TypeCheck is Exception {
     has $.operation;
-    has $.got      is built(:bind) is default(Nil);
-    has $.expected is built(:bind) is default(Nil);
+    has $!got      is built(:bind) is default(Nil);
+    has $!expected is built(:bind) is default(Nil);
+    method got()      { $!got }
+    method expected() { $!expected }
     method gotn() {
         nqp::stmts(
           (my Str:D $raku := Rakudo::Internals.SHORT-STRING: $!got, :method<raku>),

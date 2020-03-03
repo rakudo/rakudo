@@ -123,13 +123,11 @@ my class Routine { # declared in BOOTSTRAP
             nqp::splice($!wrappers, nqp::list(wrapper), 1, 0);
         }
         else {
-            my \onlywrap := sub onlywrap(|) is raw is hidden-from-backtrace {
+            my \onlywrap := my sub onlywrap(|) is raw is hidden-from-backtrace {
                 $/ := nqp::getlexcaller('$/');
                 my Mu $dispatcher := Metamodel::WrapDispatcher.vivify_for(self, nqp::ctx(), nqp::usecapture());
-                $*DISPATCHER := $dispatcher;
                 $dispatcher.call_with_capture(nqp::usecapture())
             };
-            # onlywrap.set_name(self.name);
             my \me = nqp::clone(self);
             if $*W {
                 $*W.add_object_if_no_sc(me)

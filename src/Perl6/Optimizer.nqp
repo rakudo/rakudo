@@ -445,7 +445,7 @@ my class BlockVarOptimizer {
     has @!autoslurpy_binds;
 
     # The takedispatcher operation.
-    has $!takedispatcher;
+    has %!takedispatcher;
 
     # If lowering is, for some reason, poisoned.
     has int $!poisoned;
@@ -516,7 +516,7 @@ my class BlockVarOptimizer {
     }
 
     method register_takedispatcher($node) {
-        $!takedispatcher := $node;
+        %!takedispatcher{$node.op} := $node;
     }
 
     method poison_lowering() { $!poisoned := 1; }
@@ -699,9 +699,12 @@ my class BlockVarOptimizer {
 
     method simplify_takedispatcher() {
         unless $!calls || $!uses_bindsig {
-            if $!takedispatcher {
-                $!takedispatcher.op('cleardispatcher');
-                $!takedispatcher.shift();
+            my $iter := nqp::iterator(%!takedispatcher);
+            while $iter {
+                nqp::shift($iter);
+                my $op := nqp::iterval($iter);
+                $op.op('cleardispatcher');
+                $op.shift();
             }
         }
     }
@@ -1614,7 +1617,7 @@ class Perl6::Optimizer {
         }
 
         # May be able to simplify takedispatcher ops.
-        elsif $optype eq 'takedispatcher' {
+        elsif $optype eq 'takedispatcher' || $optype eq 'takenextdispatcher' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_takedispatcher($op);
         }
 

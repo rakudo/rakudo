@@ -4286,8 +4286,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         for @($past[0]) {
             if nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
                 my $name := $_.name;
-                return 0 if $name ne '$*DISPATCHER' && $name ne '$_' &&
-                    $name ne '$/' && $name ne '$¢' && $name ne '$!' &&
+                return 0 if $name ne '$*DISPATCHER' && $name ne '$*NEXT-DISPATCHER'
+                    && $name ne '$_' && $name ne '$/' && $name ne '$¢' && $name ne '$!' &&
                     !nqp::existskey(%arg_placeholders, $name);
             }
             elsif nqp::istype($_, QAST::Block) {

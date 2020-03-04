@@ -158,7 +158,9 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
         my $has_invocant := nqp::existskey($lexpad, 'self');
         my @cands        := $disp.find_best_dispatchee($args, 1);
         my $invocant     := $has_invocant && $lexpad<self>;
-        my $next_dispatcher := nqp::getlexreldyn($lexpad, '$*NEXT-DISPATCHER');
+        my $next_dispatcher := nqp::existskey($lexpad, '$*NEXT-DISPATCHER')
+                                ?? nqp::atkey($lexpad, '$*NEXT-DISPATCHER')
+                                !! nqp::null();
 
         # The first candidate has already been invoked, throw it away from the list;
         # If called in a method then only take control if MethodDispatcher is in charge.
@@ -186,7 +188,9 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
 
     method vivify_for($sub, $lexpad, $capture) {
         my @candidates      := $sub.wrappers;
-        my $next_dispatcher := nqp::getlexreldyn($lexpad, '$*NEXT-DISPATCHER');
+        my $next_dispatcher := nqp::existskey($lexpad, '$*NEXT-DISPATCHER')
+                                ?? nqp::atkey($lexpad, '$*NEXT-DISPATCHER')
+                                !! nqp::null();
         self.new(:@candidates, :idx(1), :$next_dispatcher)
     }
 

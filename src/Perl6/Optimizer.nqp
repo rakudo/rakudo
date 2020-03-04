@@ -703,7 +703,9 @@ my class BlockVarOptimizer {
             while $iter {
                 nqp::shift($iter);
                 my $op := nqp::iterval($iter);
-                $op.op('cleardispatcher');
+                my $name := nqp::iterkey_s($iter);
+                # Replace 'take' with 'clear' in the op name.
+                $op.op(nqp::replace($name, 0, 4, 'clear'));
                 $op.shift();
             }
         }

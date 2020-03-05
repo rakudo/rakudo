@@ -60,8 +60,7 @@ $lang = 'Raku' if $lang eq 'perl6';
         $compiled := $compiler.compile:
             :from<optimize>,
             $code.IMPL-TO-QAST-COMP-UNIT:
-                :outer_ctx($eval_ctx),
-                :global(GLOBAL),
+                :resolver(RakuAST::Resolver::EVAL.new(:context($eval_ctx), :global(GLOBAL))),
                 :comp-unit-name($file);
     }
     else {

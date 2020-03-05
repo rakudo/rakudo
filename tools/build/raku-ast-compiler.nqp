@@ -62,17 +62,18 @@ grammar RakuASTParser {
         | <attribute>
         | $<variable>=['$' <.identifier>]
         | <string>
+        | '/' <-[/]>+ '/' || '//' # regex or // operator
         | $<numeric>=[ \d+ ['.' \d*]? [<[eE]> \d+]? ]
         | $<paren>='(' <nqp-code> [ ')' || <.panic('Missing )')> ]
         | $<brace>='{' <nqp-code> [ '}' || <.panic('Missing }')> ]
         | <?[\s#]> <ws>
-        || $<other>=[<-[{}()'"\s\w$]>+] # don't include in LTM as it'd win too much
+        || $<other>=[<-[{}()'"\s\w$/]>+] # don't include in LTM as it'd win too much
         )*
     }
 
     token string {
-        | "'" [<-[\\']>+ | "\\'" | "\\"]* ["'" || <.panic('Unterminated string')> ]
-        | '"' [<-[\\"]>+ | '\\"' | "\\"]* ['"' || <.panic('Unterminated string')> ]
+        | "'" [<-[\\']>+ | "\\'" | "\\\\"]* ["'" || <.panic('Unterminated string')> ]
+        | '"' [<-[\\"]>+ | '\\"' | "\\".]* ['"' || <.panic('Unterminated string')> ]
     }
 
     token name {

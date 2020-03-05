@@ -1,8 +1,9 @@
 src/Perl6/ast/impl.rakumod
+src/Perl6/ast/resolver.rakumod
 src/Perl6/ast/base.rakumod
+src/Perl6/ast/scoping.rakumod
 src/Perl6/ast/statements.rakumod
 src/Perl6/ast/expressions.rakumod
-src/Perl6/ast/scoping.rakumod
 src/Perl6/ast/meta.rakumod
 src/Perl6/ast/code.rakumod
 src/Perl6/ast/package.rakumod

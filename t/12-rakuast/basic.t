@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 11;
+plan 12;
 
 is-deeply EVAL(RakuAST::IntLiteral.new(42)), 42,
         'RakuAST::IntLiteral with constant';
@@ -48,3 +48,12 @@ is-deeply EVAL(RakuAST::VersionLiteral.new(Version.new('6.66'))), v6.66,
     is $class.^name, 'MyTestClass', 'Correct class name';
     is $class.REPR, 'P6opaque', 'Correct representation';
 }
+
+is-deeply
+        EVAL(RakuAST::ApplyInfix.new(
+            left => RakuAST::IntLiteral.new(44),
+            infix => RakuAST::Infix.new('+'),
+            right => RakuAST::IntLiteral.new(22)
+        )),
+        66,
+        'Application of an infix operator on two literals';

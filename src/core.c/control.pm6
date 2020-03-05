@@ -149,20 +149,7 @@ sub lastcall(--> True) {
 
 sub nextcallee() {
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    if $dispatcher.exhausted {
-        Nil
-    }
-    else {
-        # XXX Until there is a nqp op which would repace $*NEXT-DISPATCHER, this is the only way for nextcallee to
-        # support chaining of dispatchers.
-        my @call = $dispatcher.shift_callee;
-        @call[0]
-            ?? -> |args {
-                my $*NEXT-DISPATCHER := @call[1];
-                @call[0]( |args )
-            }
-            !! Nil
-    }
+    $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
 }
 
 sub samewith(|c) {

@@ -445,7 +445,7 @@ my class BlockVarOptimizer {
     has @!autoslurpy_binds;
 
     # The takedispatcher operation.
-    has $!takedispatcher;
+    has %!takedispatcher;
 
     # If lowering is, for some reason, poisoned.
     has int $!poisoned;
@@ -516,7 +516,7 @@ my class BlockVarOptimizer {
     }
 
     method register_takedispatcher($node) {
-        $!takedispatcher := $node;
+        %!takedispatcher{$node.op} := $node;
     }
 
     method poison_lowering() { $!poisoned := 1; }
@@ -699,9 +699,14 @@ my class BlockVarOptimizer {
 
     method simplify_takedispatcher() {
         unless $!calls || $!uses_bindsig {
-            if $!takedispatcher {
-                $!takedispatcher.op('cleardispatcher');
-                $!takedispatcher.shift();
+            my $iter := nqp::iterator(%!takedispatcher);
+            while $iter {
+                nqp::shift($iter);
+                my $op := nqp::iterval($iter);
+                my $name := nqp::iterkey_s($iter);
+                # Replace 'take' with 'clear' in the op name.
+                $op.op(nqp::replace($name, 0, 4, 'clear'));
+                $op.shift();
             }
         }
     }
@@ -1305,13 +1310,14 @@ class Perl6::Optimizer {
 
     # Poisonous calls.
     my %poison_calls := nqp::hash(
-        'EVAL',     NQPMu, '&EVAL',     NQPMu,
-        'EVALFILE', NQPMu, '&EVALFILE', NQPMu,
-        'callwith', NQPMu, '&callwith', NQPMu,
-        'callsame', NQPMu, '&callsame', NQPMu,
-        'nextwith', NQPMu, '&nextwith', NQPMu,
-        'nextsame', NQPMu, '&nextsame', NQPMu,
-        'samewith', NQPMu, '&samewith', NQPMu,
+        'EVAL',       NQPMu, '&EVAL',       NQPMu,
+        'EVALFILE',   NQPMu, '&EVALFILE',   NQPMu,
+        'callwith',   NQPMu, '&callwith',   NQPMu,
+        'callsame',   NQPMu, '&callsame',   NQPMu,
+        'nextcallee', NQPMu, '&nextcallee', NQPMu,
+        'nextwith',   NQPMu, '&nextwith',   NQPMu,
+        'nextsame',   NQPMu, '&nextsame',   NQPMu,
+        'samewith',   NQPMu, '&samewith',   NQPMu,
         # This is a hack to compensate for Test.pm6 using unspecified
         # behavior. The EVAL form of it should be deprecated and then
         # removed, at which point this can go away.
@@ -1613,7 +1619,7 @@ class Perl6::Optimizer {
         }
 
         # May be able to simplify takedispatcher ops.
-        elsif $optype eq 'takedispatcher' {
+        elsif $optype eq 'takedispatcher' || $optype eq 'takenextdispatcher' {
             @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_takedispatcher($op);
         }
 
@@ -3041,13 +3047,13 @@ class Perl6::Optimizer {
                 # a symbol, do nothing (we just need it for "fallback" purposes).
                 # Otherwise, copy it and register it in the outer.
                 my $name := $_.name;
-                unless $name eq '$*DISPATCHER' || $name eq '$_' || $outer.symbol($name) {
+                unless $name eq '$*DISPATCHER' || $name eq '$*NEXT-DISPATCHER' || $name eq '$_' || $outer.symbol($name) {
                     @copy_decls.push($_);
                     $outer.symbol($name, :scope('lexical'));
                 }
             }
-            elsif nqp::istype($_, QAST::Op) && $_.op eq 'takedispatcher' {
-                # Don't copy the dispatcher take, since the $*DISPATCHER is
+            elsif nqp::istype($_, QAST::Op) && ($_.op eq 'takedispatcher' || $_.op eq 'takenextdispatcher') {
+                # Don't copy the dispatcher take, since the $*DISPATCHER and $*NEXT-DISPATCHER are
                 # also not copied.
             }
             else {

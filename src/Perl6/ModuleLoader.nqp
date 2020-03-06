@@ -213,14 +213,18 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
 
+    my %previous_setting_name := nqp::hash(
+      'NULL.c',  'NULL.c',    # identity
+      'CORE.c',  'CORE.c',
+      'NULL.d',  'CORE.c',
+      'CORE.d',  'CORE.d',
+      'NULL.e',  'CORE.d',
+      'CORE.e',  'CORE.e'
+    );
+
     # Transforms NULL.<release> into CORE.<previous-release>
     method previous_setting_name ($setting_name, :$base = 'CORE') {
-        my $m := $setting_name ~~ /$base '.' ( <[d..z]> )/;
-        if $m {
-            my $rev := ~nqp::atpos($m, 0);
-            $setting_name := 'CORE' ~ '.' ~ nqp::chr(nqp::ord($rev) - 1);
-        }
-        $setting_name
+        %previous_setting_name{$setting_name} // nqp::die("Don't know setting $setting_name")
     }
 
     method transform_setting_name ($setting_name) {

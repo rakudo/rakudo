@@ -118,8 +118,7 @@ my class Signature { # declared in BOOTSTRAP
                 $invocant .= chop(2) if $invocant.ends-with(' $');
                 $text ~= "$invocant: ";
             }
-            $text ~= ';; '
-                if !@params[0].multi-invocant;
+            $text ~= ';; ' if @params && !@params[0].multi-invocant;
 
             my $sep = '';
             for @params.kv -> $i, $param {

@@ -54,11 +54,11 @@ if ($git_cache_dir) {
             exec_and_check('git', 'fetch', '--quiet', '--all', "Git fetch in $modrefdir failed.");
             chdir $back;
         }
-        exec_and_check('git', 'submodule', '--quiet', 'update', '--reference', $modrefdir, $smodpath);
+        exec_and_check('git', 'submodule', '--quiet', 'update', '--reference', $modrefdir, $smodpath, 'Git submodule update failed.');
     }
 }
 else {
-    exec_and_check('git', 'submodule', '--quiet', 'update');
+    exec_and_check('git', 'submodule', '--quiet', 'update', 'Git submodule update failed.');
 }
 
 print "OK\n";

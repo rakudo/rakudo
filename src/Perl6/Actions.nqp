@@ -4654,7 +4654,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
-        $*W.install_lexical_symbol($past, '$*NEXT-DISPATCHER', nqp::null());
+        $*W.install_lexical_symbol($past, '$*NEXT-DISPATCHER', $*W.find_symbol(['Nil'], :setting-only));
         $past[0].push(QAST::Op.new(
             :op('takenextdispatcher'),
             QAST::SVal.new( :value('$*NEXT-DISPATCHER') )

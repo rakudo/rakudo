@@ -516,7 +516,6 @@ class Perl6::World is HLL::World {
     has $!setting_fixup_task;
 
     has int $!in_unit_parse;
-    has int $!unit_ready;
     has int $!have_outer;
     has int $!setting_loaded;
     has $!setting_name;
@@ -526,7 +525,6 @@ class Perl6::World is HLL::World {
         %!code_object_fixup_list := {};
         $!record_precompilation_dependencies := 1;
         %!quote_lang_cache := {};
-        $!unit_ready := 0;
         $!setting_loaded := 0;
         $!in_unit_parse := 0;
     }
@@ -828,8 +826,6 @@ class Perl6::World is HLL::World {
                 }
             }
         }
-
-        $!unit_ready := 1;
 
         self.add_load_dependency_task(:deserialize_ast($!setting_fixup_task), :fixup_ast($!setting_fixup_task));
     }

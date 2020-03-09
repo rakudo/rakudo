@@ -518,6 +518,7 @@ class Perl6::World is HLL::World {
     has int $!in_unit_parse;
     has int $!unit_ready;
     has int $!have_outer;
+    has int $!setting_loaded;
     has $!setting_name;
     has $!setting_revision;
 
@@ -526,6 +527,7 @@ class Perl6::World is HLL::World {
         $!record_precompilation_dependencies := 1;
         %!quote_lang_cache := {};
         $!unit_ready := 0;
+        $!setting_loaded := 0;
         $!in_unit_parse := 0;
     }
 
@@ -713,6 +715,8 @@ class Perl6::World is HLL::World {
             self.load_setting($/, $!setting_name);
         }
         $/.unitstart();
+
+        $!setting_loaded := 1;
 
         try {
             my $EXPORTHOW := self.find_symbol(['EXPORTHOW']);
@@ -4938,7 +4942,7 @@ class Perl6::World is HLL::World {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
-        unless $!unit_ready {
+        unless $!setting_loaded {
             return self.find_symbol_in_setting(@name);
         }
 

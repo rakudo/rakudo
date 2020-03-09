@@ -45,7 +45,7 @@ environment:
 # Installation
 install:
   - '"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"'
-  - appveyor-retry choco install strawberryperl --version 5.20.1.1 --allow-empty-checksums
+  - appveyor-retry choco install strawberryperl --version 5.22.3.1 --allow-empty-checksums
   - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
   - ECHO %RAKUDO_OPTIONS%
   - CD %APPVEYOR_BUILD_FOLDER%

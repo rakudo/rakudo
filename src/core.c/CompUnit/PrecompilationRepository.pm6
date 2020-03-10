@@ -23,8 +23,13 @@ class CompUnit::PrecompilationRepository::Default
 {
     has CompUnit::PrecompilationStore:D $.store is required is built(:bind);
     has $!RMD;
+    has $!RRD;
 
-    method TWEAK() { $!RMD := $*RAKUDO_MODULE_DEBUG }
+    method TWEAK() {
+        $!RMD := $*RAKUDO_MODULE_DEBUG;
+        $!RRD :=
+          nqp::ifnull(nqp::atkey(%*ENV,'RAKUDO_RERESOLVE_DEPENDENCIES'),1);
+    }
 
     my $loaded        := nqp::hash;
     my $resolved      := nqp::hash;
@@ -162,7 +167,7 @@ Need to re-check dependencies.")
             $resolve := True;
         }
 
-        $resolve := False unless %*ENV<RAKUDO_RERESOLVE_DEPENDENCIES> // 1;
+        $resolve := False unless $!RRD;
 
         my @dependencies;
         for $precomp-unit.dependencies -> $dependency {

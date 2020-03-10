@@ -17,13 +17,11 @@ role Perl6::Metamodel::MROBasedTypeChecking {
         # Just hunt through MRO.
         for self.mro($obj) {
             if $_ =:= $checkee {
-                self.publish_type_cache($obj);
                 return 1;
             }
             if nqp::can($_.HOW, 'role_typecheck_list') {
                 for $_.HOW.role_typecheck_list($_) {
                     if $_ =:= $checkee {
-                        self.publish_type_cache($obj);
                         return 1;
                     }
                 }

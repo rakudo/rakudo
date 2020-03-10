@@ -1,47 +1,21 @@
 class CompUnit::PrecompilationId {
     has $.id;
 
-    my $cache-lock := Lock.new;
-    my $cache      := nqp::hash;
-
-    method new(str $id) {
-        $cache-lock.protect: {
-            nqp::ifnull(
-              nqp::atkey($cache,$id),
-              do {
-                  2 < nqp::chars($id) < 64 && $id ~~ /^<[A..Za..z0..9._-]>+$/
-                    ?? nqp::bindkey($cache,$id,
-                         nqp::p6bindattrinvres(nqp::create(self),
-                           CompUnit::PrecompilationId,'$!id',$id)
-                       )
-                    !! die "Invalid precompilation id: $id"
-              }
-            )
-        }
+    method new(str $id --> CompUnit::PrecompilationId:D) {
+        nqp::atpos(nqp::radix_I(16,$id,0,0,Int),2) == 40
+          ?? nqp::p6bindattrinvres(nqp::create(self),
+               CompUnit::PrecompilationId,'$!id',$id)
+          !! die "Invalid precompilation id: '$id'"
     }
 
-    method new-from-string(str $id) {
-        $cache-lock.protect: {
-            nqp::ifnull(
-              nqp::atkey($cache,$id),
-              nqp::bindkey($cache,$id,
-                nqp::p6bindattrinvres(nqp::create(self),
-                  CompUnit::PrecompilationId,'$!id',nqp::sha1($id))
-              )
-            )
-        }
+    method new-from-string(str $id --> CompUnit::PrecompilationId:D) {
+        nqp::p6bindattrinvres(nqp::create(self),
+          CompUnit::PrecompilationId,'$!id',nqp::sha1($id))
     }
 
-    method new-without-check(str $id) {
-        $cache-lock.protect: {
-            nqp::ifnull(
-              nqp::atkey($cache,$id),
-              nqp::bindkey($cache,$id,
-                nqp::p6bindattrinvres(nqp::create(self),
-                  CompUnit::PrecompilationId,'$!id',$id)
-              )
-            )
-        }
+    method new-without-check(str $id --> CompUnit::PrecompilationId:D) {
+        nqp::p6bindattrinvres(nqp::create(self),
+          CompUnit::PrecompilationId,'$!id',$id)
     }
 
     method Str()      { $!id }

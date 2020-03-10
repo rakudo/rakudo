@@ -26,7 +26,7 @@ class CompUnit::PrecompilationRepository::Default
 
     method TWEAK() { $!RMD := $*RAKUDO_MODULE_DEBUG }
 
-    my %loaded;
+    my $loaded        := nqp::hash;
     my $resolved      := nqp::hash;
     my $loaded-lock   := Lock.new;
     my $first-repo-id;
@@ -60,13 +60,15 @@ class CompUnit::PrecompilationRepository::Default
 
         # Even if we may no longer precompile, we should use already loaded files
         $loaded-lock.protect: {
-            return %loaded{$id} if %loaded{$id}:exists;
+            if nqp::atkey($loaded,$id.Str) -> \precomped {
+                return precomped;
+            }
         }
 
         my ($handle, $checksum) = (
             self.may-precomp and (
-                my $loaded = self.load($id, :source($source), :checksum($dependency.checksum), :@precomp-stores) # already precompiled?
-                or self.precompile($source, $id, :source-name($dependency.source-name), :force($loaded ~~ Failure), :@precomp-stores)
+                my $precomped := self.load($id, :source($source), :checksum($dependency.checksum), :@precomp-stores) # already precompiled?
+                or self.precompile($source, $id, :source-name($dependency.source-name), :force(nqp::hllbool(nqp::istype($precomped,Failure))), :@precomp-stores)
                     and self.load($id, :@precomp-stores) # if not do it now
             )
         );
@@ -209,10 +211,12 @@ Need to re-check dependencies.")
 
         $loaded-lock.protect: {
             for @dependencies -> $dependency-precomp {
-                unless %loaded{$dependency-precomp.id}:exists {
-                    %loaded{$dependency-precomp.id} =
-                      self!load-handle-for-path($dependency-precomp);
-                }
+                nqp::bindkey(
+                  $loaded,
+                  $dependency-precomp.id.Str,
+                  self!load-handle-for-path($dependency-precomp)
+                ) unless nqp::existskey($loaded,$dependency-precomp.id.Str);
+
                 $dependency-precomp.close;
             }
         }
@@ -266,7 +270,9 @@ Need to re-check dependencies.")
         Array[CompUnit::PrecompilationStore].new($.store),
     ) {
         $loaded-lock.protect: {
-            return %loaded{$id} if %loaded{$id}:exists;
+            if nqp::atkey($loaded,$id.Str) -> \precomped {
+                return precomped;
+            }
         }
 
         if self!load-file(@precomp-stores, $id) -> $unit {
@@ -275,10 +281,12 @@ Need to re-check dependencies.")
                 and self!load-dependencies($unit, @precomp-stores)
             {
                 my $unit-checksum := $unit.checksum;
-                my \loaded := self!load-handle-for-path($unit);
+                my $precomped := self!load-handle-for-path($unit);
                 $unit.close;
-                $loaded-lock.protect: { %loaded{$id} = loaded };
-                (loaded, $unit-checksum)
+                $loaded-lock.protect: {
+                    nqp::bindkey($loaded,$id.Str,$precomped)
+                }
+                ($precomped, $unit-checksum)
             }
             else {
                 $!RMD("Outdated precompiled {$unit}{

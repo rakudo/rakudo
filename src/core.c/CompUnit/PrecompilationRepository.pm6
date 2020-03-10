@@ -278,7 +278,7 @@ Need to re-check dependencies.")
                 my \loaded := self!load-handle-for-path($unit);
                 $unit.close;
                 $loaded-lock.protect: { %loaded{$id} = loaded };
-                return (loaded, $unit-checksum);
+                (loaded, $unit-checksum)
             }
             else {
                 $!RMD("Outdated precompiled {$unit}{

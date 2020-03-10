@@ -84,29 +84,27 @@ role CompUnit::PrecompilationUnit {
     }
 }
 
-class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDependency {
-    has CompUnit::PrecompilationId $.id;
-    has Str $.src;
-    has Str $.checksum is rw;
-    has Str $!serialized-spec;
-    has CompUnit::DependencySpecification $.spec;
+class CompUnit::PrecompilationDependency::File
+  does CompUnit::PrecompilationDependency
+{
+    has CompUnit::PrecompilationId        $.id   is built(:bind);
+    has CompUnit::DependencySpecification $.spec is built(:bind);
+    has Str $.src             is built(:bind);
+    has Str $.checksum        is rw;
+    has Str $!serialized-spec is built(:bind);
 
     method source-name() {
         "$.src ($.spec.short-name())"
     }
 
     method deserialize(str $str) {
-        my $parts := nqp::split("\0", $str);
-        nqp::p6bindattrinvres(
-            self.new(
-                :id(CompUnit::PrecompilationId.new-without-check(nqp::atpos($parts, 0))),
-                :src(nqp::atpos($parts, 1)),
-                :checksum(nqp::atpos($parts, 2))
-            ),
-            CompUnit::PrecompilationDependency::File,
-            '$!serialized-spec',
-            nqp::atpos($parts, 3),
-        );
+        my $parts := nqp::split("\0",$str);
+        self.new(
+          :id(CompUnit::PrecompilationId.new-without-check(nqp::atpos($parts,0))),
+          :src(nqp::atpos($parts,1)),
+          :checksum(nqp::atpos($parts,2))
+          :serialized-spec(nqp::atpos($parts,3))
+        )
     }
 
     method spec(--> CompUnit::DependencySpecification:D) {

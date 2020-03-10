@@ -14,18 +14,21 @@ role CompUnit::PrecompilationRepository {
     }
 }
 
-BEGIN CompUnit::PrecompilationRepository::<None> := CompUnit::PrecompilationRepository.new;
+BEGIN CompUnit::PrecompilationRepository::<None> :=
+  CompUnit::PrecompilationRepository.new;
 
 class CompUnit { ... }
-class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationRepository {
-    has CompUnit::PrecompilationStore $.store;
+class CompUnit::PrecompilationRepository::Default
+  does CompUnit::PrecompilationRepository
+{
+    has CompUnit::PrecompilationStore:D $.store is required is built(:bind);
     has $!RMD;
 
     method TWEAK() { $!RMD := $*RAKUDO_MODULE_DEBUG }
 
     my %loaded;
-    my $resolved := nqp::hash;
-    my $loaded-lock = Lock.new;
+    my $resolved      := nqp::hash;
+    my $loaded-lock   := Lock.new;
     my $first-repo-id;
 
     my $compiler-id :=
@@ -45,11 +48,13 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     }
 
     method try-load(
-        CompUnit::PrecompilationDependency::File $dependency,
-        IO::Path :$source = $dependency.src.IO,
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
+      CompUnit::PrecompilationDependency::File:D $dependency,
+      IO::Path:D :$source = $dependency.src.IO,
+      CompUnit::PrecompilationStore :@precomp-stores =
+        Array[CompUnit::PrecompilationStore].new($.store),
      --> CompUnit::Handle:D) {
-        my $id = $dependency.id;
+
+        my $id := $dependency.id;
         $!RMD("try-load $id: $source")
           if $!RMD;
 
@@ -82,9 +87,11 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $handle ?? $handle !! Nil
     }
 
-    method !load-handle-for-path(CompUnit::PrecompilationUnit $unit) {
-        my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), Mu);
-        $!RMD("Loading precompiled\n$unit") if $!RMD;
+    method !load-handle-for-path(CompUnit::PrecompilationUnit:D $unit) {
+        $!RMD("Loading precompiled\n$unit")
+          if $!RMD;
+
+        my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
 #?if !jvm
         my $handle := CompUnit::Loader.load-precompilation-file($unit.bytecode-handle);
 #?endif
@@ -102,10 +109,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     }
 
     method !load-file(
-        CompUnit::PrecompilationStore @precomp-stores,
-        CompUnit::PrecompilationId $id,
-        :$repo-id,
-        :$refresh,
+      CompUnit::PrecompilationStore @precomp-stores,
+      CompUnit::PrecompilationId:D $id,
+      Bool :$repo-id,
+      Bool :$refresh,
     ) {
         for @precomp-stores -> $store {
             $!RMD("Trying to load {
@@ -114,7 +121,7 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
               if $!RMD;
 
             $store.remove-from-cache($id) if $refresh;
-            my $file = $repo-id
+            my $file := $repo-id
                 ?? $store.load-repo-id($compiler-id, $id)
                 !! $store.load-unit($compiler-id, $id);
             return $file if $file;
@@ -122,28 +129,39 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         Nil
     }
 
-    method !load-dependencies(CompUnit::PrecompilationUnit:D $precomp-unit, @precomp-stores) {
-        my $resolve = False;
-        my $repo = $*REPO;
-        $first-repo-id //= $repo.id;
-        my $repo-id = self!load-file(@precomp-stores, $precomp-unit.id, :repo-id);
-        if $repo-id ne $repo.id {
-            $!RMD("Repo changed: $repo-id ne {
-                $repo.id
-            }. Need to re-check dependencies.")
+    method !load-dependencies(
+      CompUnit::PrecompilationUnit:D $precomp-unit,
+      @precomp-stores
+    --> Bool:D) {
+        my $resolve    := False;
+        my $REPO       := $*REPO;
+        my $REPO-id    := $REPO.id;
+        $first-repo-id := $REPO-id unless $first-repo-id;
+        my $unit-id    := self!load-file(
+                            @precomp-stores, $precomp-unit.id, :repo-id);
+
+        if $unit-id ne $REPO-id {
+            $!RMD("Repo changed:
+  $unit-id
+  $REPO-id
+Need to re-check dependencies.")
               if $!RMD;
 
-            $resolve = True;
+            $resolve := True;
         }
-        if $repo-id ne $first-repo-id {
-            $!RMD("Repo chain changed: $repo-id ne {
-                $first-repo-id
-            }. Need to re-check dependencies.")
+
+        if $unit-id ne $first-repo-id {
+            $!RMD("Repo chain changed:
+  $unit-id
+  $first-repo-id
+Need to re-check dependencies.")
               if $!RMD;
 
-            $resolve = True;
+            $resolve := True;
         }
-        $resolve = False unless %*ENV<RAKUDO_RERESOLVE_DEPENDENCIES> // 1;
+
+        $resolve := False unless %*ENV<RAKUDO_RERESOLVE_DEPENDENCIES> // 1;
+
         my @dependencies;
         for $precomp-unit.dependencies -> $dependency {
             $!RMD("dependency: $dependency")
@@ -155,13 +173,16 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                     nqp::ifnull(
                       nqp::atkey($resolved,$serialized-id),
                       nqp::bindkey($resolved,$serialized-id, do {
-                        my $comp-unit = $repo.resolve($dependency.spec);
+                        my $comp-unit := $REPO.resolve($dependency.spec);
                         $!RMD("Old id: $dependency.id(), new id: {
                             $comp-unit.repo-id
                         }")
                           if $!RMD;
 
-                        return False unless $comp-unit and $comp-unit.repo-id eq $dependency.id;
+                        return False
+                          unless $comp-unit
+                             and $comp-unit.repo-id eq $dependency.id;
+
                         True
                       })
                     );
@@ -175,7 +196,10 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                     $!RMD("Could not find $dependency.spec()") if $!RMD;
                     return False;
                 }
-            unless $dependency-precomp.is-up-to-date($dependency, :check-source($resolve)) {
+            unless $dependency-precomp.is-up-to-date(
+              $dependency,
+              :check-source($resolve)
+            ) {
                 $dependency-precomp.close;
                 return False;
             }
@@ -186,7 +210,8 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         $loaded-lock.protect: {
             for @dependencies -> $dependency-precomp {
                 unless %loaded{$dependency-precomp.id}:exists {
-                    %loaded{$dependency-precomp.id} = self!load-handle-for-path($dependency-precomp);
+                    %loaded{$dependency-precomp.id} =
+                      self!load-handle-for-path($dependency-precomp);
                 }
                 $dependency-precomp.close;
             }
@@ -203,8 +228,16 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
         }
 
         if $resolve {
-            if self.store.destination($compiler-id, $precomp-unit.id, :extension<.repo-id>) {
-                self.store.store-repo-id($compiler-id, $precomp-unit.id, :repo-id($repo.id));
+            if self.store.destination(
+                 $compiler-id,
+                 $precomp-unit.id,
+                 :extension<.repo-id>
+            ) {
+                self.store.store-repo-id(
+                  $compiler-id,
+                  $precomp-unit.id,
+                  :repo-id($unit-id)
+                );
                 self.store.unlock;
             }
         }
@@ -214,35 +247,38 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
     proto method load(|) {*}
 
     multi method load(
-        Str $id,
-        Instant :$since,
-        IO::Path :$source,
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
+      Str:D $id,
+      Instant :$since,
+      IO::Path :$source,
+      CompUnit::PrecompilationStore :@precomp-stores =
+        Array[CompUnit::PrecompilationStore].new($.store),
     ) {
-        self.load(CompUnit::PrecompilationId.new($id), :$since, :@precomp-stores)
+        self.load(
+          CompUnit::PrecompilationId.new($id), :$since, :@precomp-stores)
     }
 
     multi method load(
-        CompUnit::PrecompilationId $id,
-        IO::Path :$source,
-        Str :$checksum is copy,
-        Instant :$since,
-        CompUnit::PrecompilationStore :@precomp-stores = Array[CompUnit::PrecompilationStore].new($.store),
+      CompUnit::PrecompilationId:D $id,
+      IO::Path :$source,
+      Str :$checksum is copy,
+      Instant :$since,
+      CompUnit::PrecompilationStore :@precomp-stores =
+        Array[CompUnit::PrecompilationStore].new($.store),
     ) {
         $loaded-lock.protect: {
             return %loaded{$id} if %loaded{$id}:exists;
         }
-        my $unit = self!load-file(@precomp-stores, $id);
-        if $unit {
+
+        if self!load-file(@precomp-stores, $id) -> $unit {
             if (not $since or $unit.modified > $since)
                 and (not $source or ($checksum //= CHECKSUM($source)) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
-                my $checksum = $unit.checksum;
-                my \loaded = self!load-handle-for-path($unit);
+                my $unit-checksum := $unit.checksum;
+                my \loaded := self!load-handle-for-path($unit);
                 $unit.close;
                 $loaded-lock.protect: { %loaded{$id} = loaded };
-                return (loaded, $checksum);
+                return (loaded, $unit-checksum);
             }
             else {
                 $!RMD("Outdated precompiled {$unit}{
@@ -255,10 +291,12 @@ class CompUnit::PrecompilationRepository::Default does CompUnit::PrecompilationR
                   if $!RMD;
 
                 $unit.close;
-                fail "Outdated precompiled $unit";
+                Failure.new("Outdated precompiled $unit");
             }
         }
-        Nil
+        else {
+            Nil
+        }
     }
 
     proto method precompile(|) {*}

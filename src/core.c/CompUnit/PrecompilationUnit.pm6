@@ -18,6 +18,13 @@ class CompUnit::PrecompilationId {
           CompUnit::PrecompilationId,'$!id',$id)
     }
 
+    multi method WHICH(CompUnit::PrecompilationId:D: --> ValueObjAt:D) {
+        nqp::box_s(
+          nqp::concat('CompUnit::PrecompilationId|',$!id),
+          ValueObjAt
+        )
+    }
+
     method Str()      { $!id }
     method IO()       { $!id.IO }
     method substr(|c) { $!id.substr(|c) }

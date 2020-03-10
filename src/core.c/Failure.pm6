@@ -16,10 +16,16 @@ my class Failure is Nil {
 
     multi method new(Failure:D:) { self!throw }
     multi method new(Failure:U:) {
-        my $stash := CALLER::LEXICAL::;
-        my $payload = ($stash<$!>:exists && $stash<$!>.DEFINITE) ?? $stash<$!> !! "Failed";
+        my $stash   := CALLER::LEXICAL::;
+        my $payload := nqp::existskey($stash,'$!')
+          ?? nqp::atkey($stash,'$!')
+          !! "Failed";
         nqp::create(self)!SET-SELF(
-          $payload ~~ Exception ?? $payload !! X::AdHoc.new(:$payload)
+          nqp::isconcrete($payload)
+            ?? nqp::istype($payload,Exception)
+              ?? $payload
+              !! X::AdHoc.new(:$payload)
+            !! X::AdHoc.new(:payload<Failed>)
         )
     }
     multi method new(Failure:U: Exception:D \exception) {

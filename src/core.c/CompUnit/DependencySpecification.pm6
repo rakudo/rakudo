@@ -20,7 +20,23 @@ class CompUnit::DependencySpecification {
         nqp::join('',$parts)
     }
 
-    multi method WHICH(CompUnit::DependencySpecification:D) {
+    multi method raku(CompUnit::DependencySpecification:D: --> Str:D) {
+        my $parts := nqp::list_s(
+          "CompUnit::DependencySpecification.new(:short-name<$!short-name>"
+        );
+        nqp::push_s($parts,",:from<$!from>")
+          if $!from ne 'Perl6';
+        nqp::push_s($parts,",:version-matcher<$!version-matcher>")
+          unless nqp::eqaddr($!version-matcher,True);
+        nqp::push_s($parts,",:auth-matcher<$!auth-matcher>")
+          unless nqp::eqaddr($!auth-matcher,True);
+        nqp::push_s($parts,",:api-matcher<$!api-matcher>")
+          unless nqp::eqaddr($!api-matcher,True);
+        nqp::push_s($parts,')');
+        nqp::join('',$parts)
+    }
+
+    multi method WHICH(CompUnit::DependencySpecification:D --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::concat(self.^name, '|'),

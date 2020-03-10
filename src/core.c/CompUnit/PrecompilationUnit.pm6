@@ -132,10 +132,12 @@ class CompUnit::PrecompilationDependency::File
         for $.spec.^attributes {
             $specs ~= .name.substr(2) ~ ":" ~ $.spec."$(.name.substr(2))"() ~ "\0";
         }
-        "$.id\0$.src\0$.checksum\0$specs"
+        "$!id\0$!src\0$!checksum\0$specs"
 #?endif
 #?if !jvm
-        "$.id\0$.src\0$.checksum\0{$!serialized-spec ?? $!serialized-spec !! $!spec.raku}"
+        "$!id\0$!src\0$!checksum\0{
+            $!serialized-spec ?? $!serialized-spec !! $!spec.raku
+        }"
 #?endif
     }
 

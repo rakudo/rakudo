@@ -305,32 +305,32 @@ class CompUnit::RepositoryRegistry {
         $*REPO
     }
 
-    method resolve-unknown-repos($repo is copy) {
-        # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
-        my $global := nqp::list("GLOBAL");
+    method resolve-unknown-repos($first-repo --> Nil) {
+        my $repo := $first-repo;
         my $prev-repo;
-        while defined $repo {
-            if nqp::istype($repo, CompUnit::Repository::Unknown) {
+        while nqp::isconcrete($repo) {
+            if nqp::istype($repo,CompUnit::Repository::Unknown) {
                 my $next-repo := $repo.next-repo;
 
                 my $head := PROCESS<$REPO>;
                 PROCESS::<$REPO> := $next-repo;
-                my $comp_unit = $next-repo.need(
-                    CompUnit::DependencySpecification.new(:short-name($repo.short-name))
+                my $comp_unit := $next-repo.need(
+                  CompUnit::DependencySpecification.new(
+                    :short-name($repo.short-name))
                 );
                 PROCESS::<$REPO> := $head;
 
-                $*W.find_symbol($global).WHO.merge-symbols($comp_unit.handle.globalish-package);
-                $repo = self.repository-for-spec($repo.path-spec, :$next-repo);
-                if defined $prev-repo {
-                    $prev-repo.next-repo = $repo;
-                }
-                else {
-                    PROCESS::<$REPO> := nqp::decont($repo);
-                }
+                # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
+                $*W.find_symbol(nqp::list("GLOBAL")).WHO.merge-symbols(
+                  $comp_unit.handle.globalish-package);
+
+                $repo := self.repository-for-spec($repo.path-spec, :$next-repo);
+                nqp::isconcrete($prev-repo)
+                  ?? ($prev-repo.next-repo = $repo)
+                  !! (PROCESS::<$REPO> := $repo);
             }
-            $prev-repo = $repo;
-            $repo = $repo.next-repo;
+            $prev-repo := $repo;
+            $repo := $repo.next-repo;
         }
     }
 

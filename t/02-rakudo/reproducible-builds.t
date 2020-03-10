@@ -1,6 +1,6 @@
 use lib 'lib';
 BEGIN my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
-BEGIN my $id = CompUnit::PrecompilationId.new('000');
+BEGIN my $id = CompUnit::PrecompilationId.new('1F3B9959EF798485A266FE735E772328311AD787');
 BEGIN my $dest = $*REPO.precomp-store.destination($compiler-id, $id); # not really used
 END { $*REPO.precomp-store.unlock }
 use Test;

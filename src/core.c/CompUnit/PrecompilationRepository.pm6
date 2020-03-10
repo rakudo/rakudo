@@ -177,7 +177,7 @@ Need to re-check dependencies.")
                       nqp::bindkey($resolved,$serialized-id, do {
                         my $comp-unit := $REPO.resolve($dependency.spec);
                         $!RMD("Old id: $dependency.id(), new id: {
-                            $comp-unit.repo-id
+                            $comp-unit and $comp-unit.repo-id
                         }")
                           if $!RMD;
 

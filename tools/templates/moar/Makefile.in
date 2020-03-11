@@ -30,20 +30,17 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libtommath)@ \
 	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libuv)@
 
-@bpv(PERL6)@ = perl6@moar::exe@
-@bpv(PERL6_DEBUG)@ = perl6-debug@moar::exe@
-@bpv(PERL6_M)@ = perl6-m@moar::exe@
-@bpv(PERL6_DEBUG_M)@ = perl6-debug-m@moar::exe@
-@bpv(RAKUDO)@ = rakudo@moar::exe@
-@bpv(RAKUDO_DEBUG)@ = rakudo-debug@moar::exe@
 @bpv(RAKU)@ = raku@moar::exe@
 @bpv(RAKU_DEBUG)@ = raku-debug@moar::exe@
-@bpv(RAKUDO_M)@ = rakudo-m@moar::exe@
-@bpv(RAKUDO_DEBUG_M)@ = rakudo-debug-m@moar::exe@
-@bpv(INST_RAKUDO)@ = inst-rakudo@moar::exe@
-@bpv(INST_RAKUDO_DEBUG)@ = inst-rakudo-debug@moar::exe@
-@bpv(INST_RAKUDO_M)@ = inst-rakudo-m@moar::exe@
-@bpv(INST_RAKUDO_DEBUG_M)@ = inst-rakudo-debug-m@moar::exe@
+@for_langalias(
+@bpv(@uclangalias@)@ = @langalias@@moar::exe@
+@bpv(@uclangalias@_DEBUG)@ = @langalias@-debug@moar::exe@
+@bpv(@uclangalias@_M)@ = @langalias@-m@moar::exe@
+@bpv(@uclangalias@_DEBUG_M)@ = @langalias@-debug-m@moar::exe@
+@bpv(INST_@uclangalias@)@ = inst-@langalias@@moar::exe@
+@bpv(INST_@uclangalias@_DEBUG)@ = inst-@langalias@-debug@moar::exe@
+@bpv(INST_@uclangalias@_M)@ = inst-@langalias@-m@moar::exe@
+@bpv(INST_@uclangalias@_DEBUG_M)@ = inst-@langalias@-debug-m@moar::exe@)@
 
 @bpv(RAKUDO_OPS_DIR)@  = dynext
 @bpv(RAKUDO_OPS_DLL)@  = @bpm(RAKUDO_OPS_DIR)@@nfp(/@perl6_ops_dll@)@
@@ -55,8 +52,12 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @for_langalias(@for_toolchain(@bpv(@uclangalias@_@uctoolchain@_RUNNER)@ = @langalias@-@toolchain@-m@runner_suffix@
 )@)@
 
-@bpv(ALL_TARGETS)@ = $(R_SETTING_MOAR) @bpm(INST_RAKUDO_M)@ @bpm(INST_RAKUDO_DEBUG_M)@ @bpm(INST_RAKUDO)@ @bpm(INST_RAKUDO_DEBUG)@ \
-@for_langalias(@for_toolchain(		@bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
+@bpv(ALL_TARGETS)@ = $(R_SETTING_MOAR) \
+@for_langalias(@tab@@bpm(INST_@uclangalias@)@ \
+@tab@@bpm(INST_@uclangalias@_DEBUG)@ \
+@tab@@bpm(INST_@uclangalias@_M)@ \
+@tab@@bpm(INST_@uclangalias@_DEBUG_M)@ \
+)@@for_langalias(@for_toolchain(@tab@@bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
 )@)@
 
 @bpv(CLEANUPS)@ = \
@@ -65,11 +66,11 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   inst-rakudo-debug-m@moar::obj@ \
   inst-rakudo@moar::obj@ \
   inst-rakudo-debug@moar::obj@ \
-  @bpm(INST_RAKUDO_M)@ \
-  @bpm(INST_RAKUDO_DEBUG_M)@ \
-  @bpm(INST_RAKUDO)@ \
-  @bpm(INST_RAKUDO_DEBUG)@ \
-  @bpm(RAKUDO_OPS_DLL)@ \
+@for_langalias( @bpm(INST_@uclangalias@)@ \
+  @bpm(INST_@uclangalias@_DEBUG)@ \
+  @bpm(INST_@uclangalias@_M)@ \
+  @bpm(INST_@uclangalias@_DEBUG_M)@ \
+)@  @bpm(RAKUDO_OPS_DLL)@ \
   @bpm(RAKUDO_OPS_OBJ)@ \
   @bpm(RAKUDO_CONT_OBJ)@ \
 @for_langalias(@for_toolchain(  @bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
@@ -134,10 +135,10 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 	# Use keys and values as macros to conform with possible future changes to
 	# variable name standards.
     my %execs = (
-        '@bpm(INST_RAKUDO)@'         => '@bpm(PERL6)@',
-        '@bpm(INST_RAKUDO_DEBUG)@'   => '@bpm(PERL6_DEBUG)@',
-        '@bpm(INST_RAKUDO_M)@'       => '@bpm(PERL6_M)@',
-        '@bpm(INST_RAKUDO_DEBUG_M)@' => '@bpm(PERL6_DEBUG_M)@',
+        '@bpm(INST_PERL6)@'          => '@bpm(PERL6)@',
+        '@bpm(INST_PERL6_DEBUG)@'    => '@bpm(PERL6_DEBUG)@',
+        '@bpm(INST_PERL6_M)@'        => '@bpm(PERL6_M)@',
+        '@bpm(INST_PERL6_DEBUG_M)@'  => '@bpm(PERL6_DEBUG_M)@',
         '@bpm(INST_RAKUDO)@'         => '@bpm(RAKUDO)@',
         '@bpm(INST_RAKUDO_DEBUG)@'   => '@bpm(RAKUDO_DEBUG)@',
         '@bpm(INST_RAKUDO_M)@'       => '@bpm(RAKUDO_M)@',
@@ -213,11 +214,12 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 @backend_prefix@-install-main:: @@bpm(RAKUDO_OPS_DLL)@@ $(R_SETTING_MOAR) @@bpm(INST_RAKUDO_M)@@ @@bpm(INST_RAKUDO_DEBUG_M)@@
 	$(NOECHO)$(CP) @bpm(RAKUDO_OPS_DLL)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
 	$(NOECHO)$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_M)@)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG_M)@)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_M)@)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG_M)@)@
-@if(platform!=windows @for_langalias(@for_toolchain(@insert(Makefile-install)@)@)@
+@for_langalias(
+	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_M)@)@
+	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_DEBUG_M)@)@
+	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_M)@)@
+	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_DEBUG_M)@)@
+)@@if(platform!=windows @for_langalias(@for_toolchain(@insert(Makefile-install)@)@)@
 )@@if(platform==windows @m_install@)@
 
 @backend_prefix@-install-post::

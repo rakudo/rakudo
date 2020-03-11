@@ -72,10 +72,12 @@ class CompUnit::RepositoryRegistry {
         my $precomp-specs :=
           nqp::ifnull(nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH'),False);
 
+        my CompUnit::Repository $next-repo;
+
         # starting up for creating precomp
         if $precomp-specs {
             # assume well formed strings
-            $raw-specs := nqp::split(',', $precomp-specs);
+            $raw-specs := nqp::split(',',$precomp-specs);
         }
 
         # normal start up
@@ -95,6 +97,17 @@ class CompUnit::RepositoryRegistry {
             if nqp::atkey($ENV,'PERL6LIB') -> $specs {
                 nqp::push($raw-specs,$_) for parse-include-specS($specs);
             }
+
+            # your basic repo chain
+            $next-repo := CompUnit::Repository::AbsolutePath.new(
+              :next-repo(CompUnit::Repository::NQP.new(
+                :next-repo(CompUnit::Repository::Perl5.new(
+#?if jvm
+                  :next-repo(CompUnit::Repository::JavaRuntime.new)
+#?endif
+                ))
+              ))
+            );
         }
 
         my str $prefix = nqp::ifnull(
@@ -125,18 +138,6 @@ class CompUnit::RepositoryRegistry {
         my str $site   = 'inst#' ~ $prefix ~ $sep ~ 'site';
         my str $vendor = 'inst#' ~ $prefix ~ $sep ~ 'vendor';
         my str $core   = 'inst#' ~ $prefix ~ $sep ~ 'core';
-
-        # your basic repo chain
-        my CompUnit::Repository $next-repo;
-        $next-repo := CompUnit::Repository::AbsolutePath.new(
-          :next-repo(CompUnit::Repository::NQP.new(
-            :next-repo(CompUnit::Repository::Perl5.new(
-#?if jvm
-              :next-repo(CompUnit::Repository::JavaRuntime.new)
-#?endif
-            ))
-          ))
-        ) unless $precomp-specs;
 
         # create reverted, unique list of path-specs
         my $unique := nqp::hash();

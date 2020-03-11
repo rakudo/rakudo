@@ -69,10 +69,10 @@ class CompUnit::RepositoryRegistry {
         my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
         my $sep := $*SPEC.dir-sep;
 
+        my $precomp-specs :=
+          nqp::ifnull(nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH'),False);
+
         # starting up for creating precomp
-        my $precomp-specs = nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH')
-            ?? nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH')
-            !! False;
         if $precomp-specs {
             # assume well formed strings
             $raw-specs := nqp::split(',', $precomp-specs);
@@ -86,23 +86,21 @@ class CompUnit::RepositoryRegistry {
                  for parse-include-specS($specs);
             }
 
-            if nqp::existskey($ENV,'RAKUDOLIB') {
-                nqp::push($raw-specs,$_)
-                  for parse-include-specS(nqp::atkey($ENV,'RAKUDOLIB'));
+            if nqp::atkey($ENV,'RAKUDOLIB') -> $specs {
+                nqp::push($raw-specs,$_) for parse-include-specS($specs);
             }
-            if nqp::existskey($ENV,'RAKULIB') {
-                nqp::push($raw-specs,$_)
-                  for parse-include-specS(nqp::atkey($ENV,'RAKULIB'));
+            if nqp::atkey($ENV,'RAKULIB') -> $specs {
+                nqp::push($raw-specs,$_) for parse-include-specS($specs);
             }
-            if nqp::existskey($ENV,'PERL6LIB') {
-                nqp::push($raw-specs,$_)
-                  for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
+            if nqp::atkey($ENV,'PERL6LIB') -> $specs {
+                nqp::push($raw-specs,$_) for parse-include-specS($specs);
             }
         }
 
-        my str $prefix = nqp::existskey($ENV,'RAKUDO_PREFIX')
-          ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
-          !! nqp::getcurhllsym('$RAKUDO_HOME');
+        my str $prefix = nqp::ifnull(
+          nqp::atkey($ENV,'RAKUDO_PREFIX'),
+          nqp::getcurhllsym('$RAKUDO_HOME')
+        );
 
         # normalize $prefix if needed since it will be used in a hash lookup
         $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
@@ -111,23 +109,22 @@ class CompUnit::RepositoryRegistry {
         my str $home;
         my str $home-spec;
         try {
-            if nqp::existskey($ENV,'HOME')
-              ?? nqp::atkey($ENV,'HOME')
-              !! nqp::concat(
-                   (nqp::existskey($ENV,'HOMEDRIVE')
-                     ?? nqp::atkey($ENV,'HOMEDRIVE') !! ''),
-                   (nqp::existskey($ENV,'HOMEPATH')
-                     ?? nqp::atkey($ENV,'HOMEPATH') !! '')
-                 ) -> $home-path {
-                $home = "{$home-path}{$sep}.raku";
-                $home-spec = "inst#$home";
+            if nqp::ifnull(
+                 nqp::atkey($ENV,'HOME'),
+                 nqp::concat(
+                   nqp::ifnull(nqp::atkey($ENV,'HOMEDRIVE'),''),
+                   nqp::ifnull(nqp::atkey($ENV,'HOMEPATH'),'')
+                 )
+               ) -> $home-path {
+                $home = $home-path ~ $sep ~ '.raku';
+                $home-spec = 'inst#' ~ $home;
             }
         }
 
         # set up custom libs
-        my str $site   = "inst#{$prefix}{$sep}site";
-        my str $vendor = "inst#{$prefix}{$sep}vendor";
-        my str $core   = "inst#{$prefix}{$sep}core";
+        my str $site   = 'inst#' ~ $prefix ~ $sep ~ 'site';
+        my str $vendor = 'inst#' ~ $prefix ~ $sep ~ 'vendor';
+        my str $core   = 'inst#' ~ $prefix ~ $sep ~ 'core';
 
         # your basic repo chain
         my CompUnit::Repository $next-repo :=

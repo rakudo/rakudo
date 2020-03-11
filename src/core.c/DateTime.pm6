@@ -14,31 +14,31 @@ my class DateTime does Dateish {
           !! nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!year'));
 
         nqp::push_s($parts,'-');
-        nqp::push_s($parts,'0') if nqp::islt_i($!month,10);
+        nqp::push_s($parts,nqp::x('0',nqp::islt_i($!month,10)));
         nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!month'));
 
         nqp::push_s($parts,'-');
-        nqp::push_s($parts,'0') if nqp::islt_i($!day,10);
+        nqp::push_s($parts,nqp::x('0',nqp::islt_i($!day,10)));
         nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!day'));
 
         nqp::push_s($parts,'T');
-        nqp::push_s($parts,'0') if nqp::islt_i($!hour,10);
+        nqp::push_s($parts,nqp::x('0',nqp::islt_i($!hour,10)));
         nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!hour'));
 
         nqp::push_s($parts,':');
-        nqp::push_s($parts,'0') if nqp::islt_i($!minute,10);
+        nqp::push_s($parts,nqp::x('0',nqp::islt_i($!minute,10)));
         nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!minute'));
 
         nqp::push_s($parts,':');
         my int $second = $!second.floor;
         if $second == $!second {
-            nqp::push_s($parts,'0') if nqp::islt_i($second,10);
+            nqp::push_s($parts,nqp::x('0',nqp::islt_i($second,10)));
             nqp::push_s($parts,$second);
         }
         elsif $second {
             my int $int   = ($!second * 1000000 + .5).Int;
             my int $whole = nqp::substr($int,0,nqp::chars($int) - 6);
-            nqp::push_s($parts,'0') if nqp::islt_i($whole,10);
+            nqp::push_s($parts,nqp::x('0',nqp::islt_i($whole,10)));
             nqp::push_s($parts,$whole);
             nqp::push_s($parts,'.');
             nqp::push_s($parts,nqp::substr($int,nqp::chars($int) - 6));
@@ -53,12 +53,12 @@ my class DateTime does Dateish {
         if nqp::getattr_i(self,DateTime,'$!timezone') -> int $tz {
             nqp::push_s($parts,nqp::islt_i($tz,0) ?? '-' !! '+');
             my int $hours = nqp::div_i(nqp::abs_i($tz),3600);
-            nqp::push_s($parts,'0') if nqp::islt_i($hours,10);
+            nqp::push_s($parts,nqp::x('0',nqp::islt_i($hours,10)));
             nqp::push_s($parts,$hours);
 
             nqp::push_s($parts,':');
             my int $minutes = nqp::div_i(nqp::mod_i(nqp::abs_i($tz),3600),60);
-            nqp::push_s($parts,'0') if nqp::islt_i($minutes,10);
+            nqp::push_s($parts,nqp::x('0',nqp::islt_i($minutes,10)));
             nqp::push_s($parts,$minutes);
         }
         else {

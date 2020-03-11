@@ -96,6 +96,14 @@ perl6.rc
 /rakudo-debug-j
 /rakudo-eval-server
 /rakudo-jdb-server
+/inst-perl6
+/inst-perl6-debug
+/inst-perl6-m
+/inst-perl6-debug-m
+/inst-perl6.exe
+/inst-perl6-debug.exe
+/inst-perl6-m.exe
+/inst-perl6-debug-m.exe
 /inst-rakudo
 /inst-rakudo-debug
 /inst-rakudo-m

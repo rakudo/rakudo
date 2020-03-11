@@ -116,9 +116,13 @@ my $jdbopts = '-Xdebug -Xrunjdwp:transport=dt_socket,address='
 
 if ($debugger) {
     install "rakudo-debug-j", "java $jopts rakudo-debug";
+    install "perl6-debug-j", "java $jopts rakudo-debug";
 }
 else {
     install "rakudo-j", "java $jopts perl6 $blib";
+    install "perl6-j", "java $jopts perl6 $blib";
     install "rakudo-jdb-server", "java $jdbopts $jopts perl6 $blib";
+    install "perl6-jdb-server", "java $jdbopts $jopts perl6 $blib";
     install "rakudo-eval-server", "java -Xmx3000m $jopts org.perl6.nqp.tools.EvalServer";
+    install "perl6-eval-server", "java -Xmx3000m $jopts org.perl6.nqp.tools.EvalServer";
 }

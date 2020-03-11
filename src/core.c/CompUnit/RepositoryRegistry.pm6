@@ -414,26 +414,27 @@ class CompUnit::RepositoryRegistry {
         );
     }
 
-    sub parse-include-specS(Str:D $specs) {
-        my @found;
-        my $default-short-id = 'file';
+    sub parse-include-specS(Str:D $specs --> List:D) {
+        my $found := nqp::list();
+        my $default-short-id := 'file';
 
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Parsing specs: $specs") }
 
-        # for all possible specs
-        my $spec-list := nqp::split(',', $specs);
-        my $iter      := nqp::iterator($spec-list);
-        while $iter {
-            my $spec := nqp::shift($iter);
-            if CompUnit::Repository::Spec.from-string($spec.trim, :$default-short-id) -> $repo-spec {
-                @found.push: $repo-spec;
-                $default-short-id = $repo-spec.short-id;
-            }
-            elsif $spec {
-                die "Don't know how to handle $spec";
+        # for *all possible specs
+        my $spec-list := nqp::split(',',$specs);
+        while nqp::elems($spec-list) {
+            if nqp::shift($spec-list).trim -> $spec {
+                if CompUnit::Repository::Spec.from-string(
+                     $spec, :$default-short-id) -> $repo-spec {
+                    nqp::push($found,$repo-spec);
+                    $default-short-id := $repo-spec.short-id;
+                }
+                else {
+                    die "Don't know how to handle '$spec'";
+                }
             }
         }
-        @found;
+        nqp::hllize($found)
     }
 }
 

@@ -51,7 +51,7 @@ my class DateTime does Dateish {
               $second
             ));
         }
-        else {
+        elsif $second {
             my int $int = ($!second * 1000000 + .5).Int;
             my int $whole = nqp::substr($int,0,nqp::chars($int) - 6);
             nqp::push_s($parts,nqp::concat(
@@ -60,6 +60,14 @@ my class DateTime does Dateish {
             ));
             nqp::push_s($parts,'.');
             nqp::push_s($parts,nqp::substr($int,nqp::chars($int) - 6));
+        }
+        else {
+            my int $int = ($!second * 1000000 + .5).Int;
+            nqp::push_s($parts,'00.');
+            nqp::push_s($parts,nqp::concat(
+              nqp::x('0',6 - nqp::chars($int)),
+              $int
+            ));
         }
 
         if nqp::getattr_i(self,DateTime,'$!timezone') -> int $tz {

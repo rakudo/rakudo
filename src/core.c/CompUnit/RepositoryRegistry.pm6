@@ -16,8 +16,8 @@ class CompUnit::Repository::NodeJs { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
-    my $lock     = Lock.new;
-    my %include-spec2cur;
+    my $lock := Lock.new;
+    my $include-spec2cur := nqp::hash;
 
     proto method repository-for-spec(|) { * }
     multi method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
@@ -27,29 +27,39 @@ class CompUnit::RepositoryRegistry {
         my $short-id := $spec.short-id;
         my %options  := $spec.options;
         my $path     := $spec.path;
+        my $class    := short-id2class($short-id);
 
-        my $class := short-id2class($short-id);
-        return CompUnit::Repository::Unknown.new(:path-spec($spec), :short-name($short-id))
-            if so $class && nqp::istype($class, Failure) or !nqp::istype($class, CompUnit::Repository);
+        if nqp::istype($class,CompUnit::Repository) {
+            my $prefix := nqp::can($class,"absolutify")
+              ?? $class.absolutify($path)
+              !! $path;
+            %options<next-repo> = $next-repo if $next-repo;
 
-        my $abspath = nqp::can($class,"absolutify")
-          ?? $class.absolutify($path)
-          !! $path;
-        my $id      = "$short-id#$abspath";
-        %options<next-repo> = $next-repo if $next-repo;
-        $lock.protect( {
-            %include-spec2cur{$id}:exists
-              ?? %include-spec2cur{$id}
-              !! (%include-spec2cur{$id} := $class.new(:prefix($abspath), |%options));
-        } );
+            my str $id = "$short-id#$prefix";
+            $lock.protect: {
+                nqp::ifnull(
+                  nqp::atkey($include-spec2cur,$id),
+                  nqp::bindkey($include-spec2cur,$id,
+                    $class.new(:$prefix, |%options)
+                  )
+                )
+            }
+        }
+        else {
+            CompUnit::Repository::Unknown.new(
+              :path-spec($spec),
+              :short-name($short-id)
+            )
+        }
     }
 
-    method !register-repository($id, CompUnit::Repository $repo) {
-        $lock.protect( {
-            %include-spec2cur{$id}:exists
-              ?? %include-spec2cur{$id}
-              !! (%include-spec2cur{$id} := $repo);
-        } );
+    method !register-repository(str $id, CompUnit::Repository $repo) {
+        $lock.protect: {
+            nqp::ifnull(
+              nqp::atkey($include-spec2cur,$id),
+              nqp::bindkey($include-spec2cur,$id,$repo)
+            )
+        }
     }
 
     my $custom-lib := nqp::hash();

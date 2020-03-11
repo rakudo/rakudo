@@ -127,26 +127,22 @@ class CompUnit::RepositoryRegistry {
         my str $core   = 'inst#' ~ $prefix ~ $sep ~ 'core';
 
         # your basic repo chain
-        my CompUnit::Repository $next-repo :=
-            $precomp-specs
-            ?? CompUnit::Repository
-            !! CompUnit::Repository::AbsolutePath.new(
-                :next-repo( CompUnit::Repository::NQP.new(
-                    :next-repo(CompUnit::Repository::Perl5.new(
+        my CompUnit::Repository $next-repo;
+        $next-repo := CompUnit::Repository::AbsolutePath.new(
+          :next-repo(CompUnit::Repository::NQP.new(
+            :next-repo(CompUnit::Repository::Perl5.new(
 #?if jvm
-                        :next-repo(CompUnit::Repository::JavaRuntime.new)
+              :next-repo(CompUnit::Repository::JavaRuntime.new)
 #?endif
-                    ))
-                )
-            )
-        );
+            ))
+          ))
+        ) unless $precomp-specs;
 
         # create reverted, unique list of path-specs
-        my $iter   := nqp::iterator($raw-specs);
         my $unique := nqp::hash();
         my $specs  := nqp::list();
-        while $iter {
-            my $repo-spec := nqp::shift($iter);
+        while nqp::elems($raw-specs) {
+            my $repo-spec := nqp::shift($raw-specs);
             my str $path-spec = $repo-spec.Str;
             unless nqp::existskey($unique,$path-spec) {
                 nqp::bindkey($unique,$path-spec,1);
@@ -175,9 +171,8 @@ class CompUnit::RepositoryRegistry {
 
         # convert repo-specs to repos
         my $repos := nqp::hash();
-        $iter := nqp::iterator($specs);
-        while $iter {
-            my $spec = nqp::shift($iter);
+        while nqp::elems($specs) {
+            my $spec := nqp::shift($specs);
             $next-repo := self.use-repository(
               self.repository-for-spec($spec), :current($next-repo));
             nqp::bindkey($repos,$spec.Str,$next-repo);

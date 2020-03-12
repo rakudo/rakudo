@@ -110,35 +110,6 @@ class CompUnit::RepositoryRegistry {
             );
         }
 
-        my str $prefix = nqp::ifnull(
-          nqp::atkey($ENV,'RAKUDO_PREFIX'),
-          nqp::getcurhllsym('$RAKUDO_HOME')
-        );
-
-        # normalize $prefix if needed since it will be used in a hash lookup
-        $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
-
-        # XXX Various issues with this stuff on JVM , TEMPORARY
-        my str $home;
-        my str $home-spec;
-        try {
-            if nqp::ifnull(
-                 nqp::atkey($ENV,'HOME'),
-                 nqp::concat(
-                   nqp::ifnull(nqp::atkey($ENV,'HOMEDRIVE'),''),
-                   nqp::ifnull(nqp::atkey($ENV,'HOMEPATH'),'')
-                 )
-               ) -> $home-path {
-                $home = $home-path ~ $sep ~ '.raku';
-                $home-spec = 'inst#' ~ $home;
-            }
-        }
-
-        # set up custom libs
-        my str $site   = 'inst#' ~ $prefix ~ $sep ~ 'site';
-        my str $vendor = 'inst#' ~ $prefix ~ $sep ~ 'vendor';
-        my str $core   = 'inst#' ~ $prefix ~ $sep ~ 'core';
-
         # create reverted, unique list of path-specs
         my $unique := nqp::hash();
         my $specs  := nqp::list();
@@ -150,6 +121,38 @@ class CompUnit::RepositoryRegistry {
                 nqp::unshift($specs,$repo-spec);
             }
         }
+
+        # set up and normalize $prefix if needed
+        my str $prefix = nqp::ifnull(
+          nqp::atkey($ENV,'RAKUDO_PREFIX'),
+          nqp::getcurhllsym('$RAKUDO_HOME')
+        );
+        $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
+
+        # set up custom libs
+        my str $core   = 'inst#' ~ $prefix ~ $sep ~ 'core';
+        my str $vendor = 'inst#' ~ $prefix ~ $sep ~ 'vendor';
+        my str $site   = 'inst#' ~ $prefix ~ $sep ~ 'site';
+
+        my str $home;
+        my str $home-spec;
+#?if jvm
+        # XXX Various issues with this stuff on JVM , TEMPORARY
+        try {
+#?endif
+            if nqp::ifnull(
+                 nqp::atkey($ENV,'HOME'),
+                 nqp::concat(
+                   nqp::ifnull(nqp::atkey($ENV,'HOMEDRIVE'),''),
+                   nqp::ifnull(nqp::atkey($ENV,'HOMEPATH'),'')
+                 )
+               ) -> $home-path {
+                $home = $home-path ~ $sep ~ '.raku';
+                $home-spec = 'inst#' ~ $home;
+            }
+#?if jvm
+        }
+#?endif
 
         unless $precomp-specs {
             nqp::bindkey($custom-lib, 'core', $next-repo := self!register-repository(
@@ -180,40 +183,24 @@ class CompUnit::RepositoryRegistry {
         }
 
         # register manually set custom-lib repos
-        unless nqp::existskey($custom-lib, 'core') {
-            my $repo := nqp::atkey($repos, $core);
-            if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'core');
-            }
-            else {
-                nqp::bindkey($custom-lib, 'core', $repo);
+        unless nqp::existskey($custom-lib,'core') {
+            if nqp::atkey($repos,$core) -> \repo {
+                nqp::bindkey($custom-lib,'core',repo);
             }
         }
-        unless nqp::existskey($custom-lib, 'vendor') {
-            my $repo := nqp::atkey($repos, $vendor);
-            if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'vendor');
-            }
-            else {
-                nqp::bindkey($custom-lib, 'vendor', $repo);
+        unless nqp::existskey($custom-lib,'vendor') {
+            if nqp::atkey($repos,$vendor) -> \repo {
+                nqp::bindkey($custom-lib,'vendor',repo);
             }
         }
-        unless nqp::existskey($custom-lib, 'site') {
-            my $repo := nqp::atkey($repos, $site);
-            if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'site');
-            }
-            else {
-                nqp::bindkey($custom-lib, 'site', $repo);
+        unless nqp::existskey($custom-lib,'site') {
+            if nqp::atkey($repos,$site) -> \repo {
+                nqp::bindkey($custom-lib,'site',\repo);
             }
         }
-        unless nqp::existskey($custom-lib, 'home') {
-            my $repo := nqp::atkey($repos, $home-spec);
-            if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'home');
-            }
-            else {
-                nqp::bindkey($custom-lib, 'home', $repo);
+        unless nqp::existskey($custom-lib,'home') {
+            if $home-spec && nqp::atkey($repos,$home-spec) -> \repo {
+                nqp::bindkey($custom-lib,'home',\repo);
             }
         }
 

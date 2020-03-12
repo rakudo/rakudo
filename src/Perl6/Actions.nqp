@@ -1251,15 +1251,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Turn $code into "for lines() { $code }"
     sub wrap_option_n_code($/, $code) {
-        $code := make_topic_block_ref($/, $code, copy => 1);
-        my $past := QAST::Op.new(:op<callmethod>, :name<map>,
+        my $fornode := QAST::Op.new(
+            :op<p6for>, :node($/),
             QAST::Op.new(:op<call>, :name<&lines>),
-            QAST::Op.new(:op<p6capturelex>, $code)
+            block_closure(make_topic_block_ref($/, $code, copy => 1)),
         );
-        $past := QAST::Want.new(
-            QAST::Op.new( :op<callmethod>, :name<sink>, $past ),
-            'v', QAST::Op.new( :op<callmethod>, :name<sink>, $past )
-        );
+        if can-use-p6forstmt($fornode[1]) {
+            $fornode.op('p6forstmt');
+            $fornode.annotate('IterationEnd', $*W.find_symbol(['IterationEnd']));
+            $fornode.annotate('Nil', $*W.find_symbol(['Nil']));
+        }
+        return $fornode;
     }
 
     # Turn $code into "for lines() { $code; say $_ }"

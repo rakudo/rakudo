@@ -65,9 +65,8 @@ class CompUnit::PrecompilationRepository::Default
 
         # Even if we may no longer precompile, we should use already loaded files
         $loaded-lock.protect: {
-            if nqp::atkey($loaded,$id.Str) -> \precomped {
-                return precomped;
-            }
+            my \precomped := nqp::atkey($loaded,$id.Str);
+            return precomped if precomped;
         }
 
         my ($handle, $checksum) = (
@@ -78,16 +77,15 @@ class CompUnit::PrecompilationRepository::Default
             )
         );
 
-        if $*W -> $World {
-            if $World.record_precompilation_dependencies {
-                if $handle {
-                    $dependency.checksum = $checksum;
-                    say $dependency.serialize;
-                    $*OUT.flush;
-                }
-                else {
-                    nqp::exit(0);
-                }
+        my $World := $*W;
+        if $World && $World.record_precompilation_dependencies {
+            if $handle {
+                $dependency.checksum = $checksum;
+                say $dependency.serialize;
+                $*OUT.flush;
+            }
+            else {
+                nqp::exit(0);
             }
         }
 
@@ -227,13 +225,12 @@ Need to re-check dependencies.")
         }
 
         # report back id and source location of dependency to dependant
-        if $*W -> $World {
-            if $World.record_precompilation_dependencies {
-                for $precomp-unit.dependencies -> $dependency {
-                    say $dependency.serialize;
-                }
-                $*OUT.flush;
+        my $World := $*W;
+        if $World && $World.record_precompilation_dependencies {
+            for $precomp-unit.dependencies -> $dependency {
+                say $dependency.serialize;
             }
+            $*OUT.flush;
         }
 
         if $resolve {
@@ -275,12 +272,12 @@ Need to re-check dependencies.")
         Array[CompUnit::PrecompilationStore].new($.store),
     ) {
         $loaded-lock.protect: {
-            if nqp::atkey($loaded,$id.Str) -> \precomped {
-                return precomped;
-            }
+            my \precomped := nqp::atkey($loaded,$id.Str);
+            return precomped if precomped;
         }
 
-        if self!load-file(@precomp-stores, $id) -> $unit {
+        my $unit := self!load-file(@precomp-stores, $id);
+        if $unit {
             if (not $since or $unit.modified > $since)
                 and (not $source or ($checksum //= CHECKSUM($source)) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
@@ -381,12 +378,9 @@ Need to re-check dependencies.")
               '[' ~ Rakudo::Internals::JSON.to-json($path.Str) ~ ']');
         }
 
-        if $*DISTRIBUTION -> $distribution {
-            nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',$distribution.serialize);
-        }
-        else {
-            nqp::bindkey($env,'RAKUDO_PRECOMP_DIST','{}');
-        }
+        my $distribution := $*DISTRIBUTION;
+        nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',
+          $distribution ?? $distribution.serialize !! '{}');
 
         $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
           if $!RMD;

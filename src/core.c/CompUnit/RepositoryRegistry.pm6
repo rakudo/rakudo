@@ -88,17 +88,14 @@ class CompUnit::RepositoryRegistry {
                  for parse-include-specS($specs);
             }
 
-            if nqp::existskey($ENV,'RAKUDOLIB') {
-                nqp::push($raw-specs,$_)
-                  for parse-include-specS(nqp::atkey($ENV,'RAKUDOLIB'));
+            if nqp::atkey($ENV,'RAKUDOLIB') -> $specs {
+                nqp::push($raw-specs,$_) for parse-include-specS($specs);
             }
-            if nqp::existskey($ENV,'RAKULIB') {
-                nqp::push($raw-specs,$_)
-                  for parse-include-specS(nqp::atkey($ENV,'RAKULIB'));
+            if nqp::atkey($ENV,'RAKULIB') -> $specs {
+                nqp::push($raw-specs,$_) for parse-include-specS($specs);
             }
-            if nqp::existskey($ENV,'PERL6LIB') {
-                nqp::push($raw-specs,$_)
-                  for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
+            if nqp::atkey($ENV,'PERL6LIB') -> $specs {
+                nqp::push($raw-specs,$_) for parse-include-specS($specs);
             }
 
             # your basic repo chain
@@ -173,7 +170,7 @@ class CompUnit::RepositoryRegistry {
             nqp::bindkey($custom-lib, 'home', $next-repo := self!register-repository(
                 $home-spec,
                 CompUnit::Repository::Installation.new(:prefix($home), :$next-repo)
-            )) if $home and nqp::not_i(nqp::existskey($unique, $home-spec));
+            )) if $home and not nqp::existskey($unique, $home-spec);
         }
 
         # convert repo-specs to repos
@@ -187,21 +184,23 @@ class CompUnit::RepositoryRegistry {
 
         # register manually set custom-lib repos
         unless nqp::existskey($custom-lib,'core') {
-            my \repo := nqp::atkey($repos,$core);
-            nqp::bindkey($custom-lib,'core',repo) if repo;
+            if nqp::atkey($repos,$core) -> \repo {
+                nqp::bindkey($custom-lib,'core',repo);
+            }
         }
         unless nqp::existskey($custom-lib,'vendor') {
-            my \repo := nqp::atkey($repos,$vendor);
-            nqp::bindkey($custom-lib,'vendor',repo) if repo;
+            if nqp::atkey($repos,$vendor) -> \repo {
+                nqp::bindkey($custom-lib,'vendor',repo);
+            }
         }
         unless nqp::existskey($custom-lib,'site') {
-            my \repo := nqp::atkey($repos,$site);
-            nqp::bindkey($custom-lib,'site',\repo) if repo;
+            if nqp::atkey($repos,$site) -> \repo {
+                nqp::bindkey($custom-lib,'site',\repo);
+            }
         }
         unless nqp::existskey($custom-lib,'home') {
-            if $home-spec {
-                my \repo := nqp::atkey($repos,$home-spec);
-                nqp::bindkey($custom-lib,'home',\repo) if repo;
+            if $home-spec && nqp::atkey($repos,$home-spec) -> \repo {
+                nqp::bindkey($custom-lib,'home',\repo);
             }
         }
 

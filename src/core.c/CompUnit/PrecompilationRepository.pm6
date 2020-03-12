@@ -431,7 +431,7 @@ Need to re-check dependencies.")
             }
             if $stagestats {
                 whenever $proc.stderr.lines {
-                    note("    $stagestats");
+                    note("    $_");
                     $*ERR.flush;
                 }
             }

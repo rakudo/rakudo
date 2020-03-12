@@ -313,6 +313,20 @@ Need to re-check dependencies.")
         }
     }
 
+    method !already-precompiled($path, $source, $destination, $bap --> True) {
+        $!RMD(
+          $source ~ "\nalready precompiled into\n" ~ $destination
+            ~ ($bap ?? ' by another process' !! '')
+        ) if $!RMD;
+
+        if $stagestats {
+            my $err := $*ERR;
+            $err.print("\n    load    $path.relative()\n");
+            $err.flush;
+        }
+        self.store.unlock;
+    }
+
     proto method precompile(|) {*}
 
     multi method precompile(
@@ -331,32 +345,26 @@ Need to re-check dependencies.")
         :$source-name = $path.Str,
         :$precomp-stores,
     ) {
-        my $io = self.store.destination($compiler-id, $id);
-        return False unless $io;
-        if $force
-            ?? (
-                $precomp-stores
-                and my $unit = self!load-file($precomp-stores, $id, :refresh)
-                and do {
-                    LEAVE $unit.close;
-                    CHECKSUM($path) eq $unit.source-checksum
-                    and self!load-dependencies($unit, $precomp-stores)
-                }
-            )
-            !! ($io.e and $io.s)
-        {
-            $!RMD("$source-name\nalready precompiled into\n{$io}{
-                $force ?? ' by another process' !! ''
-            }")
-              if $!RMD;
 
-            if $stagestats {
-                note "\n    load    $path.relative()";
-                $*ERR.flush;
-            }
-            self.store.unlock;
-            return True;
+        # obtain destination, lock the store for other processes
+        my $io := self.store.destination($compiler-id, $id);
+        return False unless $io;
+
+        if $force {
+            return self!already-precompiled($path,$source-name,$io,1)
+              if $precomp-stores
+              and my $unit := self!load-file($precomp-stores, $id, :refresh)
+              and do {
+                         LEAVE $unit.close;
+                         CHECKSUM($path) eq $unit.source-checksum
+                         and self!load-dependencies($unit, $precomp-stores)
+                     }
         }
+
+        elsif $io.e and $io.s {
+            return self!already-precompiled($path,$source-name,$io,0)
+        }
+
         my $source-checksum = CHECKSUM($path);
         my $bc = "$io.bc".IO;
 

@@ -231,22 +231,32 @@ class CompUnit::RepositoryRegistry {
         $next-repo
     }
 
-    method !remove-from-chain(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO) {
-        my $item = $current;
+    method !remove-from-chain(
+      CompUnit::Repository $repo,
+      CompUnit::Repository $current
+    --> Nil) {
+        my $item := $current;
         while $item {
             if $item.next-repo === $repo {
                 $item.next-repo = $repo.next-repo;
                 last;
             }
-            $item = $item.next-repo;
+            $item := $item.next-repo;
         }
     }
 
-    method use-repository(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO) {
-        return $repo if $current === $repo;
-        self!remove-from-chain($repo, :$current);
-        $repo.next-repo = $current;
-        PROCESS::<$REPO> := $repo;
+    method use-repository(
+      CompUnit::Repository $repo,
+      CompUnit::Repository :$current = $*REPO
+    --> CompUnit::Repository:D) {
+        if $current === $repo {
+            $repo
+        }
+        else {
+            self!remove-from-chain($repo, $current);
+            $repo.next-repo = $current;
+            PROCESS::<$REPO> := $repo;
+        }
     }
 
     method repository-for-name(Str:D \name) {

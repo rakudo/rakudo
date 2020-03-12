@@ -158,22 +158,45 @@ class CompUnit::RepositoryRegistry {
 #?endif
 
         unless $precomp-specs {
-            nqp::bindkey($custom-lib, 'core', $next-repo := self!register-repository(
+            nqp::bindkey($custom-lib,'core',
+              $next-repo := self!register-repository(
                 $core,
-                CompUnit::Repository::Installation.new(:prefix("$prefix/core"), :$next-repo)
-            )) unless nqp::existskey($unique, $core);
-            nqp::bindkey($custom-lib, 'vendor', $next-repo := self!register-repository(
+                CompUnit::Repository::Installation.new(
+                  :prefix("$prefix/core"),
+                  :$next-repo
+                )
+              )
+            ) unless nqp::existskey($unique,$core);
+
+            nqp::bindkey($custom-lib,'vendor',
+              $next-repo := self!register-repository(
                 $vendor,
-                CompUnit::Repository::Installation.new(:prefix("$prefix/vendor"), :$next-repo)
-            )) unless nqp::existskey($unique, $vendor);
-            nqp::bindkey($custom-lib, 'site', $next-repo := self!register-repository(
+                CompUnit::Repository::Installation.new(
+                  :prefix("$prefix/vendor"),
+                  :$next-repo
+                )
+              )
+            ) unless nqp::existskey($unique, $vendor);
+
+            nqp::bindkey($custom-lib,'site',
+              $next-repo := self!register-repository(
                 $site,
-                CompUnit::Repository::Installation.new(:prefix("$prefix/site"), :$next-repo)
-            )) unless nqp::existskey($unique, $site);
-            nqp::bindkey($custom-lib, 'home', $next-repo := self!register-repository(
+                CompUnit::Repository::Installation.new(
+                  :prefix("$prefix/site"),
+                  :$next-repo
+                )
+              )
+            ) unless nqp::existskey($unique, $site);
+
+            nqp::bindkey($custom-lib,'home',
+              $next-repo := self!register-repository(
                 $home-spec,
-                CompUnit::Repository::Installation.new(:prefix($home), :$next-repo)
-            )) if $home and nqp::not_i(nqp::existskey($unique, $home-spec));
+                CompUnit::Repository::Installation.new(
+                  :prefix($home),
+                  :$next-repo
+                )
+              )
+            ) if $home-spec and nqp::not_i(nqp::existskey($unique,$home-spec));
         }
 
         # convert repo-specs to repos

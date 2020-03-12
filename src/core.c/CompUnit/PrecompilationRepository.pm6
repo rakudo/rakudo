@@ -227,10 +227,14 @@ Need to re-check dependencies.")
         # report back id and source location of dependency to dependant
         my $World := $*W;
         if $World && $World.record_precompilation_dependencies {
-            for $precomp-unit.dependencies -> $dependency {
-                say $dependency.serialize;
-            }
-            $*OUT.flush;
+            my $dependencies := nqp::list_s();
+            nqp::push_s($dependencies,.serialize)
+              for $precomp-unit.dependencies;
+            nqp::push_s($dependencies,"");  # for final \n
+
+            my $out := $*OUT;
+            $out.print(nqp::join($out.nl-out,$dependencies));
+            $out.flush;
         }
 
         if $resolve {

@@ -237,7 +237,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
 
 multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export {
     $time_after = nqp::time_n;
-    $got.defined; # Hack to deal with Failures
+    $got.defined if nqp::istype($got, Failure); # Hack to deal with Failures
     my $ok;
 
     # the three labeled &CALLERS below are as follows:
@@ -253,8 +253,8 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
-            my $expected-desc = (try $expected.raku) // $expected.gist;
-            my      $got-desc = (try $got     .raku) // $got     .gist;
+            my $expected-desc = stringify $expected;
+            my      $got-desc = stringify $got;
             _diag "expected: $expected-desc\n"
                 ~ " matcher: '" ~ ($matcher.?name || $matcher.^name) ~ "'\n"
                 ~ "     got: $got-desc";
@@ -696,6 +696,14 @@ sub eval_exception($code) {
         EVAL ($code);
     }
     $!;
+}
+
+# Stringifies values passed to &cmp-ok.
+sub stringify(Mu $obj is raw --> Str:D) {
+    (try $obj.raku if nqp::can($obj, 'raku'))
+        // ($obj.gist if nqp::can($obj, 'gist'))
+        // ($obj.HOW.name($obj) if nqp::can($obj.HOW, 'name'))
+        // '?'
 }
 
 # Take $cond as Mu so we don't thread with Junctions:

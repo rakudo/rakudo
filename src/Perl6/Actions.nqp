@@ -9393,11 +9393,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             WANTED(QAST::Var.new( :name(%info<variable_name>), :scope('lexical') ),'lower_signature/wrap'),
                             nqp::existskey(%info, 'container_descriptor')
                                 ?? QAST::Op.new(
-                                        :op('assignunchecked'),
-                                        QAST::Op.new(
-                                            :op('p6scalarfromdesc'),
-                                            QAST::WVal.new( :value(%info<container_descriptor>) )
-                                        ),
+                                        :op('p6scalarwithvalue'),
+                                        QAST::WVal.new( :value(%info<container_descriptor>) ),
                                         QAST::Var.new( :name(get_decont_name() || $name), :scope('local') )
                                    )
                                 !! QAST::Op.new(

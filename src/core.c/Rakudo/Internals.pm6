@@ -1261,13 +1261,13 @@ implementation detail and has no serviceable parts inside"
         my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
         nqp::isge_i($d,0)
           ?? $d
-          !! Failure.new(X::IO::Unknown.new(:trying<d>))
+          !! X::IO::Unknown.new(:trying<d>).throw
     }
     method FILETEST-F(Str:D \abspath) {
         my int $f = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG);
         nqp::isge_i($f,0)
           ?? $f
-          !! Failure.new(X::IO::Unknown.new(:trying<f>))
+          !! X::IO::Unknown.new(:trying<f>).throw
     }
     method FILETEST-S(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
@@ -1276,19 +1276,19 @@ implementation detail and has no serviceable parts inside"
         my int $l = nqp::fileislink(nqp::unbox_s(abspath));
         nqp::isge_i($l,0)
           ?? $l
-          !! Failure.new(X::IO::Unknown.new(:trying<l>))
+          !! X::IO::Unknown.new(:trying<l>).throw
     }
     method FILETEST-R(Str:D \abspath) {
         my int $r = nqp::filereadable(nqp::unbox_s(abspath));
         nqp::isge_i($r,0)
           ?? $r
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+          !! X::IO::Unknown.new(:trying<r>).throw
     }
     method FILETEST-W(Str:D \abspath) {
         my int $w = nqp::filewritable(nqp::unbox_s(abspath));
         nqp::isge_i($w,0)
           ?? $w
-          !! Failure.new(X::IO::Unknown.new(:trying<w>))
+          !! X::IO::Unknown.new(:trying<w>).throw
     }
     method FILETEST-RW(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1297,14 +1297,14 @@ implementation detail and has no serviceable parts inside"
         nqp::isge_i($r,0)
           ?? nqp::isge_i($w,0)
             ?? nqp::bitand_i($r,$w)
-            !! Failure.new(X::IO::Unknown.new(:trying<w>))
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+            !! X::IO::Unknown.new(:trying<w>).throw
+          !! X::IO::Unknown.new(:trying<r>).throw
     }
     method FILETEST-X(Str:D \abspath) {
         my int $x = nqp::fileexecutable(nqp::unbox_s(abspath));
         nqp::isge_i($x,0)
           ?? $x
-          !! Failure.new(X::IO::Unknown.new(:trying<x>))
+          !! X::IO::Unknown.new(:trying<x>).throw
     }
     method FILETEST-RWX(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1315,9 +1315,9 @@ implementation detail and has no serviceable parts inside"
           ?? nqp::isge_i($w,0)
             ?? nqp::isge_i($x,0)
               ?? nqp::bitand_i(nqp::bitand_i($r,$w),$x)
-              !! Failure.new(X::IO::Unknown.new(:trying<x>))
-            !! Failure.new(X::IO::Unknown.new(:trying<w>))
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+              !! X::IO::Unknown.new(:trying<x>).throw
+            !! X::IO::Unknown.new(:trying<w>).throw
+          !! X::IO::Unknown.new(:trying<r>).throw
     }
     method FILETEST-Z(Str:D \abspath) {
         nqp::iseq_i(

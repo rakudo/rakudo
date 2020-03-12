@@ -196,12 +196,12 @@ class CompUnit::RepositoryRegistry {
         }
         unless nqp::existskey($custom-lib,'site') {
             my \repo := nqp::atkey($repos,$site);
-            nqp::bindkey($custom-lib,'site',\repo) if repo;
+            nqp::bindkey($custom-lib,'site',repo) if repo;
         }
         unless nqp::existskey($custom-lib,'home') {
             if $home-spec {
                 my \repo := nqp::atkey($repos,$home-spec);
-                nqp::bindkey($custom-lib,'home',\repo) if repo;
+                nqp::bindkey($custom-lib,'home',repo) if repo;
             }
         }
 

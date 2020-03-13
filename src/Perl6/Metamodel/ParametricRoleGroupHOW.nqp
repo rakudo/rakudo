@@ -146,7 +146,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method update_role_typecheck_list($obj) {
-        my $ns := self.'!get_nonsignatured_candidate'($obj);
+        my $ns := self.'!get_nonsignatured_candidate'();
         @!role_typecheck_list := $ns.HOW.role_typecheck_list($ns) unless nqp::isnull($ns);
     }
 
@@ -169,7 +169,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
                 return 1;
             }
         }
-        my $ns := self.'!get_nonsignatured_candidate'($obj);
+        my $ns := self.'!get_nonsignatured_candidate'();
         return $ns.HOW.type_check_parents($ns, $decont) unless nqp::isnull($ns);
         0;
     }
@@ -177,61 +177,62 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method candidates($obj) { nqp::clone(@!candidates) }
 
     method lookup($obj, $name) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.lookup($c, $name);
     }
 
     method methods($obj, *@pos, *%name) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.methods($c, |@pos, |%name);
     }
 
     method attributes($obj, *@pos, *%name) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.attributes($c, |@pos, |%name);
     }
 
     method parents($obj, *%named) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.parents($c, |%named)
     }
 
     method roles($obj, *%named) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.roles($c, |%named)
     }
 
     method ver($obj) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.ver($c)
     }
 
     method auth($obj) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.auth($c)
     }
 
     method language-revision($obj) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         nqp::unless(nqp::isnull($c),
                     $c.HOW.language-revision($c),
                     nqp::null())
     }
 
     method is-implementation-detail($obj) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.is-implementation-detail($c)
     }
 
-    method !get_default_candidate($obj) {
-        nqp::ifnull(self.'!get_nonsignatured_candidate'($obj),
-                    nqp::if(
-                        +@!candidates,
-                        @!candidates[0],
-                        nqp::null()))
+    method WHY() {
+        my $c := self.'!get_default_candidate'();
+        $c.HOW.WHY
     }
 
-    method !get_nonsignatured_candidate($obj) {
+    method !get_default_candidate() {
+        self.'!get_nonsignatured_candidate'() || @!candidates[0]
+    }
+
+    method !get_nonsignatured_candidate() {
         return nqp::null unless +@!nonsignatured;
         @!nonsignatured[0]
     }

@@ -391,7 +391,7 @@ Need to re-check dependencies.")
         $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
           if $!RMD;
 
-        my $raku = $*EXECUTABLE.absolute
+        my $raku := $*EXECUTABLE.absolute
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
             .subst('perl6-gdb', 'perl6')
             .subst('perl6-jdb-server', 'perl6-j') ;
@@ -457,11 +457,11 @@ Need to re-check dependencies.")
               !! nqp::join('',$err);
         }
 
-        if not $!RMD and not $stagestats and nqp::elems($err) {
+        if nqp::elems($err) && not($!RMD || $stagestats) {
             $*ERR.print(nqp::join('',$err));
         }
 
-        unless $bc.e {
+        unless Rakudo::Internals.FILETEST-ES($bc.absolute) {
             $!RMD("$path aborted precompilation without failure")
               if $!RMD;
 
@@ -481,7 +481,8 @@ Need to re-check dependencies.")
               && nqp::chars($outstr) > 41 {
                 my $dependency :=
                   CompUnit::PrecompilationDependency::File.deserialize($outstr);
-                if $dependency && $dependency.Str -> str $dependency-str {
+                if $dependency {
+                    my str $dependency-str = $dependency.Str;
                     unless nqp::existskey($seen,$dependency-str) {
                         $!RMD($dependency-str)
                           if $!RMD;
@@ -498,6 +499,7 @@ Need to re-check dependencies.")
             }
         }
 
+        # HLLize dependencies
         my CompUnit::PrecompilationDependency::File @dependencies;
         nqp::bindattr(@dependencies,List,'$!reified',$dependencies);
 
@@ -508,7 +510,7 @@ Need to re-check dependencies.")
         $store.store-unit(
             $compiler-id,
             $id,
-            self.store.new-unit(
+            $store.new-unit(
               :$id,
               :@dependencies
               :$source-checksum,

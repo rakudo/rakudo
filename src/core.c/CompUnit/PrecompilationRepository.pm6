@@ -373,8 +373,9 @@ Need to re-check dependencies.")
         # Local copy for us to tweak
         my $env := nqp::clone(nqp::getattr(%*ENV,Map,'$!storage'));
 
+        my $REPO := $*REPO;
         nqp::bindkey($env,'RAKUDO_PRECOMP_WITH',
-          $*REPO.repo-chain.map(*.path-spec).join(',')
+          $REPO.repo-chain.map(*.path-spec).join(',')
         );
 
         if nqp::atkey($env,'RAKUDO_PRECOMP_LOADING') -> $rpl {
@@ -523,7 +524,7 @@ Need to re-check dependencies.")
             ),
         );
         $bc.unlink;
-        $store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));
+        $store.store-repo-id($compiler-id, $id, :repo-id($REPO.id));
         $store.unlock;
         True
     }

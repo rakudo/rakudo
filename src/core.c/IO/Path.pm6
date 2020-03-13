@@ -721,11 +721,12 @@ my class IO::Path is Cool does IO {
 
     method mode(IO::Path:D: --> IntStr:D) {
         if Rakudo::Internals.FILETEST-E(self.absolute) {  # sets $!abspath
-            my int $mode = nqp::bitand_i(
-              nqp::stat($!abspath, nqp::const::STAT_PLATFORM_MODE),
-              0o7777
-            );
-            IntStr.new($mode, sprintf('%04o', $mode))
+            my Int $mode := Rakudo::Internals.FILETEST-MODE($!abspath);
+            my str $str   = nqp::base_I($mode,8);
+            IntStr.new( 
+              $mode,
+              nqp::concat(nqp::x('0',4 - nqp::chars($str)),$str)
+            ) 
         }
         else {
             self!does-not-exist("mode")

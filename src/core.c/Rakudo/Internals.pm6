@@ -1333,6 +1333,13 @@ implementation detail and has no serviceable parts inside"
     method FILETEST-CHANGED(Str:D \abspath) {
         nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
     }
+    method FILETEST-MODE(Str:D \abspath) {
+        my int $mode =
+          nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_PLATFORM_MODE);
+        nqp::isge_i($mode,0)
+          ?? nqp::bitand_i($mode,0o7777)
+          !! X::IO::Unknown.new(:trying<mode>).throw
+    }
 
     method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {
         my $vmex := nqp::getattr(nqp::decont(exception), Exception, '$!ex');

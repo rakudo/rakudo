@@ -160,7 +160,7 @@ Need to re-check dependencies.")
 
         $resolve := False unless $!RRD;
 
-        my @dependencies;
+        my $dependencies := nqp::create(IterationBuffer);
         for $precomp-unit.dependencies -> $dependency {
             $!RMD("dependency: $dependency")
               if $!RMD;
@@ -187,7 +187,7 @@ Need to re-check dependencies.")
                 }
             }
 
-            my $dependency-precomp = @precomp-stores
+            my $dependency-precomp := @precomp-stores
                 .map({ $_.load-unit($compiler-id, $dependency.id) })
                 .first(*.defined)
                 or do {
@@ -202,16 +202,15 @@ Need to re-check dependencies.")
                 return False;
             }
 
-            @dependencies.push: $dependency-precomp;
+            nqp::push($dependencies,$dependency-precomp);
         }
 
         $loaded-lock.protect: {
-            for @dependencies -> $dependency-precomp {
-                nqp::bindkey(
-                  $loaded,
-                  $dependency-precomp.id.Str,
+            for $dependencies.List -> $dependency-precomp {
+                my str $key = $dependency-precomp.id.Str;
+                nqp::bindkey($loaded,$key,
                   self!load-handle-for-path($dependency-precomp)
-                ) unless nqp::existskey($loaded,$dependency-precomp.id.Str);
+                ) unless nqp::existskey($loaded,$key);
 
                 $dependency-precomp.close;
             }

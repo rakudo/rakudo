@@ -45,13 +45,6 @@ class CompUnit::PrecompilationRepository::Default
     my $stagestats := Rakudo::Internals.STAGESTATS;
     my $target     := "--target=" ~ Rakudo::Internals.PRECOMP-TARGET;
 
-    sub CHECKSUM(IO::Path:D $path --> Str:D) {
-        my \slurped := $path.slurp(:enc<iso-8859-1>);
-        nqp::istype(slurped,Failure)
-          ?? slurped
-          !! nqp::sha1(slurped)
-    }
-
     method try-load(
       CompUnit::PrecompilationDependency::File:D $dependency,
       IO::Path:D :$source = $dependency.src.IO,
@@ -283,7 +276,7 @@ Need to re-check dependencies.")
         my $unit := self!load-file(@precomp-stores, $id);
         if $unit {
             if (not $since or $unit.modified > $since)
-                and (not $source or ($checksum //= CHECKSUM($source)) eq $unit.source-checksum)
+                and (not $source or ($checksum //= $source.CHECKSUM) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
                 my $unit-checksum := $unit.checksum;
@@ -358,7 +351,7 @@ Need to re-check dependencies.")
               and my $unit := self!load-file($precomp-stores, $id, :refresh)
               and do {
                          LEAVE $unit.close;
-                         CHECKSUM($path) eq $unit.source-checksum
+                         $path.CHECKSUM eq $unit.source-checksum
                          and self!load-dependencies($unit, $precomp-stores)
                      }
         }
@@ -367,7 +360,7 @@ Need to re-check dependencies.")
             return self!already-precompiled($path,$source-name,$io,0)
         }
 
-        my $source-checksum = CHECKSUM($path);
+        my $source-checksum = $path.CHECKSUM;
         my $bc = "$io.bc".IO;
 
         # Local copy for us to tweak

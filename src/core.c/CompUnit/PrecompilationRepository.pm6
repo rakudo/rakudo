@@ -361,7 +361,7 @@ Need to re-check dependencies.")
                      }
         }
 
-        elsif $io.e and $io.s {
+        elsif Rakudo::Internals.FILETEST-ES($io.absolute) {
             return self!already-precompiled($path,$source-name,$io,0)
         }
 

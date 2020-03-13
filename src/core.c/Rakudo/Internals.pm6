@@ -1272,6 +1272,10 @@ implementation detail and has no serviceable parts inside"
     method FILETEST-S(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
     }
+    method FILETEST-ES(Str:D \abspath) {
+        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+          && nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
+    }
     method FILETEST-L(Str:D \abspath) {
         my int $l = nqp::fileislink(nqp::unbox_s(abspath));
         nqp::isge_i($l,0)

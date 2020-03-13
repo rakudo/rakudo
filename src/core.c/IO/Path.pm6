@@ -19,7 +19,9 @@ my class IO::Path is Cool does IO {
             || nqp::isne_i(nqp::index($!CWD,  "\0"), -1),
             X::IO::Null.new.throw
         );
+#?if !jvm
         $!abspath := nqp::null;
+#?endif
     }
 
     method !new-from-absolute-path($path, $SPEC, $CWD) {
@@ -28,7 +30,12 @@ my class IO::Path is Cool does IO {
 
     method !set-absolute($path) {
         $!is-absolute = True;
+#?if jvm
+        $!abspath = $path;
+#?endif
+#?if !jvm
         $!abspath := $path;
+#?endif
         self;
     }
 
@@ -218,10 +225,15 @@ my class IO::Path is Cool does IO {
 
     proto method absolute(|) {*}
     multi method absolute (IO::Path:D:) {
+#?if jvm
+        $!abspath //= $!SPEC.rel2abs($!path,$!CWD)
+#?endif
+#?if !jvm
         nqp::ifnull(
           $!abspath,
           $!abspath := $!SPEC.rel2abs($!path,$!CWD)
         )
+#?endif
     }
     multi method absolute (IO::Path:D: $CWD) {
         self.is-absolute 

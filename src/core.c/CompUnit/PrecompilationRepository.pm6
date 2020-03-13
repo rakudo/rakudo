@@ -360,9 +360,6 @@ Need to re-check dependencies.")
             return self!already-precompiled($path,$source-name,$io,0)
         }
 
-        my $source-checksum = $path.CHECKSUM;
-        my $bc = "$io.bc".IO;
-
         # Local copy for us to tweak
         my $env := nqp::clone(nqp::getattr(%*ENV,Map,'$!storage'));
 
@@ -390,6 +387,7 @@ Need to re-check dependencies.")
         nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',
           $distribution ?? $distribution.serialize !! '{}');
 
+        my $bc := "$io.bc".IO;
         $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
           if $!RMD;
 
@@ -503,6 +501,7 @@ Need to re-check dependencies.")
         my CompUnit::PrecompilationDependency::File @dependencies;
         nqp::bindattr(@dependencies,List,'$!reified',$dependencies);
 
+        my $source-checksum := $path.CHECKSUM;
         $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
           if $!RMD;
 

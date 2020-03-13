@@ -330,24 +330,26 @@ Need to re-check dependencies.")
     proto method precompile(|) {*}
 
     multi method precompile(
-        IO::Path:D $path,
-        Str $id,
-        Bool :$force = False,
-        :$source-name = $path.Str
-    ) {
-        self.precompile($path, CompUnit::PrecompilationId.new($id), :$force, :$source-name)
+      IO::Path:D $path,
+      Str:D      $id,
+      Bool  :$force,
+      Str:D :$source-name = $path.Str
+    --> Bool:D) {
+        self.precompile(
+          $path, CompUnit::PrecompilationId.new($id), :$force, :$source-name)
     }
 
     multi method precompile(
-        IO::Path:D $path,
-        CompUnit::PrecompilationId $id,
-        Bool :$force = False,
-        :$source-name = $path.Str,
-        :$precomp-stores,
-    ) {
+      IO::Path:D                   $path,
+      CompUnit::PrecompilationId:D $id,
+      Bool :$force,
+      Str  :$source-name = $path.Str,
+           :$precomp-stores,
+    --> Bool:D) {
 
         # obtain destination, lock the store for other processes
-        my $io := self.store.destination($compiler-id, $id);
+        my $store := self.store;
+        my $io    := $store.destination($compiler-id, $id);
         return False unless $io;
 
         if $force {
@@ -453,7 +455,7 @@ Need to re-check dependencies.")
         }
 
         if $status {  # something wrong
-            self.store.unlock;
+            $store.unlock;
             $!RMD("Precompiling $path failed: $status")
               if $!RMD;
 
@@ -471,7 +473,7 @@ Need to re-check dependencies.")
             $!RMD("$path aborted precompilation without failure")
               if $!RMD;
 
-            self.store.unlock;
+            $store.unlock;
             return False;
         }
 
@@ -510,7 +512,7 @@ Need to re-check dependencies.")
         $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
           if $!RMD;
 
-        self.store.store-unit(
+        $store.store-unit(
             $compiler-id,
             $id,
             self.store.new-unit(
@@ -521,8 +523,8 @@ Need to re-check dependencies.")
             ),
         );
         $bc.unlink;
-        self.store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));
-        self.store.unlock;
+        $store.store-repo-id($compiler-id, $id, :repo-id($*REPO.id));
+        $store.unlock;
         True
     }
 }

@@ -149,6 +149,40 @@ my role Dateish {
         nqp::join($sep,$parts)
     }
 
+    method dd-mm-yyyy(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts, $!day < 10
+          ?? nqp::concat('0',$!day)
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!day'))
+        );
+        nqp::push_s($parts, $!month < 10
+          ?? nqp::concat('0',$!month)
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!month'))
+        );
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::join($sep,$parts)
+    }
+
+    method mm-dd-yyyy(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts, $!month < 10
+          ?? nqp::concat('0',$!month)
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!month'))
+        );
+        nqp::push_s($parts, $!day < 10
+          ?? nqp::concat('0',$!day)
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!day'))
+        );
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::join($sep,$parts)
+    }
+
     method earlier(*%unit) { self.later(:earlier, |%unit) }
 
     method !truncate-ymd(Cool:D $unit, %parts? is copy) {

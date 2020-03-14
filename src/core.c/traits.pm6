@@ -451,7 +451,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                     elsif nqp::istype($expr, Whatever) {
                         $pkg.^add_fallback(
                             -> $obj, $name {
-                                so $attr.get_value($obj).can($name);
+                                nqp::can(nqp::decont($attr.get_value: $obj), nqp::decont($name))
                             },
                             -> $obj, $name {
                                 -> $self, |c {
@@ -483,7 +483,7 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
                 else {
                     $pkg.^add_fallback(
                         -> $obj, $name {
-                            ?$expr.can($name)
+                            nqp::can(nqp::decont($expr), nqp::decont($name))
                         },
                         -> $obj, $name {
                             -> $self, |c {

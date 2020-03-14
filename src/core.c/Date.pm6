@@ -1,21 +1,6 @@
 my class Date does Dateish {
 
-    method !formatter(--> Str:D) {
-        my $parts := nqp::list_s;
-        nqp::push_s($parts, $!year < 1000 || $!year > 9999
-          ?? self!year-Str
-          !! nqp::tostr_I($!year)
-        );
-        nqp::push_s($parts, $!month < 10
-          ?? nqp::concat('0',nqp::tostr_I($!month))
-          !! nqp::tostr_I($!month)
-        );
-        nqp::push_s($parts, $!day < 10
-          ?? nqp::concat('0',nqp::tostr_I($!day))
-          !! nqp::tostr_I($!day)
-        );
-        nqp::join('-',$parts)
-    }
+    method !formatter(--> Str:D) { self.yyyy-mm-dd }
 
 #?if moar
     my constant $valid-units = nqp::hash(

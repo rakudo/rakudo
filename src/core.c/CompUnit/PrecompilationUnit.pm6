@@ -66,7 +66,7 @@ role CompUnit::PrecompilationUnit {
               // $dependency.src.IO;
             return False unless $srcIO.e;
 
-            my $current-source-checksum := $srcIO.CHECKSUM;
+            my $current-source-checksum := Rakudo::Internals.CHECKSUM($srcIO);
 
             $RMD(
                 "$.path\nspec: $dependency.spec()\nsource: $srcIO\n"

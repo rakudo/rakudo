@@ -20,6 +20,13 @@ my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
+    method CHECKSUM(IO::Path:D $path --> Str:D) {
+        my \slurped := $path.slurp(:enc<iso-8859-1>);
+        nqp::istype(slurped,Failure)
+          ?? slurped
+          !! nqp::sha1(slurped)
+    }
+
     # for use in nqp::splice
     my $empty := nqp::list;
 

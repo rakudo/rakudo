@@ -277,7 +277,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method Capture(Blob:D:) { self.List.Capture }
 
     multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
-    multi method elems(Blob:U: --> 1)   { }
+
     method Numeric(Blob:D:) { nqp::p6box_i(nqp::elems(self)) }
     method Int(Blob:D:)     { nqp::p6box_i(nqp::elems(self)) }
 

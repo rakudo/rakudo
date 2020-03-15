@@ -37,7 +37,6 @@ my @allowed =
       Q{&INDIRECT_NAME_LOOKUP},
       Q{&MD-ARRAY-SLICE},
       Q{&MD-ARRAY-SLICE-ONE-POSITION},
-      Q{&MD-HASH-SLICE-ONE-POSITION},
       Q{&METAOP_ASSIGN},
       Q{&METAOP_CROSS},
       Q{&METAOP_HYPER},

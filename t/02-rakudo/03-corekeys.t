@@ -19,7 +19,6 @@ my @allowed =
       Q{$_},
       Q{&CLONE-HASH-DECONTAINERIZED},
       Q{&CLONE-LIST-DECONTAINERIZED},
-      Q{&CMP-SLOW},
       Q{&COMP_EXCEPTION},
       Q{CORE-SETTING-REV},
       Q{&CREATE_RATIONAL_FROM_INTS},

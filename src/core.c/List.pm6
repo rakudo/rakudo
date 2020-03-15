@@ -1695,11 +1695,12 @@ multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 proto sub prefix:<|>($, *%) {*}
 multi sub prefix:<|>(\x --> Slip:D) { x.Slip }
 
-sub CMP-SLOW(@a, @b) {
-    (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
-}
-
 multi sub infix:<cmp>(@a, @b --> Order:D) {
+
+    sub CMP-SLOW(@a, @b) {
+        (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
+    }
+
     nqp::if(
         @a.is-lazy || @b.is-lazy,
         CMP-SLOW(@a, @b),

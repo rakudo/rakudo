@@ -93,7 +93,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(HARNESS6)@ = @nfp(@base_dir@/@bpm(RUNNER)@)@ -Ilib @nfp(t/harness6)@
 @bpv(HARNESS6_WITH_FUDGE)@ = @bpm(HARNESS6)@ --fudge
 
-@bpv(RUN_CLEAN_TARGET_FILES)@ = @bpm(RUN_RAKUDO)@ -e "for @*ARGS.head(*-1) { given (@*ARGS[*-1] ~ '.'.IO.SPEC.dir-sep ~ .IO.basename.Str) { say 'rm -f ' ~ .Str if '@verbose@' eq '@'; .IO.unlink if .IO.e } }"
+@bpv(RUN_CLEAN_TARGET_FILES)@ = @nfp(@base_dir@/@bpm(RUNNER)@)@ @script(clean-target-files.raku)@ $(VERBOSE)
 
 @include(Makefile-backend-common)@
 
@@ -205,11 +205,10 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 
 @backend_prefix@-install-pre::
 	@echo(+++ Removing old files)@
-	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(RAKUDO_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
-	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
-	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
-	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@
-	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @bsm(RAKUDO)@ @bsm(RAKUDO_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@ @bpm(RAKUDO_PRECOMPS)@
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR)
+	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@ @bsm(RAKUDO)@ @bsm(RAKUDO_DEBUG)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@
 
 @backend_prefix@-install-main:: @@bpm(RAKUDO_OPS_DLL)@@ $(R_SETTING_MOAR) @@bpm(INST_RAKUDO_M)@@ @@bpm(INST_RAKUDO_DEBUG_M)@@
 	$(NOECHO)$(CP) @bpm(RAKUDO_OPS_DLL)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@

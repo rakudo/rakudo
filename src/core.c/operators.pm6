@@ -42,12 +42,12 @@ multi sub infix:<does>(Mu:D \obj, **@roles) is raw {
     # XXX Mutability check.
     my \real-roles = eager @roles.map: -> \rolish {
         rolish.DEFINITE
-            ?? GENERATE-ROLE-FROM-VALUE(rolish)
-            !! rolish.HOW.archetypes.composable()
-                ?? rolish
-                !! rolish.HOW.archetypes.composalizable()
-                    ?? rolish.HOW.composalize(rolish)
-                    !! X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw
+          ?? Rakudo::Internals.GENERATE-ROLE-FROM-VALUE(rolish)
+          !! rolish.HOW.archetypes.composable()
+            ?? rolish
+            !! rolish.HOW.archetypes.composalizable()
+              ?? rolish.HOW.composalize(rolish)
+              !! X::Mixin::NotComposable.new(:target(obj),:rolish(rolish)).throw
     }
     obj.^mixin(|real-roles).BUILD_LEAST_DERIVED({});
 }
@@ -89,33 +89,30 @@ multi sub infix:<but>(Mu:U \obj, Mu:U \rolish) {
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.^mixin($role);
 }
-sub GENERATE-ROLE-FROM-VALUE($val) {
-    my $role := Metamodel::ParametricRoleHOW.new_type();
-    my $meth := method () { $val };
-    $meth.set_name($val.^name);
-    $role.^add_method($meth.name, $meth);
-    $role.^set_body_block(
-      -> |c { nqp::list($role, nqp::hash('$?CLASS', c<$?CLASS>)) });
-    $role.^compose;
-}
 multi sub infix:<but>(Mu \obj, Mu:D $val) is raw {
-    obj.clone.^mixin(GENERATE-ROLE-FROM-VALUE($val));
+    obj.clone.^mixin(Rakudo::Internals.GENERATE-ROLE-FROM-VALUE($val));
 }
 multi sub infix:<but>(Mu:D \obj, **@roles) {
     my \real-roles := eager @roles.map: -> \rolish {
-        rolish.DEFINITE ?? GENERATE-ROLE-FROM-VALUE(rolish) !!
-            rolish.HOW.archetypes.composable() ?? rolish !!
-            rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-            X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw
+        rolish.DEFINITE
+          ?? Rakudo::Internals.GENERATE-ROLE-FROM-VALUE(rolish)
+          !! rolish.HOW.archetypes.composable()
+            ?? rolish
+            !! rolish.HOW.archetypes.composalizable()
+              ?? rolish.HOW.composalize(rolish)
+              !! X::Mixin::NotComposable.new(:target(obj),:rolish(rolish)).throw
     }
     obj.clone.^mixin(|real-roles).BUILD_LEAST_DERIVED({});
 }
 multi sub infix:<but>(Mu:U \obj, **@roles) {
     my \real-roles := eager @roles.map: -> \rolish {
-        rolish.DEFINITE ?? GENERATE-ROLE-FROM-VALUE(rolish) !!
-            rolish.HOW.archetypes.composable() ?? rolish !!
-            rolish.HOW.archetypes.composalizable() ?? rolish.HOW.composalize(rolish) !!
-            X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw
+        rolish.DEFINITE
+          ?? Rakudo::Internals.GENERATE-ROLE-FROM-VALUE(rolish)
+          !! rolish.HOW.archetypes.composable()
+            ?? rolish
+            !! rolish.HOW.archetypes.composalizable()
+              ?? rolish.HOW.composalize(rolish)
+              !! X::Mixin::NotComposable.new(:target(obj),:rolish(rolish)).throw
     }
     obj.^mixin(|real-roles)
 }

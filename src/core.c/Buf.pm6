@@ -324,16 +324,22 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?endif
 
-    my class BlobAsList does Rakudo::Iterator::Blobby {
-        method pull-one() is raw {
-            nqp::if(
-              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-              nqp::atpos_i($!blob,$!i),
-              IterationEnd
-            )
-        }
+    multi method list(Blob:D:) {
+        my int $elems = nqp::elems(self);
+
+        # presize memory, but keep it empty, so we can just push
+        my $buffer := nqp::setelems(
+          nqp::setelems(nqp::create(IterationBuffer),$elems),
+          0
+        );
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::push($buffer,nqp::atpos_i(self,$i))
+        );
+        $buffer.List
     }
-    multi method list(Blob:D:) { Seq.new(BlobAsList.new(self)).cache }
 
     multi method gist(Blob:D:) {
         my int $todo = nqp::elems(self) min 100;

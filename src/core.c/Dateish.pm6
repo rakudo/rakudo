@@ -138,26 +138,22 @@ my role Dateish {
           ?? self!year-Str
           !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
         );
-        nqp::push_s($parts, $!month < 10
-          ?? nqp::concat('0',$!month)
-          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!month'))
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
         );
-        nqp::push_s($parts, $!day < 10
-          ?? nqp::concat('0',$!day)
-          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!day'))
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
         );
         nqp::join($sep,$parts)
     }
 
     method dd-mm-yyyy(str $sep = "-" --> Str:D) {
         my $parts := nqp::list_s;
-        nqp::push_s($parts, $!day < 10
-          ?? nqp::concat('0',$!day)
-          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!day'))
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
         );
-        nqp::push_s($parts, $!month < 10
-          ?? nqp::concat('0',$!month)
-          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!month'))
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
         );
         nqp::push_s($parts, $!year < 1000 || $!year > 9999
           ?? self!year-Str
@@ -168,13 +164,11 @@ my role Dateish {
 
     method mm-dd-yyyy(str $sep = "-" --> Str:D) {
         my $parts := nqp::list_s;
-        nqp::push_s($parts, $!month < 10
-          ?? nqp::concat('0',$!month)
-          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!month'))
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
         );
-        nqp::push_s($parts, $!day < 10
-          ?? nqp::concat('0',$!day)
-          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!day'))
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
         );
         nqp::push_s($parts, $!year < 1000 || $!year > 9999
           ?? self!year-Str

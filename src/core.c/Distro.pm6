@@ -18,8 +18,7 @@ class Distro does Systemic {
     method cur-sep() { "," }
 }
 
-# set up $*DISTRO
-Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
+sub INITIALIZE-A-DISTRO-NOW() {
 #?if jvm
     my $properties := VM.new.properties;
     my $name       := $properties<os.name>;
@@ -76,8 +75,12 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
         }
     }
     $version := $version.Version;  # make sure it is a Version
-    PROCESS::<$DISTRO> :=
-      Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
+    Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
+}
+
+# set up $*DISTRO
+Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
+    PROCESS::<$DISTRO> := INITIALIZE-A-DISTRO-NOW();
 }
 
 # vim: ft=perl6 expandtab sw=4

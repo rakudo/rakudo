@@ -154,7 +154,7 @@ public final class RakOps {
 
     public static SixModelObject p6definite(SixModelObject obj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        return obj == null || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
+        return Ops.isnull(obj) == 1 || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
     }
 
     public static SixModelObject p6box_i(long value, ThreadContext tc) {
@@ -321,7 +321,7 @@ public final class RakOps {
         }
         else {
             SixModelObject meth = Ops.findmethodNonFatal(cont, "STORE", tc);
-            if (meth != null) {
+            if (Ops.isnull(meth) == 0) {
                 Ops.invokeDirect(tc, meth,
                     STORE, new Object[] { cont, value });
             }

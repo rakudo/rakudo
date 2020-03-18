@@ -589,7 +589,7 @@ sub SLICE_HUH(\SELF, @nogo, %d, %adv) {  # is implementation-detail
     ))
 } #SLICE_HUH
 
-sub dd(|) {
+sub dd(|) {  # is implementation-detail
 
     # handler for BOOTxxxArrays
     sub BOOTArray(Mu \array) {

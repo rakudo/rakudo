@@ -139,23 +139,17 @@ class CompUnit::RepositoryRegistry {
 
         my str $home;
         my str $home-spec;
-#?if jvm
-        # XXX Various issues with this stuff on JVM , TEMPORARY
-        try {
-#?endif
-            if nqp::ifnull(
-                 nqp::atkey($ENV,'HOME'),
-                 nqp::concat(
-                   nqp::ifnull(nqp::atkey($ENV,'HOMEDRIVE'),''),
-                   nqp::ifnull(nqp::atkey($ENV,'HOMEPATH'),'')
-                 )
-               ) -> $home-path {
-                $home = $home-path ~ $sep ~ '.raku';
-                $home-spec = 'inst#' ~ $home;
-            }
-#?if jvm
+
+        if nqp::ifnull(
+             nqp::atkey($ENV,'HOME'),
+             nqp::concat(
+               nqp::ifnull(nqp::atkey($ENV,'HOMEDRIVE'),''),
+               nqp::ifnull(nqp::atkey($ENV,'HOMEPATH'),'')
+             )
+           ) -> $home-path {
+            $home = $home-path ~ $sep ~ '.raku';
+            $home-spec = 'inst#' ~ $home;
         }
-#?endif
 
         unless $precomp-specs {
             nqp::bindkey($custom-lib,'core',

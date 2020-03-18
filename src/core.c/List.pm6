@@ -937,7 +937,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::create(Capture)
         }
     }
-    method FLATTENABLE_LIST() {
+    method FLATTENABLE_LIST() is implementation-detail {
         nqp::if(
           nqp::isconcrete($!todo),
           nqp::stmts(
@@ -951,7 +951,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           )
         )
     }
-    method FLATTENABLE_HASH() { nqp::hash() }
+    method FLATTENABLE_HASH() is implementation-detail { nqp::hash() }
 
     multi method Supply(List:D: --> Supply:D) { Supply.from-list(self) }
 

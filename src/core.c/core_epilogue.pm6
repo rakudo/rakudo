@@ -21,6 +21,33 @@ BEGIN {
 BEGIN {
     # Create pun at compile time as buf8 is used extensively in file I/O and module loading
     buf8.elems;
+
+    # Mark all subs that are implementation details, as implementation detail.
+    # In any other code, this would have been done as a trait on the actual
+    # sub definition.  But doing that in the setting *before* the Routine
+    # class is actually a HLL thing, makes it an unCallable.  So we do these
+    # routines and methods here, at the end of setting compilation.
+    trait_mod:<is>($_, :implementation-detail) for
+      &CLONE-HASH-DECONTAINERIZED,
+      &CLONE-LIST-DECONTAINERIZED,
+      &HYPERWHATEVER,
+      &DUMP,
+      &DYNAMIC,
+      &RETURN-LIST,
+      &SLICE_HUH,
+      &SLICE_MORE_HASH,
+      &SLICE_MORE_LIST,
+      &SLICE_ONE_HASH,
+      &SLICE_ONE_LIST,
+      &THROW,
+      &THROW-NIL,
+
+      Code.^find_method("POSITIONS"),
+      Mu.^find_method("DUMP"),
+      Mu.^find_method("DUMP-OBJECT-ATTRS"),
+      Mu.^find_method("DUMP-PIECES"),
+      Mu.^find_method("WALK")
+    ;
 }
 
 {

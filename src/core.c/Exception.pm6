@@ -294,7 +294,7 @@ my class CX::Done does X::Control {
     method message() { "<done control exception>" }
 }
 
-sub EXCEPTION(|) {
+sub EXCEPTION(|) is implementation-detail {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
     if nqp::istype($payload, Exception) {
@@ -706,7 +706,7 @@ my role X::Comp is Exception {
             !! " $.filename"
         }\n"
     }
-    method SET_FILE_LINE($file, $line) {
+    method SET_FILE_LINE($file, $line) is implementation-detail {
         $!filename = $file;
         $!line     = $line;
         $!is-compile-time = True;

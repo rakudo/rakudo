@@ -8,7 +8,9 @@ my class Code does Callable { # declared in BOOTSTRAP
         $self.count ?? $self($topic) !! $self()
     }
 
-    proto method POSITIONS(|) {*}
+    method is-implementation-detail(--> False) { }
+
+    proto method POSITIONS(|) {*} #  is implementation-detail
 
     method arity(Code:D:) { nqp::getattr_i($!signature,Signature,'$!arity') }
 

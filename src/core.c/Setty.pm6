@@ -294,7 +294,7 @@ my role Setty does QuantHash {
         )
     }
 
-    method RAW-HASH() is raw { $!elems }
+    method RAW-HASH() is raw is implementation-detail { $!elems }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }

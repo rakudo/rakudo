@@ -520,7 +520,7 @@ for $*IN.lines -> $line {
             ))
         }
 
-        method GRAB_ONE(#type#array:D: --> #type#) {
+        method GRAB_ONE(#type#array:D: --> #type#) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_#postfix#(
                 self,

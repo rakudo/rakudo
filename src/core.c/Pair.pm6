@@ -178,8 +178,12 @@ key of the Pair should be a valid method name, not '$method'."
     multi method AT-KEY(Pair:D: $key)     { $key eq $!key ?? $!value !! Nil }
     multi method EXISTS-KEY(Pair:D: $key) { $key eq $!key }
 
-    method FLATTENABLE_LIST() { nqp::list() }
-    method FLATTENABLE_HASH() { nqp::hash($!key.Str, $!value) }
+    method FLATTENABLE_LIST() is implementation-detail {
+        nqp::list()
+    }
+    method FLATTENABLE_HASH() is implementation-detail {
+        nqp::hash($!key.Str, $!value)
+    }
 }
 
 multi sub infix:<eqv>(Pair:D \a, Pair:D \b) {

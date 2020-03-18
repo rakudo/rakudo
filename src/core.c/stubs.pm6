@@ -30,7 +30,7 @@ my class MixHash { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class Lock::Async { ... }
 
-sub DYNAMIC(\name) is raw {
+sub DYNAMIC(\name) is raw {  # is implementation-detail
     nqp::ifnull(
       nqp::getlexdyn(name),
       nqp::stmts(

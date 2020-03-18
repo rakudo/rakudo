@@ -772,7 +772,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
         }
     }
 
-    proto method DUMP(|) {*}
+    proto method DUMP(|) {*}  # is implementation-detail
     multi method DUMP(Mu:U:) { self.raku }
     multi method DUMP(Mu:D: :$indent-step = 4, :%ctx?) {
         return DUMP(self, :$indent-step) unless %ctx;
@@ -811,11 +811,15 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
 
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
-    method DUMP-PIECES(@pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step) {
+    method DUMP-PIECES(
+      @pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step
+    ) {  # is implementation-detail
         $indent ?? $before ~ "\n" ~ @pieces.join(",\n").indent($indent-step) ~ "\n" ~ $after
                 !! $before ~        @pieces.join(', ')                              ~ $after;
     }
-    method DUMP-OBJECT-ATTRS(|args (*@args, :$indent-step, :%ctx, :$flags?)) {
+    method DUMP-OBJECT-ATTRS(
+      |args (*@args, :$indent-step, :%ctx, :$flags?)
+    ) {  # is implementation-detail
         my Mu  $attrs := nqp::clone(nqp::captureposarg(nqp::usecapture(), 1));
         my str $where  = nqp::base_I(nqp::where(self), 16);
         my str $before = ($flags if defined $flags) ~ self.^name ~ '<' ~ %ctx{$where} ~ '>(';
@@ -1019,7 +1023,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
             HYPER( -> \obj { obj."$meth-name"(  ) }, SELF )))
     }
 
-    proto method WALK(|) {*}
+    proto method WALK(|) {*}  # is implementation-detail
     multi method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
                 :$super, :$omit, :$include, :$roles, :$submethods = True, :$methods = True
                 --> WalkList)
@@ -1135,7 +1139,7 @@ multi sub infix:<eqv>(Any:D \a, Any:D \b) {
     )
 }
 
-sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
+sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) { # is implementation-detail
     my Mu $capture := nqp::usecapture();
     my Mu $topic   := nqp::captureposarg($capture, 0);
 

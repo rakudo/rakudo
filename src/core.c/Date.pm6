@@ -311,7 +311,7 @@ my class Date does Dateish {
     }
 
     # internal method that needs to be public for operators
-    method MOVE-DAYS(Date:D: int $diff --> Date:D) {
+    method MOVE-DAYS(Date:D: int $diff --> Date:D) is implementation-detail {
         my int $day = $!day + $diff;
         $day > 0 && $day < 28
           ?? self!move-days-within-month($diff)

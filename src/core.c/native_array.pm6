@@ -93,7 +93,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-03-17T23:04:51+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
@@ -566,7 +566,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(strarray:D: --> str) {
+        method GRAB_ONE(strarray:D: --> str) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_s(
                 self,
@@ -594,7 +594,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-03-17T23:04:51+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
@@ -1067,7 +1067,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(intarray:D: --> int) {
+        method GRAB_ONE(intarray:D: --> int) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_i(
                 self,
@@ -1147,7 +1147,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-03-17T23:04:51+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
@@ -1620,7 +1620,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(numarray:D: --> num) {
+        method GRAB_ONE(numarray:D: --> num) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_n(
                 self,

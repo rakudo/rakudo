@@ -178,6 +178,8 @@ my class Seq is Cool does Iterable does Sequence {
     }
 }
 
-sub GATHER(&block) { Seq.new(Rakudo::Iterator.Gather(&block)) }
+sub GATHER(&block) is implementation-detail {
+    Seq.new(Rakudo::Iterator.Gather(&block))
+}
 
 # vim: ft=perl6 expandtab sw=4

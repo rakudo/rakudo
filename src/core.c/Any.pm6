@@ -571,7 +571,7 @@ multi sub item(\x)    { my $ = x }
 multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
-sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
+sub SLICE_HUH(\SELF, @nogo, %d, %adv) {  # is implementation-detail
     @nogo.unshift('delete')  # recover any :delete if necessary
       if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
     for <delete exists kv p k v> -> $valid { # check all valid params

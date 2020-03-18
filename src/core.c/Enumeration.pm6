@@ -86,7 +86,7 @@ my role NumericStringyEnumeration {
     }
 }
 
-sub ENUM_VALUES(*@args --> Map:D) {
+sub ENUM_VALUES(*@args --> Map:D) is implementation-detail {
     my Mu $prev = -1;
     my $res := nqp::hash;
 

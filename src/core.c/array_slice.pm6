@@ -10,7 +10,7 @@
 # if called with an Int.  Before it does so, it may cause the calling code
 # to switch to a memoized version of an iterator by modifying variables in
 # the caller's scope.
-proto sub POSITIONS(|) {*}
+proto sub POSITIONS(|) is implementation-detail {*}
 multi sub POSITIONS(
   \SELF,
   \pos,

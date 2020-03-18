@@ -523,8 +523,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(nqp::create(Capture),Capture,'%!hash',$!storage)
     }
 
-    method FLATTENABLE_LIST() { nqp::list() }
-    method FLATTENABLE_HASH() { $!storage }
+    method FLATTENABLE_LIST() is implementation-detail { nqp::list() }
+    method FLATTENABLE_HASH() is implementation-detail { $!storage }
 
     method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n" --> Str:D) {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)

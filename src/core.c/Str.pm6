@@ -2840,7 +2840,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method words(Str:D: --> Seq:D) { Seq.new(Words.new(self)) }
 
     # Internal method, used in Actions.postprocess_words/postprocess_quotewords
-    method WORDS_AUTODEREF(Str:D:) {
+    method WORDS_AUTODEREF(Str:D:) is implementation-detail {
         Words.new(self).push-all(my $words := nqp::create(IterationBuffer));
         nqp::elems($words) == 1
           ?? nqp::shift($words)
@@ -3725,7 +3725,7 @@ proto sub trim-trailing($, *%) {*}
 multi sub trim-trailing(Cool:D $s --> Str:D) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-proto sub UNBASE ($, $, *%) {*}
+proto sub UNBASE ($, $, *%) is implementation-detail {*}
 multi sub UNBASE(Int:D $base, Any:D $num) {
     X::Numeric::Confused.new(:$num, :$base).throw;
 }
@@ -3748,7 +3748,7 @@ multi sub UNBASE(Int:D $base, Str:D $str --> Numeric:D) {
 }
 
 # for :16[1, 2, 3]
-sub UNBASE_BRACKET($base, @a) {
+sub UNBASE_BRACKET($base, @a) is implementation-detail {
     my $v = 0;
     my $denom = 1;
     my Bool $seen-dot = False;

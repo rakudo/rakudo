@@ -475,7 +475,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         $reversed
     }
 
-    method COMPARE(Blob:D: Blob:D \other) {
+    method COMPARE(Blob:D: Blob:D \other) is implementation-detail {
         nqp::unless(
           nqp::cmp_i(
             (my int $elems = nqp::elems(self)),
@@ -498,7 +498,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
 
-    method SAME(Blob:D: Blob:D \other) {
+    method SAME(Blob:D: Blob:D \other) is implementation-detail {
         nqp::if(
           nqp::iseq_i(
             (my int $elems = nqp::elems(self)),

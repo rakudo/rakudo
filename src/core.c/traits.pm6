@@ -382,6 +382,12 @@ multi sub trait_mod:<of>(Routine:D $target, Mu:U $type) {
     $target.^mixin(Callable.^parameterize($type))
 }
 
+multi sub trait_mod:<is>(Routine:D $r, :$implementation-detail!) {
+    $r.^mixin( role is-implementation-detail {
+        method is-implementation-detail(--> True) { }
+    }) if $implementation-detail;
+}   
+
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
     $r.^mixin( role is-hidden-from-backtrace {
         method is-hidden-from-backtrace(--> True) { }

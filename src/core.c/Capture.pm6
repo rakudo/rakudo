@@ -136,10 +136,10 @@ my class Capture { # declared in BOOTSTRAP
         self.Capture::elems
     }
 
-    method FLATTENABLE_LIST() is raw {
+    method FLATTENABLE_LIST() is raw is implementation-detail {
         nqp::if(nqp::isconcrete(@!list),@!list,nqp::list)
     }
-    method FLATTENABLE_HASH() is raw {
+    method FLATTENABLE_HASH() is raw is implementation-detail {
         nqp::if(nqp::isconcrete(%!hash),%!hash,nqp::hash)
     }
 

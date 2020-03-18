@@ -117,7 +117,7 @@ multi sub infix:<but>(Mu:U \obj, **@roles) {
     obj.^mixin(|real-roles)
 }
 
-sub SEQUENCE(\left, Mu \right, :$exclude_end) {
+sub SEQUENCE(\left, Mu \right, :$exclude_end) is implementation-detail {
     my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
     my $endpoint := righti.pull-one.self; # .self explodes Failures
     $endpoint =:= IterationEnd and X::Cannot::Empty.new(
@@ -536,7 +536,7 @@ sub prefix:<let>(Mu \cont) is raw {
 }
 
 # this implements the ::() indirect lookup
-sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
+sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
     nqp::if(
       # Note that each part of @chunks itself can contain double colons.
       # That's why joining and re-splitting is necessary
@@ -600,7 +600,9 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
     )
 }
 
-sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms --> Nil) {
+sub REQUIRE_IMPORT(
+  $compunit, $existing-path,$top-existing-pkg,$stubname, *@syms --> Nil
+) is implementation-detail {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;

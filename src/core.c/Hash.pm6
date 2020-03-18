@@ -45,7 +45,7 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
-    proto method STORE_AT_KEY(|) {*}
+    proto method STORE_AT_KEY(|) is implementation-detail {*}
     multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
@@ -195,7 +195,9 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
 
-    multi method DUMP(Hash:D: :$indent-step = 4, :%ctx) {
+    multi method DUMP(
+      Hash:D: :$indent-step = 4, :%ctx
+    ) is implementation-detail {
         nqp::if(
           %ctx,
           self.DUMP-OBJECT-ATTRS(

@@ -11,7 +11,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     method Int(--> Int:D) { self.Str.Int }
 
-    method STR() {
+    method STR() is implementation-detail {
         nqp::if(
           nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
           self.Str,
@@ -19,7 +19,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
-    method MATCH() {
+    method MATCH() is implementation-detail {
         nqp::if(
           nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
           self,
@@ -146,7 +146,8 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::bindattr(self, Match, '$!match', $DID_MATCH);
     }
 
-    method CURSOR_NEXT() {   # from !cursor_next in nqp
+    # from !cursor_next in nqp
+    method CURSOR_NEXT() is implementation-detail {
         nqp::if(
           nqp::defined($!restart),
           $!restart(self),
@@ -164,7 +165,8 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 #?endif
 
-    method CURSOR_OVERLAP() {  # adapted from !cursor_more in nqp
+    # adapted from !cursor_more in nqp
+    method CURSOR_OVERLAP() is implementation-detail {
         nqp::stmts(
           (my $new := nqp::create(self)),
           nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
@@ -176,7 +178,8 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
-    method CURSOR_MORE() {  # adapted from !cursor_more in nqp
+    # adapted from !cursor_more in nqp
+    method CURSOR_MORE() is implementation-detail {
         nqp::stmts(
           (my $new := nqp::create(self)),
           nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
@@ -210,7 +213,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     # INTERPOLATE's parameters are non-optional since the ops for optional params
     # aren't currently JITted on MoarVM
-    proto method INTERPOLATE(|) {*}
+    proto method INTERPOLATE(|) is implementation-detail {*}
 
     multi method INTERPOLATE(Callable:D \var, $, $, $, $, $) {
         # Call it if it is a routine. This will capture if requested.
@@ -616,7 +619,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         self."!cursor_start_cur"()
     }
 
-    proto method INTERPOLATE_ASSERTION(|) {*}
+    proto method INTERPOLATE_ASSERTION(|) is implementation-detail {*}
 
     multi method INTERPOLATE_ASSERTION(Associative:D $, $, $, $, $, $) {
         return self.'!cursor_start_cur'().'!cursor_start_cur'()
@@ -728,11 +731,11 @@ my class Match is Capture is Cool does NQPMatchRole {
           !! self.'!cursor_start_fail'()
     }
 
-    method CALL_SUBRULE($rule, |c) {
+    method CALL_SUBRULE($rule, |c) is implementation-detail {
         $rule(self, |c)
     }
 
-    method DYNQUANT_LIMITS($mm) {
+    method DYNQUANT_LIMITS($mm) is implementation-detail {
         # Treat non-Range values as range with that value on both end points
         # Throw for non-Numeric or NaN Ranges, or if minimum limit is +Inf
         # Convert endpoints that are less than 0 to 0, then,
@@ -783,21 +786,21 @@ my class Match is Capture is Cool does NQPMatchRole {
               nqp::list_i($v,$v))))
     }
 
-    method OTHERGRAMMAR($grammar, $name, |) {
+    method OTHERGRAMMAR($grammar, $name, |) is implementation-detail {
         my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
         $lang_cursor.clone_braid_from(self);
         $lang_cursor."$name"();
     }
 
-    method INDMETHOD($name, |c) {
+    method INDMETHOD($name, |c) is implementation-detail {
         self."$name"(|c);
     }
 
-    method INDRULE($rule, |c) {
+    method INDRULE($rule, |c) is implementation-detail {
         $rule(self, |c)
     }
 
-    method RECURSE() {
+    method RECURSE() is implementation-detail {
         nqp::getlexdyn('$?REGEX')(self)
     }
 

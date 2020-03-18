@@ -733,7 +733,7 @@ my role Baggy does QuantHash {
     multi method Mix(Baggy:D:)     { MIXIFY($!elems, Mix)     }
     multi method MixHash(Baggy:D:) { MIXIFY($!elems, MixHash) }
 
-    method RAW-HASH() is raw { $!elems }
+    method RAW-HASH() is raw is implementation-detail { $!elems }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {

@@ -382,7 +382,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method FLATTENABLE_LIST() {
+    method FLATTENABLE_LIST() is implementation-detail {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
           nqp::stmts(
@@ -1335,7 +1335,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method GRAB_ONE(Array:D:) {
+    method GRAB_ONE(Array:D:) is implementation-detail {
         nqp::stmts(
           (my $reified := nqp::getattr(self,List,'$!reified')),
           (my $value := nqp::atpos(

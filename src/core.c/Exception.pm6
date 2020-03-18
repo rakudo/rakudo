@@ -355,7 +355,7 @@ sub EXCEPTION(|) is implementation-detail {
 }
 
 my class X::Comp::AdHoc { ... }
-sub COMP_EXCEPTION(|) {
+sub COMP_EXCEPTION(|) is implementation-detail {
     my Mu $vm_ex   := nqp::shift(nqp::p6argvmarray());
     my Mu $payload := nqp::getpayload($vm_ex);
     if nqp::istype($payload, Exception) {

@@ -221,7 +221,7 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$key,$value,%adv) { # is implementation-detail
     }
 
     @nogo || nqp::elems($d)
-      ?? SLICE_HUH( SELF, @nogo, $d, %adv )
+      ?? Rakudo::Internals.SLICE_HUH( SELF, @nogo, $d, %adv )
       !! result;
 } #SLICE_ONE_@TYPE[].chop()
 
@@ -471,7 +471,7 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,$key,$value,%adv) { # is implementation-detail
     }
 
     @nogo || nqp::elems($d)
-      ?? SLICE_HUH( SELF, @nogo, $d, %adv )
+      ?? Rakudo::Internals.SLICE_HUH( SELF, @nogo, $d, %adv )
       !! result;
 } #SLICE_MORE_@TYPE[].chop()
 

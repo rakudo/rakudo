@@ -20,6 +20,24 @@ my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
+    method SLICE_HUH(\object, @nogo, %d, %adv) {
+        @nogo.unshift('delete')  # recover any :delete if necessary
+          if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
+        for <delete exists kv p k v> -> $valid { # check all valid params
+            if nqp::existskey(%d,nqp::unbox_s($valid)) {
+                nqp::deletekey(%d,nqp::unbox_s($valid));
+                @nogo.push($valid);
+            }
+        }
+
+        Failure.new(X::Adverb.new(
+          :what<slice>,
+          :source(try { object.VAR.name } // object.^name),
+          :unexpected(%d.keys),
+          :nogo(@nogo),
+        ))
+    }
+
     method GENERATE-ROLE-FROM-VALUE($val) {
         my $role := Metamodel::ParametricRoleHOW.new_type();
         my $meth := method () { $val };

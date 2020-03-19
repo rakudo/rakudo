@@ -67,7 +67,6 @@ my %allowed = (
     Q{&RETURN-LIST},
     Q{&RUN-MAIN},
     Q{&SEQUENCE},
-    Q{&SLICE_HUH},
     Q{&SLICE_MORE_HASH},
     Q{&SLICE_MORE_LIST},
     Q{&SLICE_ONE_HASH},

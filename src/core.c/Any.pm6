@@ -571,24 +571,6 @@ multi sub item(\x)    { my $ = x }
 multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
-sub SLICE_HUH(\SELF, @nogo, %d, %adv) {  # is implementation-detail
-    @nogo.unshift('delete')  # recover any :delete if necessary
-      if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
-    for <delete exists kv p k v> -> $valid { # check all valid params
-        if nqp::existskey(%d,nqp::unbox_s($valid)) {
-            nqp::deletekey(%d,nqp::unbox_s($valid));
-            @nogo.push($valid);
-        }
-    }
-
-    Failure.new(X::Adverb.new(
-      :what<slice>,
-      :source(try { SELF.VAR.name } // SELF.WHAT.raku),
-      :unexpected(%d.keys),
-      :nogo(@nogo),
-    ))
-} #SLICE_HUH
-
 sub dd(|) {  # is implementation-detail
 
     # handler for BOOTxxxArrays

@@ -35,7 +35,6 @@ BEGIN {
       &DUMP,
       &DYNAMIC,
       &RETURN-LIST,
-      &SLICE_HUH,
       &SLICE_MORE_HASH,
       &SLICE_MORE_LIST,
       &SLICE_ONE_HASH,

@@ -2362,12 +2362,12 @@ my class X::TypeCheck::Argument is X::TypeCheck {
     has $.objname;
     has $.signature;
     method message {
-            my $multi = $!signature ~~ /\n/ // '';
-            "Calling {$!objname}({ join(', ', @!arguments) }) will never work with " ~ (
-                $!protoguilt ?? 'signature of the proto ' !!
-                $multi       ?? 'any of these multi signatures:' !!
-                                'declared signature '
-            ) ~ $!signature;
+        my $multi = $!signature ~~ /\n/ // '';
+        "Calling {$!objname}({ join(', ', @!arguments) }) will never work with " ~ (
+            $!protoguilt ?? 'signature of the proto ' !!
+            $multi       ?? 'any of these multi signatures:' !!
+                            'declared signature '
+        ) ~ $!signature;
     }
 }
 

@@ -732,6 +732,13 @@ my class IO::Path is Cool does IO {
             self!does-not-exist("mode")
         }
     }
+
+    method CHECKSUM(IO::Path:D: --> Str:D) is implementation-detail {
+        my \slurped := self.slurp(:enc<iso-8859-1>);
+        nqp::istype(slurped,Failure)
+          ?? slurped
+          !! nqp::sha1(slurped)
+    }
 }
 
 my class IO::Path::Cygwin is IO::Path {

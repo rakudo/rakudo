@@ -275,7 +275,7 @@ Need to re-check dependencies.")
         my $unit := self!load-file(@precomp-stores, $id);
         if $unit {
             if (not $since or $unit.modified > $since)
-                and (not $source or ($checksum //= Rakudo::Internals.CHECKSUM($source)) eq $unit.source-checksum)
+                and (not $source or ($checksum //= $source.CHECKSUM) eq $unit.source-checksum)
                 and self!load-dependencies($unit, @precomp-stores)
             {
                 my $unit-checksum := $unit.checksum;
@@ -350,7 +350,7 @@ Need to re-check dependencies.")
               and my $unit := self!load-file($precomp-stores, $id, :refresh)
               and do {
                          LEAVE $unit.close;
-                         Rakudo::Internals.CHECKSUM($path) eq $unit.source-checksum
+                         $path.CHECKSUM eq $unit.source-checksum
                          and self!load-dependencies($unit, $precomp-stores)
                      }
         }
@@ -502,7 +502,7 @@ Need to re-check dependencies.")
         my CompUnit::PrecompilationDependency::File @dependencies;
         nqp::bindattr(@dependencies,List,'$!reified',$dependencies);
 
-        my $source-checksum := Rakudo::Internals.CHECKSUM($path);
+        my $source-checksum := $path.CHECKSUM;
         $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
           if $!RMD;
 

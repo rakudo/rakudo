@@ -20,13 +20,6 @@ my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
-    method CHECKSUM(IO::Path:D $path --> Str:D) {
-        my \slurped := $path.slurp(:enc<iso-8859-1>);
-        nqp::istype(slurped,Failure)
-          ?? slurped
-          !! nqp::sha1(slurped)
-    }
-
     method GENERATE-ROLE-FROM-VALUE($val) {
         my $role := Metamodel::ParametricRoleHOW.new_type();
         my $meth := method () { $val };

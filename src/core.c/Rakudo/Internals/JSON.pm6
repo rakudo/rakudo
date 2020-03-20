@@ -131,7 +131,7 @@ my class Rakudo::Internals::JSON {
 
     method to-json(
       \obj,
-      Bool :$pretty        = True,
+      Bool :$pretty        = False,
       Int  :$level         = 0,
       int  :$spacing       = 2,
       Bool :$sorted-keys   = False,

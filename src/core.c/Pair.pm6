@@ -160,10 +160,14 @@ key of the Pair should be a valid method name, not '$method'."
                     ?? nqp::concat($!key.raku,
                          nqp::concat(' => ',
                            $!value.raku))
-                    !! nqp::concat('(',
-                         nqp::concat($!key.raku,
-                           nqp::concat(') => ',
-                             $!value.raku)))
+                    !! nqp::istype($!key,Pair)
+                      ?? nqp::concat('(',
+                           nqp::concat($!key.raku,
+                             nqp::concat(') => ',
+                               $!value.raku)))
+                      !! nqp::concat($!key.raku,
+                           nqp::concat(' => ',
+                             $!value.raku))
                 !! nqp::concat('(',
                      nqp::concat($!key.^name,
                        nqp::concat(') => ',

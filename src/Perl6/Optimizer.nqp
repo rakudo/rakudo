@@ -2797,6 +2797,16 @@ class Perl6::Optimizer {
     }
 
     method report_inevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
+        my %opts := nqp::hash();
+        my $is_dispatcher := nqp::can($obj, 'is_dispatcher') && $obj.is_dispatcher;
+
+        # Clause: no multi declared
+        if $is_dispatcher && !$protoguilt && !$obj.dispatchees {
+            %opts<objname> := "star proto " ~ $obj.name ~ $obj.signature.gist;
+            $!problems.add_exception(['X', 'Multi', 'Undefined'], $op, |%opts);
+            return;
+        }
+
         my @arg_names;
         my int $i := 0;
         while $i < +@types {
@@ -2807,15 +2817,12 @@ class Perl6::Optimizer {
                 @types[$i].HOW.name(@types[$i]));
             $i := $i + 1;
         }
-
-        my %opts := nqp::hash();
         %opts<protoguilt> := $protoguilt // nqp::hllboolfor(0, "Raku");
         %opts<arguments> := @arg_names;
         %opts<objname> := $obj.name;
-        %opts<signature> := nqp::can($obj, 'is_dispatcher') && $obj.is_dispatcher && !$protoguilt ??
+        %opts<signature> := $is_dispatcher && !$protoguilt ??
                 multi_sig_list($obj) !!
                 [try $obj.signature.gist];
-
         $!problems.add_exception(['X', 'TypeCheck', 'Argument'], $op, |%opts);
     }
 

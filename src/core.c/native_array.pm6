@@ -3334,7 +3334,10 @@ my class array does Iterable {
               shaped-type.^set_name(self.WHAT.^name)
             ),
             # Allocate array storage for this shape, based on calculated type.
-            Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,shaped-type.HOW,T)
+            (my \object :=
+              Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,shaped-type.HOW,T)),
+            object.WHAT.^compose,
+            object
           ),
           X::NotEnoughDimensions.new(
             operation         => 'create',

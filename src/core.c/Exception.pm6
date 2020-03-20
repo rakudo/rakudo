@@ -2633,6 +2633,14 @@ my class X::Item is Exception {
     method message { "Cannot index {$.aggregate.^name} with $.index" }
 }
 
+my class X::Multi::Undefined is Exception {
+    has $.objname;
+    method message {
+        my ($red,$clear,$green,$,$eject) = Rakudo::Internals.error-rcgye;
+        "Multi dispatch has not been declared for $red$!objname$clear";
+    }
+}
+
 my class X::Multi::Ambiguous is Exception {
     has $.dispatcher;
     has @.ambiguous;
@@ -2819,6 +2827,10 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::Method::NotFound',
   -> Mu $invocant, $method, $typename, $private = False {
       X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private).throw
+  },
+  'X::Multi::Undefined',
+  -> $objname {
+      X::Multi::Undefined.new(:$objname).throw
   },
   'X::Multi::Ambiguous',
   -> $dispatcher, @ambiguous, $capture {

@@ -1508,11 +1508,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ++$i;
             }
         }
-        if +$past.list < 1 {
+        if nqp::elems($past.list) < 1 {
             $past.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
         }
         else {
-            my $pl := $past[+@($past) - 1];
+            my $pl := $past[nqp::elems($past) - 1];
             if $pl.sunk {
                 $past.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
             }
@@ -1528,7 +1528,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method semilist($/) {
         if $<statement> {
             my $past := QAST::Stmts.new( :node($/) );
-            if $<statement> > 1 {
+            if nqp::elems($<statement>) > 1 {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
                 for $<statement> {
                     my $sast := $_.ast || QAST::WVal.new( :value($*W.find_symbol(['Nil'])) );
@@ -1925,7 +1925,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     ## Statement control
 
     method statement_control:sym<if>($/) {
-        my $count := +$<xblock> - 1;
+        my $count := nqp::elems($<xblock>) - 1;
         my $past;
         (my $empty := QAST::WVal.new: :value($*W.find_symbol: ['Empty'])
         ).annotate: 'ok_to_null_if_sunk', 1;
@@ -4261,7 +4261,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Make sure the block has the common structure we expect
         # (decls then statements).
-        return 0 unless +@($past) == 2;
+        return 0 unless nqp::elems($past) == 2;
 
         # Ensure all parameters are native, simple, and build placeholders for
         # them. No parameters also means no inlining.
@@ -4334,7 +4334,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if nqp::getcomp('QAST').operations.is_inlinable('Raku', $node.op) {
                     my $replacement := $node.shallow_clone();
                     my int $i := 0;
-                    my int $n := +@($node);
+                    my int $n := nqp::elems($node);
                     while $i < $n {
                         $replacement[$i] := node_walker($node[$i]);
                         $i := $i + 1;
@@ -4367,7 +4367,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif nqp::istype($node, QAST::Stmt) || nqp::istype($node, QAST::Stmts) {
                 my $replacement := $node.shallow_clone();
                 my int $i := 0;
-                my int $n := +@($node);
+                my int $n := nqp::elems($node);
                 while $i < $n {
                     $replacement[$i] := node_walker($node[$i]);
                     $i := $i + 1;
@@ -4379,7 +4379,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif nqp::istype($node, QAST::Want) {
                 my $replacement := $node.shallow_clone();
                 my int $i := 0;
-                my int $n := +@($node);
+                my int $n := nqp::elems($node);
                 while $i < $n {
                     $replacement[$i] := node_walker($node[$i]);
                     $i := $i + 2;
@@ -4726,7 +4726,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub is_yada($/) {
-        if $<blockoid><statementlist> && +$<blockoid><statementlist><statement> == 1 {
+        if $<blockoid><statementlist> && nqp::elems($<blockoid><statementlist><statement>) == 1 {
             my $btxt := ~$<blockoid><statementlist><statement>[0];
             if $btxt ~~ /^ \s* ['...'|'???'|'!!!'|'…'] \s* $/ {
                 return 1;
@@ -6090,7 +6090,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub whine_if_args($/, $past, $name) {
-        if +@($past) > 0 {
+        if nqp::elems($past) > 0 {
            $*W.throw($/, ['X', 'Syntax', 'Argument', 'MOPMacro'], macro => $name);
         }
     }
@@ -6123,7 +6123,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $past := $<args>.ast;
         $past.name($name);
         $past.node($/);
-        unless +$past.list() {
+        unless nqp::elems($past.list()) {
             $past.push($*W.add_string_constant('Stub code executed'));
         }
 
@@ -6299,7 +6299,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # and make the call.
             # Add & to name.
             my @name := nqp::clone($*longname.attach_adverbs.components);
-            my $final := @name[+@name - 1];
+            my $final := @name[nqp::elems(@name) - 1];
             unless nqp::eqat($final, '&', 0) {
                 @name[+@name - 1] := '&' ~ $final;
             }
@@ -6324,10 +6324,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             else {
                 $past := handle_special_call_names($/,$<args>.ast, ~$<longname>);
-                if +@name == 1 {
+                if nqp::elems(@name) == 1 {
                     $past.name(@name[0]);
                     $/.add_mystery(@name[0], $<args>.from, 'termish');
-                    if +$past.list == 1 && %commatrap{@name[0]} {
+                    if nqp::elems($past.list) == 1 && %commatrap{@name[0]} {
                         my $prelen := $<longname>.from;
                         $prelen := 100 if $prelen > 100;
                         my $pre := nqp::substr($/.orig, $<longname>.from - $prelen, $prelen);
@@ -6373,7 +6373,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $past.unshift(QAST::Op.new( :op('how'), $ptref ));
                 }
             }
-            elsif +@name == 0 {
+            elsif nqp::elems(@name) == 0 {
                 $past := QAST::Op.new(
                     :op<callmethod>, :name<new>,
                     QAST::WVal.new( :value($*W.find_symbol(['PseudoStash'])) )
@@ -6382,14 +6382,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif $*W.is_pseudo_package(@name[0]) {
                 $past := $*W.symbol_lookup(@name, $/);
             }
-            elsif +@name == 1 && $*W.is_name(@name)
+            elsif nqp::elems(@name) == 1 && $*W.is_name(@name)
                     && !$*W.symbol_has_compile_time_value(@name) {
                 # it's a sigilless param or variable
                 $past := make_variable_from_parts($/, @name, '', '', @name[0]);
             }
-            elsif +@name && @name[0] eq 'EXPORT' {
+            elsif nqp::elems(@name) && @name[0] eq 'EXPORT' {
                 my int $i := 1;
-                my int $m := +@name;
+                my int $m := nqp::elems(@name);
                 $past     := QAST::Var.new( :name<EXPORT>, :scope<lexical> );
                 while $i < $m {
                     $past := QAST::Op.new( :op<callmethod>, :name<package_at_key>,
@@ -6530,7 +6530,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method semiarglist($/) {
-        if +$<arglist> == 1 {
+        if nqp::elems($<arglist>) == 1 {
             make $<arglist>[0].ast;
         }
         else {
@@ -6678,7 +6678,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<value>($/) { make $<value>.ast; }
 
     sub handle-list-semis($/, $past) {
-        if !+$past.list {
+        if !nqp::elems($past.list) {
             $past := QAST::Stmts.new( :node($/) );
             $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
         }
@@ -6687,7 +6687,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $*FAKE_INFIX_FOUND {
             my @EXPR;
             my $semis := $<semilist><statement>;
-            my $numsemis := +$semis;
+            my $numsemis := nqp::elems($semis);
 
             my $i := -1;
             while ++$i < $numsemis {
@@ -6696,7 +6696,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     @EXPR.push($EXPR);
                 }
             }
-            $numsemis := +@EXPR;
+            $numsemis := nqp::elems(@EXPR);
 
             if $numsemis > 1 {
                 $past := QAST::Stmts.new( :node($/) );
@@ -6709,7 +6709,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $EXPR<colonpair> { # might start with a colonpair
                     my @fan := nqp::list($EXPR.ast);
                     migrate_colonpairs($/, @fan);
-                    if (+@fan > 1) {
+                    if (nqp::elems(@fan) > 1) {
                         my $comma := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/));
                         for @fan { $comma.push($_) }
                         if ($numsemis == 1) {
@@ -6785,7 +6785,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $Pair := $*W.find_symbol(['Pair']);
         my int $is_hash   := 0;
         my int $has_stuff := 1;
-        my $stmts := +$<pblock><blockoid><statementlist><statement>;
+        my $stmts := nqp::elems($<pblock><blockoid><statementlist><statement>);
         my $bast  := $<pblock><blockoid>.ast;
         if $bast.symbol('$_')<used> || $bast.ann('also_uses') && $bast.ann('also_uses')<$_> {
             # Uses $_, so not a hash.
@@ -6876,7 +6876,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         if $<pblock><blockoid><statementlist><statement>[$c]<EXPR><colonpair> {
                             my @fan := nqp::list($pp);
                             migrate_colonpairs($/, @fan);
-                            if (+@fan > 1) {
+                            if nqp::elems(@fan) > 1 {
                                 $pp := QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/));
                                 for @fan { $pp.push($_) }
                             }
@@ -9850,7 +9850,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             my $prev_content := QAST::Stmts.new();
-            $prev_content.push($handler.ann('past_block').shift()) while +@($handler.ann('past_block'));
+            $prev_content.push($handler.ann('past_block').shift()) while nqp::elems($handler.ann('past_block'));
             $prev_content.push(QAST::WVal.new( :value($*W.find_symbol(['Nil'])) ));
             $handler.ann('past_block').push(QAST::Op.new(
                 :op('handle'),
@@ -10763,7 +10763,7 @@ class Perl6::QActions is HLL::Actions does STDActions {
         walk($past);
 
         # Strip out list op and possible Slip if only one resulting word
-        +@($result) == 1
+        nqp::elems($result) == 1
             ?? nqp::istype($result[0], QAST::Op) && $result[0].name eq 'Slip'
                 ?? $result[0][0]
                 !! $result[0]
@@ -11055,7 +11055,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
         # We got something like <::($foo)>
         if $lng.contains_indirect_lookup() {
             if $<assertion> {
-                if +$lng.components() > 1 {
+                if nqp::elems($lng.components()) > 1 {
                     $/.typed_panic('X::Syntax::Regex::Alias::LongName');
                 }
                 else {
@@ -11063,7 +11063,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     $/.typed_panic('X::Syntax::Reserved', :reserved('dynamic alias name in regex'));
                 }
             }
-            if +$lng.components() > 1 {
+            if nqp::elems($lng.components()) > 1 {
                 # If ever implemented, take care with RESTRICTED
                 $/.typed_panic('X::NYI', :feature('long dynamic name in regex assertion'));
             }
@@ -11078,7 +11078,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
             my $name  := @parts.pop();
             my $c     := $/;
             if $<assertion> {
-                if +@parts {
+                if nqp::elems(@parts) {
                     $c.typed_panic('X::Syntax::Regex::Alias::LongName');
                 }
                 $qast := $<assertion>.ast;
@@ -11102,7 +11102,7 @@ class Perl6::RegexActions is QRegex::P6Regex::Actions does STDActions {
                     QAST::Regex.new(:rxtype<literal>, $rxname, :node($/)));
             }
             else {
-                if +@parts {
+                if nqp::elems(@parts) {
                     my $gref := QAST::WVal.new( :value($*W.find_symbol(@parts)) );
                     $qast := QAST::Regex.new(:rxtype<subrule>, :subtype<capture>,
                                              :node($/), QAST::NodeList.new(

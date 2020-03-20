@@ -2295,7 +2295,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | <DECL=package_declarator>
         | [<typename><.ws>]+
           {
-            if +$<typename> > 1 {
+            if nqp::elems($<typename>) > 1 {
                 $/.NYI('Multiple prefix constraints');
             }
             $*OFTYPE := $<typename>[0];

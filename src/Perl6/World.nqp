@@ -4635,7 +4635,7 @@ class Perl6::World is HLL::World {
 
         # Checks if the name starts with GLOBAL.
         method is_declared_in_global() {
-            @!components > 1
+            nqp::elems(@!components) > 1
               && !nqp::istype(@!components[0], QAST::Node)
               && @!components[0]   # need this to fix crash on OS X
               && @!components[0] eq 'GLOBAL';
@@ -4669,7 +4669,7 @@ class Perl6::World is HLL::World {
     }
 
     method validate_type_smiley ($/, $colonpairs) {
-        1 < $colonpairs && self.throw: $/, ['X', 'MultipleTypeSmiley'];
+        1 < nqp::elems($colonpairs) && self.throw: $/, ['X', 'MultipleTypeSmiley'];
         my %colonpairs;
         for $colonpairs {
             if $_<identifier> {

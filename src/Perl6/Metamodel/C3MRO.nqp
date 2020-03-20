@@ -105,7 +105,7 @@ role Perl6::Metamodel::C3MRO {
         # Try to find something appropriate to add to the MRO.
         for @merge_list {
             my @cand_list := $_;
-            if +@cand_list {
+            if nqp::elems(@cand_list) {
                 my $rejected := 0;
                 my $cand_class := @cand_list[0];
                 $cand_count := $cand_count + 1;
@@ -114,7 +114,7 @@ role Perl6::Metamodel::C3MRO {
                     unless $_ =:= @cand_list {
                         # Is current candidate in the tail? If so, reject.
                         my $cur_pos := 1;
-                        while $cur_pos <= +$_ {
+                        while $cur_pos <= nqp::elems($_) {
                             if nqp::decont($_[$cur_pos]) =:= nqp::decont($cand_class) {
                                 $rejected := 1;
                             }
@@ -144,7 +144,7 @@ role Perl6::Metamodel::C3MRO {
 
         # Otherwise, remove what was accepted from the merge lists.
         my $i := 0;
-        while $i < +@merge_list {
+        while $i < nqp::elems(@merge_list) {
             my @new_list;
             for @merge_list[$i] {
                 unless nqp::decont($_) =:= nqp::decont($accepted) {

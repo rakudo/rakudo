@@ -925,15 +925,20 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method list(Buf:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Blobby {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-                  nqp::atposref_i($!blob,$!i),
-                  IterationEnd
-                )
-            }
-        }.new(self)).cache
+        my int $elems = nqp::elems(self);
+
+        # presize memory, but keep it empty, so we can just push
+        my $buffer := nqp::setelems(
+          nqp::setelems(nqp::create(IterationBuffer),$elems),
+          0
+        );
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::push($buffer,nqp::atposref_i(self,$i))
+        );
+        $buffer.List
     }
 
     proto method pop(|) { * }

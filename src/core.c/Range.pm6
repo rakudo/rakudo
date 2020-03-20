@@ -1,3 +1,4 @@
+my class Rakudo::SEQUENCE { ... }
 my class X::Immutable { ... }
 my class X::Range::InvalidArg { ... }
 
@@ -157,11 +158,11 @@ my class Range is Cool does Iterable does Positional {
                          $!min,$!max.Str,$!excludes-min,$!excludes-max
                        )
                     # generic string sequence
-                    !! SEQUENCE(
+                    !! Rakudo::SEQUENCE.iterator(
                          ($!excludes-min ?? $!min.succ !! $!min),
                          $!max,
                          :exclude_end($!excludes-max)
-                       ).iterator
+                       )
                   # general case
                   !! Rakudo::Iterator.SuccFromTo(
                        $!excludes-min ?? $!min.succ !! $!min,
@@ -303,7 +304,7 @@ my class Range is Cool does Iterable does Positional {
               ?? ().iterator
               !! $max.chars == 1 && nqp::istype($!min,Str) && $!min.chars == 1
                 ?? CharReverse.new($max,$!excludes-min ?? $!min.succ !! $!min)
-                !! SEQUENCE($max,$!min,:exclude_end($!excludes-min)).iterator
+                !! Rakudo::SEQUENCE.iterator($max,$!min,:exclude_end($!excludes-min))
         }
 
         # General case according to spec

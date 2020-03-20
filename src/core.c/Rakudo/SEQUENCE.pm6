@@ -1,4 +1,7 @@
-sub SEQUENCE(\left, Mu \right, :$exclude_end) is implementation-detail {
+class Rakudo::SEQUENCE {
+
+    method iterator(\left, Mu \right, :$exclude_end --> Iterator:D) {
+
     my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
     my $endpoint := righti.pull-one.self; # .self explodes Failures
     $endpoint =:= IterationEnd and X::Cannot::Empty.new(
@@ -346,8 +349,10 @@ sub SEQUENCE(\left, Mu \right, :$exclude_end) is implementation-detail {
         }
     });
     $infinite
-        ?? (gathered.Slip, Slip.from-iterator(righti)).lazy
-        !! (gathered.Slip, Slip.from-iterator(righti))
+        ?? (gathered.Slip, Slip.from-iterator(righti)).lazy.iterator
+        !! (gathered.Slip, Slip.from-iterator(righti)).iterator
+}
+
 }
 
 # vim: ft=perl6 expandtab sw=4

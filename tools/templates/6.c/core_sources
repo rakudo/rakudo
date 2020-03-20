@@ -150,8 +150,8 @@ src/core.c/set_precedes.pm6
 src/core.c/ObjAt.pm6
 src/core.c/Version.pm6
 src/core.c/ForeignCode.pm6
-src/core.c/operators.pm6
 src/core.c/Rakudo/SEQUENCE.pm6
+src/core.c/operators.pm6
 src/core.c/Hyper.pm6
 src/core.c/metaops.pm6
 src/core.c/precedence.pm6

@@ -61,16 +61,16 @@ class Rakudo::SEQUENCE {
     my \gathered = GATHER({
         my \lefti := left.iterator;
         my &producer;
-        my $stop;
-        my $looped;
+        my int $stop;
+        my int $looped;
         my @tail;
         my @end_tail;
         until nqp::eqaddr((my \value := lefti.pull-one),IterationEnd) {
-            $looped = True;
+            $looped = 1;
             if nqp::istype(value,Code) { &producer = value; last }
             if $end_code_arity != 0 {
                 @end_tail.push(value);
-                if +@end_tail >= $end_code_arity {
+                if @end_tail.elems >= $end_code_arity {
                     @end_tail.shift xx (@end_tail.elems - $end_code_arity)
                         unless $end_code_arity == -Inf;
 

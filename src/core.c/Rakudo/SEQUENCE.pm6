@@ -65,14 +65,14 @@ class Rakudo::SEQUENCE {
         my $looped;
         my @tail;
         my @end_tail;
-        while !((my \value := lefti.pull-one) =:= IterationEnd) {
+        until nqp::eqaddr((my \value := lefti.pull-one),IterationEnd) {
             $looped = True;
             if nqp::istype(value,Code) { &producer = value; last }
             if $end_code_arity != 0 {
                 @end_tail.push(value);
                 if +@end_tail >= $end_code_arity {
                     @end_tail.shift xx (@end_tail.elems - $end_code_arity)
-                        unless $end_code_arity ~~ -Inf;
+                        unless $end_code_arity == -Inf;
 
                     if $endpoint(|@end_tail) {
                         $stop = 1;
@@ -81,7 +81,7 @@ class Rakudo::SEQUENCE {
                     }
                 }
             }
-            elsif value ~~ $endpoint {
+            elsif $endpoint.ACCEPTS(value) {
                 $stop = 1;
                 @tail.push(value) unless $exclude_end;
                 last;
@@ -113,9 +113,9 @@ class Rakudo::SEQUENCE {
                         ?? succpred(@tail.tail, $endpoint)
                         !! succpred(@tail[*-2], @tail.tail);
                 }
-                elsif nqp::istype($endpoint, Stringy)
-                  and nqp::istype($a, Stringy)
-                  and nqp::isconcrete($endpoint) {
+                elsif nqp::istype($endpoint,Stringy)
+                  && nqp::istype($a,Stringy)
+                  && nqp::isconcrete($endpoint) {
                     if $a.codes == 1 && $endpoint.codes == 1 {
                         &producer = unisuccpred($a, $endpoint);
                     }
@@ -156,15 +156,15 @@ class Rakudo::SEQUENCE {
                 }
             }
             elsif @tail.elems == 3 {
-                my $ab = $b - $a;
+                my $ab := $b - $a;
                 if $ab == $c - $b {
                     if $ab != 0
                     || nqp::istype($a,Real)
                     && nqp::istype($b,Real)
                     && nqp::istype($c,Real) {
-                        if      nqp::istype($endpoint, Real)
-                        and not nqp::istype($endpoint, Bool)
-                        and     nqp::isconcrete($endpoint) {
+                        if nqp::istype($endpoint, Real)
+                          && nqp::not_i(nqp::istype($endpoint,Bool))
+                          && nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 $stop = 1 if $a > $endpoint;
                                 &producer = {
@@ -193,19 +193,19 @@ class Rakudo::SEQUENCE {
                     }
                 }
                 elsif $a != 0 && $b != 0 && $c != 0 {
-                    $ab = $b / $a;
+                    $ab := $b / $a;
                     if $ab == $c / $b {
                         # XXX TODO: this code likely has a 2 bugs:
                         # 1) It should check Rational, not just Rat
                         # 2) Currently Rats aren't guaranteed to be always
                         #    normalized, so denominator might not be 1, even if
                         #    it could be, if normalized
-                        $ab = $ab.Int
+                        $ab := $ab.Int
                             if nqp::istype($ab, Rat) && $ab.denominator == 1;
 
-                        if      nqp::istype($endpoint, Real)
-                        and not nqp::istype($endpoint, Bool)
-                        and     nqp::isconcrete($endpoint) {
+                        if nqp::istype($endpoint,Real)
+                          && nqp::not_i(nqp::istype($endpoint,Bool))
+                          && nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 if $ab > 1  {
                                     $stop = 1 if $a > $endpoint;
@@ -247,15 +247,15 @@ class Rakudo::SEQUENCE {
                     @tail.pop;
                 }
                 else {
-                    $badseq = "$a,$b,$c" unless &producer;
+                    $badseq := "$a,$b,$c";
                 }
             }
             elsif @tail.elems == 2 {
-                my $ab = $b - $a;
+                my $ab := $b - $a;
                 if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) {
-                    if      nqp::istype($endpoint, Real)
-                    and not nqp::istype($endpoint, Bool)
-                    and     nqp::isconcrete($endpoint) {
+                    if nqp::istype($endpoint,Real)
+                      && nqp::not_i(nqp::istype($endpoint,Bool))
+                      && nqp::isconcrete($endpoint) {
                         if $ab > 0 {
                             $stop = 1 if $a > $endpoint;
                             &producer = {
@@ -285,13 +285,13 @@ class Rakudo::SEQUENCE {
                 @tail.pop;
             }
             elsif @tail.elems == 1 {
-                if     nqp::istype($endpoint,Code)
-                or not nqp::isconcrete($endpoint) {
+                if nqp::istype($endpoint,Code)
+                  || nqp::not_i(nqp::isconcrete($endpoint)) {
                     &producer = *.succ
                 }
-                elsif   nqp::istype($endpoint, Real)
-                and not nqp::istype($endpoint, Bool)
-                and     nqp::istype($a, Real) {
+                elsif nqp::istype($endpoint,Real)
+                  && nqp::not_i(nqp::istype($endpoint,Bool))
+                  && nqp::istype($a,Real) {
                     if $a < $endpoint {
                         &producer = {
                             my $new := .succ;
@@ -340,7 +340,7 @@ class Rakudo::SEQUENCE {
                             }
                         }
                     }
-                    elsif value ~~ $endpoint {
+                    elsif $endpoint.ACCEPTS(value) {
                         my $ = value.take unless $exclude_end; # don't sink return of take()
                         $stop = 1;
                     }

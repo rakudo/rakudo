@@ -112,7 +112,10 @@ role Perl6::Metamodel::BUILDPLAN {
                     # binding may need type info for runtime checks
                     if $action == 13 {
                         my $type := $_.type;
-                        unless $type =:= $*W.find_symbol(["Mu"]) {
+                        # since we may wind up here at runtime, get Mu by
+                        # HLLizing a VMNull instead of looking it up through
+                        # $*W
+                        unless $type =:= nqp::hllizefor(nqp::null(), 'Raku') {
                             nqp::push($info,$type);
                         }
                     }
@@ -196,9 +199,11 @@ role Perl6::Metamodel::BUILDPLAN {
                 }
 
                 # add type if we need to check at runtime
+                # since we may wind up here at runtime, get Mu by HLLizing
+                # a VMNull instead of looking it up through $*W
                 nqp::push(@action,$type)
                   if $check-at-runtime
-                  && !nqp::eqaddr($type,$*W.find_symbol(["Mu"]));
+                  && !nqp::eqaddr($type,nqp::hllizefor(nqp::null(), 'Raku'));
 
                 # store the action, mark as seen
                 nqp::push(@plan,@action);

@@ -3,56 +3,58 @@ class Rakudo::SEQUENCE {
     method iterator(\left, Mu \right, :$exclude_end --> Iterator:D) {
 
     my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
-    my $endpoint := righti.pull-one.self; # .self explodes Failures
-    $endpoint =:= IterationEnd and X::Cannot::Empty.new(
+    my $endpoint := righti.pull-one;
+    $endpoint.throw if nqp::istype($endpoint,Failure);
+    X::Cannot::Empty.new(
         :action('get sequence endpoint'),
         :what('list (use * or :!elems instead?)'),
-    ).throw;
-    my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
+    ).throw if nqp::eqaddr($endpoint,IterationEnd);
+
+    my $infinite := nqp::istype($endpoint,Whatever) || $endpoint === Inf;
     $endpoint := False if $infinite;
 
-    my $end_code_arity = 0;
-    if nqp::istype($endpoint,Code) && !nqp::istype($endpoint,Regex) {
-        $end_code_arity = $endpoint.arity;
-        $end_code_arity = $endpoint.count if $end_code_arity == 0;
-        $end_code_arity = -Inf if $end_code_arity == Inf;
+    my $end_code_arity := 0;
+    if nqp::istype($endpoint,Code) && nqp::not_i(nqp::istype($endpoint,Regex)) {
+        $end_code_arity := $endpoint.arity;
+        $end_code_arity := $endpoint.count if $end_code_arity == 0;
+        $end_code_arity := -Inf if $end_code_arity == Inf;
     }
 
     my sub succpred($a,$b) {
-        my $cmp = $a cmp $b;
-        if $a.WHAT === $b.WHAT === $endpoint.WHAT {
-            $cmp < 0 && $a ~~ Stringy
-                ?? -> $x {
-                    my $new = $x.succ;
+        my $cmp := $a cmp $b;
+        if nqp::eqaddr($a.WHAT,$b.WHAT) && nqp::eqaddr($b.WHAT,$endpoint.WHAT) {
+            $cmp < 0 && nqp::istype($a,Stringy)
+                ?? {
+                    my $new := .succ;
                     last if $new       after $endpoint
                          or $new.chars >     $endpoint.chars;
                     $new;
                 }
                 !! $cmp < 0
-                    ?? -> $x {
-                        my $new = $x.succ;
+                    ?? {
+                        my $new := .succ;
                         last if $new after $endpoint;
                         $new;
                     }
                     !! $cmp > 0
-                        ?? -> $x {
-                            my $new = $x.pred;
-                            last if $x before $endpoint;
+                        ?? {
+                            my $new := .pred;
+                            last if $_ before $endpoint;
                             $new;
                         }
                         !! { $_ }
         }
         else {
-               $cmp < 0 ?? { $^x.succ }
-            !! $cmp > 0 ?? { $^x.pred }
-            !!             { $^x      }
+               $cmp < 0 ?? { .succ }
+            !! $cmp > 0 ?? { .pred }
+            !!             { $_    }
         }
     }
     my sub unisuccpred($a,$b) {
-        my $cmp = $a.ord cmp $b.ord;
-           $cmp < 0 ?? { $^x.ord.succ.chr }
-        !! $cmp > 0 ?? { $^x.ord.pred.chr }
-        !!             { $^x              }
+        my $cmp := $a.ord cmp $b.ord;
+           $cmp < 0 ?? { .ord.succ.chr }
+        !! $cmp > 0 ?? { .ord.pred.chr }
+        !!             { $_            }
     }
 
     my \gathered = GATHER({

@@ -130,8 +130,8 @@ class Rakudo::SEQUENCE {
                     }
                     elsif $a lt $endpoint {
                         $stop = 1 if $a gt $endpoint;
-                        &producer = -> $x {
-                            my $new = $x.succ;
+                        &producer = {
+                            my $new := .succ;
                             last if $new       gt $endpoint
                                  or $new.chars >  $endpoint.chars;
                             $new;
@@ -139,8 +139,8 @@ class Rakudo::SEQUENCE {
                     }
                     else {
                         $stop = 1 if $a lt $endpoint;
-                        &producer = -> $x {
-                            my $new = $x.pred;
+                        &producer = {
+                            my $new := .pred;
                             last if $new lt $endpoint;
                             $new;
                         }
@@ -165,23 +165,23 @@ class Rakudo::SEQUENCE {
                         and     nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 $stop = 1 if $a > $endpoint;
-                                &producer = -> $x {
-                                    my $new = $x + $ab;
+                                &producer = {
+                                    my $new := $_ + $ab;
                                     last if $new > $endpoint;
                                     $new;
                                 }
                             }
                             else {
                                 $stop = 1 if $a < $endpoint;
-                                &producer = -> $x {
-                                    my $new = $x + $ab;
+                                &producer = {
+                                    my $new := $_ + $ab;
                                     last if $new < $endpoint;
                                     $new;
                                 }
                             }
                         }
                         else {
-                            &producer = { $^x + $ab }
+                            &producer = { $_ + $ab }
                         }
                     }
                     else {
@@ -205,33 +205,33 @@ class Rakudo::SEQUENCE {
                             if $ab > 0 {
                                 if $ab > 1  {
                                     $stop = 1 if $a > $endpoint;
-                                    &producer = -> $x {
-                                        my $new = $x * $ab;
+                                    &producer = {
+                                        my $new := $_ * $ab;
                                         last if $new > $endpoint;
                                         $new;
                                     }
                                 }
                                 else {
                                     $stop = 1 if $a < $endpoint;
-                                    &producer = -> $x {
-                                        my $new = $x * $ab;
+                                    &producer = {
+                                        my $new := $_ * $ab;
                                         last if $new < $endpoint;
                                         $new;
                                     }
                                 }
                             }
                             else {
-                                &producer = -> $x {
-                                    my $new = $x * $ab;
-                                    my $absend = $endpoint.abs;
-                                    last if sign(  $x.abs - $absend)
+                                &producer = {
+                                    my $new := $_ * $ab;
+                                    my $absend := $endpoint.abs;
+                                    last if sign(    .abs - $absend)
                                         == -sign($new.abs - $absend);
                                     $new;
                                 }
                             }
                         }
                         else {
-                            &producer = { $^x * $ab }
+                            &producer = { $_ * $ab }
                         }
                     }
                 }
@@ -251,23 +251,23 @@ class Rakudo::SEQUENCE {
                     and     nqp::isconcrete($endpoint) {
                         if $ab > 0 {
                             $stop = 1 if $a > $endpoint;
-                            &producer = -> $x {
-                                my $new = $x + $ab;
+                            &producer = {
+                                my $new := $_ + $ab;
                                 last if $new > $endpoint;
                                 $new;
                             }
                         }
                         else {
                             $stop = 1 if $a < $endpoint;
-                            &producer = -> $x {
-                                my $new = $x + $ab;
+                            &producer = {
+                                my $new := $_ + $ab;
                                 last if $new < $endpoint;
                                 $new;
                             }
                         }
                     }
                     else {
-                        &producer = { $^x + $ab }
+                        &producer = { $_ + $ab }
                     }
                 }
                 else {
@@ -278,28 +278,28 @@ class Rakudo::SEQUENCE {
             elsif @tail.elems == 1 {
                 if     nqp::istype($endpoint,Code)
                 or not nqp::isconcrete($endpoint) {
-                    &producer = { $^x.succ }
+                    &producer = *.succ
                 }
                 elsif   nqp::istype($endpoint, Real)
                 and not nqp::istype($endpoint, Bool)
                 and     nqp::istype($a, Real) {
                     if $a < $endpoint {
-                        &producer = -> $x {
-                            my $new = $x.succ;
+                        &producer = {
+                            my $new := .succ;
                             last if $new > $endpoint;
                             $new;
                         }
                     }
                     else {
-                        &producer = -> $x {
-                            my $new = $x.pred;
+                        &producer = {
+                            my $new := .pred;
                             last if $new < $endpoint;
                             $new;
                         }
                     }
                 }
                 else {
-                    &producer = { $^x.succ }
+                    &producer = *.succ;
                 }
             }
             elsif @tail.elems == 0 {

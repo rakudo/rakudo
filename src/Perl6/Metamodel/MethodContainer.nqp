@@ -47,26 +47,42 @@ role Perl6::Metamodel::MethodContainer {
     }
 
     # Gets the method hierarchy.
-    method methods($obj, :$local, :$excl, :$all) {
-        # Always need local methods on the list.
+    method methods($obj, :$local, :$excl, :$all, :$implementation-detail) {
         my @meths;
+
+        my $check-implementation-detail := !$implementation-detail;
+
+        # Always need local methods on the list.
         for @!method_order {
-            @meths.push(nqp::hllizefor($_, 'Raku'));
+            @meths.push($_)
+              unless $check-implementation-detail
+                && nqp::can($_,'is-implementation-detail')
+                && $_.is-implementation-detail;
         }
 
         # If local flag was not passed, include those from parents.
         unless $local {
             for self.parents($obj, :all($all), :excl($excl)) {
                 for nqp::hllize($_.HOW.method_table($_)) {
-                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'Raku'));
+                    @meths.push(nqp::decont($_.value))
+                      unless $check-implementation-detail
+                        && nqp::can($_,'is-implementation-detail')
+                        && $_.is-implementation-detail;
                 }
                 for nqp::hllize($_.HOW.submethod_table($_)) {
-                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'Raku'));
+                    @meths.push(nqp::decont($_.value))
+                      unless $check-implementation-detail
+                        && nqp::can($_,'is-implementation-detail')
+                        && $_.is-implementation-detail;
                 }
             }
         }
 
-        # Return result list.
+        # make sure Raku can handle them
+        for @meths {
+            $_ := nqp::hllizefor($_,'Raku');
+        }
+
         @meths
     }
 

@@ -4695,7 +4695,7 @@ class Perl6::World is HLL::World {
         if $name<identifier> {
             @components.push(~$name<identifier>);
         }
-        if $name<morename> {
+        if nqp::existskey($name, 'morename') && nqp::elems($name<morename>) {
             for $name<morename> {
                 if $_<identifier> {
                     @components.push(~$_<identifier>);
@@ -4707,7 +4707,7 @@ class Perl6::World is HLL::World {
                 else {
                     # Either it's :: as a name entirely, in which case it's anon,
                     # or we're ending in ::, in which case it implies .WHO.
-                    if +@components {
+                    if nqp::elems(@components) {
                         nqp::bindattr_i($result, LongName, '$!get_who', 1);
                     }
                 }
@@ -4719,7 +4719,7 @@ class Perl6::World is HLL::World {
         # the last part of the name (e.g. for infix:<+>). Need to be a
         # little cheaty when compiling the setting due to bootstrapping.
         my @pairs;
-        if $longname<colonpair> {
+        if nqp::existskey($longname, 'colonpair') && nqp::elems($longname<colonpair>) {
             for $longname<colonpair> {
                 if $_<coloncircumfix> && !$_<identifier> {
                     my $cp_str;
@@ -4749,8 +4749,8 @@ class Perl6::World is HLL::World {
                         $cp_str := self.canonicalize_pair('',self.compile_time_evaluate:
                           $_, $_.ast, :mark-wanted);
                     }
-                    if +@components {
-                        @components[+@components - 1] := @components[+@components - 1] ~ $cp_str;
+                    if nqp::elems(@components) {
+                        @components[nqp::elems(@components) - 1] := @components[nqp::elems(@components) - 1] ~ $cp_str;
                     } else {
                         @components[0] := $cp_str;
                     }

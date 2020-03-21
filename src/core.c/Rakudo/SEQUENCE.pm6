@@ -59,15 +59,14 @@ class Rakudo::SEQUENCE {
 
     my \gathered = GATHER({
         my \lefti := left.iterator;
-        my $value;
-        my $code;
+        my &producer;
         my $stop;
         my $looped;
         my @tail;
         my @end_tail;
         while !((my \value := lefti.pull-one) =:= IterationEnd) {
             $looped = True;
-            if nqp::istype(value,Code) { $code = value; last }
+            if nqp::istype(value,Code) { &producer = value; last }
             if $end_code_arity != 0 {
                 @end_tail.push(value);
                 if +@end_tail >= $end_code_arity {
@@ -100,16 +99,16 @@ class Rakudo::SEQUENCE {
             my $a;
             my $b;
             my $c;
-            unless $code.defined {
+            unless &producer {
                 my $ = take @tail.shift while @tail.elems > 3; # don't sink return of take()
                 $a = @tail[0];
                 $b = @tail[1];
                 $c = @tail[2];
             }
-            if $code.defined { }
+            if &producer { }
             elsif @tail.grep(Real).elems != @tail.elems {
                 if @tail.elems > 1 {
-                    $code = @tail.tail.WHAT === $endpoint.WHAT
+                    &producer = @tail.tail.WHAT === $endpoint.WHAT
                         ?? succpred(@tail.tail, $endpoint)
                         !! succpred(@tail[*-2], @tail.tail);
                 }
@@ -117,7 +116,7 @@ class Rakudo::SEQUENCE {
                   and nqp::istype($a, Stringy)
                   and nqp::isconcrete($endpoint) {
                     if $a.codes == 1 && $endpoint.codes == 1 {
-                        $code = unisuccpred($a, $endpoint);
+                        &producer = unisuccpred($a, $endpoint);
                     }
                     elsif $a.codes == $endpoint.codes {
                         my @a = $a.comb;
@@ -131,7 +130,7 @@ class Rakudo::SEQUENCE {
                     }
                     elsif $a lt $endpoint {
                         $stop = 1 if $a gt $endpoint;
-                        $code = -> $x {
+                        &producer = -> $x {
                             my $new = $x.succ;
                             last if $new       gt $endpoint
                                  or $new.chars >  $endpoint.chars;
@@ -140,7 +139,7 @@ class Rakudo::SEQUENCE {
                     }
                     else {
                         $stop = 1 if $a lt $endpoint;
-                        $code = -> $x {
+                        &producer = -> $x {
                             my $new = $x.pred;
                             last if $new lt $endpoint;
                             $new;
@@ -148,10 +147,10 @@ class Rakudo::SEQUENCE {
                     }
                 }
                 elsif $infinite or nqp::istype($endpoint, Code) {
-                    $code = *.succ;
+                    &producer = *.succ;
                 }
                 else {
-                    $code = succpred($a,$endpoint);
+                    &producer = succpred($a,$endpoint);
                 }
             }
             elsif @tail.elems == 3 {
@@ -166,7 +165,7 @@ class Rakudo::SEQUENCE {
                         and     nqp::isconcrete($endpoint) {
                             if $ab > 0 {
                                 $stop = 1 if $a > $endpoint;
-                                $code = -> $x {
+                                &producer = -> $x {
                                     my $new = $x + $ab;
                                     last if $new > $endpoint;
                                     $new;
@@ -174,7 +173,7 @@ class Rakudo::SEQUENCE {
                             }
                             else {
                                 $stop = 1 if $a < $endpoint;
-                                $code = -> $x {
+                                &producer = -> $x {
                                     my $new = $x + $ab;
                                     last if $new < $endpoint;
                                     $new;
@@ -182,11 +181,11 @@ class Rakudo::SEQUENCE {
                             }
                         }
                         else {
-                            $code = { $^x + $ab }
+                            &producer = { $^x + $ab }
                         }
                     }
                     else {
-                        $code = succpred($b, $c)
+                        &producer = succpred($b, $c)
                     }
                 }
                 elsif $a != 0 && $b != 0 && $c != 0 {
@@ -206,7 +205,7 @@ class Rakudo::SEQUENCE {
                             if $ab > 0 {
                                 if $ab > 1  {
                                     $stop = 1 if $a > $endpoint;
-                                    $code = -> $x {
+                                    &producer = -> $x {
                                         my $new = $x * $ab;
                                         last if $new > $endpoint;
                                         $new;
@@ -214,7 +213,7 @@ class Rakudo::SEQUENCE {
                                 }
                                 else {
                                     $stop = 1 if $a < $endpoint;
-                                    $code = -> $x {
+                                    &producer = -> $x {
                                         my $new = $x * $ab;
                                         last if $new < $endpoint;
                                         $new;
@@ -222,7 +221,7 @@ class Rakudo::SEQUENCE {
                                 }
                             }
                             else {
-                                $code = -> $x {
+                                &producer = -> $x {
                                     my $new = $x * $ab;
                                     my $absend = $endpoint.abs;
                                     last if sign(  $x.abs - $absend)
@@ -232,16 +231,16 @@ class Rakudo::SEQUENCE {
                             }
                         }
                         else {
-                            $code = { $^x * $ab }
+                            &producer = { $^x * $ab }
                         }
                     }
                 }
-                if $code {
+                if &producer {
                     @tail.pop;
                     @tail.pop;
                 }
                 else {
-                    $badseq = "$a,$b,$c" unless $code;
+                    $badseq = "$a,$b,$c" unless &producer;
                 }
             }
             elsif @tail.elems == 2 {
@@ -252,7 +251,7 @@ class Rakudo::SEQUENCE {
                     and     nqp::isconcrete($endpoint) {
                         if $ab > 0 {
                             $stop = 1 if $a > $endpoint;
-                            $code = -> $x {
+                            &producer = -> $x {
                                 my $new = $x + $ab;
                                 last if $new > $endpoint;
                                 $new;
@@ -260,7 +259,7 @@ class Rakudo::SEQUENCE {
                         }
                         else {
                             $stop = 1 if $a < $endpoint;
-                            $code = -> $x {
+                            &producer = -> $x {
                                 my $new = $x + $ab;
                                 last if $new < $endpoint;
                                 $new;
@@ -268,31 +267,31 @@ class Rakudo::SEQUENCE {
                         }
                     }
                     else {
-                        $code = { $^x + $ab }
+                        &producer = { $^x + $ab }
                     }
                 }
                 else {
-                    $code = succpred($a, $b)
+                    &producer = succpred($a, $b)
                 }
                 @tail.pop;
             }
             elsif @tail.elems == 1 {
                 if     nqp::istype($endpoint,Code)
                 or not nqp::isconcrete($endpoint) {
-                    $code = { $^x.succ }
+                    &producer = { $^x.succ }
                 }
                 elsif   nqp::istype($endpoint, Real)
                 and not nqp::istype($endpoint, Bool)
                 and     nqp::istype($a, Real) {
                     if $a < $endpoint {
-                        $code = -> $x {
+                        &producer = -> $x {
                             my $new = $x.succ;
                             last if $new > $endpoint;
                             $new;
                         }
                     }
                     else {
-                        $code = -> $x {
+                        &producer = -> $x {
                             my $new = $x.pred;
                             last if $new < $endpoint;
                             $new;
@@ -300,21 +299,21 @@ class Rakudo::SEQUENCE {
                     }
                 }
                 else {
-                    $code = { $^x.succ }
+                    &producer = { $^x.succ }
                 }
             }
             elsif @tail.elems == 0 {
-                $code = {()}
+                &producer = {()}
             }
 
             if $stop { }
-            elsif $code.defined {
+            elsif &producer {
                 my $ = .take for @tail; # don't sink return of take()
-                my $count = $code.count;
+                my $count = &producer.count;
 
                 until $stop {
                     @tail.shift while @tail.elems > $count;
-                    my \value = $code(|@tail);
+                    my \value = producer(|@tail);
 
                     if $end_code_arity != 0 {
                         @end_tail.push(value);

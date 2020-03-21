@@ -41,6 +41,12 @@ my class IterationBuffer {
 
     # For maintainability mainly, and possibly for creating smaller, more
     # inlineable candidates
+    method Slip(IterationBuffer:D:) {
+        nqp::p6bindattrinvres(nqp::create(Slip),List,'$!reified',self)
+    }
+
+    # For maintainability mainly, and possibly for creating smaller, more
+    # inlineable candidates
     method List(IterationBuffer:D:) {
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',self)
     }

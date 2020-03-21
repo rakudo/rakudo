@@ -26,21 +26,22 @@ class Rakudo::SEQUENCE {
             $cmp < 0 && nqp::istype($a,Stringy)
                 ?? {
                     my $new := .succ;
-                    last if $new       after $endpoint
-                         or $new.chars >     $endpoint.chars;
-                    $new;
+                    $new after $endpoint || $new.chars > $endpoint.chars
+                      ?? (last)
+                      !! $new
                 }
                 !! $cmp < 0
                     ?? {
                         my $new := .succ;
-                        last if $new after $endpoint;
-                        $new;
+                        $new after $endpoint
+                          ?? (last)
+                          !! $new
                     }
                     !! $cmp > 0
                         ?? {
-                            my $new := .pred;
-                            last if $_ before $endpoint;
-                            $new;
+                            $_ before $endpoint
+                              ?? (last)
+                              !! .pred
                         }
                         !! { $_ }
         }
@@ -132,17 +133,18 @@ class Rakudo::SEQUENCE {
                         $stop = 1 if $a gt $endpoint;
                         &producer = {
                             my $new := .succ;
-                            last if $new       gt $endpoint
-                                 or $new.chars >  $endpoint.chars;
-                            $new;
+                            $new gt $endpoint || $new.chars > $endpoint.chars
+                              ?? (last)
+                              !! $new
                         }
                     }
                     else {
                         $stop = 1 if $a lt $endpoint;
                         &producer = {
                             my $new := .pred;
-                            last if $new lt $endpoint;
-                            $new;
+                            $new lt $endpoint
+                              ?? (last)
+                              !! $new
                         }
                     }
                 }
@@ -167,16 +169,18 @@ class Rakudo::SEQUENCE {
                                 $stop = 1 if $a > $endpoint;
                                 &producer = {
                                     my $new := $_ + $ab;
-                                    last if $new > $endpoint;
-                                    $new;
+                                    $new > $endpoint
+                                      ?? (last)
+                                      !! $new
                                 }
                             }
                             else {
                                 $stop = 1 if $a < $endpoint;
                                 &producer = {
                                     my $new := $_ + $ab;
-                                    last if $new < $endpoint;
-                                    $new;
+                                    $new < $endpoint
+                                      ?? (last)
+                                      !! $new
                                 }
                             }
                         }
@@ -207,16 +211,18 @@ class Rakudo::SEQUENCE {
                                     $stop = 1 if $a > $endpoint;
                                     &producer = {
                                         my $new := $_ * $ab;
-                                        last if $new > $endpoint;
-                                        $new;
+                                        $new > $endpoint
+                                          ?? (last)
+                                          !! $new
                                     }
                                 }
                                 else {
                                     $stop = 1 if $a < $endpoint;
                                     &producer = {
                                         my $new := $_ * $ab;
-                                        last if $new < $endpoint;
-                                        $new;
+                                        $new < $endpoint
+                                          ?? (last)
+                                          !! $new
                                     }
                                 }
                             }
@@ -224,9 +230,10 @@ class Rakudo::SEQUENCE {
                                 &producer = {
                                     my $new := $_ * $ab;
                                     my $absend := $endpoint.abs;
-                                    last if sign(    .abs - $absend)
-                                        == -sign($new.abs - $absend);
-                                    $new;
+                                    sign(.abs - $absend)
+                                      == -sign($new.abs - $absend)
+                                      ?? (last)
+                                      !! $new
                                 }
                             }
                         }
@@ -253,16 +260,18 @@ class Rakudo::SEQUENCE {
                             $stop = 1 if $a > $endpoint;
                             &producer = {
                                 my $new := $_ + $ab;
-                                last if $new > $endpoint;
-                                $new;
+                                $new > $endpoint
+                                  ?? (last)
+                                  !! $new
                             }
                         }
                         else {
                             $stop = 1 if $a < $endpoint;
                             &producer = {
                                 my $new := $_ + $ab;
-                                last if $new < $endpoint;
-                                $new;
+                                $new < $endpoint
+                                  ?? (last)
+                                  !! $new
                             }
                         }
                     }
@@ -286,15 +295,17 @@ class Rakudo::SEQUENCE {
                     if $a < $endpoint {
                         &producer = {
                             my $new := .succ;
-                            last if $new > $endpoint;
-                            $new;
+                            $new > $endpoint
+                              ?? (last)
+                              !! $new
                         }
                     }
                     else {
                         &producer = {
                             my $new := .pred;
-                            last if $new < $endpoint;
-                            $new;
+                            $new < $endpoint
+                              ?? (last)
+                              !! $new
                         }
                     }
                 }

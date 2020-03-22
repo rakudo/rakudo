@@ -28,9 +28,18 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $name := self.resolution.lexical-name;
-        QAST::Var.new( :$name, :scope('lexical') )
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        my str $op := $!operator;
+        if $op eq '||' || $op eq 'or' {
+            QAST::Op.new( :op('unless'), $left-qast, $right-qast )
+        }
+        elsif $op eq '&&' || $op eq 'and' {
+            QAST::Op.new( :op('if'), $left-qast, $right-qast )
+        }
+        else {
+            my $name := self.resolution.lexical-name;
+            QAST::Op.new( :op('call'), :$name, $left-qast, $right-qast )
+        }
     }
 }
 
@@ -49,12 +58,9 @@ class RakuAST::ApplyInfix is RakuAST::Expression {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(
-            :op('call'),
-            $!infix.IMPL-TO-QAST($context),
+        $!infix.IMPL-INFIX-QAST: $context,
             $!left.IMPL-TO-QAST($context),
             $!right.IMPL-TO-QAST($context)
-        )
     }
 
     method visit-children(Code $visitor) {
@@ -86,9 +92,9 @@ class RakuAST::Prefix is RakuAST::Prefixish is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
-        QAST::Var.new( :$name, :scope('lexical') )
+        QAST::Op.new( :op('call'), :$name, $operand-qast )
     }
 }
 
@@ -105,11 +111,7 @@ class RakuAST::ApplyPrefix is RakuAST::Expression {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(
-            :op('call'),
-            $!prefix.IMPL-TO-QAST($context),
-            $!operand.IMPL-TO-QAST($context)
-        )
+        $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
     }
 
     method visit-children(Code $visitor) {
@@ -140,9 +142,9 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
-        QAST::Var.new( :$name, :scope('lexical') )
+        QAST::Op.new( :op('call'), :$name, $operand-qast )
     }
 }
 
@@ -159,11 +161,7 @@ class RakuAST::ApplyPostfix is RakuAST::Expression {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new(
-            :op('call'),
-            $!postfix.IMPL-TO-QAST($context),
-            $!operand.IMPL-TO-QAST($context)
-        )
+        $!postfix.IMPL-POSTFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
     }
 
     method visit-children(Code $visitor) {

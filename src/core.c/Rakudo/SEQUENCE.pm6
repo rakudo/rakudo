@@ -126,7 +126,7 @@ class Rakudo::SEQUENCE {
                         for flat @a Z @e -> $from, $to {
                             @ranges.push: $($from ... $to);
                         }
-                        my $ = .take for flat [X~] @ranges; # don't sink return of take()
+                        my $ = take $_ for flat [X~] @ranges; # don't sink return of take()
                         $stop = 1;
                     }
                     elsif $a lt $endpoint {
@@ -319,7 +319,7 @@ class Rakudo::SEQUENCE {
 
             if $stop { }
             elsif &producer {
-                my $ = .take for @tail; # don't sink return of take()
+                my $ = take $_ for @tail; # don't sink return of take()
                 my $count = &producer.count;
 
                 until $stop {
@@ -335,20 +335,20 @@ class Rakudo::SEQUENCE {
                             ) unless $end_code_arity == -Inf;
 
                             if $endpoint(|@end_tail) {
-                                my $ = value.take unless $exclude_end; # don't sink return of take()
+                                my $ = take value unless $exclude_end; # don't sink return of take()
                                 $stop = 1;
                             }
                         }
                     }
                     elsif $endpoint.ACCEPTS(value) {
-                        my $ = value.take unless $exclude_end; # don't sink return of take()
+                        my $ = take value unless $exclude_end; # don't sink return of take()
                         $stop = 1;
                     }
 
                     if $stop { }
                     else {
                         @tail.push(value);
-                        my $ = value.take; # don't sink return of take()
+                        my $ = take value; # don't sink return of take()
                     }
                 }
             }

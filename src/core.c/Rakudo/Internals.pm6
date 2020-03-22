@@ -38,16 +38,6 @@ my class Rakudo::Internals {
         ))
     }
 
-    method GENERATE-ROLE-FROM-VALUE($val) {
-        my $role := Metamodel::ParametricRoleHOW.new_type();
-        my $meth := method () { $val };
-        $meth.set_name($val.^name);
-        $role.^add_method($meth.name, $meth);
-        $role.^set_body_block(
-          -> |c { nqp::list($role, nqp::hash('$?CLASS', c<$?CLASS>)) });
-        $role.^compose;
-    }
-
     # for use in nqp::splice
     my $empty := nqp::list;
 

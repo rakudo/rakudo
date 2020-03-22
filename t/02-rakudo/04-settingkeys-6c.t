@@ -28,6 +28,7 @@ my %allowed = (
     Q{&EVALFILE},
     Q{&EXCEPTION},
     Q{&GATHER},
+    Q{&GENERATE-ROLE-FROM-VALUE},
     Q{&HOW},
     Q{&HYPER},
     Q{&HYPERWHATEVER},

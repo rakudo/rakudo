@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 4;
+plan 12;
 
 is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -11,6 +11,76 @@ is-deeply
         )),
         66,
         'Application of an infix operator on two literals';
+
+{
+    is-deeply
+            EVAL(RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(22),
+                infix => RakuAST::Infix.new('||'),
+                right => RakuAST::IntLiteral.new(44)
+            )),
+            22,
+            'The special form || operator works (1)';
+    is-deeply
+            EVAL(RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(0),
+                infix => RakuAST::Infix.new('||'),
+                right => RakuAST::IntLiteral.new(44)
+            )),
+            44,
+            'The special form || operator works (2)';
+
+    is-deeply
+            EVAL(RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(22),
+                infix => RakuAST::Infix.new('or'),
+                right => RakuAST::IntLiteral.new(44)
+            )),
+            22,
+            'The special form or operator works (1)';
+    is-deeply
+            EVAL(RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(0),
+                infix => RakuAST::Infix.new('or'),
+                right => RakuAST::IntLiteral.new(44)
+            )),
+            44,
+            'The special form or operator works (2)';
+
+    is-deeply
+            EVAL(RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(22),
+                infix => RakuAST::Infix.new('&&'),
+                right => RakuAST::IntLiteral.new(44)
+            )),
+            44,
+            'The special form && operator works (1)';
+    is-deeply
+            EVAL(RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(0),
+                infix => RakuAST::Infix.new('&&'),
+                right => RakuAST::IntLiteral.new(44)
+            )),
+            0,
+            'The special form && operator works (2)';
+
+    is-deeply
+            EVAL(RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(22),
+                infix => RakuAST::Infix.new('and'),
+                right => RakuAST::IntLiteral.new(44)
+            )),
+            44,
+            'The special form and operator works (1)';
+    is-deeply
+            EVAL(RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(0),
+                infix => RakuAST::Infix.new('and'),
+                right => RakuAST::IntLiteral.new(44)
+            )),
+            0,
+            'The special form and operator works (2)';
+}
 
 is-deeply
         EVAL(RakuAST::ApplyPrefix.new(

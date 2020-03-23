@@ -102,9 +102,9 @@ class Rakudo::SEQUENCE {
             my $c;
             unless &producer {
                 my $ = take @tail.shift while @tail.elems > 3; # don't sink return of take()
-                $a = @tail[0];
-                $b = @tail[1];
-                $c = @tail[2];
+                $a := @tail[0];
+                $b := @tail[1];
+                $c := @tail[2];
             }
             if &producer { }
             elsif @tail.grep(Real).elems != @tail.elems {
@@ -320,7 +320,7 @@ class Rakudo::SEQUENCE {
             if $stop { }
             elsif &producer {
                 my $ = take $_ for @tail; # don't sink return of take()
-                my $count = &producer.count;
+                my $count := &producer.count;
 
                 until $stop {
                     @tail.shift while @tail.elems > $count;

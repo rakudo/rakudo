@@ -284,16 +284,16 @@ my class IO::CatHandle is IO::Handle {
           '')
     }
 
-    method slurp (::?CLASS:D:) {
+    method slurp (::?CLASS:D: :$bin) {
         # we don't take a :close arg, because we close exhausted handles
         # and .slurp isn't lazy, so all handles will get exhausted
         nqp::if(
           nqp::defined($!active-handle),
           ([~] gather nqp::stmts( # the [~] takes care of both Str and Blobs
-            (take $!active-handle.slurp),
+            (take $!active-handle.slurp(:$bin)),
             nqp::while(
               nqp::defined(self.next-handle),
-              take $!active-handle.slurp))),
+              take $!active-handle.slurp(:$bin)))),
           Nil)
     }
     method slurp-rest (|) {

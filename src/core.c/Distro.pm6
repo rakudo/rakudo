@@ -59,7 +59,8 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
 
     # darwin specific info
     if $name eq 'darwin' {
-        my $lookup := kv2Map(shell("sw_vers", :out, :err).out.slurp,':');
+        my $lookup :=
+          kv2Map(shell("sw_vers", :out, :err).out.slurp(:close),':');
         $name    := $_ with $lookup<ProductName>;
         $version := $_ with $lookup<ProductVersion>;
         $release := $_ with $lookup<BuildVersion>;
@@ -74,7 +75,8 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
         $desc    := $_ with $lookup<PRETTY_NAME>;
     }
     elsif $name eq 'linux' {
-        my $lookup := kv2Map(shell(<lsb_release -a>, :out, :err).out.slurp,":");
+        my $lookup :=
+          kv2Map(shell(<lsb_release -a>, :out, :err).out.slurp(:close),":");
         $auth    := $_ with $lookup<<"DISTRIBUTOR ID">>;
         $desc    := $_ with $lookup<DESCRIPTION>;
         $release := $_ with $lookup<RELEASE>;

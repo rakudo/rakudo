@@ -290,10 +290,10 @@ my class IO::CatHandle is IO::Handle {
         nqp::if(
           nqp::defined($!active-handle),
           ([~] gather nqp::stmts( # the [~] takes care of both Str and Blobs
-            (take $!active-handle.slurp(:$bin)),
+            (take $!active-handle.slurp(:$bin, :close)),
             nqp::while(
               nqp::defined(self.next-handle),
-              take $!active-handle.slurp(:$bin)))),
+              take $!active-handle.slurp(:$bin, :close)))),
           Nil)
     }
     method slurp-rest (|) {

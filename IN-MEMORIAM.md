@@ -13,6 +13,7 @@ the Rakudo and NQP code.
 From the obituary at: https://www.legacy.com/obituaries/caller/obituary.aspx?n=jonathan-scott-duff&pid=191217621
 
 > Born in Baton Rouge, La. and raised in Corpus Christi, TX, he passed away at the age of 47 in his home in Fort Worth, TX on Friday, Dec. 28, 2018 after battling cancer.
+
 > He was a beloved husband, father, and friend. He is survived by his devoted wife, Cynthia; four children, Jazmine, Christian, Camryn, and Joseph, all of Fort Worth, Tx; his loving mother, Linda T Duff of LaPlace, La.; brothers, Brian Duff of Corpus Christi, TX, and Allen Duff of LaPlace, La; and many nieces and nephews. He was preceded in death by his father, Grady W. Duff, Jr 'Dub'.
 
 Jeff Goff (DrForr)

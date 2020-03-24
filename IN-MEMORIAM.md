@@ -25,8 +25,13 @@ He also supported development as a release manager for the Parrot project.
 Many have benefitted from his online presence, always ready to
 help and answer questions.
 
-He died in March 2020 in a snorkelling accident.
+From the obituary at: https://www.facebook.com/marcia.goff.5/posts/10213755697281665
 
+> Jeffrey Michael Goff, 50, passed away March 13, 2020, while snorkeling with a group in the Bahamas. He was born Feb. 25, 1970, in Charleston, IL to Michael and Marcia Goff. He moved to Nebraska with his family in 1973. He graduated from Milford High School in 1988, and received his bachelor of science degree in computer science and mathematics from Buena Vista College (now University) in Storm Lake, Iowa, in 1992, where he was named the Outstanding Student in Computer Science.
+
+> Throughout his career, Jeff worked as a senior computer programmer and engineer. He lived and worked in numerous cities in the United States and, for 10 years, lived and worked in Europe. He was often a presenter at international open source computer conferences. His passion was the continuing development and promotion of the Perl programming language. He loved to travel, experience new cultures and adventures, and challenge himself to learn new skills and develop new talents. Among his many hobbies were glassblowing, origami, juggling, photography, and writing articles and blogs to share with the Perl community.
+
+> He is survived by his parents; his brother and sister-in-law, Brandon and Rebecca Goff, St. Ignatius, MT; his aunt and uncle, Christine and Roger Sebby, Colorado Springs, CO; cousins Amber and Ed Shipp and family of Colorado Springs, and Chad and Renae Sebby and family of Olathe, KS; and many dear friends throughout the world.
 
 Final words
 -----------

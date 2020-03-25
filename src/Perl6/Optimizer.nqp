@@ -1582,6 +1582,9 @@ class Perl6::Optimizer {
                     $last_stmt.scope('attribute');
                     return $value;
                 }
+                if $scope eq 'lexical' && $last_stmt.name eq 'self' {
+                    return $value; # The invocant is always decontainerized
+                }
             }
             elsif nqp::istype($last_stmt, QAST::WVal) {
                 return $value unless nqp::iscont($last_stmt.value);

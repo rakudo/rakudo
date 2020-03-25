@@ -7,13 +7,12 @@ my class Seq is Cool does Iterable does Sequence {
 
     # The only valid way to create a Seq directly is by giving it the
     # iterator it will consume and maybe memoize.
-    method new(Iterator:D $iter) {
+    multi method new(Seq: Iterator:D $iter) {
         nqp::p6bindattrinvres(nqp::create(self),Seq,'$!iter',nqp::decont($iter))
     }
-
-    method new-consumed() {
-        self.bless;
-    }
+    # This candidate exists purely for being able to EVAL a .raku
+    # representation of a Seq of which the iterator has already been taken, 
+    multi method new(Seq:) { nqp::create(self) }
 
     method iterator(Seq:D:) {
         nqp::if(
@@ -80,7 +79,7 @@ my class Seq is Cool does Iterable does Sequence {
             # so we need to produce a string that, when EVAL'd, reproduces
             # an already iterated Seq.
             # compare https://github.com/Raku/old-issue-tracker/issues/5124
-            $perl = self.^name ~ '.new-consumed()';
+            $perl = self.^name ~ '.new()';
         }
         else { $perl = self.cache.raku ~ '.Seq' }
         nqp::iscont(SELF) ?? '$(' ~ $perl ~ ')' !! $perl

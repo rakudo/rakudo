@@ -4826,7 +4826,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             'sink_ast', QAST::Op.new( :op('null') ))
     }
 
-    sub regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto, :$use_outer_match) {
+    sub regex_coderef($/, $code, $qast, $scope, $name, %sig_info, $block, $traits?, :$proto) {
         # Regexes can't have place-holder signatures.
         if $qast.ann('placeholder_sig') {
             $/.PRECURSOR.panic('Placeholder variables cannot be used in a regex');
@@ -4840,9 +4840,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             $*W.install_lexical_magical($block, '$¢');
-            unless $use_outer_match {
-                $*W.install_lexical_magical($block, '$/');
-            }
+            $*W.install_lexical_magical($block, '$/');
             $past := %*RX<P5>
                 ?? $/.slang_actions('P5Regex').qbuildsub($qast, $block, code_obj => $code)
                 !! $/.slang_actions('Regex').qbuildsub($qast, $block, code_obj => $code);
@@ -8562,7 +8560,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my %sig_info := hash(parameters => []);
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<nibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<nibble>.ast;
+            $<nibble>.ast, 'anon', '', %sig_info, $block) if $<nibble>.ast;
         # Return closure if not in sink context.
         my $closure := block_closure($coderef, :regex);
         $closure.annotate('sink_ast', QAST::Op.new( :op<callmethod>, :name<Bool>, $closure));
@@ -8574,7 +8572,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         self.handle_and_check_adverbs($/, %SHARED_ALLOWED_ADVERBS, 'rx', $block);
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<quibble>.ast;
+            $<quibble>.ast, 'anon', '', %sig_info, $block) if $<quibble>.ast;
         my $past := block_closure($coderef, :regex);
         $past.annotate('sink_ast', QAST::Op.new(:op<callmethod>, :name<Bool>, $past));
         make $past;
@@ -8583,7 +8581,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $block := QAST::Block.new(QAST::Stmts.new, QAST::Stmts.new, :node($/));
         my %sig_info := hash(parameters => []);
         my $coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<quibble>.ast, 'anon', '', %sig_info, $block, :use_outer_match(1)) if $<quibble>.ast;
+            $<quibble>.ast, 'anon', '', %sig_info, $block) if $<quibble>.ast;
 
         my $past := QAST::Op.new(
             :node($/),
@@ -8684,7 +8682,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $rx_block.push(QAST::Stmts.new);
         my %sig_info := hash(parameters => []);
         my $rx_coderef := regex_coderef($/, $*W.stub_code_object('Regex'),
-            $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block, :use_outer_match(1));
+            $<sibble><left>.ast, 'anon', '', %sig_info, $rx_block);
 
         # Quote needs to be closure-i-fied.
         my $infixish := $<sibble><infixish>;

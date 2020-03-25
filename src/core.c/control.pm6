@@ -148,7 +148,7 @@ sub lastcall(--> True) {
 }
 
 sub nextcallee() {
-    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
+    my Mu $dispatcher := nqp::p6finddispatcher('nextcallee');
     $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
 }
 

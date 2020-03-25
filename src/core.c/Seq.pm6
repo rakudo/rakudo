@@ -60,21 +60,8 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
-    method Numeric() {
-        nqp::if(
-          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
-          $!iter.count-only,
-          self.cache.Numeric
-        )
-    }
-
-    method Int() {
-        nqp::if(
-          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
-          $!iter.count-only,
-          self.cache.Int
-        )
-    }
+    method Numeric() { self.elems }
+    method Int()     { self.elems }
 
     method Bool(Seq:D:) {
         nqp::if(

@@ -3247,13 +3247,15 @@ class Rakudo::Iterator {
     my class SequentialIterators does Iterator {
         has $!source;
         has $!current;
-        method !SET-SELF(\source) {
-            nqp::stmts(
-              ($!current := ($!source := source).pull-one),
-              self
-            )
+        has $!is-lazy;
+        method !SET-SELF(\source, \is-lazy) {
+            ($!current := ($!source := source).pull-one);
+            $!is-lazy  := is-lazy;
+            self
         }
-        method new(\source) { nqp::create(self)!SET-SELF(source) }
+        method new(\source, \is-lazy) {
+            nqp::create(self)!SET-SELF(source, is-lazy)
+        }
         method pull-one() {
             nqp::if(
               nqp::eqaddr($!current,IterationEnd),
@@ -3271,8 +3273,11 @@ class Rakudo::Iterator {
               )
             )
         }
+        method is-lazy() { $!is-lazy }
     }
-    method SequentialIterators(\source) { SequentialIterators.new(source) }
+    method SequentialIterators(\source, Bool() $is-lazy = False) {
+        SequentialIterators.new(source, $is-lazy)
+    }
 
     # Return an iterator that generates all possible keys of the
     # given shape.  Each value generated is a reified List.  This is

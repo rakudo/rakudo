@@ -30,8 +30,8 @@ pragma. Our goal is to ensure that anything that is tested as part of
 be incremental spec releases this year as well.
 
 If you would like to contribute or find out more information, visit
-<https://raku.org>, <https://rakudo.org/how-to-help>, ask on the
-<perl6-compiler@perl.org> mailing list, or ask on IRC #raku on freenode.
+<https://raku.org>, <https://raku.org/community/#Getting-Involved>, ask on the
+<perl6-compiler@perl.org> mailing list, or ask on IRC #raku-dev on freenode.
 
 Additionally, we invite you to make a donation to The Perl Foundation
 to sponsor Raku development: <https://donate.perlfoundation.org/>

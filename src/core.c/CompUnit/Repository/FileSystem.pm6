@@ -8,7 +8,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!distribution;
     has $!files-prefix;
 
-    my @extensions = <rakumod pm6 pm>;
+    my constant @extensions = <rakumod pm6 pm>;
 
     method !matching-dist(CompUnit::DependencySpecification $spec) {
         return $_ with %!seen{~$spec};

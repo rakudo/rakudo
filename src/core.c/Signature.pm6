@@ -123,10 +123,6 @@ my class Signature { # declared in BOOTSTRAP
             my $sep = '';
             for @params.kv -> $i, $param {
                 $text ~= $sep ~ $_ with $param.raku(:$elide-type);
-
-                # Remove sigils from anon typed scalars, leaving type only
-                $text .= subst(/» ' $'$/,'') unless $perl;
-
                 $sep = $param.multi-invocant && !@params[$i+1].?multi-invocant
                   ?? ';; '
                   !! ', '

@@ -1724,7 +1724,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $*IMPLICIT {
                     my $optional := $*IMPLICIT == 1;
                     @params.push(hash(
-                        :variable_name('$_'), :$optional,
+                        :variable_name('$_'), :sigil('$'), :$optional,
                         :nominal_type($*W.find_symbol(['Mu'])),
                         :default_from_outer($optional), :is_raw(1),
                     ));
@@ -9708,7 +9708,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             });
         }
         ($*W.cur_lexpad())[0].push($block);
-        my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));
+        my $param := hash( :variable_name('$_'), :sigil('$'), :nominal_type($*W.find_symbol(['Mu'])) );
         if $copy {
             $param<container_descriptor> := $*W.create_container_descriptor(
                 $*W.find_symbol(['Mu']), '$_');
@@ -9745,9 +9745,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         ($*W.cur_lexpad())[0].push($past);
 
         # Give it a signature and create code object.
-        my $param := hash(
-            variable_name => '$_',
-            nominal_type => $*W.find_symbol(['Mu']));
+        my $param := hash( variable_name => '$_', sigil => '$', nominal_type => $*W.find_symbol(['Mu']) );
         my $sig := $*W.create_signature(nqp::hash('parameter_objects',
             [$*W.create_parameter($/, $param)]));
         add_signature_binding_code($past, $sig, [$param]);
@@ -9913,8 +9911,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Need to construct and install an initializer method
         my @params := [
-          hash( is_invocant => 1, nominal_type => $/.package),
-          hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
+          hash( is_invocant => 1, nominal_type => $/.package ),
+          hash( variable_name => '$_', sigil => '$', nominal_type => $*W.find_symbol(['Mu']) )
         ];
         my $sig := $*W.create_signature(nqp::hash('parameter_objects', [
           $*W.create_parameter($/, @params[0]),
@@ -10144,6 +10142,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $curry[0].push: $_;
                             @params.push: hash(
                               :variable_name($_.name),
+                              :sigil(nqp::substr($_.name, 0, 1)),
                               :nominal_type(
                                   $*W.find_symbol: ['Mu'], :setting-only),
                               :is_raw(1))
@@ -10169,6 +10168,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                   ).annotate_self: 'whatever-var', 1;
                 @params.push: hash(
                     :variable_name($param.name),
+                    :sigil('$'),
                     :nominal_type($*W.find_symbol: ['Mu'], :setting-only),
                     :is_raw(1));
                 $curry[0].push: $param.decl_as: <var>;

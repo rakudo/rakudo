@@ -5529,10 +5529,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 %*PARAM_INFO<bind_accessor> := 1;
-                if $<name> {
-                    %*PARAM_INFO<variable_name> := ~$<name>;
-                }
-                else {
+                unless $<name> {
                     $/.panic("Cannot declare $. parameter in signature without an accessor name");
                 }
             }

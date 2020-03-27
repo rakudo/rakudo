@@ -32,6 +32,7 @@ my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 my $SIG_ELEM_SLURPY_ONEARG       := 16777216;
 my $SIG_ELEM_CODE_SIGIL          := 33554432;
 my $SIG_ELEM_SCALAR_SIGIL        := 67108864;
+my $SIG_ELEM_NO_VARIABLE         := 134217728;
 
 sub p6ize_recursive($x) {
     if nqp::islist($x) {
@@ -2204,8 +2205,49 @@ class Perl6::World is HLL::World {
 
         # Calculate flags.
         my int $flags := 0;
-        if %param_info<optional> {
-            $flags := $flags + $SIG_ELEM_IS_OPTIONAL;
+        if %param_info<no_variable> {
+            $flags := $flags + $SIG_ELEM_NO_VARIABLE;
+        }
+        else {
+            if %param_info<pos_slurpy> {
+                $flags := $flags + $SIG_ELEM_SLURPY_POS;
+            }
+            if %param_info<pos_lol> {
+                $flags := $flags + $SIG_ELEM_SLURPY_LOL;
+            }
+            if %param_info<pos_onearg> {
+                $flags := $flags + $SIG_ELEM_SLURPY_ONEARG;
+            }
+            if %param_info<named_slurpy> {
+                $flags := $flags + $SIG_ELEM_SLURPY_NAMED;
+            }
+            if %param_info<sigil> eq '$' {
+                $flags := $flags + $SIG_ELEM_SCALAR_SIGIL;
+            }
+            elsif %param_info<sigil> eq '@' {
+                $flags := $flags + $SIG_ELEM_ARRAY_SIGIL;
+            }
+            elsif %param_info<sigil> eq '%' {
+                $flags := $flags + $SIG_ELEM_HASH_SIGIL;
+            }
+            elsif %param_info<sigil> eq '&' {
+                $flags := $flags + $SIG_ELEM_CODE_SIGIL;
+            }
+            if %param_info<bind_attr> {
+                $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR;
+            }
+            if %param_info<bind_accessor> {
+                $flags := $flags + $SIG_ELEM_BIND_PUBLIC_ATTR;
+            }
+            if %param_info<is_rw> {
+                $flags := $flags + $SIG_ELEM_IS_RW;
+            }
+            if %param_info<is_raw> {
+                $flags := $flags + $SIG_ELEM_IS_RAW;
+            }
+            if %param_info<is_capture> {
+                $flags := $flags + $SIG_ELEM_IS_CAPTURE + $SIG_ELEM_IS_RAW;
+            }
         }
         if %param_info<is_invocant> {
             $flags := $flags + $SIG_ELEM_INVOCANT;
@@ -2213,56 +2255,20 @@ class Perl6::World is HLL::World {
         if %param_info<is_multi_invocant> {
             $flags := $flags + $SIG_ELEM_MULTI_INVOCANT;
         }
-        if %param_info<is_rw> {
-            $flags := $flags + $SIG_ELEM_IS_RW;
-        }
-        if %param_info<is_raw> {
-            $flags := $flags + $SIG_ELEM_IS_RAW;
-        }
-        if %param_info<pos_onearg> {
-            $flags := $flags + $SIG_ELEM_SLURPY_ONEARG;
-        }
-        if %param_info<is_capture> {
-            $flags := $flags + $SIG_ELEM_IS_CAPTURE + $SIG_ELEM_IS_RAW;
-        }
         if %param_info<undefined_only> {
             $flags := $flags + $SIG_ELEM_UNDEFINED_ONLY;
         }
         if %param_info<defined_only> {
             $flags := $flags + $SIG_ELEM_DEFINED_ONLY;
         }
-        if %param_info<pos_slurpy> {
-            $flags := $flags + $SIG_ELEM_SLURPY_POS;
+        if %param_info<nominal_generic> {
+            $flags := $flags + $SIG_ELEM_NOMINAL_GENERIC;
         }
-        if %param_info<named_slurpy> {
-            $flags := $flags + $SIG_ELEM_SLURPY_NAMED;
-        }
-        if %param_info<pos_lol> {
-            $flags := $flags + $SIG_ELEM_SLURPY_LOL;
-        }
-        if %param_info<bind_attr> {
-            $flags := $flags + $SIG_ELEM_BIND_PRIVATE_ATTR;
-        }
-        if %param_info<bind_accessor> {
-            $flags := $flags + $SIG_ELEM_BIND_PUBLIC_ATTR;
-        }
-        if %param_info<sigil> eq '$' {
-            $flags := $flags + $SIG_ELEM_SCALAR_SIGIL;
-        }
-        elsif %param_info<sigil> eq '@' {
-            $flags := $flags + $SIG_ELEM_ARRAY_SIGIL;
-        }
-        elsif %param_info<sigil> eq '%' {
-            $flags := $flags + $SIG_ELEM_HASH_SIGIL;
-        }
-        elsif %param_info<sigil> eq '&' {
-            $flags := $flags + $SIG_ELEM_CODE_SIGIL;
+        if %param_info<optional> {
+            $flags := $flags + $SIG_ELEM_IS_OPTIONAL;
         }
         if %param_info<default_from_outer> {
             $flags := $flags + $SIG_ELEM_DEFAULT_FROM_OUTER;
-        }
-        if %param_info<nominal_generic> {
-            $flags := $flags + $SIG_ELEM_NOMINAL_GENERIC;
         }
         if %param_info<default_is_literal> {
             $flags := $flags + $SIG_ELEM_DEFAULT_IS_LITERAL;

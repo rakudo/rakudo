@@ -36,6 +36,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_SLURPY_ONEARG      = 1 +< 24;
     my constant $SIG_ELEM_CODE_SIGIL         = 1 +< 25;
     my constant $SIG_ELEM_SCALAR_SIGIL       = 1 +< 26;
+    my constant $SIG_ELEM_NO_VARIABLE        = 1 +< 27;
 
     my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
                                            +| $SIG_ELEM_SLURPY_NAMED
@@ -175,6 +176,9 @@ my class Parameter { # declared in BOOTSTRAP
 
             set-sigil-bits($sigil, $flags);
             $name = $name.substr(1) if $sigil eq Q/\/ || $sigil eq Q/|/;
+        }
+        else {
+            $flags +|= $SIG_ELEM_NO_VARIABLE;
         }
 
         if %args.EXISTS-KEY('type') {
@@ -564,6 +568,7 @@ my class Parameter { # declared in BOOTSTRAP
                 !nqp::eqaddr($!nominal_type, nqp::decont($elide-type)) {
             $perl ~= $type ~ $modifier;
         }
+        return $perl if nqp::bitand_i($!flags, $SIG_ELEM_NO_VARIABLE);
 
         my $prefix     = $.prefix;
         my $sigil      = $.sigil;

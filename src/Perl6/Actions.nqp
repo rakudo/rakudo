@@ -5357,19 +5357,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method parameter($/) {
+        my     $quant        := $<quant>;
+        my int $has_variable := nqp::existskey($/, 'quant');
+
         # Sanity checks.
-        my $quant := $<quant>;
         if $<default_value> {
-            my $name := %*PARAM_INFO<variable_name> // '';
-            if $quant eq '*'  || $quant eq '|'
-            || $quant eq '**' || $quant eq '+' {
-                $/.typed_sorry('X::Parameter::Default', how => 'slurpy',
-                            parameter => $name);
+            if $has_variable {
+                my $name := %*PARAM_INFO<variable_name> // '';
+                if $quant eq '*'  || $quant eq '|'
+                || $quant eq '**' || $quant eq '+' {
+                    $/.typed_sorry('X::Parameter::Default', how => 'slurpy',
+                                parameter => $name);
+                }
+                if $quant eq '!' {
+                    $/.typed_sorry('X::Parameter::Default', how => 'required',
+                                parameter => $name);
+                }
             }
-            if $quant eq '!' {
-                $/.typed_sorry('X::Parameter::Default', how => 'required',
-                            parameter => $name);
-            }
+
             my $val := WANTED($<default_value>[0].ast, 'parameter/def');
             if $val.has_compile_time_value {
                 my $value := $val.compile_time_value;
@@ -5389,18 +5394,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Set up various flags.
-        %*PARAM_INFO<pos_slurpy>   := $quant eq '*' && %*PARAM_INFO<sigil> eq '@';
-        %*PARAM_INFO<pos_lol>      := $quant eq '**' && %*PARAM_INFO<sigil> eq '@';
-        %*PARAM_INFO<named_slurpy> := $quant eq '*' && %*PARAM_INFO<sigil> eq '%';
-        %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
-        %*PARAM_INFO<is_raw>       := $quant eq '\\' || ($quant eq '+' && !%*PARAM_INFO<sigil>);
-        %*PARAM_INFO<is_capture>   := $quant eq '|';
-        %*PARAM_INFO<pos_onearg>   := $quant eq '+';
+        if $has_variable {
+            %*PARAM_INFO<pos_slurpy>   := $quant eq '*' && %*PARAM_INFO<sigil> eq '@';
+            %*PARAM_INFO<pos_lol>      := $quant eq '**' && %*PARAM_INFO<sigil> eq '@';
+            %*PARAM_INFO<pos_onearg>   := $quant eq '+';
+            %*PARAM_INFO<named_slurpy> := $quant eq '*' && %*PARAM_INFO<sigil> eq '%';
+            %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
+            %*PARAM_INFO<is_raw>       := $quant eq '\\' || ($quant eq '+' && !%*PARAM_INFO<sigil>);
+            %*PARAM_INFO<is_capture>   := $quant eq '|';
+        }
+        else {
+            %*PARAM_INFO<optional>    := ?$<default_value>;
+            %*PARAM_INFO<no_variable> := 1;
+        }
 
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
 
-        if $<type_constraint> {
+        # More sanity checks.
+        if $has_variable && $<type_constraint> {
             if %*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol> || %*PARAM_INFO<pos_onearg> {
                 $/.typed_sorry('X::Parameter::TypedSlurpy', kind => 'positional');
             }

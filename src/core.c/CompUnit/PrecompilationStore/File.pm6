@@ -63,6 +63,7 @@ class CompUnit::PrecompilationStore::File
                     self!read-dependencies;
                     $!bytecode := $!handle.slurp(:bin,:close)
                 }
+                $!bytecode
             }
         }
 

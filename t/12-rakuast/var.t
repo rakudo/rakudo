@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 2;
+plan 4;
 
 {
     my $x = 42;
@@ -15,3 +15,16 @@ is-deeply
         EVAL(RakuAST::Var::Lexical.new('&plan')),
         &plan,
         'Lexical variable lookup (& sigil)';
+
+{
+    my $/;
+    "abc" ~~ /(.)(.)/;
+    is-deeply
+        EVAL(RakuAST::Var::PositionalCapture.new(0)).Str,
+        "a",
+        'Positional capture variable lookup works (1)';
+    is-deeply
+        EVAL(RakuAST::Var::PositionalCapture.new(1)).Str,
+        "b",
+        'Positional capture variable lookup works (2)';
+}

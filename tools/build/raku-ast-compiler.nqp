@@ -309,7 +309,7 @@ sub emit-mop-utils() {
 
     sub add-attribute($class, $type, $name) {
         $class.HOW.add_attribute($class, Attribute.new(
-            :$name, :$type, :package($class)
+            :$name, :$type, :package($class), :auto_viv_primitive($type)
         ));
     }
 

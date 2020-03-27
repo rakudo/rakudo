@@ -50,3 +50,37 @@ class RakuAST::Lookup is RakuAST::Node {
         nqp::bindattr(self, RakuAST::Lookup, '$!resolution', $resolution)
     }
 }
+
+# Some program elements are not really lookups, but require the resolution
+# of symbols as part of their compilation. For example, a positional regex
+# access depends on `&postcircumfix:<[ ]>` and `$/`, while an `unless`
+# statement depends on `Empty` (as that's what it evaluates to in the case
+# there the condition is not matched).
+class RakuAST::ImplicitLookups is RakuAST::Node {
+    has List $!implicit-lookups-cache;
+
+    # A node typically implements this to specify the implicit lookups
+    # that it needs. These are statically known - that is to say, they
+    # are needed regardless of the state of the node.
+    method default-implicit-lookups() {
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', nqp::list());
+        $list
+    }
+
+    # Get a list of the implicit lookups.
+    method get-implicit-lookups() {
+        $!implicit-lookups-cache //
+            nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache',
+                self.default-implicit-lookups())
+    }
+
+    # Resolve the implicit lookups if needed.
+    method resolve-implicit-lookups-with(RakuAST::Resolver $resolver) {
+        for nqp::getattr(self.get-implicit-lookups(), List, '$!reified') {
+            if $_.needs-resolution && !$_.is-resolved {
+                $_.resolve-with($resolver);
+            }
+        }
+    }
+}

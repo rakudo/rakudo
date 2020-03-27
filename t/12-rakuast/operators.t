@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 12;
+plan 13;
 
 is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -109,4 +109,16 @@ is-deeply
             )),
             24,
             'Application of a (user-defined) postfix operator to a literal';
+}
+
+{
+    my $a = 1;
+    is-deeply
+        EVAL(RakuAST::ApplyInfix.new(
+            left => RakuAST::Var::Lexical.new('$a'),
+            infix => RakuAST::Infix.new('='),
+            right => RakuAST::IntLiteral.new(4)
+        )),
+        4,
+        'Basic assignment to a Scalar container';
 }

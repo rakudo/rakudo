@@ -570,9 +570,9 @@ my class Parameter { # declared in BOOTSTRAP
         if $prefix eq '+' && $sigil eq '\\' {
             # We don't want \ to end up in the name of slurpy parameters, but
             # we still need to know whether or not they have this sigil later.
-            $name ~= $prefix ~ $usage-name;
+            $name ~= $usage-name;
         } else {
-            $name ~= $prefix ~ $sigil ~ $twigil ~ $usage-name;
+            $name ~= $sigil ~ $twigil ~ $usage-name;
         }
         if $.named {
             my $var-is-named = False;
@@ -586,8 +586,6 @@ my class Parameter { # declared in BOOTSTRAP
             $name = ":$name" if $var-is-named;
             $name = ":$_\($name)" for @outer-names;
         }
-        $name ~= $.suffix;
-        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
 
         my $rest = '';
         if $!flags +& $SIG_ELEM_IS_RW {
@@ -623,8 +621,10 @@ my class Parameter { # declared in BOOTSTRAP
         elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
             $rest ~= " = OUTER::<$name>";
         }
-        $perl ~= $rest if $rest;
 
+        $name = "$prefix$name$.suffix";
+        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
+        $perl ~= $rest if $rest;
         $perl
     }
 

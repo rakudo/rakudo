@@ -2,15 +2,49 @@
 class RakuAST::Blockoid is RakuAST::Node {
     has RakuAST::StatementList $.statement-list;
 
-    method new(RakuAST::StatementList $statement-list) {
+    method new(RakuAST::StatementList $statement-list?) {
         my $obj := nqp::create(self);
-        nqp::bindattr(self, RakuAST::Blockoid, '$!statement-list', $statement-list);
+        nqp::bindattr($obj, RakuAST::Blockoid, '$!statement-list',
+            $statement-list // RakuAST::StatementList.new);
         $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!statement-list.IMPL-TO-QAST($context)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!statement-list);
     }
 }
 
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term {
+    has RakuAST::Blockoid $.body;
+
+    method new(RakuAST::Blockoid :$body) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
+        my $qb := QAST::Block.new(
+            QAST::Stmts.new(), # Decl holder
+            $!body.IMPL-TO-QAST($context)
+        );
+        if $immediate {
+            $qb.blocktype('immediate');
+            $qb
+        }
+        else {
+            nqp::die('Non-immediate block compilation NYI');
+        }
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!body);
+    }
 }
 
 # A pointy block (-> $foo { ... }).

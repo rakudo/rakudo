@@ -59,3 +59,41 @@ class RakuAST::Statement::Expression is RakuAST::Statement {
         $visitor($!expression);
     }
 }
+
+# An unless statement control.
+class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLookups {
+    has RakuAST::Expression $.condition;
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Expression :$condition, RakuAST::Block :$body) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Unless, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::Unless, '$!body', $body);
+        $obj
+    }
+
+    method default-implicit-lookups() {
+        my @lookups := [
+            # TODO typename
+            RakuAST::Var::Lexical.new('Empty'),
+        ];
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', @lookups);
+        $list
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := nqp::getattr(self.get-implicit-lookups, List, '$!reified');
+        QAST::Op.new(
+            :op('unless'),
+            $!condition.IMPL-TO-QAST($context),
+            $!body.IMPL-TO-QAST($context, :immediate),
+            @lookups[0].IMPL-TO-QAST($context)
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!body);
+    }
+}

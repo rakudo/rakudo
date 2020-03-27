@@ -35,6 +35,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_DEFAULT_IS_LITERAL = 1 +< 20;
     my constant $SIG_ELEM_SLURPY_ONEARG      = 1 +< 24;
     my constant $SIG_ELEM_CODE_SIGIL         = 1 +< 25;
+    my constant $SIG_ELEM_SCALAR_SIGIL       = 1 +< 26;
 
     my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
                                            +| $SIG_ELEM_SLURPY_NAMED
@@ -48,6 +49,10 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_NOT_READONLY = $SIG_ELEM_IS_RW
                                          +| $SIG_ELEM_IS_COPY
                                          +| $SIG_ELEM_IS_RAW;
+    my constant $SIG_ELEM_IS_SIGILLED = $SIG_ELEM_SCALAR_SIGIL
+                                     +| $SIG_ELEM_ARRAY_SIGIL
+                                     +| $SIG_ELEM_HASH_SIGIL
+                                     +| $SIG_ELEM_CODE_SIGIL;
 
     my $sigils2bit := nqp::null;
     sub set-sigil-bits(str $sigil, \flags --> Nil) {
@@ -55,6 +60,7 @@ my class Parameter { # declared in BOOTSTRAP
           nqp::ifnull(
             $sigils2bit,
             $sigils2bit := nqp::hash(
+              Q/$/, $SIG_ELEM_SCALAR_SIGIL,
               Q/@/, $SIG_ELEM_ARRAY_SIGIL,
               Q/%/, $SIG_ELEM_HASH_SIGIL,
               Q/&/, $SIG_ELEM_CODE_SIGIL,
@@ -243,11 +249,11 @@ my class Parameter { # declared in BOOTSTRAP
     method usage-name() {
         nqp::isnull_s($!variable_name)
           ?? Nil
-          !! nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
-            ?? $!variable_name
-            !! nqp::iseq_i(nqp::index('*!.',nqp::substr($!variable_name,1,1)),-1)
+          !! nqp::bitand_i($!flags,$SIG_ELEM_IS_SIGILLED)
+            ?? nqp::iseq_i(nqp::index('*!.',nqp::substr($!variable_name,1,1)),-1)
               ?? nqp::substr($!variable_name,1)
               !! nqp::substr($!variable_name,2)
+            !! $!variable_name
     }
 
     method sigil() {
@@ -260,15 +266,12 @@ my class Parameter { # declared in BOOTSTRAP
                 ?? '%'
                 !! nqp::bitand_i($!flags,$SIG_ELEM_CODE_SIGIL)
                   ?? '&'
-                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
-                    && $.name
-                    && nqp::isnull($!default_value)
-                    ?? '\\'
-                    !! '$'
-            !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::iseq_i(
-                 nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
-              ?? '\\'
-              !! nqp::substr($!variable_name,0,1)
+                  !! nqp::bitand_i($!flags,$SIG_ELEM_SCALAR_SIGIL)
+                    ?? '$'
+                    !! '\\'
+            !! nqp::bitand_i($!flags,$SIG_ELEM_IS_SIGILLED)
+              ?? nqp::substr($!variable_name,0,1)
+              !! '\\'
     }
 
     method twigil() {

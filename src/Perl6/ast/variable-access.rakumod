@@ -56,3 +56,34 @@ class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookup
         )
     }
 }
+
+# A regex named capture variable (e.g. $<foo>).
+class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
+    has Str $.index;
+
+    method new(Str $index) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!index', $index);
+        $obj
+    }
+
+    method default-implicit-lookups() {
+        my @lookups := [
+            RakuAST::Var::Lexical.new('&postcircumfix:<{ }>'),
+            RakuAST::Var::Lexical.new('$/'),
+        ];
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', @lookups);
+        $list
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := nqp::getattr(self.get-implicit-lookups, List, '$!reified');
+        QAST::Op.new(
+            :op('call'),
+            :name(@lookups[0].resolution.lexical-name),
+            @lookups[1].IMPL-TO-QAST($context),
+            QAST::WVal.new( :value($!index) )
+        )
+    }
+}

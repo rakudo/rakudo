@@ -127,7 +127,7 @@ only sub VAR (Mu \x) { x.VAR }
 
 proto sub infix:<...>(|) {*}
 multi sub infix:<...>(\a, Mu \b) {
-    Seq.new(Rakudo::SEQUENCE.iterator(a, b))
+    Seq.new(SEQUENCE(a, b))
 }
 multi sub infix:<...>(|lol) {
     my @lol := lol.list;
@@ -151,7 +151,7 @@ multi sub infix:<...>(|lol) {
     $i = 0;
     while $i < $m {
         $ret := ($ret.Slip,
-            Seq.new(Rakudo::SEQUENCE.iterator(
+            Seq.new(SEQUENCE(
                 (Slip.from-iterator(@seq[$i]),),
                 @end[$i],
                 :exclude_end(so @excl[$i])
@@ -169,7 +169,7 @@ multi sub infix:<...>(|lol) {
 
 proto sub infix:<...^>($, Mu, *%) {*}
 multi sub infix:<...^>(\a, Mu \b) {
-    Seq.new(Rakudo::SEQUENCE.iterator(a, b, :exclude_end))
+    Seq.new(SEQUENCE(a, b, :exclude_end))
 }
 
 proto sub infix:<…>(|) {*}

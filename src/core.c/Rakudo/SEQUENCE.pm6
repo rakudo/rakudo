@@ -1,6 +1,6 @@
-class Rakudo::SEQUENCE {
-
-    method iterator(\left, Mu \right, :$exclude_end --> Iterator:D) {
+sub SEQUENCE(
+  \left, Mu \right, :$exclude_end
+--> Iterator:D) is implementation-detail {
 
     my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
     my $endpoint := righti.pull-one;
@@ -363,8 +363,6 @@ class Rakudo::SEQUENCE {
     $infinite
         ?? (gathered.Slip, Slip.from-iterator(righti)).lazy.iterator
         !! (gathered.Slip, Slip.from-iterator(righti)).iterator
-}
-
 }
 
 # vim: ft=perl6 expandtab sw=4

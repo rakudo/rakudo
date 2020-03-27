@@ -137,6 +137,8 @@ my class Binder {
     my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
     my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG);
     my int $SIG_ELEM_CODE_SIGIL          := 33554432;
+    my int $SIG_ELEM_SCALAR_SIGIL        := 67108864;
+    my int $SIG_ELEM_NO_VARIABLE         := 134217728;
 
     # Binding result flags.
     my int $BIND_RESULT_OK       := 0;
@@ -483,7 +485,7 @@ my class Binder {
                     # If it's a scalar, we always need to wrap it into a new
                     # container and store it; the container descriptor will be
                     # provided and make it rw if it's an `is copy`.
-                    else {
+                    elsif $flags +& ($SIG_ELEM_SCALAR_SIGIL +| $SIG_ELEM_CODE_SIGIL) {
                         my $new_cont := nqp::create(Scalar);
                         nqp::bindattr($new_cont, Scalar, '$!descriptor',
                             nqp::getattr($param, Parameter, '$!container_descriptor'));
@@ -1035,7 +1037,8 @@ my class Binder {
                     $SIG_ELEM_MULTI_INVOCANT +| $SIG_ELEM_IS_RAW +|
                     $SIG_ELEM_IS_COPY +| $SIG_ELEM_ARRAY_SIGIL +|
                     $SIG_ELEM_HASH_SIGIL +| $SIG_ELEM_NATIVE_VALUE +|
-                    $SIG_ELEM_IS_OPTIONAL) || $flags +& $SIG_ELEM_IS_RW {
+                    $SIG_ELEM_IS_OPTIONAL +| $SIG_ELEM_SCALAR_SIGIL +|
+                    $SIG_ELEM_NO_VARIABLE) || $flags +& $SIG_ELEM_IS_RW {
                 return $TRIAL_BIND_NOT_SURE;
             }
             unless nqp::isnull(nqp::getattr($param, Parameter, '@!named_names')) {

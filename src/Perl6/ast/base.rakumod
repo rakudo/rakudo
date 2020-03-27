@@ -68,6 +68,9 @@ class RakuAST::Node {
         if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {
             self.resolve-with($resolver);
         }
+        if nqp::istype(self, RakuAST::ImplicitLookups) {
+            self.resolve-implicit-lookups-with($resolver);
+        }
         self.visit-children(-> $child { $child.resolve-all($resolver) });
         Nil
     }

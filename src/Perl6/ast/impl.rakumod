@@ -9,7 +9,7 @@ class RakuAST::IMPL::QASTContext {
         $obj
     }
 
-    method ensure-sc(Mu $obj) {        
+    method ensure-sc(Mu $obj is raw) {
         if nqp::isnull(nqp::getobjsc($obj)) {
             my $sc := $!sc;
             nqp::setobjsc($obj, $sc);

@@ -41,6 +41,8 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
         $obj
     }
 
+    # Resolves a lexical to its declaration. The declaration need not have a
+    # compile-time value.
     method resolve-lexical(Str $name) {
         # TODO walk scopes we've encountered while walking
 
@@ -49,6 +51,26 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
         while !nqp::isnull($ctx) {
             if nqp::existskey($ctx, $name) {
                 return RakuAST::Declaration::External.new($name);
+            }
+            $ctx := nqp::ctxouter($ctx);
+        }
+
+        # Nothing found.
+        return Nil;
+    }
+
+    # Resolves a lexical to its declaration. The declaration must have a
+    # compile-time value.
+    method resolve-lexical-constant(Str $name) {
+        # TODO walk scopes we've encountered while walking
+
+        # Look through the contexts for the name.
+        my $ctx := $!context;
+        while !nqp::isnull($ctx) {
+            if nqp::existskey($ctx, $name) {
+                my $compile-time-value := nqp::atkey($ctx, $name);
+                return RakuAST::Declaration::External::Constant.new(:lexical-name($name),
+                    :$compile-time-value);
             }
             $ctx := nqp::ctxouter($ctx);
         }

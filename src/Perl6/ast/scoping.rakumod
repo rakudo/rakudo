@@ -29,6 +29,21 @@ class RakuAST::Declaration::External is RakuAST::Declaration::Lexical {
     }
 }
 
+# A lexical declaration that comes with an external symbol, which has a fixed
+# value available during compilation.
+class RakuAST::Declaration::External::Constant is RakuAST::Declaration::External
+        is RakuAST::CompileTimeValue {
+    has Mu $.compile-time-value;
+
+    method new(str :$lexical-name!, Mu :$compile-time-value!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration::External, '$!lexical-name', $lexical-name);
+        nqp::bindattr($obj, RakuAST::Declaration::External::Constant,
+            '$!compile-time-value', $compile-time-value);
+        $obj
+    }
+}
+
 # Done by anything that is a lookup of a symbol. May or may not need resolution
 # at compile time.
 class RakuAST::Lookup is RakuAST::Node {

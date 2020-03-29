@@ -74,8 +74,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
 
     method default-implicit-lookups() {
         my @lookups := [
-            # TODO typename
-            RakuAST::Var::Lexical.new('Empty'),
+            RakuAST::Type::Simple.new('Empty'),
         ];
         my $list := nqp::create(List);
         nqp::bindattr($list, List, '$!reified', @lookups);

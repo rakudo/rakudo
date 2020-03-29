@@ -16,7 +16,11 @@ class RakuAST::Meta is RakuAST::Node {
     }
 
     method has-meta-object() {
-        $!cached-meta-object || False
+        $!meta-object-produced || False
+    }
+
+    method compile-time-value() {
+        self.meta-object
     }
 }
 
@@ -48,5 +52,9 @@ class RakuAST::StubbyMeta is RakuAST::Meta {
         # parent to produce the full meta-object.
         self.stubbed-meta-object();
         nqp::findmethod(RakuAST::Meta, 'meta-object')(self)
+    }
+
+    method compile-time-value() {
+        self.stubbed-meta-object
     }
 }

@@ -2157,7 +2157,7 @@ my class X::Range::InvalidArg is Exception {
 my class X::Sequence::Deduction is Exception {
     has $.from;
     method message() {
-        $!from ?? "Unable to deduce arithmetic or geometric sequence from $!from (or did you really mean '..'?)"
+        $!from ?? "Unable to deduce arithmetic or geometric sequence from: $!from\nDid you really mean '..'?"
                !! 'Unable to deduce sequence for some unfathomable reason'
     }
 }

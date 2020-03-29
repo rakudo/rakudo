@@ -574,7 +574,7 @@ my class Parameter { # declared in BOOTSTRAP
         } else {
             $name ~= $sigil ~ $twigil ~ $usage-name;
         }
-        if $.named {
+        if nqp::isconcrete(@!named_names) {
             my $var-is-named = False;
             my @outer-names  = gather for @.named_names {
                 if !$var-is-named && $_ eq $usage-name {

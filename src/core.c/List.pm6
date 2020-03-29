@@ -759,7 +759,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
-    multi method STORE(List:D: Iterable:D \iterable, :$INITIALIZE! --> List:D) {
+    multi method STORE(List:D: Iterable:D \iterable, :INITIALIZE($)! --> List:D) {
         my \buffer := nqp::create(IterationBuffer);
         iterable.iterator.push-all(buffer);
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)

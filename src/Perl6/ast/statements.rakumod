@@ -72,7 +72,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
         $obj
     }
 
-    method default-implicit-lookups() {
+    method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups := [
             RakuAST::Type::Simple.new('Empty'),
         ];

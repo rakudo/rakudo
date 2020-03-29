@@ -52,6 +52,7 @@ grammar RakuASTParser {
     rule parameter {
         <type=.name>?
         [$<named>=':'|$<slurpy>='*']?$<name>=[<[$@%]><.identifier>][$<optional>=<[?!]>]?
+        [$<raw>=[is raw]]?
     }
 
     token nqp-code {
@@ -141,11 +142,13 @@ class Parameter {
     has $!named;
     has $!name;
     has $!optional;
+    has $!raw;
     method type() { $!type }
     method named() { $!named }
     method slurpy() { $!slurpy }
     method name() { $!name }
     method optional() { $!optional }
+    method raw() { $!raw }
 }
 
 # AST-building actions
@@ -211,7 +214,8 @@ class RakuASTActions {
         my $optional := $named
             ?? ($<optional> eq '!' ?? 0 !! 1)
             !! ($<optional> eq '?' ?? 1 !! 0);
-        make Parameter.new(:$type, :$named, :$slurpy, :$name, :$optional);
+        my $raw := ?$<raw>;
+        make Parameter.new(:$type, :$named, :$slurpy, :$name, :$optional, :$raw);
     }
 
     method nqp-code($/) {
@@ -396,7 +400,9 @@ sub emit-method($package, $method) {
         my $opt := $slurpy ?? '' !! ($_.optional ?? '?' !! '!');
         @params-in.push(", $named$slurpy$param-name$opt");
         @params-desc.push("$type, '$param-name'");
-        @params-decont.push("$param-name := nqp::decont($param-name);");
+        unless $_.raw {
+            @params-decont.push("$param-name := nqp::decont($param-name);");
+        }
     }
     my $params-in := nqp::join("", @params-in);
     my $params-desc := nqp::join(", ", @params-desc);

@@ -36,7 +36,7 @@ class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookup
         $obj
     }
 
-    method default-implicit-lookups() {
+    method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups := [
             RakuAST::Var::Lexical.new('&postcircumfix:<[ ]>'),
             RakuAST::Var::Lexical.new('$/'),
@@ -67,7 +67,7 @@ class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
         $obj
     }
 
-    method default-implicit-lookups() {
+    method PRODUCE-IMPLICIT-LOOKUPS() {
         my @lookups := [
             RakuAST::Var::Lexical.new('&postcircumfix:<{ }>'),
             RakuAST::Var::Lexical.new('$/'),

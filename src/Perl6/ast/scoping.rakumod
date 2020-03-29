@@ -1,5 +1,36 @@
 # Done by anything that implies a lexical scope.
 class RakuAST::LexicalScope is RakuAST::Node {
+    has List $!declarations-cache;
+    has Mu $!lexical-lookup-hash;
+
+    method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
+        my $stmts := QAST::Stmts.new();
+        for nqp::getattr(self.lexical-declarations(), List, '$!reified') {
+            $stmts.push($_.IMPL-QAST-DECL($context));
+        }
+        $stmts
+    }
+
+    method lexical-declarations() {
+        unless nqp::isconcrete($!declarations-cache) {
+            nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache',
+                self.find-nodes(RakuAST::Declaration::Lexical,
+                    stopper => RakuAST::LexicalScope));
+        }
+        $!declarations-cache
+    }
+
+    method find-lexical(Str $name) {
+        my %lookup := $!lexical-lookup-hash;
+        unless nqp::isconcrete(%lookup) {
+            %lookup := {};
+            for nqp::getattr(self.lexical-declarations, List, '$!reified') {
+                %lookup{$_.lexical-name} := $_;
+            }
+            nqp::bindattr(self, RakuAST::LexicalScope, '$!lexical-lookup-hash', %lookup);
+        }
+        %lookup{$name} // Nil
+    }
 }
 
 # Done by anything that is a declaration - that is, declares a symbol.
@@ -75,9 +106,10 @@ class RakuAST::ImplicitLookups is RakuAST::Node {
     has List $!implicit-lookups-cache;
 
     # A node typically implements this to specify the implicit lookups
-    # that it needs. These are statically known - that is to say, they
-    # are needed regardless of the state of the node.
-    method default-implicit-lookups() {
+    # that it needs. This is called once per instance of a node and then
+    # remains constant. Nodes that may be mutated must instead implement
+    # get-implicit-lookups and handle the caching themselves.
+    method PRODUCE-IMPLICIT-LOOKUPS() {
         my $list := nqp::create(List);
         nqp::bindattr($list, List, '$!reified', nqp::list());
         $list
@@ -87,7 +119,7 @@ class RakuAST::ImplicitLookups is RakuAST::Node {
     method get-implicit-lookups() {
         $!implicit-lookups-cache //
             nqp::bindattr(self, RakuAST::ImplicitLookups, '$!implicit-lookups-cache',
-                self.default-implicit-lookups())
+                self.PRODUCE-IMPLICIT-LOOKUPS())
     }
 
     # Resolve the implicit lookups if needed.

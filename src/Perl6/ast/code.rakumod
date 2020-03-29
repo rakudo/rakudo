@@ -1,3 +1,26 @@
+# A compilation unit is the main lexical scope of a program.
+class RakuAST::CompUnit is RakuAST::LexicalScope {
+    has RakuAST::StatementList $.statement-list;
+
+    method new(RakuAST::StatementList $statement-list?) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
+            $statement-list // RakuAST::StatementList.new);
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Stmts.new(
+            self.IMPL-QAST-DECLS($context),
+            $!statement-list.IMPL-TO-QAST($context)
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!statement-list);
+    }
+}
+
 # A blockoid represents the block part of some kind of code declaration.
 class RakuAST::Blockoid is RakuAST::Node {
     has RakuAST::StatementList $.statement-list;
@@ -30,7 +53,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term {
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $qb := QAST::Block.new(
-            QAST::Stmts.new(), # Decl holder
+            self.IMPL-QAST-DECLS($context),
             $!body.IMPL-TO-QAST($context)
         );
         if $immediate {

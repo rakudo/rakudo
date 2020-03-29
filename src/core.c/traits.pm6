@@ -43,12 +43,12 @@ multi sub trait_mod:<is>(Mu:U \child, Mu:U \parent, @subtypes) {
     # re-dispatch properly parameterized R#2611
     trait_mod:<is>(child,parent.^parameterize(|@subtypes))
 }
-multi sub trait_mod:<is>(Mu:U $child, :$DEPRECATED!) {
+multi sub trait_mod:<is>(Mu:U $child, :DEPRECATED($)!) {
 # add COMPOSE phaser for this child, which will add an ENTER phaser to an
 # existing "new" method, or create a "new" method with a call to DEPRECATED
 # and a nextsame.
 }
-multi sub trait_mod:<is>(Mu:U $type, :$rw!) {
+multi sub trait_mod:<is>(Mu:U $type, :rw($)!) {
     $type.^set_rw;
 }
 multi sub trait_mod:<is>(Mu:U $type, :$nativesize!) {
@@ -60,7 +60,7 @@ multi sub trait_mod:<is>(Mu:U $type, :$ctype!) {
 multi sub trait_mod:<is>(Mu:U $type, :$unsigned!) {
     $type.^set_unsigned($unsigned);
 }
-multi sub trait_mod:<is>(Mu:U $type, :$hidden!) {
+multi sub trait_mod:<is>(Mu:U $type, :hidden($)!) {
     $type.^set_hidden;
 }
 multi sub trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
@@ -96,11 +96,11 @@ multi sub trait_mod:<is>(Attribute:D $attr, |c ) {
       highexpect => <rw readonly box_target leading_docs trailing_docs>,
     ).throw;
 }
-multi sub trait_mod:<is>(Attribute:D $attr, :$rw!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :rw($)!) {
     $attr.set_rw();
     warn "useless use of 'is rw' on $attr.name()" unless $attr.has_accessor;
 }
-multi sub trait_mod:<is>(Attribute:D $attr, :$readonly!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :readonly($)!) {
     $attr.set_readonly();
     warn "useless use of 'is readonly' on $attr.name()" unless $attr.has_accessor;
 }
@@ -114,7 +114,7 @@ multi sub trait_mod:<is>(Attribute:D $attr, Mu :$default!) {
     $attr.container_descriptor.set_default(nqp::decont($default));
     $attr.container = nqp::decont($default) if nqp::iscont($attr.container);
 }
-multi sub trait_mod:<is>(Attribute:D $attr, :$box_target!) {
+multi sub trait_mod:<is>(Attribute:D $attr, :box_target($)!) {
     $attr.set_box_target();
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
@@ -154,13 +154,13 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
           ),
         ).throw;
 }
-multi sub trait_mod:<is>(Routine:D $r, :$rw!) {
+multi sub trait_mod:<is>(Routine:D $r, :rw($)!) {
     $r.set_rw();
 }
-multi sub trait_mod:<is>(Routine:D $r, :$raw!) {
+multi sub trait_mod:<is>(Routine:D $r, :raw($)!) {
     $r.set_rw(); # for now, until we have real raw handling
 }
-multi sub trait_mod:<is>(Routine:D $r, :$default!) {
+multi sub trait_mod:<is>(Routine:D $r, :default($)!) {
     $r.^mixin: role { method default(--> True) { } }
 }
 multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
@@ -172,7 +172,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
 multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
     $r.set_inline_info(nqp::decont($inlinable));
 }
-multi sub trait_mod:<is>(Routine:D $r, :$onlystar!) {
+multi sub trait_mod:<is>(Routine:D $r, :onlystar($)!) {
     $r.set_onlystar();
 }
 multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
@@ -241,22 +241,22 @@ multi sub trait_mod:<is>(Parameter:D $param, |c ) {
       highexpect => <rw readonly copy required raw leading_docs trailing_docs>,
     ).throw;
 }
-multi sub trait_mod:<is>(Parameter:D $param, :$readonly!) {
+multi sub trait_mod:<is>(Parameter:D $param, :readonly($)!) {
     # This is the default.
 }
-multi sub trait_mod:<is>(Parameter:D $param, :$rw!) {
+multi sub trait_mod:<is>(Parameter:D $param, :rw($)!) {
     $param.set_rw();
 }
-multi sub trait_mod:<is>(Parameter:D $param, :$copy!) {
+multi sub trait_mod:<is>(Parameter:D $param, :copy($)!) {
     $param.set_copy();
 }
-multi sub trait_mod:<is>(Parameter:D $param, :$required!) {
+multi sub trait_mod:<is>(Parameter:D $param, :required($)!) {
     $param.set_required();
 }
-multi sub trait_mod:<is>(Parameter:D $param, :$raw!) {
+multi sub trait_mod:<is>(Parameter:D $param, :raw($)!) {
     $param.set_raw();
 }
-multi sub trait_mod:<is>(Parameter:D $param, :$onearg!) {
+multi sub trait_mod:<is>(Parameter:D $param, :onearg($)!) {
     $param.set_onearg();
 }
 multi sub trait_mod:<is>(Parameter:D $param, :$leading_docs!) {
@@ -386,7 +386,7 @@ multi sub trait_mod:<is>(Routine:D $r, :$implementation-detail!) {
     $r.^mixin( role is-implementation-detail {
         method is-implementation-detail(--> True) { }
     }) if $implementation-detail;
-}   
+}
 
 multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-backtrace!) {
     $r.^mixin( role is-hidden-from-backtrace {

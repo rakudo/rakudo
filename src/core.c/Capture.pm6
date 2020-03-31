@@ -16,19 +16,27 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method WHICH (Capture:D: --> ValueObjAt:D) {
-        my str $WHICH = nqp::eqaddr(self.WHAT,Capture) ?? 'Capture' !! self.^name;
-        if !nqp::isnull(@!list) && @!list {
-            $WHICH ~= '|';
-            for nqp::hllize(@!list) -> \elem {
-                $WHICH ~= ( '(' ~ elem.VAR.WHICH ~ ')' )
+        my Mu $WHICH := nqp::list_s(nqp::eqaddr(self.WHAT,Capture) ?? 'Capture' !! nqp::unbox_s(self.^name));
+        if nqp::isconcrete(@!list) && nqp::elems(@!list) {
+            nqp::push_s($WHICH, '|');
+            my Mu $iter := nqp::iterator(@!list);
+            while $iter {
+                my Mu \value = nqp::shift($iter);
+                nqp::push_s($WHICH, '(');
+                nqp::push_s($WHICH, nqp::unbox_s(value.VAR.WHICH));
+                nqp::push_s($WHICH, ')');
             }
         }
-        if !nqp::isnull(%!hash) && %!hash {
-            $WHICH ~= '|';
-            $WHICH ~= ( $_ ~ '(' ~ nqp::atkey(%!hash, nqp::unbox_s($_)).WHICH ~ ')' )
-              for nqp::hllize(%!hash).keys.sort;
+        if nqp::isconcrete(%!hash) && nqp::elems(%!hash) {
+            nqp::push_s($WHICH, '|');
+            for nqp::hllize(%!hash).keys.sort -> str \key {
+                nqp::push_s($WHICH, key);
+                nqp::push_s($WHICH, '(');
+                nqp::push_s($WHICH, nqp::unbox_s(nqp::atkey(%!hash,key).WHICH));
+                nqp::push_s($WHICH, ')');
+            }
         }
-        nqp::box_s($WHICH,ValueObjAt)
+        nqp::box_s(nqp::join('',$WHICH),ValueObjAt)
     }
 
     multi method AT-KEY(Capture:D: Str:D \key) is raw {

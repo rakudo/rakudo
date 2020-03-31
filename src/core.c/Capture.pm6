@@ -6,10 +6,10 @@ my class Capture { # declared in BOOTSTRAP
     method from-args(|c) { c }
 
     submethod BUILD(:@list, :%hash --> Nil) {
-        @list.elems; # force reification of all
+        my Int:D $elems = @list.elems; # force reification of all
         nqp::bindattr(self, Capture, '@!list',
-            nqp::getattr(nqp::decont(@list.list), List, '$!reified')
-        );
+          nqp::getattr(nqp::decont(@list.list), List, '$!reified'))
+            if $elems;
         nqp::bindattr(self,Capture,'%!hash',
           nqp::getattr(nqp::decont(%hash),Map,'$!storage'))
             if nqp::attrinited(nqp::decont(%hash),Map,'$!storage')

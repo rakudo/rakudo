@@ -76,11 +76,17 @@ my class Capture { # declared in BOOTSTRAP
         )
     }
 
-    multi method EXISTS-KEY(Capture:D: Str:D \key ) {
-        nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key)));
+    multi method EXISTS-KEY(Capture:D: Str:D \key) {
+        nqp::if(
+          nqp::isconcrete(%!hash),
+          nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key))),
+          False)
     }
-    multi method EXISTS-KEY(Capture:D: \key ) {
-        nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str)));
+    multi method EXISTS-KEY(Capture:D: \key) {
+        nqp::if(
+          nqp::isconcrete(%!hash),
+          nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str))),
+          False)
     }
 
     method list(Capture:D:) {

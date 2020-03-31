@@ -2162,6 +2162,17 @@ my class X::Sequence::Deduction is Exception {
     }
 }
 
+my class X::Sequence::Endpoint is Exception {
+    has $.from;
+    has $.endpoint;
+    method message() {
+        "Incompatible endpoint for sequence: "
+          ~ $!from.raku
+          ~ " ... "
+          ~ $!endpoint.raku
+    }
+}
+
 my class X::Cannot::Junction is Exception {
     has $.junction;
     has $.for;

@@ -104,24 +104,49 @@ my class Capture { # declared in BOOTSTRAP
         }
         nqp::p6box_s(nqp::join(' ', $str))
     }
-    multi method gist(Capture:D:) { self.Capture::perl }
+
+    multi method gist(Capture:D:) { self.Capture::raku }
+
     multi method raku(Capture:D:) {
-        my %hash := self.Capture::hash;
-        if self.^name eq 'Capture' {
-            "\\({
-                join ', ',
-                    ((nqp::atpos(@!list, $_).raku for ^nqp::elems(@!list)) if @!list),
-                    %hash.sort.map( *.raku )
-            })";
+        my int $has-list  = nqp::isconcrete(@!list) && nqp::elems(@!list);
+        my int $has-hash  = nqp::isconcrete(%!hash) && nqp::elems(%!hash);
+        my Mu  $raku     := nqp::list_s();
+        if nqp::eqaddr(self.WHAT, Capture) {
+            nqp::push_s($raku, '\(');
+            if $has-list {
+                my Mu $iter := nqp::iterator(@!list);
+                nqp::push_s($raku, nqp::unbox_s(nqp::shift($iter).raku));
+                nqp::push_s($raku, nqp::concat(', ', nqp::unbox_s(nqp::shift($iter).raku))) while $iter;
+                nqp::push_s($raku, ', ') if $has-hash;
+            }
+            if $has-hash {
+                nqp::push_s($raku,
+                    nqp::unbox_s(self.Capture::hash.sort.map(*.raku).join(', ')));
+            }
+            nqp::push_s($raku, ')');
         } else {
-            self.^name
-              ~ '.new('
-              ~ ( 'list => (' ~ (nqp::atpos(@!list, $_).raku for ^nqp::elems(@!list)).join(', ') ~ ',)' if @!list)
-              ~ (', ' if +@!list and +%hash)
-              ~ ( 'hash => {' ~ %hash.sort.map( *.raku ).join(', ') ~ '}' if +%hash)
-              ~ ')';
+            nqp::push_s($raku, nqp::concat(nqp::unbox_s(self.^name), '.new'));
+            if $has-list || $has-hash {
+                nqp::push_s($raku, '(');
+                if $has-list {
+                    my Mu $iter := nqp::iterator(@!list);
+                    nqp::push_s($raku, 'list => (');
+                    nqp::push_s($raku, nqp::unbox_s(nqp::shift($iter).raku));
+                    nqp::push_s($raku, nqp::concat(', ', nqp::unbox_s(nqp::shift($iter).raku))) while $iter;
+                    nqp::push_s($raku, ')');
+                    nqp::push_s($raku, ', ') if $has-hash;
+                }
+                if $has-hash {
+                    nqp::push_s($raku, 'hash => {');
+                    nqp::push_s($raku, nqp::unbox_s(self.Capture::hash.sort.map(*.raku).join(', ')));
+                    nqp::push_s($raku, '}');
+                }
+                nqp::push_s($raku, ')');
+            }
         }
+        nqp::p6box_s(nqp::join('', $raku))
     }
+
     multi method Bool(Capture:D:) {
         nqp::hllbool(
           nqp::elems(@!list) || nqp::elems(%!hash)

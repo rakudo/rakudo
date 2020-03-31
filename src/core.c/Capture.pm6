@@ -59,6 +59,13 @@ my class Capture { # declared in BOOTSTRAP
                :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
           !! nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
     }
+    multi method AT-POS(Capture:D: \pos) is raw {
+        my int $pos = nqp::unbox_i(pos.Int);
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          !! nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
+    }
 
     method hash(Capture:D:) {
         nqp::if(

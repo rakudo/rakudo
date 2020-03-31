@@ -87,6 +87,19 @@ my class Capture { # declared in BOOTSTRAP
           False)
     }
 
+    multi method EXISTS-POS(Capture:D: Int:D \pos) {
+        nqp::if(
+          nqp::isconcrete(@!list),
+          nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos))),
+          False)
+    }
+    multi method EXISTS-POS(Capture:D: \pos) {
+        nqp::if(
+          nqp::isconcrete(@!list),
+          nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos.Int))),
+          False)
+    }
+
     method list(Capture:D:) {
         nqp::if(
           (nqp::defined(@!list) && nqp::elems(@!list)),

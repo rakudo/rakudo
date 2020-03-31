@@ -50,11 +50,9 @@ proto sub shift($, *%) {*}
 multi sub shift(@a) { @a.shift }
 
 proto sub push($, |) {*}
-multi sub push(\a, |elems) {
-    nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
-      ?? X::AdHoc.new( payload => "Unexpected named argument '{elems.hash.head.key}' passed" ).throw
-      !! a.push: |elems
-}
+multi sub push(\a, \b)  { a.push: b    }
+multi sub push(\a, @b)  { a.push: @b   }
+multi sub push(\a, *@b) { a.append: @b }
 
 proto sub append($, |) {*}
 multi sub append(\a, |elems) {

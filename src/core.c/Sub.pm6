@@ -1,4 +1,4 @@
-my class Sub { # declared in BOOTSTRAP
+augment class Sub { # declared in BOOTSTRAP, composed in prologue
     # class Sub is Routine
 
 }

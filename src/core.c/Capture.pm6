@@ -16,9 +16,7 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method WHICH (Capture:D: --> ValueObjAt:D) {
-        my str $WHICH = nqp::istype(self.WHAT,Capture)
-          ?? 'Capture'
-          !! self.^name;
+        my str $WHICH = nqp::eqaddr(self.WHAT,Capture) ?? 'Capture' !! self.^name;
         if !nqp::isnull(@!list) && @!list {
             $WHICH ~= '|';
             for nqp::hllize(@!list) -> \elem {

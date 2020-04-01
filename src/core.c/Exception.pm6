@@ -659,6 +659,16 @@ my class X::IO::BinaryMode does X::IO {
     method message { "Cannot do '$.trying' on a handle in binary mode" }
 }
 
+my role X::IO::Socket does X::IO { }
+
+my class X::IO::Socket::Unsupported does X::IO::Socket {
+    has Str:D $.operation is required;
+    has Str:D $.family    is required;
+    method message(::?CLASS:D: --> Str:D) {
+        "Cannot $!operation with $!family sockets"
+    }
+}
+
 my role X::Comp is Exception {
     has $.filename;
     has $.pos;

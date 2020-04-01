@@ -101,13 +101,17 @@ my class IO::Socket::INET does IO::Socket {
         ) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
 
         with $localhost // $localport {
-            die 'Cannot set a source host or port for UNIX sockets'
-                if $family == nqp::const::SOCKET_FAMILY_UNIX;
-            ($localhost, $localport) = split-host-port(
-                :host($localhost),
-                :port($localport),
-                :$family
-            ) orelse fail $_;
+            if $family == nqp::const::SOCKET_FAMILY_UNIX {
+                fail X::IO::Socket::Unsupported.new:
+                    operation => 'bind before connect',
+                    family    => 'UNIX';
+            } else {
+                ($localhost, $localport) = split-host-port(
+                    :host($localhost),
+                    :port($localport),
+                    :$family
+                ) orelse fail $_;
+            }
         }
 
         self.bless(

@@ -425,7 +425,7 @@ class Rakudo::Iterator {
     # Create iterator that produces all values *except* the last of a given
     # iterator.  Returns an empty iterator if the given iterator did not
     # produce any value
-    my class AllButLast does Iterator {
+    my role AllButLastRole {
         has $!iterator;
         has $!value;
 
@@ -443,7 +443,19 @@ class Rakudo::Iterator {
               !! this
         }
     }
-    method AllButLast(\iterator) { AllButLast.new(iterator) }
+    my class AllButLast does Iterator does AllButLastRole { }
+    my class AllButLastPredictive does PredictiveIterator does AllButLastRole {
+        method count-only() { ($!iterator.count-only || 1) - 1 }
+        method bool-only()  {  $!iterator.count-only > 1       }
+    }
+
+    proto method AllButLast(|) {*}
+    multi method AllButLast(PredictiveIterator:D \iterator) {
+        AllButLastPredictive.new(iterator)
+    }
+    multi method AllButLast(Iterator:D \iterator) {
+        AllButLast.new(iterator)
+    }
 
     # Create iterator that produces all values *except* the last N values
     # of a given iterator.  Returns an empty iterator if the given iterator

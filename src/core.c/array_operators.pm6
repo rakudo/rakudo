@@ -58,11 +58,8 @@ multi sub append(\a,  \b) { a.append:  b }
 multi sub append(\a, *@b) { a.append: @b }
 
 proto sub unshift($, |) {*}
-multi sub unshift(\a, |elems) {
-    nqp::elems(nqp::getattr(elems,Capture,q/%!hash/))
-      ?? X::AdHoc.new( payload => "Unexpected named argument '{elems.hash.head.key}' passed" ).throw
-      !! a.unshift: |elems
-}
+multi sub unshift(\a,  \b) { a.unshift:   b }
+multi sub unshift(\a, *@b) { a.unshift: |@b }
 
 proto sub prepend($, |) {*}
 multi sub prepend(\a, |elems) {

@@ -44,10 +44,10 @@ multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
 }
 
 proto sub pop($, *%) {*}
-multi sub pop(@a) { @a.pop }
+multi sub pop(@a) is raw { @a.pop }
 
 proto sub shift($, *%) {*}
-multi sub shift(@a) { @a.shift }
+multi sub shift(@a) is raw { @a.shift }
 
 proto sub push($, |) {*}
 multi sub push(\a,  \b) { a.push:   b }

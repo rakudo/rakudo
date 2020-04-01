@@ -847,7 +847,7 @@ my class Array { # declared in BOOTSTRAP
         Failure.new(X::Cannot::Empty.new(:$action,:what(self.^name)))
     }
 
-    method pop(Array:D:) is raw is nodal {
+    method pop(Array:D:) is nodal {
         nqp::if(
           self.is-lazy,
           self!lazy('pop from'),
@@ -860,7 +860,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method shift(Array:D:) is raw is nodal {
+    method shift(Array:D:) is nodal {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
             && nqp::elems(nqp::getattr(self,List,'$!reified')),

@@ -187,6 +187,9 @@ BEGIN {
     trait_mod:<is>(&infix:<Z>,      :prec($list_infix));
     trait_mod:<is>(&infix:<X>,      :prec($list_infix));
     trait_mod:<is>(&infix:<...>,    :prec($list_infix));
+    trait_mod:<is>(&infix:<...^>,   :prec($list_infix));
+    trait_mod:<is>(&infix:<…>,      :prec($list_infix));
+    trait_mod:<is>(&infix:<…^>,     :prec($list_infix));
     trait_mod:<is>(&infix:<minmax>, :prec($list_infix));
 
     trait_mod:<is>(&infix:<=>,   :prec($list_prefix));

@@ -568,43 +568,45 @@ my class Parameter { # declared in BOOTSTRAP
                 !nqp::eqaddr($!nominal_type, nqp::decont($elide-type)) {
             $perl ~= $type ~ $modifier;
         }
-        return $perl if nqp::bitand_i($!flags, $SIG_ELEM_NO_VARIABLE);
 
-        my $prefix     = $.prefix;
-        my $sigil      = $.sigil;
-        my $twigil     = $.twigil;
-        my $usage-name = $.usage-name // '';
-        my $name       = '';
-        if $prefix eq '+' && $sigil eq '\\' {
-            # We don't want \ to end up in the name of slurpy parameters, but
-            # we still need to know whether or not they have this sigil later.
-            $name ~= $usage-name;
-        } else {
-            $name ~= $sigil ~ $twigil ~ $usage-name;
-        }
-        if nqp::isconcrete(@!named_names) {
-            my $var-is-named = False;
-            my @outer-names  = gather for @.named_names {
-                if !$var-is-named && $_ eq $usage-name {
-                    $var-is-named = True;
-                } else {
-                    .take;
-                }
-            };
-            $name = ":$name" if $var-is-named;
-            $name = ":$_\($name)" for @outer-names;
-        }
+        my $prefix = '';
+        my $name   = '';
+        my $rest   = '';
+        unless $!flags +& $SIG_ELEM_NO_VARIABLE {
+            my $sigil      = $.sigil;
+            my $twigil     = $.twigil;
+            my $usage-name = $.usage-name // '';
+            $prefix = $.prefix;
+            if $prefix eq '+' && $sigil eq '\\' {
+                # We don't want \ to end up in the name of slurpy parameters, but
+                # we still need to know whether or not they have this sigil later.
+                $name ~= $usage-name;
+            } else {
+                $name ~= $sigil ~ $twigil ~ $usage-name;
+            }
+            if nqp::isconcrete(@!named_names) {
+                my $var-is-named = False;
+                my @outer-names  = gather for @.named_names {
+                    if !$var-is-named && $_ eq $usage-name {
+                        $var-is-named = True;
+                    } else {
+                        .take;
+                    }
+                };
+                $name = ":$name" if $var-is-named;
+                $name = ":$_\($name)" for @outer-names;
+            }
 
-        my $rest = '';
-        if $!flags +& $SIG_ELEM_IS_RW {
-            $rest ~= ' is rw';
-        } elsif $!flags +& $SIG_ELEM_IS_COPY {
-            $rest ~= ' is copy';
-        }
-        if $!flags +& $SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
-            # Do not emit cases of anonymous '\' which we cannot reparse
-            # This is all due to unspace.
-            $rest ~= ' is raw';
+            if $!flags +& $SIG_ELEM_IS_RW {
+                $rest ~= ' is rw';
+            } elsif $!flags +& $SIG_ELEM_IS_COPY {
+                $rest ~= ' is copy';
+            }
+            if $!flags +& $SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
+                # Do not emit cases of anonymous '\' which we cannot reparse
+                # This is all due to unspace.
+                $rest ~= ' is raw';
+            }
         }
         unless nqp::isnull($!sub_signature) {
             $rest ~= ' ' ~ $!sub_signature.raku.substr: 1;
@@ -612,7 +614,7 @@ my class Parameter { # declared in BOOTSTRAP
         unless nqp::isnull(@!post_constraints) {
             # it's a Cool constant
             if !$rest
-              && $name eq '$'
+              && nqp::bitand_i($!flags,$SIG_ELEM_NO_VARIABLE)
               && nqp::elems(@!post_constraints) == 1
               && nqp::istype(
                    (my \value := nqp::atpos(@!post_constraints,0)),
@@ -630,8 +632,10 @@ my class Parameter { # declared in BOOTSTRAP
             $rest ~= " = OUTER::<$name>";
         }
 
-        $name = "$prefix$name$.suffix";
-        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
+        unless $!flags +& $SIG_ELEM_NO_VARIABLE {
+            $name = "$prefix$name$.suffix";
+            $perl ~= ($perl ?? ' ' !! '') ~ $name;
+        }
         $perl ~= $rest if $rest;
         $perl
     }

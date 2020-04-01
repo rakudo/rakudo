@@ -2351,7 +2351,8 @@ class Perl6::World is HLL::World {
                 @params.unshift(hash(
                     nominal_type => $invocant_type,
                     is_invocant => 1,
-                    is_multi_invocant => 1
+                    is_multi_invocant => 1,
+                    no_variable => 1
                 ));
             }
             unless has_named_slurpy_or_capture(@params) {

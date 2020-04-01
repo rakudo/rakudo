@@ -54,69 +54,73 @@ my class IO::Socket::INET does IO::Socket {
 
     # Create new socket that listens on $localhost:$localport
     multi method new(
-        Bool   :$listen! where .so,
-        Str    :$localhost is copy,
-        Int    :$localport is copy,
-        Int    :$family where {
+        Bool:_ :$listen!   where .so,
+        Str:_  :$localhost is copy,
+        Int:_  :$localport is copy,
+        Int:D  :$family    where {
                 $family == nqp::const::SOCKET_FAMILY_UNSPEC
              || $family == nqp::const::SOCKET_FAMILY_INET
              || $family == nqp::const::SOCKET_FAMILY_INET6
              || $family == nqp::const::SOCKET_FAMILY_UNIX
         } = nqp::const::SOCKET_FAMILY_UNSPEC,
                *%rest,
-        --> IO::Socket::INET:D) {
-
-        ($localhost, $localport) = (
-            split-host-port :host($localhost), :port($localport), :$family
-        orelse fail $_) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
+        --> IO::Socket::INET:D
+    ) {
+        unless $family == nqp::const::SOCKET_FAMILY_UNIX {
+            with $localhost {
+                with split-host-port :host($localhost), :port($localport), :$family {
+                    ($localhost, $localport) = $_;
+                } else {
+                    fail $_;
+                }
+            }
+        }
 
         self.bless(
-            :$localhost,
-            :$localport,
-            :$family,
-            :listening($listen),
+            :$localhost, :$localport,
+            :$family, :listening($listen),
             |%rest,
         )!initialize()
     }
 
     # Open new connection to socket on $host:$port
     multi method new(
-        Str:D :$host! is copy,
-        Int   :$port is copy,
+        Str:D :$host!     is copy,
+        Int:_ :$port      is copy,
         Str:_ :$localhost is copy,
         Int:_ :$localport is copy,
-        Int   :$family where {
+        Int:D :$family    where {
                $family == nqp::const::SOCKET_FAMILY_UNSPEC
             || $family == nqp::const::SOCKET_FAMILY_INET
             || $family == nqp::const::SOCKET_FAMILY_INET6
             || $family == nqp::const::SOCKET_FAMILY_UNIX
         } = nqp::const::SOCKET_FAMILY_UNSPEC,
               *%rest,
-        --> IO::Socket::INET:D) {
-
-        ($host, $port) = split-host-port(
-            :$host,
-            :$port,
-            :$family,
-        ) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
-
-        with $localhost // $localport {
-            if $family == nqp::const::SOCKET_FAMILY_UNIX {
+        --> IO::Socket::INET:D
+    ) {
+        if $family == nqp::const::SOCKET_FAMILY_UNIX {
+            with $localhost // $localport {
                 fail X::IO::Socket::Unsupported.new:
                     operation => 'bind before connect',
                     family    => 'UNIX';
+            }
+        } else {
+            with split-host-port :$host, :$port, :$family {
+                ($host, $port) = $_;
             } else {
-                ($localhost, $localport) = split-host-port(
-                    :host($localhost),
-                    :port($localport),
-                    :$family
-                ) orelse fail $_;
+                fail $_;
+            }
+            with $localhost {
+                with split-host-port :host($localhost), :port($localport), :$family {
+                    ($localhost, $localport) = $_;
+                } else {
+                    fail $_;
+                }
             }
         }
 
         self.bless(
-            :$host, :$port,
-            :$localhost, :$localport,
+            :$host, :$port, :$localhost, :$localport,
             :$family,
             |%rest,
         )!initialize()

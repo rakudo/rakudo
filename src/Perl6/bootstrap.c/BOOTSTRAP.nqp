@@ -1646,7 +1646,10 @@ BEGIN {
 
     # Scalar needs to be registered as a container type. Also provide the
     # slow-path implementation of various container operations.
-    nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::hash(
+    nqp::setcontspec(Scalar, 'value_desc_cont', nqp::hash(
+        'attrs_class', Scalar,
+        'descriptor_attr', '$!descriptor',
+        'value_attr', '$!value',
         'store', nqp::getstaticcode(sub ($cont, $val) {
             my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
             if nqp::isconcrete($desc) {

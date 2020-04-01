@@ -435,9 +435,9 @@ class Rakudo::Iterator {
         method new(\iterator) { nqp::create(self)!SET-SELF(iterator) }
         method pull-one() is raw {
             my \this := $!value;
-            $!value := $!iterator.pull-one
-              unless nqp::eqaddr(this,IterationEnd);
-            this
+            nqp::eqaddr(($!value := $!iterator.pull-one),IterationEnd)
+              ?? $!value
+              !! this
         }
     }
     method AllButLast(\iterator) { AllButLast.new(iterator) }

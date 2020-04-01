@@ -419,6 +419,29 @@ class Rakudo::Iterator {
 #-------------------------------------------------------------------------------
 # Methods that generate an Iterator (in alphabetical order)
 
+    # Create iterator that produces all values *except* the last of a given
+    # iterator.  Returns an empty iterator if the given iterator did not
+    # produce any value
+    my class AllButLast does Iterator {
+        has $!iterator;
+        has $!value;
+
+        method !SET-SELF(\iterator) {
+            $!iterator := iterator;
+            nqp::eqaddr(($!value := iterator.pull-one),IterationEnd)
+              ?? Rakudo::Iterator.Empty
+              !! self
+        }
+        method new(\iterator) { nqp::create(self)!SET-SELF(iterator) }
+        method pull-one() is raw {
+            my \this := $!value;
+            $!value := $!iterator.pull-one
+              unless nqp::eqaddr(this,IterationEnd);
+            this
+        }
+    }
+    method AllButLast(\iterator) { AllButLast.new(iterator) }
+
     # Create iterator that produces all values *except* the last N values
     # of a given iterator.  Returns an empty iterator if the given iterator
     # produced fewer than N values.
@@ -473,7 +496,9 @@ class Rakudo::Iterator {
         }
     }
     method AllButLastNValues(\iterator, \n) {
-        AllButLastNValues.new(iterator,n)
+        n == 1
+          ?? AllButLast.new(iterator)
+          !! AllButLastNValues.new(iterator,n)
     }
 
     # Return an iterator that will generate a pair with the value as the

@@ -839,15 +839,23 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
+    # helper subs to reduce size of pop / shift
+    method !lazy($action) is hidden-from-backtrace {
+        Failure.new(X::Cannot::Lazy.new(:$action))
+    }
+    method !empty($action) is hidden-from-backtrace {
+        Failure.new(X::Cannot::Empty.new(:$action,:what(self.^name)))
+    }
+
     method pop(Array:D:) is raw is nodal {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'pop from')),
+          self!lazy('pop from'),
           nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
               && nqp::elems(nqp::getattr(self,List,'$!reified')),
             nqp::pop(nqp::getattr(self,List,'$!reified')),
-            Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
+            self!empty('pop')
           )
         )
     }
@@ -864,7 +872,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
               && nqp::getattr(self,List,'$!todo').reify-at-least(1),
             nqp::shift(nqp::getattr(self,List,'$!reified')),
-            Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
+            self!empty('shift')
           )
         )
     }

@@ -83,26 +83,14 @@ BEGIN {
 
     trait_mod:<is>(&infix:<&>,   :prec($junctive_and));
     trait_mod:<is>(&infix:<(&)>, :prec($junctive_and));
-# U+2229 INTERSECTION
-    trait_mod:<is>(&infix:<∩>,   :prec($junctive_and));
     trait_mod:<is>(&infix:<(.)>, :prec($junctive_and));
-# U+228D MULTISET MULTIPLICATION
-    trait_mod:<is>(&infix:<⊍>,   :prec($junctive_and));
 
     trait_mod:<is>(&infix:<|>,   :prec($junctive_or));
     trait_mod:<is>(&infix:<^>,   :prec($junctive_or));
     trait_mod:<is>(&infix:<(+)>, :prec($junctive_or));
-# U+228E MULTISET UNION
-    trait_mod:<is>(&infix:<⊎>,   :prec($junctive_or));
     trait_mod:<is>(&infix:<(|)>, :prec($junctive_or));
-# U+222A UNION
-    trait_mod:<is>(&infix:<∪>,   :prec($junctive_or));
     trait_mod:<is>(&infix:<(-)>, :prec($junctive_or));
-# U+2216 SET MINUS
-    trait_mod:<is>(&infix:<∖>,   :prec($junctive_or));
     trait_mod:<is>(&infix:<(^)>, :prec($junctive_or));
-# U+2296 CIRCLED MINUS
-    trait_mod:<is>(&infix:<⊖>,   :prec($junctive_or));
 
     trait_mod:<is>(&infix:<==>,     :prec($chaining));
     trait_mod:<is>(&infix:<!=>,     :prec($chaining));
@@ -119,41 +107,25 @@ BEGIN {
     trait_mod:<is>(&infix:<after>,  :prec($chaining));
     trait_mod:<is>(&infix:<~~>,     :prec($chaining));
     trait_mod:<is>(&infix:<(elem)>, :prec($chaining));
-# U+2208 ELEMENT OF
-    trait_mod:<is>(&infix:<∈>,      :prec($chaining));
 # U+2209 NOT AN ELEMENT OF
     trait_mod:<is>(&infix:<∉>,      :prec($chaining));
     trait_mod:<is>(&infix:<(cont)>, :prec($chaining));
-# U+220B CONTAINS AS MEMBER
-    trait_mod:<is>(&infix:<∋>,      :prec($chaining));
 # U+220C DOES NOT CONTAIN AS MEMBER
     trait_mod:<is>(&infix:<∌>,      :prec($chaining));
     trait_mod:<is>(&infix:<<(<)>>,  :prec($chaining));
-# U+2282 SUBSET OF
-    trait_mod:<is>(&infix:<⊂>,      :prec($chaining));
 # U+2284 NOT A SUBSET OF
     trait_mod:<is>(&infix:<⊄>,      :prec($chaining));
     trait_mod:<is>(&infix:<<(>)>>,  :prec($chaining));
-# U+2283 SUPERSET OF
-    trait_mod:<is>(&infix:<⊃>,      :prec($chaining));
 # U+2285 NOT A SUPERSET OF
     trait_mod:<is>(&infix:<⊅>,      :prec($chaining));
     trait_mod:<is>(&infix:<<(<=)>>, :prec($chaining));
-# U+2286 SUBSET OF OR EQUAL TO
-    trait_mod:<is>(&infix:<⊆>,      :prec($chaining));
 # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
     trait_mod:<is>(&infix:<⊈>,      :prec($chaining));
     trait_mod:<is>(&infix:<<(>=)>>, :prec($chaining));
-# U+2287 SUPERSET OF OR EQUAL TO
-    trait_mod:<is>(&infix:<⊇>,      :prec($chaining));
 # U+2289 NEITHER A SUPERSET OF NOR EQUAL TO
     trait_mod:<is>(&infix:<⊉>,      :prec($chaining));
     trait_mod:<is>(&infix:<<(<+)>>, :prec($chaining));
-# U+227C PRECEDES OR EQUAL TO
-    trait_mod:<is>(&infix:<≼>,      :prec($chaining));
     trait_mod:<is>(&infix:<<(>+)>>, :prec($chaining));
-# U+227D SUCCEEDS OR EQUAL TO
-    trait_mod:<is>(&infix:<≽>,      :prec($chaining));
 
     trait_mod:<is>(&infix:<..>,     :prec($structural));
     trait_mod:<is>(&infix:<^..>,    :prec($structural));
@@ -188,8 +160,6 @@ BEGIN {
     trait_mod:<is>(&infix:<X>,      :prec($list_infix));
     trait_mod:<is>(&infix:<...>,    :prec($list_infix));
     trait_mod:<is>(&infix:<...^>,   :prec($list_infix));
-    trait_mod:<is>(&infix:<…>,      :prec($list_infix));
-    trait_mod:<is>(&infix:<…^>,     :prec($list_infix));
     trait_mod:<is>(&infix:<minmax>, :prec($list_infix));
 
     trait_mod:<is>(&infix:<=>,   :prec($list_prefix));

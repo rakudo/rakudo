@@ -4301,6 +4301,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<…>    { <sym> <O(|%list_infix)> }
     token infix:sym<...^> { <sym>  <O(|%list_infix)> }
     token infix:sym<…^>   { <sym>  <O(|%list_infix)> }
+    token infix:sym<^...> { <sym>  <O(|%list_infix)> }
+    token infix:sym<^…>   { <sym>  <O(|%list_infix)> }
+    token infix:sym<^...^> { <sym>  <O(|%list_infix)> }
+    token infix:sym<^…^>   { <sym>  <O(|%list_infix)> }
     # token term:sym<...>   { <sym> <args>**0..1 <O(|%list_prefix)> }
 
     token infix:sym<?>    { <sym> {} <![?]> <?before <.-[;]>*?':'> <.obs('? and : for the ternary conditional operator', '?? and !!')> <O(|%conditional)> }

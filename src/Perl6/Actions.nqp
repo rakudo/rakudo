@@ -421,10 +421,14 @@ sub unwanted($ast, $by) {
                     if $infix {
                         my $sym := $infix<sym>;
                         if $sym eq ',' || $sym eq 'xx' { unwantall($node, $byby) }
-                        elsif $sym eq '...' ||
-                              $sym eq '...^' ||
-                              $sym eq '…' ||
-                              $sym eq '…^'
+                        elsif $sym eq '...'
+                           || $sym eq '...^'
+                           || $sym eq '^...'
+                           || $sym eq '^...^'
+                           || $sym eq '…'
+                           || $sym eq '…^'
+                           || $sym eq '^…'
+                           || $sym eq '^…^'
                         {
                             $node.annotate('useless', $sym);
                             $node.node.worry("Useless use of $sym in sink context");
@@ -9992,21 +9996,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     my %curried;
     INIT {
-        %curried{'&infix:<...>'}  := 0;
-        %curried{'&infix:<…>'}  := 0;
-        %curried{'&infix:<...^>'} := 0;
-        %curried{'&infix:<…^>'} := 0;
-        %curried{'&infix:<=>'}    := 0;
-        %curried{'&infix:<:=>'}   := 0;
-        %curried{'&infix:<~~>'}   := 1;
-        %curried{'&infix:<∘>'}   := 1;
-        %curried{'&infix:<o>'}   := 1;
+        %curried{'&infix:<...>'}   := 0;
+        %curried{'&infix:<…>'}     := 0;
+        %curried{'&infix:<...^>'}  := 0;
+        %curried{'&infix:<…^>'}    := 0;
+        %curried{'&infix:<^...>'}  := 0;
+        %curried{'&infix:<^…>'}    := 0;
+        %curried{'&infix:<^...^>'} := 0;
+        %curried{'&infix:<^…^>'}   := 0;
+        %curried{'&infix:<=>'}     := 0;
+        %curried{'&infix:<:=>'}    := 0;
+        %curried{'&infix:<~~>'} := 1;
+        %curried{'&infix:<∘>'}  := 1;
+        %curried{'&infix:<o>'}  := 1;
         %curried{'&infix:<..>'}   := 2;
         %curried{'&infix:<..^>'}  := 2;
         %curried{'&infix:<^..>'}  := 2;
         %curried{'&infix:<^..^>'} := 2;
         %curried{'&infix:<xx>'}   := 2;
-        %curried{'callmethod'}    := 3;
+        %curried{'callmethod'}           := 3;
         %curried{'p6callmethodhow'}      := 3;
         %curried{'&postcircumfix:<[ ]>'} := 3;
         %curried{'&postcircumfix:<{ }>'} := 3;

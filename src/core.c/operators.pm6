@@ -167,16 +167,34 @@ multi sub infix:<...>(|lol) {
     }
 }
 
+# U+2026 HORIZONTAL ELLIPSIS
+my constant &infix:<…> := &infix:<...>;
+
 proto sub infix:<...^>($, Mu, *%) {*}
 multi sub infix:<...^>(\a, Mu \b) {
     Seq.new(SEQUENCE(a, b, :exclude_end))
 }
 
-# U+2026 HORIZONTAL ELLIPSIS
-my constant &infix:<…> := &infix:<...>;
-
 # U+2026 HORIZONTAL ELLIPSIS, U+005E CIRCUMFLEX ACCENT
 my constant &infix:<…^> := &infix:<...^>;
+
+proto sub infix:<^...>(|) {*}
+multi sub infix:<^...>(|c) {
+    Seq.new: Rakudo::Iterator.AllButFirst(infix:<...>(|c).iterator)
+}
+
+# U+005E CIRCUMFLEX ACCENT, U+2026 HORIZONTAL ELLIPSIS
+my constant &infix:<^…> := &infix:<^...>;
+
+proto sub infix:<^...^>(|) {*}
+multi sub infix:<^...^>(|c) {
+    Seq.new: Rakudo::Iterator.AllButLast(
+      Rakudo::Iterator.AllButFirst(infix:<...>(|c).iterator)
+    )
+}
+
+# U+005E CIRCUMFLEX ACCENT, U+2026 HORIZONTAL ELLIPSIS, U+005E CIRCUMFLEX ACCENT
+my constant &infix:<^…^> := &infix:<^...^>;
 
 proto sub undefine(Mu, *%) is raw {*}
 multi sub undefine(Mu \x) is raw { x = Nil }

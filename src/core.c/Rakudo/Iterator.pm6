@@ -419,6 +419,9 @@ class Rakudo::Iterator {
 #-------------------------------------------------------------------------------
 # Methods that generate an Iterator (in alphabetical order)
 
+    # Return iterator that produces all but the first value
+    method AllButFirst(\iterator) { iterator.skip-one; iterator }
+
     # Create iterator that produces all values *except* the last of a given
     # iterator.  Returns an empty iterator if the given iterator did not
     # produce any value

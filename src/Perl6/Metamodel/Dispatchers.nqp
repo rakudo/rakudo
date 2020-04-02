@@ -20,14 +20,12 @@ class Perl6::Metamodel::BaseDispatcher {
     method get_call() {
         my $call := @!candidates[$!idx];
         ++$!idx;
-        if (nqp::can($call, 'is_dispatcher') && $call.is_dispatcher)
-            || (nqp::can($call, 'is_wrapped') && $call.is_wrapped)
-        {
-            nqp::nextdispatcherfor(self, $call);
+        if self.is_wrapper_like && self.last_candidate {
+            self.set_last_call_dispatchers($call);
         }
         else {
-            if self.is_wrapper_like && self.last_candidate {
-                nqp::setdispatcherfor($!next_dispatcher, $call) if $!next_dispatcher;
+            if (nqp::can($call, 'is_dispatcher') && $call.is_dispatcher) {
+                nqp::nextdispatcherfor(self, $call);
             }
             else {
                 nqp::setdispatcherfor(self, $call);
@@ -178,11 +176,14 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
 }
 
 class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
-    method new(:@candidates, :$idx, :$invocant, :$has_invocant, :$next_dispatcher) {
+    has $!stashed_dispatcher;
+
+    method new(:@candidates, :$idx, :$invocant, :$has_invocant, :$next_dispatcher, :$stashed_dispatcher) {
         my $disp := nqp::create(self);
         nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '@!candidates', @candidates);
         nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '$!idx', 1);
         nqp::bindattr($disp, Perl6::Metamodel::BaseDispatcher, '$!next_dispatcher', $next_dispatcher);
+        nqp::bindattr($disp, Perl6::Metamodel::WrapDispatcher, '$!stashed_dispatcher', $stashed_dispatcher);
         $disp
     }
 
@@ -191,10 +192,19 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
         my $next_dispatcher := nqp::existskey($lexpad, '$*NEXT-DISPATCHER')
                                 ?? nqp::atkey($lexpad, '$*NEXT-DISPATCHER')
                                 !! nqp::null();
-        self.new(:@candidates, :idx(1), :$next_dispatcher)
+        my $stashed_dispatcher := nqp::existskey($lexpad, '$*DISPATCHER')
+                                    ?? nqp::atkey($lexpad, '$*DISPATCHER')
+                                    !! nqp::null();
+        self.new(:@candidates, :idx(1), :$next_dispatcher, :$stashed_dispatcher)
     }
 
     method has_invocant() { 0 }
     method invocant() { NQPMu }
     method is_wrapper_like() { 1 }
+
+    method set_last_call_dispatchers($call) {
+        nqp::setdispatcherfor($!stashed_dispatcher, $call) unless nqp::isnull($!stashed_dispatcher);
+        my $next_dispatcher := nqp::getattr(self, Perl6::Metamodel::BaseDispatcher, '$!next_dispatcher');
+        nqp::nextdispatcherfor($next_dispatcher, $call) unless nqp::isnull($next_dispatcher);
+    }
 }

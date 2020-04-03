@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 7;
+plan 9;
 
 {
     my $x = 42;
@@ -42,25 +42,75 @@ is-deeply
         'Named capture variable lookup works (2)';
 }
 
-{
-    is-deeply
+is-deeply
+    EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(name => '$foo')
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::ApplyInfix.new(
+                    left => RakuAST::Var::Lexical.new('$foo'),
+                    infix => RakuAST::Infix.new('='),
+                    right => RakuAST::IntLiteral.new(10)
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$foo')
+            ),
+        )
+    )),
+    10,
+    'Lexical variable declarations work';
+
+is-deeply
+    EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$foo',
+                    type => RakuAST::Type::Simple.new('Int'),
+                )
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::ApplyInfix.new(
+                    left => RakuAST::Var::Lexical.new('$foo'),
+                    infix => RakuAST::Infix.new('='),
+                    right => RakuAST::IntLiteral.new(99)
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$foo')
+            ),
+        )
+    )),
+    99,
+    'Typed variable declarations work (type matches in assignment)';
+
+throws-like
+    {
         EVAL(RakuAST::CompUnit.new(
             RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                    RakuAST::Declaration::Var.new(name => '$foo')
+                    RakuAST::Declaration::Var.new(
+                        name => '$foo',
+                        type => RakuAST::Type::Simple.new('Int'),
+                    )
                 ),
                 RakuAST::Statement::Expression.new(
                     RakuAST::ApplyInfix.new(
                         left => RakuAST::Var::Lexical.new('$foo'),
                         infix => RakuAST::Infix.new('='),
-                        right => RakuAST::IntLiteral.new(10)
+                        right => RakuAST::NumLiteral.new(1e5)
                     ),
                 ),
                 RakuAST::Statement::Expression.new(
                     RakuAST::Var::Lexical.new('$foo')
                 ),
             )
-        )),
-        10,
-        'Lexical variable declarations work';
-}
+        ))
+    },
+    X::TypeCheck::Assignment,
+    expected => Int,
+    got => 1e5,
+    'Typed variable declarations work (type mismatch throws)';

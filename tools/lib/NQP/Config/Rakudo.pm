@@ -160,6 +160,7 @@ sub configure_refine_vars {
               || File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
         )
     );
+    $config->{static_rakudo_home} = $config->{rakudo_home};
 }
 
 sub parse_lang_specs {
@@ -320,6 +321,8 @@ sub configure_jvm_backend {
         $config->{'nqp_classpath'} = $nqp_config->{'jvm::runtime.classpath'};
         $config->{'nqp::libdir'}   = $nqp_config->{'nqp::libdir'};
         $config->{'j_runner'}      = $self->batch_file('rakudo-j');
+
+        $nqp_config->{static_nqp_home} = $nqp_config->{'nqp::static-nqp-home'};
     }
 }
 
@@ -350,8 +353,7 @@ sub configure_moar_backend {
     }
     else {
         my $qchar = $config->{quote};
-        $nqp_config->{static_nqp_home}    = $nqp_config->{'nqp::nqp_home'};
-        $nqp_config->{static_rakudo_home} = $config->{rakudo_home};
+        $nqp_config->{static_nqp_home}    = $nqp_config->{'nqp::static-nqp-home'};
         $nqp_config->{static_nqp_home_define} =
             '-DSTATIC_NQP_HOME='
           . $qchar
@@ -360,7 +362,7 @@ sub configure_moar_backend {
         $nqp_config->{static_rakudo_home_define} =
             '-DSTATIC_RAKUDO_HOME='
           . $qchar
-          . $self->c_escape_string( $nqp_config->{static_rakudo_home} )
+          . $self->c_escape_string( $config->{static_rakudo_home} )
           . $qchar;
     }
 
@@ -452,8 +454,9 @@ sub configure_js_backend {
 
     $self->backend_config(
         'js',
-        js_build_dir => File::Spec->catdir( $config->{base_dir}, qw<gen js> ),
-        js_blib => File::Spec->catdir( $config->{base_dir}, "node_modules" ),
+        js_build_dir    => File::Spec->catdir( $config->{base_dir}, qw<gen js> ),
+        js_blib         => File::Spec->catdir( $config->{base_dir}, "node_modules" ),
+        static_nqp_home => $nqp_config->{'nqp::static-nqp-home'},
     );
 }
 

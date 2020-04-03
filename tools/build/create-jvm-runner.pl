@@ -9,7 +9,7 @@ use File::Copy 'cp';
 
 my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp-home> <rakudo-home> <blib> <third party jars>\n";
 
-my ($type, $destdir, $prefix, $nqp_home, $rakudo_home, $blib, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $static_nqp_home, $static_rakudo_home, $blib, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
 my $debugger = 0;
@@ -23,11 +23,11 @@ die "Invalid target type $type" unless $type eq 'dev' || $type eq 'install';
 my $cpsep = $^O eq 'MSWin32' ? ';' : ':';
 my $bat   = $^O eq 'MSWin32' ? '.bat' : '';
 
-my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($nqp_home, 'lib') : File::Spec->catfile('${NQP_HOME}', 'lib');
-my $nqpjars = $^O eq 'MSWin32' ? $thirdpartyjars : join( $cpsep, map { $_ =~ s,$nqp_home,\${NQP_HOME},g; $_ } split($cpsep, $thirdpartyjars) );
+my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($static_nqp_home, 'lib') : File::Spec->catfile('${NQP_HOME}', 'lib');
+my $nqpjars = $^O eq 'MSWin32' ? $thirdpartyjars : join( $cpsep, map { $_ =~ s,$static_nqp_home,\${NQP_HOME},g; $_ } split($cpsep, $thirdpartyjars) );
 my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
-my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $rakudo_home : '${RAKUDO_HOME}', 'runtime') : $prefix;
-my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $rakudo_home : '${RAKUDO_HOME}', 'lib') : 'blib';
+my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $static_rakudo_home : '${RAKUDO_HOME}', 'runtime') : $prefix;
+my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $static_rakudo_home : '${RAKUDO_HOME}', 'lib') : 'blib';
 my $sharedir = File::Spec->catfile(
     ($type eq 'install' && $^O ne 'MSWin32' ? '${RAKUDO_HOME}' : File::Spec->catfile($prefix, 'share', 'perl6') ),
     'site', 'lib');
@@ -82,7 +82,7 @@ my $preamble = $^O eq 'MSWin32' ? '@' :
 : \${RAKUDO_JARS:=\"$rakudo_jars\"}
 exec "
 : $preamble_unix . "$NQP_LIB
-: \${NQP_HOME:=\"$nqp_home\"}
+: \${NQP_HOME:=\"$static_nqp_home\"}
 : \${NQP_JARS:=\"$nqpjars\"}
 : \${RAKUDO_HOME:=\"$prefix\"}
 : \${RAKUDO_JARS:=\"$rakudo_jars\"}

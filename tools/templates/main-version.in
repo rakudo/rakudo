@@ -33,9 +33,9 @@ sub hll-config($config) {
     }
 )@
     );
-    $config<prefix>           := '@prefix@';
-    $config<nqp-home>         := '@nqp_home@';
-    $config<rakudo-home>      := '@rakudo_home@';
-    $config<source-digest>    := '@source_digest()@';
+    $config<prefix>             := '@prefix@';
+    $config<static-nqp-home>    := '@static_nqp_home@';
+    $config<static-rakudo-home> := '@static_rakudo_home@';
+    $config<source-digest>      := '@source_digest()@';
 }
 

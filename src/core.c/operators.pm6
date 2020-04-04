@@ -179,18 +179,22 @@ multi sub infix:<...^>(\a, Mu \b) {
 my constant &infix:<…^> := &infix:<...^>;
 
 proto sub infix:<^...>(|) {*}
-multi sub infix:<^...>(|c) {
-    Seq.new: Rakudo::Iterator.AllButFirst(infix:<...>(|c).iterator)
+multi sub infix:<^...>(\a, Mu \b) {
+    Seq.new: Rakudo::Iterator.AllButFirst(SEQUENCE(a, b))
+}
+multi sub infix:<^...>(|lol) {
+    Seq.new: Rakudo::Iterator.AllButFirst(infix:<...>(|lol).iterator)
 }
 
 # U+005E CIRCUMFLEX ACCENT, U+2026 HORIZONTAL ELLIPSIS
 my constant &infix:<^…> := &infix:<^...>;
 
 proto sub infix:<^...^>(|) {*}
-multi sub infix:<^...^>(|c) {
-    Seq.new: Rakudo::Iterator.AllButLast(
-      Rakudo::Iterator.AllButFirst(infix:<...>(|c).iterator)
-    )
+multi sub infix:<^...^>(\a, Mu \b) {
+    Seq.new: Rakudo::Iterator.AllButFirst(SEQUENCE(a, b, :exclude_end))
+}
+multi sub infix:<^...^>(|lol) {
+    Seq.new: Rakudo::Iterator.AllButFirst(infix:<...>(|lol).iterator) # XXX
 }
 
 # U+005E CIRCUMFLEX ACCENT, U+2026 HORIZONTAL ELLIPSIS, U+005E CIRCUMFLEX ACCENT

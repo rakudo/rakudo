@@ -37,6 +37,42 @@ class RakuAST::StatementList is RakuAST::Node {
             $visitor($_);
         }
     }
+
+    method is-empty() {
+        nqp::elems($!statements) == 0 ?? True !! False
+    }
+}
+
+# A semilist is a semicolon-separted list of statements, but used for the
+# purpose of multi-dimensional array and hash indexing.
+class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        my @lookups := [
+            RakuAST::Var::Lexical.new('&infix:<,>'),
+        ];
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', @lookups);
+        $list
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @statements := nqp::getattr(self, RakuAST::StatementList, '$!statements');
+        my int $n := nqp::elems(@statements);
+        if $n == 1 {
+            nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
+        }
+        else {
+            my @lookups := nqp::getattr(self.get-implicit-lookups, List, '$!reified');
+            my $list := QAST::Op.new(
+                :op('call'),
+                :name(@lookups[0].resolution.lexical-name)
+            );
+            for @statements {
+                $list.push($_.IMPL-TO-QAST($context));
+            }
+            $list
+        }
+    }
 }
 
 # An expression statement is a statement consisting of the evaluation of an

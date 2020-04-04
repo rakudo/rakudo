@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 13;
+plan 16;
 
 is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -121,4 +121,51 @@ is-deeply
         )),
         4,
         'Basic assignment to a Scalar container';
+}
+
+{
+    my @a = 10..20;
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('@a'),
+            postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+                RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(5)
+                    )
+                )
+            )
+        )),
+        15,
+        'Basic single-dimension array index';
+
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('@a'),
+            postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+                RakuAST::SemiList.new()
+            )
+        )),
+        @a,
+        'Zen array slice';
+}
+
+{
+    my @a[3;3] = <a b c>, <d e f>, <g h i>;
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('@a'),
+            postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+                RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(2)
+                    ),
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(1)
+                    )
+                )
+            )
+        )),
+        'h',
+        'Multi-dimensional array indexing';
 }

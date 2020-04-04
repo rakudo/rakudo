@@ -1,11 +1,14 @@
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2018 The Perl Foundation.
+# Copyright (C) 2007 - 2020 The Perl Foundation.
 
 # settable from outside
-my int $perl6_test_times = ?%*ENV<PERL6_TEST_TIMES>;
-my int $die_on_fail      = ?%*ENV<PERL6_TEST_DIE_ON_FAIL>;
+my %ENV := %*ENV;  # reduce dynamic lookups
+my int $perl6_test_times =
+  ?(%ENV<RAKU_TEST_TIME> // %ENV<PERL6_TEST_TIMES>);
+my int $die_on_fail =
+  ?(%ENV<RAKU_TEST_DIE_ON_FAIL> // %ENV<PERL6_TEST_DIE_ON_FAIL>);
 
 # global state
 my @vars;

@@ -186,6 +186,39 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
     }
 }
 
+# A postcircumfix hash index operator, possibly multi-dimensional.
+class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lookup {
+    has RakuAST::SemiList $.index;
+
+    method new(RakuAST::SemiList $index) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Postcircumfix::HashIndex, '$!index', $index);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical(
+            nqp::elems(nqp::getattr($!index.statements, List, '$!reified')) > 1
+                ?? '&postcircumfix:<{; }>'
+                !! '&postcircumfix:<{ }>');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!index);
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name := self.resolution.lexical-name;
+        my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        $op
+    }
+}
+
 # Application of an postfix operator.
 class RakuAST::ApplyPostfix is RakuAST::Expression {
     has RakuAST::Postfixish $.postfix;

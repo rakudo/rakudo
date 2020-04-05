@@ -31,8 +31,8 @@ proto sub EVAL(
   Str()       :$filename = Str,
   Bool()      :$check,
   *%_
-) {
-    die "EVAL() in Raku is intended to evaluate strings, did you mean 'try'?"
+) is raw {
+    die "EVAL() in Raku is intended to evaluate strings or ASTs, did you mean 'try'?"
       if nqp::istype($code,Callable);
 
 # TEMPORARY HACK

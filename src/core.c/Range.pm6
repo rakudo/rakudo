@@ -286,9 +286,9 @@ my class Range is Cool does Iterable does Positional {
             )
         }
 
-        # doesn't make much sense, but there you go
+        # can never go down to -Inf
         elsif $!max === -Inf {
-            InfReverse.new
+            Rakudo::Iterator.Empty
         }
 
         # Also something quick and easy for -Inf..42 style things

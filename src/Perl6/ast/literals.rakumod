@@ -93,3 +93,26 @@ class RakuAST::VersionLiteral is RakuAST::Term {
         QAST::WVal.new( :$value )
     }
 }
+
+# A StrLiteral is a basic string literal without any kind of interpolation
+# taking place.
+class RakuAST::StrLiteral is RakuAST::Term {
+    has Str $.value;
+
+    method new(Str $value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::StrLiteral, '$!value', $value);
+        $obj
+    }
+
+    method type {
+        $!value.WHAT
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!value;
+        $context.ensure-sc($value);
+        my $wval := QAST::WVal.new( :$value );
+        QAST::Want.new( $wval, 'Ss', QAST::SVal.new( :value(nqp::unbox_s($value)) ) )
+    }
+}

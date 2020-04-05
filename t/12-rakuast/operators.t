@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 16;
+plan 19;
 
 is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -168,4 +168,51 @@ is-deeply
         )),
         'h',
         'Multi-dimensional array indexing';
+}
+
+{
+    my %h = a => 'add', s => 'subtract';
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::HashIndex.new(
+                RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::StrLiteral.new('s')
+                    )
+                )
+            )
+        )),
+        'subtract',
+        'Basic single-dimension hash index';
+
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::HashIndex.new(
+                RakuAST::SemiList.new()
+            )
+        )),
+        %h,
+        'Zen hash slice';
+}
+
+{
+    my %h = x => { :1a, :2b }, y => { :3a, :4b };
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::HashIndex.new(
+                RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::StrLiteral.new('y')
+                    ),
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::StrLiteral.new('a')
+                    )
+                )
+            )
+        )),
+        (3,), # Is this actually a CORE.setting bug?
+        'Multi-dimensional hash indexing';
 }

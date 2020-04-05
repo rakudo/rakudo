@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 9;
+plan 15;
 
 {
     my $x = 42;
@@ -114,3 +114,47 @@ throws-like
     expected => Int,
     got => 1e5,
     'Typed variable declarations work (type mismatch throws)';
+
+{
+    my \result = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$var',
+                    initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(125))
+                )
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$var')
+            ),
+        )
+    ));
+    is-deeply result, 125,
+        'Lexical variable declarations with assignment initializer';
+    ok result.VAR.isa(Scalar),
+        'Really was an assignment into a Scalar container';
+    lives-ok { result = 42 },
+        'Can update the container that was produced';
+}
+
+{
+    my \result = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$var',
+                    initializer => RakuAST::Initializer::Bind.new(RakuAST::IntLiteral.new(225))
+                )
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$var')
+            ),
+        )
+    ));
+    is-deeply result, 225,
+        'Lexical variable declarations with bind initializer';
+    nok result.VAR.isa(Scalar),
+        'Really was bound; no Scalar container';
+    dies-ok { result = 42 },
+        'Cannot assign as it is not a container';
+}

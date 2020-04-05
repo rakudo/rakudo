@@ -90,6 +90,7 @@ my class Exception {
     }
 
     method is-compile-time(--> False) { }
+    method message() { ... }
 }
 
 my class X::SecurityPolicy is Exception {}

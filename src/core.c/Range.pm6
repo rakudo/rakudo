@@ -291,6 +291,13 @@ my class Range is Cool does Iterable does Positional {
             Rakudo::Iterator.Empty
         }
 
+        # endpoints are same
+        elsif $!min === $!max {
+            $!excludes-min || $!excludes-max
+              ?? Rakudo::Iterator.Empty
+              !! Rakudo::Iterator.OneValue($!min)
+        }
+
         # Also something quick and easy for -Inf..42 style things
         elsif nqp::istype($!min, Numeric) && $!min === -Inf {
             NumReverse.new($!max - $!excludes-max)

@@ -683,9 +683,10 @@ sub _is_deeply(Mu $got, Mu $expected) {
 
 sub die-on-fail {
     if !$todo_reason && !$subtest_level && nqp::iseq_i($die_on_fail,1) {
-        _diag 'Test failed. Stopping test suite, because'
-                ~ ' PERL6_TEST_DIE_ON_FAIL environmental variable is set'
-                ~ ' to a true value.';
+        _diag 'Test failed. Stopping test suite, because the '
+          ~ (%ENV<RAKU_TEST_DIE_ON_FAIL> ?? 'RAKU' !! 'PERL6')
+          ~ "_TEST_DIE_ON_FAIL\n"
+          ~ 'environmental variable is set to a true value.';
         exit 255;
     }
 

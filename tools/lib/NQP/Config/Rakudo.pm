@@ -594,7 +594,6 @@ sub gen_nqp {
     my $prefix        = $config->{prefix};
     my $sdkroot       = $config->{'sdkroot'};
     my $startdir      = $config->{'base_dir'};
-    my $exe           = $config->{exe};
     my $nqp_want      = $config->{nqp_want};
     my $git_protocol  = $options->{'git-protocol'} // 'https';
     my @moar_options  = @{ $options->{'moar-option'} // [] };
@@ -612,6 +611,7 @@ sub gen_nqp {
     for my $b ( $self->active_backends ) {
         my $bconfig = $self->backend_config($b);
         my $postfix = $self->backend_abbr($b);
+        my $exe     = $b eq 'moar' ? $config->{exe} : $config->{bat};
         my $tpath   = File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$exe" );
         my $bin     = $bconfig->{nqp_bin}
           || (

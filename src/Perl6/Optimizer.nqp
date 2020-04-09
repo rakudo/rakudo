@@ -1026,6 +1026,123 @@ my class JunctionOptimizer {
     }
 }
 
+# Hyperops such as >>+<< on native int or num arrays can be turned 
+# into lower-level nqp code where we consecutively to operations+
+# on single fields instead of doing all the operations on the whole array
+# over and over..
+
+
+# - QAST::Stmt <sunk final> @result = @a >>+<< @b >>*>> 5
+#   - QAST::Op(callmethod STORE) <sunk nosink> :statement_id<5>
+#     - QAST::Var(lexical @result) <wanted sunk> @result
+#     - QAST::Op(call)  >>+<<
+#       - QAST::Op(callstatic &METAOP_HYPER) <wanted>
+#         - QAST::Var(lexical &infix:<+>) <wanted>
+#       - QAST::Var(lexical @a) <wanted> @a
+#       - QAST::Op(call) <wanted> >>*>>
+#         - QAST::Op(callstatic &METAOP_HYPER) <wanted>
+#           - QAST::Var(lexical &infix:<*>) <wanted>
+#           - QAST::WVal+{QAST::SpecialArg}(:named<dwim-right>) 
+#         - QAST::Var(lexical @b) <wanted> @b
+#         - QAST::Want <wanted> 5
+#           - QAST::WVal(Int) 
+#           - Ii
+#           - QAST::IVal(5)  5
+
+my class HyperOptimizer {
+    has $!symbols;
+    has $!array_type;
+
+    class HyperNode {
+        has str $!operator;
+        has str $!dwims;
+        has $!lhs;
+        has $!rhs;
+        has $!sizeeffect;
+        has $!primspec;
+        method operator() { $!operator }
+        method dwims() { $!dwims }
+        method lhs() { $!lhs }
+        method rhs() { $!rhs }
+        method sizeeffect() { $!sizeeffect }
+        method primspec() { $!primspec }
+    }
+    method optimize($node) {
+        $!symbols := $*OPTIMIZER-SYMBOLS;
+        note("try optimize a hyperop tree");
+        my $array_type_found := 0;
+        try {
+            $!array_type := $!symbols.find_in_setting("array");
+            $array_type_found := 1;
+        }
+
+        if $array_type_found == 0 { note("no array type found"); return 0 }
+
+        my $result_primspec := self.check_array_type($node[0]);
+        if $result_primspec == -1 { note("bind target is not a lowercase array"); return 0 }
+        if $result_primspec == 0 { note("target array has an .of that's an object?!?"); return 0 }
+        if $result_primspec == 3 { note("target is a string array"); return 0 }
+
+        my $optree := self.build_node_graph($node[1]);
+
+        if nqp::isnull($optree) { note("optree result was null."); return 0 }
+
+        return 0;
+    }
+    method check_array_type($var) {
+        note("check array type of symbol " ~ $var.name);
+        my $sym := $!symbols.find_lexical_symbol($var.name);
+        my $type := $sym<type>;
+        if nqp::istype($type, $!array_type) {
+            note("isn't typeof my array_type");
+            return -1;
+        }
+        my $primspec := nqp::objprimspec($type.of);
+        note("primspec is " ~ $primspec);
+        return $primspec;
+    }
+    # Called on an Op node.
+    # First child should be an Op that builds the hyperop
+    # Second and third arguments should be the operands
+    method build_node_graph($node) {
+        note("build the node graph for hypering");
+        if !nqp::istype($node[0][0], QAST::Var) || $node[0][0].scope ne "lexical" {
+            note("metaopped op not a var or not lexical");
+            return nqp::null;
+        }
+        if !$!symbols.is_from_core($node[0][0].name) {
+            note("metaopped op " ~ $node[0][0].name ~ " doesn't come from the setting");
+            note(nqp::isnull($!symbols.find_in_setting($node[0][0].name)));
+            return nqp::null;
+        }
+        my $hypered_op := $node[0][0].name;
+
+        self.do_operand($node[1]);
+        self.do_operand($node[2]);
+    }
+    # Could be an op, could be a var.
+    # Could be a constant in a Want node
+    #   (if the outer hyper is dwimmy in this direction)
+    # Could be something different, in which case we bail
+    method do_operand($node) {
+        if nqp::istype($node, QAST::Op) {
+            return self.build_node_graph($node);
+        }
+        elsif nqp::istype($node, QAST::Var) {
+            my $result_primspec := self.check_array_type($node);
+            if $result_primspec == -1 { note("Var operand not a lowercase array"); return nqp::null }
+            if $result_primspec == 0 { note("operand array has an .of that's an object?!?"); return nqp::null }
+            if $result_primspec == 3 { note("operand is a string array"); return nqp::null }
+            return $node;
+        }
+        else {
+            note("unexpected node in do_operand:");
+            note($node.dump);
+            return nqp::null;
+        }
+    }
+}
+
 # Drives the optimization process overall.
 class Perl6::Optimizer {
     # Symbols tracking object.
@@ -1357,34 +1474,45 @@ class Perl6::Optimizer {
 
         # It could also be that the user explicitly spelled out the for loop
         # with a method call to "map".
-        if $optype eq 'callmethod' && $op.name eq 'sink'
-        && nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod'
-        && $op[0].name eq 'map' && nqp::elems($op[0]) == 2
-        && $op[0][1].has_ann('code_object')
-        && (
-               nqp::istype((my $c1 := $op[0][0]), QAST::Op)
-            && nqp::existskey(%range_bounds, $c1.name)
-            || nqp::istype($op[0][0], QAST::Stmts)
-            && nqp::istype(($c1 := $op[0][0][0]), QAST::Op)
-            && nqp::existskey(%range_bounds, $c1.name)
-        ) && $!symbols.is_from_core($c1.name)
-        {
-            self.optimize_for_range($op, $op[0][1], $c1);
-            self.visit_op_children($op);
-            return $op;
-        }
-        elsif $optype eq 'callmethod' && $op.name eq 'new' && $!void_context {
-            if $op.node {
-                my str $op_txt := nqp::escape($op.node.Str);
-                my $warning := qq[Useless use of "$op_txt" in sink context];
-                note($warning) if $!debug;
-                $!problems.add_worry($op, $warning);
+        if $optype eq 'callmethod' {
+            if $op.name eq 'sink'
+            && nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod'
+            && $op[0].name eq 'map' && nqp::elems($op[0]) == 2
+            && $op[0][1].has_ann('code_object')
+            && (
+                   nqp::istype((my $c1 := $op[0][0]), QAST::Op)
+                && nqp::existskey(%range_bounds, $c1.name)
+                || nqp::istype($op[0][0], QAST::Stmts)
+                && nqp::istype(($c1 := $op[0][0][0]), QAST::Op)
+                && nqp::existskey(%range_bounds, $c1.name)
+            ) && $!symbols.is_from_core($c1.name)
+            {
+                self.optimize_for_range($op, $op[0][1], $c1);
+                self.visit_op_children($op);
+                return $op;
             }
-            elsif nqp::istype($op[0],QAST::Var) && $op[0].scope eq 'lexical' {
-                my str $op_txt := $op[0].name;
-                my $warning := qq[Useless use of "$op_txt" in sink context];
-                note($warning) if $!debug;
-                $!problems.add_worry($op, $warning);
+            elsif $op.name eq 'new' && $!void_context {
+                if $op.node {
+                    my str $op_txt := nqp::escape($op.node.Str);
+                    my $warning := qq[Useless use of "$op_txt" in sink context];
+                    note($warning) if $!debug;
+                    $!problems.add_worry($op, $warning);
+                }
+                elsif nqp::istype($op[0],QAST::Var) && $op[0].scope eq 'lexical' {
+                    my str $op_txt := $op[0].name;
+                    my $warning := qq[Useless use of "$op_txt" in sink context];
+                    note($warning) if $!debug;
+                    $!problems.add_worry($op, $warning);
+                }
+            }
+            elsif $op.name eq 'STORE' && nqp::istype($op[1], QAST::Op) && $op[1].op eq 'call' && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'call' && $op[1][0].name eq '&METAOP_HYPER' {
+                # can perhaps generate some very fast code for a hyperop
+                # expression, with techniques that have cool names like
+                # "tiling" and "loop fusion".
+                note("metaop hyper from core? " ~ $!symbols.is_from_core('&METAOP_HYPER'));
+                if HyperOptimizer.new.optimize($op) {
+                    return $op;
+                }
             }
         }
 

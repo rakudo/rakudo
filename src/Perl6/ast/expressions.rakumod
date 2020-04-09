@@ -8,6 +8,9 @@ class RakuAST::Term is RakuAST::Expression {
 
 # Marker for all kinds of infixish operators.
 class RakuAST::Infixish is RakuAST::Node {
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
+    }
 }
 
 # A lookup of a simple (non-meta) infix operator.
@@ -41,6 +44,15 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
             QAST::Op.new( :op('call'), :$name, $left-qast, $right-qast )
         }
     }
+
+    method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
+        my $name := self.resolution.lexical-name;
+        my $op := QAST::Op.new( :op('call'), :$name );
+        for $operands {
+            $op.push($_);
+        }
+        $op
+    }
 }
 
 # Application of an infix operator.
@@ -67,6 +79,34 @@ class RakuAST::ApplyInfix is RakuAST::Expression {
         $visitor($!left);
         $visitor($!infix);
         $visitor($!right);
+    }
+}
+
+# Application of an list-precednece infix operator.
+class RakuAST::ApplyListInfix is RakuAST::Expression {
+    has RakuAST::Infixish $.infix;
+    has List $.operands;
+
+    method new(RakuAST::Infixish :$infix!, List :$operands!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!infix', $infix);
+        nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!operands', $operands);
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @operands;
+        for self.IMPL-UNWRAP-LIST($!operands) {
+            @operands.push($_.IMPL-TO-QAST($context));
+        }
+        $!infix.IMPL-LIST-INFIX-QAST: $context, @operands;
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+        for self.IMPL-UNWRAP-LIST($!operands) {
+            $visitor($_);
+        }
     }
 }
 

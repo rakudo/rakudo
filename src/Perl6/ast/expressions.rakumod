@@ -165,7 +165,7 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical(
-            nqp::elems(nqp::getattr($!index.statements, List, '$!reified')) > 1
+            nqp::elems(self.IMPL-UNWRAP-LIST($!index.statements)) > 1
                 ?? '&postcircumfix:<[; ]>'
                 !! '&postcircumfix:<[ ]>');
         if $resolved {
@@ -198,7 +198,7 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical(
-            nqp::elems(nqp::getattr($!index.statements, List, '$!reified')) > 1
+            nqp::elems(self.IMPL-UNWRAP-LIST($!index.statements)) > 1
                 ?? '&postcircumfix:<{; }>'
                 !! '&postcircumfix:<{ }>');
         if $resolved {

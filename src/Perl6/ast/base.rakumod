@@ -99,11 +99,26 @@ class RakuAST::Node {
         while @visit-queue {
             nqp::shift(@visit-queue).visit-children($collector);
         }
+        self.IMPL-WRAP-LIST(@result)
+    }
 
-        # Wrap the result.
+    method IMPL-WRAP-LIST(Mu $vm-array) {
         my $result := nqp::create(List);
-        nqp::bindattr($result, List, '$!reified', @result);
+        nqp::bindattr($result, List, '$!reified', $vm-array);
         $result
+    }
+
+    method IMPL-UNWRAP-LIST(Mu $list) {
+        if nqp::islist($list) {
+            # Wasn't wrapped anyway
+            $list
+        }
+        else {
+            my $reified := nqp::getattr($list, List, '$!reified');
+            nqp::isconcrete($reified)
+                ?? $reified
+                !! $list.FLATTENABLE_LIST
+        }
     }
 }
 

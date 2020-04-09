@@ -37,17 +37,14 @@ class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookup
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups := [
+        self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&postcircumfix:<[ ]>'),
             RakuAST::Var::Lexical.new('$/'),
-        ];
-        my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', @lookups);
-        $list
+        ])
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := nqp::getattr(self.get-implicit-lookups, List, '$!reified');
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         QAST::Op.new(
             :op('call'),
             :name(@lookups[0].resolution.lexical-name),
@@ -68,17 +65,14 @@ class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups := [
+        self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&postcircumfix:<{ }>'),
             RakuAST::Var::Lexical.new('$/'),
-        ];
-        my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', @lookups);
-        $list
+        ])
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := nqp::getattr(self.get-implicit-lookups, List, '$!reified');
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         QAST::Op.new(
             :op('call'),
             :name(@lookups[0].resolution.lexical-name),

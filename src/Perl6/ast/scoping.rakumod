@@ -5,7 +5,7 @@ class RakuAST::LexicalScope is RakuAST::Node {
 
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
-        for nqp::getattr(self.lexical-declarations(), List, '$!reified') {
+        for self.IMPL-UNWRAP-LIST(self.lexical-declarations()) {
             $stmts.push($_.IMPL-QAST-DECL($context));
         }
         $stmts
@@ -24,7 +24,7 @@ class RakuAST::LexicalScope is RakuAST::Node {
         my %lookup := $!lexical-lookup-hash;
         unless nqp::isconcrete(%lookup) {
             %lookup := {};
-            for nqp::getattr(self.lexical-declarations, List, '$!reified') {
+            for self.IMPL-UNWRAP-LIST(self.lexical-declarations) {
                 %lookup{$_.lexical-name} := $_;
             }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!lexical-lookup-hash', %lookup);
@@ -110,9 +110,7 @@ class RakuAST::ImplicitLookups is RakuAST::Node {
     # remains constant. Nodes that may be mutated must instead implement
     # get-implicit-lookups and handle the caching themselves.
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', nqp::list());
-        $list
+        self.IMPL-WRAP-LIST(nqp::list())
     }
 
     # Get a list of the implicit lookups.
@@ -124,7 +122,7 @@ class RakuAST::ImplicitLookups is RakuAST::Node {
 
     # Resolve the implicit lookups if needed.
     method resolve-implicit-lookups-with(RakuAST::Resolver $resolver) {
-        for nqp::getattr(self.get-implicit-lookups(), List, '$!reified') {
+        for self.IMPL-UNWRAP-LIST(self.get-implicit-lookups()) {
             if $_.needs-resolution && !$_.is-resolved {
                 $_.resolve-with($resolver);
             }

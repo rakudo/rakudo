@@ -250,9 +250,9 @@ my class Symbols {
             $i := $i - 1;
             my $block := @!block_stack[$i];
             my %sym := $block.symbol($name);
-            if +%sym && nqp::existskey(%sym, 'value') {
-                my %sym := $block.symbol("CORE-SETTING-REV");
-                if +%sym {
+            if +%sym && (nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')) {
+                my %isym := $block.symbol("CORE-SETTING-REV");
+                if +%isym {
                     return 1;
                 }
                 return 0;

@@ -13,9 +13,7 @@ class RakuAST::StatementList is RakuAST::Node {
     }
 
     method statements() {
-        my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', $!statements);
-        $list
+        self.IMPL-WRAP-LIST($!statements)
     }
 
     method push(RakuAST::Statement $statement) {
@@ -47,12 +45,9 @@ class RakuAST::StatementList is RakuAST::Node {
 # purpose of multi-dimensional array and hash indexing.
 class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups := [
+        self.IMPL-WRAP-LIST([
             RakuAST::Var::Lexical.new('&infix:<,>'),
-        ];
-        my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', @lookups);
-        $list
+        ])
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -62,7 +57,7 @@ class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
             nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
         }
         else {
-            my @lookups := nqp::getattr(self.get-implicit-lookups, List, '$!reified');
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $list := QAST::Op.new(
                 :op('call'),
                 :name(@lookups[0].resolution.lexical-name)
@@ -109,16 +104,13 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        my @lookups := [
+        self.IMPL-WRAP-LIST([
             RakuAST::Type::Simple.new('Empty'),
-        ];
-        my $list := nqp::create(List);
-        nqp::bindattr($list, List, '$!reified', @lookups);
-        $list
+        ])
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my @lookups := nqp::getattr(self.get-implicit-lookups, List, '$!reified');
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         QAST::Op.new(
             :op('unless'),
             $!condition.IMPL-TO-QAST($context),

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 19;
+plan 21;
 
 is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -216,3 +216,23 @@ is-deeply
         (3,), # Is this actually a CORE.setting bug?
         'Multi-dimensional hash indexing';
 }
+
+is-deeply
+        EVAL(RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => (
+                RakuAST::IntLiteral.new(10),
+                RakuAST::IntLiteral.new(11),
+                RakuAST::IntLiteral.new(12),
+            )
+        )),
+        (10, 11, 12),
+        'Application of a list infix operator on three operands';
+
+is-deeply
+        EVAL(RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => ()
+        )),
+        (),
+        'Application of a list infix operator on no operands';

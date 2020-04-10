@@ -321,15 +321,17 @@ sub emit-mop-utils() {
         # Assemble a signature object for introspection purposes.
         my @params;
         my $first := 1;
-        for @parameters -> $type, $name {
+        for @parameters -> $type, $name, $named, $optional {
             my $param := nqp::create(Parameter);
             nqp::bindattr($param, Parameter, '$!nominal_type', $type);
             nqp::bindattr_s($param, Parameter, '$!variable_name', $name);
-            if $first {
-                nqp::bindattr_i($param, Parameter, '$!flags', 64 + 128); # Invocant
-            }
-            else {
-                nqp::bindattr_i($param, Parameter, '$!flags', 128); # Multi invocant
+            my int $flags := 128; # Multi-invocant
+            $flags := $flags + 64 if $first; # Invocant
+            $flags := $flags + 2048 if $optional;
+            nqp::bindattr_i($param, Parameter, '$!flags', $flags);
+            if $named {
+                nqp::bindattr($param, Parameter, '@!named_names',
+                    nqp::list_s(nqp::substr($name, 1)));
             }
             nqp::push(@params, $param);
         }
@@ -390,7 +392,7 @@ sub emit-package($package) {
 sub emit-method($package, $method) {
     my @parameters := $method.parameters;
     my @params-in;
-    my @params-desc := ["$package, ''"];
+    my @params-desc := ["$package, '', 0, 0"];
     my @params-decont;
     for @parameters {
         my $param-name := $_.name;
@@ -399,7 +401,8 @@ sub emit-method($package, $method) {
         my $slurpy := $_.slurpy ?? '*' !! '';
         my $opt := $slurpy ?? '' !! ($_.optional ?? '?' !! '!');
         @params-in.push(", $named$slurpy$param-name$opt");
-        @params-desc.push("$type, '$param-name'");
+        @params-desc.push("$type, '$param-name', " ~ ($_.named ?? '1, ' !! '0, ') ~
+            ($_.optional ?? '1' !! '0'));
         unless $_.raw {
             @params-decont.push("$param-name := nqp::decont($param-name);");
         }

@@ -176,12 +176,7 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
-    multi method ACCEPTS(Junction:U: Mu:D \topic) {
-        nqp::hllbool(nqp::istype(topic, Junction));
-    }
-    multi method ACCEPTS(Junction:U: Any \topic) {
-        nqp::hllbool(nqp::istype(topic, Junction));
-    }
+    multi method ACCEPTS(Junction:U: Junction:D --> True) { }
     multi method ACCEPTS(Junction:D: Mu \topic) {
         nqp::hllbool(
           nqp::stmts(
@@ -343,7 +338,6 @@ my class Junction { # declared in BOOTSTRAP
         my int $elems = nqp::elems(positionals);
         my int $i     = -1;
         while nqp::islt_i(++$i,$elems) {
-
             # Junctional positional argument?
             my Mu $arg := nqp::atpos(positionals, $i);
             if nqp::istype($arg,Junction) {

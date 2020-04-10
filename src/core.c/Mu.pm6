@@ -21,6 +21,15 @@ my class Mu { # declared in BOOTSTRAP
     multi method ACCEPTS(Mu:U: Mu \topic) {
         nqp::hllbool(nqp::istype(topic, self))
     }
+    # Typically, junctions shouldn't be typechecked literally. There are
+    # exceptions though, such as Junction in particular, so this probably
+    # shouldn't be handled by the compiler itself. Having a default ACCEPTS
+    # candidate to handle junctions allows them to get threaded as they should
+    # while preserving compatibility with existing code that has any ACCEPTS
+    # candidates for Mu or Junction.
+    multi method ACCEPTS(Mu:U \SELF: Junction:D \topic) is default {
+        topic.THREAD: { SELF.ACCEPTS: $_ }
+    }
 
     method WHERE() {
         nqp::p6box_i(nqp::where(self))

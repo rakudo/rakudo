@@ -15,13 +15,10 @@ my role  Numeric { ... }
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu
 
-    multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
-    multi method ACCEPTS(Any:D: Mu:U $ --> False) { }
-
-    # use of Any on topic to force autothreading
-    # so that all(@foo) ~~ Type works as expected
-    multi method ACCEPTS(Any:U: Any \topic --> Bool:D) {
-        nqp::hllbool(nqp::istype(topic, self))
+    multi method ACCEPTS(Any:D: Mu:U --> False) { }
+    multi method ACCEPTS(Any:D: Mu:D \topic) {
+        # XXX: &[===] works with Any, not Mu!
+        self === topic
     }
 
     proto method EXISTS-KEY(|) is nodal {*}

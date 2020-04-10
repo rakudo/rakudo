@@ -791,14 +791,13 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                 $value := $attr.get_value(self);
             }
             elsif nqp::can($attr, 'package') {
-                my Mu $decont  := nqp::decont(self);
                 my Mu $package := $attr.package;
 
                 $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
-                    when 0 {              nqp::getattr(  $decont, $package, $name)  }
-                    when 1 { nqp::p6box_i(nqp::getattr_i($decont, $package, $name)) }
-                    when 2 { nqp::p6box_n(nqp::getattr_n($decont, $package, $name)) }
-                    when 3 { nqp::p6box_s(nqp::getattr_s($decont, $package, $name)) }
+                    when 0 {              nqp::getattr(  self,$package,$name)  }
+                    when 1 { nqp::p6box_i(nqp::getattr_i(self,$package,$name)) }
+                    when 2 { nqp::p6box_n(nqp::getattr_n(self,$package,$name)) }
+                    when 3 { nqp::p6box_s(nqp::getattr_s(self,$package,$name)) }
                 };
             }
             else {

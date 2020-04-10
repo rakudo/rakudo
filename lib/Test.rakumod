@@ -188,8 +188,15 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                     ~ "     got: $got.raku()";
             }
             else {
-                _diag "expected: '$expected'\n"
+		try { # if the type support Stringification
+                      # note: we can't use ^can('Str') as Buf error in its Str method itself
+                    _diag "expected: '$expected'\n"
                     ~ "     got: '$got'";
+                    True;
+                } or {
+                    _diag "expected: $expected.raku()\n"
+                    ~ "     got: $got.raku()";
+                }
             }
         }
     }

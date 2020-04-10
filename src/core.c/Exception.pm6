@@ -58,7 +58,7 @@ my class Exception {
             self!maybe-set-control() unless nqp::isconcrete($orig-ex);
         }
         $!bt := $bt; # Even if !$bt
-        nqp::setpayload($!ex, nqp::decont(self));
+        nqp::setpayload($!ex, self);
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {
@@ -67,7 +67,7 @@ my class Exception {
             try nqp::setmessage($!ex, self.message);
             self!maybe-set-control();
         }
-        nqp::setpayload($!ex, nqp::decont(self));
+        nqp::setpayload($!ex, self);
         nqp::rethrow($!ex)
     }
 

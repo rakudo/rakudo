@@ -1,3 +1,5 @@
+# continued from src/core.c/Supply.pm6
+
     ## Supply factories
     ##
 
@@ -723,5 +725,7 @@
             }
         }
     }
+
+# continued in src/core.c/Supply-coercers.pm6
 
 # vim: ft=perl6 expandtab sw=4

@@ -2,10 +2,12 @@
 # translation.
 class RakuAST::IMPL::QASTContext {
     has Mu $.sc;
+    has Mu $.post-deserialize;
 
     method new(Mu :$sc!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!sc', $sc);
+        nqp::bindattr($obj, RakuAST::IMPL::QASTContext, '$!post-deserialize', []);
         $obj
     }
 
@@ -17,5 +19,10 @@ class RakuAST::IMPL::QASTContext {
             nqp::scsetobj($sc, $idx, $obj);
         }
         $obj
+    }
+
+    method add-fixup-task(Mu $fixup-producer) {
+        # TODO conditional on if we're doing precomp
+        $!post-deserialize.push($fixup-producer());
     }
 }

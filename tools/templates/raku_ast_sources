@@ -9,5 +9,6 @@ src/Perl6/ast/meta.rakumod
 src/Perl6/ast/variable-declaration.rakumod
 src/Perl6/ast/variable-access.rakumod
 src/Perl6/ast/code.rakumod
+src/Perl6/ast/signature.rakumod
 src/Perl6/ast/package.rakumod
 src/Perl6/ast/literals.rakumod

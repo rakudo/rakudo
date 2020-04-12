@@ -7,11 +7,13 @@ class RakuAST::Node {
 
         # Create compilation context.
         my $sc := nqp::createsc($comp-unit-name);
+        nqp::pushcompsc($sc);
         my $context := RakuAST::IMPL::QASTContext.new(:$sc);
 
         # Compile into a QAST::CompUnit.
         my $top-level := QAST::Block.new: self.IMPL-TO-QAST($context);
-        QAST::CompUnit.new($top-level, :hll('Raku'), :$sc)
+        QAST::CompUnit.new: $top-level, :hll('Raku'), :$sc,
+            :post_deserialize($context.post-deserialize()),
     }
 
     # What type does evaluating this node produce, if known?

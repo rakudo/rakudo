@@ -5,6 +5,10 @@ class RakuAST::LexicalScope is RakuAST::Node {
 
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
+        my $inner-code := self.find-nodes(RakuAST::Code, stopper => RakuAST::LexicalScope);
+        for self.IMPL-UNWRAP-LIST($inner-code) {
+            $stmts.push($_.IMPL-QAST-DECL($context));
+        }
         for self.IMPL-UNWRAP-LIST(self.lexical-declarations()) {
             $stmts.push($_.IMPL-QAST-DECL($context));
         }

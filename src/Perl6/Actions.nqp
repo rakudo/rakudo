@@ -157,10 +157,18 @@ sub wanted($ast,$by) {
                 $block := Perl6::Actions::make_thunk_ref($body, $body.node);
                 $block-closure := block_closure($block);
             }
+
+            # make sure from-loop knows about existing label
+            my $label := QAST::WVal.new( :value($*W.find_symbol(['Any'])), :named('label') );
+            for @($ast) {
+                $label := $_ if nqp::istype($_, QAST::WVal) && nqp::istype($_.value, $*W.find_symbol(['Label']));
+            }
+
             my $past := QAST::Op.new: :node($body.node),
                 :op<callmethod>, :name<from-loop>,
                 QAST::WVal.new(:value($*W.find_symbol(['Seq']))),
-                $block-closure;
+                $block-closure,
+                $label;
 
             # Elevate statevars to enclosing thunk
             if $body.has_ann('has_statevar') && $block.has_ann('past_block') {

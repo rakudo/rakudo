@@ -246,9 +246,6 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
                and not nqp::istype(val, Iterable) {
             (nqp::decont(val),).Slip
         }
-        elsif nqp::istype(val, Iterator) {
-            Slip.from-loop({ nqp::decont(val.pull-one) })
-        }
         elsif nqp::istype(val, Iterable) {
             val.map({ nqp::decont($_) }).Slip
         }, (Nil xx Inf).Slip;

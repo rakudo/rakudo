@@ -45,15 +45,15 @@ my class Num does Real { # declared in BOOTSTRAP
 
     method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
         my \RAT = $fat ?? FatRat !! Rat;
+        my num $num = self;
 
-        return RAT.new: (
-            nqp::iseq_n(self, self) ?? nqp::iseq_n(self, Inf) ?? 1 !! -1 !! 0
-          ), 0
-        if nqp::isnanorinf(nqp::unbox_n(self));
+        return RAT.new(
+          (nqp::iseq_n($num,$num) ?? nqp::iseq_n($num,Inf) ?? 1 !! -1 !! 0),
+          0
+        ) if nqp::isnanorinf($num);
 
-        my Num $num = self;
-        $num = -$num if (my int $signum = $num < 0);
-        my num $r = $num - floor($num);
+        $num = nqp::neg_n($num) if (my int $signum = nqp::islt_n($num,0e0));
+        my num $r = $num - nqp::floor_n($num);
 
         # basically have an Int
         if nqp::iseq_n($r,0e0) {
@@ -62,22 +62,26 @@ my class Num does Real { # declared in BOOTSTRAP
 
         # find convergents of the continued fraction.
         else {
-            my Int $q = nqp::fromnum_I($num, Int);
             my Int $a = 1;
-            my Int $b = $q;
+            my Int $b = nqp::fromnum_I($num, Int);
             my Int $c = 0;
             my Int $d = 1;
 
-            while nqp::isne_n($r,0e0) && abs($num - ($b / $d)) > $epsilon {
-                my num $modf_arg = 1e0 / $r;
-                $q = nqp::fromnum_I($modf_arg, Int);
-                $r = $modf_arg - floor($modf_arg);
+            my Int $q;
+            my num $modf_arg;
+            my $orig_b;
+            my $orig_d;
 
-                my $orig_b = $b;
+            while nqp::isne_n($r,0e0) && abs($num - ($b / $d)) > $epsilon {
+                $modf_arg = 1e0 / $r;
+                $q = nqp::fromnum_I($modf_arg, Int);
+                $r = $modf_arg - nqp::floor_n($modf_arg);
+
+                $orig_b = $b;
                 $b = $q * $b + $a;
                 $a = $orig_b;
 
-                my $orig_d = $d;
+                $orig_d = $d;
                 $d = $q * $d + $c;
                 $c = $orig_d;
             }
@@ -86,7 +90,7 @@ my class Num does Real { # declared in BOOTSTRAP
             # smaller denominator but it is not (necessarily) the Rational
             # with the smallest denominator that has less than $epsilon error.
             # However, to find that Rational would take more processing.
-            RAT.new($signum ?? -$b !! $b, $d)
+            RAT.new($signum ?? nqp::neg_I(nqp::decont($b),Int) !! $b, $d)
         }
     }
     method FatRat(Num:D: Real $epsilon = 1.0e-6) {

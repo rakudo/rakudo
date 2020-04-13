@@ -109,6 +109,7 @@ class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term is RakuAST:
         my $block := QAST::Block.new(
             :blocktype('declaration_static'),
             self.IMPL-QAST-DECLS($context),
+            $!signature.IMPL-TO-QAST($context),
             $!body.IMPL-TO-QAST($context)
         );
 

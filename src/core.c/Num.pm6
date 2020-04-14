@@ -43,8 +43,7 @@ my class Num does Real { # declared in BOOTSTRAP
           !! nqp::concat($res,'e0')
     }
 
-    method Rat(Num:D: Real $Epsilon = 1.0e-6, :$fat) {
-        my \RAT = $fat ?? FatRat !! Rat;
+    method Rat(Num:D: Real:D \epsilon = 1.0e-6, \RAT = Rat) {
         my num $num = self;
 
         return RAT.new(
@@ -73,7 +72,7 @@ my class Num does Real { # declared in BOOTSTRAP
             my Int $orig_d := 0;
 
             my num $modf_arg;
-            my num $epsilon = $Epsilon.Num;
+            my num $epsilon = epsilon.Num;
 
             nqp::while(
               nqp::isne_n($r,0e0)
@@ -104,7 +103,7 @@ my class Num does Real { # declared in BOOTSTRAP
         }
     }
     method FatRat(Num:D: Real $epsilon = 1.0e-6) {
-        self.Rat($epsilon, :fat);
+        self.Rat($epsilon, FatRat);
     }
 
     multi method atan2(Num:D: Num:D $x = 1e0) {

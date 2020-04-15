@@ -58,9 +58,9 @@ twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-
 Where to get help or answers to questions
 =========================================
 
-There are several mailing lists, IRC channels, and wikis available with
-help for Raku and Rakudo. Figuring out the right one to use
-is often the biggest battle. Here are some rough guidelines:
+There are several mailing lists, IRC channels, and wikis available with help
+for Raku and Rakudo. Figuring out the right one to use is often the biggest
+battle. Here are some rough guidelines:
 
 The central hub for Raku information is [raku.org](https://raku.org/).
 This is always a good starting point.
@@ -82,7 +82,7 @@ For questions about MoarVM, you can join #moarvm on freenode.
 Reporting bugs
 ==============
 
-See https://rakudo.org/bugs
+See https://rakudo.org/issue-trackers
 
 
 Submitting patches

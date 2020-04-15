@@ -278,7 +278,7 @@ my class Parameter { # declared in BOOTSTRAP
             ?? '!'
             !! nqp::isnull_s($!variable_name)
               ?? ''
-              !! nqp::iseq_s(nqp::substr($!variable_name,1,1),"*")
+              !! nqp::eqat($!variable_name,"*",1)
                 ?? '*'
                 !! ''
     }

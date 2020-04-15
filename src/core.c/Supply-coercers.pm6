@@ -15,30 +15,61 @@
         $c
     }
 
-    my class ConcQueue is repr('ConcBlockingQueue') { }
+    my class SupplyIterator does Iterator {
+        my class ConcQueue is repr('ConcBlockingQueue') { }
+        has $!queue;
+        has $!exception;
+
+        method new($supply) {
+            nqp::create(self)!SET-SELF($supply)
+        }
+        method !SET-SELF($supply) {
+            $!queue     := nqp::create(ConcQueue);
+            $!exception := Nil;
+            $supply.tap: {
+                nqp::push($!queue, $_)
+            }, done => -> {
+                nqp::push($!queue, ConcQueue); # Sentinel value.
+            }, quit => {
+                $!exception := $_;
+                nqp::push($!queue, ConcQueue); # Sentinel value.
+            };
+            self
+        }
+
+        method pull-one() is raw {
+            nqp::stmts(
+              (my $got := nqp::shift($!queue)),
+              nqp::if(
+                nqp::eqaddr($got,ConcQueue),
+                nqp::if(
+                  nqp::isconcrete($!exception),
+                  $!exception.throw,
+                  IterationEnd),
+                $got))
+        }
+
+        method push-all(\target --> IterationEnd) {
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue),
+                target.push($got)),
+              nqp::if(
+                nqp::isconcrete($!exception),
+                $!exception.throw))
+        }
+
+        # method is-lazy(--> Bool:D) { ... }
+    }
+
+    multi method iterator(Supply:D:) {
+        SupplyIterator.new: self
+    }
     multi method list(Supply:D:) {
-        self.Seq.list
+        List.from-iterator: self.iterator
     }
     method Seq(Supply:D:) {
-        gather {
-            my Mu \queue = nqp::create(ConcQueue);
-            my $exception;
-            self.tap(
-                -> \val { nqp::push(queue, val) },
-                done => -> { nqp::push(queue, ConcQueue) }, # type obj as sentinel
-                quit => -> \ex { $exception := ex; nqp::push(queue, ConcQueue) });
-            loop {
-                my \got = nqp::shift(queue);
-                if got =:= ConcQueue {
-                    $exception.DEFINITE
-                        ?? $exception.throw
-                        !! last
-                }
-                else {
-                    take got;
-                }
-            }
-        }
+        Seq.new: self.iterator
     }
 
     method Promise(Supply:D:) {

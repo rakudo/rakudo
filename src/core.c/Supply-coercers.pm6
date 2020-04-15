@@ -51,8 +51,8 @@
 
         method push-all(\target --> IterationEnd) {
             nqp::stmts(
-              nqp::while(
-                nqp::not_i(nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue)),
+              nqp::until(
+                nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue),
                 target.push($got)),
               nqp::if(
                 nqp::isconcrete($!exception),

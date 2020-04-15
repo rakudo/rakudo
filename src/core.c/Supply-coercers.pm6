@@ -41,12 +41,22 @@
             nqp::stmts(
               (my $got := nqp::shift($!queue)),
               nqp::if(
-                nqp::eqaddr($got, ConcQueue),
+                nqp::eqaddr($got,ConcQueue),
                 nqp::if(
                   nqp::isconcrete($!exception),
                   $!exception.throw,
                   IterationEnd),
                 $got))
+        }
+
+        method push-all(\target --> IterationEnd) {
+            nqp::stmts(
+              nqp::while(
+                nqp::not_i(nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue)),
+                target.push($got)),
+              nqp::if(
+                nqp::isconcrete($!exception),
+                $!exception.throw))
         }
 
         # method is-lazy(--> Bool:D) { ... }

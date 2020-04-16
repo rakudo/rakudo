@@ -479,7 +479,7 @@ sub MAIN(*@ARGS) {
         ?? $comp.config<prefix>
         !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
 
-    my $rakudo-home := $comp.config<static_rakudo_home>
+    my $rakudo-home := $comp.config<static-rakudo-home>
         // nqp::getenvhash()<RAKUDO_HOME>
         // nqp::getenvhash()<PERL6_HOME>
         // $install-dir ~ '/share/perl6';
@@ -487,7 +487,7 @@ sub MAIN(*@ARGS) {
         $rakudo-home := nqp::substr($rakudo-home, 0, nqp::chars($rakudo-home) - 1);
     }
 
-    my $nqp-home := $comp.config<static_nqp_home>
+    my $nqp-home := $comp.config<static-nqp-home>
         // nqp::getenvhash()<NQP_HOME>
         // $install-dir ~ '/share/nqp';
     if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {

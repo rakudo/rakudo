@@ -21,7 +21,6 @@
 @bpv(RUNNER_SUFFIX)@ = @runner_suffix@
 @make_pp_pfx@endif
 @bpv(LIBDIR)@	= @nfp($(RAKUDO_HOME)/lib)@
-@bpv(NQP_HOME)@	= @nfp(@nqp::nqp_home@)@
 
 # files we create
 @bsv(RAKUDO)@ = rakudo.@bext@
@@ -176,8 +175,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bsm(METAMODEL_ALL_SOURCES)@@for_specs( @bpm(BOOTSTRAP_@ucspec@_SOURCES)@ @bpm(CORE_@ucspec@_SOURCES)@)@
 	@echo(+++ Expanding	$@)@
-	$(NOECHO)$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@ \
-		--set-var=nqp_home=@bpm(NQP_HOME)@
+	$(NOECHO)$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@
 
 @comp_rr(@bsm(RAKUDO)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/rakudo.nqp)@)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_A)@ @bsm(RAKUDO_C)@ @bsm(RAKUDO_P)@ @bpm(RAKUDO_DEPS_EXTRA)@)@
 

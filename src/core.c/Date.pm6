@@ -173,6 +173,25 @@ my class Date does Dateish {
                &formatter, %_)
     }
 
+    method last-date-in-month(Date:D: --> Date:D) {
+        my int $last-day = self.days-in-month;
+
+        # already at the end
+        if $!day == $last-day {
+            self
+        }
+
+        # create clone and adjust and return that
+        else {
+            my $date := nqp::clone(self);
+            nqp::bindattr_i($date,self.WHAT,'$!day',$last-day);
+            nqp::bindattr_i(
+              $date,self.WHAT,'$!daycount',$!daycount + $last-day - $!day
+            ) if $!daycount;
+            $date
+        }
+    }
+
     multi method WHICH(Date:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(

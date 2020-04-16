@@ -268,17 +268,22 @@ my class Date does Dateish {
 
     # Helper method to move a number of days
     method !move-days(int $days --> Date:D) {
-        my int $daycount = self.daycount + $days;
-        self!ymd-from-daycount(
-          $daycount, my int $year, my int $month, my int $day);
+        if $days > 0 && $!day + $days <= self.days-in-month {
+            self!move-days-within-month($days)
+        }
+        else {
+            my int $daycount = self.daycount + $days;
+            self!ymd-from-daycount(
+              $daycount, my int $year, my int $month, my int $day);
 
-        my $new := nqp::clone(self);
-        nqp::bindattr_i($new,Date,'$!year',$year);
-        nqp::bindattr_i($new,Date,'$!month',$month);
-        nqp::bindattr_i($new,Date,'$!day',
-          $day < 28 ?? $day !! self!clip-day($year,$month,$day));
-        nqp::bindattr_i($new,Date,'$!daycount',$daycount);
-        $new
+            my $new := nqp::clone(self);
+            nqp::bindattr_i($new,Date,'$!year',$year);
+            nqp::bindattr_i($new,Date,'$!month',$month);
+            nqp::bindattr_i($new,Date,'$!day',
+              $day < 28 ?? $day !! self!clip-day($year,$month,$day));
+            nqp::bindattr_i($new,Date,'$!daycount',$daycount);
+            $new
+        }
     }
 
     # If we overflow on days in the month, rather than throw an

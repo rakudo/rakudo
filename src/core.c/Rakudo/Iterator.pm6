@@ -1404,25 +1404,28 @@ class Rakudo::Iterator {
         )
     }
 
-    # Returns an iterator that handles all properties of a -while- with
+    # Returns an iterator that handles all properties of a C-style loop with
     # a condition.  Takes a Callable to be considered the body of the loop,
-    # and a Callable for the condition..
+    # another Callable for the condition, and a third Callable to be executed
+    # after each iteration.
     my class CStyleLoop does SlippyIterator {
         has &!body;
         has &!cond;
         has &!afterwards;
+        has $!label;
         has int $!seen-first;
 
-        method !SET-SELF(\body,\cond,\afterwards) {
+        method !SET-SELF(\body,\cond,\afterwards,\label) {
             nqp::stmts(
               (&!body := body),
               (&!cond := cond),
               (&!afterwards := afterwards),
+              ($!label := nqp::decont(label)),
               self
             )
         }
-        method new(\body,\cond,\afterwards) {
-            nqp::create(self)!SET-SELF(body,cond,afterwards)
+        method new(\body,\cond,\afterwards,\label) {
+            nqp::create(self)!SET-SELF(body,cond,afterwards,label)
         }
 
         method pull-one() {
@@ -1459,6 +1462,7 @@ class Rakudo::Iterator {
                                 )
                               )
                             ),
+                            'LABELED', $!label,
                             'NEXT', nqp::stmts(
                               &!afterwards(),
                               ($stopped = nqp::if(&!cond(),0,1))
@@ -1477,8 +1481,8 @@ class Rakudo::Iterator {
             }
         }
     }
-    method CStyleLoop(&body,&cond,&afterwards) {
-        CStyleLoop.new(&body,&cond,&afterwards)
+    method CStyleLoop(&body,&cond,&afterwards,:$label) {
+        CStyleLoop.new(&body,&cond,&afterwards,$label)
     }
 
     my role DelegateCountOnly[\iter] does PredictiveIterator {
@@ -2329,9 +2333,18 @@ class Rakudo::Iterator {
     # Takes a Callable to be considered the body of the loop.
     my class Loop does SlippyIterator {
         has &!body;
+        has $!label;
 
-        method new(&body) {
-            nqp::p6bindattrinvres(nqp::create(self),self,'&!body',&body)
+        method !SET-SELF(\body,\label) {
+            nqp::stmts(
+              (&!body := body),
+              ($!label := nqp::decont(label)),
+              self
+            )
+        }
+
+        method new(\body,\label) {
+            nqp::create(self)!SET-SELF(body,label)
         }
 
         method pull-one() {
@@ -2355,6 +2368,7 @@ class Rakudo::Iterator {
                           IterationEnd
                         ))
                       ),
+                      'LABELED', $!label,
                       'NEXT', ($stopped = 0),
                       'REDO', ($stopped = 0),
                       'LAST', ($result := IterationEnd)
@@ -2369,7 +2383,7 @@ class Rakudo::Iterator {
 
         method is-lazy(--> True) { }
     }
-    method Loop(&body) { Loop.new(&body) }
+    method Loop(&body,:$label) { Loop.new(&body,$label) }
 
     # An often occurring use of the Mappy role to generate all of the
     # keys of a Map / Hash.  Takes a Map / Hash as the only parameter.
@@ -2984,18 +2998,20 @@ class Rakudo::Iterator {
     my class RepeatLoop does SlippyIterator {
         has $!body;
         has $!cond;
+        has $!label;
         has int $!skip;
 
-        method !SET-SELF(\body,\cond) {
+        method !SET-SELF(\body,\cond,\label) {
             nqp::stmts(
               ($!body := body),
               ($!cond := cond),
+              ($!label := nqp::decont(label)),
               ($!skip = 1),
               self
             )
         }
-        method new(\body,\cond) {
-            nqp::create(self)!SET-SELF(body,cond)
+        method new(\body,\cond,\label) {
+            nqp::create(self)!SET-SELF(body,cond,label)
         }
 
         method pull-one() {
@@ -3021,6 +3037,7 @@ class Rakudo::Iterator {
                               IterationEnd
                             ) && nqp::if($!cond(),0,1))
                           ),
+                          'LABELED', $!label,
                           'NEXT', ($stopped = nqp::if($!cond(),0,1)),
                           'REDO', ($stopped = 0),
                           'LAST', ($result := IterationEnd)
@@ -3035,7 +3052,7 @@ class Rakudo::Iterator {
             }
         }
     }
-    method RepeatLoop(&body, &cond) { RepeatLoop.new(&body,&cond) }
+    method RepeatLoop(&body, &cond, :$label) { RepeatLoop.new(&body,&cond,$label) }
 
     # Return an iterator that rotorizes the given iterator with the
     # given cycle.  If the cycle is a Cool, then it is assumed to
@@ -3926,16 +3943,18 @@ class Rakudo::Iterator {
     my class WhileLoop does SlippyIterator {
         has $!body;
         has $!cond;
+        has $!label;
 
-        method !SET-SELF(\body,\cond) {
+        method !SET-SELF(\body,\cond,\label) {
             nqp::stmts(
               ($!body := body),
               ($!cond := cond),
+              ($!label := nqp::decont(label)),
               self
             )
         }
-        method new(\body,\cond) {
-            nqp::create(self)!SET-SELF(body,cond)
+        method new(\body,\cond,\label) {
+            nqp::create(self)!SET-SELF(body,cond,label)
         }
 
         method pull-one() {
@@ -3960,6 +3979,7 @@ class Rakudo::Iterator {
                               IterationEnd
                             ) && nqp::if($!cond(),0,1))
                           ),
+                          'LABELED', $!label,
                           'NEXT', ($stopped = nqp::if($!cond(),0,1)),
                           'REDO', ($stopped = 0),
                           'LAST', ($result := IterationEnd)
@@ -3973,8 +3993,9 @@ class Rakudo::Iterator {
                 )
             }
         }
+
     }
-    method WhileLoop(&body, &cond) { WhileLoop.new(&body,&cond) }
+    method WhileLoop(&body, &cond, :$label) { WhileLoop.new(&body,&cond,$label) }
 
     # Return an iterator that will zip the given iterables (with &[,])
     # Basically the functionality of @a Z @b

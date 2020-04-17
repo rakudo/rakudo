@@ -124,21 +124,21 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
+    # This method is mainly called from Actions.nqp
     proto method from-loop(|) {*}
     multi method from-loop(&body, :$label) {
-        Seq.new(Rakudo::Iterator.Loop(&body, :$label))
+        Seq.new: Rakudo::Iterator.Loop(&body, $label)
     }
     multi method from-loop(&body, &cond, :$repeat!, :$label) {
-        Seq.new($repeat
-          ?? Rakudo::Iterator.RepeatLoop(&body, &cond, :$label)
-          !! Rakudo::Iterator.WhileLoop(&body, &cond, :$label)
-        )
+        Seq.new: $repeat
+          ?? Rakudo::Iterator.RepeatLoop(&body, &cond, $label)
+          !! Rakudo::Iterator.WhileLoop(&body, &cond, $label)
     }
     multi method from-loop(&body, &cond, :$label) {
-        Seq.new(Rakudo::Iterator.WhileLoop(&body, &cond, :$label))
+        Seq.new: Rakudo::Iterator.WhileLoop(&body, &cond, $label)
     }
     multi method from-loop(&body, &cond, &afterwards, :$label) {
-        Seq.new(Rakudo::Iterator.CStyleLoop(&body, &cond, &afterwards, :$label))
+        Seq.new: Rakudo::Iterator.CStyleLoop(&body, &cond, &afterwards, $label)
     }
 
     multi method ACCEPTS(Seq:D: Iterable:D \iterable --> Bool:D) {

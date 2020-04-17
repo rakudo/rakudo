@@ -1481,8 +1481,8 @@ class Rakudo::Iterator {
             }
         }
     }
-    method CStyleLoop(&body,&cond,&afterwards,:$label) {
-        CStyleLoop.new(&body,&cond,&afterwards,$label)
+    method CStyleLoop(&body, &cond, &afterwards, $label) {
+        CStyleLoop.new(&body, &cond, &afterwards, $label)
     }
 
     my role DelegateCountOnly[\iter] does PredictiveIterator {
@@ -2383,7 +2383,7 @@ class Rakudo::Iterator {
 
         method is-lazy(--> True) { }
     }
-    method Loop(&body,:$label) { Loop.new(&body,$label) }
+    method Loop(&body, $label) { Loop.new(&body, $label) }
 
     # An often occurring use of the Mappy role to generate all of the
     # keys of a Map / Hash.  Takes a Map / Hash as the only parameter.
@@ -3052,7 +3052,9 @@ class Rakudo::Iterator {
             }
         }
     }
-    method RepeatLoop(&body, &cond, :$label) { RepeatLoop.new(&body,&cond,$label) }
+    method RepeatLoop(&body, &cond, $label) {
+        RepeatLoop.new(&body, &cond, $label)
+    }
 
     # Return an iterator that rotorizes the given iterator with the
     # given cycle.  If the cycle is a Cool, then it is assumed to
@@ -3995,7 +3997,9 @@ class Rakudo::Iterator {
         }
 
     }
-    method WhileLoop(&body, &cond, :$label) { WhileLoop.new(&body,&cond,$label) }
+    method WhileLoop(&body, &cond, $label) {
+        WhileLoop.new(&body, &cond, $label)
+    }
 
     # Return an iterator that will zip the given iterables (with &[,])
     # Basically the functionality of @a Z @b

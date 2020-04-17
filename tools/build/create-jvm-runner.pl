@@ -92,30 +92,36 @@ if ($^O eq 'MSWin32') {
 }
 elsif ($type eq 'install') {
     if ($relocatable) {
-        $preamble = $preamble_unix
-            . ": \${NQP_HOME:=\"\$DIR/../share/nqp\"}"
-            . ": \${NQP_JARS:=\"$nqpjars\"}"
-            . ": \${RAKUDO_HOME:=\"\$DIR/../share/perl6\"}"
-            . ": \${RAKUDO_JARS:=\"$rakudo_jars\"}"
-            . "exec ";
+        $preamble = join("\n",
+            $preamble_unix,
+            ": \${NQP_HOME:=\"\$DIR/../share/nqp\"}",
+            ": \${NQP_JARS:=\"$nqpjars\"}",
+            ": \${RAKUDO_HOME:=\"\$DIR/../share/perl6\"}",
+            ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",
+            "exec "
+        );
     }
     else {
-        $preamble = $preamble_unix
-            . ": \${NQP_HOME:=\"$static_nqp_home\"}"
-            . ": \${NQP_JARS:=\"$nqpjars\"}"
-            . ": \${RAKUDO_HOME:=\"$static_rakudo_home\"}"
-            . ": \${RAKUDO_JARS:=\"$rakudo_jars\"}"
-            . "exec ";
+        $preamble = join("\n",
+            $preamble_unix,
+            ": \${NQP_HOME:=\"$static_nqp_home\"}",
+            ": \${NQP_JARS:=\"$nqpjars\"}",
+            ": \${RAKUDO_HOME:=\"$static_rakudo_home\"}",
+            ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",
+            "exec "
+        );
     }
 }
 else {
-    $preamble = $preamble_unix
-        . "$NQP_LIB"
-        . ": \${NQP_HOME:=\"$static_nqp_home\"}"
-        . ": \${NQP_JARS:=\"$nqpjars\"}"
-        . ": \${RAKUDO_HOME:=\"$prefix\"}"
-        . ": \${RAKUDO_JARS:=\"$rakudo_jars\"}"
-        . "exec ";
+    $preamble = join("\n",
+        $preamble_unix,
+        "$NQP_LIB",
+        ": \${NQP_HOME:=\"$static_nqp_home\"}",
+        ": \${NQP_JARS:=\"$nqpjars\"}",
+        ": \${RAKUDO_HOME:=\"$prefix\"}",
+        ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",
+        "exec "
+    );
 }
 
 my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';

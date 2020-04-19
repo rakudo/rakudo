@@ -433,7 +433,10 @@ my class ThreadPoolScheduler does Scheduler {
                 (my $cand := nqp::atpos($cur-affinity-workers,$i)),
                 nqp::unless(
                   nqp::elems(my $queue := $cand.queue),
-                  (return $queue)
+                  nqp::unless(
+                    $cand.working,
+                    (return $queue),
+                  ),
                 ),
                 nqp::if(
                   nqp::islt_i(

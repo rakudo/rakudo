@@ -30,11 +30,12 @@ my class MixHash { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class Lock::Async { ... }
 
+# Used by current compiler.
 sub DYNAMIC(str $name, @deprecation?) is raw {  # is implementation-detail
 # Please leave this code here to be enable only for tracing calls to
 # dynamic variables in the setting and during setting compilation.
 #my $frame := callframe(1);
-#nqp::say(name ~ ": " ~ $frame.file ~ "(" ~ $frame.line ~ ")");
+#nqp::say($name ~ ": " ~ $frame.file ~ "(" ~ $frame.line ~ ")");
     nqp::ifnull(
       nqp::getlexdyn($name),
       nqp::stmts(
@@ -55,6 +56,28 @@ sub DYNAMIC(str $name, @deprecation?) is raw {  # is implementation-detail
                 Rakudo::Internals.INITIALIZE-DYNAMIC($name, @deprecation)
               )
             )
+          )
+        )
+      )
+    )
+}
+
+# Used by RakuAST-based compiler.
+sub DYNAMIC-FALLBACK(str $name-with-star, str $name-without-star) is raw {  # is implementation-detail
+    nqp::unless(
+      nqp::isnull(my \promise := nqp::getlexdyn('$*PROMISE')),
+      (my Mu \value := nqp::getlexreldyn(
+        nqp::getattr(promise,Promise,'$!dynamic_context'),$name-with-star)
+      )
+    );
+    nqp::ifnull(
+      value,
+      nqp::stmts(
+        nqp::ifnull(
+          nqp::atkey(GLOBAL.WHO,$name-without-star),
+          nqp::ifnull(
+            nqp::atkey(PROCESS.WHO,$name-without-star),
+            Rakudo::Internals.INITIALIZE-DYNAMIC($name-with-star)
           )
         )
       )

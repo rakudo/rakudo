@@ -127,7 +127,7 @@ class RakuAST::ImplicitLookups is RakuAST::Node {
     # Resolve the implicit lookups if needed.
     method resolve-implicit-lookups-with(RakuAST::Resolver $resolver) {
         for self.IMPL-UNWRAP-LIST(self.get-implicit-lookups()) {
-            if $_.needs-resolution && !$_.is-resolved {
+            unless $_.is-resolved {
                 $_.resolve-with($resolver);
             }
         }

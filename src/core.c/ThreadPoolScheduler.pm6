@@ -457,11 +457,11 @@ my class ThreadPoolScheduler does Scheduler {
                   nqp::elems($cur-affinity-workers),
                   $affinity-max-index
                 ),
-                $affinity-max-threshold,
                 nqp::atpos_i(
                   $affinity-add-thresholds,
                   nqp::elems($cur-affinity-workers)
-                )
+                ),
+                $affinity-max-threshold,
               )
             ),
             # found one that is empty enough

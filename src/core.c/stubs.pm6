@@ -30,6 +30,7 @@ my class MixHash { ... }
 my class Lock is repr('ReentrantMutex') { ... }
 my class Lock::Async { ... }
 
+# Used by current compiler.
 sub DYNAMIC(\name) is raw {  # is implementation-detail
     nqp::ifnull(
       nqp::getlexdyn(name),
@@ -51,6 +52,28 @@ sub DYNAMIC(\name) is raw {  # is implementation-detail
                 Rakudo::Internals.INITIALIZE-DYNAMIC(name)
               )
             )
+          )
+        )
+      )
+    )
+}
+
+# Used by RakuAST-based compiler.
+sub DYNAMIC-FALLBACK(str $name-with-star, str $name-without-star) is raw {  # is implementation-detail
+    nqp::unless(
+      nqp::isnull(my \promise := nqp::getlexdyn('$*PROMISE')),
+      (my Mu \value := nqp::getlexreldyn(
+        nqp::getattr(promise,Promise,'$!dynamic_context'),$name-with-star)
+      )
+    );
+    nqp::ifnull(
+      value,
+      nqp::stmts(
+        nqp::ifnull(
+          nqp::atkey(GLOBAL.WHO,$name-without-star),
+          nqp::ifnull(
+            nqp::atkey(PROCESS.WHO,$name-without-star),
+            Rakudo::Internals.INITIALIZE-DYNAMIC($name-with-star)
           )
         )
       )

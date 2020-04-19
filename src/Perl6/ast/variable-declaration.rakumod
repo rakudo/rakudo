@@ -68,6 +68,16 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
         nqp::substr($!name, 0, 1)
     }
 
+    method twigil() {
+        if nqp::chars($!name) > 2 {
+            my str $twigil := nqp::substr($!name, 1, 1);
+            nqp::index('.!^:*?=~', $twigil) >= 0 ?? $twigil !! ''
+        }
+        else {
+            ''
+        }
+    }
+
     method visit-children(Code $visitor) {
         my $type := $!type;
         $visitor($type) if nqp::isconcrete($type);
@@ -98,7 +108,8 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
         my $cont-desc-type := @lookups[0].resolution.compile-time-value;
         my $of := @lookups[2].resolution.compile-time-value;
         my $default := @lookups[3].resolution.compile-time-value;
-        my $cont-desc := $cont-desc-type.new(:$of, :$default, :dynamic(0),
+        my int $dynamic := self.twigil eq '*' ?? 1 !! 0;
+        my $cont-desc := $cont-desc-type.new(:$of, :$default, :$dynamic,
             :name($!name));
 
         # Form the container.

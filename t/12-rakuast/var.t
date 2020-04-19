@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 25;
+plan 39;
 
 {
     my $x = 42;
@@ -209,4 +209,44 @@ throws-like
     ok result.VAR.dynamic, 'Is a dynamic';
     lives-ok { result = 99 },
         'Can update the container that was produced';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(name => '@arr')
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('@arr')
+            ),
+        )
+    ));
+    is-deeply cont.WHAT, Array, '@ sigil var is initialized to Array';
+    is-deeply cont.VAR.WHAT, Array, '@ sigil var not wrapped in Scalar';
+    ok cont.defined, 'It is a defined Hash instance';
+    is cont.elems, 0, 'It is empty';
+    is-deeply cont[0].VAR.WHAT, Scalar, 'Element is a Scalar';
+    is-deeply cont[0], Any, 'Contains an Any by default';
+    ok cont[0].VAR.of =:= Mu, 'Constraint is Mu by default';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(name => '%hash')
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('%hash')
+            ),
+        )
+    ));
+    is-deeply cont.WHAT, Hash, '% sigil var is initialized to Hash';
+    is-deeply cont.VAR.WHAT, Hash, '% sigil var not wrapped in Scalar';
+    ok cont.defined, 'It is a defined Hash instance';
+    is cont.elems, 0, 'It is empty';
+    is-deeply cont<k>.VAR.WHAT, Scalar, 'Element is a Scalar';
+    is-deeply cont<k>, Any, 'Contains an Any by default';
+    ok cont<k>.VAR.of =:= Mu, 'Constraint is Mu by default';
 }

@@ -86,11 +86,25 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
+        # Need container descriptor, even for aggregate.
         my @lookups := [
             RakuAST::Type::Simple.new('ContainerDescriptor'),
         ];
-        # TODO need to decide by sigil here
-        @lookups.push(RakuAST::Type::Simple.new('Scalar'));
+
+        # If it's an @ or % sigil, we need the aggergate type; if not,
+        # fall back to Scalar.
+        my str $sigil := self.sigil;
+        if $sigil eq '@' {
+            @lookups.push(RakuAST::Type::Simple.new('Array'));
+        }
+        elsif $sigil eq '%' {
+            @lookups.push(RakuAST::Type::Simple.new('Hash'));
+        }
+        else {
+            @lookups.push(RakuAST::Type::Simple.new('Scalar'));
+        }
+
+        # Also the type that goes inside of it.
         if $!type {
             @lookups.push($!type); # Constraint
             @lookups.push($!type); # Default
@@ -99,6 +113,7 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
             @lookups.push(RakuAST::Type::Simple.new('Mu'));
             @lookups.push(RakuAST::Type::Simple.new('Any'));
         }
+
         self.IMPL-WRAP-LIST(@lookups)
     }
 
@@ -115,8 +130,11 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
         # Form the container.
         my $container-type := @lookups[1].resolution.compile-time-value;
         my $container := nqp::create($container-type);
-        nqp::bindattr($container, $container-type, '$!value', $default);
+        my str $sigil := self.sigil;
         nqp::bindattr($container, $container-type, '$!descriptor', $cont-desc);
+        unless $sigil eq '@' || $sigil eq '%' {
+            nqp::bindattr($container, $container-type, '$!value', $default);
+        }
 
         $container
     }

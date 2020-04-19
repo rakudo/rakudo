@@ -26,6 +26,47 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
     }
 }
 
+# A dynamic variable lookup (e.g. $*foo).
+class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
+    has str $.name;
+
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Dynamic, '$!name', $name);
+        $obj
+    }
+
+    method needs-resolution() { False }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical($!name, :current-scope-only);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # If it's resolved in the current scope, just a lexical access.
+        if self.is-resolved {
+            my $name := self.resolution.lexical-name;
+            QAST::Var.new( :$name, :scope<lexical> )
+        }
+        else {
+            my $with-star := QAST::SVal.new( :value($!name) );
+            my $without-star := QAST::SVal.new( :value(nqp::replace($!name, 1, 1, '')) );
+            QAST::Op.new(
+                :op('ifnull'),
+                QAST::Op.new( :op('getlexdyn'), $with-star),
+                QAST::Op.new(
+                    :op('callstatic'), :name('&DYNAMIC-FALLBACK'),
+                    $with-star, $without-star
+                )
+            )
+        }
+    }
+}
+
 # A regex positional capture variable (e.g. $0).
 class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookups {
     has Int $.index;

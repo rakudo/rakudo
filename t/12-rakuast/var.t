@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 23;
+plan 25;
 
 {
     my $x = 42;
@@ -62,6 +62,21 @@ is-deeply
     )),
     10,
     'Lexical variable declarations work';
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(name => '$foo')
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$foo')
+            ),
+        )
+    ));
+    is-deeply cont, Any, 'Default value of untyped container is Any';
+    ok cont.VAR.of =:= Mu, 'Default constraint of untyped container is Mu';
+}
 
 is-deeply
     EVAL(RakuAST::CompUnit.new(

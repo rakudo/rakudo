@@ -55,7 +55,14 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
 
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
-    method resolve-lexical(Str $name) {
+    method resolve-lexical(Str $name, Bool :$current-scope-only) {
+        # If it's in the current scope only, we just look at the top one.
+        if $current-scope-only {
+            my @scopes := $!scopes;
+            my int $i := nqp::elems(@scopes);
+            return $i > 0 ?? @scopes[$i - 1].find-lexical($name) !! Nil;
+        }
+
         # Walk active scopes, most nested first.
         my @scopes := $!scopes;
         my int $i := nqp::elems(@scopes);

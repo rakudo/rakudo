@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 15;
+plan 23;
 
 {
     my $x = 42;
@@ -133,6 +133,7 @@ throws-like
         'Lexical variable declarations with assignment initializer';
     ok result.VAR.isa(Scalar),
         'Really was an assignment into a Scalar container';
+    nok result.VAR.dynamic, 'Is not dynamic';
     lives-ok { result = 42 },
         'Can update the container that was produced';
 }
@@ -157,4 +158,40 @@ throws-like
         'Really was bound; no Scalar container';
     dies-ok { result = 42 },
         'Cannot assign as it is not a container';
+}
+
+{
+    sub with-dyn(&test) {
+        my $*dyn = 'in';
+    }
+    my $*dyn = 'out';
+    is-deeply EVAL(RakuAST::Var::Dynamic.new('$*dyn')), 'out',
+        'Dynamic variable access (1)';
+    is-deeply with-dyn({ EVAL(RakuAST::Var::Dynamic.new('$*dyn')) }), 'in',
+        'Dynamic variable access (2)';
+    is-deeply EVAL(RakuAST::Var::Dynamic.new('$*OUT')), $*OUT,
+        'Dynamic variable fallback also works';
+}
+
+{
+    my \result = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$*var',
+                    initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(360))
+                )
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Dynamic.new('$*var')
+            ),
+        )
+    ));
+    is-deeply result, 360,
+        'Dynamic variable declarations with assignment initializer, dynamic lookup';
+    ok result.VAR.isa(Scalar),
+        'Dynamic did an assignment into a Scalar container';
+    ok result.VAR.dynamic, 'Is a dynamic';
+    lives-ok { result = 99 },
+        'Can update the container that was produced';
 }

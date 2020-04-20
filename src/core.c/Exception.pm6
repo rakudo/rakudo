@@ -158,12 +158,19 @@ my class X::Method::NotFound is Exception {
     has Mu $.invocant;
     has $.method;
     has $.typename;
-    has Bool $.private = False;
+    has Bool $.private;
     has $.addendum;
+
+    method of-type() {
+        nqp::eqaddr(nqp::decont($!invocant),IterationEnd)
+          ?? "IterationEnd"
+          !! "of type '$.typename'"
+    }
+
     method message() {
         my $message = $.private
-          ?? "No such private method '!$.method' for invocant of type '$.typename'"
-          !! "No such method '$.method' for invocant of type '$.typename'";
+          ?? "No such private method '!$.method' for invocant $.of-type"
+          !! "No such method '$.method' for invocant $.of-type";
 
         my %suggestions;
         my int $max_length = do given $.method.chars {

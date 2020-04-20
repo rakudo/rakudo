@@ -173,15 +173,26 @@ my class Date does Dateish {
                &formatter, %_)
     }
 
+    method first-date-in-month(Date:D: --> Date:D) {
+        if $!day == 1 {
+            self
+        }
+        else {
+            my $date := nqp::clone(self);
+            nqp::bindattr_i($date,self.WHAT,'$!day',1);
+            nqp::bindattr_i(
+              $date,self.WHAT,'$!daycount',$!daycount + 1 - $!day
+            ) if $!daycount;
+            $date
+        }
+    }
+
     method last-date-in-month(Date:D: --> Date:D) {
         my int $last-day = self.days-in-month;
 
-        # already at the end
         if $!day == $last-day {
             self
         }
-
-        # create clone and adjust and return that
         else {
             my $date := nqp::clone(self);
             nqp::bindattr_i($date,self.WHAT,'$!day',$last-day);

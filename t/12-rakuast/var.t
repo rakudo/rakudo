@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 39;
+plan 53;
 
 {
     my $x = 42;
@@ -224,7 +224,7 @@ throws-like
     ));
     is-deeply cont.WHAT, Array, '@ sigil var is initialized to Array';
     is-deeply cont.VAR.WHAT, Array, '@ sigil var not wrapped in Scalar';
-    ok cont.defined, 'It is a defined Hash instance';
+    ok cont.defined, 'It is a defined Array instance';
     is cont.elems, 0, 'It is empty';
     is-deeply cont[0].VAR.WHAT, Scalar, 'Element is a Scalar';
     is-deeply cont[0], Any, 'Contains an Any by default';
@@ -249,4 +249,50 @@ throws-like
     is-deeply cont<k>.VAR.WHAT, Scalar, 'Element is a Scalar';
     is-deeply cont<k>, Any, 'Contains an Any by default';
     ok cont<k>.VAR.of =:= Mu, 'Constraint is Mu by default';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '@arr',
+                    type => RakuAST::Type::Simple.new('Int')
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('@arr')
+            ),
+        )
+    ));
+    ok cont ~~ Array, '@ sigil var with Int type is an Array';
+    ok cont ~~ Positional[Int], 'It does Positional[Int]';
+    is-deeply cont.of, Int, '.of gives Int';
+    is cont.elems, 0, 'It is empty';
+    is-deeply cont[0].VAR.WHAT, Scalar, 'Element is a Scalar';
+    is-deeply cont[0], Int, 'Contains an Int';
+    ok cont[0].VAR.of =:= Int, 'Constraint is Int';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '%hash',
+                    type => RakuAST::Type::Simple.new('Int')
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('%hash')
+            ),
+        )
+    ));
+    ok cont ~~ Hash, '% sigil var with Int type is a Hash';
+    ok cont ~~ Associative[Int], 'It does Associative[Int]';
+    is-deeply cont.of, Int, '.of gives Int';
+    is cont.elems, 0, 'It is empty';
+    is-deeply cont<k>.VAR.WHAT, Scalar, 'Element is a Scalar';
+    is-deeply cont<k>, Int, 'Contains an Int';
+    ok cont<k>.VAR.of =:= Int, 'Constraint is Int';
 }

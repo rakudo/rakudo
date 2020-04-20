@@ -129,8 +129,17 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
 
         # Form the container.
         my $container-type := @lookups[1].resolution.compile-time-value;
-        my $container := nqp::create($container-type);
         my str $sigil := self.sigil;
+        my $container;
+        if nqp::isconcrete($!type) && $sigil eq '@' {
+            $container := nqp::create($container-type.HOW.parameterize($container-type, $of));
+        }
+        elsif nqp::isconcrete($!type) && $sigil eq '%' {
+            $container := nqp::create($container-type.HOW.parameterize($container-type, $of));
+        }
+        else {
+            $container := nqp::create($container-type);
+        }
         nqp::bindattr($container, $container-type, '$!descriptor', $cont-desc);
         unless $sigil eq '@' || $sigil eq '%' {
             nqp::bindattr($container, $container-type, '$!value', $default);

@@ -70,6 +70,8 @@ my class Cool { # declared in BOOTSTRAP
     method ceiling()        { self.Numeric.ceiling      }
     method truncate()       { self.Numeric.truncate     }
 
+    multi method iterator(Cool:) { Rakudo::Iterator.OneValue(self) }
+
     ## string methods
 
     method chars(--> Int:D) {

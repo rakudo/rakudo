@@ -58,10 +58,9 @@ class Hyper {
 
     # %x >>op<< y
     multi method infix(Associative:D \left, \right --> Associative:D) {
-        if nqp::istype(left,Pair) {
-            self!pair-mu(left,right)
-        }
-        elsif $!assigns {
+        return self!pair-mu(left,right) if nqp::istype(left,Pair);
+
+        if $!assigns {
             self.infix(left.values,right);
             left
         }
@@ -82,17 +81,14 @@ class Hyper {
 
     # x >>op<< %y
     multi method infix(\left, Associative:D \right --> Associative:D) {
-        if nqp::istype(right,Pair) {
-            self!mu-pair(left,right)
-        }
-        else {
-            my \result := nqp::create(right.WHAT).STORE(
-              right.keys,
-              self.infix(left,right.values),
-              :INITIALIZE
-            );
-            nqp::iscont(right) ?? result.item !! result;
-        }
+        return self!mu-pair(left,right) if nqp::istype(right,Pair);
+
+        my \result := nqp::create(right.WHAT).STORE(
+          right.keys,
+          self.infix(left,right.values),
+          :INITIALIZE
+        );
+        nqp::iscont(right) ?? result.item !! result;
     }
 
     # [x] >>op<< y

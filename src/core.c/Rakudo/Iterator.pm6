@@ -2536,7 +2536,7 @@ class Rakudo::Iterator {
 
     # Return an iterator that only will return the given value once.
     # Basically the same as 42 xx 1.
-    my class OneValue does Iterator {
+    my class OneValue does PredictiveIterator {
         has Mu $!value;
         method new(Mu \value) {
             nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
@@ -2569,6 +2569,12 @@ class Rakudo::Iterator {
         }
         method sink-all(--> IterationEnd) {
             $!value := IterationEnd
+        }
+        method count-only() {
+            nqp::not_i(nqp::eqaddr($!value,IterationEnd))
+        }
+        method bool-only() {
+            nqp::hllbool(nqp::not_i(nqp::eqaddr($!value,IterationEnd)))
         }
     }
     method OneValue(Mu \value) { OneValue.new(value) }

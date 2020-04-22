@@ -693,7 +693,6 @@ my @expected = (
     Q{Signature},
     Q{Slang},
     Q{Slip},
-    Q{SlippyIterator},
     Q{SocketType},
     Q{SoftRoutine},
     Q{Stash},

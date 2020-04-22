@@ -1408,7 +1408,7 @@ class Rakudo::Iterator {
     # a condition.  Takes a Callable to be considered the body of the loop,
     # another Callable for the condition, and a third Callable to be executed
     # after each iteration.
-    my class CStyleLoop does SlippyIterator {
+    my class CStyleLoop does Rakudo::SlippyIterator {
         has &!body;
         has &!cond;
         has &!afterwards;
@@ -1814,7 +1814,7 @@ class Rakudo::Iterator {
 
     # Return an iterator for the basic "gather" functionality on the
     # given block.
-    my class Gather does SlippyIterator {
+    my class Gather does Rakudo::SlippyIterator {
         has &!resumption;
         has $!push-target;
         has int $!wanted;
@@ -2331,7 +2331,7 @@ class Rakudo::Iterator {
 
     # Returns an iterator that handles all properties of a bare -loop-
     # Takes a Callable to be considered the body of the loop.
-    my class Loop does SlippyIterator {
+    my class Loop does Rakudo::SlippyIterator {
         has &!body;
         has $!label;
 
@@ -3001,7 +3001,7 @@ class Rakudo::Iterator {
     # Returns an iterator that handles all properties of a -repeat- with
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition..
-    my class RepeatLoop does SlippyIterator {
+    my class RepeatLoop does Rakudo::SlippyIterator {
         has $!body;
         has $!cond;
         has $!label;
@@ -3948,7 +3948,7 @@ class Rakudo::Iterator {
     # Returns an iterator that handles all properties of a -while- with
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition.
-    my class WhileLoop does SlippyIterator {
+    my class WhileLoop does Rakudo::SlippyIterator {
         has $!body;
         has $!cond;
         has $!label;

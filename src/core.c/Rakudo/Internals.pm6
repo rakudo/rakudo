@@ -1546,7 +1546,7 @@ implementation detail and has no serviceable parts inside"
         hash @keys Z self.coremap(op, h{@keys}, :$deep)
     }
 
-    my class CoreMap does SlippyIterator {
+    my class CoreMap does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!deep;

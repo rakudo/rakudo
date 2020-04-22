@@ -40,7 +40,7 @@ Consider using a block if any of these are necessary for your mapping code."
         sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, $label);
     }
 
-    my class IterateOneWithPhasers does SlippyIterator {
+    my class IterateOneWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
@@ -351,7 +351,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateOneWithoutPhasers does SlippyIterator {
+    my class IterateOneWithoutPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
@@ -494,7 +494,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateTwoWithoutPhasers does SlippyIterator {
+    my class IterateTwoWithoutPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
@@ -671,7 +671,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateMoreWithPhasers does SlippyIterator {
+    my class IterateMoreWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!count;

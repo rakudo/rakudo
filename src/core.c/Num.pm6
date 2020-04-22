@@ -31,6 +31,12 @@ my class Num does Real { # declared in BOOTSTRAP
           !! nqp::fromnum_I(nqp::unbox_n(self),Int)
     }
 
+    method sign(Num:D:) {
+        nqp::isnanorinf(self)
+          ?? self == Inf ?? 1 !! self == -Inf ?? -1 !! NaN
+          !! self  > 0   ?? 1 !! self <  0    ?? -1 !! 0
+    }
+
     multi method new() { nqp::box_n(0e0, self) }
     multi method new($n) { nqp::box_n($n.Num, self) }
 

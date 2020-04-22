@@ -3,7 +3,7 @@ my class Complex { ... }
 my role Real does Numeric {
     method Rat(Real:D: Real $epsilon = 1.0e-6) { self.Bridge.Rat($epsilon) }
     method abs()  { self < 0 ?? -self !! self }
-    method sign(Real:D:) { self > 0 ?? 1 !! self < 0 ?? -1 !! +self }
+    method sign(Real:D:) { self > 0 ?? 1 !! self < 0 ?? -1 !! 0 }
     method conj(Real:D:) { self }
     method sqrt() { self.Bridge.sqrt }
     method rand() { self.Bridge.rand }

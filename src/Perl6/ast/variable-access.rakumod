@@ -21,8 +21,7 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $name := self.resolution.lexical-name;
-        QAST::Var.new( :$name, :scope<lexical> )
+        self.resolution.IMPL-LOOKUP-QAST($context)
     }
 }
 

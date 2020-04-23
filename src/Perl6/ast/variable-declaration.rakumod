@@ -118,10 +118,16 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
     }
 
     method PRODUCE-META-OBJECT() {
-        # Form container descriptor.
+        # If it's a natively typed scalar, no container.
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $cont-desc-type := @lookups[0].resolution.compile-time-value;
         my $of := @lookups[2].resolution.compile-time-value;
+        my str $sigil := self.sigil;
+        if $sigil eq '$' && nqp::objprimspec($of) {
+            return Nil;
+        }
+
+        # Form container descriptor.
+        my $cont-desc-type := @lookups[0].resolution.compile-time-value;
         my $default := @lookups[3].resolution.compile-time-value;
         my int $dynamic := self.twigil eq '*' ?? 1 !! 0;
         my $cont-desc := $cont-desc-type.new(:$of, :$default, :$dynamic,
@@ -129,7 +135,6 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
 
         # Form the container.
         my $container-type := @lookups[1].resolution.compile-time-value;
-        my str $sigil := self.sigil;
         my $container;
         if nqp::isconcrete($!type) && $sigil eq '@' {
             $container := nqp::create($container-type.HOW.parameterize($container-type, $of));
@@ -149,10 +154,23 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        if $!initializer && $!initializer.is-binding {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $of := @lookups[2].resolution.compile-time-value;
+        my str $sigil := self.sigil;
+        if $sigil eq '$' && nqp::objprimspec($of) {
+            # Natively typed; just declare it.
+            QAST::Var.new(
+                :scope('lexical'), :decl('var'), :name($!name),
+                :returns($of)
+            )
+        }
+        elsif $!initializer && $!initializer.is-binding {
+            # Will be bound on first use, so just a declaration.
             QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) )
         }
         else {
+            # Need to vivify the object. Note: maybe we want to drop the
+            # contvar, though we'll need an alternative for BEGIN.
             my $container := self.meta-object;
             $context.ensure-sc($container);
             QAST::Var.new(
@@ -164,32 +182,74 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my str $name := $!name;
+        my str $sigil := self.sigil;
         my $var-access := QAST::Var.new( :$name, :scope<lexical> );
-        if $!initializer {
-            my $init-qast := $!initializer.IMPL-TO-QAST($context);
-            my str $sigil := self.sigil;
-            if $!initializer.is-binding {
-                # TODO type checking of source
-                my $source := $sigil eq '@' || $sigil eq '%'
-                    ?? QAST::Op.new( :op('decont'), $init-qast)
-                    !! $init-qast;
-                QAST::Op.new( :op('bind'), $var-access, $source )
-            }
-            else {
-                # Assignment. Case-analyze by sigil.
-                if $sigil eq '@' || $sigil eq '%' {
-                    # Call STORE method.
-                    nqp::die('array/hash init NYI');
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $of := @lookups[2].resolution.compile-time-value;
+        if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
+            # Natively typed value. Need to initializer it to a default
+            # in the absence of an initializer.
+            my $init;
+            if $!initializer {
+                if nqp::istype($!initializer, RakuAST::Initializer::Assign) {
+                    $init := $!initializer.expression.IMPL-TO-QAST($context);
                 }
                 else {
-                    # Scalar assignment.
-                    QAST::Op.new( :op('p6assign'), $var-access, $init-qast )
+                    nqp::die('Can only compile an assign initializer on a native');
+                }
+            }
+            elsif $prim-spec == 1 {
+                $init := QAST::IVal.new( :value(0) );
+            }
+            elsif $prim-spec == 2 {
+                $init := QAST::NVal.new( :value(0e0) );
+            }
+            else {
+                $init := QAST::SVal.new( :value('') );
+            }
+            QAST::Op.new( :op('bind'), $var-access, $init )
+        }
+        else {
+            # Reference type value.
+            if $!initializer {
+                my $init-qast := $!initializer.IMPL-TO-QAST($context);
+                if $!initializer.is-binding {
+                    # TODO type checking of source
+                    my $source := $sigil eq '@' || $sigil eq '%'
+                        ?? QAST::Op.new( :op('decont'), $init-qast)
+                        !! $init-qast;
+                    QAST::Op.new( :op('bind'), $var-access, $source )
+                }
+                else {
+                    # Assignment. Case-analyze by sigil.
+                    if $sigil eq '@' || $sigil eq '%' {
+                        # Call STORE method.
+                        nqp::die('array/hash init NYI');
+                    }
+                    else {
+                        # Scalar assignment.
+                        QAST::Op.new( :op('p6assign'), $var-access, $init-qast )
+                    }
+                }
+            }
+            else {
+                # Just a declaration; compile into an access to the variable.
+                $var-access
+            }
+        }
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        my str $scope := 'lexical';
+        unless $rvalue {
+            # Potentially l-value native lookups need a lexicalref.
+            if self.sigil eq '$' {
+                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+                if nqp::objprimspec(@lookups[2].resolution.compile-time-value) {
+                    $scope := 'lexicalref';
                 }
             }
         }
-        else {
-            # Just a declaration; compile into an access to the variable.
-            $var-access
-        }
+        QAST::Var.new( :name($!name), :$scope )
     }
 }

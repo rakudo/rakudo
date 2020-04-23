@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 53;
+plan 65;
 
 {
     my $x = 42;
@@ -295,4 +295,142 @@ throws-like
     is-deeply cont<k>.VAR.WHAT, Scalar, 'Element is a Scalar';
     is-deeply cont<k>, Int, 'Contains an Int';
     ok cont<k>.VAR.of =:= Int, 'Constraint is Int';
+}
+
+{
+    my int $x = 42;
+    is-deeply EVAL(RakuAST::Var::Lexical.new('$x')),
+        42,
+        'Can access external native int var';
+}
+
+{
+    my num $x = 4e2;
+    is-deeply EVAL(RakuAST::Var::Lexical.new('$x')),
+        4e2,
+        'Can access external native num var';
+}
+
+{
+    my str $x = 'answer';
+    is-deeply EVAL(RakuAST::Var::Lexical.new('$x')),
+        'answer',
+        'Can access external native str var';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$native-int',
+                    type => RakuAST::Type::Simple.new('int')
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$native-int')
+            ),
+        )
+    ));
+    my $desc = 'int declaration creates a native int container';
+    multi check(int $x) { pass $desc }
+    multi check($x) { flunk $desc }
+    check(cont);
+    is-deeply cont, 0, 'Native int initialized to 0 by default';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$num',
+                    type => RakuAST::Type::Simple.new('num')
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$num')
+            ),
+        )
+    ));
+    my $desc = 'num declaration creates a native num container';
+    multi check(num $x) { pass $desc }
+    multi check($x) { flunk $desc }
+    check(cont);
+    is-deeply cont, 0e0, 'Native num initialized to 0e0 by default';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$str',
+                    type => RakuAST::Type::Simple.new('str')
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$str')
+            ),
+        )
+    ));
+    my $desc = 'str declaration creates a native str container';
+    multi check(str $x) { pass $desc }
+    multi check($x) { flunk $desc }
+    check(cont);
+    is-deeply cont, '', 'Native str initialized to empty string by default';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$native-int',
+                    type => RakuAST::Type::Simple.new('int'),
+                    initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(963))
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$native-int')
+            ),
+        )
+    ));
+    is-deeply cont, 963, 'Native int assign initializer works';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$native-num',
+                    type => RakuAST::Type::Simple.new('num'),
+                    initializer => RakuAST::Initializer::Assign.new(RakuAST::NumLiteral.new(96e3))
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$native-num')
+            ),
+        )
+    ));
+    is-deeply cont, 96e3, 'Native num assign initializer works';
+}
+
+{
+    my \cont = EVAL(RakuAST::CompUnit.new(
+        RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Declaration::Var.new(
+                    name => '$native-str',
+                    type => RakuAST::Type::Simple.new('str'),
+                    initializer => RakuAST::Initializer::Assign.new(RakuAST::StrLiteral.new('nine six three'))
+                ),
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$native-str')
+            ),
+        )
+    ));
+    is-deeply cont, 'nine six three', 'Native str assign initializer works';
 }

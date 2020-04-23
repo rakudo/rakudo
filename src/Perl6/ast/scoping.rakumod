@@ -52,15 +52,28 @@ class RakuAST::Declaration::Lexical is RakuAST::Declaration {
 # setting or an EVAL). XXX May break out the setting one.
 class RakuAST::Declaration::External is RakuAST::Declaration::Lexical {
     has str $!lexical-name;
+    has Mu $!native-type;
 
-    method new(str $lexical-name) {
+    method new(str :$lexical-name, Mu :$native-type) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::External, '$!lexical-name', $lexical-name);
+        nqp::bindattr($obj, RakuAST::Declaration::External, '$!native-type', $native-type);
         $obj
     }
 
     method lexical-name() {
         nqp::getattr_s(self, RakuAST::Declaration::External, '$!lexical-name')
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        my str $scope := 'lexical';
+        unless $rvalue {
+            # Potentially l-value native lookups need a lexicalref.
+            if nqp::objprimspec($!native-type) {
+                $scope := 'lexicalref';
+            }
+        }
+        QAST::Var.new( :name($!lexical-name), :$scope, :returns($!native-type) )
     }
 }
 

@@ -76,7 +76,19 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
         my $ctx := $!context;
         while !nqp::isnull($ctx) {
             if nqp::existskey($ctx, $name) {
-                return RakuAST::Declaration::External.new($name);
+                my $prim-spec := nqp::lexprimspec($ctx, $name);
+                if $prim-spec == 0 {
+                    return RakuAST::Declaration::External.new(:lexical-name($name));
+                }
+                elsif $prim-spec == 1 {
+                    return RakuAST::Declaration::External.new(:lexical-name($name), :native-type(int));
+                }
+                elsif $prim-spec == 2 {
+                    return RakuAST::Declaration::External.new(:lexical-name($name), :native-type(num));
+                }
+                else {
+                    return RakuAST::Declaration::External.new(:lexical-name($name), :native-type(str));
+                }
             }
             $ctx := nqp::ctxouter($ctx);
         }

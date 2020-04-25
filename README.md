@@ -198,7 +198,7 @@ See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/C
 
 ## Line editing and tab completion
 
-If you would like simple history and tab completion in the raku executable,
+If you would like simple history and tab completion in the `rakudo` executable,
 you need to install the Linenoise module.  The recommended way to install
 Linenoise is via [zef](https://github.com/ugexe/zef):
 

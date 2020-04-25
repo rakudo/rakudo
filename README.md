@@ -20,10 +20,6 @@ Rakudo has multiple backends: MoarVM and JVM. Note that each backend has a sligh
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
-To receive important notifications from the core developer team, please
-subscribe to [the p6lert service](https://alerts.perl6.org) using the RSS feed,
-twitter, or [the p6lert commandline script](https://github.com/raku-community-modules/perl6-p6lert).
-
 ## Building and Installing Rakudo
 
 [![Build Status](https://circleci.com/gh/rakudo/rakudo.svg?style=shield)](https://circleci.com/gh/rakudo/rakudo)[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)

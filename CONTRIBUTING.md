@@ -6,12 +6,12 @@ Please include a way for developers to reproduce the problem. A small program
 that demonstrates a problem is best.
 
 Describe the behaviour you're observing and how it differs from expectations.
-Include the version of the compiler you're using (run `perl6 -v`) as well as
+Include the version of the compiler you're using (run `raku -v`) as well as
 the type and version of the operating system (e.g. `Windows 10`)
 
 --------------------------------
 
-# How to Contribute to Rakudo Perl 6
+# How to Contribute to Rakudo
 
 Contributions to Rakudo are very welcome.
 
@@ -29,7 +29,7 @@ This includes
 * implementation of features that are already specified
 
 If you want to implement a new language feature or built-in of your own
-design, please discuss it first in the `#perl6-dev` IRC channel on
+design, please discuss it first in the `#raku-dev` IRC channel on
 irc.freenode.org.
 
 If you get no feedback on your pull request, feel free to nudge us in the
@@ -49,8 +49,8 @@ adding/removing debug output.
 ## Test Coverage
 
 New features should be accompanied by test cases in the [roast
-repository](https://github.com/perl6/roast/). Please ask for direct push
-access in the `#perl6-dev` or `#perl6` IRC channels on freenode, or submit a
+repository](https://github.com/Raku/roast/). Please ask for direct push
+access in the `#raku-dev` or `#raku` IRC channels on freenode, or submit a
 pull request.
 
 Bug fixes should also come with test cases (if practical), though we prefer
@@ -70,7 +70,7 @@ very basic guidelines:
 * Indentation happens with four spaces
 * Use uncuddled `else`, so use a newline between a closing curly brace and
   the `else` keyword
-* Perl 5 code (part of the build system) should `use strict; use warnings;`
+* Perl code (part of the build system) should `use strict; use warnings;`
   and loosely follow [perlstyle](http://perldoc.perl.org/perlstyle.html).
 
 ## Commit messages

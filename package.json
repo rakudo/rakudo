@@ -1,7 +1,7 @@
 {
   "name": "rakudo-js",
   "bugs": {
-    "url:": "https://github.com/perl6/nqp/issues",
+    "url:": "https://github.com/Raku/nqp/issues",
     "email": "pawelmurias@gmail.com"
   },
   "licenses": [{
@@ -9,5 +9,5 @@
      "url": "http://opensource.org/licenses/Artistic-2.0"
    }],
    "private": true,
-   "repository": "http://github.com/perl6/nqp/"
+   "repository": "http://github.com/Raku/nqp/"
 }

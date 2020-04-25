@@ -121,7 +121,7 @@ source directory doesn't have `t/spec` installed, then
 you can clone it like this:
 
     cd $YOUR_RAKUDO_SRCDIR
-    git clone https://github.com/perl6/roast.git t/spec
+    git clone https://github.com/Raku/roast.git t/spec
 
 Note the rakudo code includes an entry in its `.gitignore` file
 so git will ignore any content under `t/spec`.

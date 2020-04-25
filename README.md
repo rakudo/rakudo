@@ -12,9 +12,7 @@ that would normally come with a full Raku distribution.  If you're
 after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
-Note that different backends implement slightly different sets of
-features. For a high-level overview of implemented and missing features,
-please visit [the features page on raku.org](https://perl6.org/compilers/features).
+The `Rakudo` compiler has `moar` and `jvm` backends. For historical compilers see https://www.raku.org/compilers/. 
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.

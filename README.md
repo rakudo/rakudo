@@ -33,7 +33,7 @@ installation instructions.
 The general process for building is running `perl Configure.pl` with
 the desired configuration options (common options listed below), and
 then running `make` or `make install`. Optionally, you may run
-`make spectest` to test your build on [Roast](http://github.com/perl6/roast),
+`make spectest` to test your build on [Roast](http://github.com/Raku/roast),
 the Official Raku test suite. To update the test suite, run
 `make spectest_update`.
 
@@ -49,7 +49,7 @@ To automatically download, build, and install a fresh MoarVM and NQP, run:
     $ perl Configure.pl --gen-moar --gen-nqp --backends=moar
 
 Please be aware, that this will install MoarVM and NQP into your given
-`--prefix` before Configure.pl exits.
+`--prefix` before `Configure.pl` exits.
 
 Alternatively, feel free to git clone https://github.com/Raku/nqp and
 https://github.com/MoarVM/MoarVM manually and install them individually.

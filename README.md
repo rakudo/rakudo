@@ -12,7 +12,7 @@ that would normally come with a full Raku distribution.  If you're
 after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
-The `Rakudo` compiler has `moar` and `jvm` backends. For historical compilers see https://www.raku.org/compilers/. 
+The `Rakudo` compiler has `moar`, `jvm` and `javascript` backends. For historical compilers see https://www.raku.org/compilers/. 
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
@@ -94,15 +94,17 @@ and install it individually.
 
 By supplying combinations of backends to the `--backends` flag, you
 can get two or three backends built in the same prefix. The first
-backend you supply in the list is the one that gets the `perl6` name
+backend you supply in the list is the one that gets the `rakudo` name
 as a symlink, and all backends are installed separately as
-`perl6-m` or `perl6-j` for Rakudo on
+`rakudo-m` or `rakudo-j` for Rakudo on
 MoarVM, or JVM respectively.
 
 The format for the `--backends` flag is:
 
-    $ perl Configure.pl --backends=moar,jvm
-    $ perl Configure.pl --backends=ALL
+    $ perl Configure.pl --backends=moar,jvm --gen-moar --relocatable
+    $ perl Configure.pl --backends=ALL --gen-moar --relocatable
+    
+`ALL` refers to `moar`, `jvm` and `javascript` backends.
 
 ### Testing
 

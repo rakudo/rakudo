@@ -1049,24 +1049,53 @@ my class JunctionOptimizer {
 #           - Ii
 #           - QAST::IVal(5)  5
 
-my class HyperOptimizer {
+my class OldHyperOptimizer {
     has $!symbols;
     has $!array_type;
 
-    class HyperNode {
-        has str $!operator;
-        has str $!dwims;
-        has $!lhs;
-        has $!rhs;
-        has $!sizeeffect;
-        has $!primspec;
-        method operator() { $!operator }
-        method dwims() { $!dwims }
-        method lhs() { $!lhs }
-        method rhs() { $!rhs }
-        method sizeeffect() { $!sizeeffect }
-        method primspec() { $!primspec }
-    }
+    has $!depth;
+    has $!dstr;
+
+    has $!original_graph;
+    has $!sizecheck_graph;
+
+    has $!calculation_graph;
+
+    has $!indexvar;
+    has $!loop_limit_calc_node;
+
+    my %translation := nqp::hash(
+        '&infix:<+>', 'add_',
+        '&infix:<*>', 'mul_',
+        '&infix:<->', 'sub_',
+    );
+
+    my %supported_methods := nqp::hash(
+        'reverse', 1
+    );
+
+    #has %!sizecheck_nodes;
+
+    #class FusedLoop {
+        #has %!
+    #}
+    #class HyperNode {
+        #has str $!operator;
+        #has str $!dwims;
+        #has $!lhs;
+        #has $!rhs;
+        #has $!sizeeffect;
+        #has $!primspec;
+        #method operator() { $!operator }
+        #method dwims() { $!dwims }
+        #method lhs() { $!lhs }
+        #method rhs() { $!rhs }
+        #method sizeeffect() { $!sizeeffect }
+        #method primspec() { $!primspec }
+    #}
+
+    my @prim_suf := ['', 'i', 'n', 's'];
+
     method optimize($node) {
         $!symbols := $*OPTIMIZER-SYMBOLS;
         note("try optimize a hyperop tree");
@@ -1078,68 +1107,899 @@ my class HyperOptimizer {
 
         if $array_type_found == 0 { note("no array type found"); return 0 }
 
+        $!depth := 0;
+        $!dstr := nqp::x("  ", $!depth);
+
+        $!sizecheck_graph := QAST::Stmt.new();
+        #%!sizecheck_nodes := nqp::hash();
+
         my $result_primspec := self.check_array_type($node[0]);
         if $result_primspec == -1 { note("bind target is not a lowercase array"); return 0 }
         if $result_primspec == 0 { note("target array has an .of that's an object?!?"); return 0 }
         if $result_primspec == 3 { note("target is a string array"); return 0 }
 
+        # no decl here, we add it on a clone that only goes in the loop
+        $!indexvar   := QAST::Var.new(:name($node.unique('__hyper_index')), :scope('local'), :returns(int));
+        my $limitvar := QAST::Var.new(:name($node.unique('__hyper_limit')), :scope('local'), :returns(int));
+
         my $optree := self.build_node_graph($node[1]);
+
+        note("here's my size check graph:");
+        note($!sizecheck_graph.dump);
 
         if nqp::isnull($optree) { note("optree result was null."); return 0 }
 
-        return 0;
+        my $limitdecl := $limitvar.shallow_clone;
+        $limitdecl.decl("var");
+
+        my $indexdecl := $!indexvar.shallow_clone;
+        $indexdecl.decl("var");
+
+        my $loop_nodes := QAST::Stmts.new(
+            QAST::Op.new(:op('bind'), $indexdecl, QAST::IVal.new(:value(0))),
+            QAST::Op.new(:op('bind'), $limitdecl, $!loop_limit_calc_node),
+
+            QAST::Op.new( :op<while>,
+              QAST::Op.new(
+                op => "isle_i",
+                QAST::Op.new( :op<bind>,
+                  QAST::Var.new(:name($!indexvar.name), :scope<local>, :returns(int)),
+                  QAST::Op.new( :op<add_i>,
+                    QAST::Var.new(:name($!indexvar.name),:scope<local>,:returns(int)),
+                    QAST::IVal.new( :value(1) )
+                  )
+                ),
+                QAST::Var.new(:name($limitvar.name), :scope<local>, :returns(int))
+              ),
+              QAST::Op.new(:op('bindpos_' ~ @prim_suf[$result_primspec]),
+                  $node[0].shallow_clone,
+                  QAST::Var.new(:name($!indexvar.name),:scope<local>,:returns(int)),
+                  $optree<nodes>,
+              )
+          )
+        );
+
+        note("here's the loop nodes");
+        note($loop_nodes.dump);
+
+        return QAST::Stmts.new($!sizecheck_graph, $loop_nodes);
     }
     method check_array_type($var) {
-        note("check array type of symbol " ~ $var.name);
+        $!depth := $!depth + 1; $!dstr := $!dstr ~ "  ";
+        note($!dstr ~ "check array type of symbol " ~ $var.name);
         my $sym := $!symbols.find_lexical_symbol($var.name);
         my $type := $sym<type>;
         if nqp::istype($type, $!array_type) {
-            note("isn't typeof my array_type");
+            note($!dstr ~ "isn't typeof my array_type");
+            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
             return -1;
         }
         my $primspec := nqp::objprimspec($type.of);
-        note("primspec is " ~ $primspec);
+        note($!dstr ~ "primspec is " ~ $primspec);
+        $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
         return $primspec;
     }
     # Called on an Op node.
     # First child should be an Op that builds the hyperop
     # Second and third arguments should be the operands
     method build_node_graph($node) {
-        note("build the node graph for hypering");
+        # skip hllize ops, they don't do anything important for us
+        if $node.op eq 'hllize' { return self.build_node_graph($node[0]); }
+        $!depth := $!depth + 1; $!dstr := $!dstr ~ "  ";
+        note($!dstr ~ "build the node graph for hypering");
+
+        if $node.op eq "callmethod" {
+            if !nqp::existskey(%supported_methods, $node.name) {
+                note($!dstr ~ "metaopped op not a var or not lexical");
+                $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                return nqp::null;
+            }
+
+            my $nodes := self.do_operand($node[0], 0, 0);
+
+            if $node.name eq "reverse" {
+                return nqp::hash(
+                    "type", "index_op",
+                    "op", "reverse",
+                    "human", "(reverse)[" ~ $nodes<human> ~ "]",
+                    "nodes", $nodes
+                );
+            }
+            # NYI apparently
+            return nqp::null;
+        }
+
         if !nqp::istype($node[0][0], QAST::Var) || $node[0][0].scope ne "lexical" {
-            note("metaopped op not a var or not lexical");
+            note($!dstr ~ "metaopped op not a var or not lexical");
+            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
             return nqp::null;
         }
         if !$!symbols.is_from_core($node[0][0].name) {
-            note("metaopped op " ~ $node[0][0].name ~ " doesn't come from the setting");
-            note(nqp::isnull($!symbols.find_in_setting($node[0][0].name)));
+            note($!dstr ~ "metaopped op " ~ $node[0][0].name ~ " doesn't come from the setting");
+            note($!dstr ~ nqp::isnull($!symbols.find_in_setting($node[0][0].name)));
+            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
             return nqp::null;
         }
         my $hypered_op := $node[0][0].name;
+        my $dwim_left := 0;
+        my $dwim_right := 0;
+        if +$node[0].list > 1 {
+            if +$node[0].list > 2 {
+                my $arg := $node[0][2];
+                if nqp::istype($arg, QAST::WVal) && nqp::istype($arg, QAST::SpecialArg) && !$arg.flat {
+                    if  $arg.has_compile_time_value && $arg.compile_time_value {
+                        if $arg.named eq 'dwim-left' { $dwim_left := 1 }
+                        elsif $arg.named eq 'dwim-right' { $dwim_right := 1 }
+                        else {
+                            note($!dstr ~ "did not expect named " ~ $arg.named ~ " in METAOP_HYPER call. wtf?");
+                            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                            return nqp::null;
+                        }
+                    }
+                    else {
+                        note($!dstr ~ "a named special arg with no compile time value? madness!");
+                        $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                        return nqp::null;
+                    }
+                }
+                else {
+                    note($!dstr ~ "wtf is this arg to METAOP_HYPER?\n" ~ $arg.dump);
+                    $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                    return nqp::null;
+                }
+            }
+            my $arg := $node[0][1];
+            if nqp::istype($arg, QAST::WVal) && nqp::istype($arg, QAST::SpecialArg) && !$arg.flat {
+                if  $arg.has_compile_time_value && $arg.compile_time_value {
+                    if $arg.named eq 'dwim-left' { $dwim_left := 1 }
+                    elsif $arg.named eq 'dwim-right' { $dwim_right := 1 }
+                    else {
+                        note($!dstr ~ "did not expect named " ~ $arg.named ~ " in METAOP_HYPER call. wtf?");
+                        $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                        return nqp::null;
+                    }
+                }
+                else {
+                    note($!dstr ~ "a named special arg with no compile time value? madness!");
+                    $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                    return nqp::null;
+                }
+            }
+            else {
+                note($!dstr ~ "wtf is this arg to METAOP_HYPER?" ~ $arg.dump);
+                $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                return nqp::null;
+            }
+        }
 
-        self.do_operand($node[1]);
-        self.do_operand($node[2]);
+        note($!dstr ~ "dwim left $dwim_left right $dwim_right");
+
+        note($!dstr ~ "operand 1");
+        my $left_kind := self.do_operand($node[1], $dwim_left, $dwim_right);
+        note($!dstr ~ "operand 2");
+        my $right_kind := self.do_operand($node[2], $dwim_right, $dwim_left);
+
+        if nqp::isnull($left_kind) || nqp::isnull($right_kind) {
+            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+            note($!dstr ~ "one of the operands came back null.");
+            return nqp::null;
+        }
+
+        my $nodes := nqp::null;
+
+
+        if $left_kind<type> eq "var" && $right_kind<type> eq "var" {
+            if $dwim_left || $dwim_right {
+                note($!dstr ~ "dwimmy array targets not supported yet.");
+                $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                return nqp::null;
+            }
+            # TODO check if a size-equality check was already added
+            unless nqp::istype($!loop_limit_calc_node, QAST::Node) {
+                $!loop_limit_calc_node := QAST::Op.new(:op('elems'), QAST::Var.new(scope => $right_kind<var>.scope, name => $right_kind<var>.name));
+            }
+            nqp::push($!sizecheck_graph,
+                QAST::Op.new(:op('if'),
+                    QAST::Op.new(:op('isne_i'),
+                        QAST::Op.new(:op('elems'), QAST::Var.new(scope => $left_kind<var>.scope, name => $left_kind<var>.name)),
+                        QAST::Op.new(:op('elems'), QAST::Var.new(scope => $right_kind<var>.scope, name => $right_kind<var>.name))
+                    ),
+                    QAST::Op.new(:op('die_s'), QAST::SVal.new(value => "variables " ~ $left_kind<var>.name ~ " and " ~ $right_kind<var>.name ~ " must be the same size."))
+                )
+            );
+
+            my $target_primspec := 1;
+
+            if $left_kind<primspec> == 2 || $right_kind<primspec> == 2 {
+                $target_primspec := 2;
+            }
+
+            if !nqp::existskey(%translation, $hypered_op) {
+                note($!dstr ~ "operation $hypered_op doesn't have a translation to nqp op yet.");
+                $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                return nqp::null;
+            }
+
+            $nodes := QAST::Op.new(:op(%translation{$hypered_op} ~ @prim_suf[$target_primspec]),
+                QAST::Op.new(:op("atpos_" ~ @prim_suf[$left_kind<primspec>]),
+                    $left_kind<var>.shallow_clone, $!indexvar.shallow_clone),
+                QAST::Op.new(:op("atpos_" ~ @prim_suf[$right_kind<primspec>]),
+                    $right_kind<var>.shallow_clone, $!indexvar.shallow_clone)
+                );
+        }
+        elsif $left_kind<type> eq "constant" && $dwim_left && ($right_kind<type> eq "var" || $right_kind<type> eq "op") && !$dwim_right
+            || $right_kind<type> eq "constant" && $dwim_right && ($left_kind<type> eq "var" || $left_kind<type> eq "op") && !$dwim_left {
+
+            my $target_primspec := 1;
+
+            if $left_kind<primspec> == 2 || $right_kind<primspec> == 2 {
+                $target_primspec := 2;
+            }
+
+            if !nqp::existskey(%translation, $hypered_op) {
+                note($!dstr ~ "operation $hypered_op doesn't have a translation to nqp op yet.");
+                $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                return nqp::null;
+            }
+
+            $nodes := QAST::Op.new(:op(%translation{$hypered_op} ~ @prim_suf[$target_primspec]));
+
+            if $left_kind<type> eq "constant" {
+                $nodes.push($left_kind<nodes>);
+                if $right_kind<type> eq "op" {
+                    $nodes.push($right_kind<nodes>);
+                }
+                else {
+                    $nodes.push(QAST::Op.new(:op("atpos_" ~ @prim_suf[$right_kind<primspec>]),
+                        $right_kind<var>.shallow_clone, $!indexvar.shallow_clone));
+                }
+            }
+            else {
+                if $left_kind<type> eq "op" {
+                    $nodes.push($left_kind<nodes>);
+                }
+                else {
+                    $nodes.push(QAST::Op.new(:op("atpos_" ~ @prim_suf[$left_kind<primspec>]),
+                        $left_kind<var>.shallow_clone, $!indexvar.shallow_clone));
+                }
+                $nodes.push($right_kind<nodes>);
+            }
+
+        }
+        elsif $left_kind<type> eq "var" && !$dwim_left && ($right_kind<type> eq "var" || $right_kind<type> eq "op") && !$dwim_right
+            || $right_kind<type> eq "var" && !$dwim_right && ($left_kind<type> eq "var" || $left_kind<type> eq "op") && !$dwim_left {
+
+            my $the_one_with_size := $left_kind<type> eq "var" ?? $left_kind !! $right_kind;
+            unless nqp::istype($!loop_limit_calc_node, QAST::Node) {
+                $!loop_limit_calc_node := QAST::Op.new(:op('elems'), QAST::Var.new(scope => $the_one_with_size<var>.scope, name => $the_one_with_size<var>.name));
+            }
+            # TODO recurse and pass back up for cases like var * (var * constant)
+            #nqp::push($!sizecheck_graph,
+                #QAST::Op.new(:op('if'),
+                    #QAST::Op.new(:op('isne_i'),
+                        #QAST::Op.new(:op('elems'), QAST::Var.new(scope => $left_kind<var>.scope, name => $left_kind<var>.name)),
+                        #QAST::Op.new(:op('elems'), QAST::Var.new(scope => $right_kind<var>.scope, name => $right_kind<var>.name))
+                    #),
+                    #QAST::Op.new(:op('die_s'), QAST::SVal.new(value => "variables " ~ $left_kind<var>.name ~ " and " ~ $right_kind<var>.name ~ " must be the same size."))
+                #)
+            #);
+            my $target_primspec := 1;
+
+            if $left_kind<primspec> == 2 || $right_kind<primspec> == 2 {
+                $target_primspec := 2;
+            }
+
+            if !nqp::existskey(%translation, $hypered_op) {
+                note($!dstr ~ "operation $hypered_op doesn't have a translation to nqp op yet.");
+                $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                return nqp::null;
+            }
+
+            $nodes := QAST::Op.new(:op(%translation{$hypered_op} ~ @prim_suf[$target_primspec]));
+            if $left_kind<type> eq "op" {
+                $nodes.push($left_kind<nodes>);
+            }
+            else {
+                $nodes.push(QAST::Op.new(:op("atpos_" ~ @prim_suf[$left_kind<primspec>]),
+                    $left_kind<var>.shallow_clone, $!indexvar.shallow_clone));
+            }
+            if $right_kind<type> eq "op" {
+                $nodes.push($right_kind<nodes>);
+            }
+            else {
+                $nodes.push(QAST::Op.new(:op("atpos_" ~ @prim_suf[$right_kind<primspec>]),
+                    $right_kind<var>.shallow_clone, $!indexvar.shallow_clone));
+            }
+        }
+        else {
+            note("oh no, those kinds...?!?");
+            note("type " ~ $left_kind<type> ~ " " ~ $right_kind<type>);
+            note("dwim " ~ $dwim_left ~ " " ~ $dwim_right);
+        }
+
+        $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+
+        my $result := "[(" ~ $left_kind<human> ~ ") $dwim_left<< $hypered_op >>$dwim_right (" ~ $right_kind<human> ~ ")]";
+        note($!dstr ~ "this step: $result");
+        if !nqp::isnull($nodes) {
+            note($nodes.dump);
+        }
+        return nqp::hash(
+            "type", "op",
+            "left_kind", $left_kind, "right_kind", $right_kind,
+            "hypered_op", $hypered_op,
+            "dwim_left", $dwim_left, "dwim_right", $dwim_right,
+            "human", $result,
+            "nodes", $nodes,
+        );
     }
     # Could be an op, could be a var.
     # Could be a constant in a Want node
     #   (if the outer hyper is dwimmy in this direction)
     # Could be something different, in which case we bail
-    method do_operand($node) {
+    method do_operand($node, $dwim_this, $dwim_other) {
+        $!depth := $!depth + 1; $!dstr := $!dstr ~ "  ";
         if nqp::istype($node, QAST::Op) {
-            return self.build_node_graph($node);
+            my $nodegraph := self.build_node_graph($node);
+            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+            return $nodegraph;
         }
         elsif nqp::istype($node, QAST::Var) {
             my $result_primspec := self.check_array_type($node);
-            if $result_primspec == -1 { note("Var operand not a lowercase array"); return nqp::null }
-            if $result_primspec == 0 { note("operand array has an .of that's an object?!?"); return nqp::null }
-            if $result_primspec == 3 { note("operand is a string array"); return nqp::null }
-            return $node;
+            if $result_primspec == -1 { note($!dstr ~ "Var operand not a lowercase array"); $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth); return nqp::null }
+            if $result_primspec == 0 { note($!dstr ~ "operand array has an .of that's an object?!?"); $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth); return nqp::null }
+            if $result_primspec == 3 { note($!dstr ~ "operand is a string array"); $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth); return nqp::null }
+            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+            return nqp::hash(
+                "type", "var",
+                "var", $node,
+                "nodes", $node,
+                "primspec", $result_primspec,
+                "human", "array" ~ $result_primspec,
+            );
         }
-        else {
-            note("unexpected node in do_operand:");
-            note($node.dump);
+        elsif nqp::isnull($node) || !nqp::isconcrete($node) {
+            note($!dstr ~ "found a null/nonconcrete node in do_operand");
+            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
             return nqp::null;
         }
+        elsif nqp::istype($node, QAST::Want) && $node[1] ne "Ss" && $node[1] ne "v" {
+            if !$dwim_this {
+                note($!dstr ~ "this constant " ~ $node[1] ~ " Want node is not where a dwim is:");
+                note($!dstr ~ $node.dump);
+                $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+                return nqp::null;
+            }
+            note($!dstr ~ "we have a constant that gets dwimmed, cool: " ~ $node[2].value);
+            return nqp::hash(
+                "type", "constant",
+                "primspec", $node[1] eq "Ii" ?? 1 !! 2,
+                "value", $node[2].value,
+                "nodes", $node[2],
+                "human", "dwim" ~ $node[1] ~ ":(" ~ $node[2].value ~ ")",
+            );
+        }
+        else {
+            note($!dstr ~ "unexpected node in do_operand:");
+            note($!dstr ~ $node.dump);
+            $!depth := $!depth - 1; $!dstr := nqp::x("  ", $!depth);
+            return nqp::null;
+        }
+    }
+}
+
+my class HyperOptimizer {
+    has $!symbols;
+    has $!array-type;
+
+    has $!depth;
+    has $!dstr;
+
+    has $!original-graph;
+
+    has $!target-index;
+    has $!target-limit;
+
+    has $!loop-limit-calc-node;
+
+    has %!local-vars;
+    has @!local-vars-keys;
+
+    # what to do with arguments in mixed-argument situations?
+    # 0: always numify
+    # 1: always intify
+    # 2: numify unless two integers
+    # 3: require ints
+    # 4: require nums
+    # 5: require at least one num
+    my %infix-coerce-mode := nqp::hash(
+        '&infix:<+>', 2,
+        '&infix:<->', 2,
+        '&infix:<*>', 2,
+        '&infix:</>', 5, # if not two nums, this results in Rat objects.
+        '&infix:<div>', 3,
+
+        
+    );
+
+    my @prim_suf := ['', 'i', 'n', 's'];
+    my @prim_obj := ['', int, num, ''];
+
+    my %infix-ops := nqp::hash(
+        '&infix:<+>', 'add_',
+        '&infix:<->', 'sub_',
+        '&infix:<*>', 'mul_',
+
+        '&infix:«<»', 'islt_',
+        '&infix:«>»', 'isgt_',
+        '&infix:«<=»', 'isle_',
+        '&infix:«>=»', 'isge_',
+
+        '&infix:<||>', 'if_',
+    );
+
+    # What methods are related to indexing, like
+    # reverse, rotor, postcircumfix:<[ ]>, sort,
+    # ...
+    # 0 means unsupported
+    # 1 means supported
+    my %indexing-methods := nqp::hash(
+        "reverse", 1,
+        "head", 1,
+        "tail", 1,
+        "skip", 1,
+
+        "sort", 0,
+        "postcircumfix:<[ ]>", 0,
+        "rotor", 0
+    );
+
+    # Which of the methods above give back a list of different size from
+    # the one passed in, and how is the size influenced?
+    # presence in the hash means there's a kind of change
+    # 1:  depends on the argument and list's size (head/tail/skip are clamped to list size)
+    # 2:  depends on argument as well as list values (grep, uniq, unique)
+    my %size-change-methods := nqp::hash(
+        'head', 1, "tail", 1, "skip", 1,
+
+        "grep", 1, "uniq", 1, "unique", 1,
+    );
+
+    # What methods can we support being hypered onto
+    # our input arrays?
+    # 0 means NYI, 1 means supported without arguments,
+    # >= 2 means supported with arguments
+    my %hyper-methods := nqp::hash(
+        "sqrt", 1, "rand", 1,
+        "log10", 1, "log2", 1,
+
+        "abs", 1, "sign", 1,
+
+        "pred", 1, "succ", 1,
+
+        "Num", 1, "Int", 1,
+
+        # "floor", 1, "ceiling", 1, "round", 1, # support for second argument is written in raku
+
+        "sin", 1, "cos", 1, "tan", 1, "asin", 1, "acos", 1, "atan", 1, "sec", 1, "asec", 1,
+        # TODO add the rest of the trig ops
+    );
+
+    sub custom-hypermeth-impl($name, $argnode) {
+        my $result;
+        sub localize($node) {
+            my $varname := $argnode.unique("hyperarg_localize");
+            my $locvar := QAST::Op.new(:op('bind'),
+                QAST::Var.new(:name($varname), :scope("local"), :decl("var")),
+                $node);
+            $result := QAST::Stmts.new($locvar);
+            return QAST::Var.new(:name($varname), :scope("local"));
+        }
+        my $nodereturns := $argnode.returns;
+        if $name eq "log10" || $name eq "log2" {
+            return QAST::Op.new(:op("div_n"),
+                QAST::Op.new(:op("log_n"),
+                    $argnode,
+                ),
+                QAST::NVal.new(:value(nqp::log_n($name eq 'log2' ?? 2e0 !! 10e0)))
+            );
+        }
+        elsif $name eq "abs" {
+            my $isnum := $nodereturns =:= num;
+            #my $v := localize($argnode);
+            #$result.push(QAST::Op.new(:op("if"),
+                #QAST::Op.new(:op('islt_' ~ ($isnum ?? "n" !! "i")),
+                    #$v.shallow_clone,
+                    #($isnum ?? QAST::NVal.new(:value(0e0))
+            #);
+            return QAST::Op.new(:op('abs_' ~ ($isnum ?? "n" !! "i")), $argnode, :returns($nodereturns));
+        }
+        elsif $name eq "sign" {
+            my $isnum := $nodereturns =:= num;
+            my $v := localize($argnode);
+            $result.push(QAST::Op.new(:op("if"),
+                QAST::Op.new(:op('isgt_' ~ ($isnum ?? "n" !! "i")),
+                    $v.shallow_clone,
+                    ($isnum ?? QAST::NVal.new(:value(0e0)) !! QAST::IVal.new(:value(0)))
+                ),
+                QAST::IVal.new(:value(1)),
+                QAST::Op.new(:op("if"),
+                    QAST::Op.new(:op('islt_' ~ ($isnum ?? "n" !! "i")),
+                        $v.shallow_clone,
+                        ($isnum ?? QAST::NVal.new(:value(0e0)) !! QAST::IVal.new(:value(0)))
+                    ),
+                    QAST::IVal.new(:value(-1)),
+                    $v.shallow_clone)));
+            return $result;
+        }
+        elsif $name eq "pred" || $name eq "succ" {
+            my $isnum := $nodereturns =:= num;
+            return QAST::Op.new(:op(($name eq 'pred' ?? "sub_" !! "add_") ~ ($isnum ?? "n" !! "i")),
+                :returns($isnum ?? num !! int),
+                $argnode,
+                ($isnum ?? QAST::NVal.new(:value(1e0)) !! QAST::IVal.new(:value(1)))
+            );
+        }
+        elsif $name eq "Int" {
+            return QAST::Stmt.new($argnode, :returns(int));
+        }
+        elsif $name eq "Num" {
+            return QAST::Stmt.new($argnode, :returns(num));
+        }
+        return nqp::null;
+    }
+
+    method noteup($text = "") {
+        $!depth := $!depth + 1; $!dstr := $!dstr ~ "  ";
+        if $text ne "" { self.note($text); }
+    }
+    method notedown($text = "") {
+        if $text ne "" { self.note($text); }
+        $!depth := $!depth - 1;
+        if $!depth < 0 { $!depth := 0 }
+        $!dstr := nqp::x("  ", $!depth);
+    }
+    method note($text) {
+        note($!dstr ~ nqp::join("\n" ~ $!dstr, nqp::split("\n", $text)));
+    }
+
+    method check-array-type($var) {
+        self.noteup("check array type of symbol " ~ $var.name);
+        my $sym := $!symbols.find_lexical_symbol($var.name);
+        my $type := $sym<type>;
+        if nqp::istype($type, $!array-type) {
+            self.notedown("isn't typeof my array-type");
+            return -1;
+        }
+        my $primspec := nqp::objprimspec($type.of);
+        self.notedown("primspec is " ~ $primspec);
+        return $primspec;
+    }
+
+    method optimize($node) {
+        $!symbols := $*OPTIMIZER-SYMBOLS;
+
+        my $array-type-found := 0;
+        try {
+            $!array-type := $!symbols.find_in_setting("array");
+            $array-type-found := 1;
+        }
+
+        if $array-type-found == 0 { self.note("no array type found"); return nqp::null }
+
+        $!depth := 0;
+        $!dstr := "";
+
+        my $result-spec := self.check-array-type($node[0]);
+        if $result-spec == -1 { self.note("bind target is not a lowercase array"); return nqp::null }
+        if $result-spec == 0  { self.note("target array has an .of that's an object?!?"); return nqp::null }
+        if $result-spec == 3  { self.note("target is a string array"); return nqp::null }
+
+        if !$!symbols.is_from_core('&METAOP_HYPER') {
+            self.note("&METAOP_HYPER was overridden?");
+            return nqp::null;
+        }
+
+        self.note("here comes this tree:");
+        self.note($node[1].dump);
+
+        $!target-index := QAST::Var.new(:name($node.unique("hyperidx")), :scope("local"), :returns(int));
+        $!target-limit := QAST::Var.new(:name($node.unique("hyperlim")), :scope("local"), :returns(int));
+
+        my $target-local := QAST::Var.new(:name($node.unique("hypertarget")), :scope('local'));
+
+        $!loop-limit-calc-node := nqp::null;
+
+        my $limitdecl := $!target-limit.shallow_clone;
+        $limitdecl.decl("var");
+
+        my $indexdecl := $!target-index.shallow_clone;
+        $indexdecl.decl("var");
+
+        my $targetdecl := $target-local.shallow_clone;
+        $targetdecl.decl("var");
+
+        my $*IDX := $!target-index;
+
+        my $result := nqp::null;
+        #try {
+            self.noteup();
+            $result := self.handle-node($node[1]);
+        #}
+
+        my $loop-nodes := QAST::Stmts.new(
+            QAST::Op.new(:op('bind'), $indexdecl, QAST::IVal.new(:value(0))),
+            QAST::Op.new(:op('bind'), $limitdecl, $!loop-limit-calc-node),
+            QAST::Op.new(:op('bind'), $targetdecl, $node[0].shallow_clone));
+
+        for @!local-vars-keys -> $varname {
+            $loop-nodes.push(QAST::Op.new(:op('bind'),
+                QAST::Var.new(:name(%!local-vars{$varname}[0].name), :scope('local'), :decl('var') ),
+                %!local-vars{$varname}[1].shallow_clone));
+        }
+
+        $loop-nodes.push(
+            QAST::Op.new( :op<while>,
+              QAST::Op.new(
+                op => "isle_i",
+                QAST::Op.new( :op<bind>,
+                  QAST::Var.new(:name($!target-index.name), :scope<local>, :returns(int)),
+                  QAST::Op.new( :op<add_i>,
+                    QAST::Var.new(:name($!target-index.name),:scope<local>,:returns(int)),
+                    QAST::IVal.new( :value(1) )
+                  )
+                ),
+                QAST::Var.new(:name($!target-limit.name), :scope<local>, :returns(int))
+              ),
+              QAST::Op.new(:op('bindpos_' ~ @prim_suf[$result-spec]),
+                  $target-local.shallow_clone,
+                  QAST::Var.new(:name($!target-index.name),:scope<local>,:returns(int)),
+                  $result,
+              ),
+              QAST::IVal.new( :value(1), :named('nohandler') )
+          )
+        );
+
+        self.notedown("done");
+        if !nqp::isnull($loop-nodes) && !nqp::isnull($result) && !nqp::isnull($!loop-limit-calc-node) {
+            return $loop-nodes;
+        }
+        return nqp::null;
+    }
+
+    method find-dwimmyness($node, @dldr) {
+        my $dwim_left := 0;
+        my $dwim_right := 0;
+        my sub check-special-arg($arg) {
+            if nqp::istype($arg, QAST::WVal) && nqp::istype($arg, QAST::SpecialArg) && !$arg.flat {
+                if $arg.has_compile_time_value && $arg.compile_time_value {
+                    if $arg.named eq 'dwim-left' { $dwim_left := 1 }
+                    elsif $arg.named eq 'dwim-right' { $dwim_right := 1 }
+                    else {
+                        return nqp::null;
+                    }
+                }
+                else {
+                    return nqp::null;
+                }
+            }
+            else {
+                return nqp::null;
+            }
+        }
+        if +$node[0].list > 1 {
+            if +$node[0].list > 2 {
+                if nqp::isnull(check-special-arg($node[0][2])) {
+                    self.note("surprised by special argument");
+                }
+            }
+            if nqp::isnull(check-special-arg($node[0][1])) {
+                self.note("surprised by special argument");
+            }
+        }
+        @dldr[0] := $dwim_left;
+        @dldr[1] := $dwim_right;
+        return 1;
+    }
+
+    method handle-hyper-methodcall($node) {
+        self.noteup();
+        my $arg1 := self.handle-node($node[0]);
+
+        if nqp::isnull($arg1) {
+            self.notedown("argument is null, unfortunately.");
+            return nqp::null;
+        }
+
+        if nqp::isnull($!loop-limit-calc-node) && nqp::istype($node[0], QAST::Var) {
+            $!loop-limit-calc-node := QAST::Op.new(:op<elems>, $node[0].shallow_clone);
+        }
+
+        if !nqp::istype($node[1], QAST::SVal) || $node[1].value ne "" {
+            self.notedown("hyper methodcall had unexpected format (second arg should be empty SVal)");
+            return nqp::null;
+        }
+        
+        my $methname := $node[2];
+        if !nqp::istype($methname, QAST::SVal) {
+            self.notedown("third argument of dispatch:<hyper> should be the method name");
+            return nqp::null;
+        }
+        
+        $methname := $methname.value;
+
+        if !nqp::existskey(%hyper-methods, $methname) {
+            self.notedown("method $methname not supported (yet?)");
+            return nqp::null;
+        }
+
+        my $supportlevel := %hyper-methods{$methname};
+
+        self.note("will look if needs a custom hypermeth impl\n" ~ $node.dump);
+        self.note("here's the result of the argument\n" ~ $arg1.dump);
+
+        my $custom-impl := custom-hypermeth-impl($methname, $arg1);
+
+        # pretend for now that everything takes nums and spits out nums.
+
+        if nqp::isnull($custom-impl) {
+            self.notedown("returning a $methname _n op here");
+            return QAST::Op.new(:op($methname ~ "_n"), :returns(num),
+                $arg1)
+        }
+
+        self.notedown("returning a custom implementation");
+        return $custom-impl;
+    }
+
+    method handle-metaop-hyper-call($node) {
+        # first check if the metaopped thing is in our supported stuff list
+        my $metaop-target := $node[0][0];
+
+        if nqp::istype($metaop-target, QAST::Var) && $metaop-target.scope eq "lexical"
+            && nqp::existskey(%infix-ops, $metaop-target.name) && $!symbols.is_from_core($metaop-target.name) {
+            self.noteup("this is a valid hyperop call.");
+
+            my @dldr;
+            if nqp::isnull(self.find-dwimmyness($node, @dldr)) {
+                self.note("dwimmyness finding wasn't successful");
+                return nqp::null;
+            }
+
+            my $arg1 := $node[1];
+            my $arg2 := $node[2];
+
+            self.note("arg1:\n  " ~ $arg1.dump);
+            self.note("\n\narg2:\n  " ~ $arg2.dump);
+
+
+            if nqp::isnull($!loop-limit-calc-node) && (nqp::istype($arg1, QAST::Var) || nqp::istype($arg2, QAST::Var)) {
+                my $arrvar := nqp::istype($arg1, QAST::Var) ?? $arg1 !! $arg2;
+                $!loop-limit-calc-node := QAST::Op.new(:op<elems>, $arrvar.shallow_clone);
+            }
+
+            my $res1 := self.handle-node($arg1);
+            my $res2 := self.handle-node($arg2);
+
+            self.note("res1:\n" ~ $res1.dump);
+            self.note("\n\nres2:\n  " ~ $res2.dump);
+
+            my $icm := %infix-coerce-mode{$metaop-target.name};
+            my $returns;
+            my $returnspec;
+
+            self.note("argument return types are equal? " ~ ($res1.returns =:= $res2.returns));
+            self.note("primspecs? " ~ nqp::objprimspec($res1.returns) ~ " " ~ nqp::objprimspec($res2.returns));
+            self.note("argument return types are equal to int? " ~ ($res1.returns =:= int) ~ " " ~ ($res2.returns =:= int));
+            self.note("argument return types are equal to num? " ~ ($res1.returns =:= num) ~ " " ~ ($res2.returns =:= num));
+
+            if nqp::objprimspec($res1.returns) =:= nqp::objprimspec($res2.returns) {
+                if $res1.returns =:= int {
+                    $returns := int;
+                    $returnspec := "i";
+                }
+                else {
+                    $returns := num;
+                    $returnspec := "n";
+                }
+            }
+            else {
+                if $res1.returns =:= num || $res2.returns =:= num {
+                    $returns := num;
+                    $returnspec := "n";
+                }
+                else {
+                    self.notedown("could not figure out return type mode for " ~ $metaop-target.name);
+                    return nqp::null;
+                }
+            }
+
+            self.notedown();
+            return QAST::Op.new(:op(%infix-ops{$metaop-target.name} ~ $returnspec), :returns($returns),
+                $res1,
+                $res2);
+        }
+
+        return nqp::null;
+    }
+
+    method handle-array-var($node) {
+        my $primspec := self.check-array-type($node);
+        if $primspec == 0 || $primspec == 3 { self.notedown("wrong type of array " ~ $node.name ~ ": " ~ $primspec); return nqp::null }
+
+        my $sourcenode;
+
+        if nqp::existskey(%!local-vars, $node.name) {
+            $sourcenode := %!local-vars{$node.name}[0].shallow_clone;
+        }
+        else {
+            $sourcenode := QAST::Var.new(:name($node.unique("hyperinput_" ~ $node.name)), :scope('local'), :returns(@prim_obj[$primspec]));
+            %!local-vars{$node.name} := nqp::list($sourcenode, $node);
+            @!local-vars-keys.push($node.name);
+        }
+
+        return QAST::Op.new(:op("atpos_" ~ @prim_suf[$primspec]), :returns(@prim_obj[$primspec]),
+                $sourcenode,
+                QAST::Var.new(:name($*IDX.name), :scope("local"), :returns(@prim_obj[$primspec])),
+            );
+    }
+
+    method handle-node($node) {
+        if nqp::istype($node, QAST::Op) {
+            self.note("node is qast op");
+            if $node.op eq 'call' {
+                self.note("  op is call");
+                if $node.name eq "" {
+                    self.note("    call op is nameless");
+                    if nqp::istype($node[0], QAST::Op) && $node[0].op eq "call" { 
+                        if $node[0].name eq '&METAOP_HYPER' {
+                            self.noteup();
+                            my $r := self.handle-metaop-hyper-call($node);
+                            self.notedown($r.dump);
+                            return $r;
+                        }
+                        elsif $node[0].name eq '&METAOP_HYPER_PREFIX' || $node[0].name eq '&METAOP_HYPER_POSTFIX_ARGS' {
+                            self.notedown("cannot handle hyper prefix or postfix ops yet");
+                            return nqp::null;
+                        }
+                    }
+                    self.notedown("don't know how to handle call op with no name, calling: " ~ $node[0].dump);
+                    return nqp::null;
+                }
+                else {
+                    self.notedown("don't know how to handle call op with name " ~ $node.name);
+                    return nqp::null;
+                }
+            }
+            elsif $node.op eq 'callmethod' {
+                if $node.name eq 'dispatch:<hyper>' {
+                    return self.handle-hyper-methodcall($node);
+                }
+                else {
+                    self.notedown("don't know how to handle method call with name " ~ $node.name);
+                    return nqp::null;
+                }
+                #elsif nqp::existskey($node.name, 
+            }
+            elsif $node.op eq 'hllize' {
+                self.note("skipping hllize");
+                return self.handle-node($node[0])
+            }
+        }
+        elsif nqp::istype($node, QAST::Var) {
+            self.note("it's a var node");
+            if nqp::eqat($node.name, '@', 0) && !nqp::eqat($node.name, '*', 1) {
+                self.note("  seems like an array var. let's check it.");
+                return self.handle-array-var($node);
+            }
+            else {
+
+            }
+        }
+        self.note("done with the handle-node method");
+
+        self.notedown("didn't find a match to handle node in handle-node:\n" ~ $node.dump);
+        return nqp::null;
     }
 }
 
@@ -1181,6 +2041,8 @@ class Perl6::Optimizer {
     # Are we in debug mode?
     has $!debug;
 
+    has $!turn_hyper_on;
+
     # Entry point for the optimization process.
     method optimize($past, *%adverbs) {
         # Initialize.
@@ -1193,6 +2055,7 @@ class Perl6::Optimizer {
         $!void_context            := 0;
         $!can_lower_topic         := $past.ann('CAN_LOWER_TOPIC');
         $!debug                   := nqp::getenvhash<RAKUDO_OPTIMIZER_DEBUG>;
+        $!turn_hyper_on           := nqp::getenvhash<RAKUDO_OPTIMIZER_HYPER>;
         my $*DYNAMICALLY_COMPILED := 0;
         my $*OPTIMIZER-SYMBOLS    := $!symbols;
         my $*W                    := $past.ann('W');
@@ -1505,13 +2368,21 @@ class Perl6::Optimizer {
                     $!problems.add_worry($op, $warning);
                 }
             }
-            elsif $op.name eq 'STORE' && nqp::istype($op[1], QAST::Op) && $op[1].op eq 'call' && nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq 'call' && $op[1][0].name eq '&METAOP_HYPER' {
+            #elsif $op.name eq 'STORE' && nqp::istype($op[1], QAST::Op) && $op[1].op eq 'call' && nqp::istype($op[1][0], QAST::Op)
+                    #&& ($op[1][0].op eq 'call' && $op[1][0].name eq '&METAOP_HYPER'
+                    #|| (my $method-info := (nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq "hllize" ?? $op[1][0] !! $op[1])) && $method-info[0].op eq 'callmethod' && $method-info[0].name eq 'dispatch:<hyper>') {
+            elsif $op.name eq 'STORE' && nqp::istype($op[1], QAST::Op) && ($op[1].op eq 'call' || $op[1].op eq "hllize") && nqp::istype($op[1][0], QAST::Op)
+                    && ($op[1][0].op eq 'call' && $op[1][0].name eq '&METAOP_HYPER'
+                    || (my $method-info := (nqp::istype($op[1][0], QAST::Op) && $op[1][0].op eq "hllize" ?? $op[1][0] !! $op[1])) && $method-info[0].op eq 'callmethod' && $method-info[0].name eq 'dispatch:<hyper>') {
                 # can perhaps generate some very fast code for a hyperop
                 # expression, with techniques that have cool names like
                 # "tiling" and "loop fusion".
-                note("metaop hyper from core? " ~ $!symbols.is_from_core('&METAOP_HYPER'));
-                if HyperOptimizer.new.optimize($op) {
-                    return $op;
+                if $!turn_hyper_on {
+                    note("metaop hyper from core? " ~ $!symbols.is_from_core('&METAOP_HYPER'));
+                    my $result := HyperOptimizer.new.optimize($op);
+                    if !nqp::isnull($result) {
+                        return $result;
+                    }
                 }
             }
         }

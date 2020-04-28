@@ -3525,7 +3525,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method tc(|) {*}
     multi method tc(Str:D: --> Str:D) {
-        nqp::p6box_s(nqp::tc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1)); #?js: NFG
+        nqp::concat(nqp::tc(nqp::substr(self,0,1)),nqp::substr(self,1)); #?js: NFG
     }
     multi method tc(Str:U: --> Str:D) {
         self.Str

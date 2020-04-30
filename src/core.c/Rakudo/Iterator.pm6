@@ -53,11 +53,7 @@ class Rakudo::Iterator {
             )
         }
         method count-only(--> Int:D) {
-            nqp::p6box_i(
-              nqp::elems($!blob)
-                - $!i
-                - nqp::islt_i($!i,nqp::elems($!blob))
-            )
+            nqp::elems($!blob) - $!i - nqp::islt_i($!i,nqp::elems($!blob))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!blob) }
     }
@@ -779,7 +775,7 @@ class Rakudo::Iterator {
             target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
             $!i = $i;
         }
-        method count-only(--> Int:D) { nqp::p6box_i($!n - $!i) }
+        method count-only(--> Int:D) { $!n - $!i }
         method sink-all(--> IterationEnd) { $!i = $!n }
     }
     method CharFromTo(\min,\max,\excludes-min,\excludes-max) {
@@ -2014,9 +2010,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy(--> Bool:D) { $!is-lazy }
-        method count-only(--> Int:D) {
-            nqp::p6box_i($!last - $!i + nqp::isgt_i($!i,$!last))
-        }
+        method count-only(--> Int:D) { $!last - $!i + nqp::isgt_i($!i,$!last) }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
     method IntRange(\from,\to) { IntRange.new(from,to) }
@@ -2573,9 +2567,6 @@ class Rakudo::Iterator {
         method count-only() {
             nqp::not_i(nqp::eqaddr($!value,IterationEnd))
         }
-        method bool-only() {
-            nqp::hllbool(nqp::not_i(nqp::eqaddr($!value,IterationEnd)))
-        }
     }
     method OneValue(Mu \value) { OneValue.new(value) }
 
@@ -2737,9 +2728,7 @@ class Rakudo::Iterator {
               IterationEnd
             )
         }
-        method count-only(--> Int:D) {
-            nqp::p6box_i(nqp::isgt_i($!todo,0) && $!todo)
-        }
+        method count-only(--> Int:D) { nqp::isgt_i($!todo,0) && $!todo }
     }
     method Permutations($n, int $b) {
         nqp::if(
@@ -2844,11 +2833,7 @@ class Rakudo::Iterator {
             )
         }
         method count-only(--> Int:D) {
-            nqp::p6box_i(
-              nqp::elems($!reified)
-                - $!i
-                - nqp::islt_i($!i,nqp::elems($!reified))
-            )
+            nqp::elems($!reified) - $!i - nqp::islt_i($!i,nqp::elems($!reified))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
@@ -2934,11 +2919,7 @@ class Rakudo::Iterator {
             )
         }
         method count-only(--> Int:D) {
-            nqp::p6box_i(
-              nqp::elems($!reified)
-                - $!i
-                - nqp::islt_i($!i,nqp::elems($!reified))
-            )
+            nqp::elems($!reified) - $!i - nqp::islt_i($!i,nqp::elems($!reified))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }

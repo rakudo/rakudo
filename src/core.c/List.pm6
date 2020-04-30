@@ -1131,17 +1131,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method reverse(List:D: --> Seq:D) is nodal {
         self.is-lazy    # reifies
           ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
-          !! Seq.new: $!reified
-            ?? nqp::stmts(
-                 (my \src := nqp::clone(nqp::getattr(self,List,'$!reified'))),
-                 (my \dst := nqp::create(src.WHAT)),
-                 nqp::while(
-                   nqp::elems(src),
-                   nqp::push(dst,nqp::pop(src))
-                 ),
-                 Rakudo::Iterator.ReifiedList(dst)
-               )
-            !! Rakudo::Iterator.Empty
+          !! Seq.new: Rakudo::Iterator.ReifiedListReverse(self)
     }
 
     method rotate(List:D: Int(Cool) $rotate = 1) is nodal {

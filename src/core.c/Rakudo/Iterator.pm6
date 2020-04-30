@@ -2927,6 +2927,44 @@ class Rakudo::Iterator {
         ReifiedListIterator.new(list)
     }
 
+    # Return an iterator for a List that has been completely reified
+    # already, but that will produce values in reverse order.
+    my class ReifiedListReverseIterator does PredictiveIterator {
+        has $!reified;
+        has int $!i;
+
+        method !SET-SELF(\list) {
+            $!reified := nqp::istype(list,List)
+              ?? nqp::getattr(list,List,'$!reified')
+              !! list;
+            ($!i = nqp::elems($!reified))
+              ?? self
+              !! Rakudo::Iterator.Empty
+        }
+        method new(\list) { nqp::create(self)!SET-SELF(list) }
+
+        method pull-one() is raw {
+            nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
+              ?? nqp::atpos($!reified,$!i)
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $reified := $!reified; # lexicals are faster than attributes
+            my int $i    = $!i;
+            nqp::while(  # doesn't sink
+              nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+              target.push(nqp::atpos($reified,$i))
+            );
+            $!i = $i;
+        }
+        method skip-one() { nqp::isge_i(($!i = nqp::sub_i($!i,1)),0) }
+        method count-only(--> Int:D) { $!i + nqp::islt_i($!i,0) }
+        method sink-all(--> IterationEnd) { $!i = -1 }
+    }
+    method ReifiedListReverse(\list) {
+        ReifiedListReverseIterator.new(list)
+    }
+
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,
     # it will cache the values seen to handle case that the iterator

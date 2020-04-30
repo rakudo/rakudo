@@ -694,7 +694,7 @@ my role X::Comp is Exception {
                     $r ~= "\n        $_";
                 }
             }
-            for @.modules.reverse[1..*] {
+            for @.modules.reverse.skip {
                 my $line = nqp::p6box_i($_<line>);
                 $r ~= $_<module>.defined
                         ?? "\n  from module $_<module> ($_<filename> line $line)"
@@ -781,7 +781,7 @@ my class X::Comp::BeginTime does X::Comp {
     multi method gist(::?CLASS:D: :$sorry = True) {
         my $r = $sorry ?? self.sorry_heading() !! "";
         $r ~= "$.message\nat $.filename():$.line";
-        for @.modules.reverse[1..*] {
+        for @.modules.reverse.skip {
             my $line = nqp::p6box_i($_<line>);
             $r ~= $_<module>.defined
                     ?? "\n  from module $_<module> ($_<filename> line $line)"

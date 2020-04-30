@@ -2859,7 +2859,7 @@ class Rakudo::Iterator {
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements that don't exist
     # before the end of the reified list.
-    my class ReifiedListIterator does Iterator {
+    my class ReifiedListIterator does PredictiveIterator {
         has $!reified;
         has int $!i;
 

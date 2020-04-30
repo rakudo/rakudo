@@ -225,13 +225,11 @@
 
     multi method squish(Supply:D:) {
         supply {
-            my int $first = 1;
-            my $last;
+            my $last := nqp::null;
             my $which;
             whenever self -> \val {
-                if $first {
+                if nqp::isnull($last) {
                     emit val;
-                    $first = 0;
                     $last := val.WHICH;
                 }
                 elsif $last ne ($which := val.WHICH) {
@@ -243,14 +241,12 @@
     }
     multi method squish(Supply:D: :&as!, :&with!) {
         supply {
-            my int $first = 1;
             my $target;
-            my $last;
+            my $last := nqp::null;
             whenever self -> \val {
                 $target := as(val);
-                if $first {
+                if nqp::isnull($last) {
                     emit val;
-                    $first = 0;
                 }
                 else {
                     emit val unless with($last, $target);
@@ -261,15 +257,13 @@
     }
     multi method squish(Supply:D: :&as!) {
         supply {
-            my int $first = 1;
             my $target;
-            my $last;
+            my $last := nqp::null;
             my $which;
             whenever self -> \val {
                 $target := as(val);
-                if $first {
+                if nqp::isnull($last) {
                     emit val;
-                    $first = 0;
                     $last := $target.WHICH;
                 }
                 elsif $last ne ($which := $target.WHICH) {
@@ -281,16 +275,11 @@
     }
     multi method squish(Supply:D: :&with!) {
         supply {
-            my int $first = 1;
-            my $last;
+            my $last := nqp::null;
             whenever self -> \val {
-                if $first {
-                    emit val;
-                    $first = 0;
-                }
-                elsif nqp::not_i(with($last, val)) {
-                    emit val;
-                }
+                emit val
+                  if nqp::isnull($last)
+                  || nqp::not_i(with($last, val));
                 $last := val;
             }
         }

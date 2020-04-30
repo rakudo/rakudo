@@ -111,8 +111,14 @@ my class Seq is Cool does Iterable does Sequence {
     }
 
     method reverse(--> Seq:D) {
-        self.iterator.push-all(my \buffer := nqp::create(IterationBuffer));
-        Seq.new: Rakudo::Iterator.ReifiedListReverse(buffer)
+        nqp::if(
+          (my $iterator := self.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
+          nqp::stmts(
+            $iterator.push-all(my \buffer := nqp::create(IterationBuffer)),
+            Seq.new: Rakudo::Iterator.ReifiedListReverse(buffer)
+          )
+        )
     }
 
     method sink(--> Nil) {

@@ -693,11 +693,11 @@
 
     method grab(Supply:D: &when_done) {
         supply {
-            my @seen;
+            my $seen := nqp::create(IterationBuffer);
             whenever self -> \val {
-                @seen.push: val;
+                nqp::push($seen,val);
                 LAST {
-                    emit($_) for when_done(@seen);
+                    emit($_) for when_done($seen.List);
                 }
             }
         }

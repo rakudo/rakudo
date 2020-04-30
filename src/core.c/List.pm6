@@ -1131,7 +1131,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method reverse(List:D: --> Seq:D) is nodal {
         self.is-lazy    # reifies
           ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
-          !! Seq.new: Rakudo::Iterator.ReifiedListReverse(self)
+          !! Seq.new: $!reified
+            ?? Rakudo::Iterator.ReifiedListReverse(self)
+            !! Rakudo::Iterator.Empty
     }
 
     method rotate(List:D: Int(Cool) $rotate = 1) is nodal {

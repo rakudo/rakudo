@@ -110,6 +110,11 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
+    method reverse(--> Seq:D) {
+        self.iterator.push-all(my \buffer := nqp::create(IterationBuffer));
+        Seq.new: Rakudo::Iterator.ReifiedListReverse(buffer)
+    }
+
     method sink(--> Nil) {
         nqp::if(
           nqp::isconcrete($!iter),

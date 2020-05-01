@@ -480,18 +480,13 @@
 
     method reduce(Supply:D: &with) {
         supply {
-            my $first := True;
-            my $reduced := Nil;
+            my $reduced := nqp::null;
             whenever self -> \value {
-                if $first {
-                    $reduced := value;
-                    $first := False;
-                }
-                else {
-                    $reduced := with($reduced, value);
-                }
+                $reduced := nqp::isnull($reduced)
+                  ?? value
+                  !! with($reduced, value);
                 LAST {
-                    emit $reduced;
+                    emit nqp::ifnull($reduced,Nil);
                 }
             }
         }

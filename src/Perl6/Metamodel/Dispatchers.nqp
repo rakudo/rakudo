@@ -39,21 +39,6 @@ class Perl6::Metamodel::BaseDispatcher {
         [$call, 0]
     }
 
-    # By default we just set next call dispatcher to ourselves.
-    # Method must return value for $*NEXT-DISPATCHER
-    method set_call_dispatcher($call) {
-        return nqp::null() if self.is_wrapper_like && self.last_candidate && !$!next_dispatcher;
-        if (nqp::can($call, 'is_dispatcher') && $call.is_dispatcher)
-            || (nqp::can($call, 'is_wrapped') && $call.is_wrapped)
-        {
-            self
-        }
-        else {
-            nqp::setdispatcherfor(self, $call);
-            nqp::null()
-        }
-    }
-
     method call_with_args(*@pos, *%named) {
         my @call := self.get_call;
         if @call[1] {

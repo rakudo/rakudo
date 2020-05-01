@@ -77,16 +77,9 @@ class Perl6::Metamodel::BaseDispatcher {
     }
 
     method shift_callee() {
-        my @call := [nqp::null(), nqp::null()];
-        if self.last_candidate {
-            if $!next_dispatcher {
-                @call := $!next_dispatcher.shift_callee;
-            }
-        }
-        else {
-            @call := self.get_call;
-        }
-        @call;
+        my $callee := @!candidates[$!idx];
+        ++$!idx;
+        nqp::decont($callee)
     }
 
     method add_from_mro(@methods, $class, $sub, :$skip_first = 0) {
@@ -135,7 +128,8 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
 
     method vivify_for($sub, $lexpad, $args) {
         my $obj      := $lexpad<self>;
-        my @methods  := self.add_from_mro([], $obj, $sub);
+        my $class    := nqp::getlexrel($lexpad, '::?CLASS');
+        my @methods  := self.add_from_mro([], $class, $sub);
         self.new(:candidates(@methods), :obj($obj), :idx(1))
     }
 

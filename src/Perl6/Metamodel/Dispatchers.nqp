@@ -5,7 +5,7 @@ class Perl6::Metamodel::BaseDispatcher {
 
     method candidates()     { @!candidates }
 
-    method exhausted()      { $!idx >= +@!candidates && (!nqp::defined($!next_dispatcher) || $!next_dispatcher.exhausted()) }
+    method exhausted()      { $!idx >= +@!candidates && (!nqp::isconcrete($!next_dispatcher) || $!next_dispatcher.exhausted()) }
 
     method last_candidate() { $!idx >= +@!candidates }
 
@@ -14,31 +14,34 @@ class Perl6::Metamodel::BaseDispatcher {
     method set_next_dispatcher($next_dispatcher)
                             { $!next_dispatcher := $next_dispatcher }
 
-    # Wrapper-like dispatchers handle their last candidate differently.
+    # Wrapper-like dispatchers don't set dispatcher for the last candidate.
     method is_wrapper_like() { 0 }
 
-    method get_call() {
+    method get_call() { # Returns [$call, $is_dispatcher]
         my $call := @!candidates[$!idx];
         ++$!idx;
+        my $next_disp := self.set_call_dispatcher($call);
+        [$call, $next_disp]
+    }
+
+    # By default we just set next call dispatcher to ourselves.
+    # Method must return value for $*NEXT-DISPATCHER
+    method set_call_dispatcher($call) {
+        return nqp::null() if self.is_wrapper_like && self.last_candidate && !$!next_dispatcher;
         if (nqp::can($call, 'is_dispatcher') && $call.is_dispatcher)
             || (nqp::can($call, 'is_wrapped') && $call.is_wrapped)
         {
-            nqp::nextdispatcherfor(self, $call);
+            self
         }
         else {
-            if self.is_wrapper_like && self.last_candidate {
-                nqp::setdispatcherfor($!next_dispatcher, $call) if $!next_dispatcher;
-            }
-            else {
-                nqp::setdispatcherfor(self, $call);
-            }
+            nqp::setdispatcherfor(self, $call);
+            nqp::null()
         }
-        $call
     }
 
     method call_with_args(*@pos, *%named) {
         if self.last_candidate {
-            if nqp::defined($!next_dispatcher) {
+            if $!next_dispatcher {
                 $!next_dispatcher.call_with_args(|@pos, |%named);
             }
             else {
@@ -46,19 +49,20 @@ class Perl6::Metamodel::BaseDispatcher {
             }
         }
         else {
-            my $call := self.get_call;
+            my @call := self.get_call;
+            my $*NEXT-DISPATCHER := @call[1];
             if self.has_invocant {
-               $call(self.invocant, |@pos, |%named);
+                @call[0](self.invocant, |@pos, |%named);
             }
             else {
-                $call(|@pos, |%named);
+                @call[0](|@pos, |%named);
             }
         }
     }
 
     method call_with_capture($capture) {
         if self.last_candidate {
-            if nqp::defined($!next_dispatcher) {
+            if $!next_dispatcher {
                 $!next_dispatcher.call_with_capture($capture)
             }
             else {
@@ -66,23 +70,23 @@ class Perl6::Metamodel::BaseDispatcher {
             }
         }
         else {
-            my $call := self.get_call;
-            nqp::invokewithcapture($call, $capture);
+            my @call := self.get_call;
+            my $*NEXT-DISPATCHER := @call[1];
+            nqp::invokewithcapture(@call[0], $capture);
         }
     }
 
     method shift_callee() {
+        my @call := [nqp::null(), nqp::null()];
         if self.last_candidate {
-            if nqp::defined($!next_dispatcher) {
-                $!next_dispatcher.shift_callee;
-            }
-            else {
-                nqp::null()
+            if $!next_dispatcher {
+                @call := $!next_dispatcher.shift_callee;
             }
         }
         else {
-            self.get_call;
+            @call := self.get_call;
         }
+        @call;
     }
 
     method add_from_mro(@methods, $class, $sub, :$skip_first = 0) {
@@ -102,7 +106,8 @@ class Perl6::Metamodel::BaseDispatcher {
                     $meth := nqp::null() if %seen{$proto_pkg_id};
                     %seen{$proto_pkg_id} := 1
                 }
-                # Skipping the first method obtained from MRO because it should have been invoked already
+                # Skipping the first method obtained from MRO because either it should have been handled already by
+                # vivify_for.
                 nqp::if(
                     nqp::isgt_i($skip_first, 0),
                     (--$skip_first),
@@ -129,9 +134,8 @@ class Perl6::Metamodel::MethodDispatcher is Perl6::Metamodel::BaseDispatcher {
     }
 
     method vivify_for($sub, $lexpad, $args) {
-        my $obj      := nqp::decont($lexpad<self>);
-        my @methods  := [];
-        self.add_from_mro(@methods, $obj, $sub);
+        my $obj      := $lexpad<self>;
+        my @methods  := self.add_from_mro([], $obj, $sub);
         self.new(:candidates(@methods), :obj($obj), :idx(1))
     }
 
@@ -158,14 +162,12 @@ class Perl6::Metamodel::MultiDispatcher is Perl6::Metamodel::BaseDispatcher {
         my $has_invocant := nqp::existskey($lexpad, 'self');
         my @cands        := $disp.find_best_dispatchee($args, 1);
         my $invocant     := $has_invocant && $lexpad<self>;
-        my $next_dispatcher := nqp::existskey($lexpad, '$*NEXT-DISPATCHER')
-                                ?? nqp::atkey($lexpad, '$*NEXT-DISPATCHER')
-                                !! nqp::null();
-
+        my $next_dispatcher := nqp::getlexreldyn($lexpad, '$*NEXT-DISPATCHER');
         # The first candidate has already been invoked, throw it away from the list;
         # If called in a method then only take control if MethodDispatcher is in charge.
-        if $has_invocant && !nqp::defined($next_dispatcher) {
-            self.add_from_mro(@cands, $invocant, $sub, :skip_first(1));
+        if $has_invocant && !nqp::isconcrete($next_dispatcher) {
+            my $class := nqp::getlexrel($lexpad, '::?CLASS');
+            self.add_from_mro(@cands, $class, $sub, :skip_first(1));
             Perl6::Metamodel::MethodDispatcher.new(:candidates(@cands), :idx(1), :obj($invocant))
         }
         else {
@@ -188,9 +190,7 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
 
     method vivify_for($sub, $lexpad, $capture) {
         my @candidates      := $sub.wrappers;
-        my $next_dispatcher := nqp::existskey($lexpad, '$*NEXT-DISPATCHER')
-                                ?? nqp::atkey($lexpad, '$*NEXT-DISPATCHER')
-                                !! nqp::null();
+        my $next_dispatcher := nqp::getlexreldyn($lexpad, '$*NEXT-DISPATCHER');
         self.new(:@candidates, :idx(1), :$next_dispatcher)
     }
 

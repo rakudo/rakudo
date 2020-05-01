@@ -90,42 +90,17 @@ my class Backtrace {
         $!frames := nqp::list;
         self
     }
-
-    # The purpose of SKIP-OWN-COUNT is to find the first frame which lies above any of our own frames. This method makes
-    # backtracing much less context and optimization dependent.
-    # This method is only needed while we depend on exceptions to produce a backtrace. If we ever get nqp::backtrace()
-    # or nqp::backtrace(nqp::ctx) implemented then this method could be obsoleted as then we would know exactly how many
-    # frames belong to Backtrace.
-    method !SKIP-OWN-COUNT(Mu \bt) {
-        my $cnt = 0;
-        my $found-self := 0;
-        my $i = 0;
-        my $elems := bt.elems;
-        nqp::while(
-            nqp::if(nqp::islt_i($i, $elems), nqp::iseq_i($cnt, 0)),
-            nqp::stmts(
-                (my $own := nqp::isge_i(nqp::rindex(%(bt[$i])<annotations><file>, 'Backtrace.pm6'), 0)),
-                nqp::if(
-                    $found-self,
-                    nqp::unless($own, ($cnt = $i)),
-                    nqp::if($own, ($found-self := 1))
-                ),
-                ++$i
-            )
-        );
-        $cnt
-    }
     multi method new() {
         try X::AdHoc.new(:payload("Died")).throw;
         nqp::create(self)!SET-SELF(
-          (my \bt = nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex'))),
-          self!SKIP-OWN-COUNT(bt))
+          nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
+          1)
     }
     multi method new(Int:D $offset) {
         try X::AdHoc.new(:payload("Died")).throw;
         nqp::create(self)!SET-SELF(
-          (my \bt = nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex'))),
-          self!SKIP-OWN-COUNT(bt) + $offset)
+          nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
+          1 + $offset)
     }
     multi method new(Mu \ex) {
         nqp::create(self)!SET-SELF(

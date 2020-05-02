@@ -2945,7 +2945,7 @@ class Rakudo::Iterator {
 
         method pull-one() is raw {
             nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
-              ?? nqp::atpos($!reified,$!i)
+              ?? nqp::ifnull(nqp::atpos($!reified,$!i),Nil)
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
@@ -2953,7 +2953,7 @@ class Rakudo::Iterator {
             my int $i    = $!i;
             nqp::while(  # doesn't sink
               nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-              target.push(nqp::atpos($reified,$i))
+              target.push(nqp::ifnull(nqp::atpos($reified,$i),Nil))
             );
             $!i = $i;
         }

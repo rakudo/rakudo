@@ -47,8 +47,6 @@ my class Code does Callable { # declared in BOOTSTRAP
         nqp::getcodelocation($!do)<line>;
     }
 
-    multi method raku(Code:D:) { '{ ... }' }
-
     method assuming(Code:D $self: |primers) {
         my $sig = nqp::getattr(nqp::decont($self), Code, '$!signature');
 

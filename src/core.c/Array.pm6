@@ -419,6 +419,14 @@ my class Array { # declared in BOOTSTRAP
     multi method flat(Array:U:) { self }
     multi method flat(Array:D:) { Seq.new(self.iterator) }
 
+    method reverse(Array:D: --> Seq:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
+          !! Seq.new: nqp::getattr(self,List,'$!reified')
+            ?? Rakudo::Iterator.ReifiedReverse(self, $!descriptor)
+            !! Rakudo::Iterator.Empty
+    }
+
     multi method List(Array:D: :$view --> List:D) {
         nqp::if(
           self.is-lazy,                           # can't make a List

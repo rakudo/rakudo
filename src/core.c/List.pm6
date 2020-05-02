@@ -1132,7 +1132,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.is-lazy    # reifies
           ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
           !! Seq.new: $!reified
-            ?? Rakudo::Iterator.ReifiedListReverse(self)
+            ?? Rakudo::Iterator.ReifiedReverse(self, Mu)
             !! Rakudo::Iterator.Empty
     }
 

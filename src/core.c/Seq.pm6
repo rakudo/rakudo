@@ -116,7 +116,7 @@ my class Seq is Cool does Iterable does Sequence {
           Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
           nqp::stmts(
             $iterator.push-all(my \buffer := nqp::create(IterationBuffer)),
-            Seq.new: Rakudo::Iterator.ReifiedListReverse(buffer)
+            Seq.new: Rakudo::Iterator.ReifiedReverse(buffer, Mu)
           )
         )
     }

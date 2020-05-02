@@ -2927,25 +2927,41 @@ class Rakudo::Iterator {
         ReifiedListIterator.new(list)
     }
 
-    # Return an iterator for a List that has been completely reified
-    # already, but that will produce values in reverse order.
-    my class ReifiedListReverseIterator does PredictiveIterator {
+    # Return an iterator for a List/Array that has been completely reified,
+    # or an IterationBuffer, that will produce values in reverse order.  Takes
+    # a descriptor to create correct values for holes in the List/Array, use
+    # Mu to have holes returned as Nil.
+    my class ReifiedReverseIterator does PredictiveIterator {
         has $!reified;
+        has $!descriptor;
         has int $!i;
 
-        method !SET-SELF(\list) {
+        method !SET-SELF(\list, Mu \descriptor) {
             $!reified := nqp::istype(list,List)
               ?? nqp::getattr(list,List,'$!reified')
               !! list;
+            $!descriptor := nqp::eqaddr(descriptor,Mu)
+              ?? nqp::null()
+              !! descriptor;
             ($!i = nqp::elems($!reified))
               ?? self
               !! Rakudo::Iterator.Empty
         }
-        method new(\list) { nqp::create(self)!SET-SELF(list) }
+        method new(\list, Mu \des) { nqp::create(self)!SET-SELF(list, des) }
+
+        method !hole(int $i) is raw {
+            nqp::isnull($!descriptor)
+              ?? Nil
+              !! nqp::p6scalarfromdesc(
+                   ContainerDescriptor::BindArrayPos.new(
+                     $!descriptor, $!reified, $i
+                   )
+                 )
+        }
 
         method pull-one() is raw {
             nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
-              ?? nqp::ifnull(nqp::atpos($!reified,$!i),Nil)
+              ?? nqp::ifnull(nqp::atpos($!reified,$!i),self!hole($!i))
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
@@ -2953,7 +2969,7 @@ class Rakudo::Iterator {
             my int $i    = $!i;
             nqp::while(  # doesn't sink
               nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-              target.push(nqp::ifnull(nqp::atpos($reified,$i),Nil))
+              target.push(nqp::ifnull(nqp::atpos($reified,$i),self!hole($i)))
             );
             $!i = $i;
         }
@@ -2961,8 +2977,8 @@ class Rakudo::Iterator {
         method count-only(--> Int:D) { $!i + nqp::islt_i($!i,0) }
         method sink-all(--> IterationEnd) { $!i = -1 }
     }
-    method ReifiedListReverse(\list) {
-        ReifiedListReverseIterator.new(list)
+    method ReifiedReverse(\list, Mu \descriptor) {
+        ReifiedReverseIterator.new(list, descriptor)
     }
 
     # Return a lazy iterator that will repeat the values of a given

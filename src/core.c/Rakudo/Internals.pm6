@@ -20,6 +20,24 @@ my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
+    method SLICE_HUH(\object, @nogo, %d, %adv) {
+        @nogo.unshift('delete')  # recover any :delete if necessary
+          if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
+        for <delete exists kv p k v> -> $valid { # check all valid params
+            if nqp::existskey(%d,nqp::unbox_s($valid)) {
+                nqp::deletekey(%d,nqp::unbox_s($valid));
+                @nogo.push($valid);
+            }
+        }
+
+        Failure.new(X::Adverb.new(
+          :what<slice>,
+          :source(try { object.VAR.name } // object.^name),
+          :unexpected(%d.keys),
+          :nogo(@nogo),
+        ))
+    }
+
     # for use in nqp::splice
     my $empty := nqp::list;
 
@@ -154,7 +172,7 @@ my class Rakudo::Internals {
         0;
     }
 
-    method createENV(int $bind) {
+    method createENV() {
         nqp::stmts(
           (my $hash := nqp::hash),
           (my $iter := nqp::iterator(nqp::getenvhash)),
@@ -163,16 +181,13 @@ my class Rakudo::Internals {
             nqp::bindkey(
               $hash,
               nqp::iterkey_s(nqp::shift($iter)),
-              nqp::if(
-                $bind,
-                val(nqp::iterval($iter)),
-                nqp::p6scalarfromdesc(nqp::null) = val(nqp::iterval($iter))
+              nqp::assign(
+                nqp::p6scalarfromdesc(nqp::null),
+                val(nqp::box_s(nqp::iterval($iter),Str))
               )
             )
           ),
-          nqp::p6bindattrinvres(
-            nqp::create(nqp::if($bind,Map,Hash)),Map,'$!storage',$hash
-          )
+          $hash
         )
     }
 
@@ -413,10 +428,10 @@ my class Rakudo::Internals {
             my $dim_type := nqp::newtype($key.AT-POS(0), 'MultiDimArray');
             nqp::composetype($dim_type, nqp::hash('array',
                 nqp::hash('dimensions', $dims, 'type', $type)));
-            nqp::settypehll($dim_type, 'perl6');
+            nqp::settypehll($dim_type, 'Raku');
             $dim_type
         });
-        nqp::settypehll($root, 'perl6');
+        nqp::settypehll($root, 'Raku');
         $root
     }
 
@@ -469,7 +484,7 @@ my class Rakudo::Internals {
 implementation detail and has no serviceable parts inside"
         }
         method Str( --> Str:D) { self.gist }
-        method perl(--> Str:D) { self.gist }
+        method raku(--> Str:D) { self.gist }
     }
 
     our role ShapedArrayCommon {
@@ -533,11 +548,11 @@ implementation detail and has no serviceable parts inside"
             }
         }
 
-        multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Array', {
+        multi method raku(::?CLASS:D \SELF:) {
+            SELF.rakuseen('Array', {
                 self.^name
                 ~ '.new(:shape'
-                ~ nqp::decont(self.shape).perl
+                ~ nqp::decont(self.shape).raku
                 ~ ', '
                 ~ self!perl(nqp::create(Array), self.shape)
                 ~ ')'
@@ -547,7 +562,7 @@ implementation detail and has no serviceable parts inside"
         method !perl(@path, @dims) {
             if @dims.elems == 1 {
                  '[' ~
-                    (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).perl }).join(', ') ~
+                    (^@dims[0]).map({ nqp::decont(self.AT-POS(|@path, $_)).raku }).join(', ') ~
                     ',' x (@dims[0] == 1 && nqp::istype(self.AT-POS(|@path, 0), Iterable)) ~
                  ']'
             }
@@ -671,24 +686,6 @@ implementation detail and has no serviceable parts inside"
           nqp::concat(nqp::substr($gist, 0, 20), '...'),
           $gist);
     }
-    method SUBSTR-START-OOR(\from,\max) {
-        Failure.new(X::OutOfRange.new(
-          :what('Start argument to substr'),
-          :got(from.gist),
-          :range("0.." ~ max),
-          :comment( nqp::istype(from, Callable) || -from > max
-            ?? ''
-            !! "use *-{abs from} if you want to index relative to the end"),
-        ))
-    }
-    method SUBSTR-CHARS-OOR(\chars) {
-        Failure.new(X::OutOfRange.new(
-          :what('Number of characters argument to substr'),
-          :got(chars.gist),
-          :range<0..^Inf>,
-          :comment("use *-{abs chars} if you want to index relative to the end"),
-        ))
-    }
 
     my $IS-WIN = do {
         my str $os = Rakudo::Internals.TRANSPOSE(nqp::lc(
@@ -730,93 +727,42 @@ implementation detail and has no serviceable parts inside"
     method INITTHREAD() { $init-thread }
 #?endif
 
-    my $escapes := nqp::hash(
-     "\0",   '\0',
-     '$',    '\$',
-     '@',    '\@',
-     '%',    '\%',
-     '&',    '\&',
-     '{',    '\{',
-     "\b",   '\b',
-     "\x0A", '\n',
-     "\r",   '\r',
-     "\t",   '\t',
-     '"',    '\"',
-     '\\',   '\\\\',
-    );
-
-    method PERLIFY-STR(Str \string) {
-        sub char-to-escapes(Str $char) is pure {
-#?if !jvm
-            '\x[' ~ $char.NFC.list.map({.base: 16}).join(',') ~ ']'
-#?endif
-#?if jvm
-            '\x[' ~ $char.ord.base(16) ~ ']'
-#?endif
-        }
-
-        # Under NFG-supporting implementations, must be sure that any leading
-        # combiners are escaped, otherwise they will be combined onto the "
-        # under concatenation closure, which ruins round-tripping. Also handle
-        # the \r\n grapheme correctly.
-        my str $to-escape = nqp::unbox_s(string);
-        return '' if nqp::isnull_s($to-escape); # nothing to escape
-
-        my str $escaped = '';
-        my int $chars = nqp::chars($to-escape);
-        my int $i = -1;
-        while ($i = $i + 1) < $chars {
-            my str $char = nqp::substr($to-escape, $i, 1);
-#?if !jvm
-            my int $ord = nqp::ord($char);
-            $escaped ~= nqp::isge_i($ord,256)
-              && +uniprop-str($ord,'Canonical_Combining_Class')
-              ?? char-to-escapes($char)
-              !! nqp::iseq_s($char,"\r\n") ?? '\r\n' !!
-#?endif
-#?if jvm
-            $escaped ~=
-#?endif
-
-              nqp::existskey($escapes,$char)
-                ?? nqp::atkey($escapes,$char)
-                !! nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0)
-                  ?? $char
-                  !! char-to-escapes($char);
-        }
-        $escaped
-    }
-
     # easy access to compile options
-    my Mu $compiling-options := %*COMPILING ?? nqp::atkey(%*COMPILING, '%?OPTIONS') !! nqp::hash();
+    my Mu $compiling-options :=
+      nqp::ifnull(nqp::atkey(%*COMPILING,'%?OPTIONS'),nqp::hash);
 
     # running with --ll-exception
-    method LL-EXCEPTION() {
-        nqp::existskey($compiling-options, 'll-exception')
-          ?? '--ll-exception'
-          !! Empty
-    }
+    my $LL-EXCEPTION := nqp::existskey($compiling-options, 'll-exception')
+      ?? '--ll-exception'
+      !! Empty;
+    method LL-EXCEPTION() { $LL-EXCEPTION }
+
     # running with --profile
-    method PROFILE() {
-        nqp::existskey($compiling-options, 'profile')
-          ?? '--profile'
-          !! Empty
-    }
+    my $PROFILE := nqp::existskey($compiling-options, 'profile')
+      ?? '--profile'
+      !! Empty;
+    method PROFILE() { $PROFILE }
+
     # running with --optimize=X
-    method OPTIMIZE() {
-        nqp::existskey($compiling-options, 'optimize')
-          ?? '--optimize=' ~ nqp::atkey($compiling-options, 'optimize')
-          !! Empty
-    }
+    my $OPTIMIZE := nqp::existskey($compiling-options, 'optimize')
+      ?? '--optimize=' ~ nqp::atkey($compiling-options, 'optimize')
+      !! Empty;
+    method OPTIMIZE() { $OPTIMIZE }
+
+    # running with --stagestats
+    my $STAGESTATS := nqp::existskey($compiling-options, 'stagestats')
+      ?? '--stagestats'
+      !! Empty;
+    method STAGESTATS() { $STAGESTATS }
+
     # whatever specified with -I
-    method INCLUDE() {
-        nqp::existskey($compiling-options,'I')
-          ?? do {
-                my $I := nqp::atkey($compiling-options,'I');
-                nqp::islist($I) ?? $I !! nqp::list($I)
-             }
-          !! nqp::list()
-    }
+    my $INCLUDE := nqp::existskey($compiling-options,'I')
+      ?? do {
+             my $I := nqp::atkey($compiling-options,'I');
+             nqp::islist($I) ?? $I !! nqp::list($I)
+         }
+      !! nqp::list;
+    method INCLUDE() { $INCLUDE }
 
 #?if moar
     method PRECOMP-EXT(--> "moarvm") { }
@@ -831,22 +777,25 @@ implementation detail and has no serviceable parts inside"
     method PRECOMP-TARGET(--> "js") { }
 #?endif
 
-    method get-local-timezone-offset() {
-        my $utc    := time;
-        my Mu $fia := nqp::decodelocaltime(nqp::unbox_i($utc));
+    method get-local-timezone-offset(int $utc) {
+        my $lt := nqp::decodelocaltime($utc);
 
-        DateTime.new(
-          nqp::atpos_i($fia,5),  # year
-          nqp::atpos_i($fia,4),  # month
-          nqp::atpos_i($fia,3),  # day
-          nqp::atpos_i($fia,2),  # hour
-          nqp::atpos_i($fia,1),  # minute
-          nqp::atpos_i($fia,0),  # second
-        ).posix(True) - $utc;
+        # algorithm from Claus Tøndering
+        my int $a = (14 - nqp::atpos_i($lt,4)) div 12;
+        my int $y = nqp::atpos_i($lt,5) + 4800 - $a;
+        my int $m = nqp::atpos_i($lt,4) + 12 * $a - 3;
+        my int $jd = nqp::atpos_i($lt,3) + (153 * $m + 2) div 5 + 365 * $y
+            + $y div 4 - $y div 100 + $y div 400 - 32045;
+        (
+          ($jd - 2440588) * 86400
+            + nqp::atpos_i($lt,2) * 3600
+            + nqp::atpos_i($lt,1) * 60
+            + nqp::atpos_i($lt,0)
+        ) - $utc
     }
 
 # Keep track of the differences between TAI and UTC for internal use.
-# The "BEGIN" and "END" comments are for tools/update-tai-utc.pl.
+# The "BEGIN" and "END" comments are for tools/add-leap-second.raku.
 #
 # Some handy tables:
 # http://tf.nist.gov/pubs/bulletin/leapsecond.htm
@@ -976,21 +925,46 @@ implementation detail and has no serviceable parts inside"
         )
     }
 
+    # take TAI, return epoch
+    method epoch-from-tai(\tai) {
+        my int $tai = tai.floor;
+        my int $t = $tai - $initial-offset;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
+          nqp::null
+        );
+        nqp::sub_i($tai,nqp::add_i($initial-offset,$i))
+    }
+
+
+    # take TAI, return posix
     method posix-from-tai(\tai) {
-        nqp::stmts(
-          (my int $t = tai.floor - $initial-offset),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-              && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
-            nqp::null
-          ),
-          (tai - nqp::add_i($initial-offset,$i),
-            nqp::hllbool(
-              nqp::islt_i($i,$elems)
-                && nqp::iseq_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i))
-            )
-          )
+        my int $t = tai.floor - $initial-offset;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
+          nqp::null
+        );
+        tai - nqp::add_i($initial-offset,$i)
+    }
+
+    # take TAI, return epoch and if in leap-second
+    method posix-and-leap-from-tai(\tai) {
+        my int $t = tai.floor - $initial-offset;
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::islt_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i)),
+          nqp::null
+        );
+        (tai - nqp::add_i($initial-offset,$i),
+         nqp::hllbool(
+           nqp::islt_i($i,$elems)
+             && nqp::iseq_i(nqp::atpos_i($posixes,$i),nqp::sub_i($t,$i))
+         )
         )
     }
 
@@ -1018,22 +992,19 @@ implementation detail and has no serviceable parts inside"
     }
     method INITIALIZE-DYNAMIC(str \name) is raw {
 #nqp::say('Initializing ' ~ name);
-        nqp::stmts(
-          (my str $with = nqp::concat(
-            nqp::getcomp('perl6').language_version, nqp::concat("\0", name))),
-          nqp::if(
-            nqp::existskey(
-              nqp::unless($initializers,$initializers := nqp::hash),
-              $with
-            ),
-            nqp::atkey($initializers,$with)(),
-            nqp::if(
-              nqp::existskey($initializers,name),
-              nqp::atkey($initializers,name)(),
-              Failure.new(X::Dynamic::NotFound.new(:name(name)))
+        nqp::ifnull(
+          nqp::atkey(
+            $initializers,
+            nqp::concat(
+              nqp::getcomp('Raku').language_version,
+              nqp::concat("\0",name)
             )
+          ),
+          nqp::ifnull(
+            nqp::atkey($initializers,name),
+            { Failure.new(X::Dynamic::NotFound.new(:name(name))) }
           )
-        )
+        )();
     }
 
     method EXPAND-LITERAL-RANGE(Str:D \x,$list) {
@@ -1308,34 +1279,38 @@ implementation detail and has no serviceable parts inside"
         my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
         nqp::isge_i($d,0)
           ?? $d
-          !! Failure.new(X::IO::Unknown.new(:trying<d>))
+          !! X::IO::Unknown.new(:trying<d>).throw
     }
     method FILETEST-F(Str:D \abspath) {
         my int $f = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG);
         nqp::isge_i($f,0)
           ?? $f
-          !! Failure.new(X::IO::Unknown.new(:trying<f>))
+          !! X::IO::Unknown.new(:trying<f>).throw
     }
     method FILETEST-S(Str:D \abspath) {
         nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
+    }
+    method FILETEST-ES(Str:D \abspath) {
+        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+          && nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
     }
     method FILETEST-L(Str:D \abspath) {
         my int $l = nqp::fileislink(nqp::unbox_s(abspath));
         nqp::isge_i($l,0)
           ?? $l
-          !! Failure.new(X::IO::Unknown.new(:trying<l>))
+          !! X::IO::Unknown.new(:trying<l>).throw
     }
     method FILETEST-R(Str:D \abspath) {
         my int $r = nqp::filereadable(nqp::unbox_s(abspath));
         nqp::isge_i($r,0)
           ?? $r
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+          !! X::IO::Unknown.new(:trying<r>).throw
     }
     method FILETEST-W(Str:D \abspath) {
         my int $w = nqp::filewritable(nqp::unbox_s(abspath));
         nqp::isge_i($w,0)
           ?? $w
-          !! Failure.new(X::IO::Unknown.new(:trying<w>))
+          !! X::IO::Unknown.new(:trying<w>).throw
     }
     method FILETEST-RW(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1344,14 +1319,14 @@ implementation detail and has no serviceable parts inside"
         nqp::isge_i($r,0)
           ?? nqp::isge_i($w,0)
             ?? nqp::bitand_i($r,$w)
-            !! Failure.new(X::IO::Unknown.new(:trying<w>))
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+            !! X::IO::Unknown.new(:trying<w>).throw
+          !! X::IO::Unknown.new(:trying<r>).throw
     }
     method FILETEST-X(Str:D \abspath) {
         my int $x = nqp::fileexecutable(nqp::unbox_s(abspath));
         nqp::isge_i($x,0)
           ?? $x
-          !! Failure.new(X::IO::Unknown.new(:trying<x>))
+          !! X::IO::Unknown.new(:trying<x>).throw
     }
     method FILETEST-RWX(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
@@ -1362,9 +1337,9 @@ implementation detail and has no serviceable parts inside"
           ?? nqp::isge_i($w,0)
             ?? nqp::isge_i($x,0)
               ?? nqp::bitand_i(nqp::bitand_i($r,$w),$x)
-              !! Failure.new(X::IO::Unknown.new(:trying<x>))
-            !! Failure.new(X::IO::Unknown.new(:trying<w>))
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+              !! X::IO::Unknown.new(:trying<x>).throw
+            !! X::IO::Unknown.new(:trying<w>).throw
+          !! X::IO::Unknown.new(:trying<r>).throw
     }
     method FILETEST-Z(Str:D \abspath) {
         nqp::iseq_i(
@@ -1379,6 +1354,13 @@ implementation detail and has no serviceable parts inside"
     }
     method FILETEST-CHANGED(Str:D \abspath) {
         nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
+    }
+    method FILETEST-MODE(Str:D \abspath) {
+        my int $mode =
+          nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_PLATFORM_MODE);
+        nqp::isge_i($mode,0)
+          ?? nqp::bitand_i($mode,0o7777)
+          !! X::IO::Unknown.new(:trying<mode>).throw
     }
 
     method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {
@@ -1407,7 +1389,7 @@ implementation detail and has no serviceable parts inside"
     }
 
 #- start of generated part of succ/pred ---------------------------------------
-#- Generated on 2016-08-10T14:19:20+02:00 by tools/build/makeMAGIC_INC_DEC.p6
+#- Generated on 2016-08-10T14:19:20+02:00 by tools/build/makeMAGIC_INC_DEC.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     # normal increment magic chars & incremented char at same index
@@ -1564,7 +1546,7 @@ implementation detail and has no serviceable parts inside"
         hash @keys Z self.coremap(op, h{@keys}, :$deep)
     }
 
-    my class CoreMap does SlippyIterator {
+    my class CoreMap does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!deep;

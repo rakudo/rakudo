@@ -3,8 +3,7 @@ my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
 my class X::Attribute::Required      { ... }
-
-my class ValueObjAt is ObjAt { }
+my class WalkList                    { ... }
 
 my class Mu { # declared in BOOTSTRAP
 
@@ -12,7 +11,11 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
-    method raku(|c) { self.perl(|c) }
+    proto method perl(|) {*}
+    multi method perl(Mu \SELF: |c) { SELF.raku(|c) }
+    # although technically not a documented method, some module authors have
+    # used this in the ecosystem.
+    method perlseen(Mu \SELF: |c) { SELF.rakuseen(|c) }
 
     proto method ACCEPTS(|) {*}
     multi method ACCEPTS(Mu:U: Any \topic) {
@@ -47,14 +50,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method iterator(|) {*}
-    multi method iterator(Mu:) {
-        my $buf := nqp::create(IterationBuffer);
-        $buf.push(Mu);
-        # note: cannot use R:I.OneValue, as that doesn't (and shouldn't)
-        # take Mu for the value to produce, as Mu is used to indicate
-        # exhaustion.
-        Rakudo::Iterator.ReifiedList($buf)
-    }
+    multi method iterator(Mu:) { Rakudo::Iterator.OneValue(self) }
 
     proto method split(|) {*}
 
@@ -82,7 +78,7 @@ my class Mu { # declared in BOOTSTRAP
         my role Suggestion[$name] {
             method gist {
                 "No documentation available for type '$name'.
-Perhaps it can be found at https://docs.perl6.org/type/$name"
+Perhaps it can be found at https://docs.raku.org/type/$name"
             }
         }
 
@@ -288,6 +284,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
+
                           nqp::if(
                             nqp::iseq_i($code,11),
                             nqp::if(             # 11
@@ -300,6 +297,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                                 nqp::list
                               )
                             ),
+
                             nqp::if(
                               nqp::iseq_i($code,12),
                               nqp::if(           # 12
@@ -312,13 +310,62 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                                   nqp::hash
                                 )
                               ),
-                              die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
-                  ))))))))),
+
+                              nqp::if(
+                                nqp::iseq_i($code,13),
+                                nqp::if(         # 13
+                                  nqp::existskey($init,nqp::atpos($task,3)),
+                                  nqp::bindattr(self,
+                                    nqp::atpos($task,1),nqp::atpos($task,2),
+                                    nqp::if(
+                                      nqp::elems($task) == 5,
+                                      nqp::p6bindassert(
+                                        %attrinit.AT-KEY(nqp::atpos($task,3)),
+                                        nqp::atpos($task,4)),
+                                      %attrinit.AT-KEY(nqp::atpos($task,3))
+                                    )
+                                  )
+                                ),
+
+                                nqp::if(
+                                  nqp::iseq_i($code,14),
+                                  nqp::unless(   # 14
+                                    nqp::attrinited(self,
+                                      nqp::atpos($task,1),
+                                      nqp::atpos($task,2)
+                                    ),
+                                    nqp::bindattr(self,
+                                      nqp::atpos($task,1),
+                                      nqp::atpos($task,2),
+                                      nqp::if(
+                                        nqp::istype(nqp::atpos($task,3),Block),
+                                        nqp::if(
+                                          nqp::elems($task) == 5,
+                                          nqp::p6bindassert(
+                                            nqp::atpos($task,3)(self,
+                                              nqp::getattr(self,
+                                              nqp::atpos($task,1),
+                                              nqp::atpos($task,2)
+                                            )),
+                                            nqp::atpos($task,4)
+                                          ),
+                                          nqp::atpos($task,3)(self,
+                                            nqp::getattr(self,
+                                            nqp::atpos($task,1),
+                                            nqp::atpos($task,2)
+                                          )),
+                                        ),
+                                        nqp::atpos($task,3)
+                                      )
+                                    )
+                                  ),
+                                  die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
+                  ))))))))))),
 
                   nqp::if(                       # 0
                     nqp::existskey($init,nqp::atpos($task,3)),
                     (nqp::getattr(self,nqp::atpos($task,1),nqp::atpos($task,2))
-                      = %attrinit.AT-KEY(nqp::atpos($task,3))),
+                      = %attrinit.AT-KEY(nqp::atpos($task,3)))
                   )
                 )
               )
@@ -475,6 +522,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                             nqp::atpos($task,2),
                             (nqp::atpos($task,3)())
                           ),
+
                           nqp::if(
                             nqp::iseq_i($code,10),
                             # Force vivification, for the sake of meta-object
@@ -496,6 +544,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                               ),
                               ($i = nqp::sub_i($i,1))
                             ),
+
                             nqp::if(
                               nqp::iseq_i($code,11),
                               nqp::if(           # 11
@@ -508,6 +557,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                                   nqp::list
                                 )
                               ),
+
                               nqp::if(
                                 nqp::iseq_i($code,12),
                                 nqp::if(         # 12
@@ -520,8 +570,57 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                                     nqp::hash
                                   )
                                 ),
-                                die('Invalid ' ~ self.^name ~ ".BUILD_LEAST_DERIVED plan: $code"),
-              )))))))))),
+
+                                nqp::if(
+                                  nqp::iseq_i($code,13),
+                                  nqp::if(       # 13
+                                    nqp::existskey($init,nqp::atpos($task,3)),
+                                    nqp::bindattr(self,
+                                      nqp::atpos($task,1),nqp::atpos($task,2),
+                                      nqp::if(
+                                        nqp::elems($task) == 5,
+                                        nqp::p6bindassert(
+                                          %attrinit.AT-KEY(nqp::atpos($task,3)),
+                                          nqp::atpos($task,4)),
+                                        %attrinit.AT-KEY(nqp::atpos($task,3))
+                                      )
+                                    )
+                                  ),
+
+                                  nqp::if(
+                                    nqp::iseq_i($code,14),
+                                    nqp::unless( # 14
+                                      nqp::attrinited(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      ),
+                                      nqp::bindattr(self,
+                                        nqp::atpos($task,1),nqp::atpos($task,2),
+                                        nqp::if(
+                                          nqp::istype(
+                                            nqp::atpos($task,3),Block),
+                                          nqp::if(
+                                            nqp::elems($task) == 5,
+                                            nqp::p6bindassert(
+                                              nqp::atpos($task,3)(self,
+                                                nqp::getattr(self,
+                                                nqp::atpos($task,1),
+                                                nqp::atpos($task,2)
+                                              )),
+                                              nqp::atpos($task,4)
+                                            ),
+                                            nqp::atpos($task,3)(self,
+                                              nqp::getattr(self,
+                                              nqp::atpos($task,1),
+                                              nqp::atpos($task,2)
+                                            )),
+                                          ),
+                                          nqp::atpos($task,3)
+                                        )
+                                      )
+                                    ),
+                                    die('Invalid ' ~ self.^name ~ ".BUILD_LEAST_DERIVED plan: $code"),
+              )))))))))))),
 
               nqp::if(                           # 0
                 nqp::existskey($init,nqp::atpos($task,3)),
@@ -550,7 +649,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         my $name = (defined($*VAR_NAME) ?? $*VAR_NAME !! try v.VAR.name) // '';
         $name   ~= ' ' if $name ne '';
         warn "Use of uninitialized value {$name}of type {self.^name} in string"
-                ~ " context.\nMethods .^name, .perl, .gist, or .say can be"
+                ~ " context.\nMethods .^name, .raku, .gist, or .say can be"
                 ~ " used to stringify it to something meaningful.";
         ''
     }
@@ -603,13 +702,13 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
     proto method gist(|) {*}
     multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
-    multi method gist(Mu:D:) { self.perl }
+    multi method gist(Mu:D:) { self.raku }
 
-    method perlseen(Mu:D \SELF: $id, $perl, *%named) {
+    method rakuseen(Mu:D \SELF: $id, $perl, *%named) {
         my $sigil = nqp::iseq_s($id, 'Array') ?? '@'
             !! nqp::iseq_s($id, 'Hash') ?? '%' !! '\\';
-        if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*perlseen'))) {
-            my \sems := $*perlseen;
+        if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*rakuseen'))) {
+            my \sems := $*rakuseen;
             my str $WHICH = nqp::unbox_s(self.WHICH);
             if nqp::existskey(sems,$WHICH) && nqp::atkey(sems,$WHICH) {
                 nqp::bindkey(sems,$WHICH,2);
@@ -628,32 +727,46 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             }
         }
         else {
-            my $*perlseen := nqp::hash("TOP",1);
-            SELF.perlseen($id,$perl,|%named)
+            my $*rakuseen := nqp::hash("TOP",1);
+            SELF.rakuseen($id,$perl,|%named)
         }
     }
 
-    proto method perl(|) {*}
-    multi method perl(Mu:U:) { self.^name }
-    multi method perl(Mu:D:) {
-        nqp::if(
-          nqp::eqaddr(self,IterationEnd),
-          "IterationEnd",
-          nqp::if(
-            nqp::iscont(self), # a Proxy object would have a conted `self`
-            nqp::decont(self).perl,
-            self.perlseen: self.^name, {
-                my @attrs;
-                for self.^attributes().flat.grep: { .has_accessor } -> $attr {
-                    my $name := substr($attr.Str,2);
-                    @attrs.push: $name ~ ' => ' ~ $attr.get_value(self).perl
-                }
-                self.^name ~ '.new' ~ ('(' ~ @attrs.join(', ') ~ ')' if @attrs)
-            }))
+    proto method raku(|) {*}
+    multi method raku(Mu:U:) {
+        nqp::eqaddr(self.^find_method("perl").package,Mu)
+          ?? self.^name
+          !! self.perl
+    }
+    multi method raku(Mu:D:) {
+        nqp::eqaddr(self,IterationEnd)
+          ?? "IterationEnd"
+          !! nqp::iscont(self) # a Proxy object would have a conted `self`
+            ?? nqp::decont(self).raku
+            !! nqp::eqaddr((my $proto := self.^find_method("perl")).package,Mu)
+                 && $proto.dispatchees == 1
+              ?? self!default-raku
+              !! self.perl    # class has dedicated old-style .perl
     }
 
-    proto method DUMP(|) {*}
-    multi method DUMP(Mu:U:) { self.perl }
+    method !default-raku() {
+        self.rakuseen: self.^name, {
+            if self.^attributes.map( {
+                nqp::concat(
+                  nqp::substr(.Str,2),
+                  nqp::concat(' => ',.get_value(self).raku)
+                ) if .is_built;
+            } ).join(', ') -> $attributes {
+                self.^name ~ '.new(' ~ $attributes ~ ')'
+            }
+            else {
+                self.^name ~ '.new'
+            }
+        }
+    }
+
+    proto method DUMP(|) {*}  # is implementation-detail
+    multi method DUMP(Mu:U:) { self.raku }
     multi method DUMP(Mu:D: :$indent-step = 4, :%ctx?) {
         return DUMP(self, :$indent-step) unless %ctx;
 
@@ -671,14 +784,13 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                 $value := $attr.get_value(self);
             }
             elsif nqp::can($attr, 'package') {
-                my Mu $decont  := nqp::decont(self);
                 my Mu $package := $attr.package;
 
                 $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
-                    when 0 {              nqp::getattr(  $decont, $package, $name)  }
-                    when 1 { nqp::p6box_i(nqp::getattr_i($decont, $package, $name)) }
-                    when 2 { nqp::p6box_n(nqp::getattr_n($decont, $package, $name)) }
-                    when 3 { nqp::p6box_s(nqp::getattr_s($decont, $package, $name)) }
+                    when 0 {              nqp::getattr(  self,$package,$name)  }
+                    when 1 { nqp::p6box_i(nqp::getattr_i(self,$package,$name)) }
+                    when 2 { nqp::p6box_n(nqp::getattr_n(self,$package,$name)) }
+                    when 3 { nqp::p6box_s(nqp::getattr_s(self,$package,$name)) }
                 };
             }
             else {
@@ -691,11 +803,15 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
 
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
-    method DUMP-PIECES(@pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step) {
+    method DUMP-PIECES(
+      @pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step
+    ) {  # is implementation-detail
         $indent ?? $before ~ "\n" ~ @pieces.join(",\n").indent($indent-step) ~ "\n" ~ $after
                 !! $before ~        @pieces.join(', ')                              ~ $after;
     }
-    method DUMP-OBJECT-ATTRS(|args (*@args, :$indent-step, :%ctx, :$flags?)) {
+    method DUMP-OBJECT-ATTRS(
+      |args (*@args, :$indent-step, :%ctx, :$flags?)
+    ) {  # is implementation-detail
         my Mu  $attrs := nqp::clone(nqp::captureposarg(nqp::usecapture(), 1));
         my str $where  = nqp::base_I(nqp::where(self), 16);
         my str $before = ($flags if defined $flags) ~ self.^name ~ '<' ~ %ctx{$where} ~ '>(';
@@ -791,15 +907,38 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
     }
 
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is raw {
-        unless nqp::istype(SELF, $type) {
+        my $meth;
+        my $ctx := nqp::ctxcaller(nqp::ctx());
+        # Bypass wrapping thunk if redirected from spesh plugin
+        $ctx := nqp::ctxcaller($ctx) if $*SPESH-THUNKED-DISPATCH;
+        if nqp::istype(self, $type) {
+            my $sym-found := 0;
+            my $caller-type;
+            repeat {
+                my $pad := nqp::ctxlexpad($ctx);
+                for <$?CONCRETIZATION $?CLASS> {
+                    if nqp::existskey($pad, $_) {
+                        $caller-type := nqp::atkey($pad, $_);
+                        $sym-found := 1;
+                        last;
+                    }
+                }
+                $ctx := nqp::ctxouterskipthunks($ctx);
+            } while $ctx && !$sym-found;
+            $meth = $caller-type.^find_method_qualified($type, $name)
+                if $sym-found && nqp::istype($caller-type, $type);
+            $meth = self.^find_method_qualified($type, $name) unless $meth;
+        }
+
+        unless nqp::defined($meth) {
             X::Method::InvalidQualifier.new(
                     method          => $name,
                     invocant        => SELF,
                     qualifier-type  => $type,
-
             ).throw;
         }
-        self.^find_method_qualified($type, $name)(SELF, |c)
+
+        $meth(SELF, |c)
     }
 
     method dispatch:<!>(Mu \SELF: \name, Mu \type, |c) is raw {
@@ -808,7 +947,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
               invocant => SELF,
-              method   => '!' ~ name,
+              method   => name,
               typename => type.^name,
               :private,
             ).throw;
@@ -825,30 +964,34 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             Nil
     }
 
-    method dispatch:<.+>(Mu \SELF: $name, |c) {
-        my @result := SELF.dispatch:<.*>($name, |c);
-        if @result.elems == 0 {
+    method !batch-call(Mu \SELF: \name, Capture:D \c, :$throw = False, :$reverse = False, :$roles = False) {
+        my @mro := SELF.^mro(:$roles);
+        my $results := nqp::create(IterationBuffer);
+        my int $mro_high = $reverse ?? 0 !! @mro.elems - 1;
+        my int $i = @mro.elems;
+        while nqp::isge_i(--$i, 0) {
+            my int $idx = nqp::abs_i($mro_high - $i);
+            my Mu \type-obj = @mro[$idx];
+            my $meth = (type-obj.^method_table){name} unless type-obj.HOW.archetypes.composable;
+            $meth = (type-obj.^submethod_table){name} if !$meth;
+            nqp::push($results,$meth(SELF, |c))    if $meth;
+        }
+        if $throw && $results.elems == 0 {
             X::Method::NotFound.new(
               invocant => SELF,
-              method   => $name,
+              method   => name,
               typename => SELF.^name,
             ).throw;
         }
-        @result
+        $results.List
+    }
+
+    method dispatch:<.+>(Mu \SELF: \name, |c) {
+        SELF!batch-call(name, c, :throw);
     }
 
     method dispatch:<.*>(Mu \SELF: \name, |c) {
-        my @mro = SELF.^mro;
-        my int $mro_count = @mro.elems;
-        my $results := nqp::create(IterationBuffer);
-        my int $i = -1;
-        while nqp::islt_i(++$i,$mro_count) {
-            my $obj = @mro[$i];
-            my $meth = ($obj.^method_table){name};
-            $meth = ($obj.^submethod_table){name} if !$meth && $i == 0;
-            nqp::push($results,$meth(SELF, |c))    if $meth;
-        }
-        $results.List
+        SELF!batch-call(name, c)
     }
 
     method dispatch:<hyper>(Mu \SELF: $nodality, Str $meth-name, |c) {
@@ -872,12 +1015,21 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             HYPER( -> \obj { obj."$meth-name"(  ) }, SELF )))
     }
 
-    method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
-                :$super, :$omit, :$include) {
+    proto method WALK(|) {*}  # is implementation-detail
+    multi method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
+                :$super, :$omit, :$include, :$roles, :$submethods = True, :$methods = True
+                --> WalkList)
+    {
         # First, build list of classes in the order we'll need them.
+
+        my sub maybe-with-roles(Mu \typeobj) {
+            flat typeobj.^parents(:local),
+                 ($roles ?? typeobj.^roles(:local, :transitive, :mro) !! ())
+        }
+
         my @classes;
         if $super {
-            @classes = self.^parents(:local);
+            @classes = maybe-with-roles(self)
         }
         elsif $breadth {
             my @search_list = self.WHAT;
@@ -885,7 +1037,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
                 append @classes, @search_list;
                 my @new_search_list;
                 for @search_list -> $current {
-                    for flat $current.^parents(:local) -> $next {
+                    for maybe-with-roles($current) -> $next {
                         unless @new_search_list.grep({ $^c.WHAT =:= $next.WHAT }) {
                             push @new_search_list, $next;
                         }
@@ -897,7 +1049,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
             sub build_ascendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
                     push @classes, $class;
-                    for flat $class.^parents(:local) {
+                    for maybe-with-roles($class) {
                         build_ascendent($^parent);
                     }
                 }
@@ -906,7 +1058,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         } elsif $descendant {
             sub build_descendent(Mu $class) {
                 unless @classes.grep({ $^c.WHAT =:= $class.WHAT }) {
-                    for flat $class.^parents(:local) {
+                    for maybe-with-roles($class) {
                         build_descendent($^parent);
                     }
                     push @classes, $class;
@@ -916,7 +1068,7 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         } else {
             # Canonical, the default (just whatever the meta-class says) with us
             # on the start.
-            @classes = self.^mro();
+            @classes = self.^mro(:$roles);
         }
 
         # Now we have classes, build method list.
@@ -924,19 +1076,20 @@ Perhaps it can be found at https://docs.perl6.org/type/$name"
         for @classes -> $class {
             if (!defined($include) || $include.ACCEPTS($class)) &&
               (!defined($omit) || !$omit.ACCEPTS($class)) {
-                try {
-                    for flat $class.^methods(:local) -> $method {
-                        my $check_name = $method.?name;
-                        if $check_name.defined && $check_name eq $name {
-                            @methods.push($method);
-                        }
-                    }
-                    0;
+                if $methods && !$class.HOW.archetypes.composable {
+                    @methods.push: $_ with $class.^method_table{$name}
+                }
+                if $submethods {
+                    @methods.push: $_ with $class.^submethod_table{$name}
                 }
             }
         }
 
-        @methods;
+        WalkList.new(|@methods).set_invocant(self)
+    }
+
+    multi method WALK(Str:D $name, *%n --> WalkList ) {
+        samewith(:$name, |%n)
     }
 }
 
@@ -974,45 +1127,11 @@ multi sub infix:<eqv>(Any:U \a, Any:D \b --> False) { }
 multi sub infix:<eqv>(Any:D \a, Any:D \b) {
     nqp::hllbool(
       nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.perl,b.perl))
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a.raku,b.raku))
     )
 }
 
-multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
-    nqp::hllbool(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-        nqp::if(                                 # not same object
-          nqp::eqaddr(a.WHAT,b.WHAT),
-          nqp::if(                               # same type
-            a.is-lazy,
-            nqp::if(                             # a lazy
-              b.is-lazy,
-              die(X::Cannot::Lazy.new: :action<eqv>) # a && b lazy
-            ),
-            nqp::if(                             # a NOT lazy
-              b.is-lazy,
-              0,                                 # b lazy
-              nqp::if(                           # a && b NOT lazy
-                nqp::iseq_i((my int $elems = a.elems),b.elems),
-                nqp::stmts(                      # same # elems
-                  (my int $i = -1),
-                  nqp::while(
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems) # not exhausted
-                      && a.AT-POS($i) eqv b.AT-POS($i),         # still same
-                    nqp::null
-                  ),
-                  nqp::iseq_i($i,$elems)         # exhausted = success!
-                )
-              )
-            )
-          )
-        )
-      )
-    )
-}
-
-sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
+sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) { # is implementation-detail
     my Mu $capture := nqp::usecapture();
     my Mu $topic   := nqp::captureposarg($capture, 0);
 

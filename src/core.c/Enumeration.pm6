@@ -10,7 +10,7 @@ my role Enumeration {
     method pair(::?CLASS:D:) { $!key => $!value }
 
     multi method gist(::?CLASS:D:) { $!key                     }
-    multi method perl(::?CLASS:D:) { self.^name ~ '::' ~ $!key }
+    multi method raku(::?CLASS:D:) { self.^name ~ '::' ~ $!key }
 
     multi method pick(::?CLASS:U:)       { self.^enum_value_list.pick     }
     multi method pick(::?CLASS:U: \n)    { self.^enum_value_list.pick(n)  }
@@ -86,20 +86,16 @@ my role NumericStringyEnumeration {
     }
 }
 
-sub ENUM_VALUES(*@args) {
+sub ENUM_VALUES(*@args --> Map:D) is implementation-detail {
     my Mu $prev = -1;
-    my %res;
-    for @args {
-        if .^isa(Pair) {
-            %res{.key} = $prev = .value;
-        }
-        else {
-            %res{$_} = $prev.=succ;
-        }
-    }
-    nqp::p6bindattrinvres(
-      nqp::create(Map),Map,'$!storage',nqp::getattr(%res,Map,'$!storage')
-    )
+    my $res := nqp::hash;
+
+    nqp::istype($_,Pair)
+      ?? nqp::bindkey($res, .key, nqp::decont($prev = .value))
+      !! nqp::bindkey($res,   $_, nqp::decont($prev = $prev.succ))
+      for @args;
+
+    nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$res)
 }
 
 Metamodel::EnumHOW.set_composalizer(-> $type, $name, @enum_values {
@@ -121,7 +117,7 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, @enum_values {
 
 # We use this one because, for example, Int:D === Int:D, has an optimization
 # that simply unboxes the values. That's no good for us, since two different
-# Enumertaion:Ds could have the same Int:D value.
+# Enumeration:Ds could have the same Int:D value.
 multi infix:<===> (Enumeration:D \a, Enumeration:D \b) {
     nqp::hllbool(nqp::eqaddr(nqp::decont(a), nqp::decont(b)))
 }

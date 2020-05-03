@@ -9,7 +9,9 @@ my class Match is Capture is Cool does NQPMatchRole {
     method ast()  { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
     method made() { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
 
-    method STR() {
+    method Int(--> Int:D) { self.Str.Int }
+
+    method STR() is implementation-detail {
         nqp::if(
           nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
           self.Str,
@@ -17,7 +19,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
-    method MATCH() {
+    method MATCH() is implementation-detail {
         nqp::if(
           nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
           self,
@@ -63,8 +65,8 @@ my class Match is Capture is Cool does NQPMatchRole {
         # Initialize capture lists.
         my $rxsub := nqp::getattr(self, Match, '$!regexsub');
         my $capdesc := nqp::findmethod($rxsub, 'CAPS')($rxsub);
-        my $list := nqp::findmethod($capdesc, 'prepare-list')($capdesc);
-        my $hash := nqp::findmethod($capdesc, 'prepare-hash')($capdesc);
+        my $list := nqp::findmethod($capdesc, 'prepare-raku-list')($capdesc);
+        my $hash := nqp::findmethod($capdesc, 'prepare-raku-hash')($capdesc);
         my str $onlyname = $capdesc.onlyname();
 
         # Walk the capture stack and populate the Match.
@@ -144,7 +146,8 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::bindattr(self, Match, '$!match', $DID_MATCH);
     }
 
-    method CURSOR_NEXT() {   # from !cursor_next in nqp
+    # from !cursor_next in nqp
+    method CURSOR_NEXT() is implementation-detail {
         nqp::if(
           nqp::defined($!restart),
           $!restart(self),
@@ -162,7 +165,8 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 #?endif
 
-    method CURSOR_OVERLAP() {  # adapted from !cursor_more in nqp
+    # adapted from !cursor_more in nqp
+    method CURSOR_OVERLAP() is implementation-detail {
         nqp::stmts(
           (my $new := nqp::create(self)),
           nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
@@ -174,7 +178,8 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
-    method CURSOR_MORE() {  # adapted from !cursor_more in nqp
+    # adapted from !cursor_more in nqp
+    method CURSOR_MORE() is implementation-detail {
         nqp::stmts(
           (my $new := nqp::create(self)),
           nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
@@ -208,7 +213,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     # INTERPOLATE's parameters are non-optional since the ops for optional params
     # aren't currently JITted on MoarVM
-    proto method INTERPOLATE(|) {*}
+    proto method INTERPOLATE(|) is implementation-detail {*}
 
     multi method INTERPOLATE(Callable:D \var, $, $, $, $, $) {
         # Call it if it is a routine. This will capture if requested.
@@ -614,7 +619,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         self."!cursor_start_cur"()
     }
 
-    proto method INTERPOLATE_ASSERTION(|) {*}
+    proto method INTERPOLATE_ASSERTION(|) is implementation-detail {*}
 
     multi method INTERPOLATE_ASSERTION(Associative:D $, $, $, $, $, $) {
         return self.'!cursor_start_cur'().'!cursor_start_cur'()
@@ -726,11 +731,11 @@ my class Match is Capture is Cool does NQPMatchRole {
           !! self.'!cursor_start_fail'()
     }
 
-    method CALL_SUBRULE($rule, |c) {
+    method CALL_SUBRULE($rule, |c) is implementation-detail {
         $rule(self, |c)
     }
 
-    method DYNQUANT_LIMITS($mm) {
+    method DYNQUANT_LIMITS($mm) is implementation-detail {
         # Treat non-Range values as range with that value on both end points
         # Throw for non-Numeric or NaN Ranges, or if minimum limit is +Inf
         # Convert endpoints that are less than 0 to 0, then,
@@ -781,21 +786,21 @@ my class Match is Capture is Cool does NQPMatchRole {
               nqp::list_i($v,$v))))
     }
 
-    method OTHERGRAMMAR($grammar, $name, |) {
+    method OTHERGRAMMAR($grammar, $name, |) is implementation-detail {
         my $lang_cursor := $grammar.'!cursor_init'(self.target(), :p(self.pos()));
         $lang_cursor.clone_braid_from(self);
         $lang_cursor."$name"();
     }
 
-    method INDMETHOD($name, |c) {
+    method INDMETHOD($name, |c) is implementation-detail {
         self."$name"(|c);
     }
 
-    method INDRULE($rule, |c) {
+    method INDRULE($rule, |c) is implementation-detail {
         $rule(self, |c)
     }
 
-    method RECURSE() {
+    method RECURSE() is implementation-detail {
         nqp::getlexdyn('$?REGEX')(self)
     }
 
@@ -891,18 +896,17 @@ my class Match is Capture is Cool does NQPMatchRole {
         }
     }
 
-    multi method perl(Match:D:) {
-        my %attrs;
-        %attrs.ASSIGN-KEY("orig", (self.orig // '' ).perl);
-        %attrs.ASSIGN-KEY("from", (self.from // 0  ).perl);
-        %attrs.ASSIGN-KEY("pos",  (self.pos  // 0  ).perl);
-        %attrs.ASSIGN-KEY("made", (self.made // Any).perl);
-        %attrs.ASSIGN-KEY("list", (self.Capture::list // [] ).perl);
-        %attrs.ASSIGN-KEY("hash", (self.Capture::hash // {} ).perl);
+    multi method raku(Match:D: --> Str:D) {
+        my $attrs := nqp::list_s;
 
-        'Match.new('
-            ~ %attrs.fmt('%s => %s', ', ')
-            ~ ')'
+        nqp::push_s($attrs,(orig => self.orig // '').raku);
+        nqp::push_s($attrs,(from => self.from // 0).raku);
+        nqp::push_s($attrs,(pos  => self.pos // 0).raku);
+        if self.Capture::list -> @list { nqp::push_s($attrs,:@list.raku) }
+        if self.Capture::hash -> %hash { nqp::push_s($attrs,:%hash.raku) }
+        nqp::push_s($attrs,(made => $_).raku) with self.made;
+
+        nqp::concat('Match.new(',nqp::concat(nqp::join(', ',$attrs),')'))
     }
     multi method gist (Match:D: $d = 0) {
         return "#<failed match>" unless self;
@@ -914,6 +918,9 @@ my class Match is Capture is Cool does NQPMatchRole {
         $d == 0 ?? $r.chomp !! $r;
     }
 
+    method replace-with(Match:D: Str() $replacement --> Str:D) {
+        self.prematch ~ $replacement ~ self.postmatch
+    }
 }
 
 multi sub infix:<eqv>(Match:D \a, Match:D \b) {

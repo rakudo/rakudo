@@ -1,4 +1,4 @@
-proto sub undefine(Mu, *%) is raw {
+proto sub undefine(Mu, *%) is raw is implementation-detail {
     Rakudo::Deprecations.DEPRECATED:
       'another way: assign a Nil; for Arrays/Hashes, assign Empty or ()',
       Nil, '6.e', :lang-vers, :what<undefine>;

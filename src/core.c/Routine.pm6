@@ -12,9 +12,8 @@ my class Routine { # declared in BOOTSTRAP
     #     has @!dispatchees;
     #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
-    #     has int $!rw;
+    #     has int $!flags;
     #     has Mu $!inline_info;
-    #     has int $!yada;
     #     has Mu $!package;
     #     has int $!onlystar;
     #     has @!dispatch_order;
@@ -57,7 +56,7 @@ my class Routine { # declared in BOOTSTRAP
         }
     }
 
-    multi method perl(Routine:D:) {
+    multi method raku(Routine:D:) {
         my $perl = ( self.^name ~~ m/^\w+/ ).lc;
         if self.is_dispatcher {
             $perl = "proto $perl";
@@ -68,7 +67,7 @@ my class Routine { # declared in BOOTSTRAP
         if self.name() -> $n {
             $perl ~= " $n";
         }
-        my $sig := self.signature.perl;
+        my $sig := self.signature.raku;
         $perl ~= " $sig.substr(1)" unless $sig eq ':()';
         $perl ~= self.onlystar
           ?? ' {*}'
@@ -131,10 +130,6 @@ my class Routine { # declared in BOOTSTRAP
     method unwrap($handle) {
         $handle.can('restore') && $handle.restore() ||
             X::Routine::Unwrap.new.throw
-    }
-
-    method yada() {
-        nqp::hllbool(nqp::getattr_i(self, Routine, '$!yada'))
     }
 
     method package() { $!package }

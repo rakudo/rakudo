@@ -131,7 +131,7 @@ my class Rakudo::Internals::JSON {
 
     method to-json(
       \obj,
-      Bool :$pretty        = True,
+      Bool :$pretty        = False,
       Int  :$level         = 0,
       int  :$spacing       = 2,
       Bool :$sorted-keys   = False,
@@ -415,7 +415,7 @@ my class Rakudo::Internals::JSON {
                     die "don't understand escape sequence '\\{ nqp::substr($text, $pos, 1) }' at $pos";
                 }
             } elsif $ord == 9 or $ord == 10 {
-                die "this kind of whitespace is not allowed in a string: { nqp::substr($text, $pos - 1, 1).perl } at {$pos - 1}";
+                die "this kind of whitespace is not allowed in a string: { nqp::substr($text, $pos - 1, 1).raku } at {$pos - 1}";
             }
         }
 
@@ -513,7 +513,7 @@ my class Rakudo::Internals::JSON {
             $pos = $pos + 1 while nqp::iscclass(nqp::const::CCLASS_NUMERIC, $text, $pos);
         }
 
-        +(my $result := nqp::substr($text, $startpos - 1, $pos - $startpos + 1)) // die "at $pos: invalid number token $result.perl()";
+        +(my $result := nqp::substr($text, $startpos - 1, $pos - $startpos + 1)) // die "at $pos: invalid number token $result.raku()";
     }
 
     my sub parse-obj(str $text, int $pos is rw) {
@@ -643,7 +643,7 @@ my class Rakudo::Internals::JSON {
                 die "at $pos: expected 'false', found { $initial ~ nqp::substr($text, $pos, 4) } instead.";
             }
         } else {
-            my str $rest = nqp::substr($text, $pos - 1, 8).perl;
+            my str $rest = nqp::substr($text, $pos - 1, 8).raku;
             die "at $pos: expected a json object, but got $initial (context: $rest)"
         }
     }
@@ -659,7 +659,7 @@ my class Rakudo::Internals::JSON {
         try nom-ws($text, $pos);
 
         if $pos != nqp::chars($text) {
-            die "additional text after the end of the document: { substr($text, $pos).perl }";
+            die "additional text after the end of the document: { substr($text, $pos).raku }";
         }
 
         $result

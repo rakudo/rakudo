@@ -27,7 +27,7 @@ my class Variable {
     }
 
     submethod native(Mu $what) {
-        my $name := $what.perl;
+        my $name := $what.raku;
         $name.starts-with('array') || $name eq 'Mu'
           ?? $name
           !! $name.ends-with('LexRef')
@@ -62,7 +62,7 @@ multi sub trait_mod:<is>(Variable:D $v, Mu :$default!) {
                      :type<is>, :subtype<default>,
                      :native($native eq 'Mu' ?? ''!! $native ))  # yuck
               !! $v.throw('X::Comp::NYI',
-                     :feature("is default on shaped $what.perl()"))
+                     :feature("is default on shaped $what.raku()"))
         }
     }
 
@@ -87,7 +87,7 @@ multi sub trait_mod:<is>(Variable:D $v, :$dynamic!) {
                    :type<is>, :subtype<dynamic>,
                    :native($native eq 'Mu' ?? ''!! $native ))  # yuck
               !! $v.throw('X::Comp::NYI',
-                     :feature("is dynamic on shaped $what.perl()"))
+                     :feature("is dynamic on shaped $what.raku()"))
         }
     }
 }
@@ -136,62 +136,62 @@ multi sub trait_mod:<will>(Variable:D $v, $block, |c ) {
                     'compose'),
     );
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$begin! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :begin($)! ) {
     $block($v.var); # no need to delay execution
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$check! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :check($)! ) {
     $*W.add_phaser($v.slash, 'CHECK', $block);
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$final! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :final($)! ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'will final {...}'",
     );
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$init! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :init($)! ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'will init {...}'",
     );
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$end! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :end($)! ) {
     $*W.add_object($block);
     $*W.add_phaser($v.slash, 'END', $block);
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$enter! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :enter($)! ) {
     $v.block.add_phaser('ENTER', $v.willdo($block, 1) );
     $v.implicit-lexical-usage = True;
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$leave! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :leave($)! ) {
     $v.block.add_phaser('LEAVE', $v.willdo($block) );
     $v.implicit-lexical-usage = True;
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$keep! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :keep($)! ) {
     $v.block.add_phaser('KEEP', $v.willdo($block));
     $v.implicit-lexical-usage = True;
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$undo! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :undo($)! ) {
     $v.block.add_phaser('UNDO', $v.willdo($block));
     $v.implicit-lexical-usage = True;
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$first! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :first($)! ) {
     $v.block.add_phaser('FIRST', $v.willdo($block, 1));
     $v.implicit-lexical-usage = True;
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$next! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :next($)! ) {
     $v.block.add_phaser('NEXT', $block);
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$last! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :last($)! ) {
     $v.block.add_phaser('LAST', $block);
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$pre! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :pre($)! ) {
     $v.block.add_phaser('PRE', $v.willdo($block, 1));
     $v.implicit-lexical-usage = True;
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$post! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :post($)! ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'will post {...}'",
     );
 }
-multi sub trait_mod:<will>(Variable:D $v, $block, :$compose! ) {
+multi sub trait_mod:<will>(Variable:D $v, $block, :compose($)! ) {
     $v.throw( 'X::Comp::NYI',
       feature => "Variable trait 'will compose {...}'",
     );

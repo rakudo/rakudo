@@ -26,17 +26,21 @@ my class Regex { # declared in BOOTSTRAP
     my $fail_cursor := $cursor.'!cursor_start_cur'();
 
     multi method ACCEPTS(Regex:D \SELF: Any \topic) {
-        nqp::decont(
-          nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/') =
-          nqp::stmts(
-            (my \cursor := SELF.(Match.'!cursor_init'(topic, :c(0), :$braid, :$fail_cursor))),
-            nqp::if(
-              nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
-              cursor.MATCH,
-              Nil
-            )
-          )
-        )
+        my $slash := nqp::getlexrelcaller(
+          nqp::ctxcallerskipthunks(nqp::ctx()),
+          '$/'
+        );
+        nqp::iscont($slash)
+          ?? nqp::decont($slash = SELF!ACCEPTS-Any(topic))
+          !! SELF!ACCEPTS-Any(topic)
+    }
+
+    method !ACCEPTS-Any(Regex:D \SELF: Any \topic) {
+        my \cursor :=
+          SELF.(Match.'!cursor_init'(topic, :c(0), :$braid, :$fail_cursor));
+        nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
+          ?? cursor.MATCH
+          !! Nil
     }
 
 #?if !jvm
@@ -116,7 +120,7 @@ my class Regex { # declared in BOOTSTRAP
         nqp::ifnull($!source,'')
     }
 
-    multi method perl(Regex:D:) {
+    multi method raku(Regex:D:) {
         nqp::ifnull($!source,'')
     }
 

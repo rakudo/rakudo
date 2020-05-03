@@ -161,7 +161,7 @@ my class Range is Cool does Iterable does Positional {
                          ($!excludes-min ?? $!min.succ !! $!min),
                          $!max,
                          :exclude_end($!excludes-max)
-                       ).iterator
+                       )
                   # general case
                   !! Rakudo::Iterator.SuccFromTo(
                        $!excludes-min ?? $!min.succ !! $!min,
@@ -286,9 +286,16 @@ my class Range is Cool does Iterable does Positional {
             )
         }
 
-        # doesn't make much sense, but there you go
+        # can never go down to -Inf
         elsif $!max === -Inf {
-            InfReverse.new
+            Rakudo::Iterator.Empty
+        }
+
+        # endpoints are same
+        elsif $!min === $!max {
+            $!excludes-min || $!excludes-max
+              ?? Rakudo::Iterator.Empty
+              !! Rakudo::Iterator.OneValue($!min)
         }
 
         # Also something quick and easy for -Inf..42 style things
@@ -303,7 +310,7 @@ my class Range is Cool does Iterable does Positional {
               ?? ().iterator
               !! $max.chars == 1 && nqp::istype($!min,Str) && $!min.chars == 1
                 ?? CharReverse.new($max,$!excludes-min ?? $!min.succ !! $!min)
-                !! SEQUENCE($max,$!min,:exclude_end($!excludes-min)).iterator
+                !! SEQUENCE($max,$!min,:exclude_end($!excludes-min))
         }
 
         # General case according to spec
@@ -332,12 +339,13 @@ my class Range is Cool does Iterable does Positional {
 
     method bounds() { ($!min, $!max) }
     proto method int-bounds(|) {*}
-    multi method int-bounds($from is rw, $to is rw) {
+    multi method int-bounds($from is rw, $to is rw --> Bool:D) {
         nqp::if(
           $!is-int,
           nqp::stmts(
             ($from = $!min + $!excludes-min),
-            ($to   = $!max - $!excludes-max)
+            ($to   = $!max - $!excludes-max),
+            True
           ),
           nqp::if(
             nqp::istype($!min,Real)
@@ -347,9 +355,10 @@ my class Range is Cool does Iterable does Positional {
               && nqp::istype($!max.Int, Int),
             nqp::stmts(
               ($from = $!min.floor + $!excludes-min),
-              ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max))
+              ($to   = $!max.floor - ($!excludes-max && $!max.Int == $!max)),
+              True
             ),
-            Failure.new("Cannot determine integer bounds")
+            False
           )
         )
     }
@@ -435,10 +444,10 @@ my class Range is Cool does Iterable does Positional {
             !! self.list.AT-POS(nqp::unbox_i(pos));
     }
 
-    multi method perl(Range:D:) {
+    multi method raku(Range:D:) {
         $!is-int && $!min == 0 && !$!excludes-min && $!excludes-max
             ?? "^$!max"
-            !! "{$!min.perl}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.perl()"
+            !! "{$!min.raku}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.raku()"
     }
 
     proto method roll(|) {*}
@@ -654,7 +663,7 @@ my class Range is Cool does Iterable does Positional {
 
     method in-range($got, $what?) {
         self.ACCEPTS($got)
-          || X::OutOfRange.new(:what($what // 'Value'),:got($got.perl),:range(self.gist)).throw
+          || X::OutOfRange.new(:what($what // 'Value'),:got($got.raku),:range(self.gist)).throw
     }
 
     multi method minmax(Range:D:) {

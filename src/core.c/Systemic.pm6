@@ -1,20 +1,16 @@
 role Systemic {
-    has Str $.name;
-    has Str $.auth;
-    has Version $.version;
+    has Str $.name is built(:bind) = 'unknown';
+    has Str $.auth is built(:bind) = 'unknown';
+    has Version $.version is built(:bind);
     has Blob $.signature;
     has Str $.desc;
 
-    submethod BUILD(
-      :$!name    = "unknown",
-      :$!auth    = "unknown",
-      :$!version = Version.new(["unknown"], "unknown")
-      --> Nil
-    ) { }
-    multi method gist(Systemic:D:) {
-        $.name ~ (" ($!version)" if $.version.gist ne "vunknown")
+    multi method gist(Systemic:D: --> Str:D) {
+        $!version
+          ?? "$.name ($.version)"
+          !! $.name
     }
-    method Str  { $.name }
+    method Str(--> Str:D) { $.name }
 }
 
 # vim: ft=perl6 expandtab sw=4

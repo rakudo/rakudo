@@ -958,7 +958,7 @@ public final class Binder {
             else if (namedNames == null) {
                 /* Slurpy or LoL-slurpy? */
                 if ((flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG)) != 0) {
-                    /* Create Perl 6 array, create VM array of all remaining things,
+                    /* Create Raku array, create VM array of all remaining things,
                      * then store it. */
                     SixModelObject slurpy = gcx.EMPTYARR.clone(tc);
                     while (curPosArg < numPosArgs) {

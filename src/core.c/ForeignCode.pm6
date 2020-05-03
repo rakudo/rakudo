@@ -1,5 +1,5 @@
-# Takes a foreign code object and tries to make it feel somewhat like a Perl
-# 6 one. Note that it doesn't have signature information we can know about.
+# Takes a foreign code object and tries to make it feel somewhat like a Raku
+# one. Note that it doesn't have signature information we can know about.
 
 my class ForeignCode
   does Callable
@@ -26,14 +26,18 @@ my class Rakudo::Internals::EvalIdSource {
 }
 proto sub EVAL(
   $code is copy where Blob|Cool|Callable,
-  Str()       :$lang = 'perl6',
+  Str()       :$lang is copy = 'Raku',
   PseudoStash :$context,
   Str()       :$filename = Str,
   Bool()      :$check = False,
   *%_
 ) {
-    die "EVAL() in Perl 6 is intended to evaluate strings, did you mean 'try'?"
+    die "EVAL() in Raku is intended to evaluate strings, did you mean 'try'?"
       if nqp::istype($code,Callable);
+
+# TEMPORARY HACK
+$lang = 'Raku' if $lang eq 'perl6';
+
     # First look in compiler registry.
     my $compiler := nqp::getcomp($lang);
     if nqp::isnull($compiler) {
@@ -64,8 +68,8 @@ proto sub EVAL(
         :outer_ctx($eval_ctx),
         :global(GLOBAL),
         :mast_frames(mast_frames),
-        :language_version(nqp::getcomp('perl6').language_version),
-        |(:optimize($_) with nqp::getcomp('perl6').cli-options<optimize>),
+        :language_version(nqp::getcomp('Raku').language_version),
+        |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
 
     if $check {
@@ -101,7 +105,7 @@ multi sub EVAL(
 }
 
 proto sub EVALFILE($, *%) {*}
-multi sub EVALFILE($filename, :$lang = 'perl6', Bool() :$check = False) {
+multi sub EVALFILE($filename, :$lang = 'Raku', Bool() :$check = False) {
     EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
 }
 

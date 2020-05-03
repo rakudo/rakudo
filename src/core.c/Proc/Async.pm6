@@ -54,12 +54,12 @@ my class X::Proc::Async::OpenForWriting does X::Proc::Async {
 }
 
 my class Proc::Async {
-    # An asynchornous process output pipe is a Supply that also can provide
+    # An asynchronous process output pipe is a Supply that also can provide
     # the native descriptor of the underlying pipe.
     class Pipe is Supply {
         my class PermitOnTap does Tappable {
-            has Tappable $.delegate;
-            has &.on-tap;
+            has Tappable $.delegate is built(:bind);
+            has &.on-tap is built(:bind);
             method tap(|c) {
                 &!on-tap();
                 $!delegate.tap(|c)
@@ -69,10 +69,8 @@ my class Proc::Async {
             method sane() { self.delegate.sane }
         }
 
-        has Promise $.native-descriptor;
-        has &!on-nd-used;
-
-        submethod BUILD(:$!native-descriptor!, :&!on-nd-used) {}
+        has Promise $.native-descriptor is built(:bind);
+        has &!on-nd-used is built(:bind);
 
         method native-descriptor() {
             &!on-nd-used();
@@ -111,6 +109,7 @@ my class Proc::Async {
     has $!merge_supply;
     has CharsOrBytes $!merge_type;
     has $!stdin-fd;
+    has $!stdin-fd-close;
     has $!stdout-fd;
     has $!stderr-fd;
     has $!process_handle;
@@ -138,16 +137,16 @@ my class Proc::Async {
     }
 
     method !pipe(\what, \the-supply, \type, \value, \fd-vow, \permit-channel) {
-        X::Proc::Async::TapBeforeSpawn.new(handle => what, proc => self).throw
+        X::Proc::Async::TapBeforeSpawn.new(handle => what, :proc(self)).throw
           if $!started;
-        X::Proc::Async::CharsOrBytes.new(handle => what, proc => self).throw
+        X::Proc::Async::CharsOrBytes.new(handle => what, :proc(self)).throw
           if the-supply and type != value;
 
         type         = value;
         the-supply //= Supplier::Preserving.new;
 
         if nqp::iscont(fd-vow) {
-            my $native-descriptor = Promise.new;
+            my $native-descriptor := Promise.new;
             fd-vow = $native-descriptor.vow;
             Pipe.new(the-supply.Supply.Tappable, $native-descriptor, |self!pipe-cbs(permit-channel))
         }
@@ -160,7 +159,7 @@ my class Proc::Async {
         my \sup = Rakudo::Internals.BYTE_SUPPLY_DECODER($bin-supply, $enc // $!enc,
             :translate-nl($translate-nl // $!translate-nl));
         if nqp::iscont(fd-vow) {
-            my $native-descriptor = Promise.new;
+            my $native-descriptor := Promise.new;
             fd-vow = $native-descriptor.vow;
             Pipe.new(sup.Supply.Tappable, $native-descriptor, |self!pipe-cbs(permit-channel))
         }
@@ -235,14 +234,18 @@ my class Proc::Async {
 
     proto method bind-stdin($) {*}
     multi method bind-stdin(IO::Handle:D $handle --> Nil) {
-        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw if $!w;
+        X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
+          if $!w;
         $!stdin-fd := $handle.native-descriptor;
-        @!close-after-exit.push($handle) if $handle ~~ IO::Pipe;
+        @!close-after-exit.push($handle)
+          if nqp::istype($handle,IO::Pipe);
     }
     multi method bind-stdin(Proc::Async::Pipe:D $pipe --> Nil) {
-        $!w
-          ?? X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
-          !! ($!stdin-fd := $pipe.native-descriptor);
+        if $!w {
+            X::Proc::Async::BindOrUse.new(:handle<stdin>, :use('use :w')).throw
+        }
+        $!stdin-fd := $pipe.native-descriptor;
+        $!stdin-fd-close := True;
     }
 
     method bind-stdout(IO::Handle:D $handle --> Nil) {
@@ -269,36 +272,37 @@ my class Proc::Async {
         $!ready_promise
     }
 
-    method !capture(\callbacks,\std,\the-supply) {
-        my $promise = Promise.new;
-        my $vow = $promise.vow;
-        my $ss = Rakudo::Internals::SupplySequencer.new(
+    method !capture(\callbacks,\std,\the-supply --> Promise) {
+        my $promise := Promise.new;
+        my $vow := $promise.vow;
+        my $ss := Rakudo::Internals::SupplySequencer.new(
             on-data-ready => -> \data { the-supply.emit(data) },
             on-completed  => -> { the-supply.done(); $vow.keep(the-supply) },
             on-error      => -> \err { the-supply.quit(err); $vow.keep((the-supply,err)) });
         nqp::bindkey(callbacks,
             std ~ '_bytes' ,
             -> Mu \seq, Mu \data, Mu \err { $ss.process(seq, data, err) });
-        $promise;
+        $promise
     }
 
-    method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD) {
-        X::Proc::Async::AlreadyStarted.new(proc => self).throw if $!started;
-        $!started = True;
+    method start(Proc::Async:D:
+      :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD
+    --> Promise) {
+        X::Proc::Async::AlreadyStarted.new(proc => self).throw
+          if $!started;
 
-        my @blockers;
-        if $!stdin-fd ~~ Promise {
-            @blockers.push($!stdin-fd.then({ $!stdin-fd := .result }));
-        }
-        @blockers
-            ?? start { await @blockers; await self!start-internal(:$scheduler, :$ENV, :$cwd) }
-            !! self!start-internal(:$scheduler, :$ENV, :$cwd)
+        $!started := True;
+        nqp::istype($!stdin-fd,Promise)
+          ?? start {
+                 await $!stdin-fd.then({ $!stdin-fd := .result });
+                 await self!start-internal($scheduler, $ENV, $cwd);
+             }
+          !! self!start-internal($scheduler, $ENV, $cwd)
     }
 
-    method !start-internal(:$scheduler, :$ENV, :$cwd) {
+    method !start-internal($scheduler, $ENV, $cwd --> Promise) {
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
-
-        $!exit_promise = Promise.new;
+        $!exit_promise := Promise.new;
 
         my Mu $callbacks := nqp::hash();
         nqp::bindkey($callbacks, 'done', -> Mu \status {
@@ -310,24 +314,21 @@ my class Proc::Async {
 
         nqp::bindkey($callbacks, 'ready', -> Mu \handles = Nil, $pid = 0 {
             if nqp::isconcrete(handles) {
-                with $!stdout_descriptor_vow {
-                    my $fd = nqp::atpos_i(handles, 0);
-                    $fd < 0
-                        ?? .break("Descriptor not available")
-                        !! .keep($fd)
-                }
-                with $!stderr_descriptor_vow {
-                    my $fd = nqp::atpos_i(handles, 1);
-                    $fd < 0
-                        ?? .break("Descriptor not available")
-                        !! .keep($fd)
-                }
+                nqp::atpos_i(handles,0) < 0
+                  ?? .break("STDOUT descriptor not available")
+                  !! .keep(nqp::atpos_i(handles,0))
+                  with $!stdout_descriptor_vow;
+
+                nqp::atpos_i(handles,1) < 0
+                  ?? .break("STDERR descriptor not available")
+                  !! .keep(nqp::atpos_i(handles,1))
+                  with $!stderr_descriptor_vow;
             }
             $!ready_vow.keep($pid);
         });
 
         nqp::bindkey($callbacks, 'error', -> Mu \err {
-            my $error = X::OS.new(os-error => err);
+            my $error := X::OS.new(os-error => err);
             $!exit_promise.break($error);
             $!ready_vow.break($error);
         });
@@ -336,10 +337,12 @@ my class Proc::Async {
           self!capture($callbacks,'stdout',$!stdout_supply),
           $!stdout_descriptor_used
         )) if $!stdout_supply;
+
         @!promises.push(Promise.anyof(
           self!capture($callbacks,'stderr',$!stderr_supply),
           $!stderr_descriptor_used
         )) if $!stderr_supply;
+
         @!promises.push(
           self!capture($callbacks,'merge',$!merge_supply)
         ) if $!merge_supply;
@@ -347,6 +350,7 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'buf_type', buf8.new);
         nqp::bindkey($callbacks, 'write', True) if $.w;
         nqp::bindkey($callbacks, 'stdin_fd', $!stdin-fd) if $!stdin-fd.DEFINITE;
+        nqp::bindkey($callbacks, 'stdin_fd_close', True) if $!stdin-fd-close;
         nqp::bindkey($callbacks, 'stdout_fd', $!stdout-fd) if $!stdout-fd.DEFINITE;
         nqp::bindkey($callbacks, 'stderr_fd', $!stderr-fd) if $!stderr-fd.DEFINITE;
 
@@ -358,6 +362,7 @@ my class Proc::Async {
         );
         $!handle_available_promise.keep(True);
         nqp::permit($!process_handle, 0, -1) if $!merge_supply;
+
         Promise.allof( $!exit_promise, @!promises ).then({
             .close for @!close-after-exit;
             $!exit_promise.status == Broken
@@ -367,72 +372,78 @@ my class Proc::Async {
     }
 
     method print(Proc::Async:D: Str() $str, :$scheduler = $*SCHEDULER) {
-        X::Proc::Async::OpenForWriting.new(:method<print>, proc => self).throw if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<print>, proc => self).throw  if !$!started;
-
-        self.write($!encoder.encode-chars($str))
+        $!w
+          ?? $!started
+            ?? self.write($!encoder.encode-chars($str))
+            !! X::Proc::Async::MustBeStarted.new(:method<print>, :proc(self)).throw
+          !! X::Proc::Async::OpenForWriting.new(:method<print>, :proc(self)).throw
     }
 
     method put(Proc::Async:D: \x, |c) {
-        X::Proc::Async::OpenForWriting.new(:method<say>, proc => self).throw if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<say>, proc => self).throw  if !$!started;
-
-        self.print( x.join ~ "\n", |c );
+        $!w
+          ?? $!started
+            ?? self.print( x.join ~ "\n", |c )
+            !! X::Proc::Async::MustBeStarted.new(:method<say>,:proc(self)).throw
+          !! X::Proc::Async::OpenForWriting.new( :method<say>,:proc(self)).throw
     }
 
     method say(Proc::Async:D: \x, |c) {
-        X::Proc::Async::OpenForWriting.new(:method<say>, proc => self).throw if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<say>, proc => self).throw  if !$!started;
-
-        self.print( x.gist ~ "\n", |c );
+        $!w
+          ?? $!started
+            ?? self.print( x.gist ~ "\n", |c )
+            !! X::Proc::Async::MustBeStarted.new(:method<say>,:proc(self)).throw
+          !! X::Proc::Async::OpenForWriting.new( :method<say>,:proc(self)).throw
     }
 
     method write(Proc::Async:D: Blob:D $b, :$scheduler = $*SCHEDULER) {
-        X::Proc::Async::OpenForWriting.new(:method<write>, proc => self).throw if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<write>, proc => self).throw  if !$!started;
-
-        my $p = Promise.new;
-        my $v = $p.vow;
-        nqp::asyncwritebytes(
-            $!process_handle,
-            $scheduler.queue,
-            -> Mu \bytes, Mu \err {
-                if err {
-                    $v.break(err);
-                }
-                else {
-                    $v.keep(bytes);
-                }
-            },
-            nqp::decont($b), ProcessCancellation);
-        $p
+        if $!w && $!started {
+            my $p := Promise.new;
+            my $v := $p.vow;
+            nqp::asyncwritebytes(
+                $!process_handle,
+                $scheduler.queue,
+                -> Mu \bytes, Mu \err {
+                    err
+                      ?? $v.break(err)
+                      !! $v.keep(bytes)
+                },
+                nqp::decont($b), ProcessCancellation
+            );
+            $p
+        }
+        else {
+            $!w
+              ?? X::Proc::Async::MustBeStarted.new(:method<write>, :proc(self)).throw
+              !! X::Proc::Async::OpenForWriting.new(:method<write>, :proc(self)).throw;
+        }
     }
 
-    method close-stdin(Proc::Async:D:) {
-        X::Proc::Async::OpenForWriting.new(:method<close-stdin>, proc => self).throw
-          if !$!w;
-        X::Proc::Async::MustBeStarted.new(:method<close-stdin>, proc => self).throw
-          if !$!started;
-
-        nqp::closefh($!process_handle);
-        True;
+    method close-stdin(Proc::Async:D: --> True) {
+        $!w
+          ?? $!started
+            ?? nqp::closefh($!process_handle)
+            !! X::Proc::Async::MustBeStarted.new(:method<close-stdin>, :proc(self)).throw
+          !! X::Proc::Async::OpenForWriting.new(:method<close-stdin>, :proc(self)).throw
     }
 
     # Note: some of the duplicated code in methods could be moved to
     # proto, but at the moment (2017-06-02) that makes the call 24% slower
     proto method kill(|) {*}
     multi method kill(Proc::Async:D: Signal:D \signal = SIGHUP) {
-        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle, signal.value)
+        $!started
+          ?? nqp::killprocasync($!process_handle, signal.value)
+          !! X::Proc::Async::MustBeStarted.new(:method<kill>, :proc(self)).throw
     }
     multi method kill(Proc::Async:D: Int:D \signal) {
-        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle, signal)
+        $!started
+          ?? nqp::killprocasync($!process_handle, signal)
+          !! X::Proc::Async::MustBeStarted.new(:method<kill>, :proc(self)).throw
     }
 
     multi method kill(Proc::Async:D: Str:D \signal) {
-        X::Proc::Async::MustBeStarted.new(:method<kill>, proc => self).throw if !$!started;
-        nqp::killprocasync($!process_handle, $*KERNEL.signal: signal)
+        $!started
+          ?? nqp::killprocasync($!process_handle, $*KERNEL.signal: signal)
+          !! X::Proc::Async::MustBeStarted.new(:method<kill>, :proc(self)).throw
     }
 }
 

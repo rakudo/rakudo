@@ -17,99 +17,21 @@ my role Iterable {
         nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
     }
 
-    my class Flat does Iterator {
-        has Iterator $!source;
-        has Iterator $!nested;
-
-        method new(\source) {
-            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
-        }
-
-        method pull-one() is raw {
-            nqp::if(
-              $!nested,
-              nqp::if(
-                nqp::eqaddr((my \nested := $!nested.pull-one),IterationEnd),
-                nqp::stmts(
-                  ($!nested := Iterator),
-                  self.pull-one
-                ),
-                nested
-              ),
-              nqp::if(
-                nqp::iscont(my \got := $!source.pull-one),
-                got,
-                nqp::if(
-                  nqp::istype(got,Iterable),
-                  nqp::stmts(
-                    ($!nested := got.flat.iterator),
-                    self.pull-one
-                  ),
-                  got
-                )
-              )
-            )
-        }
-
-        method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              nqp::if(
-                $!nested,
-                nqp::stmts(
-                  $!nested.push-all(target),
-                  ($!nested := Iterator)
-                )
-              ),
-              nqp::until(
-                nqp::eqaddr((my \got := $!source.pull-one), IterationEnd),
-                nqp::if(
-                  nqp::iscont(got),
-                  target.push(got),
-                  nqp::if(
-                    nqp::istype(got,Iterable),
-                    got.flat.iterator.push-all(target),
-                    target.push(got)
-                  )
-                )
-              )
-            )
-        }
-        method is-lazy() { $!source.is-lazy }
-    }
-    method flat(Iterable:D:) { Seq.new(Flat.new(self.iterator)) }
+    method flat(Iterable:D:) { Seq.new(Rakudo::Iterator.Flat(self.iterator)) }
 
     method lazy-if($flag) { $flag ?? self.lazy !! self }
 
-    my class Lazy does Iterator {
-        has $!iterable;
-        has $!iterator;
-
-        method new(\iterable) {
-            nqp::p6bindattrinvres(
-              nqp::create(self),self,'$!iterable',iterable
-            )
-        }
-
-        method pull-one() is raw {
-            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.pull-one
-        }
-
-        method push-exactly(\target, int $n) {
-            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.push-exactly(target, $n);
-        }
-
-        method is-lazy(--> True) { }
-    }
     method lazy() {
         # Return a Seq with an iterator wrapping this Iterable, claiming to
         # be lazy, and implicitly preventing working ahead (by hiding any
         # push-at-least-n of the source iterator).
-        Seq.new(Lazy.new(self))
+        Seq.new(Rakudo::Iterator.Lazy(self))
     }
 
-    method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+    method hyper(
+      Int(Cool) :$batch = 64,
+      Int(Cool) :$degree = max(nqp::cpucores() - 1,1)
+    ) {
 #?if !js
         HyperSeq.new:
           configuration =>
@@ -122,7 +44,10 @@ my role Iterable {
 #?endif
     }
 
-    method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+    method race(
+      Int(Cool) :$batch = 64,
+      Int(Cool) :$degree = max(nqp::cpucores() - 1,1)
+    ) {
 #?if !js
         RaceSeq.new:
           configuration =>
@@ -194,6 +119,66 @@ my role Iterable {
     }
     multi method Set(Iterable:D:)     { SETIFY(self,Set)     }
     multi method SetHash(Iterable:D:) { SETIFY(self,SetHash) }
+}
+
+multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
+    nqp::hllbool(
+      nqp::unless(
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+        nqp::if(                                 # not same object
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(                               # same type
+            nqp::istype(a, Positional),
+            nqp::if(                             # Positional
+              a.is-lazy,
+              nqp::if(                           # a lazy
+                b.is-lazy,
+                die(X::Cannot::Lazy.new: :action<eqv>) # a && b lazy
+              ),
+              nqp::if(                           # a NOT lazy
+                b.is-lazy,
+                0,                               # b lazy
+                nqp::if(                         # a && b NOT lazy
+                  nqp::iseq_i((my int $elems = a.elems),b.elems),
+                  nqp::stmts(                    # same # elems
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems) # not exhausted
+                        && a.AT-POS($i) eqv b.AT-POS($i),         # still same
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)       # exhausted = success!
+                  )
+                )
+              )
+            ),
+            nqp::if(                             # NOT Positional
+              nqp::iseq_i(
+                (my \ia := a.iterator).is-lazy,
+                (my \ib := b.iterator).is-lazy
+              ),
+              nqp::if(
+                ia.is-lazy,
+                die(X::Cannot::Lazy.new: :action<eqv>),
+                nqp::stmts(
+                  nqp::until(
+                    nqp::stmts(
+                      (my \pa := ia.pull-one),
+                      (my \pb := ib.pull-one),
+                      nqp::eqaddr(pa,IterationEnd)
+                        || nqp::eqaddr(pb,IterationEnd)
+                        || nqp::not_i(pa eqv pb)
+                    ),
+                    nqp::null
+                  ),
+                  nqp::eqaddr(pa,pb)     # both IterationEnd = success!
+                )
+              )
+            )
+          )
+        )
+      )
+    )
 }
 
 #?if jvm

@@ -1,24 +1,42 @@
 
-sub METAOP_ASSIGN(\op) { Rakudo::Internals.METAOP_ASSIGN(op) }
+sub METAOP_ASSIGN(\op) is implementation-detail {
+    Rakudo::Internals.METAOP_ASSIGN(op)
+}
 
-sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw { lhs // (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<||>(\lhs, $rhs) is raw { lhs || (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<&&>(\lhs, $rhs) is raw { lhs && (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<or>(\lhs, $rhs) is raw { lhs or (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<and>(       \lhs, $rhs) is raw { lhs and        (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<andthen>(   \lhs, $rhs) is raw { lhs andthen    (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<notandthen>(\lhs, $rhs) is raw { lhs notandthen (lhs = $rhs()) }
-sub METAOP_TEST_ASSIGN:<orelse>(    \lhs, $rhs) is raw { lhs orelse     (lhs = $rhs()) }
+sub METAOP_TEST_ASSIGN:<//>(\lhs, $rhs) is raw is implementation-detail {
+    lhs // (lhs = $rhs())
+}
+sub METAOP_TEST_ASSIGN:<||>(\lhs, $rhs) is raw is implementation-detail {
+    lhs || (lhs = $rhs())
+}
+sub METAOP_TEST_ASSIGN:<&&>(\lhs, $rhs) is raw is implementation-detail {
+    lhs && (lhs = $rhs())
+}
+sub METAOP_TEST_ASSIGN:<or>(\lhs, $rhs) is raw is implementation-detail {
+    lhs or (lhs = $rhs())
+}
+sub METAOP_TEST_ASSIGN:<and>(\lhs, $rhs) is raw is implementation-detail {
+    lhs and (lhs = $rhs())
+}
+sub METAOP_TEST_ASSIGN:<andthen>(\lhs, $rhs) is raw is implementation-detail {
+    lhs andthen (lhs = $rhs())
+}
+sub METAOP_TEST_ASSIGN:<notandthen>(\lhs, $rhs) is raw is implementation-detail {
+    lhs notandthen (lhs = $rhs())
+}
+sub METAOP_TEST_ASSIGN:<orelse>(\lhs, $rhs) is raw is implementation-detail {
+    lhs orelse (lhs = $rhs())
+}
 
-sub METAOP_NEGATE(\op) {
+sub METAOP_NEGATE(\op) is implementation-detail {
     -> |c { c.elems > 1 ?? !op.(|c) !! True }
 }
 
-sub METAOP_REVERSE(\op) {
+sub METAOP_REVERSE(\op) is implementation-detail {
     -> |args { op.(|args.reverse) }
 }
 
-sub METAOP_CROSS(\op, &reduce) {
+sub METAOP_CROSS(\op, &reduce) is implementation-detail {
     nqp::if(op.prec('thunky').starts-with('.'),
     -> +lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
@@ -78,7 +96,7 @@ sub METAOP_CROSS(\op, &reduce) {
     )
 }
 
-sub METAOP_ZIP(\op, &reduce) {
+sub METAOP_ZIP(\op, &reduce) is implementation-detail {
    nqp::if(op.prec('thunky').starts-with('.'),
    -> +lol {
         my $arity = lol.elems;
@@ -114,7 +132,7 @@ sub METAOP_ZIP(\op, &reduce) {
     )
 }
 
-proto sub METAOP_REDUCE_LEFT(|) {*}
+proto sub METAOP_REDUCE_LEFT(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_LEFT(\op, \triangle) {
     if op.count > 2 and op.count < Inf {
         my $count = op.count;
@@ -210,7 +228,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
     }
 }
 
-proto sub METAOP_REDUCE_RIGHT(|) {*}
+proto sub METAOP_REDUCE_RIGHT(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
     nqp::if(
       op.count < Inf && nqp::isgt_i((my int $count = op.count),2),
@@ -392,7 +410,7 @@ multi sub METAOP_REDUCE_RIGHT(\op) {
     )
 }
 
-proto sub METAOP_REDUCE_LIST(|) {*}
+proto sub METAOP_REDUCE_LIST(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_LIST(\op, \triangle) {
     sub (+values) {
         GATHER({
@@ -408,7 +426,7 @@ multi sub METAOP_REDUCE_LIST(\op) {
     sub (+values) { op.(|values) }
 }
 
-proto sub METAOP_REDUCE_LISTINFIX(|) {*}
+proto sub METAOP_REDUCE_LISTINFIX(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_LISTINFIX(\op, \triangle) {
     sub (|values) {
         my \p = values[0];
@@ -430,7 +448,7 @@ multi sub METAOP_REDUCE_LISTINFIX(\op) {
     }
 }
 
-proto sub METAOP_REDUCE_CHAIN(|) {*}
+proto sub METAOP_REDUCE_CHAIN(|) is implementation-detail {*}
 multi sub METAOP_REDUCE_CHAIN(\op, \triangle) {
     sub (+values) {
         my $state = True;
@@ -469,15 +487,15 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
     }
 }
 
-sub METAOP_REDUCE_XOR(\op, $triangle?) {
+sub METAOP_REDUCE_XOR(\op, $triangle?) is implementation-detail {
     X::NYI.new(feature => 'xor reduce').throw;
 }
 
-sub METAOP_HYPER(\op, *%opt) {
+sub METAOP_HYPER(\op, *%opt) is implementation-detail {
     -> Mu \a, Mu \b { HYPER(op, a, b, |%opt) }
 }
 
-proto sub METAOP_HYPER_POSTFIX(|) {*}
+proto sub METAOP_HYPER_POSTFIX(|) is implementation-detail {*}
 multi sub METAOP_HYPER_POSTFIX(\op) {
     nqp::if(
       nqp::can(op,"nodal"),
@@ -487,7 +505,7 @@ multi sub METAOP_HYPER_POSTFIX(\op) {
 }
 
 # no indirection for subscripts and such
-proto sub METAOP_HYPER_POSTFIX_ARGS(|) {*}
+proto sub METAOP_HYPER_POSTFIX_ARGS(|) is implementation-detail {*}
 multi sub METAOP_HYPER_POSTFIX_ARGS(\obj,\op) {
     nqp::if(
       nqp::can(op,"nodal"),
@@ -510,7 +528,7 @@ multi sub METAOP_HYPER_POSTFIX_ARGS(\obj, \args, \op) {
     )
 }
 
-sub METAOP_HYPER_PREFIX(\op) {
+sub METAOP_HYPER_PREFIX(\op) is implementation-detail {
     nqp::if(
       nqp::can(op,"nodal"),      # rarely true for prefixes
       (-> \obj { nodemap(op, obj) }),
@@ -518,9 +536,11 @@ sub METAOP_HYPER_PREFIX(\op) {
     )
 }
 
-sub METAOP_HYPER_CALL(\list, |args) { deepmap(-> $c { $c(|args) }, list) }
+sub METAOP_HYPER_CALL(\list, |args) is implementation-detail {
+    deepmap(-> $c { $c(|args) }, list)
+}
 
-sub HYPER(\operator, :$dwim-left, :$dwim-right, |c) {
+sub HYPER(\operator, :$dwim-left, :$dwim-right, |c) is implementation-detail {
     Hyper.new(operator, :$dwim-left, :$dwim-right).infix(|c)
 }
 
@@ -539,7 +559,7 @@ multi sub nodemap(\op, \obj) {
     my \objs := obj.list;
     # as a wanted side-effect is-lazy reifies the list
     fail X::Cannot::Lazy.new(:action<nodemap>) if objs.is-lazy;
-    my Mu $items := nqp::getattr(objs, List, '$!reified');
+    return () unless my Mu $items := nqp::getattr(objs, List, '$!reified');
     my Mu $o;
     # We process the elements in two passes, end to start, to
     # prevent users from relying on a sequential ordering of hyper.

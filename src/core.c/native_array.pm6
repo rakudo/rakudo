@@ -93,7 +93,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2020-03-17T23:04:51+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
@@ -566,7 +566,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(strarray:D: --> str) {
+        method GRAB_ONE(strarray:D: --> str) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_s(
                 self,
@@ -594,7 +594,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2020-03-17T23:04:51+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
@@ -1067,7 +1067,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(intarray:D: --> int) {
+        method GRAB_ONE(intarray:D: --> int) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_i(
                 self,
@@ -1147,7 +1147,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.p6
+#- Generated on 2020-03-17T23:04:51+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
@@ -1620,7 +1620,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(numarray:D: --> num) {
+        method GRAB_ONE(numarray:D: --> num) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_n(
                 self,
@@ -1716,7 +1716,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2238,7 +2238,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2760,7 +2760,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.p6
+#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -3283,7 +3283,7 @@ my class array does Iterable {
 
     method ^parameterize(Mu:U \arr, Mu \t) {
         if nqp::isconcrete(t) {
-            return "Can not parameterize {arr.^name} with {t.perl}";
+            return "Can not parameterize {arr.^name} with {t.raku}";
         }
         my $t := nqp::decont(t);
         my int $kind = nqp::objprimspec($t);
@@ -3393,9 +3393,9 @@ my class array does Iterable {
         } ).join(' ') ~ ']';
     }
 
-    multi method perl(array:D:) {
-        'array[' ~ self.of.perl ~ '].new(' ~
-            self.map(*.perl).join(', ') ~ ')'
+    multi method raku(array:D:) {
+        'array[' ~ self.of.raku ~ '].new(' ~
+            self.map(*.raku).join(', ') ~ ')'
     }
 
     method FLATTENABLE_LIST() { self }

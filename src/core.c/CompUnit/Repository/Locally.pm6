@@ -27,8 +27,8 @@ role CompUnit::Repository::Locally {
     multi method gist(CompUnit::Repository::Locally:D:) {
         self.path-spec
     }
-    multi method perl(CompUnit::Repository::Locally:D:) {
-        $?CLASS.^name ~ '.new(prefix => ' ~ $!abspath.perl ~ ')';
+    multi method raku(CompUnit::Repository::Locally:D:) {
+        $?CLASS.^name ~ '.new(prefix => ' ~ $!abspath.raku ~ ')';
     }
 
     multi method WHICH(CompUnit::Repository::Locally:D:) { $!WHICH }

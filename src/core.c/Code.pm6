@@ -8,7 +8,9 @@ my class Code does Callable { # declared in BOOTSTRAP
         $self.count ?? $self($topic) !! $self()
     }
 
-    proto method POSITIONS(|) {*}
+    method is-implementation-detail(--> False) { }
+
+    proto method POSITIONS(|) {*} #  is implementation-detail
 
     method arity(Code:D:) { nqp::getattr_i($!signature,Signature,'$!arity') }
 
@@ -22,7 +24,7 @@ my class Code does Callable { # declared in BOOTSTRAP
     multi method prec(Str:D $) { '' }
 
     multi method Str(Code:D:) {
-        warn( self.WHAT.perl ~ " object coerced to string (please use .gist or .perl to do that)"); self.name
+        warn( self.WHAT.raku ~ " object coerced to string (please use .gist or .raku to do that)"); self.name
     }
 
     method outer(Code:D:) {
@@ -45,8 +47,6 @@ my class Code does Callable { # declared in BOOTSTRAP
         nqp::getcodelocation($!do)<line>;
     }
 
-    multi method perl(Code:D:) { '{ ... }' }
-
     method assuming(Code:D $self: |primers) {
         my $sig = nqp::getattr(nqp::decont($self), Code, '$!signature');
 
@@ -66,7 +66,7 @@ my class Code does Callable { # declared in BOOTSTRAP
         }
 
         # sub strip-parm
-        # This is mostly a stripped-down version of Parameter.perl, removing
+        # This is mostly a stripped-down version of Parameter.raku, removing
         # where clauses, turning "= { ... }" from defaults into just
         # "?", removing type captures, subsignatures, and undeclared types
         # (e.g. types set to or parameterized by captured types.)
@@ -296,7 +296,7 @@ my class Code does Callable { # declared in BOOTSTRAP
             '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });
                my multi __PRIMED_ANON (|%s(%s)) {
                    my %%chash := %s.hash;
-                   $self(%s%s |{ %%ahash, %%chash }); # |{} workaround RT#77788
+                   $self(%s%s |{ %%ahash, %%chash }); # |{} workaround https://github.com/Raku/old-issue-tracker/issues/2157
                };
                $res }()',
             $primed_sig, $capwrap, $primed_sig, $capwrap,

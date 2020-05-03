@@ -1,5 +1,5 @@
 # Thread represents an OS-level thread. While it could be used directly, it
-# is not the preferred way to work in Perl 6. It's a building block for the
+# is not the preferred way to work in Raku. It's a building block for the
 # interesting things.
 my class Thread {
     # The VM-level thread handle.
@@ -48,7 +48,7 @@ my class Thread {
                         ++$aborted;
 #?endif
                         my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
-                        nqp::getcomp('perl6').handle-control($vm-ex);
+                        nqp::getcomp('Raku').handle-control($vm-ex);
                     }
                 }
                 code();

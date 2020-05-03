@@ -5,7 +5,7 @@ use Test::Helpers;
 plan 2;
 
 sub test-deprecation (Str:D $lang, Bool :$is-visible, |c) {
-    my $args = c.perl;
+    my $args = c.raku;
     is-run '
         use \qq[$lang];
         %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;

@@ -22,7 +22,7 @@ my class Stash { # declared in BOOTSTRAP
             nqp::if(
               nqp::existskey(GLOBAL.WHO,$key),
               nqp::atkey(GLOBAL.WHO,$key),
-              Failure.new("Could not find symbol '$key'")
+              Failure.new("Could not find symbol '$key' in '{self}'")
             ),
             nqp::p6scalarfromdesc(
               ContainerDescriptor::BindHashPos.new(Mu, self, $key)
@@ -52,7 +52,7 @@ my class Stash { # declared in BOOTSTRAP
     }
 
     method merge-symbols(Stash:D: Hash $globalish) { # NQP gives a Hash, not a Stash
-        nqp::gethllsym('perl6','ModuleLoader').merge_globals(self,$globalish)
+        nqp::gethllsym('Raku','ModuleLoader').merge_globals(self,$globalish)
           if $globalish.defined;
     }
 }

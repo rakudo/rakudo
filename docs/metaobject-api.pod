@@ -19,7 +19,7 @@ implementation of roles and a simple but capable implementation of classes.
 These are put to use in writing Rakudo's meta-objects.
 
 The Rakudo meta-objects are generally factored in terms of roles. These are
-composed into classes that represent the various types of Perl 6 package
+composed into classes that represent the various types of Raku package
 (such as classes and roles).
 
 
@@ -63,7 +63,7 @@ This role provides storage and introspection of a version and authority.
 
 =head2 Classes
 
-The following classes exist in the Perl 6 meta-model.
+The following classes exist in the Raku meta-model.
 
 =head3 ModuleHOW
 

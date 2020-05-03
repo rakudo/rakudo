@@ -4,39 +4,30 @@
 # with the values that you expected and how to get them in your situation.
 
 class Distro does Systemic {
-    has Str $.release;
-    has Bool $.is-win;
-    has Str $.path-sep;
+    has Str $.release  is built(:bind);
+    has Bool $.is-win  is built(False);
+    has Str $.path-sep is built(:bind);
 
-    submethod BUILD (
-      :$name,
-      :$version,
-      :$!release,
-      :$!auth,
-      :$!path-sep,
-      :$!signature  = Blob,
-      :$!desc = Str
-      --> Nil
-    ) {
-        $!name = $name.lc;    # lowercase
-        $!name ~~ s:g/" "//;  # spaceless
-        $!version = Version.new($version);
-        $!is-win  = so $!name eq any <mswin32 mingw msys cygwin>;
+    submethod TWEAK (--> Nil) {
+        # https://github.com/rakudo/rakudo/issues/3436
+        nqp::bind($!name,$!name.lc.trans(" " => ""));  # lowercase spaceless
+        $!is-win := so $!name eq any <mswin32 mingw msys cygwin>;
     }
 
     # This is a temporary migration method needed for installation
     method cur-sep() { "," }
 }
 
-sub INITIALIZE-A-DISTRO-NOW() {
+# set up $*DISTRO
+Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
 #?if jvm
-    my $properties := INITIALIZE-A-VM-NOW.properties;
+    my $properties := VM.new.properties;
     my $name       := $properties<os.name>;
     my $version    := $properties<os.version>;
     my $path-sep   := $properties<path.separator>;
 #?endif
 #?if !jvm
-    my $config   := INITIALIZE-A-VM-NOW.config;
+    my $config   := VM.new.config;
     my $name     := $config<osname>;
     my $version  := $config<osvers>;
     my $path-sep := $name eq 'MSWin32' ?? ';' !! ':';
@@ -45,51 +36,55 @@ sub INITIALIZE-A-DISTRO-NOW() {
     my Str $auth    := "unknown";
     my Str $desc    := "unknown";
 
+    # helper sub to convert key:value lines into a hash
+    sub kv2Map(Str:D $text, str $delimiter --> Map:D) {
+        my $hash := nqp::hash;
+        for $text.lines -> str $line {
+            my $parts := nqp::split($delimiter,$line);
+            if nqp::elems($parts) > 1 {
+                nqp::bindkey(
+                  $hash,
+                  nqp::shift($parts),
+                  nqp::hllize(
+                    nqp::elems($parts) == 2
+                      ?? nqp::shift($parts)
+                      !! nqp::join($delimiter,$parts)
+                  ).trim
+                );
+            }
+        }
+
+        nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$hash)
+    }
+
     # darwin specific info
     if $name eq 'darwin' {
-        if qx/sw_vers/ ~~ m/^
-        ProductName\: \s+ (<[\w\ ]>+) \s+
-        ProductVersion\: \s+ (<[\d\.]>+) \s+
-        BuildVersion\: \s+ (<[\w\d]>+)
-        / {
-            $name    := ~$0;
-            $version := ~$1;
-            $release := ~$2;
-        }
-        else {
-            $name    := 'Mac OS X'; # we assume
-            $version := "unknown";
-            $release := qx/uname -r/.chomp;
-        }
-        $auth := 'Apple Computer, Inc.'; # presumably
+        my $lookup :=
+          kv2Map(shell("sw_vers", :out, :err).out.slurp(:close),':');
+        $name    := $_ with $lookup<ProductName>;
+        $version := $_ with $lookup<ProductVersion>;
+        $release := $_ with $lookup<BuildVersion>;
+        $auth    := 'Apple Inc.'; # presumably
     }
     elsif Rakudo::Internals.FILETEST-E('/etc/os-release') {
-        $_ := '/etc/os-release'.IO.slurp.subst(:g, '"','');
-        $auth    := ~$0 if m/^^ HOME_URL    \= (\N*) /;
-        $name    := ~$0 if m/^^ ID          \= (\N*) /;
-        $desc    := ~$0 if m/^^ PRETTY_NAME \= (\N*) /;
-        $version := ~$0 if m/^^ VERSION     \= (\N*) /;
-        $release := ~$0 if m/^^ VERSION_ID  \= (\N*) /;
+        my $lookup := kv2Map('/etc/os-release'.IO.slurp.subst(:g,'"'),'=');
+        $name    := $_ with $lookup<ID>;
+        $auth    := $_ with $lookup<HOME_URL>;
+        $version := $_ with $lookup<VERSION>;
+        $release := $_ with $lookup<VERSION_ID>;
+        $desc    := $_ with $lookup<PRETTY_NAME>;
     }
     elsif $name eq 'linux' {
-        if try qx{lsb_release -a 2> /dev/null} ~~ m/
-            Distributor \s+ ID\: \s+ (<[\w\ ]>+) \s+
-            Description\: \s+ ((<[\w\ ]>+) \s+ (<[\w\.]>+)) \s+
-            Release\: \s+ (<[\d\.]>+)
-        / {
-            $auth    := ~$0;
-            $desc    := ~$1;
-            $name    := ~$2;
-            $version := ~$3;
-            $release := ~$4;
-        }
+        my $lookup :=
+          kv2Map(shell(<lsb_release -a>, :out, :err).out.slurp(:close),":");
+        $auth    := $_ with $lookup<<"DISTRIBUTOR ID">>;
+        $desc    := $_ with $lookup<DESCRIPTION>;
+        $release := $_ with $lookup<RELEASE>;
     }
-    Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
-}
 
-# set up $*DISTRO
-Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
-    PROCESS::<$DISTRO> := INITIALIZE-A-DISTRO-NOW();
+    $version := $version.Version;  # make sure it is a Version
+    PROCESS::<$DISTRO> :=
+      Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
 }
 
 # vim: ft=perl6 expandtab sw=4

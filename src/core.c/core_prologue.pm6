@@ -26,6 +26,7 @@ my class WhateverCode { ... }
 my class X::Attribute::Required { ... }
 my class X::Numeric::Overflow { ... }
 my class X::Numeric::Underflow { ... }
+my class X::TypeCheck::Attribute::Default { ... }
 
 # Stub these or we can't use any sigil other than $.
 my role Positional { ... }
@@ -35,8 +36,8 @@ my role Iterable { ... }
 my role PositionalBindFailover { ... }
 
 # Make Iterable available for the code-gen.
-BEGIN nqp::bindhllsym('perl6', 'Iterable', Iterable);
-nqp::bindhllsym('perl6', 'Iterable', Iterable);
+BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);
+nqp::bindhllsym('Raku', 'Iterable', Iterable);
 
 # Set up Empty, which is a Slip created with an empty IterationBuffer (which
 # we also stub here). This is needed in a bunch of simple constructs (like if
@@ -56,7 +57,7 @@ my class Rakudo::Internals::IterationSet is repr('VMHash') { }
 my constant $?NL = "\x0A";
 
 # Make sure we have an environment
-PROCESS::<%ENV> := Rakudo::Internals.createENV(0);
+PROCESS::<%ENV> := Rakudo::Internals.createENV;
 
 # This thread pool scheduler will be the default one.
 #?if !js

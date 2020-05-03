@@ -5,7 +5,7 @@ my class Proc {
     has IO::Pipe $.in;
     has IO::Pipe $.out;
     has IO::Pipe $.err;
-    has $.exitcode = -1;  # distinguish uninitialized from 0 status
+    has $.exitcode is default(Nil);
     has $.signal;
     has $.pid is default(Nil);
     has @.command;
@@ -49,16 +49,22 @@ my class Proc {
         }
 
         if $merge {
-            my $chan = Channel.new;
-            $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
-                :on-read({ (try $chan.receive) // buf8 }),
-                :on-close({ self!await-if-last-handle }));
-            ++$!active-handles;
-            @!pre-spawn.push({
-                $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
-                    done => { $chan.close },
-                    quit => { $chan.fail($_) }
-            });
+            if nqp::istype($out, IO::Handle) && $out.DEFINITE {
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $out.write($_) }
+                });
+            } else {
+                my $chan = Channel.new;
+                $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                    :on-read({ (try $chan.receive) // buf8 }),
+                    :on-close({ self!await-if-last-handle }));
+                ++$!active-handles;
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
+                        done => { $chan.close },
+                        quit => { $chan.fail($_) }
+                });
+            }
         }
         else {
             if $out === True {
@@ -155,7 +161,8 @@ my class Proc {
         CATCH { default { self!set-status(0x100) } }
         &!start-stdout() if &!start-stdout;
         &!start-stderr() if &!start-stderr;
-        self!set-status(await($!finished).status) if $!exitcode == -1;
+        self!set-status(await($!finished).status)
+          if nqp::istype($!exitcode,Nil);
     }
 
     method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {
@@ -234,7 +241,7 @@ proto sub run(|) {*}
 multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
+    my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.spawn(@args, :$cwd, :$env);
     $proc
 }
@@ -243,13 +250,13 @@ proto sub shell($, *%) {*}
 multi sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
+    my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.shell($cmd, :$cwd, :$env);
     $proc
 }
 
-sub QX($cmd, :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:out);
+sub QX($cmd, :$cwd = $*CWD, :$env) is implementation-detail {
+    my $proc := Proc.new(:out);
     $proc.shell($cmd, :$cwd, :$env);
     $proc.out.slurp(:close) // Failure.new("Unable to read from '$cmd'")
 }

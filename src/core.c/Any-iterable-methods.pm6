@@ -31,7 +31,7 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method map(|c) {
         X::Cannot::Map.new(
           what       => self.^name,
-          using      => "'{c.perl.substr(2).chop}'",
+          using      => "'{c.raku.substr(2).chop}'",
           suggestion => "Did a * (Whatever) get absorbed by a list?"
         ).throw;
     }
@@ -40,7 +40,7 @@ Consider using a block if any of these are necessary for your mapping code."
         sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, $label);
     }
 
-    my class IterateOneWithPhasers does SlippyIterator {
+    my class IterateOneWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
@@ -52,7 +52,7 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::stmts(
               (&!block  := block),
               ($!source := source),
-              ($!label  := label),
+              ($!label  := nqp::decont(label)),
               ($!NEXT = block.has-phaser('NEXT')),
               self
             )
@@ -256,11 +256,11 @@ Consider using a block if any of these are necessary for your mapping code."
         has $!source;
         has $!label;
 
-        method new(&block,$source,$label) {
+        method new(&block,$source,\label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
             $iter
         }
 
@@ -351,16 +351,16 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateOneWithoutPhasers does SlippyIterator {
+    my class IterateOneWithoutPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
 
-        method new(&block,$source,$label) {
+        method new(&block,$source,\label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
             $iter
         }
 
@@ -494,16 +494,16 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateTwoWithoutPhasers does SlippyIterator {
+    my class IterateTwoWithoutPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
 
-        method new(&block,$source,$label) {
+        method new(&block,$source,\label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
             $iter
         }
 
@@ -671,7 +671,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateMoreWithPhasers does SlippyIterator {
+    my class IterateMoreWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!count;
@@ -682,12 +682,12 @@ Consider using a block if any of these are necessary for your mapping code."
         has $!NEXT;
         has $!CAN_FIRE_PHASERS;
 
-        method new(&block, $source, $count, $label) {
+        method new(&block, $source, $count, \label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!count', $count);
-            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
             $iter
         }
 
@@ -773,7 +773,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    sub sequential-map(\source, &block, $label) {
+    sub sequential-map(\source, &block, \label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
         my $count = &block.count;
@@ -781,15 +781,15 @@ Consider using a block if any of these are necessary for your mapping code."
         Seq.new(
           nqp::istype(&block,Block) && &block.has-phasers
             ?? $count < 2 || $count === Inf
-              ?? IterateOneWithPhasers.new(&block,source,$label)
-              !! IterateMoreWithPhasers.new(&block,source,$count,$label)
+              ?? IterateOneWithPhasers.new(&block,source,label)
+              !! IterateMoreWithPhasers.new(&block,source,$count,label)
             !! $count < 2 || $count === Inf
               ?? nqp::istype(Slip,&block.returns)
-                ?? IterateOneWithoutPhasers.new(&block,source,$label)
-                !! IterateOneNotSlippingWithoutPhasers.new(&block,source,$label)
+                ?? IterateOneWithoutPhasers.new(&block,source,label)
+                !! IterateOneNotSlippingWithoutPhasers.new(&block,source,label)
               !! $count == 2
-                ?? IterateTwoWithoutPhasers.new(&block,source,$label)
-                !! IterateMoreWithPhasers.new(&block,source,$count,$label)
+                ?? IterateTwoWithoutPhasers.new(&block,source,label)
+                !! IterateMoreWithPhasers.new(&block,source,$count,label)
         )
     }
 
@@ -986,7 +986,7 @@ Consider using a block if any of these are necessary for your mapping code."
                 method count(Code:D:) { $!count }
             }),
             (my &tester = -> |c {
-                #note "*cough* {c.perl} -> {$test(|c).perl}";
+                #note "*cough* {c.raku} -> {$test(|c).raku}";
                 next unless $test(|c);
                 c.list
             } but CheatArity),
@@ -1049,7 +1049,7 @@ Consider using a block if any of these are necessary for your mapping code."
                             Failure.new("Specified a negated :v adverb"),
                             Failure.new(X::Adverb.new(  # :foo ??
                               :$what,
-                              :source(try { self.VAR.name } // self.WHAT.perl),
+                              :source(try { self.VAR.name } // self.WHAT.raku),
                               :unexpected(%a.keys)))
                           )
                         )
@@ -1060,7 +1060,7 @@ Consider using a block if any of these are necessary for your mapping code."
               ),
               Failure.new(X::Adverb.new(                # multiple adverbs ??
                 :$what,
-                :source(try { self.VAR.name } // self.WHAT.perl),
+                :source(try { self.VAR.name } // self.WHAT.raku),
                 :nogo(%a.keys.grep: /k|v|p/),
                 :unexpected(%a.keys.grep: { !.match(/k|v|p/) } )))
             ),
@@ -1126,7 +1126,7 @@ Consider using a block if any of these are necessary for your mapping code."
                       ?? die "Specified a negated :v adverb"
                       !! X::Adverb.new(
                            :what<grep>,
-                           :source(try { self.VAR.name } // self.WHAT.perl),
+                           :source(try { self.VAR.name } // self.WHAT.raku),
                            :unexpected($key)
                          ).throw
                 }
@@ -1135,7 +1135,7 @@ Consider using a block if any of these are necessary for your mapping code."
         else {
             X::Adverb.new(
               :what<grep>,
-              :source(try { self.VAR.name } // self.WHAT.perl),
+              :source(try { self.VAR.name } // self.WHAT.raku),
               :nogo(%_.keys.grep: /k|v|kv|p/),
               :unexpected(%_.keys.grep: { !.match(/k|v|kv|p/) } )
             ).throw
@@ -1529,9 +1529,9 @@ Consider using a block if any of these are necessary for your mapping code."
         )
     }
 
-    method collate {
-        self.sort(&[coll]);
-    }
+    proto method collate(|) {*}
+    multi method collate() { self.sort(&[coll]) }
+
     sub find-reducer-for-op(&op) {
         nqp::if(
           nqp::iseq_s(&op.prec("prec"),"f="),
@@ -2084,7 +2084,7 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method rotor(Any:D: Int:D $batch, :$partial) {
         Seq.new(Rakudo::Iterator.Batch(self.iterator,$batch,$partial))
     }
-    multi method rotor(Any:D: *@cycle, :$partial) {
+    multi method rotor(Any:D: +@cycle, :$partial) {
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
 }

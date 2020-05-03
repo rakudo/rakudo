@@ -103,7 +103,7 @@ class Version {
 
     multi method Str(Version:D:)  { $!string }
     multi method gist(Version:D:) { nqp::concat("v",$!string) }
-    multi method perl(Version:D:) {
+    multi method raku(Version:D:) {
         if nqp::chars($!string) {
             my int $first = nqp::ord($!string);
             nqp::isge_i($first,48) && nqp::isle_i($first,57) # "0" <= x <= "9"
@@ -157,6 +157,8 @@ class Version {
     method parts() { nqp::hllize($!parts) }
     method plus()  { nqp::hllbool($!plus) }
     method whatever() { nqp::hllbool($!whatever) }
+
+    method Version() { self }
 }
 
 

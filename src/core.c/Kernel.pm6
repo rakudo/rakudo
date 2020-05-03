@@ -4,10 +4,10 @@
 # with the values that you expected and how to get them in your situation.
 
 class Kernel does Systemic {
-    has Str $.release;
-    has Str $!hardware;
-    has Str $!arch;
-    has Int $!bits;
+    has Str $!release  is built(:bind);
+    has Str $!hardware is built(:bind);
+    has Str $!arch     is built(:bind);
+    has Int $!bits     is built(:bind);
 
 #?if !jvm
     has $!uname;
@@ -16,7 +16,7 @@ class Kernel does Systemic {
     }
 #?endif
 
-    method !uname-s {
+    method !uname-s(--> Str:D) {
 #?if !jvm
         nqp::atpos_s(self!uname, nqp::const::UNAME_SYSNAME)
 #?endif
@@ -25,7 +25,7 @@ class Kernel does Systemic {
 #?endif
     }
 
-    method !uname-r {
+    method !uname-r(--> Str:D) {
 #?if !jvm
         nqp::atpos_s(self!uname, nqp::const::UNAME_RELEASE)
 #?endif
@@ -34,7 +34,7 @@ class Kernel does Systemic {
 #?endif
     }
 
-    method !uname-v {
+    method !uname-v(--> Str:D) {
 #?if !jvm
         nqp::atpos_s(self!uname, nqp::const::UNAME_VERSION)
 #?endif
@@ -43,7 +43,7 @@ class Kernel does Systemic {
 #?endif
     }
 
-    method !uname-m {
+    method !uname-m(--> Str:D) {
 #?if !jvm
         nqp::atpos_s(self!uname, nqp::const::UNAME_MACHINE)
 #?endif
@@ -52,70 +52,64 @@ class Kernel does Systemic {
 #?endif
     }
 
-    method !uname-p {
+    method !uname-p(--> Str:D) {
         # TODO: find a way to get this without shelling out
         try shell("uname -p", :out, :!err).out.slurp(:close).chomp;
     }
 
-    submethod BUILD(:$!auth = 'unknown' --> Nil) { }
-
-    method name {
-        $!name //= do {
-            given $*DISTRO.name {
-                when 'mswin32' {
-                    'win32'
-                }
-                when 'browser' {
-                    'browser';
-                }
-                default {
-                    lc self!uname-s();
-                }
-            }
-        }
+    method name(--> Str:D) {
+        $!name eq 'unknown' ?? self!name($*DISTRO.name) !! $!name
+    }
+    method !name(Str:D \distro --> Str:D) {
+        # https://github.com/rakudo/rakudo/issues/3436
+        nqp::bind($!name,distro eq 'mswin32'
+          ?? 'win32'
+          !! distro eq 'browser'
+            ?? 'browser'
+            !! self!uname-s.lc
+        )
     }
 
-    method version {
-        # it doesn't make sense to return a Version object here, but its currently enforced by roast
-        # TODO: remove Version checks from roast? and check ecosystem for fallout.
-        $!version //= Version.new(self!uname-v());
+    method version(--> Version:D) {
+        $!version
+          ?? $!version
+          # https://github.com/rakudo/rakudo/issues/3436
+          !! nqp::bind($!version,self!uname-v.Version)
     }
 
-    method release {
+    method release(--> Str:D) {
         # somewhat counter-intuitively the UNAME_RELEASE is what
         # most people think of the kernel version
-        $!release //= self!uname-r();
+        $!release ?? $!release !! ($!release := self!uname-r)
     }
 
-    method hardware {
-        $!hardware //= self!uname-m();
+    method hardware(--> Str:D) {
+        $!hardware ?? $!hardware !! ($!hardware := self!uname-m)
     }
 
     method arch {
-        $!arch //= do {
-            given $*DISTRO.name {
-                when 'raspbian' {
-                    self!uname-m();
-                }
-                when 'browser' {
-                    self!uname-m();
-                }
-                default {
-                    self!uname-p();
-                }
-            }
-        }
+        $!arch ?? $!arch !! self!arch($*DISTRO.name)
+    }
+    method !arch(Str:D \distro --> Str:D) {
+        $!arch := distro eq 'raspbian'
+          ?? self!uname-m
+          !! distro eq 'browser'
+            ?? self!uname-m
+            !! self!uname-p
     }
 
-    method archname {
+    method archname(--> Str:D) {
         self.hardware ~ '-' ~ self.name
     }
 
-    method bits {
-        $!bits //= $.hardware ~~ m/_64|w|amd64/ ?? 64 !! 32;  # naive approach
+    method bits(--> Int:D) {
+        $!bits
+          ?? $!bits
+          # naive approach
+          !! ($!bits := $.hardware ~~ m/_64|w|amd64/ ?? 64 !! 32);
     }
 
-    method hostname {
+    method hostname(--> Str:D) {
         nqp::p6box_s(nqp::gethostname)
     }
 
@@ -178,7 +172,7 @@ class Kernel does Systemic {
                         nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
                         ($_ := @!signals.AT-POS($i)).defined
                           && %!signals-by-Str.ASSIGN-KEY(.Str, nqp::decont($i))));
-                    $!signals-by-Str-setup = True;
+                    $!signals-by-Str-setup := True;
                 }
             }
         }

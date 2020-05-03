@@ -60,8 +60,8 @@ my class Block { # declared in BOOTSTRAP
           !! ()
     }
 
-    multi method perl(Block:D:) {
-        "-> {self.signature.perl.substr(2,*-1)} \{ #`({self.WHICH}) ... \}"
+    multi method raku(Block:D:) {
+        "-> {self.signature.raku.substr(2,*-1)} \{ #`({self.WHICH}) ... \}"
     }
 
     method WHY() {

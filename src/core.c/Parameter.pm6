@@ -28,6 +28,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_OPTIONAL        = 1 +< 11;
     my constant $SIG_ELEM_ARRAY_SIGIL        = 1 +< 12;
     my constant $SIG_ELEM_HASH_SIGIL         = 1 +< 13;
+    my constant $SIG_ELEM_DEFAULT_FROM_OUTER = 1 +< 14;
     my constant $SIG_ELEM_IS_CAPTURE         = 1 +< 15;
     my constant $SIG_ELEM_UNDEFINED_ONLY     = 1 +< 16;
     my constant $SIG_ELEM_DEFINED_ONLY       = 1 +< 17;
@@ -89,15 +90,15 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     submethod BUILD(
-       Str:D $name      is copy = "",
-       Int:D $flags     is copy = 0,
-      Bool:D $named     is copy = False,
-      Bool:D $optional  is copy = False,
-      Bool:D $mandatory is copy = False,
-      Bool:D $is-copy = False,
-      Bool:D $is-raw = False,
-      Bool:D $is-rw = False,
-      Bool:D $multi-invocant = True,
+       Str:D :$name      is copy = "",
+       Int:D :$flags     is copy = 0,
+      Bool:D :$named     is copy = False,
+      Bool:D :$optional  is copy = False,
+      Bool:D :$mandatory is copy = False,
+      Bool:D :$is-copy = False,
+      Bool:D :$is-raw = False,
+      Bool:D :$is-rw = False,
+      Bool:D :$multi-invocant = True,
              *%args  # type / default / where / sub_signature captured through %_
       ) {
 
@@ -240,12 +241,13 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
     }
     method usage-name() {
-        nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
-          ?? $!variable_name
-          !! nqp::iseq_i(nqp::index('*!',nqp::substr($!variable_name,1,1)),-1)
-            ?? nqp::substr($!variable_name,1)
-            !! nqp::substr($!variable_name,2)
-
+        nqp::isnull_s($!variable_name)
+          ?? Nil
+          !! nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
+            ?? $!variable_name
+            !! nqp::iseq_i(nqp::index('*!.',nqp::substr($!variable_name,1,1)),-1)
+              ?? nqp::substr($!variable_name,1)
+              !! nqp::substr($!variable_name,2)
     }
 
     method sigil() {
@@ -259,6 +261,8 @@ my class Parameter { # declared in BOOTSTRAP
                 !! nqp::bitand_i($!flags,$SIG_ELEM_CODE_SIGIL)
                   ?? '&'
                   !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
+                    && $.name
+                    && nqp::isnull($!default_value)
                     ?? '\\'
                     !! '$'
             !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::iseq_i(
@@ -274,10 +278,31 @@ my class Parameter { # declared in BOOTSTRAP
             ?? '!'
             !! nqp::isnull_s($!variable_name)
               ?? ''
-              !! nqp::iseq_s(nqp::substr($!variable_name,1,1),"*")
+              !! nqp::eqat($!variable_name,"*",1)
                 ?? '*'
                 !! ''
     }
+
+    method prefix(Parameter:D: --> Str:D) {
+        nqp::bitand_i($!flags, nqp::bitor_i($SIG_ELEM_SLURPY_POS, $SIG_ELEM_SLURPY_NAMED))
+          ?? '*'
+          !! nqp::bitand_i($!flags, $SIG_ELEM_SLURPY_LOL)
+            ?? '**'
+            !! nqp::bitand_i($!flags, $SIG_ELEM_SLURPY_ONEARG)
+              ?? '+'
+              !! ''
+    }
+
+    method suffix(Parameter:D: --> Str:D) {
+        nqp::isnull(@!named_names)
+          ?? nqp::bitand_i($!flags, $SIG_ELEM_IS_OPTIONAL) && nqp::isnull($!default_value)
+            ?? '?'
+            !! ''
+          !! nqp::bitand_i($!flags, $SIG_ELEM_IS_OPTIONAL)
+            ?? ''
+            !! '!'
+    }
+
     method modifier() {
         nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY)
           ?? ':D'
@@ -518,15 +543,14 @@ my class Parameter { # declared in BOOTSTRAP
         True;
     }
 
-    multi method perl(Parameter:D: Mu:U :$elide-type = Any) {
+    multi method raku(Parameter:D: Mu:U :$elide-type = Any) {
         my $perl = '';
-        my $rest = '';
-        my $type = $!nominal_type.^name;
+        $perl ~= "::$_ " for @.type_captures;
+
+        my $modifier = $.modifier;
+        my $type     = $!nominal_type.^name;
         $type = $!coerce_type.^name ~ "($type)"
           unless nqp::isnull($!coerce_type);
-        my $modifier = self.modifier;
-
-        $perl ~= "::$_ " for @($.type_captures);
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $!flags +& $SIG_ELEM_CODE_SIGIL {
@@ -537,60 +561,45 @@ my class Parameter { # declared in BOOTSTRAP
                 !nqp::eqaddr($!nominal_type, nqp::decont($elide-type)) {
             $perl ~= $type ~ $modifier;
         }
-        my $name = $.name;
-        if $name {
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $name = '|' ~ $name;
-            } elsif $!flags +& $SIG_ELEM_IS_RAW {
-                $name = '\\' ~ $name without '@$%&'.index(substr($name,0,1));
-            }
-        } else {
-            if $!flags +& $SIG_ELEM_IS_CAPTURE {
-                $name = '|';
-            } elsif $!flags +& $SIG_ELEM_ARRAY_SIGIL {
-                $name = '@';
-            } elsif $!flags +& $SIG_ELEM_HASH_SIGIL {
-                $name = '%';
-            } elsif $!flags +& $SIG_ELEM_CODE_SIGIL {
-                $name = '&';
-            } else {
-                $name = '$';
-            }
-        }
-        my $default = self.default();
-        if self.slurpy {
-            $name = $!flags +& $SIG_ELEM_SLURPY_ONEARG
-              ?? "+$name"
-              !! $!flags +& $SIG_ELEM_SLURPY_LOL
-                ?? "**$name"
-                !! "*$name";
 
-        } elsif self.named {
-            my $name1 := substr($name,1);
-            if @(self.named_names).first({$_ && $_ eq $name1}) {
-                $name = ':' ~ $name;
-            }
-            for @(self.named_names).grep({$_ && $_ ne $name1}) {
-                $name = ':' ~ $_ ~ '(' ~ $name ~ ')';
-            }
-            $name ~= '!' unless self.optional;
-        } elsif self.optional && !$default {
-            $name ~= '?';
+        my $prefix     = $.prefix;
+        my $sigil      = $.sigil;
+        my $twigil     = $.twigil;
+        my $usage-name = $.usage-name // '';
+        my $name       = '';
+        if $prefix eq '+' && $sigil eq '\\' {
+            # We don't want \ to end up in the name of slurpy parameters, but
+            # we still need to know whether or not they have this sigil later.
+            $name ~= $usage-name;
+        } else {
+            $name ~= $sigil ~ $twigil ~ $usage-name;
         }
+        if nqp::isconcrete(@!named_names) {
+            my $var-is-named = False;
+            my @outer-names  = gather for @.named_names {
+                if !$var-is-named && $_ eq $usage-name {
+                    $var-is-named = True;
+                } else {
+                    .take;
+                }
+            };
+            $name = ":$name" if $var-is-named;
+            $name = ":$_\($name)" for @outer-names;
+        }
+
+        my $rest = '';
         if $!flags +& $SIG_ELEM_IS_RW {
             $rest ~= ' is rw';
         } elsif $!flags +& $SIG_ELEM_IS_COPY {
             $rest ~= ' is copy';
         }
-        if $!flags +& $SIG_ELEM_IS_RAW {
+        if $!flags +& $SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
             # Do not emit cases of anonymous '\' which we cannot reparse
             # This is all due to unspace.
-            $rest ~= ' is raw' unless $name eq '|' or $name.starts-with('\\');
+            $rest ~= ' is raw';
         }
         unless nqp::isnull($!sub_signature) {
-            my $sig = $!sub_signature.perl();
-            $sig ~~ s/^^ ':'//;
-            $rest ~= ' ' ~ $sig;
+            $rest ~= ' ' ~ $!sub_signature.raku.substr: 1;
         }
         unless nqp::isnull(@!post_constraints) {
             # it's a Cool constant
@@ -601,16 +610,22 @@ my class Parameter { # declared in BOOTSTRAP
                    (my \value := nqp::atpos(@!post_constraints,0)),
                    Cool
                  ) {
-                return value.perl;
+                return value.raku;
             }
 
             $rest ~= ' where { ... }';
         }
-        $rest ~= " = $!default_value.perl()" if $default;
-        if $name or $rest {
-            $perl ~= ($perl ?? ' ' !! '') ~ $name;
+        if $.default {
+            $rest ~= " = $!default_value.raku()";
         }
-        $perl ~ $rest;
+        elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
+            $rest ~= " = OUTER::<$name>";
+        }
+
+        $name = "$prefix$name$.suffix";
+        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
+        $perl ~= $rest if $rest;
+        $perl
     }
 
     method sub_signature(Parameter:D:) {

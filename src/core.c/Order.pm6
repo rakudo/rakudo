@@ -2,7 +2,7 @@
 my enum Order (:Less(-1), :Same(0), :More(1));
 role Rational { ... }
 
-sub ORDER(int $i --> Order) {
+sub ORDER(int $i --> Order) is implementation-detail {
     nqp::if($i,nqp::if(nqp::islt_i($i,0),Less,More),Same)
 }
 

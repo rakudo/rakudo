@@ -3,7 +3,9 @@ my class Duration is Cool does Real {
       # A linear count of seconds.
 
     multi method new(Duration: Rat:D \tai --> Duration:D) {
-        nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
+        nqp::p6bindattrinvres(
+          nqp::create(Duration),Duration,'$!tai',nqp::decont(tai)
+        )
     }
     multi method new(Duration: \value --> Duration:D) {
         nqp::if(
@@ -20,7 +22,7 @@ my class Duration is Cool does Real {
 
     multi method Str(Duration:D: --> Str:D) { ~$.tai }
 
-    multi method perl(Duration:D: --> Str:D) { "Duration.new({$.tai.perl})" }
+    multi method raku(Duration:D: --> Str:D) { "Duration.new({$.tai.raku})" }
 }
 
 multi sub prefix:<->(Duration:D $a --> Duration:D) {

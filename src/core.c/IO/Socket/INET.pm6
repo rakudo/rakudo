@@ -61,13 +61,14 @@ my class IO::Socket::INET does IO::Socket {
                 $family == nqp::const::SOCKET_FAMILY_UNSPEC
              || $family == nqp::const::SOCKET_FAMILY_INET
              || $family == nqp::const::SOCKET_FAMILY_INET6
+             || $family == nqp::const::SOCKET_FAMILY_UNIX
         } = nqp::const::SOCKET_FAMILY_UNSPEC,
                *%rest,
         --> IO::Socket::INET:D) {
 
         ($localhost, $localport) = (
             split-host-port :host($localhost), :port($localport), :$family
-        orelse fail $_);
+        orelse fail $_) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
 
         #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
@@ -87,6 +88,7 @@ my class IO::Socket::INET does IO::Socket {
                $family == nqp::const::SOCKET_FAMILY_UNSPEC
             || $family == nqp::const::SOCKET_FAMILY_INET
             || $family == nqp::const::SOCKET_FAMILY_INET6
+            || $family == nqp::const::SOCKET_FAMILY_UNIX
         } = nqp::const::SOCKET_FAMILY_UNSPEC,
               *%rest,
         --> IO::Socket::INET:D) {
@@ -95,7 +97,7 @@ my class IO::Socket::INET does IO::Socket {
             :$host,
             :$port,
             :$family,
-        );
+        ) unless $family == nqp::const::SOCKET_FAMILY_UNIX;
 
         # TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
@@ -126,7 +128,8 @@ my class IO::Socket::INET does IO::Socket {
 
         if $!listening {
 #?if !js
-            $!localport = nqp::getport($PIO) if !$!localport;
+            $!localport = nqp::getport($PIO)
+                   unless $!localport || ($!family == nqp::const::SOCKET_FAMILY_UNIX);
 #?endif
         }
         elsif $!type == PIO::SOCK_STREAM {
@@ -137,12 +140,12 @@ my class IO::Socket::INET does IO::Socket {
         self;
     }
 
-    method connect(IO::Socket::INET:U: Str() $host, Int() $port) {
-        self.new(:$host, :$port)
+    method connect(IO::Socket::INET:U: Str() $host, Int() $port, ProtocolFamily:D :$family = PF_UNSPEC) {
+        self.new(:$host, :$port, :family($family.value))
     }
 
-    method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport) {
-        self.new(:$localhost, :$localport, :listen)
+    method listen(IO::Socket::INET:U: Str() $localhost, Int() $localport, ProtocolFamily:D :$family = PF_UNSPEC) {
+        self.new(:$localhost, :$localport, :family($family.value), :listen)
     }
 
     method accept() {

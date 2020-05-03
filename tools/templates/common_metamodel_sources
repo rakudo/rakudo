@@ -34,6 +34,7 @@ src/Perl6/Metamodel/RolePunning.nqp
 src/Perl6/Metamodel/ArrayType.nqp
 src/Perl6/Metamodel/RoleToRoleApplier.nqp
 src/Perl6/Metamodel/Concretization.nqp
+src/Perl6/Metamodel/ConcretizationCache.nqp
 src/Perl6/Metamodel/ConcreteRoleHOW.nqp
 src/Perl6/Metamodel/CurriedRoleHOW.nqp
 src/Perl6/Metamodel/ParametricRoleHOW.nqp

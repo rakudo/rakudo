@@ -53,7 +53,7 @@ multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
             }
 
             method live(--> False) { }
-            method sane(--> True) { }
+            method sane(--> False) { }
             method serial(--> False) { }
         }
         Supply.new(SignalTappable.new(:$scheduler, :$signal));

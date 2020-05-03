@@ -6,7 +6,7 @@ multi sub infix:<eqv>(Stringy:D \a, Stringy:D \b) {
     nqp::hllbool(
       nqp::unless(
         nqp::eqaddr(a,b),
-        nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_i(a cmp b,0)  # XXX RT #128092
+        nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_i(a cmp b,0)
       )
     )
 }

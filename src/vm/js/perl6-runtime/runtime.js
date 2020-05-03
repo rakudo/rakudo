@@ -207,7 +207,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   op.p6argvmarray = /*async*/ function(ctx, args) {
     const array = [];
     for (let i=2; i < args.length; i++) {
-      array[i-2] = /*await*/ nqp.op.hllizefor(ctx, nqp.arg(nqp.getHLL('perl6'), args[i]), 'perl6');
+      array[i-2] = /*await*/ nqp.op.hllizefor(ctx, nqp.arg(nqp.getHLL('Raku'), args[i]), 'Raku');
     }
     return nqp.createArray(array);
   };
@@ -335,7 +335,7 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
   };
 
   function getThrower(type) {
-    let exHash = nqp.op.gethllsym("perl6", "P6EX");
+    let exHash = nqp.op.gethllsym("Raku", "P6EX");
     return (exHash === Null ? Null : exHash.$$atkey(type));
   }
 
@@ -400,9 +400,9 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     this.store_unchecked = cursor.variant();
   };
 
-  RakudoScalar.prototype.name = 'rakudo_scalar';
+  RakudoScalar.prototype.name = 'value_desc_cont';
 
-  containerSpecs.rakudo_scalar = RakudoScalar;
+  containerSpecs.value_desc_cont = RakudoScalar;
 
   nqp.loadOps({op: op});
 };

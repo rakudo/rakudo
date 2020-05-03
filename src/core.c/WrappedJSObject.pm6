@@ -1,7 +1,7 @@
 my class WrappedJSObject is repr('WrappedJSObject') {
 }
 
-nqp::sethllconfig('perl6', nqp::hash('js_box', WrappedJSObject));
+nqp::sethllconfig('Raku', nqp::hash('js_box', WrappedJSObject));
 
 multi sub postcircumfix:<{ }>(WrappedJSObject \SELF, \key) is raw {
   nqp::getjsattr(SELF, key);

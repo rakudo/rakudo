@@ -2,7 +2,7 @@
 # * Command-line parsing
 #   * Allow both = and space before argument of double-dash args
 #   * Comma-separated list values
-#   * Allow exact Perl 6 forms, quoted away from shell
+#   * Allow exact Raku forms, quoted away from shell
 # * Fix remaining XXXX
 
 my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
@@ -110,7 +110,8 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
             my ($vol, $dir, $base) = $SPEC.splitpath($name);
             $dir = $SPEC.canonpath($dir);
             for $SPEC.path() -> $elem {
-                if $SPEC.catpath($vol, $elem, $base).IO.x {
+                my $file = $SPEC.catpath($vol, $elem, $base).IO;
+                if $file.x && $file.f {
                     return $base if $SPEC.canonpath($elem) eq $dir;
                     # Shadowed command found in earlier PATH element
                     return $name;

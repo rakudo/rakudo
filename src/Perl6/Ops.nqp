@@ -2,7 +2,7 @@
 # Registers ops so they're availabe to both NQP for Metamodel and Perl6
 sub _register_op_with_nqp($name, $desugar) {
     register_op_desugar($name, $desugar, :compiler<nqp>);
-    register_op_desugar($name, $desugar, :compiler<perl6>);
+    register_op_desugar($name, $desugar, :compiler<Raku>);
 }
 
 # Find the nearest caller from different package with CORE as its outer and returns its context

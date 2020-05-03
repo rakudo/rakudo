@@ -20,7 +20,6 @@
     - [p6clientcorever](#p6clientcorever)
     - [p6clientctx](#p6clientctx)
     - [p6configposbindfailover](#p6configposbindfailover)
-    - [p6decodelocaltime](#p6decodelocaltime)
     - [p6decontrv](#p6decontrv)
     - [p6definite](#p6definite)
     - [p6finddispatcher](#p6finddispatcher)
@@ -148,11 +147,6 @@ Returns client's, i.e. the first Perl6 caller from different package, context.
 * p6configposbindfailover(Mu $type, Mu $failover-type)
 
 Configures the Binder to allow $failover-type to bind to $type in subroutine invocation.
-
-## p6decodelocaltime
-* p6decodelocaltime(int $epoch)
-
-Decodes the unix timestamp $epoch into a native int array with six fields containing second, minute, hour, day, month, year in that order.
 
 ## p6decontrv
 * p6decontrv(Mu $type, Mu $value)

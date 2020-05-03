@@ -12,7 +12,7 @@ import org.perl6.nqp.sixmodel.reprs.NativeRefInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
 /**
- * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
+ * Contains implementation of nqp:: ops specific to Rakudo
  */
 @SuppressWarnings("unused")
 public final class RakOps {
@@ -76,7 +76,7 @@ public final class RakOps {
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (!gcx.initialized) {
-            tc.gc.contConfigs.put("rakudo_scalar", new RakudoContainerConfigurer());
+            tc.gc.contConfigs.put("value_desc_cont", new RakudoContainerConfigurer());
             SixModelObject BOOTArray = tc.gc.BOOTArray;
             gcx.EMPTYARR = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
             SixModelObject BOOTHash = tc.gc.BOOTHash;
@@ -154,7 +154,7 @@ public final class RakOps {
 
     public static SixModelObject p6definite(SixModelObject obj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        return obj == null || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
+        return Ops.isnull(obj) == 1 || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
     }
 
     public static SixModelObject p6box_i(long value, ThreadContext tc) {
@@ -246,7 +246,7 @@ public final class RakOps {
                 return null;
         }
 
-        /* The binder may, for a variety of reasons, wind up calling Perl 6 code and overwriting flatArgs, so it needs to be set at the end to return reliably */
+        /* The binder may, for a variety of reasons, wind up calling Raku code and overwriting flatArgs, so it needs to be set at the end to return reliably */
         tc.flatArgs = args;
         return csd;
     }
@@ -321,7 +321,7 @@ public final class RakOps {
         }
         else {
             SixModelObject meth = Ops.findmethodNonFatal(cont, "STORE", tc);
-            if (meth != null) {
+            if (Ops.isnull(meth) == 0) {
                 Ops.invokeDirect(tc, meth,
                     STORE, new Object[] { cont, value });
             }
@@ -434,7 +434,7 @@ public final class RakOps {
     }
 
     public static SixModelObject getThrower(ThreadContext tc, String type) {
-        SixModelObject exHash = Ops.gethllsym("perl6", "P6EX", tc);
+        SixModelObject exHash = Ops.gethllsym("Raku", "P6EX", tc);
         return exHash == null ? null : Ops.atkey(exHash, type, tc);
     }
 
@@ -620,30 +620,6 @@ public final class RakOps {
         if (result == null)
             throw ExceptionHandling.dieInternal(tc,
                 "Could not find arguments for dispatcher");
-        return result;
-    }
-
-    public static SixModelObject p6decodelocaltime(long sinceEpoch, ThreadContext tc) {
-        // Get calendar for current local host's timezone.
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(sinceEpoch * 1000);
-
-        // Populate result int array.
-        SixModelObject BOOTIntArray = tc.gc.BOOTIntArray;
-        SixModelObject result = BOOTIntArray.st.REPR.allocate(tc, BOOTIntArray.st);
-        tc.native_i = c.get(Calendar.SECOND);
-        result.bind_pos_native(tc, 0);
-        tc.native_i = c.get(Calendar.MINUTE);
-        result.bind_pos_native(tc, 1);
-        tc.native_i = c.get(Calendar.HOUR_OF_DAY);
-        result.bind_pos_native(tc, 2);
-        tc.native_i = c.get(Calendar.DAY_OF_MONTH);
-        result.bind_pos_native(tc, 3);
-        tc.native_i = c.get(Calendar.MONTH) + 1;
-        result.bind_pos_native(tc, 4);
-        tc.native_i = c.get(Calendar.YEAR);
-        result.bind_pos_native(tc, 5);
-
         return result;
     }
 

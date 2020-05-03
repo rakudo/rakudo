@@ -759,7 +759,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
-    multi method STORE(List:D: Iterable:D \iterable, :$INITIALIZE! --> List:D) {
+    multi method STORE(List:D: Iterable:D \iterable, :INITIALIZE($)! --> List:D) {
         my \buffer := nqp::create(IterationBuffer);
         iterable.iterator.push-all(buffer);
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
@@ -849,24 +849,24 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         })
     }
 
-    multi method perl(List:D \SELF: --> Str:D) {
-        SELF.perlseen('List', {
+    multi method raku(List:D \SELF: --> Str:D) {
+        SELF.rakuseen('List', {
             my $prefix := nqp::iscont(SELF) ?? '$(' !! '(';
             if self.is-lazy {
                 my @elements = self.head(101);
                 if @elements > 100 {
                     @elements.pop;
-                    $prefix ~ @elements.map({.perl}).join(', ') ~ '...).lazy';
+                    $prefix ~ @elements.map({.raku}).join(', ') ~ '...).lazy';
                 }
                 else {
-                    $prefix ~ @elements.map({.perl}).join(', ') ~ ').lazy';
+                    $prefix ~ @elements.map({.raku}).join(', ') ~ ').lazy';
                 }
             }
             elsif self.elems -> $elems {
                 $prefix ~ (
                   $elems == 1
-                    ?? self[0].perl ~ ',)'
-                    !! self.map( {.perl} ).join(', ') ~ ')'
+                    ?? self[0].raku ~ ',)'
+                    !! self.map( {.raku} ).join(', ') ~ ')'
                 )
             }
             else {
@@ -937,7 +937,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::create(Capture)
         }
     }
-    method FLATTENABLE_LIST() {
+    method FLATTENABLE_LIST() is implementation-detail {
         nqp::if(
           nqp::isconcrete($!todo),
           nqp::stmts(
@@ -951,7 +951,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           )
         )
     }
-    method FLATTENABLE_HASH() { nqp::hash() }
+    method FLATTENABLE_HASH() is implementation-detail { nqp::hash() }
 
     multi method Supply(List:D: --> Supply:D) { Supply.from-list(self) }
 
@@ -1132,15 +1132,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.is-lazy    # reifies
           ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
           !! Seq.new: $!reified
-            ?? nqp::stmts(
-                 (my \src := nqp::clone(nqp::getattr(self,List,'$!reified'))),
-                 (my \dst := nqp::create(src.WHAT)),
-                 nqp::while(
-                   nqp::elems(src),
-                   nqp::push(dst,nqp::pop(src))
-                 ),
-                 Rakudo::Iterator.ReifiedList(dst)
-               )
+            ?? Rakudo::Iterator.ReifiedReverse(self, Mu)
             !! Rakudo::Iterator.Empty
     }
 
@@ -1695,11 +1687,12 @@ multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 proto sub prefix:<|>($, *%) {*}
 multi sub prefix:<|>(\x --> Slip:D) { x.Slip }
 
-sub CMP-SLOW(@a, @b) {
-    (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
-}
-
 multi sub infix:<cmp>(@a, @b --> Order:D) {
+
+    sub CMP-SLOW(@a, @b) {
+        (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
+    }
+
     nqp::if(
         @a.is-lazy || @b.is-lazy,
         CMP-SLOW(@a, @b),

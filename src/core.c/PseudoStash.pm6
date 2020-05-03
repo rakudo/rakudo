@@ -20,6 +20,48 @@ my class PseudoStash is Map {
         $obj
     }
 
+    sub ok-to-include(Mu \value) {
+        nqp::not_i(nqp::istype(value,Code) && value.is-implementation-detail)
+    }
+
+    method keys(:$implementation-detail --> Seq:D) {
+        $implementation-detail
+          ?? (nextsame)
+          !! Seq.new(self.iterator).map: { .key if ok-to-include(.value) }
+    }
+
+    method values(:$implementation-detail --> Seq:D) {
+        $implementation-detail
+          ?? (nextsame)
+          !! callsame.grep: &ok-to-include
+    }
+
+    method kv(:$implementation-detail --> Seq:D) {
+        $implementation-detail
+          ?? (nextsame)
+          !! Seq.new(self.iterator).map: {
+                 (.key,.value).Slip if ok-to-include(.value)
+             }
+    }
+
+    method pairs(:$implementation-detail --> Seq:D) {
+        $implementation-detail
+          ?? (nextsame)
+          !! Seq.new(self.iterator).map: { $_ if ok-to-include(.value) }
+    }
+
+    method sort(:$implementation-detail --> Seq:D) {
+        $implementation-detail
+          ?? (nextsame)
+          !! self.pairs.sort
+    }
+
+    method elems(:$implementation-detail --> Int:D) {
+        $implementation-detail
+          ?? (nextsame)
+          !! self.values.elems
+    }
+
     multi method WHICH(PseudoStash:D: --> ObjAt:D) { self.Mu::WHICH }
 
     my $pseudoers := nqp::hash(

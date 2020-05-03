@@ -1,36 +1,35 @@
 class Compiler does Systemic {
-    has Str $.id;
-    has Str $.release;
-    has Str $.codename;
     my constant $id = nqp::p6box_s(nqp::sha1(
         $*W.handle.Str
         ~ nqp::atkey(nqp::getcurhllsym('$COMPILER_CONFIG'), 'source-digest')
     ));
+    my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
 
-    submethod BUILD (
-      :$!name      = 'rakudo',
-      :$!auth      = 'The Perl Foundation',
-      :$version,
-      :$release,
-      :$codename
-      --> Nil
-    ) {
-# XXX Various issues with this stuff on JVM
-        my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
-        $!id = nqp::isnull(nqp::atkey($compiler,'id'))
-            ?? $id
-            !! nqp::p6box_s(nqp::atkey($compiler,'id'));
+    # XXX Various issues with this stuff on JVM
+    has $.id is built(:bind) = nqp::ifnull(nqp::atkey($compiler,'id'),$id);
+    has $.release is built(:bind) = nqp::atkey($compiler,'release-number');
+    has $.codename is built(:bind) = nqp::atkey($compiler, 'codename');
+
+    submethod TWEAK(--> Nil) {
+        # https://github.com/rakudo/rakudo/issues/3436
+        nqp::bind($!name,'rakudo');
+        nqp::bind($!auth,'The Perl Foundation');
+
         # looks like: 2018.01-50-g8afd791c1
-        $!version = $version
-            // Version.new(nqp::atkey($compiler, 'version'));
-        $!release =
-          $release // nqp::p6box_s(nqp::atkey($compiler, 'release-number'));
-        $!codename =
-          $codename // nqp::p6box_s(nqp::atkey($compiler, 'codename'));
+        nqp::bind($!version,Version.new(nqp::atkey($compiler,'version')))
+          unless $!version;
     }
 
+    method backend() {
+        nqp::getcomp("Raku").backend.name
+    }
+
+    proto method id(|) {*}
+    multi method id(Compiler:U:) { nqp::ifnull(nqp::atkey($compiler,'id'),$id) }
+    multi method id(Compiler:D:) { $!id }
+
     method verbose-config(:$say) {
-        my $compiler := nqp::getcomp("perl6");
+        my $compiler := nqp::getcomp("Raku");
         my $backend  := $compiler.backend;
         my $name     := $backend.name;
 
@@ -57,12 +56,12 @@ class Compiler does Systemic {
         try {
             require System::Info;
 
-            my $sysinfo = System::Info.new;
+            my $sysinfo := System::Info.new;
             nqp::push_s($items,"sysinfo::{ .name }={ $sysinfo.$_ // '' }")
               for $sysinfo.^methods.grep: { .count == 1 && .name ne 'new' };
         }
 
-        my str $string = nqp::join("\n",Rakudo::Sorting.MERGESORT-str($items));
+        my $string := nqp::join("\n",Rakudo::Sorting.MERGESORT-str($items));
 
         if $say {
             nqp::say($string);

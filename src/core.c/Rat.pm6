@@ -6,7 +6,7 @@ my class Rat is Cool does Rational[Int, Int] {
     method FatRat(Rat:D: Real $? --> FatRat:D) {
         FatRat.new($!numerator, $!denominator)
     }
-    multi method perl(Rat:D: --> Str:D) {
+    multi method raku(Rat:D: --> Str:D) {
         if $!denominator == 1 {
             $!numerator ~ '.0'
         }
@@ -37,7 +37,7 @@ my class FatRat is Cool does Rational[Int, Int] {
           ?? Rat.new($!numerator, $!denominator)
           !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
-    multi method perl(FatRat:D: --> Str:D) {
+    multi method raku(FatRat:D: --> Str:D) {
         "FatRat.new($!numerator, $!denominator)";
     }
 }
@@ -46,7 +46,9 @@ my class FatRat is Cool does Rational[Int, Int] {
 # Provide two types: if either of them is a FatRat, then a FatRat will be
 # returned.  If a Rat is to be created, then a check for denominator overflow
 # is done: if that is the case, then a float will be returned.
-sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) is raw {
+sub DIVIDE_NUMBERS(
+  Int:D $nu, Int:D $de, \t1, \t2
+) is raw is implementation-detail {
     nqp::if(
       $de,
       nqp::stmts(
@@ -74,7 +76,7 @@ sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) is raw {
 # ever get a non-normalized Rational, if we start with a normalized Rational.
 # For such cases, we can use this routine, to bypass normalization step,
 # which would be useless.  Also used when normalization *was* needed.
-proto sub CREATE_RATIONAL_FROM_INTS(|) {*}
+proto sub CREATE_RATIONAL_FROM_INTS(|) is implementation-detail {*}
 multi sub CREATE_RATIONAL_FROM_INTS(Int:D \nu, Int:D \de, \t1, \t2) is raw {
     nqp::if(
       nqp::islt_I(de,UINT64_UPPER),         # do we need to downgrade to float?

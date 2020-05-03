@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 8;
+plan 9;
 
 subtest 'Supply.interval with negative value warns' => {
     plan 2;
@@ -17,7 +17,8 @@ subtest 'Supply.interval with negative value warns' => {
 }
 
 if $*DISTRO.is-win {
-    skip 'is-run code is too complex to run on Windows (RT#132258)';
+    # https://github.com/Raku/old-issue-tracker/issues/6591
+    skip 'is-run code is too complex to run on Windows';
 }
 else {
     subtest 'no useless-use warning on return when KEEP/UNDO phasers used' => {
@@ -41,7 +42,8 @@ else {
 }
 
 if $*DISTRO.is-win {
-    skip 'is-run code is too complex to run on Windows (RT#132258)';
+    # https://github.com/Raku/old-issue-tracker/issues/6591
+    skip 'is-run code is too complex to run on Windows';
 }
 else {
     subtest 'no useless-use warning in andthen/notandthen/orelse/ chains' => {
@@ -61,18 +63,18 @@ else {
     }
 }
 
-# RT #131305
+# https://github.com/Raku/old-issue-tracker/issues/6244
 is-run ｢
     sub prefix:<ᔑ> (Pair $p --> Pair) is tighter(&postcircumfix:<[ ]>) {};
     print postcircumfix:<[ ]>(<foo bar ber>, 1)
 ｣, :out<bar>, 'no spurious warnings when invoking colonpaired routine';
 
-# RT #131251
+# https://github.com/Raku/old-issue-tracker/issues/6221
 is-run ｢my $a; $a [R~]= "b"; $a [Z~]= "b"; $a [X~]= "b"｣,
     'metaops + metaassign op do not produce spurious warnings';
 
-# RT # 131331
-# RT # 131123
+# https://github.com/Raku/old-issue-tracker/issues/6253
+# https://github.com/Raku/old-issue-tracker/issues/6185
 is-run ｢my $ = ^2 .grep: {try 1 after 0}; my $ = {try 5 == 5}()｣,
     'no spurious warnings with `try` thunks in blocks';
 
@@ -82,5 +84,10 @@ is-run ｢my @a; sink @a; my $b := gather { print 'meow' }; sink $b｣,
 is-run ｢use experimental :macros; macro z($) { quasi {} };
     z $; z <x>; print "pass"｣, :out<pass>,
     'args to macros do not cause useless use warnings';
+
+# https://github.com/rakudo/rakudo/issues/2554
+is-run ｢my @a[Int] = 1,2,3; dd @a｣,
+    'ignored shape specification issues a warning',
+    :err(/'Ignoring [Int] as shape specification'/);
 
 # vim: ft=perl6 expandtab sw=4

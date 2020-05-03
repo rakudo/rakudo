@@ -4,7 +4,7 @@ use Test::Helpers;
 
 plan 48;
 
-# RT #129763
+# https://github.com/Raku/old-issue-tracker/issues/5707
 throws-like '1++', X::Multi::NoMatch,
     message => /'but require mutable arguments'/,
 'point out matching `is rw` candidates when passing non-rw';
@@ -20,23 +20,23 @@ subtest 'curly quotes are not called smart quotes' => {
     }
 }
 
-# RT #130712
+# https://github.com/Raku/old-issue-tracker/issues/6052
 throws-like 'sub infix:<$>() return Nil {}',
     X::AdHoc,
     :message{ .contains("'returns'") },
     'typing "return" instead of "returns" gives a fixing hint';
 
-# RT #130630
+# https://github.com/Raku/old-issue-tracker/issues/6014
 throws-like ｢'4x'.Rat.nude｣, X::Str::Numeric,
     :message{ not .contains("Metamodel.nqp") },
     '.Rat.nude on non-numeric string does not reference guts in error';
 
-# RT #130509
+# https://github.com/Raku/old-issue-tracker/issues/5982
 throws-like ｢…｣, X::StubCode,
     :message{ not .contains('CORE.setting') },
     'stub code does not reference guts when executed';
 
-# RT #130913
+# https://github.com/Raku/old-issue-tracker/issues/4477
 subtest 'chr with large codepoints throws useful error' => {
     my @tests = 'chr 2⁶³-1',   '(2⁶³-1).chr', 'chr 2⁶³',
                 '2⁶³.chr',     'chr 2¹⁰⁰',    '(2¹⁰⁰).chr';
@@ -44,7 +44,7 @@ subtest 'chr with large codepoints throws useful error' => {
     for @tests {
         throws-like $^code, Exception,
             :message{ not .contains('negative') and .contains('codepoint') },
-        "$code.perl()";
+        "$code.raku()";
     }
 }
 
@@ -54,7 +54,7 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
     '<-> does not prevent an error suggesting to use `do for`';
 
 # https://irclog.perlgeek.de/perl6-dev/2017-04-13#i_14425133
-# RT #79288
+# https://github.com/Raku/old-issue-tracker/issues/2262
 {
     my $param = '$bar';
     throws-like { EVAL q[ sub foo(\qq{$param}? is rw) {} ] }, Exception,
@@ -66,7 +66,7 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
         'making an "is rw" parameter optional dies with adequate error message and mentions the parameter name';
 }
 
-# RT #113954
+# https://github.com/Raku/old-issue-tracker/issues/2808
 {
     is-run ｢multi MAIN(q|foo bar|) {}｣,
        :err(qq|Usage:\n  -e '...' 'foo bar'\n|),
@@ -74,7 +74,8 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
        'a space in a literal param to a MAIN() multi makes the suggestion quoted';
 
     if $*DISTRO.is-win {
-        skip "Test routine quoting doesn't work right on Windows: RT#132258"
+        # https://github.com/Raku/old-issue-tracker/issues/6591
+        skip "Test routine quoting doesn't work right on Windows"
     }
     else {
         is-run ｢multi MAIN(q|foo"bar|) {}｣,
@@ -89,7 +90,7 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
        'a single qoute in a literal param to a MAIN() multi makes the suggestion quoted';
 }
 
-# RT #118263
+# https://github.com/Raku/old-issue-tracker/issues/3152
 {
     throws-like { EVAL q|role R { method a {...}; method b { say "b" }; method c {...} }; class C is R {}| },
         Exception,
@@ -97,7 +98,7 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
         'The message when trying to pun a role with required methods should have the names of the child, parent, required methods, and suggest "does"';
 }
 
-# RT #126124
+# https://github.com/Raku/old-issue-tracker/issues/4569
 # adapted from S06-signature/types.t
 {
     throws-like { sub f(Mu:D $a) {}; f(Int) },
@@ -117,7 +118,7 @@ for <fail die throw rethrow resume> -> $meth {
         message => all(/'Invocant'/, /<<$meth>>/, /<<'must be an object instance'>>/, /<<'not a type object'>>/, /<<'Exception'>>/,  /<<'X::NYI'>>/, /\W '.new'>>/),
 }
 
-# RT #112396
+# https://github.com/Raku/old-issue-tracker/issues/2712
 {
     throws-like q|3 ==> &sin ==> &say|,
         Exception,
@@ -125,7 +126,7 @@ for <fail die throw rethrow resume> -> $meth {
         'sinking to a code object in a feed suggests calling the routine';
 }
 
-# RT #122232
+# https://github.com/Raku/old-issue-tracker/issues/3428
 {
     throws-like { my class RT122232::B {}; RT122232.new },
         Exception,
@@ -147,7 +148,7 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
     }
 }
 
-# RT #123085
+# https://github.com/Raku/old-issue-tracker/issues/3572
 {
     throws-like { sub foo([$head, $tail]) {}; foo([3, 4], [3]) },
         Exception,
@@ -167,7 +168,7 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         'wrong arity in a sub-signature with a named parameter has correct values in error message';
 }
 
-# RT #131408
+# https://github.com/Raku/old-issue-tracker/issues/6275
 {
     throws-like { sub foo([$head, $tail]) {}; foo([3, 4], [3]) },
         Exception,
@@ -193,22 +194,23 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         :message{ .contains: <elems chars codes>.all & none 'graphs' };
 }
 
-# RT #131201
+# https://github.com/Raku/old-issue-tracker/issues/6206
 throws-like { class { proto method x(|) {*} }.new.x }, X::Multi::NoMatch,
     :message{ .contains: 'only the proto' & none 'none of these signatures' },
     'error points out only only proto is defined';
 
-# RT #131367
+# https://github.com/Raku/old-issue-tracker/issues/6271
 throws-like { Blob.split }, X::Multi::NoMatch,
     :message{ .contains: 'only the proto' & none 'none of these signatures' },
     'error points out only only proto is defined (Blob.split)';
 
-# RT #131367
+# https://github.com/Raku/old-issue-tracker/issues/6271
 throws-like { Blob.splice }, X::Multi::NoMatch,
     :message{ .contains: 'only the proto' & none 'none of these signatures' },
     'error points out only only proto is defined (Blob.splice)';
 
-# RT #127395, #123078
+# https://github.com/Raku/old-issue-tracker/issues/5093
+# https://github.com/Raku/old-issue-tracker/issues/3569
 {
     throws-like q| class RT123078_1 { method foo { self.bar }; method !bar { }; method baz { } }; RT123078_1.new.foo |,
         X::Method::NotFound,
@@ -240,24 +242,24 @@ subtest '`IO::Socket::INET.new: :listen` fails with useful error' => {
 throws-like ｢use v5｣, X::Language::Unsupported,
     '`use v5` in code does not try to load non-existent modules';
 
-# RT#127341
+# https://github.com/Raku/old-issue-tracker/issues/5074
 is-run 'Duration.new: Inf; Duration.new: "meow"',
     :out{not .contains: '$!tai'}, :err{not .contains: '$!tai'}, :exitcode(*),
     'Duration.new with bad args does not reference guts';
 
-# RT#125902
+# https://github.com/Raku/old-issue-tracker/issues/4488
 is-run ｢my Str where 'foo' $test｣, :exitcode(*),
   :err{.contains: ｢forget a variable｣ and not .contains: ｢Did you mean 'Str'｣},
 'sane error when missing variables with my and where';
 
-# RT#132285
+# https://github.com/Raku/old-issue-tracker/issues/6604
 throws-like ｢Blob[num32].new: 2e0｣,
     Exception,
     :message{ .contains: ｢Can only parameterize｣ & ｢num32｣ and not .contains: ｢got null｣ },
     'sane NYI error for num32 Blob';
 
-# RT#77754
-throws-like ｢callframe.callframe(1).my.perl｣, X::NYI,
+# https://github.com/Raku/old-issue-tracker/issues/2151
+throws-like ｢callframe.callframe(1).my.raku｣, X::NYI,
     'callframe.my throws sane NYI error message';
 
 

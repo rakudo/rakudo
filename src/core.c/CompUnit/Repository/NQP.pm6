@@ -5,7 +5,7 @@ class CompUnit::Repository::NQP does CompUnit::Repository {
         --> CompUnit:D)
     {
         if $spec.from eq 'NQP' {
-            my $nqp := nqp::gethllsym('perl6', 'ModuleLoader');
+            my $nqp := nqp::gethllsym('Raku', 'ModuleLoader');
 
             return CompUnit.new(
                 :short-name($spec.short-name),

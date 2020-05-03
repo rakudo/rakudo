@@ -1,5 +1,7 @@
-my class Range  { ... }
-my class Match  { ... }
+my class Date    { ... }
+my class Range   { ... }
+my class Match   { ... }
+my class Version { ... }
 my class X::Cannot::Capture      { ... }
 my class X::Str::InvalidCharName { ... }
 my class X::Str::Numeric  { ... }
@@ -17,6 +19,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
     #     has str $!value is box_target;
 
     my $empty := nqp::list;   # for nqp::splice
+
+    # cache cursor initialization lookup
+    my $cursor-init := Match.^lookup("!cursor_init");
+
+    my \CURSOR-GLOBAL     := Match.^lookup("CURSOR_MORE"   );  # :g
+    my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
+    my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
+
+    my \POST-MATCH  := Match.^lookup("MATCH" );  # Match object
+    my \POST-STR    := Match.^lookup("STR"   );  # Str object
 
     multi method WHY('Life, the Universe and Everything': --> 42) { }
 
@@ -44,34 +56,26 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method Str(Str:D: --> Str:D)     { self }
     multi method Stringy(Str:D: --> Str:D) { self }
-    multi method DUMP(Str:D: --> Str:D) { self.perl }
+    multi method DUMP(Str:D: --> Str:D) { self.raku }
 
     method Int(Str:D: --> Int:D) {
-        nqp::if(
-          nqp::isge_i(
-            nqp::findnotcclass(
-              nqp::const::CCLASS_NUMERIC,$!value,0,nqp::chars($!value)),
-            nqp::chars($!value)
-          )
+        nqp::isge_i(
+          nqp::findnotcclass(
+            nqp::const::CCLASS_NUMERIC,self,0,nqp::chars(self)),
+          nqp::chars(self)
+        )
 #?if !jvm
-            # Compare Str.chars == Str.codes to filter out any combining characters
-            && nqp::iseq_i(
-                nqp::chars($!value),
-                nqp::codes($!value)
-            )
+          # check for any combining characters
+          && nqp::iseq_i(nqp::chars(self),nqp::codes(self))
 #?endif
 #?if jvm
-            # RT #128542: https://rt.perl.org/Public/Bug/Display.html?id=128542
+            # https://github.com/Raku/old-issue-tracker/issues/5418
             # Needs Str.codes impl that doesn't just return chars
 #?endif
-          ,
-          nqp::atpos(nqp::radix_I(10,$!value,0,0,Int),0),  # all numeric chars
-          nqp::if(
-            nqp::istype((my $numeric := self.Numeric),Failure),
-            $numeric,
-            $numeric.Int
-          )
-        )
+          ?? nqp::atpos(nqp::radix_I(10,self,0,0,Int),0)  # all numeric chars
+          !! nqp::istype((my $n := self.Numeric),Int) || nqp::istype($n,Failure)
+            ?? $n
+            !! $n.Int
     }
     method Num(Str:D: --> Num:D) {
         nqp::if(
@@ -104,6 +108,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             )
         )
     }
+    method Version(Str:D: --> Version:D) { Version.new(self) }
 
     multi method ACCEPTS(Str:D: Str:D \other --> Bool:D) {
         nqp::hllbool(nqp::iseq_s(nqp::unbox_s(other),$!value));
@@ -113,238 +118,647 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method chomp(Str:D: --> Str:D) {
-        nqp::if(
-          (nqp::isge_i((my int $chars = nqp::sub_i(nqp::chars($!value),1)),0) #?js: NFG
-            && nqp::iscclass(nqp::const::CCLASS_NEWLINE,$!value,$chars)), #?js: NFG
-          nqp::p6box_s(nqp::substr($!value,0,$chars)), #?js: NFG
-          self
+        nqp::substr(
+          self,
+          0,
+          nqp::chars(self) - nqp::iscclass(                       #?js: NFG
+            nqp::const::CCLASS_NEWLINE,self,nqp::chars(self) - 1  #?js: NFG
+          )
         )
     }
 
     multi method chop(Str:D: --> Str:D) {
-        nqp::if(
-          nqp::isgt_i(nqp::chars($!value),0),
-          nqp::p6box_s(
-            nqp::substr($!value,0,nqp::sub_i(nqp::chars($!value),1))),
-          ''
+        nqp::substr(
+          self,
+          0,
+          nqp::chars(self) && nqp::chars(self) - 1
         )
     }
-    multi method chop(Str:D: Int() $chopping --> Str:D) {
-        nqp::isbig_I(nqp::decont($chopping))
-          || (my int $chars = nqp::sub_i(nqp::chars($!value),$chopping)) <= 0
-          ?? ''
-          !! nqp::p6box_s(nqp::substr($!value,0,$chars))
+    multi method chop(Str:D: Int:D $chopping --> Str:D) {
+        nqp::substr(
+          self,
+          0,
+          nqp::not_i(nqp::isbig_I(nqp::decont($chopping)))
+            && nqp::isgt_i(nqp::chars(self),$chopping)
+            && nqp::sub_i(nqp::chars(self),$chopping)
+        )
+    }
+    multi method chop(Str:D: $chopping --> Str:D) {
+        self.chop($chopping.Int)
     }
 
-    multi method starts-with(Str:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat(self, $needle.Str, 0))
+    multi method starts-with(Str:D:
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
+        nqp::hllbool($ignorecase
+          ?? $ignoremark
+#?if moar
+            ?? nqp::eqaticim(self,$needle,0)
+            !! nqp::eqatic(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!die-named('ignorecase and :ignoremark')
+            !! nqp::eqat(nqp::fc(self),nqp::fc($needle),0)
+#?endif
+          !! $ignoremark
+#?if moar
+            ?? nqp::eqatim(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!die-named('ignoremark')
+#?endif
+            !! nqp::eqat(self,$needle,0)
+        )
     }
+
+    multi method starts-with(Str:D:
+      Str:D $needle, :m(:$ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool($ignoremark
+#?if moar
+          ?? nqp::eqatim(self,$needle,0)
+#?endif
+#?if !moar
+          ?? self!die-named('ignoremark')
+#?endif
+          !! nqp::eqat(self,$needle,0)
+        )
+    }
+
     multi method starts-with(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::eqat(self, $needle, 0))
     }
 
-    multi method ends-with(Str:D: Cool:D $suffix --> Bool:D) {
-        self.ends-with: $suffix.Str
+    multi method ends-with(Str:D:
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
+        nqp::hllbool($ignorecase
+          ?? $ignoremark
+#?if moar
+            ?? nqp::eqaticim(self,$needle,
+                 nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+            !! nqp::eqatic(self,$needle,
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+#?if !moar
+            ?? self!die-named('ignorecase and :ignoremark')
+            !! nqp::eqat(nqp::fc(self),nqp::fc($needle),
+                 nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+          !! $ignoremark
+#?if moar
+            ?? nqp::eqatim(self,$needle,
+                 nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+#?if !moar
+            ?? self!die-named('ignoremark')
+#?endif
+            !! nqp::eqat(self,$needle,
+                 nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+        )
     }
-    multi method ends-with(Str:D: Str:D $suffix --> Bool:D) {
+
+    multi method ends-with(Str:D:
+      Str:D $needle, :m(:$ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool($ignoremark
+#?if moar
+          ?? nqp::eqatim(self,$needle,
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+#?endif
+#?if !moar
+          ?? self!die-named('ignoremark')
+#?endif
+          !! nqp::eqat(self,$needle,
+               nqp::sub_i(nqp::chars(self),nqp::chars($needle)))
+        )
+    }
+
+    multi method ends-with(Str:D:
+      Str:D $needle
+    --> Bool:D) {
         nqp::hllbool(
           nqp::eqat(
-            $!value,$suffix,nqp::sub_i(nqp::chars($!value),nqp::chars($suffix))
+            self,$needle,nqp::sub_i(nqp::chars(self),nqp::chars($needle))
           )
         )
     }
 
-    multi method substr-eq(Str:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat($!value,$needle.Str,0))
+    multi method substr-eq(Str:D:
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool($ignorecase
+               ?? $ignoremark
+#?if moar
+                 ?? nqp::eqaticim(self,$needle,$pos)
+                 !! nqp::eqatic(self,$needle,$pos)
+#?endif
+#?if !moar
+                 ?? self!die-named('ignorecase and :ignoremark')
+                 !! nqp::eqat(nqp::fc(self),nqp::fc($needle),$pos)
+#?endif
+               !! $ignoremark
+#?if moar
+                 ?? nqp::eqatim(self,$needle,$pos)
+#?endif
+#?if !moar
+                 ?? self!die-named('ignoremark')
+#?endif
+                 !! nqp::eqat(self,$needle,$pos)
+             )
     }
+
+    multi method substr-eq(Str:D:
+      Str:D $needle, Int:D $pos, :m(:$ignoremark)!
+    --> Bool:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool($ignoremark
+#?if moar
+               ?? nqp::eqatim(self,$needle,$pos)
+#?endif
+#?if !moar
+               ?? self!die-named('ignoremark')
+#?endif
+               !! nqp::eqat(self,$needle,$pos)
+             )
+    }
+
     multi method substr-eq(Str:D: Str:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::eqat($!value,$needle,0))
-    }
-    multi method substr-eq(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
-        nqp::hllbool(
-          nqp::if(
-            nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value)),
-            nqp::eqat($!value,$needle.Str,$pos)
-          )
-        )
+        self.starts-with($needle, |%_)
     }
     multi method substr-eq(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(nqp::eqat(self,$needle,$pos))
+    }
+
+    multi method contains(Str:D:
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
         nqp::hllbool(
-          nqp::if(
-            nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value)),
-            nqp::eqat($!value,$needle,$pos)
+          nqp::isne_i($ignorecase
+            ?? $ignoremark
+#?if moar
+              ?? nqp::indexicim(self,$needle,0)
+              !! nqp::indexic(self,$needle,0)
+#?endif
+#?if !moar
+              ?? self!die-named('ignorecase and :ignoremark')
+              !! nqp::index(nqp::fc(self),nqp::fc($needle),0)
+#?endif
+            !! $ignoremark
+#?if moar
+              ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+              ?? self!die-named('ignoremark')
+#?endif
+              !! nqp::index(self,$needle,0),
+            -1
           )
         )
     }
 
-    multi method contains(Str:D: Cool:D $needle --> Bool:D) {
-        nqp::hllbool(nqp::isne_i(nqp::index($!value,$needle.Str,0),-1))
+    multi method contains(Str:D:
+      Str:D $needle, :m(:$ignoremark)!
+    --> Bool:D) {
+        nqp::hllbool(
+          nqp::isne_i($ignoremark
+#?if moar
+            ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!die-named('ignoremark')
+#?endif
+            !! nqp::index(self,$needle,0),
+            -1
+          )
+        )
     }
+
     multi method contains(Str:D: Str:D $needle --> Bool:D) {
         nqp::hllbool(nqp::isne_i(nqp::index($!value,$needle,0),-1))
     }
-    multi method contains(Str:D: Cool:D $needle, Int:D $pos --> Bool:D) {
+    multi method contains(Str:D: Regex:D $needle --> Bool:D) {
         nqp::hllbool(
-          nqp::if(
-            (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
-            nqp::isne_i(nqp::index($!value,$needle.Str,$pos),-1)
+          nqp::isge_i(
+            nqp::getattr_i($needle($cursor-init(Match,self,:0c)),Match,'$!pos'),
+            0
           )
         )
     }
+
+    multi method contains(Str:D:
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Bool:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(
+               nqp::isne_i($ignorecase
+                 ?? $ignoremark
+#?if moar
+                   ?? nqp::indexicim(self,$needle,$pos)
+                   !! nqp::indexic(self,$needle,$pos)
+#?endif
+#?if !moar
+                   ?? self!die-named('ignorecase and :ignoremark')
+                   !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
+#?endif
+                 !! $ignoremark
+#?if moar
+                   ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+                   ?? self!die-named('ignoremark')
+#?endif
+                   !! nqp::index(self,$needle,$pos),
+                 -1
+               )
+             )
+    }
+
+    multi method contains(Str:D:
+      Str:D $needle, Int:D $pos, :m(:$ignoremark)!
+    --> Bool:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(
+               nqp::isne_i(
+                 $ignoremark
+#?if moar
+                   ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+                   ?? self!die-named('ignoremark')
+#?endif
+                   !! nqp::index(self,$needle,$pos),
+                 -1,
+               )
+             )
+    }
+
     multi method contains(Str:D: Str:D $needle, Int:D $pos --> Bool:D) {
-        nqp::hllbool(
-          nqp::if(
-            (nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::chars($!value))),
-            nqp::isne_i(nqp::index($!value,$needle,$pos),-1)
-          )
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(nqp::isne_i(nqp::index(self,$needle,$pos),-1))
+    }
+    multi method contains(Str:D: Regex:D $needle, Int:D $pos --> Bool:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::hllbool(
+               nqp::islt_i($pos,nqp::chars(self)) && nqp::isge_i(
+                 nqp::getattr_i(
+                   $needle($cursor-init(Match,self,:c($pos))),Match,'$!pos'
+                 ),
+                 0
+               )
         )
     }
-    multi method contains(Str:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
-        self.contains($needle.Str, $pos.Int)
-    }
-    multi method contains(Str:D: Str:D $needle, Cool:D $pos --> Bool:D) {
-        self.contains($needle, $pos.Int)
+
+    # create indices using index
+    method !indices(str $needle, \overlap, int $start) {
+        my $indices := nqp::create(IterationBuffer);
+        my int $add  = overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $pos  = $start;
+        my int $index;
+        nqp::while(
+          nqp::isne_i(($index = nqp::index(self,$needle,$pos)),-1),
+          nqp::stmts(
+            nqp::push($indices,nqp::p6box_i($index)),
+            ($pos = nqp::add_i($index,$add))
+          )
+        );
+        $indices.List
     }
 
-    multi method indices(Str:D: Cool:D $needle, :$overlap) {
-        self.indices: $needle.Str, :$overlap
+    # create indices using index with ignorecase
+    method !indicesic(str $needle, \overlap, int $start) {
+        my $indices := nqp::create(IterationBuffer);
+        my int $add  = overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $pos  = $start;
+        my int $index;
+#?if moar
+        nqp::while(
+          nqp::isne_i(($index = nqp::indexic(self,$needle,$pos)),-1),
+#?endif
+#?if !moar
+        my str $fcself   = nqp::fc(self);
+        my str $fcneedle = nqp::fc($needle);
+        nqp::while(
+          nqp::isne_i(($index = nqp::index($fcself,$fcneedle,$pos)),-1),
+#?endif
+          nqp::stmts(
+            nqp::push($indices,nqp::p6box_i($index)),
+            ($pos = nqp::add_i($index,$add))
+          )
+        );
+        $indices.List
     }
+
+    # create indices using index with ignoremark
+    method !indicesim(str $needle, \overlap, int $start) {
+#?if moar
+        my $indices := nqp::create(IterationBuffer);
+        my int $add  = overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $pos  = $start;
+        my int $index;
+        nqp::while(
+          nqp::isne_i(($index = nqp::indexim(self,$needle,$pos)),-1),
+          nqp::stmts(
+            nqp::push($indices,nqp::p6box_i($index)),
+            ($pos = nqp::add_i($index,$add))
+          )
+        );
+        $indices.List
+#?endif
+#?if !moar
+        self!die-named('ignoremark',2)
+#?endif
+    }
+
+    # create indices using index with ignorecase and ignoremark
+    method !indicesicim(str $needle, \overlap, int $start) {
+#?if moar
+        my $indices := nqp::create(IterationBuffer);
+        my int $add  = overlap ?? 1 !! nqp::chars($needle) || 1;
+        my int $pos  = $start;
+        my int $index;
+        nqp::while(
+          nqp::isne_i(($index = nqp::indexicim(self,$needle,$pos)),-1),
+          nqp::stmts(
+            nqp::push($indices,nqp::p6box_i($index)),
+            ($pos = nqp::add_i($index,$add))
+          )
+        );
+        $indices.List
+#?endif
+#?if !moar
+        self!die-named('ignorecase and :ignoremark',2)
+#?endif
+    }
+
+    multi method indices(Str:D:
+      Str:D $needle, :i(:$ignorecase), :m(:$ignoremark), :$overlap
+    ) {
+        $ignorecase
+          ?? $ignoremark
+            ?? self!indicesicim($needle, $overlap, 0)
+            !! self!indicesic($needle, $overlap, 0)
+          !! $ignoremark
+            ?? self!indicesim($needle, $overlap, 0)
+            !! self!indices($needle, $overlap, 0)
+    }
+
+    multi method indices(Str:D:
+      Str:D $needle, Int:D $pos, :i(:$ignorecase), :m(:$ignoremark), :$overlap
+    ) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! $ignorecase
+            ?? $ignoremark
+              ?? self!indicesicim($needle, $overlap, $pos)
+              !! self!indicesic($needle, $overlap, $pos)
+            !! $ignoremark
+              ?? self!indicesim($needle, $overlap, $pos)
+              !! self!indices($needle, $overlap, $pos)
+    }
+
     multi method indices(Str:D: Str:D $needle, :$overlap) {
-        nqp::stmts(
-          (my $need    := nqp::getattr($needle,Str,'$!value')),
-          (my int $add  = nqp::if($overlap,1,nqp::chars($need) || 1)),
-          (my $indices := nqp::create(IterationBuffer)),
-          (my int $pos),
-          (my int $i),
-          nqp::while(
-            nqp::isge_i(($i = nqp::index($!value,$need,$pos)),0),
-            nqp::stmts(
-              nqp::push($indices,nqp::p6box_i($i)),
-              ($pos = nqp::add_i($i,$add))
-            )
-          ),
-          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
-        )
+        self!indices($needle, $overlap, 0)
     }
-    multi method indices(Str:D: Cool:D $needle, Cool:D $start, :$overlap) {
-        self.indices: $needle.Str, $start.Int, :$overlap
-    }
-    multi method indices(Str:D: Str:D $needle, Int:D $start, :$overlap) {
-        nqp::stmts(
-          (my int $pos = $start),
-          nqp::if(
-            nqp::isgt_i($pos,nqp::chars($!value)),
-            nqp::create(List),   # position after string, always empty List
-            nqp::stmts(
-              (my $need   := nqp::getattr($needle,Str,'$!value')),
-              (my int $add = nqp::if($overlap,1,nqp::chars($need) || 1)),
-              (my $indices := nqp::create(IterationBuffer)),
-              (my int $i),
-              nqp::while(
-                nqp::isge_i(($i = nqp::index($!value,$need,$pos)),0),
-                nqp::stmts(
-                  nqp::push($indices,nqp::p6box_i($i)),
-                  ($pos = nqp::add_i($i,$add))
-                )
-              ),
-              nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$indices)
-            )
-          )
-        )
+    multi method indices(Str:D: Str:D $needle, Int:D $pos, :$overlap) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! self!indices($needle, $overlap, $pos)
     }
 
-    multi method index(Str:D: Cool:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::index($!value,$needle.Str)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
+#?if !moar
+    # helper method for quitting if not supported
+    method !die-named(str $named, $levels = 1) {
+        X.NYI.new(
+          feature => "Named parameter ':$named' on '{
+              callframe($levels + 1).code.name
+          }'"
+        ).throw
     }
+#?endif
+
+    multi method index(Str:D:
+      Str:D $needle, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Int:D) {
+        nqp::isne_i(
+          (my $index := $ignorecase
+            ?? $ignoremark
+#?if moar
+              ?? nqp::indexicim(self,$needle,0)
+              !! nqp::indexic(self,$needle,0)
+#?endif
+#?if !moar
+              ?? self!die-named('ignorecase and :ignoremark')
+              !! nqp::index(nqp::fc(self),nqp::fc($needle),0)
+#?endif
+            !! $ignoremark
+#?if moar
+              ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+              ?? self!die-named('ignoremark')
+#?endif
+              !! nqp::index(self,$needle,0)
+          ),-1
+        ) ?? $index !! Nil
+    }
+
+    multi method index(Str:D:
+      Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Int:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::isne_i(
+               (my $index := $ignorecase
+                 ?? $ignoremark
+#?if moar
+                   ?? nqp::indexicim(self,$needle,$pos)
+                   !! nqp::indexic(self,$needle,$pos)
+#?endif
+#?if !moar
+                   ?? self!die-named('ignorecase and :ignoremark')
+                   !! nqp::index(nqp::fc(self),nqp::fc($needle),$pos)
+#?endif
+                 !! $ignoremark
+#?if moar
+                   ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+                   ?? self!die-named('ignoremark')
+#?endif
+                   !! nqp::index(self,$needle,$pos)
+               ),-1
+             ) ?? $index !! Nil
+    }
+
+    multi method index(Str:D:
+      @needles, :i(:$ignorecase)!, :m(:$ignoremark)
+    --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        if $ignorecase {
+            if $ignoremark {
+#?if moar
+                $chars = $index = $i
+                  if ($i =
+                       nqp::indexicim(nqp::substr(self,0,$chars),.Str,0)
+                     ) > -1
+                  for @needles;
+#?endif
+#?if !moar
+                self!die-named('ignorecase and :ignoremark')
+#?endif
+            }
+            else {
+#?if moar
+                $chars = $index = $i
+                  if ($i =
+                        nqp::indexic(nqp::substr(self,0,$chars),.Str,0)
+                     ) > -1
+                  for @needles;
+#?endif
+#?if !moar
+                my str $str = nqp::fc(self);
+                $chars = $index = $i
+                  if ($i =
+                       nqp::index(nqp::substr(self,0,$chars),nqp::fc(.Str))
+                     ) > -1
+                  for @needles;
+#?endif
+            }
+        }
+        elsif $ignoremark {
+#?if moar
+            $chars = $index = $i
+              if ($i = nqp::indexim(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+#?endif
+#?if !moar
+            self!die-named('ignoremark')
+#?endif
+        }
+        else {
+            $chars = $index = $i
+              if ($i = nqp::index(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+        }
+
+        $index == -1 ?? Nil !! $index
+    }
+
+    multi method index(Str:D:
+      Str:D $needle, :m(:$ignoremark)!
+    --> Int:D) {
+        nqp::isne_i(
+          (my $index := $ignoremark
+#?if moar
+            ?? nqp::indexim(self,$needle,0)
+#?endif
+#?if !moar
+            ?? self!die-named('ignoremark')
+#?endif
+            !! nqp::index(self,$needle,0)
+          ),-1
+        ) ?? $index !! Nil
+    }
+    multi method index(Str:D:
+      Str:D $needle, Int:D $pos, :m(:$ignoremark)!
+    --> Int:D) {
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::isne_i(
+               (my $index := $ignoremark
+#?if moar
+                 ?? nqp::indexim(self,$needle,$pos)
+#?endif
+#?if !moar
+                 ?? self!die-named('ignoremark')
+#?endif
+                 !! nqp::index(self,$needle,$pos)
+               ),-1
+             ) ?? $index !! Nil
+    }
+    multi method index(Str:D:
+      @needles, :m(:$ignoremark)!
+    --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        if $ignoremark {
+#?if moar
+            $chars = $index = $i
+              if ($i = nqp::indexim(nqp::substr(self,0,$chars),.Str,0)) > -1
+              for @needles;
+#?endif
+#?if !moar
+            self!die-named('ignorecase and :ignoremark')
+#?endif
+        }
+        else {
+            $chars = $index = $i
+              if ($i = nqp::index(nqp::substr(self,0,$chars),.Str)) > -1
+              for @needles;
+        }
+
+        $index == -1 ?? Nil !! $index
+    }
+
     multi method index(Str:D: Str:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::index($!value,$needle)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
-    }
-    multi method index(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
-        self.index: $needle.Str, $pos.Int
-    }
-    multi method index(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
-        nqp::if(
-          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
-          INDEX-OOR(self,$pos),
-          nqp::if(
-            nqp::islt_i((my int $i = nqp::index($!value,$needle.Str,$pos)),0),
-            Nil,
-            nqp::p6box_i($i)
-          )
-        )
+        nqp::isne_i((my $index := nqp::index(self,$needle)),-1)
+          ?? $index !! Nil
     }
     multi method index(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
-        nqp::if(
-          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
-          INDEX-OOR(self,$pos),
-          nqp::if(
-            nqp::islt_i((my int $i = nqp::index($!value,$needle,$pos)),0),
-            Nil,
-            nqp::p6box_i($i)
-          )
-        )
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::isne_i((my $index := nqp::index(self,$needle,$pos)),-1)
+            ?? $index !! Nil
     }
-    sub INDEX-OOR($string, $pos) {
+    multi method index(Str:D: @needles --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        my int $chars = nqp::chars(self);
+        $chars = $index = $i
+          if ($i = nqp::index(nqp::substr(self,0,$chars), .Str)) > -1
+          for @needles;
+         $index == -1 ?? Nil !! $index
+    }
+
+    # helper method for failing with out of range exception
+    method !fail-oor($got) {
         Failure.new(X::OutOfRange.new(
-          :what("Position in index"),
-          :got($pos),
-          :range("0..$string.chars()")
+          :what("Position in calling '{ callframe(2).code.name }'"),
+          :$got,
+          :range("0..{ nqp::chars(self) }")
         ))
     }
 
-    multi method rindex(Str:D: Cool:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::rindex($!value,$needle.Str)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
-    }
     multi method rindex(Str:D: Str:D $needle --> Int:D) {
-        nqp::if(
-          nqp::islt_i((my int $i = nqp::rindex($!value,$needle)),0),
-          Nil,
-          nqp::p6box_i($i)
-        )
-    }
-    multi method rindex(Str:D: Cool:D $needle, Cool:D $pos --> Int:D) {
-        self.rindex: $needle.Str, $pos.Int
-    }
-    multi method rindex(Str:D: Cool:D $needle, Int:D $pos --> Int:D) {
-        nqp::if(
-          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
-          RINDEX-OOR(self,$pos),
-          nqp::if(
-            nqp::islt_i((my int $i = nqp::rindex($!value,$needle.Str,$pos)),0),
-            Nil,
-            nqp::p6box_i($i)
-          )
-        )
+        nqp::isne_i((my $index := nqp::rindex($!value,$needle)),-1)
+          ?? $index !! Nil
     }
     multi method rindex(Str:D: Str:D $needle, Int:D $pos --> Int:D) {
-        nqp::if(
-          nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0),
-          RINDEX-OOR(self,$pos),
-          nqp::if(
-            nqp::islt_i((my int $i = nqp::rindex($!value,$needle,$pos)),0),
-            Nil,
-            nqp::p6box_i($i)
-          )
-        )
+        nqp::isbig_I(nqp::decont($pos)) || nqp::islt_i($pos,0)
+          ?? self!fail-oor($pos)
+          !! nqp::isne_i((my $index := nqp::rindex(self,$needle,$pos)),-1)
+            ?? $index !! Nil
     }
-    sub RINDEX-OOR($string,$pos) {
-        Failure.new(X::OutOfRange.new(
-          :what("Position in rindex"),
-          :got($pos),
-          :range("0..$string.chars()")
-        ))
+    multi method rindex(Str:D: @needles --> Int:D) {
+        my int $i;
+        my int $index = -1;
+        $index = $i
+          if ($i = nqp::rindex(self,.Str)) > $index
+          for @needles;
+        $index == -1 ?? Nil !! $index
     }
 
     method pred(Str:D: --> Str:D) {
@@ -360,21 +774,106 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method Numeric(Str:D: --> Numeric:D) {
-        # Fast-path the integer case if there's no '.'.
-        unless self.contains('.') {
-            my \rr = nqp::radix_I(10, $!value, 0, 0b10, Int);
-            return nqp::atpos(rr, 0) if nqp::iseq_i(nqp::atpos(rr, 2), nqp::chars(self));
-        }
-
-        # Handle special empty string
-        self.trim eq ""
-          ?? 0
-          !! val(self, :val-or-fail)
+        nqp::chars(self)
+          ?? nqp::index(self,'.') == -1    # is there no period?
+               && nqp::atpos(              # no period, so parse as Int
+                    (my $n := nqp::radix_I(10,$!value,0,0b10,Int)),
+                    2
+               ) == nqp::chars(self)
+            ?? nqp::atpos($n,0)            # fast path Int ok
+            !! nqp::findnotcclass(         # any non-whitespace?
+                 nqp::const::CCLASS_WHITESPACE,
+                 self,0,nqp::chars(self)
+               ) == nqp::chars(self)
+              ?? 0                         # just spaces
+              !! val(self, :val-or-fail)   # take the slow route
+          !! 0                             # empty string
     }
 
     multi method gist(Str:D: --> Str:D) { self }
-    multi method perl(Str:D: --> Str:D) {
-        '"' ~ Rakudo::Internals.PERLIFY-STR(self) ~ '"'
+    multi method raku(Str:D: --> Str:D) {
+        nqp::chars(self)
+          ?? nqp::findnotcclass(
+               nqp::const::CCLASS_WORD,self,0,nqp::chars(self)
+             ) == nqp::chars(self)
+            ?? nqp::concat('"',nqp::concat(self,'"'))  # fast path alpha
+            !! self!rakufy                             # slow path non-alpha
+          !! '""'                                      # empty string
+    }
+
+    # Special case escape values for rakufication
+    my $escapes := nqp::hash(
+      "\0",   '\0',
+      '$',    '\$',
+      '@',    '\@',
+      '%',    '\%',
+      '&',    '\&',
+      '{',    '\{',
+      "\b",   '\b',
+      "\x0A", '\n',
+      "\r",   '\r',
+      "\t",   '\t',
+      '"',    '\"',
+      '\\',   '\\\\',
+    );
+
+    # Helper method to create hex representation of char at given index
+    method !hexify-at(int $i) is pure {
+        nqp::concat(
+          '\x[',
+          nqp::concat(
+#?if !jvm
+            nqp::substr(self,$i,1).NFC.map( *.base(16) ).join(','),
+#?endif
+#?if jvm
+            nqp::p6box_i(nqp::ordat(self,$i)).base(16),
+#?endif
+            ']'
+          )
+        )
+    }
+
+    # Under NFG-supporting implementations, must be sure that any leading
+    # combiners are escaped, otherwise they will be combined onto the "
+    # under concatenation closure, which ruins round-tripping. Also handle
+    # the \r\n grapheme correctly.
+    method !rakufy() {
+        my int $i = -1;
+        my $rakufied := nqp::list_s('"');              # array add chars to
+
+        while ++$i < nqp::chars(self) {                # check all chars
+            nqp::push_s(
+              $rakufied,
+#?if !jvm
+              nqp::isge_i(nqp::ordat(self,$i),768)     # different from "0" ??
+                && nqp::isgt_i(
+                     nqp::atpos(
+                       nqp::radix_I(10,                # failure -> value 0
+                         nqp::getuniprop_str(
+                           nqp::ordat(self,$i),
+                           nqp::unipropcode('Canonical_Combining_Class')
+                         ),
+                         0,0,Int
+                       ),
+                       0
+                     ),
+                     0
+                   )
+                ?? self!hexify-at($i)                  # escape since > 0
+                !!
+#?endif
+                   nqp::ifnull(
+                     nqp::atkey($escapes,nqp::substr(self,$i,1)),
+                     nqp::eqat(self,"\r\n",$i)         # not a known escape
+                       ?? '\r\n'                       # it's the common LF
+                       !! nqp::iscclass(nqp::const::CCLASS_PRINTING,self,$i)
+                         ?? nqp::substr(self,$i,1)     # it's a printable
+                         !! self!hexify-at($i)         # need to escape
+                   )
+            )
+        }
+        nqp::push_s($rakufied,'"');
+        nqp::join('',$rakufied)
     }
 
     my class CombAll does PredictiveIterator {
@@ -538,35 +1037,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
             !! self.comb(1,$limit)
     }
 
-    multi method comb(Str:D: Regex:D $pattern, :$match --> Seq:D) {
-        Seq.new(nqp::if(
-          $match,
-          self.match($pattern, :g),
-          self.match($pattern, :g, :as(Str))
-        ).iterator)
-    }
-    multi method comb(Str:D: Regex:D $pattern, $limit, :$match --> Seq:D) {
-        nqp::if(
-          nqp::istype($limit,Whatever) || $limit == Inf,
-          self.comb($pattern, :$match),
-          Seq.new(nqp::if(
-            $match,
-            self.match($pattern, :x(1..$limit)),
-            self.match($pattern, :x(1..$limit), :as(Str))
-          ).iterator)
-        )
-    }
-
-    # cache cursor initialization lookup
-    my $cursor-init := Match.^lookup("!cursor_init");
-
-    my \CURSOR-GLOBAL     := Match.^lookup("CURSOR_MORE"   );  # :g
-    my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
-    my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
-
-    my \POST-MATCH  := Match.^lookup("MATCH" );  # Match object
-    my \POST-STR    := Match.^lookup("STR"   );  # Str object
-
     # iterate with post-processing
     class POST-ITERATOR does Iterator {
         has Mu $!cursor; # cannot put these 3 lines in role
@@ -643,6 +1113,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
               )
             )
         }
+    }
+
+    method !match-iterator(&regex, &kind, \limit) {
+        my \iterator := POST-ITERATOR.new(
+          regex($cursor-init(Match,self,:0c)),CURSOR-GLOBAL,&kind
+        );
+        nqp::istype(limit,Whatever) || limit == Inf
+          ?? iterator
+          !! Rakudo::Iterator.NextNValues(iterator, limit.Int)
+    }
+
+    multi method comb(Str:D: Regex:D $regex, $limit = *, :$match --> Seq:D) {
+        Seq.new(
+          self!match-iterator($regex, $match ?? POST-MATCH !! POST-STR, $limit)
+        )
     }
 
     # Look for short/long named parameter and remove it from the hash
@@ -1175,11 +1660,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             matches))
     }
 
-    proto method subst(|) {
-        $/ := nqp::getlexcaller('$/');
-        {*}
-    }
-    multi method subst(Str:D: Str:D $original, Str:D $final, *%options) {
+    multi method subst(Str:D: Str:D $original, Str:D $final = "", *%options) {
         nqp::if(
           (my $opts := nqp::getattr(%options,Map,'$!storage'))
             && nqp::isgt_i(nqp::elems($opts),1),
@@ -1199,7 +1680,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         )
     }
-    multi method subst(Str:D: $matcher, $replacement, *%options) {
+    multi method subst(Str:D: $matcher, $replacement = "", *%options) {
         self!SUBST(nqp::getlexcaller('$/'), $matcher, $replacement, |%options)
     }
     method !SUBST(Str:D: \caller_dollar_slash, $matcher, $replacement,
@@ -1428,139 +1909,197 @@ my class Str does Stringy { # declared in BOOTSTRAP
         X::TypeCheck.new(
           operation => 'split ($limit argument)',
           expected  => 'any Real type (non-NaN) or Whatever',
-          got       => limit.perl,
+          got       => limit.raku,
         ).throw if limit === NaN;
 
         limit = Inf if nqp::istype(limit,Whatever);
     }
 
-    method parse-base(Str:D: Int:D $radix --> Numeric:D) {
-        fail X::Syntax::Number::RadixOutOfRange.new(:$radix)
-            unless 2 <= $radix <= 36; # (0..9,"a".."z").elems == 36
+    proto method parse-base(|) {*}
+    multi method parse-base(Str:D: Int:D $radix --> Numeric:D) {
+        2 <= $radix <= 36                    # (0..9,"a".."z").elems == 36
+          ?? nqp::chars(self)
+            ?? nqp::atpos(                   # something to parse
+                 (my $r := nqp::radix_I($radix,self,0,0x02,Int)),
+                 2
+               ) == nqp::chars(self)
+              ?? nqp::atpos($r,0)
+              !! self!slow-parse-base($radix,nqp::atpos($r,0),nqp::atpos($r,2))
+            !! self!parse-fail($radix, 0)    # nothing to parse
+          !! Failure.new(X::Syntax::Number::RadixOutOfRange.new(:$radix))
+    }
 
-        # do not modify $!value directly as that affects other same strings
-        my ($value, $sign, $sign-offset) = $!value, 1, 0;
-        given $value.substr(0,1) {
-            when '-'|'−' { $sign = -1; $sign-offset = 1 }
-            when '+'     {             $sign-offset = 1 }
+    # Shortcut for generating parsing Failure
+    method !parse-fail($radix, $pos --> Failure) {
+        Failure.new(X::Str::Numeric.new(
+          :source(self),
+          :$pos,
+          :reason("malformed base-$radix number"),
+        ))
+    }
+
+    # Slow path for non-simple integer values
+    method !slow-parse-base(int $radix, \whole, int $failed-at --> Numeric:D) {
+        $failed-at == -1                                      # nothing parsed
+          ?? nqp::eqat(self,'.',0)                             # .x ??
+            ?? self!parse-rat($radix, 0, 1)
+            !! nqp::eqat(self,'.',1)                            # -.x −.x +.x ??
+              ?? nqp::eqat(self,'-',0) || nqp::eqat(self,'−',0)  # -. −.
+                ?? nqp::istype((my $f := self!parse-rat($radix, 0, 2)),Failure)
+                  ?? $f                                           # fail
+                  !! -$f                                          # negate val
+                !! nqp::eqat(self,'+',0)                         # +.
+                  ?? self!parse-rat($radix, 0, 2)
+                  !! self!parse-fail($radix, 0)
+              !! self!parse-fail($radix, 0)
+            !! nqp::eqat(self,'.',$failed-at)                   # 123. ??
+              ?? self!parse-rat($radix, whole, $failed-at + 1)
+              !! self!parse-fail($radix, $failed-at)
+    }
+
+    # Helper path for parsing rats
+    method !parse-rat(int $radix, Int:D $whole, int $offset --> Numeric:D) {
+        my $fract := nqp::radix_I($radix,self,$offset,0,Int);
+        nqp::atpos($fract,2) == nqp::chars(self)   # fraction parsed entirely?
+          ?? DIVIDE_NUMBERS(
+               nqp::islt_I($whole,0)
+                 ?? nqp::sub_I(
+                      nqp::mul_I($whole,nqp::atpos($fract,1),Int),
+                      nqp::atpos($fract,0),
+                      Int
+                    )
+                 !! nqp::add_I(
+                      nqp::mul_I($whole,nqp::atpos($fract,1),Int),
+                      nqp::atpos($fract,0),
+                      Int
+                    ),
+               nqp::atpos($fract,1),
+               Rat,
+               Rat
+             )
+          !! self!parse-fail($radix, nqp::atpos($fract,2) max $offset)
+    }
+    method !eggify($egg --> Int:D) { self.trans($egg => "01").parse-base(2) }
+    multi method parse-base(Str:D: "camel" --> Int:D) { self!eggify: "🐪🐫" }
+    multi method parse-base(Str:D: "beer"  --> Int:D) { self!eggify: "🍺🍻" }
+
+    multi method split(Str:D: Regex:D $regex, $limit is copy = Inf;;
+      :$v , :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
+
+        # sanity checks
+        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
+        self!ensure-limit-sanity($limit);
+
+        if $limit <= 1 {
+            Seq.new($limit == 1
+              ?? Rakudo::Iterator.OneValue(self)
+              !! Rakudo::Iterator.Empty
+            )
         }
+        else {
 
-        if $value.contains('.') { # fractional
-            my ($whole, $fract) = $value.split: '.', 2;
-            my $w-parsed := nqp::radix_I($radix, $whole, $sign-offset, 0, Int);
-            my $f-parsed := nqp::radix_I($radix, $fract, 0,            0, Int);
+            # get all the matches
+            self!match-iterator($regex, POST-MATCH, $limit - 1)
+              .push-all(my \matches := nqp::create(IterationBuffer));
 
-            # Whole part did not parse in its entirety
-            fail X::Str::Numeric.new(
-                :source($value),
-                :pos($w-parsed[2] max $sign-offset),
-                :reason("malformed base-$radix number"),
-            ) unless $w-parsed[2] == nqp::chars($whole)
-                or nqp::chars($whole) == $sign-offset; # or have no whole part
-
-            # Fractional part did not parse in its entirety
-            fail X::Str::Numeric.new(
-                :source($value),
-                :pos(
-                      ($w-parsed[2] max $sign-offset)
-                    + 1 # decimal dot
-                    + ($f-parsed[2] max 0)
-                ),
-                :reason("malformed base-$radix number"),
-            ) unless $f-parsed[2] == nqp::chars($fract);
-
-            $sign * ($w-parsed[0] + $f-parsed[0]/$f-parsed[1]);
-        }
-        else { # Int
-            my $parsed := nqp::radix_I($radix, $value, $sign-offset, 0, Int);
-
-            # Did not parse the number in its entirety
-            fail X::Str::Numeric.new(
-                :source($value),
-                :pos($parsed[2] max $sign-offset),
-                :reason("malformed base-$radix number"),
-            ) unless $parsed[2] == nqp::chars($value);
-
-            $sign * $parsed[0];
+            # do the split
+            nqp::elems(matches)
+              ?? $any
+                ?? $k || $v
+                  ?? self!split-with-kv(matches,?$k,?$v,!$skip-empty)
+                  !! $kv
+                    ?? self!split-with-kv(matches, 1, 1, !$skip-empty)
+                    !! self!split-with-p(matches, !$skip-empty)
+                !! $skip-empty
+                  ?? self!split-empty(matches)
+                  !! self!split(matches)
+              !! Seq.new(Rakudo::Iterator.OneValue(self))
         }
     }
 
-    multi method split(Str:D: Regex:D $pat, $limit is copy = Inf;;
-      :$v is copy, :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
+    method !split-with-kv(\matches, int $k, int $v, int $dontskip --> Seq:D) {
+        my \result := nqp::create(IterationBuffer);
 
-        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
-
-        self!ensure-limit-sanity($limit);
-        return Seq.new(Rakudo::Iterator.Empty) if $limit <= 0;
-
-        my \matches = $limit == Inf
-          ?? self!match-list($/, $pat($cursor-init(Match,self,:0c)),
-                CURSOR-GLOBAL, POST-MATCH)
-          !! self.match($pat, :x(1..$limit-1));
-
-        my str $str   = nqp::unbox_s(self);
-        my int $elems = matches.elems;  # make sure all reified
-        return Seq.new(Rakudo::Iterator.OneValue(self)) unless $elems;
-
-        my $matches  := nqp::getattr(matches,List,'$!reified');
-        my $result   := nqp::create(IterationBuffer);
-        my int $i = -1;
+        my $match;
         my int $pos;
         my int $found;
-
-        if $any || $skip-empty {
-            my int $notskip = !$skip-empty;
-            my int $next;
-            while nqp::islt_i(++$i,$elems) {
-                my $match := nqp::decont(nqp::atpos($matches,$i));
-                $found  = nqp::getattr_i($match,Match,'$!from');
-                $next   = $match.to;
-                if $notskip {
-                    nqp::push($result,
-                      nqp::substr($str,$pos,nqp::sub_i($found,$pos)));
-                }
-                elsif nqp::sub_i($found,$pos) -> $chars {
-                    nqp::push($result,
-                      nqp::substr($str,$pos,$chars));
-                }
-                nqp::if(
-                  $any,
-                  nqp::if(
-                    $v,
-                    nqp::push($result,$match),                  # v
-                    nqp::if(
-                      $k,
-                      nqp::push($result,0),                     # k
-                      nqp::if(
-                        $kv,
-                        nqp::stmts(
-                          nqp::push($result,0),                 # kv
-                          nqp::push($result,$match)             # kv
-                        ),
-                        nqp::push($result, Pair.new(0,$match))  # $p
-                      )
-                    )
-                  )
-                );
-                $pos = $next;
+        while nqp::elems(matches) {
+            $match := nqp::shift(matches);
+            $found  = nqp::getattr_i($match,Match,'$!from');
+            if $dontskip {
+                nqp::push(result,nqp::substr(self,$pos,$found - $pos));
             }
-            nqp::push($result,nqp::substr($str,$pos))
-              if $notskip || nqp::islt_i($pos,nqp::chars($str));
-        }
-        else {
-            my $match;
-            nqp::setelems($result,$elems + 1);
-            while nqp::islt_i(++$i,$elems) {
-                $match := nqp::decont(nqp::atpos($matches,$i));
-                $found  = nqp::getattr_i($match,Match,'$!from');
-                nqp::bindpos($result,$i,
-                  nqp::substr($str,$pos,nqp::sub_i($found,$pos)));
-                $pos = $match.to;
+            elsif $found - $pos -> int $chars {
+                nqp::push(result,nqp::substr(self,$pos,$chars));
             }
-            nqp::bindpos($result,$i,nqp::substr($str,$pos));
+            nqp::push(result,0)      if $k;
+            nqp::push(result,$match) if $v;
+            $pos = nqp::getattr_i($match,Match,'$!pos');
         }
+        nqp::push(result,nqp::substr(self,$pos))
+          if $dontskip || $pos < nqp::chars(self);
 
-        Seq.new(Rakudo::Iterator.ReifiedList($result))
+        result.Seq
+    }
+
+    method !split-with-p(\matches, int $dontskip --> Seq:D) {
+        my \result := nqp::create(IterationBuffer);
+
+        my $match;
+        my int $pos;
+        my int $found;
+        while nqp::elems(matches) {
+            $match := nqp::shift(matches);
+            $found  = nqp::getattr_i($match,Match,'$!from');
+            if $dontskip {
+                nqp::push(result,nqp::substr(self,$pos,$found - $pos));
+            }
+            elsif $found - $pos -> int $chars {
+                nqp::push(result,nqp::substr(self,$pos,$chars));
+            }
+            nqp::push(result, Pair.new(0,$match));
+            $pos = nqp::getattr_i($match,Match,'$!pos')
+        }
+        nqp::push(result,nqp::substr(self,$pos))
+          if $dontskip || $pos < nqp::chars(self);
+
+        result.Seq
+    }
+
+    method !split-empty(\matches --> Seq:D) {
+        my \result := nqp::create(IterationBuffer);
+
+        my $match;
+        my int $pos;
+        while nqp::elems(matches) {
+            $match := nqp::shift(matches);
+            if nqp::getattr_i($match,Match,'$!from') - $pos -> int $chars {
+                nqp::push(result,nqp::substr(self,$pos,$chars));
+            }
+            $pos = nqp::getattr_i($match,Match,'$!pos');
+        }
+        nqp::push(result,nqp::substr(self,$pos))
+          if $pos < nqp::chars(self);
+
+        result.Seq
+    }
+
+    method !split(\matches --> Seq:D) {
+        my \result := nqp::create(IterationBuffer);
+
+        my $match;
+        my int $pos;
+        while nqp::elems(matches) {
+            $match := nqp::shift(matches);
+            nqp::push(
+              result,
+              nqp::substr(self,$pos,nqp::getattr_i($match,Match,'$!from')-$pos)
+            );
+            $pos = nqp::getattr_i($match,Match,'$!pos');
+        }
+        nqp::push(result,nqp::substr(self,$pos));
+
+        result.Seq
     }
 
     multi method split(Str:D: Str(Cool) $match;;
@@ -2187,33 +2726,46 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method trim-leading(Str:D: --> Str:D) {
-        my str $str = nqp::unbox_s(self);
-        my int $pos = nqp::findnotcclass(
-                          nqp::const::CCLASS_WHITESPACE,
-                          $str, 0, nqp::chars($str));
-        $pos ?? nqp::p6box_s(nqp::substr($str, $pos)) !! self;
+        nqp::substr(
+          self,
+          nqp::findnotcclass(
+            nqp::const::CCLASS_WHITESPACE,self,0,nqp::chars(self)
+          )
+        )
     }
 
     method trim-trailing(Str:D: --> Str:D) {
-        my str $str = nqp::unbox_s(self);
-        my int $pos = nqp::chars($str);
-        nqp::while(
-          nqp::isge_i(--$pos, 0)
-            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos),
-          nqp::null
-        );
-        nqp::box_s(nqp::substr($str, 0, $pos + 1), Str)
+        nqp::if(
+          nqp::iscclass(
+            nqp::const::CCLASS_WHITESPACE,
+            self,
+            (my int $pos = nqp::chars(self) - 1)
+          ),
+          nqp::stmts(   # at least one trailing whitespace
+            nqp::while(
+              nqp::isge_i(--$pos,0)
+                && nqp::iscclass(nqp::const::CCLASS_WHITESPACE,self,$pos),
+              nqp::null
+            ),
+            nqp::substr(self,0,$pos + 1)
+          ),
+          self          # no whitespace, so done
+        )
     }
 
     method trim(Str:D: --> Str:D) {
-        my str $str  = nqp::unbox_s(self);
-        my int $pos  = nqp::chars($str) - 1;
         my int $left = nqp::findnotcclass(
-                           nqp::const::CCLASS_WHITESPACE, $str, 0, $pos + 1);
-        $pos = $pos - 1
-            while nqp::isge_i($pos, $left)
-               && nqp::iscclass(nqp::const::CCLASS_WHITESPACE, $str, $pos);
-        nqp::islt_i($pos, $left) ?? '' !! nqp::p6box_s(nqp::substr($str, $left, $pos + 1 - $left));
+          nqp::const::CCLASS_WHITESPACE,
+          self,
+          0,
+          (my int $pos = nqp::chars(self))
+        );
+        nqp::while(
+          nqp::isgt_i(--$pos,$left)
+            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE,self,$pos),
+          nqp::null
+        );
+        nqp::substr(self,$left,$pos + 1 - $left)
     }
 
     multi method words(Str:D: $limit --> Seq:D) {
@@ -2288,7 +2840,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method words(Str:D: --> Seq:D) { Seq.new(Words.new(self)) }
 
     # Internal method, used in Actions.postprocess_words/postprocess_quotewords
-    method WORDS_AUTODEREF(Str:D:) {
+    method WORDS_AUTODEREF(Str:D:) is implementation-detail {
         Words.new(self).push-all(my $words := nqp::create(IterationBuffer));
         nqp::elems($words) == 1
           ?? nqp::shift($words)
@@ -2814,75 +3366,68 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }).join;
     }
 
-    multi method substr(Str:D: Int:D \start --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)),
-          nqp::substr($!value,$from) #?js: NFG
+    method !SUBSTR-START-OOR($from) {
+        Failure.new(X::OutOfRange.new(
+          :what('Start argument to substr'),
+          :got($from.gist),
+          :range("0.." ~ nqp::chars(self)),
+          :comment( nqp::istype($from, Callable) || -$from > nqp::chars(self)
+            ?? ''
+            !! "use *-{abs $from} if you want to index relative to the end"),
+        ))
+    }
+    method !SUBSTR-CHARS-OOR($chars) {
+        Failure.new(X::OutOfRange.new(
+          :what('Number of characters argument to substr'),
+          :got($chars.gist),
+          :range<0..^Inf>,
+          :comment("use *-{abs $chars} if you want to index relative to the end"),
+        ))
+    }
+
+    multi method substr(Str:D: Int:D $from --> Str:D) {
+        nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
+          ?? self!SUBSTR-START-OOR($from)
+          !! nqp::substr(self,$from)                                 #?js: NFG
+    }
+    multi method substr(Str:D: Int:D $from, Int:D $want --> Str:D) {
+        nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
+          ?? self!SUBSTR-START-OOR($from)
+          !! nqp::islt_i($want,0)
+            ?? self!SUBSTR-CHARS-OOR($want)
+            !! nqp::substr(self,$from,$want)                         #?js: NFG
+    }
+    multi method substr(Str:D: Int:D $from, &want --> Str:D) {
+        self.substr(
+          $from,
+          want(nqp::sub_i(nqp::chars(self),$from)).Int               #?js: NFG
         )
     }
-    multi method substr(Str:D: Int:D \start, Int:D \want --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
-          nqp::if(
-            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars) #?js: NFG
-          )
-        )
+    multi method substr(Str:D: Int:D $from, Whatever --> Str:D) {
+        self.substr($from)
     }
-    multi method substr(Str:D: Int:D \start, Callable:D \want --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = nqp::unbox_i(start)),0)
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
-          nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0), #?js: NFG
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars) #?js: NFG
-          )
-        )
+    multi method substr(Str:D: Int:D $from, Num:D $want --> Str:D) {
+        nqp::isnanorinf($want)
+          ?? $want == Inf
+            ?? self.substr($from)
+            !! self!SUBSTR-CHARS-OOR($want)
+          !! self.substr($from, $want.Int)
     }
-    multi method substr(Str:D: Callable:D \start --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
-          nqp::substr($!value,$from)
-        )
+    multi method substr(Str:D: &want --> Str:D) {
+        self.substr(want(nqp::chars(self)).Int)                      #?js: NFG
     }
-    multi method substr(Str:D: Callable:D \start, Int:D \want --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
-          nqp::if(
-            nqp::islt_i((my int $chars = nqp::unbox_i(want)),0),
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars) #?js: NFG
-          )
-        )
+    multi method substr(Str:D: &from, Int:D $want --> Str:D) {
+        self.substr(from(nqp::chars(self)).Int, $want)               #?js: NFG
     }
-    multi method substr(Str:D: Callable:D \start, Callable:D \want --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = (start)(nqp::chars($!value)).Int),0) #?js: NFG
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
-          nqp::if(
-            nqp::islt_i((my int $chars = (want)(nqp::chars($!value) - $from).Int),0), #?js: NFG
-            Rakudo::Internals.SUBSTR-CHARS-OOR($chars),
-            nqp::substr($!value,$from,$chars) #?js: NFG
-          )
-        )
+    multi method substr(Str:D: &from, &want --> Str:D) {
+        my int $from = from(nqp::chars(self)).Int;
+        self.substr($from, want(nqp::sub_i(nqp::chars(self),$from)).Int)
     }
     multi method substr(Str:D: Range:D \start --> Str:D) {
         nqp::if(
           nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
             || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          Rakudo::Internals.SUBSTR-START-OOR($from,nqp::chars($!value)), #?js: NFG
+          self!SUBSTR-START-OOR($from),
           nqp::if(
             start.max == Inf,
             nqp::substr($!value,$from), #?js: NFG
@@ -2911,7 +3456,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! nqp::istype(start,Range)
             ?? start.min + start.excludes-min
             !! start.Int;
-        return Rakudo::Internals.SUBSTR-START-OOR($from,$max)
+        return self!SUBSTR-START-OOR($from)
           if nqp::islt_i($from,0) || nqp::isgt_i($from,$max);
 
         my int $chars = nqp::istype(start,Range)
@@ -2925,7 +3470,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               !! $want.Int;
 
         nqp::islt_i($chars,0)
-          ?? Rakudo::Internals.SUBSTR-CHARS-OOR($chars)
+          ?? self!SUBSTR-CHARS-OOR($chars)
           !! Proxy.new(
                FETCH => sub ($) {        # need to access updated HLL Str
                    nqp::substr(nqp::unbox_s(SELF),$from,$chars)
@@ -2980,7 +3525,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     proto method tc(|) {*}
     multi method tc(Str:D: --> Str:D) {
-        nqp::p6box_s(nqp::tc(nqp::substr($!value,0,1)) ~ nqp::substr($!value,1)); #?js: NFG
+        nqp::concat(nqp::tc(nqp::substr(self,0,1)),nqp::substr(self,1)); #?js: NFG
     }
     multi method tc(Str:U: --> Str:D) {
         self.Str
@@ -3017,8 +3562,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! Nil;
     }
     multi method ord(Str:U: --> Nil) { }
-}
 
+    method Date(Str:D:)     { Date.new(self)     }
+    method DateTime(Str:D:) { DateTime.new(self) }
+}
 
 multi sub prefix:<~>(Str:D \a --> Str:D) { a.Str }
 multi sub prefix:<~>(str   $a --> str)   { $a    }
@@ -3178,7 +3725,7 @@ proto sub trim-trailing($, *%) {*}
 multi sub trim-trailing(Cool:D $s --> Str:D) { $s.trim-trailing }
 
 # the opposite of Real.base, used for :16($hex_str)
-proto sub UNBASE ($, $, *%) {*}
+proto sub UNBASE ($, $, *%) is implementation-detail {*}
 multi sub UNBASE(Int:D $base, Any:D $num) {
     X::Numeric::Confused.new(:$num, :$base).throw;
 }
@@ -3201,7 +3748,7 @@ multi sub UNBASE(Int:D $base, Str:D $str --> Numeric:D) {
 }
 
 # for :16[1, 2, 3]
-sub UNBASE_BRACKET($base, @a) {
+sub UNBASE_BRACKET($base, @a) is implementation-detail {
     my $v = 0;
     my $denom = 1;
     my Bool $seen-dot = False;

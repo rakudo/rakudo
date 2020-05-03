@@ -3,7 +3,9 @@ my class CallFrame {
     has $.my;
 
     # cannot be a private method due to sub callframe
-    method SET-SELF(\level, Mu \ctx is raw, Mu \bt is raw) {
+    method SET-SELF(
+      \level, Mu \ctx is raw, Mu \bt is raw
+    ) is implementation-detail {
         nqp::stmts(
           (my int $i = nqp::add_i(level,1)),
           ($!annotations := nqp::atkey(

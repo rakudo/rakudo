@@ -20,7 +20,7 @@ class Perl6::Metamodel::GenericHOW
     # ourself.
     method new_type(:$name) {
         my $meta := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
+        my $obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
         $meta.set_name($obj, $name);
         $obj
     }

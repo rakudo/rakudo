@@ -33,7 +33,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE-NAME', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM-NAME', {
-    PROCESS::<$PROGRAM-NAME> := nqp::getcomp('perl6').user-progname;
+    PROCESS::<$PROGRAM-NAME> := nqp::getcomp('Raku').user-progname;
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM', {
@@ -50,10 +50,14 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
     my $repo := PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
-    my $world := $*W;
-    $world.suspend_recording_precompilation_dependencies if $world;
-    CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
-    $world.resume_recording_precompilation_dependencies if $world;
+    if $*W -> $world {
+        $world.suspend_recording_precompilation_dependencies;
+        CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
+        $world.resume_recording_precompilation_dependencies;
+    }
+    else {
+        CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
+    }
     PROCESS::<$REPO>
 }
 

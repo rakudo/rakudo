@@ -1,6 +1,6 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
     has $!lock = Lock.new;
-    has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
+    has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('Raku', '$COMPILER_CONFIG'), 'version'));
     has %!loaded; # cache compunit lookup for self.need(...)
     has %!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
@@ -261,7 +261,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
 
-            my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
+            my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
             for %provides.sort {
                 my $id = CompUnit::PrecompilationId.new-without-check($_.value.values[0]<file>);
                 $precomp.store.delete($compiler-id, $id);
@@ -639,7 +639,7 @@ The distribution $name does not seem to have a \"provides\" section in its META6
 and so the packages will not be installed in the correct location.
 Please ask the author to add a \"provides\" section, mapping every exposed namespace to a
 file location in the distribution.
-See http://design.perl6.org/S22.html#provides for more information.\n";
+See http://design.raku.org/S22.html#provides for more information.\n";
     }
 }
 

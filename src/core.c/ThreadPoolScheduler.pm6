@@ -250,7 +250,7 @@ my class ThreadPoolScheduler does Scheduler {
                     CONTROL {
                         default {
                             my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
-                            nqp::getcomp('perl6').handle-control($vm-ex);
+                            nqp::getcomp('Raku').handle-control($vm-ex);
                         }
                     }
                     CATCH {
@@ -433,7 +433,10 @@ my class ThreadPoolScheduler does Scheduler {
                 (my $cand := nqp::atpos($cur-affinity-workers,$i)),
                 nqp::unless(
                   nqp::elems(my $queue := $cand.queue),
-                  (return $queue)
+                  nqp::unless(
+                    $cand.working,
+                    (return $queue),
+                  ),
                 ),
                 nqp::if(
                   nqp::islt_i(
@@ -457,11 +460,11 @@ my class ThreadPoolScheduler does Scheduler {
                   nqp::elems($cur-affinity-workers),
                   $affinity-max-index
                 ),
-                $affinity-max-threshold,
                 nqp::atpos_i(
                   $affinity-add-thresholds,
                   nqp::elems($cur-affinity-workers)
-                )
+                ),
+                $affinity-max-threshold,
               )
             ),
             # found one that is empty enough
@@ -589,7 +592,7 @@ my class ThreadPoolScheduler does Scheduler {
 
                 my @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
-                my int $cpu-cores = nqp::cpucores();
+                my int $cpu-cores = max(nqp::cpucores() - 1,1);
 
                 # These definitions used to live inside the supervisor loop.
                 # Moving them out of the loop does not improve CPU usage

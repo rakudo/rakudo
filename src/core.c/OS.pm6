@@ -1,4 +1,4 @@
-proto sub gethostname(*%) {*}
+proto sub gethostname(*%) is implementation-detail {*}
 multi sub gethostname(--> Str:D){
     Rakudo::Deprecations.DEPRECATED('$*KERNEL.hostname()');
     $*KERNEL.hostname()

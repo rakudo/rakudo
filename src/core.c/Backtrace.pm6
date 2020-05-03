@@ -78,7 +78,7 @@ my class Backtrace {
     has Int $!bt-next;   # next bt index to vivify
 
     my $RAKUDO_VERBOSE_STACKFRAME := nqp::null;
-    method RAKUDO_VERBOSE_STACKFRAME() {
+    method RAKUDO_VERBOSE_STACKFRAME() is implementation-detail {
         nqp::ifnull(
           $RAKUDO_VERBOSE_STACKFRAME,
           $RAKUDO_VERBOSE_STACKFRAME :=

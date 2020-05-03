@@ -46,7 +46,7 @@ do {
         my $read = $Readline.new;
         if ! $*DISTRO.is-win {
             $read.read-init-file("/etc/inputrc");
-            $read.read-init-file("~/.inputrc");
+            $read.read-init-file(%*ENV<INPUTRC> // "~/.inputrc");
         }
         method init-line-editor {
             $read.read-history($.history-file);
@@ -108,10 +108,7 @@ do {
     }
 
     my role Completions {
-        # RT #129092: jvm can't do CORE::.keys
-        has @!completions = $*VM.name eq 'jvm'
-            ?? ()
-            !! CORE::.keys.flatmap({
+        has @!completions = CORE::.keys.flatmap({
                     /^ "&"? $<word>=[\w* <.lower> \w*] $/ ?? ~$<word> !! []
                 }).sort;
 
@@ -260,6 +257,10 @@ do {
         method init(Mu \compiler, $multi-line-enabled --> Nil) {
             $!compiler := compiler;
             $!multi-line-enabled = $multi-line-enabled;
+            PROCESS::<$SCHEDULER>.uncaught_handler =  -> $exception {
+                note "Uncaught exception on thread $*THREAD.id():\n" ~
+                    $exception.gist.indent(4);
+            }
         }
 
         method teardown {
@@ -410,9 +411,19 @@ do {
 
         method history-file(--> Str:D) {
             without $!history-file {
-                $!history-file = $*ENV<RAKUDO_HIST>
-                  ?? $*ENV<RAKUDO_HIST>.IO
-                  !! ($*HOME || $*TMPDIR).add('.perl6/rakudo-history');
+                if %*ENV<RAKUDO_HIST> -> $history-file {
+                    $!history-file = $history-file.IO;
+                }
+                else {
+                    my $dir := $*HOME || $*TMPDIR;
+                    my $old := $dir.add('.perl6/rakudo-history');
+                    my $new := $dir.add('.raku/rakudo-history');
+                    if $old.e && !$new.e {  # migrate old hist to new location
+                        $new.spurt($old.slurp);
+                        $old.unlink;
+                    }
+                    $!history-file = $new;
+                }
 
                 without mkdir $!history-file.parent {
                     note "I ran into a problem trying to set up history: {.exception.message}";

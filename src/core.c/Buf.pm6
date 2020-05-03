@@ -277,15 +277,21 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method Capture(Blob:D:) { self.List.Capture }
 
     multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
-    multi method elems(Blob:U: --> 1)   { }
+
     method Numeric(Blob:D:) { nqp::p6box_i(nqp::elems(self)) }
     method Int(Blob:D:)     { nqp::p6box_i(nqp::elems(self)) }
 
     method bytes(Blob:D:) { nqp::mul_i(nqp::elems(self),$bpe) }
 
-    method chars(Blob:D:)       { X::Buf::AsStr.new(method => 'chars').throw }
-    multi method Str(Blob:D:)   { X::Buf::AsStr.new(method => 'Str'  ).throw }
-    multi method Stringy(Blob:D:) { X::Buf::AsStr.new(method => 'Stringy' ).throw }
+    method chars(Blob:D:) {
+        X::Buf::AsStr.new(object => self, method => 'chars').throw
+    }
+    multi method Str(Blob:D:) {
+        X::Buf::AsStr.new(object => self, method => 'Str'  ).throw
+    }
+    multi method Stringy(Blob:D:) {
+        X::Buf::AsStr.new(object => self, method => 'Stringy' ).throw
+    }
 
     proto method decode(|) {*}
     multi method decode(Blob:D: $encoding = self.encoding // "utf-8") {
@@ -318,16 +324,22 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?endif
 
-    my class BlobAsList does Rakudo::Iterator::Blobby {
-        method pull-one() is raw {
-            nqp::if(
-              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-              nqp::atpos_i($!blob,$!i),
-              IterationEnd
-            )
-        }
+    multi method list(Blob:D:) {
+        my int $elems = nqp::elems(self);
+
+        # presize memory, but keep it empty, so we can just push
+        my $buffer := nqp::setelems(
+          nqp::setelems(nqp::create(IterationBuffer),$elems),
+          0
+        );
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::push($buffer,nqp::atpos_i(self,$i))
+        );
+        $buffer.List
     }
-    multi method list(Blob:D:) { Seq.new(BlobAsList.new(self)).cache }
 
     multi method gist(Blob:D:) {
         my int $todo = nqp::elems(self) min 100;
@@ -345,7 +357,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::push_s($bytes,"...") if nqp::elems(self) > $todo;
         self.^name ~ ':0x<' ~ nqp::join(" ",$bytes) ~ '>'
     }
-    multi method perl(Blob:D:) {
+    multi method raku(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';
     }
 
@@ -463,7 +475,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         $reversed
     }
 
-    method COMPARE(Blob:D: Blob:D \other) {
+    method COMPARE(Blob:D: Blob:D \other) is implementation-detail {
         nqp::unless(
           nqp::cmp_i(
             (my int $elems = nqp::elems(self)),
@@ -486,7 +498,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
 
-    method SAME(Blob:D: Blob:D \other) {
+    method SAME(Blob:D: Blob:D \other) is implementation-detail {
         nqp::if(
           nqp::iseq_i(
             (my int $elems = nqp::elems(self)),
@@ -913,15 +925,20 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method list(Buf:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Blobby {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-                  nqp::atposref_i($!blob,$!i),
-                  IterationEnd
-                )
-            }
-        }.new(self)).cache
+        my int $elems = nqp::elems(self);
+
+        # presize memory, but keep it empty, so we can just push
+        my $buffer := nqp::setelems(
+          nqp::setelems(nqp::create(IterationBuffer),$elems),
+          0
+        );
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::push($buffer,nqp::atposref_i(self,$i))
+        );
+        $buffer.List
     }
 
     proto method pop(|) { * }
@@ -1050,6 +1067,10 @@ constant buf8  = Buf[uint8];
 constant buf16 = Buf[uint16];
 constant buf32 = Buf[uint32];
 constant buf64 = Buf[uint64];
+
+multi sub prefix:<~>(Blob:D \a) {
+    X::Buf::AsStr.new(object => a, method => '~' ).throw
+}
 
 multi sub infix:<~>(Blob:D \a) { a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {

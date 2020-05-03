@@ -45,7 +45,7 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
-    proto method STORE_AT_KEY(|) {*}
+    proto method STORE_AT_KEY(|) is implementation-detail {*}
     multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
@@ -162,35 +162,27 @@ my class Hash { # declared in BOOTSTRAP
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }
     multi method DELETE-KEY(Hash:D: Str:D \key) {
-        my \storage := nqp::getattr(self, Map, '$!storage');
         nqp::if(
-          nqp::existskey(storage, nqp::unbox_s(key)),
+          nqp::isnull(my \value := nqp::atkey(
+            nqp::getattr(self,Map,'$!storage'),
+            key
+          )),
+          nqp::p6scalarfromcertaindesc($!descriptor),
           nqp::stmts(
-            (my \value := nqp::atkey(storage,nqp::unbox_s(key))),
-            nqp::deletekey(storage,nqp::unbox_s(key)),
+            nqp::deletekey(
+              nqp::getattr(self,Map,'$!storage'),
+              key
+            ),
             value
-          ),
-          nqp::p6scalarfromcertaindesc($!descriptor)
+          )
         )
     }
-    multi method DELETE-KEY(Hash:D: \key) {
-        my \storage := nqp::getattr(self, Map, '$!storage');
-        my str $key = nqp::unbox_s(key.Str);
-        nqp::if(
-          nqp::existskey(storage,$key),
-          nqp::stmts(
-            (my \value = nqp::atkey(storage,$key)),
-            nqp::deletekey(storage,$key),
-            value
-          ),
-          nqp::p6scalarfromcertaindesc($!descriptor)
-        )
-    }
+    multi method DELETE-KEY(Hash:D: \key) { self.DELETE-KEY(key.Str) }
 
-    multi method perl(Hash:D \SELF:) {
-        SELF.perlseen(self.^name, {
+    multi method raku(Hash:D \SELF:) {
+        SELF.rakuseen(self.^name, {
             '$' x nqp::iscont(SELF)  # self is always deconted
-            ~ '{' ~ self.sort.map({.perl}).join(', ') ~ '}'
+            ~ '{' ~ self.sort.map({.raku}).join(', ') ~ '}'
         })
     }
 
@@ -203,7 +195,9 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
 
-    multi method DUMP(Hash:D: :$indent-step = 4, :%ctx) {
+    multi method DUMP(
+      Hash:D: :$indent-step = 4, :%ctx
+    ) is implementation-detail {
         nqp::if(
           %ctx,
           self.DUMP-OBJECT-ATTRS(
@@ -459,14 +453,14 @@ my class Hash { # declared in BOOTSTRAP
               value
             )
         }
-        multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Hash', {
+        multi method raku(::?CLASS:D \SELF:) {
+            SELF.rakuseen('Hash', {
                 '$' x nqp::iscont(SELF)  # self is always deconted
                 ~ (self.elems
-                   ?? "(my {TValue.perl} % = {
-                        self.sort.map({.perl}).join(', ')
+                   ?? "(my {TValue.raku} % = {
+                        self.sort.map({.raku}).join(', ')
                        })"
-                   !! "(my {TValue.perl} %)"
+                   !! "(my {TValue.raku} %)"
                   )
             })
         }
@@ -541,17 +535,16 @@ my class Hash { # declared in BOOTSTRAP
         }
 
         method DELETE-KEY(TKey \key) {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            my str $which = key.WHICH;
             nqp::if(
-              nqp::existskey(storage,$which),
+              nqp::isnull(my \value := nqp::atkey(
+                nqp::getattr(self,Map,'$!storage'),
+                (my str $WHICH = key.WHICH)
+              )),
+              TValue,
               nqp::stmts(
-                (my \value =
-                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value')),
-                nqp::deletekey(storage,$which),
-                value
-              ),
-              TValue
+                nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$WHICH),
+                nqp::getattr(value,Pair,'$!value')
+              )
             )
         }
 
@@ -732,19 +725,19 @@ my class Hash { # declared in BOOTSTRAP
             ))
         }
 
-        multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Hash', {
-                my $TKey-perl   := TKey.perl;
-                my $TValue-perl := TValue.perl;
+        multi method raku(::?CLASS:D \SELF:) {
+            SELF.rakuseen('Hash', {
+                my $TKey-perl   := TKey.raku;
+                my $TValue-perl := TValue.raku;
                 $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
                   ?? ( '$(' x nqp::iscont(SELF)
-                        ~ ':{' ~ SELF.sort.map({.perl}).join(', ') ~ '}'
+                        ~ ':{' ~ SELF.sort.map({.raku}).join(', ') ~ '}'
                         ~ ')' x nqp::iscont(SELF)
                      )
                   !! '$' x nqp::iscont(SELF)
                      ~ (self.elems
                           ?? "(my $TValue-perl %\{$TKey-perl\} = {
-                                self.sort.map({.perl}).join(', ')
+                                self.sort.map({.raku}).join(', ')
                              })"
                           !! "(my $TValue-perl %\{$TKey-perl\})"
                      )
@@ -772,7 +765,7 @@ my class Hash { # declared in BOOTSTRAP
 
     method ^parameterize(Mu:U \hash, Mu \t, |c) {
         if nqp::isconcrete(t) {
-            "Can not parameterize {hash.^name} with {t.perl}"
+            "Can not parameterize {hash.^name} with {t.raku}"
         }
         elsif c.elems == 0 {
             my $what := hash.^mixin(TypedHash[t]);

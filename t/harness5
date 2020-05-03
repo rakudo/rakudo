@@ -41,7 +41,7 @@ GetOptions(
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
-$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
+$ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
 $ENV{'PERL6LIB'} = "./lib"; 
 
 my @slow;
@@ -49,8 +49,11 @@ if ($list_file) {
     $list_file = convert_to_versioned_file($list_file);
 
     my $perl5 = not system $ENV{HARNESS_PERL} . ' -e "exit !try { require Inline::Perl5; 1 }"';
-    print "Inline::Perl5 not installed: not running Perl 5 integration tests\n"
-      if !$perl5;
+    if (!$perl5) {
+        print "Inline::Perl5 not installed: not running Perl 5 integration tests\n";
+        print "You can install Inline::Perl5 into the build directory with\n\n";
+        print "    zef --install-to=inst#$FindBin::Bin/../gen/build_rakudo_home/site install Inline::Perl5\n\n";
+    }
 
     open(my $f, '<', $list_file)
         or die "Can't open file '$list_file' for reading: $!";
@@ -138,7 +141,7 @@ if ($jvm) {
 
     no warnings 'once';
     # leak the filehandle; it will be closed at exit, robustly telling the server to terminate
-    open JVMSERVER, "| .${slash}perl6-eval-server -bind-stdin -cookie TESTTOKEN -app .${slash}perl6.jar" or die "cannot fork eval server: $!\n";
+    open JVMSERVER, "| .${slash}rakudo-eval-server -bind-stdin -cookie TESTTOKEN -app .${slash}rakudo.jar" or die "cannot fork eval server: $!\n";
     sleep 1;
 }
 

@@ -1,6 +1,5 @@
 #define MVM_SHARED 1
 #include "moar.h"
-#include "container.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -21,22 +20,15 @@
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(cur_op + idx))]
 #define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 
-/* Dummy zero and one-arg callsite. */
-static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0, 0 };
-static MVMCallsiteEntry one_arg_flags[] = { MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     one_arg_callsite = { one_arg_flags, 1, 1, 1, 0 };
+/* Dummy zero and one-str callsite. */
+static MVMCallsite      no_arg_callsite = { NULL, 0, 0, 0, 0, 0, NULL, NULL };
 static MVMCallsiteEntry one_str_flags[] = { MVM_CALLSITE_ARG_STR };
-static MVMCallsite     one_str_callsite = { one_str_flags, 1, 1, 1, 0 };
-
-/* Assignment type check failed callsite. */
-static MVMCallsiteEntry atcf_flags[] = { MVM_CALLSITE_ARG_STR, MVM_CALLSITE_ARG_OBJ, 
-                                         MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     atcf_callsite = { atcf_flags, 3, 3, 3, 0 };
+static MVMCallsite     one_str_callsite = { one_str_flags, 1, 1, 1, 0, 0, NULL, NULL };
 
 /* Dispatcher vivify_for callsite. */
 static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, 
                                          MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ };
-static MVMCallsite     disp_callsite = { disp_flags, 4, 4, 4, 0 };
+static MVMCallsite     disp_callsite = { disp_flags, 4, 4, 4, 0, 0, NULL, NULL };
 
 /* Are we initialized yet? */
 static int initialized = 0;
@@ -54,10 +46,9 @@ static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
     return MVM_is_null(tc, ex_hash) ? ex_hash : MVM_repr_at_key_o(tc, ex_hash, type);
 }
 
-/* Initializes the Perl 6 extension ops. */
+/* Initializes the Raku extension ops. */
 static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
     if (!initialized) {
-        Rakudo_containers_setup(tc);
         initialized = 1;
 
         /* Strings. */
@@ -65,8 +56,8 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
         str_vivify_for = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "vivify_for");
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_vivify_for, "vivify_for");
-        str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "perl6");
-        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_perl6, "perl6");
+        str_perl6 = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "Raku");
+        MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_perl6, "Raku");
         str_p6ex = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "P6EX");
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
         str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
@@ -74,7 +65,7 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
     }
 }
 
-/* Boxing to Perl 6 types. */
+/* Boxing to Raku types. */
 static void discover_create(MVMThreadContext *tc, MVMSpeshGraph *g, MVMSpeshIns *ins, MVMObject *type) {
     MVMSpeshFacts *tfacts = MVM_spesh_get_facts(tc, g, ins->operands[0]);
     tfacts->flags |= MVM_SPESH_FACT_CONCRETE | MVM_SPESH_FACT_KNOWN_TYPE;
@@ -361,36 +352,6 @@ static void p6argsfordispatcher(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVM_exception_throw_adhoc(tc, "Could not find arguments for dispatcher");
 }
 
-static MVMuint8 s_p6decodelocaltime[] = {
-    MVM_operand_obj   | MVM_operand_write_reg,
-    MVM_operand_int64 | MVM_operand_read_reg
-};
-static void p6decodelocaltime(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *result = MVM_repr_alloc_init(tc, tc->instance->boot_types.BOOTIntArray);
-    const time_t t = (time_t)GET_REG(tc, 2).i64;
-    struct tm tm;
-#ifdef _WIN32
-    tm = *localtime(&t);
-#else
-    localtime_r(&t, &tm);
-#endif
-
-    MVMROOT(tc, result, {
-        REPR(result)->pos_funcs.set_elems(tc, STABLE(result), result, OBJECT_BODY(result), 9);
-        MVM_repr_bind_pos_i(tc, result, 0, (&tm)->tm_sec);
-        MVM_repr_bind_pos_i(tc, result, 1, (&tm)->tm_min);
-        MVM_repr_bind_pos_i(tc, result, 2, (&tm)->tm_hour);
-        MVM_repr_bind_pos_i(tc, result, 3, (&tm)->tm_mday);
-        MVM_repr_bind_pos_i(tc, result, 4, (&tm)->tm_mon + 1);
-        MVM_repr_bind_pos_i(tc, result, 5, (&tm)->tm_year + 1900);
-        MVM_repr_bind_pos_i(tc, result, 6, (&tm)->tm_wday);
-        MVM_repr_bind_pos_i(tc, result, 7, (&tm)->tm_yday);
-        MVM_repr_bind_pos_i(tc, result, 8, (&tm)->tm_isdst);
-    });
-
-    GET_REG(tc, 0).o = result;
-}
-
 static MVMuint8 s_p6staticouter[] = {
     MVM_operand_obj | MVM_operand_write_reg,
     MVM_operand_obj | MVM_operand_read_reg
@@ -454,7 +415,6 @@ MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6inpre", p6inpre, 1, s_p6inpre, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6finddispatcher", p6finddispatcher, 2, s_p6finddispatcher, NULL, NULL, MVM_EXTOP_NO_JIT);
     MVM_ext_register_extop(tc, "p6argsfordispatcher", p6argsfordispatcher, 2, s_p6argsfordispatcher, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6decodelocaltime", p6decodelocaltime, 2, s_p6decodelocaltime, NULL, NULL, MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6staticouter", p6staticouter, 2, s_p6staticouter, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6invokeunder", p6invokeunder, 3, s_p6invokeunder, NULL, NULL, MVM_EXTOP_NO_JIT);
 }

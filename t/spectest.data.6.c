@@ -1035,6 +1035,7 @@ S32-str/trim.t
 S32-str/uc.t
 S32-str/unpack.t
 S32-str/utf8-c8.t       # moar
+S32-str/val.t
 S32-str/words.t
 S32-temporal/calendar.t
 S32-temporal/Date.t

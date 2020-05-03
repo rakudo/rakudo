@@ -15,7 +15,7 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method implementation()   { self.config<implementation> }
-    method language_name()    { 'Perl' }
+    method language_name()    { 'Raku' }
     method reset_language_version() {
         $!language_version := NQPMu;
         $!language_modifier := NQPMu;
@@ -55,7 +55,7 @@ class Perl6::Compiler is HLL::Compiler {
 
         my $argiter := nqp::iterator(@args);
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
-        nqp::bindhllsym('perl6', '$!ARGITER', $argiter);
+        nqp::bindhllsym('Raku', '$!ARGITER', $argiter);
         my $super := nqp::findmethod(HLL::Compiler, 'command_eval');
         my %*COMPILING;
         %*COMPILING<%?OPTIONS> := %options;
@@ -99,12 +99,12 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method usage($name?, :$use-stderr = False) {
-	my $print-func := $use-stderr ?? &note !! &say; # RT #130760
-    my $compiler := nqp::getcomp("perl6").backend.name;
+	my $print-func := $use-stderr ?? &note !! &say;
+    my $compiler := nqp::getcomp("Raku").backend.name;
     my $moar-options := '';
-    if nqp::getcomp("perl6").backend.name eq 'moar' {
+    if nqp::getcomp("Raku").backend.name eq 'moar' {
         $moar-options := q♥  --profile[=name]     write profile information to a file
-                         Extension controls format:
+                       Extension controls format:
                            .json outputs in JSON
                            .sql  outputs in SQL
                            any other extension outputs in HTML
@@ -173,17 +173,18 @@ Note that only boolean single-letter options may be bundled.
 
 The following environment variables are respected:
 
-  PERL6LIB    Modify the module search path
-  PERL6_HOME  Override the path of the Perl6 runtime files
+  RAKULIB     Modify the module search path
+  PERL6LIB    Modify the module search path # to be deprecated
+  RAKUDO_HOME Override the path of the Rakudo runtime files
   NQP_HOME    Override the path of the NQP runtime files
 
 ♥); # end of usage statement
 
         nqp::exit(0);
 
-        # TODO: create and install a man page for Perl 6; then add the following
+        # TODO: create and install a man page for Raku; then add the following
         #       line to the end of the usage text above:
         #
-        #  For more information, see the perl6(1) man page.\n");
+        #  For more information, see the raku(1) man page.\n");
     }
 }

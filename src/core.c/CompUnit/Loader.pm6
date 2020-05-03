@@ -9,19 +9,19 @@ class CompUnit::Loader is repr('Uninstantiable') {
 
     # Decode the specified byte buffer as source code, and compile it
     method load-source(Blob:D $bytes --> CompUnit::Handle:D) {
-        my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
+        my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), Mu);
 
         my $handle   := CompUnit::Handle.new;
         my $*CTXSAVE := $handle;
-        my $eval     := nqp::getcomp('perl6').compile($bytes.decode);
+        my $eval     := nqp::getcomp('Raku').compile($bytes.decode);
 
         $eval();
 
-        nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+        nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
 
         CATCH {
             default {
-                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
                 .throw;
             }
         }

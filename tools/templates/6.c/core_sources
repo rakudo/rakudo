@@ -11,7 +11,7 @@ src/core.c/Stringy.pm6
 src/core.c/Any.pm6
 src/core.c/Attribute.pm6
 src/core.c/Iterator.pm6
-src/core.c/SlippyIterator.pm6
+src/core.c/Rakudo/SlippyIterator.pm6
 src/core.c/Rakudo/Internals.pm6
 src/core.c/Rakudo/Iterator.pm6
 src/core.c/Rakudo/QuantHash.pm6
@@ -150,6 +150,7 @@ src/core.c/set_precedes.pm6
 src/core.c/ObjAt.pm6
 src/core.c/Version.pm6
 src/core.c/ForeignCode.pm6
+src/core.c/Rakudo/SEQUENCE.pm6
 src/core.c/operators.pm6
 src/core.c/Hyper.pm6
 src/core.c/metaops.pm6
@@ -173,6 +174,10 @@ src/core.c/CurrentThreadScheduler.pm6
 src/core.c/Promise.pm6
 src/core.c/Channel.pm6
 src/core.c/Supply.pm6
+src/core.c/Supply-factories.pm6
+src/core.c/Supply-coercers.pm6
+src/core.c/Supplier.pm6
+src/core.c/Rakudo/Supply.pm6
 src/core.c/asyncops.pm6
 src/core.c/IO/Socket.pm6
 src/core.c/IO/Socket/INET.pm6
@@ -187,7 +192,7 @@ src/core.c/VM.pm6
 src/core.c/Distro.pm6
 src/core.c/Kernel.pm6
 src/core.c/Compiler.pm6
-src/core.c/Perl.pm6
+src/core.c/Raku.pm6
 src/core.c/OS.pm6
 src/core.c/Rakudo/Internals/JSON.pm6
 src/core.c/JSON/Pretty.pm6
@@ -211,6 +216,7 @@ src/core.c/CompUnit/Repository/AbsolutePath.pm6
 src/core.c/CompUnit/Repository/NQP.pm6
 src/core.c/CompUnit/Repository/Perl5.pm6
 src/core.c/CompUnit/Repository/Unknown.pm6
+src/core.c/WalkList.pm6
 @if(backend==jvm
 src/vm/jvm/CompUnit/Repository/Java.pm6
 src/vm/jvm/CompUnit/Repository/JavaRuntime.pm6)@

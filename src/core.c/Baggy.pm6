@@ -312,7 +312,7 @@ my role Baggy does QuantHash {
         nqp::concat(
           nqp::concat(
             nqp::concat(self.^name,'('),
-            nqp::join(', ',
+            nqp::join(' ',
               Rakudo::Sorting.MERGESORT-str(
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, {
                     nqp::if(
@@ -327,7 +327,7 @@ my role Baggy does QuantHash {
           ')',
         )
     }
-    multi method perl(Baggy:D: --> Str:D) {
+    multi method raku(Baggy:D: --> Str:D) {
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::stmts(
@@ -335,10 +335,10 @@ my role Baggy does QuantHash {
               Rakudo::QuantHash.RAW-VALUES-MAP(self, {
                   nqp::concat(
                     nqp::concat(
-                      nqp::getattr($_,Pair,'$!key').perl,
+                      nqp::getattr($_,Pair,'$!key').raku,
                       '=>'
                     ),
-                    nqp::getattr($_,Pair,'$!value').perl
+                    nqp::getattr($_,Pair,'$!value').raku
                   )
               })
             )),
@@ -733,7 +733,7 @@ my role Baggy does QuantHash {
     multi method Mix(Baggy:D:)     { MIXIFY($!elems, Mix)     }
     multi method MixHash(Baggy:D:) { MIXIFY($!elems, MixHash) }
 
-    method RAW-HASH() is raw { $!elems }
+    method RAW-HASH() is raw is implementation-detail { $!elems }
 }
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {

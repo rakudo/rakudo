@@ -1,13 +1,15 @@
 my role Dateish {
-    has Int $.year;
-    has Int $.month;
-    has Int $.day;
-    has Int $.daycount;
+    has int $.year;
+    has int $.month;
+    has int $.day;
+    has int $.daycount;
     has     &.formatter;
 
     method IO(Dateish:D: --> IO::Path:D) {  # because Dateish is not Cool
         IO::Path.new(~self)
     }
+
+    method CALL-ME(Dateish:U: Str:D $dateish) { self.new($dateish) }
 
     # this sub is also used by DAYS-IN-MONTH, which is used by other types
     sub IS-LEAP-YEAR(int $y --> Bool:D) {
@@ -34,6 +36,16 @@ my role Dateish {
     # noop for subclasses
     method !SET-DAYCOUNT() { self }
 
+    # shortcut for out of range throwing
+    method !oor($what, $got, $range) {
+        X::OutOfRange.new(:$what, :$got, :$range).throw
+    }
+
+    # shortcut for invalid format throwing
+    method !tif($invalid-str, $target, $format) {
+        X::Temporal::InvalidFormat.new(:$invalid-str,:$target,:$format).throw
+    }
+
     multi method new(Dateish:) {
         Failure.new(
             "Cannot call {self.^name}.new with "
@@ -47,25 +59,24 @@ my role Dateish {
     multi method gist(Dateish:D: --> Str:D) { self.Str }
 
     method daycount(--> Int:D) {
-        nqp::if(
-          nqp::isconcrete($!daycount),
-          $!daycount,
-          $!daycount := self!calculate-daycount
-        )
+        $!daycount
+          ?? $!daycount
+          !! ($!daycount = self!calculate-daycount)
     }
-    method !calculate-daycount(--> Int:D) {
+    method !calculate-daycount() {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
         my int $d = $!day;
         my int $m = $!month < 3 ?? $!month + 12 !! $!month;
         my int $y = $!year - ($!month < 3);
+
         -678973 + $d + (153 * $m - 2) div 5
           + 365 * $y + $y div 4
           - $y div 100  + $y div 400
     }
 
-    method !ymd-from-daycount($daycount,\year,\month,\day --> Nil) {
+    method !ymd-from-daycount(int $daycount, \year, \month, \day --> Nil) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        my Int $dc = $daycount.Int + 678881;
+        my Int $dc = $daycount + 678881;
         my Int $ti = (4 * ($dc + 36525)) div 146097 - 1;
         my Int $year = 100 * $ti;
         my int $day = $dc - (36524 * $ti + ($ti div 4));
@@ -121,8 +132,49 @@ my role Dateish {
           + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 
-    method yyyy-mm-dd(--> Str:D) {
-        sprintf '%04d-%02d-%02d',$!year,$!month,$!day
+    method yyyy-mm-dd(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::join($sep,$parts)
+    }
+
+    method dd-mm-yyyy(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::join($sep,$parts)
+    }
+
+    method mm-dd-yyyy(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::join($sep,$parts)
     }
 
     method earlier(*%unit) { self.later(:earlier, |%unit) }

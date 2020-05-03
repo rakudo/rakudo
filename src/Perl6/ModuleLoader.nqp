@@ -44,7 +44,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
         DEBUG("going to load $module_name") if $DEBUG;
         if nqp::eqat($module_name, 'Perl6::BOOTSTRAP::v6', 0) {
-            my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), NQPMu);
+            my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), NQPMu);
             my %*COMPILING := {};
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
@@ -64,7 +64,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
             nqp::loadbytecode($file);
             %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
-            nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+            nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
             my $UNIT := nqp::ctxlexpad($module_ctx);
             if +@GLOBALish {
                 unless nqp::isnull($UNIT<GLOBALish>) {
@@ -213,14 +213,18 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
 
+    my %previous_setting_name := nqp::hash(
+      'NULL.c',  'NULL.c',    # identity
+      'CORE.c',  'CORE.c',
+      'NULL.d',  'CORE.c',
+      'CORE.d',  'CORE.d',
+      'NULL.e',  'CORE.d',
+      'CORE.e',  'CORE.e'
+    );
+
     # Transforms NULL.<release> into CORE.<previous-release>
     method previous_setting_name ($setting_name, :$base = 'CORE') {
-        my $m := $setting_name ~~ /$base '.' ( <[d..z]> )/;
-        if $m {
-            my $rev := ~nqp::atpos($m, 0);
-            $setting_name := 'CORE' ~ '.' ~ nqp::chr(nqp::ord($rev) - 1);
-        }
-        $setting_name
+        %previous_setting_name{$setting_name} // nqp::die("Don't know setting $setting_name")
     }
 
     method transform_setting_name ($setting_name) {
@@ -252,12 +256,12 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 # Load it.
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), NQPMu);
+                my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), NQPMu);
                 nqp::scwbdisable();
                 DEBUG("Loading bytecode from $path") if $DEBUG;
                 nqp::loadbytecode($path);
                 nqp::scwbenable();
-                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
                 unless nqp::defined($*MAIN_CTX) {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
@@ -301,4 +305,4 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
 # We stash this in the perl6 HLL namespace, just so it's easy to
 # locate. Note this makes it invisible inside Perl 6 itself.
-nqp::bindhllsym('perl6', 'ModuleLoader', Perl6::ModuleLoader);
+nqp::bindhllsym('Raku', 'ModuleLoader', Perl6::ModuleLoader);

@@ -382,7 +382,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method FLATTENABLE_LIST() {
+    method FLATTENABLE_LIST() is implementation-detail {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
           nqp::stmts(
@@ -418,6 +418,14 @@ my class Array { # declared in BOOTSTRAP
 
     multi method flat(Array:U:) { self }
     multi method flat(Array:D:) { Seq.new(self.iterator) }
+
+    method reverse(Array:D: --> Seq:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
+          !! Seq.new: nqp::getattr(self,List,'$!reified')
+            ?? Rakudo::Iterator.ReifiedReverse(self, $!descriptor)
+            !! Rakudo::Iterator.Empty
+    }
 
     multi method List(Array:D: :$view --> List:D) {
         nqp::if(
@@ -839,20 +847,28 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method pop(Array:D:) is raw is nodal {
+    # helper subs to reduce size of pop / shift
+    method !lazy($action) is hidden-from-backtrace {
+        Failure.new(X::Cannot::Lazy.new(:$action))
+    }
+    method !empty($action) is hidden-from-backtrace {
+        Failure.new(X::Cannot::Empty.new(:$action,:what(self.^name)))
+    }
+
+    method pop(Array:D:) is nodal {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'pop from')),
+          self!lazy('pop from'),
           nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
               && nqp::elems(nqp::getattr(self,List,'$!reified')),
             nqp::pop(nqp::getattr(self,List,'$!reified')),
-            Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
+            self!empty('pop')
           )
         )
     }
 
-    method shift(Array:D:) is raw is nodal {
+    method shift(Array:D:) is nodal {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
             && nqp::elems(nqp::getattr(self,List,'$!reified')),
@@ -864,7 +880,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
               && nqp::getattr(self,List,'$!todo').reify-at-least(1),
             nqp::shift(nqp::getattr(self,List,'$!reified')),
-            Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
+            self!empty('shift')
           )
         )
     }
@@ -1335,7 +1351,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method GRAB_ONE(Array:D:) {
+    method GRAB_ONE(Array:D:) is implementation-detail {
         nqp::stmts(
           (my $reified := nqp::getattr(self,List,'$!reified')),
           (my $value := nqp::atpos(
@@ -1360,11 +1376,11 @@ my class Array { # declared in BOOTSTRAP
     method dynamic() {
         nqp::isnull($!descriptor) ?? False !! so $!descriptor.dynamic
     }
-    multi method perl(Array:D \SELF: --> Str:D) {
-        SELF.perlseen('Array', {
+    multi method raku(Array:D \SELF: --> Str:D) {
+        SELF.rakuseen('Array', {
              '$' x nqp::iscont(SELF)  # self is always deconted
              ~ '['
-             ~ self.map({nqp::decont($_).perl}).join(', ')
+             ~ self.map({nqp::decont($_).raku}).join(', ')
              ~ ',' x (self.elems == 1 && nqp::istype(self.AT-POS(0),Iterable))
              ~ ']'
         })

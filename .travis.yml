@@ -25,12 +25,13 @@ script:
     - if [[ $RAKUDO_OPTIONS =~ jvm ]]; then echo "make test is skipped on the jvm backend"; else (cd ~/build/rakudo/rakudo/ && prove -e ~/build/rakudo/rakudo/install/bin/perl6 -vlr t); fi
 
 branches:
-   only:
+  only:
      - master
      - /smoke-me/
 
 notifications:
   irc:
+    if: repo = rakudo/rakudo
     channels:
       - "irc.freenode.net#raku-dev"
     on_success: change

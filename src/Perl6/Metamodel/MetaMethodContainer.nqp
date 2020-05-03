@@ -1,6 +1,7 @@
 role Perl6::Metamodel::MetaMethodContainer {
     # Table of the methods.
     has %!meta_methods;
+    has @!meta_methods;
 
     # Add a meta-method.
     method add_meta_method($obj, $name, $code_obj) {
@@ -9,6 +10,7 @@ role Perl6::Metamodel::MetaMethodContainer {
                 ~ "' already has a meta-method '$name'");
         }
         %!meta_methods{$name} := $code_obj;
+        nqp::push(@!meta_methods, $code_obj);
     }
 
     # Get the meta-methods table: a hash of meta-methods added.
@@ -16,17 +18,24 @@ role Perl6::Metamodel::MetaMethodContainer {
         %!meta_methods
     }
 
+    # Get the meta-methods in order of declaration.
+    method meta_methods($obj) {
+        @!meta_methods
+    }
+
     # Applies the added meta-methods to the current meta-object instance by
     # building a role containing them, and mixing it in.
     method compose_meta_methods($obj) {
         # Build flattened meta-methods set.
         my %meta;
+        my @meta;
         for self.mro($obj) {
             if nqp::can($_.HOW, 'meta_method_table') {
-                for $_.HOW.meta_method_table($obj) -> $meth_info {
-                    my str $name := $meth_info.key;
+                for $_.HOW.meta_methods($obj) -> $method {
+                    my str $name := $method.name;
                     unless nqp::existskey(%meta, $name) {
-                        %meta{$name} := $meth_info.value;
+                        %meta{$name} := $method;
+                        nqp::push(@meta, $name);
                     }
                 }
             }
@@ -36,8 +45,8 @@ role Perl6::Metamodel::MetaMethodContainer {
         # compose it into the meta-object..
         if %meta {
             my $role := $?PACKAGE.HOW.new_type();
-            for %meta {
-                $role.HOW.add_method($role, $_.key, $_.value);
+            for @meta -> $key {
+                $role.HOW.add_method($role, $key, %meta{$key});
             }
             $role.HOW.set_body_block($role, sub ($class) {
                 nqp::list($role, nqp::hash('$?CLASS', $class))

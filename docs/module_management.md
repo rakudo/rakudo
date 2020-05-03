@@ -3,12 +3,12 @@
 ## Overview
 
 This document contains my (jnthn) input to where implementation work for
-Perl 6 module/precomp stuff should head. While much has been converged on by
+Raku module/precomp stuff should head. While much has been converged on by
 existing work, some problems have also been consistently avoided or punted
 on; robust pre-compilation management is one such issue. Everything here is
 subject to course corrections as implementation takes place, but it should
 hopefully set out a good direction to move in. Also, don't expect this to be
-a complete deign. It's as much as I had time to figure out before I vanish
+a complete design. It's as much as I had time to figure out before I vanish
 for a week on honeymoon, and I'm sharing it in its current state so that
 others can carry it forward. Thanks goes to lizmat++ for highly valuable
 input on an earlier private draft.
@@ -18,27 +18,25 @@ input on an earlier private draft.
 To keep discussion precise, here are some definitions of the atoms under
 consideration:
 
-* A **compilation unit**, or **compunit** for short, is a piece of Perl 6 code
+* A **compilation unit**, or **compunit** for short, is a piece of Raku code
   that is analyzed and compiled as a single unit. Typically, this comes from a
-  source file on disk, but what's inside an EVAL also counts as a compilation
-  unit.
+  source file on disk, but what's inside an EVAL also counts as such.
 * **Compilation** is the process by which a compilation unit is parsed and
   analyzed, and turned into a set of objects representing its declarations
   ("meta-objects") and executable code representing its statements. Note that,
-  thanks to the many meta-programming features of Perl 6, compilation will
+  thanks to the many meta-programming features of Raku, compilation will
   involve the execution of code, some of which may come from the compilation
   unit being compiled (as happens with `BEGIN` blocks).
-* A **script** refers to a compilation unit that is provided to Perl 6 as the
+* A **script** refers to a compilation unit that is provided to Raku as the
   entry point for execution. In an invocation like `perl6 foo.p6`, we say that
-  `foo.p6` is first compiled and then executed. In Rakudo Perl 6, in this case,
+  `foo.p6` is first compiled and then executed. In Rakudo Raku, in this case,
   the results of the compilation only exist in memory.
 * A **module** refers to a compilation unit that is used by a script, or by
   another module used from a script. A module must also be compiled before it
   can be made use of. (There is nothing preventing a given source file serving
   as both a script and a module depending on how it is used.)
 * A **distribution** is a set of zero or more scripts and modules that are
-  distributed together, along with some meta-data and potentially with some
-  resources and tests.
+  released together, along with some meta-data and potentially resources and tests.
 
 This "usage" of modules by scripts and other modules is complex, and is the
 focus of much of this document. Some further terminology to enable precise
@@ -79,7 +77,7 @@ precompilation of a compilation unit can only be formed if all of its
 dependencies have already been precompiled (implying that at the point the
 precompilation of a module is completed, all of its transitive dependencies
 must have already been precompiled). Note this does not mean there is any
-need for the dependencies to be precompiled before precompilation of begins.
+need for the dependencies to be precompiled before precompilation of the current compunit begins.
 It is not only reasonable, but also desirable, for dependencies to be
 precompiled "on demand" and recursively as they are discovered. That is,
 you start precompiling at the "top" of a dependency graph and by the time
@@ -98,8 +96,8 @@ the point they were formed.
 
 Furthermore, precompilations are statically linked against the precompilations
 of their transitive dependencies as well as against a particular compilation
-of the Perl 6 compiler and its `CORE.setting`. Therefore, the identify of the
-Perl 6 compiler - obtained through `$*PERL.compiler.id` - should also be
+of the Raku compiler and its `CORE.setting`. Therefore, the identify of the
+Raku compiler - obtained through `$*PERL.compiler.id` - should also be
 considered part of the environment the precompilation was formed in. This will
 also support `rakudobrew` style tools, which enable switching between different
 versions and backends.
@@ -129,14 +127,14 @@ well as managing precompilation of modules.
 Repositories are structured as a linked list - that is, a repository may refer
 to another. A repository can always provide its unique identity, which must
 incorporate the identity of any repository it refers to. In normal startup, the
-`PROCESS::<$REPO>` symbol will be set a default repository that supports the
+`PROCESS::<$REPO>` symbol will be set to a default repository that supports the
 installation of distributions (a `CompUnit::Repository::Installation`). Any
 `-I` includes, or any paths in a `PERL6LIB` environment variable, will cause
 `PROCESS::<$REPO>` to instead point to a chain of repositories that ends with
 the default `CompUnit::Repository::Installation` that is normally there.
 
-A `use lib` installs a lexical `$?REPO` which takes precedence over that in
-`PROCESS`. Note that for Perl 6.christmas, we will only support the use of
+A `use lib` installs a lexical `$*REPO` which takes precedence over that in
+`PROCESS`. Note that for Raku.christmas, we will only support the use of
 `use lib` in scripts, not in modules, as its interaction with precompilation
 is more complex than we have time to reasonably consider (and it's better to
 wait until we've a good answer than to use a hacky one now).
@@ -173,7 +171,7 @@ design:
 
 The module management API can be broken up into:
 
-* **Guts** provided by a Perl 6 implementation (e.g. Rakudo) that do the
+* **Guts** provided by a Raku implementation (e.g. Rakudo) that do the
   various low-level tasks.
 * **Entities** that capture the information associated with concepts such as
   "dependency specification" and "compilation unit".
@@ -184,8 +182,8 @@ The module management API can be broken up into:
 * **Provided implementations** of those interfaces for a number of common use
   cases.
 
-Alternative implementations of the roles to handle use cases beyond what Perl
-6 provides direct support for are both expected and encouraged.
+Alternative implementations of the roles to handle use cases beyond what Raku
+provides direct support for are both expected and encouraged.
 
 ### Guts
 
@@ -195,7 +193,7 @@ The `CompUnit::Loader` is responsible for actually loading a compilation unit
 into memory, either from source or a precompiled representation. It can work
 with both files and in-memory byte buffers in either case. Implementations are
 free to efficiently `mmap` files into memory, allowing a single copy of a
-precompiled module to exist in memory and be shared by many Perl 6 processes.
+precompiled module to exist in memory and be shared by many Raku processes.
 The methods on this are all expected to be called on the `CompUnit::Loader`
 type object.
 
@@ -324,8 +322,8 @@ a way to reach any resources declared within it.
 
 A precompilation store provides storage of pre-compiled things. It is not
 concerned with precompilation validity, just storage. Most of the time, the
-Perl 6 built-in implementation that stores precompiled files on disk will be
-sufficient. However, a tool that wished to bundle a Perl 6 implementation
+Raku built-in implementation that stores precompiled files on disk will be
+sufficient. However, a tool that wished to bundle a Raku implementation
 together with a bunch of precompiled scripts/modules for distribution would
 do an alternative implementation of this role.
 

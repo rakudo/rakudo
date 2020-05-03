@@ -4,31 +4,29 @@ use Test::Helpers;
 
 plan 37;
 
-# RT #132295
+# https://github.com/Raku/old-issue-tracker/issues/6613
 
 is-run ｢:2(1)｣, :err{.contains: ｢use 1.base(2) instead｣}, :exitcode(* !== 0),
     ':2(1) suggests using 1.base(2)';
 
-# RT #132291
-
+# https://github.com/Raku/old-issue-tracker/issues/6609
 throws-like { for [:a] X [:b] -> ($i, $j) { } },
     Exception,
     message => / '<anon>' /,
     "anonymous subs get '<anon>' in arity error messages";
 
-todo 'needs better error message';
 throws-like {
     sub l { IO::Socket::Async.listen: "localhost", 111390 }
     react whenever l() {
         whenever l() {} # try to listen on already open sock
     }
-}, X::AdHoc, message => /'something good'/;
+}, X::TypeCheck::Binding::Parameter, message => /'type check failed'/;
 
-# RT #132283
+# https://github.com/Raku/old-issue-tracker/issues/6602
 is-deeply class { has $.bar }.^methods».name.sort, <BUILDALL bar>,
     'auto-generated methods present in .^methods';
 
-# RT #124434
+# https://github.com/Raku/old-issue-tracker/issues/3799
 is-run ｢Failure.new(Exception.new); Nil｣, :1exitcode,
     :err{ .contains: "Died with Exception" },
     'Failure.new(Exception.new) does not segfault';
@@ -37,7 +35,7 @@ throws-like { (1, 2, 3)[42] = 21 }, X::Assignment::RO,
     :message{ .contains: "List" & none "Str" },
 'Trying to assign to immutable List element gives useful error';
 
-# RT #126184
+# https://github.com/Raku/old-issue-tracker/issues/4591
 if $*DISTRO.is-win {
     skip ｢is-run() routine doesn't quite work right on Windows｣;
 }
@@ -66,18 +64,19 @@ subtest 'using wrong sigil on var suggests correct variable name' => {
         '@foo and %foo for $foo, when both are declared';
 }
 
-# RT #131362
+# https://github.com/Raku/old-issue-tracker/issues/6267
 throws-like ｢my $x; $x = 50; 42 = $x｣, X::Assignment::RO,
     :message{.contains: '42'},
 'RO assignment indicates value of the thing being assigned into';
 
-# RT #130446
+# https://github.com/Raku/old-issue-tracker/issues/5943
 is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
     .contains: 'No values supplied to enum'
              & 'does %h need to be declared constant'
 }, 'declaring enum with uninitialized hash warns about it';
 
-{ # RT #125300
+# https://github.com/Raku/old-issue-tracker/issues/4285
+{
     is-run ｢=end MEOWS｣, :err{ /«Pod»/ && .contains: '=begin MEOWS' },
         :exitcode(*),
         'error with `=end FOO` suggests Pod mistake and offers `=begin FOO`';
@@ -86,7 +85,8 @@ is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
         'error for `=for` suggests it might be a Pod mistake';
 }
 
-{ # RT #125596
+# https://github.com/Raku/old-issue-tracker/issues/4392
+{
     is-run ｢say 1 if;｣, :err{
             1 == .comb: 'Whitespace required'
         and 1 == .comb: ｢keyword 'if'｣
@@ -98,7 +98,7 @@ is-run ｢my %h = <a 1 b 2>; enum Bits (%h)｣, :err{
     }, :1exitcode, '`say 1 unless;` does not repeat error';
 }
 
-# RT #126539
+# https://github.com/Raku/old-issue-tracker/issues/4718
 if $*DISTRO.is-win {
     skip ｢is-run() routine doesn't quite work right on Windows｣;
 }
@@ -112,7 +112,7 @@ else {
         'C3 linearization mentions line number';
 }
 
-#RT #115326
+# https://github.com/Raku/old-issue-tracker/issues/2931
 is-run '(:::[])', :err(/"No such symbol ':<>'"/), :1exitcode,
     'no guts spillage with `(:::[])`';
 
@@ -130,7 +130,7 @@ throws-like {
 }, X::Multi::Ambiguous, :message{ .contains: 'ambigu-arg-tester' & 'IntStr' },
     'an ambiguous call includes the arguments in the error message';
 
-# RT #122907
+# https://github.com/Raku/old-issue-tracker/issues/3542
 throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
     :message('Your printf-style directives specify 1 argument, but no '
       ~ 'argument was supplied'),
@@ -155,14 +155,14 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
             :err{.contains: c}, :out(*), :exitcode(*), desc
     }
 
-    subtest 'named params' => {
+    group-of 3 => 'named params' => {
         uhas ｢UInt :$x!｣,          '<UInt>', 'mentions subset name';
         uhas ｢Int :$x! where 42｣,  '<Int where { ... }>',
             'Type + where clauses shown sanely';
         uhas ｢UInt :$x! where 42｣, '<UInt where { ... }>',
             'subset + where clauses shown sanely';
     }
-    subtest 'anon positional params' => {
+    group-of 3 => 'anon positional params' => {
         uhas ｢UInt $｣,          '<UInt>', 'mentions subset name';
         uhas ｢Int $ where 42｣,  '<Int where { ... }>',
             'where clauses shown sanely';
@@ -174,7 +174,7 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
         'variable name does not get special quote treatment';
 }
 
-# RT #128039
+# https://github.com/Raku/old-issue-tracker/issues/5282
 {
     throws-like { 'foo'.substr(5) }, X::OutOfRange,
         :message(/'Start argument to substr' .+ 'should be in 0..3' .+ '*-5'/);
@@ -182,8 +182,8 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
         :message(/'should be in 0..0' .+ '*-1000'/);
 }
 
+# https://github.com/Raku/old-issue-tracker/issues/4653
 for ThreadPoolScheduler.new, CurrentThreadScheduler -> $*SCHEDULER {
-    # RT #126379
     is-run q[Supply.interval(1).tap(-> { say 'hi' }); sleep 3;],
     :1exitcode, :err(/
         'Unhandled exception in code scheduled on thread' .+
@@ -191,7 +191,7 @@ for ThreadPoolScheduler.new, CurrentThreadScheduler -> $*SCHEDULER {
     /), '.tap block with incorrect signature must fail';
 }
 
-# RT #128050
+# https://github.com/Raku/old-issue-tracker/issues/5290
 is-run ｢133742.print｣, :compiler-args[<--rxtrace>], :out{ .ends-with: 133742 },
     '--rxtrace does not crash';
 
@@ -203,12 +203,12 @@ throws-like ｢
 ｣, X::Multi::NoMatch, :message{ .chars < 200 },
     'X::Multi::NoMatch does not dump entire contents of variables';
 
-# RT #132353
+# https://github.com/Raku/old-issue-tracker/issues/6633
 throws-like ｢Set.new(1..300)<42> = 42｣,
     X::Assignment::RO, :message{ .chars < 100 },
     'X::Assignment::RO does not dump entire contents of variables';
 
-# RT #127051
+# https://github.com/Raku/old-issue-tracker/issues/4949
 subtest 'cannot use Int type object as an operand' => {
     plan 14;
 
@@ -261,7 +261,7 @@ throws-like ｢sub meows;｣, X::UnitScope::Invalid, :message(/
     "placed a semicolon after routine's definition"
 /), 'unit-scoped sub def mentions potential unwanted semicolon';
 
-# Github Issue #1305 (https://github.com/rakudo/rakudo/issues/1305)
+# https://github.com/rakudo/rakudo/issues/1305
 throws-like { my $r = 1..5; $r[42] = 21 }, X::Assignment::RO,
     :message{ .contains: 'Range' & none 'Str', '(Nil)' },
     'Trying to assign to immutable Range element gives useful error';
@@ -272,12 +272,12 @@ throws-like { my $r = 1..5; $r[42] = 21 }, X::Assignment::RO,
 is-run 'EVAL "*+*"', :compiler-args[<--optimize=off>],
     'optimizer flag gets propagated to EVAL';
 
-# RT #126669
+# https://github.com/Raku/old-issue-tracker/issues/4760
 throws-like ｢use 6.0;｣, X::Undeclared::Symbols, :message{
     .contains: 'use "v" prefix for pragma (e.g., "use v6;", "use v6.c;")'
 }, 'suggests to use "use v6;" or "use v6.c;" when "use 6.0" is called';
 
-# RT #132214
+# https://github.com/Raku/old-issue-tracker/issues/6567
 throws-like ｢need 6.0;｣, X::Undeclared::Symbols, :message{
     .contains: 'use "v" prefix and "use" for pragma (e.g., "use v6;", '
                ~ '"use v6.c;")'
@@ -288,7 +288,7 @@ throws-like ｢need v6.0;｣, Exception, :message{
                 ~ '"use v6;", "use v6.c;").'
 }, 'suggests to use "use v6;" or "use v6.c;" when "need v6.0" is called';
 
-# RT #126856
+# https://github.com/Raku/old-issue-tracker/issues/4839
 throws-like ｢^42  .^methods.say｣, X::Syntax::Malformed,
     :message{ .contains: 'only alphabetic methods may be detached' },
     'detached non-alpha method says what the problem is';

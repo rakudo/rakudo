@@ -8,7 +8,7 @@ role Perl6::Metamodel::MROBasedTypeChecking {
     }
 
     method does($obj, $type) {
-        nqp::p6bool(nqp::istype($obj, $type))
+        nqp::hllboolfor(nqp::istype($obj, $type), "Raku")
     }
 
     method type_check($obj, $checkee) {

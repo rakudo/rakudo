@@ -4,6 +4,7 @@ role Perl6::Metamodel::MultipleInheritance {
 
     # Are any of the parents hidden?
     has @!hides;
+    has %!hides_ids;
 
     # Is this class hidden?
     has $!hidden;
@@ -12,6 +13,15 @@ role Perl6::Metamodel::MultipleInheritance {
     my @excluded;
     method exclude_parent($parent) {
         @excluded.push($parent);
+    }
+
+    method !rebuild_hides_ids() {
+        %!hides_ids := nqp::hash();
+        for @!hides {
+            nqp::scwbdisable();
+            %!hides_ids{~nqp::objectid(nqp::decont($_))} := 1;
+            nqp::scwbenable();
+        }
     }
 
     # Adds a parent.
@@ -24,7 +34,7 @@ role Perl6::Metamodel::MultipleInheritance {
         }
         my $parent_how := $parent.HOW;
         if nqp::can($parent_how, 'repr_composed') && !$parent_how.repr_composed($parent) {
-            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            my %ex := nqp::gethllsym('Raku', 'P6EX');
             if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::Inheritance::NotComposed') {
                 %ex{'X::Inheritance::NotComposed'}(self.name($obj), $parent_how.name($parent))
             }
@@ -55,10 +65,10 @@ role Perl6::Metamodel::MultipleInheritance {
                 my @pt := [$_];
                 my @recursive_parents := $_.HOW.parents($_, :tree(1));
                 @pt.push(@recursive_parents) if @recursive_parents;
-                @result.push(nqp::hllizefor(@pt, 'perl6').Array);
+                @result.push(nqp::hllizefor(@pt, 'Raku').Array);
             }
             @result := @result[0] if nqp::elems(@result) == 1;
-            return nqp::hllizefor(@result, 'perl6');
+            return nqp::hllizefor(@result, 'Raku');
         }
         else {
             # All parents is MRO minus the first thing (which is us).
@@ -81,6 +91,11 @@ role Perl6::Metamodel::MultipleInheritance {
 
     method hides($obj) {
         @!hides
+    }
+
+    method hides_parent($obj, $parent) {
+        self.'!rebuild_hides_ids'() if nqp::elems(%!hides_ids) < nqp::elems(@!hides);
+        %!hides_ids{~nqp::objectid(nqp::decont($parent))} || 0;
     }
 
     method hidden($obj) {

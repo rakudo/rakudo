@@ -133,26 +133,6 @@ likely be kind enough to give deprecation cycles.
 
 ## Trying out the "next version"
 
-To try out v6.d before the compiler officialy supports it, you can write:
+To try out v6.e before the compiler officialy supports it, you can write:
 
-    use v6.d.PREVIEW;
-
-## If anyone asks about 6.d and beyond...
-
-About Perl 6.d, expect an incremental update.
-
-* It'll focus heavily on broadening test coverage to tighten up the language
-  definition
-* It will include various small things we wished we could have done in 6.c,
-  but just didn't have time: the missing regex backtracking controls, the
-  sub-byte int types, non-parameter cases of coercion types, things we
-  discover people miss especially in IO, etc.
-* Goal is sometime in 2017; we'll judge it based upon what we see (like, if
-  there is a strong desire to get an incremental update out the door to cover
-  things people really block on not having, we can do so)
-
-A lot of effort in 2016 was focused on performance engineering and making things
-more robust. This work will continue until the eventual feature freeze and release.
-Macros and slangs are the biggest post-6.c project language wise;
-if they happen to be in great shape by 6.d then they can make it in, but if
-not they'd be a reasonable target for 6.e.
+    use v6.e.PREVIEW;

@@ -12,7 +12,7 @@ import org.perl6.nqp.sixmodel.reprs.NativeRefInstance;
 import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
 
 /**
- * Contains implementation of nqp:: ops specific to Rakudo Perl 6.
+ * Contains implementation of nqp:: ops specific to Rakudo
  */
 @SuppressWarnings("unused")
 public final class RakOps {
@@ -55,7 +55,6 @@ public final class RakOps {
         public SixModelObject EMPTYHASH;
         public RakudoJavaInterop rakudoInterop;
         public SixModelObject JavaHOW;
-        public SixModelObject defaultContainerDescriptor;
         boolean initialized;
 
         public GlobalExt(ThreadContext tc) {}
@@ -71,14 +70,13 @@ public final class RakOps {
     private static final int HINT_SIG_RETURNS = 1;
     private static final int HINT_SIG_CODE = 4;
     public static final int HINT_CD_OF = 0;
-    public static final int HINT_CD_RW = 1;
-    public static final int HINT_CD_NAME = 2;
-    public static final int HINT_CD_DEFAULT = 3;
+    public static final int HINT_CD_NAME = 1;
+    public static final int HINT_CD_DEFAULT = 2;
 
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (!gcx.initialized) {
-            tc.gc.contConfigs.put("rakudo_scalar", new RakudoContainerConfigurer());
+            tc.gc.contConfigs.put("value_desc_cont", new RakudoContainerConfigurer());
             SixModelObject BOOTArray = tc.gc.BOOTArray;
             gcx.EMPTYARR = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
             SixModelObject BOOTHash = tc.gc.BOOTHash;
@@ -133,21 +131,6 @@ public final class RakOps {
         gcx.True = conf.at_key_boxed(tc, "True");
         gcx.Associative = conf.at_key_boxed(tc, "Associative");
         gcx.JavaHOW = conf.at_key_boxed(tc, "Metamodel").st.WHO.at_key_boxed(tc, "JavaHOW");
-
-        SixModelObject defCD = gcx.ContainerDescriptor.st.REPR.allocate(tc,
-            gcx.ContainerDescriptor.st);
-        defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
-            "$!of", HINT_CD_OF, gcx.Mu);
-        tc.native_s = "<element>";
-        defCD.bind_attribute_native(tc, gcx.ContainerDescriptor,
-            "$!name", HINT_CD_NAME);
-        tc.native_i = 1;
-        defCD.bind_attribute_native(tc, gcx.ContainerDescriptor,
-            "$!rw", HINT_CD_RW);
-        defCD.bind_attribute_boxed(tc, gcx.ContainerDescriptor,
-            "$!default", HINT_CD_DEFAULT, gcx.Any);
-        gcx.defaultContainerDescriptor = defCD;
-
         return conf;
     }
 
@@ -171,7 +154,7 @@ public final class RakOps {
 
     public static SixModelObject p6definite(SixModelObject obj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        return obj == null || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
+        return Ops.isnull(obj) == 1 || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
     }
 
     public static SixModelObject p6box_i(long value, ThreadContext tc) {
@@ -263,7 +246,7 @@ public final class RakOps {
                 return null;
         }
 
-        /* The binder may, for a variety of reasons, wind up calling Perl 6 code and overwriting flatArgs, so it needs to be set at the end to return reliably */
+        /* The binder may, for a variety of reasons, wind up calling Raku code and overwriting flatArgs, so it needs to be set at the end to return reliably */
         tc.flatArgs = args;
         return csd;
     }
@@ -338,7 +321,7 @@ public final class RakOps {
         }
         else {
             SixModelObject meth = Ops.findmethodNonFatal(cont, "STORE", tc);
-            if (meth != null) {
+            if (Ops.isnull(meth) == 0) {
                 Ops.invokeDirect(tc, meth,
                     STORE, new Object[] { cont, value });
             }
@@ -352,92 +335,6 @@ public final class RakOps {
             }
         }
         return cont;
-    }
-
-    public static SixModelObject p6decontrv(SixModelObject routine, SixModelObject cont, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        if (cont != null) {
-            if (isRWScalar(tc, gcx, cont)) {
-                routine.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
-                if (tc.native_i == 0) {
-                    /* Recontainerize to RO. */
-                    SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-                    roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                        RakudoContainerSpec.HINT_value,
-                        cont.st.ContainerSpec.fetch(tc, cont));
-                    return roCont;
-                }
-            }
-            else if (cont instanceof NativeRefInstance) {
-                routine.get_attribute_native(tc, gcx.Routine, "$!rw", HINT_ROUTINE_RW);
-                if (tc.native_i == 0)
-                    return cont.st.ContainerSpec.fetch(tc, cont);
-            }
-        }
-        return cont;
-    }
-
-    public static SixModelObject p6scalarfromdesc(SixModelObject desc, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-
-        if ( Ops.isconcrete(desc, tc) == 0 )
-            desc = gcx.defaultContainerDescriptor;
-        SixModelObject defVal = desc.get_attribute_boxed(tc, gcx.ContainerDescriptor,
-            "$!default", HINT_CD_DEFAULT);
-
-        SixModelObject cont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
-            RakudoContainerSpec.HINT_descriptor, desc);
-        cont.bind_attribute_boxed(tc, gcx.Scalar, "$!value", RakudoContainerSpec.HINT_value,
-            defVal);
-
-        return cont;
-    }
-
-    public static SixModelObject p6recont_ro(SixModelObject cont, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        if (isRWScalar(tc, gcx, cont)) {
-            SixModelObject roCont = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-            roCont.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                RakudoContainerSpec.HINT_value,
-                cont.st.ContainerSpec.fetch(tc, cont));
-            return roCont;
-        }
-        return cont;
-    }
-
-    private static boolean isRWScalar(ThreadContext tc, GlobalExt gcx, SixModelObject check) {
-        if (!(check instanceof TypeObject) && check.st.WHAT == gcx.Scalar) {
-            SixModelObject desc = check.get_attribute_boxed(tc, gcx.Scalar, "$!descriptor",
-                RakudoContainerSpec.HINT_descriptor);
-            if (desc == null)
-                return false;
-            desc.get_attribute_native(tc, gcx.ContainerDescriptor, "$!rw", HINT_CD_RW);
-            return tc.native_i != 0;
-        }
-        return false;
-    }
-
-    public static SixModelObject p6var(SixModelObject cont, ThreadContext tc) {
-        if (cont != null && cont.st.ContainerSpec != null) {
-            GlobalExt gcx = key.getGC(tc);
-            SixModelObject wrapper = gcx.Scalar.st.REPR.allocate(tc, gcx.Scalar.st);
-            wrapper.bind_attribute_boxed(tc, gcx.Scalar, "$!value",
-                RakudoContainerSpec.HINT_value,
-                cont);
-            return wrapper;
-        }
-        else {
-            return cont;
-        }
-    }
-
-    public static SixModelObject p6reprname(SixModelObject obj, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
-        obj = Ops.decont(obj, tc);
-        SixModelObject name = gcx.Str.st.REPR.allocate(tc, gcx.Str.st);
-        name.set_str(tc, obj.st.REPR.name);
-        return name;
     }
 
     private static final CallSiteDescriptor rvThrower = new CallSiteDescriptor(
@@ -537,7 +434,7 @@ public final class RakOps {
     }
 
     public static SixModelObject getThrower(ThreadContext tc, String type) {
-        SixModelObject exHash = Ops.gethllsym("perl6", "P6EX", tc);
+        SixModelObject exHash = Ops.gethllsym("Raku", "P6EX", tc);
         return exHash == null ? null : Ops.atkey(exHash, type, tc);
     }
 
@@ -723,30 +620,6 @@ public final class RakOps {
         if (result == null)
             throw ExceptionHandling.dieInternal(tc,
                 "Could not find arguments for dispatcher");
-        return result;
-    }
-
-    public static SixModelObject p6decodelocaltime(long sinceEpoch, ThreadContext tc) {
-        // Get calendar for current local host's timezone.
-        Calendar c = Calendar.getInstance();
-        c.setTimeInMillis(sinceEpoch * 1000);
-
-        // Populate result int array.
-        SixModelObject BOOTIntArray = tc.gc.BOOTIntArray;
-        SixModelObject result = BOOTIntArray.st.REPR.allocate(tc, BOOTIntArray.st);
-        tc.native_i = c.get(Calendar.SECOND);
-        result.bind_pos_native(tc, 0);
-        tc.native_i = c.get(Calendar.MINUTE);
-        result.bind_pos_native(tc, 1);
-        tc.native_i = c.get(Calendar.HOUR_OF_DAY);
-        result.bind_pos_native(tc, 2);
-        tc.native_i = c.get(Calendar.DAY_OF_MONTH);
-        result.bind_pos_native(tc, 3);
-        tc.native_i = c.get(Calendar.MONTH) + 1;
-        result.bind_pos_native(tc, 4);
-        tc.native_i = c.get(Calendar.YEAR);
-        result.bind_pos_native(tc, 5);
-
         return result;
     }
 

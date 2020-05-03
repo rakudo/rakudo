@@ -37,6 +37,12 @@ typedef struct {
     int i;
 } StructIntStruct;
 
+typedef struct {
+    int a;
+    int b[3];
+    int c;
+} InlinedArrayInStruct;
+
 DLLEXPORT MyStruct *ReturnAStruct()
 {
     MyStruct *obj = (MyStruct *) malloc(sizeof(MyStruct));
@@ -120,4 +126,26 @@ DLLEXPORT StructIntStruct *ReturnAStructIntStruct() {
     sis->i = 42;
 
     return sis;
+}
+
+DLLEXPORT int TakeAInlinedArrayInStruct(InlinedArrayInStruct *obj) {
+    if (obj->a    == 1
+     && obj->b[0] == 2
+     && obj->b[1] == 3
+     && obj->b[2] == 4
+     && obj->c    == 5)
+        return 42;
+
+    return 0;
+}
+
+DLLEXPORT InlinedArrayInStruct *ReturnAInlinedArrayInStruct() {
+    InlinedArrayInStruct *iais = (InlinedArrayInStruct *) malloc(sizeof(InlinedArrayInStruct));
+    iais->a    = 111;
+    iais->b[0] = 222;
+    iais->b[1] = 333;
+    iais->b[2] = 444;
+    iais->c    = 555;
+
+    return iais;
 }

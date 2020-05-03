@@ -5,9 +5,11 @@
 class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::MethodContainer
+    does Perl6::Metamodel::PrivateMethodContainer
     does Perl6::Metamodel::MultiMethodContainer
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::BaseType
@@ -51,9 +53,9 @@ class Perl6::Metamodel::EnumHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
 
-    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque') {
+    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque', :$is_mixin) {
         my $meta := self.new();
-        my $obj  := nqp::settypehll(nqp::newtype($meta, $repr), 'perl6');
+        my $obj  := nqp::settypehll(nqp::newmixintype($meta, $repr), 'Raku');
         $meta.set_name($obj, $name);
         $meta.set_base_type($meta, $base_type) unless $base_type =:= NQPMu;
         $meta.setup_mixin_cache($obj);
@@ -97,19 +99,28 @@ class Perl6::Metamodel::EnumHOW
         @!enum_value_list
     }
 
-    method compose($obj, :$compiler_services) {
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
+        self.set_language_version($obj);
+
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
         my @roles_to_compose := self.roles_to_compose($obj);
+        my $rtca;
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
                 my $r := @roles_to_compose.pop();
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
-                @ins_roles.push($r.HOW.specialize($r, $obj))
+                my $ins := $r.HOW.specialize($r, $obj);
+                self.check-type-compat($obj, $ins, ['e'])
+                    if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
+                @ins_roles.push($ins);
             }
-            RoleToClassApplier.apply($obj, @ins_roles);
+            $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+            $rtca.prepare($obj, @ins_roles);
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
@@ -121,10 +132,19 @@ class Perl6::Metamodel::EnumHOW
             }
         }
 
+        # Compose own attributes first.
+        for self.attributes($obj, :local) {
+            $_.compose($obj);
+        }
+
+        if $rtca {
+            $rtca.apply();
+        }
+
         # Incorporate any new multi candidates (needs MRO built).
         self.incorporate_multi_candidates($obj);
 
-        # Compose attributes.
+        # Compose remaining attributes.
         for self.attributes($obj, :local) {
             $_.compose($obj);
         }
@@ -164,7 +184,7 @@ class Perl6::Metamodel::EnumHOW
     method set_composalizer($c) { $composalizer := $c }
     method composalize($obj) {
         unless $!roled {
-            $!role := $composalizer($obj, self.name($obj), %!values);
+            $!role := $composalizer($obj, self.name($obj), @!enum_value_list);
             $!roled := 1;
         }
         $!role

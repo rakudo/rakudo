@@ -11,10 +11,10 @@ for @true-tests -> ($range, $thing) {
 }
 for @false-tests -> ($range, $thing) {
     throws-like { $range.in-range($thing) }, X::OutOfRange,
-        "$thing is in not in range $range";
+        "$thing is not in range $range";
 }
 
-# RT#130452
+# https://github.com/Raku/old-issue-tracker/issues/5947
 throws-like { (-∞^..^∞).in-range: 0/0 }, X::OutOfRange,
     message => /'<0/0>'/,
 '0/0 is not in -Inf^..^Inf range';

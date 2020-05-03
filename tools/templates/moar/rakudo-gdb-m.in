@@ -1,0 +1,5 @@
+@insert(sh-prelude)@
+
+@insert(rakudo-debug-notice)@
+
+gdb --quiet --ex=run --args "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"

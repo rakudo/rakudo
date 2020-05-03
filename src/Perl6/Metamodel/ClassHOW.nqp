@@ -1,7 +1,7 @@
 class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
-    does Perl6::Metamodel::Versioning
+    does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::AttributeContainer
     does Perl6::Metamodel::MethodContainer
@@ -21,13 +21,16 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
     does Perl6::Metamodel::InvocationProtocol
+    does Perl6::Metamodel::ContainerSpecProtocol
     does Perl6::Metamodel::Finalization
+    does Perl6::Metamodel::Concretization
+    does Perl6::Metamodel::ConcretizationCache
 {
     has @!roles;
     has @!role_typecheck_list;
-    has @!concretizations;
     has @!fallbacks;
     has $!composed;
+    has $!pun_source; # If class is coming from a pun then this is the source role
 
     my $archetypes := Perl6::Metamodel::Archetypes.new(
         :nominal(1), :inheritable(1), :augmentable(1) );
@@ -40,13 +43,21 @@ class Perl6::Metamodel::ClassHOW
     }
 
     my $anon_id := 1;
-    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth) {
+    method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api, :$is_mixin) {
         my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
+        my $new_type;
+        if $is_mixin {
+            $new_type := nqp::newmixintype($metaclass, $repr);
+        }
+        else {
+            $new_type := nqp::newtype($metaclass, $repr);
+        }
+        my $obj := nqp::settypehll($new_type, 'Raku');
         $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
+        $metaclass.set_api($obj, $api) if $api;
         $metaclass.setup_mixin_cache($obj);
         nqp::setboolspec($obj, 5, nqp::null());
         $obj
@@ -67,11 +78,31 @@ class Perl6::Metamodel::ClassHOW
         @!fallbacks[+@!fallbacks] := %desc;
     }
 
-    method compose($obj, :$compiler_services) {
+    sub has_method($target, $name) {
+        for $target.HOW.mro($target) {
+            my %mt := nqp::hllize($_.HOW.method_table($_));
+            if nqp::existskey(%mt, $name) {
+                return 1;
+            }
+            %mt := nqp::hllize($_.HOW.submethod_table($_));
+            if nqp::existskey(%mt, $name) {
+                return 1;
+            }
+        }
+        return 0;
+    }
+
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
+        self.set_language_version($obj);
+
         # Instantiate all of the roles we have (need to do this since
         # all roles are generic on ::?CLASS) and pass them to the
         # composer.
         my @roles_to_compose := self.roles_to_compose($obj);
+        my @stubs;
+        my $rtca;
         if @roles_to_compose {
             my @ins_roles;
             while @roles_to_compose {
@@ -79,11 +110,22 @@ class Perl6::Metamodel::ClassHOW
                 @!roles[+@!roles] := $r;
                 @!role_typecheck_list[+@!role_typecheck_list] := $r;
                 my $ins := $r.HOW.specialize($r, $obj);
+                # If class is a result of pun then transfer hidden flag from the source role
+                if $!pun_source =:= $r {
+                    self.set_hidden($obj) if $ins.HOW.hidden($ins);
+                    self.set_language_revision($obj, $ins.HOW.language-revision($ins), :force);
+                }
+                # Significant change of behavior on d/e revisions boundary; pre-6.e classes cannot consume 6.e roles.
+                self.check-type-compat($obj, $ins, ['e'])
+                    if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
-                nqp::push(@!concretizations, [$r, $ins]);
+                self.add_concretization($obj, $r, $ins);
             }
             self.compute_mro($obj); # to the best of our knowledge, because the role applier wants it.
-            RoleToClassApplier.apply($obj, @ins_roles);
+            $rtca := Perl6::Metamodel::Configuration.role_to_class_applier_type.new;
+            $rtca.prepare($obj, @ins_roles);
+
+            self.wipe_conc_cache;
 
             # Add them to the typecheck list, and pull in their
             # own type check lists also.
@@ -93,6 +135,13 @@ class Perl6::Metamodel::ClassHOW
                     @!role_typecheck_list[+@!role_typecheck_list] := $_;
                 }
             }
+        }
+
+        # Compose class attributes first. We prioritize them and their accessors over anything coming from roles.
+        self.compose_attributes($obj, :$compiler_services);
+
+        if $rtca {
+            @stubs := $rtca.apply();
         }
 
         # Some things we only do if we weren't already composed once, like
@@ -109,11 +158,21 @@ class Perl6::Metamodel::ClassHOW
         # Incorporate any new multi candidates (needs MRO built).
         self.incorporate_multi_candidates($obj);
 
+        # Compose remaining attributes from roles.
+        self.compose_attributes($obj, :$compiler_services);
+
         # Set up finalization as needed.
         self.setup_finalization($obj);
 
-        # Compose attributes.
-        self.compose_attributes($obj, :$compiler_services);
+        # Test the remaining stubs
+        for @stubs -> %data {
+            if !has_method(%data<target>, %data<name>) {
+                nqp::die("Method '" ~ %data<name> ~ "' must be implemented by " ~
+                         %data<target>.HOW.name(%data<target>) ~
+                         " because it is required by roles: " ~
+                         nqp::join(", ", %data<needed>) ~ ".");
+            }
+        }
 
         # See if we have a Bool method other than the one in the top type.
         # If not, all it does is check if we have the type object.
@@ -122,9 +181,9 @@ class Perl6::Metamodel::ClassHOW
             my @mro := self.mro($obj);
             while $i < +@mro {
                 my $ptype := @mro[$i];
-                last if nqp::existskey($ptype.HOW.method_table($ptype), 'Bool');
+                last if nqp::existskey(nqp::hllize($ptype.HOW.method_table($ptype)), 'Bool');
                 last if nqp::can($ptype.HOW, 'submethod_table') &&
-                    nqp::existskey($ptype.HOW.submethod_table($ptype), 'Bool');
+                    nqp::existskey(nqp::hllize($ptype.HOW.submethod_table($ptype)), 'Bool');
                 $i := $i + 1;
             }
             if $i + 1 == +@mro {
@@ -150,17 +209,15 @@ class Perl6::Metamodel::ClassHOW
             # Create BUILDPLAN.
             self.create_BUILDPLAN($obj);
 
-            # If the BUILDPLAN is not empty, we should attempt to auto-
-            # generate a BUILDALL method.  If the BUILDPLAN is empty, then
-            # the BUILDALL of the parent is already good enough.  We can
+            # Attempt to auto-generate a BUILDALL method. We can
             # only auto-generate a BUILDALL method if we have compiler
-            # services.  If we don't, then BUILDALL will fall back to the
+            # services. If we don't, then BUILDALL will fall back to the
             # one in Mu, which will iterate over the BUILDALLPLAN.
-            if self.BUILDPLAN($obj) && nqp::isconcrete($compiler_services) {
+            if nqp::isconcrete($compiler_services) {
 
                 # Class does not appear to have a BUILDALL yet
-                unless nqp::existskey($obj.HOW.submethod_table($obj),'BUILDALL')
-                  || nqp::existskey($obj.HOW.method_table($obj),'BUILDALL') {
+                unless nqp::existskey(nqp::hllize($obj.HOW.submethod_table($obj)),'BUILDALL')
+                  || nqp::existskey(nqp::hllize($obj.HOW.method_table($obj)),'BUILDALL') {
                     my $builder := nqp::findmethod(
                       $compiler_services,'generate_buildplan_executor');
                     my $method :=
@@ -182,6 +239,7 @@ class Perl6::Metamodel::ClassHOW
         self.publish_type_cache($obj);
         self.publish_method_cache($obj);
         self.publish_boolification_spec($obj);
+        self.publish_container_spec($obj);
 
         # Compose the meta-methods.
         self.compose_meta_methods($obj);
@@ -192,16 +250,8 @@ class Perl6::Metamodel::ClassHOW
         $obj
     }
 
-    method roles($obj, :$local, :$transitive = 1) {
-        my @result;
-        for @!roles {
-            @result.push($_);
-            if $transitive {
-                for $_.HOW.roles($_, :transitive(1)) {
-                    @result.push($_);
-                }
-            }
-        }
+    method roles($obj, :$local, :$transitive = 1, :$mro = 0) {
+        my @result := self.roles-ordered($obj, @!roles, :$transitive, :$mro);
         unless $local {
             my $first := 1;
             for self.mro($obj) {
@@ -209,7 +259,7 @@ class Perl6::Metamodel::ClassHOW
                     $first := 0;
                     next;
                 }
-                for $_.HOW.roles($_, :$transitive, :local(1)) {
+                for $_.HOW.roles($_, :$transitive, :$mro, :local(1)) {
                     @result.push($_);
                 }
             }
@@ -218,16 +268,7 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method role_typecheck_list($obj) {
-        @!role_typecheck_list
-    }
-
-    method concretization($obj, $ptype) {
-        for @!concretizations {
-            if nqp::decont($_[0]) =:= nqp::decont($ptype) {
-                return $_[1];
-            }
-        }
-        nqp::die("No concretization found for " ~ $ptype.HOW.name($ptype));
+        $!composed ?? @!role_typecheck_list !! self.roles_to_compose($obj)
     }
 
     method is_composed($obj) {
@@ -247,7 +288,7 @@ class Perl6::Metamodel::ClassHOW
     method find_method_fallback($obj, $name) {
         # If the object is a junction, need to do a junction dispatch.
         if $obj.WHAT =:= $junction_type && $junction_autothreader {
-            my $p6name := nqp::hllizefor($name, 'perl6');
+            my $p6name := nqp::hllizefor($name, 'Raku');
             return -> *@pos_args, *%named_args {
                 $junction_autothreader($p6name, |@pos_args, |%named_args)
             };
@@ -267,5 +308,9 @@ class Perl6::Metamodel::ClassHOW
     # Does the type have any fallbacks?
     method has_fallbacks($obj) {
         return nqp::istype($obj, $junction_type) || +@!fallbacks;
+    }
+
+    method set_pun_source($obj, $role) {
+        $!pun_source := nqp::decont($role);
     }
 }

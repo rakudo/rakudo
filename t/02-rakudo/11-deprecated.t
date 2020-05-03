@@ -5,7 +5,7 @@ use Test::Helpers;
 plan 2;
 
 sub test-deprecation (Str:D $lang, Bool :$is-visible, |c) {
-    my $args = c.perl;
+    my $args = c.raku;
     is-run '
         use \qq[$lang];
         %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;
@@ -16,7 +16,5 @@ sub test-deprecation (Str:D $lang, Bool :$is-visible, |c) {
 sub    is-deprecated (|c) { test-deprecation |c, :is-visible }
 sub isn't-deprecated (|c) { test-deprecation |c              }
 
-isn't-deprecated 'v6.c',         v6.d, v6.e, :lang-vers;
-
-# XXX TODO: remove `.PREVIEW` part when 6.d comes out:
-is-deprecated 'v6.d.PREVIEW', v6.d, v6.e, :lang-vers;
+isn't-deprecated 'v6.c', v6.d, v6.e, :lang-vers;
+is-deprecated    'v6.d', v6.d, v6.e, :lang-vers;

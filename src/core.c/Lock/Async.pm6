@@ -153,7 +153,7 @@ my class Lock::Async {
             });
         }
         else {
-            # Lock is held but by something else. Await it's availability.
+            # Lock is held but by something else. Await its availability.
             $*AWAITER.await($try-acquire);
             self!run-with-updated-recursion-list(&code);
             Nil

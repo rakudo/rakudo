@@ -1,6 +1,6 @@
-class Rakudo::SEQUENCE {
-
-    method iterator(\left, Mu \right, :$exclude_end --> Iterator:D) {
+sub SEQUENCE(
+  \left, Mu \right, :$exclude_end
+--> Iterator:D) is implementation-detail {
 
     my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
     my $endpoint := righti.pull-one;
@@ -126,7 +126,7 @@ class Rakudo::SEQUENCE {
                         for flat @a Z @e -> $from, $to {
                             @ranges.push: $($from ... $to);
                         }
-                        my $ = take $_ for flat [X~] @ranges; # don't sink return of take()
+                        my $ = .take for flat [X~] @ranges; # don't sink return of take()
                         $stop = 1;
                     }
                     elsif $a lt $endpoint {
@@ -319,7 +319,7 @@ class Rakudo::SEQUENCE {
 
             if $stop { }
             elsif &producer {
-                my $ = take $_ for @tail; # don't sink return of take()
+                my $ = .take for @tail; # don't sink return of take()
                 my $count := &producer.count;
 
                 until $stop {
@@ -335,20 +335,20 @@ class Rakudo::SEQUENCE {
                             ) unless $end_code_arity == -Inf;
 
                             if $endpoint(|@end_tail) {
-                                my $ = take value unless $exclude_end; # don't sink return of take()
+                                my $ = value.take unless $exclude_end; # don't sink return of take()
                                 $stop = 1;
                             }
                         }
                     }
                     elsif $endpoint.ACCEPTS(value) {
-                        my $ = take value unless $exclude_end; # don't sink return of take()
+                        my $ = value.take unless $exclude_end; # don't sink return of take()
                         $stop = 1;
                     }
 
                     if $stop { }
                     else {
                         @tail.push(value);
-                        my $ = take value; # don't sink return of take()
+                        my $ = value.take; # don't sink return of take()
                     }
                 }
             }
@@ -363,8 +363,6 @@ class Rakudo::SEQUENCE {
     $infinite
         ?? (gathered.Slip, Slip.from-iterator(righti)).lazy.iterator
         !! (gathered.Slip, Slip.from-iterator(righti)).iterator
-}
-
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -1,3 +1,5 @@
+# continued from src/core.c/Supply.pm6
+
     ## Supply factories
     ##
 
@@ -478,18 +480,13 @@
 
     method reduce(Supply:D: &with) {
         supply {
-            my $first := True;
-            my $reduced := Nil;
+            my $reduced := nqp::null;
             whenever self -> \value {
-                if $first {
-                    $reduced := value;
-                    $first := False;
-                }
-                else {
-                    $reduced := with($reduced, value);
-                }
+                $reduced := nqp::isnull($reduced)
+                  ?? value
+                  !! with($reduced, value);
                 LAST {
-                    emit $reduced;
+                    emit nqp::ifnull($reduced,Nil);
                 }
             }
         }
@@ -497,17 +494,11 @@
 
     method produce(Supply:D: &with) {
         supply {
-            my $first := True;
-            my $reduced := Nil;
+            my $reduced := nqp::null;
             whenever self -> \value {
-                if $first {
-                    $reduced := value;
-                    $first := False;
-                }
-                else {
-                    $reduced := with($reduced, value);
-                }
-                emit $reduced;
+                emit $reduced := nqp::isnull($reduced)
+                  ?? value
+                  !! with($reduced, value);
             }
         }
     }
@@ -723,5 +714,7 @@
             }
         }
     }
+
+# continued in src/core.c/Supply-coercers.pm6
 
 # vim: ft=perl6 expandtab sw=4

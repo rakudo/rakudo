@@ -122,6 +122,15 @@ class VM does Systemic {
         nqp::lc($!config<osname>)
 #?endif
     }
+
+    method request-garbage-collection(--> Nil) {
+#?if moar
+        nqp::force_gc
+#?endif
+#?if !moar
+        warn "Requesting garbage collection not supported on this backend";
+#?endif
+    }
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*VM', {

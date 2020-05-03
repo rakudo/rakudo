@@ -79,38 +79,34 @@ my class Routine { # declared in BOOTSTRAP
 
     method soft( --> Nil ) { }
 
-    my class WrapHandle {
-        has &.wrapper;
-        has &.wrappee;
-
-        method restore {
-            &.wrappee.unwrap(self)
-        }
-    }
-
     method wrap(&wrapper) {
-        my $handle = WrapHandle.new: :&wrapper, :wrappee(self);
-
-        if $*W {
-            my sub wrapper-fixup() { self!do_wrap(&wrapper) };
-            $*W.add_object_if_no_sc(&wrapper);
-            $*W.add_object_if_no_sc(&wrapper-fixup);
-            $*W.add_fixup_task(
-                :deserialize_ast(
-                    QAST::Op.new(:op<call>, QAST::WVal.new(:value(&wrapper-fixup)))
-                ),
-                :fixup_ast(
-                    QAST::Op.new(:op<call>, QAST::WVal.new(:value(&wrapper-fixup)))
-                ));
+        my class WrapHandle {
+            has $!dispatcher;
+            has $!wrapper;
+            method restore() {
+                nqp::hllbool($!dispatcher.remove($!wrapper));
+            }
         }
-        else {
-            self!do_wrap(&wrapper);
+        my role Wrapped {
+            has $!dispatcher;
+            method UNSHIFT_WRAPPER(&wrapper) {
+                # Add candidate.
+                $!dispatcher := WrapDispatcher.new()
+                    unless nqp::isconcrete($!dispatcher);
+                $!dispatcher.add(&wrapper);
+
+                # Return a handle.
+                my $handle := nqp::create(WrapHandle);
+                nqp::bindattr($handle, WrapHandle, '$!dispatcher', $!dispatcher);
+                nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
+                $handle
+            }
+            method CALL-ME(|c) is raw {
+                $!dispatcher.enter(|c);
+            }
+            method soft(--> True) { }
         }
 
-        $handle
-    }
-
-    method !do_wrap(\wrapper) {
         # We can't wrap a hardened routine (that is, one that's been
         # marked inlinable).
         if nqp::istype(self, HardRoutine) {
@@ -118,56 +114,22 @@ my class Routine { # declared in BOOTSTRAP
                 "use the 'soft' pragma to avoid marking routines as hard.";
         }
 
-        if nqp::defined($!wrappers) {
-            # Insert next to onlywrap
-            nqp::splice($!wrappers, nqp::list(wrapper), 1, 0);
+        # If we're not wrapped already, do the initial dispatcher
+        # creation.
+        unless nqp::istype(self, Wrapped) {
+            my $orig = self.clone();
+            self does Wrapped;
+            $!onlystar = 0; # disable optimization if no body there
+            self.UNSHIFT_WRAPPER($orig);
         }
-        else {
-            my \onlywrap := my sub onlywrap(|) is raw is hidden-from-backtrace {
-                $/ := nqp::getlexcaller('$/');
-                my Mu $dispatcher := Metamodel::WrapDispatcher.vivify_for(self, nqp::ctx(), nqp::usecapture());
-                $dispatcher.call_with_capture(nqp::usecapture())
-            };
-            my \me = nqp::clone(self);
-            if $*W {
-                $*W.add_object_if_no_sc(me)
-            }
-            # Make static code point to the cloned object until original is fully unwrapped. If not done we end up with
-            # static code on `me` pointing at the original Routine instance, which has $!do from onlywrap. It results in
-            # dispatchers vivified from `me` receive onlywrap as $sub parameter.
-            nqp::setcodeobj(nqp::getattr(me, Code, '$!do'), me);
-            $!wrappers := nqp::list(onlywrap, wrapper, me);
-            my \onlywrap-do := nqp::getattr(onlywrap, Code, '$!do');
-            nqp::setcodeobj(onlywrap-do, self);
-            nqp::bindattr(self, Code, '$!do', onlywrap-do);
-        }
+
+        # Add this wrapper.
+        self.UNSHIFT_WRAPPER(&wrapper);
     }
 
     method unwrap($handle) {
-        X::Routine::Unwrap.new.throw unless nqp::istype($handle, WrapHandle);
-        my $succeed;
-        if $!wrappers {
-            my $idx = 0;
-            my $count = nqp::elems($!wrappers) - 1;
-            my &wrapper := nqp::decont($handle.wrapper);
-            while ++$idx < $count {
-                my &w := nqp::atpos($!wrappers, $idx);
-                if &w === &wrapper {
-                    # Also strip off all wrappers put on top of this.
-                    nqp::splice($!wrappers, nqp::list(), $idx, 1);
-                    $succeed := 1;
-                    last;
-                }
-            }
-            if $succeed && $count == 2 {
-                # We just have removed the last user wrapper, restore the original code.
-                my \orig-do := nqp::getattr(nqp::atpos($!wrappers, 1), Code, '$!do');
-                nqp::bindattr(self, Code, '$!do', orig-do);
-                nqp::setcodeobj(orig-do, self);
-                $!wrappers := nqp::null();
-            }
-        }
-        X::Routine::Unwrap.new.throw unless $succeed;
+        $handle.can('restore') && $handle.restore() ||
+            X::Routine::Unwrap.new.throw
     }
 
     method package() { $!package }

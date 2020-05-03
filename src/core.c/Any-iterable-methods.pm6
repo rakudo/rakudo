@@ -40,7 +40,7 @@ Consider using a block if any of these are necessary for your mapping code."
         sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, $label);
     }
 
-    my class IterateOneWithPhasers does SlippyIterator {
+    my class IterateOneWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
@@ -52,7 +52,7 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::stmts(
               (&!block  := block),
               ($!source := source),
-              ($!label  := label),
+              ($!label  := nqp::decont(label)),
               ($!NEXT = block.has-phaser('NEXT')),
               self
             )
@@ -256,11 +256,11 @@ Consider using a block if any of these are necessary for your mapping code."
         has $!source;
         has $!label;
 
-        method new(&block,$source,$label) {
+        method new(&block,$source,\label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
             $iter
         }
 
@@ -351,16 +351,16 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateOneWithoutPhasers does SlippyIterator {
+    my class IterateOneWithoutPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
 
-        method new(&block,$source,$label) {
+        method new(&block,$source,\label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
             $iter
         }
 
@@ -494,16 +494,16 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateTwoWithoutPhasers does SlippyIterator {
+    my class IterateTwoWithoutPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
 
-        method new(&block,$source,$label) {
+        method new(&block,$source,\label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
             $iter
         }
 
@@ -671,7 +671,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateMoreWithPhasers does SlippyIterator {
+    my class IterateMoreWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!count;
@@ -682,12 +682,12 @@ Consider using a block if any of these are necessary for your mapping code."
         has $!NEXT;
         has $!CAN_FIRE_PHASERS;
 
-        method new(&block, $source, $count, $label) {
+        method new(&block, $source, $count, \label) {
             my $iter := nqp::create(self);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!count', $count);
-            nqp::bindattr($iter, self, '$!label', nqp::decont($label));
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
             $iter
         }
 
@@ -773,7 +773,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    sub sequential-map(\source, &block, $label) {
+    sub sequential-map(\source, &block, \label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
         my $count = &block.count;
@@ -781,15 +781,15 @@ Consider using a block if any of these are necessary for your mapping code."
         Seq.new(
           nqp::istype(&block,Block) && &block.has-phasers
             ?? $count < 2 || $count === Inf
-              ?? IterateOneWithPhasers.new(&block,source,$label)
-              !! IterateMoreWithPhasers.new(&block,source,$count,$label)
+              ?? IterateOneWithPhasers.new(&block,source,label)
+              !! IterateMoreWithPhasers.new(&block,source,$count,label)
             !! $count < 2 || $count === Inf
               ?? nqp::istype(Slip,&block.returns)
-                ?? IterateOneWithoutPhasers.new(&block,source,$label)
-                !! IterateOneNotSlippingWithoutPhasers.new(&block,source,$label)
+                ?? IterateOneWithoutPhasers.new(&block,source,label)
+                !! IterateOneNotSlippingWithoutPhasers.new(&block,source,label)
               !! $count == 2
-                ?? IterateTwoWithoutPhasers.new(&block,source,$label)
-                !! IterateMoreWithPhasers.new(&block,source,$count,$label)
+                ?? IterateTwoWithoutPhasers.new(&block,source,label)
+                !! IterateMoreWithPhasers.new(&block,source,$count,label)
         )
     }
 

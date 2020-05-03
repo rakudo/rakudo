@@ -157,10 +157,18 @@ sub wanted($ast,$by) {
                 $block := Perl6::Actions::make_thunk_ref($body, $body.node);
                 $block-closure := block_closure($block);
             }
+
+            # make sure from-loop knows about existing label
+            my $label := QAST::WVal.new( :value($*W.find_symbol(['Any'])), :named('label') );
+            for @($ast) {
+                $label := $_ if nqp::istype($_, QAST::WVal) && nqp::istype($_.value, $*W.find_symbol(['Label']));
+            }
+
             my $past := QAST::Op.new: :node($body.node),
                 :op<callmethod>, :name<from-loop>,
                 QAST::WVal.new(:value($*W.find_symbol(['Seq']))),
-                $block-closure;
+                $block-closure,
+                $label;
 
             # Elevate statevars to enclosing thunk
             if $body.has_ann('has_statevar') && $block.has_ann('past_block') {
@@ -421,10 +429,14 @@ sub unwanted($ast, $by) {
                     if $infix {
                         my $sym := $infix<sym>;
                         if $sym eq ',' || $sym eq 'xx' { unwantall($node, $byby) }
-                        elsif $sym eq '...' ||
-                              $sym eq '...^' ||
-                              $sym eq '…' ||
-                              $sym eq '…^'
+                        elsif $sym eq '...'
+                           || $sym eq '...^'
+                           || $sym eq '^...'
+                           || $sym eq '^...^'
+                           || $sym eq '…'
+                           || $sym eq '…^'
+                           || $sym eq '^…'
+                           || $sym eq '^…^'
                         {
                             $node.annotate('useless', $sym);
                             $node.node.worry("Useless use of $sym in sink context");
@@ -2708,11 +2720,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
-        $block[0].push(QAST::Var.new( :name('$*NEXT-DISPATCHER'), :scope('lexical'), :decl('var') ));
-        $block[0].push(QAST::Op.new(
-            :op('takenextdispatcher'),
-            QAST::SVal.new( :value('$*NEXT-DISPATCHER') )
-        ));
         make block_closure($ast);
     }
     method term:sym<unquote>($/) {
@@ -3994,11 +4001,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
-        $block[0].push(QAST::Var.new( :name('$*NEXT-DISPATCHER'), :scope('lexical'), :decl('var') ));
-        $block[0].push(QAST::Op.new(
-            :op('takenextdispatcher'),
-            QAST::SVal.new( :value('$*NEXT-DISPATCHER') )
-        ));
 
         # If it's a proto but not an onlystar, need some variables for the
         # {*} implementation to use.
@@ -4188,46 +4190,28 @@ class Perl6::Actions is HLL::Actions does STDActions {
         ).annotate_self('sink_ast', QAST::Op.new( :op('null') ));
     }
 
-    # Take next dispatcher set for the current code and set it for $code. Allows proto to transparently bypass this
-    # information to the first matching candidate.
-    sub redelegate_next_dispatcher($code) {
-        my $code_name := QAST::Node.unique("code_obj");
-        my $code_var := QAST::Var.new(:name($code_name), :scope<local>);
-        QAST::Stmts.new(
-            QAST::Op.new(:op<bind>, $code_var.decl_as('var'), $code),
-            QAST::Op.new(
-                :op<nextdispatcherfor>,
-                QAST::Var.new(:name('$*NEXT-DISPATCHER'), :scope<lexical>),
-                $code_var
-            ),
-            $code_var
-        )
-    }
-
     method autogenerate_proto($/, $name, $install_in) {
         my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
         $p_past.is_thunk(1);
         $p_past.push(QAST::Op.new(
             :op('invokewithcapture'),
-            redelegate_next_dispatcher(
+            QAST::Op.new(
+                :op('ifnull'),
                 QAST::Op.new(
-                    :op('ifnull'),
-                    QAST::Op.new(
-                        :op('multicachefind'),
-                        QAST::Var.new(
-                            :name('$!dispatch_cache'), :scope('attribute'),
-                            QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                            QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
-                        ),
-                        QAST::Op.new( :op('usecapture') )
-                    ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('find_best_dispatchee'),
+                    :op('multicachefind'),
+                    QAST::Var.new(
+                        :name('$!dispatch_cache'), :scope('attribute'),
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                        QAST::Op.new( :op('savecapture') )
+                        QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
                     ),
-                )
+                    QAST::Op.new( :op('usecapture') )
+                ),
+                QAST::Op.new(
+                    :op('callmethod'), :name('find_best_dispatchee'),
+                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                    QAST::Op.new( :op('savecapture') )
+                ),
             ),
             QAST::Op.new( :op('usecapture') )
         ));
@@ -4288,8 +4272,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         for @($past[0]) {
             if nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
                 my $name := $_.name;
-                return 0 if $name ne '$*DISPATCHER' && $name ne '$*NEXT-DISPATCHER'
-                    && $name ne '$_' && $name ne '$/' && $name ne '$¢' && $name ne '$!' &&
+                return 0 if $name ne '$*DISPATCHER' && $name ne '$_' &&
+                    $name ne '$/' && $name ne '$¢' && $name ne '$!' &&
                     !nqp::existskey(%arg_placeholders, $name);
             }
             elsif nqp::istype($_, QAST::Block) {
@@ -4656,11 +4640,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
-        $*W.install_lexical_symbol($past, '$*NEXT-DISPATCHER', $*W.find_symbol(['Nil'], :setting-only));
-        $past[0].push(QAST::Op.new(
-            :op('takenextdispatcher'),
-            QAST::SVal.new( :value('$*NEXT-DISPATCHER') )
-        ));
 
         # Finish up code object.
         $*W.attach_signature($code, $signature);
@@ -4755,23 +4734,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Add dispatching code.
         $BLOCK.push(QAST::Op.new(
             :op('invokewithcapture'),
-            redelegate_next_dispatcher(
+            QAST::Op.new(
+                :op('ifnull'),
                 QAST::Op.new(
-                    :op('ifnull'),
-                    QAST::Op.new(
-                        :op('multicachefind'),
-                        QAST::Var.new(
-                            :name('$!dispatch_cache'), :scope('attribute'),
-                            QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                            QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
-                        ),
-                        QAST::Op.new( :op('usecapture') )
-                    ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('find_best_dispatchee'),
+                    :op('multicachefind'),
+                    QAST::Var.new(
+                        :name('$!dispatch_cache'), :scope('attribute'),
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                        QAST::Op.new( :op('savecapture') )
-                    )
+                        QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
+                    ),
+                    QAST::Op.new( :op('usecapture') )
+                ),
+                QAST::Op.new(
+                    :op('callmethod'), :name('find_best_dispatchee'),
+                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                    QAST::Op.new( :op('savecapture') )
                 )
             ),
             QAST::Op.new( :op('usecapture') )
@@ -5529,10 +5506,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
                 %*PARAM_INFO<bind_accessor> := 1;
-                if $<name> {
-                    %*PARAM_INFO<variable_name> := ~$<name>;
-                }
-                else {
+                unless $<name> {
                     $/.panic("Cannot declare $. parameter in signature without an accessor name");
                 }
             }
@@ -6492,23 +6466,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Op.new(
                 :op('invokewithcapture'),
-                redelegate_next_dispatcher(
+                QAST::Op.new(
+                    :op('ifnull'),
                     QAST::Op.new(
-                        :op('ifnull'),
-                        QAST::Op.new(
-                            :op('multicachefind'),
-                            QAST::Var.new(
-                                :name('$!dispatch_cache'), :scope('attribute'),
-                                QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                                QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
-                            ),
-                            QAST::Var.new( :name($dc_name), :scope('local') )
-                        ),
-                        QAST::Op.new(
-                            :op('callmethod'), :name('find_best_dispatchee'),
+                        :op('multicachefind'),
+                        QAST::Var.new(
+                            :name('$!dispatch_cache'), :scope('attribute'),
                             QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                            QAST::Var.new( :name($dc_name), :scope('local') )
-                        )
+                            QAST::WVal.new( :value($*W.find_symbol(['Routine'], :setting-only)) ),
+                        ),
+                        QAST::Var.new( :name($dc_name), :scope('local') )
+                    ),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('find_best_dispatchee'),
+                        QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
+                        QAST::Var.new( :name($dc_name), :scope('local') )
                     )
                 ),
                 QAST::Var.new( :name($dc_name), :scope('local') )
@@ -6904,11 +6876,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $block[0].push(QAST::Op.new(
                 :op('takedispatcher'),
                 QAST::SVal.new( :value('$*DISPATCHER') )
-            ));
-            $block[0].push(QAST::Var.new( :name('$*NEXT-DISPATCHER'), :scope('lexical'), :decl('var') ));
-            $block[0].push(QAST::Op.new(
-                :op('takenextdispatcher'),
-                QAST::SVal.new( :value('$*NEXT-DISPATCHER') )
             ));
             $past := block_closure($past);
             $past.annotate('bare_block', QAST::Op.new( :op('call'), $past ));
@@ -9995,21 +9962,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     my %curried;
     INIT {
-        %curried{'&infix:<...>'}  := 0;
-        %curried{'&infix:<…>'}  := 0;
-        %curried{'&infix:<...^>'} := 0;
-        %curried{'&infix:<…^>'} := 0;
-        %curried{'&infix:<=>'}    := 0;
-        %curried{'&infix:<:=>'}   := 0;
-        %curried{'&infix:<~~>'}   := 1;
-        %curried{'&infix:<∘>'}   := 1;
-        %curried{'&infix:<o>'}   := 1;
+        %curried{'&infix:<...>'}   := 0;
+        %curried{'&infix:<…>'}     := 0;
+        %curried{'&infix:<...^>'}  := 0;
+        %curried{'&infix:<…^>'}    := 0;
+        %curried{'&infix:<^...>'}  := 0;
+        %curried{'&infix:<^…>'}    := 0;
+        %curried{'&infix:<^...^>'} := 0;
+        %curried{'&infix:<^…^>'}   := 0;
+        %curried{'&infix:<=>'}     := 0;
+        %curried{'&infix:<:=>'}    := 0;
+        %curried{'&infix:<~~>'} := 1;
+        %curried{'&infix:<∘>'}  := 1;
+        %curried{'&infix:<o>'}  := 1;
         %curried{'&infix:<..>'}   := 2;
         %curried{'&infix:<..^>'}  := 2;
         %curried{'&infix:<^..>'}  := 2;
         %curried{'&infix:<^..^>'} := 2;
         %curried{'&infix:<xx>'}   := 2;
-        %curried{'callmethod'}    := 3;
+        %curried{'callmethod'}           := 3;
         %curried{'p6callmethodhow'}      := 3;
         %curried{'&postcircumfix:<[ ]>'} := 3;
         %curried{'&postcircumfix:<{ }>'} := 3;

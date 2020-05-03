@@ -1,6 +1,6 @@
 # A SlippyIterator is one that comes with some infrastructure for handling
 # flattening a received Slip into its own stream of values.
-my role SlippyIterator does Iterator {
+my role Rakudo::SlippyIterator does Iterator {
     # Flat set to non-zero if the iterator is currently consuming a Slip.
     has int $!slipping;
 

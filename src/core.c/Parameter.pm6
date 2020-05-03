@@ -245,7 +245,7 @@ my class Parameter { # declared in BOOTSTRAP
           ?? Nil
           !! nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
             ?? $!variable_name
-            !! nqp::iseq_i(nqp::index('*!',nqp::substr($!variable_name,1,1)),-1)
+            !! nqp::iseq_i(nqp::index('*!.',nqp::substr($!variable_name,1,1)),-1)
               ?? nqp::substr($!variable_name,1)
               !! nqp::substr($!variable_name,2)
     }
@@ -278,7 +278,7 @@ my class Parameter { # declared in BOOTSTRAP
             ?? '!'
             !! nqp::isnull_s($!variable_name)
               ?? ''
-              !! nqp::iseq_s(nqp::substr($!variable_name,1,1),"*")
+              !! nqp::eqat($!variable_name,"*",1)
                 ?? '*'
                 !! ''
     }
@@ -570,11 +570,11 @@ my class Parameter { # declared in BOOTSTRAP
         if $prefix eq '+' && $sigil eq '\\' {
             # We don't want \ to end up in the name of slurpy parameters, but
             # we still need to know whether or not they have this sigil later.
-            $name ~= $prefix ~ $usage-name;
+            $name ~= $usage-name;
         } else {
-            $name ~= $prefix ~ $sigil ~ $twigil ~ $usage-name;
+            $name ~= $sigil ~ $twigil ~ $usage-name;
         }
-        if $.named {
+        if nqp::isconcrete(@!named_names) {
             my $var-is-named = False;
             my @outer-names  = gather for @.named_names {
                 if !$var-is-named && $_ eq $usage-name {
@@ -586,8 +586,6 @@ my class Parameter { # declared in BOOTSTRAP
             $name = ":$name" if $var-is-named;
             $name = ":$_\($name)" for @outer-names;
         }
-        $name ~= $.suffix;
-        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
 
         my $rest = '';
         if $!flags +& $SIG_ELEM_IS_RW {
@@ -623,8 +621,10 @@ my class Parameter { # declared in BOOTSTRAP
         elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
             $rest ~= " = OUTER::<$name>";
         }
-        $perl ~= $rest if $rest;
 
+        $name = "$prefix$name$.suffix";
+        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
+        $perl ~= $rest if $rest;
         $perl
     }
 

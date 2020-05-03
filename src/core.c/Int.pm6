@@ -51,6 +51,10 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method Int(--> Int) { self }
 
+    method sign(Int:D: --> Int:D) {
+        nqp::isgt_I(self,0) || nqp::neg_i(nqp::islt_I(self,0))
+    }
+
     multi method Str(Int:D: --> Str:D) {
         nqp::p6box_s(nqp::tostr_I(self));
     }

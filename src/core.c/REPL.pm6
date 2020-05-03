@@ -46,7 +46,7 @@ do {
         my $read = $Readline.new;
         if ! $*DISTRO.is-win {
             $read.read-init-file("/etc/inputrc");
-            $read.read-init-file("~/.inputrc");
+            $read.read-init-file(%*ENV<INPUTRC> // "~/.inputrc");
         }
         method init-line-editor {
             $read.read-history($.history-file);

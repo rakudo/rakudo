@@ -76,7 +76,7 @@ public final class RakOps {
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (!gcx.initialized) {
-            tc.gc.contConfigs.put("rakudo_scalar", new RakudoContainerConfigurer());
+            tc.gc.contConfigs.put("value_desc_cont", new RakudoContainerConfigurer());
             SixModelObject BOOTArray = tc.gc.BOOTArray;
             gcx.EMPTYARR = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
             SixModelObject BOOTHash = tc.gc.BOOTHash;

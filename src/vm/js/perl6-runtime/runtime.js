@@ -400,9 +400,9 @@ module.exports.load = function(nqp, CodeRef, Capture, containerSpecs) {
     this.store_unchecked = cursor.variant();
   };
 
-  RakudoScalar.prototype.name = 'rakudo_scalar';
+  RakudoScalar.prototype.name = 'value_desc_cont';
 
-  containerSpecs.rakudo_scalar = RakudoScalar;
+  containerSpecs.value_desc_cont = RakudoScalar;
 
   nqp.loadOps({op: op});
 };

@@ -173,6 +173,36 @@ my class Date does Dateish {
                &formatter, %_)
     }
 
+    method first-date-in-month(Date:D: --> Date:D) {
+        if $!day == 1 {
+            self
+        }
+        else {
+            my $date := nqp::clone(self);
+            nqp::bindattr_i($date,self.WHAT,'$!day',1);
+            nqp::bindattr_i(
+              $date,self.WHAT,'$!daycount',$!daycount + 1 - $!day
+            ) if $!daycount;
+            $date
+        }
+    }
+
+    method last-date-in-month(Date:D: --> Date:D) {
+        my int $last-day = self.days-in-month;
+
+        if $!day == $last-day {
+            self
+        }
+        else {
+            my $date := nqp::clone(self);
+            nqp::bindattr_i($date,self.WHAT,'$!day',$last-day);
+            nqp::bindattr_i(
+              $date,self.WHAT,'$!daycount',$!daycount + $last-day - $!day
+            ) if $!daycount;
+            $date
+        }
+    }
+
     multi method WHICH(Date:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
@@ -268,17 +298,22 @@ my class Date does Dateish {
 
     # Helper method to move a number of days
     method !move-days(int $days --> Date:D) {
-        my int $daycount = self.daycount + $days;
-        self!ymd-from-daycount(
-          $daycount, my int $year, my int $month, my int $day);
+        if $days > 0 && $!day + $days <= self.days-in-month {
+            self!move-days-within-month($days)
+        }
+        else {
+            my int $daycount = self.daycount + $days;
+            self!ymd-from-daycount(
+              $daycount, my int $year, my int $month, my int $day);
 
-        my $new := nqp::clone(self);
-        nqp::bindattr_i($new,Date,'$!year',$year);
-        nqp::bindattr_i($new,Date,'$!month',$month);
-        nqp::bindattr_i($new,Date,'$!day',
-          $day < 28 ?? $day !! self!clip-day($year,$month,$day));
-        nqp::bindattr_i($new,Date,'$!daycount',$daycount);
-        $new
+            my $new := nqp::clone(self);
+            nqp::bindattr_i($new,Date,'$!year',$year);
+            nqp::bindattr_i($new,Date,'$!month',$month);
+            nqp::bindattr_i($new,Date,'$!day',
+              $day < 28 ?? $day !! self!clip-day($year,$month,$day));
+            nqp::bindattr_i($new,Date,'$!daycount',$daycount);
+            $new
+        }
     }
 
     # If we overflow on days in the month, rather than throw an

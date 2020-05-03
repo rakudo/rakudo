@@ -759,7 +759,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
-    multi method STORE(List:D: Iterable:D \iterable, :$INITIALIZE! --> List:D) {
+    multi method STORE(List:D: Iterable:D \iterable, :INITIALIZE($)! --> List:D) {
         my \buffer := nqp::create(IterationBuffer);
         iterable.iterator.push-all(buffer);
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
@@ -1132,15 +1132,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.is-lazy    # reifies
           ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
           !! Seq.new: $!reified
-            ?? nqp::stmts(
-                 (my \src := nqp::clone(nqp::getattr(self,List,'$!reified'))),
-                 (my \dst := nqp::create(src.WHAT)),
-                 nqp::while(
-                   nqp::elems(src),
-                   nqp::push(dst,nqp::pop(src))
-                 ),
-                 Rakudo::Iterator.ReifiedList(dst)
-               )
+            ?? Rakudo::Iterator.ReifiedReverse(self, Mu)
             !! Rakudo::Iterator.Empty
     }
 

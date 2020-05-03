@@ -96,7 +96,7 @@ my class Set does Setty {
     multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
-    multi method STORE(Set:D: *@pairs, :$INITIALIZE! --> Set:D) {
+    multi method STORE(Set:D: *@pairs, :INITIALIZE($)! --> Set:D) {
         (my \iterator := @pairs.iterator).is-lazy
           ?? Failure.new(
                X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
@@ -106,7 +106,7 @@ my class Set does Setty {
                self.keyof
              ))
     }
-    multi method STORE(Set:D: \objects, \bools, :$INITIALIZE! --> Set:D) {
+    multi method STORE(Set:D: \objects, \bools, :INITIALIZE($)! --> Set:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-SET(
             nqp::create(Rakudo::Internals::IterationSet),

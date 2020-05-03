@@ -58,7 +58,7 @@ my class Exception {
             self!maybe-set-control() unless nqp::isconcrete($orig-ex);
         }
         $!bt := $bt; # Even if !$bt
-        nqp::setpayload($!ex, nqp::decont(self));
+        nqp::setpayload($!ex, self);
         nqp::throw($!ex)
     }
     method rethrow(Exception:D:) {
@@ -67,7 +67,7 @@ my class Exception {
             try nqp::setmessage($!ex, self.message);
             self!maybe-set-control();
         }
-        nqp::setpayload($!ex, nqp::decont(self));
+        nqp::setpayload($!ex, self);
         nqp::rethrow($!ex)
     }
 
@@ -90,6 +90,7 @@ my class Exception {
     }
 
     method is-compile-time(--> False) { }
+    method message() { ... }
 }
 
 my class X::SecurityPolicy is Exception {}
@@ -157,12 +158,19 @@ my class X::Method::NotFound is Exception {
     has Mu $.invocant;
     has $.method;
     has $.typename;
-    has Bool $.private = False;
+    has Bool $.private;
     has $.addendum;
+
+    method of-type() {
+        nqp::eqaddr(nqp::decont($!invocant),IterationEnd)
+          ?? "IterationEnd"
+          !! "of type '$.typename'"
+    }
+
     method message() {
         my $message = $.private
-          ?? "No such private method '!$.method' for invocant of type '$.typename'"
-          !! "No such method '$.method' for invocant of type '$.typename'";
+          ?? "No such private method '!$.method' for invocant $.of-type"
+          !! "No such method '$.method' for invocant $.of-type";
 
         my %suggestions;
         my int $max_length = do given $.method.chars {
@@ -686,7 +694,7 @@ my role X::Comp is Exception {
                     $r ~= "\n        $_";
                 }
             }
-            for @.modules.reverse[1..*] {
+            for @.modules.reverse.skip {
                 my $line = nqp::p6box_i($_<line>);
                 $r ~= $_<module>.defined
                         ?? "\n  from module $_<module> ($_<filename> line $line)"
@@ -773,7 +781,7 @@ my class X::Comp::BeginTime does X::Comp {
     multi method gist(::?CLASS:D: :$sorry = True) {
         my $r = $sorry ?? self.sorry_heading() !! "";
         $r ~= "$.message\nat $.filename():$.line";
-        for @.modules.reverse[1..*] {
+        for @.modules.reverse.skip {
             my $line = nqp::p6box_i($_<line>);
             $r ~= $_<module>.defined
                     ?? "\n  from module $_<module> ($_<filename> line $line)"
@@ -2157,8 +2165,19 @@ my class X::Range::InvalidArg is Exception {
 my class X::Sequence::Deduction is Exception {
     has $.from;
     method message() {
-        $!from ?? "Unable to deduce arithmetic or geometric sequence from $!from (or did you really mean '..'?)"
+        $!from ?? "Unable to deduce arithmetic or geometric sequence from: $!from\nDid you really mean '..'?"
                !! 'Unable to deduce sequence for some unfathomable reason'
+    }
+}
+
+my class X::Sequence::Endpoint is Exception {
+    has $.from;
+    has $.endpoint;
+    method message() {
+        "Incompatible endpoint for sequence: "
+          ~ $!from.raku
+          ~ " ... "
+          ~ $!endpoint.raku
     }
 }
 

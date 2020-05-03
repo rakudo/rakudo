@@ -31,6 +31,12 @@ my class Num does Real { # declared in BOOTSTRAP
           !! nqp::fromnum_I(nqp::unbox_n(self),Int)
     }
 
+    method sign(Num:D:) {
+        nqp::isnanorinf(self)
+          ?? self == Inf ?? 1 !! self == -Inf ?? -1 !! NaN
+          !! self  > 0   ?? 1 !! self <  0    ?? -1 !! 0
+    }
+
     multi method new() { nqp::box_n(0e0, self) }
     multi method new($n) { nqp::box_n($n.Num, self) }
 
@@ -43,17 +49,16 @@ my class Num does Real { # declared in BOOTSTRAP
           !! nqp::concat($res,'e0')
     }
 
-    method Rat(Num:D: Real $epsilon = 1.0e-6, :$fat) {
-        my \RAT = $fat ?? FatRat !! Rat;
+    method Rat(Num:D: Real:D \epsilon = 1.0e-6, \RAT = Rat) {
+        my num $num = self;
 
-        return RAT.new: (
-            nqp::iseq_n(self, self) ?? nqp::iseq_n(self, Inf) ?? 1 !! -1 !! 0
-          ), 0
-        if nqp::isnanorinf(nqp::unbox_n(self));
+        return RAT.new(
+          (nqp::iseq_n($num,$num) ?? nqp::iseq_n($num,Inf) ?? 1 !! -1 !! 0),
+          0
+        ) if nqp::isnanorinf($num);
 
-        my Num $num = self;
-        $num = -$num if (my int $signum = $num < 0);
-        my num $r = $num - floor($num);
+        $num = nqp::neg_n($num) if (my int $signum = nqp::islt_n($num,0e0));
+        my num $r = nqp::sub_n($num,nqp::floor_n($num));
 
         # basically have an Int
         if nqp::iseq_n($r,0e0) {
@@ -62,35 +67,49 @@ my class Num does Real { # declared in BOOTSTRAP
 
         # find convergents of the continued fraction.
         else {
-            my Int $q = nqp::fromnum_I($num, Int);
-            my Int $a = 1;
-            my Int $b = $q;
-            my Int $c = 0;
-            my Int $d = 1;
+            my Int $a := 1;
+            my Int $b := nqp::fromnum_I($num,Int);
+            my Int $c := 0;
+            my Int $d := 1;
 
-            while nqp::isne_n($r,0e0) && abs($num - ($b / $d)) > $epsilon {
-                my num $modf_arg = 1e0 / $r;
-                $q = nqp::fromnum_I($modf_arg, Int);
-                $r = $modf_arg - floor($modf_arg);
+            # bind some value to prevent Scalar container creation
+            my Int $q      := 0;
+            my Int $orig_b := 0;
+            my Int $orig_d := 0;
 
-                my $orig_b = $b;
-                $b = $q * $b + $a;
-                $a = $orig_b;
+            my num $modf_arg;
+            my num $epsilon = epsilon.Num;
 
-                my $orig_d = $d;
-                $d = $q * $d + $c;
-                $c = $orig_d;
-            }
+            nqp::while(
+              nqp::isne_n($r,0e0)
+                && nqp::isgt_n(
+                     nqp::abs_n(nqp::sub_n($num,nqp::div_In($b,$d))),
+                     $epsilon
+                   ),
+              nqp::stmts(
+                ($modf_arg = nqp::div_n(1e0,$r)),
+                ($q := nqp::fromnum_I($modf_arg,Int)),
+                ($r  = nqp::sub_n($modf_arg,nqp::floor_n($modf_arg))),
+
+                ($orig_b := $b),
+                ($b := nqp::add_I(nqp::mul_I($q,$b,Int),$a,Int)),
+                ($a := $orig_b),
+
+                ($orig_d := $d),
+                ($d := nqp::add_I(nqp::mul_I($q,$d,Int),$c,Int)),
+                ($c := $orig_d)
+              )
+            );
 
             # Note that this result has less error than any Rational with a
             # smaller denominator but it is not (necessarily) the Rational
             # with the smallest denominator that has less than $epsilon error.
             # However, to find that Rational would take more processing.
-            RAT.new($signum ?? -$b !! $b, $d)
+            RAT.new($signum ?? nqp::neg_I($b,Int) !! $b, $d)
         }
     }
     method FatRat(Num:D: Real $epsilon = 1.0e-6) {
-        self.Rat($epsilon, :fat);
+        self.Rat($epsilon, FatRat);
     }
 
     multi method atan2(Num:D: Num:D $x = 1e0) {

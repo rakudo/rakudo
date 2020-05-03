@@ -45,9 +45,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(RAKUDO_OPS_DIR)@  = dynext
 @bpv(RAKUDO_OPS_DLL)@  = @bpm(RAKUDO_OPS_DIR)@@nfp(/@perl6_ops_dll@)@
 @bpv(RAKUDO_OPS_OBJ)@  = @nfp(@bpm(RAKUDO_OPS_DIR)@/perl6_ops@moar::obj@)@
-@bpv(RAKUDO_CONT_OBJ)@ = @nfp(@bpm(RAKUDO_OPS_DIR)@/container@moar::obj@)@
 @bpv(RAKUDO_OPS_DLL_SRC)@  = @nfp(src/vm/moar/ops/perl6_ops.c)@
-@bpv(RAKUDO_CONT_SRC)@ = @nfp(src/vm/moar/ops/container.c)@
 
 @for_langalias(@for_toolchain(@bpv(@uclangalias@_@uctoolchain@_RUNNER)@ = @langalias@-@toolchain@-m@runner_suffix@
 )@)@
@@ -72,7 +70,6 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   @bpm(INST_@uclangalias@_DEBUG_M)@ \
 )@  @bpm(RAKUDO_OPS_DLL)@ \
   @bpm(RAKUDO_OPS_OBJ)@ \
-  @bpm(RAKUDO_CONT_OBJ)@ \
 @for_langalias(@for_toolchain(  @bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
 )@)@  rakudo-m.c \
   rakudo-m@moar::obj@ \
@@ -97,11 +94,10 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @include(Makefile-backend-common)@
 
-@bpm(RAKUDO_OPS_DLL)@: @bpm(RAKUDO_OPS_DLL_SRC)@ @bpm(RAKUDO_CONT_SRC)@
+@bpm(RAKUDO_OPS_DLL)@: @bpm(RAKUDO_OPS_DLL_SRC)@
 	@echo(+++ Compiling	$@)@
 	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(RAKUDO_OPS_OBJ)@ @bpm(RAKUDO_OPS_DLL_SRC)@
-	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(RAKUDO_CONT_OBJ)@ @bpm(RAKUDO_CONT_SRC)@
-	$(NOECHO)@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(RAKUDO_OPS_DLL)@ @bpm(RAKUDO_OPS_OBJ)@ @bpm(RAKUDO_CONT_OBJ)@ @moar_lib@
+	$(NOECHO)@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(RAKUDO_OPS_DLL)@ @bpm(RAKUDO_OPS_OBJ)@ @moar_lib@
 
 $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING_SRC)
 	$(NOECHO)@bpm(RUN_RAKUDO)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)

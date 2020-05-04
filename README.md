@@ -12,9 +12,10 @@ that would normally come with a full Raku distribution.  If you're
 after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
-Note that different backends implement slightly different sets of
-features. For a high-level overview of implemented and missing features,
-please visit [the features page on raku.org](https://perl6.org/compilers/features).
+Rakudo is currently the most developed implementation of the Raku
+ language; though there have been other partial implementations in the
+ past. [See the compilers page on the website for more](https://raku.org/compilers/).
+Rakudo has multiple backends: MoarVM and JVM. Note that each backend has a slightly different set of features.
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.

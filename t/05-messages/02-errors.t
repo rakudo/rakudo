@@ -290,7 +290,7 @@ throws-like ｢need v6.0;｣, Exception, :message{
 
 # https://github.com/Raku/old-issue-tracker/issues/4839
 throws-like ｢^42  .^methods.say｣, X::Syntax::Malformed,
-    :message{ .contains: 'only alphabetic methods may be detached' },
+    :message{ .contains: 'only basic method calls that exclusively use a dot can be detached' },
     'detached non-alpha method says what the problem is';
 
 #### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE

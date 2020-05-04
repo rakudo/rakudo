@@ -69,13 +69,6 @@ role Perl6::Metamodel::MethodContainer {
                         && nqp::can($_,'is-implementation-detail')
                         && $_.is-implementation-detail;
                 }
-
-                for nqp::hllize($_.HOW.submethod_table($_)) {
-                    @meths.push(nqp::decont($_.value))
-                      unless $check-implementation-detail
-                        && nqp::can($_,'is-implementation-detail')
-                        && $_.is-implementation-detail;
-                }
             }
         }
 

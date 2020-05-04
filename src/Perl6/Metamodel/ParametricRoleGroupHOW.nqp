@@ -21,6 +21,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     has @!candidates;
     has $!selector;
     has @!role_typecheck_list;
+    has @!nonsignatured;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new( :nominal(1), :composable(1), :inheritalizable(1), :parametric(1) );
     method archetypes() {
@@ -39,7 +40,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method new_type(:$name!, :$repr) {
         # Build and configure the type's basic details.
         my $meta := self.new(:selector($selector_creator()));
-        my $type_obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
+        my $type_obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
         $meta.set_name($type_obj, $name);
         $meta.set_pun_repr($meta, $repr) if $repr;
         $meta.set_boolification_mode($type_obj, 5);
@@ -89,11 +90,12 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
 
     method add_possibility($obj, $possible) {
         @!candidates[+@!candidates] := $possible;
+        nqp::push(@!nonsignatured, nqp::decont($possible)) unless $possible.HOW.signatured($possible);
         $!selector.add_dispatchee($possible.HOW.body_block($possible));
         self.update_role_typecheck_list($obj);
     }
 
-    method specialize($obj, *@pos_args, *%named_args) {
+    method select_candidate($obj, @pos_args, %named_args) {
         # Use multi-dispatcher to pick the body block of the best role.
         my $error;
         my $selected_body;
@@ -105,7 +107,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             CATCH { $error := $! }
         }
         if $error {
-            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            my %ex := nqp::gethllsym('Raku', 'P6EX');
             if nqp::existskey(%ex, 'X::Role::Parametric::NoSuchCandidate') {
                 %ex{'X::Role::Parametric::NoSuchCandidate'}($obj);
             }
@@ -125,17 +127,18 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         if $selected =:= NQPMu {
             nqp::die("Internal error: could not resolve body block to role candidate");
         }
+        $selected
+    }
 
+    method specialize($obj, *@pos_args, *%named_args) {
+        my $selected := self.select_candidate($obj, @pos_args, %named_args);
         # Having picked the appropriate one, specialize it.
         $selected.HOW.specialize($selected, |@pos_args, |%named_args);
     }
 
     method update_role_typecheck_list($obj) {
-        for @!candidates {
-            if !$_.HOW.signatured($_) {
-                @!role_typecheck_list := $_.HOW.role_typecheck_list($_);
-            }
-        }
+        my $ns := self.'!get_nonsignatured_candidate'($obj);
+        @!role_typecheck_list := $ns.HOW.role_typecheck_list($ns) unless nqp::isnull($ns);
     }
 
     method role_typecheck_list($obj) {
@@ -157,6 +160,8 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
                 return 1;
             }
         }
+        my $ns := self.'!get_nonsignatured_candidate'($obj);
+        return $ns.HOW.type_check_parents($ns, $decont) unless nqp::isnull($ns);
         0;
     }
 
@@ -177,6 +182,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $c.HOW.attributes($c, |@pos, |%name);
     }
 
+    method parents($obj, *%named) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.parents($c, |%named)
+    }
+
     method roles($obj, *%named) {
         my $c := self.'!get_default_candidate'($obj);
         $c.HOW.roles($c, |%named)
@@ -193,6 +203,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method !get_default_candidate($obj) {
-        @!candidates[0]
+        self.'!get_nonsignatured_candidate'($obj) || @!candidates[0]
+    }
+
+    method !get_nonsignatured_candidate($obj) {
+        return nqp::null unless +@!nonsignatured;
+        @!nonsignatured[0]
     }
 }

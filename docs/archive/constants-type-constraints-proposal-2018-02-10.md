@@ -10,7 +10,7 @@
     - [Behaviour with `@`-, `%`-, and `&amp;`-sigiled constants](#behaviour-with-----and--sigiled-constants)
         - [`@`-sigiled constants](#-sigiled-constants)
         - [`%`-sigiled constants](#-sigiled-constants-1)
-        - [`&amp;`-sigiled constants](#-sigiled-constants-2)
+        - [`&`-sigiled constants](#-sigiled-constants-2)
     - [Deviations from Current Behaviour](#deviations-from-current-behaviour)
 
 ## General Spec of Behaviour

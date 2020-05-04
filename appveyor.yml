@@ -11,7 +11,7 @@ platform:
   - x64
 
 # Operating system (build VM template)
-os: Visual Studio 2015
+os: Visual Studio 2017
 
 configuration:
   - Release
@@ -44,8 +44,8 @@ environment:
 
 # Installation
 install:
-  - '"C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.cmd" /x64'
-  - appveyor-retry choco install strawberryperl --version 5.20.1.1 --allow-empty-checksums
+  - '"C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat"'
+  - appveyor-retry choco install strawberryperl --version 5.22.3.1 --allow-empty-checksums
   - SET PATH=C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;%PATH%
   - ECHO %RAKUDO_OPTIONS%
   - CD %APPVEYOR_BUILD_FOLDER%
@@ -53,5 +53,7 @@ install:
 # Testing
 test_script:
   - perl Configure.pl %RAKUDO_OPTIONS%
+  - SET TEST_JOBS=1
+  - SET HARNESS_VERBOSE=1
   - nmake test
   - nmake install

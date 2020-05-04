@@ -1,0 +1,2 @@
+$*REPO.precomp-repository.precompile(@*ARGS[0].IO, 'precompiled_test', :force);
+$*REPO.precomp-repository.load('precompiled_test');

@@ -43,14 +43,20 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     method load_module($module_name, %opts, *@GLOBALish, :$line, :$file, :%chosen) {
         DEBUG("going to load $module_name") if $DEBUG;
-        if $module_name eq 'Perl6::BOOTSTRAP' {
-            my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), NQPMu);
+        if nqp::eqat($module_name, 'Perl6::BOOTSTRAP::v6', 0) {
+            my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), NQPMu);
             my %*COMPILING := {};
             my $*CTXSAVE := self;
             my $*MAIN_CTX;
-            my $file := 'Perl6/BOOTSTRAP' ~ self.file-extension;
-            my $include := nqp::getcomp('perl6').cli-options<nqp-lib>;
-            $file := ($include ?? $include ~ '/' !! nqp::getcomp('perl6').config<libdir> ~ '/nqp/lib/') ~ $file;
+            my $file := nqp::join('/', nqp::split('::', $module_name)) ~ self.file-extension;
+
+            my @prefixes := self.search_path();
+            for @prefixes -> $prefix {
+                if nqp::stat("$prefix/$file", 0) {
+                    $file := "$prefix/$file";
+                    last;
+                }
+            }
 
             if nqp::existskey(%modules_loaded, $file) {
                 return nqp::ctxlexpad(%modules_loaded{$file});
@@ -58,7 +64,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
             nqp::loadbytecode($file);
             %modules_loaded{$file} := my $module_ctx := $*MAIN_CTX;
-            nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+            nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
             my $UNIT := nqp::ctxlexpad($module_ctx);
             if +@GLOBALish {
                 unless nqp::isnull($UNIT<GLOBALish>) {
@@ -67,7 +73,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             }
             return $UNIT;
         }
-
         if nqp::existskey(%language_module_loaders, %opts<from> // 'NQP') {
             # We expect that custom module loaders will accept a Stash, only
             # NQP expects a hash and therefor needs special handling.
@@ -106,37 +111,38 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         for stash_hash($target) {
             %known_symbols{$_.key} := 1;
         }
-        for stash_hash($source) {
-            my $sym := $_.key;
+        my %source := stash_hash($source);
+        for sorted_keys(%source) -> $sym {
+            my $value := %source{$sym};
             if !%known_symbols{$sym} {
-                ($target){$sym} := $_.value;
+                ($target){$sym} := $value;
             }
-            elsif nqp::decont(($target){$sym}) =:= nqp::decont($_.value) { # Stash entries are containerized
+            elsif nqp::decont(($target){$sym}) =:= nqp::decont($value) { # Stash entries are containerized
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
-                my $source_is_stub := is_stub($_.value.HOW);
+                my $source_is_stub := is_stub($value.HOW);
                 my $target_is_stub := is_stub(($target){$sym}.HOW);
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
-                    self.merge_globals(($target){$sym}.WHO, $_.value.WHO);
+                    self.merge_globals(($target){$sym}.WHO, $value.WHO);
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
-                    self.merge_globals(($target){$sym}.WHO, $_.value.WHO);
+                    self.merge_globals(($target){$sym}.WHO, $value.WHO);
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($_.value.WHO, ($target){$sym}.WHO);
-                    ($target){$sym} := $_.value;
+                    self.merge_globals($value.WHO, ($target){$sym}.WHO);
+                    ($target){$sym} := $value;
                 }
-                elsif nqp::eqat($_.key, '&', 0) {
+                elsif nqp::eqat($sym, '&', 0) {
                     # "Latest wins" semantics for functions
-                    ($target){$sym} := $_.value;
+                    ($target){$sym} := $value;
                 }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
@@ -151,8 +157,9 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         for $target.symtable {
             %known_symbols{$_.key} := $_.value<value>;
         }
-        for stash_hash($source) {
-            my $sym := $_.key;
+        my %source := stash_hash($source);
+        for sorted_keys(%source) -> $sym {
+            my $value := %source{$sym};
             my $outer := 0;
             if !nqp::existskey(%known_symbols, $sym) {
                 try {
@@ -161,43 +168,43 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 }
             }
             if !nqp::existskey(%known_symbols, $sym) {
-                $target.symbol($sym, :scope('lexical'), :value($_.value));
+                $target.symbol($sym, :scope('lexical'), :value($value));
                 $target[0].push(QAST::Var.new(
-                    :scope('lexical'), :name($sym), :decl('static'), :value($_.value)
+                    :scope('lexical'), :name($sym), :decl('static'), :value($value)
                 ));
-                $world.add_object_if_no_sc($_.value);
+                $world.add_object_if_no_sc($value);
             }
-            elsif nqp::decont(%known_symbols{$_.key}) =:= nqp::decont($_.value) { # Stash entries are containerized
+            elsif nqp::decont(%known_symbols{$sym}) =:= nqp::decont($value) { # Stash entries are containerized
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
-                my $existing := %known_symbols{$_.key};
-                my $source_is_stub := is_stub($_.value.HOW);
+                my $existing := %known_symbols{$sym};
+                my $source_is_stub := is_stub($value.HOW);
                 my $target_is_stub := is_stub($existing.HOW);
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
-                    self.merge_globals($existing.WHO, $_.value.WHO);
+                    self.merge_globals($existing.WHO, $value.WHO);
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
-                    self.merge_globals($existing.WHO, $_.value.WHO);
+                    self.merge_globals($existing.WHO, $value.WHO);
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
-                    self.merge_globals($_.value.WHO, $existing.WHO);
-                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                    self.merge_globals($value.WHO, $existing.WHO);
+                    $target.symbol($sym, :scope('lexical'), :value($value));
                 }
-                elsif nqp::eqat($_.key, '&', 0) {
+                elsif nqp::eqat($sym, '&', 0) {
                     # "Latest wins" semantics for functions
-                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                    $target.symbol($sym, :scope('lexical'), :value($value));
                 }
                 elsif $outer {
                     # It's ok to overwrite non-stub symbols of outer lexical scopes
-                    $target.symbol($sym, :scope('lexical'), :value($_.value));
+                    $target.symbol($sym, :scope('lexical'), :value($value));
                 }
                 else {
                     nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
@@ -206,10 +213,40 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
 
+    my %previous_setting_name := nqp::hash(
+      'NULL.c',  'NULL.c',    # identity
+      'CORE.c',  'CORE.c',
+      'NULL.d',  'CORE.c',
+      'CORE.d',  'CORE.d',
+      'NULL.e',  'CORE.d',
+      'CORE.e',  'CORE.e'
+    );
+
+    # Transforms NULL.<release> into CORE.<previous-release>
+    method previous_setting_name ($setting_name, :$base = 'CORE') {
+        %previous_setting_name{$setting_name} // nqp::die("Don't know setting $setting_name")
+    }
+
+    method transform_setting_name ($setting_name) {
+        return self.previous_setting_name($setting_name, base => 'NULL');
+    }
+
     method load_setting($setting_name) {
         my $setting;
 
-        if $setting_name ne 'NULL' {
+        if $setting_name ne 'NULL.c' {
+            DEBUG("Requested for settings $setting_name") if $DEBUG;
+            # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
+            $setting_name := self.transform_setting_name($setting_name);
+
+            # First, pre-load previous setting.
+            my $prev_setting_name := self.previous_setting_name($setting_name);
+            my $prev_setting;
+            # Don't do this for .c for which $setting_name doesn't change
+            unless nqp::iseq_s($prev_setting_name, $setting_name) {
+                $prev_setting := self.load_setting($prev_setting_name);
+            }
+
             # Unless we already did so, locate and load the setting.
             unless nqp::defined(%settings_loaded{$setting_name}) {
                 DEBUG("Loading settings $setting_name") if $DEBUG;
@@ -219,14 +256,16 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 # Load it.
                 my $*CTXSAVE := self;
                 my $*MAIN_CTX;
-                my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), NQPMu);
+                my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), NQPMu);
                 nqp::scwbdisable();
+                DEBUG("Loading bytecode from $path") if $DEBUG;
                 nqp::loadbytecode($path);
                 nqp::scwbenable();
-                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
                 unless nqp::defined($*MAIN_CTX) {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
+                nqp::forceouterctx(nqp::ctxcode($*MAIN_CTX), $prev_setting) if nqp::defined($prev_setting);
                 %settings_loaded{$setting_name} := $*MAIN_CTX;
                 DEBUG("Settings $setting_name loaded") if $DEBUG;
             }
@@ -266,4 +305,4 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
 # We stash this in the perl6 HLL namespace, just so it's easy to
 # locate. Note this makes it invisible inside Perl 6 itself.
-nqp::bindhllsym('perl6', 'ModuleLoader', Perl6::ModuleLoader);
+nqp::bindhllsym('Raku', 'ModuleLoader', Perl6::ModuleLoader);

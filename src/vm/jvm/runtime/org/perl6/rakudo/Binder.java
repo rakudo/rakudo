@@ -320,7 +320,7 @@ public final class Binder {
             arg_o = createBox(tc, gcx, origArg, gotNative);
         }
         else {
-            /* We need to do an unboxing opeation. */
+            /* We need to do an unboxing operation. */
             SixModelObject decontValue = Ops.decont((SixModelObject)origArg, tc);
             StorageSpec spec = decontValue.st.REPR.get_storage_spec(tc, decontValue.st);
             switch (desiredNative) {
@@ -394,7 +394,7 @@ public final class Binder {
             if (!noNomTypeCheck) {
                 /* Is the nominal type generic and in need of instantiation? (This
                  * can happen in (::T, T) where we didn't learn about the type until
-                 * during the signature bind). */
+                 * during the signature bind.) */
                 nomType = param.get_attribute_boxed(tc, gcx.Parameter,
                     "$!nominal_type", HINT_nominal_type);
                 if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
@@ -412,13 +412,13 @@ public final class Binder {
                 /* If the expected type is Positional, see if we need to do the
                  * positional bind failover. */
                 if (nomType == gcx.Positional) {
-                    if (Ops.istype_nodecont(arg_o, gcx.PositionalBindFailover, tc) != 0) {
+                    if (Ops.istype_nd(arg_o, gcx.PositionalBindFailover, tc) != 0) {
                         SixModelObject ig = Ops.findmethod(arg_o, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
                         arg_o = Ops.result_o(tc.curFrame);
                         decontValue = Ops.decont(arg_o, tc);
                     }
-                    else if (Ops.istype_nodecont(decontValue, gcx.PositionalBindFailover, tc) != 0) {
+                    else if (Ops.istype_nd(decontValue, gcx.PositionalBindFailover, tc) != 0) {
                         SixModelObject ig = Ops.findmethod(decontValue, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { decontValue });
                         decontValue = Ops.result_o(tc.curFrame);
@@ -429,7 +429,7 @@ public final class Binder {
                  * anything goes.
                  * When binding a slurpy named hash while compiling the setting don't check for Associative.
                  */
-                if (nomType != gcx.Mu && !(isSlurpyNamed && nomType == gcx.Associative) && Ops.istype_nodecont(decontValue, nomType, tc) == 0) {
+                if (nomType != gcx.Mu && !(isSlurpyNamed && nomType == gcx.Associative) && Ops.istype_nd(decontValue, nomType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
                     if (error != null) {
                         SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
@@ -833,7 +833,18 @@ public final class Binder {
                 return res;
             }
             else {
-                return param.get_attribute_boxed(tc, gcx.Parameter, "$!nominal_type", HINT_nominal_type);
+                param.get_attribute_native(tc, gcx.Parameter, "$!flags", HINT_flags);
+                int paramFlags = (int)tc.native_i;
+                switch (paramFlags & SIG_ELEM_NATIVE_VALUE) {
+                    case SIG_ELEM_NATIVE_INT_VALUE:
+                        return createBox(tc, gcx, (long)0, CallSiteDescriptor.ARG_INT);
+                    case SIG_ELEM_NATIVE_NUM_VALUE:
+                        return createBox(tc, gcx, (double)0.0, CallSiteDescriptor.ARG_NUM);
+                    case SIG_ELEM_NATIVE_STR_VALUE:
+                        return createBox(tc, gcx, null, CallSiteDescriptor.ARG_STR);
+                    default:
+                        return param.get_attribute_boxed(tc, gcx.Parameter, "$!nominal_type", HINT_nominal_type);
+                }
             }
         }
     }
@@ -947,7 +958,7 @@ public final class Binder {
             else if (namedNames == null) {
                 /* Slurpy or LoL-slurpy? */
                 if ((flags & (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG)) != 0) {
-                    /* Create Perl 6 array, create VM array of all remaining things,
+                    /* Create Raku array, create VM array of all remaining things,
                      * then store it. */
                     SixModelObject slurpy = gcx.EMPTYARR.clone(tc);
                     while (curPosArg < numPosArgs) {
@@ -984,7 +995,7 @@ public final class Binder {
 
                 /* Otherwise, a positional. */
                 else {
-                    /* Do we have a value?. */
+                    /* Do we have a value? */
                     if (curPosArg < numPosArgs) {
                         /* Easy - just bind that. */
                         bindFail = bindOneParam(tc, gcx, cf, param, args[curPosArg],

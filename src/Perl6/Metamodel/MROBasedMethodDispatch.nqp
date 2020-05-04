@@ -7,14 +7,14 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
 #nqp::say( "looking for " ~ $name ~ " in " ~ $obj.HOW.name($obj) );
 #
         if nqp::can($obj.HOW, 'submethod_table') {
-            my %submethods := $obj.HOW.submethod_table($obj);
+            my %submethods := nqp::hllize($obj.HOW.submethod_table($obj));
             if nqp::existskey(%submethods, $name) {
                 return %submethods{$name}
             }
         }
         my %methods;
         for self.mro($obj) {
-            %methods := $_.HOW.method_table($_);
+            %methods := nqp::hllize($_.HOW.method_table($_));
             if nqp::existskey(%methods, $name) {
                 return %methods{$name}
             }
@@ -26,9 +26,10 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
 
     method find_method_qualified($obj, $qtype, $name) {
         if $qtype.HOW.archetypes.parametric && nqp::can(self, 'concretization') {
-            # Resolve it via the concrete form of this parametric.
-            my $conc := self.concretization($obj, $qtype);
-            $conc.HOW.method_table($conc){$name}
+            # Resolve it via the concrete form of this parametric. Look deep for a candidate.
+            my $conc := self.concretization($obj, $qtype, :local(0), :transitive(1), :relaxed(1));
+            nqp::hllize($conc.HOW.method_table($conc)){$name}
+                || nqp::hllize($conc.HOW.submethod_table($conc)){$name}
         }
         else {
             # Non-parametric, so just locate it from the already concrete
@@ -40,12 +41,12 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     # Maybe this belongs on a role. Also, may be worth memoizing.
     method can($obj, $name) {
         my @meths;
-        my %smt := self.submethod_table($obj);
+        my %smt := nqp::hllize(self.submethod_table($obj));
         if nqp::existskey(%smt, $name) {
             @meths.push(%smt{$name});
         }
         for self.mro($obj) {
-            my %mt := $_.HOW.method_table($_);
+            my %mt := nqp::hllize($_.HOW.method_table($_));
             if nqp::existskey(%mt, $name) {
                 @meths.push(%mt{$name})
             }
@@ -63,8 +64,8 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
             @mro_reversed.unshift($_);
         }
         for @mro_reversed {
-            for $_.HOW.method_table($_) {
-                %cache{$_.key} := $_.value;
+            for nqp::hllize($_.HOW.method_table($_)) {
+                %cache{$_.key} := nqp::decont($_.value);
             }
             if nqp::can($_.HOW, 'is_composed') && !$_.HOW.is_composed($_) {
                 $authable := 0;
@@ -72,8 +73,8 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         }
 
         # Also add submethods.
-        for $obj.HOW.submethod_table($obj) {
-            %cache{$_.key} := $_.value;
+        for nqp::hllize($obj.HOW.submethod_table($obj)) {
+            %cache{$_.key} := nqp::decont($_.value);
         }
 
         nqp::setmethcache($obj, %cache);

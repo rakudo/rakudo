@@ -34,4 +34,4 @@ class Perl6::JavaModuleLoader {
 }
 
 Perl6::ModuleLoader.register_language_module_loader('Java', Perl6::JavaModuleLoader);
-nqp::bindhllsym('perl6', 'JavaModuleLoader', Perl6::JavaModuleLoader);
+nqp::bindhllsym('Raku', 'JavaModuleLoader', Perl6::JavaModuleLoader);

@@ -552,6 +552,8 @@ S11-modules/need.t
 S11-modules/nested.t
 S11-modules/require.t
 S11-repository/curli-install.t
+S11-repository/cur-candidates.t
+S11-repository/cur-current-distribution.t
 S12-attributes/class.t
 S12-attributes/clone.t
 S12-attributes/defaults.t
@@ -1033,6 +1035,7 @@ S32-str/trim.t
 S32-str/uc.t
 S32-str/unpack.t
 S32-str/utf8-c8.t       # moar
+S32-str/val.t
 S32-str/words.t
 S32-temporal/calendar.t
 S32-temporal/Date.t

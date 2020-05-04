@@ -1,0 +1,5 @@
+@insert(sh-prelude)@
+
+@insert(rakudo-debug-notice)@
+
+lldb -o run "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"

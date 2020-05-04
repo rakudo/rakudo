@@ -28,7 +28,9 @@ GetOptions(
     'quick:1'           => \my $do_quick,
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
+    'precompile'        => \my $precompile,
     'jvm'               => \my $jvm,
+    'js'               => \my $js,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
     'slow'              => \(my $slow = !$win),
@@ -39,16 +41,19 @@ GetOptions(
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
 
-$ENV{'HARNESS_PERL'} = ".${slash}perl6-" . ($moar ? "m" : $jvm ? "j" : "m");
-$ENV{'PERL6LIB'} = "lib";
+$ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
+$ENV{'PERL6LIB'} = "./lib"; 
 
 my @slow;
 if ($list_file) {
     $list_file = convert_to_versioned_file($list_file);
 
     my $perl5 = not system $ENV{HARNESS_PERL} . ' -e "exit !try { require Inline::Perl5; 1 }"';
-    print "Inline::Perl5 not installed: not running Perl 5 integration tests\n"
-      if !$perl5;
+    if (!$perl5) {
+        print "Inline::Perl5 not installed: not running Perl 5 integration tests\n";
+        print "You can install Inline::Perl5 into the build directory with\n\n";
+        print "    zef --install-to=inst#$FindBin::Bin/../gen/build_rakudo_home/site install Inline::Perl5\n\n";
+    }
 
     open(my $f, '<', $list_file)
         or die "Can't open file '$list_file' for reading: $!";
@@ -83,6 +88,8 @@ if ($list_file) {
 my @tfiles = $randomize
   ? shuffle map { all_in($_) } @files
   : map { all_in($_) } sort @files;
+
+
 if (@slow) {
     @slow = map { all_in($_) } @slow;
 
@@ -97,6 +104,26 @@ if (@slow) {
 
 if ($do_fudge) {
     @tfiles = map { fudge(@$_) } batch( 200, @tfiles );
+}
+
+sub has_use_lib {
+  my ($file) = @_;
+  my $seen_use_lib = 0;
+  open(my $fh, '<', $file);
+  while (my $line = <$fh>) {
+     $seen_use_lib = 1 if $line =~ /^\s*use lib/;
+  }
+  $seen_use_lib;
+}
+
+if ($precompile) {
+  @tfiles = map {
+    if (ref $_) {
+      [grep {!has_use_lib($_)} @$_];
+    } else {
+      has_use_lib($_) ? () : $_;
+    }
+  } @tfiles;
 }
 
 my $tap_harness_class = 'TAP::Harness';
@@ -114,13 +141,14 @@ if ($jvm) {
 
     no warnings 'once';
     # leak the filehandle; it will be closed at exit, robustly telling the server to terminate
-    open JVMSERVER, "| .${slash}perl6-eval-server -bind-stdin -cookie TESTTOKEN -app .${slash}perl6.jar" or die "cannot fork eval server: $!\n";
+    open JVMSERVER, "| .${slash}rakudo-eval-server -bind-stdin -cookie TESTTOKEN -app .${slash}rakudo.jar" or die "cannot fork eval server: $!\n";
     sleep 1;
 }
 
 if (eval "require $tap_harness_class;") {
+    my $run_with_perl = $precompile ? [$ENV{HARNESS_PERL}, 't/precompileandrun'] : [$ENV{HARNESS_PERL}];
     my %harness_options = (
-        exec        => $jvm ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : [$ENV{HARNESS_PERL}],
+        exec        => $jvm ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : $run_with_perl,
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs,
         ignore_exit => 1,
@@ -181,7 +209,7 @@ sub all_in {
 }
 
 sub fudge {
-    my $impl = $moar ? 'rakudo.moar' : 'rakudo.jvm';
+    my $impl = $js ? 'rakudo.js' : $moar ? 'rakudo.moar' : 'rakudo.jvm';
     my $cmd  = join ' ', $^X, 't/spec/fudgeall',
                          @pass_through_options, $impl, @_;
     return split ' ', `$cmd`;
@@ -236,8 +264,9 @@ Options:
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
     --slow - spread tests marked "slow" equally over the run (default on non-Win)
-    --moar/--jvm - mutually exclusive. Use MoarVM/JVM backend
+    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM backend
     --no-merge - pass STDERR from the tests through to the terminal's STDERR
+    --precompile - precompile tests before running them
 
     --verbosity=[level] - set the verbosity level.
        1   verbose        Print individual test results to STDOUT.

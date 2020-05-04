@@ -23,15 +23,17 @@ class Perl6::Metamodel::NativeHOW
 
     method new_type(:$name = '<anon>', :$repr = 'P6opaque', :$ver, :$auth, :$api) {
         my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'perl6');
+        my $obj := nqp::settypehll(nqp::newtype($metaclass, $repr), 'Raku');
         $metaclass.set_name($obj, $name);
-        $metaclass.set_ver($obj, $ver) if $ver;
+        $metaclass.set_ver($obj, $ver);
         $metaclass.set_auth($obj, $auth) if $auth;
         $metaclass.set_api($obj, $api) if $api;
         self.add_stash($obj);
     }
 
-    method compose($obj, :$compiler_services) {
+    method compose($the-obj, :$compiler_services) {
+        my $obj := nqp::decont($the-obj);
+
         self.compute_mro($obj);
         self.publish_method_cache($obj);
         self.publish_type_cache($obj);

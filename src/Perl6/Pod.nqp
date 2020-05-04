@@ -1,5 +1,60 @@
 class Perl6::Pod {
 
+    # some helper classes
+    class Kv {
+        # a class to help construct a key/value pair
+        # during %config reconstruction
+        has $!key;
+        has $!val;
+        method reset()     { $!key := ''; $!val := '' }
+        method add2key($c) { $!key := nqp::concat($!key, $c) }
+        method add2val($c) { $!val := nqp::concat($!val, $c) }
+        method pushpair(@arr, :$delete-numbered) {
+            nqp::die("FATAL: unexpected push with null key") if !self.key;
+            if $delete-numbered && $!key ne 'numbered' {
+                @arr.push(nqp::list($!key, $!val));
+            }
+            self.reset;
+        }
+        method key() { return $!key }
+        method val() { return $!val }
+    }
+
+    class Fc {
+        # holds data for a formatting code chunk
+        has $!code;
+        has $!str;
+        has @!meta;
+        method init() {
+            $!code := ''; $!str := ''; @!meta := [];
+        }
+        method setcode($c)  { $!code := $c }
+        method add2str($s)  { $!str := nqp::concat($!str, $s) }
+        method add2meta($s) { @!meta.push($s) }
+        method code()       { return $!code }
+        method string()     { return $!str }
+        method meta()       { return @!meta }
+    }
+
+    class Stat {
+        # a class to keep parser state during %config
+        # reconstruction
+        has $!inspc;
+        has $!inkey;
+        has $!inval;
+        method setspc() { self.reset; $!inspc := 1;}
+        method setkey() { self.reset; $!inkey := 1;}
+        method setval() { self.reset; $!inval := 1;}
+        method reset() {
+            $!inspc := 0;
+            $!inkey := 0;
+            $!inval := 0;
+        }
+        method inspc() { return $!inspc;}
+        method inkey() { return $!inkey;}
+        method inval() { return $!inval;}
+    }
+
     # various helpers for Pod parsing and processing
 
     my $caption := ''; # var to save table caption values between
@@ -80,6 +135,13 @@ class Perl6::Pod {
                                  ]+/;
     # literal normal space (U+0020)
     my $SPACE := "\x[0020]";
+    # empty string
+    my $EMPTY := '';
+
+    # block types
+    my $para-block   := 'paragraph';
+    my $delim-block  := 'delimited';
+    my $abbrev-block := 'abbreviated';
 
     our sub document($/, $what, $with, :$leading, :$trailing) {
         if $leading && $trailing || !$leading && !$trailing {
@@ -95,21 +157,127 @@ class Perl6::Pod {
         }
     }
 
-    our sub any_block($/) {
+    our sub has-numbered-alias($/) {
+        my $val := 0;
+        if nqp::defined($<numbered-alias>) {
+            $val := $<numbered-alias>.Str;
+        }
+        if nqp::defined($val) && $val ~~ /'#'/ {
+            $val := 1;
+            nqp::die("DEBUG FATAL if has '#'") if 0;
+        }
+        return $val;
+    }
+
+    our sub get-numbered-config() {
+        # creates a NEW config hash for the '#' numbered alias
+        # DO NOT USE THIS IF THE CONFIG HASH NEEDS MODIFYING
+
+        # create key/value pairs to be serialized
+        my @pairs := nqp::list();
+        my $key   := 'numbered';
+        my $val   := 1;
+        @pairs.push(
+            serialize_object(
+                'Pair', :key($key), :value($val)
+            ).compile_time_value
+        );
+        my $config := serialize_object('Hash', |@pairs).compile_time_value;
+        return $config;
+    }
+
+    our sub defn($/, $blocktype) {
+        # produces a Perl 6 instance of Pod::Defn
+
+        my $config := add-numbered-to-config($/);
+
+        my $type := $<type>.Str;
+        die("FATAL: the incoming object is NOT a =defn block, type: $type")
+            if $type !~~ /^defn/;
+
+        # the final Perl 6 type
+        my $p6type := 'Pod::Defn';
+
+        # Get all content lines.  The first line is the term for all
+        # block types.
+        my @children := [];
+        for $<pod_content> {
+            # split lines at newlines
+            my @lines := lines($_);
+            for @lines {
+                my $s := normalize_text($_);
+                @children.push($s);
+            }
+        }
+
+        my $term := @children.shift;
+
+        # The remaining @children array should have lines of text with
+        # an empty line being a paragraph separator. Combine
+        # consecutive paragraph lines into a single line.  TODO ensure
+        # formatted code is considered
+        my @paras := [];
+        my $para-line := '';
+        for @children -> $line {
+            if $line {
+                # concat to the current line
+                $para-line := nqp::concat($para-line, $SPACE) if $para-line;
+                $para-line := nqp::concat($para-line, $line);
+            }
+            else {
+                # put existing line in the para array and start a new line
+                @paras.push($para-line);
+                $para-line := '';
+            }
+        }
+        # don't forget the last line
+        @paras.push($para-line) if $para-line;
+
+        # now build the Pod::Defn class
+        my @pcontents := [];
+        for @paras -> $para {
+            # each para is a new pod para class with contents that may
+            # include format code
+            my @contents := nqp::list($para);
+            @contents    := serialize_array(@contents).compile_time_value;
+            my $obj := serialize_object('Pod::Block::Para', :@contents).compile_time_value;
+            @pcontents.push($obj);
+        }
+        my $contents := serialize_array(@pcontents).compile_time_value;
+
+        # TODO is this right?? should it not be a para?
+        my $term-qast := $*W.add_constant(
+            'Str', 'str', $term,
+        ).compile_time_value;
+
+        # build and return the complete object
+        my $qast := serialize_object(
+            $p6type,
+            :config($config),
+            :contents($contents),
+            :term($term-qast),
+        ).compile_time_value;
+        return $qast;
+    }
+
+    our sub any_block($/, $blocktype) {
+        my $config := add-numbered-to-config($/);
+
         my @children := [];
         my $type;
         my $leveled;
-        my $config := $<pod_configuration>
-            ?? $<pod_configuration>.ast
-            !! serialize_object('Hash').compile_time_value;
+        my $ident  := $<type>.Str;
 
-        if $<type>.Str ~~ /^item \d*$/ {
+        if $ident ~~ /^item \d*$/ {
             $type    := 'Pod::Item';
             $leveled := 1;
         }
-        elsif $<type>.Str ~~ /^head \d+$/ {
+        elsif $ident ~~ /^head \d+$/ {
             $type    := 'Pod::Heading';
             $leveled := 1;
+        }
+        elsif $ident ~~ /^defn / {
+            die("FATAL: should not be able to get here with a =defn block");
         }
         else {
             $type := 'Pod::Block::Named';
@@ -122,34 +290,38 @@ class Perl6::Pod {
 
             while $i < $elems {
                 @children.push($array.AT-POS($i));
-                $i++;
+                ++$i;
             }
         }
 
-        my $contents := serialize_array(@children);
+        my $contents := serialize_array(@children).compile_time_value;
         if $leveled {
             my $level := nqp::substr($<type>.Str, 4);
-            my $level_past;
+            my $level-qast;
             if $level eq '' {
                 $level := "1";
             }
-            $level_past := $*W.add_constant(
+            $level-qast := $*W.add_constant(
                 'Int', 'int', +$level,
             ).compile_time_value;
 
-            my $past := serialize_object(
-                $type, :level($level_past), :config($config),
-                :contents($contents.compile_time_value)
+            my $qast := serialize_object(
+                $type,
+                :level($level-qast),
+                :config($config),
+                :contents($contents)
             );
-            return $past.compile_time_value;
+            return $qast.compile_time_value;
         }
 
         my $name := $*W.add_constant('Str', 'str', $<type>.Str);
-        my $past := serialize_object(
-            'Pod::Block::Named', :name($name.compile_time_value),
-            :config($config), :contents($contents.compile_time_value),
+        my $qast := serialize_object(
+            'Pod::Block::Named',
+            :name($name.compile_time_value),
+            :config($config),
+            :contents($contents),
         );
-        return $past.compile_time_value;
+        return $qast.compile_time_value;
     }
 
     our sub raw_block($/) {
@@ -314,7 +486,7 @@ class Perl6::Pod {
                 $quoted   := nqp::null();
             }
 
-            if nqp::chars($quoted) {
+            if nqp::chars($quote) || nqp::chars($quoted) {
                 $word := nqp::concat($word, $quoted);
             }
             elsif nqp::chars($unquoted) {
@@ -326,7 +498,7 @@ class Perl6::Pod {
                 @pieces.push($delim) if ($keep eq 'delimiters');
                 $word := '';
             }
-            if !nqp::chars($line) && nqp::chars($word) {
+            if !nqp::chars($line) && (nqp::chars($quote) || nqp::chars($word)) {
                 @pieces.push($word);
                 $word := '';
             }
@@ -354,13 +526,14 @@ class Perl6::Pod {
         # break into an array
         my @arr := string2array($st);
 
-        if nqp::elems(@arr) > 1 {
-            return serialize_object('Array', |@arr).compile_time_value;
-        }
-        else {
+        if nqp::elems(@arr) == 1 {
             # convert a single-element list to a single value
             my $val := @arr[0];
             return $val;
+        }
+        else {
+            # 0 or 2 or more elements are an array
+            return serialize_object('Array', |@arr).compile_time_value;
         }
     }
 
@@ -377,6 +550,7 @@ class Perl6::Pod {
         # iterate over the "hash" and create key/value pairs to be serialized
         for @arr -> $k, $v {
             my str $key := $k;
+            # TODO check key for 'caption', warn of deprecation for version 6.d if found
             my $val     := $v;
             say("DEBUG hash: '$key' => '$val'") if $debugp;
             @pairs.push(
@@ -389,13 +563,12 @@ class Perl6::Pod {
     }
 
     our sub make_config($/) {
-        my @pairs;
+        my @pairs := [];
         for $<colonpair> -> $colonpair {
             my $key := $colonpair<identifier>;
             say("==DEBUG config colonpair key: |$key|") if $debugp;
-            my $val;
 
-            # TODO document complete structure of $<colonpair>
+            my $val;
             if $colonpair<coloncircumfix><circumfix> {
                 $val := $colonpair<coloncircumfix><circumfix>;
                 say("  DEBUG incoming colonpair circumfix val: |$val|") if $debugp;
@@ -429,17 +602,42 @@ class Perl6::Pod {
             }
             else {
                 say("  DEBUG incoming colonpair non-circumfix val: |$colonpair|") if $debugp;
-                my $truth := !nqp::eqat($colonpair, '!', 1);
-                say("        non-circumfix after processing: val: |$truth|") if $debugp;
-                $val := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+                # issue #2793: should be able to use, e.g., ':nnnfoo' to represent:
+                #   foo => nnn
+                # new possibilities for non-circumfix val:
+                #   foo    === foo(True)  # Bool; prefix = ''
+                #   !foo   === foo(False) # Bool; prefix = '!'
+                #   nnnfoo === foo(nnn)   # Int;  prefix = 'nnn'
+                #
+                # colonpair = $prefix ~ $key
+                my $prefix := subst($colonpair, /$key/, '');
+                $prefix := subst($prefix, /':'/, '');
+                my $regex := /^ \d+ $/;
+
+                say("  DEBUG colonpair non-circumfix prefix: |$prefix|") if $debugp;
+                if $prefix eq '' {
+                    $val := $*W.add_constant('Bool', 'int', 1).compile_time_value;
+                }
+                elsif $prefix eq '!' {
+                    $val := $*W.add_constant('Bool', 'int', 0).compile_time_value;
+                }
+                elsif $prefix ~~ /^ \d+ $/ {
+                    $val := $*W.add_constant('Int', 'int', $prefix).compile_time_value;
+                }
+                else {
+                    nqp::die("FATAL:  Invalid key ($key) / colonpair ($colonpair) combo in pod config string");
+                }
+
             }
 
-            if $key eq "allow" {
+            if $key eq 'allow' {
                 my $chars := nqp::chars($val);
                 my $pos := 0;
                 while $pos < $chars {
                     my $char := nqp::substr($val, $pos, 1);
-                    if $char eq " " {
+                    # space char
+                    #if $char eq " " {
+                    if $char eq $SPACE {
                         $pos := $pos + 1;
                     }
                     else {
@@ -459,7 +657,8 @@ class Perl6::Pod {
                 ).compile_time_value
             );
         }
-        return serialize_object('Hash', |@pairs).compile_time_value;
+
+        serialize_object('Hash', |@pairs).compile_time_value;
     }
 
     our sub normalize_text($a) {
@@ -515,11 +714,28 @@ class Perl6::Pod {
 
         }
         return build_pod_strings(@strings);
+    }
 
+    our sub lines($S, :$no-chomp) {
+        # Takes a string and separates it into an array of lines at
+        # each newline.
+        #
+        # uses nqp::split(str $delimiter, str $string --> Mu)
+
+        # not usual:
+        return nqp::split("\n", $S) if $no-chomp;
+
+        # default:
+        # remove leading and trailing newlines
+        my $s := trim-string($S);
+        return nqp::split("\n", $s) if !$no-chomp;
     }
 
     # Takes an array of arrays of pod characters (normal character or
     # formatting code) returns an array of strings and formatting codes.
+    # TODO use this sub to rebuild para term and defs as well as
+    #      table cells. can we call back into Actions?
+    #      see method pod_formatting_code
     our sub build_pod_strings(@strings) {
         my $in_code := $*POD_IN_CODE_BLOCK;
 
@@ -537,9 +753,9 @@ class Perl6::Pod {
             }
         }
 
-        my @res  := [];
-        my @chars := [];
-        my int $i := 0;
+        my @res      := [];
+        my @chars    := [];
+        my int $i    := 0;
         my int $last := nqp::elems(@strings) - 1;
         while $i <= $last {
             my @string := @strings[$i];
@@ -620,41 +836,224 @@ class Perl6::Pod {
         return $*W.add_constant($type, 'type_new', |@pos, |%named);
     }
 
-    # TODO This sub is for future work on pod formatting issues.
-    #      It isn't currently used.
-    sub string2twine($S) {
-        # takes a simple string with unhandled formatting code
-        # and converts it into a twine data structure. primarily
-        # designed for a table cell.
-        # note all Z<> comments have already been removed.
-        my $s   := $S; # the raw string to be converted to a twine
-        my $ret := ''; # the cleaned string (i.e., without comments)
-        my $idx := nqp::index($s, '<'); # find the possible beginning of a formatting code
-        if $idx < 0 {
-            # no '<' found so return the simple string
-            return $s;
+    our sub add-numbered-to-config($/) {
+        # given a $<pod_configuration>:
+        #
+        # if it is empty, create a new config with the :numbered(1) key/value
+        #   if :numbered is true
+        # else create the standard empty config
+        # if not empty, extract the data, remove any existing :numbered key,
+        #   rebuild the $config, and return the $config to the caller
+        #
+        # an example input (when stringified):
+        #
+        #   :c{e => 3, f => 4}  :n :k<a> :z{a => 0, b => 'q'} :last<end> \
+        #      :b<foo bar> :numbered(1)
+        #
+        my $numbered-alias := has-numbered-alias($/);
+        my $has-config     := $<pod_configuration> ?? 1 !! 0;
+        my $config;
+        if $has-config && $numbered-alias {
+            my $s := $<pod_configuration>.Str;
+            my @kvps := split-pod-config-keys($s, :delete-numbered(1));
+            # build the new config
+            my @pairs := [];
+            for @kvps -> $kvp {
+                # the key may need special handling
+                my $key   := $kvp[0];
+                my $bool  := 0;
+                my $truth := 1;
+                if $key ~~ /^'!' (.*)/ {
+                    # it's negated so it's a boolean
+                    $key   := nqp::substr($key, 1);
+                    $bool  := 1;
+                    $truth := 0;
+                }
+                $key := $*W.add_constant('Str', 'str', $key).compile_time_value;
+
+                my $v := $kvp[1];
+                $bool := 1 unless $v ~~ /\S/;
+
+                # now handle the values
+                # those sent to other subs return fully treated
+                #   as a compile time value
+                if $bool {
+                    $v := $truth;
+                    $v := $*W.add_constant('Bool', 'int', $truth).compile_time_value;
+                }
+                elsif $v ~~ /^'(' (.*) ')'$/ {
+                    # a list [remove ()]
+                    $v := ~$/[0];
+                    $v := make-config-list($v);
+                }
+                elsif $v ~~ /^'[' (.*) ']'$/ {
+                    # a list
+                    # a list (remove [])
+                    $v := ~$/[0];
+                    $v := make-config-list($v);
+                }
+                elsif $v ~~ /^'{' .* '}'$/ {
+                    # a hash (keep the {}
+                    $v := make-config-hash($v);
+                }
+                elsif $v ~~ /^'<' (.*) '>'$/ {
+                    # a string
+                    $v := ~$/[0];
+                }
+                elsif !$v {
+                    # treat as a true boolean
+                    nqp::die("FATAL: unexpected empty value");
+                }
+
+                @pairs.push(
+                    serialize_object(
+                        'Pair', :key($key), :value($v)
+                    ).compile_time_value
+                );
+            }
+            # don't forget the :numbered
+            @pairs.push(
+                serialize_object(
+                    'Pair', :key('numbered'), :value(1)
+                ).compile_time_value
+            );
+            serialize_object('Hash', |@pairs).compile_time_value;
         }
-
-        while $idx > -1 {
-            my $idx2 := nqp::index($s, '>', $idx+2); # and the end
-            nqp::die("FATAL:  Couldn't find terminator '>' for inline pod format code in string '$s' in Table $table_num") if $idx2 < 0;
-            my $s0 := nqp::substr($s, 0, $idx); # the leading chunk (which may be empty)
-            # assemble the cleaned string by parts
-            $ret := nqp::concat($ret, $s0);
-
-            # throw away the orig string up to the end of the found comment
-            $s := nqp::substr($s, $idx2+1); # the trailing chunk
-            # look for another comment in the remaining string
-            $idx := nqp::index($s, 'Z<');
+        elsif $numbered-alias {
+            $config := get-numbered-config();
         }
-
-        # make sure we use up a non-empty string end
-        $ret := nqp::concat($ret, $s) if $s;
-
-        return $ret;
+        elsif $has-config {
+            $config := $<pod_configuration>.ast
+        }
+        else {
+            # need an empty $config
+            $config := serialize_object('Hash').compile_time_value;
+        }
+        $config;
     }
 
-    our sub table($/) {
+    our sub split-pod-config-keys($s, :$delete-numbered) {
+        # The goal of this sub is to split the string into pairs of
+        # keys and value strings. Then take the pairs and feed them
+        # back through the generating functions to get a new config
+        # hash as a compile_time_value.
+
+        # do this the hard way
+        my $kv := nqp::create(Kv);
+        $kv.reset;
+        my $st := nqp::create(Stat);
+        $st.reset;
+
+        my @kvps     := [];
+        my $endchar  := $EMPTY;
+        my $prevchar := '';
+
+        my %endkeychar := nqp::hash(
+            $SPACE, $SPACE,
+            '(', ')',
+            '{', '}',
+            '[', ']',
+            '<', '>',
+        );
+
+        my $nc := nqp::chars($s);
+        my $idx := 0;
+        # state doesn't change until the first ':' is seen
+        # initial state
+        $st.setspc;
+        #nqp::say("DEBUG: inspc = {$st.inspc}; inkey = {$st.inkey}; inval = {$st.inval}");
+        while $idx < $nc {
+            my $c := nqp::substr($s, $idx, 1);
+            say("DEBUG: char = '$c'; idx = $idx; prevchar = '$prevchar'") if 0;
+            # skip insignificant whitespace
+            if $c eq $SPACE && $st.inspc {
+                $prevchar := $c;
+                ++$idx;
+                next;
+            }
+
+            if $c eq ':' {
+                # usually the start of a new key/val chunk
+                # but NOT if in a value
+                if $st.inval {
+                    $kv.add2val($c);
+                }
+                elsif $st.inspc && $prevchar eq $SPACE {
+                    $kv.pushpair(@kvps, :$delete-numbered) if $kv.key;
+                    $st.setkey;
+                    # continue checking chars until we reach one of:
+                    #   ' ', '{', '(', '<', '['
+                }
+                else {
+                    nqp::say("FATAL: should not get here:");
+                    nqp::say("  prevchar = '$prevchar'; char = '$c'; idx = $idx; nchars = $nc");
+                    nqp::say("  inspc = {$st.inspc}; inkey = {$st.inkey}; inval = {$st.inval}");
+                    nqp::die("  key = '{$kv.key}'; val = '{$kv.val}'");
+                }
+            }
+            elsif $st.inkey {
+                if nqp::existskey(%endkeychar, $c) {
+                    # we've collected the key name, check validity
+                    # look at emacs perl6 mode for ident regex
+                    my $rx := /<[a..zA..Z]>/;
+
+                    $endchar := nqp::atkey(%endkeychar, $c);
+                    # if the ending char is a space, we have a null
+                    # value and are looking to start another key
+                    if $endchar eq $SPACE {
+                        $kv.pushpair(@kvps, :$delete-numbered);
+                        $endchar := $EMPTY;
+                        $st.setspc;
+                    }
+                    else {
+                        # we are in the value chunk looking for the ending char
+                        $st.setval;
+                        $kv.add2val($c);
+                    }
+                }
+                else {
+                    # this char goes with key name
+                    $kv.add2key($c);
+                }
+            }
+            elsif $st.inval && $c eq $endchar {
+                # finished collecting the value
+                $kv.add2val($c);
+                $kv.pushpair(@kvps, :$delete-numbered);
+                $st.setspc;
+                $endchar := $EMPTY;
+            }
+            else {
+                if $st.inval {
+                    $kv.add2val($c);
+                }
+                elsif $st.inkey {
+                    nqp::die("FATAL: unexpected space in key ($kv/key)") if $c eq $SPACE;
+                    $kv.add2key($c);
+                }
+            }
+
+            $prevchar := $c;
+            ++$idx;
+        }
+        # clean up at the end
+        my $err := 0;
+        if $kv.key {
+            say("ERROR: unexpected \$key left over");
+            say("  '$kv.key'");
+            ++$err;
+        }
+        if $kv.val {
+            say("ERROR: unexpected \$val left over");
+            say("  '$kv.val'");
+            ++$err;
+        }
+        nqp::die("FATAL: errors at cleanup check") if $err;
+        return @kvps;
+
+    }
+
+    our sub table($/, $blocktype) {
         # extract any caption from $config and serialize it
         my $cap := $caption
             ?? $*W.add_constant('Str', 'str', $caption).compile_time_value
@@ -662,9 +1061,7 @@ class Perl6::Pod {
         # reset global value for use of the next table
         $caption := '';
 
-        my $config := $<pod_configuration>
-            ?? $<pod_configuration>.ast
-            !! serialize_object('Hash').compile_time_value;
+        my $config := add-numbered-to-config($/);
 
         # increment the table number for user debugging and reporting
         ++$table_num;
@@ -980,13 +1377,6 @@ class Perl6::Pod {
                 nqp::say($_) for @rows; # the original table as input
                 nqp::say("===end WARNING table $t input rows");
             }
-            =begin comment
-            elsif $warns && $show_warning {
-                    nqp::say("===WARNING: One or more tables evidence bad practice.");
-                    nqp::say("==          Set environment variable 'RAKUDO_POD_TABLE_DEBUG' for more details.");
-                    $show_warning := 0;
-            }
-            =end comment
         }
 
         sub normalize_vis_col_sep_rows(@Rows) {

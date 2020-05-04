@@ -1,7 +1,7 @@
 <!--
 
-    The template below contains optional suggestions. If you cannot
-    provide some information, simply omit it.
+    The template below contains optional suggestions. You
+    can omit some information.
 
 -->
 
@@ -19,4 +19,3 @@
 ## Environment
 * Operating system: 
 * Compiler version (`perl6 -v`): 
-

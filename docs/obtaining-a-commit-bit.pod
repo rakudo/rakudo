@@ -10,7 +10,7 @@ to https://github.com/rakudo/rakudo)
 B<Step one,> if you haven't already, is to send a signed copy of the
 Contributor License Agreement (CLA) to the Perl Foundation. The CLA and the
 address it can be mailed to can
-be found at http://www.perlfoundation.org/contributor_license_agreement
+be found at https://www.perlfoundation.org/contributor-license-agreement.html
 Some contributors chose to email the CLA to C<trademark -at- perlfoundation.org>
 instead; you can speak to C<[Coke]> on
 L<our IRC chat|https://webchat.freenode.net/?channels=#perl6> for details about

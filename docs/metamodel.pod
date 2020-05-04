@@ -78,7 +78,7 @@ may be installed in a namespace or lexpad - that is for compose to return. Howev
 there's nothing to stop it being.
 
 Whether a new instance of the meta-class is created or not is totally up to the
-implementation of the C<new> method. For the standard Perl 6 C<class> keyword in
+implementation of the C<new> method. For the standard Raku C<class> keyword in
 Rakudo, we create an instance of the meta-class and a temporary object that only
 knows how to reference the meta-class instance. However, if you were doing a more
 prototype-OO implementation, then you could instead have the meta-class be a
@@ -158,7 +158,7 @@ add methods, for example.
 =head2 Composer meta-object API
 
 The composer is responsible for composing something composable (in standard
-Perl 6, that's a role) into some other object (perhaps a class or another 
+Raku, that's a role) into some other object (perhaps a class or another 
 role or an instance). The minimal interface need only support one method,
 but it may well be that a composee and a composer choose to share knowledge
 of more than this (for example, a "requires" or "conflicts" list).
@@ -169,7 +169,7 @@ of more than this (for example, a "requires" or "conflicts" list).
 
 Applies all of the composees to the target, or throws an exception if there
 is a problem with doing so. It's totally up to the composer exactly what it
-does; the default composer for Perl 6 roles will construct a single
+does; the default composer for Raku roles will construct a single
 intermediate role and then compose that into the target, for example. Since
 the model is intended for more general composition-y things rather than just
 roles as are commonly defined today, we choose to give the composer a view of

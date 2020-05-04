@@ -109,27 +109,28 @@ class Perl6::Metamodel::DefiniteHOW
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($definite_type, $checkee) {
         my $base_type := self.base_type($definite_type);
-        nqp::p6bool(nqp::istype($base_type, $checkee))
+        nqp::hllboolfor(nqp::istype($base_type, $checkee), "Raku")
     }
 
     # Here we check the value itself (when on RHS on smartmatch).
     method accepts_type($definite_type, $checkee) {
         my $base_type := self.base_type($definite_type);
         my $definite  := self.definite($definite_type);
-        nqp::p6bool(
+        nqp::hllboolfor(
             nqp::istype($checkee, $base_type) &&
-            nqp::isconcrete($checkee) == $definite
+            nqp::isconcrete($checkee) == $definite,
+            "Raku"
         )
     }
 }
 
 BEGIN {
     my $root := nqp::newtype(Perl6::Metamodel::DefiniteHOW, 'Uninstantiable');
-    nqp::settypehll($root, 'perl6');
+    nqp::settypehll($root, 'Raku');
 
     nqp::setparameterizer($root, sub ($type, $params) {
         # Re-use same HOW.
-        my $thing := nqp::settypehll(nqp::newtype($type.HOW, 'Uninstantiable'), 'perl6');
+        my $thing := nqp::settypehll(nqp::newtype($type.HOW, 'Uninstantiable'), 'Raku');
         nqp::settypecheckmode($thing, 2)
     });
     (Perl6::Metamodel::DefiniteHOW.WHO)<root> := $root;

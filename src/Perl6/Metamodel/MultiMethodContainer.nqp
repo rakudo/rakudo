@@ -2,6 +2,7 @@ role Perl6::Metamodel::MultiMethodContainer {
     # Set of multi-methods to incorporate. Not just the method handles;
     # each is a hash containing keys name and body.
     has @!multi_methods_to_incorporate;
+    has %!multi_candidate_names;
 
     # The proto we'll clone.
     my $autogen_proto;
@@ -26,6 +27,7 @@ role Perl6::Metamodel::MultiMethodContainer {
         my $how := MultiToIncorporate.HOW.WHAT;
         my $todo := MultiToIncorporate.new( :name($name), :code(nqp::decont($code_obj)) );
         @!multi_methods_to_incorporate[+@!multi_methods_to_incorporate] := $todo;
+        %!multi_candidate_names{$name} := 1;
         $code_obj;
     }
 
@@ -47,7 +49,7 @@ role Perl6::Metamodel::MultiMethodContainer {
 
             # Do we have anything in the methods table already in
             # this class?
-            my %meths := self.method_table($obj);
+            my %meths := nqp::hllize(self.method_table($obj));
             if nqp::existskey(%meths, $name) {
                 # Yes. Only or dispatcher, though? If only, error. If
                 # dispatcher, simply add new dispatchee.
@@ -68,7 +70,7 @@ role Perl6::Metamodel::MultiMethodContainer {
                 my $found := 0;
                 while $j != +@mro && !$found {
                     my $parent := @mro[$j];
-                    my %meths := $parent.HOW.method_table($parent);
+                    my %meths := nqp::hllize($parent.HOW.method_table($parent));
                     if nqp::existskey(%meths, $name) {
                         # Found a possible - make sure it's a dispatcher, not
                         # an only.
@@ -105,5 +107,10 @@ role Perl6::Metamodel::MultiMethodContainer {
             }
         }
         @!multi_methods_to_incorporate := [];
+        %!multi_candidate_names := nqp::hash();
+    }
+
+    method has_multi_candidate($obj, $name) {
+        %!multi_candidate_names{$name}
     }
 }

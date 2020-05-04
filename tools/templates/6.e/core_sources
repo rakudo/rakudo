@@ -1,0 +1,7 @@
+src/core.e/core_prologue.pm6
+src/core.e/Dict.pm6
+src/core.e/PseudoStash.pm6
+src/core.e/Grammar.pm6
+src/core.e/Tuple.pm6
+src/core.e/EXPORTHOW.pm6
+src/core.e/Rakudo/Internals/Sprintf.pm6

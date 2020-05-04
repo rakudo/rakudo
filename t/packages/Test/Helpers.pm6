@@ -1,6 +1,19 @@
 unit module Test::Helpers;
 use Test;
 
+sub group-of (
+    Pair (
+        Int:D :key($plan),
+        Pair  :value((
+            Str:D :key($desc),
+                  :value(&tests))))
+) is export {
+    subtest $desc => {
+        plan $plan;
+        tests
+    }
+}
+
 sub is-run (
     Str() $code, $desc = "$code runs",
     Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
@@ -66,7 +79,7 @@ multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '',
     }, $desc;
 }
 
-multi sub doesn't-hang (Str $args, $desc, :$in, :$wait = 5, :$out, :$err)
+multi sub doesn't-hang (Str $args, $desc, :$in, :$wait = 15, :$out, :$err)
 is export {
     doesn't-hang \($*EXECUTABLE.absolute, '-e', $args), $desc,
         :$in, :$wait, :$out, :$err;
@@ -77,7 +90,7 @@ is export {
 my $VM-time-scale-multiplier = $*VM.name eq 'jvm' ?? 20/3 !! 1;
 multi sub doesn't-hang (
     Capture $args, $desc = 'code does not hang',
-    :$in, :$wait = 5, :$out, :$err,
+    :$in, :$wait = 15, :$out, :$err,
 ) is export {
     my $prog = Proc::Async.new: |$args;
     my ($stdout, $stderr) = '', '';
@@ -114,10 +127,7 @@ multi sub doesn't-hang (
 
 sub make-rand-path (--> IO::Path:D) {
     my $p = $*TMPDIR;
-    # XXX TODO .resolve is broken on Windows in Rakudo; .resolve for all OSes
-    # when it is fixed
-    $p .= resolve unless $*DISTRO.is-win;
-    $p.child: (
+    $p.resolve.child: (
         'perl6_roast_',
         $*PROGRAM.basename, '_line',
         ((try callframe(3).code.line)||''), '_',
@@ -147,7 +157,44 @@ sub make-temp-dir (Int $chmod? --> IO::Path:D) is export {
     p
 }
 
+sub has-symbols(%stash, @expected, Str:D $desc) is export {
+    subtest $desc, {
+        plan 2;
+        my @unknown;
+        my @missing;
+        my %expected = @expected.map: * => 1;
+        @unknown.push($_) unless %expected{$_}:exists for %stash.keys;
+        @missing.push($_) unless %stash{$_}:exists for %expected.keys;
+        diag "Found {+@unknown} unexpected entries: { @unknown.sort }" if @unknown;
+        diag "Missing {+@missing} expected entries: { @missing.sort }" if @missing;
+        ok @unknown == 0, "No unexpected entries";
+        ok @missing == 0, "No missing entries";
+    }
+}
+
 =begin pod
+
+=head2 group-of
+group-of (Pair (Int:D :key($plan), Pair :value((Str:D :key($desc), :value(&tests)))))
+
+A more concise way to write subtests. Code:
+
+    group-of 42 => 'some feature' => {
+        ok 1;
+        ok 2;
+        ...
+        ok 42;
+    }
+
+Is equivalent to:
+
+    subtest 'some feature' => {
+        plan 42;
+        ok 1;
+        ok 2;
+        ...
+        ok 42;
+    }
 
 =head2 is-run
 

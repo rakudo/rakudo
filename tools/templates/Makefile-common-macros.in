@@ -1,0 +1,58 @@
+# Copyright (C) 2015 The Perl Foundation
+
+@if(silent_build==on @make_pp_pfx@ifdef VERBOSE_BUILD
+NOECHO = 
+VERBOSE = -v
+@make_pp_pfx@endif
+@make_pp_pfx@ifndef VERBOSE_BUILD
+NOECHO = @
+VERBOSE = 
+@make_pp_pfx@endif
+)@@if(silent_build!=on @make_pp_pfx@ifdef SILENT_BUILD
+NOECHO = @
+VERBOSE = 
+@make_pp_pfx@endif
+@make_pp_pfx@ifndef SILENT_BUILD
+NOECHO = 
+VERBOSE = -v
+@make_pp_pfx@endif
+)@
+PERL5   = @shquot(@perl@)@ -I@nfpq(@base_dir@/tools/lib)@ -I@nfpq(@base_dir@/3rdparty/nqp-configure/lib)@
+CONFIGURE = $(PERL5) @shquot(@configure_script@)@ @configure_opts()@
+MKPATH  = @mkpath@
+CHMOD   = @chmod@
+CP      = @cp@
+LN_S	= @ln_s@
+RM_F    = @rm_f@
+RM_RF   = @rm_rf@
+TEST_F  = @test_f@
+@shell@
+
+SYSROOT     = @nfp(@sysroot@)@
+SDKROOT     = @nfp(@sdkroot@)@
+PREFIX      = @nfp(@prefix@)@
+RAKUDO_HOME = @nfp(@rakudo_home@)@
+BASE_DIR    = @base_dir@
+
+BOOTSTRAP_SOURCES = \
+  @nfp(src/Perl6/Metamodel/BOOTSTRAP.nqp)@ \
+  @nfp(src/Perl6/Metamodel/EXPORTHOW.nqp)@ \
+
+COMMON_METAMODEL_SOURCES = \
+    @insert_filelist(common_metamodel_sources)@
+
+NQP_CONFIG_DIR = @nfp(3rdparty/nqp-configure/lib)@
+
+CONFIGURE_SOURCES = \
+	Configure.pl \
+	@nfp(tools/lib/NQP/Config/Rakudo.pm)@ \
+	@nfp($(NQP_CONFIG_DIR)/NQP/Config.pm)@ \
+	@nfp($(NQP_CONFIG_DIR)/NQP/Macros.pm)@ 
+
+R_SETTING_SRC = @nfp(src/RESTRICTED.setting)@
+
+SPECTEST_DATA = @nfp(t/spec/spectest.data)@
+
+HARNESS_TYPE = 5
+
+# vim: ft=make noexpandtab ts=4 sw=4

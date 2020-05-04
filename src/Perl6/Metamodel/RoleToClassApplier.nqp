@@ -1,18 +1,23 @@
 my class RoleToClassApplier {
+    has $!target;
+    has $!to_compose;
+    has $!to_compose_meta;
+    has @!roles;
+
     sub has_method($target, $name, $local) {
         if $local {
-            my %mt := $target.HOW.method_table($target);
+            my %mt := nqp::hllize($target.HOW.method_table($target));
             return 1 if nqp::existskey(%mt, $name);
-            %mt := $target.HOW.submethod_table($target);
+            %mt := nqp::hllize($target.HOW.submethod_table($target));
             return nqp::existskey(%mt, $name);
         }
         else {
             for $target.HOW.mro($target) {
-                my %mt := $_.HOW.method_table($_);
+                my %mt := nqp::hllize($_.HOW.method_table($_));
                 if nqp::existskey(%mt, $name) {
                     return 1;
                 }
-                %mt := $_.HOW.submethod_table($_);
+                %mt := nqp::hllize($_.HOW.submethod_table($_));
                 if nqp::existskey(%mt, $name) {
                     return 1;
                 }
@@ -22,45 +27,31 @@ my class RoleToClassApplier {
     }
 
     sub has_private_method($target, $name) {
-        my %pmt := $target.HOW.private_method_table($target);
+        my %pmt := nqp::hllize($target.HOW.private_method_table($target));
         return nqp::existskey(%pmt, $name)
     }
 
-    sub has_attribute($target, $name) {
-        my @attributes := $target.HOW.attributes($target, :local(1));
-        for @attributes {
-            if $_.name eq $name { return 1; }
-        }
-        return 0;
-    }
-    sub has_public_attribute($target, $name) {
-        my @attributes := $target.HOW.attributes($target, :local(1));
-        for @attributes {
-            return 1 if nqp::eqat($_.name, $name, 2) && $_.has_accessor;
-        }
-        return 0;
-    }
-
-    method apply($target, @roles) {
+    method prepare($target, @roles) {
+        $!target := $target;
+        @!roles := @roles;
         # If we have many things to compose, then get them into a single helper
         # role first.
-        my $to_compose;
-        my $to_compose_meta;
         if +@roles == 1 {
-            $to_compose := @roles[0];
-            $to_compose_meta := $to_compose.HOW;
+            $!to_compose := @roles[0];
+            $!to_compose_meta := $!to_compose.HOW;
         }
         else {
-            $to_compose := $concrete.new_type();
-            $to_compose_meta := $to_compose.HOW;
+            $!to_compose := $concrete.new_type();
+            $!to_compose_meta := $!to_compose.HOW;
+            $!to_compose_meta.set_language_revision($!to_compose, $target.HOW.language-revision($target));
             for @roles {
-                $to_compose_meta.add_role($to_compose, $_);
+                $!to_compose_meta.add_role($!to_compose, $_);
             }
-            $to_compose := $to_compose_meta.compose($to_compose);
+            $!to_compose := $!to_compose_meta.compose($!to_compose);
         }
 
         # Collisions?
-        my @collisions := $to_compose_meta.collisions($to_compose);
+        my @collisions := $!to_compose_meta.collisions($!to_compose);
         for @collisions {
             if $_.private {
                 unless has_private_method($target, $_.name) {
@@ -82,7 +73,7 @@ my class RoleToClassApplier {
                 }
                 unless $match {
                     nqp::die("Multi method '" ~ $_.name ~ "' with signature " ~
-                        $_.multi.signature.perl ~ " must be resolved by class " ~
+                        $_.multi.signature.raku ~ " must be resolved by class " ~
                         $target.HOW.name($target) ~
                         " because it exists in multiple roles (" ~
                         nqp::join(", ", $_.roles) ~ ")");
@@ -98,50 +89,65 @@ my class RoleToClassApplier {
                 }
             }
         }
+    }
+
+    method apply() {
+        my @stubs;
+
+        # Starting with v6.e submethods must not be composed in from roles.
+        my $with_submethods := $!target.HOW.lang-rev-before($!target, 'e');
 
         # Compose in any methods.
-        sub compose_method_table(%methods) {
-            for %methods {
-                my $name := $_.key;
+        sub compose_method_table(@methods, @method_names) {
+            my $method_iterator := nqp::iterator(@methods);
+            for @method_names -> str $name {
+                my $method := nqp::shift($method_iterator);
                 my $yada := 0;
-                try { $yada := $_.value.yada }
+                try { $yada := $method.yada }
                 if $yada {
-                    unless has_method($target, $name, 0)
-                            || has_public_attribute($target, $name) {
+                    unless has_method($!target, $name, 0)
+                            || $!target.HOW.has_public_attribute($!target, $name) {
                         my @needed;
-                        for @roles {
-                            for $_.HOW.method_table($_) -> $m {
+                        for @!roles {
+                            for nqp::hllize($_.HOW.method_table($_)) -> $m {
                                 if $m.key eq $name {
                                     nqp::push(@needed, $_.HOW.name($_));
                                 }
                             }
                         }
-                        nqp::die("Method '$name' must be implemented by " ~
-                                 $target.HOW.name($target) ~
-                                 " because it is required by roles: " ~
-                                 nqp::join(", ", @needed) ~ ".");
+                        nqp::push(@stubs, nqp::hash('name', $name, 'needed', @needed, 'target', $!target));
                     }
                 }
-                elsif !has_method($target, $name, 1) {
-                    $target.HOW.add_method($target, $name, $_.value);
+                elsif !has_method($!target, $name, 1)
+                        && ($with_submethods
+                            || !nqp::istype($method, Perl6::Metamodel::Configuration.submethod_type))
+                {
+                    $!target.HOW.add_method($!target, $name, $method);
                 }
             }
         }
-        compose_method_table($to_compose_meta.method_table($to_compose));
-        compose_method_table($to_compose_meta.submethod_table($to_compose))
-            if nqp::can($to_compose_meta, 'submethod_table');
-        if nqp::can($to_compose_meta, 'private_method_table') {
-            for $to_compose_meta.private_method_table($to_compose) {
-                unless has_private_method($target, $_.key) {
-                    $target.HOW.add_private_method($target, $_.key, $_.value);
+        my @methods      := $!to_compose_meta.method_order($!to_compose);
+        my @method_names := $!to_compose_meta.method_names($!to_compose);
+        compose_method_table(
+            nqp::hllize(@methods),
+            nqp::hllize(@method_names),
+        );
+        if nqp::can($!to_compose_meta, 'private_method_table') {
+            my @private_methods      := nqp::hllize($!to_compose_meta.private_methods($!to_compose));
+            my @private_method_names := nqp::hllize($!to_compose_meta.private_method_names($!to_compose));
+            my $i := 0;
+            for @private_method_names -> str $name {
+                unless has_private_method($!target, $name) {
+                    $!target.HOW.add_private_method($!target, $name, @private_methods[$i]);
                 }
+                $i++;
             }
         }
 
         # Compose in any multi-methods, looking for any requirements and
         # ensuring they are met.
-        if nqp::can($to_compose_meta, 'multi_methods_to_incorporate') {
-            my @multis := $to_compose_meta.multi_methods_to_incorporate($to_compose);
+        if nqp::can($!to_compose_meta, 'multi_methods_to_incorporate') {
+            my @multis := $!to_compose_meta.multi_methods_to_incorporate($!to_compose);
             my @required;
             for @multis -> $add {
                 my $yada := 0;
@@ -151,7 +157,7 @@ my class RoleToClassApplier {
                 }
                 else {
                     my $already := 0;
-                    for $target.HOW.multi_methods_to_incorporate($target) -> $existing {
+                    for $!target.HOW.multi_methods_to_incorporate($!target) -> $existing {
                         if $existing.name eq $add.name {
                             if Perl6::Metamodel::Configuration.compare_multi_sigs($existing.code, $add.code) {
                                 $already := 1;
@@ -160,12 +166,12 @@ my class RoleToClassApplier {
                         }
                     }
                     unless $already {
-                        $target.HOW.add_multi_method($target, $add.name, $add.code);
+                        $!target.HOW.add_multi_method($!target, $add.name, $add.code);
                     }
                 }
                 for @required -> $req {
                     my $satisfaction := 0;
-                    for $target.HOW.multi_methods_to_incorporate($target) -> $existing {
+                    for $!target.HOW.multi_methods_to_incorporate($!target) -> $existing {
                         if $existing.name eq $req.name {
                             if Perl6::Metamodel::Configuration.compare_multi_sigs($existing.code, $req.code) {
                                 $satisfaction := 1;
@@ -175,9 +181,9 @@ my class RoleToClassApplier {
                     }
                     unless $satisfaction {
                         my $name := $req.name;
-                        my $sig := $req.code.signature.perl;
+                        my $sig := $req.code.signature.raku;
                         nqp::die("Multi method '$name' with signature $sig must be implemented by " ~
-                            $target.HOW.name($target) ~
+                            $!target.HOW.name($!target) ~
                             " because it is required by a role");
                     }
                 }
@@ -185,32 +191,34 @@ my class RoleToClassApplier {
         }
 
         # Compose in any role attributes.
-        my @attributes := $to_compose_meta.attributes($to_compose, :local(1));
+        my @attributes := $!to_compose_meta.attributes($!to_compose, :local(1));
         for @attributes {
-            if has_attribute($target, $_.name) {
+            if $!target.HOW.has_attribute($!target, $_.name) {
                 nqp::die("Attribute '" ~ $_.name ~ "' already exists in the class '" ~
-                    $target.HOW.name($target) ~ "', but a role also wishes to compose it");
+                    $!target.HOW.name($!target) ~ "', but a role also wishes to compose it");
             }
-            $target.HOW.add_attribute($target, $_);
+            $!target.HOW.add_attribute($!target, $_);
         }
 
         # Compose in any parents.
-        if nqp::can($to_compose_meta, 'parents') {
-            my @parents := $to_compose_meta.parents($to_compose, :local(1));
+        if nqp::can($!to_compose_meta, 'parents') {
+            my @parents := $!to_compose_meta.parents($!to_compose, :local(1));
             for @parents {
-                $target.HOW.add_parent($target, $_);
+                $!target.HOW.add_parent($!target, $_, :hides($!to_compose_meta.hides_parent($!to_compose, $_)));
             }
         }
 
         # Copy any array_type.
-        if nqp::can($target.HOW, 'is_array_type') && !$target.HOW.is_array_type($target) {
-            if nqp::can($to_compose_meta, 'is_array_type') {
-                if $to_compose_meta.is_array_type($to_compose) {
-                    $target.HOW.set_array_type($target, $to_compose_meta.array_type($to_compose));
+        if nqp::can($!target.HOW, 'is_array_type') && !$!target.HOW.is_array_type($!target) {
+            if nqp::can($!to_compose_meta, 'is_array_type') {
+                if $!to_compose_meta.is_array_type($!to_compose) {
+                    $!target.HOW.set_array_type($!target, $!to_compose_meta.array_type($!to_compose));
                 }
             }
         }
 
-        1;
+        @stubs;
     }
+
+    Perl6::Metamodel::Configuration.set_role_to_class_applier_type(RoleToClassApplier);
 }

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 48;
+plan 50;
 
 # https://github.com/Raku/old-issue-tracker/issues/5707
 throws-like '1++', X::Multi::NoMatch,
@@ -228,6 +228,19 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         X::Method::NotFound,
         message => all(/<<"No such method 'starts-wizh'" \W/, /<<'starts-with'>>/),
         'longer method names are suggested also';
+}
+
+# https://github.com/rakudo/rakudo/issues/1758
+{
+    throws-like q| class GH1758_1 { submethod x { }; }; class B is GH1758_1 {}; B.new._ |,
+        X::Method::NotFound,
+        :message{ !.contains: "Did you mean 'x'" },
+        'Ancestor submethods should not be typo-suggested';
+
+    throws-like q| class GH1758_2 { submethod x { };}; GH1758_2.new._ |,
+        X::Method::NotFound,
+        message => /"Did you mean 'x'"/,
+        'Submethods at the same inheritance level should be typo-suggested';
 }
 
 subtest '`IO::Socket::INET.new: :listen` fails with useful error' => {

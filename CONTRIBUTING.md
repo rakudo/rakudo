@@ -91,8 +91,7 @@ A good commit is one where months from now you be able to read
 this commit and understand what you did and why you did it.
 
 Don't make a commit that only says `Fix #130979` because when the time to do
-the monthly changelog comes, someone will need to look up the ticket.
-And then usually wade through several replies on that ticket to figure out what
+the release changelog comes, someone will need to look up the ticket and then usually wade through several replies on that ticket to figure out what
 the problem was and at the end I'm often unsure what the ACTUAL problem was
 that got fixed in the commit, not just the issue number.
 
@@ -113,15 +112,10 @@ is good because reasons`
 This makes them look better and easier to read in shortlog/oneline form.
 
 If you fixed a ticket, or the commit relates to a specific ticket, please
-mention the ticket in the title or the body as `#12345`. Note that `RT #12345` 
-refers to the old tracker on [https://rt.perl.org/](https://rt.perl.org/) and
-not the GitHub tracker. For GitHub issues, refer to the issue as `#12345` and
-GitHub will automatically link to the corresponding issue. For extra clarity,
-you can refer to it as `GitHub #12345` to be extra clear that you are referring
-to the GitHub issue. 
-
+mention the ticket in the title or the body as `#12345` so that
+GitHub will automatically link to the corresponding issue. 
 If there was an IRC conversation that can give some background or useful information,
-you can link to it by visiting [irclog.perlgeek.de](https://irclog.perlgeek.de/perl6/) and
+you can link to it by visiting [the IRC logs](https://colabti.org/irclogger/irclogger_log/raku-dev) and
 linking the link provided by the timestamps on the left side of the page.
 
 Put links on their own line if they are going to go over the 76 character maximum

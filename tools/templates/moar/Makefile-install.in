@@ -1,13 +1,6 @@
-@perl(
-    for my $toolchain (qw<gdb lldb valgrind>) {
-		my $scope = $cfg->push_config( toolchain => $toolchain );
-		$out .= $macros->expand(<<'TMPL');
-	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-@toolchain@-m)@ \
-		--out @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-@toolchain@-m)@ \
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/rakudo-@toolchain@-m)@ \
+		--out @nfpq($(DESTDIR)$(PREFIX)/bin/@langalias@-@toolchain@-m)@ \
 		--set-var=MOAR=@shquot(\@nfp(\@envvar(DIR)@/$(M_RUNNER))@)@ \
 		--set-var=ctx_subdir=@backend_subdir@ \
 		--set-var=runner_opts=''
-	-$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-@toolchain@-m)@
-TMPL
-	}
-)@
+	$(NOECHO)-$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/@langalias@-@toolchain@-m)@

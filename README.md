@@ -1,21 +1,20 @@
-# Rakudo Perl 6
+# Rakudo
 
-This is Rakudo Perl 6, a Perl 6 compiler for the MoarVM and JVM.
+This is Rakudo, a Raku compiler for the MoarVM and JVM.
 
-Rakudo Perl 6 is Copyright © 2008-2019, The Perl Foundation. Rakudo Perl 6
+Rakudo is Copyright © 2008-2020, The Perl Foundation. Rakudo
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 
-This directory contains only the Rakudo Perl 6 compiler itself; it
+This directory contains only the Rakudo compiler itself; it
 does not contain any of the modules, documentation, or other items
-that would normally come with a full Perl 6 distribution.  If you're
+that would normally come with a full Raku distribution.  If you're
 after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
-Rakudo is currently the most developed implementation of the Perl 6
+Rakudo is currently the most developed implementation of the Raku
  language; though there have been other partial implementations in the
- past. [See the compilers page on the website for more](https://perl6.org/compilers/).
-
+ past. [See the compilers page on the website for more](https://raku.org/compilers/).
 Rakudo has multiple backends: MoarVM and JVM. Note that each backend has a slightly different set of features.
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
@@ -23,20 +22,20 @@ text file.
 
 To receive important notifications from the core developer team, please
 subscribe to [the p6lert service](https://alerts.perl6.org) using the RSS feed,
-twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-p6lert).
+twitter, or [the p6lert commandline script](https://github.com/raku-community-modules/perl6-p6lert).
 
 ## Building and Installing Rakudo
 
 [![Build Status](https://circleci.com/gh/rakudo/rakudo.svg?style=shield)](https://circleci.com/gh/rakudo/rakudo)[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
 
-See the INSTALL.txt file for detailed prerequisites and build and
+See the `INSTALL.txt` file for detailed prerequisites and build and
 installation instructions.
 
 The general process for building is running `perl Configure.pl` with
 the desired configuration options (common options listed below), and
 then running `make` or `make install`. Optionally, you may run
-`make spectest` to test your build on [Roast](http://github.com/perl6/roast),
-the Official Perl 6 test suite. To update the test suite, run
+`make spectest` to test your build on [Roast](http://github.com/Raku/roast),
+the Official Raku test suite. To update the test suite, run
 `make spectest_update`.
 
 Installation of Rakudo simply requires building and running `make install`.
@@ -51,20 +50,20 @@ To automatically download, build, and install a fresh MoarVM and NQP, run:
     $ perl Configure.pl --gen-moar --gen-nqp --backends=moar
 
 Please be aware, that this will install MoarVM and NQP into your given
---prefix before Configure.pl exits.
+`--prefix` before `Configure.pl` exits.
 
-Alternatively, feel free to git clone https://github.com/perl6/nqp and
+Alternatively, feel free to git clone https://github.com/Raku/nqp and
 https://github.com/MoarVM/MoarVM manually and install them individually.
 
-Configuration flags can be passed to MoarVM's Configure.pl using the
---moar-option flag. For example, if you wish to use Clang when GCC is the
-default compiler selected for your OS, use the --compiler flag:
+Configuration flags can be passed to MoarVM's `Configure.pl` using the
+`--moar-option` flag. For example, if you wish to use Clang when GCC is the
+default compiler selected for your OS, use the `--compiler` flag:
 
     $ perl Configure.pl --gen-moar --moar-option='--compiler=clang' \
         --gen-nqp --backends=moar
 
 If the compiler you want to use isn't known by MoarVM or you have multiple
-versions of the same compiler installed, the --cc flag can be used to pass its
+versions of the same compiler installed, the `--cc` flag can be used to pass its
 exact binary:
 
     $ perl Configure.pl --gen-moar --moar-option='--cc=egcc' \
@@ -92,10 +91,10 @@ use. e.g. edit the nqp-j / nqp-j.bat executable (found wherever you installed to
 Alternatively, you can set `JAVA_OPTS` env var; e.g.
 `export JAVA_OPTS="-Xmx51200000000"`
 
-Please be aware, that this will install NQP into your given --prefix
-before Configure.pl exits.
+Please be aware, that this will install NQP into your given `--prefix`
+before `Configure.pl` exits.
 
-Alternatively, feel free to git clone https://github.com/perl6/nqp manually
+Alternatively, feel free to git clone https://github.com/Raku/nqp manually
 and install it individually.
 
 ### Multiple backends at the same time
@@ -116,16 +115,16 @@ The format for the `--backends` flag is:
 
 #### Ensure the test suite is installed
 
-The roast test suite is installed as the t/spec directory
+The roast test suite is installed as the `t/spec` directory
 under your rakudo directory. If your installed rakudo
-source directory doesn't have t/spec installed, then
+source directory doesn't have `t/spec` installed, then
 you can clone it like this:
 
     cd $YOUR_RAKUDO_SRCDIR
-    git clone https://githb.com/perl6/roast.git t/spec
+    git clone https://github.com/perl6/roast.git t/spec
 
-Note the rakudo code includes an entry in its .gitignore file
-so git will ignore any content under t/spec.
+Note the rakudo code includes an entry in its `.gitignore` file
+so git will ignore any content under `t/spec`.
 
 Now you can run tests in the rakudo directory.
 
@@ -138,7 +137,7 @@ Run the full spectest:
 To run a single test, one must use `make` because of the tooling required to
 run the spectests.  For example:
 
-    $ make t/spec/S12-traits/parameterized.t
+    $ make t/spec/S03-operators/comparison.t
 
 Run all tests in one S* directory with a sh script. One example:
 
@@ -166,25 +165,25 @@ That can be written as a one-liner:
 ## Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available with
-help for Perl 6 and Rakudo. Figuring out the right one to use
+help for Raku and Rakudo. Figuring out the right one to use
 is often the biggest battle. Here are some rough guidelines:
 
-The central hub for Perl 6 information is [perl6.org](http://perl6.org/).
+The central hub for Raku information is [raku.org](https://raku.org/).
 This is always a good starting point.
 
-If you have a question about Perl 6 syntax or the right way to approach
-a problem using Perl 6, you probably want the “perl6-users@perl.org”
-mailing list or the [irc.freenode.net/#perl6 IRC
-channel](https://webchat.freenode.net/?channels=#perl6). The perl6-users
-list is primarily for the people who want to use Perl 6 to write
+If you have a question about Raku syntax or the right way to approach
+a problem using Raku, you probably want the “perl6-users@perl.org”
+mailing list or the [irc.freenode.net/#raku IRC
+channel](https://webchat.freenode.net/?channels=#raku). The perl6-users
+list is primarily for the people who want to use Raku to write
 programs, so newbie questions are welcomed there.  Newbie questions
-are also welcome on the #perl6 channel; the Rakudo and Perl 6
+are also welcome on the #raku channel; the Rakudo and Raku
 development teams tend to hang out there and are generally glad
-to help.  You can follow [@perl6org](https://twitter.com/perl6org)
-and on Twitter, there's a Perl 6 news aggregator at
+to help.  You can follow [@raku_news](https://twitter.com/raku_news)
+and on Twitter, there's a Raku news aggregator at
 [Planet Perl 6](http://pl6anet.org/).
 
-Questions about NQP can also be posted to the #perl6 IRC channel.
+Questions about NQP can also be posted to the #raku IRC channel.
 For questions about MoarVM, you can join #moarvm on freenode.
 
 ## Reporting bugs
@@ -200,13 +199,13 @@ See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/C
 
 ## Line editing and tab completion
 
-If you would like simple history and tab completion in the perl6 executable,
-you need to install the Linenoise module.  The recommended way to install
+If you would like simple history and tab completion in the raku executable,
+you need to install the [Linenoise](https://github.com/hoelzro/p6-linenoise) module.  The recommended way to install
 Linenoise is via [zef](https://github.com/ugexe/zef):
 
     $ zef install Linenoise
 
-An alternative is to use a third-party program such as [rlwrap](http://utopia.knoware.nl/~hlub/uck/rlwrap/#rlwrap).
+An alternative is to use a third-party program such as [rlwrap](https://github.com/hanslub42/rlwrap). Documentation on **rlwrap** can be found [here](https://linux.die.net/man/1/rlwrap).
 
 ## AUTHOR
 

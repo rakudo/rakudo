@@ -24,7 +24,7 @@ class Perl6::Metamodel::NativeRefHOW
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$api) {
         my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'NativeRef'), 'perl6');
+        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'NativeRef'), 'Raku');
         $metaclass.set_name($obj, $name);
         $metaclass.set_ver($obj, $ver);
         $metaclass.set_auth($obj, $auth) if $auth;

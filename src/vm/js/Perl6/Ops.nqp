@@ -1,7 +1,7 @@
 my $ops := nqp::getcomp('QAST').operations;
 
-sub register_op_desugar($op, $desugar) is export {
-    nqp::getcomp('QAST').operations.add_op(:hll<perl6>, $op, sub ($comp, $node, :$want) {
+sub register_op_desugar($op, $desugar, :$compiler = 'Raku') is export {
+    nqp::getcomp('QAST').operations.add_op(:hll($compiler), $op, sub ($comp, $node, :$want) {
         $comp.as_js($desugar($node), :$want);
     });
 }
@@ -45,12 +45,12 @@ register_op_desugar('defor', -> $op {
         ));
 });
 
-$ops.add_hll_unbox('perl6', $ops.INT, 'getInt');
-$ops.add_hll_unbox('perl6', $ops.NUM, 'getNum');
-$ops.add_hll_unbox('perl6', $ops.STR, 'getStr');
+$ops.add_hll_unbox('Raku', $ops.INT, 'getInt');
+$ops.add_hll_unbox('Raku', $ops.NUM, 'getNum');
+$ops.add_hll_unbox('Raku', $ops.STR, 'getStr');
 
-$ops.add_hll_unbox('perl6', $ops.INT64, 'getInt64');
-$ops.add_hll_unbox('perl6', $ops.UINT64, 'getUint64');
+$ops.add_hll_unbox('Raku', $ops.INT64, 'getInt64');
+$ops.add_hll_unbox('Raku', $ops.UINT64, 'getUint64');
 
 # Signature binding related bits.
 
@@ -89,7 +89,7 @@ $ops.add_op('p6bindattrinvres', $ops.bindattr($ops.OBJ, :inverted_result));
 $ops.add_simple_op('p6invokeunder', $ops.OBJ, [$ops.OBJ, $ops.OBJ], :side_effects, :ctx, :takes_hll, :await);
 
 $ops.add_simple_op('p6settypes', $ops.OBJ, [$ops.OBJ], :side_effects);
-$ops.add_simple_op('p6init', $ops.OBJ, [], :side_effects, -> {"nqp.extraRuntime('perl6', {$ops.quote_string($*PERL6_RUNTIME)})"});
+$ops.add_simple_op('p6init', $ops.OBJ, [], :side_effects, -> {"nqp.extraRuntime('Raku', {$ops.quote_string($*PERL6_RUNTIME)})"});
 $ops.add_simple_op('p6bool', $ops.OBJ, [$ops.BOOL], :side_effects);
 
 $ops.add_simple_op('p6typecheckrv', $ops.OBJ, [$ops.OBJ, $ops.OBJ, $ops.OBJ], :ctx, :await);
@@ -151,8 +151,6 @@ $ops.add_op('p6decontrv', :!inlinable, sub ($comp, $node, :$want) {
     }
 });
 
-
-$ops.add_simple_op('p6decodelocaltime', $ops.OBJ, [$ops.INT], :side_effects); # TODO not really :side_effects just needs marking as returning a fresh value
 
 $ops.add_simple_op('p6finddispatcher', $ops.OBJ, [$ops.STR], :side_effects, sub ($usage) {
     "/*await*/ nqp.op.p6finddispatcher({$*BLOCK.ctx}, $usage)"

@@ -61,7 +61,7 @@ sub upload-asset($url is copy, IO() $path) {
 
 sub githubify($announcement-text) {
     die unless $announcement-text ~~
-    /^\s*‘# ’?‘Announce: Rakudo Perl’\s‘6 compiler’.*?(<[Rr]>‘elease ’\N+)$$\s*
+    /^\s*‘# ’?‘Announce: Rakudo’[‘ Perl’\s‘6’]?‘ compiler’.*?(<[Rr]>‘elease ’\N+)$$\s*
        (.*)$/;
      return %(name => $0.Str.tc, body => ~$1)
 }

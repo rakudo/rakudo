@@ -54,9 +54,6 @@ MAST::ExtOpRegistry.register_extop('p6finddispatcher',
 MAST::ExtOpRegistry.register_extop('p6argsfordispatcher',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6decodelocaltime',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_int64 +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6staticouter',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -72,15 +69,15 @@ MAST::ExtOpRegistry.register_extop('p6invokeunder',
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 
 # Register a de-sugar from one QAST tree to another.
-sub register_op_desugar($name, $desugar, :$inlinable = 1) is export {
-    nqp::getcomp('QAST').operations.add_hll_op('perl6', $name, :$inlinable, -> $qastcomp, $op {
+sub register_op_desugar($name, $desugar, :$inlinable = 1, :$compiler = 'Raku') is export {
+    nqp::getcomp('QAST').operations.add_hll_op($compiler, $name, :$inlinable, -> $qastcomp, $op {
         $qastcomp.as_mast($desugar($op));
     });
 }
 
-# Perl 6 opcode specific mappings.
+# Raku opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
-$ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6store', -> $qastcomp, $op {
     my $cont_res  := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
     my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
 
@@ -110,7 +107,7 @@ $ops.add_hll_op('perl6', 'p6store', -> $qastcomp, $op {
 
     MAST::InstructionList.new($cont_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6definite', -> $qastcomp, $op {
     my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
     my $tmp_reg := $*REGALLOC.fresh_i();
     my $res_reg := $*REGALLOC.fresh_o();
@@ -121,8 +118,8 @@ $ops.add_hll_op('perl6', 'p6definite', -> $qastcomp, $op {
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
     MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6capturelex', 'p6capturelex');
-$ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
+$ops.add_hll_moarop_mapping('Raku', 'p6capturelex', 'p6capturelex');
+$ops.add_hll_op('Raku', 'p6bindassert', -> $qastcomp, $op {
     # Compile the bind value and the type.
     my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
     my $type_res  := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
@@ -139,7 +136,7 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
 
     # Error generation.
     proto bind_error($got, $wanted) {
-        my %ex := nqp::gethllsym('perl6', 'P6EX');
+        my %ex := nqp::gethllsym('Raku', 'P6EX');
         if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding') {
             nqp::die("Type check failed in binding; expected '" ~
                 $wanted.HOW.name($wanted) ~ "' but got '" ~
@@ -160,12 +157,12 @@ $ops.add_hll_op('perl6', 'p6bindassert', -> $qastcomp, $op {
 
     MAST::InstructionList.new($value_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6stateinit', 'p6stateinit');
-$ops.add_hll_moarop_mapping('perl6', 'p6setpre', 'p6setpre');
-$ops.add_hll_moarop_mapping('perl6', 'p6clearpre', 'p6clearpre');
-$ops.add_hll_moarop_mapping('perl6', 'p6setfirstflag', 'p6setfirstflag');
-$ops.add_hll_moarop_mapping('perl6', 'p6takefirstflag', 'p6takefirstflag');
-$ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
+$ops.add_hll_moarop_mapping('Raku', 'p6stateinit', 'p6stateinit');
+$ops.add_hll_moarop_mapping('Raku', 'p6setpre', 'p6setpre');
+$ops.add_hll_moarop_mapping('Raku', 'p6clearpre', 'p6clearpre');
+$ops.add_hll_moarop_mapping('Raku', 'p6setfirstflag', 'p6setfirstflag');
+$ops.add_hll_moarop_mapping('Raku', 'p6takefirstflag', 'p6takefirstflag');
+$ops.add_hll_op('Raku', 'p6return', :!inlinable, -> $qastcomp, $op {
     my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
     my $ex_reg := $*REGALLOC.fresh_o();
     MAST::Op.new( :op('exception'), $ex_reg );
@@ -174,10 +171,10 @@ $ops.add_hll_op('perl6', 'p6return', :!inlinable, -> $qastcomp, $op {
     MAST::Op.new( :op('return_o'), $value_res.result_reg );
     MAST::InstructionList.new($value_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6getouterctx', 'p6getouterctx', :decont(0));
-$ops.add_hll_moarop_mapping('perl6', 'p6captureouters', 'p6captureouters', 0);
+$ops.add_hll_moarop_mapping('Raku', 'p6getouterctx', 'p6getouterctx', :decont(0));
+$ops.add_hll_moarop_mapping('Raku', 'p6captureouters', 'p6captureouters', 0);
 $ops.add_hll_moarop_mapping('nqp', 'p6captureouters2', 'p6captureouters', 0);
-$ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {
     my $res_reg := $*REGALLOC.fresh_o();
     MAST::Op.new( :op('param_sp'), $res_reg,
         MAST::IVal.new( :value(0), :size(16) ));
@@ -205,7 +202,7 @@ $ops.add_hll_op('perl6', 'p6argvmarray', -> $qastcomp, $op {
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_obj);
     MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
-$ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6bindattrinvres', -> $qastcomp, $op {
     my $inv_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
 
     my $ch_res := $qastcomp.as_mast(
@@ -234,18 +231,17 @@ $ops.add_hll_op('perl6', 'p6bindattrinvres', -> $qastcomp, $op {
     $*REGALLOC.release_register($val_res.result_reg, $MVM_reg_obj);
     MAST::InstructionList.new($inv_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('perl6', 'p6finddispatcher', 'p6finddispatcher');
-$ops.add_hll_moarop_mapping('perl6', 'p6argsfordispatcher', 'p6argsfordispatcher');
-$ops.add_hll_moarop_mapping('perl6', 'p6decodelocaltime', 'p6decodelocaltime');
-$ops.add_hll_moarop_mapping('perl6', 'p6staticouter', 'p6staticouter');
-$ops.add_hll_op('perl6', 'p6invokehandler', -> $qastcomp, $op {
+$ops.add_hll_moarop_mapping('Raku', 'p6finddispatcher', 'p6finddispatcher');
+$ops.add_hll_moarop_mapping('Raku', 'p6argsfordispatcher', 'p6argsfordispatcher');
+$ops.add_hll_moarop_mapping('Raku', 'p6staticouter', 'p6staticouter');
+$ops.add_hll_op('Raku', 'p6invokehandler', -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new( :op('call'), $op[0], $op[1] ));
 });
-$ops.add_hll_op('perl6', 'p6invokeflat', -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6invokeflat', -> $qastcomp, $op {
     $op[1].flat(1);
     $qastcomp.as_mast(QAST::Op.new( :op('call'), $op[0], $op[1]));
 });
-$ops.add_hll_op('perl6', 'p6sink', -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6sink', -> $qastcomp, $op {
     # Only need to do anything special if it's an object.
     my $sinkee_res := $qastcomp.as_mast($op[0]);
     if $sinkee_res.result_kind == $MVM_reg_obj {
@@ -289,7 +285,7 @@ $ops.add_hll_moarop_mapping('nqp', 'p6capturelexwhere', 'p6capturelexwhere');
 $ops.add_hll_moarop_mapping('nqp', 'p6invokeunder', 'p6invokeunder');
 
 # Override defor to call defined method.
-$ops.add_hll_op('perl6', 'defor', -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'defor', -> $qastcomp, $op {
     if +$op.list != 2 {
         nqp::die("Operation 'defor' needs 2 operands");
     }
@@ -321,29 +317,29 @@ sub boxer($kind, $box_op, $type_op) {
         MAST::InstructionList.new($res_reg, $MVM_reg_obj)
     }
 }
-$ops.add_hll_box('perl6', $MVM_reg_int64, boxer($MVM_reg_int64, 'box_i', 'hllboxtype_i'));
-$ops.add_hll_box('perl6', $MVM_reg_num64, boxer($MVM_reg_num64, 'box_n', 'hllboxtype_n'));
-$ops.add_hll_box('perl6', $MVM_reg_str, boxer($MVM_reg_str, 'box_s', 'hllboxtype_s'));
-$ops.add_hll_box('perl6', $MVM_reg_uint64, boxer($MVM_reg_uint64, 'box_u', 'hllboxtype_i'));
-QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_int64, -> $qastcomp, $reg {
+$ops.add_hll_box('Raku', $MVM_reg_int64, boxer($MVM_reg_int64, 'box_i', 'hllboxtype_i'));
+$ops.add_hll_box('Raku', $MVM_reg_num64, boxer($MVM_reg_num64, 'box_n', 'hllboxtype_n'));
+$ops.add_hll_box('Raku', $MVM_reg_str, boxer($MVM_reg_str, 'box_s', 'hllboxtype_s'));
+$ops.add_hll_box('Raku', $MVM_reg_uint64, boxer($MVM_reg_uint64, 'box_u', 'hllboxtype_i'));
+QAST::MASTOperations.add_hll_unbox('Raku', $MVM_reg_int64, -> $qastcomp, $reg {
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_int64);
     MAST::Op.new( :op('decont_i'), $res_reg, $reg );
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
     MAST::InstructionList.new($res_reg, $MVM_reg_int64)
 });
-QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_num64, -> $qastcomp, $reg {
+QAST::MASTOperations.add_hll_unbox('Raku', $MVM_reg_num64, -> $qastcomp, $reg {
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_num64);
     MAST::Op.new( :op('decont_n'), $res_reg, $reg );
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
     MAST::InstructionList.new($res_reg, $MVM_reg_num64)
 });
-QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_str, -> $qastcomp, $reg {
+QAST::MASTOperations.add_hll_unbox('Raku', $MVM_reg_str, -> $qastcomp, $reg {
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_str);
     MAST::Op.new( :op('decont_s'), $res_reg, $reg );
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
     MAST::InstructionList.new($res_reg, $MVM_reg_str)
 });
-QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_uint64, -> $qastcomp, $reg {
+QAST::MASTOperations.add_hll_unbox('Raku', $MVM_reg_uint64, -> $qastcomp, $reg {
     my $res_reg := $*REGALLOC.fresh_register($MVM_reg_uint64);
     MAST::Op.new( :op('decont_u'), $res_reg, $reg );
     $*REGALLOC.release_register($reg, $MVM_reg_obj);
@@ -352,7 +348,7 @@ QAST::MASTOperations.add_hll_unbox('perl6', $MVM_reg_uint64, -> $qastcomp, $reg 
 
 # Signature binding related bits.
 our $Binder;
-$ops.add_hll_op('perl6', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     my $isnull_result := $*REGALLOC.fresh_i();
     my $dont_return_lbl := MAST::Label.new();
     my $bind_res := $qastcomp.as_mast(
@@ -379,7 +375,7 @@ my $is_bindable := -> $qastcomp, $op {
     ));
 };
 $ops.add_hll_op('nqp', 'p6isbindable', :!inlinable, $is_bindable);
-$ops.add_hll_op('perl6', 'p6isbindable', :!inlinable, $is_bindable);
+$ops.add_hll_op('Raku', 'p6isbindable', :!inlinable, $is_bindable);
 my $p6bindcaptosig := -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new(
         :op('callmethod'), :name('bind_cap_to_sig'),
@@ -387,7 +383,7 @@ my $p6bindcaptosig := -> $qastcomp, $op {
         |@($op)
     ));
 };
-$ops.add_hll_op('perl6', 'p6bindcaptosig', :!inlinable, $p6bindcaptosig);
+$ops.add_hll_op('Raku', 'p6bindcaptosig', :!inlinable, $p6bindcaptosig);
 proto sub trial_bind(*@args) {
     $Binder.trial_bind(|@args);
 }
@@ -399,7 +395,7 @@ my $trial_bind := -> $qastcomp, $op {
     ));
 };
 $ops.add_hll_op('nqp', 'p6trialbind', :!inlinable, $trial_bind);
-$ops.add_hll_op('perl6', 'p6trialbind', :!inlinable, $trial_bind);
+$ops.add_hll_op('Raku', 'p6trialbind', :!inlinable, $trial_bind);
 proto sub set_binder($b) { $Binder := $b; }
 proto sub get_binder()   { $Binder }
 $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
@@ -409,7 +405,7 @@ $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
         |@($op)
     ));
 });
-$ops.add_hll_op('perl6', 'p6typecheckrv', -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6typecheckrv', -> $qastcomp, $op {
     if nqp::istype($op[1], QAST::WVal) {
         my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[1].value);
         if nqp::isnull($type) || nqp::objprimspec(nqp::decont($type)) {
@@ -468,16 +464,16 @@ sub decontrv_op($version) {
         }
     }
 }
-$ops.add_hll_op('perl6', 'p6decontrv', decontrv_op(''));
-$ops.add_hll_op('perl6', 'p6decontrv_6c', decontrv_op('6c'));
+$ops.add_hll_op('Raku', 'p6decontrv', decontrv_op(''));
+$ops.add_hll_op('Raku', 'p6decontrv_6c', decontrv_op('6c'));
 
-$ops.add_hll_op('perl6', 'p6setautothreader', :inlinable, -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6setautothreader', :inlinable, -> $qastcomp, $op {
     $qastcomp.as_mast(
         QAST::Op.new( :op('callmethod'), :name('set_autothreader'),
             QAST::WVal.new( :value($Binder) ),
             $op[0]), :want($MVM_reg_obj));
 });
-$ops.add_hll_op('perl6', 'p6configposbindfailover', :inlinable, -> $qastcomp, $op {
+$ops.add_hll_op('Raku', 'p6configposbindfailover', :inlinable, -> $qastcomp, $op {
     $qastcomp.as_mast(
         QAST::Op.new( :op('callmethod'), :name('set_pos_bind_failover'),
             QAST::WVal.new( :value($Binder) ),

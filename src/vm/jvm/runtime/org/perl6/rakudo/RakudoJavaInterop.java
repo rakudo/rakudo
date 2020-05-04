@@ -702,7 +702,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         // the conditional is rather sketchy, but seems to be needed to
         // correctly return a new instance when we're called from
         // ConstructorDispatchCallSite, probably because of
-        // Perl 6' .new creating a new CallFrame or something..?
+        // Raku' .new creating a new CallFrame or something..?
         return Ops.result_o(tc.curFrame) != null ? Ops.result_o(tc.curFrame) : Ops.result_o(tc.curFrame.caller);
     }
 
@@ -1000,7 +1000,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         freshType.st.ModeFlags |= STable.METHOD_CACHE_AUTHORITATIVE;
 
         ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!submethods", STable.NO_HINT, submethods);
-        ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!methods", STable.NO_HINT, Ops.hllizefor(methods, "perl6", tc));
+        ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "%!methods", STable.NO_HINT, Ops.hllizefor(methods, "Raku", tc));
         ThisHOW.bind_attribute_boxed(tc, gcx.JavaHOW, "@!method_order", STable.NO_HINT, method_order);
 
         hash.bind_key_boxed(tc, "/TYPE/", freshType);

@@ -61,7 +61,7 @@ sub qast-is (Str:D $code is copy, &test, Str:D $desc,
     unless $full;
 
     my $eval_ctx := nqp::getattr(CALLER::, PseudoStash, '$!ctx');
-    my $compiled := nqp::getcomp('perl6').compile(
+    my $compiled := nqp::getcomp('Raku').compile(
       $code,
       :compunit_ok, :outer_ctx($eval_ctx), :mast_frames(nqp::hash), :$target);
 

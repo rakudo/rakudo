@@ -20,7 +20,7 @@ class Perl6::Metamodel::ModuleHOW
     method new_type(:$name = '<anon>', :$repr, :$ver, :$auth, :$api) {
         if $repr { nqp::die("'module' does not support custom representations") }
         my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'perl6');
+        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'Raku');
         $metaclass.set_name($obj, $name);
         $metaclass.set_ver($obj, $ver);
         $metaclass.set_auth($obj, $auth) if $auth;

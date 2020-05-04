@@ -70,7 +70,7 @@ public class RakudoContainerSpec extends ContainerSpec {
 
     /* Name of this container specification. */
     public String name() {
-        return "rakudo_scalar";
+        return "value_desc_cont";
     }
 
     /* Serializes the container data, if any. */

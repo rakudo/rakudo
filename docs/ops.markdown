@@ -15,11 +15,15 @@
     - [p6capturelexwhere](#p6capturelexwhere)
     - [p6captureouters2](#p6captureouters2)
     - [p6clearpre](#p6clearpre)
+    - [p6clientcorectx](#p6clientcorectx)
+    - [p6clientcorerev](#p6clientcorerev)
+    - [p6clientcorever](#p6clientcorever)
+    - [p6clientctx](#p6clientctx)
     - [p6configposbindfailover](#p6configposbindfailover)
-    - [p6decodelocaltime](#p6decodelocaltime)
     - [p6decontrv](#p6decontrv)
     - [p6definite](#p6definite)
     - [p6finddispatcher](#p6finddispatcher)
+    - [p6getlexclient](#p6getlexclient)
     - [p6getouterctx](#p6getouterctx)
     - [p6init](#p6init)
     - [p6inpre](#p6inpre)
@@ -117,15 +121,32 @@ Must be called in the immediate outer scope of the block in question.
 
 Clears the "pre" flag in the current frame.
 
+## p6clientcorectx
+* p6clientcorectx()
+
+Returns the CORE context of our client. See [p6clientctx](#p6clientctx).
+
+Note that this returns exactly CORE, not setting, context.
+
+## p6clientcorerev
+* p6clientcorerev()
+
+Returns client's language revision letter. See [p6clientcorectx](#p6clientcorectx).
+
+## p6clientcorever
+* p6clientcorerev()
+
+Returns client's language version (`6.<rev>`). See [p6clientcorectx](#p6clientcorectx).
+
+## p6clientctx
+* p6clientctx()
+
+Returns client's, i.e. the first Perl6 caller from different package, context.
+
 ## p6configposbindfailover
 * p6configposbindfailover(Mu $type, Mu $failover-type)
 
 Configures the Binder to allow $failover-type to bind to $type in subroutine invocation.
-
-## p6decodelocaltime
-* p6decodelocaltime(int $epoch)
-
-Decodes the unix timestamp $epoch into a native int array with six fields containing second, minute, hour, day, month, year in that order.
 
 ## p6decontrv
 * p6decontrv(Mu $type, Mu $value)
@@ -135,6 +156,12 @@ Decodes the unix timestamp $epoch into a native int array with six fields contai
 
 ## p6finddispatcher
 * p6finddispatcher(str $value)
+
+## p6getlexclient
+* p6getlexclient(str $symbol, int $setting-only)
+
+Takes a name and finds corresponding symbol in lexical scope of [p6clientctx](#p6clientctx). If `$setting-only` is set
+to a _true_ value then lookup is performed only in client's SETTING.
 
 ## p6getouterctx
 * p6getouterctx(Mu $closure)

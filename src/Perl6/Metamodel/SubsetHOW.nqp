@@ -24,16 +24,14 @@ class Perl6::Metamodel::SubsetHOW
     method BUILD(:$refinee, :$refinement) {
         $!refinee := $refinee;
         $!refinement := $refinement;
-        $!pre-e-behavior := self.lang-rev-before('e');
+        $!pre-e-behavior := self.lang-rev-before(self, 'e');
     }
 
     method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
         my $metasubset := self.new(:refinee($refinee), :refinement($refinement));
-        my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'perl6');
+        my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'Raku');
         $metasubset.set_name($type, $name);
-        # TODO This only works at compile time. To support run-time creation of subsets we need to find caller's CORE.
-        # Will be possible when nqp::p6callerrevision() is implemented.
-        $metasubset.set_language_version($metasubset, nqp::getcomp('perl6').language_version);
+        $metasubset.set_language_version($metasubset, :force);
         nqp::settypecheckmode($type, 2);
         self.add_stash($type)
     }
@@ -46,7 +44,7 @@ class Perl6::Metamodel::SubsetHOW
         }
         $!refinee := nqp::decont($refinee);
         if nqp::objprimspec($!refinee) {
-            my %ex := nqp::gethllsym('perl6', 'P6EX');
+            my %ex := nqp::gethllsym('Raku', 'P6EX');
             if nqp::existskey(%ex, 'X::NYI') {
                 %ex{'X::NYI'}('Subsets of native types');
             }
@@ -66,7 +64,7 @@ class Perl6::Metamodel::SubsetHOW
 
     method isa($obj, $type) {
         $!refinee.isa($type)
-            || nqp::hllboolfor(nqp::istrue($type.HOW =:= self), "perl6")
+            || nqp::hllboolfor(nqp::istrue($type.HOW =:= self), "Raku")
     }
 
     method nominalize($obj) {
@@ -87,7 +85,7 @@ class Perl6::Metamodel::SubsetHOW
         nqp::hllboolfor(
             ($!pre-e-behavior && nqp::istrue($checkee.HOW =:= self))
                 || nqp::istype($!refinee, $checkee),
-            "perl6"
+            "Raku"
         )
     }
 
@@ -96,7 +94,7 @@ class Perl6::Metamodel::SubsetHOW
         nqp::hllboolfor(
             nqp::istype($checkee, $!refinee) &&
             nqp::istrue($!refinement.ACCEPTS($checkee)),
-            "perl6"
+            "Raku"
         )
     }
 }

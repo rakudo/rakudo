@@ -25,4 +25,16 @@ class Perl6::Metamodel::Configuration {
             ?? $multi_sig_comparator($a, $b)
             !! 0
     }
+
+    my $role_to_class_applier_type := nqp::null();
+    method set_role_to_class_applier_type($rtca_type) {
+        $role_to_class_applier_type := $rtca_type;
+    }
+    method role_to_class_applier_type() { $role_to_class_applier_type }
+
+    my $role_to_role_applier_type := nqp::null();
+    method set_role_to_role_applier_type($rtra_type) {
+        $role_to_role_applier_type := $rtra_type;
+    }
+    method role_to_role_applier_type() { $role_to_role_applier_type }
 }

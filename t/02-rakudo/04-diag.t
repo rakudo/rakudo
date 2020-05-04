@@ -6,7 +6,7 @@ plan 2;
 
 my @includes = $*REPO.repo-chain.map({ slip "-I", .path-spec });
 
-# RT#128098
+# https://github.com/Raku/old-issue-tracker/issues/5307
 {
     my $proc = run :out, :err, $*EXECUTABLE, @includes, '-e',
         q/use Test; plan 1; diag 'test message'; ok 1;/;

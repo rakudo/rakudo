@@ -5,10 +5,11 @@ use Test::Helpers;
 
 plan 45;
 
+my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
         " or use rlwrap for a line editor\n\n"//;
-    s/^^ "To exit type 'exit' or '^D'\n"//;
+    s/^^ "To exit type 'exit' or $eof\n"//;
     s:g/ ^^ "> "  //; # Strip out the prompts
     s:g/    ">" $ //; # Strip out the final prompt
     s:g/ ^^ "* "+ //; # Strip out the continuation-prompts
@@ -28,7 +29,7 @@ my $*REPL-SCRUBBER = -> $_ is copy {
     }
 }
 
-# RT #123187
+# https://github.com/Raku/old-issue-tracker/issues/5245
 is-run-repl «'my int $t=4; $t.say;'  '$t.say'», <4 4>,
     'can use native typed variable on subsequent lines (1)';
 
@@ -81,7 +82,7 @@ is-run-repl «'sub f { say "works" }'  'f()'», {
     .lines == 2 and .lines.tail eq 'works'
 }, 'single-line sub declaration works';
 
-# RT #122914
+# https://github.com/Raku/old-issue-tracker/issues/3543
 subtest 'assignment maintains values on subsequent lines' => {
     plan 4;
     is-run-repl «'my $a = 42; say 1'  '$a.say'», "1\n42\n",
@@ -124,7 +125,7 @@ is-run-repl ['emit 42'   ], /'emit without'/, '`emit` errors usefully';
 is-run-repl ['take 42'   ], /'take without'/, '`take` errors usefully';
 is-run-repl ['warn "foo"'], /'foo'         /, 'warn() shows warnings';
 
-# RT#130876
+# https://github.com/Raku/old-issue-tracker/issues/6106
 {
     is-run-repl ['say "hi"; die "meows";'], :out(/meows/),
         'previous output does not silence exceptions';
@@ -145,12 +146,12 @@ is-run-repl ['warn "foo"'], /'foo'         /, 'warn() shows warnings';
           ｢say "hi"; use nqp; my $x = REPL.new(nqp::getcomp("perl6"), %)｣
         ~ ｢.repl-eval(q|die "meows"|, $);｣
     ], *.contains('meows').not,
-        ｢can't trick REPL into thinking an exception was thrown (RT#130876)｣;
+        ｢can't trick REPL into thinking an exception was thrown｣;
 }
 
 
 
-# RT#130874
+# https://github.com/Raku/old-issue-tracker/issues/6104
 is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
 
 # Since there might be some differences in REPL sessions in whitespace
@@ -174,7 +175,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     #    https://rt.perl.org/Ticket/Display.html?id=130456
 }
 
-# RT #119339
+# https://github.com/Raku/old-issue-tracker/issues/3211
 {
     is-run-repl ['say 069'], :out("69\n"), :err(/'Potential difficulties:'
         .* 'Leading 0' .+ "use '0o' prefix,"
@@ -186,7 +187,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     /), 'prefix 0 on valid octal warns in REPL';
 }
 
-# RT #70297
+# https://github.com/Raku/old-issue-tracker/issues/1393
 {
     my $proc = run $*EXECUTABLE, :in, :out, :err;
     $proc.in.close;
@@ -200,7 +201,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     # }, 'Pressing CTRL+D in REPL produces correct output on exit';
 }
 
-# RT #128470
+# https://github.com/Raku/old-issue-tracker/issues/5399
 {
     my $code-to-run = q/[1..99].map:{[$_%%5&&'fizz', $_%%3&&'buzz'].grep:Str}/
         ~ "\nsay 'We are still alive';\n";
@@ -211,21 +212,21 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
         'exceptions from lazy-evaluated things do not crash REPL';
 }
 
-# RT #127933
+# https://github.com/Raku/old-issue-tracker/issues/5245
 {
     my $code = [~]  'my ( int8 $a,  int16 $b,  int32 $c,  int64 $d,',
                         'uint8 $e, uint16 $f, uint32 $g, uint64 $h,',
                                               'num32 $i,  num64 $j,',
                     ') = 1, 2, 3, 4, 5, 6, 7, 8, 9e0, 10e0;';
 
-    todo 'RT#127933';
+    todo 'https://github.com/Raku/old-issue-tracker/issues/5245';
     is-run-repl "$code\nsay 'test is good';\n",
         :err(''),
         :out(/'(1 2 3 4 5 6 7 8 9 10)' .* 'test is good'/),
     'Using native numeric types does not break REPL';
 }
 
-# RT #128595
+# https://github.com/Raku/old-issue-tracker/issues/5444
 {
     # REPL must not start, but if it does start and wait for input, it'll
     # "hang", from our point of view, which the test function will detect
@@ -235,7 +236,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     'REPL with -M with non-existent module does not start';
 }
 
-# RT #128973
+# https://github.com/Raku/old-issue-tracker/issues/5575
 {
     is-run-repl "my \$x = 42;\nsay qq/The value is \$x/;\n",
         :err(''),
@@ -257,7 +258,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     'previously-entered code must not be re-run on every line of input';
 }
 
-# RT #125412
+# https://github.com/Raku/old-issue-tracker/issues/4325
 {
     my $code = 'sub x() returns Array of Int { return my @x of Int = 1,2,3 };'
         ~ "x().WHAT.say\n";
@@ -268,7 +269,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     'no bizzare types returned from redeclared "returns an `of` Array" sub';
 }
 
-# RT #127631
+# https://github.com/Raku/old-issue-tracker/issues/5157
 {
 
     is-run-repl join("\n", <last next redo>, 'say "rt127631-pass"', ''),
@@ -277,7 +278,7 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     'loop controls do not exit the REPL';
 }
 
-# RT #130719
+# https://github.com/Raku/old-issue-tracker/issues/6057
 {
     is-run-repl join("\n", 'Mu', ''),
         :err(''),
@@ -285,19 +286,19 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     ｢REPL can handle `Mu` as line's return value｣;
 }
 
-# RT #132780
+# https://github.com/Raku/old-issue-tracker/issues/6667
 is-run-repl "say 42; none True\n", :err(''), :out{
     .contains('42') and not .contains: 'No such method';
 }, 'REPL does not explode with none Junction return values';
 
-# RT #112986
+# https://github.com/Raku/old-issue-tracker/issues/2768
 is-run-repl '$_**2',
     :out{!.contains('message') and !.contains('not found')
          and !.contains('No such method')},
     :err(''),
     'no complaints about .message';
 
-# RT #123380
+# https://github.com/Raku/old-issue-tracker/issues/3599
 is-run-repl 'say "b".subst(/(.)/,{$0~$0}); say "%20" ~~ /:i \%(<[0..9A..F]>**2)/;'
             ~ "\n" ~ 'say "a".subst(/(.)/,{$0~$0});',
     :out{.contains('bb') and .contains('aa') and not .contains('2020')},
@@ -308,8 +309,8 @@ is-run-repl 'say "b".subst(/(.)/,{$0~$0}); say "%20" ~~ /:i \%(<[0..9A..F]>**2)/
 is-run-repl '&say.package', :out{.contains: 'GLOBAL'}, :err(''),
     ｢REPL can auto-print non-Mu things that lack .WHERE and .gist｣;
 
-#https://github.com/rakudo/rakudo/issues/2184
-is-run-repl 'my $fh = $*EXECUTABLE.open(:r)', 
-	:out{.contains: 'IO::Handle' and not .contains('Failed to write')}, 
+# https://github.com/rakudo/rakudo/issues/2184
+is-run-repl 'my $fh = $*EXECUTABLE.open(:r)',
+	:out{.contains: 'IO::Handle' and not .contains('Failed to write')},
 	:err(''),
 	｢no complaints about failed writing to filehandle when opening a file｣;

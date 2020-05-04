@@ -1,10 +1,10 @@
 =head1 NAME
 
-perl6 - Rakudo Perl 6 Compiler
+raku - Rakudo Raku Compiler
 
 =head1 SYNOPSIS
 
- perl6 [switches] [--] [programfile] [arguments]
+ raku [switches] [--] [programfile] [arguments]
 
 =head1 DESCRIPTION
 
@@ -144,9 +144,9 @@ C<IO::Spec::Cygwin> inherits this from C<IO::Spec::Unix>.
 C<IO::Spec::Win32.path> will read the first defined of either C<%PATH%> or C<%Path%> as a
 semicolon-delimited list.
 
-=item C<PERL6_HOME>
+=item C<RAKU_HOME>
 
-Allows to override the Perl 6 installation path. Defaults to C<[perl6_executable_dir]/../share/perl6>.
+Allows to override the Raku installation path. Defaults to C<[perl6_executable_dir]/../share/perl6>.
 
 =item C<NQP_HOME>
 

@@ -1,4 +1,49 @@
 
-@include_capture(@js_nqp@ @nfp(tools/build/gen-js-makefile.nqp)@)@
+@bpv(NQP)@ = @js_nqp@
+@bpv(RUNTIME)@ = @nqp::libdir@@nfp(/nqp-js-on-js/node_modules/nqp-runtime)@
+@bpv(NQP_BASE_FLAGS)@ = --nqp-runtime @bpm(RUNTIME)@ --perl6-runtime @perl6_runtime@ --libpath "@bpm(BLIB)@|||@nqp::libdir@@nfp(/nqp-js-on-js/)@"
+@bpv(NQP_FLAGS)@ = @bpm(NQP_BASE_FLAGS)@ --substagestats --stagestats --source-map
+@bpv(NQP_FLAGS_EXTRA)@ = --execname @bpm(RUNNER)@ --shebang
+@bpv(RUN_RAKUDO)@ = node --max-old-space-size=8192 rakudo.js @bpm(NQP_BASE_FLAGS)@ --source-map
+
+@bpv(CLEANUPS)@ = \
+	@bsm(RAKUDO)@ \
+	@nfp(@base_dir@/*.js.map)@ \
+	@nfp(@bpm(BLIB)@/*.js.map)@ \
+	@bpm(BLIB_RAKUDO)@/load-compiler.js \
+	@bpm(BLIB_RAKUDO)@/*.js.map \
+	@bpm(BLIB_RAKUDO)@/BOOTSTRAP/*.js.map
+
+# Have this target before including Makefile-backend-common to prevent the
+# default js-install from executing.
+@backend_prefix@-install:: @backend_prefix@-all
+	@echo(!!! Installing the js backend is not yet implemented.)@
+	$(NOECHO)exit 1
+
+@include(Makefile-backend-common)@
+
+# files we create
+
+@nfp(@bpm(BLIB)@/load-compiler.js)@: @nfp(src/vm/js/load-compiler.nqp)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_A)@ @bsm(RAKUDO_C)@ @bsm(RAKUDO_P)@
+	@$(JS_NQP) $(JS_NQP_FLAGS) --target=js --output=$@ $<
+
+@bpm(RUNNER)@:
+	@echo(+++ Creating JS runner)@
+	@noehcho@$(PERL5) @script(create-js-runner.pl)@
+
+@backend_prefix@-clean:
+	@echo(+++ Cleaning up @uc(@backend@)@)@
+	$(NOECHO)$(RM_F) @bpm(CLEANUPS_ALL)@
+
+@backend_prefix@-lint:
+	@echo(+++ Linting @uc(@backend@)@ runtime)@
+	$(NOECHO)gjslint --strict --max_line_length=200 --nojsdoc @nfp(src/vm/js/perl6-runtime/*.js)@
+
+#js-testable: js-all spectest_checkout spectest_update
+
+@backend_prefix@-spectest5: @backend_prefix@-testable
+	$(PERL5) t/harness5 --fudge --js --keep-exit-code --tests-from-file=@nfp(t/spectest.js.data)@
+
+@backend_prefix@-runner-default:
 
 # vim: ft=make noexpandtab ts=4 sw=4

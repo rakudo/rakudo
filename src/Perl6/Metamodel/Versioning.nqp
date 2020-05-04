@@ -8,9 +8,6 @@ role Perl6::Metamodel::Versioning {
     method api($obj) { $!api // '' }
 
     method set_ver($obj, $ver) {
-        if $*COMPILING_CORE_SETTING && !$ver {
-            $ver := nqp::getcomp('perl6').language_version;
-        }
         $!ver := $ver if $ver
     }
     method set_auth($obj, $auth) { $!auth := $auth }

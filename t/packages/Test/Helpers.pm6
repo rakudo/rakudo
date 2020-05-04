@@ -157,6 +157,21 @@ sub make-temp-dir (Int $chmod? --> IO::Path:D) is export {
     p
 }
 
+sub has-symbols(%stash, @expected, Str:D $desc) is export {
+    subtest $desc, {
+        plan 2;
+        my @unknown;
+        my @missing;
+        my %expected = @expected.map: * => 1;
+        @unknown.push($_) unless %expected{$_}:exists for %stash.keys;
+        @missing.push($_) unless %stash{$_}:exists for %expected.keys;
+        diag "Found {+@unknown} unexpected entries: { @unknown.sort }" if @unknown;
+        diag "Missing {+@missing} expected entries: { @missing.sort }" if @missing;
+        ok @unknown == 0, "No unexpected entries";
+        ok @missing == 0, "No missing entries";
+    }
+}
+
 =begin pod
 
 =head2 group-of

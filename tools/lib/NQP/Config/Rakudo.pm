@@ -1,5 +1,3 @@
-## Please see file perltidy.ERR
-## Please see file perltidy.ERR
 use v5.10.1;
 
 package NQP::Config::Rakudo;
@@ -122,6 +120,7 @@ sub configure_backends {
 sub configure_refine_vars {
     my $self = shift;
 
+    my $config  = $self->{config};
     my $nqp_bin = $self->cfg('nqp_default');
     if ($nqp_bin) {
         my ( $vol, $dir, undef ) = File::Spec->splitpath($nqp_bin);
@@ -154,13 +153,21 @@ sub configure_refine_vars {
     }
 
     $self->SUPER::configure_refine_vars(@_);
+
+    $config->{rakudo_home} = $self->nfp(
+        File::Spec->rel2abs(
+            $config->{rakudo_home}
+              || File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
+        )
+    );
+    $config->{static_rakudo_home} = $config->{rakudo_home};
 }
 
 sub parse_lang_specs {
     my $self = shift;
 
     my $config = $self->{config};
-    my $tmpl   = 'PERL6_SPECS';
+    my $tmpl   = 'RAKU_SPECS';
     open my $sh, "<", $self->template_file_path( $tmpl, required => 1 )
       or self->sorry("Can't open $tmpl: $!");
 
@@ -207,7 +214,7 @@ sub parse_lang_specs {
         }
     }
 
-    $self->{perl6_specs} = \@specs;
+    $self->{raku_specs} = \@specs;
 
     close $sh;
 }
@@ -215,6 +222,8 @@ sub parse_lang_specs {
 sub configure_misc {
     my $self   = shift;
     my $config = $self->{config};
+
+    $self->SUPER::configure_misc(@_);
 
     # determine the version of NQP we want
     ( $config->{nqp_want} ) =
@@ -231,17 +240,17 @@ sub configure_misc {
     #    return \@elems;
     #};
 
-    #$self->{perl6_specs} = [
+    #$self->{raku_specs} = [
     #    map { $spec_line->($_) }
     #      grep { s/\s*#.*$//; length }
     #      split(
     #        /\n/s,
-    #        slurp( $self->template_file_path( 'PERL6_SPECS', required => 1, ) )
+    #        slurp( $self->template_file_path( 'RAKU_SPECS', required => 1, ) )
     #      )
     #];
 
     # Get version info from VERSION template and git.
-    my $VERSION = slurp( File::Spec->catfile( $self->cfg('base_dir'), 'VERSION') );
+    my $VERSION = slurp( File::Spec->catfile( $self->cfg('base_dir'), 'VERSION' ) );
     chomp $VERSION;
     @{$config}{qw<version release codename>} = split( ' ', $VERSION, 3 );
 
@@ -311,7 +320,9 @@ sub configure_jvm_backend {
         );
         $config->{'nqp_classpath'} = $nqp_config->{'jvm::runtime.classpath'};
         $config->{'nqp::libdir'}   = $nqp_config->{'nqp::libdir'};
-        $config->{'j_runner'}      = $self->batch_file('perl6-j');
+        $config->{'j_runner'}      = $self->batch_file('rakudo-j');
+
+        $nqp_config->{static_nqp_home} = $nqp_config->{'nqp::static-nqp-home'};
     }
 }
 
@@ -335,32 +346,31 @@ sub configure_moar_backend {
     }
 
     if ( $config->{relocatable} eq 'reloc' ) {
-        $nqp_config->{static_nqp_home}          = '';
-        $nqp_config->{static_perl6_home}        = '';
-        $nqp_config->{static_nqp_home_define}   = '';
-        $nqp_config->{static_perl6_home_define} = '';
+        $nqp_config->{static_nqp_home}           = '';
+        $nqp_config->{static_rakudo_home}        = '';
+        $nqp_config->{static_nqp_home_define}    = '';
+        $nqp_config->{static_rakudo_home_define} = '';
     }
     else {
         my $qchar = $config->{quote};
-        $nqp_config->{static_nqp_home} =
-          File::Spec->rel2abs(
-            File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp' )
-          );
-        $nqp_config->{static_perl6_home} =
-          File::Spec->rel2abs(
-            File::Spec->catdir( $config->{prefix}, 'share', 'perl6' ) );
+        $nqp_config->{static_nqp_home}    = $nqp_config->{'nqp::static-nqp-home'};
         $nqp_config->{static_nqp_home_define} =
-          '-DSTATIC_NQP_HOME='
-          . $qchar . $self->c_escape_string( $nqp_config->{static_nqp_home} ) . $qchar;
-        $nqp_config->{static_perl6_home_define} =
-          '-DSTATIC_PERL6_HOME='
-          . $qchar . $self->c_escape_string( $nqp_config->{static_perl6_home} ) . $qchar;
+            '-DSTATIC_NQP_HOME='
+          . $qchar
+          . $self->c_escape_string( $nqp_config->{static_nqp_home} )
+          . $qchar;
+        $nqp_config->{static_rakudo_home_define} =
+            '-DSTATIC_RAKUDO_HOME='
+          . $qchar
+          . $self->c_escape_string( $config->{static_rakudo_home} )
+          . $qchar;
     }
 
     # Strip rpath from ldflags so we can set it differently ourself.
     $nqp_config->{ldflags} = $nqp_config->{'moar::ldflags'};
     $nqp_config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath'}\E ?//;
-    $nqp_config->{ldflags} =~ s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
+    $nqp_config->{ldflags} =~
+      s/\Q$nqp_config->{'moar::ldrpath_relocatable'}\E ?//;
     if ( $config->{prefix} ne '/usr' ) {
         $nqp_config->{ldflags} .= ' '
           . (
@@ -384,7 +394,7 @@ sub configure_moar_backend {
             #  . ' $(PREFIX)'
             #  . $slash . 'bin';
             $config->{m_install} = "\t"
-              . q<$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
+              . q<$(NOECHO)$(CP) @nfpq(@moar::libdir@/@moar::moar@)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@>;
         }
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $nqp_config->{mingw_unicode} = '-municode';
@@ -392,28 +402,7 @@ sub configure_moar_backend {
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
     }
     else {
-        $nqp_config->{m_cleanups} =
-"  \$(M_GDB_RUNNER) \\\n  \$(M_LLDB_RUNNER) \\\n  \$(M_VALGRIND_RUNNER)";
-        $nqp_config->{m_all} =
-          '$(M_GDB_RUNNER) $(M_LLDB_RUNNER) $(M_VALGRIND_RUNNER)';
-
-        #$config->{'m_install'} = "\t"
-        #  . '$(M_RUN_PERL6) '
-        #  . $self->nfp("tools/build/create-moar-runner.p6")
-        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-        #  . $self->nfp("/bin/perl6-gdb-m")
-        #  . ' "gdb" "" "" ""' . "\n\t"
-        #  . '$(M_RUN_PERL6) '
-        #  . $self->nfp("tools/build/create-moar-runner.p6")
-        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-        #  . $self->nfp("/bin/perl6-lldb-m")
-        #  . ' "lldb" "" "" ""' . "\n\t"
-        #  . '$(M_RUN_PERL6) '
-        #  . $self->nfp("tools/build/create-moar-runner.p6")
-        #  . ' perl6 $(M_RUNNER) $(DESTDIR)$(PREFIX)'
-        #  . $self->nfp("/bin/perl6-valgrind-m")
-        #  . ' "valgrind" "" "" ""';
-        $nqp_config->{m_install} = '@insert(Makefile-install)@';
+        $imoar->{toolchains} = [qw<gdb lldb valgrind>];
     }
     $nqp_config->{c_runner_libs} = join( " ", @c_runner_libs );
     $nqp_config->{moar_lib}      = sprintf(
@@ -424,6 +413,11 @@ sub configure_moar_backend {
         ),
         $nqp_config->{'moar::name'}
     );
+
+    $nqp_config->{'with_raku_alias'} =
+      ( $self->has_option('raku-alias') && !$self->opt('raku-alias') )
+      ? 'off'
+      : 'on';
 
     unless ( $self->backend_error('moar') ) {
         $self->msg( "Using $config->{m_nqp}"
@@ -444,10 +438,8 @@ sub configure_js_backend {
     $config->{js_nqp} = $ijs->{bin};
     $config->{'perl6_runtime'} =
       File::Spec->rel2abs( $self->nfp('src/vm/js/perl6-runtime') );
-    $config->{'perl6_lowlevel_libs'} =
-      File::Spec->rel2abs('node_modules') . $slash;
-    $config->{'perl6_js_runner'} =
-      $self->batch_file( File::Spec->rel2abs('perl6-js') );
+    $config->{'rakudo_js_runner'} =
+      $self->batch_file( File::Spec->rel2abs('rakudo-js') );
 
     if ( $ijs->{ok} ) {
         $nqp_config = $ijs->{config};
@@ -462,8 +454,9 @@ sub configure_js_backend {
 
     $self->backend_config(
         'js',
-        js_build_dir => File::Spec->catdir( $config->{base_dir}, qw<gen js> ),
-        js_blib => File::Spec->catdir( $config->{base_dir}, "node_modules" ),
+        js_build_dir    => File::Spec->catdir( $config->{base_dir}, qw<gen js> ),
+        js_blib         => File::Spec->catdir( $config->{base_dir}, "node_modules" ),
+        static_nqp_home => $nqp_config->{'nqp::static-nqp-home'},
     );
 }
 
@@ -491,35 +484,60 @@ sub opts_for_configure {
 }
 
 sub clean_old_p6_libs {
-    my $self = shift;
-    my $is_moar  = $self->active_backend('moar');
-    if ( $is_moar ) {
+    my $self    = shift;
+    my $is_moar = $self->active_backend('moar');
+    if ($is_moar) {
         my $nqp_config = $self->{impls}{moar}->{config};
-        my $lib_dir = File::Spec->rel2abs(File::Spec->catdir( $nqp_config->{'nqp::prefix'}, 'share', 'nqp', 'lib', 'Perl6' ));
+        my $lib_dir    = File::Spec->rel2abs(
+            File::Spec->catdir(
+                $nqp_config->{'nqp::prefix'},
+                'share', 'nqp', 'lib', 'Perl6'
+            )
+        );
 
         return if !-d $lib_dir;
 
-        my @files = qw(Actions.moarvm BOOTSTRAP.moarvm Compiler.moarvm Grammar.moarvm Metamodel.moarvm ModuleLoader.moarvm Ops.moarvm Optimizer.moarvm Pod.moarvm World.moarvm);
+        my @files =
+          qw(Actions.moarvm BOOTSTRAP.moarvm Compiler.moarvm Grammar.moarvm Metamodel.moarvm ModuleLoader.moarvm Ops.moarvm Optimizer.moarvm Pod.moarvm World.moarvm);
 
         my @notes;
-        for ( @files ) {
+        my @clean_rules;
+        for (@files) {
             my $file = File::Spec->catdir( $lib_dir, $_ );
             next unless -f $file;
-            push @notes, "Will remove: $file\n";
-            $self->{config}->{clean_old_p6_libs} .= "\t\$(RM_F) $file\n";
+            push @notes,       "Will remove: $file\n";
+            push @clean_rules, "\t\@noecho\@\$(RM_F) $file";
         }
-        $self->note('NOTICE',
+        my $pp_pfx = $self->cfg('make_pp_pfx');
+        if (@clean_rules) {
+            unshift @clean_rules,
+              "\t\@echo(+++ Cleaning up outdated MOAR files)\@\n";
+        }
+
+        # Don't try removing if DESTDIR is defined for the running make. It is
+        # likely that a rakudo package is being built in a working environment.
+        $self->{config}->{clean_old_p6_libs} =
+          @clean_rules
+          ? ( "${pp_pfx}ifndef DESTDIR\n"
+              . join( "\n", @clean_rules )
+              . "\n${pp_pfx}endif\n" )
+          : "";
+        $self->note(
+            'NOTICE',
             "Found stale files in $lib_dir.\n",
             "These files were left by a previous install and cause breakage\n",
-            "in this Rakudo version. The files will be removed during install.\n",
-            "\n", @notes) if @notes;
+            "in this Rakudo version. The 'install' phase will try to remove\n",
+            "them if possible.\n",
+            "\n",
+            @notes
+        ) if @notes;
     }
 }
 
 # Returns all active language specification entries except for .c
-sub perl6_specs {
+sub raku_specs {
     my $self = shift;
-    return grep { $_->[0] ne 'c' } @{ $self->{perl6_specs} };
+    return @{ $self->{raku_specs} };
 }
 
 sub post_active_backends {
@@ -572,24 +590,31 @@ sub gen_nqp {
     my $config  = $self->{config};
 
     #my $nqp_bin      = $options->{'with-nqp'};
-    my $nqp_git_spec = $options->{'gen-nqp'};
-    my $gen_nqp      = $options->{'gen-nqp'};
-    my $gen_moar     = $options->{'gen-moar'};
-    my $prefix       = $config->{prefix};
-    my $sdkroot      = $config->{'sdkroot'};
-    my $startdir     = $config->{'base_dir'};
-    my $exe          = $config->{exe};
-    my $nqp_want     = $config->{nqp_want};
-    my $git_protocol = $options->{'git-protocol'} // 'https';
-    my @moar_options = @{ $options->{'moar-option'} // [] };
-    my $impls        = $self->{impls};
-    my $pwd          = cwd;
+    my $nqp_git_spec  = $options->{'gen-nqp'};
+    my $gen_nqp       = $options->{'gen-nqp'};
+    my $gen_moar      = $options->{'gen-moar'};
+    my $force_rebuild = $options->{'force-rebuild'};
+    my $prefix        = $config->{prefix};
+    my $sdkroot       = $config->{'sdkroot'};
+    my $startdir      = $config->{'base_dir'};
+    my $nqp_want      = $config->{nqp_want};
+    my $git_protocol  = $options->{'git-protocol'} // 'https';
+    my @moar_options  = @{ $options->{'moar-option'} // [] };
+    my $impls         = $self->{impls};
+    my $pwd           = cwd;
+
+    if ( $force_rebuild && !defined $gen_nqp ) {
+        $self->note( "WARNING",
+                "Command line option --force-rebuild"
+              . " is ineffective without --gen-nqp" );
+    }
 
     my %need;
 
     for my $b ( $self->active_backends ) {
         my $bconfig = $self->backend_config($b);
         my $postfix = $self->backend_abbr($b);
+        my $exe     = $b eq 'moar' ? $config->{exe} : $config->{bat};
         my $tpath   = File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$exe" );
         my $bin     = $bconfig->{nqp_bin}
           || (
@@ -602,15 +627,20 @@ sub gen_nqp {
         my %c        = read_config($bin);
         my $nqp_have = $c{'nqp::version'} || '';
         $self->backend_config( $b, \%c ) if %c;
-        my $nqp_ver_ok = $nqp_have ? (0 <= cmp_rev( $nqp_have, $nqp_want )) : 0;
+        my $nqp_ver_ok =
+          $nqp_have ? ( 0 <= cmp_rev( $nqp_have, $nqp_want ) ) : 0;
         my $nqp_ok = $nqp_have && $nqp_ver_ok;
 
-        unless ( !$nqp_have || $nqp_ver_ok || $options->{'ignore-errors'} ) {
+        unless ( $force_rebuild
+            || !$nqp_have
+            || $nqp_ver_ok
+            || $options->{'ignore-errors'} )
+        {
             $self->note( "WARNING",
                 "$bin version $nqp_have is outdated, $nqp_want expected.\n" );
         }
 
-        if ( $nqp_ok or $options->{'ignore-errors'} ) {
+        if ( !$force_rebuild and ( $nqp_ok or $options->{'ignore-errors'} ) ) {
             $impls->{$b}{ok} = 1;
         }
         elsif ( $self->opt('with-nqp') ) {
@@ -627,7 +657,16 @@ sub gen_nqp {
 
     if ( defined $gen_nqp || defined $gen_moar ) {
         my $user = $options->{'github-user'} // 'perl6';
-        $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $nqp_want );
+
+        # Don't expect any specific default commit in nqp/ if the repo is
+        # already checked out and we're force-rebuilding.
+        my $expected_spec =
+          ( $force_rebuild
+              && -d File::Spec->catdir( $self->cfg('base_dir'), 'nqp', '.git' )
+          )
+          ? undef
+          : $nqp_want;
+        $self->git_checkout( 'nqp', 'nqp', $nqp_git_spec || $expected_spec );
     }
 
     my @cmd = (
@@ -637,13 +676,18 @@ sub gen_nqp {
 
     # Append only the options we'd like to pass down to NQP's Configure.pl
     for my $opt (
-        qw<git-depth git-reference github-user nqp-repo moar-repo
-        relocatable ignore-errors with-moar>
+        qw<git-depth github-user nqp-repo moar-repo
+        nqp-home relocatable ignore-errors with-moar silent-build
+        force-rebuild>
       )
     {
         my $opt_str = $self->make_option( $opt, no_quote => 1 );
         push @cmd, $opt_str if $opt_str;
     }
+
+    push @cmd, '--git-cache-dir='
+        . File::Spec->rel2abs($options->{'git-cache-dir'})
+        if $options->{'git-cache-dir'};
 
     push @cmd, "--backends=" . join( ",", $self->active_backends );
 
@@ -679,7 +723,7 @@ sub _specs_iterate {
 
     $self->not_in_context( specs => 'spec' );
 
-    for my $spec ( $cfg->perl6_specs ) {
+    for my $spec ( $cfg->raku_specs ) {
         my $spec_char   = $spec->[0];
         my $spec_subdir = "6.$spec_char";
         my %config      = (
@@ -740,6 +784,63 @@ sub _m_for_specmods {
     return _m_for_specs( $self, $text, with_mods => 1 );
 }
 
+# for_toolchain(text)
+# Iterate over tools
+sub _m_for_toolchain {
+    my $self = shift;
+    my $text = shift;
+
+    my $cfg = $self->cfg;
+
+    $self->not_in_context( toolchain => 'toolchain' );
+
+    my @tools = @{ $cfg->prop('toolchains') || [] };
+    my $out   = "";
+
+    for my $tool (@tools) {
+        my %config = (
+            toolchain   => $tool,
+            uctoolchain => uc($tool),
+        );
+        my $tc_ctx = {
+            toolchain => $tool,
+            configs   => [ \%config ],
+        };
+        my $scope = $self->cfg->push_ctx($tc_ctx);
+        $out .= $self->expand($text);
+    }
+
+    return $out;
+}
+
+# for_langalias(text)
+# Iterate over perl6 and raku. Temporary, until the end of perl6 deprecation
+# period.
+sub _m_for_langalias {
+    my $self = shift;
+    my $text = shift;
+    my $cfg  = $self->cfg;
+    my $out  = "";
+
+    $self->not_in_context( langalias => 'langalias' );
+
+    for my $alias (qw<rakudo perl6>) {
+        my %config = (
+            langalias   => $alias,
+            uclangalias => uc($alias),
+            LangAlias   => ucfirst($alias),
+        );
+        my $la_ctx = {
+            langalias => $alias,
+            configs   => [ \%config ],
+        };
+        my $scope = $self->cfg->push_ctx($la_ctx);
+        $out .= $self->expand($text);
+    }
+
+    return $out;
+}
+
 sub _m_source_digest {
     my $self = shift;
     my $sha  = Digest::SHA->new;
@@ -753,9 +854,45 @@ sub _m_source_digest {
     return $sha->hexdigest;
 }
 
+sub _m_gencat {
+    my $self       = shift;
+    my $text       = shift;
+    my $all_prereq = $self->cfg->cfg('make_all_prereq');
+    return $self->expand(<<TPL);
+$text
+\t\@echo(+++ Generating\t\$\@)@
+\t\$(NOECHO\@nop())@\@bpm(NQP)\@ \@bpm(GEN_CAT)\@ $all_prereq > \$\@
+TPL
+}
+
+sub _m_comp {
+    my $self = shift;
+    my $text = shift;
+    return $self->expand(<<TPL);
+$text
+\t\@echo(+++ Compiling\t\$@)@
+\t\$(NOECHO\@nop())@\@bpm(NQP)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@prereqs\@
+TPL
+}
+
+sub _m_comp_rr {
+    my $self = shift;
+    my $text = shift;
+    return $self->expand(<<TPL);
+$text
+\t\@echo(+++ Compiling\t\$@)@
+\t\$(NOECHO\@nop())@\@bpm(NQP_RR)@ \@bpm(NQP_FLAGS)@ --target=\@btarget@ --output=\$@ \@bpm(NQP_FLAGS_EXTRA)@ \@prereqs\@
+TPL
+}
+
 NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
 NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
+NQP::Macros->register_macro( 'for_toolchain', \&_m_for_toolchain );
+NQP::Macros->register_macro( 'for_langalias', \&_m_for_langalias );
 NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
+NQP::Macros->register_macro( 'gencat',        \&_m_gencat );
+NQP::Macros->register_macro( 'comp',          \&_m_comp, in_receipe => 1, );
+NQP::Macros->register_macro( 'comp_rr',       \&_m_comp_rr, in_receipe => 1, );
 
 1;
 

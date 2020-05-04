@@ -6,10 +6,9 @@ my class CompUnit::Repository::NodeJs does CompUnit::Repository does CompUnit::R
     {
 
         if $spec.from eq 'node.js' {
-            my $module = nqp::getcomp('JavaScript').eval(
-              'return function(name, prefix) {return require(require.resolve(name, {paths: [prefix]}))}'
-            )($spec.short-name, $.prefix.Str);
-
+            my $module = $*W && $*W.is_precompilation_mode()
+              ?? nqp::jscompiletimerequire($spec.short-name, $.prefix.Str)
+              !! nqp::jsruntimerequire($spec.short-name, $.prefix.Str);
 
             my $stash = Stash.new();
 

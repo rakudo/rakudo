@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 45;
+plan 46;
 
 compile_test_lib('05-arrays');
 
@@ -139,7 +139,7 @@ compile_test_lib('05-arrays');
     is-approx SumAFloatArray(@parr), 57.9e0, 'sum of float array';
 }
 
-# RT #129256
+# https://github.com/Raku/old-issue-tracker/issues/5663
 {
     is CArray[uint8].new.elems, 0, 'creating CArray with no arguments works';
     is CArray[uint8].new(()).elems, 0,
@@ -152,18 +152,18 @@ compile_test_lib('05-arrays');
         'creating CArray with one Positional positional works';
 }
 
-# RT #130267
+# https://github.com/Raku/old-issue-tracker/issues/5859
 {
     my CArray[uint8] $a .= new(200 xx 16);
     todo "RT #130267";
     is $a[0], 200, 'unsigned uint8 value';
 }
 
-# RT #131830
+# https://github.com/Raku/old-issue-tracker/issues/6421
 lives-ok { CArray[Str].new[my int $ = 1] },
     'native int as index to CArray does not crash';
 
-# RT #131406
+# https://github.com/Raku/old-issue-tracker/issues/6295
 is CArray[Pointer].^shortname, 'CArray[Pointer]',
     'CArray.^shortname shows sane value';
 
@@ -180,7 +180,7 @@ subtest 'CArray allocation' => {
         'Allocation works with miscellaneously typed CArray';
 }
 
-# R#2687
+# https://github.com/rakudo/rakudo/issues/2687
 {
     class Data is repr('CStruct') {
         has CArray[num32] $.data-in;
@@ -194,11 +194,17 @@ subtest 'CArray allocation' => {
       'can we build with a CArray attribute';
 }
 
-# R#2681
+# https://github.com/rakudo/rakudo/issues/2681
 {
     is-deeply .new(CArray[uint8].new(1,2,3)), .new(1,2,3),
       "can we create a {.^name} from a CArray"
       for Buf, Blob;
+}
+
+# https://github.com/rakudo/rakudo/issues/2682
+{
+    my @t2682 := CArray[int32].new(1,2,3);
+    is-deeply @t2682[0..*-2], (1, 2), 'Indexing with WhateverStar works on CArray';
 }
 
 # vim:ft=perl6

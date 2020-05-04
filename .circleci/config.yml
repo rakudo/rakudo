@@ -1,5 +1,22 @@
 version: 2.1
 
+orbs:
+    win: circleci/windows@2.2.0
+
+parameters:
+  BUILD_PRECOMP_RELEASE:
+    type: boolean
+    default: false
+  RELEASE_URL:
+    type: string
+    default: ""
+  VERSION:
+    type: string
+    default: "XXXX.YY"
+  BUILD_REV:
+    type: string
+    default: "01"
+
 variables:
   build-parameters: &build-parameters
     parameters:
@@ -9,6 +26,12 @@ variables:
       nqp-rev:
         type: string
         default: ""
+  precomp-release-environment: &precomp-release-environment
+    environment:
+      RELEASE_URL: << pipeline.parameters.RELEASE_URL >>
+      VERSION: << pipeline.parameters.VERSION >>
+      BUILD_REV: << pipeline.parameters.BUILD_REV >>
+
 
 jobs:
   test-linux:
@@ -28,6 +51,63 @@ jobs:
           nqp-rev: << parameters.nqp-rev >>
           moar-rev: << parameters.moar-rev >>
 
+  build-precomp-linux:
+    <<: *precomp-release-environment
+    docker:
+      - image: centos:6
+    steps:
+      - run:
+          name: Install basic dependencies
+          command: |
+            yum -y update
+            yum clean all
+            yum -y install git perl perl-core
+      - run:
+          name: Checkout repository
+          command: |
+            git clone `echo $CIRCLE_REPOSITORY_URL | perl -pe "s|(ssh://)?git\@github\.com:|https://github.com/|"` .
+            if [ -n "$CIRCLE_TAG" ]; then
+            git checkout -q "$CIRCLE_TAG"
+            elif [ -n "$CIRCLE_BRANCH" ]; then
+            git checkout origin/"$CIRCLE_BRANCH"
+            git branch -f "$CIRCLE_BRANCH"
+            git checkout -q "$CIRCLE_BRANCH"
+            fi
+      - run:
+          name: Run build script
+          command:
+            tools/build/binary-release/build-linux.sh
+      - store_artifacts:
+          path: rakudo-linux.tar.gz
+          destination: rakudo-moar-<< pipeline.parameters.VERSION >>-<< pipeline.parameters.BUILD_REV >>-linux-x86_64.tar.gz
+  build-precomp-macos:
+    <<: *precomp-release-environment
+    macos:
+      xcode: 10.2.0
+    steps:
+      - checkout
+      - run:
+          name: Run build script
+          command:
+            tools/build/binary-release/build-macos.sh
+      - store_artifacts:
+          path: rakudo-macos.tar.gz
+          destination: rakudo-moar-<< pipeline.parameters.VERSION >>-<< pipeline.parameters.BUILD_REV >>-macos-x86_64.tar.gz
+  build-precomp-windows:
+    <<: *precomp-release-environment
+    executor: win/default
+    working_directory: C:\rakudo
+    steps:
+      - checkout
+      - run:
+          name: Run build script
+          command:
+            tools/build/binary-release/build-windows.ps1
+      - store_artifacts:
+          path: rakudo-win.zip
+          destination: rakudo-moar-<< pipeline.parameters.VERSION >>-<< pipeline.parameters.BUILD_REV >>-win-x86_64.zip
+
+
 commands:
   build-rakudo:
     description: "Build MoarVM, NQP, and Rakudo"
@@ -44,13 +124,20 @@ commands:
 workflows:
   version: 2
   test:
+    unless: << pipeline.parameters.BUILD_PRECOMP_RELEASE >>
     jobs:
       - test-linux
       - test-linux:
           nqp-rev: HEAD
           moar-rev: HEAD
-
       - test-macos
       - test-macos:
           nqp-rev: HEAD
           moar-rev: HEAD
+  build-precomp-release:
+    when: << pipeline.parameters.BUILD_PRECOMP_RELEASE >>
+    jobs:
+      - build-precomp-linux
+      - build-precomp-macos
+      - build-precomp-windows
+

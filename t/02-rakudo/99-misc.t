@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 10;
+plan 11;
 
 subtest '.lang-ver-before method on Perl6::World' => {
     plan 5;
@@ -15,14 +15,14 @@ subtest '.lang-ver-before method on Perl6::World' => {
     'using wrong version format as argument throws';
 }
 
-subtest 'IO::Handle.perl.EVAL roundtrips' => {
+subtest 'IO::Handle.raku.EVAL roundtrips' => {
     plan 7;
 
     my $orig = IO::Handle.new: :path("foo".IO), :!chomp, :nl-in[<I ♥ Perl 6>],
         :nl-out<foo>, :encoding<ascii>;
 
-    is-deeply IO::Handle.perl.EVAL, IO::Handle, 'type object';
-    given $orig.perl.EVAL -> $evaled {
+    is-deeply IO::Handle.raku.EVAL, IO::Handle, 'type object';
+    given $orig.raku.EVAL -> $evaled {
         is-deeply $evaled, $orig, 'instance';
         is-deeply $evaled."$_"(), $orig."$_"(), $_
             for <path  chomp  nl-in  nl-out  encoding>;
@@ -31,7 +31,8 @@ subtest 'IO::Handle.perl.EVAL roundtrips' => {
 
 # https://github.com/MoarVM/MoarVM/issues/971
 if $*DISTRO.is-win {
-    skip 'code too complex for Win32 due to RT#132258';
+    # https://github.com/Raku/old-issue-tracker/issues/6591
+    skip 'code too complex for Win32';
 }
 else {
     is-run :compiler-args[
@@ -49,9 +50,9 @@ else {
     'profiler does not crash';
 }
 
-# RT #132710
+# https://github.com/Raku/old-issue-tracker/issues/6661
 # XXX TODO 6.d REVIEW. Setting traits from multiple multies is undefined
-# and this test may need to be moved to rakudo's test suite. See RT#132710
+# and this test may need to be moved to rakudo's test suite.
 eval-lives-ok ｢
     multi infix:<↑> is assoc<right> is tighter(&infix:<**>) { $^n ** $^m }
     multi infix:<↑↑> ($, 0) is assoc<right> is tighter(&infix:<↑>) { 1 }
@@ -145,7 +146,7 @@ group-of 2 => 'collation experiment' => {
 }
 
 subtest 'Distribution::Resource can be stringified', {
-    lives-ok { Distribution::Resource.perl }, 'Can use .perl';
+    lives-ok { Distribution::Resource.raku }, 'Can use .raku';
     lives-ok { Distribution::Resource.Str  }, 'Can use .Str';
     lives-ok { Distribution::Resource.gist }, 'Can use .gist';
 }
@@ -154,3 +155,5 @@ class ParameterChild is Parameter {
     has $.foobar
 }
 is ParameterChild.new(foobar => 'Baz').foobar, 'Baz', 'Subclassing of Parameter works';
+
+is Parameter.new(:name('$a'), :type(Int), :optional).perl, 'Int $a?', 'Parameter takes by-name parameters itself';

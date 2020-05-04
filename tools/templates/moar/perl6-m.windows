@@ -1,6 +1,0 @@
-@ SET DIR=%~dp0
-@ SET DIR=%DIR:~0,-1%
-@ SET EXEC=%~dpf0
-@ SET NQP_HOME=@nfp(@nqp_prefix@/share/nqp)@
-@ SET PERL6_HOME=@nfp(@prefix@/share/perl6)@
-@ "@expand(@MOAR@)@" @expand(@runner_opts@)@ %*

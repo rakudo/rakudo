@@ -1,3 +1,0 @@
-@insert(sh-prelude)@
-
-NQP_HOME="@nfp(@nqp_prefix@/share/nqp)@" PERL6_HOME="@nfp(@prefix@/share/perl6)@" exec "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"

@@ -1,8 +1,0 @@
-$(M_@uc(@toolchain@)@_RUNNER): @@configure_script@@ $(M_C_RUNNER) $(PERL6_MOAR) $(SETTING_MOAR) @@template(perl6-@toolchain@-m)@@ @@template(perl6-debug-notice)@@ @@template(sh-prelude)@@
-	$(RM_F) $(M_@uc(@toolchain@)@_RUNNER)
-	$(CONFIGURE) --expand @nfpq(@backend_subdir@/perl6-@toolchain@-m)@ --out @nfpq(perl6-@toolchain@-m)@ \
-		--set-var=MOAR=$(MOAR) \
-		--set-var=ctx_subdir=@backend_subdir@ \
-		--set-var=runner_opts=@chomp(@insert(Makefile-runner_opts)@)@
-	-$(CHMOD) 755 $(M_@uc(@toolchain@)@_RUNNER)
-

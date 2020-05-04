@@ -138,7 +138,7 @@ my constant $type_map = nqp::hash(
   "bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
   "Callable",   "callback",
   "Int",        "longlong",
-  "int",        "longlong",
+  "int",        "long",
   "int16",      "short",
   "int32",      "int",
   "int64",      "longlong",

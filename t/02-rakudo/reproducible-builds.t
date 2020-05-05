@@ -26,6 +26,7 @@ for ^2 -> $run {
     $store.delete-by-compiler($compiler-id);
 }
 $store.prefix.child('.lock').unlink;
+$store.prefix.child('CACHEDIR.TAG').unlink;
 $store.prefix.rmdir;
 
 is @checksums[1], @checksums[0], 'Both precompilation runs resulted in the same checksum'

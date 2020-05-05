@@ -13,16 +13,13 @@ after more than just the bare compiler, please download [the latest
 Rakudo Star package](http://rakudo.org/downloads/star).
 
 Rakudo is currently the most developed implementation of the Raku
- language; though there have been other partial implementations in the
- past. [See the compilers page on the website for more](https://raku.org/compilers/).
-Rakudo has multiple backends: MoarVM and JVM. Note that each backend has a slightly different set of features.
+language; though there have been other partial implementations in the
+past. The `Rakudo` compiler has `moar`, `jvm` and `js` backends. Note
+that each backend has a slightly different set of features. For
+historical compilers see https://www.raku.org/compilers/.
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
-
-To receive important notifications from the core developer team, please
-subscribe to [the p6lert service](https://alerts.perl6.org) using the RSS feed,
-twitter, or [the p6lert commandline script](https://github.com/raku-community-modules/perl6-p6lert).
 
 ## Building and Installing Rakudo
 
@@ -101,15 +98,17 @@ and install it individually.
 
 By supplying combinations of backends to the `--backends` flag, you
 can get two or three backends built in the same prefix. The first
-backend you supply in the list is the one that gets the `perl6` name
+backend you supply in the list is the one that gets the `rakudo` name
 as a symlink, and all backends are installed separately as
-`perl6-m` or `perl6-j` for Rakudo on
+`rakudo-m` or `rakudo-j` for Rakudo on
 MoarVM, or JVM respectively.
 
 The format for the `--backends` flag is:
 
-    $ perl Configure.pl --backends=moar,jvm
-    $ perl Configure.pl --backends=ALL
+    $ perl Configure.pl --backends=moar,jvm --gen-moar --relocatable
+    $ perl Configure.pl --backends=ALL --gen-moar --relocatable
+    
+`ALL` refers to `moar`, `jvm` and `javascript` backends.
 
 ### Testing
 
@@ -121,7 +120,7 @@ source directory doesn't have `t/spec` installed, then
 you can clone it like this:
 
     cd $YOUR_RAKUDO_SRCDIR
-    git clone https://github.com/perl6/roast.git t/spec
+    git clone https://github.com/Raku/roast.git t/spec
 
 Note the rakudo code includes an entry in its `.gitignore` file
 so git will ignore any content under `t/spec`.
@@ -199,7 +198,7 @@ See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/C
 
 ## Line editing and tab completion
 
-If you would like simple history and tab completion in the raku executable,
+If you would like simple history and tab completion in the `rakudo` executable,
 you need to install the [Linenoise](https://github.com/hoelzro/p6-linenoise) module.  The recommended way to install
 Linenoise is via [zef](https://github.com/ugexe/zef):
 

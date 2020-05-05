@@ -107,7 +107,7 @@ The format for the `--backends` flag is:
 
     $ perl Configure.pl --backends=moar,jvm --gen-moar --relocatable
     $ perl Configure.pl --backends=ALL --gen-moar --relocatable
-    
+
 `ALL` refers to `moar`, `jvm` and `javascript` backends.
 
 ### Testing

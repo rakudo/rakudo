@@ -3425,13 +3425,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if nqp::istype($past, QAST::Var) {
                     if $*W.cur_lexpad.symbol($past.name) -> %sym {
                         if %sym<descriptor> {
-                            check_default_value_type($/, %sym<descriptor>, %sym<type>, 'variables');
+                            check_default_value_type($/, %sym<descriptor>, %sym<type>, 'variable');
                         }
                     }
                 }
                 elsif $past.ann('metaattr') -> $attr {
                     if !$attr.required && !$attr.type.HOW.archetypes.generic {
-                        check_default_value_type($/, $attr.container_descriptor, $attr.type, 'attributes');
+                        check_default_value_type($/, $attr.container_descriptor, $attr.type, 'attribute');
                     }
                 }
             }
@@ -3595,10 +3595,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         unless $matches {
             $/.typed_sorry('X::Syntax::Variable::MissingInitializer',
-                type => nqp::how($bind_constraint).name($bind_constraint),
-                :$maybe,
+                what     => $what,
+                type     => nqp::how($bind_constraint).name($bind_constraint),
+                maybe    => $maybe,
                 implicit => !nqp::istype($*OFTYPE, NQPMatch) || !$*OFTYPE<colonpairs> || $*OFTYPE<colonpairs> && !$*OFTYPE<colonpairs>.ast<D> && !$*OFTYPE<colonpairs>.ast<U>
-                         ?? ':' ~ $/.pragma($what) ~ ' by pragma'
+                         ?? ':' ~ $/.pragma($what ~ 's') ~ ' by pragma'
                          !! 0
             );
         }

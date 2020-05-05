@@ -1820,14 +1820,17 @@ my class X::Syntax::Term::MissingInitializer does X::Syntax {
 }
 
 my class X::Syntax::Variable::MissingInitializer does X::Syntax {
+    has $.what;
     has $.type;
     has $.implicit;
     has $.maybe;
     method message {
-        my $modality = $.maybe ?? "may need" !! "requires";
-        $.implicit ??
-            "Variable definition of type $.type (implicit $.implicit) $modality an initializer" !!
-            "Variable definition of type $.type $modality an initializer"
+        my $modality    = $.maybe ?? "may need" !! "needs";
+        my $type        = $.implicit ?? "$.type (implicit $.implicit)" !! "$.type";
+        my $requirement = $.what eq 'attribute'
+                      ?? 'to be marked as required or given an initializer'
+                      !! 'to be given an initializer';
+        "$.what.tc() definition of type $type $modality $requirement"
     }
 }
 

@@ -243,8 +243,8 @@ class CompUnit::PrecompilationStore::File
             self!file($compiler-id, $precomp-id, :$extension);
         }
 
-        # directory creation successful
-        elsif $!prefix.mkdir {
+        # directory creation successful and writeable
+        elsif $!prefix.mkdir && $!prefix.w {
 
             # make sure we have a tag in it
             $!prefix.child('CACHEDIR.TAG').spurt:

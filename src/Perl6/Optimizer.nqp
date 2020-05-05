@@ -1505,6 +1505,8 @@ my class HyperOptimizer {
     has %!local-vars;
     has @!local-vars-keys;
 
+    has @!size-assertions;
+
     # what to do with arguments in mixed-argument situations?
     # 0: always numify
     # 1: always intify
@@ -1727,9 +1729,16 @@ my class HyperOptimizer {
             $result := self.handle-node($node[1]);
         #}
 
+        self.note("result tree to check for sizes and such");
+        self.noteup($result.dump);
+        self.notedown("go.");
+        $!loop-limit-calc-node := self.up-front-size-check($result);
+        self.noteup("here's the up front size check");
+        self.note($!loop-limit-calc-node.dump);
+        self.notedown();
+
         my $loop-nodes := QAST::Stmts.new(
-            QAST::Op.new(:op('bind'), $indexdecl, QAST::IVal.new(:value(0))),
-            QAST::Op.new(:op('bind'), $limitdecl, $!loop-limit-calc-node),
+            QAST::Op.new(:op('bind'), $indexdecl, QAST::IVal.new(:value(-1))),
             QAST::Op.new(:op('bind'), $targetdecl, $node[0].shallow_clone));
 
         for @!local-vars-keys -> $varname {
@@ -1737,6 +1746,13 @@ my class HyperOptimizer {
                 QAST::Var.new(:name(%!local-vars{$varname}[0].name), :scope('local'), :decl('var') ),
                 %!local-vars{$varname}[1].shallow_clone));
         }
+        $loop-nodes.push(
+            QAST::Op.new(:op('bind'), $limitdecl,
+                QAST::Op.new(:op<sub_i>,
+                    $!loop-limit-calc-node,
+                    QAST::IVal.new(:value(1))
+                )
+            ));
 
         $loop-nodes.push(
             QAST::Op.new( :op<while>,
@@ -1762,9 +1778,103 @@ my class HyperOptimizer {
 
         self.notedown("done");
         if !nqp::isnull($loop-nodes) && !nqp::isnull($result) && !nqp::isnull($!loop-limit-calc-node) {
+            self.note($loop-nodes.dump);
             return $loop-nodes;
         }
         return nqp::null;
+    }
+
+    method make-minmax($op, $left, $right) {
+        my $left-read;
+        my $left-write;
+        my $right-read;
+        my $right-write;
+        self.note("left piece");
+        if !nqp::istype($left, QAST::Var) {
+            self.noteup("not a var");
+            self.note($left.HOW.name($left));
+            $left-write := QAST::Op.new(:op<bind>, ($left-read := QAST::Var.new(:name($left.unique("szchk_sav")), :scope<local>)).shallow_clone, $left);
+            $left-write[0].decl("var");
+            self.notedown();
+        }
+        else {
+            self.note($left.HOW.name($left));
+            $left-write := $left;
+            $left-read := $left.shallow_clone();
+        }
+        self.note("right piece");
+        if !nqp::istype($right, QAST::Var) {
+            self.noteup("not a var");
+            self.note($right.HOW.name($right));
+            $right-write := QAST::Op.new(:op<bind>, ($right-read := QAST::Var.new(:name($right.unique("szchk_sav")), :scope<local>)).shallow_clone, $right);
+            $right-write[0].decl("var");
+            self.notedown();
+        }
+        else {
+            self.note($right.HOW.name($right));
+            $right-write := $right;
+            $right-read := $right.shallow_clone();
+        }
+
+        return QAST::Op.new(:op<if>,
+            QAST::Op.new(:op($op), $left-write, $right-write),
+                $left-read, $right-read);
+    }
+
+    method up-front-size-check($result) {
+        if !$result.has_ann('sizemode') {
+            self.notedown("oh no, no sizemode to be found!");
+            return nqp::null;
+        }
+        my $ann := $result.ann('sizemode');
+        my $mode := $ann<mode>;
+        my $source := $ann<source>;
+        if nqp::islist($mode) {
+            my $modename := $mode[0];
+            self.note("modename is $modename");
+            if $modename eq 'extend' {
+                my $extend-target := $mode[1];
+                self.noteup();
+                my $left := self.up-front-size-check($source[0]);
+                my $right := self.up-front-size-check($source[1]);
+                self.notedown('one of these two will be extended to fit the other');
+                return $extend-target == 0 ?? $left !! $right;
+            }
+            else {
+                self.notedown("unknown size mode $modename");
+            }
+        }
+        else {
+            my $modename := $mode;
+            self.note("modename is $modename");
+            if $mode eq 'same' {
+                self.noteup();
+                my $left := self.up-front-size-check($source[0]);
+                my $right := self.up-front-size-check($source[1]);
+                @!size-assertions.push(['same', $left, $right]);
+                return $left;
+            }
+            elsif $mode eq 'extend' {
+                self.noteup();
+                my $left := self.up-front-size-check($source[0]);
+                my $right := self.up-front-size-check($source[1]);
+                self.notedown('these two calculations will result in whichever is bigger');
+                return self.make-minmax("isgt_i", $left, $right);
+            }
+            elsif $mode eq 'shorter' {
+                self.noteup();
+                my $left := self.up-front-size-check($source[0]);
+                my $right := self.up-front-size-check($source[1]);
+                self.notedown('these two calculations will result in whichever is smaller');
+                return self.make-minmax("islt_i", $left, $right);
+            }
+            elsif $mode eq 'array' {
+                return QAST::Op.new(:op<elems>, $source);
+            }
+            else {
+                self.notedown("unknown size mode $modename");
+            }
+        }
     }
 
     method find-dwimmyness($node, @dldr) {
@@ -1790,11 +1900,11 @@ my class HyperOptimizer {
         if +$node[0].list > 1 {
             if +$node[0].list > 2 {
                 if nqp::isnull(check-special-arg($node[0][2])) {
-                    self.note("surprised by special argument");
+                    self.note("surprised by special argument 2" ~ $node[0][2].dump);
                 }
             }
             if nqp::isnull(check-special-arg($node[0][1])) {
-                self.note("surprised by special argument");
+                self.note("surprised by special argument 1" ~ $node[0][1].dump);
             }
         }
         @dldr[0] := $dwim_left;
@@ -1811,21 +1921,21 @@ my class HyperOptimizer {
             return nqp::null;
         }
 
-        if nqp::isnull($!loop-limit-calc-node) && nqp::istype($node[0], QAST::Var) {
-            $!loop-limit-calc-node := QAST::Op.new(:op<elems>, $node[0].shallow_clone);
-        }
+        #if nqp::isnull($!loop-limit-calc-node) && nqp::istype($node[0], QAST::Var) {
+            #$!loop-limit-calc-node := QAST::Op.new(:op<elems>, $node[0].shallow_clone);
+        #}
 
         if !nqp::istype($node[1], QAST::SVal) || $node[1].value ne "" {
             self.notedown("hyper methodcall had unexpected format (second arg should be empty SVal)");
             return nqp::null;
         }
-        
+
         my $methname := $node[2];
         if !nqp::istype($methname, QAST::SVal) {
             self.notedown("third argument of dispatch:<hyper> should be the method name");
             return nqp::null;
         }
-        
+
         $methname := $methname.value;
 
         if !nqp::existskey(%hyper-methods, $methname) {
@@ -1861,22 +1971,27 @@ my class HyperOptimizer {
             self.noteup("this is a valid hyperop call.");
 
             my @dldr;
-            if nqp::isnull(self.find-dwimmyness($node, @dldr)) {
-                self.note("dwimmyness finding wasn't successful");
-                return nqp::null;
+            if $node[0].name eq '&METAOP_ZIP' {
+                nqp::push(@dldr, -1);
+            }
+            else {
+                if nqp::isnull(self.find-dwimmyness($node, @dldr)) {
+                    self.note("dwimmyness finding wasn't successful");
+                    return nqp::null;
+                }
             }
 
             my $arg1 := $node[1];
             my $arg2 := $node[2];
 
-            self.note("arg1:\n  " ~ $arg1.dump);
-            self.note("\n\narg2:\n  " ~ $arg2.dump);
+            self.note("arg1:\n" ~ $arg1.dump);
+            self.note("\n\narg2:\n" ~ $arg2.dump);
 
 
-            if nqp::isnull($!loop-limit-calc-node) && (nqp::istype($arg1, QAST::Var) || nqp::istype($arg2, QAST::Var)) {
-                my $arrvar := nqp::istype($arg1, QAST::Var) ?? $arg1 !! $arg2;
-                $!loop-limit-calc-node := QAST::Op.new(:op<elems>, $arrvar.shallow_clone);
-            }
+            #if nqp::isnull($!loop-limit-calc-node) && (nqp::istype($arg1, QAST::Var) || nqp::istype($arg2, QAST::Var)) {
+                #my $arrvar := nqp::istype($arg1, QAST::Var) ?? $arg1 !! $arg2;
+                #$!loop-limit-calc-node := QAST::Op.new(:op<elems>, $arrvar.shallow_clone);
+            #}
 
             my $res1 := self.handle-node($arg1);
             my $res2 := self.handle-node($arg2);
@@ -1914,10 +2029,15 @@ my class HyperOptimizer {
                 }
             }
 
+            my $sizechildren := [$res1, $res2];
+            my $sizemode := @dldr[0] == -1 ?? "shorter" !!
+                @dldr[0] == 1 ?? (@dldr[1] == 1 ?? "extend" !! ["extend", 0])
+                              !! (@dldr[1] == 1 ?? ["extend", 1] !! "same");
+
             self.notedown();
             return QAST::Op.new(:op(%infix-ops{$metaop-target.name} ~ $returnspec), :returns($returns),
                 $res1,
-                $res2);
+                $res2).annotate_self("sizemode", nqp::hash("source", $sizechildren, "mode", $sizemode));
         }
 
         return nqp::null;
@@ -1941,7 +2061,7 @@ my class HyperOptimizer {
         return QAST::Op.new(:op("atpos_" ~ @prim_suf[$primspec]), :returns(@prim_obj[$primspec]),
                 $sourcenode,
                 QAST::Var.new(:name($*IDX.name), :scope("local"), :returns(@prim_obj[$primspec])),
-            );
+            ).annotate_self("sizemode", nqp::hash("source", $sourcenode, "mode", "array"));
     }
 
     method handle-node($node) {
@@ -1952,7 +2072,7 @@ my class HyperOptimizer {
                 if $node.name eq "" {
                     self.note("    call op is nameless");
                     if nqp::istype($node[0], QAST::Op) && $node[0].op eq "call" { 
-                        if $node[0].name eq '&METAOP_HYPER' {
+                        if $node[0].name eq '&METAOP_HYPER' || $node[0].name eq '&METAOP_ZIP' {
                             self.noteup();
                             my $r := self.handle-metaop-hyper-call($node);
                             self.notedown($r.dump);
@@ -1986,15 +2106,23 @@ my class HyperOptimizer {
                 return self.handle-node($node[0])
             }
         }
+        elsif nqp::istype($node, QAST::Stmts) && nqp::elems($node.list) == 1 {
+            self.note("skipping stmts");
+            return self.handle-node($node[0]);
+        }
         elsif nqp::istype($node, QAST::Var) {
-            self.note("it's a var node");
+            self.noteup("it's a var node");
             if nqp::eqat($node.name, '@', 0) && !nqp::eqat($node.name, '*', 1) {
-                self.note("  seems like an array var. let's check it.");
-                return self.handle-array-var($node);
+                self.note("seems like an array var. let's check it.");
+                my $res := self.handle-array-var($node);
+                self.notedown();
+                return $res;
             }
             else {
-
             }
+        }
+        elsif nqp::istype($node, QAST::Want) {
+            self.note("found a want with type " ~ $node[1] ~ " but NYI");
         }
         self.note("done with the handle-node method");
 

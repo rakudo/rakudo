@@ -236,12 +236,28 @@ class CompUnit::PrecompilationStore::File
       CompUnit::PrecompilationId:D $precomp-id,
       Str:D :$extension = ''
     --> IO::Path:D) {
-        $!prefix.mkdir;  # don't care whether worked
 
-        if $!prefix.w {  # have a writable prefix
+        # have a writable prefix, assume it's a directory
+        if $!prefix.w {
             self!lock();
             self!file($compiler-id, $precomp-id, :$extension);
         }
+
+        # directory creation successful
+        elsif $!prefix.mkdir {
+
+            # make sure we have a tag in it
+            $!prefix.child('CACHEDIR.TAG').spurt:
+'Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by Rakudo.
+# For information about cache directory tags, see:
+# http://www.brynosaurus.com/cachedir';
+
+            # call ourselves again, now that we haz a cache directory
+            self.destination($compiler-id, $precomp-id, :$extension)
+        }
+
+        # huh?
         else {
             Nil
         }

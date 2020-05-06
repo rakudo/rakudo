@@ -1871,6 +1871,9 @@ my class HyperOptimizer {
             elsif $mode eq 'array' {
                 return QAST::Op.new(:op<elems>, $source);
             }
+            elsif $mode eq 'literal' {
+                return QAST::IVal.new(:value(1));
+            }
             else {
                 self.notedown("unknown size mode $modename");
             }
@@ -2122,7 +2125,10 @@ my class HyperOptimizer {
             }
         }
         elsif nqp::istype($node, QAST::Want) {
-            self.note("found a want with type " ~ $node[1] ~ " but NYI");
+            my $result := $node.shallow_clone.annotate_self("sizemode", nqp::hash("mode", "literal"));
+            $result.returns($node[1] eq "Ii" ?? int !! num);
+            self.note("found a want of type " ~ $node[1]);
+            return $result
         }
         self.note("done with the handle-node method");
 

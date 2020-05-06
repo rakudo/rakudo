@@ -1837,8 +1837,8 @@ my class HyperOptimizer {
                 self.noteup();
                 my $left := self.up-front-size-check($source[0]);
                 my $right := self.up-front-size-check($source[1]);
-                self.notedown('one of these two will be extended to fit the other');
-                return $extend-target == 0 ?? $left !! $right;
+                self.notedown('node number ' ~ $extend-target ~ ' will be extended to fit the other');
+                return $extend-target == 0 ?? $right !! $left;
             }
             else {
                 self.notedown("unknown size mode $modename");

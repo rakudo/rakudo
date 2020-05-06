@@ -622,6 +622,7 @@
           ?? supply {
                  my str $str;
                  my str $needle = $the-needle;
+                 my int $len = nqp::chars($needle);
                  whenever self -> str $val {
                      $str = nqp::concat($str,$val);
 
@@ -631,7 +632,7 @@
                        nqp::isgt_i(($i = nqp::index($str,$needle,$pos)),-1),
                        nqp::stmts(
                          emit($the-needle),
-                         ($pos = $i + 1)
+                         ($pos = $i + $len)
                        )
                      );
                      $str = nqp::substr($str,$pos);

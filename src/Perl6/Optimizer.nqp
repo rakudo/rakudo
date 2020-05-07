@@ -1841,7 +1841,7 @@ my class HyperOptimizer {
         my $source := $ann<source>;
         if nqp::islist($mode) {
             my $modename := $mode[0];
-            self.note("modename is $modename");
+            self.note("modename is $modename (listy)");
             if $modename eq 'extend' {
                 my $extend-target := $mode[1];
                 self.noteup();
@@ -2010,7 +2010,7 @@ my class HyperOptimizer {
             my $res2 := self.handle-node($arg2);
 
             self.note("res1:\n" ~ $res1.dump);
-            self.note("\n\nres2:\n  " ~ $res2.dump);
+            self.note("\n\nres2:\n" ~ $res2.dump);
 
             my $icm := %infix-coerce-mode{$metaop-target.name};
             my $returns;

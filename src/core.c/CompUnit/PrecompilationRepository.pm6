@@ -395,7 +395,7 @@ Need to re-check dependencies.")
             .subst('perl6-gdb', 'perl6')
             .subst('perl6-jdb-server', 'perl6-j') ;
 
-#?if !moarvm
+#?if jvm
         if nqp::atkey($env,'RAKUDO_PRECOMP_NESTED_JDB') {
             $raku.subst-mutate('perl6-j', 'perl6-jdb-server');
             note "starting jdb on port "

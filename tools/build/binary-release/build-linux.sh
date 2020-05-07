@@ -1,40 +1,55 @@
 #!/usr/bin/env sh
 
-# This script should be run in a CentOS 6 installation (a container will do
-# just fine).
+# This script should be allowed to run sudo in a CentOS 6 installation (a
+# container will do just fine).
+# For some strange reason the environment variables are lost when running this
+# script with `sudo` in azure pipelines. So we just do sudo our selves for the
+# dependency install part.
 
 set -o errexit
 set -o pipefail
 
-# Update CentOS 6
-yum -y update
-yum clean all
+echo "========= Starting build"
 
-# Install dependencies
-yum -y install curl git perl perl-core gcc make
+echo "========= Updating CentOS 6"
+sudo yum -y update
+sudo yum clean all
 
-# Download release file
+echo "========= Downloading dependencies"
+sudo yum -y install curl git perl perl-core gcc make
+
+echo "========= Downloading release"
 curl -o rakudo.tgz $RELEASE_URL
+
+echo "========= Extracting release"
 tar -xzf rakudo.tgz
 cd rakudo-*
 
-# Build Rakudo
+echo "========= Configuring Rakudo (includes building MoarVM and NQP)"
 perl Configure.pl --gen-moar --gen-nqp --backends=moar --moar-option='--toolchain=gnu' --relocatable
+
+echo "========= Building Rakudo"
 make
+
+echo "========= Installing Rakudo"
 make install
 
-# Test the build
+echo "========= Testing Rakudo"
 make test
 
-# Build Zef
+echo "========= Cloning Zef"
 git clone https://github.com/ugexe/zef.git
+
+echo "========= Installing Zef"
 pushd zef
 ../install/bin/raku -I. bin/zef install .
 popd
 
-# Prepare the package
+echo "========= Copying auxiliary files"
 cp -r tools/build/binary-release/Linux/* install
 cp LICENSE install
+
+echo "========= Preparing archive"
 mv install rakudo-$VERSION
 tar -zcv --owner=0 --group=0 --numeric-owner -f ../rakudo-linux.tar.gz rakudo-$VERSION
 

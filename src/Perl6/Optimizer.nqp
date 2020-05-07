@@ -1521,7 +1521,11 @@ my class HyperOptimizer {
         '&infix:</>', 5, # if not two nums, this results in Rat objects.
         '&infix:<div>', 3,
 
-        
+        '&infix:<+&>', 3,
+        '&infix:<+|>', 3,
+        '&infix:<+^>', 3,
+        '&infix:«+<»', 3,
+        '&infix:«+>»', 3,
     );
 
     my @prim_suf := ['', 'i', 'n', 's'];
@@ -1536,6 +1540,12 @@ my class HyperOptimizer {
         '&infix:«>»', 'isgt_',
         '&infix:«<=»', 'isle_',
         '&infix:«>=»', 'isge_',
+
+        '&infix:<+&>', 'bitand_',
+        '&infix:<+|>', 'bitor_',
+        '&infix:<+^>', 'bitxor_',
+        '&infix:«+<»', 'bitshiftl_',
+        '&infix:«+>»', 'bitshiftr_',
 
         '&infix:<||>', 'if_',
     );

@@ -427,6 +427,14 @@ my class Array { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty
     }
 
+    method rotate(List:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<rotate>))
+          !! Seq.new: nqp::getattr(self,List,'$!reified')
+            ?? Rakudo::Iterator.ReifiedRotate($rotate, self, $!descriptor)
+            !! Rakudo::Iterator.Empty
+    }
+
     multi method List(Array:D: :$view --> List:D) {
         nqp::if(
           self.is-lazy,                           # can't make a List

@@ -110,13 +110,32 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
-    method reverse(--> Seq:D) {
+    method reverse(--> Seq:D) is nodal {
         nqp::if(
           (my $iterator := self.iterator).is-lazy,
           Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
           nqp::stmts(
             $iterator.push-all(my \buffer := nqp::create(IterationBuffer)),
             Seq.new: Rakudo::Iterator.ReifiedReverse(buffer, Mu)
+          )
+        )
+    }
+
+    method rotate(Int(Cool) $rotate = 1 --> Seq:D) is nodal {
+        nqp::if(
+          (my $iterator := self.iterator).is-lazy,
+          Failure.new(X::Cannot::Lazy.new(:action<rotate>)),
+          nqp::if(
+            $rotate,
+            Seq.new( nqp::if(
+              $rotate > 0,
+              Rakudo::Iterator.Rotate($rotate, $iterator),
+              nqp::stmts(
+                $iterator.push-all(my \buffer := nqp::create(IterationBuffer)),
+                Rakudo::Iterator.ReifiedRotate($rotate, buffer, Mu)
+              )
+            )),
+            self
           )
         )
     }

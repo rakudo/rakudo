@@ -254,9 +254,10 @@
               Rakudo::Iterator.Empty
             ))
         }
-        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
-            Rakudo::Internals.RotateListToList(
-              self, $rotate, self.new(:shape(self.shape)))
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
+            Seq.new: Rakudo::Iterator.ReifiedRotate(
+              $rotate, self, nqp::getattr(self,Array,'$!descriptor')
+            )
         }
         method sum() is nodal { self.List::sum }
     }

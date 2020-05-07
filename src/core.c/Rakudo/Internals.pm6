@@ -60,30 +60,6 @@ my class Rakudo::Internals {
         method dynamic() { False }
     }
 
-    # rotate nqp list to another given list without using push/pop
-    method RotateListToList(\from,\n,\to) {
-        nqp::stmts(
-          (my $from := nqp::getattr(from,List,'$!reified')),
-          nqp::if((my int $elems = nqp::elems($from)),
-            nqp::stmts(
-              (my $to := nqp::getattr(to,List,'$!reified')),
-              (my int $i = -1),
-              (my int $j = nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),n),$elems)),
-              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos(
-                  $to,
-                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
-                  nqp::atpos($from,$i)
-                ),
-              ),
-            ),
-          ),
-          to
-        )
-    }
-
     method RANGE-AS-ints ($range, $exception) {
         # Convert a Range to min/max values that can fit into an `int`
         # Treats values smaller than int.Range.min as int.Range.min

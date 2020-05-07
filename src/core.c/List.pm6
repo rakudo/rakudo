@@ -1136,23 +1136,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty
     }
 
-    method rotate(List:D: Int(Cool) $rotate = 1) is nodal {
-        nqp::if(
-          self.is-lazy,    # reifies
-          Failure.new(X::Cannot::Lazy.new(:action<rotate>)),
-          nqp::if(
-            $!reified,
-            Rakudo::Internals.RotateListToList(
-              self, $rotate,
-              nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',
-                nqp::setelems(
-                  nqp::create(IterationBuffer),nqp::elems($!reified)
-                )
-              )
-            ),
-            nqp::create(self)
-          )
-        )
+    method rotate(List:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<rotate>))
+          !! Seq.new: $!reified
+            ?? Rakudo::Iterator.ReifiedRotate($rotate, self, Mu)
+            !! Rakudo::Iterator.Empty
     }
 
     proto method combinations(|) is nodal {*}

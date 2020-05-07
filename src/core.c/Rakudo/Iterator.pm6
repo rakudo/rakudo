@@ -2981,6 +2981,92 @@ class Rakudo::Iterator {
         ReifiedReverseIterator.new(list, descriptor)
     }
 
+    # Return an iterator for a List/Array that has been completely reified,
+    # or an IterationBuffer, that will produce values in according to a given
+    # rotation value.  Takes a descriptor to create correct values for holes
+    # in the List/Array, use Mu to have holes returned as Nil.
+    my class ReifiedRotateIterator does PredictiveIterator {
+        has $!reified;
+        has $!descriptor;
+        has int $!todo;
+        has int $!i;
+
+        method !SET-SELF(int $rotate, \list, Mu \descriptor) {
+            $!reified := nqp::istype(list,List)
+              ?? nqp::getattr(list,List,'$!reified')
+              !! list;
+            $!descriptor := nqp::eqaddr(descriptor,Mu)
+              ?? nqp::null()
+              !! descriptor;
+
+            nqp::if(
+              ($!todo = my int $elems = nqp::elems($!reified)),
+              nqp::stmts(
+                ($!i = nqp::sub_i(nqp::mod_i(
+                  nqp::add_i(nqp::mod_i($rotate,$elems),$elems),
+                  $elems
+                ),1)),
+                self
+              ),
+              Rakudo::Iterator.Empty
+            )
+        }
+        method new(\rotate, \list, Mu \des) {
+            nqp::create(self)!SET-SELF(rotate, list, des)
+        }
+
+        method !hole(int $i) is raw {
+            nqp::isnull($!descriptor)
+              ?? Nil
+              !! nqp::p6scalarfromdesc(
+                   ContainerDescriptor::BindArrayPos.new(
+                     $!descriptor, $!reified, $i
+                   )
+                 )
+        }
+
+        method pull-one() is raw {
+            nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0)
+              ?? nqp::ifnull(
+                   nqp::atpos(
+                     $!reified,
+                     ($!i = nqp::mod_i(nqp::add_i($!i,1),nqp::elems($!reified)))
+                   ),
+                   self!hole($!i)
+                 )
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $reified  := $!reified; # lexicals are faster than attributes
+            my int $elems = nqp::elems($reified);
+            my int $todo  = $!todo;
+            my int $i     = $!i;
+
+            nqp::while(  # doesn't sink
+              nqp::isge_i(($todo = nqp::sub_i($todo,1)),0),
+              target.push(
+                nqp::ifnull(
+                  nqp::atpos(
+                    $reified,
+                    ($i = nqp::mod_i(nqp::add_i($i,1),$elems))
+                  ),
+                  self!hole($i)
+                )
+              )
+            );
+            $!todo = $todo;
+        }
+        method skip-one() {
+            $!i = nqp::mod_i(nqp::add_i($!i,1),nqp::elems($!reified));
+            nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0)
+        }
+        method count-only(--> Int:D) { $!todo + nqp::islt_i($!todo,0) }
+        method sink-all(--> IterationEnd) { $!todo = -1 }
+    }
+    method ReifiedRotate(\rotate, \list, Mu \descriptor) {
+        ReifiedRotateIterator.new(rotate, list, descriptor)
+    }
+
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,
     # it will cache the values seen to handle case that the iterator
@@ -3095,6 +3181,51 @@ class Rakudo::Iterator {
     }
     method RepeatLoop(&body, &cond, $label) {
         RepeatLoop.new(&body, &cond, $label)
+    }
+
+    # Return an iterator for a non-lazy iterator that rotates values for a
+    # given positive amount.  This will cache the given amount, and produce
+    # them at the end after the given iterator is exhausted.
+    my class RotateIterator does Iterator {
+        has $!iterator;
+        has $!rotated;
+
+        method !SET-SELF(int $rotate, \iterator) {
+
+            # set up values to be rotated
+            my $rotated := nqp::create(IterationBuffer);
+            nqp::until(
+              nqp::iseq_i(nqp::elems($rotated),$rotate),
+              nqp::if(
+                nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),
+                (return ReifiedRotateIterator.new($rotate, $rotated, Mu)),
+                nqp::push($rotated,pulled)
+              )
+            );
+
+            $!iterator := iterator;
+            $!rotated  := $rotated;
+            self
+        }
+        method new(\rot, \iter) { nqp::create(self)!SET-SELF(rot, iter) }
+
+        method !exhausted() is raw {
+            $!iterator := nqp::null;
+            nqp::shift($!rotated)
+        }
+
+        method pull-one() is raw {
+            nqp::isnull($!iterator)
+              ?? nqp::elems($!rotated)
+                ?? nqp::shift($!rotated)
+                !! IterationEnd
+              !! nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd)
+                ?? self!exhausted()
+                !! pulled
+        }
+    }
+    method Rotate(\rotate, \iterator) {
+        RotateIterator.new(rotate, iterator)
     }
 
     # Return an iterator that rotorizes the given iterator with the

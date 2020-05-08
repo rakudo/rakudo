@@ -4882,6 +4882,19 @@ class Perl6::World is HLL::World {
         }
     }
 
+    method find_single_symbol_in_setting($name) {
+        my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
+        my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+
+        while $ctx {
+            my $pad := nqp::ctxlexpad($ctx);
+            if nqp::existskey($pad, $name) {
+                return nqp::atkey($pad, $name);
+            }
+            $ctx := nqp::ctxouter($ctx);
+        }
+        nqp::die("Cannot find symbol $name in $setting_name");
+    }
     method find_symbol_in_setting(@name) {
         my $no-outers := 0; # If 'true' then don't look in the outer contexts
         my $setting_name := $!setting_name;
@@ -4934,6 +4947,69 @@ class Perl6::World is HLL::World {
     # Finds a symbol that has a known value at compile time from the
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
+    method find_single_symbol(str $name, :$setting-only, :$upgrade_to_global, :$cur-package) {
+        unless $!setting_loaded {
+            return self.find_single_symbol_in_setting($name);
+        }
+
+        # GLOBAL is current view of global.
+        if $name eq 'GLOBAL' {
+            return $*GLOBALish
+        }
+
+        # Look through the lexical scopes and try the current package.
+
+        my $scope := $*WANTEDOUTERBLOCK;
+        if $scope {
+            while $scope {
+                my %sym := $scope.symbol($name);
+                if nqp::isconcrete(%sym) && nqp::elems(%sym) {
+                    my $value := self.force_value(%sym, $name, 1);
+                    if $upgrade_to_global {
+                        ($*GLOBALish.WHO){$name} := $value;
+                    }
+                    return $value;
+                }
+                $scope := $scope.ann('outer');
+            }
+        }
+        else {
+            my @BLOCKS := self.context().blocks;
+
+            # Work out where to start searching.
+            my int $start_scope := $setting-only
+                ?? ($*COMPILING_CORE_SETTING ?? 2 !! 1)
+                !! nqp::elems(@BLOCKS);
+            while $start_scope > 0 {
+                $start_scope := $start_scope - 1;
+                my %sym := @BLOCKS[$start_scope].symbol($name);
+                if nqp::isconcrete(%sym) && nqp::elems(%sym) {
+                    my $value := self.force_value(%sym, $name, 1);
+                    if $upgrade_to_global {
+                        ($*GLOBALish.WHO){$name} := $value;
+                    }
+                    return $value;
+                }
+            }
+        }
+        nqp::die("find_symbol1") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LEAF.package);
+        $cur-package := $*LEAF.package unless $cur-package;
+        if nqp::existskey($cur-package.WHO, $name) {
+            return nqp::atkey($cur-package.WHO, $name);
+        }
+
+        # Fall back to looking in GLOBALish
+        my $result := $*GLOBALish;
+        # Try to chase down the parts of the name.
+        if nqp::existskey($result.WHO, $name) {
+            $result := ($result.WHO){$name};
+        }
+        else {
+            nqp::die("Could not locate compile-time value for symbol " ~ $name);
+        }
+
+        $result;
+    }
     method find_symbol(@name, :$setting-only, :$upgrade_to_global, :$cur-package) {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }

@@ -692,6 +692,39 @@
         }
     }
 
+    method rotate(Supply:D: Int(Cool) $rotate = 1) {
+
+        # potentially ok
+        if $rotate > 1 {
+            my $rotated := nqp::create(IterationBuffer);
+            supply {
+                whenever self -> \val {
+                    nqp::elems($rotated) < $rotate
+                      ?? nqp::push($rotated,val)
+                      !! emit(val);
+
+                    LAST {
+                        # not enough elems found to rotate, adapt rotation
+                        if nqp::elems($rotated) < $rotate {
+                            emit($_) for $rotated.List.rotate($rotate);
+                        }
+
+                        # produce the rotated values at the end
+                        else {
+                            emit(nqp::shift($rotated))
+                              while nqp::elems($rotated);
+                        }
+                    }
+                }
+            }
+        }
+
+        # must first grab all
+        else {
+            self.grab: *.rotate($rotate)
+        }
+    }
+
     method reverse(Supply:D:)        { self.grab: *.reverse }
     multi method sort(Supply:D:)     { self.grab: *.sort }
     multi method sort(Supply:D: &by) { self.grab: *.sort(&by) }

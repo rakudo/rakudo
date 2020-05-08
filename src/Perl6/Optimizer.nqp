@@ -1831,6 +1831,10 @@ my class HyperOptimizer {
                 $left-read, $right-read);
     }
 
+    # analyze the entire generated tree to find out how the result array
+    # should be sized.
+    # Since we refuse to work with possibly lazy arrays/seqs, we'll always
+    # have something that gives us a size, one way or the other.
     method up-front-size-check($result) {
         if !$result.has_ann('sizemode') {
             self.notedown("oh no, no sizemode to be found!");

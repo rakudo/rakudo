@@ -160,7 +160,10 @@ sub configure_refine_vars {
               || File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
         )
     );
-    $config->{static_rakudo_home} = $config->{rakudo_home};
+    
+    $config->{static_rakudo_home} = $config->{relocatable} eq 'reloc'
+        ? ''
+        : $config->{rakudo_home};
 }
 
 sub parse_lang_specs {
@@ -347,7 +350,6 @@ sub configure_moar_backend {
 
     if ( $config->{relocatable} eq 'reloc' ) {
         $nqp_config->{static_nqp_home}           = '';
-        $nqp_config->{static_rakudo_home}        = '';
         $nqp_config->{static_nqp_home_define}    = '';
         $nqp_config->{static_rakudo_home_define} = '';
     }

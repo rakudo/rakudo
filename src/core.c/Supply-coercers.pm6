@@ -695,7 +695,7 @@
     method rotate(Supply:D: Int(Cool) $rotate = 1) {
 
         # potentially ok
-        if $rotate > 1 {
+        if $rotate > 0 {
             my $rotated := nqp::create(IterationBuffer);
             supply {
                 whenever self -> \val {
@@ -720,8 +720,13 @@
         }
 
         # must first grab all
-        else {
+        elsif $rotate < 0 {
             self.grab: *.rotate($rotate)
+        }
+
+        # no need to change anything
+        else {
+            self
         }
     }
 

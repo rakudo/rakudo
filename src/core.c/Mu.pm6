@@ -670,11 +670,11 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
 
     method item(Mu \item:) is raw { item }
 
-    proto method say(|) {*}
-    multi method say() { say(self) }
+    # basic output operations
+    method say()   { say(self)   }
     method print() { print(self) }
-    method put() { put(self) }
-    method note() { note(self) }
+    method put()   { put(self)   }
+    method note()  { note(self)  }
 
     method gistseen(Mu:D \SELF: $id, $gist, *%named) {
         if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*gistseen'))) {

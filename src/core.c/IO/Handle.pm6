@@ -678,6 +678,7 @@ my class IO::Handle {
     }
     multi method put(Junction:D \j) { j.THREAD: {self.put: $_} }
 
+    proto method say(|) {*}
     multi method say(IO::Handle:D: Str:D $x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(

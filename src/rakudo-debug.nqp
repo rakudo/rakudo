@@ -31,7 +31,7 @@ class Perl6::DebugHooks {
 sub ps_qast() {
     QAST::Op.new(
         :op('callmethod'), :name('new'),
-        QAST::WVal.new( :value($*W.find_symbol(['PseudoStash'])) )
+        QAST::WVal.new( :value($*W.find_single_symbol('PseudoStash')) )
     )
 }
 

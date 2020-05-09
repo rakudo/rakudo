@@ -163,7 +163,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             my $outer := 0;
             if !nqp::existskey(%known_symbols, $sym) {
                 try {
-                    %known_symbols{$sym} := $world.find_symbol([$sym]);
+                    %known_symbols{$sym} := $world.find_single_symbol($sym);
                     $outer := 1;
                 }
             }

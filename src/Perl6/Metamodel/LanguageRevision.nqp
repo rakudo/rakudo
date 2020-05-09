@@ -18,7 +18,7 @@ role Perl6::Metamodel::LanguageRevision
             my $rev;
             # $*W cannot be used at optimization stage.
             if $*W && !$*OPTIMIZER-SYMBOLS {
-                $rev := $*W.find_symbol(['CORE-SETTING-REV'], :setting-only) || $*W.setting_revision;
+                $rev := $*W.find_single_symbol('CORE-SETTING-REV', :setting-only) || $*W.setting_revision;
             }
             $lang-ver := ($rev && '6.' ~ $rev)                          # compile-time if CORE is available
                           || nqp::getcomp('Raku').language_version;    # otherwise try the compiler

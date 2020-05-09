@@ -5014,18 +5014,18 @@ class Perl6::World is HLL::World {
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
+        if +@name == 1 {
+            #note("got a single element argument to find_symbol: " ~ @name[0]);
+            return self.find_single_symbol(~@name[0], :$setting-only, :$upgrade_to_global, :$cur-package);
+        }
+
         unless $!setting_loaded {
             return self.find_symbol_in_setting(@name);
         }
 
         # Support for compile-time CORE:: namespace
-        if +@name > 1 && nqp::iseq_s(@name[0], 'CORE') {
+        if nqp::iseq_s(@name[0], 'CORE') {
             return self.find_symbol_in_setting(@name);
-        }
-
-        # GLOBAL is current view of global.
-        if +@name == 1 && @name[0] eq 'GLOBAL' {
-            return $*GLOBALish;
         }
 
         my @BLOCKS := self.context().blocks;
@@ -5035,73 +5035,31 @@ class Perl6::World is HLL::World {
             ?? ($*COMPILING_CORE_SETTING ?? 2 !! 1)
             !! nqp::elems(@BLOCKS);
 
-        # If it's a single-part name, look through the lexical
-        # scopes and try the current package.
-
-        if +@name == 1 {
-            my str $final_name := ~@name[0];
-            if $*WANTEDOUTERBLOCK {
-                my $scope := $*WANTEDOUTERBLOCK;
-                while $scope {
-                    my %sym := $scope.symbol($final_name);
-                    if +%sym {
-                        my $value := self.force_value(%sym, $final_name, 1);
-                        if $upgrade_to_global {
-                            ($*GLOBALish.WHO){$final_name} := $value;
-                        }
-                        return $value;
-                    }
-                    $scope := $scope.ann('outer');
-                }
-            }
-            else {
-                my int $i := $start_scope;
-                while $i > 0 {
-                    $i := $i - 1;
-                    my %sym := @BLOCKS[$i].symbol($final_name);
-                    if +%sym {
-                        my $value := self.force_value(%sym, $final_name, 1);
-                        if $upgrade_to_global {
-                            ($*GLOBALish.WHO){$final_name} := $value;
-                        }
-                        return $value;
-                    }
-                }
-            }
-            nqp::die("find_symbol1") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LEAF.package);
-            $cur-package := $*LEAF.package unless $cur-package;
-            if nqp::existskey($cur-package.WHO, $final_name) {
-                return nqp::atkey($cur-package.WHO, $final_name);
-            }
-        }
-
         # If it's a multi-part name, see if the containing package
         # is a lexical somewhere or can be found in the current
         # package. Otherwise we fall back to looking in GLOBALish.
         my $result := $*GLOBALish;
-        if +@name >= 2 {
-            my str $first := ~@name[0];
-            my int $i := $start_scope;
-            my int $found := 0;
-            while $i > 0 {
-                $i := $i - 1;
-                my %sym := @BLOCKS[$i].symbol($first);
-                if +%sym {
-                    $result := self.force_value(%sym, $first, 1);
-                    @name := nqp::clone(@name);
-                    @name.shift();
-                    $i := 0;
-                    $found := 1;
-                }
+        my str $first := ~@name[0];
+        my int $i := $start_scope;
+        my int $found := 0;
+        while $i > 0 {
+            $i := $i - 1;
+            my %sym := @BLOCKS[$i].symbol($first);
+            if +%sym {
+                $result := self.force_value(%sym, $first, 1);
+                @name := nqp::clone(@name);
+                @name.shift();
+                $i := 0;
+                $found := 1;
             }
-            unless $found {
-                nqp::die("find_symbol2") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LEAF.package);
-                $cur-package := $*LEAF.package unless $cur-package;
-                if nqp::existskey($cur-package.WHO, $first) {
-                    $result := nqp::atkey($cur-package.WHO, $first);
-                    @name := nqp::clone(@name);
-                    @name.shift();
-                }
+        }
+        unless $found {
+            nqp::die("find_symbol2") unless nqp::objectid($*PACKAGE) == nqp::objectid($*LEAF.package);
+            $cur-package := $*LEAF.package unless $cur-package;
+            if nqp::existskey($cur-package.WHO, $first) {
+                $result := nqp::atkey($cur-package.WHO, $first);
+                @name := nqp::clone(@name);
+                @name.shift();
             }
         }
 

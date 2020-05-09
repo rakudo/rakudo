@@ -679,26 +679,42 @@ my class IO::Handle {
     multi method put(Junction:D \j) { j.THREAD: {self.put: $_} }
 
     proto method say(|) {*}
+    multi method say(IO::Handle:D: --> True) {
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars($!nl-out))
+          !! X::IO::BinaryMode.new(:trying<say>).throw
+    }
     multi method say(IO::Handle:D: Str:D $x --> True) {
         $!decoder
-          ?? self.WRITE($!encoder.encode-chars(
-               nqp::concat(nqp::unbox_s($x), nqp::unbox_s($!nl-out))))
+          ?? self.WRITE($!encoder.encode-chars(nqp::concat($x,$!nl-out)))
           !! X::IO::BinaryMode.new(:trying<say>).throw
     }
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder
-          ?? self.WRITE($!encoder.encode-chars(
-               nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out))))
+          ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.gist,$!nl-out)))
           !! X::IO::BinaryMode.new(:trying<say>).throw
     }
-    multi method say(IO::Handle:D: |) {
-        $!decoder or X::IO::BinaryMode.new(:trying<say>).throw;
-        my Mu $args := nqp::p6argvmarray();
-        nqp::shift($args);
-        my str $conc = '';
-        $conc = nqp::concat($conc, nqp::shift($args).gist) while $args;
-        self.print(nqp::concat($conc, $!nl-out));
+    multi method say(IO::Handle:D: | --> True) {
+        if $!decoder {
+            my Mu $args := nqp::p6argvmarray;
+            nqp::shift($args);
+            my $parts := nqp::list_s;
+            nqp::while(
+              nqp::elems($args),
+              nqp::push_s($parts,nqp::shift($args).gist)
+            );
+            nqp::push_s($parts,$!nl-out);
+            self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
+        }
+        else {
+            X::IO::BinaryMode.new(:trying<say>).throw;
+        }
     }
+
+    # there is no special handling, since it is supposed to give a
+    # human readable version of the Junction.  Leaving the method here
+    # so that future optimizers will not try to add it.
+    # multi method say(Junction:D \j) { j.THREAD: { self.say: $_ } }
 
     method print-nl(IO::Handle:D: --> True) {
         $!decoder

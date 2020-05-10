@@ -27,21 +27,22 @@ multi sub say(|) {
 }
 
 proto sub put(|) {*}
-multi sub put() { $*OUT.print-nl }
+multi sub put() {
+    $_ := $*OUT;
+    .print: .nl-out
+}
 multi sub put(Junction:D \j) {
     j.THREAD(&put)
 }
-multi sub put(Str:D \x) {
-    my $out := $*OUT;
-    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
-}
 multi sub put(\x) {
-    my $out := $*OUT;
-    $out.print(nqp::concat(nqp::unbox_s(x.Str),$out.nl-out));
+    $_ := $*OUT;
+    .print: nqp::concat(x.Str,.nl-out)
 }
 multi sub put(**@args is raw) {
-    my $out := $*OUT;
-    $out.print: @args.join ~ $out.nl-out
+    my $parts := Rakudo::Internals.StrList2list_s(nqp::p6argvmarray);
+    $_ := $*OUT;
+    nqp::push_s($parts,.nl-out);
+    .print: nqp::join("",$parts)
 }
 
 proto sub note(|) {*}

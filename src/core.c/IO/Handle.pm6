@@ -666,17 +666,29 @@ my class IO::Handle {
     }
     multi method print(Junction:D \j) { j.THREAD: {self.print: $_} }
 
-    proto method put(|) {*}
-    multi method put(IO::Handle:D: Str:D \x --> True) {
+    multi method put(Junction:D \j) { j.THREAD: { self.put: $_ } }
+    multi method put(IO::Handle:D: --> True) {
         $!decoder
-          ?? self.WRITE($!encoder.encode-chars(
-               nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out))))
+          ?? self.WRITE($!encoder.encode-chars($!nl-out))
+          !! X::IO::BinaryMode.new(:trying<say>).throw
+    }
+    multi method put(IO::Handle:D: \x --> True) {
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.Str, $!nl-out)))
           !! X::IO::BinaryMode.new(:trying<put>).throw
     }
-    multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
-        self.put(@list.join);
+    multi method put(IO::Handle:D: | --> True) {
+        if $!decoder {
+            my Mu $args := nqp::p6argvmarray;
+            nqp::shift($args);
+            my $parts := Rakudo::Internals.StrList2list_s($args);
+            nqp::push_s($parts,$!nl-out);
+            self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
+        }
+        else {
+            X::IO::BinaryMode.new(:trying<say>).throw;
+        }
     }
-    multi method put(Junction:D \j) { j.THREAD: {self.put: $_} }
 
     multi method say(IO::Handle:D: --> True) {
         $!decoder

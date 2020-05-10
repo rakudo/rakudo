@@ -671,6 +671,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
     method item(Mu \item:) is raw { item }
 
     proto method say(|) {*}
+    proto method put(|) {*}
 
     # Handle the typical "foo.say"
     multi method say() {
@@ -700,8 +701,35 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
         self.print: nqp::join("",$parts)
     }
 
+    # Handle the typical "foo.put"
+    multi method put() {
+
+        # no own print method, so use $*OUT.print
+        if nqp::eqaddr(self.^find_method("print").package,Mu) {
+            $_ := $*OUT;
+            .print(nqp::concat(self.Str,.nl-out))
+        }
+
+        # has its own .print, let it handle the empty case
+        else {
+            self.print(self.nl-out)
+        }
+    }
+
+    # Fallback for classes that act as $*OUT / $*ERR, but which do not have
+    # a .put method themselves.
+    multi method put(\x) {
+        self.print: nqp::concat(x.Str,self.nl-out)
+    }
+    multi method put(|) {
+        my \args := nqp::p6argvmarray;
+        nqp::shift(args);  # lose self
+        my $parts := Rakudo::Internals.StrList2list_s(args);
+        nqp::push_s($parts,self.nl-out);
+        self.print: nqp::join("",$parts)
+    }
+
     method print() { print(self) }
-    method put()   { put(self)   }
     method note()  { note(self)  }
 
     method gistseen(Mu:D \SELF: $id, $gist, *%named) {

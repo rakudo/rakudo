@@ -50,10 +50,6 @@ goto endofperl
 __END__
 :endofperl
 ';
-    my $perl_wrapper = '#!/usr/bin/env #perl#
-sub MAIN(:$name, :$auth, :$ver, *@, *%) {
-    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
-}';
 
     method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }
     method !resources-dir { with $.prefix.add('resources') { once { .mkdir unless .e }; $_ } }
@@ -204,6 +200,66 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         # bin/ scripts
+
+        my $perl-wrapper
+        = do 
+        {
+            # basename being dispatched is generated below, replaces '#perl#'
+            # in the generated script.
+            # question here is how to dispatch it: via env or the path to
+            # a rakudo executable.
+
+            # for whatever reason heredoc (:to/X/) fails.
+            # use the literal text for now.
+            # someone should clean this up in the future.
+
+            constant FIXED  = q|
+sub MAIN(:$name, :$auth, :$ver, *@, *%)
+{
+    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
+}
+|;
+            my $exec = gather 
+            {
+                # change 'perl6' to 'rakudo' or 'raku' at some point.
+                constant SEARCH = 'bin/perl6';
+
+                with < /bin/env /usr/bin/env >.first: { .IO.e } -> $env 
+                {
+                    take "$env #perl#";
+                }
+                else
+                {
+                    warn q{System lacks 'env', using } ~ SEARCH;
+
+                    my $curr    = $.prefix.absolute;
+
+                    loop:
+                    {
+                        if $curr.add( SEARCH ).IO.ie
+                        {
+                            take "$curr/bin/#perl#";
+                            last
+                        }
+                        elsif $curr eq ( my $next = $curr.parent )
+                        {
+                            # one last option would be "$SHELL -e $0", but that
+                            # requirs shell-speicfic arguments. rahter than open
+                            # that can of worms here, it seems better to give up.
+
+                            die "No '{SEARCH}' above {$.prefix}";
+                        }
+                        else
+                        {
+                            $curr   = $next;
+                        }
+                    }
+                }
+            };
+
+            ( qq{#!$exec}, FIXED ).join( "\n" )
+        };
+
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
             my $name        = $name-path.subst(/^bin\//, '');
@@ -212,7 +268,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m', '-js' -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
-                    $perl_wrapper.subst('#name#', $name, :g).subst('#perl#', "perl6$be");
+                    $perl-wrapper.subst('#name#', $name, :g).subst('#perl#', "perl6$be");
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
                         $windows_wrapper.subst('#perl#', "perl6$be", :g);

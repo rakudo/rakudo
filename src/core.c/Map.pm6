@@ -533,7 +533,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method hash() { self }
-    method clone(Map:D: --> Map:D) is raw { self }
+    method clone(Map:D:) { self }
 
     multi method roll(Map:D:) {
         nqp::if(

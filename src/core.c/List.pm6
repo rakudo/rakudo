@@ -875,7 +875,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         })
     }
 
-    multi method List(List:D: --> List:D) { self }
+    multi method List(List:D:) { self }
 
     multi method Slip(List:D: --> Slip:D) {
         nqp::if(

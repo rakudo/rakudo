@@ -376,7 +376,7 @@ my class Date does Dateish {
         DateTime.new(:$!year, :$!month, :$!day)
     }
     multi method DateTime(Date:U: --> DateTime:U) { DateTime }
-    method Date(--> Date) { self }
+    method Date() { self }
 }
 
 multi sub infix:<+>(Date:D \date, Int:D $x --> Date:D) {

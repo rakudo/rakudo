@@ -5,7 +5,7 @@ my class Slip { # is List
     # XXX this makes an empty Slip undefined?
     multi method defined (Slip:D: --> Bool:D) { self.Bool }
 
-    multi method Slip(Slip:D: --> Slip:D) { self }
+    multi method Slip(Slip:D:) { self }
     method CALL-ME (+args)     { args.Slip }
     multi method raku(Slip:D: --> Str:D) {
         nqp::if(

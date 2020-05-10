@@ -54,8 +54,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
 
-    multi method Str(Str:D: --> Str:D)     { self }
-    multi method Stringy(Str:D: --> Str:D) { self }
+    multi method Str(Str:D:) { self }
+    multi method Stringy(Str:D:) { self }
     multi method DUMP(Str:D: --> Str:D) { self.raku }
 
     method Int(Str:D: --> Int:D) {
@@ -790,7 +790,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! 0                             # empty string
     }
 
-    multi method gist(Str:D: --> Str:D) { self }
+    multi method gist(Str:D:) { self }
     multi method raku(Str:D: --> Str:D) {
         nqp::chars(self)
           ?? nqp::findnotcclass(

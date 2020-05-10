@@ -22,7 +22,7 @@ class IO::Special does IO {
     multi method Str  (IO::Special:D:) {                    $!what         }
     multi method raku (IO::Special:D:) { "{self.^name}.new({$!what.raku})" }
 
-    method IO(IO::Special:D: --> IO::Special:D) { self }
+    method IO(IO::Special:D:) { self }
 
     method e(IO::Special:D: --> True) { }
     method d(IO::Special:D: --> False) { }

@@ -45,7 +45,7 @@ my class Instant is Cool does Real {
 
     method Date(Instant:D:     --> Date:D)     { Date.new(self)     }
     method DateTime(Instant:D: --> DateTime:D) { DateTime.new(self) }
-    method Instant(--> Instant) { self }
+    method Instant() { self }
 
 #    TODO: should be the new .gist, probably
 #    method Str() {

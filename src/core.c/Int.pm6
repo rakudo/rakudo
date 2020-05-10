@@ -49,7 +49,7 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
 
-    method Int(--> Int) { self }
+    method Int() { self }
 
     method sign(Int:D: --> Int:D) {
         nqp::isgt_I(self,0) || nqp::neg_i(nqp::islt_I(self,0))
@@ -159,10 +159,10 @@ my class Int does Real { # declared in BOOTSTRAP
     }
     method is-prime(--> Bool:D) { nqp::hllbool(nqp::isprime_I(self,100)) }
 
-    method floor(Int:D: --> Int:D) { self }
-    method ceiling(Int:D: --> Int:D) { self }
+    method floor(Int:D:) { self }
+    method ceiling(Int:D:) { self }
     proto method round(|) {*}
-    multi method round(Int:D: --> Int:D) { self }
+    multi method round(Int:D:) { self }
     multi method round(Int:D: Real(Cool) $scale --> Real:D) {
         (self / $scale + 1/2).floor * $scale
     }
@@ -213,7 +213,7 @@ my class Int does Real { # declared in BOOTSTRAP
               $msb)))
     }
 
-    method narrow(Int:D: --> Int:D) { self }
+    method narrow(Int:D:) { self }
 
     method Range(Int:U: --> Range:D) {
         given self {

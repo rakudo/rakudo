@@ -207,7 +207,7 @@ my class IO::Path is Cool does IO {
         );
     }
 
-    multi method IO { self }
+    multi method IO() { self }
     method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }
 
 #?if moar

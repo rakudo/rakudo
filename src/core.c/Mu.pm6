@@ -673,6 +673,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
     proto method say(|) {*}
     proto method put(|) {*}
     proto method note(|) {*}
+    proto method print(|) {*}
 
     # Handle the typical "foo.say"
     multi method say() {
@@ -745,7 +746,10 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
         }
     }
 
-    method print() { print(self) }
+    # Handle the typical "foo.print"
+    multi method print() {
+        $*OUT.print: self.Str
+    }
 
     method gistseen(Mu:D \SELF: $id, $gist, *%named) {
         if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*gistseen'))) {

@@ -655,16 +655,28 @@ my class IO::Handle {
         self.print(sprintf |c);
     }
 
-    proto method print(|) {*}
+    multi method print(Junction:D \j) { j.THREAD: { self.print: $_ } }
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(x))
           !! X::IO::BinaryMode.new(:trying<print>).throw
     }
-    multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
-        self.print(@list.join);
+    multi method print(IO::Handle:D: \x --> True) {
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars(x.Str))
+          !! X::IO::BinaryMode.new(:trying<print>).throw
     }
-    multi method print(Junction:D \j) { j.THREAD: {self.print: $_} }
+    multi method print(IO::Handle:D: | --> True) {
+        if $!decoder {
+            my Mu $args := nqp::p6argvmarray;
+            nqp::shift($args);
+            self.WRITE($!encoder.encode-chars(
+              nqp::join("",Rakudo::Internals.StrList2list_s($args))))
+        }
+        else {
+            X::IO::BinaryMode.new(:trying<print>).throw;
+        }
+    }
 
     multi method put(Junction:D \j) { j.THREAD: { self.put: $_ } }
     multi method put(IO::Handle:D: --> True) {

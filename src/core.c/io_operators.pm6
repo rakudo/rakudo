@@ -2,10 +2,13 @@ my class IO::ArgFiles { ... }
 
 proto sub print(|) {*}
 multi sub print(--> True) { }    # nothing to do
-multi sub print(Junction:D \j)  { j.THREAD(&print) }
-multi sub print(Str:D \x)       { $*OUT.print(x) }
-multi sub print(\x)             { $*OUT.print(x.Str) }
-multi sub print(**@args is raw) { $*OUT.print: @args.join }
+multi sub print(Junction:D \j) { j.THREAD(&print) }
+multi sub print(Str:D \x) { $*OUT.print(x) }
+multi sub print(\x) { $*OUT.print(x.Str) }
+multi sub print(|) {
+    $*OUT.print:
+      nqp::join("",Rakudo::Internals.StrList2list_s(nqp::p6argvmarray))
+}
 
 # To ensure that classes that mimic the $*OUT / $*ERR API (which are only
 # required to provide a ".print" method), all logic is done in the subs

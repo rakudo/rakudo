@@ -409,7 +409,6 @@ my class IO::CatHandle is IO::Handle {
     multi method flush      (|) { X::NYI.new(:feature<flush>).throw      }
     proto method out-buffer (|) {*}
     multi method out-buffer (|) { X::NYI.new(:feature<out-buffer>).throw }
-    proto method print      (|) {*}
     multi method print      (|) { X::NYI.new(:feature<print>).throw      }
     proto method printf     (|) {*}
     multi method printf     (|) { X::NYI.new(:feature<printf>).throw     }

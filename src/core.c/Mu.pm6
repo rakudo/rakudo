@@ -672,6 +672,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
 
     proto method say(|) {*}
     proto method put(|) {*}
+    proto method note(|) {*}
 
     # Handle the typical "foo.say"
     multi method say() {
@@ -729,8 +730,22 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
         self.print: nqp::join("",$parts)
     }
 
+    # Handle the typical "foo.note"
+    multi method note() {
+
+        # no own print method, so use $*ERR.print
+        if nqp::eqaddr(self.^find_method("print").package,Mu) {
+            $_ := $*ERR;
+            .print(nqp::concat(self.gist,.nl-out))
+        }
+
+        # has its own .print, let it handle the empty case
+        else {
+            self.print(self.nl-out)
+        }
+    }
+
     method print() { print(self) }
-    method note()  { note(self)  }
 
     method gistseen(Mu:D \SELF: $id, $gist, *%named) {
         if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*gistseen'))) {

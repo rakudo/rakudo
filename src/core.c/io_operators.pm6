@@ -38,7 +38,7 @@ multi sub put(\x) {
     $_ := $*OUT;
     .print: nqp::concat(x.Str,.nl-out)
 }
-multi sub put(**@args is raw) {
+multi sub put(|) {
     my $parts := Rakudo::Internals.StrList2list_s(nqp::p6argvmarray);
     $_ := $*OUT;
     nqp::push_s($parts,.nl-out);
@@ -47,14 +47,18 @@ multi sub put(**@args is raw) {
 
 proto sub note(|) {*}
 multi sub note() {
-    my $err := $*ERR;
-    $err.print(nqp::concat("Noted",$err.nl-out));
+    $_ := $*ERR;
+    .print: nqp::concat("Noted",.nl-out)
 }
-multi sub note(**@args is raw) {
-    my $err := $*ERR;
-    my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $err.print(nqp::concat($str,$err.nl-out));
+multi sub note(\x) {
+    $_ := $*ERR;
+    .print: nqp::concat(x.gist,.nl-out)
+}
+multi sub note(|) {
+    my $parts := Rakudo::Internals.GistList2list_s(nqp::p6argvmarray);
+    $_ := $*ERR;
+    nqp::push_s($parts,.nl-out);
+    .print: nqp::join("",$parts)
 }
 
 proto sub gist(|) {*}

@@ -670,8 +670,36 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
 
     method item(Mu \item:) is raw { item }
 
-    # basic output operations
-    method say()   { say(self)   }
+    proto method say(|) {*}
+
+    # Handle the typical "foo.say"
+    multi method say() {
+
+        # no own print method, so use $*OUT.print
+        if nqp::eqaddr(self.^find_method("print").package,Mu) {
+            $_ := $*OUT;
+            .print(nqp::concat(self.gist,.nl-out))
+        }
+
+        # has its own .print, let it handle the empty case
+        else {
+            self.print(self.nl-out)
+        }
+    }
+
+    # Fallback for classes that act as $*OUT / $*ERR, but which do not have
+    # a .say method themselves.
+    multi method say(\x) {
+        self.print: nqp::concat(x.gist,self.nl-out)
+    }
+    multi method say(|) {
+        my \args := nqp::p6argvmarray;
+        nqp::shift(args);  # lose self
+        my $parts := Rakudo::Internals.GistList2list_s(args);
+        nqp::push_s($parts,self.nl-out);
+        self.print: nqp::join("",$parts)
+    }
+
     method print() { print(self) }
     method put()   { put(self)   }
     method note()  { note(self)  }

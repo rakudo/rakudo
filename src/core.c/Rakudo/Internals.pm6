@@ -85,6 +85,26 @@ my class Rakudo::Internals {
         ($min, $max);
     }
 
+    method GistList2list_s(List:D \list) {
+        my \values := nqp::getattr(list,List,'$!reified');
+        my \parts  := nqp::list_s;
+        nqp::while(
+          nqp::elems(values),
+          nqp::push_s(parts,nqp::shift(values).gist)
+        );
+        parts
+    }
+
+    method StrList2list_s(List:D \list) {
+        my \values := nqp::getattr(list,List,'$!reified');
+        my \parts  := nqp::list_s;
+        nqp::while(
+          nqp::elems(values),
+          nqp::push_s(parts,nqp::shift(values).Str)
+        );
+        parts
+    }
+
     method SET_LEADING_DOCS($obj, $docs) {
         my $current_why := $obj.WHY;
 

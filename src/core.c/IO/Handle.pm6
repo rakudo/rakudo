@@ -684,11 +684,6 @@ my class IO::Handle {
           ?? self.WRITE($!encoder.encode-chars($!nl-out))
           !! X::IO::BinaryMode.new(:trying<say>).throw
     }
-    multi method say(IO::Handle:D: Str:D $x --> True) {
-        $!decoder
-          ?? self.WRITE($!encoder.encode-chars(nqp::concat($x,$!nl-out)))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
-    }
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.gist,$!nl-out)))
@@ -698,11 +693,7 @@ my class IO::Handle {
         if $!decoder {
             my Mu $args := nqp::p6argvmarray;
             nqp::shift($args);
-            my $parts := nqp::list_s;
-            nqp::while(
-              nqp::elems($args),
-              nqp::push_s($parts,nqp::shift($args).gist)
-            );
+            my $parts := Rakudo::Internals.GistList2list_s($args);
             nqp::push_s($parts,$!nl-out);
             self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
         }

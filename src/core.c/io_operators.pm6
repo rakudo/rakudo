@@ -7,23 +7,23 @@ multi sub print(Str:D \x)       { $*OUT.print(x) }
 multi sub print(\x)             { $*OUT.print(x.Str) }
 multi sub print(**@args is raw) { $*OUT.print: @args.join }
 
+# To ensure that classes that mimic the $*OUT / $*ERR API (which are only
+# required to provide a ".print" method), all logic is done in the subs
+# here, and then passed on to the .print method.
 proto sub say(|) {*}
-multi sub say() { $*OUT.print-nl }
-multi sub say(\x) {
-    nqp::if(
-      nqp::istype((my $out := $*OUT),IO::Handle),
-      $out.say(x.gist),
-      $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out))
-    )
+multi sub say() {
+    $_ := $*OUT;
+    .print: .nl-out
 }
-multi sub say(**@args is raw) {
-    my str $str;
-    my $iter := @args.iterator;
-    nqp::until(
-      nqp::eqaddr(($_ := $iter.pull-one), IterationEnd),
-      $str = nqp::concat($str, nqp::unbox_s(.gist)));
-    my $out := $*OUT;
-    $out.print(nqp::concat($str,$out.nl-out));
+multi sub say(\x) {
+    $_ := $*OUT;
+    .print: nqp::concat(x.gist,.nl-out)
+}
+multi sub say(|) {
+    my $parts := Rakudo::Internals.GistList2list_s(nqp::p6argvmarray);
+    $_ := $*OUT;
+    nqp::push_s($parts,.nl-out);
+    .print: nqp::join("",$parts)
 }
 
 proto sub put(|) {*}

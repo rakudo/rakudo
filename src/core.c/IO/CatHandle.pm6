@@ -417,7 +417,6 @@ my class IO::CatHandle is IO::Handle {
     multi method print-nl   (|) { X::NYI.new(:feature<print-nl>).throw   }
     proto method put        (|) {*}
     multi method put        (|) { X::NYI.new(:feature<put>).throw        }
-    proto method say        (|) {*}
     multi method say        (|) { X::NYI.new(:feature<say>).throw        }
     proto method write      (|) {*}
     multi method write      (|) { X::NYI.new(:feature<write>).throw      }

@@ -1,7 +1,10 @@
 my class IO::ArgFiles { ... }
 
-proto sub printf($, |) {*}
-multi sub printf(Cool:D $format, *@args) { print sprintf $format, @args }
+sub printf(Str(Cool) $format, |) {
+   my $args := nqp::p6argvmarray;
+   nqp::shift($args);
+   $*OUT.print: sprintf $format, nqp::hllize($args)
+}
 
 proto sub print(|) {*}
 multi sub print(--> True) { }    # nothing to do

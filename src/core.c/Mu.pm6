@@ -1272,6 +1272,4 @@ multi sub so(Mu $x)  { ?$x }
 proto sub not(Mu, *%) {*}
 multi sub not(Mu $x) { !$x }
 
-Metamodel::ClassHOW.exclude_parent(Mu);
-
 # vim: ft=perl6 expandtab sw=4

@@ -1,6 +1,11 @@
 my class IO::ArgFiles { ... }
 
-sub printf(Str(Cool) $format, |) {
+proto sub printf($, |) {*}
+multi sub printf(Str(Cool) $format, Junction:D \j) {
+    my $out := $*OUT;
+    j.THREAD: { $out.print: sprintf $format, |$_ }
+}
+multi sub printf(Str(Cool) $format, |) {
    my $args := nqp::p6argvmarray;
    nqp::shift($args);
    $*OUT.print: sprintf $format, nqp::hllize($args)

@@ -35,6 +35,8 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_DEFAULT_IS_LITERAL = 1 +< 20;
     my constant $SIG_ELEM_SLURPY_ONEARG      = 1 +< 24;
     my constant $SIG_ELEM_CODE_SIGIL         = 1 +< 25;
+    my constant $SIG_ELEM_SCALAR_SIGIL       = 1 +< 26;
+    my constant $SIG_ELEM_NO_VARIABLE        = 1 +< 27;
 
     my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
                                            +| $SIG_ELEM_SLURPY_NAMED
@@ -48,6 +50,10 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_IS_NOT_READONLY = $SIG_ELEM_IS_RW
                                          +| $SIG_ELEM_IS_COPY
                                          +| $SIG_ELEM_IS_RAW;
+    my constant $SIG_ELEM_IS_SIGILLED = $SIG_ELEM_SCALAR_SIGIL
+                                     +| $SIG_ELEM_ARRAY_SIGIL
+                                     +| $SIG_ELEM_HASH_SIGIL
+                                     +| $SIG_ELEM_CODE_SIGIL;
 
     my $sigils2bit := nqp::null;
     sub set-sigil-bits(str $sigil, \flags --> Nil) {
@@ -55,6 +61,7 @@ my class Parameter { # declared in BOOTSTRAP
           nqp::ifnull(
             $sigils2bit,
             $sigils2bit := nqp::hash(
+              Q/$/, $SIG_ELEM_SCALAR_SIGIL,
               Q/@/, $SIG_ELEM_ARRAY_SIGIL,
               Q/%/, $SIG_ELEM_HASH_SIGIL,
               Q/&/, $SIG_ELEM_CODE_SIGIL,
@@ -170,6 +177,9 @@ my class Parameter { # declared in BOOTSTRAP
             set-sigil-bits($sigil, $flags);
             $name = $name.substr(1) if $sigil eq Q/\/ || $sigil eq Q/|/;
         }
+        else {
+            $flags +|= $SIG_ELEM_NO_VARIABLE;
+        }
 
         if %args.EXISTS-KEY('type') {
             my $type := %args.AT-KEY('type');
@@ -243,11 +253,11 @@ my class Parameter { # declared in BOOTSTRAP
     method usage-name() {
         nqp::isnull_s($!variable_name)
           ?? Nil
-          !! nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
-            ?? $!variable_name
-            !! nqp::iseq_i(nqp::index('*!.',nqp::substr($!variable_name,1,1)),-1)
+          !! nqp::bitand_i($!flags,$SIG_ELEM_IS_SIGILLED)
+            ?? nqp::iseq_i(nqp::index('*!.',nqp::substr($!variable_name,1,1)),-1)
               ?? nqp::substr($!variable_name,1)
               !! nqp::substr($!variable_name,2)
+            !! $!variable_name
     }
 
     method sigil() {
@@ -260,15 +270,12 @@ my class Parameter { # declared in BOOTSTRAP
                 ?? '%'
                 !! nqp::bitand_i($!flags,$SIG_ELEM_CODE_SIGIL)
                   ?? '&'
-                  !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW)
-                    && $.name
-                    && nqp::isnull($!default_value)
-                    ?? '\\'
-                    !! '$'
-            !! nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW) && nqp::iseq_i(
-                 nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
-              ?? '\\'
-              !! nqp::substr($!variable_name,0,1)
+                  !! nqp::bitand_i($!flags,$SIG_ELEM_SCALAR_SIGIL)
+                    ?? '$'
+                    !! '\\'
+            !! nqp::bitand_i($!flags,$SIG_ELEM_IS_SIGILLED)
+              ?? nqp::substr($!variable_name,0,1)
+              !! '\\'
     }
 
     method twigil() {
@@ -562,41 +569,44 @@ my class Parameter { # declared in BOOTSTRAP
             $perl ~= $type ~ $modifier;
         }
 
-        my $prefix     = $.prefix;
-        my $sigil      = $.sigil;
-        my $twigil     = $.twigil;
-        my $usage-name = $.usage-name // '';
-        my $name       = '';
-        if $prefix eq '+' && $sigil eq '\\' {
-            # We don't want \ to end up in the name of slurpy parameters, but
-            # we still need to know whether or not they have this sigil later.
-            $name ~= $usage-name;
-        } else {
-            $name ~= $sigil ~ $twigil ~ $usage-name;
-        }
-        if nqp::isconcrete(@!named_names) {
-            my $var-is-named = False;
-            my @outer-names  = gather for @.named_names {
-                if !$var-is-named && $_ eq $usage-name {
-                    $var-is-named = True;
-                } else {
-                    .take;
-                }
-            };
-            $name = ":$name" if $var-is-named;
-            $name = ":$_\($name)" for @outer-names;
-        }
+        my $prefix = '';
+        my $name   = '';
+        my $rest   = '';
+        unless $!flags +& $SIG_ELEM_NO_VARIABLE {
+            my $sigil      = $.sigil;
+            my $twigil     = $.twigil;
+            my $usage-name = $.usage-name // '';
+            $prefix = $.prefix;
+            if $prefix eq '+' && $sigil eq '\\' {
+                # We don't want \ to end up in the name of slurpy parameters, but
+                # we still need to know whether or not they have this sigil later.
+                $name ~= $usage-name;
+            } else {
+                $name ~= $sigil ~ $twigil ~ $usage-name;
+            }
+            if nqp::isconcrete(@!named_names) {
+                my $var-is-named = False;
+                my @outer-names  = gather for @.named_names {
+                    if !$var-is-named && $_ eq $usage-name {
+                        $var-is-named = True;
+                    } else {
+                        .take;
+                    }
+                };
+                $name = ":$name" if $var-is-named;
+                $name = ":$_\($name)" for @outer-names;
+            }
 
-        my $rest = '';
-        if $!flags +& $SIG_ELEM_IS_RW {
-            $rest ~= ' is rw';
-        } elsif $!flags +& $SIG_ELEM_IS_COPY {
-            $rest ~= ' is copy';
-        }
-        if $!flags +& $SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
-            # Do not emit cases of anonymous '\' which we cannot reparse
-            # This is all due to unspace.
-            $rest ~= ' is raw';
+            if $!flags +& $SIG_ELEM_IS_RW {
+                $rest ~= ' is rw';
+            } elsif $!flags +& $SIG_ELEM_IS_COPY {
+                $rest ~= ' is copy';
+            }
+            if $!flags +& $SIG_ELEM_IS_RAW && $sigil ne '\\' | '|' {
+                # Do not emit cases of anonymous '\' which we cannot reparse
+                # This is all due to unspace.
+                $rest ~= ' is raw';
+            }
         }
         unless nqp::isnull($!sub_signature) {
             $rest ~= ' ' ~ $!sub_signature.raku.substr: 1;
@@ -604,7 +614,7 @@ my class Parameter { # declared in BOOTSTRAP
         unless nqp::isnull(@!post_constraints) {
             # it's a Cool constant
             if !$rest
-              && $name eq '$'
+              && nqp::bitand_i($!flags,$SIG_ELEM_NO_VARIABLE)
               && nqp::elems(@!post_constraints) == 1
               && nqp::istype(
                    (my \value := nqp::atpos(@!post_constraints,0)),
@@ -622,8 +632,10 @@ my class Parameter { # declared in BOOTSTRAP
             $rest ~= " = OUTER::<$name>";
         }
 
-        $name = "$prefix$name$.suffix";
-        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
+        unless $!flags +& $SIG_ELEM_NO_VARIABLE {
+            $name = "$prefix$name$.suffix";
+            $perl ~= ($perl ?? ' ' !! '') ~ $name;
+        }
         $perl ~= $rest if $rest;
         $perl
     }

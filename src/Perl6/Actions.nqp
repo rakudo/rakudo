@@ -1736,7 +1736,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if $*IMPLICIT {
                     my $optional := $*IMPLICIT == 1;
                     @params.push(hash(
-                        :variable_name('$_'), :$optional,
+                        :variable_name('$_'), :sigil('$'), :$optional,
                         :nominal_type($*W.find_symbol(['Mu'])),
                         :default_from_outer($optional), :is_raw(1),
                     ));
@@ -5335,19 +5335,24 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method parameter($/) {
+        my     $quant        := $<quant>;
+        my int $has_variable := nqp::existskey($/, 'quant');
+
         # Sanity checks.
-        my $quant := $<quant>;
         if $<default_value> {
-            my $name := %*PARAM_INFO<variable_name> // '';
-            if $quant eq '*'  || $quant eq '|'
-            || $quant eq '**' || $quant eq '+' {
-                $/.typed_sorry('X::Parameter::Default', how => 'slurpy',
-                            parameter => $name);
+            if $has_variable {
+                my $name := %*PARAM_INFO<variable_name> // '';
+                if $quant eq '*'  || $quant eq '|'
+                || $quant eq '**' || $quant eq '+' {
+                    $/.typed_sorry('X::Parameter::Default', how => 'slurpy',
+                                parameter => $name);
+                }
+                if $quant eq '!' {
+                    $/.typed_sorry('X::Parameter::Default', how => 'required',
+                                parameter => $name);
+                }
             }
-            if $quant eq '!' {
-                $/.typed_sorry('X::Parameter::Default', how => 'required',
-                            parameter => $name);
-            }
+
             my $val := WANTED($<default_value>[0].ast, 'parameter/def');
             if $val.has_compile_time_value {
                 my $value := $val.compile_time_value;
@@ -5367,18 +5372,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Set up various flags.
-        %*PARAM_INFO<pos_slurpy>   := $quant eq '*' && %*PARAM_INFO<sigil> eq '@';
-        %*PARAM_INFO<pos_lol>      := $quant eq '**' && %*PARAM_INFO<sigil> eq '@';
-        %*PARAM_INFO<named_slurpy> := $quant eq '*' && %*PARAM_INFO<sigil> eq '%';
-        %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
-        %*PARAM_INFO<is_raw>       := $quant eq '\\' || ($quant eq '+' && !%*PARAM_INFO<sigil>);
-        %*PARAM_INFO<is_capture>   := $quant eq '|';
-        %*PARAM_INFO<pos_onearg>   := $quant eq '+';
+        if $has_variable {
+            %*PARAM_INFO<pos_slurpy>   := $quant eq '*' && %*PARAM_INFO<sigil> eq '@';
+            %*PARAM_INFO<pos_lol>      := $quant eq '**' && %*PARAM_INFO<sigil> eq '@';
+            %*PARAM_INFO<pos_onearg>   := $quant eq '+';
+            %*PARAM_INFO<named_slurpy> := $quant eq '*' && %*PARAM_INFO<sigil> eq '%';
+            %*PARAM_INFO<optional>     := $quant eq '?' || $<default_value> || ($<named_param> && $quant ne '!');
+            %*PARAM_INFO<is_raw>       := $quant eq '\\' || ($quant eq '+' && !%*PARAM_INFO<sigil>);
+            %*PARAM_INFO<is_capture>   := $quant eq '|';
+        }
+        else {
+            %*PARAM_INFO<optional>    := ?$<default_value>;
+            %*PARAM_INFO<no_variable> := 1;
+        }
 
         # Stash any traits.
         %*PARAM_INFO<traits> := $<trait>;
 
-        if $<type_constraint> {
+        # More sanity checks.
+        if $has_variable && $<type_constraint> {
             if %*PARAM_INFO<pos_slurpy> || %*PARAM_INFO<pos_lol> || %*PARAM_INFO<pos_onearg> {
                 $/.typed_sorry('X::Parameter::TypedSlurpy', kind => 'positional');
             }
@@ -9667,7 +9679,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             });
         }
         ($*W.cur_lexpad())[0].push($block);
-        my $param := hash( :variable_name('$_'), :nominal_type($*W.find_symbol(['Mu'])));
+        my $param := hash( :variable_name('$_'), :sigil('$'), :nominal_type($*W.find_symbol(['Mu'])) );
         if $copy {
             $param<container_descriptor> := $*W.create_container_descriptor(
                 $*W.find_symbol(['Mu']), '$_');
@@ -9704,9 +9716,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         ($*W.cur_lexpad())[0].push($past);
 
         # Give it a signature and create code object.
-        my $param := hash(
-            variable_name => '$_',
-            nominal_type => $*W.find_symbol(['Mu']));
+        my $param := hash( variable_name => '$_', sigil => '$', nominal_type => $*W.find_symbol(['Mu']) );
         my $sig := $*W.create_signature(nqp::hash('parameter_objects',
             [$*W.create_parameter($/, $param)]));
         add_signature_binding_code($past, $sig, [$param]);
@@ -9872,8 +9882,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Need to construct and install an initializer method
         my @params := [
-          hash( is_invocant => 1, nominal_type => $/.package),
-          hash( variable_name => '$_', nominal_type => $*W.find_symbol(['Mu']))
+          hash( is_invocant => 1, nominal_type => $/.package ),
+          hash( variable_name => '$_', sigil => '$', nominal_type => $*W.find_symbol(['Mu']) )
         ];
         my $sig := $*W.create_signature(nqp::hash('parameter_objects', [
           $*W.create_parameter($/, @params[0]),
@@ -10107,6 +10117,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $curry[0].push: $_;
                             @params.push: hash(
                               :variable_name($_.name),
+                              :sigil(nqp::substr($_.name, 0, 1)),
                               :nominal_type(
                                   $*W.find_symbol: ['Mu'], :setting-only),
                               :is_raw(1))
@@ -10132,6 +10143,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                   ).annotate_self: 'whatever-var', 1;
                 @params.push: hash(
                     :variable_name($param.name),
+                    :sigil('$'),
                     :nominal_type($*W.find_symbol: ['Mu'], :setting-only),
                     :is_raw(1));
                 $curry[0].push: $param.decl_as: <var>;

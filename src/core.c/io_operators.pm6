@@ -1,5 +1,8 @@
 my class IO::ArgFiles { ... }
 
+proto sub printf($, |) {*}
+multi sub printf(Cool:D $format, *@args) { print sprintf $format, @args }
+
 proto sub print(|) {*}
 multi sub print(--> True) { }    # nothing to do
 multi sub print(Junction:D \j) {

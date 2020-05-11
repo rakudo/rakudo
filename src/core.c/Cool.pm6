@@ -574,9 +574,6 @@ multi sub sprintf(Cool:D $format, *@args) {
     )
 }
 
-proto sub printf($, |) {*}
-multi sub printf(Cool:D $format, *@args) { print sprintf $format, @args }
-
 proto sub samecase($, $, *%) {*}
 multi sub samecase(Cool:D $string, Cool:D $pattern) { $string.samecase($pattern) }
 

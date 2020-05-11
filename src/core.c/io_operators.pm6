@@ -2,7 +2,10 @@ my class IO::ArgFiles { ... }
 
 proto sub print(|) {*}
 multi sub print(--> True) { }    # nothing to do
-multi sub print(Junction:D \j) { j.THREAD(&print) }
+multi sub print(Junction:D \j) {
+    my $out := $*OUT;
+    j.THREAD: { $out.print: .Str }
+}
 multi sub print(Str:D \x) { $*OUT.print(x) }
 multi sub print(\x) { $*OUT.print(x.Str) }
 multi sub print(|) {
@@ -35,7 +38,8 @@ multi sub put() {
     .print: .nl-out
 }
 multi sub put(Junction:D \j) {
-    j.THREAD(&put)
+    my $out := $*OUT;
+    j.THREAD: { $out.print: nqp::concat(.Str,$out.nl-out) }
 }
 multi sub put(\x) {
     $_ := $*OUT;

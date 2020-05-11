@@ -655,7 +655,9 @@ my class IO::Handle {
         self.print(sprintf |c);
     }
 
-    multi method print(Junction:D \j) { j.THREAD: { self.print: $_ } }
+    multi method print(IO::Handle:D: Junction:D \j) {
+        j.THREAD: { self.print: $_ }
+    }
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(x))
@@ -678,7 +680,9 @@ my class IO::Handle {
         }
     }
 
-    multi method put(Junction:D \j) { j.THREAD: { self.put: $_ } }
+    multi method put(IO::Handle:D: Junction:D \j) {
+        j.THREAD: { self.print: nqp::concat(.Str,$!nl-out) }
+    }
     multi method put(IO::Handle:D: --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars($!nl-out))

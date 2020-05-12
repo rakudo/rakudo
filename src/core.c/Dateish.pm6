@@ -9,7 +9,7 @@ my role Dateish {
         IO::Path.new(~self)
     }
 
-    method CALL-ME(Dateish:U: Str:D $dateish) { self.new($dateish) }
+    method CALL-ME(Dateish:U: \dateish) { self.new(dateish) }
 
     # this sub is also used by DAYS-IN-MONTH, which is used by other types
     sub IS-LEAP-YEAR(int $y --> Bool:D) {

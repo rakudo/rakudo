@@ -339,7 +339,7 @@ class CompUnit::RepositoryRegistry {
                 PROCESS::<$REPO> := $head;
 
                 # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
-                $*W.find_symbol(nqp::list("GLOBAL")).WHO.merge-symbols(
+                $*W.find_single_symbol("GLOBAL").WHO.merge-symbols(
                   $comp_unit.handle.globalish-package);
 
                 $repo := self.repository-for-spec($repo.path-spec, :$next-repo);

@@ -156,19 +156,19 @@ role Perl6::Metamodel::BUILDPLAN {
 
                 # currently compiling, so we can do typechecking now.
                 if !nqp::isnull(nqp::getlexdyn('$*W')) && $*W.in_unit_parse {
-                    if nqp::istype(nqp::decont($default), $*W.find_symbol(["Code"])) {
+                    if nqp::istype(nqp::decont($default), $*W.find_single_symbol('Code')) {
                         # cannot typecheck code to be run later
                     }
 
                     # check native attribute
                     elsif $primspec {
-                        my $destination := $*W.find_symbol([
+                        my $destination := $*W.find_single_symbol(
                           $primspec == 2
                             ?? "Num"
                             !! $primspec == 3
                               ?? "Str"
                               !! "Int"  # 1,4,5
-                        ]);
+                        );
                         nqp::istype($default,$destination)
                           ?? ($check-at-runtime := 0)
                           !! self.throw_typecheck($_, $default, $destination)
@@ -180,14 +180,14 @@ role Perl6::Metamodel::BUILDPLAN {
                     }
 
                     # associatives need to be checked at runtime
-                    elsif nqp::istype($type,$*W.find_symbol(["Associative"])) {
+                    elsif nqp::istype($type,$*W.find_single_symbol('Associative')) {
                         # cannot do type checks on associatives
                     }
 
                     # positionals could be checked now
                     elsif nqp::istype(
                       $type,
-                      my $Positional := $*W.find_symbol(["Positional"])
+                      my $Positional := $*W.find_single_symbol('Positional')
                     ) && nqp::istype($default,$Positional.of) {
                         $check-at-runtime := 0;
                     }

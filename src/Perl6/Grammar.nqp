@@ -346,7 +346,7 @@ role STD {
     }
 
     token experimental($feature) {
-        <?{ try $*W.find_symbol(['EXPERIMENTAL-' ~ nqp::uc($feature)]) }>
+        <?{ try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)) }>
         || <.typed_panic('X::Experimental', :$feature)>
     }
 
@@ -929,7 +929,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my int $line      := HLL::Compiler.lineof($orig, self.from(), :cache(1));
             my str $prematch  := nqp::substr($orig, $from > 20 ?? $from - 20 !! 0, $from > 20 ?? 20 !! $from);
             my str $postmatch := nqp::substr($orig, $to, 20);
-            my $label     := $*W.find_symbol(['Label']).new( :name($*LABEL), :$line, :$prematch, :$postmatch );
+            my $label     := $*W.find_single_symbol('Label').new( :name($*LABEL), :$line, :$prematch, :$postmatch );
             $*W.add_object_if_no_sc($label);
             $*W.install_lexical_symbol($*W.cur_lexpad(), $*LABEL, $label);
         }
@@ -1335,7 +1335,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             self.LANG($langname, $regex, @args);
         }
         else {
-            my $Str := $*W.find_symbol(['Str']);
+            my $Str := $*W.find_single_symbol('Str');
             my $actions := self.slang_actions($langname);
             my $lang_cursor := $grammar.'!cursor_init'($Str.new( :value(self.orig())), :p(self.pos()));
             $lang_cursor.clone_braid_from(self);
@@ -1347,7 +1347,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
 
             # Build up something NQP-levelish we can return.
             my $new := NQPMatch.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
-            my $p6cursor := $*W.find_symbol(['Match']);
+            my $p6cursor := $*W.find_single_symbol('Match');
             nqp::bindattr_i($new, NQPMatch, '$!from',  nqp::getattr_i($ret, $p6cursor, '$!from'));
             nqp::bindattr_i($new, NQPMatch, '$!pos',   nqp::getattr_i($ret, $p6cursor, '$!pos'));
             my str $p6c_name := nqp::getattr_s($ret, $p6cursor, '$!name');
@@ -1617,7 +1617,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 );
                 nqp::iseq_i($chars-num, $pos);
             }>
-            { $*key := $<identifier>.Str; $*value := nqp::radix_I(10, $<num>, 0, 0, $*W.find_symbol(['Int']))[0]; }
+            { $*key := $<identifier>.Str; $*value := nqp::radix_I(10, $<num>, 0, 0, $*W.find_single_symbol('Int'))[0]; }
         | <identifier>
             { $*key := $<identifier>.Str; }
             [
@@ -1982,7 +1982,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                             if $key eq 'ver' {
                                 $*VER := $*W.handle-begin-time-exceptions($/,
                                     'parsing package version',
-                                    -> { $*W.find_symbol(['Version']).new($adverb.value) });
+                                    -> { $*W.find_single_symbol('Version').new($adverb.value) });
                             }
                             elsif $key eq 'api' {
                                 $*API := $adverb.value;
@@ -2522,10 +2522,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 $*IN_DECL := '';
 
                 my $meta := $<specials> && ~$<specials> eq '^';
-                my $invocant_type := $*W.find_symbol([
+                my $invocant_type := $*W.find_single_symbol(
                     $<longname> && $*W.is_lexical('$?CLASS') && !$meta
                         ?? '$?CLASS'
-                        !! 'Mu']);
+                        !! 'Mu');
                 if $<multisig> {
                     %*SIG_INFO := $<multisig>.ast;
                     $*SIG_OBJ := $*W.create_signature_and_params($<multisig>,
@@ -2759,7 +2759,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $line_no := HLL::Compiler.lineof(self.orig(), self.from(), :cache(1));
             if $*PRECEDING_DECL_LINE < $line_no {
                 $*PRECEDING_DECL_LINE := $line_no;
-                my $par_type := $*W.find_symbol(['Parameter'], :setting-only);
+                my $par_type := $*W.find_single_symbol('Parameter', :setting-only);
                 $*PRECEDING_DECL := nqp::create($par_type); # actual declarand comes later, in World::create_parameter
             }
         }
@@ -5712,7 +5712,7 @@ grammar Perl6::QGrammar is HLL::Grammar does STD {
 my role MatchPackageNibbler {
     method nibble-in-cursor($parent) {
         my $*LEAF := self;
-        my $*PACKAGE := $*W.find_symbol(['Match']); self.set_package($*PACKAGE);
+        my $*PACKAGE := $*W.find_single_symbol('Match'); self.set_package($*PACKAGE);
         my %*ATTR_USAGES;
         my $cur := nqp::findmethod($parent, 'nibbler')(self);
         for %*ATTR_USAGES {

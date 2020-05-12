@@ -777,7 +777,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::chars(self)
           ?? nqp::index(self,'.') == -1    # is there no period?
                && nqp::atpos(              # no period, so parse as Int
-                    (my $n := nqp::radix_I(10,$!value,0,0b10,Int)),
+                    (my $n := nqp::radix_I(10,self,0,0b10,Int)),
                     2
                ) == nqp::chars(self)
             ?? nqp::atpos($n,0)            # fast path Int ok

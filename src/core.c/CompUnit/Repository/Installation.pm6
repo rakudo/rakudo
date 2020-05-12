@@ -202,8 +202,7 @@ __END__
         # bin/ scripts
 
         my $perl-wrapper
-        = do 
-        {
+        = do {
             # basename being dispatched is generated below, replaces '#perl#'
             # in the generated script.
             # question here is how to dispatch it: via env or the path to
@@ -213,12 +212,12 @@ __END__
             # use the literal text for now.
             # someone should clean this up in the future.
 
-            constant FIXED  = q|
+            constant FIXED  = q:to/SHELL/;
 sub MAIN(:$name, :$auth, :$ver, *@, *%)
 {
     CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
 }
-|;
+SHELL
             my $exec = gather 
             {
                 # change 'perl6' to 'rakudo' or 'raku' at some point.
@@ -226,7 +225,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%)
 
                 with < /bin/env /usr/bin/env >.first: { .IO.e } -> $env 
                 {
-                    take "$env #perl#";
+                    take "$env rakudo";
                 }
                 else
                 {
@@ -234,21 +233,20 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%)
 
                     my $curr    = $.prefix.absolute;
 
-                    loop:
+                    loop: 
                     {
-                        if $curr.add( SEARCH ).IO.ie
+                        if $curr.add( SEARCH ).IO.ie 
                         {
-                            take "$curr/bin/#perl#";
+                            take "$curr/bin/rakudo";
                             last
-                        }
-                        elsif $curr eq ( my $next = $curr.parent )
+                        } elsif $curr eq ( my $next = $curr.parent ) 
                         {
                             # one last option would be "$SHELL -e $0", but that
                             # requirs shell-speicfic arguments. rahter than open
                             # that can of worms here, it seems better to give up.
 
                             die "No '{SEARCH}' above {$.prefix}";
-                        }
+                        } 
                         else
                         {
                             $curr   = $next;

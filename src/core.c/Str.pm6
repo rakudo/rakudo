@@ -773,21 +773,44 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! self
     }
 
+    method !combiners() {
+        Failure.new(
+          X::Str::Numeric.new(
+            source => self,
+            pos    => 1,
+            reason => "combining codepoints found at"
+         )
+        )
+    }
     multi method Numeric(Str:D: --> Numeric:D) {
-        nqp::chars(self)
-          ?? nqp::index(self,'.') == -1    # is there no period?
-               && nqp::atpos(              # no period, so parse as Int
-                    (my $n := nqp::radix_I(10,self,0,0b10,Int)),
-                    2
-               ) == nqp::chars(self)
-            ?? nqp::atpos($n,0)            # fast path Int ok
-            !! nqp::findnotcclass(         # any non-whitespace?
+#?if !jvm
+        # check for any combining characters
+        nqp::isne_i(nqp::chars(self),nqp::codes(self))
+          ?? self!combiners
+          !!
+#?endif
+#?if jvm
+            # https://github.com/Raku/old-issue-tracker/issues/5418
+            # Needs Str.codes impl that doesn't just return chars
+#?endif
+        nqp::iseq_i(                              # all numeric?
+          nqp::findnotcclass(
+            nqp::const::CCLASS_NUMERIC,self,0,nqp::chars(self)),
+          nqp::chars(self)
+        ) ?? nqp::isle_i(nqp::chars($!value),18)  # upto 18 digits can be native
+            ?? (my int $ = $!value)               # quick conversion, "" also ok
+            !! nqp::atpos(nqp::radix_I(10,self,0,0b10,Int),0)
+          !! nqp::atpos(                          # no period, so parse as Int
+               (my $n := nqp::radix_I(10,self,0,0b10,Int)),
+               2
+             ) == nqp::chars(self)
+            ?? nqp::atpos($n,0)                   # fast path Int ok
+            !! nqp::findnotcclass(                # any non-whitespace?
                  nqp::const::CCLASS_WHITESPACE,
                  self,0,nqp::chars(self)
                ) == nqp::chars(self)
-              ?? 0                         # just spaces
-              !! val(self, :val-or-fail)   # take the slow route
-          !! 0                             # empty string
+              ?? 0                                # just spaces
+              !! val(self, :val-or-fail)          # take the slow route
     }
 
     multi method gist(Str:D:) { self }

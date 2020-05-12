@@ -3668,19 +3668,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $BLOCK := $*W.cur_lexpad();
         my $package := $/.package;
 
-        my int $have_of_type;
-        my $of_type;
-        my int $have_is_type;
-        my $is_type;
+        my $of_type := nqp::null;
+        my $is_type := nqp::null;
 
         $*W.handle_OFTYPE_for_pragma($/, $*SCOPE eq 'has' ?? 'attributes' !! 'variables');
         if $*OFTYPE {
-            $have_of_type := 1;
             $of_type := $*OFTYPE.ast;
             my $archetypes := $of_type.HOW.archetypes;
             unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic || $archetypes.definite {
                 $*OFTYPE.typed_sorry('X::Syntax::Variable::BadType', type => $of_type);
             }
+        }
+
+        sub check_type($thrower, $outer, $inner) {
+            unless nqp::isnull($outer) {
+                $thrower.typed_sorry(
+                  'X::Syntax::Variable::ConflictingTypes',
+                  outer => $outer, inner => $inner
+                );
+            }
+            $inner
         }
 
         # Process traits for `is Type` and `of Type`, which get special
@@ -3691,14 +3698,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $trait {
                 my str $mod := $trait.mod;
                 if $mod eq '&trait_mod:<of>' {
-                    my $type := $trait.args[0];
-                    if $have_of_type {
-                        $_.typed_sorry(
-                            'X::Syntax::Variable::ConflictingTypes',
-                            outer => $of_type, inner => $type)
-                    }
-                    $have_of_type := 1;
-                    $of_type := $type;
+                    $of_type := check_type($_, $of_type, $trait.args[0]);
                     next;
                 }
 
@@ -3712,8 +3712,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                             # is Foo
                             if $elems == 1 {
-                                $have_is_type := 1;
-                                $is_type := $type;
+                                $is_type := check_type($_, $is_type, $type);
                                 next;  # handled the trait now
                             }
 
@@ -3721,10 +3720,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             elsif $elems == 2 && $trait.args[1] -> $params {
                                 my $List := $*W.find_single_symbol('List');
                                 if nqp::istype($params,$List) {
-                                    $have_is_type := 1;
-                                    $is_type := $type.HOW.parameterize(
-                                      $type,
-                                      |nqp::getattr($params,$List,'$!reified')
+                                    $is_type := check_type(
+                                      $_, $is_type,
+                                      $type.HOW.parameterize(
+                                        $type,
+                                        |nqp::getattr($params,$List,'$!reified')
+                                      )
                                     );
                                     next;  # handled the trait now
                                 }
@@ -3755,8 +3756,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             my $attrname   := ~$sigil ~ '!' ~ $desigilname;
             my %cont_info  := $*W.container_type_info($/, $sigil,
-                $have_of_type ?? [$of_type] !! [],
-                $have_is_type ?? [$is_type] !! [],
+                nqp::isnull($of_type) ?? [] !! [$of_type],
+                nqp::isnull($is_type) ?? [] !! [$is_type],
                 $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, $attrname, %cont_info<default_value>);
@@ -3801,7 +3802,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Some things can't be done to our vars.
             my $varname;
             if $*SCOPE eq 'our' {
-                if $have_of_type || @post {
+                if !nqp::isnull($of_type) || @post {
                     $/.panic("Cannot put a type constraint on an 'our'-scoped variable");
                 }
                 elsif $shape {
@@ -3827,8 +3828,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Create a container descriptor. Default to rw and set a
             # type if we have one; a trait may twiddle with that later.
             my %cont_info  := $*W.container_type_info($/, $sigil,
-                $have_of_type ?? [$of_type] !! [],
-                $have_is_type ?? [$is_type] !! [],
+                nqp::isnull($of_type) ?? [] !! [$of_type],
+                nqp::isnull($is_type) ?? [] !! [$is_type],
                 $shape, :@post);
             my $descriptor := $*W.create_container_descriptor(
               %cont_info<value_type>, $varname || $name, %cont_info<default_value>);

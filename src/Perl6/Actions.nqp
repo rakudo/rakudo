@@ -3701,30 +3701,34 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $of_type := $type;
                     next;
                 }
+
+                # see if we need to handle "my $a is Foo"
                 elsif $mod eq '&trait_mod:<is>' {
-                    my @args  := $trait.args;
-                    unless nqp::isconcrete(@args[0]) {  # not a type, so ignore
-                        my $type  := @args[0];
-                        my $elems := nqp::elems(@args);
-                        if $elems == 1 {
-                            $have_is_type := 1;
-                            $is_type := $type;
-                            next;
-                        }
-                        elsif $elems == 2
-                          && nqp::istype($type,$*W.find_single_symbol('QuantHash')) {
-                            $have_is_type := 1;
-                            # XXX the second element in @args is a HLL
-                            # Array.  This should probably need to be
-                            # slipped into the call to parameterize.
-                            # Not sure how to do that generically.
-                            # Calling .Slip on it will just parameterize
-                            # to Slip.  So until we can slip the values
-                            # in the Array, just send the first parameter
-                            # into the parameterize call using .AT-POS
-                            $is_type :=
-                              $type.HOW.parameterize($type,@args[1].AT-POS(0));
-                            next;
+                    if nqp::elems($trait.args) -> $elems {
+                        my $type := $trait.args[0];
+
+                        # an actual type
+                        unless nqp::isconcrete($type) {
+
+                            # is Foo
+                            if $elems == 1 {
+                                $have_is_type := 1;
+                                $is_type := $type;
+                                next;  # handled the trait now
+                            }
+
+                            # is Foo[Bar]
+                            elsif $elems == 2 && $trait.args[1] -> $params {
+                                my $List := $*W.find_single_symbol('List');
+                                if nqp::istype($params,$List) {
+                                    $have_is_type := 1;
+                                    $is_type := $type.HOW.parameterize(
+                                      $type,
+                                      |nqp::getattr($params,$List,'$!reified')
+                                    );
+                                    next;  # handled the trait now
+                                }
+                            }
                         }
                     }
                 }

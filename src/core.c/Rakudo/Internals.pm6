@@ -535,12 +535,25 @@ implementation detail and has no serviceable parts inside"
             self.gistseen('Array', { self!gist(nqp::create(Array),self.shape) })
         }
         method !gist(@path, @dims) {
-            if @dims.elems == 1 {
-                 '[' ~ (^@dims[0]).map({ self.AT-POS(|@path, $_).gist }).join(' ') ~ ']';
-            }
-            else {
+            if @dims.elems == 1  {
+                '[' ~ (^@dims[0]).map(
+                    -> $elem {
+                        given ++$ {
+                            when 11 { '...' }
+                            when 12 { last }
+                            default { self.AT-POS(|@path, $elem).gist }
+	                }
+                    }).join(' ') ~ ']';
+            } else {
                 my @nextdims = @dims[1..^@dims.elems];
-                '[' ~ (^@dims[0]).map({ self!gist((flat @path, $_), @nextdims) }).join(' ') ~ ']';
+                '[' ~ (^@dims[0]).map(
+                    -> $elem {
+                        given ++$ {
+                            when 11 { '...' }
+                            when 12 { last }
+                            default { self!gist((flat @path, $elem), @nextdims) }
+                        }
+                    }).join("\n" ~ (' ' x @path.elems + 1)) ~ ']';
             }
         }
 

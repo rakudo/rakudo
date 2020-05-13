@@ -988,10 +988,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my class CombPat does Iterator {
         has str $!str;
         has str $!pat;
+        has int $!patsz;
         has int $!pos;
         method !SET-SELF(\string, \pat) {
             $!str = nqp::unbox_s(string);
             $!pat = nqp::unbox_s(pat);
+            $!patsz = nqp::chars($!pat);
             self
         }
         method new(\string, \pat) { nqp::create(self)!SET-SELF(string,pat) }
@@ -1001,7 +1003,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 IterationEnd
             }
             else {
-                $!pos = $found + 1;
+                $!pos = $found + $!patsz;
                 nqp::p6box_s($!pat)
             }
         }

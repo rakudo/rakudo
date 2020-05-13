@@ -52,14 +52,15 @@ my class Capture { # declared in BOOTSTRAP
           Nil)
     }
 
-    multi method AT-POS(Capture:D: int \pos) is raw {
-        nqp::islt_i(pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-          !! nqp::ifnull(nqp::atpos(@!list,pos),Nil)
-    }
     multi method AT-POS(Capture:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          !! nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
+    }
+    multi method AT-POS(Capture:D: \pos) is raw {
+        my int $pos = nqp::unbox_i(pos.Int);
         nqp::islt_i($pos,0)
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
@@ -84,6 +85,19 @@ my class Capture { # declared in BOOTSTRAP
         nqp::if(
           nqp::isconcrete(%!hash),
           nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str))),
+          False)
+    }
+
+    multi method EXISTS-POS(Capture:D: Int:D \pos) {
+        nqp::if(
+          nqp::isconcrete(@!list),
+          nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos))),
+          False)
+    }
+    multi method EXISTS-POS(Capture:D: \pos) {
+        nqp::if(
+          nqp::isconcrete(@!list),
+          nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos.Int))),
           False)
     }
 

@@ -6,24 +6,24 @@ my class Set does Setty {
     }
 
     multi method WHICH (Set:D: --> ValueObjAt:D) {
-        nqp::if(
-          nqp::attrinited(self,Set,'$!WHICH'),
-          $!WHICH,
-          $!WHICH := nqp::box_s(
-            nqp::concat(
-              nqp::if(
-                nqp::eqaddr(self.WHAT,Set),
-                'Set|',
-                nqp::concat(nqp::unbox_s(self.^name), '|')
-              ),
-              nqp::sha1(
-                nqp::join("\0",Rakudo::Sorting.MERGESORT-str(
-                  Rakudo::QuantHash.RAW-KEYS(self)
-                ))
-              )
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+    
+    method !WHICH() {
+        $!WHICH := nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Set),
+              'Set|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ValueObjAt
-          )
+            nqp::sha1(
+              nqp::join("\0",Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-KEYS(self)
+              ))
+            )
+          ),
+          ValueObjAt
         )
     }
 

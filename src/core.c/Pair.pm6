@@ -1,7 +1,7 @@
 my class Pair does Associative {
     has $.key is default(Nil);
     has $.value is rw is default(Nil);
-    has Mu $!WHICH;
+    has ObjAt $!WHICH;
 
     proto method new(|) {*}
     # This candidate is needed because it currently JITS better
@@ -28,24 +28,25 @@ my class Pair does Associative {
         nqp::p6bindattrinvres(self.Mu::clone, Pair, '$!WHICH', nqp::null)
     }
     multi method WHICH(Pair:D: --> ObjAt:D) {
-        nqp::unless(
-          $!WHICH,
-          ($!WHICH := nqp::if(
-            nqp::iscont($!value)
-              || nqp::not_i(nqp::istype((my $VALUE := $!value.WHICH),ValueObjAt)),
-            self.Mu::WHICH,
-            nqp::box_s(
-              nqp::concat(
-                nqp::if(
-                  nqp::eqaddr(self.WHAT,Pair),
-                  'Pair|',
-                  nqp::concat(self.^name,'|')
-                ),
-                nqp::sha1(nqp::concat(nqp::concat($!key.WHICH,"\0"),$VALUE))
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+
+    method !WHICH() {
+        $!WHICH := nqp::if(
+          nqp::iscont($!value)
+            || nqp::not_i(nqp::istype((my $VALUE := $!value.WHICH),ValueObjAt)),
+          self.Mu::WHICH,
+          nqp::box_s(
+            nqp::concat(
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Pair),
+                'Pair|',
+                nqp::concat(self.^name,'|')
               ),
-              ValueObjAt
-            )
-          ))
+              nqp::sha1(nqp::concat(nqp::concat($!key.WHICH,"\0"),$VALUE))
+            ),
+            ValueObjAt
+          )
         )
     }
 

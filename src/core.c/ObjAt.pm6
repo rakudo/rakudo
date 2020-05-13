@@ -5,7 +5,7 @@ my class ObjAt { # declared in BOOTSTRAP
         nqp::box_s($s, self.WHAT)
     }
 
-    multi method WHICH(ObjAt:D: --> ObjAt:D) {
+    multi method WHICH(ObjAt:D:) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

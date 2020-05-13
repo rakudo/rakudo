@@ -6,7 +6,7 @@ class IO::Special does IO {
     method new(Str:D \what --> IO::Special:D) {
         nqp::p6bindattrinvres(nqp::create(self),self,'$!what',what)
     }
-    multi method WHICH(IO::Special:D: --> ValueObjAt) {
+    multi method WHICH(IO::Special:D:) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

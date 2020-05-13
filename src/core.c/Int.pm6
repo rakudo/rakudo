@@ -12,7 +12,7 @@ my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool
     #     has bigint $!value is box_target;
 
-    multi method WHICH(Int:D: --> ValueObjAt:D) {
+    multi method WHICH(Int:D:) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

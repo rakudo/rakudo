@@ -7,7 +7,7 @@ my class Bag does Baggy {
     }
 
 #--- introspection methods
-    multi method WHICH(Bag:D: --> ValueObjAt:D)   {
+    multi method WHICH(Bag:D:)   {
         nqp::if(
           nqp::attrinited(self,Bag,'$!WHICH'),
           $!WHICH,

@@ -62,7 +62,7 @@ my class PseudoStash is Map {
           !! self.values.elems
     }
 
-    multi method WHICH(PseudoStash:D: --> ObjAt:D) { self.Mu::WHICH }
+    multi method WHICH(PseudoStash:D:) { self.Mu::WHICH }
 
     my $pseudoers := nqp::hash(
         'MY', sub ($cur) {

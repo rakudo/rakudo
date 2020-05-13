@@ -18,7 +18,7 @@ class CompUnit::PrecompilationId {
           CompUnit::PrecompilationId,'$!id',$id)
     }
 
-    multi method WHICH(CompUnit::PrecompilationId:D: --> ValueObjAt:D) {
+    multi method WHICH(CompUnit::PrecompilationId:D:) {
         nqp::box_s(
           nqp::concat('CompUnit::PrecompilationId|',$!id),
           ValueObjAt

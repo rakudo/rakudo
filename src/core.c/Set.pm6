@@ -5,7 +5,7 @@ my class Set does Setty {
         Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
     }
 
-    multi method WHICH (Set:D: --> ValueObjAt:D) {
+    multi method WHICH (Set:D:) {
         nqp::if(
           nqp::attrinited(self,Set,'$!WHICH'),
           $!WHICH,

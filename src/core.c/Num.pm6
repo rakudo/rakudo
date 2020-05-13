@@ -6,7 +6,7 @@ my class Num does Real { # declared in BOOTSTRAP
     # class Num is Cool
     #     has num $!value is box_target;
 
-    multi method WHICH(Num:D: --> ValueObjAt:D) {
+    multi method WHICH(Num:D:) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

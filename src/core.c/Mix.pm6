@@ -32,7 +32,7 @@ my class Mix does Mixy {
     }
 
 #--- introspection methods
-    multi method WHICH(Mix:D: --> ValueObjAt:D)    {
+    multi method WHICH(Mix:D:)    {
         nqp::if(
           nqp::attrinited(self,Mix,'$!WHICH'),
           $!WHICH,

@@ -2140,7 +2140,7 @@ my class X::Str::Sprintf::Directives::Count is Exception {
         $msg ~= " supplied.";
 
         if $.args-used > $.args-have {
-            $msg ~= "\nAre you using an unescaped '\$'?";
+            $msg ~= "\nAre you using an interpolated '\$'?";
         }
 
         $msg;

@@ -2113,16 +2113,37 @@ my class X::Str::Trans::InvalidArg is Exception {
 }
 
 my class X::Str::Sprintf::Directives::Count is Exception {
-    has int $.args-used;
-    has int $.args-have;
+    has int $.args-used; # number of directives actually detected in the format string
+    has int $.args-have; # number of args supplied
     method message() {
-        "Your printf-style directives specify "
-        ~ ($.args-used == 1 ?? "1 argument, but "
-                            !! "$.args-used arguments, but ")
-        ~ ($.args-have < 1      ?? "no argument was"
-            !! $.args-have == 1 ?? "1 argument was"
-                                !! "$.args-have arguments were")
-        ~ " supplied";
+        my $msg = "Your printf-style directives specify ";
+
+        if $.args-used == 1 {
+            $msg ~= "1 argument, but ";
+        }
+        else {
+            $msg ~= "$.args-used arguments, but ";
+        }
+
+        if $.args-have < 1 {
+            $msg ~= "no argument was";
+        }
+        else {
+            if $.args-have == 1 {
+                $msg ~= "1 argument was";
+            }
+            else {
+                # too many args
+                $msg ~= "$.args-have arguments were";
+            }
+        }
+        $msg ~= " supplied.";
+
+        if $.args-used > $.args-have {
+            $msg ~= "\nAre you using an unescaped '\$'?";
+        }
+
+        $msg;
     }
 }
 

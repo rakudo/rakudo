@@ -130,11 +130,13 @@ throws-like {
 }, X::Multi::Ambiguous, :message{ .contains: 'ambigu-arg-tester' & 'IntStr' },
     'an ambiguous call includes the arguments in the error message';
 
+
 # https://github.com/Raku/old-issue-tracker/issues/3542
+# GH #3682
 throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
     :message('Your printf-style directives specify 1 argument, but no '
-      ~ 'argument was supplied'),
-    'sprintf %d directive with find a corresponding argument throws';
+      ~ "argument was supplied.\nAre you using an unescaped '\$'?"),
+    'sprintf %d directive with one directive and no corresponding argument throws';
 
 { # https://github.com/perl6/roast/commit/20fe657466
     my int @arr;

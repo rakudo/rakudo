@@ -86,13 +86,18 @@ my class Range is Cool does Iterable does Positional {
         $!is-int && nqp::not_i(nqp::isbig_I($!min) || nqp::isbig_I($!max))
     }
 
-    multi method WHICH (Range:D:) {
-        (nqp::istype(self.WHAT,Range) ?? 'Range|' !! (self.^name ~ '|'))
-          ~ $!min
-          ~ ("^" if $!excludes-min)
-          ~ '..'
-          ~ ("^" if $!excludes-max)
-          ~ $!max;
+    multi method WHICH(Range:D: --> ValueObjAt:D) {
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Range),
+              'Range|',
+              nqp::concat(self.^name, '|')
+            ),
+            self.raku
+          ),
+          ValueObjAt
+        )
     }
     multi method EXISTS-POS(Range:D: int \pos) {
         0 <= pos < self.elems;
@@ -445,9 +450,18 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method raku(Range:D:) {
-        $!is-int && $!min == 0 && !$!excludes-min && $!excludes-max
-            ?? "^$!max"
-            !! "{$!min.raku}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.raku()"
+        if $!is-int && $!min == 0
+          && nqp::not_i($!excludes-min) && $!excludes-max {
+            "^$!max"
+        }
+        else {
+            my $parts := nqp::list_s($!min.raku);
+            nqp::push_s($parts,'^') if $!excludes-min;
+            nqp::push_s($parts,'..');
+            nqp::push_s($parts,'^') if $!excludes-max;
+            nqp::push_s($parts,$!max.raku);
+            nqp::join('',$parts)
+        }
     }
 
     proto method roll(|) {*}

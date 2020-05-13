@@ -78,6 +78,9 @@
 @bsv(PERL6_DEBUG)@ = perl6-debug.@bext@
 @bsv(RAKUDO_DEBUG)@ = rakudo-debug.@bext@
 
+@bpv(SOURCE_DIGEST_FILES)@ = \
+    @source_digest_files()@
+
 @bpv(CLEANUPS_ALL)@ = \
   *.manifest \
   @nfp(@bpm(BLIB_RAKUDO)@/*.@bext@)@ \
@@ -173,7 +176,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 @comp(@bsm(RAKUDO_P)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Pod.nqp)@)@ @nfp(gen/nqp-version)@)@
 @comp(@bsm(RAKUDO_W)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/World.nqp)@)@ @bsm(RAKUDO_ML)@ @bsm(RAKUDO_OPS)@ @bsm(RAKUDO_P)@)@
 
-@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bsm(METAMODEL_ALL_SOURCES)@@for_specs( @bpm(BOOTSTRAP_@ucspec@_SOURCES)@ @bpm(CORE_@ucspec@_SOURCES)@)@
+@nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bpm(SOURCE_DIGEST_FILES)@
 	@echo(+++ Expanding	$@)@
 	$(NOECHO)$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@
 

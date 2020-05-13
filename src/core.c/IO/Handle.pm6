@@ -37,7 +37,7 @@ my class IO::Handle {
             )
         }
     }
-    method forget-about-closing(int $fileno --> Nil) {
+    method !forget-about-closing(int $fileno --> Nil) {
         $opened-locker.protect: {
             nqp::bindpos($opened,$fileno,nqp::null)
         }
@@ -232,7 +232,7 @@ my class IO::Handle {
             (my int $fileno = nqp::filenofh($!PIO)),
             nqp::closefh($!PIO), # TODO: catch errors
             ($!PIO := nqp::null),
-            self.forget-about-closing($fileno)
+            self!forget-about-closing($fileno)
 #?endif
           )
         )
@@ -631,7 +631,7 @@ my class IO::Handle {
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
 #?if moar
-        self.forget-about-closing(nqp::filenofh($!PIO));
+        self!forget-about-closing(nqp::filenofh($!PIO));
 #?endif
         nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
@@ -885,7 +885,7 @@ my class IO::Handle {
 #?endif
 #?if moar
             ($!PIO := nqp::null),
-            self.forget-about-closing($fileno)
+            self!forget-about-closing($fileno)
 #?endif
           )
         )

@@ -31,7 +31,9 @@ role CompUnit::Repository::Locally {
         $?CLASS.^name ~ '.new(prefix => ' ~ $!abspath.raku ~ ')';
     }
 
-    multi method WHICH(CompUnit::Repository::Locally:D:) { $!WHICH }
+    multi method WHICH(CompUnit::Repository::Locally:D: --> ValueObjAt:D) {
+        $!WHICH
+    }
 
     method path-spec(CompUnit::Repository::Locally:D:) {
         self.short-id ~ '#' ~ $!abspath

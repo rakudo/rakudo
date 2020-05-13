@@ -11,7 +11,7 @@ class Deprecation {
     my %DEPRECATIONS; # where we keep our deprecation info
     method DEPRECATIONS() is raw is implementation-detail { %DEPRECATIONS }
 
-    multi method WHICH (Deprecation:D:) {
+    multi method WHICH (Deprecation:D: --> ValueObjAt:D) {
         my $which := nqp::list_s("Deprecation");
         nqp::push_s($which,$!file    || "");
         nqp::push_s($which,$!type    || "");

@@ -27,7 +27,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         (T.^nativesize / 8).Int
     } // 1;
 
-    multi method WHICH(Blob:D:) {
+    multi method WHICH(Blob:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

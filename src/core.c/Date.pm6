@@ -203,7 +203,7 @@ my class Date does Dateish {
         }
     }
 
-    multi method WHICH(Date:D:) {
+    multi method WHICH(Date:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::if(

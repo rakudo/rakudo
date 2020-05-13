@@ -36,7 +36,7 @@ class CompUnit::DependencySpecification {
         nqp::join('',$parts)
     }
 
-    multi method WHICH(CompUnit::DependencySpecification:D) {
+    multi method WHICH(CompUnit::DependencySpecification:D --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
             nqp::concat(self.^name, '|'),

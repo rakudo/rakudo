@@ -15,7 +15,7 @@ my class Capture { # declared in BOOTSTRAP
             if nqp::attrinited(nqp::decont(%hash),Map,'$!storage')
     }
 
-    multi method WHICH (Capture:D:) {
+    multi method WHICH (Capture:D: --> ValueObjAt:D) {
         my Mu $WHICH := nqp::list_s(nqp::eqaddr(self.WHAT,Capture) ?? 'Capture' !! nqp::unbox_s(self.^name));
         if nqp::isconcrete(@!list) && nqp::elems(@!list) {
             nqp::push_s($WHICH, '|');

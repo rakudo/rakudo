@@ -3718,14 +3718,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                             # is Foo[Bar]
                             elsif $elems == 2 && $trait.args[1] -> $params {
-                                my $List := $*W.find_single_symbol('List');
-                                if nqp::istype($params,$List) {
+                                if nqp::istype($params,$*W.find_single_symbol('List')) {
                                     $is_type := check_type(
                                       $_, $is_type,
                                       $type.HOW.parameterize(
-                                        $type,
-                                        |nqp::getattr($params,$List,'$!reified')
-                                      )
+                                        $type, |$params.FLATTENABLE_LIST)
                                     );
                                     next;  # handled the trait now
                                 }

@@ -105,7 +105,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
               nqp::if(
                 nqp::islt_i($!i,nqp::elems($!reified)),
-                self.hole($!i),
+                self!hole($!i),
                 nqp::if(
                   nqp::isconcrete($!todo),
                   nqp::if(
@@ -114,18 +114,19 @@ my class Array { # declared in BOOTSTRAP
                       $!todo.reify-at-least(nqp::add_i($!i,1))
                     ),
                     nqp::atpos($!reified,$!i), # cannot be nqp::null
-                    self.done
+                    self!done
                   ),
                   IterationEnd
                 )
               )
             )
         }
-        method hole(int $i) {
-             nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindArrayPos.new(
-                 $!descriptor, $!reified, $i))
+        method !hole(int $i) is raw {
+            nqp::p6scalarfromcertaindesc(
+              ContainerDescriptor::BindArrayPos.new($!descriptor,$!reified,$i)
+            )
         }
-        method done() is raw {
+        method !done() is raw {
             $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
             IterationEnd
         }
@@ -144,7 +145,7 @@ my class Array { # declared in BOOTSTRAP
                   $!todo.fully-reified,
                   nqp::stmts(
                     ($!i = $i),
-                    self.done
+                    self!done
                   ),
                   nqp::stmts(
                     ($!i = nqp::sub_i($elems,1)),
@@ -158,7 +159,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::while(   # doesn't sink
                   nqp::islt_i($i = nqp::add_i($i,1),$elems),
                   target.push(
-                    nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
+                    nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                   )
                 ),
                 ($!i = $i),

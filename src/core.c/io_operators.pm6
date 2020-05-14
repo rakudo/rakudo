@@ -123,12 +123,13 @@ multi sub close(IO::Handle:D $fh) { $fh.close }
 multi sub close(Channel:D $channel) { $channel.close }
 
 proto sub slurp(|) {*}
-multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
-multi sub slurp(IO() $path, |c) { $path.slurp(|c) }
+multi sub slurp(*%_) { $*ARGFILES.slurp(|%_) }
+multi sub slurp(IO::Handle:D $fh, *%_) {   $fh.slurp(|%_) }
+multi sub slurp(IO()       $path, *%_) { $path.slurp(|%_) }
 
-proto sub spurt($, |) {*}
-multi sub spurt(IO::Handle:D $fh,   |c) { $fh  .spurt(|c) }
-multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
+proto sub spurt($, $, |) {*}
+multi sub spurt(IO::Handle:D $fh, $data, *%_) {   $fh.spurt($data, |%_) }
+multi sub spurt(IO()       $path, $data, *%_) { $path.spurt($data, |%_) }
 
 {
     sub chdir(IO() $path) {

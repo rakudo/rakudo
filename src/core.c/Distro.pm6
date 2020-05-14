@@ -65,6 +65,29 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
         $version := $_ with $lookup<ProductVersion>;
         $release := $_ with $lookup<BuildVersion>;
         $auth    := 'Apple Inc.'; # presumably
+
+        my $names := nqp::hash(
+          '10.0',  'Cheetah',
+          '10.1',  'Puma',
+          '10.2',  'Jaguar',
+          '10.3',  'Panther',
+          '10.4',  'Tiger',
+          '10.5',  'Leopard',
+          '10.6',  'Snow Leopard',
+          '10.7',  'Lion',
+          '10.8',  'Mountain Lion',
+          '10.9',  'Mavericks',
+          '10.10', 'Yosemite',
+          '10.11', 'El Capitan',
+          '10.12', 'Sierra',
+          '10.13', 'High Sierra',
+          '10.14', 'Mojave',
+          '10.15', 'Catalina'
+        );
+
+        if nqp::atkey($names,$version.split(".").head(2).join(".")) -> $nick {
+            $desc := $nick;
+        }
     }
     elsif Rakudo::Internals.FILETEST-E('/etc/os-release') {
         my $lookup := kv2Map('/etc/os-release'.IO.slurp.subst(:g,'"'),'=');

@@ -59,12 +59,12 @@ my class IO::Handle {
     }
 
     method do-not-close-automatically(IO::Handle:D: --> Bool:D) {
-        if nqp::isnull($!PIO) {
-            False
-        }
-        else {
+        if nqp::defined($!PIO) {
             self!forget-about-closing(nqp::filenofh($!PIO));
             True
+        }
+        else {
+            False
         }
     }
 #?endif
@@ -241,8 +241,8 @@ my class IO::Handle {
     }
 
     method close(IO::Handle:D: --> True) {
-        nqp::unless(
-          nqp::isnull($!PIO),
+        nqp::if(
+          nqp::defined($!PIO),
           nqp::stmts(
             nqp::if(
               nqp::isconcrete($!decoder),
@@ -260,7 +260,7 @@ my class IO::Handle {
     }
 
     method EOF() {
-        nqp::isnull($!PIO) || nqp::eoffh($!PIO)
+        nqp::not_i(nqp::defined($!PIO)) || nqp::eoffh($!PIO)
     }
 
     method READ(Int:D $bytes) {

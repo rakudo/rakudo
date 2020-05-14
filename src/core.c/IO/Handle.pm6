@@ -871,6 +871,10 @@ my class IO::Handle {
         }
     }
 
+    method do-not-close-at-exit(IO::Handle:D:) {
+        self!forget-about-closing(self.native-descriptor);
+    }
+
     submethod DESTROY(IO::Handle:D:) {
         # Close handles with any file descriptor larger than 2. Those below
         # are our $*IN, $*OUT, and $*ERR, and we don't want them closed
@@ -879,7 +883,10 @@ my class IO::Handle {
           nqp::defined($!PIO)
             && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
           nqp::stmts(
-            nqp::closefh($!PIO),  # don't bother checking for errors
+            nqp::unless(
+              nqp::isnull(nqp::atpos($opened,$fileno)),
+              nqp::closefh($!PIO)
+            ),
 #?if !moar
             $!PIO := nqp::null
 #?endif

@@ -20,31 +20,21 @@ my class Array { # declared in BOOTSTRAP
         has $!descriptor;
 
         method new(\target, Mu \descriptor) {
-            nqp::stmts(
-              nqp::bindattr((my \rt = nqp::create(self)),
-                self,'$!target',target),
-              nqp::p6bindattrinvres(rt,
-                self,'$!descriptor',descriptor)
-            )
+            nqp::bindattr((my \rt = nqp::create(self)),self,'$!target',target);
+            nqp::p6bindattrinvres(rt,self,'$!descriptor',descriptor)
         }
 
         method push(Mu \value --> Nil) {
             nqp::push($!target, nqp::p6scalarwithvalue($!descriptor, value));
         }
 
-        method append(IterationBuffer:D $buffer --> Nil) {
-            nqp::if(
-              (my int $elems = nqp::elems($buffer)),
-              nqp::stmts(
-                (my int $i = -1),
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::push($!target,
-                    nqp::p6scalarwithvalue($!descriptor,nqp::atpos($buffer,$i))
-                  )
-                )
+        method append(IterationBuffer:D \buffer --> Nil) {
+            nqp::while(
+              nqp::elems(buffer),
+              nqp::push($!target,
+                nqp::p6scalarwithvalue($!descriptor,nqp::shift(buffer))
               )
-            )
+            );
         }
     }
 
@@ -56,8 +46,7 @@ my class Array { # declared in BOOTSTRAP
         }
 
         method push(Mu \value --> Nil) {
-            nqp::push($!target,
-                nqp::decont(value));
+            nqp::push($!target,nqp::decont(value));
         }
 
         method append(IterationBuffer:D \buffer --> Nil) {

@@ -22,19 +22,12 @@ my class IO::Handle {
 #?if moar
     # Make sure we close any open files on exit
     my $opened := nqp::list;
-    my $opened-locker = Lock.new;
+    my $opened-locker := Lock.new;
     method !remember-to-close(--> Nil) {
         $opened-locker.protect: {
-            nqp::stmts(
-              nqp::if(
-                nqp::isge_i(
-                  (my int $fileno = nqp::filenofh($!PIO)),
-                  (my int $elems = nqp::elems($opened))
-                ),
-                nqp::setelems($opened,nqp::add_i($elems,1024))
-              ),
-              nqp::bindpos($opened,$fileno,$!PIO)
-            )
+            nqp::setelems($opened,nqp::elems($opened) + 1024)
+              if nqp::isge_i(nqp::filenofh($!PIO),nqp::elems($opened));
+            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
         }
     }
     method !forget-about-closing(int $fileno --> Nil) {
@@ -42,17 +35,45 @@ my class IO::Handle {
             nqp::bindpos($opened,$fileno,nqp::null)
         }
     }
-    method !close-all-open-handles() {
-        my int $i = 2;
-        my int $elems = nqp::elems($opened);
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::unless(
-            nqp::isnull(my $PIO := nqp::atpos($opened,$i)),
-            nqp::closefh($PIO)
+    method !close(int $fileno --> Nil) {
+        nqp::unless(
+          nqp::isnull(nqp::atpos($opened,$fileno)),
+          nqp::stmts(                            # still marked for closing
+            self!forget-about-closing($fileno),  # mark as closed
+            nqp::closefh($!PIO)                  # close, ignore errors
           )
-        )
+        );
+        $!PIO := nqp::null;         # mark HLL handle now also closed
     }
+    method !close-all-open-handles(--> Nil) {
+        if nqp::elems($opened) -> int $elems {
+            my int $i = 2;  # skip STDIN, STDOUT, STDERR
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::isnull(my $PIO := nqp::atpos($opened,$i)),
+                nqp::closefh($PIO)
+              )
+            )
+        }
+    }
+
+    method do-not-close-automatically(IO::Handle:D: --> Bool:D) {
+        if nqp::isnull($!PIO) {
+            False
+        }
+        else {
+            self!forget-about-closing(nqp::filenofh($!PIO));
+            True
+        }
+    }
+#?endif
+#?if !moar    
+    method !close(int $fileno --> Nil) {
+        nqp::closefh($!PIO);
+        $!PIO := nqp::null;
+    }
+    method do-not-close-automatically(IO::Handle:D: --> False) { }
 #?endif
 
     method open(IO::Handle:D:
@@ -220,20 +241,14 @@ my class IO::Handle {
     }
 
     method close(IO::Handle:D: --> True) {
-        nqp::if(
-          nqp::defined($!PIO),
+        nqp::unless(
+          nqp::isnull($!PIO),
           nqp::stmts(
-            $!decoder && ($!decoder := Encoding::Decoder),
-#?if !moar
-            nqp::closefh($!PIO), # TODO: catch errors
-            $!PIO := nqp::null
-#?endif
-#?if moar
-            (my int $fileno = nqp::filenofh($!PIO)),
-            nqp::closefh($!PIO), # TODO: catch errors
-            ($!PIO := nqp::null),
-            self!forget-about-closing($fileno)
-#?endif
+            nqp::if(
+              nqp::isconcrete($!decoder),
+              ($!decoder := Encoding::Decoder)
+            ),
+            self!close(nqp::filenofh($!PIO))
           )
         )
     }
@@ -871,24 +886,14 @@ my class IO::Handle {
         }
     }
 
-    submethod DESTROY(IO::Handle:D:) {
+    submethod DESTROY(IO::Handle:D: --> Nil) {
         # Close handles with any file descriptor larger than 2. Those below
         # are our $*IN, $*OUT, and $*ERR, and we don't want them closed
         # implicitly via DESTROY, since you can't get them back again.
-        nqp::if(
-          nqp::defined($!PIO)
-            && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
-          nqp::stmts(
-            nqp::closefh($!PIO),  # don't bother checking for errors
-#?if !moar
-            $!PIO := nqp::null
-#?endif
-#?if moar
-            ($!PIO := nqp::null),
-            self!forget-about-closing($fileno)
-#?endif
-          )
-        )
+
+        self!close(nqp::filenofh($!PIO))
+          if nqp::defined($!PIO)
+          && nqp::isgt_i(nqp::filenofh($!PIO),2);
     }
 
     method native-descriptor(IO::Handle:D:) {

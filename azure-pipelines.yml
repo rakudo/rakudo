@@ -1,0 +1,282 @@
+# This is the Azure Pipelines configuration is also used to create the
+# precompiled release archives that are made available at <https://rakudo.org>.
+#
+# To trigger a build, go to <https://dev.azure.com/infra0037/raku/...> and
+# manually start a run of this pipeline.
+#
+# The following pipeline variables are required:
+#
+# BUILD_PRECOMP_RELEASE: Set this to "yes".
+# RELEASE_URL: Release archive to build. e.g. "https://rakudo.org/dl/rakudo/rakudo-2020.05.tar.gz"
+# VERSION: The version that you are building. e.g. "2020.05"
+# REVISION: Usually "01"
+#
+
+trigger:
+- master
+
+pr:
+- master
+
+variables:
+  # Turn this Powershell console into a developer powershell console.
+  # https://intellitect.com/enter-vsdevshell-powershell/
+  PWSH_DEV: |
+    $installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationpath
+    $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
+    Import-Module $devShell
+    Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
+
+
+stages:
+- stage: Test
+  condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
+  jobs:
+    - job: Test
+      strategy:
+       matrix:
+         Windows_MoarVM:
+          IMAGE_NAME: 'windows-2019'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp --gen-moar'
+         Windows_MoarVM_NQP_master:
+          IMAGE_NAME: 'windows-2019'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp=master --gen-moar'
+         Windows_MoarVM_NQP_master_MoarVM_master:
+          IMAGE_NAME: 'windows-2019'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp=master --gen-moar=master'
+         Windows_JVM:
+          IMAGE_NAME: 'windows-2019'
+          BACKEND: 'JVM'
+          RAKUDO_OPTIONS: '--backends=jvm  --gen-nqp'
+         Windows_JVM_NQP_master:
+          IMAGE_NAME: 'windows-2019'
+          BACKEND: 'JVM'
+          RAKUDO_OPTIONS: '--backends=jvm  --gen-nqp=master'
+         Windows_MoarVM_relocatable:
+          IMAGE_NAME: 'windows-2019'
+          RELOCATABLE: 'yes'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp --gen-moar --relocatable'
+
+         MacOS_MoarVM:
+          IMAGE_NAME: 'macOS-10.15'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp --gen-moar'
+         MacOS_MoarVM_NQP_master:
+          IMAGE_NAME: 'macOS-10.15'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp=master --gen-moar'
+         MacOS_MoarVM_NQP_master_MoarVM_master:
+          IMAGE_NAME: 'macOS-10.15'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp=master --gen-moar=master'
+         MacOS_JVM:
+          IMAGE_NAME: 'macOS-10.15'
+          BACKEND: 'JVM'
+          RAKUDO_OPTIONS: '--backends=jvm  --gen-nqp'
+         MacOS_JVM_NQP_master:
+          IMAGE_NAME: 'macOS-10.15'
+          BACKEND: 'JVM'
+          RAKUDO_OPTIONS: '--backends=jvm  --gen-nqp=master'
+         MacOS_MoarVM_relocatable:
+          IMAGE_NAME: 'macOS-10.15'
+          RELOCATABLE: 'yes'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp --gen-moar --relocatable'
+
+         Linux_MoarVM:
+          IMAGE_NAME: 'ubuntu-18.04'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp --gen-moar'
+         Linux_MoarVM_NQP_master:
+          IMAGE_NAME: 'ubuntu-18.04'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp=master --gen-moar'
+         Linux_MoarVM_NQP_master_MoarVM_master:
+          IMAGE_NAME: 'ubuntu-18.04'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp=master --gen-moar=master'
+         Linux_JVM:
+          IMAGE_NAME: 'ubuntu-18.04'
+          BACKEND: 'JVM'
+          RAKUDO_OPTIONS: '--backends=jvm  --gen-nqp'
+         Linux_JVM_NQP_master:
+          IMAGE_NAME: 'ubuntu-18.04'
+          BACKEND: 'JVM'
+          RAKUDO_OPTIONS: '--backends=jvm  --gen-nqp=master'
+         Linux_MoarVM_relocatable:
+          IMAGE_NAME: 'ubuntu-18.04'
+          RELOCATABLE: 'yes'
+          RAKUDO_OPTIONS: '--backends=moar --gen-nqp --gen-moar --relocatable'
+
+      pool:
+        vmImage: $(IMAGE_NAME)
+      workspace:
+        clean: all
+      steps:
+
+        - script: |
+            echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
+            echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)/bin:$(PATH)"
+          displayName: "Set java version (non-Windows)"
+          condition: and( eq( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+        - script: |
+            echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
+            echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)\bin;$(PATH)"
+          displayName: "Set java version (Windows)"
+          condition: and( eq( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+
+        - checkout: self
+          fetchDepth: 1
+          displayName: Checkout repository
+
+        - script: |
+            perl Configure.pl $(RAKUDO_OPTIONS)
+          condition: ne( variables['Agent.OS'], 'Windows_NT' )
+          displayName: Build (non-Windows)
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            perl Configure.pl $(RAKUDO_OPTIONS)
+          failOnStderr: false
+          condition: eq( variables['Agent.OS'], 'Windows_NT' )
+          displayName: Build (Windows)
+        
+        - script: make install
+          condition: ne( variables['Agent.OS'], 'Windows_NT' )
+          displayName: Install (non-Windows)
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            nmake install
+          failOnStderr: false
+          condition: eq( variables['Agent.OS'], 'Windows_NT' )
+          displayName: Install (Windows)
+        
+        # TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
+        - script: mv install install-moved
+          condition: and( eq( variables['RELOCATABLE'], 'yes' ), ne( variables['Agent.OS'], 'Windows_NT' ) )
+          displayName: Move installation (non-Windows)
+        - pwsh: mv install install-moved
+          condition: and( eq( variables['RELOCATABLE'], 'yes' ), eq( variables['Agent.OS'], 'Windows_NT' ) )
+          displayName: Move installation (Windows)
+
+        - script: prove -e install/bin/perl6 -vlr t
+          condition: and( ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+          displayName: Test (non-Windows)
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            prove -e install/bin/perl6 -vlr t
+          condition: and( ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+          displayName: Test (Windows)
+
+        - script: prove -e install-moved/bin/perl6 -vlr t
+          condition: and( eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+          displayName: Test with moved installation (non-Windows)
+        - pwsh: |
+            ${{ variables.PWSH_DEV }}
+            prove -e install-moved\bin\perl6 -vlr t
+          condition: and( eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+          displayName: Test with moved installation (Windows)
+
+        - publish: install-moved
+          artifact: relocatable-build
+          condition: eq( variables['RELOCATABLE'], 'yes' )
+          displayName: Publish build artifact
+
+- stage: Build_Precomp_Release
+  condition: eq( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
+  jobs:
+    - job: linux
+      displayName: Linux x86_64 build
+      pool:
+        vmImage: 'ubuntu-18.04'
+      container:
+        image: centos:6
+        options: "--name raku-build-container -v /usr/bin/docker:/tmp/docker:ro"
+      workspace:
+        clean: all
+      steps:
+        - script: /tmp/docker exec -t -u 0 raku-build-container sh -c "yum -y update && yum -y install sudo"
+          displayName: Set up sudo (see https://github.com/microsoft/azure-pipelines-agent/issues/2043)
+
+        - checkout: self
+          path: source
+          fetchDepth: 1
+          displayName: Checkout repository
+
+        - script: $(Agent.BuildDirectory)/source/tools/build/binary-release/build-linux.sh
+          failOnStderr: false
+          displayName: Run build script
+
+        - publish: rakudo-linux.tar.gz
+          artifact: rakudo-linux
+
+    - job: macos
+      displayName: MacOS x86_64 build
+      pool:
+        vmImage: 'macOS-10.15'
+      workspace:
+        clean: all
+      steps:
+        - checkout: self
+          path: source
+          fetchDepth: 1
+
+        - script: $(Agent.BuildDirectory)/source/tools/build/binary-release/build-macos.sh
+          failOnStderr: false
+          displayName: Run build script
+
+        - publish: rakudo-macos.tar.gz
+          artifact: rakudo-macos
+
+    - job: windows
+      displayName: Windows x86_64 build
+      pool:
+        vmImage: 'windows-2019'
+      workspace:
+        clean: all
+      steps:
+        - checkout: self
+          path: source
+          fetchDepth: 1
+
+        # Turn this Powershell console into a developer powershell console.
+        # https://intellitect.com/enter-vsdevshell-powershell/
+        - pwsh: |
+            $installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationpath
+            $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
+            Import-Module $devShell
+            Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
+            $(Agent.BuildDirectory)/source/tools/build/binary-release/build-windows.ps1
+          failOnStderr: false
+          displayName: Run build script
+
+        - publish: rakudo-win.zip
+          artifact: rakudo-win
+
+    - job: zip
+      displayName: Package results
+      dependsOn:
+      - linux
+      - macos
+      - windows
+      pool:
+        vmImage: 'ubuntu-18.04'
+      workspace:
+        clean: all
+      steps:
+      - checkout: none
+
+      - download: current
+        artifact: rakudo-linux
+        displayName: Download Linux build artifacts
+
+      - download: current
+        artifact: rakudo-macos
+        displayName: Download MacOS build artifacts
+
+      - download: current
+        artifact: rakudo-win
+        displayName: Download Windows build artifacts
+
+      - script: |
+          OUT_DIR=rakudo-builds-$(VERSION)-$(REVISION)
+          mkdir $OUT_DIR
+          cp $(Pipeline.Workspace)/rakudo-linux/rakudo-linux.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-linux-x86_64.tar.gz
+          cp $(Pipeline.Workspace)/rakudo-macos/rakudo-macos.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-linux-x86_64.tar.gz
+          cp $(Pipeline.Workspace)/rakudo-win/rakudo-win.zip        $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-win-x86_64.zip
+          tar -czf rakudo-moar-builds-$(VERSION)-$(REVISION).tar.gz $OUT_DIR
+
+      - publish: rakudo-moar-builds-$(VERSION)-$(REVISION).tar.gz
+        artifact: build-result

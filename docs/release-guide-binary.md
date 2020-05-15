@@ -1,25 +1,23 @@
 Binary release guide
 ====================
 
-The process of building a release on the different platforms is largely automated. There is a build pipeline setup utilizing the CircleCI infrastructure.
-The process of building is not started automatically though, but has to be triggered manually. To do so one needs to call a special script.
+The process of building a release on the different platforms is largely automated. There is a build pipeline setup utilizing the Azure Pipelines infrastructure.
+The process of building is not started automatically, but has to be triggered manually. To do so do:
 
-    tools/build/binary-release/trigger-precomp-build.sh 2020.01 01 https://rakudo.org/dl/rakudo/rakudo-2020.01.tar.gz 19234ae87f78787c87e7887fe877b78c7878d8fb
-
-The parameters are:
-
-- The version to build, e.g. 2020.01
-- The build revision, usually 01 (except when doing a second binary release for the same rakudo release)
-- The download URL for the rakudo source in tar.gz format
-- A CircleCI personal API token. One can be created here: <https://circleci.com/account/api>
-  Do not confuse the personal API token with project specific API tokens! The project specific API tokens will not work and result in a "Permission denied" error.
-
-After calling the above script accordingly a message with some JSON indicating successful start of the build procedure should be printed.
-Navigate to <https://circleci.com/gh/rakudo/workflows/rakudo/tree/master> and select the latest workflow named "build-precomp-release". Three build jobs should be running. One for Windows, one for Linux and one for MacOS. After successful completion of the jobs click on each of them, select the "Artifacts" tab and download the shown file.
-
-For some reason the Linux and MacOS `.tar.gz` files are double compressed. So you need to rename them, adding an additional `.gz` and call `gunzip` on them.
-
-Verify all three files decompress successfully.
+- Visit the [Azure Pipelines website](https://dev.azure.com/rakudo/rakudo/_build?definitionId=1&_a=summary)
+- Click on the blue 'Run pipeline' button at the top right.
+- Under 'Advanced options' click on 'Variables'.
+- Click on 'BUILD_PRECOMP_RELEASE' and change to 'yes'.
+- Click the blue 'Update' button at the bottom.
+- Change the 'RELEASE_URL', 'VERSION' and 'REVISION' variables with the same procedure as necessary.
+- Click the back arrow next to the 'Variables' heading.
+- Click on the blue 'Run' button at the bottom.
+- Wait for the build to finish. All the Jobs will have a green tick next to them once the build is finished.
+- In the upper box below the grey 'Related' heading click on '4 published'.
+- Download the 'rakudo-moar-builds-*.tar.gz' file.
+- Extract the archive.
+- Verify all three archives have a size >10MB.
+- Verify all three archives decompress successfully.
 
 Sign the files:
 

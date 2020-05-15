@@ -1,10 +1,9 @@
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "stop"
 
-# Don't display progressbars when doing Invoke-WebRequest and similar.
-# That would cause the command to fail, because in the CircleCI environment
-# one can't modify the display.
-# "Win32 internal error “Access is denied” 0x5 occurred while reading the console output buffer. Contact Microsoft Customer Support Services."
-$progressPreference = 'silentlyContinue'
+# Make sure Powershell 7 doesn't just silently swallows errors.
+# https://david.gardiner.net.au/2020/04/azure-pipelines-powershell-7-errors.html
+# https://github.com/microsoft/azure-pipelines-tasks/issues/12799
+$ErrorView = 'NormalView'
 
 function CheckLastExitCode {
     if ($LastExitCode -ne 0) {
@@ -18,52 +17,52 @@ Callstack: $(Get-PSCallStack | Out-String)
 
 $repoPath = Get-Location
 
-# Install Perl
+echo "========= Starting build"
 
+echo "========= Downloading Perl"
 mkdir download
 mkdir strawberry
 Invoke-WebRequest http://strawberryperl.com/download/5.30.0.1/strawberry-perl-5.30.0.1-64bit.zip -OutFile download/strawberry-perl-5.30.0.1-64bit.zip
+
+echo "========= Extracting Perl"
 Expand-Archive -Path download/strawberry-perl-5.30.0.1-64bit.zip -DestinationPath strawberry
 strawberry\relocation.pl.bat
 $Env:PATH = (Join-Path -Path $repoPath -ChildPath "\strawberry\perl\bin") + ";" + (Join-Path -Path $repoPath -ChildPath "\strawberry\perl\site\bin") + ";" + (Join-Path -Path $repoPath -ChildPath "\strawberry\c\bin") + ";$Env:PATH"
 
-
-# Download release file
-
+echo "========= Downloading release"
 Invoke-WebRequest $Env:RELEASE_URL -OutFile download/rakudo.tgz
+
+echo "========= Extracting release"
 tar -xzf download/rakudo.tgz
 cd rakudo-*
 
-# Build Rakudo
-
+echo "========= Configuring Rakudo (includes building MoarVM and NQP)"
 perl Configure.pl --gen-moar --gen-nqp --backends=moar --moar-option='--toolchain=msvc' --relocatable
 CheckLastExitCode
+
+echo "========= Building Rakudo"
 nmake install
 CheckLastExitCode
 
-
-# Test the build
-
+echo "========= Testing Rakudo"
 nmake test
 CheckLastExitCode
 
-
-# Build Zef
-
+echo "========= Cloning Zef"
 git clone https://github.com/ugexe/zef.git
 CheckLastExitCode
+
+echo "========= Installing Zef"
 cd zef
 ..\install\bin\raku.exe -I. bin\zef install .
 CheckLastExitCode
 cd ..
 
-
-# Prepare the package
-
+echo "========= Copying auxiliary files"
 cp -Force -r "tools\build\binary-release\Windows\*" install
 cp LICENSE install
 
+echo "========= Preparing archive"
 mv install rakudo-$Env:VERSION
-
 Compress-Archive -Path rakudo-$Env:VERSION -DestinationPath ..\rakudo-win.zip
 

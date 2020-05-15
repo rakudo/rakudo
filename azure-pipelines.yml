@@ -169,7 +169,6 @@ stages:
           displayName: Test with moved installation (Windows)
 
         - publish: install-moved
-          artifact: relocatable-build
           condition: eq( variables['RELOCATABLE'], 'yes' )
           displayName: Publish build artifact
 

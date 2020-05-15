@@ -119,7 +119,6 @@ stages:
           condition: and( eq( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
         - checkout: self
-          fetchDepth: 1
           displayName: Checkout repository
 
         - script: |
@@ -192,7 +191,6 @@ stages:
 
         - checkout: self
           path: source
-          fetchDepth: 1
           displayName: Checkout repository
 
         - script: $(Agent.BuildDirectory)/source/tools/build/binary-release/build-linux.sh
@@ -211,7 +209,6 @@ stages:
       steps:
         - checkout: self
           path: source
-          fetchDepth: 1
 
         - script: $(Agent.BuildDirectory)/source/tools/build/binary-release/build-macos.sh
           failOnStderr: false
@@ -229,7 +226,6 @@ stages:
       steps:
         - checkout: self
           path: source
-          fetchDepth: 1
 
         # Turn this Powershell console into a developer powershell console.
         # https://intellitect.com/enter-vsdevshell-powershell/

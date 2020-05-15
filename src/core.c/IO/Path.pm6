@@ -589,14 +589,14 @@ my class IO::Path is Cool does IO {
         # We use an IO::Handle in binary mode, and then decode the string
         # all in one go, which avoids the overhead of setting up streaming
         # decoding.
-        nqp::if(
-            nqp::istype((my $handle := IO::Handle.new(:path(self)).open(:bin)), Failure),
-            $handle,
-            nqp::stmts(
-                (my $blob := $handle.slurp(:close)),
-                nqp::if($bin, $blob, nqp::join("\n",
-                  nqp::split("\r\n", $blob.decode: $enc || 'utf-8')))
-            ))
+        my $handle := IO::Handle.new(:path(self)).open(:bin);
+        nqp::istype($handle,Failure)
+          ?? $handle
+          !! $bin
+            ?? $handle.slurp(:close)
+            !! nqp::join("\n",nqp::split("\r\n",
+                 $handle.slurp(:close).decode: $enc || 'utf-8'
+               ))
     }
 
     method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly) {

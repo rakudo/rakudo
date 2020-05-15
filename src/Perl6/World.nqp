@@ -222,9 +222,6 @@ class Perl6::World is HLL::World {
         has $!the_whatever;
         has $!the_hyper_whatever;
 
-        # List of CHECK blocks to run.
-        has @!CHECKs;
-
         # Clean-up tasks, to do after CHECK time.
         has @!cleanup_tasks;
 
@@ -237,7 +234,6 @@ class Perl6::World is HLL::World {
             @!CODES := [];
             @!stub_check := [];
             @!protos_to_sort := [];
-            @!CHECKs := [];
             %!sub_id_to_code_object := {};
             %!sub_id_to_cloned_code_objects := {};
             %!sub_id_to_sc_idx := {};
@@ -482,14 +478,6 @@ class Perl6::World is HLL::World {
             $!the_hyper_whatever := $hyper_whatever
         }
 
-        method add_check($check) {
-            @!CHECKs := [] unless @!CHECKs;
-            @!CHECKs.unshift($check);
-        }
-
-        method checks() {
-            @!CHECKs
-        }
     }
 
     method context_class() {
@@ -521,12 +509,16 @@ class Perl6::World is HLL::World {
     has $!setting_name;
     has $!setting_revision;
 
+    # List of CHECK blocks to run.
+    has @!CHECKs;
+
     method BUILD(*%adv) {
         %!code_object_fixup_list := {};
         $!record_precompilation_dependencies := 1;
         %!quote_lang_cache := {};
         $!setting_loaded := 0;
         $!in_unit_parse := 0;
+        @!CHECKs := [];
     }
 
     method create_nested() {
@@ -549,6 +541,15 @@ class Perl6::World is HLL::World {
 
     method in_unit_parse() {
         $!in_unit_parse
+    }
+
+    method add_check($check) {
+        @!CHECKs := [] unless @!CHECKs;
+        @!CHECKs.unshift($check);
+    }
+
+    method checks() {
+        @!CHECKs
     }
 
     method !check-version-modifier($ver-match, $rev, $modifier, $comp) {
@@ -4309,7 +4310,7 @@ class Perl6::World is HLL::World {
                 self.handle-begin-time-exceptions($/, 'evaluating a CHECK', $block);
             }
             my $result_node := QAST::Stmt.new( QAST::Var.new( :name('Nil'), :scope('lexical') ) );
-            self.context().add_check([$handled_block, $result_node]);
+            self.add_check([$handled_block, $result_node]);
             return $result_node;
         }
         elsif $phaser eq 'INIT' {
@@ -4411,7 +4412,7 @@ class Perl6::World is HLL::World {
 
     # Runs the CHECK phasers and twiddles the QAST to look them up.
     method CHECK() {
-        for self.context().checks() {
+        for self.checks() {
             my $result := $_[0]();
             $_[1][0] := self.add_constant_folded_result($result);
         }

@@ -784,9 +784,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::const::CCLASS_NUMERIC,self,0,nqp::chars(self)),
           nqp::chars(self)
         ) ?? nqp::isle_i(nqp::chars($!value),18)  # upto 18 digits can be native
-            ?? (my int $ = $!value)               # quick conversion, "" also ok
-            !! nqp::atpos(nqp::radix_I(10,self,0,0b10,Int),0)
-          !! nqp::atpos(                          # no period, so parse as Int
+            ?? nqp::atpos(nqp::radix(10,self,0,0),0) # quick conversion, "" also
+            !! nqp::atpos(nqp::radix_I(10,self,0,0,Int),0)
+          !! nqp::atpos(                          # try parsing as an Int
                (my $n := nqp::radix_I(10,self,0,0b10,Int)),
                2
              ) == nqp::chars(self)

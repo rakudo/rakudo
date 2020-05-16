@@ -584,19 +584,75 @@ my class IO::Path is Cool does IO {
         }
     }
 
+    # slurp STDIN in binary mode
+    sub slurp-stdin-bin() {
+        my $blob := buf8.new;
+        my $PIO  := nqp::getstdin();
+        nqp::while(
+          nqp::elems(my $part := nqp::readfh($PIO,buf8.new,0x100000)),
+          nqp::splice($blob,$part,nqp::elems($blob),0)
+        );
+        $blob
+    }
+
+    # slurp given path in binary mode
+    sub slurp-bin(str $path) {
+        CATCH { .fail }
+
+        if nqp::stat($path,nqp::const::STAT_FILESIZE) -> int $bytes {
+            my $PIO  := nqp::open($path,'r');
+            my $blob := nqp::readfh($PIO,buf8.new,$bytes);
+            nqp::closefh($PIO);
+            $blob
+        }
+        else {
+            buf8.new
+        }
+    }
+
+    # slurp STDIN with given normalized encoding
+    sub slurp-stdin-with-encoding(str $encoding) {
+        nqp::join("\n",
+          nqp::split("\r\n",nqp::decode(slurp-stdin-bin(),$encoding))
+        )
+    }
+
+    # slurp given path with given normalized encoding
+    sub slurp-with-encoding(str $path, str $encoding) {
+        CATCH { .fail }
+
+        if nqp::stat($path,nqp::const::STAT_FILESIZE) -> int $bytes {
+            my $PIO  := nqp::open($path,'r');
+            my $blob := nqp::readfh($PIO,buf8.new,$bytes);
+            nqp::closefh($PIO);
+            nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
+        }
+        else {
+            ""
+        }
+    }
+
     proto method slurp() {*}
-    multi method slurp(IO::Path:D: :$enc, :$bin) {
-        # We use an IO::Handle in binary mode, and then decode the string
-        # all in one go, which avoids the overhead of setting up streaming
-        # decoding.
-        my $handle := IO::Handle.new(:path(self)).open(:bin);
-        nqp::istype($handle,Failure)
-          ?? $handle
+    multi method slurp(IO::Path:D: :$bin!) {
+        nqp::iseq_s($!path,"-")
+          ?? $bin
+            ?? slurp-stdin-bin()
+            !! slurp-stdin-with-encoding('utf8')
           !! $bin
-            ?? $handle.slurp(:close)
-            !! nqp::join("\n",nqp::split("\r\n",
-                 $handle.slurp(:close).decode: $enc || 'utf-8'
-               ))
+            ?? slurp-bin(self.absolute)
+            !! slurp-with-encoding(self.absolute,'utf8')
+    }
+    multi method slurp(IO::Path:D: :$enc!) {
+        nqp::iseq_s($!path,"-")
+          ?? slurp-stdin-with-encoding(
+               Rakudo::Internals.NORMALIZE_ENCODING($enc))
+          !! slurp-with-encoding(self.absolute,
+               Rakudo::Internals.NORMALIZE_ENCODING($enc))
+    }
+    multi method slurp(IO::Path:D:) {
+        nqp::iseq_s($!path,"-")
+          ?? slurp-stdin-with-encoding('utf8')
+          !! slurp-with-encoding(self.absolute,'utf8')
     }
 
     method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly) {

@@ -224,7 +224,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             self!add-short-name($name-path, $dist, $id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
-            my $content = $handle.open.slurp-rest(:bin,:close);
+            my $content = $handle.open.slurp(:bin,:close);
             $destination.spurt($content);
             $handle.close;
         }
@@ -237,7 +237,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $destination    = $resources-dir.add($id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
-            my $content = $handle.open.slurp-rest(:bin,:close);
+            my $content = $handle.open.slurp(:bin,:close);
             $destination.spurt($content);
             $handle.close;
         }

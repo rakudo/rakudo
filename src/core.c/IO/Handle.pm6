@@ -780,28 +780,36 @@ my class IO::Handle {
     }
 
     method slurp(IO::Handle:D: :$close, :$bin) {
-        nqp::stmts(
-          (my $res),
+        my $res;
+        nqp::if(
+          $!decoder,
           nqp::if(
-            $!decoder,
-            nqp::if(
-              $bin,
-              nqp::stmts(
-                ($res := buf8.new),
-                nqp::if(
-                  $!decoder.bytes-available,
-                  $res.append($!decoder.consume-exactly-bytes(
-                    $!decoder.bytes-available)))),
-              ($res := self!slurp-all-chars())),
-            ($res := buf8.new)),
-          nqp::if(
-            nqp::isfalse($!decoder) || $bin,
-            nqp::while(
-              nqp::elems(my $buf := self.READ(0x100000)),
-              $res.append($buf))),
-          # don't sink result of .close; it might be a failed Proc
-          nqp::if($close, my $ = self.close),
-          $res)
+            $bin,
+            nqp::stmts(
+              ($res := buf8.new),
+              nqp::if(
+                $!decoder.bytes-available,
+                $res.append(
+                  $!decoder.consume-exactly-bytes($!decoder.bytes-available)
+                )
+              )
+            ),
+            ($res := self!slurp-all-chars)
+          ),
+          ($res := buf8.new)
+        );
+
+        nqp::if(
+          nqp::isfalse($!decoder) || $bin,
+          nqp::while(
+            nqp::elems(my $buf := self.READ(0x100000)),
+            $res.append($buf)
+          )
+        );
+
+        # don't sink result of .close; it might be a failed Proc
+        my $ = self.close if $close;
+        $res
     }
 
     method !slurp-all-chars() {

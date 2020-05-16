@@ -336,13 +336,17 @@ my class Rakudo::Internals {
       # GB18030
       'gb18030',         'gb18030',
     );
-    method NORMALIZE_ENCODING(Str:D \encoding) {
-        nqp::ifnull(
-          nqp::atkey($encodings,encoding),
+    method NORMALIZE_ENCODING(\encoding) {
+        nqp::if(
+          nqp::isconcrete(encoding),
           nqp::ifnull(
-            nqp::atkey($encodings,nqp::lc(encoding)),
-            nqp::lc(encoding)
-          )
+            nqp::atkey($encodings,encoding),
+            nqp::ifnull(
+              nqp::atkey($encodings,nqp::lc(encoding)),
+              nqp::lc(encoding)
+            )
+          ),
+          'utf8'
         )
     }
 

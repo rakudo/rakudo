@@ -655,14 +655,60 @@ my class IO::Path is Cool does IO {
           !! slurp-with-encoding(self.absolute,'utf8')
     }
 
-    method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly) {
-        my $fh := self.open:
-            :$enc,     :bin(nqp::istype($data, Blob)),
-            :mode<wo>, :create, :exclusive($createonly),
-            :$append,  :truncate(
-                nqp::if(nqp::isfalse($append), nqp::isfalse($createonly))
-            );
-        nqp::if( nqp::istype($fh, Failure), $fh, $fh.spurt($data, :close) )
+    # spurt data to given path and file mode
+    sub spurt-blob(str $path, str $mode, Blob:D \data --> True) {
+        CATCH { .fail }
+
+        my $PIO := nqp::open($path,$mode);
+        nqp::writefh($PIO,nqp::decont(data));
+        nqp::closefh($PIO)
+    }
+
+    # spurt text to given path and file mode with given encoding
+    sub spurt-string(str $path, str $mode, str $text, $encoding --> True) {
+        my $blob := nqp::encode(
+          $text,
+          (my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding)),
+          buf8.new
+        );
+
+        # check if we need a BOM
+        if $enc eq 'utf16' {
+
+           # add a BOM if writing starts at beginning of file
+           if $mode eq 'w'
+             || nqp::not_i(nqp::stat($path,nqp::const::STAT_EXISTS))
+             || nqp::not_i(nqp::stat($path,nqp::const::STAT_FILESIZE)) {
+                nqp::unshift_i($blob,254);
+                nqp::unshift_i($blob,255);
+           }
+        }
+
+        spurt-blob($path, $mode, $blob)
+    }
+
+    proto method spurt(|) {*}
+    multi method spurt(IO::Path:D: Blob:D \data, :$append! --> Bool:D) {
+        spurt-blob(self.absolute, $append ?? 'wa' !! 'w', data)
+    }
+    multi method spurt(IO::Path:D: Blob:D \data, :$createonly! --> Bool:D) {
+        nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!abspath
+          ?? Failure.new("Failed to open file $!abspath: File exists")
+          !! spurt-blob($!abspath, 'w', data)
+    }
+    multi method spurt(IO::Path:D: Blob:D \data --> Bool:D) {
+        spurt-blob(self.absolute, 'w', data)
+    }
+    multi method spurt(IO::Path:D: \text, :$append!, :$enc --> Bool:D) {
+        spurt-string(self.absolute, $append ?? 'wa' !! 'w', text.Str, $enc)
+    }
+    multi method spurt(IO::Path:D: \text, :$createonly!, :$enc --> Bool:D) {
+        nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!abspath
+          ?? Failure.new("Failed to open file $!abspath: File exists")
+          !! spurt-string($!abspath, 'w', text.Str, $enc)
+    }
+    multi method spurt(IO::Path:D: \text, :$enc --> Bool:D) {
+        spurt-string(self.absolute, 'w', text.Str, $enc)
     }
 
     # XXX TODO: when we get definedness-based defaults in core, use them in

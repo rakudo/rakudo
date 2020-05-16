@@ -125,9 +125,9 @@ multi sub close(Channel:D $channel) { $channel.close }
 proto sub slurp(|) {*}
 multi sub slurp(*%_) { $*ARGFILES.slurp(|%_) }
 multi sub slurp(IO::Handle:D $fh, *%_) {   $fh.slurp(|%_) }
-multi sub slurp(IO()       $path, :$bin) { $path.slurp(:$bin) }
-multi sub slurp(IO()       $path, :$enc) { $path.slurp(:$enc) }
-multi sub slurp(IO()       $path       ) { $path.slurp(:enc<utf8>) }
+multi sub slurp(IO() $path, :$bin!) { $path.slurp(:$bin) }
+multi sub slurp(IO() $path, :$enc!) { $path.slurp(:$enc) }
+multi sub slurp(IO() $path        ) { $path.slurp(:enc<utf8>) }
 
 proto sub spurt($, $, |) {*}
 multi sub spurt(IO::Handle:D $fh, $data, *%_) {   $fh.spurt($data, |%_) }

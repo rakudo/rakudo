@@ -1,9 +1,9 @@
 my class IO::Path is Cool does IO {
-    has IO::Spec $.SPEC;
-    has Str      $.CWD;
-    has Str      $.path;
-    has Bool $!is-absolute;
-    has $!abspath;
+    has IO::Spec $.SPEC;  # the associated IO::Spec
+    has Str      $.CWD;   # the associated CWD
+    has Str      $.path;  # the path as specified
+    has $!is-absolute;    # Bool:D if we know $!path is an absolute path
+    has $!abspath;        # the absolute path associated with path/SPEC/CWD
     has %!parts;
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
@@ -19,17 +19,17 @@ my class IO::Path is Cool does IO {
             || nqp::isne_i(nqp::index($!CWD,  "\0"), -1),
             X::IO::Null.new.throw
         );
-        $!abspath := nqp::null;
+        $!is-absolute := $!abspath := nqp::null;
     }
 
     method !new-from-absolute-path($path, $SPEC, $CWD) {
-        self.bless(:$path, :$SPEC, :$CWD)!set-absolute($path);
+        self.bless(:$path, :$SPEC, :$CWD)!is-absolute;
     }
 
-    method !set-absolute($path) {
-        $!is-absolute = True;
-        $!abspath := $path;
-        self;
+    method !is-absolute() {
+        $!is-absolute := True;
+        $!abspath     := $!path;
+        self
     }
 
     proto method new(|) {*}
@@ -55,19 +55,14 @@ my class IO::Path is Cool does IO {
         die "Must specify something as a path: did you mean '.' for the current directory?";
     }
 
-    method is-absolute() {
-        nqp::if(
-          nqp::isconcrete($!is-absolute),
+    method is-absolute(--> Bool:D) {
+        nqp::ifnull(
           $!is-absolute,
-          $!is-absolute = nqp::hllbool($!SPEC.is-absolute: $!path))
+          $!is-absolute := nqp::hllbool($!SPEC.is-absolute: $!path)
+        )
     }
-    method is-relative() {
-        nqp::hllbool(
-          nqp::not_i(
-            nqp::if(
-              nqp::isconcrete($!is-absolute),
-              $!is-absolute,
-              $!is-absolute = nqp::hllbool($!SPEC.is-absolute: $!path))))
+    method is-relative(--> Bool:D) {
+        self.is-absolute ?? False !! True
     }
 
     method parts {
@@ -217,19 +212,19 @@ my class IO::Path is Cool does IO {
 #?endif
 
     proto method absolute(|) {*}
-    multi method absolute (IO::Path:D:) {
+    multi method absolute (IO::Path:D: --> Str:D) {
         nqp::ifnull(
           $!abspath,
           $!abspath := $!SPEC.rel2abs($!path,$!CWD)
         )
     }
-    multi method absolute (IO::Path:D: $CWD) {
-        self.is-absolute 
-          ?? self.absolute
-          !! $!SPEC.rel2abs($!path, $CWD);
+    multi method absolute (IO::Path:D: $CWD --> Str:D) {
+        $!is-absolute
+          ?? $!abspath
+          !! $!SPEC.rel2abs($!path, $CWD)  # do *not* set because different CWD
     }
 
-    method relative (IO::Path:D: $CWD = $*CWD) {
+    method relative (IO::Path:D: $CWD = $*CWD --> Str:D) {
         $!SPEC.abs2rel($.absolute, $CWD);
     }
 

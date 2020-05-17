@@ -124,14 +124,35 @@ multi sub close(Channel:D $channel) { $channel.close }
 
 proto sub slurp(|) {*}
 multi sub slurp(*%_) { $*ARGFILES.slurp(|%_) }
-multi sub slurp(IO::Handle:D $fh, *%_) {   $fh.slurp(|%_) }
+multi sub slurp(IO::Handle:D $fh, *%_) { $fh.slurp(|%_) }
 multi sub slurp(IO() $path, :$bin!) { $path.slurp(:$bin) }
-multi sub slurp(IO() $path, :$enc!) { $path.slurp(:$enc) }
+multi sub slurp(IO() $path, :$enc ) { $path.slurp(:$enc) }
 multi sub slurp(IO() $path        ) { $path.slurp(:enc<utf8>) }
 
 proto sub spurt($, $, |) {*}
-multi sub spurt(IO::Handle:D $fh, $data, *%_) {   $fh.spurt($data, |%_) }
-multi sub spurt(IO()       $path, $data, *%_) { $path.spurt($data, |%_) }
+# Don't do anything special for the IO::Handle, as using spurt() as a sub
+# when you've gone through the trouble of creating an IO::Handle, is not
+# so likely, as you would probably just call the .spurt method on the handle.
+multi sub spurt(IO::Handle:D $fh, $data, *%_) is default {
+    $fh.spurt($data, |%_)
+}
+multi sub spurt(IO() $path, Blob:D \data, :$append!) {
+    $path.spurt(data, :$append)
+}
+multi sub spurt(IO() $path, Blob:D \data, :$createonly!) {
+    $path.spurt(data, :$createonly)
+}
+multi sub spurt(IO() $path, Blob:D \data) {
+    $path.spurt(data)
+}
+multi sub spurt(IO() $path, \text, :$append!, :$enc) {
+    $path.spurt(text, :$append, :$enc)
+}
+multi sub spurt(IO() $path, \text, :$createonly!, :$enc) {
+    $path.spurt(text, :$createonly, :$enc)
+}
+multi sub spurt(IO() $path, \text, :$enc!) { $path.spurt(text, :$enc) }
+multi sub spurt(IO() $path, \text        ) { $path.spurt(text, :enc<utf8>) }
 
 {
     sub chdir(IO() $path) {

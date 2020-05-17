@@ -467,12 +467,13 @@ sub MAIN(*@ARGS) {
 
 
     # Determine Perl6 and NQP dirs.
-    my $config := nqp::backendconfig();
-    my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
 #?if jvm
+    my $sep := nqp::atkey(nqp::jvmgetproperties,'os.name') eq 'MSWin32' ?? '\\' !! '/';
     my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');
 #?endif
 #?if !jvm
+    my $config := nqp::backendconfig();
+    my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
     my $execname := nqp::execname();
 #?endif
     my $install-dir := $execname eq ''

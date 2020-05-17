@@ -1,10 +1,10 @@
-package org.perl6.rakudo;
+package org.raku.rakudo;
 
 import java.lang.reflect.Field;
 import sun.misc.Unsafe;
 
-import org.perl6.nqp.runtime.*;
-import org.perl6.nqp.sixmodel.*;
+import org.raku.nqp.runtime.*;
+import org.raku.nqp.sixmodel.*;
 
 public class RakudoContainerSpec extends ContainerSpec {
     /* Container related hints. */

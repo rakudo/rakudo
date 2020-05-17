@@ -1,6 +1,6 @@
-package org.perl6.rakudo;
+package org.raku.rakudo;
 
-import org.perl6.nqp.tools.EvalServer;
+import org.raku.nqp.tools.EvalServer;
 
 public class RakudoEvalServer extends EvalServer {
 

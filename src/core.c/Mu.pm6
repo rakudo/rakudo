@@ -1276,10 +1276,10 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) { # is implementation-detail
 proto sub so(Mu, *%) {*}
 multi sub so(Bool:U --> False) { }
 multi sub so(Bool:D \x) { x }
-multi sub so(Mu \x) { x ?? True !! False }
+multi sub so(Mu \x) { nqp::hllbool(nqp::istrue(x)) }
 
 proto sub not(Mu, *%) {*}
 multi sub not(Bool:U --> True) { }
-multi sub not(Mu \x) { x ?? False !! True }
+multi sub not(Mu \x) { nqp::hllbool(nqp::isfalse(x)) }
 
 # vim: ft=perl6 expandtab sw=4

@@ -1,11 +1,12 @@
   Build requirements (Installing from source)
-    For building Rakudo you need at least a C compiler, a "make" utility, and
-    Perl 5.10 or newer. To automatically obtain and build MoarVM as well as NQP,
-    you may also need a git client, which is also needed for fetching the test
-    suite.
 
-    Building rakudo can take up to 1G of memory when compiling for the MoarVM
-    runtime. The requirements are higher for the JVM backend.
+    For building Rakudo you need at least a C compiler, a "make" utility, and
+    Perl 5.10.1 or newer. To automatically obtain and build MoarVM as well as
+    NQP, you may also need a git client, which is also needed for fetching the
+    test suite.
+
+    Building rakudo can sometimes take >1.4G of memory when compiling for the 
+    MoarVM runtime. The requirements are higher for the JVM backend.
 
     (Perl is installed by default already). To enable parallel testing you also
     need the CPAN module Test::Harness in version 3.16 or newer; you can control
@@ -13,7 +14,7 @@
     TEST_JOBS is not specified, 6 jobs will be used.
 
   Building and invoking Rakudo
-    If you're wanting the bleeding-edge version of the Rakudo Perl 6 compiler,
+    If you're wanting the bleeding-edge version of the Rakudo Raku compiler,
     we recommend downloading Rakudo directly from Github and building it from
     there.
 
@@ -123,9 +124,8 @@
     "roast" repository <http://github.com/Raku/roast/> and run all of these
     tests that are currently known to pass.
 
-    At present we do not have any plans to directly store the official test
-    suite as part of the Rakudo repository, but will continue to fetch it from
-    the roast repository.  Releases of Rakudo get a snapshot of the roast
+    Roast is not planned and unlikely to ever be included into Rakudo 
+    distribution. Instead releases of Rakudo will fetch a snapshot of the roast 
     repository as of the time of the release.
 
     You can also use "make" to run an individual test from the command line:

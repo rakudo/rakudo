@@ -54,7 +54,7 @@ role Perl6::Metamodel::MethodContainer {
 
         # Always need local methods on the list.
         for @!method_order {
-            @meths.push($_)
+            @meths.push(nqp::hllizefor($_,'Raku'))
               unless $check-implementation-detail
                 && nqp::can($_,'is-implementation-detail')
                 && $_.is-implementation-detail;
@@ -64,13 +64,13 @@ role Perl6::Metamodel::MethodContainer {
         unless $local {
             for self.parents($obj, :all($all), :excl($excl)) {
                 for nqp::hllize($_.HOW.method_table($_)) {
-                    @meths.push(nqp::decont($_.value))
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value),'Raku'))
                       unless $check-implementation-detail
                         && nqp::can($_,'is-implementation-detail')
                         && $_.is-implementation-detail;
                 }
                 for nqp::hllize($_.HOW.submethod_table($_)) {
-                    @meths.push(nqp::decont($_.value))
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value),'Raku'))
                       unless $check-implementation-detail
                         && nqp::can($_,'is-implementation-detail')
                         && $_.is-implementation-detail;

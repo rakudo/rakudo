@@ -78,11 +78,6 @@ role Perl6::Metamodel::MethodContainer {
             }
         }
 
-        # make sure Raku can handle them
-        for @meths {
-            $_ := nqp::hllizefor($_,'Raku');
-        }
-
         @meths
     }
 

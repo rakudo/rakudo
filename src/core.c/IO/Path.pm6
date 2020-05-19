@@ -10,46 +10,55 @@ my class IO::Path is Cool does IO {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
-    submethod BUILD(:$!path!, :$!SPEC!, :$!CWD! --> Nil) {
-        nqp::unless(nqp::chars($!path), # could be an IntStr, so check chars
-           X::AdHoc.new( payload => "Must specify something as a path: did you mean '.' for the current directory?" ).throw
-        );
-        nqp::if(
-               nqp::isne_i(nqp::index($!path, "\0"), -1)
-            || nqp::isne_i(nqp::index($!CWD,  "\0"), -1),
-            X::IO::Null.new.throw
-        );
-        $!is-absolute := $!abspath := nqp::null;
-    }
+    method !SET-SELF(Str:D \path, IO::Spec \SPEC, Str:D \CWD, \absolute) {
+        die "Must specify something as a path: did you mean '.' for the current directory?"
+          unless nqp::chars(path);
 
-    method !new-from-absolute-path($path, $SPEC, $CWD) {
-        self.bless(:$path, :$SPEC, :$CWD)!is-absolute;
-    }
+        X::IO::Null.new.throw
+          if nqp::isne_i(nqp::index(path, "\0"), -1)
+          || nqp::isne_i(nqp::index(CWD,  "\0"), -1);
 
-    method !is-absolute() {
-        $!is-absolute := True;
-        $!abspath     := $!path;
+        $!path := path;
+        $!SPEC := SPEC;
+        $!CWD  := CWD;
+
+        if absolute {
+            $!is-absolute := True;
+            $!abspath     := path;
+        }
+        else {
+            $!is-absolute := $!abspath := nqp::null;
+        }
+
         self
     }
 
     proto method new(|) {*}
-    multi method new(IO::Path: Str $path, :$SPEC = $*SPEC, Str:D :$CWD) {
-        self.bless(:$path, :$SPEC, :$CWD);
+    multi method new(IO::Path:
+      Str:D $path, :$CWD!, IO::Spec :$SPEC = $*SPEC
+    --> IO::Path:D) {
+        nqp::create(self)!SET-SELF($path, $SPEC, $CWD.Str, False)
     }
-    multi method new(IO::Path: Str $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        self.bless(:$path, :$SPEC, :CWD($CWD.Str));
+    multi method new(IO::Path: Str:D $path, IO::Spec :$SPEC! --> IO::Path:D) {
+        nqp::create(self)!SET-SELF($path, $SPEC, $*CWD.Str, False)
     }
-    multi method new(IO::Path: Cool $path, :$SPEC = $*SPEC, :$CWD = $*CWD) {
-        self.bless(:path($path.Str), :$SPEC, :CWD($CWD.Str));
+    multi method new(IO::Path: Str:D $path --> IO::Path:D) {
+        nqp::create(self)!SET-SELF($path, $*SPEC, $*CWD.Str, False)
+    }
+    multi method new(IO::Path:
+      Cool:D $path, IO::Spec :$SPEC = $*SPEC, :$CWD = $*CWD
+    --> IO::Path:D) {
+        nqp::create(self)!SET-SELF($path.Str, $SPEC, $CWD.Str, False)
     }
     multi method new(IO::Path:
       :$basename!,
       :$dirname  = '',
       :$volume   = '',
       :$SPEC     = $*SPEC,
-      Str() :$CWD = $*CWD,
+      :$CWD      = $*CWD,
     ) {
-        self.bless(:path($SPEC.join($volume,$dirname,$basename)),:$SPEC,:$CWD);
+        nqp::create(self)!SET-SELF(
+          $SPEC.join($volume,$dirname,$basename), $SPEC, $CWD.Str, False)
     }
     multi method new(IO::Path:) {
         die "Must specify something as a path: did you mean '.' for the current directory?";
@@ -183,23 +192,17 @@ my class IO::Path is Cool does IO {
 
     method sibling(IO::Path:D: Str() \sibling) {
         $_ := self.parts;
-        self.bless: :path($!SPEC.join: .<volume>, .<dirname>, sibling),
-            :$!SPEC, :$!CWD;
+        nqp::create(self)!SET-SELF(
+          $!SPEC.join(.<volume>, .<dirname>, sibling), $!SPEC, $!CWD, False)
     }
 
     method succ(IO::Path:D:) {
-        self.bless(
-          :path($!SPEC.join($.volume,$.dirname,$.basename.succ)),
-          :$!SPEC,
-          :$!CWD,
-        );
+        nqp::create(self)!SET-SELF(
+          $!SPEC.join($.volume,$.dirname,$.basename.succ), $!SPEC, $!CWD, False)
     }
     method pred(IO::Path:D:) {
-        self.bless(
-          :path($!SPEC.join($.volume,$.dirname,$.basename.pred)),
-          :$!SPEC,
-          :$!CWD,
-        );
+        nqp::create(self)!SET-SELF(
+          $!SPEC.join($.volume,$.dirname,$.basename.pred), $!SPEC, $!CWD, False)
     }
 
     multi method IO() { self }
@@ -229,7 +232,8 @@ my class IO::Path is Cool does IO {
     }
 
     method cleanup (IO::Path:D:) {
-        self.bless(:path($!SPEC.canonpath($!path)), :$!SPEC, :$!CWD);
+        nqp::create(self)!SET-SELF(
+          $!SPEC.canonpath($!path), $!SPEC, $!CWD, False)
     }
     method resolve (IO::Path:D: :$completely) {
         # XXXX: Not portable yet; assumes POSIX semantics
@@ -330,7 +334,8 @@ my class IO::Path is Cool does IO {
             }
         }
         $resolved = $volume ~ $sep if $resolved eq $volume;
-        IO::Path!new-from-absolute-path($resolved,$!SPEC,$volume ~ $sep);
+        nqp::create(self)!SET-SELF(
+          $resolved, $!SPEC, $volume ~ $sep, True);
     }
     proto method parent(|) {*}
     multi method parent(IO::Path:D: UInt:D $depth) {
@@ -343,42 +348,33 @@ my class IO::Path is Cool does IO {
         my $updir  := $!SPEC.updir;
 
         if self.is-absolute {
-            return self.bless(
-              :path($!SPEC.join($.volume, $.dirname, '')),
-              :$!SPEC,
-              :$!CWD,
-            );
+            nqp::create(self)!SET-SELF(
+              $!SPEC.join($.volume, $.dirname, ''), $!SPEC, $!CWD, False)
         }
         elsif $.dirname eq $curdir and $.basename eq $curdir {
-            return self.bless(
-              :path($!SPEC.join($.volume,$curdir,$updir)),
-              :$!SPEC,
-              :$!CWD,
-            );
+            nqp::create(self)!SET-SELF(
+              $!SPEC.join($.volume,$curdir,$updir), $!SPEC, $!CWD, False)
         }
         elsif $.dirname eq $curdir && $.basename eq $updir
            or !grep({$_ ne $updir}, $!SPEC.splitdir($.dirname)) {
-            return self.bless(    # If all updirs, then add one more
-              :path($!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$.basename)),
-              :$!SPEC,
-              :$!CWD,
-            );
+            nqp::create(self)!SET-SELF(    # If all updirs, then add one more
+              $!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$.basename),
+              $!SPEC, $!CWD, False)
         }
         else {
-            return self.bless(
-              :path($!SPEC.join($.volume, $.dirname, '')),
-              :$!SPEC,
-              :$!CWD,
-            );
+            nqp::create(self)!SET-SELF(
+              $!SPEC.join($.volume, $.dirname, ''), $!SPEC, $!CWD, False)
         }
     }
 
-    method child (IO::Path:D: Str() \child) {
-        self.bless: :path($!SPEC.join: '', $!path, child), :$!SPEC, :$!CWD
+    method child (IO::Path:D: \child) {
+        nqp::create(self)!SET-SELF(
+          $!SPEC.join('', $!path, child.Str), $!SPEC, $!CWD, False)
     }
 
-    method add (IO::Path:D: Str() \what) {
-        self.bless: :path($!SPEC.join: '', $!path, what), :$!SPEC, :$!CWD;
+    method add (IO::Path:D: \what) {
+        nqp::create(self)!SET-SELF(
+          $!SPEC.join('', $!path, what.Str), $!SPEC, $!CWD, False)
     }
 
     proto method chdir(|) {*}
@@ -411,7 +407,7 @@ my class IO::Path is Cool does IO {
             @dirs.push('') if !@dirs;  # need at least the rootdir
             $path = join($!SPEC.dir-sep, $volume, @dirs);
         }
-        my $dir = IO::Path!new-from-absolute-path($path,$!SPEC,self.Str);
+        my $dir = nqp::create(self)!SET-SELF($path, $!SPEC, $!path, True);
 
         nqp::stmts(
             nqp::unless(
@@ -557,9 +553,10 @@ my class IO::Path is Cool does IO {
             for <. ..> -> $elem {
                 $test.ACCEPTS($elem) && (
                   $absolute
-                    ?? take IO::Path!new-from-absolute-path(
-                        $abspath ~ $elem,$!SPEC,$!CWD)
-                    !! take IO::Path.new($path ~ $elem,:$!SPEC,:$!CWD)
+                    ?? take nqp::create(self)!SET-SELF(
+                         $abspath ~ $elem, $!SPEC, $!CWD, True)
+                    !! take nqp::create(self)!SET-SELF(
+                         $path ~ $elem, $!SPEC, $!CWD, False)
                 );
             }
 #?endif
@@ -570,10 +567,10 @@ my class IO::Path is Cool does IO {
                 $test.ACCEPTS($str-elem),
                 nqp::if(
                   $absolute,
-                  (take IO::Path!new-from-absolute-path(
-                    nqp::concat($abspath,$str-elem),$!SPEC,$!CWD)),
-                  (take IO::Path.new(
-                    nqp::concat($path,$str-elem),:$!SPEC,:$!CWD)),)));
+                  (take nqp::create(self)!SET-SELF(
+                    nqp::concat($abspath,$str-elem), $!SPEC, $!CWD, True)),
+                  (take nqp::create(self)!SET-SELF(
+                    nqp::concat($path,$str-elem), $!SPEC, $!CWD, False)),)));
             nqp::closedir($dirh);
           }
         }

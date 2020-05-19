@@ -30,6 +30,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my \POST-MATCH  := Match.^lookup("MATCH" );  # Match object
     my \POST-STR    := Match.^lookup("STR"   );  # Str object
 
+    multi method IO(Str:D:) { IO::Path.new(self) }
+
     multi method WHY('Life, the Universe and Everything': --> 42) { }
 
     multi method WHICH(Str:D: --> ValueObjAt:D) {

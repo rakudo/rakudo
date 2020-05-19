@@ -60,7 +60,11 @@ my class IO::Spec::Unix is IO::Spec {
     method dir-sep  {  '/' } # NOTE: IO::Path.resolve assumes dir sep is 1 char
     method curdir   {  '.' }
     method updir    { '..' }
-    method curupdir { none('.','..') }
+    method curupdir {
+        -> str $dir {
+            nqp::hllbool(nqp::isne_s($dir,'.') && nqp::isne_s($dir,'..'))
+        }
+    }
     method rootdir  { '/' }
     method devnull  { '/dev/null' }
 

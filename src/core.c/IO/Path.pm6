@@ -4,7 +4,7 @@ my class IO::Path is Cool does IO {
     has Str      $.path;  # the path as specified
     has $!is-absolute;    # Bool:D if we know $!path is an absolute path
     has $!abspath;        # the absolute path associated with path/SPEC/CWD
-    has %!parts;
+    has $!parts;          # nqp hash with volume/dirname/basename
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
@@ -25,9 +25,10 @@ my class IO::Path is Cool does IO {
         if absolute {
             $!is-absolute := True;
             $!abspath     := path;
+            $!parts       := nqp::null;
         }
         else {
-            $!is-absolute := $!abspath := nqp::null;
+            $!is-absolute := $!abspath := $!parts := nqp::null;
         }
 
         self
@@ -75,13 +76,19 @@ my class IO::Path is Cool does IO {
     }
 
     method parts {
-        %!parts || (%!parts := nqp::create(Map).STORE:
-          $!SPEC.split($!path), :INITIALIZE)
+        nqp::ifnull(
+          $!parts,
+          nqp::stmts(
+            (my %parts :=
+              nqp::create(Map).STORE($!SPEC.split($!path), :INITIALIZE)),
+            ($!parts := nqp::getattr(%parts,Map,'$!storage')),
+            %parts
+          )
+        )
     }
-    method volume(IO::Path:D:)   { %.parts<volume>   }
-    method dirname(IO::Path:D:)  { %.parts<dirname>  }
-    method basename(IO::Path:D:) { %.parts<basename> }
-
+    method volume(IO::Path:D:)   { nqp::atkey(self.parts,'volume')   }
+    method dirname(IO::Path:D:)  { nqp::atkey(self.parts,'dirname')  }
+    method basename(IO::Path:D:) { nqp::atkey(self.parts,'basename') }
 
     my sub EXTENSION-MK-EXTENSION (
         str $name, $no-ext, int $part-min, int $part-max = $part-min

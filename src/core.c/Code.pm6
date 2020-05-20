@@ -5,7 +5,9 @@ my class Code does Callable { # declared in BOOTSTRAP
     #     has @!compstuff;            # Place for the compiler to hang stuff
 
     multi method ACCEPTS(Code:D $self: Mu $topic is raw) {
-        $self.count ?? $self($topic) !! $self()
+        nqp::getattr($!signature,Signature,'$!count')
+          ?? $self($topic)
+          !! $self()
     }
 
     method is-implementation-detail(--> False) { }

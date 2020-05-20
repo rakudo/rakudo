@@ -1,30 +1,30 @@
   Build requirements (Installing from source)
-    For building Rakudo you need at least a C compiler, a "make" utility,
-    and Perl 5.10 or newer. To automatically obtain and build MoarVM
-    as well as NQP, you may also need a git client, which is also needed
-    for fetching the test suite.
 
-    Building rakudo can take up to 1G of memory when compiling for the
+    For building Rakudo you need at least a C compiler, a "make" utility, and
+    Perl 5.10.1 or newer on all platforms except Windows which needs Perl 5.22.
+    To automatically obtain and build MoarVM as well as NQP, you may also need a
+    git client, which is also needed for fetching the test suite.
+
+    Building rakudo can sometimes take >1.4G of memory when compiling for the 
     MoarVM runtime. The requirements are higher for the JVM backend.
 
-    (Perl is installed by default already). To enable parallel testing you
-    also need the CPAN module Test::Harness in version 3.16 or newer; you
-    can control the number of parallel jobs with the "TEST_JOBS" environment
-    variable. If TEST_JOBS is not specified, 6 jobs will be used.
+    (Perl is installed by default already). To enable parallel testing you also
+    need the CPAN module Test::Harness in version 3.16 or newer; you can control
+    the number of parallel jobs with the "TEST_JOBS" environment variable. If
+    TEST_JOBS is not specified, 6 jobs will be used.
 
   Building and invoking Rakudo
-    If you're wanting the bleeding-edge version of the Rakudo Perl 6
-    compiler, we recommend downloading Rakudo directly from Github
-    and building it from there.
+    If you're wanting the bleeding-edge version of the Rakudo Raku compiler,
+    we recommend downloading Rakudo directly from Github and building it from
+    there.
 
         $ git clone git://github.com/rakudo/rakudo.git
 
-    If you don't have git installed, you can get a tarball of Rakudo
-    from <http://rakudo.org/downloads/rakudo/>. Then unpack the
-    tarball.
+    If you don't have git installed, you can get a tarball of Rakudo from
+    <https://rakudo.org/downloads/rakudo/>. Then unpack the tarball.
 
-    If you already have cloned Rakudo from github, you can get (pull) the
-    most recent version from github like this:
+    If you already have cloned Rakudo from github, you can get (pull) the most
+    recent version from github like this:
 
         $ cd rakudo
         $ git pull
@@ -35,84 +35,71 @@
     or:
         $ perl Configure.pl --gen-nqp --backends=jvm  # needs JDK 1.8 installed
     then:
-        $ make
-
-    This will create a "perl6" or "perl6.exe" executable in the current
-    (rakudo) directory. Additionally, for each selected backend, there will
-    be a perl6-* binary. Note that if you have multiple (Perl 5) "perl"s in
-    your path, you may need to use a fully qualified path to the appropriate
-    executable (or update your PATH environment variable).
-
-    Programs can then be run from the build directory using a command like:
-
-        $ ./perl6 hello.pl
-
-    Simply running "perl6" will drop you into a REPL (read-eval-print-loop)
-    that you can use for exploratory programming:
-
-        $ ./perl6
-
-    If you would like readline-like features, such as command history, line
-    editing, and tab completion for builtins, you should install the Linenoise
-    module via zef:
-
-        $ zef install Linenoise
-
-    Important: To run Rakudo from outside the build directory, you must run
-
         $ make install
 
-    This will install the "perl6" (or "perl6.exe" binary on windows) into
-    the "install/bin" directory locally, no additional root
-    privileges necessary.
+    This will create a "install" directory with "install/bin/rakudo" or
+    "install\bin\rakudo.exe" executables. Additionally, for each selected
+    backend, there will be a rakudo-* binary. Also, there will be "raku" symlink
+    (a copy on Windows) to the last configured and installed "rakudo-*" backend
+    binary.
 
-    If you want to have perl6, nqp, and moar installed into a
-    different directory, you may supply --prefix= to Configure.pl.
+    Programs can then be run from the "install" directory using a command like:
 
-    The "--gen-moar" above option tells Configure.pl to automatically
-    download and build the most appropriate version of NQP and MoarVM
-    into local "nqp/" and "moar/" subdirectories, install NQP and MoarVM
-    into the "install/" subdirectory, and use them for building Rakudo.
-    It's okay to use the "--gen-moar" option on later invocations of
-    Configure.pl; the configure system will re-build NQP and/or MoarVM 
-    only if a newer version is needed for whatever version of Rakudo 
-    you're working with.
+        $ ./install/bin/rakudo hello.raku
+    or:
+        $ ./install/bin/raku hello.raku
 
-    If you already have MoarVM installed, you can use 
-    "--with-moar=/path/to/bin/moar" to use it instead of
-    building a new one.  This installed MoarVM must include its
-    development environment.  Similarly, if you already have NQP
-    installed, you can specify "--with-nqp=/path/to/bin/nqp"
-    to use it.  (Note that this must be NQP, not the NQP-rx that
-    comes with MoarVM.)
+    If you want to have rakudo, nqp, and moar installed into a different
+    directory, you may supply --prefix= to Configure.pl. For example, with:
 
-    The versions of any already installed NQP or MoarVM binaries must
-    satify a minimum specified by the Rakudo being built -- Configure.pl
-    and "make" will verify this for you.  Released versions of Rakudo
-    generally build against the latest release of MoarVM; checkouts of 
-    Rakudo's HEAD revision from Github often require a version of MoarVM
-    that is newer than the most recent MoarVM monthly release.
+        $ perl Configure.pl --gen-moar --gen-nqp --backends=moar --prefix=$HOME/raku
 
-    Once built, Rakudo's "make install" target will install Rakudo and its
-    libraries into the directories specified by the MoarVM installation
-    used to create it or whatever you specified with the --prefix flag.
-    Until this step is performed, the "perl6" executable created by "make"
-    above can only be reliably run from the root of Rakudo's build directory.
-    After "make install" is performed, the installed executable can be run
-    from any directory (as long as the MoarVM installation that
-    were used to create it remain intact).
+    all binaries will be found under $HOME/raku/bin:
 
-    If the Rakudo compiler is invoked without an explicit script to run, it
-    enters a small interactive mode that allows Perl 6 statements to be
-    executed from an interactive prompt.
+        $ $HOME/raku/bin/rakudo hello.raku
+
+    Simply running "rakudo" will drop you into a REPL (read-eval-print-loop)
+    that you can use for exploratory programming:
+
+        $ ./install/bin/rakudo
+
+    To find out the version and backend of the current binary one can use
+    --version command line argument:
+
+        $ ./install/bin/raku --version
 
     See the manual page ("docs/running.pod") for more about command-line
     options.
 
+    If you would like readline-like features in REPL, such as command history,
+    line editing, and tab completion for builtins, you should install the
+    Linenoise module via recommended Raku package manager zef:
+
+        $ zef install Linenoise
+
+    More information about zef itself and how to install it can be found at
+    <https://github.com/ugexe/zef>.
+
+    The "--gen-moar" above option tells Configure.pl to automatically download
+    and build the most appropriate version of NQP and MoarVM into local "nqp/"
+    and "nqp/MoarVM/" subdirectories, install NQP and MoarVM into the "install/"
+    subdirectory or into the one specified with "--prefix", and use them for
+    building Rakudo.  It's okay to use the "--gen-moar" option on later
+    invocations of Configure.pl; the configure system will re-build NQP and/or
+    MoarVM only if a newer version is needed for whatever version of Rakudo
+    you're working with.
+
+    The versions of any already installed NQP or MoarVM binaries must satisfy a
+    minimum specified by the Rakudo being built -- Configure.pl and "make" will
+    verify this for you.  Released versions of Rakudo generally build against
+    the latest release of MoarVM; checkouts of Rakudo's HEAD revision from
+    GitHub often require a version of MoarVM that is newer than the most recent
+    MoarVM monthly release.
+
    Build/install problems
-    Occasionally, there may be problems when building/installing Rakudo.
-    Make sure you have a backup of any custom changes you have done to the
-    source tree before performing the following steps:
+    Occasionally, there may be problems when building/installing Rakudo.  Make
+    sure you have a backup of any custom changes you have done to the source
+    tree before performing the following steps:
 
     Try to remove the "install/" subdirectory:
 
@@ -120,7 +107,7 @@
         $ rm -r install
         $ git pull
         $ perl Configure.pl --gen-moar --gen-nqp --backends=moar # for instance
-        $ make
+        $ make install
 
     Or, in case you are really stuck, start with a fresh source tree:
 
@@ -133,28 +120,30 @@
     Rakudo compiler is basically working and that it's capable of running a
     simple test harness.
 
-    Running "make spectest" will import the official Perl 6 test suite from
-    the "roast" repository <http://github.com/perl6/roast/> and run all
-    of these tests that are currently known to pass.
+    Running "make spectest" will import the official Raku test suite from the
+    "roast" repository <http://github.com/Raku/roast/> and run all of these
+    tests that are currently known to pass.
 
-    At present we do not have any plans to directly store the official test
-    suite as part of the Rakudo repository, but will continue to fetch it
-    from the roast repository.  Releases of Rakudo get a snapshot of
-    the roast repository as of the time of the release.
+    Roast is not planned and unlikely to ever be included into Rakudo 
+    distribution. Instead releases of Rakudo will fetch a snapshot of the roast 
+    repository as of the time of the release.
 
     You can also use "make" to run an individual test from the command line:
 
-        $ make t/spec/S29-str/ucfirst.t
-        t/spec/S29-str/ucfirst.rakudo ..
-        1..4
+        $ make t/spec/S32-str/tc.t
+        [...]
         ok 1 - simple
         ok 2 - empty string
-        ok 3 - # SKIP unicode
-        ok 4 - # SKIP unicode
-        # FUDGED!
+        ok 3 - umlaut
+        ok 4 - accented chars
+        ok 5 - sharp s => Ss
+        ok 6 - lj => Lj (in one character)
+        ok 7 - method form of title case
+        ok 8 - tc only modifies first character
+        ok 9 - tc works on codepoints greater than 0xffff
         ok
         All tests successful.
-        Files=1, Tests=4,  1 wallclock secs ( 0.02 usr  0.00 sys +  0.57 cusr  0.06 csys =  0.65 CPU)
+        Files=1, Tests=9,  0 wallclock secs [...]
         Result: PASS
 
     If you want to run the tests in parallel, you need to install a fairly

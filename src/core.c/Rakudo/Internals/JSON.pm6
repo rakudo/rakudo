@@ -426,8 +426,14 @@ my class Rakudo::Internals::JSON {
             $raw = $startcombiner ~ $raw
         }
         if not $has_treacherous and not $has_hexcodes and $escape_counts {
+#?if !jvm
             my str @a;
             my str @b;
+#?endif
+#?if jvm
+            my @a;
+            my @b;
+#?endif
             if nqp::existskey($escape_counts, "n") and nqp::existskey($escape_counts, "r") {
                 @a.push("\\r\\n"); @b.push("\r\n");
             }
@@ -454,7 +460,12 @@ my class Rakudo::Internals::JSON {
             $raw = $raw.subst(/ \\ (<-[uU]>) || [\\ (<[uU]>) (<[a..f 0..9 A..F]> ** 3)]+ %(<[a..f 0..9 A..F]>) (:m <[a..f 0..9 A..F]>) /,
                 -> $/ {
                     if $0.elems > 1 || $0.Str eq "u" || $0.Str eq "U" {
+#?if !jvm
                         my str @caps = $/.caps>>.value>>.Str;
+#?endif
+#?if jvm
+                        my @caps = $/.caps>>.value>>.Str;
+#?endif
                         my $result = $/;
                         my str $endpiece = "";
                         if my $lastchar = nqp::chr(nqp::ord(@caps.tail)) ne @caps.tail {

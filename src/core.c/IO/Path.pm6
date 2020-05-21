@@ -193,8 +193,8 @@ my class IO::Path is Cool does IO {
 
     method sibling(IO::Path:D: Str() \sibling) {
         $_ := self.parts;
-        nqp::create(self)!SET-SELF(
-          $!SPEC.join(.<volume>, .<dirname>, sibling), $!SPEC, $!CWD, False)
+        nqp::clone(self).cloned-with-path:
+          $!SPEC.join(.<volume>, .<dirname>, sibling)
     }
 
     method succ(IO::Path:D:) {

@@ -22,14 +22,8 @@ my class IO::Path is Cool does IO {
         $!SPEC := SPEC;
         $!CWD  := CWD;
 
-        if absolute {
-            $!is-absolute := True;
-            $!os-path     := path;
-            $!parts       := nqp::null;
-        }
-        else {
-            $!is-absolute := $!os-path := $!parts := nqp::null;
-        }
+        $!is-absolute := absolute ?? True !! nqp::null;
+        $!os-path := $!parts := nqp::null;
 
         self
     }

@@ -227,8 +227,7 @@ my class IO::Path is Cool does IO {
     }
 
     method cleanup (IO::Path:D:) {
-        nqp::create(self)!SET-SELF(
-          $!SPEC.canonpath($!path), $!SPEC, $!CWD, False)
+        nqp::clone(self).cloned-with-path($!SPEC.canonpath($!path))
     }
     method resolve (IO::Path:D: :$completely) {
         # XXXX: Not portable yet; assumes POSIX semantics

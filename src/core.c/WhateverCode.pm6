@@ -11,6 +11,10 @@ my class WhateverCode is Code {
         $self(|(nqp::if(nqp::isconcrete(list),list.elems,0) xx count))
       )
     }
+
+    multi method ACCEPTS(WhateverCode:D: \value) is raw {
+        nqp::call(nqp::getattr(self,Code,'$!do'),value)
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

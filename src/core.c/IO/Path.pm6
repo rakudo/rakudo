@@ -507,6 +507,7 @@ my class IO::Path is Cool does IO {
     # and reset the rest.  If the source object was an absolute path,
     # then the given path should also be an absolute path, and vice-versa.
     method cloned-with-path(Str:D $path) is implementation-detail {
+        X::IO::Null.new.throw if nqp::isne_i(nqp::index($path, "\0"), -1);
         $!path := $path;
         $!os-path := $!parts := nqp::null;
         self

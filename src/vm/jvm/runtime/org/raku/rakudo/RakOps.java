@@ -1,15 +1,15 @@
-package org.perl6.rakudo;
+package org.raku.rakudo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
-import org.perl6.nqp.runtime.*;
-import org.perl6.nqp.sixmodel.*;
-import org.perl6.nqp.sixmodel.reprs.CallCaptureInstance;
-import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
-import org.perl6.nqp.sixmodel.reprs.NativeRefInstance;
-import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
+import org.raku.nqp.runtime.*;
+import org.raku.nqp.sixmodel.*;
+import org.raku.nqp.sixmodel.reprs.CallCaptureInstance;
+import org.raku.nqp.sixmodel.reprs.ContextRefInstance;
+import org.raku.nqp.sixmodel.reprs.NativeRefInstance;
+import org.raku.nqp.sixmodel.reprs.VMArrayInstance;
 
 /**
  * Contains implementation of nqp:: ops specific to Rakudo

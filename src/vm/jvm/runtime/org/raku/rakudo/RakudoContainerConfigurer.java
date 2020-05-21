@@ -1,8 +1,8 @@
-package org.perl6.rakudo;
+package org.raku.rakudo;
 
-import org.perl6.nqp.runtime.ThreadContext;
-import org.perl6.nqp.runtime.*;
-import org.perl6.nqp.sixmodel.*;
+import org.raku.nqp.runtime.ThreadContext;
+import org.raku.nqp.runtime.*;
+import org.raku.nqp.sixmodel.*;
 
 public class RakudoContainerConfigurer extends ContainerConfigurer {
     /* Sets this container spec in place for the specified STable. */

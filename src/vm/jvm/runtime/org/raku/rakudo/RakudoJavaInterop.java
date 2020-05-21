@@ -1,12 +1,12 @@
-package org.perl6.rakudo;
+package org.raku.rakudo;
 
-import org.perl6.nqp.runtime.*;
-import org.perl6.nqp.sixmodel.STable;
-import org.perl6.nqp.sixmodel.SixModelObject;
-import org.perl6.nqp.sixmodel.StorageSpec;
-import org.perl6.nqp.sixmodel.reprs.P6Opaque;
-import org.perl6.nqp.sixmodel.reprs.JavaObjectWrapper;
-import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
+import org.raku.nqp.runtime.*;
+import org.raku.nqp.sixmodel.STable;
+import org.raku.nqp.sixmodel.SixModelObject;
+import org.raku.nqp.sixmodel.StorageSpec;
+import org.raku.nqp.sixmodel.reprs.P6Opaque;
+import org.raku.nqp.sixmodel.reprs.JavaObjectWrapper;
+import org.raku.nqp.sixmodel.reprs.VMArrayInstance;
 
 import java.net.URL;
 import java.net.MalformedURLException;
@@ -19,8 +19,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.ArrayList;
 
-import org.perl6.rakudo.RakOps;
-import org.perl6.rakudo.RakOps.GlobalExt;
+import org.raku.rakudo.RakOps;
+import org.raku.rakudo.RakOps.GlobalExt;
 
 import java.lang.invoke.*;
 
@@ -31,7 +31,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.InvocationTargetException;
 
-import org.perl6.nqp.sixmodel.reprs.NativeCall.ArgType;
+import org.raku.nqp.sixmodel.reprs.NativeCall.ArgType;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassVisitor;
@@ -387,7 +387,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
             try {
                 rfh = MethodHandles.lookup().findStatic(RakudoJavaInterop.class, "filterReturnValueMethod",
                     MethodType.fromMethodDescriptorString(
-                        "(Ljava/lang/Object;Lorg/perl6/nqp/runtime/ThreadContext;)Ljava/lang/Object;",
+                        "(Ljava/lang/Object;Lorg/raku/nqp/runtime/ThreadContext;)Ljava/lang/Object;",
                         tc.gc.byteClassLoader));
             } catch (NoSuchMethodException|IllegalAccessException nsme) {
                 throw ExceptionHandling.dieInternal(tc,
@@ -585,7 +585,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
             emitGetFromNQP(c, ix, storageForType(what));
             mv.visitVarInsn(Opcodes.ALOAD, c.tcLoc);
             mv.visitLdcInsn(Type.getType(what));
-            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "marshalOutRecursive",
+            mv.visitMethodInsn(Opcodes.INVOKESTATIC, "org/raku/rakudo/RakudoJavaInterop", "marshalOutRecursive",
                 Type.getMethodDescriptor(Type.getType(Object.class), TYPE_SMO, TYPE_TC, Type.getType(Class.class)));
         }
 
@@ -718,7 +718,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         MethodVisitor mv = mc.mv = cc.cv.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "qb_"+(cc.nextCallout++),
                 Type.getMethodDescriptor(Type.VOID_TYPE, TYPE_CU, TYPE_TC, TYPE_CR, TYPE_CSD, TYPE_AOBJ),
                 null, null);
-        AnnotationVisitor av = mv.visitAnnotation("Lorg/perl6/nqp/runtime/CodeRefAnnotation;", true);
+        AnnotationVisitor av = mv.visitAnnotation("Lorg/raku/nqp/runtime/CodeRefAnnotation;", true);
         av.visit("name", "callout "+cc.target.getName()+" "+desc);
         av.visitEnd();
         mv.visitCode();
@@ -729,11 +729,11 @@ public class RakudoJavaInterop extends BootJavaInterop {
         mc.cfLoc = 5;
         mc.tcLoc = 1;
 
-        mv.visitTypeInsn(Opcodes.NEW, "org/perl6/nqp/runtime/CallFrame");
+        mv.visitTypeInsn(Opcodes.NEW, "org/raku/nqp/runtime/CallFrame");
         mv.visitInsn(Opcodes.DUP);
         mv.visitVarInsn(Opcodes.ALOAD, 1); // tc
         mv.visitVarInsn(Opcodes.ALOAD, 2); // cr
-        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/perl6/nqp/runtime/CallFrame", "<init>", Type.getMethodDescriptor(Type.VOID_TYPE, TYPE_TC, TYPE_CR));
+        mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "org/raku/nqp/runtime/CallFrame", "<init>", Type.getMethodDescriptor(Type.VOID_TYPE, TYPE_TC, TYPE_CR));
         mv.visitVarInsn(Opcodes.ASTORE, 5); // cf;
 
         mv.visitLabel(mc.tryStart = new Label());
@@ -760,7 +760,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
 
         // what if this is the only static one?
         if (!Modifier.isStatic(mlist.get(0).getModifiers())) marshalOut(mc, mlist.get(0).getDeclaringClass(), 0);
-        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "multiBootstrap",
+        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/raku/rakudo/RakudoJavaInterop", "multiBootstrap",
                 "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;[Ljava/lang/Object;)" +
                 "Ljava/lang/invoke/CallSite;");
         Handle[] candhandles = new Handle[mlist.size()];
@@ -806,7 +806,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
         String className = Type.getInternalName(ks[0].getDeclaringClass());
         MethodContext mc = startVarArityCallout(cc, desc);
 
-        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/perl6/rakudo/RakudoJavaInterop", "constructorBootstrap",
+        Handle disphandle = new Handle(Opcodes.H_INVOKESTATIC, "org/raku/rakudo/RakudoJavaInterop", "constructorBootstrap",
                 "(Ljava/lang/invoke/MethodHandles$Lookup;Ljava/lang/String;Ljava/lang/invoke/MethodType;Ljava/lang/String;)" +
                 "Ljava/lang/invoke/CallSite;");
 
@@ -826,7 +826,7 @@ public class RakudoJavaInterop extends BootJavaInterop {
     @Override
     protected ClassContext createAdaptor(Class<?> target) {
         ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_MAXS | ClassWriter.COMPUTE_FRAMES);
-        String className = "org/perl6/nqp/generatedadaptor/"+target.getName().replace('.','/');
+        String className = "org/raku/nqp/generatedadaptor/"+target.getName().replace('.','/');
         cw.visit(Opcodes.V1_7, Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER, className, null, TYPE_CU.getInternalName(), null);
 
         cw.visitField(Opcodes.ACC_STATIC | Opcodes.ACC_PUBLIC, "constants", "[Ljava/lang/Object;", null, null).visitEnd();

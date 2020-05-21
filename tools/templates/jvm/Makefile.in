@@ -12,7 +12,7 @@ NQP_PREFIX  = @nqp_prefix@
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
 
-RUNTIME_JAVAS = @nfp(src/vm/jvm/runtime/org/perl6/rakudo/*.java)@
+RUNTIME_JAVAS = @nfp(src/vm/jvm/runtime/org/raku/rakudo/*.java)@
 RUNTIME_JAR = rakudo-runtime.jar
 
 @bpv(BAT)@    = @runner_suffix@

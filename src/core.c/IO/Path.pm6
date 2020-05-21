@@ -197,14 +197,8 @@ my class IO::Path is Cool does IO {
           $!SPEC.join(.<volume>, .<dirname>, sibling)
     }
 
-    method succ(IO::Path:D:) {
-        nqp::create(self)!SET-SELF(
-          $!SPEC.join($.volume,$.dirname,$.basename.succ), $!SPEC, $!CWD, False)
-    }
-    method pred(IO::Path:D:) {
-        nqp::create(self)!SET-SELF(
-          $!SPEC.join($.volume,$.dirname,$.basename.pred), $!SPEC, $!CWD, False)
-    }
+    method succ(IO::Path:D:) { nqp::clone(self).cloned-with-path($!path.succ) }
+    method pred(IO::Path:D:) { nqp::clone(self).cloned-with-path($!path.pred) }
 
     multi method IO() { self }
     method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }

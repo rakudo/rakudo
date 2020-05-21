@@ -63,6 +63,13 @@ my @clo := $comp.commandline_options();
 @clo.push('I=s');
 @clo.push('M=s');
 @clo.push('nqp-lib=s');
+# Do we need to declare an option in all cases?
+# No, at least not for the implementation of additional
+# args for, e.g., '--doc=Text|HTML,auth-fmt'.
+# See files:
+#   src/Perl6/Compiler.nqp
+#   src/Perl6/Grammar.nqp
+#@clo.push('auth-fmt=s'); # Trying to fake a valid option without it being a "normal" option
 
 #?if js
 @clo.push('beautify');

@@ -476,6 +476,7 @@ role STD {
 }
 
 grammar Perl6::Grammar is HLL::Grammar does STD {
+
     #================================================================
     # AMBIENT AND POD-COMMON CODE HANDLERS
     #================================================================
@@ -805,7 +806,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARATOR_DOCS;
         :my $*PRECEDING_DECL; # for #= comments
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
-        :my $*keep-decl := nqp::existskey(nqp::getenvhash(), 'RAKUDO_POD_DECL_BLOCK_USER_FORMAT');
+        # Note: Implementation of the 'auth-fmt' arg to Rakudo option '--doc'
+        #       illustrates another use of compiler options to affect
+        #       grammar actions.
+        :my $*keep-decl := nqp::existskey(nqp::getenvhash(), 'RAKUDO_POD_DECL_BLOCK_USER_FORMAT')
+                        || nqp::existskey(%*COMPILING<%?OPTIONS>, 'auth-fmt');
 
         # TODO use these vars to implement S26 pod data block handling
         :my $*DATA-BLOCKS := [];
@@ -4894,7 +4899,8 @@ if $*COMPILING_CORE_SETTING {
     }
 
     method attach_leading_docs() {
-        # TODO allow some limited text layout here
+        # We now allow some limited text layout here via
+        # an environment variable or a compiler option.
         if ~$*DOC ne '' {
             my $cont;
             if $*keep-decl {

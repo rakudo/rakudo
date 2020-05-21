@@ -49,9 +49,65 @@ class Perl6::Compiler is HLL::Compiler {
     }
 
     method command_eval(*@args, *%options) {
-        if nqp::existskey(%options, 'doc') && !%options<doc> {
-            %options<doc> := 'Text';
-        }
+        # Implementing 'fmt' option with '--doc='.
+        # Check for additional args tacked on to it.
+        if nqp::existskey(%options, 'doc') {
+            if !%options<doc> {
+                # currently this the default handler
+                %options<doc> := 'Text';
+            }
+            else {
+                # check actual values
+                my $f := nqp::atkey(%options,'doc');
+                # could have a combined string joined by a comma
+                unless nqp::isstr($f) {
+                    nqp::die("FATAL: non-string value type for option '--doc='");
+                }
+
+                # string splitting doesn't seem to work, nor does getting substrings,
+                # trying brute force regexing
+                if $f ~~ /','/ {
+                    if    $f ~~ /^'auth-fmt,Text'$/ {
+                        %options<doc> := 'Text';
+                    }
+                    elsif $f ~~ /^'Text,auth-fmt'$/ {
+                        %options<doc> := 'Text';
+                    }
+                    elsif $f ~~ /^'auth-fmt,HTML'$/ {
+                        %options<doc> := 'HTML';
+                    }
+                    elsif $f ~~ /^'HTML,auth-fmt'$/ {
+                        %options<doc> := 'HTML';
+                    }
+                    else {
+                        nqp::die("FATAL: invalid value for option '--doc=': $f");
+                    }
+
+                    # turn on the internal flag so it can be seen from Grammar
+                    %options<auth-fmt> := 1;
+                }
+
+                # Now check for known module types (%options may have changed
+                # with a combined string):
+                my $m := %options<doc>;
+                if nqp::iseq_s($m,'Text') {
+                    0; # ok
+                }
+                elsif nqp::iseq_s($m,'HTML') {
+                    0; # ok
+                }
+                elsif nqp::iseq_s($m,'auth-fmt') {
+                    # turn on the internal flag so it can be seen from Grammar
+                    %options<auth-fmt> := 1;
+                    # turn off doc format??
+                    # for now set it to Text
+                    %options<doc> := 'Text';
+                }
+                else {
+                    nqp::die("FATAL: Unknown '--doc=' arg '$m'");
+                }
+            }
+        } # end of block for existing key %options<doc>
 
         my $argiter := nqp::iterator(@args);
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
@@ -145,6 +201,8 @@ and, by default, also executes the compiled code.
 
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   --doc                extract documentation and print it as text
+  --doc=auth-fmt       author formatting of text from leading declarator
+                       blocks is retained
   -e program           one line of program, strict is enabled by default
   -h, --help           display this help text
   -n                   run program once for each line of input
@@ -158,7 +216,9 @@ and, by default, also executes the compiled code.
   -V                   print configuration summary
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
-  --doc=module         use Pod::To::[module] to render inline documentation
+  --doc=module         use Pod::To::[module] to render inline documentation;
+                       append ',auth-fmt' to the module name to retain
+                       author formatting in leading declarator blocks
   --repl-mode=interactive|non-interactive
                        when running without "-e" or filename arguments,
                        a REPL is started. By default, if STDIN is a TTY,

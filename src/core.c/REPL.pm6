@@ -400,12 +400,13 @@ do {
         }
 
         method repl-print(Mu $value --> Nil) {
-            nqp::can($value, 'gist')
-              and say $value
+            my $method := %*ENV<RAKU_REPL_OUTPUT_METHOD> // "gist";
+            nqp::can($value,$method)
+              and say $value."$method"()
               or say "(low-level object `$value.^name()`)";
 
             CATCH {
-                default { say $_ }
+                default { say ."$method"() }
             }
         }
 

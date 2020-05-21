@@ -341,24 +341,14 @@ my class IO::Path is Cool does IO {
         my $curdir := $!SPEC.curdir;
         my $updir  := $!SPEC.updir;
 
-        if self.is-absolute {
-            nqp::create(self)!SET-SELF(
-              $!SPEC.join($.volume, $.dirname, ''), $!SPEC, $!CWD, False)
-        }
-        elsif $.dirname eq $curdir and $.basename eq $curdir {
-            nqp::create(self)!SET-SELF(
-              $!SPEC.join($.volume,$curdir,$updir), $!SPEC, $!CWD, False)
-        }
-        elsif $.dirname eq $curdir && $.basename eq $updir
-           or !grep({$_ ne $updir}, $!SPEC.splitdir($.dirname)) {
-            nqp::create(self)!SET-SELF(    # If all updirs, then add one more
-              $!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$.basename),
-              $!SPEC, $!CWD, False)
-        }
-        else {
-            nqp::create(self)!SET-SELF(
-              $!SPEC.join($.volume, $.dirname, ''), $!SPEC, $!CWD, False)
-        }
+        nqp::clone(self).cloned-with-path: self.is-absolute
+          ?? $!SPEC.join($.volume, $.dirname, '')
+          !! $.dirname eq $curdir && $.basename eq $curdir
+            ?? $!SPEC.join($.volume,$curdir,$updir)
+            !! ($.dirname eq $curdir && $.basename eq $updir)
+                 || !$!SPEC.splitdir($.dirname).first(* ne $updir)
+              ?? $!SPEC.join($.volume,$!SPEC.catdir($.dirname,$updir),$.basename)
+              !! $!SPEC.join($.volume, $.dirname, '')
     }
 
     method child (IO::Path:D: \child) {

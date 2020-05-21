@@ -3,7 +3,7 @@ my class IO::Path is Cool does IO {
     has Str      $.CWD;   # the associated CWD
     has Str      $.path;  # the path as specified
     has $!is-absolute;    # Bool:D if we know $!path is an absolute path
-    has $!abspath;        # the absolute path associated with path/SPEC/CWD
+    has $!os-path;        # the absolute path associated with path/SPEC/CWD
     has $!parts;          # nqp hash with volume/dirname/basename
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
@@ -24,11 +24,11 @@ my class IO::Path is Cool does IO {
 
         if absolute {
             $!is-absolute := True;
-            $!abspath     := path;
+            $!os-path     := path;
             $!parts       := nqp::null;
         }
         else {
-            $!is-absolute := $!abspath := $!parts := nqp::null;
+            $!is-absolute := $!os-path := $!parts := nqp::null;
         }
 
         self
@@ -224,13 +224,13 @@ my class IO::Path is Cool does IO {
     proto method absolute(|) {*}
     multi method absolute (IO::Path:D: --> Str:D) {
         nqp::ifnull(
-          $!abspath,
-          $!abspath := $!SPEC.rel2abs($!path,$!CWD)
+          $!os-path,
+          $!os-path := $!SPEC.rel2abs($!path,$!CWD)
         )
     }
     multi method absolute (IO::Path:D: $CWD --> Str:D) {
         $!is-absolute
-          ?? $!abspath
+          ?? $!os-path
           !! $!SPEC.rel2abs($!path, $CWD)  # do *not* set because different CWD
     }
 
@@ -448,7 +448,7 @@ my class IO::Path is Cool does IO {
         nqp::rename($.absolute, nqp::unbox_s($to.absolute));
         CATCH { default {
             fail X::IO::Rename.new:
-                :from($!abspath), :to($to.absolute), :os-error(.Str);
+                :from($!os-path), :to($to.absolute), :os-error(.Str);
         }}
     }
 
@@ -469,7 +469,7 @@ my class IO::Path is Cool does IO {
 
         CATCH { default {
             fail X::IO::Copy.new:
-                :from($!abspath), :to($to.absolute), :os-error(.Str)
+                :from($!os-path), :to($to.absolute), :os-error(.Str)
         }}
     }
 
@@ -484,13 +484,13 @@ my class IO::Path is Cool does IO {
         nqp::chmod($.absolute, nqp::unbox_i($mode));
         CATCH { default {
             fail X::IO::Chmod.new(
-              :path($!abspath), :$mode, :os-error(.Str) );
+              :path($!os-path), :$mode, :os-error(.Str) );
         }}
     }
     method unlink(IO::Path:D: --> True) {
         nqp::unlink($.absolute);
         CATCH { default {
-            fail X::IO::Unlink.new( :path($!abspath), os-error => .Str );
+            fail X::IO::Unlink.new( :path($!os-path), os-error => .Str );
         }}
     }
 
@@ -498,7 +498,7 @@ my class IO::Path is Cool does IO {
         nqp::symlink($.absolute, nqp::unbox_s($name.absolute));
         CATCH { default {
             fail X::IO::Symlink.new:
-                :target($!abspath), :name($name.absolute), :os-error(.Str);
+                :target($!os-path), :name($name.absolute), :os-error(.Str);
         }}
     }
 
@@ -506,14 +506,14 @@ my class IO::Path is Cool does IO {
         nqp::link($.absolute, $name.absolute);
         CATCH { default {
             fail X::IO::Link.new:
-                :target($!abspath), :name($name.absolute), :os-error(.Str);
+                :target($!os-path), :name($name.absolute), :os-error(.Str);
         }}
     }
 
     method mkdir(IO::Path:D: Int() $mode = 0o777) {
         nqp::mkdir($.absolute, $mode);
         CATCH { default {
-            fail X::IO::Mkdir.new(:path($!abspath), :$mode, os-error => .Str);
+            fail X::IO::Mkdir.new(:path($!os-path), :$mode, os-error => .Str);
         }}
         self
     }
@@ -521,7 +521,7 @@ my class IO::Path is Cool does IO {
     method rmdir(IO::Path:D: --> True) {
         nqp::rmdir($.absolute);
         CATCH { default {
-            fail X::IO::Rmdir.new(:path($!abspath), os-error => .Str);
+            fail X::IO::Rmdir.new(:path($!os-path), os-error => .Str);
         }}
     }
 
@@ -691,9 +691,9 @@ my class IO::Path is Cool does IO {
         spurt-blob(self.absolute, $append ?? 'wa' !! 'w', data)
     }
     multi method spurt(IO::Path:D: Blob:D \data, :$createonly! --> Bool:D) {
-        nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!abspath
-          ?? Failure.new("Failed to open file $!abspath: File exists")
-          !! spurt-blob($!abspath, 'w', data)
+        nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!os-path
+          ?? Failure.new("Failed to open file $!os-path: File exists")
+          !! spurt-blob($!os-path, 'w', data)
     }
     multi method spurt(IO::Path:D: Blob:D \data --> Bool:D) {
         spurt-blob(self.absolute, 'w', data)
@@ -702,9 +702,9 @@ my class IO::Path is Cool does IO {
         spurt-string(self.absolute, $append ?? 'wa' !! 'w', text.Str, $enc)
     }
     multi method spurt(IO::Path:D: \text, :$createonly!, :$enc --> Bool:D) {
-        nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!abspath
-          ?? Failure.new("Failed to open file $!abspath: File exists")
-          !! spurt-string($!abspath, 'w', text.Str, $enc)
+        nqp::stat(self.absolute,nqp::const::STAT_EXISTS)  # sets $!os-path
+          ?? Failure.new("Failed to open file $!os-path: File exists")
+          !! spurt-string($!os-path, 'w', text.Str, $enc)
     }
     multi method spurt(IO::Path:D: \text, :$enc --> Bool:D) {
         spurt-string(self.absolute, 'w', text.Str, $enc)
@@ -736,93 +736,93 @@ my class IO::Path is Cool does IO {
     method !does-not-exist(
       Str:D $trying
     --> Failure) is hidden-from-backtrace {
-        Failure.new(X::IO::DoesNotExist.new(:path($!abspath),:$trying))
+        Failure.new(X::IO::DoesNotExist.new(:path($!os-path),:$trying))
     } 
 
     method e(IO::Path:D: --> Bool:D) {
         nqp::hllbool(Rakudo::Internals.FILETEST-E(self.absolute))
     }
     method d(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-D($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-D($!os-path))
           !! self!does-not-exist("d")
     }
 
     method f(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-F($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-F($!os-path))
           !! self!does-not-exist("f")
     }
 
     method s(IO::Path:D: --> Int:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? Rakudo::Internals.FILETEST-S($!abspath)
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Rakudo::Internals.FILETEST-S($!os-path)
           !! self!does-not-exist("s")
     }
 
     method l(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-LE(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-L($!abspath))
+        Rakudo::Internals.FILETEST-LE(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-L($!os-path))
           !! self!does-not-exist("l")
     }
 
     method r(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-R($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-R($!os-path))
           !! self!does-not-exist("r")
     }
 
     method w(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-W($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-W($!os-path))
           !! self!does-not-exist("w")
     }
 
     method rw(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-RW($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-RW($!os-path))
           !! self!does-not-exist("rw")
     }
 
     method x(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-X($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-X($!os-path))
           !! self!does-not-exist("x")
     }
 
     method rwx(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-RWX($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-RWX($!os-path))
           !! self!does-not-exist("rwx")
     }
 
     method z(IO::Path:D: --> Bool:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? nqp::hllbool(Rakudo::Internals.FILETEST-Z($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? nqp::hllbool(Rakudo::Internals.FILETEST-Z($!os-path))
           !! self!does-not-exist("z")
     }
 
     method modified(IO::Path:D: --> Instant:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-MODIFIED($!os-path))
           !! self!does-not-exist("modified")
     }
 
     method accessed(IO::Path:D: --> Instant:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-ACCESSED($!os-path))
           !! self!does-not-exist("accessed")
     }
 
     method changed(IO::Path:D: --> Instant:D) {
-        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!abspath
-          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!abspath))
+        Rakudo::Internals.FILETEST-E(self.absolute)  # sets $!os-path
+          ?? Instant.from-posix(Rakudo::Internals.FILETEST-CHANGED($!os-path))
           !! self!does-not-exist("changed")
     }
 
     method mode(IO::Path:D: --> IntStr:D) {
-        if Rakudo::Internals.FILETEST-E(self.absolute) {  # sets $!abspath
-            my Int $mode := Rakudo::Internals.FILETEST-MODE($!abspath);
+        if Rakudo::Internals.FILETEST-E(self.absolute) {  # sets $!os-path
+            my Int $mode := Rakudo::Internals.FILETEST-MODE($!os-path);
             my str $str   = nqp::base_I($mode,8);
             IntStr.new( 
               $mode,

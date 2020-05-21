@@ -352,8 +352,8 @@ my class IO::Path is Cool does IO {
     }
 
     method child (IO::Path:D: \child) {
-        nqp::create(self)!SET-SELF(
-          $!SPEC.join('', $!path, child.Str), $!SPEC, $!CWD, False)
+        nqp::clone(self).cloned-with-path:
+          $!SPEC.join('', $!path, child.Str)
     }
 
     method add (IO::Path:D: \what) {

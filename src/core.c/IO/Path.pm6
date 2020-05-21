@@ -519,62 +519,44 @@ my class IO::Path is Cool does IO {
         }}
     }
 
+
+    # Call with cloned object, update path, keep "is-absolute" setting
+    # and reset the rest.  If the source object was an absolute path,
+    # then the given path should also be an absolute path, and vice-versa.
+    method cloned-with-path(Str:D $path) is implementation-detail {
+        $!path := $path;
+        $!os-path := $!parts := nqp::null;
+        self
+    }
+
+    # create prefix to be added to each directory entry
+    method prefix-for-dir() is implementation-detail {
+        my str $dir-sep = $!SPEC.dir-sep;
+        nqp::iseq_s($!path,'.') || nqp::iseq_s($!path,$dir-sep)
+          ?? ''
+          !! $!path.ends-with($dir-sep)
+            ?? $!path
+            !! nqp::concat($!path,$dir-sep)
+    }
+
     proto method dir(|) {*} # make it possible to augment with multies from modulespace
-    multi method dir(IO::Path:D: Mu :$test = $*SPEC.curupdir) {
+    multi method dir(IO::Path:D: Mu :$test!) {
         CATCH { default {
-            X::IO::Dir.new(:path($.absolute), :os-error(.Str)).throw
+            X::IO::Dir.new(:path(self.absolute), :os-error(.Str)).throw
         } }
 
-        my str $dir-sep  = $!SPEC.dir-sep;
-        my int $absolute = $.is-absolute;
+        Seq.new: Rakudo::Iterator.Dir(self, $test)
+    }
 
-        my str $abspath;
-        $absolute && nqp::unless( # calculate $abspath only when we'll need it
-            nqp::eqat(($abspath = $.absolute), $dir-sep,
-                nqp::sub_i(nqp::chars($abspath), 1)),
-            ($abspath = nqp::concat($abspath, $dir-sep)));
+    multi method dir(IO::Path:D:) {
+        CATCH { default {
+            X::IO::Dir.new(:path(self.absolute), :os-error(.Str)).throw
+        } }
 
-        my str $path = nqp::iseq_s($!path, '.') || nqp::iseq_s($!path, $dir-sep)
-          ?? ''
-          !! nqp::eqat($!path, $dir-sep, nqp::sub_i(nqp::chars($!path), 1))
-            ?? $!path
-            !! nqp::concat($!path, $dir-sep);
-
-        my Mu $dirh := nqp::opendir(nqp::unbox_s($.absolute));
-        gather {
-          # set $*CWD inside gather for $test.ACCEPTS to use correct
-          # $*CWD the user gave us, instead of whatever $*CWD is
-          # when the gather is actually evaluated. We use a temp var
-          # so that .IO coercer doesn't use the nulled `$*CWD` for
-          # $!CWD attribute and we don't use `temp` for this, because
-          # it's about 2x slower than using a temp var.
-          my $cwd = $!CWD.IO;
-          { my $*CWD = $cwd;
-#?if jvm
-            for <. ..> -> $elem {
-                $test.ACCEPTS($elem) && (
-                  $absolute
-                    ?? take nqp::create(self)!SET-SELF(
-                         $abspath ~ $elem, $!SPEC, $!CWD, True)
-                    !! take nqp::create(self)!SET-SELF(
-                         $path ~ $elem, $!SPEC, $!CWD, False)
-                );
-            }
-#?endif
-            nqp::until(
-              nqp::isnull_s(my str $str-elem = nqp::nextfiledir($dirh))
-                || nqp::iseq_i(nqp::chars($str-elem),0),
-              nqp::if(
-                $test.ACCEPTS($str-elem),
-                nqp::if(
-                  $absolute,
-                  (take nqp::create(self)!SET-SELF(
-                    nqp::concat($abspath,$str-elem), $!SPEC, $!CWD, True)),
-                  (take nqp::create(self)!SET-SELF(
-                    nqp::concat($path,$str-elem), $!SPEC, $!CWD, False)),)));
-            nqp::closedir($dirh);
-          }
-        }
+        # if default tester is system default, use implicit no . .. iterator
+        Seq.new: nqp::eqaddr($!SPEC.curupdir,IO::Spec::Unix.curupdir)
+          ?? Rakudo::Iterator.Dir(self)
+          !! Rakudo::Iterator.Dir(self, $!SPEC.curupdir)
     }
 
     # slurp STDIN in binary mode

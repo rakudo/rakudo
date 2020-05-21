@@ -1481,13 +1481,172 @@ class Rakudo::Iterator {
         CStyleLoop.new(&body, &cond, &afterwards, $label)
     }
 
-    my role DelegateCountOnly[\iter] does PredictiveIterator {
-        method count-only(--> Int:D) { iter.count-only }
+    # Returns an iterator for iterating file system directories, producing
+    # IO::Path objects for a directory entry if it smart matches the given
+    # tester.  Takes an IO::Path object and a prefix to be added to each
+    # director entry produced.
+    class DirTest does Iterator {
+        has Mu  $!path;      # IO::Path object to do dir for
+        has str $!prefix;    # string to prefix to elements found
+        has Mu  $!CWD;       # IO::Path object for $*CWD when testing
+        has Mu  $!tester;    # object to call .ACCEPTS on to accept entry
+        has Mu  $!dirhandle; # low level directory handle
+#?if jvm
+        has $!dots;  # JVM doesnt produce "." and "..", so we need to fake them
+#?endif
+
+        method !SET-SELF(\path, \tester) {
+            $!path      := path;
+            $!prefix     = path.prefix-for-dir;
+            $!CWD       := path.CWD.IO;
+            $!tester    := tester;
+            $!dirhandle := nqp::opendir(path.absolute);
+#?if jvm
+            $!dots   := nqp::list_s(".","..");
+#?endif
+
+            self
+        }
+
+        method new(\path, \tester) { nqp::create(self)!SET-SELF(path, tester) }
+
+        method pull-one() {
+            my str $entry;
+            my $*CWD := $!CWD;
+
+            nqp::while(
+#?if jvm
+              ($entry = nqp::if(
+                nqp::elems($!dots),
+                nqp::shift($!dots),
+                nqp::nextfiledir($!dirhandle)
+              )),
+#?endif
+#?if !jvm
+              ($entry = nqp::nextfiledir($!dirhandle)),
+#?endif
+              nqp::if(
+                $!tester.ACCEPTS($entry),
+                return nqp::clone(
+                  $!path
+                ).cloned-with-path(nqp::concat($!prefix,$entry))
+              )
+            );
+
+            IterationEnd
+        }
+
+        method push-all(\target --> IterationEnd) {
+#?if jvm
+            my $dots      := $!dots;
+#?endif
+            my $path      := $!path;
+            my str $prefix = $!prefix;
+            my $tester    := $!tester;
+            my $dirhandle := $!dirhandle;
+            my str $entry;
+
+            my $*CWD := $!CWD;
+            nqp::while(
+#?if jvm
+              ($entry = nqp::if(
+                nqp::elems($dots),
+                nqp::shift($dots),
+                nqp::nextfiledir($dirhandle)
+              )),
+#?endif
+#?if !jvm
+              ($entry = nqp::nextfiledir($dirhandle)),
+#?endif
+              nqp::if(
+                $tester.ACCEPTS($entry),
+                target.push: nqp::clone(
+                  $path
+                ).cloned-with-path(nqp::concat($prefix,$entry))
+              )
+            );
+
+            nqp::closedir($dirhandle);
+        }
     }
+
+    # Returns an iterator for iterating file system directories, producing
+    # IO::Path objects for *each* directory entry found (except "." and "..").
+    # Takes an IO::Path and a prefix to be added to each directory entry
+    # produced.
+    class Dir does Iterator {
+        has Mu  $!path;      # IO::Path object to do dir for
+        has str $!prefix;    # string to prefix to elements found
+        has Mu  $!dirhandle; # low level directory handle
+
+        method !SET-SELF(\path) {
+            $!path  := path;
+            $!prefix = path.prefix-for-dir;
+
+#?if !jvm
+            my $dirhandle := nqp::opendir(path.absolute);
+            # skipping . and .. worked, JVM never produces them
+            if nqp::iseq_s(nqp::nextfiledir($dirhandle),'.')
+              && nqp::iseq_s(nqp::nextfiledir($dirhandle),'..') {
+                $!dirhandle  := $dirhandle;
+#?endif
+#?if jvm
+                $!dirhandle := nqp::opendir(path.absolute);
+#?endif
+
+                self
+#?if !jvm
+            }
+
+            # strange, no '.' or '..' at start, run with tester
+            else {
+                DirTest.new(
+                  path,
+                  -> str $d { nqp::isne_s($d,'.') && nqp::isne_s($d,'..') },
+                )
+            }
+#?endif
+        }
+
+        method new(\path) { nqp::create(self)!SET-SELF(path) }
+
+        method pull-one() {
+            nqp::if(
+              (my str $entry = nqp::nextfiledir($!dirhandle)),
+              nqp::clone($!path).cloned-with-path(nqp::concat($!prefix,$entry)),
+              nqp::stmts(
+                nqp::closedir($!dirhandle),
+                IterationEnd
+              )
+            )
+        }
+
+        method push-all(\target --> IterationEnd) {
+            my $path      := $!path;
+            my str $prefix = $!prefix;
+            my $dirhandle := $!dirhandle;
+            my str $entry;
+
+            nqp::while(
+              ($entry = nqp::nextfiledir($dirhandle)),
+              target.push:
+                nqp::clone($path).cloned-with-path(nqp::concat($prefix,$entry))
+            );
+
+            nqp::closedir($dirhandle);
+        }
+    }
+
+    proto method Dir(|) {*}
+    multi method Dir(IO::Path:D \path)          {     Dir.new(path)         }
+    multi method Dir(IO::Path:D \path, \tester) { DirTest.new(path, tester) }
 
     # Takes two iterators and mixes in a role into the second iterator that
     # delegates .count-only method to the first iterator if the first is a
     # PredictiveIterator
+    my role DelegateCountOnly[\iter] does PredictiveIterator {
+        method count-only(--> Int:D) { iter.count-only }
+    }
     method delegate-iterator-opt-methods (Iterator:D \a, Iterator:D \b) {
         nqp::istype(a,PredictiveIterator)
           ?? b.^mixin(DelegateCountOnly[a])

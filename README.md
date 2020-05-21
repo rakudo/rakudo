@@ -76,8 +76,8 @@ Configure.pl.
 
 ### Configuring Rakudo to run on the JVM
 
-Note that to run Rakudo on JVM, JDK 1.8 must be installed. To automatically
-download, build, and install a fresh NQP, run:
+Note that to run Rakudo on JVM, JDK 1.9 or higher must be installed.
+To automatically download, build, and install a fresh NQP, run:
 
     $ perl Configure.pl --gen-nqp --backends=jvm
 

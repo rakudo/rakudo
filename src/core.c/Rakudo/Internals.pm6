@@ -1284,98 +1284,60 @@ implementation detail and has no serviceable parts inside"
         Seq.new(DirRecurse.new(abspath,$dir,$file))
     }
 
-    method FILETEST-E(Str:D \abspath) {
-        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+    method FILETEST-E(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_EXISTS)
     }
-    method FILETEST-LE(Str:D \abspath) {
-        nqp::lstat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+    method FILETEST-LE(str \abspath) is raw {
+        nqp::lstat(abspath,nqp::const::STAT_EXISTS)
     }
-    method FILETEST-D(Str:D \abspath) {
-        my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
-        nqp::isge_i($d,0)
-          ?? $d
-          !! X::IO::Unknown.new(:trying<d>).throw
+    method FILETEST-D(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_ISDIR);
     }
-    method FILETEST-F(Str:D \abspath) {
-        my int $f = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG);
-        nqp::isge_i($f,0)
-          ?? $f
-          !! X::IO::Unknown.new(:trying<f>).throw
+    method FILETEST-F(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_ISREG);
     }
-    method FILETEST-S(Str:D \abspath) {
-        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
+    method FILETEST-S(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_FILESIZE)
     }
-    method FILETEST-ES(Str:D \abspath) {
-        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
-          && nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
+    method FILETEST-ES(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_EXISTS)
+          && nqp::stat(abspath,nqp::const::STAT_FILESIZE)
     }
-    method FILETEST-L(Str:D \abspath) {
-        my int $l = nqp::fileislink(nqp::unbox_s(abspath));
-        nqp::isge_i($l,0)
-          ?? $l
-          !! X::IO::Unknown.new(:trying<l>).throw
+    method FILETEST-L(str \abspath) is raw {
+        nqp::fileislink(abspath)
     }
-    method FILETEST-R(Str:D \abspath) {
-        my int $r = nqp::filereadable(nqp::unbox_s(abspath));
-        nqp::isge_i($r,0)
-          ?? $r
-          !! X::IO::Unknown.new(:trying<r>).throw
+    method FILETEST-R(str \abspath) is raw {
+        nqp::filereadable(abspath)
     }
-    method FILETEST-W(Str:D \abspath) {
-        my int $w = nqp::filewritable(nqp::unbox_s(abspath));
-        nqp::isge_i($w,0)
-          ?? $w
-          !! X::IO::Unknown.new(:trying<w>).throw
+    method FILETEST-W(str \abspath) is raw {
+        nqp::filewritable(abspath)
     }
-    method FILETEST-RW(Str:D \abspath) {
-        my str $abspath = nqp::unbox_s(abspath);
-        my int $r = nqp::filereadable($abspath);
-        my int $w = nqp::filewritable($abspath);
-        nqp::isge_i($r,0)
-          ?? nqp::isge_i($w,0)
-            ?? nqp::bitand_i($r,$w)
-            !! X::IO::Unknown.new(:trying<w>).throw
-          !! X::IO::Unknown.new(:trying<r>).throw
+    method FILETEST-RW(str \abspath) is raw {
+        nqp::filereadable(abspath) && nqp::filewritable(abspath)
     }
-    method FILETEST-X(Str:D \abspath) {
-        my int $x = nqp::fileexecutable(nqp::unbox_s(abspath));
-        nqp::isge_i($x,0)
-          ?? $x
-          !! X::IO::Unknown.new(:trying<x>).throw
+    method FILETEST-X(str \abspath) is raw {
+        nqp::fileexecutable(abspath)
     }
-    method FILETEST-RWX(Str:D \abspath) {
-        my str $abspath = nqp::unbox_s(abspath);
-        my int $r = nqp::filereadable($abspath);
-        my int $w = nqp::filewritable($abspath);
-        my int $x = nqp::fileexecutable($abspath);
-        nqp::isge_i($r,0)
-          ?? nqp::isge_i($w,0)
-            ?? nqp::isge_i($x,0)
-              ?? nqp::bitand_i(nqp::bitand_i($r,$w),$x)
-              !! X::IO::Unknown.new(:trying<x>).throw
-            !! X::IO::Unknown.new(:trying<w>).throw
-          !! X::IO::Unknown.new(:trying<r>).throw
+    method FILETEST-RWX(str \abspath) is raw {
+        nqp::filereadable(abspath)
+          && nqp::filewritable(abspath)
+          && nqp::fileexecutable(abspath)
     }
-    method FILETEST-Z(Str:D \abspath) {
-        nqp::iseq_i(
-          nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE),0)
+    method FILETEST-Z(str \abspath) is raw {
+        nqp::iseq_i(nqp::stat(abspath,nqp::const::STAT_FILESIZE),0)
     }
 
-    method FILETEST-MODIFIED(Str:D \abspath) {
-        nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_MODIFYTIME)
+    method FILETEST-MODIFIED(str \abspath) is raw {
+        nqp::stat_time(abspath,nqp::const::STAT_MODIFYTIME)
     }
-    method FILETEST-ACCESSED(Str:D \abspath) {
-        nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_ACCESSTIME)
+    method FILETEST-ACCESSED(str \abspath) is raw {
+        nqp::stat_time(abspath,nqp::const::STAT_ACCESSTIME)
     }
-    method FILETEST-CHANGED(Str:D \abspath) {
-        nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
+    method FILETEST-CHANGED(str \abspath) is raw {
+        nqp::stat_time(abspath,nqp::const::STAT_CHANGETIME)
     }
-    method FILETEST-MODE(Str:D \abspath) {
-        my int $mode =
-          nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_PLATFORM_MODE);
-        nqp::isge_i($mode,0)
-          ?? nqp::bitand_i($mode,0o7777)
-          !! X::IO::Unknown.new(:trying<mode>).throw
+    method FILETEST-MODE(str \abspath) is raw {
+        nqp::bitand_i(nqp::stat(abspath,nqp::const::STAT_PLATFORM_MODE),0o7777)
     }
 
     method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {

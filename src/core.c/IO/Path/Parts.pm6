@@ -29,7 +29,9 @@ class IO::Path::Parts
 
     method of() { Str }
 
-    method by-index(int $pos) is implementation-detail {
+    method iterator() { (:$!volume, :$!dirname, :$!basename).iterator }
+
+    method AT-POS(int $pos) {
         $pos == 2
           ?? :$!basename
           !! $pos == 1
@@ -38,18 +40,6 @@ class IO::Path::Parts
               ?? Nil
               !! :$!volume
     }
-
-    class Iterate does Iterator {
-        has $!parts;
-        has int $!i;
-        method new(\parts) {
-            nqp::p6bindattrinvres(nqp::create(self),self,'$!parts',parts)
-        }
-        method pull-one() { $!i < 3 ?? $!parts.by-index($!i++) !! IterationEnd }
-    }
-    method iterator() { Iterate.new(self) }
-
-    method AT-POS(int $pos) { self.by-index($pos) }
 
     method AT-KEY(str $key) {
         $key eq 'basename'

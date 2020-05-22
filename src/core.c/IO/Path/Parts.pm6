@@ -1,6 +1,7 @@
 class IO::Path::Parts
-  does Positional  # all of these can go as soon as we don't need the compat
-  does Iterable    # with the original "List of Pairs" implemention anymore.
+  does Positional   # all of these can go as soon as we don't need
+  does Associative  # the compatibility with the original "List of
+  does Iterable     # Pairs" and Map implemention anymore.
 {
     has str $.volume;
     has str $.dirname;
@@ -26,6 +27,8 @@ class IO::Path::Parts
 # original List of Pairs / Map implementation.  As soon as this is no longer
 # needed, this can go.
 
+    method of() { Str }
+
     method by-index(int $pos) is implementation-detail {
         $pos == 2
           ?? :$!basename
@@ -47,6 +50,16 @@ class IO::Path::Parts
     method iterator() { Iterate.new(self) }
 
     method AT-POS(int $pos) { self.by-index($pos) }
+
+    method AT-KEY(str $key) {
+        $key eq 'basename'
+          ?? $!basename
+          !! $key eq 'dirname'
+            ?? $!dirname
+            !! $key eq 'volume'
+              ?? $!volume
+              !! Nil
+    }
 }
 
 # vim: ft=perl6 expandtab sw=4

@@ -805,7 +805,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*DECLARATOR_DOCS;
         :my $*PRECEDING_DECL; # for #= comments
         :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
-        :my $*keep-decl := nqp::existskey(nqp::getenvhash(), 'RAKUDO_POD_DECL_BLOCK_USER_FORMAT');
+        :my $*keep-decl := nqp::existskey(nqp::getenvhash(), 'RAKUDO_POD_DECL_BLOCK_USER_FORMAT')
+                        || nqp::existskey(%*COMPILING<%?OPTIONS>, 'doc-fmt');
 
         # TODO use these vars to implement S26 pod data block handling
         :my $*DATA-BLOCKS := [];
@@ -4894,7 +4895,7 @@ if $*COMPILING_CORE_SETTING {
     }
 
     method attach_leading_docs() {
-        # TODO allow some limited text layout here
+        # allow some limited text layout here
         if ~$*DOC ne '' {
             my $cont;
             if $*keep-decl {

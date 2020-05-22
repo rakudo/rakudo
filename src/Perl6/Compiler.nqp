@@ -52,6 +52,14 @@ class Perl6::Compiler is HLL::Compiler {
         if nqp::existskey(%options, 'doc') && !%options<doc> {
             %options<doc> := 'Text';
         }
+        if nqp::existskey(%options, 'doc-fmt') {
+            # check for valid arg
+            my $ok-arg := 'preserve';
+            my $arg    := %options<doc-fmt>;
+            unless nqp::iseq_s($arg,$ok-arg) {
+                self.panic("Unknown '--doc-fmt' arg '$arg', did you mean '$ok-arg'?");
+            }
+        }
 
         my $argiter := nqp::iterator(@args);
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
@@ -159,6 +167,10 @@ and, by default, also executes the compiled code.
   --stagestats         display time spent in the compilation stages
   --ll-exception       display a low level backtrace on errors
   --doc=module         use Pod::To::[module] to render inline documentation
+  --doc-fmt=fmt        controls text formatting with the '--doc' option;
+                       the only fmt argument currently recognized is 
+                       'preserve' which maintains the existing formatting
+                       in leading declarator blocks
   --repl-mode=interactive|non-interactive
                        when running without "-e" or filename arguments,
                        a REPL is started. By default, if STDIN is a TTY,

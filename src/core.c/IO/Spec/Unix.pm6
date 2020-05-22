@@ -83,16 +83,14 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method tmpdir {
-        my $io;
-        first( {
+        for %*ENV<TMPDIR>, '/tmp' {
             if .defined {
-                $io = .IO;
-                $io.d && $io.rwx;
+                my $io := IO::Path.new($_);
+                return $io if $io.d && $io.rwx
             }
-          },
-          %*ENV<TMPDIR>,
-          '/tmp',
-        ) ?? $io !! IO::Path.new(".");
+        }
+
+        IO::Path.new(".")
     }
 
     method is-absolute( Str() \path ) {

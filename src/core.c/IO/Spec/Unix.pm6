@@ -68,20 +68,18 @@ my class IO::Spec::Unix is IO::Spec {
     }
     method curupdir { $curupdir }
 
-    method basename(\path) {
-        my str $str = nqp::unbox_s(path);
-        my int $index = nqp::rindex($str,'/');
-        nqp::hllbool($index == -1)
+    method basename(str \path) {
+        my int $index = nqp::rindex(path,'/');
+        nqp::iseq_i($index,-1)
           ?? path
-          !! substr(path,nqp::box_i($index + 1,Int) );
+          !! nqp::substr(path,$index + 1)
     }
 
-    method extension(\path) {
-        my str $str = nqp::unbox_s(path);
-        my int $index = nqp::rindex($str,'.');
-        nqp::hllbool($index == -1)
+    method extension(str \path) {
+        my int $index = nqp::rindex(path,'.');
+        nqp::iseq_i($index,-1)
           ?? ''
-          !! substr(path,nqp::box_i($index + 1,Int) );
+          !! nqp::substr(path,$index + 1)
     }
 
     method tmpdir {

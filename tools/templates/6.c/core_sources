@@ -104,6 +104,7 @@ src/core.c/Regex.pm6
 src/core.c/allomorphs.pm6
 src/core.c/IO.pm6
 src/core.c/IO/Spec.pm6
+src/core.c/IO/Path/Parts.pm6
 src/core.c/IO/Spec/Unix.pm6
 src/core.c/IO/Spec/Win32.pm6
 src/core.c/IO/Spec/Cygwin.pm6

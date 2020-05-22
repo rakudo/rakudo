@@ -173,7 +173,7 @@ my class IO::Spec::Unix is IO::Spec {
         );
 
         # shell dirname '' produces '.', but we don't because it's probably user error
-       (:volume(''), :$dirname, :$basename);
+       IO::Path::Parts.new('', $dirname, $basename)
     }
 
     method join ($, \dir, \file) {

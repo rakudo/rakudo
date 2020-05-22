@@ -125,7 +125,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $basename && nqp::isfalse($dirname),
             $dirname = '.'));
 
-        (:$volume, :$dirname, :$basename)
+        IO::Path::Parts.new($volume, $dirname, $basename)
     }
 
     method join (Str \vol, Str $dir is copy, Str $file is copy) {

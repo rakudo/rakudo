@@ -331,11 +331,26 @@ my class IO::Path is Cool does IO {
         nqp::create(self)!SET-SELF(
           $resolved, $!SPEC, $volume ~ $sep, True);
     }
+
     proto method parent(|) {*}
-    multi method parent(IO::Path:D: UInt:D $depth) {
-        my $io = self;
-        $io .= parent xx $depth;
-        $io;
+    multi method parent(IO::Path:D: Int:D $depth is copy) {
+        if $depth > 0 {
+            my $io := self;
+            nqp::while(
+              $depth--,
+              $io := $io.parent
+            );
+            $io
+        }
+        else {
+            $depth
+              ?? X::OutOfRange.new(
+                   what  => 'Depth of .parent',
+                   got   => $depth,
+                   range => "0..*"
+                 ).throw
+              !! self
+        }
     }
     multi method parent(IO::Path:D:) {    # XXX needs work
         my $curdir := $!SPEC.curdir;

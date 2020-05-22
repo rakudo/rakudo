@@ -4,7 +4,7 @@ my class IO::Path is Cool does IO {
     has Str      $.path;  # the path as specified
     has $!is-absolute;    # Bool:D if we know $!path is an absolute path
     has $!os-path;        # the absolute path associated with path/SPEC/CWD
-    has $!parts;          # nqp hash with volume/dirname/basename
+    has $!parts;          # IO::Path::Parts object, if any
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
@@ -72,17 +72,12 @@ my class IO::Path is Cool does IO {
     method parts {
         nqp::ifnull(
           $!parts,
-          nqp::stmts(
-            (my %parts :=
-              nqp::create(Map).STORE($!SPEC.split($!path), :INITIALIZE)),
-            ($!parts := nqp::getattr(%parts,Map,'$!storage')),
-            %parts
-          )
+          $!parts := $!SPEC.split($!path)
         )
     }
-    method volume(IO::Path:D:)   { nqp::atkey(self.parts,'volume')   }
-    method dirname(IO::Path:D:)  { nqp::atkey(self.parts,'dirname')  }
-    method basename(IO::Path:D:) { nqp::atkey(self.parts,'basename') }
+    method volume(IO::Path:D:)   { self.parts.volume   }
+    method dirname(IO::Path:D:)  { self.parts.dirname  }
+    method basename(IO::Path:D:) { self.parts.basename }
 
     my sub EXTENSION-MK-EXTENSION (
         str $name, $no-ext, int $part-min, int $part-max = $part-min
@@ -238,10 +233,10 @@ my class IO::Path is Cool does IO {
         my str $empty     = '';
         my Mu  $res-list := nqp::list_s();
 
-        my %parts         = $!SPEC.split: self.absolute;
-        my str $volume    = %parts<volume>;
+        my $vdb          := $!SPEC.split: self.absolute;
+        my str $volume    = $vdb.volume;
         my str $resolved  = $volume;
-        my $path          = $!SPEC.catpath: '', |%parts<dirname  basename>;
+        my $path         := $!SPEC.catpath: '', $vdb.dirname, $vdb.basename;
 
 #?if jvm
         # Apparently JVM doesn't know how to decode to utf8-c8 yet

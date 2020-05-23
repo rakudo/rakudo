@@ -128,15 +128,11 @@ my class Rakudo::QuantHash {
           (my $elems := quanthash.RAW-HASH)
             && (my $iter := nqp::iterator($elems)),
           nqp::stmts(
-            (my $keys := nqp::setelems(nqp::list_s,nqp::elems($elems))),
-            (my int $i = -1),
+            (my $keys :=    # presize result back to 0 so we can push_s
+              nqp::setelems(nqp::setelems(nqp::list_s,nqp::elems($elems)),0)),
             nqp::while(
               $iter,
-              nqp::bindpos_s(
-                $keys,
-                ($i = nqp::add_i($i,1)),
-                nqp::iterkey_s(nqp::shift($iter))
-              )
+              nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
             ),
             $keys
           ),
@@ -150,15 +146,11 @@ my class Rakudo::QuantHash {
           (my $elems := quanthash.RAW-HASH)
             && (my $iter := nqp::iterator($elems)),
           nqp::stmts(
-            (my $values := nqp::setelems(nqp::list_s,nqp::elems($elems))),
-            (my int $i = -1),
+            (my $values :=    # presize result back to 0 so we can push_s
+              nqp::setelems(nqp::setelems(nqp::list_s,nqp::elems($elems)),0)),
             nqp::while(
               $iter,
-              nqp::bindpos_s(
-                $values,
-                ($i = nqp::add_i($i,1)),
-                mapper(nqp::iterval(nqp::shift($iter)))
-              )
+              nqp::push_s($values,mapper(nqp::iterval(nqp::shift($iter))))
             ),
             $values
           ),
@@ -173,15 +165,14 @@ my class Rakudo::QuantHash {
           (my $elems := baggy.RAW-HASH)
             && (my $iter := nqp::iterator($elems)),
           nqp::stmts(
-            (my $list := nqp::setelems(nqp::list_s,nqp::elems($elems))),
-            (my int $i = -1),
+            (my $list :=    # presize result back to 0 so we can push_s
+              nqp::setelems(nqp::setelems(nqp::list_s,nqp::elems($elems)),0)),
             nqp::while(
               $iter,
               nqp::stmts(
                 nqp::shift($iter),
-                nqp::bindpos_s(
+                nqp::push_s(
                   $list,
-                  ($i = nqp::add_i($i,1)),
                   nqp::concat(
                     nqp::iterkey_s($iter),
                     nqp::concat(

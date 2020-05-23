@@ -341,21 +341,32 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         $buffer.List
     }
 
+    my $char := nqp::list_s(
+      '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
+    );
+
     multi method gist(Blob:D:) {
         my int $todo = nqp::elems(self) min 100;
-        my $bytes := nqp::list_s;
-        for ^$todo -> int $i {
+        my int $i    = -1;
+        my $bytes   := nqp::list_s;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$todo),
+          nqp::stmts(
+            (my int $byte = nqp::atpos_i(self,$i)),
             nqp::push_s(
               $bytes,
-              nqp::if(
-                nqp::isle_i((my int $byte = nqp::atpos_i(self,$i)),15),
-                nqp::concat("0",nqp::base_I(nqp::box_i($byte,Int),16)),
-                nqp::base_I(nqp::box_i($byte,Int),16)
+              nqp::concat(
+                nqp::atpos_s($char,nqp::bitshiftr_i($byte,4)),
+                nqp::atpos_s($char,nqp::bitand_i($byte,0xF)),
               )
             )
-        }
-        nqp::push_s($bytes,"...") if nqp::elems(self) > $todo;
-        self.^name ~ ':0x<' ~ nqp::join(" ",$bytes) ~ '>'
+          )
+        );
+
+        nqp::push_s($bytes,"...") if nqp::isgt_i(nqp::elems(self),$todo);
+
+        nqp::join('',nqp::list_s(self.^name,':0x<',nqp::join(" ",$bytes),'>'))
     }
     multi method raku(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';

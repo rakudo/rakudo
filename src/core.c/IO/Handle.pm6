@@ -684,15 +684,12 @@ my class IO::Handle {
           !! X::IO::BinaryMode.new(:trying<print>).throw
     }
     multi method print(IO::Handle:D: | --> True) {
-        if $!decoder {
-            my Mu $args := nqp::p6argvmarray;
-            nqp::shift($args);
-            self.WRITE($!encoder.encode-chars(
-              nqp::join("",Rakudo::Internals.StrList2list_s($args))))
-        }
-        else {
-            X::IO::BinaryMode.new(:trying<print>).throw;
-        }
+        X::IO::BinaryMode.new(:trying<print>).throw unless $!decoder;
+
+        my Mu $args := nqp::p6argvmarray;
+        nqp::shift($args);
+        self.WRITE($!encoder.encode-chars(
+          nqp::join("",Rakudo::Internals.StrList2list_s($args))))
     }
 
     multi method put(IO::Handle:D: Junction:D \j) {
@@ -709,16 +706,13 @@ my class IO::Handle {
           !! X::IO::BinaryMode.new(:trying<put>).throw
     }
     multi method put(IO::Handle:D: | --> True) {
-        if $!decoder {
-            my Mu $args := nqp::p6argvmarray;
-            nqp::shift($args);
-            my $parts := Rakudo::Internals.StrList2list_s($args);
-            nqp::push_s($parts,$!nl-out);
-            self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
-        }
-        else {
-            X::IO::BinaryMode.new(:trying<say>).throw;
-        }
+        X::IO::BinaryMode.new(:trying<say>).throw unless $!decoder;
+
+        my Mu $args := nqp::p6argvmarray;
+        nqp::shift($args);
+        my $parts := Rakudo::Internals.StrList2list_s($args);
+        nqp::push_s($parts,$!nl-out);
+        self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
     }
 
     multi method say(IO::Handle:D: --> True) {
@@ -732,16 +726,13 @@ my class IO::Handle {
           !! X::IO::BinaryMode.new(:trying<say>).throw
     }
     multi method say(IO::Handle:D: | --> True) {
-        if $!decoder {
-            my Mu $args := nqp::p6argvmarray;
-            nqp::shift($args);
-            my $parts := Rakudo::Internals.GistList2list_s($args);
-            nqp::push_s($parts,$!nl-out);
-            self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
-        }
-        else {
-            X::IO::BinaryMode.new(:trying<say>).throw;
-        }
+        X::IO::BinaryMode.new(:trying<say>).throw unless $!decoder;
+
+        my Mu $args := nqp::p6argvmarray;
+        nqp::shift($args);
+        my $parts := Rakudo::Internals.GistList2list_s($args);
+        nqp::push_s($parts,$!nl-out);
+        self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
     }
 
     # there is no special handling, since it is supposed to give a

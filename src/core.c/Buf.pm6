@@ -518,12 +518,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method join(Blob:D: $delim = '') {
         my int $elems = nqp::elems(self);
-        my $list     := nqp::setelems(nqp::list_s,$elems);
         my int $i     = -1;
+        my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
-        nqp::bindpos_s($list,$i,
-          nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i))))
-          while nqp::islt_i(++$i,$elems);
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::push_s($list,nqp::atpos_i(self,$i))
+        );
 
         nqp::join($delim.Str,$list)
     }

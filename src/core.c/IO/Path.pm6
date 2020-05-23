@@ -835,29 +835,16 @@ my class IO::Path is Cool does IO {
     }
 }
 
-my class IO::Path::Cygwin is IO::Path {
-    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Cygwin) ) }
+my role IO::Path::Spec[$SPEC] is IO::Path {
+    method new(|c) { self.IO::Path::new(|c, :$SPEC) }
     multi method raku(::?CLASS:D:) {
         self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
     }
 }
-my class IO::Path::QNX is IO::Path {
-    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::QNX) ) }
-    multi method raku(::?CLASS:D:) {
-        self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
-    }
-}
-my class IO::Path::Unix is IO::Path {
-    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Unix) ) }
-    multi method raku(::?CLASS:D:) {
-        self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
-    }
-}
-my class IO::Path::Win32 is IO::Path {
-    method new(|c) { self.IO::Path::new(|c, :SPEC(IO::Spec::Win32) ) }
-    multi method raku(::?CLASS:D:) {
-        self.^name ~ ".new({$.path.raku}, {:$.CWD.raku})"
-    }
-}
+
+my class IO::Path::Cygwin does IO::Path::Spec[IO::Spec::Cygwin] { }
+my class IO::Path::QNX    does IO::Path::Spec[IO::Spec::QNX   ] { }
+my class IO::Path::Unix   does IO::Path::Spec[IO::Spec::Unix  ] { }
+my class IO::Path::Win32  does IO::Path::Spec[IO::Spec::Win32 ] { }
 
 # vim: ft=perl6 expandtab sw=4

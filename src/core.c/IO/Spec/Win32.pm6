@@ -39,22 +39,15 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
 
     method tmpdir {
         my $ENV := %*ENV;
-        my $io;
-        first( {
+        for $ENV<TMPDIR>, $ENV<TEMP>, $ENV<TMP>,
+          'SYS:/temp', 'C:\system\temp', 'C:/temp', '/tmp', '/' {
             if .defined {
-                $io = .IO;
-                $io.d && $io.rwx;
+                my $io := IO::Path.new($_);
+                return $io if $io.d && $io.rwx
             }
-        },
-          $ENV<TMPDIR>,
-          $ENV<TEMP>,
-          $ENV<TMP>,
-          'SYS:/temp',
-          'C:\system\temp',
-          'C:/temp',
-          '/tmp',
-          '/',
-        ) ?? $io !! IO::Path.new(".");
+        }
+
+        IO::Path.new(".")
     }
 
     method path {

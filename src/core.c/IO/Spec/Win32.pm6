@@ -29,15 +29,12 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         || ('',)
     }
 
-    method basename(\path) {
-        my str $str = nqp::unbox_s(path);
-        my int $indexf = nqp::rindex($str,'/');
-        my int $indexb = nqp::rindex($str,'\\');
-        nqp::hllbool($indexf == -1 && $indexb == -1)
+    method basename(str \path) {
+        my int $indexf = nqp::rindex(path,'/');
+        my int $indexb = nqp::rindex(path,'\\');
+        nqp::iseq_i($indexf,-1) && nqp::iseq_i($indexb,-1)
           ?? path
-          !! $indexf > $indexb
-             ?? substr(path,nqp::box_i($indexf + 1,Int) )
-             !! substr(path,nqp::box_i($indexb + 1,Int) );
+          !! nqp::substr(path,($indexf > $indexb ?? $indexf !! $indexb) + 1)
     }
 
     method tmpdir {

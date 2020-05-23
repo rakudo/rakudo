@@ -361,7 +361,30 @@ my class IO::Path is Cool does IO {
               !! $!SPEC.join($.volume, $.dirname, '')
     }
 
-    method child (IO::Path:D: \child) {
+    proto method child(|) {*}
+    multi method child (IO::Path:D: \child, :$secure!) {
+        $secure
+          ?? nqp::istype(                              # want secure check
+               (my $kid := self.child(child).resolve: :completely),
+               Failure
+             )
+            ?? $kid                                    # kid failed
+            !! nqp::istype(                            # kid ok
+                 (my $res-self := self.resolve: :completely),
+                 Failure
+               )
+              ?? $res-self                             # invocant failed
+              !! nqp::eqat(                            # invocant ok
+                   $kid.absolute,
+                   nqp::concat($res-self.absolute,$!SPEC.dir-sep),
+                   0
+                 )
+                ?? $kid                                # kid-proper, ok!
+                !! Failure.new: X::IO::NotAChild.new:  # not a proper kid
+                     :path($res-self.absolute), :child($kid.absolute)
+          !! self.child(child)                         # no secure check wanted
+    }
+    multi method child (IO::Path:D: \child) {
         nqp::clone(self).cloned-with-path:
           $!SPEC.join('', $!path, child.Str)
     }

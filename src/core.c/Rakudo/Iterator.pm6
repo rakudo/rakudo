@@ -1518,7 +1518,7 @@ class Rakudo::Iterator {
 #?if jvm
               ($entry = nqp::if(
                 nqp::elems($!dots),
-                nqp::shift($!dots),
+                nqp::shift_s($!dots),
                 nqp::nextfiledir($!dirhandle)
               )),
 #?endif
@@ -1551,7 +1551,7 @@ class Rakudo::Iterator {
 #?if jvm
               ($entry = nqp::if(
                 nqp::elems($dots),
-                nqp::shift($dots),
+                nqp::shift_s($dots),
                 nqp::nextfiledir($dirhandle)
               )),
 #?endif

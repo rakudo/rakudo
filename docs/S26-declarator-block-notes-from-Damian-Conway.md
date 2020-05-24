@@ -4,8 +4,7 @@ an e-mail [1] received from Damian Conway in response to a query for
 his view on proper handling of text in declarator blocks.
 
 Note the verbatim text has been slightly edited by additional
-formatting for this Markdown document plus some minor typographical
-edits indicated by *[sic]*.
+formatting (but no word changes) for this Markdown document.
 
 # Damian's reply
 

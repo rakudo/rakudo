@@ -119,7 +119,7 @@ sub all-the-protos {
     &deepmap,
     &defined,
     &die,
-    &dir,
+#    &dir,
     &duckmap,
     &elems,
     &end,

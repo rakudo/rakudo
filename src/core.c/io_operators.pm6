@@ -99,9 +99,10 @@ multi sub prompt($msg) {
 }
 
 proto sub dir(|) {*}
-multi sub dir(*%_) { $*SPEC.curdir.IO.dir(:!absolute, |%_) }
-multi sub dir(IO::Path:D $path, |c) { $path.dir(|c) }
-multi sub dir(IO()       $path, |c) { $path.dir(|c) }
+multi sub dir(IO() $path, :$test!) { $path.dir(:$test) }
+multi sub dir(IO() $path         ) { $path.dir         }
+multi sub dir(:$test!) { IO::Path.new($*SPEC.curdir).dir(:$test) }
+multi sub dir(       ) { IO::Path.new($*SPEC.curdir).dir         }
 
 proto sub open($, |) {*}
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }

@@ -259,7 +259,7 @@ SHELL
                     $perl-wrapper.subst('#name#', $name, :g).subst('#ext#', $be );
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
-                        $windows_wrapper.subst('#perl#', "perl6$be", :g);
+                        $windows_wrapper.subst('#ext#', $be, :g);
                 }
                 else {
                     $.prefix.add("$withoutext$be").IO.chmod(0o755);

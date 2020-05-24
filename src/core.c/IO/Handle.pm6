@@ -799,8 +799,16 @@ my class IO::Handle {
         );
 
         # don't sink result of .close; it might be a failed Proc
+#?if jvm
+        nqp::stmts(
+          nqp::if($close, my $ = self.close),
+          $res
+        )
+#?endif
+#?if !jvm
         my $ = self.close if $close;
         $res
+#?endif
     }
 
     method !slurp-all-chars() {

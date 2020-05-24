@@ -361,32 +361,35 @@ my class IO::Path is Cool does IO {
               !! $!SPEC.join($.volume, $.dirname, '')
     }
 
+    # secure child logic
+    method !child-secure(\child) {
+        nqp::istype((my $kid := self.add(child).resolve: :completely),Failure)
+          ?? $kid                                    # kid failed
+          !! nqp::istype(                            # kid ok
+               (my $res-self := self.resolve: :completely),
+               Failure
+             )
+            ?? $res-self                             # invocant failed
+            !! nqp::eqat(                            # invocant ok
+                 $kid.absolute,
+                 nqp::concat($res-self.absolute,$!SPEC.dir-sep),
+                 0
+               )
+              ?? $kid                                # kid-proper, ok!
+              !! Failure.new: X::IO::NotAChild.new:  # not a proper kid
+                   :path($res-self.absolute), :child($kid.absolute)
+    }
+
     proto method child(|) {*}
     multi method child (IO::Path:D: \child, :$secure!) {
         $secure
-          ?? nqp::istype(                              # want secure check
-               (my $kid := self.child(child).resolve: :completely),
-               Failure
-             )
-            ?? $kid                                    # kid failed
-            !! nqp::istype(                            # kid ok
-                 (my $res-self := self.resolve: :completely),
-                 Failure
-               )
-              ?? $res-self                             # invocant failed
-              !! nqp::eqat(                            # invocant ok
-                   $kid.absolute,
-                   nqp::concat($res-self.absolute,$!SPEC.dir-sep),
-                   0
-                 )
-                ?? $kid                                # kid-proper, ok!
-                !! Failure.new: X::IO::NotAChild.new:  # not a proper kid
-                     :path($res-self.absolute), :child($kid.absolute)
-          !! self.child(child)                         # no secure check wanted
+          ?? self!child-secure(child)
+          !! self.add(child)
     }
     multi method child (IO::Path:D: \child) {
-        nqp::clone(self).cloned-with-path:
-          $!SPEC.join('', $!path, child.Str)
+        nqp::isge_s(nqp::getcomp("Raku").language_version,"6.e")
+          ?? self!child-secure(\child)
+          !! self.add(child)
     }
 
     method add (IO::Path:D: \child) {

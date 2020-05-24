@@ -45,8 +45,8 @@ See [declarator_block_expectations.raku](./declarator_block_expectations.raku).
 # References
 
 1. E-mail =>
-   From: Damian Conway <damian@conway.org>
-   Date: Sun, 24 May 2020 05:11:12 +0000
-   Message-ID: <CAATtAp7btwPGjE=YYnXZFxEpStZqNkzj5vKkuApZ6y76QYp3Mg@mail.gmail.com>
-   Subject: Re: S26: Leading and trailing declarator blocks
-   To: Tom Browder <tom.browder@gmail.com>
+    From: Damian Conway <damian@conway.org>
+    Date: Sun, 24 May 2020 05:11:12 +0000
+    Message-ID: <CAATtAp7btwPGjE=YYnXZFxEpStZqNkzj5vKkuApZ6y76QYp3Mg@mail.gmail.com>
+    Subject: Re: S26: Leading and trailing declarator blocks
+    To: Tom Browder <tom.browder@gmail.com>

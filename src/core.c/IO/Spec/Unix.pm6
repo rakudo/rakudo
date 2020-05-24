@@ -98,13 +98,14 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method path {
-        (my $p := %*ENV<PATH>) ?? gather {
-            my int $els = nqp::elems(my $parts := nqp::split(':', $p));
-            my int $i = -1;
-            nqp::until(
-              nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
-              take nqp::atpos($parts, $i) || '.')
-        } !! Seq.new(Rakudo::Iterator.Empty)
+        my $parts  := nqp::split(':',%*ENV<PATH>);
+        my $buffer := nqp::create(IterationBuffer);
+        my int $i = -1;
+        nqp::while(
+          nqp::elems($parts),
+          nqp::push($buffer,nqp::shift($parts) || ".")
+        );
+        $buffer.Seq
     }
 
     method splitpath( $path, :$nofile = False ) {

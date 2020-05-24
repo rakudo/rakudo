@@ -1,3 +1,5 @@
+my class Raku { ... }
+
 my class IO::Path is Cool does IO {
     has IO::Spec $.SPEC;  # the associated IO::Spec
     has Str      $.CWD;   # the associated CWD
@@ -387,7 +389,7 @@ my class IO::Path is Cool does IO {
           !! self.add(child)
     }
     multi method child (IO::Path:D: \child) {
-        nqp::isge_s(nqp::getcomp("Raku").language_version,"6.e")
+        Raku.at-revision("e")
           ?? self!child-secure(\child)
           !! self.add(child)
     }

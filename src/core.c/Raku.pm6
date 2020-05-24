@@ -23,6 +23,18 @@ class Raku does Systemic {
               !! nqp::bindkey($version-cache,$comp-ver,Version.new($comp-ver))
         }
     }
+
+    method revision(--> Str:D) {
+        nqp::substr(nqp::getcomp("Raku").language_version,2)
+    }
+    method at-revision(str $letter --> Bool:D) {
+        nqp::hllbool(
+          nqp::isge_s(
+            nqp::getcomp("Raku").language_version,
+            nqp::concat("6.",$letter)
+          )
+        )
+    }
 }
 
 class Perl is Raku { }  # indeed :-)

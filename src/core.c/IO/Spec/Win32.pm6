@@ -51,22 +51,20 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 
     method path {
-        gather {
-          take '.';
-          my $p := %*ENV;
+        my $parts := nqp::split(";",%*ENV<PATH> // %*ENV<Path> // '');
+        nqp::push((my $buffer := nqp::create(IterationBuffer)),".");
+
+        nqp::while( 
+          nqp::elems($parts),
+          # unsure why old code removed all `"`, but keeping code same
+          # https://irclog.perlgeek.de/perl6-dev/2017-05-15#i_14585448
           nqp::if(
-            ($p := nqp::if(nqp::defined($_ := $p<PATH>), $_, $p<Path>)),
-            nqp::stmts(
-              (my int $els = nqp::elems(my $parts := nqp::split(';', $p))),
-              (my int $i = -1),
-              nqp::until(
-                nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
-                ($_ := nqp::atpos($parts, $i))
-                  # unsure why old code removed all `"`, but keeping code same
-                  # https://irclog.perlgeek.de/perl6-dev/2017-05-15#i_14585448
-                  && take nqp::join('', nqp::split(｢"｣, $_)))))
-        }
-   }
+            ($_ := nqp::join('',nqp::split('"',nqp::shift($parts)))),
+            nqp::push($buffer,$_)
+          )
+        );
+        $buffer.Seq
+    }
 
     method is-absolute ($path) {
         nqp::hllbool(

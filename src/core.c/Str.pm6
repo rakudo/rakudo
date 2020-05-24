@@ -1833,14 +1833,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         $count ?? self.lines.elems !! self.lines;
     }
     multi method lines(Str:D: $limit --> Seq:D) {
-        nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.lines
-          !! self.lines.head($limit)
+        self.lines.head($limit)
     }
     multi method lines(Str:D: $limit, Bool :$chomp! --> Seq:D) {
-        nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.lines(:$chomp)
-          !! self.lines(:$chomp).head($limit)
+        self.lines(:$chomp).head($limit)
     }
 
     my class Lines does PredictiveIterator {
@@ -2861,9 +2857,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method words(Str:D: $limit --> Seq:D) {
-        nqp::istype($limit,Whatever) || $limit == Inf
-          ?? self.words
-          !! self.words.head($limit)
+        self.words.head($limit)
     }
     my class Words does PredictiveIterator {
         has str $!str;

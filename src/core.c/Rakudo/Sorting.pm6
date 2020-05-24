@@ -360,16 +360,14 @@ my class Rakudo::Sorting {
             ),
             $A
           ),
-          nqp::if(
-            nqp::islt_i($n,2)
-              || nqp::isle_s(nqp::atpos_s(sortable,0),nqp::atpos_s(sortable,1)),
-            nqp::clone(sortable),  # we already have the result
-            nqp::stmts(
-              (my $R := nqp::setelems(nqp::list_s,2)),
-              nqp::bindpos_s($R,0,nqp::atpos_s(sortable,1)),
-              nqp::bindpos_s($R,1,nqp::atpos_s(sortable,0)),
-              $R
-            )
+          nqp::stmts(   # 2 elements or less
+            (my \result := nqp::clone(sortable)),
+            nqp::unless(
+              nqp::islt_i($n,2)
+                || nqp::isle_s(nqp::atpos_s(result,0),nqp::atpos_s(result,1)),
+              nqp::push_s(result,nqp::shift_s(result))
+            ),
+            result
           )
         )
     }
@@ -450,16 +448,14 @@ my class Rakudo::Sorting {
             ),
             $A
           ),
-          nqp::if(
-            nqp::islt_i($n,2)
-              || nqp::isle_i(nqp::atpos_i(sortable,0),nqp::atpos_i(sortable,1)),
-            nqp::clone(sortable),  # we already have the result
-            nqp::stmts(
-              (my $R := nqp::setelems(nqp::list_i,2)),
-              nqp::bindpos_i($R,0,nqp::atpos_i(self,1)),
-              nqp::bindpos_i($R,1,nqp::atpos_i(self,0)),
-              $R
-            )
+          nqp::stmts(   # 2 elements or less
+            (my \result := nqp::clone(sortable)),
+            nqp::unless(
+              nqp::islt_i($n,2)
+                || nqp::isle_i(nqp::atpos_i(result,0),nqp::atpos_i(result,1)),
+              nqp::push_i(result,nqp::shift_i(result))
+            ),
+            result
           )
         )
     }
@@ -540,16 +536,14 @@ my class Rakudo::Sorting {
             ),
             $A
           ),
-          nqp::if(
-            nqp::islt_i($n,2)
-              || nqp::isle_n(nqp::atpos_n(sortable,0),nqp::atpos_n(sortable,1)),
-            nqp::clone(self),  # we already have the result
-            nqp::stmts(
-              (my $R := nqp::setelems(nqp::list_n,2)),
-              nqp::bindpos_n($R,0,nqp::atpos_n(sortable,1)),
-              nqp::bindpos_n($R,1,nqp::atpos_n(sortable,0)),
-              $R
-            )
+          nqp::stmts(   # 2 elements or less
+            (my \result := nqp::clone(sortable)),
+            nqp::unless(
+              nqp::islt_i($n,2)
+                || nqp::isle_n(nqp::atpos_n(result,0),nqp::atpos_n(result,1)),
+              nqp::push_n(result,nqp::shift_n(result))
+            ),
+            result
           )
         )
     }

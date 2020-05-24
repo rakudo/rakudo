@@ -100,7 +100,6 @@ my class IO::Spec::Unix is IO::Spec {
     method path {
         my $parts  := nqp::split(':',%*ENV<PATH>);
         my $buffer := nqp::create(IterationBuffer);
-        my int $i = -1;
         nqp::while(
           nqp::elems($parts),
           nqp::push($buffer,nqp::shift($parts) || ".")

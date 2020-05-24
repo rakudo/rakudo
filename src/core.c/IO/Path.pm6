@@ -388,6 +388,24 @@ my class IO::Path is Cool does IO {
           ?? self!child-secure(child)
           !! self.add(child)
     }
+    multi method child (IO::Path:D: @parts) {
+        if @parts.elems {   # reifies, something to add
+            if Raku.at-revision("e") {
+                my $parts := nqp::clone(nqp::getattr(@parts,List,'$!reified'));
+                my $last  := nqp::pop($parts);
+                (@parts
+                  ?? self.add(nqp::join($!SPEC.dir-sep,$parts))
+                  !! self
+                )!child-secure($last)
+            }
+            else {   # do not need security
+                self.add(@parts.join($!SPEC.dir-sep))
+            }
+        }
+        else {       # nothing to add, test invocant
+            self.resolve(:completely)
+        }
+    }
     multi method child (IO::Path:D: \child) {
         Raku.at-revision("e")
           ?? self!child-secure(\child)

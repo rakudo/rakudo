@@ -203,60 +203,50 @@ __END__
 
         my $perl-wrapper
         = do {
-            # basename being dispatched is generated below, replaces '#perl#'
-            # in the generated script.
-            # question here is how to dispatch it: via env or the path to
-            # a rakudo executable.
+            # code below replaces #ext# with '-j', '-m', etc.
+            #
+            # question here is how to dispatch it: via env or absolute
+            # path to a rakudo executable. this will use env in every
+            # case of *NIX I know of; the bin/rakudo loop is boilerplate.
+            #
+            # lacking both env and raukdo we could try something with
+            # #!/bin/sh -e but that seems to be going too far: give up.
 
-            # for whatever reason heredoc (:to/X/) fails.
-            # use the literal text for now.
-            # someone should clean this up in the future.
-
-            constant FIXED  = q:to/SHELL/;
-sub MAIN(:$name, :$auth, :$ver, *@, *%)
-{
-    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
-}
-SHELL
-            my $exec = gather 
-            {
-                # change 'perl6' to 'rakudo' or 'raku' at some point.
-                constant SEARCH = 'bin/perl6';
-
-                with < /bin/env /usr/bin/env >.first: { .IO.e } -> $env 
-                {
+            my $exec = gather {
+                with < /bin/env /usr/bin/env >.first: { .IO.e } -> $env {
                     take "$env rakudo";
-                }
-                else
-                {
-                    warn q{System lacks 'env', using } ~ SEARCH;
+                } else {
+                    constant SEARCH = 'bin/rakudo';
+                    my $curr    = $.prefix.absolute.IO;
 
-                    my $curr    = $.prefix.absolute;
+                    note "# Perl-wrapper lacks 'env', using {SEARCH}";
 
-                    loop: 
-                    {
-                        if $curr.add( SEARCH ).IO.ie 
-                        {
-                            take "$curr/bin/rakudo";
+                    loop {
+                        my $raku    = $curr.add( SEARCH );
+
+                        if $raku.f {
+                            take $raku;
                             last
-                        } elsif $curr eq ( my $next = $curr.parent ) 
-                        {
-                            # one last option would be "$SHELL -e $0", but that
-                            # requirs shell-speicfic arguments. rahter than open
-                            # that can of worms here, it seems better to give up.
-
+                        } elsif $curr eq ( my $next = $curr.parent ) {
                             die "No '{SEARCH}' above {$.prefix}";
-                        } 
-                        else
-                        {
+                        } else {
                             $curr   = $next;
                         }
                     }
                 }
             };
 
-            ( qq{#!$exec}, FIXED ).join( "\n" )
-        };
+            # Q: why does this fail with the here-doc indented? 
+
+            ( qq{#!$exec#ext#}, q:to/SHELL/ ).join( "\n" )
+
+sub MAIN(:$name, :$auth, :$ver, *@, *%)
+{
+    CompUnit::RepositoryRegistry.run-script( "#name#", :$name, :$auth, :$ver );
+}
+SHELL
+
+       };
 
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
@@ -266,7 +256,7 @@ SHELL
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m', '-js' -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
-                    $perl-wrapper.subst('#name#', $name, :g).subst('#perl#', "perl6$be");
+                    $perl-wrapper.subst('#name#', $name, :g).subst('#ext#', $be );
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
                         $windows_wrapper.subst('#perl#', "perl6$be", :g);

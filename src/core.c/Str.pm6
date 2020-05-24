@@ -1837,6 +1837,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? self.lines
           !! self.lines.head($limit)
     }
+    multi method lines(Str:D: $limit, Bool :$chomp! --> Seq:D) {
+        nqp::istype($limit,Whatever) || $limit == Inf
+          ?? self.lines(:$chomp)
+          !! self.lines(:$chomp).head($limit)
+    }
 
     my class Lines does PredictiveIterator {
         has str $!str;
@@ -1853,18 +1858,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::if(
               (my int $left = $!chars - $!pos) > 0,
               nqp::stmts(
-                (my int $nextpos = nqp::findcclass(
+                (my int $findpos = nqp::findcclass(
                   nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left)),
                 (my $found := nqp::p6box_s(
-                  nqp::substr($!str, $!pos, $nextpos - $!pos)
+                  nqp::substr($!str, $!pos, $findpos - $!pos)
                 )),
+                ($!pos = $findpos +
 #?if moar
-                ($!pos = $nextpos + 1),
+                  1
 #?endif
 #?if !moar
-                ($!pos = $nextpos +
-                  (nqp::iseq_s(nqp::substr($!str, $nextpos, 2), "\r\n") ?? 2 !! 1)),
+                  (nqp::iseq_s(nqp::substr($!str, $findpos, 2), "\r\n") ?? 2 !! 1)
 #?endif
+                ),
                 $found
               ),
               IterationEnd
@@ -1872,20 +1878,90 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         method push-all(\target --> IterationEnd) {
             my int $left;
-            my int $nextpos;
 
             while ($left = $!chars - $!pos) > 0 {
-                $nextpos = nqp::findcclass(
+                my int $findpos = nqp::findcclass(
                   nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-
-                target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
+                target.push(nqp::substr($!str, $!pos, $findpos - $!pos));
+                $!pos = $findpos +
 #?if moar
-                $!pos = $nextpos + 1;
+                  1
 #?endif
 #?if !moar
-                $!pos = $nextpos +
-                  (nqp::iseq_s(nqp::substr($!str, $nextpos, 2), "\r\n") ?? 2 !! 1);
+                  (nqp::iseq_s(nqp::substr($!str, $findpos, 2), "\r\n") ?? 2 !! 1)
 #?endif
+                  ;
+            }
+        }
+        method count-only(--> Int:D) {
+            my int $left;
+            my int $seen;
+            my int $pos   = $!pos;
+            my int $chars = $!chars;
+
+            while ($left = $chars - $pos) > 0 {
+                $pos = nqp::findcclass(
+                  nqp::const::CCLASS_NEWLINE, $!str, $pos, $left) + 1;
+                $seen = $seen + 1;
+            }
+            nqp::p6box_i($seen)
+        }
+        method bool-only(--> Bool:D) {
+            nqp::hllbool(nqp::islt_i($!pos,$!chars))
+        }
+    }
+
+    my class LinesKeepNL is Lines {
+        has str $!str;
+        has int $!chars;
+        has int $!pos;
+        method !SET-SELF(\string) {
+            $!str   = nqp::unbox_s(string);
+            $!chars = nqp::chars($!str);
+            $!pos   = 0;
+            self
+        }
+        method new(\string) { nqp::create(self)!SET-SELF(string) }
+        method pull-one() {
+            nqp::if(
+              (my int $left = $!chars - $!pos) > 0,
+              nqp::stmts(
+                (my int $findpos = nqp::findcclass(
+                  nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left)),
+                (my int $nextpos = $findpos +
+#?if moar
+                  1
+#?endif
+#?if !moar
+                  (nqp::iseq_s(nqp::substr($!str, $findpos, 2), "\r\n") ?? 2 !! 1)
+#?endif
+                ),
+                (my $found := nqp::p6box_s(
+                  nqp::substr($!str, $!pos, $nextpos - $!pos)
+                )),
+                ($!pos = $nextpos),
+                $found
+              ),
+              IterationEnd
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            my int $left;
+
+            while ($left = $!chars - $!pos) > 0 {
+                my int $findpos = nqp::findcclass(
+                  nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
+                my int $nextpos = $findpos +
+#?if moar
+                  1
+#?endif
+#?if !moar
+                  (nqp::iseq_s(nqp::substr($!str, $findpos, 2), "\r\n") ?? 2 !! 1)
+#?endif
+                  ;
+
+                target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
+                $!pos = $nextpos;
             }
         }
         method count-only(--> Int:D) {
@@ -1906,6 +1982,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
     multi method lines(Str:D: --> Seq:D) { Seq.new(Lines.new(self)) }
+    multi method lines(Str:D: Bool :$chomp! --> Seq:D) {
+        Seq.new(($chomp ?? Lines !! LinesKeepNL).new(self))
+    }
 
     method !ensure-split-sanity(\v,\k,\kv,\p) {
         # cannot combine these
@@ -3286,8 +3365,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Positive indent does indent
     multi method indent(Int() $steps where { $_ > 0 }) {
-    # We want to keep trailing \n so we have to .comb explicitly instead of .lines
-        self.comb(/:r ^^ \N* \n?/).map({
+        self.lines(:!chomp).map({
             given $_.Str {
                 when /^ \n? $ / {
                     $_;
@@ -3323,7 +3401,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     sub de-indent($obj, $steps) {
         # Loop through all lines to get as much info out of them as possible
-        my @lines = $obj.comb(/:r ^^ \N* \n?/).map({
+        my @lines = $obj.lines(:!chomp).map({
             # Split the line into indent and content
             my ($indent, $rest) = @($_ ~~ /^(\h*) (.*)$/);
 

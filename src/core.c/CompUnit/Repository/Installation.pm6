@@ -245,7 +245,6 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%)
     CompUnit::RepositoryRegistry.run-script( "#name#", :$name, :$auth, :$ver );
 }
 SHELL
-
        };
 
         for %files.kv -> $name-path, $file is copy {

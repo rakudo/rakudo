@@ -911,7 +911,6 @@ S32-hash/slice.t
 S32-io/IO-Socket-Async.t
 S32-io/IO-Socket-Async-UDP.t    # moar
 S32-io/chdir.t
-S32-io/child-secure.t
 S32-io/copy.t
 S32-io/dir.t
 S32-io/file-tests.t

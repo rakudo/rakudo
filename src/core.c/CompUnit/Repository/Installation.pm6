@@ -201,7 +201,7 @@ __END__
 
         # bin/ scripts
 
-        my $perl-wrapper
+        state $perl-wrapper
         = do {
             # code below replaces #ext# with '-j', '-m', etc.
             #

@@ -158,7 +158,7 @@ You can also use "make" to run an individual test from the command line:
 If you want to run the tests in parallel, you need to install a fairly
 recent version of the Perl 5 module Test::Harness (3.16 works for sure).
 
-# Spectest smolder requirements (Windows)
+# Spectest requirements (Windows)
 
 You need recent version of either Strawberry Perl or ActiveState Perl.
 

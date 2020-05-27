@@ -5,7 +5,7 @@ Perl 5.10.1 or newer on all platforms except Windows which needs Perl 5.22.
 To automatically obtain and build MoarVM as well as NQP, you may also need a
 git client, which is also needed for fetching the test suite.
 
-Building rakudo can sometimes take >1.4G of memory when compiling for the
+Building Rakudo can sometimes take >1.4G of memory when compiling for the
 MoarVM runtime. The requirements are higher for the JVM backend.
 
 (Perl is installed by default already). To enable parallel testing you also
@@ -16,7 +16,7 @@ TEST_JOBS is not specified, 6 jobs will be used.
 # Building and invoking Rakudo
 
 If you're wanting the bleeding-edge version of the Rakudo Raku compiler,
-we recommend downloading Rakudo directly from Github and building it from
+we recommend downloading Rakudo directly from GitHub and building it from
 there.
 
     $ git clone git://github.com/rakudo/rakudo.git
@@ -24,8 +24,8 @@ there.
 If you don't have git installed, you can get a tarball of Rakudo from
 https://rakudo.org/downloads/rakudo/. Then unpack the tarball.
 
-If you already have cloned Rakudo from github, you can get (pull) the most
-recent version from github like this:
+If you already have cloned Rakudo from GitHub, you can get (pull) the most
+recent version from GitHub like this:
 
     $ cd rakudo
     $ git pull

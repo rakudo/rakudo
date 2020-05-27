@@ -156,7 +156,8 @@ You can also use "make" to run an individual test from the command line:
     Result: PASS
 
 If you want to run the tests in parallel, you need to install a fairly
-recent version of the Perl 5 module Test::Harness (3.16 works for sure).
+recent version of the Perl 5 module Test::Harness (as above, we
+recommend version 3.16 or newer).
 
 # Spectest requirements (Windows)
 

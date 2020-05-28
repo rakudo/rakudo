@@ -4187,6 +4187,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«(>)»    { <sym> <O(|%chaining)> }
     token infix:sym«⊃»      { <sym> <O(|%chaining)> }
     token infix:sym«⊅»      { <sym> <O(|%chaining)> }
+    token infix:sym«(==)»   { <sym> <O(|%chaining)> }
+    token infix:sym«≡»      { <sym> <O(|%chaining)> }
+    token infix:sym«≢»      { <sym> <O(|%chaining)> }
     token infix:sym«(<=)»   { <sym> <O(|%chaining)> }
     token infix:sym«⊆»      { <sym> <O(|%chaining)> }
     token infix:sym«⊈»      { <sym> <O(|%chaining)> }

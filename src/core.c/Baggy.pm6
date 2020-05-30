@@ -18,45 +18,10 @@ my role Baggy does QuantHash {
         other.^does(self)
     }
     multi method ACCEPTS(Baggy:D: Baggy:D \other --> Bool:D) {
-        nqp::hllbool(
-          nqp::unless(
-            nqp::eqaddr(self,other),
-            nqp::if(                         # not same object
-              (my \araw := $!elems) && nqp::elems(araw),
-              nqp::if(                       # something on left
-                nqp::isconcrete(my \braw := other.RAW-HASH)
-                  && nqp::elems(braw),
-                nqp::if(                     # something on both sides
-                  nqp::iseq_i(nqp::elems(araw),nqp::elems(braw)),
-                  nqp::stmts(                # same size
-                    (my \iter := nqp::iterator(araw)),
-                    nqp::while(
-                      iter,
-                      nqp::unless(
-                        nqp::getattr(
-                          nqp::ifnull(
-                            nqp::atkey(braw,nqp::iterkey_s(nqp::shift(iter))),
-                            BEGIN nqp::p6bindattrinvres(  # virtual Pair with 0
-                              nqp::create(Pair),Pair,'$!value',0)
-                          ),Pair,'$!value')
-                          == nqp::getattr(nqp::iterval(iter),Pair,'$!value'),
-                        return False         # missing/different: we're done
-                      )
-                    ),
-                    True                     # all keys identical/same value
-                  )
-                )
-              ),
-              # true -> both empty
-              nqp::isfalse(
-                (my \raw := other.RAW-HASH) && nqp::elems(raw)
-              )
-            )
-          )
-        )
+        self (==) other
     }
     multi method ACCEPTS(Baggy:D: \other --> Bool:D) {
-        self.ACCEPTS(other.Bag)
+        self (==) other.Bag
     }
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
@@ -738,7 +703,9 @@ my role Baggy does QuantHash {
 
 multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }
+
 # vim: ft=perl6 expandtab sw=4

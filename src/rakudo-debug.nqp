@@ -466,7 +466,7 @@ sub MAIN(*@ARGS) {
     nqp::bindhllsym('Raku', '$COMPILER_CONFIG', $comp.config);
 
 
-    # Determine Perl6 and NQP dirs.
+    # Determine Raku and NQP dirs.
 #?if jvm
     my $sep := nqp::atkey(nqp::jvmgetproperties,'os.name') eq 'MSWin32' ?? '\\' !! '/';
     my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');

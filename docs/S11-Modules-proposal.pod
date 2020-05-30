@@ -1,19 +1,19 @@
 =head1 S11-Modules proposal for Rakudo * implementation
 
-The aim will be to implement it all in NQP if possible.
+The aim will be to implement it all in C<NQP> if possible.
 
 =head1 Overriding Principle
 
 The source code must always be the absolute source of all information.
-Everything else should act as a cache.  That means *.pir files and
+Everything else should act as a cache.  That means C<*.pir> files and
 databases of metadata may be automatically or manually derived from the
-*.pm files, but they may not add information (from the command line, for
+C<*.rakumod> files, but they may not add information (from the command line, for
 example).
 
 If there is to be cached metadata in future, it should be stored in
 files as close to the corresponding source files as possible.
-If modules are precompiled to *.pir files, those files will be stored
-in the same directories as their corresponding *.pm source files, with
+If modules are precompiled to C<*.pir> files, those files will be stored
+in the same directories as their corresponding C<*.rakumod> source files, with
 identical names apart from the extension.
 
 =head1 Restrictions and limitations
@@ -32,7 +32,7 @@ file, in order to keep the implementation simple.  In order to keep
 users sane, multiple C<:ver> or C<:auth> name parts in the same source
 file will make the using program die with a NYI error.
 
-The following is ok (loaded by "use Foo::Bar:ver<1.2.3>:auth<baz>"):
+The following is ok (loaded by C<"use Foo::Bar:ver<1.2.3>:auth<baz>">):
 
     # in Foo/Bar.pm
     class Foo::Bar:ver<1.2.3>:auth<baz> {       # or module, grammar etc
@@ -60,19 +60,19 @@ to use your modules, don't use Unicode in your module names.
 
 =head2 Retain @*INC to specify where searching begins
 
-Rakudo effectively gives the following output to -e'.say for @*INC'
+Rakudo effectively gives the following output to C<-e '.say for @*INC'>
 
     ~/.perl6/lib
     parrot_install/lib/2.1.0-devel/share/perl6/lib
     .
 
-The . entry may be removed from the default @*INC because it creates a
+The . entry may be removed from the default C<@*INC> because it creates a
 security risk, but it is needed in the medium term for the build process
 to conveniently find F<Test.pm>.
 
-Unlike the Perl 5 case, all matching candidate files in all applicable
+Unlike the Perl case, all matching candidate files in all applicable
 directories will be considered, so in most cases the order of
-directories in @*INC is not significant.  If copies of the same module
+directories in C<@*INC> is not significant.  If copies of the same module
 name with the same C<:auth> and C<:ver> name parts exist in the same or
 even different directories, Rakudo may arbitrarily use any one of those
 files and ignore the others.  The module installer utility should try to
@@ -127,7 +127,7 @@ files with the same :ver, will result in an arbitrary selection.
 
 =head1 Implementation notes
 
-There is a Perl 5 stub implementation of the module finding algorithm in the
+There is a Perl stub implementation of the module finding algorithm in the
 rmp repository L<http://github.com/moritz/rmp> in the file
 C<loader-fulllist.pl>. Commit bits to that repo are handed out freely; just
-ask hugme on #perl6 :-).
+ask HUG-me on #raku :-).

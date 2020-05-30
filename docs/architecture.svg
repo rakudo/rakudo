@@ -578,7 +578,7 @@ There are also some supporting custom types and operations in Rakudo called dyna
        sodipodi:role="line"
        id="tspan3982"
        x="-122.32886"
-       y="328.75763">Raku::World</tspan><tspan
+       y="328.75763">Perl6::World</tspan><tspan
        sodipodi:role="line"
        x="-122.32886"
        y="343.75763"

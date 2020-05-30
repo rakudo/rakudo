@@ -1,7 +1,7 @@
 =begin pod
 
 This document is meant to describe in some detail what's going on in C<val()>
-(found in C<src/core/allomorphs.pm>), since it's quite a big function. It
+(found in C<src/core.c/allomorphs.pm6>), since it's quite a big function. It
 contains a bunch of inner subs to make the process as sane as possible without
 resorting to a grammar.
 
@@ -17,7 +17,7 @@ part of the error reporting process.
 =head2 C<ProtoFailure>
 
 The C<ProtoFailure> class is just a hack, because using C<Failure>s in a similar
-way will cause Perl 6 to hang and likely eat all your memory (including on
+way will cause Raku to hang and likely eat all your memory (including on
 compiling C<RESTRICTED>, the next step after C<CORE>).
 
 Its only similarity to a C<Failure> is that it always comes out as undefined (so

@@ -132,7 +132,7 @@ sub nativesizeof($obj) is export(:DEFAULT) {
 my constant $signed_ints_by_size =
   nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
 
-# Gets the NCI type code to use based on a given Perl 6 type.
+# Gets the NCI type code to use based on a given Raku type.
 my constant $type_map = nqp::hash(
   "Bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
   "bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),

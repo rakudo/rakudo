@@ -61,11 +61,11 @@ attempts to document all those currently in use.
 
 =over
 
-=item C<RAKUDOLIB>, C<PERL6LIB> (I<Str>; F<src/core/Inc.pm>)
+=item C<RAKUDOLIB>, C<RAKULIB> (I<Str>; F<src/core/Inc.pm>)
 
 Appends a comma-delimited list of paths to C<@INC>. C<RAKUDOLIB> is evaluated first.
 
-=item C<RAKUDO_MODULE_DEBUG> (I<Bool>; F<src/Perl6/ModuleLoader.pm>)
+=item C<RAKUDO_MODULE_DEBUG> (I<Bool>; F<src/Perl6/ModuleLoader.nqp>)
 
 Causes the module loader to print debugging information to standard error.
 
@@ -75,19 +75,19 @@ Causes the module loader to print debugging information to standard error.
 
 =over
 
-=item C<RAKUDO_NO_DEPRECATIONS> (I<Bool>; F<src/core/Deprecations.pm>)
+=item C<RAKUDO_NO_DEPRECATIONS> (I<Bool>; F<src/core.c/Deprecations.pm6>)
 
 If true, suppresses deprecation warnings triggered by the C<is DEPRECATED> trait.
 
-=item C<RAKUDO_DEPRECATIONS_FATAL> (I<Bool>; F<src/core/Deprecations.pm>)
+=item C<RAKUDO_DEPRECATIONS_FATAL> (I<Bool>; F<src/core.c/Deprecations.pm6>)
 
 If true, deprecation warnings become thrown exceptions.
 
-=item C<RAKUDO_VERBOSE_STACKFRAME> (I<UInt>; F<src/core/Backtrace.pm>)
+=item C<RAKUDO_VERBOSE_STACKFRAME> (I<UInt>; F<src/core.c/Backtrace.pm6>)
 
 Displays source code in stack frames surrounded by the specified number of lines of context.
 
-=item C<RAKUDO_BACKTRACE_SETTING> (I<Bool>; F<src/core/Backtrace.pm>)
+=item C<RAKUDO_BACKTRACE_SETTING> (I<Bool>; F<src/core.c/Backtrace.pm6>)
 
 Controls whether .setting files are included in backtraces.
 
@@ -97,18 +97,18 @@ Controls whether .setting files are included in backtraces.
 
 =over
 
-=item C<RAKUDO_PREFIX> (I<Str>; F<src/core/CompUnit/RepositoryRegistry.pm>)
+=item C<RAKUDO_PREFIX> (I<Str>; F<src/core.c/CompUnit/RepositoryRegistry.pm6>)
 
 When this is set, Rakudo will look for the standard repositories (perl, vendor, site) in the
 specified directory. This is intended as an escape hatch for build-time bootstrapping issues,
 where Rakudo may be built as an unprivileged user without write access to the runtime paths
 in NQP's config.
 
-=item C<RAKUDO_PRECOMP_DIST> (F<src/core/CompUnit/PrecompilationRepository.pm>)
+=item C<RAKUDO_PRECOMP_DIST> (F<src/core.c/CompUnit/PrecompilationRepository.pm6>)
 
-=item C<RAKUDO_PRECOMP_LOADING> (F<src/core/CompUnit/PrecompilationRepository.pm>)
+=item C<RAKUDO_PRECOMP_LOADING> (F<src/core.c/CompUnit/PrecompilationRepository.pm6>)
 
-=item C<RAKUDO_PRECOMP_WITH> (F<src/core/CompUnit/PrecompilationRepository.pm>)
+=item C<RAKUDO_PRECOMP_WITH> (F<src/core.c/CompUnit/PrecompilationRepository.pm6>)
 
 These are internal variables for passing serialized state to precompilation jobs in child processes.
 Please do not set them manually.
@@ -119,16 +119,16 @@ Please do not set them manually.
 
 =over
 
-=item C<RAKUDO_ERROR_COLOR> (I<Bool>; F<src/core/Exception.pm>)
+=item C<RAKUDO_ERROR_COLOR> (I<Bool>; F<src/core.c/Exception.pm6>)
 
 Controls whether to emit ANSI codes for error highlighting. Defaults to true if unset, except on
 Win32.
 
-=item C<RAKUDO_MAX_THREADS> (I<UInt>; F<src/core/ThreadPoolScheduler.pm>)
+=item C<RAKUDO_MAX_THREADS> (I<UInt>; F<src/core.c/ThreadPoolScheduler.pm6>)
 
 Override the default maximum number of threads used by a thread pool.
 
-=item C<TMPDIR>, C<TEMP>, C<TMP> (I<Str>; F<src/core/IO/Spec/>)
+=item C<TMPDIR>, C<TEMP>, C<TMP> (I<Str>; F<src/core.c/IO/Spec/>)
 
 The C<IO::Spec::Unix.tmpdir> method will return C<$TMPDIR> if it points to a directory with full
 access permissions for the current user, with a fallback default of C<'/tmp'>.
@@ -136,7 +136,7 @@ access permissions for the current user, with a fallback default of C<'/tmp'>.
 C<IO::Spec::Cygwin> and C<IO::Spec::Win32> use more Win32-appropriate lists which also include the
 C<%TEMP%> and C<%TMP%> environment variables.
 
-=item C<PATH>, C<Path> (I<Str>; F<src/core/IO/Spec/>)
+=item C<PATH>, C<Path> (I<Str>; F<src/core.c/IO/Spec/>)
 
 The C<IO::Spec::Unix.path> method splits C<$PATH> as a shell would; i.e. as a colon-separated list.
 C<IO::Spec::Cygwin> inherits this from C<IO::Spec::Unix>.
@@ -146,11 +146,11 @@ semicolon-delimited list.
 
 =item C<RAKU_HOME>
 
-Allows to override the Raku installation path. Defaults to C<[perl6_executable_dir]/../share/perl6>.
+Allows to override the Raku installation path. Defaults to C<[rakudo_executable_dir]/../share/perl6>.
 
 =item C<NQP_HOME>
 
-Allows to override the NQP installation path. Defaults to C<[perl6_executable_dir]/../share/nqp>.
+Allows to override the NQP installation path. Defaults to C<[rakudo_executable_dir]/../share/nqp>.
 
 =back
 

@@ -172,13 +172,13 @@ process for later developers.
 Following is the start of a table to show the grammar tokens that have
 action methods and their resulting `.ast` values.
 
-| Actions method           | `made` (`ast`) value 
+| Actions method           | `made` (`ast`) value
 | ---                      | ---            
-| pod_textcontent          | 
-| pod_block:sym\<delimited> | QAST node [instance of Pod::Heading] 
-| pod_block:sym\<delimited> | QAST node [instance of Pod::Item] 
-| pod_block:sym\<delimited> | QAST node [instance of Pod::Defn] 
-| pod_block:sym\<delimited> | QAST node [instance of Pod::Block::Named] 
+| pod_textcontent          |
+| pod_block:sym\<delimited> | QAST node [instance of Pod::Heading]
+| pod_block:sym\<delimited> | QAST node [instance of Pod::Item]
+| pod_block:sym\<delimited> | QAST node [instance of Pod::Defn]
+| pod_block:sym\<delimited> | QAST node [instance of Pod::Block::Named]
 | pod_content:sym\<block>   | $<pod_block>.ast;
 | pod_content_toplevel     | $<pod_block>.ast
 

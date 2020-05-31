@@ -82,27 +82,27 @@ This desugars to:
 ## p6bool
 * p6bool(Mu $value)
 
-Create a Perl 6 Bool from $value.
+Create a Raku Bool from $value.
 
 ## p6box_i
 * p6box_i(int $value)
 
-Box a native int into a Perl 6 Int.
+Box a native int into a Raku Int.
 
 ## p6box_n
 * p6box_n(num $value)
 
-Box a native num into a Perl 6 Num.
+Box a native num into a Raku Num.
 
 ## p6box_s
 * p6box_s(str $value)
 
-Box a native str into a Perl 6 Str.
+Box a native str into a Raku Str.
 
 ## p6box_u
 * p6box_u(uint $value)
 
-Box a native uint into a Perl 6 UInt.
+Box a native uint into a Raku UInt.
 
 ## p6capturelex
 * p6capturelex(Mu $closure)
@@ -141,7 +141,7 @@ Returns client's language version (`6.<rev>`). See [p6clientcorectx](#p6clientco
 ## p6clientctx
 * p6clientctx()
 
-Returns client's, i.e. the first Perl6 caller from different package, context.
+Returns client's, i.e. the first Raku caller from different package, context.
 
 ## p6configposbindfailover
 * p6configposbindfailover(Mu $type, Mu $failover-type)
@@ -169,7 +169,7 @@ to a _true_ value then lookup is performed only in client's SETTING.
 ## p6init
 * p6init()
 
-Initializes the GlobalContext extensions for Perl 6.
+Initializes the GlobalContext extensions for Raku.
 
 ## p6inpre
 * p6inpre()

@@ -737,7 +737,7 @@ my class BlockVarOptimizer {
             unless nqp::existskey(%!usages_inner, $name) ||
                     nqp::existskey(%!used_in_handle_handler, $name) {
                 # Lowerable if it's a normal variable, including $_ if we're in a
-                # Perl 6 version that allows lowering that.
+                # Raku version that allows lowering that.
                 next if nqp::chars($name) < 1;
                 unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 0) {
                     my str $sigil := nqp::substr($name, 0, 1);
@@ -2750,7 +2750,7 @@ class Perl6::Optimizer {
                 $type.HOW.archetypes.nominal();
             unless $ok_type {
                 # nqp::ops end up labeled with nqp primitive types; we swap
-                # those out for their Perl 6 equivalents.
+                # those out for their Raku equivalents.
                 my int $ps := nqp::objprimspec($type);
                 if $ps >= 1 && $ps <= 3 {
                     $type := $!symbols.find_lexical(@prim_names[$ps]);

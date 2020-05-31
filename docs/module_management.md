@@ -97,7 +97,7 @@ the point they were formed.
 Furthermore, precompilations are statically linked against the precompilations
 of their transitive dependencies as well as against a particular compilation
 of the Raku compiler and its `CORE.setting`. Therefore, the identity of the
-Raku compiler - obtained through `$*PERL.compiler.id` - should also be
+Raku compiler - obtained through `$*RAKU.compiler.id` - should also be
 considered part of the environment the precompilation was formed in. This will
 also support `rakubrew` style tools, which enable switching between different
 versions and backends.
@@ -129,7 +129,7 @@ to another. A repository can always provide its unique identity, which must
 incorporate the identity of any repository it refers to. In normal startup, the
 `PROCESS::<$REPO>` symbol will be set to a default repository that supports the
 installation of distributions (a `CompUnit::Repository::Installation`). Any
-`-I` includes, or any paths in a `PERL6LIB` environment variable, will cause
+`-I` includes, or any paths in a `RAKULIB` environment variable, will cause
 `PROCESS::<$REPO>` to instead point to a chain of repositories that ends with
 the default `CompUnit::Repository::Installation` that is normally there.
 
@@ -426,7 +426,7 @@ should implement the following role:
     role CompUnit::Repository::Installable does CompUnit::Repository {
         # Installs a distribution into the repository.
         method install(
-            # A Distribution object 
+            # A Distribution object
             Distribution $dist,
             # A hash mapping entries in `provides` to a disk location that
             # holds the source files; they will be copied (and may also be
@@ -560,7 +560,7 @@ versioning or authority.
 
     class CompUnit::Repository::FileSystem does CompUnit::Repository {
         has $.prefix is required;
-        
+
         ...
     }
 

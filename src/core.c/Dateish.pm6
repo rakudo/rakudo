@@ -199,9 +199,9 @@ my role Dateish {
 # =begin pod
 #
 # =head1 SEE ALSO
-# Perl 6 spec <S32-Temporal|http://design.perl6.org/S32/Temporal.html>.
-# The Perl 5 DateTime Project home page L<http://datetime.perl.org>.
-# Perl 5 perldoc L<doc:DateTime> and L<doc:Time::Local>.
+# Raku spec <S32-Temporal|https://design.raku.org/S32/Temporal.html>.
+# The Perl DateTime Project home page L<http://datetime.perl.org>.
+# Perl perldoc L<doc:DateTime> and L<doc:Time::Local>.
 #
 # The best yet seen explanation of calendars, by Claus Tøndering
 # L<Calendar FAQ|http://www.tondering.dk/claus/calendar.html>.

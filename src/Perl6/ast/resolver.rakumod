@@ -11,6 +11,15 @@ class RakuAST::Resolver {
         self.resolve-lexical('&postfix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
     }
 
+    method resolve-name(RakuAST::Name $name, Str :$sigil) {
+        unless $name.is-identifier {
+            nqp::die('Resovling complex names NYI')
+        }
+        my $trailing := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
+        my str $lexical-name := $sigil ?? $sigil ~ $trailing !! $trailing;
+        self.resolve-lexical($lexical-name)
+    }
+
     method IMPL-CANONICALIZE-PAIR(Str $k, Str $v) {
         if $v ~~ /<[ < > ]>/ && !($v ~~ /<[ « » $ \\ " ' ]>/) {
             ':' ~ $k ~ '«' ~ $v ~ '»'

@@ -85,3 +85,27 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
         $call
     }
 }
+
+# A call to a method.
+class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
+    has RakuAST::Name $.name;
+
+    method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Call::Method, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        if $!name.is-identifier {
+            my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+            my $call := QAST::Op.new( :op('callmethod'), :$name, $invocant-qast );
+            self.args.IMPL-ADD-QAST-ARGS($context, $call);
+            $call
+        }
+        else {
+            nqp::die('Qualified method calls NYI');
+        }
+    }
+}

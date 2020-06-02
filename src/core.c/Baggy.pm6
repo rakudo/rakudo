@@ -20,7 +20,7 @@ my role Baggy does QuantHash {
     multi method ACCEPTS(Baggy:D: Baggy:D \other --> Bool:D) {
         nqp::hllbool(
           nqp::unless(
-            nqp::eqaddr(self,other),
+            nqp::eqaddr(self,nqp::decont(other)),
             nqp::if(                         # not same object
               (my \araw := $!elems) && nqp::elems(araw),
               nqp::if(                       # something on left

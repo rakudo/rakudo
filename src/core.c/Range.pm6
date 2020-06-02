@@ -706,9 +706,9 @@ multi sub infix:<^..^>($min, $max) {
 proto sub prefix:<^>($, *%) is pure {*}
 multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
 
-multi sub infix:<eqv>(Range:D \a, Range:D \b) {
+multi sub infix:<eqv>(Range:D \a, Range:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.min eqv b.min
              && a.max eqv b.max

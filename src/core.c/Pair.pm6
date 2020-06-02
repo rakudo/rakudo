@@ -191,9 +191,9 @@ key of the Pair should be a valid method name, not '$method'."
     }
 }
 
-multi sub infix:<eqv>(Pair:D \a, Pair:D \b) {
+multi sub infix:<eqv>(Pair:D \a, Pair:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.key   eqv b.key
              && a.value eqv b.value)

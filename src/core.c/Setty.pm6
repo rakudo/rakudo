@@ -106,10 +106,10 @@ my role Setty does QuantHash {
     multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
 
     multi method ACCEPTS(Setty:U: \other) { other.^does(self) }
-    multi method ACCEPTS(Setty:D: Setty:D \other) {
+    multi method ACCEPTS(Setty:D: Setty:D \other --> Bool:D) {
         nqp::hllbool(
           nqp::unless(
-            nqp::eqaddr(self,other),
+            nqp::eqaddr(self,nqp::decont(other)),
             nqp::if(                                # not same object
               $!elems && nqp::elems($!elems),
               nqp::if(                              # something on left
@@ -301,7 +301,8 @@ my role Setty does QuantHash {
 
 multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }
 

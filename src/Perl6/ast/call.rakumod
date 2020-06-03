@@ -20,6 +20,16 @@ class RakuAST::ArgList is RakuAST::Node {
     }
 
     method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call) {
+        # We need to remove duplicate named args, so make a first pass through to
+        # collect those.
+        my %named-counts;
+        for $!args -> $arg {
+            if nqp::istype($arg, RakuAST::NamedArg) {
+                %named-counts{$arg.named-arg-name}++;
+            }
+        }
+
+        # Now emit code to compile and pass each argument.
         for $!args -> $arg {
             if nqp::istype($arg, RakuAST::ApplyPrefix) &&
                     nqp::istype($arg.prefix, RakuAST::Prefix) &&
@@ -41,6 +51,29 @@ class RakuAST::ArgList is RakuAST::Node {
                     QAST::Var.new( :name($temp), :scope('local') ),
                     :flat(1), :named(1)
                 ));
+            }
+            elsif nqp::istype($arg, RakuAST::NamedArg) {
+                my $name := $arg.named-arg-name;
+                if %named-counts{$name} == 1 {
+                    # It's the final appearance of this name, so emit it as the
+                    # named argument.
+                    my $val-ast := $arg.named-arg-value.IMPL-TO-QAST($context);
+                    $val-ast.named($name);
+                    $call.push($val-ast);
+                }
+                else {
+                    # It's a discarded value. If it has side-effects, then we
+                    # must evaluate those.
+                    my $value := $arg.named-arg-value;
+                    unless $value.pure {
+                        $call.push(QAST::Stmts.new(
+                            :flat,
+                            $value.IMPL-TO-QAST($context),
+                            QAST::Op.new( :op('list') ) # flattens to nothing
+                        ));
+                    }
+                    %named-counts{$name}--;
+                }
             }
             else {
                 # Positional argument.

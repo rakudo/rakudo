@@ -17,7 +17,11 @@ class RakuAST::Node {
     }
 
     # What type does evaluating this node produce, if known?
-    method type { Mu }
+    method type() { Mu }
+
+    # Is evaluating this pure (that is, if its evaluation is elided due to
+    # not being used, then the program will behave the same)?
+    method pure() { False }
 
     # Visits all child nodes of this one, applying the selected block.
     # This is a non-recursive operation.

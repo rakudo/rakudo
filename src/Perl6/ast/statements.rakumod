@@ -105,7 +105,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Simple.new('Empty'),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty')),
         ])
     }
 

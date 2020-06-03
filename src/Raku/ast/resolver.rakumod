@@ -48,12 +48,15 @@ class RakuAST::Resolver {
     }
 }
 
+# The EVAL resolver is used when we are given an AST as a whole, and visit it
+# to perform resolutions. We expect a context and GLOBAL to be provided in this
+# mode.
 class RakuAST::Resolver::EVAL is RakuAST::Resolver {
     has Mu $!global;
     has Mu $!context; # XXX Should be PseudoStash
     has Mu $!scopes;
 
-    method new(Mu :$global, Mu :$context) {
+    method new(Mu :$global!, Mu :$context!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!context', $context);
@@ -134,4 +137,17 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
         # Nothing found.
         return Nil;
     }
+}
+
+# The compiler resolver is used in the situation we are parsing code and
+# building up a RakuAST as we go. We thus need to provide symbol resolutions
+# for the sake of parse disambiguation, as well as to handle BEGIN-time code.
+# A resolver may be created using an existing context, or it may be for a
+# compilation unit whose outer scope is some version of the setting.
+class RakuAST::Resolver::Compile is RakuAST::Resolver {
+
+    method new(Mu :$context) {
+        nqp::say('in resolver new');
+    }
+    
 }

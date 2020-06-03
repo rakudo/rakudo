@@ -151,4 +151,9 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
             $source-qast
         )
     }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
+        my str $scope := 'lexical';
+        QAST::Var.new( :name($!name), :$scope )
+    }
 }

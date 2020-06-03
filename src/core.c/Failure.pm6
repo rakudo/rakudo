@@ -8,9 +8,10 @@ my class Failure is Nil {
     has Int $!handled;   # alas, native int breaks on the JVM
 #?endif
 
-    method !SET-SELF($!exception) {
-        $!backtrace = $!exception.backtrace || Backtrace.new(3);
-        $!exception.reset-backtrace;
+    method !SET-SELF(\exception) {
+        $!exception := exception;
+        $!backtrace := exception.backtrace || Backtrace.new(3);
+        exception.reset-backtrace;
         self
     }
 

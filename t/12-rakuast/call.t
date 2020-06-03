@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 6;
+plan 10;
 
 sub no-args() {
     444
@@ -78,3 +78,62 @@ is-deeply
         )),
         8,
         'Can make a call on a method with positional arguments';
+
+{
+    my @args;
+    is-deeply
+            EVAL(RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier('no-args'),
+                args => RakuAST::ArgList.new(
+                    RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('|'),
+                        operand => RakuAST::Var::Lexical.new('@args')
+                    )
+                )
+            )),
+            444,
+            'Can make a call that flattens arguments (empty flattening list)';
+
+    @args = 95, 40;
+    is-deeply
+            EVAL(RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier('two-args'),
+                args => RakuAST::ArgList.new(
+                    RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('|'),
+                        operand => RakuAST::Var::Lexical.new('@args')
+                    )
+                )
+            )),
+            55,
+            'Can make a call that flattens two positional arguments';
+
+    my %args;
+    is-deeply
+            EVAL(RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier('no-args'),
+                args => RakuAST::ArgList.new(
+                    RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('|'),
+                        operand => RakuAST::Var::Lexical.new('%args')
+                    )
+                )
+            )),
+            444,
+            'Can make a call that flattens arguments (empty flattening hash)';
+
+    sub two-named(:$n1, :$n2) { $n1 / $n2 }
+    %args<n1 n2> = 60, 12;
+    is-deeply
+            EVAL(RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier('two-named'),
+                args => RakuAST::ArgList.new(
+                    RakuAST::ApplyPrefix.new(
+                        prefix => RakuAST::Prefix.new('|'),
+                        operand => RakuAST::Var::Lexical.new('%args')
+                    )
+                )
+            )),
+            5.0,
+            'Can make a call that flattens two named arguments';
+}

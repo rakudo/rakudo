@@ -20,8 +20,32 @@ class RakuAST::ArgList is RakuAST::Node {
     }
 
     method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call) {
-        for $!args {
-            $call.push($_.IMPL-TO-QAST($context))
+        for $!args -> $arg {
+            if nqp::istype($arg, RakuAST::ApplyPrefix) &&
+                    nqp::istype($arg.prefix, RakuAST::Prefix) &&
+                    $arg.prefix.operator eq '|' {
+                # Flattening argument; evaluate it once and pass the array and hash
+                # flattening parts.
+                my $temp := QAST::Node.unique('flattening_');
+                $call.push(QAST::Op.new(
+                    :op('callmethod'), :name('FLATTENABLE_LIST'),
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($temp), :scope('local'), :decl('var') ),
+                        $arg.operand.IMPL-TO-QAST($context)
+                    ),
+                    :flat(1)
+                ));
+                $call.push(QAST::Op.new(
+                    :op('callmethod'), :name('FLATTENABLE_HASH'),
+                    QAST::Var.new( :name($temp), :scope('local') ),
+                    :flat(1), :named(1)
+                ));
+            }
+            else {
+                # Positional argument.
+                $call.push($arg.IMPL-TO-QAST($context))
+            }
         }
     }
 }

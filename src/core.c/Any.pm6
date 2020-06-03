@@ -568,7 +568,7 @@ multi sub item(\x)    { my $ = x }
 multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
-sub dd(|) {  # is implementation-detail
+sub dd(|c) {  # is implementation-detail
 
     # handler for BOOTxxxArrays
     sub BOOTArray(Mu \array) {
@@ -615,6 +615,9 @@ sub dd(|) {  # is implementation-detail
                 !! "($var.^name() without .raku or .perl method)";
             note $name ?? "$type $name = $what" !! $what;
         }
+    }
+    elsif c.hash -> %named {
+        note .raku for %named.sort: { .key }
     }
     else { # tell where we are
         note .name

@@ -1,18 +1,12 @@
 # A signature, typically part of a block though also contained within a
 # signature literal or a signature-based variable declarator.
-class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups {
+class RakuAST::Signature is RakuAST::Meta {
     has List $.parameters;
 
     method new(List :$parameters!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Signature, '$!parameters', $parameters);
         $obj
-    }
-
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::Type::Simple.new('Signature'),
-        ])
     }
 
     method PRODUCE-META-OBJECT() {
@@ -23,12 +17,10 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups {
         }
 
         # Build signature object.
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $signature-type := @lookups[0].resolution.compile-time-value;
-        my $signature := nqp::create($signature-type);
-        nqp::bindattr($signature, $signature-type, '@!params', @parameters);
-        nqp::bindattr_i($signature, $signature-type, '$!arity', self.arity);
-        nqp::bindattr($signature, $signature-type, '$!count', self.count);
+        my $signature := nqp::create(Signature);
+        nqp::bindattr($signature, Signature, '@!params', @parameters);
+        nqp::bindattr_i($signature, Signature, '$!arity', self.arity);
+        nqp::bindattr($signature, Signature, '$!count', self.count);
         $signature
     }
 
@@ -67,7 +59,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::ImplicitLookups {
 
 # A parameter within a signature. A parameter may result in binding or assignment
 # into a target; this is modeled by a RakuAST::ParameterTarget, which is optional.
-class RakuAST::Parameter is RakuAST::Meta is RakuAST::ImplicitLookups {
+class RakuAST::Parameter is RakuAST::Meta {
     has RakuAST::ParameterTarget $.target;
 
     method new(RakuAST::ParameterTarget :$target) {
@@ -80,16 +72,8 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::ImplicitLookups {
         $visitor($!target);
     }
 
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::Type::Simple.new('Parameter'),
-        ])
-    }
-
     method PRODUCE-META-OBJECT() {
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $parameter-type := @lookups[0].resolution.compile-time-value;
-        my $parameter := nqp::create($parameter-type);
+        my $parameter := nqp::create(Parameter);
         # TODO set it up
         $parameter
     }

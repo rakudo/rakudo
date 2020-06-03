@@ -76,7 +76,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term {
 
 # A pointy block (-> $foo { ... }).
 class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Meta
-                           is RakuAST::ImplicitLookups is RakuAST::Code {
+                           is RakuAST::Code {
     has RakuAST::Signature $.signature;
     has RakuAST::Blockoid $.body;
 
@@ -87,20 +87,10 @@ class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term is RakuAST:
         $obj
     }
 
-    method PRODUCE-IMPLICIT-LOOKUPS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::Type::Simple.new('Code'),
-            RakuAST::Type::Simple.new('Block'),
-        ])
-    }
-
     method PRODUCE-META-OBJECT() {
         # Create block object and install signature.
-        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $code-type := @lookups[0].resolution.compile-time-value;
-        my $block-type := @lookups[1].resolution.compile-time-value;
-        my $block := nqp::create($block-type);
-        nqp::bindattr($block, $code-type, '$!signature', $!signature.meta-object);
+        my $block := nqp::create(Block);
+        nqp::bindattr($block, Code, '$!signature', $!signature.meta-object);
         $block
     }
 
@@ -120,12 +110,10 @@ class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term is RakuAST:
 
         # We need to do a fixup of the code block for the non-precompiled case.
         $context.add-fixup-task(-> {
-            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-            my $code-type := @lookups[0].resolution.compile-time-value;
             QAST::Op.new(
                 :op('bindattr'),
                 QAST::WVal.new( :value($code-obj) ),
-                QAST::WVal.new( :value($code-type) ),
+                QAST::WVal.new( :value(Code) ),
                 QAST::SVal.new( :value('$!do') ),
                 QAST::BVal.new( :value($block) )
             )

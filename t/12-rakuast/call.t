@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 10;
+plan 12;
 
 sub no-args() {
     444
@@ -37,6 +37,47 @@ is-deeply
         )),
         2,
         'Can make a named call with two positional arguments';
+
+sub two-named(:$n1, :$n2) {
+    $n1 / $n2
+}
+is-deeply
+        EVAL(RakuAST::Call::Name.new(
+            name => RakuAST::Name.from-identifier('two-named'),
+            args => RakuAST::ArgList.new(
+                RakuAST::FatArrow.new(
+                    key => 'n1',
+                    value => RakuAST::IntLiteral.new(200)
+                ),
+                RakuAST::FatArrow.new(
+                    key => 'n2',
+                    value => RakuAST::IntLiteral.new(4)
+                )
+            )
+        )),
+        50.0,
+        'Can make a named call with two named arguments';
+
+is-deeply
+        EVAL(RakuAST::Call::Name.new(
+            name => RakuAST::Name.from-identifier('two-named'),
+            args => RakuAST::ArgList.new(
+                RakuAST::FatArrow.new(
+                    key => 'n1',
+                    value => RakuAST::IntLiteral.new(200)
+                ),
+                RakuAST::FatArrow.new(
+                    key => 'n2',
+                    value => RakuAST::IntLiteral.new(4)
+                ),
+                RakuAST::FatArrow.new(
+                    key => 'n1',
+                    value => RakuAST::IntLiteral.new(400)
+                ),
+            )
+        )),
+        100.0,
+        'Duplicated named arguments are correctly handled';
 
 my $target = -> $a, $b { $a - $b }
 is-deeply
@@ -122,7 +163,6 @@ is-deeply
             444,
             'Can make a call that flattens arguments (empty flattening hash)';
 
-    sub two-named(:$n1, :$n2) { $n1 / $n2 }
     %args<n1 n2> = 60, 12;
     is-deeply
             EVAL(RakuAST::Call::Name.new(

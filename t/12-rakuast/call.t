@@ -99,7 +99,7 @@ class TestTarget {
 }
 is-deeply
         EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Type::Simple.new('TestTarget'),
+            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('TestTarget')),
             postfix => RakuAST::Call::Method.new(
                 name => RakuAST::Name.from-identifier('route')
             )
@@ -108,7 +108,7 @@ is-deeply
         'Can make a call on a method without arguments';
 is-deeply
         EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Type::Simple.new('TestTarget'),
+            operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('TestTarget')),
             postfix => RakuAST::Call::Method.new(
                 name => RakuAST::Name.from-identifier('subtract'),
                 args => RakuAST::ArgList.new(

@@ -88,20 +88,20 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
     method PRODUCE-IMPLICIT-LOOKUPS() {
         # Need container descriptor, even for aggregate.
         my @lookups := [
-            RakuAST::Type::Simple.new('ContainerDescriptor'),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('ContainerDescriptor')),
         ];
 
         # If it's an @ or % sigil, we need the aggergate type; if not,
         # fall back to Scalar.
         my str $sigil := self.sigil;
         if $sigil eq '@' {
-            @lookups.push(RakuAST::Type::Simple.new('Array'));
+            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Array')));
         }
         elsif $sigil eq '%' {
-            @lookups.push(RakuAST::Type::Simple.new('Hash'));
+            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Hash')));
         }
         else {
-            @lookups.push(RakuAST::Type::Simple.new('Scalar'));
+            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Scalar')));
         }
 
         # Also the type that goes inside of it.
@@ -110,8 +110,8 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
             @lookups.push($!type); # Default
         }
         else {
-            @lookups.push(RakuAST::Type::Simple.new('Mu'));
-            @lookups.push(RakuAST::Type::Simple.new('Any'));
+            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Mu')));
+            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Any')));
         }
 
         self.IMPL-WRAP-LIST(@lookups)

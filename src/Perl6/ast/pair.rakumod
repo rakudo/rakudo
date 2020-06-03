@@ -22,7 +22,7 @@ class RakuAST::FatArrow is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST:
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Simple.new('Pair'),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
         ])
     }
 

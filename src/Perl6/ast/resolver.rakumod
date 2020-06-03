@@ -20,6 +20,15 @@ class RakuAST::Resolver {
         self.resolve-lexical($lexical-name)
     }
 
+    method resolve-name-constant(RakuAST::Name $name) {
+        if $name.is-identifier {
+            self.resolve-lexical-constant($name.IMPL-UNWRAP-LIST($name.parts)[0].name)
+        }
+        else {
+            nqp::die('Resovling complex names NYI')
+        }
+    }
+
     method IMPL-CANONICALIZE-PAIR(Str $k, Str $v) {
         if $v ~~ /<[ < > ]>/ && !($v ~~ /<[ « » $ \\ " ' ]>/) {
             ':' ~ $k ~ '«' ~ $v ~ '»'

@@ -84,7 +84,7 @@ is-deeply
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '$foo',
-                    type => RakuAST::Type::Simple.new('Int'),
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
                 )
             ),
             RakuAST::Statement::Expression.new(
@@ -109,7 +109,7 @@ throws-like
                 RakuAST::Statement::Expression.new(
                     RakuAST::Declaration::Var.new(
                         name => '$foo',
-                        type => RakuAST::Type::Simple.new('Int'),
+                        type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
                     )
                 ),
                 RakuAST::Statement::Expression.new(
@@ -257,7 +257,7 @@ throws-like
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '@arr',
-                    type => RakuAST::Type::Simple.new('Int')
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
                 ),
             ),
             RakuAST::Statement::Expression.new(
@@ -280,7 +280,7 @@ throws-like
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '%hash',
-                    type => RakuAST::Type::Simple.new('Int')
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
                 ),
             ),
             RakuAST::Statement::Expression.new(
@@ -324,7 +324,7 @@ throws-like
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '$native-int',
-                    type => RakuAST::Type::Simple.new('int')
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int'))
                 ),
             ),
             RakuAST::Statement::Expression.new(
@@ -345,7 +345,7 @@ throws-like
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '$num',
-                    type => RakuAST::Type::Simple.new('num')
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num'))
                 ),
             ),
             RakuAST::Statement::Expression.new(
@@ -366,7 +366,7 @@ throws-like
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '$str',
-                    type => RakuAST::Type::Simple.new('str')
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str'))
                 ),
             ),
             RakuAST::Statement::Expression.new(
@@ -387,7 +387,7 @@ throws-like
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '$native-int',
-                    type => RakuAST::Type::Simple.new('int'),
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int')),
                     initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(963))
                 ),
             ),
@@ -405,7 +405,7 @@ throws-like
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '$native-num',
-                    type => RakuAST::Type::Simple.new('num'),
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num')),
                     initializer => RakuAST::Initializer::Assign.new(RakuAST::NumLiteral.new(96e3))
                 ),
             ),
@@ -423,7 +423,7 @@ throws-like
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '$native-str',
-                    type => RakuAST::Type::Simple.new('str'),
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str')),
                     initializer => RakuAST::Initializer::Assign.new(RakuAST::StrLiteral.new('nine six three'))
                 ),
             ),

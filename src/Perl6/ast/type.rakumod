@@ -4,17 +4,16 @@ class RakuAST::Type is RakuAST::Term {
 
 # A simple type name, e.g. Int, Foo::Bar, etc.
 class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
-    # XXX Needs to handle qualified type names
-    has str $.name;
+    has RakuAST::Name $.name;
 
-    method new(Cool $name) {
+    method new(RakuAST::Name $name) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Type::Simple, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Type::Simple, '$!name', $name);
         $obj
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-lexical-constant($!name);
+        my $resolved := $resolver.resolve-name-constant($!name);
         if $resolved {
             self.set-resolution($resolved);
         }
@@ -26,4 +25,10 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
+}
+
+# A simple type name, e.g. Int, Foo::Bar, etc. that should be looked up in the
+# setting.
+class RakuAST::Type::Setting is RakuAST::Type::Simple {
+    # TODO limit lookup to setting
 }

@@ -4,6 +4,7 @@ src/Perl6/ast/base.rakumod
 src/Perl6/ast/scoping.rakumod
 src/Perl6/ast/statements.rakumod
 src/Perl6/ast/expressions.rakumod
+src/Perl6/ast/pair.rakumod
 src/Perl6/ast/call.rakumod
 src/Perl6/ast/name.rakumod
 src/Perl6/ast/type.rakumod

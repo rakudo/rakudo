@@ -566,17 +566,32 @@ my class IO::Path is Cool does IO {
 
     # slurp given path in binary mode
     sub slurp-bin(str $path) {
-        CATCH { .fail }
+        CATCH { return Failure.new($_) }
 
+        my $blob := buf8.new;
+        my $PIO  := nqp::open($path,'r');
+
+        # found a size, so read that many bytes
         if nqp::stat($path,nqp::const::STAT_FILESIZE) -> int $bytes {
-            my $PIO  := nqp::open($path,'r');
-            my $blob := nqp::readfh($PIO,buf8.new,$bytes);
-            nqp::closefh($PIO);
-            $blob
+            nqp::readfh($PIO,$blob,$bytes);
         }
+
+        # no size found, could be a special file, so keep reading until the
+        # buffer is not filled up completely
         else {
-            buf8.new
+            constant size = 0x100000;
+            nqp::while(
+              nqp::iseq_i(
+                nqp::elems(nqp::readfh($PIO,(my $part := buf8.new),size)),
+                size
+              ),
+              $blob.append($part)
+            );
+            $blob.append($part);  # add the final, incomplete part
         }
+
+        nqp::closefh($PIO);
+        $blob
     }
 
     # slurp STDIN with given normalized encoding
@@ -588,17 +603,11 @@ my class IO::Path is Cool does IO {
 
     # slurp given path with given normalized encoding
     sub slurp-with-encoding(str $path, str $encoding) {
-        CATCH { .fail }
+        CATCH { return Failure.new($_) }
 
-        if nqp::stat($path,nqp::const::STAT_FILESIZE) -> int $bytes {
-            my $PIO  := nqp::open($path,'r');
-            my $blob := nqp::readfh($PIO,buf8.new,$bytes);
-            nqp::closefh($PIO);
-            nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
-        }
-        else {
-            ""
-        }
+        nqp::elems(my $blob := slurp-bin($path))
+          ?? nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
+          !! ""
     }
 
     proto method slurp() {*}

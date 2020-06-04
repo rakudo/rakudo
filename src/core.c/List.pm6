@@ -1706,8 +1706,8 @@ multi sub infix:<cmp>(@a, @b --> Order:D) {
 }
 
 proto sub infix:<X>(|) is pure {*}
-multi sub infix:<X>(+lol, :&with! --> Seq:D) {
-    Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&with))
+multi sub infix:<X>(+lol, :$with! --> Seq:D) {
+    Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,$with))
 }
 multi sub infix:<X>(+lol --> Seq:D) {
     Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&infix:<,>))

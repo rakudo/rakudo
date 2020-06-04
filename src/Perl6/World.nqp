@@ -1042,12 +1042,6 @@ class Perl6::World is HLL::World {
                     }
                 }
             }).eager;
-
-            # copy modified %*HOW into lexical EXPORTHOW symbol so new/superceded
-            # declarators will work inside EVAL.
-            my $lex_EXPORTHOW := nqp::knowhow().new_type(:name('EXPORTHOW'));
-            nqp::setwho($lex_EXPORTHOW,self.p6ize_recursive(%*HOW));
-            self.install_lexical_symbol(self.cur_lexpad,'EXPORTHOW',$lex_EXPORTHOW);
         }
     }
 

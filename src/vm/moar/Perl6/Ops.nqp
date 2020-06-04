@@ -404,6 +404,9 @@ $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
         |@($op)
     ));
 });
+$ops.add_hll_op('Raku', 'p6box', -> $qastcomp, $op {
+    $qastcomp.as_mast($op[0], :want($MVM_reg_obj))
+});
 $ops.add_hll_op('Raku', 'p6typecheckrv', -> $qastcomp, $op {
     if nqp::istype($op[1], QAST::WVal) {
         my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[1].value);
@@ -411,27 +414,12 @@ $ops.add_hll_op('Raku', 'p6typecheckrv', -> $qastcomp, $op {
             $qastcomp.as_mast($op[0])
         }
         else {
-            # Use a spesh plugin to appropriately optimize return type checks.
-            my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-            my $type_res := $qastcomp.as_mast(QAST::WVal.new( :value($type) ), :want($MVM_reg_obj));
-            my $plugin_reg := $*REGALLOC.fresh_o();
-            MAST::Call.new(
-                :target(MAST::SVal.new( :value('typecheckrv') )),
-                :flags([$Arg::obj, $Arg::obj]),
-                $value_res.result_reg,
-                $type_res.result_reg,
-                :result($plugin_reg),
-                :op(2)
-            );
-            MAST::Call.new(
-                :target($plugin_reg),
-                :flags([$Arg::obj]),
-                $value_res.result_reg,
-                :result($value_res.result_reg),
-            );
-            $*REGALLOC.release_register($plugin_reg, $MVM_reg_obj);
-            $*REGALLOC.release_register($type_res.result_reg, $MVM_reg_obj);
-            MAST::InstructionList.new($value_res.result_reg, $MVM_reg_obj)
+            $qastcomp.as_mast(QAST::Op.new(
+                :op('dispatch'),
+                QAST::SVal.new( :value('raku-rv-typecheck') ),
+                QAST::Op.new( :op('p6box'), $op[0] ),
+                QAST::WVal.new( :value($type) )
+            ))
         }
     }
     else {

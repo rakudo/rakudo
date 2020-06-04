@@ -143,7 +143,7 @@ With no arguments, enters a REPL (see --repl-mode option).
 With a "[programfile]" or the "-e" option, compiles the given program
 and, by default, also executes the compiled code.
 
-  -                    read program source from standard input until EOF is found
+  -                    read program source from STDIN or start REPL if a TTY
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   --doc                extract documentation and print it as text
   -e program           one line of program, strict is enabled by default

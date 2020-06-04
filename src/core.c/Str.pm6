@@ -27,8 +27,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
     my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
 
-    my \POST-MATCH  := Match.^lookup("MATCH" );  # Match object
-    my \POST-STR    := Match.^lookup("STR"   );  # Str object
+    my &POST-MATCH  := Match.^lookup("MATCH" );  # Match object
+    my &POST-STR    := Match.^lookup("STR"   );  # Str object
 
     multi method IO(Str:D:) { IO::Path.new(self) }
 
@@ -1138,9 +1138,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method comb(Str:D: Regex:D $regex, $limit = *, :$match --> Seq:D) {
-        Seq.new(
-          self!match-iterator($regex, $match ?? POST-MATCH !! POST-STR, $limit)
-        )
+        Seq.new: self!match-iterator:
+          $regex, $match ?? &POST-MATCH !! &POST-STR, $limit
     }
 
     # Look for short/long named parameter and remove it from the hash
@@ -1235,7 +1234,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::if($ov, CURSOR-OVERLAP, CURSOR-GLOBAL))),
 
           fetch-short-long($opts, "as", "as", my $as),
-          (my \post := nqp::if(nqp::istype($as,Str), POST-STR, POST-MATCH)),
+          (my \post := nqp::if(nqp::istype($as,Str), &POST-STR, &POST-MATCH)),
 
           fetch-short-long($opts, "g", "global", my $g),
           nqp::if(
@@ -1287,7 +1286,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-as-one(\slash, \cursor, \as) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
-          nqp::if(nqp::istype(as,Str), POST-STR, POST-MATCH)(cursor),
+          nqp::if(nqp::istype(as,Str), &POST-STR, &POST-MATCH)(cursor),
           Nil
         ))
     }
@@ -1548,7 +1547,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $g,
             self!match-list(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)),
-              CURSOR-GLOBAL, POST-MATCH),
+              CURSOR-GLOBAL, &POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)))
           )
@@ -1563,7 +1562,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $ov,
             self!match-list(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)),
-              CURSOR-OVERLAP, POST-MATCH),
+              CURSOR-OVERLAP, &POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)))
           )
@@ -1578,7 +1577,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $ex,
             self!match-list(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)),
-              CURSOR-EXHAUSTIVE, POST-MATCH),
+              CURSOR-EXHAUSTIVE, &POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)))
           )
@@ -1593,7 +1592,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::defined($x),
             self!match-x(nqp::getlexcaller('$/'),
               POST-ITERATOR.new($pattern($cursor-init(Match,self,:0c)),
-                CURSOR-GLOBAL, POST-MATCH
+                CURSOR-GLOBAL, &POST-MATCH
               ), $x),
             self!match-one(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)), $x)
@@ -1603,27 +1602,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method match(Regex:D $pattern, :$st!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $st, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $st, %_)
     }
     multi method match(Regex:D $pattern, :$nd!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $nd, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $nd, %_)
     }
     multi method match(Regex:D $pattern, :$rd!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $rd, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $rd, %_)
     }
     multi method match(Regex:D $pattern, :$th!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $th, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $th, %_)
     }
     multi method match(Regex:D $pattern, :$nth!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $nth, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $nth, %_)
     }
     multi method match(Regex:D $pattern, :$as!, *%_) {
         nqp::if(
@@ -2087,7 +2086,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         else {
 
             # get all the matches
-            self!match-iterator($regex, POST-MATCH, $limit - 1)
+            self!match-iterator($regex, &POST-MATCH, $limit - 1)
               .push-all(my \matches := nqp::create(IterationBuffer));
 
             # do the split

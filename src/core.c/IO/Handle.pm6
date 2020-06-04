@@ -234,7 +234,9 @@ my class IO::Handle {
               nqp::isconcrete($!decoder),
               ($!decoder := Encoding::Decoder)
             ),
+#?if moar
             self!forget-about-closing,  # mark as closed
+#?endif
             nqp::closefh($!PIO),        # close, ignore errors
             $!PIO := nqp::null          # mark HLL handle now also closed
           )
@@ -889,9 +891,11 @@ my class IO::Handle {
         self.close
           if nqp::defined($!PIO)                   # not closed yet
           && nqp::isgt_i(nqp::filenofh($!PIO),2)   # not a standard handle
+#?if moar
           && nqp::not_i(                           # marked for closing
                nqp::isnull(nqp::atpos($opened,nqp::filenofh($!PIO)))
              )
+#?endif
     }
 
     method native-descriptor(IO::Handle:D:) {

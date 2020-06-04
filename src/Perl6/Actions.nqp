@@ -877,22 +877,10 @@ register_op_desugar('time_n', -> $qast {
             $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
         }
         if $is_moar {
-            my $result := QAST::Node.unique('result');
-            QAST::Stmt.new(
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
-                    QAST::Op.new( :op('wantdecont'), $qast[0] )
-                ),
-                QAST::Op.new(
-                    :op('call'),
-                    QAST::Op.new(
-                        :op('speshresolve'),
-                        QAST::SVal.new( :value($qast[1] eq '6c' ?? 'decontrv_6c' !! 'decontrv') ),
-                        QAST::Var.new( :name($result), :scope('local') )
-                    ),
-                    QAST::Var.new( :name($result), :scope('local') ),
-                )
+            QAST::Op.new(
+                :op('dispatch'),
+                QAST::SVal.new( :value($qast[1] eq '6c' ?? 'raku-rv-decont-6c' !! 'raku-rv-decont') ),
+                QAST::Op.new( :op('p6box'), QAST::Op.new( :op('wantdecont'), $qast[0] ) )
             )
         }
         else {

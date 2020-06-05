@@ -109,9 +109,19 @@ class Raku::Actions is HLL::Actions {
             my $sym := ~$/{$key}<sym>;
             if $KEY eq 'INFIX' {
                 make self.r('ApplyInfix').new:
-                    infix => self.r('Infix').new($sym),
+                    infix => $<infix>.ast // self.r('Infix').new($sym),
                     left => $/[0].ast,
                     right => $/[1].ast;
+            }
+            elsif $KEY eq 'PREFIX' {
+                make self.r('ApplyPrefix').new:
+                    prefix => $<prefix>.ast // self.r('Prefix').new($sym),
+                    operand => $/[0].ast;
+            }
+            elsif $KEY eq 'POSTFIX' {
+                make self.r('ApplyPostfix').new:
+                    postfix => $<postfix>.ast // self.r('Postfix').new($sym),
+                    operand => $/[0].ast;
             }
             else {
                 nqp::die("EXPR $KEY handling NYI");
@@ -121,6 +131,17 @@ class Raku::Actions is HLL::Actions {
             # Just a term.
             make $/.ast;
         }
+    }
+
+    method infixish($/) {
+        my $ast;
+        if $<infix> {
+            $ast := $<infix>.ast;
+        }
+        else {
+            nqp::die('unknown kind of indox');
+        }
+        make $ast;
     }
 
     ##

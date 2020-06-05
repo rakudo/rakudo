@@ -4099,6 +4099,26 @@ class Rakudo::Iterator {
     }
     method Toggle(\iter, \conds, $on) { Toggle.new(iter, conds, $on) }
 
+    # Return an iterator for the Truthy values of an iterator
+    my class Truthy does Iterator {
+        has Mu $!iterator;
+        method new(\iterator) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::until(
+              nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
+              nqp::if(
+                $pulled,
+                return $pulled
+              )
+            );
+            IterationEnd
+        }
+    }
+    method Truthy(\iterator) { Truthy.new(iterator) }
+
     # Return an iterator that only will return the two given values.
     my class TwoValues does Iterator {
         has Mu $!val1;

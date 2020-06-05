@@ -43,44 +43,62 @@ is-deeply
 }
 
 is-deeply
-    EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(name => '$foo')
+    EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(name => '$foo')
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::ApplyInfix.new(
+                left => RakuAST::Var::Lexical.new('$foo'),
+                infix => RakuAST::Infix.new('='),
+                right => RakuAST::IntLiteral.new(10)
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::ApplyInfix.new(
-                    left => RakuAST::Var::Lexical.new('$foo'),
-                    infix => RakuAST::Infix.new('='),
-                    right => RakuAST::IntLiteral.new(10)
-                ),
-            ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$foo')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$foo')
+        ),
     )),
     10,
     'Lexical variable declarations work';
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(name => '$foo')
-            ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$foo')
-            ),
-        )
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(name => '$foo')
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$foo')
+        ),
     ));
     is-deeply cont, Any, 'Default value of untyped container is Any';
     ok cont.VAR.of =:= Mu, 'Default constraint of untyped container is Mu';
 }
 
 is-deeply
-    EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
+    EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$foo',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
+            )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::ApplyInfix.new(
+                left => RakuAST::Var::Lexical.new('$foo'),
+                infix => RakuAST::Infix.new('='),
+                right => RakuAST::IntLiteral.new(99)
+            ),
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$foo')
+        ),
+    )),
+    99,
+    'Typed variable declarations work (type matches in assignment)';
+
+throws-like
+    {
+        EVAL(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::Declaration::Var.new(
                     name => '$foo',
@@ -91,38 +109,12 @@ is-deeply
                 RakuAST::ApplyInfix.new(
                     left => RakuAST::Var::Lexical.new('$foo'),
                     infix => RakuAST::Infix.new('='),
-                    right => RakuAST::IntLiteral.new(99)
+                    right => RakuAST::NumLiteral.new(1e5)
                 ),
             ),
             RakuAST::Statement::Expression.new(
                 RakuAST::Var::Lexical.new('$foo')
             ),
-        )
-    )),
-    99,
-    'Typed variable declarations work (type matches in assignment)';
-
-throws-like
-    {
-        EVAL(RakuAST::CompUnit.new(
-            RakuAST::StatementList.new(
-                RakuAST::Statement::Expression.new(
-                    RakuAST::Declaration::Var.new(
-                        name => '$foo',
-                        type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
-                    )
-                ),
-                RakuAST::Statement::Expression.new(
-                    RakuAST::ApplyInfix.new(
-                        left => RakuAST::Var::Lexical.new('$foo'),
-                        infix => RakuAST::Infix.new('='),
-                        right => RakuAST::NumLiteral.new(1e5)
-                    ),
-                ),
-                RakuAST::Statement::Expression.new(
-                    RakuAST::Var::Lexical.new('$foo')
-                ),
-            )
         ))
     },
     X::TypeCheck::Assignment,
@@ -131,18 +123,16 @@ throws-like
     'Typed variable declarations work (type mismatch throws)';
 
 {
-    my \result = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$var',
-                    initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(125))
-                )
-            ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$var')
-            ),
-        )
+    my \result = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$var',
+                initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(125))
+            )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$var')
+        ),
     ));
     is-deeply result, 125,
         'Lexical variable declarations with assignment initializer';
@@ -154,18 +144,16 @@ throws-like
 }
 
 {
-    my \result = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$var',
-                    initializer => RakuAST::Initializer::Bind.new(RakuAST::IntLiteral.new(225))
-                )
-            ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$var')
-            ),
-        )
+    my \result = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$var',
+                initializer => RakuAST::Initializer::Bind.new(RakuAST::IntLiteral.new(225))
+            )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$var')
+        ),
     ));
     is-deeply result, 225,
         'Lexical variable declarations with bind initializer';
@@ -189,18 +177,16 @@ throws-like
 }
 
 {
-    my \result = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$*var',
-                    initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(360))
-                )
-            ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Dynamic.new('$*var')
-            ),
-        )
+    my \result = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$*var',
+                initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(360))
+            )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Dynamic.new('$*var')
+        ),
     ));
     is-deeply result, 360,
         'Dynamic variable declarations with assignment initializer, dynamic lookup';
@@ -212,15 +198,13 @@ throws-like
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(name => '@arr')
-            ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('@arr')
-            ),
-        )
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(name => '@arr')
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('@arr')
+        ),
     ));
     is-deeply cont.WHAT, Array, '@ sigil var is initialized to Array';
     is-deeply cont.VAR.WHAT, Array, '@ sigil var not wrapped in Scalar';
@@ -232,15 +216,13 @@ throws-like
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(name => '%hash')
-            ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('%hash')
-            ),
-        )
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(name => '%hash')
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('%hash')
+        ),
     ));
     is-deeply cont.WHAT, Hash, '% sigil var is initialized to Hash';
     is-deeply cont.VAR.WHAT, Hash, '% sigil var not wrapped in Scalar';
@@ -252,18 +234,16 @@ throws-like
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '@arr',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
-                ),
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '@arr',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('@arr')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('@arr')
+        ),
     ));
     ok cont ~~ Array, '@ sigil var with Int type is an Array';
     ok cont ~~ Positional[Int], 'It does Positional[Int]';
@@ -275,18 +255,16 @@ throws-like
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '%hash',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
-                ),
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '%hash',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('%hash')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('%hash')
+        ),
     ));
     ok cont ~~ Hash, '% sigil var with Int type is a Hash';
     ok cont ~~ Associative[Int], 'It does Associative[Int]';
@@ -319,18 +297,16 @@ throws-like
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$native-int',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int'))
-                ),
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$native-int',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int'))
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$native-int')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$native-int')
+        ),
     ));
     my $desc = 'int declaration creates a native int container';
     multi check(int $x) { pass $desc }
@@ -340,18 +316,16 @@ throws-like
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$num',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num'))
-                ),
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$num',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num'))
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$num')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$num')
+        ),
     ));
     my $desc = 'num declaration creates a native num container';
     multi check(num $x) { pass $desc }
@@ -361,18 +335,16 @@ throws-like
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$str',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str'))
-                ),
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$str',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str'))
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$str')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$str')
+        ),
     ));
     my $desc = 'str declaration creates a native str container';
     multi check(str $x) { pass $desc }
@@ -382,55 +354,49 @@ throws-like
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$native-int',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int')),
-                    initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(963))
-                ),
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$native-int',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int')),
+                initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(963))
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$native-int')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$native-int')
+        ),
     ));
     is-deeply cont, 963, 'Native int assign initializer works';
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$native-num',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num')),
-                    initializer => RakuAST::Initializer::Assign.new(RakuAST::NumLiteral.new(96e3))
-                ),
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$native-num',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num')),
+                initializer => RakuAST::Initializer::Assign.new(RakuAST::NumLiteral.new(96e3))
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$native-num')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$native-num')
+        ),
     ));
     is-deeply cont, 96e3, 'Native num assign initializer works';
 }
 
 {
-    my \cont = EVAL(RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
-                    name => '$native-str',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str')),
-                    initializer => RakuAST::Initializer::Assign.new(RakuAST::StrLiteral.new('nine six three'))
-                ),
+    my \cont = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '$native-str',
+                type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str')),
+                initializer => RakuAST::Initializer::Assign.new(RakuAST::StrLiteral.new('nine six three'))
             ),
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$native-str')
-            ),
-        )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$native-str')
+        ),
     ));
     is-deeply cont, 'nine six three', 'Native str assign initializer works';
 }

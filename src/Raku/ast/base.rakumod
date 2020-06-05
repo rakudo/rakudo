@@ -1,21 +1,5 @@
 # The base of all RakuAST nodes.
 class RakuAST::Node {
-    # Entry point for production of a QAST compilation unit from the Raku AST
-    method IMPL-TO-QAST-COMP-UNIT(Str :$comp-unit-name!, :$resolver!, *%options) {
-        # Ensure fully resolved. TODO Maybe this should come earlier?
-        self.resolve-all($resolver);
-
-        # Create compilation context.
-        my $sc := nqp::createsc($comp-unit-name);
-        nqp::pushcompsc($sc);
-        my $context := RakuAST::IMPL::QASTContext.new(:$sc);
-
-        # Compile into a QAST::CompUnit.
-        my $top-level := QAST::Block.new: self.IMPL-TO-QAST($context);
-        QAST::CompUnit.new: $top-level, :hll('Raku'), :$sc,
-            :post_deserialize($context.post-deserialize()),
-    }
-
     # What type does evaluating this node produce, if known?
     method type() { Mu }
 

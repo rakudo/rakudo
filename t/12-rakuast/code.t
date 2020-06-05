@@ -4,19 +4,17 @@ use Test;
 plan 13;
 
 {
-    my $block := EVAL RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::PointyBlock.new(
-                    signature => RakuAST::Signature.new(
-                        parameters => ()
-                    ),
-                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::IntLiteral.new(101)
-                        )
-                    ))
-                )
+    my $block := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::PointyBlock.new(
+                signature => RakuAST::Signature.new(
+                    parameters => ()
+                ),
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(101)
+                    )
+                ))
             )
         )
     );
@@ -29,23 +27,21 @@ plan 13;
 }
 
 {
-    my $block := EVAL RakuAST::CompUnit.new(
-        RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::PointyBlock.new(
-                    signature => RakuAST::Signature.new(
-                        parameters => (
-                            RakuAST::Parameter.new(
-                                target => RakuAST::ParameterTarget::Var.new('$param')
-                            ),
-                        )
-                    ),
-                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::Var::Lexical.new('$param')
-                        )
-                    ))
-                )
+    my $block := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::PointyBlock.new(
+                signature => RakuAST::Signature.new(
+                    parameters => (
+                        RakuAST::Parameter.new(
+                            target => RakuAST::ParameterTarget::Var.new('$param')
+                        ),
+                    )
+                ),
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Var::Lexical.new('$param')
+                    )
+                ))
             )
         )
     );

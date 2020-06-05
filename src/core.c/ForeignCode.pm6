@@ -56,12 +56,35 @@ $lang = 'Raku' if $lang eq 'perl6';
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
 
     if nqp::istype($code, RakuAST::Node) {
-        my $file := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
-        $compiled := $compiler.compile:
-            :from<optimize>,
-            $code.IMPL-TO-QAST-COMP-UNIT:
-                :resolver(RakuAST::Resolver::EVAL.new(:context($eval_ctx), :global(GLOBAL))),
-                :comp-unit-name($file);
+        # Wrap as required to get compilation unit.
+        my $comp-unit := do if nqp::istype($code, RakuAST::CompUnit) {
+            $code
+        }
+        else {
+            my $statement-list := do if nqp::istype($code, RakuAST::StatementList) {
+                $code
+            }
+            else {
+                my $statement := do if nqp::istype($code, RakuAST::Statement) {
+                    $code
+                }
+                elsif nqp::istype($code, RakuAST::Expression) {
+                    RakuAST::Statement::Expression.new($code)
+                }
+                else {
+                    die "Cannot evaluate a $code.^name() node; expected a compilation unit, " ~
+                        "statement list, statement, or expression";
+                }
+                RakuAST::StatementList.new($statement)
+            }
+            RakuAST::CompUnit.new:
+                :$statement-list,
+                :comp-unit-name($filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id)
+        }
+
+        # Perform symbol resolution, then compile to QAST and in turn bytecode.
+        $comp-unit.resolve-all(RakuAST::Resolver::EVAL.new(:context($eval_ctx), :global(GLOBAL)));
+        $compiled := $compiler.compile: :from<optimize>, $comp-unit.IMPL-TO-QAST-COMP-UNIT;
     }
     else {
         $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;

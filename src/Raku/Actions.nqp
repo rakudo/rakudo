@@ -1,8 +1,9 @@
 use NQPP6QRegex;
 use NQPP5QRegex;
 
-
 class Raku::Actions is HLL::Actions {
+    # The AST nodes come from the Raku setting bootstrap, thus we need to load
+    # them from there.
     my $ast_root;
     sub ensure_raku_ast() {
         unless nqp::isconcrete($ast_root) {
@@ -24,20 +25,42 @@ class Raku::Actions is HLL::Actions {
         nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}"))
     }
 
-    method setup_resolver() {
+    # Used to ensure uniqueness of serialization context IDs.
+    my class SerializationContextId {
+        my $count := 0;
+        my $lock  := NQPLock.new;
+        method next-id() {
+            $lock.protect({ $count++ })
+        }
+    }
+
+    method lang_setup($/) {
         ensure_raku_ast();
+
+        # Create a compilation unit.
+        my $file := nqp::getlexdyn('$?FILES');
+        my $comp-unit-name := nqp::sha1($file ~ (
+            nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
+                ?? $/.target() ~ SerializationContextId.next-id()
+                !! $/.target()));
+        $*CU := self.r('CompUnit').new(:$comp-unit-name);
+
+        # Set up the resolver.
         my $resolver_type := self.r('Resolver', 'Compile');
         my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
         if nqp::isconcrete($outer_ctx) {
-            $resolver_type.new(:context($outer_ctx))
+            $*R := $resolver_type.from-context(:context($outer_ctx));
         }
         else {
-            $resolver_type.new()
+            $*R := $resolver_type.from-setting(); # TODO name, version
         }
     }
 
     method comp_unit($/) {
-        make self.r('CompUnit').new($<statementlist>.ast);
+        my $cu := $*CU;
+        $cu.replace-statement-list($<statementlist>.ast);
+        $cu.resolve-all($*R);
+        make $cu;
     }
 
     method statementlist($/) {

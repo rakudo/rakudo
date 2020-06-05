@@ -133,6 +133,17 @@ class Perl6::Compiler is HLL::Compiler {
         $past;
     }
 
+    method ast($match, *%adverbs) {
+        my $ast := $match.ast;
+        self.panic("Unable to obtain AST from parse result")
+            unless nqp::isconcrete($ast);
+        $ast
+    }
+
+    method qast($rakuast, *%adverbs) {
+        $rakuast.IMPL-TO-QAST-COMP-UNIT
+    }
+
     method verbose-config() {
         self.eval('Compiler.verbose-config(:say)');
         nqp::exit(0);

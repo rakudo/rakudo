@@ -19,6 +19,7 @@ grammar Raku::Grammar is HLL::Grammar {
         #self.define_slang('Pod',     Raku::PodGrammar,     Raku::PodActions);
 
         # Variables used during the parse.
+        my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
         my $*IN_META := '';                       # parsing a metaoperator like [..]
         my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
 
@@ -143,6 +144,115 @@ grammar Raku::Grammar is HLL::Grammar {
     my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
+    token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
+        :my $*IN_META := $in_meta;
+        :my $*OPER;
+#        <!stdstopper>
+#        <!infixstopper>
+        :dba('infix')
+        [
+#        | <!{ $*IN_REDUCE }> <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
+        |   [
+#            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
+#                # XXX Gets false positives.
+#            | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
+#                {
+#                    $<variable><O> := self.O(:prec<t=>, :assoc<left>, :dba<additive>).MATCH unless $<variable><O>;
+#                    $*OPER := $<variable>;
+#                    self.check_variable($<variable>)
+#                }
+#            | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
+#            | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
+            | <infix> { $*OPER := $<infix> }
+            | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
+            ]
+#            [ <?before '='> <infix_postfix_meta_operator> { $*OPER := $<infix_postfix_meta_operator> }
+#            ]?
+        ]
+        <OPER=.AS_MATCH($*OPER)>
+        { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
+    }
+
+    token prefixish {
+        :dba('prefix')
+        [
+        | <OPER=prefix>
+#        | <OPER=prefix_circumfix_meta_operator>
+        ]
+#        <prefix_postfix_meta_operator>**0..1
+        <.ws>
+    }
+
+    token postfixish {
+#        <!stdstopper>
+
+        # last whitespace didn't end here
+        <?{
+            my $c := $/;
+            my $marked := $c.MARKED('ws');
+            !$marked || $marked.from == $c.pos;
+        }>
+
+        [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
+
+        :dba('postfix')
+#        [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>?]**0..1
+        [
+        | <OPER=postfix>
+        | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
+#        | <OPER=postcircumfix>
+#        | '.' <?[ [ { < ]> <OPER=postcircumfix>
+#        | <OPER=dotty>
+#        | <OPER=privop>
+#        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
+#            [
+#            || <?space> <.missing: "postfix">
+#            || <?alpha> <.missing: "dot on method call">
+#            || <.malformed: "postfix">
+#            ]
+        ]
+        { $*LEFTSIGIL := '@'; }
+    }
+
+    token postop {
+        | <postfix>         $<O> = {$<postfix><O>} $<sym> = {$<postfix><sym>}
+#        | <postcircumfix>   $<O> = {$<postcircumfix><O>} $<sym> = {$<postcircumfix><sym>}
+    }
+
+    method AS_MATCH($v) {
+        self.'!clone_match_at'($v,self.pos());
+    }
+
+    token prefix:sym<++>  { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<-->  { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<++⚛> { <sym>  <O(|%autoincrement)> }
+    token prefix:sym<--⚛> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<++> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<--> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<⚛++> { <sym>  <O(|%autoincrement)> }
+    token postfix:sym<⚛--> { <sym>  <O(|%autoincrement)> }
+
+    token infix:sym<**>   { <sym>  <O(|%exponentiation)> }
+
+    token prefix:sym<+>   { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<~~>  { <sym> <.dupprefix('~~')> <O(|%symbolic_unary)> }
+    token prefix:sym<~>   { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<->   { <sym> <O(|%symbolic_unary)> }
+    token prefix:sym<−>   { <sym> <O(|%symbolic_unary)> }
+    token prefix:sym<??>  { <sym> <.dupprefix('??')> <O(|%symbolic_unary)> }
+    token prefix:sym<?>   { <sym> <!before '??'> <O(|%symbolic_unary)> }
+    token prefix:sym<!>   { <sym> <!before '!!'> <O(|%symbolic_unary)> }
+    token prefix:sym<|>   { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<+^>  { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<~^>  { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<?^>  { <sym>  <O(|%symbolic_unary)> }
+    token prefix:sym<^^>  { <sym> <.dupprefix('^^')> <O(|%symbolic_unary)> }
+    token prefix:sym<^>   {
+        <sym>  <O(|%symbolic_unary)>
+        <?before \d+ <?before \. <.?alpha> > <.worry: "Precedence of ^ is looser than method call; please parenthesize"> >?
+    }
+    token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
+
     token infix:sym<*>    { <sym>  <O(|%multiplicative)> }
     token infix:sym<×>    { <sym>  <O(|%multiplicative)> }
     token infix:sym</>    { <sym>  <O(|%multiplicative)> }
@@ -220,6 +330,54 @@ grammar Raku::Grammar is HLL::Grammar {
     ##
     ## Terms
     ##
+
+    token termish {
+        :my $*SCOPE := "";
+        :my $*MULTINESS := "";
+        :dba('term')
+        # TODO try to use $/ for lookback to check for erroneous
+        #      use of pod6 trailing declarator block, e.g.:
+        #
+        #        #=!
+        #
+        #      instead of
+        #
+        #        #=(
+        #
+        [
+        ||  [
+            | <prefixish>+
+              [ || <term>
+                || {} <.panic("Prefix " ~ $<prefixish>[-1].Str
+                                        ~ " requires an argument, but no valid term found"
+                                        ~ ".\nDid you mean "
+                                        ~ $<prefixish>[-1].Str
+                                        ~ " to be an opening bracket for a declarator block?"
+                      )>
+              ]
+            | <term>
+            ]
+        || <!{ $*QSIGIL }> <?before <infixish> {
+            $/.typed_panic('X::Syntax::InfixInTermPosition', infix => ~$<infixish>); } >
+        || <!>
+        ]
+        :dba('postfix')
+        [
+        || <?{ $*QSIGIL }>
+            [
+            || <?{ $*QSIGIL eq '$' }> [ <postfixish>+! <?{ bracket_ending($<postfixish>) }> ]**0..1
+            ||                          <postfixish>+! <?{ bracket_ending($<postfixish>) }>
+            ]
+        || <!{ $*QSIGIL }> <postfixish>*
+        ]
+    }
+
+    sub bracket_ending($matches) {
+        my $check     := $matches[+$matches - 1];
+        my str $str   := $check.Str;
+        my $last  := nqp::substr($str, nqp::chars($check) - 1, 1);
+        $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>' || $last eq '»'
+    }
 
     token term:sym<value>              { <value> }
 
@@ -324,4 +482,35 @@ grammar Raku::Grammar is HLL::Grammar {
     token identifier {
         <.ident> [ <.apostrophe> <.ident> ]*
     }
+
+    token unsp {
+        \\ <?before \s | '#'>
+        :dba('unspace')
+        [
+        | <.vws>
+        | <.unv>
+        | <.unsp>
+        ]*
+    }
+
+    token vws {
+        :dba('vertical whitespace')
+        [
+            [
+            | \v
+            | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.sorry: 'Found a version control conflict marker'> \V* \v
+            | '=======' {} .*? \v '>>>>>>>' \V* \v   # ignore second half
+            ]
+        ]+
+    }
+
+    token unv {
+        :dba('horizontal whitespace')
+        [
+        | \h+
+#        | \h* <.comment>
+#        | <?before \h* '=' [ \w | '\\'] > ^^ <.pod_content_toplevel>
+        ]
+    }
+
 }

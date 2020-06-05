@@ -326,3 +326,5 @@ sub MAIN (Bool:D :$test = False) {
         create-Str-code;
     }
 }
+
+# vim: expandtab sw=4

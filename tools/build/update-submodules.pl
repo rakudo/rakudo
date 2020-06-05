@@ -88,3 +88,4 @@ sub exec_and_check {
     }
 }
 
+# vim: expandtab sw=4

@@ -2164,4 +2164,4 @@ multi sub sort(&by, +values) { values.sort(&by) }
 multi sub sort(@values)      { @values.sort }
 multi sub sort(+values)      { values.sort }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

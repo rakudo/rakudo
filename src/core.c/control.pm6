@@ -248,4 +248,4 @@ sub CLONE-LIST-DECONTAINERIZED(*@list) {  # is implementation-detail
     list-without;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

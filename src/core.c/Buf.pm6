@@ -1223,4 +1223,4 @@ multi sub subbuf-rw(Buf:D \b, $from, $elems) is rw {
     b.subbuf-rw($from, $elems)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

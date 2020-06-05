@@ -85,3 +85,4 @@ unless ($moar eq 'none') {
     checkout_rev( 'MoarVM', $moar, MOAR_VERSION_FILE);
 }
 
+# vim: expandtab sw=4

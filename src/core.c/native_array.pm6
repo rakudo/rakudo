@@ -3346,4 +3346,4 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

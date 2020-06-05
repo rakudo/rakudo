@@ -68,4 +68,4 @@ multi sub prepend(\a, **@b) { a.prepend: @b }
 proto sub splice($, |) {*}
 multi sub splice(@arr, |c) { @arr.splice(|c) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

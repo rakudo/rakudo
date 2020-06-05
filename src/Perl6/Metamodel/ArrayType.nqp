@@ -17,3 +17,5 @@ role Perl6::Metamodel::ArrayType {
         $!array_type := $type;
     }
 }
+
+# vim: expandtab sw=4

@@ -135,4 +135,4 @@ multi sub infix:<≽>($a, $b --> Bool:D) {
     infix:<<(<+)>>($b, $a)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

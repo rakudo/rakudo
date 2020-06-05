@@ -55,4 +55,4 @@ role CompUnit::Repository::Locally {
     method short-id(CompUnit::Repository::Locally:D:) { ... }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

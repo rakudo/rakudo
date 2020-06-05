@@ -98,3 +98,5 @@ class Perl6::Metamodel::SubsetHOW
         )
     }
 }
+
+# vim: expandtab sw=4

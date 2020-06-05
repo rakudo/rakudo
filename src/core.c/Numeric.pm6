@@ -364,4 +364,4 @@ multi sub infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
 proto sub prefix:<+^>($, *%) is pure {*}
 multi sub prefix:<+^>($x)        { +^ $x.Numeric.Int }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

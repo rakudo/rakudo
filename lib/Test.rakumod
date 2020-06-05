@@ -884,4 +884,4 @@ You can also check the documentation about testing in Raku online on:
 
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab sw=4

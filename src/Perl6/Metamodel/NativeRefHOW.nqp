@@ -77,3 +77,5 @@ class Perl6::Metamodel::NativeRefHOW
     method method_table($obj) { nqp::hash() }
     method submethod_table($obj) { nqp::hash() }
 }
+
+# vim: expandtab sw=4

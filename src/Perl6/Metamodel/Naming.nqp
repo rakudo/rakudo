@@ -41,3 +41,5 @@ role Perl6::Metamodel::Naming {
         $!shortname := $shortname;
     }
 }
+
+# vim: expandtab sw=4

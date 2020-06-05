@@ -122,4 +122,4 @@ multi infix:<===> (Enumeration:D \a, Enumeration:D \b --> Bool:D) {
     nqp::hllbool(nqp::eqaddr(nqp::decont(a), nqp::decont(b)))
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

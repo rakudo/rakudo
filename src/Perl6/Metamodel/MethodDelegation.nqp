@@ -13,3 +13,5 @@ role Perl6::Metamodel::MethodDelegation {
         $delegate_type.HOW.find_method($delegate_type, $name);
     }
 }
+
+# vim: expandtab sw=4

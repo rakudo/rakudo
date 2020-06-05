@@ -252,3 +252,5 @@ multi sub map_return_type($type) {
     nqp::istype($type, Int) ?? Int
                             !! nqp::istype($type, Num) ?? Num !! $type;
 }
+
+# vim: expandtab sw=4

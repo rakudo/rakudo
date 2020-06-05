@@ -35,3 +35,5 @@ role Perl6::Metamodel::PrivateMethodContainer {
             nqp::null()
     }
 }
+
+# vim: expandtab sw=4

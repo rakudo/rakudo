@@ -45,4 +45,4 @@ multi sub slip(--> Empty) { }
 multi sub slip(@args --> Slip:D) { @args.Slip }
 multi sub slip(+args --> Slip:D) { args.Slip }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

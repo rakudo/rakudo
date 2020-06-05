@@ -183,3 +183,5 @@ role Perl6::Metamodel::C3MRO {
         %!mro
     }
 }
+
+# vim: expandtab sw=4

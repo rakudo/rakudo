@@ -91,3 +91,5 @@ role Perl6::Metamodel::Concretization {
         @result[1]
     }
 }
+
+# vim: expandtab sw=4

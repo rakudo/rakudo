@@ -261,4 +261,4 @@ sub QX($cmd, :$cwd = $*CWD, :$env) is implementation-detail {
     $proc.out.slurp(:close) // Failure.new("Unable to read from '$cmd'")
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

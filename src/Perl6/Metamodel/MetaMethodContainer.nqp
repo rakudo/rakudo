@@ -56,3 +56,5 @@ role Perl6::Metamodel::MetaMethodContainer {
         }
     }
 }
+
+# vim: expandtab sw=4

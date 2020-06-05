@@ -114,3 +114,5 @@ role Perl6::Metamodel::MultiMethodContainer {
         %!multi_candidate_names{$name}
     }
 }
+
+# vim: expandtab sw=4

@@ -547,3 +547,5 @@ sub MAIN(*@ARGS) {
             && nqp::can($result, 'sink') && $result.sink;
     }
 }
+
+# vim: expandtab sw=4

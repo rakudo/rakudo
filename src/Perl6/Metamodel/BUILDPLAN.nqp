@@ -308,3 +308,5 @@ role Perl6::Metamodel::BUILDPLAN {
         @!BUILDALLPLAN
     }
 }
+
+# vim: expandtab sw=4

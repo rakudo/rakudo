@@ -198,4 +198,4 @@ sub GATHER(&block) is implementation-detail {
     Seq.new(Rakudo::Iterator.Gather(&block))
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

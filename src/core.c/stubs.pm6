@@ -66,4 +66,4 @@ sub DYNAMIC(\name) is raw {  # is implementation-detail
     Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

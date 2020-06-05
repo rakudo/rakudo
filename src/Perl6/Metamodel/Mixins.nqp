@@ -126,3 +126,5 @@ role Perl6::Metamodel::Mixins {
         }
     }
 }
+
+# vim: expandtab sw=4

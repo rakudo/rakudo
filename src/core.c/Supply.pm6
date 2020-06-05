@@ -104,4 +104,4 @@ my class Supply does Awaitable {
 
 # continued in src/core.c/Supply-factories.pm6
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

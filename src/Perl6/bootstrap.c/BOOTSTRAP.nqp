@@ -4071,4 +4071,4 @@ nqp::gethllsym('Raku', 'JavaModuleLoader').set_interop_loader(-> {
 Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 #?endif
 
-# vim: expandtab shiftwidth=4
+# vim: expandtab sw=4

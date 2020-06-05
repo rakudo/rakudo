@@ -9,3 +9,5 @@ role Perl6::Metamodel::Documenting {
         $!why := $why;
     }
 }
+
+# vim: expandtab sw=4

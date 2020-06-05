@@ -158,4 +158,4 @@ sub twrap($text is copy, :$wrap=75 ) {
     $text
 }
 
-# vim: ft=perl6
+# vim: expandtab sw=4

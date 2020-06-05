@@ -741,4 +741,5 @@ multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
       nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }
-# vim: ft=perl6 expandtab sw=4
+
+# vim: expandtab sw=4

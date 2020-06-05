@@ -73,4 +73,4 @@ multi sub infix:<~&>(\a, \b)       { a.Stringy ~& b.Stringy }
 proto sub prefix:<~^>($, *%) is pure {*}
 multi sub prefix:<~^>(\a)         { ~^ a.Stringy }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

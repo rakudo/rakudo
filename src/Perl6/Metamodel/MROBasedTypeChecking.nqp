@@ -43,3 +43,5 @@ role Perl6::Metamodel::MROBasedTypeChecking {
         nqp::settypecache($obj, @tc)
     }
 }
+
+# vim: expandtab sw=4

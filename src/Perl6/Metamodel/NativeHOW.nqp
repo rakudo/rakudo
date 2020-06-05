@@ -124,3 +124,5 @@ class Perl6::Metamodel::NativeHOW
     }
     method submethod_table($obj) { nqp::hash() }
 }
+
+# vim: expandtab sw=4

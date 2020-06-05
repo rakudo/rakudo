@@ -38,3 +38,5 @@ class Perl6::Metamodel::Configuration {
     }
     method role_to_role_applier_type() { $role_to_role_applier_type }
 }
+
+# vim: expandtab sw=4

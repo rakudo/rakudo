@@ -53,3 +53,5 @@ role Perl6::Metamodel::ConcretizationCache {
 
     method wipe_conc_cache() { %!conc_cache := nqp::hash() }
 }
+
+# vim: expandtab sw=4

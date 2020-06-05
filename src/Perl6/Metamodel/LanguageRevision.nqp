@@ -77,3 +77,5 @@ role Perl6::Metamodel::LanguageRevision
         $!lang_rev
     }
 }
+
+# vim: expandtab sw=4

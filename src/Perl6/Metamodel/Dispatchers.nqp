@@ -176,3 +176,5 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
         nqp::invokewithcapture($first, $capture);
     }
 }
+
+# vim: expandtab sw=4

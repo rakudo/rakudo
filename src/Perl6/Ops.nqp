@@ -377,3 +377,5 @@ _register_op_with_nqp( 'p6getlexclient', -> $qast {
         )
     }
 );
+
+# vim: expandtab sw=4

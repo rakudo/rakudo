@@ -102,4 +102,4 @@ my class Mix does Mixy {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

@@ -12,4 +12,4 @@ sub from-json($text) is implementation-detail {
     Rakudo::Internals::JSON.from-json($text);
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

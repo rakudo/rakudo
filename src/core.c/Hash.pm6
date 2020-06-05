@@ -797,4 +797,4 @@ proto sub hash(|) {*}
 multi sub hash(*%h) { %h }
 multi sub hash(*@a, *%h) { my % = flat @a, %h }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

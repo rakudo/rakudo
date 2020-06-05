@@ -670,4 +670,4 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

@@ -553,4 +553,4 @@ multi sub trait_mod:<hides>(Mu:U $child, Mu:U $parent) {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

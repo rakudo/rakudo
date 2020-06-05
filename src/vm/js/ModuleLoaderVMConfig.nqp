@@ -13,3 +13,5 @@ role Perl6::ModuleLoaderVMConfig {
         '.js'
     }
 }
+
+# vim: expandtab sw=4

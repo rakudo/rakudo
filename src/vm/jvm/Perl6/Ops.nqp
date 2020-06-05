@@ -299,3 +299,5 @@ QAST::OperationsJAST.add_hll_unbox('Raku', $RT_STR, -> $qastcomp {
         'decont_s', $TYPE_STR, $TYPE_SMO, $TYPE_TC ));
     $il
 });
+
+# vim: expandtab sw=4

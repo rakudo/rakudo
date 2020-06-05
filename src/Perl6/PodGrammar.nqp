@@ -5,4 +5,4 @@
 grammar Perl6::PodGrammar is Perl6::Grammar does STD does MatchPackageNibbler {
 }
 
-# vim: ft=perl6 et sw=4
+# vim: expandtab sw=4

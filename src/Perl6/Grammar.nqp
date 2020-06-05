@@ -5870,4 +5870,4 @@ grammar Perl6::P5RegexGrammar is QRegex::P5Regex::Grammar does STD does MatchPac
     }
 }
 
-# vim: ft=perl6 et sw=4
+# vim: expandtab sw=4

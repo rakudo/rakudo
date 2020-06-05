@@ -84,4 +84,4 @@ class Compiler does Systemic {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

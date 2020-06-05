@@ -106,3 +106,5 @@ role Perl6::Metamodel::AttributeContainer {
         @attrs
     }
 }
+
+# vim: expandtab sw=4

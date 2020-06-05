@@ -751,4 +751,4 @@ multi sub infix:<cmp>(Range:D \a, Num(Real) \b --> Order:D) { a cmp (b..b) }
 multi sub infix:<cmp>(Positional \a, Range:D \b --> Order:D) { a cmp b.list }
 multi sub infix:<cmp>(Range:D \a, Positional \b --> Order:D) { a.list cmp b }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

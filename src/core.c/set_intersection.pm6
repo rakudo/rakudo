@@ -156,4 +156,4 @@ multi sub infix:<(&)>(**@p) {
 # U+2229 INTERSECTION
 my constant &infix:<∩> := &infix:<(&)>;
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

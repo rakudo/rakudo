@@ -189,3 +189,5 @@ The following environment variables are respected:
         #  For more information, see the raku(1) man page.\n");
     }
 }
+
+# vim: expandtab sw=4

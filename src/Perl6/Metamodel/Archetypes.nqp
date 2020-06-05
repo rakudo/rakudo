@@ -63,3 +63,5 @@ class Perl6::Metamodel::Archetypes {
     method definite() { $!definite // 0 }
     method augmentable() { $!augmentable // 0 }
 }
+
+# vim: expandtab sw=4

@@ -12,3 +12,5 @@ role Perl6::Metamodel::Stashing {
         $type_obj
     }
 }
+
+# vim: expandtab sw=4

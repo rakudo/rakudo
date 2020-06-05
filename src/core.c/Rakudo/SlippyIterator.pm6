@@ -54,4 +54,4 @@ my role Rakudo::SlippyIterator does Iterator {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

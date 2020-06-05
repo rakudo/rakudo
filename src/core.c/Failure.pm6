@@ -176,4 +176,4 @@ multi sub die(Failure:U $f --> Nil) {
     X::AdHoc.new(:payload("Died with undefined " ~ $f.^name)).throw;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

@@ -546,4 +546,4 @@ multi sub lsb(Int:D \i --> Int:D) { i.lsb }
 proto sub msb($, *%) {*}
 multi sub msb(Int:D \i --> Int:D) { i.msb }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

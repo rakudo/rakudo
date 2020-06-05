@@ -479,3 +479,5 @@ $ops.add_hll_op('Raku', 'p6configposbindfailover', :inlinable, -> $qastcomp, $op
             QAST::WVal.new( :value($Binder) ),
             $op[0], $op[1]), :want($MVM_reg_obj));
 });
+
+# vim: expandtab sw=4

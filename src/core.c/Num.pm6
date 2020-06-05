@@ -640,4 +640,4 @@ multi sub sqrt(num $a --> num) {
     nqp::sqrt_n($a)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

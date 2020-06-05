@@ -3917,4 +3917,4 @@ sub parse-names(Str:D \names) {
 proto sub uniparse($, *%) {*}
 multi sub uniparse(Str:D \names --> Str:D) { names.uniparse }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

@@ -289,4 +289,4 @@ my class SetHash does Setty {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

@@ -13,3 +13,5 @@ role Perl6::Metamodel::DefaultParent {
         @default_parent_type[0]
     }
 }
+
+# vim: expandtab sw=4

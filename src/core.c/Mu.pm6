@@ -1282,4 +1282,4 @@ proto sub not(Mu, *%) {*}
 multi sub not(Bool:U --> True) { }
 multi sub not(Mu \x) { nqp::hllbool(nqp::isfalse(x)) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

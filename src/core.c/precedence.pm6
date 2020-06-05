@@ -177,4 +177,4 @@ BEGIN {
     trait_mod:<is>(&infix:<orelse>, :prec($loose_orelse));
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

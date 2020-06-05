@@ -1681,4 +1681,4 @@ class Perl6::Pod {
 
 } # end class Perl6::Pod
 
-# vim: ft=perl6
+# vim: expandtab sw=4

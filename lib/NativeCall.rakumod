@@ -784,4 +784,4 @@ sub EXPORT(|) {
     );
 }
 
-# vim:ft=perl6
+# vim: expandtab sw=4

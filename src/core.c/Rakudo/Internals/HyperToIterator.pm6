@@ -106,4 +106,4 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

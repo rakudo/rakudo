@@ -523,4 +523,4 @@ Need to re-check dependencies.")
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

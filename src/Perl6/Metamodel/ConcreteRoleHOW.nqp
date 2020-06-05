@@ -161,3 +161,5 @@ class Perl6::Metamodel::ConcreteRoleHOW
         }
     }
 }
+
+# vim: expandtab sw=4

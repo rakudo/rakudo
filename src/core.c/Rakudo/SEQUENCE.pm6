@@ -365,4 +365,4 @@ sub SEQUENCE(
         !! (gathered.Slip, Slip.from-iterator(righti)).iterator
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

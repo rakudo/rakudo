@@ -499,3 +499,5 @@ SOURCE
     say "#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE";
     say $end ~ $type ~ "array role -------------------------------------";
 }
+
+# vim: expandtab sw=4

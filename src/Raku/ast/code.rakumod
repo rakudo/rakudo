@@ -1,13 +1,29 @@
 # A compilation unit is the main lexical scope of a program.
 class RakuAST::CompUnit is RakuAST::LexicalScope {
     has RakuAST::StatementList $.statement-list;
+    has Str $.comp-unit-name;
+    has Mu $!sc;
 
-    method new(RakuAST::StatementList $statement-list?) {
+    method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
             $statement-list // RakuAST::StatementList.new);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name', $comp-unit-name);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', nqp::createsc($comp-unit-name));
         $obj
     }
+
+    method IMPL-TO-QAST-COMP-UNIT(*%options) {
+        # Create compilation context.
+        nqp::pushcompsc($!sc);
+        my $context := RakuAST::IMPL::QASTContext.new(:sc($!sc));
+
+        # Compile into a QAST::CompUnit.
+        my $top-level := QAST::Block.new: self.IMPL-TO-QAST($context);
+        QAST::CompUnit.new: $top-level, :hll('Raku'), :sc($!sc),
+            :post_deserialize($context.post-deserialize()),
+    }
+
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Stmts.new(

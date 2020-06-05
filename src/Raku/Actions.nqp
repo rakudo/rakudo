@@ -105,7 +105,17 @@ class Raku::Actions is HLL::Actions {
 
     method EXPR($/, $KEY?) {
         if $KEY {
-            nqp::die("EXPR $KEY handling NYI");
+            my $key := nqp::lc($KEY);
+            my $sym := ~$/{$key}<sym>;
+            if $KEY eq 'INFIX' {
+                make self.r('ApplyInfix').new:
+                    infix => self.r('Infix').new($sym),
+                    left => $/[0].ast,
+                    right => $/[1].ast;
+            }
+            else {
+                nqp::die("EXPR $KEY handling NYI");
+            }
         }
         else {
             # Just a term.

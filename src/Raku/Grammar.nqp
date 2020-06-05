@@ -18,6 +18,10 @@ grammar Raku::Grammar is HLL::Grammar {
         #self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
         #self.define_slang('Pod',     Raku::PodGrammar,     Raku::PodActions);
 
+        # Variables used during the parse.
+        my $*IN_META := '';                       # parsing a metaoperator like [..]
+        my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
+
         # Parse a compilation unit.
         self.comp_unit
     }
@@ -105,6 +109,113 @@ grammar Raku::Grammar is HLL::Grammar {
     ##
     ## Expression parsing and operators
     ##
+
+    # Precedence levels and their defaults
+    my %methodcall      := nqp::hash('prec', 'y=', 'assoc', 'unary', 'dba', 'methodcall', 'fiddly', 1);
+    my %autoincrement   := nqp::hash('prec', 'x=', 'assoc', 'unary', 'dba', 'autoincrement');
+    my %exponentiation  := nqp::hash('prec', 'w=', 'assoc', 'right', 'dba', 'exponentiation');
+    my %symbolic_unary  := nqp::hash('prec', 'v=', 'assoc', 'unary', 'dba', 'symbolic unary');
+    my %dottyinfix      := nqp::hash('prec', 'v=', 'assoc', 'left', 'dba', 'dotty infix', 'nextterm', 'dottyopish', 'sub', 'z=', 'fiddly', 1);
+    my %multiplicative  := nqp::hash('prec', 'u=', 'assoc', 'left', 'dba', 'multiplicative');
+    my %additive        := nqp::hash('prec', 't=', 'assoc', 'left', 'dba', 'additive');
+    my %replication     := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication');
+    my %replication_xx  := nqp::hash('prec', 's=', 'assoc', 'left', 'dba', 'replication', 'thunky', 't.');
+    my %concatenation   := nqp::hash('prec', 'r=', 'assoc', 'left', 'dba', 'concatenation');
+    my %junctive_and    := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and');
+    my %junctive_or     := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or');
+    my %named_unary     := nqp::hash('prec', 'o=', 'assoc', 'unary', 'dba', 'named unary');
+    my %structural      := nqp::hash('prec', 'n=', 'assoc', 'non', 'dba', 'structural infix', 'diffy', 1);
+    my %chaining        := nqp::hash('prec', 'm=', 'assoc', 'left', 'dba', 'chaining', 'iffy', 1, 'diffy', 1);
+    my %tight_and       := nqp::hash('prec', 'l=', 'assoc', 'left', 'dba', 'tight and', 'thunky', '.t');
+    my %tight_or        := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight or', 'thunky', '.t');
+    my %tight_or_minmax := nqp::hash('prec', 'k=', 'assoc', 'list', 'dba', 'tight or');
+    my %conditional     := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', '.tt');
+    my %conditional_ff  := nqp::hash('prec', 'j=', 'assoc', 'right', 'dba', 'conditional', 'fiddly', 1, 'thunky', 'tt');
+    my %item_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'item assignment');
+    my %list_assignment := nqp::hash('prec', 'i=', 'assoc', 'right', 'dba', 'list assignment', 'sub', 'e=', 'fiddly', 1);
+    my %loose_unary     := nqp::hash('prec', 'h=', 'assoc', 'unary', 'dba', 'loose unary');
+    my %comma           := nqp::hash('prec', 'g=', 'assoc', 'list', 'dba', 'comma', 'nextterm', 'nulltermish', 'fiddly', 1);
+    my %list_infix      := nqp::hash('prec', 'f=', 'assoc', 'list', 'dba', 'list infix');
+    my %list_prefix     := nqp::hash('prec', 'e=', 'assoc', 'right', 'dba', 'list prefix');
+    my %loose_and       := nqp::hash('prec', 'd=', 'assoc', 'left', 'dba', 'loose and', 'thunky', '.t');
+    my %loose_andthen   := nqp::hash('prec', 'd=', 'assoc', 'left', 'dba', 'loose and', 'thunky', '.b');
+    my %loose_or        := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.t');
+    my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
+    my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
+
+    token infix:sym<*>    { <sym>  <O(|%multiplicative)> }
+    token infix:sym<×>    { <sym>  <O(|%multiplicative)> }
+    token infix:sym</>    { <sym>  <O(|%multiplicative)> }
+    token infix:sym<÷>    { <sym>  <O(|%multiplicative)> }
+    token infix:sym<div>  { <sym> >> <O(|%multiplicative)> }
+    token infix:sym<gcd>  { <sym> >> <O(|%multiplicative)> }
+    token infix:sym<lcm>  { <sym> >> <O(|%multiplicative)> }
+    token infix:sym<%>    { <sym>  <O(|%multiplicative)> }
+    token infix:sym<mod>  { <sym> >> <O(|%multiplicative)> }
+    token infix:sym<%%>   { <sym>  <O(|%multiplicative, :iffy(1))> }
+    token infix:sym<+&>   { <sym>  <O(|%multiplicative)> }
+    token infix:sym<~&>   { <sym>  <O(|%multiplicative)> }
+    token infix:sym<?&>   { <sym>  <O(|%multiplicative, :iffy(1))> }
+    token infix:sym«+<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
+    token infix:sym«+>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }
+    token infix:sym«~<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
+    token infix:sym«~>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }
+
+    token infix:sym«<<» { <sym> <!{ $*IN_META }> <?[\s]> <.sorryobs('<< to do left shift', '+< or ~<')> <O(|%multiplicative)> }
+
+    token infix:sym«>>» { <sym> <!{ $*IN_META }> <?[\s]> <.sorryobs('>> to do right shift', '+> or ~>')> <O(|%multiplicative)> }
+
+    token infix:sym<+>    { <sym>  <O(|%additive)> }
+    token infix:sym<->    {
+       # We want to match in '$a >>->> $b' but not 'if $a -> { ... }'.
+        <sym> [<?before '>>'> || <![>]>]
+        <O(|%additive)>
+    }
+    token infix:sym<−>    { <sym>  <O(|%additive)> }
+    token infix:sym<+|>   { <sym>  <O(|%additive)> }
+    token infix:sym<+^>   { <sym>  <O(|%additive)> }
+    token infix:sym<~|>   { <sym>  <O(|%additive)> }
+    token infix:sym<~^>   { <sym>  <O(|%additive)> }
+    token infix:sym<?|>   { <sym>  <O(|%additive, :iffy(1))> }
+    token infix:sym<?^>   { <sym>  <O(|%additive, :iffy(1))> }
+
+    token infix:sym<x>    { <sym> >> <O(|%replication)> }
+    token infix:sym<xx>    { <sym> >> <O(|%replication_xx)> }
+
+    token infix:sym<~>    { <sym>  <O(|%concatenation)> }
+    token infix:sym<.>    { <sym> <ws>
+        <!{ $*IN_REDUCE }>
+        [<!alpha>
+            {
+                my $pre := nqp::substr(self.orig, self.from - 1, 1);
+                $<ws> ne ''
+                ?? $¢.obs('. to concatenate strings', '~')
+                !! $pre ~~ /^\s$/
+                    ?? $¢.malformed('postfix call (only basic method calls that exclusively use a dot can be detached)')
+                    !! $¢.malformed('postfix call')
+            }
+        ]?
+        <O(|%dottyinfix)>
+    }
+    token infix:sym<∘>   { <sym>  <O(|%concatenation)> }
+    token infix:sym<o>   { <sym>  <O(|%concatenation)> }
+
+    token infix:sym<&>   { <sym> <O(|%junctive_and, :iffy(1))> }
+    token infix:sym<(&)> { <sym> <O(|%junctive_and)> }
+    token infix:sym«∩»   { <sym> <O(|%junctive_and)> }
+    token infix:sym<(.)> { <sym> <O(|%junctive_and)> }
+    token infix:sym«⊍»   { <sym> <O(|%junctive_and)> }
+
+    token infix:sym<|>    { <sym> <O(|%junctive_or, :iffy(1))> }
+    token infix:sym<^>    { <sym> <O(|%junctive_or, :iffy(1))> }
+    token infix:sym<(|)>  { <sym> <O(|%junctive_or)> }
+    token infix:sym«∪»    { <sym> <O(|%junctive_or)> }
+    token infix:sym<(^)>  { <sym> <O(|%junctive_or)> }
+    token infix:sym«⊖»    { <sym> <O(|%junctive_or)> }
+    token infix:sym<(+)>  { <sym> <O(|%junctive_or)> }
+    token infix:sym«⊎»    { <sym> <O(|%junctive_or)> }
+    token infix:sym<(-)>  { <sym> <O(|%junctive_or)> }
+    token infix:sym«∖»    { <sym> <O(|%junctive_or)> }
 
     ##
     ## Terms

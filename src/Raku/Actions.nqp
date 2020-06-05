@@ -65,6 +65,10 @@ class Raku::Actions is HLL::Actions {
         else {
             $*R := $resolver_type.from-setting(:$setting-name);
         }
+
+        # Set up the literals builder, so we can produce and intern literal
+        # values.
+        $*LITERALS := self.r('LiteralBuilder').new();
     }
 
     method comp_unit($/) {
@@ -74,7 +78,134 @@ class Raku::Actions is HLL::Actions {
         make $cu;
     }
 
+    ##
+    ## Statements
+    ##
+
     method statementlist($/) {
-        make self.r('StatementList').new();
+        my $list := self.r('StatementList').new();
+        for $<statement> {
+            $list.push($_.ast);
+        }
+        make $list;
+    }
+
+    method statement($/) {
+        if $<EXPR> {
+            make self.r('Statement', 'Expression').new($<EXPR>.ast);
+        }
+        else {
+            nqp::die('unimpl statemnet type');
+        }
+    }
+
+    ##
+    ## Expression parsing and operators
+    ##
+
+    method EXPR($/, $KEY?) {
+        if $KEY {
+            nqp::die("EXPR $KEY handling NYI");
+        }
+        else {
+            # Just a term.
+            make $/.ast;
+        }
+    }
+
+    ##
+    ## Terms
+    ##
+
+    method term:sym<value>($/) {
+        make $<value>.ast;
+    }
+
+    method term:sym<identifier>($/) {
+        make self.r('Call', 'Name').new:
+            name => self.r('Name').from-identifier(~$<identifier>),
+            args => $<args>.ast; 
+    }
+
+    ##
+    ## Values
+    ##
+
+    method value:sym<quote>($/) {
+        make $<quote>.ast;
+    }
+
+    method value:sym<number>($/) {
+        make $<number>.ast;
+    }
+
+    method value:sym<version>($/) {
+        make $<version>.ast;
+    }
+
+    method number:sym<numish>($/) {
+        make $<numish>.ast;
+    }
+
+    method numish($/) {
+        if $<integer> {
+            make self.r('IntLiteral').new($<integer>.ast);
+        }
+        else {
+            nqp::die('unimpl numish');
+        }
+    }
+
+    method decint($/) {
+        make $*LITERALS.intern-int: ~$/, 10, -> {
+            $/.panic("'$/' is not a valid number")
+        }
+    }
+
+    method hexint($/) {
+        make $*LITERALS.intern-int: ~$/, 16, -> {
+            $/.panic("'$/' is not a valid number")
+        }
+    }
+
+    method octint($/) {
+        make $*LITERALS.intern-int: ~$/, 8, -> {
+            $/.panic("'$/' is not a valid number")
+        }
+    }
+
+    method binint($/) {
+        make $*LITERALS.intern-int: ~$/, 2, -> {
+            $/.panic("'$/' is not a valid number")
+        }
+    }
+
+    ##
+    ## Argument lists and captures
+    ##
+
+    method args($/) {
+        if    $<semiarglist> { make $<semiarglist>.ast; }
+        elsif $<arglist>     { make $<arglist>.ast; }
+        else                 { make self.r('ArgList').new(); }
+    }
+
+    method semiarglist($/) {
+        if nqp::elems($<arglist>) == 1 {
+            make $<arglist>[0].ast;
+        }
+        else {
+            nqp::die('Multiple arg lists NYI')
+        }
+    }
+
+    method arglist($/) {
+        if $<EXPR> {
+            # TODO multiple args
+            make self.r('ArgList').new($<EXPR>.ast);
+        }
+        else {
+            make self.r('ArgList').new();
+        }
     }
 }

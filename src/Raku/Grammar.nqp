@@ -4,6 +4,10 @@ use Raku::Actions;
 
 grammar Raku::Grammar is HLL::Grammar {
 
+    ##
+    ## Compilation unit, language version and other entry point bits
+    ##
+
     method TOP() {
         # Set up the language braid.
         my $*LANG := self;

@@ -13,6 +13,11 @@ class RakuAST::CompUnit is RakuAST::LexicalScope {
         $obj
     }
 
+    method replace-statement-list(RakuAST::StatementList $statement-list) {
+        nqp::bindattr(self, RakuAST::CompUnit, '$!statement-list', $statement-list);
+        Nil
+    }
+
     method IMPL-TO-QAST-COMP-UNIT(*%options) {
         # Create compilation context.
         nqp::pushcompsc($!sc);
@@ -24,9 +29,9 @@ class RakuAST::CompUnit is RakuAST::LexicalScope {
             :post_deserialize($context.post-deserialize()),
     }
 
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Stmts.new(
+            QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
             self.IMPL-QAST-DECLS($context),
             $!statement-list.IMPL-TO-QAST($context)
         )

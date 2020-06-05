@@ -14,9 +14,6 @@ grammar Raku::Grammar is HLL::Grammar {
         #self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
         #self.define_slang('Pod',     Raku::PodGrammar,     Raku::PodActions);
 
-        # Set up a resolver.
-        my $*R := Raku::Actions.setup_resolver();
-
         # Parse a compilation unit.
         self.comp_unit
     }
@@ -24,11 +21,21 @@ grammar Raku::Grammar is HLL::Grammar {
     token comp_unit {
         <.bom>?
 
+        # Set up compilation unit and symbol resolver according to the language
+        # version that is declared, if any.
+        :my $*CU;
+        :my $*R;
+        <.lang_setup>
+
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
     }
 
     token bom { \xFEFF }
+
+    rule lang_setup {
+        <?>
+    }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Raku level grammar.
     method FOREIGN_LANG($langname, $regex, *@args) {

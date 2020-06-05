@@ -2930,7 +2930,7 @@ class Rakudo::Iterator {
     # Return an iterator that will generate a pair with the index as the
     # key and as value the value of the given iterator, basically the
     # .pairs functionality on 1 dimensional lists.
-    my class PairIterator does Iterator {
+    my class Pairs does Iterator {
         has Mu $!iter;
         has int $!key;
 
@@ -2954,7 +2954,7 @@ class Rakudo::Iterator {
         }
         method is-lazy() { $!iter.is-lazy }
     }
-    method Pair(\iterator) { PairIterator.new(iterator) }
+    method Pairs(\iterator) { Pairs.new(iterator) }
 
     # Return an iterator for a given number of permutations.  Also specify
     # whether an IterationBuffer should be returned for each iteration (1),

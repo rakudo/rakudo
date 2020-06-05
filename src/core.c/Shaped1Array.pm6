@@ -168,7 +168,7 @@
             Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(Rakudo::Iterator.Pair(self.iterator))
+            Seq.new(Rakudo::Iterator.Pairs(self.iterator))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))

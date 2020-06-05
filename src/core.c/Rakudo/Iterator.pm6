@@ -2624,18 +2624,47 @@ class Rakudo::Iterator {
               ($!cursor := $!mover($!cursor)),
             )
         }
-        method push-all(\target --> IterationEnd) {
-            nqp::while(
-              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
-              nqp::stmts(
-                target.push($!cursor),
-                ($!cursor := $!mover($!cursor))
-              )
-            )
-        }
     }
     method MatchCursor(\regex, \string, \mover) {
         MatchCursor.new(regex, string, mover)
+    }
+
+    # Iterate a cursor according to a given regex, string, limit and mover
+    my class MatchCursorLimit does Iterator {
+        has Mu $!cursor;
+        has Mu $!mover;
+        has int $!todo;
+        method !SET-SELF(&regex, \string, int $todo, int $mover) {
+            $!cursor := regex($initialize-cursor(Match, string, :0c));
+            $!mover  := nqp::atpos($movers,$mover);
+            $!todo    = $todo + 1;
+            self
+        }
+        method new(\regex, \string, \todo, \mover) {
+            nqp::create(self)!SET-SELF(regex, string, todo, mover)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              ($!todo = nqp::sub_i($!todo,1))
+                && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                (my $current := $!cursor),
+                ($!cursor := $!mover($!cursor)),
+                $current
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              ($!todo = nqp::sub_i($!todo,1))
+                && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              ($!cursor := $!mover($!cursor)),
+            )
+        }
+    }
+    method MatchCursorLimit(\regex, \string, \limit, \mover) {
+        MatchCursorLimit.new(regex, string, limit, mover)
     }
 
     # Return an iterator that will iterate over a source iterator and an

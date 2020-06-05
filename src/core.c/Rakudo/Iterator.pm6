@@ -2584,6 +2584,60 @@ class Rakudo::Iterator {
     }
     method Mappy-values(\map) { Mappy-values.new(map) }
 
+    # cache cursor initialization lookup
+    my $initialize-cursor := Match.^lookup("!cursor_init");
+
+    my &POPULATE := Match.^lookup("MATCH" );  # fully populate Match object
+
+    my $movers := nqp::list(
+      Match.^lookup("CURSOR_MORE"),     # :g
+      Match.^lookup("CURSOR_OVERLAP"),  # :ov
+      Match.^lookup("CURSOR_NEXT")      # :ex
+    );
+
+    # Iterate a cursor according to a given regex, string and mover
+    my class MatchCursor does Iterator {
+        has Mu $!cursor;
+        has Mu $!mover;
+        method !SET-SELF(&regex, \string, int $mover) {
+            $!cursor := regex($initialize-cursor(Match, string, :0c));
+            $!mover  := nqp::atpos($movers,$mover);
+            self
+        }
+        method new(\regex, \string, \mover) {
+            nqp::create(self)!SET-SELF(regex, string, mover)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                (my $current := $!cursor),
+                ($!cursor := $!mover($!cursor)),
+                $current
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              ($!cursor := $!mover($!cursor)),
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::while(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                target.push($!cursor),
+                ($!cursor := $!mover($!cursor))
+              )
+            )
+        }
+    }
+    method MatchCursor(\regex, \string, \mover) {
+        MatchCursor.new(regex, string, mover)
+    }
+
     # Return an iterator that will iterate over a source iterator and an
     # iterator generating monotonically increasing index values from a
     # given offset.  Optionally, call block if an out-of-sequence index

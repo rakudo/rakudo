@@ -25,6 +25,10 @@ class Raku::Actions is HLL::Actions {
         nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}"))
     }
 
+    ##
+    ## Compilation unit, language version and other entry point bits
+    ##
+
     # Used to ensure uniqueness of serialization context IDs.
     my class SerializationContextId {
         my $count := 0;
@@ -37,13 +41,20 @@ class Raku::Actions is HLL::Actions {
     method lang_setup($/) {
         ensure_raku_ast();
 
+        # Calculate the setting name to use.
+        # TODO don't hardcode this
+        my $name := 'CORE';
+        my $version := nqp::substr(nqp::getcomp('Raku').config<language-version>, 2);
+        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+        my $setting-name := $loader.transform_setting_name("$name.$version");
+
         # Create a compilation unit.
         my $file := nqp::getlexdyn('$?FILES');
         my $comp-unit-name := nqp::sha1($file ~ (
             nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
                 ?? $/.target() ~ SerializationContextId.next-id()
                 !! $/.target()));
-        $*CU := self.r('CompUnit').new(:$comp-unit-name);
+        $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name);
 
         # Set up the resolver.
         my $resolver_type := self.r('Resolver', 'Compile');
@@ -52,7 +63,7 @@ class Raku::Actions is HLL::Actions {
             $*R := $resolver_type.from-context(:context($outer_ctx));
         }
         else {
-            $*R := $resolver_type.from-setting(); # TODO name, version
+            $*R := $resolver_type.from-setting(:$setting-name);
         }
     }
 

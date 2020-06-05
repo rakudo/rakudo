@@ -1,16 +1,33 @@
 class RakuAST::Resolver {
+    has Mu $!scopes;
+
+    # Pushes an active lexical scope to be considered in lookup.
+    method push-scope(RakuAST::LexicalScope $scope) {
+        $!scopes.push($scope);
+    }
+
+    # Pops the top active lexical scope.
+    method pop-scope() {
+        $!scopes.pop
+    }
+
+    # Name-mangle an infix operator and resolve it.
     method resolve-infix(Str $operator-name) {
         self.resolve-lexical('&infix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
     }
 
+    # Name-mangle a prefix operator and resolve it.
     method resolve-prefix(Str $operator-name) {
         self.resolve-lexical('&prefix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
     }
 
+    # Name-mangle a postfix operator and resolve it.
     method resolve-postfix(Str $operator-name) {
         self.resolve-lexical('&postfix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
     }
 
+    # Resolve a RakuAST::Name, optionally adding the specified sigil to the
+    # final component.
     method resolve-name(RakuAST::Name $name, Str :$sigil) {
         unless $name.is-identifier {
             nqp::die('Resovling complex names NYI')
@@ -20,6 +37,7 @@ class RakuAST::Resolver {
         self.resolve-lexical($lexical-name)
     }
 
+    # Resolve a RakuAST::Name to a constant.
     method resolve-name-constant(RakuAST::Name $name) {
         if $name.is-identifier {
             self.resolve-lexical-constant($name.IMPL-UNWRAP-LIST($name.parts)[0].name)
@@ -54,24 +72,13 @@ class RakuAST::Resolver {
 class RakuAST::Resolver::EVAL is RakuAST::Resolver {
     has Mu $!global;
     has Mu $!context; # XXX Should be PseudoStash
-    has Mu $!scopes;
 
     method new(Mu :$global!, Mu :$context!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!context', $context);
-        nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!scopes', []);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!scopes', []);
         $obj
-    }
-
-    # Pushes an active lexical scope to be considered in lookup.
-    method push-scope(RakuAST::LexicalScope $scope) {
-        $!scopes.push($scope);
-    }
-
-    # Pops the top active lexical scope.
-    method pop-scope() {
-        $!scopes.pop
     }
 
     # Resolves a lexical to its declaration. The declaration need not have a
@@ -145,9 +152,35 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
 # A resolver may be created using an existing context, or it may be for a
 # compilation unit whose outer scope is some version of the setting.
 class RakuAST::Resolver::Compile is RakuAST::Resolver {
+    # The setting.
+    has Mu $!setting;
 
-    method new(Mu :$context) {
-        nqp::say('in resolver new');
+    # Our outer context. When not an EVAL, this is the same as $!setting.
+    has Mu $!outer;
+
+    method new(Mu :$setting!, Mu :$outer!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!scopes', []);
+        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!setting', $setting);
+        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!outer', $outer);
+        $obj
     }
-    
+
+    # Create a resolver from a context and existing global. Used when we are
+    # compiling a textual EVAL.
+    method from-context(Mu :$context!, Mu :$global!) {
+        nqp::die('from-context NYI');
+    }
+
+    # Create a resolver a fresh compilation unit of the specified language
+    # version.
+    method from-setting(Str :$name, Str :$version) {
+        $name := 'CORE' unless $name;
+        $version := nqp::substr(nqp::getcomp('Raku').config<language-version>, 2)
+            unless $version;
+        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+        my $to_load := $loader.transform_setting_name("$name.$version");
+        my $setting := $loader.load_setting($to_load);
+        self.new(:$setting, :outer($setting))
+    }
 }

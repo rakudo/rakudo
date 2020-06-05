@@ -84,3 +84,23 @@ class RakuAST::CompUnit is RakuAST::LexicalScope {
         $visitor($!statement-list);
     }
 }
+
+# Builds and interns numeric and string literals.
+class RakuAST::LiteralBuilder {
+    # Build an Int constant and intern it.
+    method intern-int(str $chars, int $base, Mu $error-reporter?) {
+        # TODO interning
+        self.build-int($chars, $base, $error-reporter)
+    }
+
+    # Build an Int constant, but do not intern it.
+    method build-int(str $source, int $base, Mu $error-reporter?) {
+        my $res := nqp::radix_I($base, $source, 0, 2, Int);
+        unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), nqp::chars($source)) {
+            $error-reporter ??
+                $error-reporter()
+                !! nqp::die("'$source' is not a valid number");
+        }
+        nqp::atpos($res, 0)
+    }
+}

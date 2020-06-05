@@ -181,7 +181,7 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
         nqp::die('from-context NYI');
     }
 
-    # Create a resolver a fresh compilation unit of the specified language
+    # Create a resolver for a fresh compilation unit of the specified language
     # version.
     method from-setting(Str :$setting-name!) {
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');

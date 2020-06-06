@@ -327,6 +327,15 @@ grammar Raku::Grammar is HLL::Grammar {
     token infix:sym<(-)>  { <sym> <O(|%junctive_or)> }
     token infix:sym«∖»    { <sym> <O(|%junctive_or)> }
 
+    token infix:sym«=>» { <sym> <O(|%item_assignment)> }
+
+    token prefix:sym<so> { <sym><.end_prefix> <O(|%loose_unary)> }
+    token prefix:sym<not>  { <sym><.end_prefix> <O(|%loose_unary)> }
+
+    token infix:sym<,>    {
+        <.unsp>? <sym> <O(|%comma, :fiddly(0))>
+    }
+
     ##
     ## Terms
     ##
@@ -434,7 +443,7 @@ grammar Raku::Grammar is HLL::Grammar {
             ]
         | <VALUE=decint>
         ]
-        <!!before ['.' <?before \s | ',' | '=' | ':' <!before  <coloncircumfix <OPER=prefix> > > | <.terminator> | $ > <.typed_sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
+#        <!!before ['.' <?before \s | ',' | '=' | ':' <!before  <coloncircumfix <OPER=prefix> > > | <.terminator> | $ > <.typed_sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
         [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
 

@@ -2667,6 +2667,76 @@ class Rakudo::Iterator {
         MatchCursorLimit.new(regex, string, limit, mover)
     }
 
+    # basic split iterator functionality, with optional limiting
+    my class MatchSplit does Iterator {
+        has Mu $!string;
+        has Mu $!iterator;
+        has int $!last-pos;
+
+        method !SET-SELF(\iterator, \string) {
+            $!iterator := iterator;
+            $!string   := string;
+            self
+        }
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! limit == 1
+                  ?? (return Rakudo::Iterator.OneValue(string))
+                  !! MatchCursorLimit.new(regex, string, limit.Int - 1, 0);
+
+            nqp::create(self)!SET-SELF(iterator, string)
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::islt_i($!last-pos,0),
+              IterationEnd,                     # last part also done
+              nqp::if(
+                nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd),
+                nqp::stmts(                     # need to do last part still
+                  (my $result := nqp::substr($!string,$!last-pos)),
+                  ($!last-pos = -1),
+                  $result
+                ),
+                nqp::stmts(                     # produce next
+                  ($result := nqp::substr(
+                    $!string,
+                    $!last-pos,
+                    nqp::sub_i(nqp::getattr_i($cursor,Match,'$!from'),$!last-pos)
+                  )),
+                  ($!last-pos = nqp::getattr_i($cursor,Match,'$!pos')),
+                  $result
+                )
+              )
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            my $string      := $!string;
+            my $iterator    := $!iterator;
+            my int $last-pos = $!last-pos;
+
+            nqp::until(
+              nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+              nqp::stmts(
+                target.push(nqp::substr(
+                  $string,
+                  $last-pos,
+                  nqp::sub_i(nqp::getattr_i($cursor,Match,'$!from'),$last-pos)
+                )),
+                ($last-pos = nqp::getattr_i($cursor,Match,'$!pos'))
+              )
+            );
+            target.push(nqp::substr($string,$last-pos));
+        }
+    }
+
+    method MatchSplit(\regex, \string, \limit) {
+        MatchSplit.new(regex, string, limit)
+    }
+
     # Return an iterator that will iterate over a source iterator and an
     # iterator generating monotonically increasing index values from a
     # given offset.  Optionally, call block if an out-of-sequence index

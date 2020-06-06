@@ -388,6 +388,10 @@ grammar Raku::Grammar is HLL::Grammar {
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>' || $last eq '»'
     }
 
+    token term:sym<fatarrow> {
+        <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
+    }
+
     token term:sym<value>              { <value> }
 
     token term:sym<identifier> {

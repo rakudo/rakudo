@@ -2737,6 +2737,80 @@ class Rakudo::Iterator {
         MatchSplit.new(regex, string, limit)
     }
 
+    # split iterator functionality with mapper for extra values and skip-empty
+    my class MatchSplitMap does Iterator {
+        has Mu $!string;
+        has Mu $!iterator;
+        has Mu $!mapper;
+        has int $!skip-empty;
+        has int $!last-pos;
+        has Mu $!slipped;
+
+        method !SET-SELF(\iterator, \string, \mapper, int $skip-empty) {
+            $!iterator  := iterator;
+            $!string    := string;
+            $!mapper    := mapper;
+            $!skip-empty = $skip-empty;
+            $!slipped   := nqp::list;
+            self
+        }
+        method new(\regex, \string, \mapper, \limit, \skip-empty) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1 || (skip-empty && nqp::not_i(nqp::chars(string)))
+                ?? (return Rakudo::Iterator.Empty)
+                !! limit == 1
+                  ?? (return Rakudo::Iterator.OneValue(string))
+                  !! MatchCursorLimit.new(regex, string, limit.Int - 1, 0);
+
+            nqp::create(self)!SET-SELF(
+              iterator, string, mapper, nqp::istrue(skip-empty))
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!slipped),
+              nqp::shift($!slipped),                   # produce slipped
+              nqp::if(                                 # nothing to slip
+                nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd),
+                nqp::if(                               # last cursor seen
+                  $!skip-empty && nqp::iseq_i($!last-pos,nqp::chars($!string)),
+                  IterationEnd,                        # last one empty, done
+                  nqp::stmts(
+                    nqp::push($!slipped,IterationEnd), # do last part still
+                    nqp::substr($!string,$!last-pos)   # produce final string
+                  )
+                ),
+                nqp::stmts(                            # produce next
+                  (my $result := nqp::substr(
+                    $!string,
+                    $!last-pos,
+                    nqp::sub_i(
+                      nqp::getattr_i($cursor,Match,'$!from'),
+                      $!last-pos
+                    )
+                  )),
+                  ($!last-pos = nqp::getattr_i($cursor,Match,'$!pos')),
+                  nqp::if(                             # preset slipped
+                    nqp::istype((my $mapped := $!mapper($cursor)),List),
+                    ($!slipped := nqp::getattr($mapped,List,'$!reified')),
+                    nqp::push($!slipped,$mapped)
+                  ),
+                  nqp::if(
+                    $!skip-empty && nqp::not_i(nqp::chars($result)),
+                    nqp::shift($!slipped),             # skipping, so slip
+                    $result                            # produce string
+                  )
+                )
+              )
+            )
+        }
+    }
+
+    method MatchSplitMap(\regex, \string, \mapper, \limit, \skip-empty) {
+        MatchSplitMap.new(regex, string, mapper, limit, skip-empty)
+    }
+
     # Return an iterator that will iterate over a source iterator and an
     # iterator generating monotonically increasing index values from a
     # given offset.  Optionally, call block if an out-of-sequence index

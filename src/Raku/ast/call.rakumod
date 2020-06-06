@@ -8,6 +8,13 @@ class RakuAST::ArgList is RakuAST::Node {
         $obj
     }
 
+    method from-comma-list(RakuAST::ApplyListInfix $comma-apply) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ArgList, '$!args',
+            self.IMPL-UNWRAP-LIST($comma-apply.operands));
+        $obj
+    }
+
     method args() {
         self.IMPL-WRAP-LIST($!args)
     }

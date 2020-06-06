@@ -240,8 +240,15 @@ class Raku::Actions is HLL::Actions {
 
     method arglist($/) {
         if $<EXPR> {
-            # TODO multiple args
-            make self.r('ArgList').new($<EXPR>.ast);
+            my $expr := $<EXPR>.ast;
+            if nqp::istype($expr, self.r('ApplyListInfix')) &&
+                    nqp::istype($expr.infix, self.r('Infix')) &&
+                    $expr.infix.operator eq ',' {
+                make self.r('ArgList').from-comma-list($expr);
+            }
+            else {
+                make self.r('ArgList').new($expr);
+            }
         }
         else {
             make self.r('ArgList').new();

@@ -106,21 +106,29 @@ class Raku::Actions is HLL::Actions {
     method EXPR($/, $KEY?) {
         if $KEY {
             my $key := nqp::lc($KEY);
-            my $sym := ~$/{$key}<sym>;
             if $KEY eq 'INFIX' {
                 make self.r('ApplyInfix').new:
-                    infix => $<infix>.ast // self.r('Infix').new($sym),
+                    infix => $<infix>.ast // self.r('Infix').new($<infix><sym>),
                     left => $/[0].ast,
                     right => $/[1].ast;
             }
+            elsif $KEY eq 'LIST' {
+                my @operands;
+                for $/.list {
+                    @operands.push($_.ast);
+                }
+                make self.r('ApplyListInfix').new:
+                    infix => $<infix>.ast // self.r('Infix').new($<infix><sym>),
+                    operands => @operands;
+            }
             elsif $KEY eq 'PREFIX' {
                 make self.r('ApplyPrefix').new:
-                    prefix => $<prefix>.ast // self.r('Prefix').new($sym),
+                    prefix => $<prefix>.ast // self.r('Prefix').new($<prefix><sym>),
                     operand => $/[0].ast;
             }
             elsif $KEY eq 'POSTFIX' {
                 make self.r('ApplyPostfix').new:
-                    postfix => $<postfix>.ast // self.r('Postfix').new($sym),
+                    postfix => $<postfix>.ast // self.r('Postfix').new($<postfix><sym>),
                     operand => $/[0].ast;
             }
             else {
@@ -139,7 +147,7 @@ class Raku::Actions is HLL::Actions {
             $ast := $<infix>.ast;
         }
         else {
-            nqp::die('unknown kind of indox');
+            nqp::die('unknown kind of infix');
         }
         make $ast;
     }

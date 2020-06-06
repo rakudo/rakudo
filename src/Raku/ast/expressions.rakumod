@@ -90,7 +90,8 @@ class RakuAST::ApplyListInfix is RakuAST::Expression {
     method new(RakuAST::Infixish :$infix!, List :$operands!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!infix', $infix);
-        nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!operands', $operands);
+        nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!operands',
+            nqp::islist($operands) ?? self.IMPL-WRAP-LIST($operands) !! $operands);
         $obj
     }
 

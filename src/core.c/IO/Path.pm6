@@ -553,43 +553,32 @@ my class IO::Path is Cool does IO {
           !! Rakudo::Iterator.Dir(self, $!SPEC.curupdir)
     }
 
-    # slurp STDIN in binary mode
-    sub slurp-stdin-bin() {
-        my $blob := buf8.new;
-        my $PIO  := nqp::getstdin();
-        nqp::while(
-          nqp::elems(my $part := nqp::readfh($PIO,buf8.new,0x100000)),
-          nqp::splice($blob,$part,nqp::elems($blob),0)
-        );
-        $blob
-    }
+    # slurp contents of low level handle
+    sub slurp-PIO(Mu \PIO) is raw {
+        constant slurp-size = 0x100000;
+        nqp::readfh(PIO,(my $blob := buf8.new),slurp-size);
 
-    # slurp given path in binary mode
-    sub slurp-bin(str $path) {
-        CATCH { return Failure.new($_) }
-
-        my $blob := buf8.new;
-        my $PIO  := nqp::open($path,'r');
-
-        # found a size, so read that many bytes
-        if nqp::stat($path,nqp::const::STAT_FILESIZE) -> int $bytes {
-            nqp::readfh($PIO,$blob,$bytes);
-        }
-
-        # no size found, could be a special file, so keep reading until the
-        # buffer is not filled up completely
-        else {
-            constant size = 0x100000;
+        # enough to read entire buffer, assume there's more
+        if nqp::iseq_i(nqp::elems($blob),slurp-size) {
             nqp::while(
               nqp::iseq_i(
-                nqp::elems(nqp::readfh($PIO,(my $part := buf8.new),size)),
-                size
+                nqp::elems(nqp::readfh(PIO,(my $part := buf8.new),slurp-size)),
+                slurp-size
               ),
               $blob.append($part)
             );
             $blob.append($part);  # add the final, incomplete part
         }
+        $blob
+    }
 
+    # slurp STDIN in binary mode
+    sub slurp-stdin-bin() is raw { slurp-PIO(nqp::getstdin) }
+
+    # slurp given path in binary mode
+    sub slurp-path-bin(str $path) is raw {
+        my $PIO  := nqp::open($path,'r');
+        my $blob := slurp-PIO($PIO);
         nqp::closefh($PIO);
         $blob
     }
@@ -597,15 +586,15 @@ my class IO::Path is Cool does IO {
     # slurp STDIN with given normalized encoding
     sub slurp-stdin-with-encoding(str $encoding) {
         nqp::join("\n",
-          nqp::split("\r\n",nqp::decode(slurp-stdin-bin(),$encoding))
+          nqp::split("\r\n",nqp::decode(slurp-stdin-bin,$encoding))
         )
     }
 
     # slurp given path with given normalized encoding
-    sub slurp-with-encoding(str $path, str $encoding) {
+    sub slurp-path-with-encoding(str $path, str $encoding) {
         CATCH { return Failure.new($_) }
 
-        nqp::elems(my $blob := slurp-bin($path))
+        nqp::elems(my $blob := slurp-path-bin($path))
           ?? nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
           !! ""
     }
@@ -617,20 +606,20 @@ my class IO::Path is Cool does IO {
             ?? slurp-stdin-bin()
             !! slurp-stdin-with-encoding('utf8')
           !! $bin
-            ?? slurp-bin(self.absolute)
-            !! slurp-with-encoding(self.absolute,'utf8')
+            ?? slurp-path-bin(self.absolute)
+            !! slurp-path-with-encoding(self.absolute,'utf8')
     }
     multi method slurp(IO::Path:D: :$enc!) {
         nqp::iseq_s($!path,"-")
           ?? slurp-stdin-with-encoding(
                Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          !! slurp-with-encoding(self.absolute,
+          !! slurp-path-with-encoding(self.absolute,
                Rakudo::Internals.NORMALIZE_ENCODING($enc))
     }
     multi method slurp(IO::Path:D:) {
         nqp::iseq_s($!path,"-")
           ?? slurp-stdin-with-encoding('utf8')
-          !! slurp-with-encoding(self.absolute,'utf8')
+          !! slurp-path-with-encoding(self.absolute,'utf8')
     }
 
     # spurt data to given path and file mode

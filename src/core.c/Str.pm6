@@ -2073,34 +2073,39 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method split(Str:D: Regex:D $regex, $limit is copy = Inf;;
       :$v , :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
 
-        # sanity checks
-        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
-        self!ensure-limit-sanity($limit);
+        # old way for now
+        if self!ensure-split-sanity($v,$k,$kv,$p) {
+            self!ensure-limit-sanity($limit);
 
-        if $limit <= 1 {
-            Seq.new($limit == 1
-              ?? Rakudo::Iterator.OneValue(self)
-              !! Rakudo::Iterator.Empty
-            )
+            if $limit <= 1 {
+                Seq.new($limit == 1
+                  ?? Rakudo::Iterator.OneValue(self)
+                  !! Rakudo::Iterator.Empty
+                )
+            }
+            else {
+
+                # get all the matches
+                self!match-iterator($regex, &POST-MATCH, $limit - 1)
+                  .push-all(my \matches := nqp::create(IterationBuffer));
+
+                # do the split
+                nqp::elems(matches)
+                  ?? $k || $v
+                    ?? self!split-with-kv(matches,?$k,?$v,!$skip-empty)
+                    !! $kv
+                      ?? self!split-with-kv(matches, 1, 1, !$skip-empty)
+                      !! self!split-with-p(matches, !$skip-empty)
+                  !! Seq.new(Rakudo::Iterator.OneValue(self))
+            }
         }
+
+        # new lazy way
         else {
-
-            # get all the matches
-            self!match-iterator($regex, &POST-MATCH, $limit - 1)
-              .push-all(my \matches := nqp::create(IterationBuffer));
-
-            # do the split
-            nqp::elems(matches)
-              ?? $any
-                ?? $k || $v
-                  ?? self!split-with-kv(matches,?$k,?$v,!$skip-empty)
-                  !! $kv
-                    ?? self!split-with-kv(matches, 1, 1, !$skip-empty)
-                    !! self!split-with-p(matches, !$skip-empty)
-                !! $skip-empty
-                  ?? self!split-empty(matches)
-                  !! self!split(matches)
-              !! Seq.new(Rakudo::Iterator.OneValue(self))
+            my \iterator := Rakudo::Iterator.MatchSplit: $regex, self, $limit;
+            Seq.new: $skip-empty
+              ?? Rakudo::Iterator.Truthy(iterator)
+              !! iterator
         }
     }
 
@@ -2149,42 +2154,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         nqp::push(result,nqp::substr(self,$pos))
           if $dontskip || $pos < nqp::chars(self);
-
-        result.Seq
-    }
-
-    method !split-empty(\matches --> Seq:D) {
-        my \result := nqp::create(IterationBuffer);
-
-        my $match;
-        my int $pos;
-        while nqp::elems(matches) {
-            $match := nqp::shift(matches);
-            if nqp::getattr_i($match,Match,'$!from') - $pos -> int $chars {
-                nqp::push(result,nqp::substr(self,$pos,$chars));
-            }
-            $pos = nqp::getattr_i($match,Match,'$!pos');
-        }
-        nqp::push(result,nqp::substr(self,$pos))
-          if $pos < nqp::chars(self);
-
-        result.Seq
-    }
-
-    method !split(\matches --> Seq:D) {
-        my \result := nqp::create(IterationBuffer);
-
-        my $match;
-        my int $pos;
-        while nqp::elems(matches) {
-            $match := nqp::shift(matches);
-            nqp::push(
-              result,
-              nqp::substr(self,$pos,nqp::getattr_i($match,Match,'$!from')-$pos)
-            );
-            $pos = nqp::getattr_i($match,Match,'$!pos');
-        }
-        nqp::push(result,nqp::substr(self,$pos));
 
         result.Seq
     }

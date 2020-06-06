@@ -30,6 +30,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my &POST-MATCH  := Match.^lookup("MATCH" );  # Match object
     my &POST-STR    := Match.^lookup("STR"   );  # Str object
 
+    my &POPULATE := Match.^lookup("MATCH" );  # populate Match object
+
     multi method IO(Str:D:) { IO::Path.new(self) }
 
     multi method WHY('Life, the Universe and Everything': --> 42) { }
@@ -2070,92 +2072,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method parse-base(Str:D: "camel" --> Int:D) { self!eggify: "🐪🐫" }
     multi method parse-base(Str:D: "beer"  --> Int:D) { self!eggify: "🍺🍻" }
 
-    multi method split(Str:D: Regex:D $regex, $limit is copy = Inf;;
+    multi method split(Str:D: Regex:D $regex, $limit = Whatever;;
       :$v , :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
-
-        # old way for now
-        if self!ensure-split-sanity($v,$k,$kv,$p) {
-            self!ensure-limit-sanity($limit);
-
-            if $limit <= 1 {
-                Seq.new($limit == 1
-                  ?? Rakudo::Iterator.OneValue(self)
-                  !! Rakudo::Iterator.Empty
-                )
-            }
-            else {
-
-                # get all the matches
-                self!match-iterator($regex, &POST-MATCH, $limit - 1)
-                  .push-all(my \matches := nqp::create(IterationBuffer));
-
-                # do the split
-                nqp::elems(matches)
-                  ?? $k || $v
-                    ?? self!split-with-kv(matches,?$k,?$v,!$skip-empty)
-                    !! $kv
-                      ?? self!split-with-kv(matches, 1, 1, !$skip-empty)
-                      !! self!split-with-p(matches, !$skip-empty)
-                  !! Seq.new(Rakudo::Iterator.OneValue(self))
-            }
-        }
-
-        # new lazy way
-        else {
-            my \iterator := Rakudo::Iterator.MatchSplit: $regex, self, $limit;
-            Seq.new: $skip-empty
-              ?? Rakudo::Iterator.Truthy(iterator)
-              !! iterator
-        }
-    }
-
-    method !split-with-kv(\matches, int $k, int $v, int $dontskip --> Seq:D) {
-        my \result := nqp::create(IterationBuffer);
-
-        my $match;
-        my int $pos;
-        my int $found;
-        while nqp::elems(matches) {
-            $match := nqp::shift(matches);
-            $found  = nqp::getattr_i($match,Match,'$!from');
-            if $dontskip {
-                nqp::push(result,nqp::substr(self,$pos,$found - $pos));
-            }
-            elsif $found - $pos -> int $chars {
-                nqp::push(result,nqp::substr(self,$pos,$chars));
-            }
-            nqp::push(result,0)      if $k;
-            nqp::push(result,$match) if $v;
-            $pos = nqp::getattr_i($match,Match,'$!pos');
-        }
-        nqp::push(result,nqp::substr(self,$pos))
-          if $dontskip || $pos < nqp::chars(self);
-
-        result.Seq
-    }
-
-    method !split-with-p(\matches, int $dontskip --> Seq:D) {
-        my \result := nqp::create(IterationBuffer);
-
-        my $match;
-        my int $pos;
-        my int $found;
-        while nqp::elems(matches) {
-            $match := nqp::shift(matches);
-            $found  = nqp::getattr_i($match,Match,'$!from');
-            if $dontskip {
-                nqp::push(result,nqp::substr(self,$pos,$found - $pos));
-            }
-            elsif $found - $pos -> int $chars {
-                nqp::push(result,nqp::substr(self,$pos,$chars));
-            }
-            nqp::push(result, Pair.new(0,$match));
-            $pos = nqp::getattr_i($match,Match,'$!pos')
-        }
-        nqp::push(result,nqp::substr(self,$pos))
-          if $dontskip || $pos < nqp::chars(self);
-
-        result.Seq
+        
+        Seq.new: self!ensure-split-sanity($v,$k,$kv,$p)
+          ?? Rakudo::Iterator.MatchSplitMap(   # additional mapping needed
+              $regex,
+              self,
+              $k                               # mapper
+                ?? { 0 }                        # just dummy keys
+                !! $v
+                  ?? &POPULATE                  # full Match objects
+                  !! $kv
+                    ?? { (0, POPULATE($_)) }    # alternating key/Match
+                    !! { 0 => POPULATE($_) },   # key => Match
+              $limit,
+              $skip-empty)
+          !! $skip-empty                       # no additional mapping
+            ?? Rakudo::Iterator.Truthy(        # skip empties
+                 Rakudo::Iterator.MatchSplit($regex, self, $limit))
+            !! Rakudo::Iterator.MatchSplit(    # produce all strings
+                 $regex, self, $limit)
     }
 
     multi method split(Str:D: Str(Cool) $match;;

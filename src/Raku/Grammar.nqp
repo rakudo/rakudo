@@ -147,7 +147,7 @@ grammar Raku::Grammar is HLL::Grammar {
     token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
         :my $*IN_META := $in_meta;
         :my $*OPER;
-#        <!stdstopper>
+        <!stdstopper>
 #        <!infixstopper>
         :dba('infix')
         [
@@ -184,7 +184,7 @@ grammar Raku::Grammar is HLL::Grammar {
     }
 
     token postfixish {
-#        <!stdstopper>
+        <!stdstopper>
 
         # last whitespace didn't end here
         <?{
@@ -465,7 +465,7 @@ grammar Raku::Grammar is HLL::Grammar {
         <.ws>
         :dba('argument list')
         [
-        #| <?stdstopper>
+        | <?stdstopper>
         | <EXPR('e=')>
         | <?>
         ]
@@ -481,6 +481,56 @@ grammar Raku::Grammar is HLL::Grammar {
 
     token identifier {
         <.ident> [ <.apostrophe> <.ident> ]*
+    }
+
+    token end_keyword {
+        » <!before <.[ \( \\ ' \- ]> || \h* '=>'>
+    }
+
+    token end_prefix {
+        <.end_keyword> \s*
+    }
+
+    token spacey { <?[\s#]> }
+
+    token kok {
+        <.end_keyword>
+        [
+        || <?before <.[ \s \# ]> > <.ws>
+        || <?{
+                my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
+                $*W.is_name([$n]) || $*W.is_name(['&' ~ $n])
+                    ?? False
+                    !! self.panic("Whitespace required after keyword '$n'")
+           }>
+        ]
+    }
+
+    proto token terminator { <...> }
+    token terminator:sym<;> { <?[;]> }
+    token terminator:sym<)> { <?[)]> }
+    token terminator:sym<]> { <?[\]]> }
+    token terminator:sym<}> { <?[}]> }
+    token terminator:sym<ang> { <?[>]> <?{ $*IN_REGEX_ASSERTION }> }
+    token terminator:sym<if>     { 'if'     <.kok> }
+    token terminator:sym<unless> { 'unless' <.kok> }
+    token terminator:sym<while>  { 'while'  <.kok> }
+    token terminator:sym<until>  { 'until'  <.kok> }
+    token terminator:sym<for>    { 'for'    <.kok> }
+    token terminator:sym<given>  { 'given'  <.kok> }
+    token terminator:sym<when>   { 'when'   <.kok> }
+    token terminator:sym<with>   { 'with'   <.kok> }
+    token terminator:sym<without> { 'without' <.kok> }
+    token terminator:sym<arrow>  { '-->' }
+
+    token stdstopper {
+        [
+        || <?MARKED('endstmt')> <?>
+        || [
+           | <?terminator>
+           | $
+           ]
+       ]
     }
 
     token unsp {

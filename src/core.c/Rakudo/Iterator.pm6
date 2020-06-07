@@ -3017,52 +3017,42 @@ class Rakudo::Iterator {
     my class NextNValues does Iterator {
         has $!iterator;
         has int $!times;
-        method !SET-SELF($!iterator,$!times) { self }
-        method new(\iterator,\times) {
-            nqp::if(
-              nqp::istype(times,Whatever),
-              iterator,                   # * just give back itself
-              nqp::if(
-                times <= 0,               # must be HLL comparison
-                Rakudo::Iterator.Empty,   # negative is just nothing
-                nqp::if(
-                  nqp::istype(times,Int),
-                  nqp::if(
-                    nqp::isbig_I(nqp::decont(times)),
-                    iterator,             # big value = itself
-                    nqp::create(self)!SET-SELF(iterator,times)
-                  ),
-                  nqp::if(
-                    times == Inf,         # big value = itself
-                    iterator,
-                    nqp::create(self)!SET-SELF(iterator,times.Int)
-                  )
-                )
-              )
-            )
+        method !SET-SELF(\iterator, int $times) {
+            $!iterator := iterator;
+            $!times     = nqp::add_i($times,1);
+            self
+        }
+        method new(\iterator, \times) {
+            nqp::istype(times,Whatever)
+              ?? iterator                   # * just give back itself
+              !! times <= 0                 # must be HLL comparison
+                ?? Rakudo::Iterator.Empty   # negative is just nothing
+                !! nqp::istype(times,Int)
+                  ?? nqp::isbig_I(nqp::decont(times))
+                    ?? iterator             # big value = itself
+                    !! nqp::create(self)!SET-SELF(iterator,times)
+                  !! times == Inf           # big value = itself
+                    ?? iterator
+                    !! nqp::create(self)!SET-SELF(iterator,times.Int)
         }
         method pull-one() is raw {
-            nqp::if(
-              nqp::isgt_i($!times,0),
-              nqp::if(
-                nqp::eqaddr(
-                  (my \pulled := $!iterator.pull-one),
-                  IterationEnd
-                ),
-                nqp::stmts(
-                  ($!times = 0),
-                  IterationEnd
-                ),
-                nqp::stmts(
-                  ($!times = nqp::sub_i($!times,1)),
-                  pulled
-                )
-              ),
-              IterationEnd
-            )
+            ($!times = nqp::sub_i($!times,1))
+              ?? nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd)
+                ?? IterationEnd
+                !! pulled
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            my int $times = $!times;
+            nqp::until(
+              nqp::not_i($times = nqp::sub_i($times,1))
+                || nqp::eqaddr((my \pulled := $iterator.pull-one),IterationEnd),
+              target.push(pulled)
+            );
         }
     }
-    method NextNValues(\iterator,\times) { NextNValues.new(iterator,times) }
+    method NextNValues(\iterator, \times) { NextNValues.new(iterator, times) }
 
     # Return an iterator that only will return the given value once.
     # Basically the same as 42 xx 1.

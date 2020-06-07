@@ -144,11 +144,16 @@ grammar Raku::Grammar is HLL::Grammar {
     my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
+    method EXPR(str $preclim = '') {
+        my $*LEFTSIGIL := '';
+        nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim, :noinfix($preclim eq 'y='));
+    }
+
     token infixish($in_meta = nqp::getlexdyn('$*IN_META')) {
         :my $*IN_META := $in_meta;
         :my $*OPER;
         <!stdstopper>
-#        <!infixstopper>
+        <!infixstopper>
         :dba('infix')
         [
 #        | <!{ $*IN_REDUCE }> <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
@@ -171,6 +176,14 @@ grammar Raku::Grammar is HLL::Grammar {
         ]
         <OPER=.AS_MATCH($*OPER)>
         { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
+    }
+
+    regex infixstopper {
+        :dba('infix stopper')
+        [
+        | <?before '!!'> <?{ $*GOAL eq '!!' }>
+        | <?before '{' | <.lambda> > <?MARKED('ws')> <?{ $*GOAL eq '{' || $*GOAL eq 'endargs' }>
+        ]
     }
 
     token prefixish {
@@ -495,6 +508,8 @@ grammar Raku::Grammar is HLL::Grammar {
     token identifier {
         <.ident> [ <.apostrophe> <.ident> ]*
     }
+
+    token lambda { '->' | '<->' }
 
     token end_keyword {
         » <!before <.[ \( \\ ' \- ]> || \h* '=>'>

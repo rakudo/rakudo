@@ -15,59 +15,38 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::if(
           nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
           self.Str,
-          self!MATCH.Str
+          self.MATCH.Str
         )
     }
 
     method MATCH() is implementation-detail {
-        nqp::if(
-          nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
-          self,
-          self!MATCH
-        )
-    }
-
-    method !MATCH() {
-        nqp::isge_i(
-          nqp::getattr_i(self,Match,'$!pos'),
-          nqp::getattr_i(self, Match, '$!from'))
-            ?? self!MATCH-PASS()
-            !! self!MATCH-EMPTY()
-    }
-
-    method !MATCH-EMPTY() {
-        nqp::bindattr(self, Capture, '@!list', $EMPTY_LIST);
-        nqp::bindattr(self, Capture, '%!hash', $EMPTY_HASH);
-        nqp::bindattr(self, Match, '$!match', $DID_MATCH);
-        self
-    }
-
-    method !MATCH-PASS() {
-        # Build captures if needed.
-        my $rxsub := nqp::getattr(self, Match, '$!regexsub');
-        nqp::isnull($rxsub) ||
-          nqp::isnull(my $cap-meth := nqp::tryfindmethod($rxsub, 'CAPS')) ||
-          nqp::isnull(my $caps := $cap-meth($rxsub)) || nqp::not_i($caps.has-captures)
-            ?? self!MATCH-EMPTY()
-            !! self!MATCH-CAPTURES();
-
-        # Once we've produced the captures, and if we know we're finished and
-        # will never be backtracked into, we can release cstack and regexsub.
-        unless nqp::defined(nqp::getattr(self, Match, '$!bstack')) {
-            nqp::bindattr(self, Match, '$!cstack', nqp::null());
-            nqp::bindattr(self, Match, '$!regexsub', nqp::null());
-        }
+        nqp::unless(
+          nqp::istype(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
+          nqp::if(                           # must still set up
+            nqp::islt_i(
+              nqp::getattr_i(self,Match,'$!pos'),
+              nqp::getattr_i(self,Match,'$!from')
+            ) || nqp::isnull(my $rxsub := nqp::getattr(self,Match,'$!regexsub'))
+              || nqp::isnull(my $CAPS := nqp::tryfindmethod($rxsub,'CAPS'))
+              || nqp::isnull(my $captures := $CAPS($rxsub))
+              || nqp::not_i($captures.has-captures),
+            nqp::stmts(                      # no captures
+              nqp::bindattr(self,Capture,'@!list',$EMPTY_LIST),
+              nqp::bindattr(self,Capture,'%!hash',$EMPTY_HASH),
+              nqp::bindattr(self,Match,'$!match',$DID_MATCH)  # mark as set up
+            ),
+            self!MATCH-CAPTURES($captures)  # go reify all the captures
+          )
+        );
 
         self
     }
 
-    method !MATCH-CAPTURES() {
+    method !MATCH-CAPTURES(Mu $captures --> Nil) {
         # Initialize capture lists.
-        my $rxsub := nqp::getattr(self, Match, '$!regexsub');
-        my $capdesc := nqp::findmethod($rxsub, 'CAPS')($rxsub);
-        my $list := nqp::findmethod($capdesc, 'prepare-raku-list')($capdesc);
-        my $hash := nqp::findmethod($capdesc, 'prepare-raku-hash')($capdesc);
-        my str $onlyname = $capdesc.onlyname();
+        my $list := nqp::findmethod($captures,'prepare-raku-list')($captures);
+        my $hash := nqp::findmethod($captures,'prepare-raku-hash')($captures);
+        my str $onlyname = $captures.onlyname();
 
         # Walk the capture stack and populate the Match.
         my Mu $cs := nqp::getattr(self, Match, '$!cstack');
@@ -144,6 +123,15 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::bindattr(self, Capture, '@!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
         nqp::bindattr(self, Capture, '%!hash', $hash);
         nqp::bindattr(self, Match, '$!match', $DID_MATCH);
+
+        # We've produced the captures. If we know we're finished and will
+        # never be backtracked into, we can release cstack and regexsub.
+        nqp::unless(
+          nqp::defined(nqp::getattr(self,Match,'$!bstack')),
+          nqp::bindattr(self,Match,'$!cstack',
+            nqp::bindattr(self,Match,'$!regexsub',nqp::null)
+          )
+        );
     }
 
     # from !cursor_next in nqp

@@ -2893,7 +2893,7 @@ class Perl6::World is HLL::World {
                 # outer lexical context's symbols as those may contain or
                 # reference unserializable objects leading to compilation
                 # failures. Needs a smarter approach as noted above.
-                unless self.is_nested() || %seen{$name} {
+                if !%seen{$name} && ($name eq '$_' || !self.is_nested()) {
                     # Add symbol.
                     my %sym   := %symbols{$name};
                     my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')

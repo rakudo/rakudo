@@ -504,19 +504,12 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     }
 
     method !compile-function-body(Mu $block) {
-        my $perl6comp := nqp::getcomp("Raku");
-        my @stages = $perl6comp.stages;
-        Nil until @stages.shift eq 'optimize';
+        my $compiler := nqp::getcomp("Raku");
+        my $body := $compiler.compile($block, :from<optimize>);
 
-        my $result := $block;
-        $result := $perl6comp.^can($_)
-            ?? $perl6comp."$_"($result)
-            !! $perl6comp.backend."$_"($result)
-            for @stages;
-        my $body := nqp::compunitmainline($result);
         $*W.add_object($body) if $*W;
 
-        nqp::setcodename($body, $!name);
+        nqp::setcodename(nqp::getattr($body, ForeignCode, '$!do'), $!name);
         $body
     }
 

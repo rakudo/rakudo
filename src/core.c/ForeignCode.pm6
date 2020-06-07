@@ -55,7 +55,6 @@ $lang = 'Raku' if $lang eq 'perl6';
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
     my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
-    my \mast_frames := nqp::hash();
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
                   # currently compiling compilation unit
 
@@ -67,7 +66,6 @@ $lang = 'Raku' if $lang eq 'perl6';
         $code,
         :outer_ctx($eval_ctx),
         :global(GLOBAL),
-        :mast_frames(mast_frames),
         :language_version(nqp::getcomp('Raku').language_version),
         |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
@@ -76,8 +74,6 @@ $lang = 'Raku' if $lang eq 'perl6';
         Nil
     }
     else {
-        $*W.add_additional_frames(mast_frames)
-          if $*W and $*W.is_precompilation_mode; # we are still compiling
         nqp::forceouterctx(
           nqp::getattr($compiled,ForeignCode,'$!do'),$eval_ctx
         );

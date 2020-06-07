@@ -526,22 +526,22 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         self.set_how('package', nqp::knowhow());
 
         # Will we use the result of this? (Yes for EVAL and REPL).
-        my $*NEED_RESULT := nqp::existskey(%*COMPILING<%?OPTIONS>, 'outer_ctx');
+        my $*NEED_RESULT := nqp::existskey(%*COMPILING<%?OPTIONS>, 'outer_ctx')
+                         || nqp::existskey(%*COMPILING<%?OPTIONS>, 'need_result');
 
         # Symbol table and serialization context builder - keeps track of
         # objects that cross the compile-time/run-time boundary that are
         # associated with this compilation unit.
         my $file := nqp::getlexdyn('$?FILES');
-        my $source_id := nqp::sha1($file ~ (
-            nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
-                ?? self.target() ~ SerializationContextId.next-id()
-                !! self.target()));
         my $outer_world := nqp::getlexdyn('$*W');
         my $is_nested := (
             $outer_world
-            && nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
             && $outer_world.is_precompilation_mode()
         );
+        my $source_id := nqp::sha1($file ~ (
+            $is_nested
+                ?? self.target() ~ SerializationContextId.next-id()
+                !! self.target()));
 
         my $*W := $is_nested
             ?? $outer_world.create_nested()

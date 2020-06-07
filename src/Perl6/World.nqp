@@ -521,10 +521,6 @@ class Perl6::World is HLL::World {
         @!CHECKs := [];
     }
 
-    method create_nested() {
-        Perl6::World.new(:handle(self.handle), :context(self.context()))
-    }
-
     method lang-ver-before(str $want) {
         nqp::chars($want) == 1 || nqp::die(
           'Version to $*W.lang-ver-before'
@@ -4421,6 +4417,8 @@ class Perl6::World is HLL::World {
     # Does any cleanups needed after compilation.
     method cleanup() {
         for self.context().cleanup_tasks() { $_() }
+
+        self.finish;
     }
 
     # Represents a longname after having parsed it.

@@ -57,7 +57,7 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
         nqp::bindhllsym('Raku', '$!ARGITER', $argiter);
         my $super := nqp::findmethod(HLL::Compiler, 'command_eval');
-        my %*COMPILING;
+        my %*COMPILING := nqp::clone(nqp::ifnull(nqp::getlexdyn('%*COMPILING'), nqp::hash()));
         %*COMPILING<%?OPTIONS> := %options;
         $super(self, |@args, |%options);
     }

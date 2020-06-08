@@ -3,9 +3,10 @@
 class RakuAST::Signature is RakuAST::Meta {
     has List $.parameters;
 
-    method new(List :$parameters!) {
+    method new(List :$parameters) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Signature, '$!parameters', $parameters);
+        nqp::bindattr($obj, RakuAST::Signature, '$!parameters',
+            self.IMPL-WRAP-LIST($parameters // []));
         $obj
     }
 

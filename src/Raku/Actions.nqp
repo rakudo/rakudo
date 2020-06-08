@@ -99,6 +99,27 @@ class Raku::Actions is HLL::Actions {
         }
     }
 
+    method pblock($/) {
+        my $block := $*BLOCK;
+        $block.replace-signature($<signature>.ast);
+        $block.replace-body($<blockoid>.ast);
+        make $block;
+    }
+
+    method blockoid($/) {
+        make self.r('Blockoid').new($<statementlist>.ast);
+    }
+
+    method enter-block-scope($/) {
+        my $block := self.r($*SCOPE-KIND).new;
+        $*R.enter-scope($block);
+        $*BLOCK := $block;
+    }
+
+    method leave-block-scope($/) {
+        $*R.leave-scope();
+    }
+
     ##
     ## Expression parsing and operators
     ##
@@ -168,6 +189,10 @@ class Raku::Actions is HLL::Actions {
 
     method term:sym<scope_declarator>($/) {
         make $<scope_declarator>.ast;
+    }
+
+    method term:sym<lambda>($/) {
+        make $<pblock>.ast;
     }
 
     method term:sym<value>($/) {
@@ -280,6 +305,14 @@ class Raku::Actions is HLL::Actions {
         make $*LITERALS.intern-int: ~$/, 2, -> {
             $/.panic("'$/' is not a valid number")
         }
+    }
+
+    ##
+    ## Signatures
+    ##
+
+    method signature($/) {
+        make self.r('Signature').new;
     }
 
     ##

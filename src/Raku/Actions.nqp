@@ -162,6 +162,10 @@ class Raku::Actions is HLL::Actions {
             value => $<val>.ast;
     }
 
+    method term:sym<variable>($/) {
+        make $<variable>.ast;
+    }
+
     method term:sym<scope_declarator>($/) {
         make $<scope_declarator>.ast;
     }
@@ -174,6 +178,18 @@ class Raku::Actions is HLL::Actions {
         make self.r('Call', 'Name').new:
             name => self.r('Name').from-identifier(~$<identifier>),
             args => $<args>.ast; 
+    }
+
+    method variable($/) {
+        my str $name := $<sigil> ~ $<desigilname>;
+        my $resolution := $*R.resolve-lexical($name);
+        if nqp::isconcrete($resolution) {
+            make $resolution.generate-lookup();
+        }
+        else {
+            # TODO restore good error
+            nqp::die("Undeclared variable $name");
+        }
     }
 
     ##
@@ -209,6 +225,7 @@ class Raku::Actions is HLL::Actions {
             ?? $<initializer>.ast
             !! self.r('Initializer');
         my $decl := self.r('Declaration', 'Var').new(:$name, :$initializer);
+        $*R.declare-lexical($decl);
         make $decl;
     }
 

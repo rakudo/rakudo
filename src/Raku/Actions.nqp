@@ -307,6 +307,15 @@ class Raku::Actions is HLL::Actions {
         }
     }
 
+    method version($/) {
+        # We don't make an object for the initial language version line,
+        # which occurs before a setting is loaded.
+        if $*R {
+            my $Version := $*R.resolve-lexical-constant('Version').compile-time-value;
+            make self.r('VersionLiteral').new($Version.new(~$<vstr>));
+        }
+    }
+
     ##
     ## Signatures
     ##

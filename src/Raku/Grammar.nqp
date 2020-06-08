@@ -46,7 +46,8 @@ grammar Raku::Grammar is HLL::Grammar {
     token bom { \xFEFF }
 
     rule lang_setup {
-        <?>
+        # TODO validate this and pay attention to it in actions
+        [ <.ws>? 'use' <version> ';'? ]?
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Raku level grammar.
@@ -551,7 +552,7 @@ grammar Raku::Grammar is HLL::Grammar {
     proto token value { <...> }
 #    token value:sym<quote>  { <quote> }
     token value:sym<number> { <number> }
-#    token value:sym<version> { <version> }
+    token value:sym<version> { <version> }
 
     proto token number { <...> }
     token number:sym<numish>   { <numish> }
@@ -583,6 +584,15 @@ grammar Raku::Grammar is HLL::Grammar {
         ]
 #        <!!before ['.' <?before \s | ',' | '=' | ':' <!before  <coloncircumfix <OPER=prefix> > > | <.terminator> | $ > <.typed_sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
         [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
+    }
+
+    token version {
+        <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' '+'?]
+        <!before '-'|\'> # cheat because of LTM fail
+    }
+
+    token vnum {
+        \w+ | '*'
     }
 
     ##

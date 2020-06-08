@@ -78,6 +78,13 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
         }
     }
 
+    # Generate a lookup of this variable, already resolved to this declaration.
+    method generate-lookup() {
+        my $lookup := RakuAST::Var::Lexical.new($!name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
     method visit-children(Code $visitor) {
         my $type := $!type;
         $visitor($type) if nqp::isconcrete($type);

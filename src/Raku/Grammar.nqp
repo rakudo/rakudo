@@ -37,8 +37,10 @@ grammar Raku::Grammar is HLL::Grammar {
         :my $*LITERALS;
         <.lang_setup>
 
+        { $*R.enter-scope($*CU) }
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
+        { $*R.leave-scope() }
     }
 
     token bom { \xFEFF }
@@ -405,6 +407,7 @@ grammar Raku::Grammar is HLL::Grammar {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }
 
+    token term:sym<variable>           { <variable> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<value>              { <value> }
 
@@ -423,6 +426,15 @@ grammar Raku::Grammar is HLL::Grammar {
 #                }
 #            }
 #        }
+    }
+
+    token variable {
+        :my $*IN_META := '';
+        [
+        | <sigil> <desigilname>
+        | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
+        ]
+        { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
     }
 
     ##

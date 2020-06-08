@@ -405,11 +405,13 @@ grammar Raku::Grammar is HLL::Grammar {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }
 
+    token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<value>              { <value> }
 
     token term:sym<identifier> {
         <identifier>
-        # <!{ $*W.is_type([~$<identifier>]) }> [ <?before <.unsp>? '('> | \\ <?before '('> ]
+        # <!{ $*W.is_type([~$<identifier>]) }>
+        [ <?before <.unsp>? '('> | \\ <?before '('> ]
         <args(1)>
 #        {
 #            if !$<args><invocant> {
@@ -422,6 +424,80 @@ grammar Raku::Grammar is HLL::Grammar {
 #            }
 #        }
     }
+
+    ##
+    ## Declarations
+    ##
+
+    proto token scope_declarator { <...> }
+    token scope_declarator:sym<my> { <sym> <scoped('my')> }
+
+    token scoped($*SCOPE) {
+        <.end_keyword>
+        :dba('scoped declarator')
+        [
+        || <.ws>
+           [
+           | <DECL=declarator>
+           ]
+        || <.malformed($*SCOPE)>
+        ]
+    }
+
+    token declarator {
+        :my $*LEFTSIGIL := '';
+        [
+        | <variable_declarator>
+        ]
+    }
+
+    token variable_declarator {
+        :my $*IN_DECL := 'variable';
+        [
+        | <sigil> <desigilname>
+        | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
+        # TODO error cases for when yoiu declare something you're not allowed to
+        ]
+        {
+            $*IN_DECL := '';
+            $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL;
+        }
+        [<.ws> <initializer>]?
+    }
+
+    token desigilname {
+        [
+#        | <?before <.sigil> <.sigil> > <variable>
+#        | <?sigil>
+#            [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
+#            <variable> {
+#                $*VAR := $<variable>;
+#            }
+        | <longname>
+        ]
+    }
+
+    proto token initializer { <...> }
+    token initializer:sym<=> {
+        <sym>
+        [
+            <.ws>
+            [
+            || <?{ $*LEFTSIGIL eq '$' }> <EXPR('i<=')>
+            || <EXPR('e=')>
+            ]
+            || <.malformed: 'initializer'>
+        ]
+    }
+    token initializer:sym<:=> {
+        <sym> [ <.ws> <EXPR('e=')> || <.malformed: 'binding'> ]
+    }
+    token initializer:sym<::=> {
+        <sym> [ <.ws> <EXPR('e=')> <.NYI('"::="')> || <.malformed: 'binding'> ]
+    }
+#    token initializer:sym<.=> {
+#        <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
+#    }
 
     ##
     ## Values
@@ -508,6 +584,43 @@ grammar Raku::Grammar is HLL::Grammar {
     token identifier {
         <.ident> [ <.apostrophe> <.ident> ]*
     }
+
+    token name {
+        [
+        | <identifier> <morename>*
+        | <morename>+
+        ]
+    }
+
+    token morename {
+        :my $*QSIGIL := '';
+        '::'
+        [
+        ||  <?before '(' | <.alpha> >
+            [
+            | <identifier>
+            | :dba('indirect name') '(' ~ ')' [ <.ws> <EXPR> ]
+            ]
+        || <?before '::'> <.typed_panic: "X::Syntax::Name::Null">
+        || $<bad>=[<.sigil><.identifier>] { my str $b := $<bad>; self.malformed("lookup of ::$b; please use ::('$b'), ::\{'$b'\}, or ::<$b>") }
+        ]?
+    }
+
+    token longname {
+        <name> {} [ <?before ':' <.+alpha+[\< \[ \« ]>> <!RESTRICTED> <colonpair> ]*
+    }
+
+    token sigil { <[$@%&]> }
+
+    proto token twigil { <...> }
+    token twigil:sym<.> { <sym> <?before \w> }
+    token twigil:sym<!> { <sym> <?before \w> }
+    token twigil:sym<^> { <sym> <?before \w> }
+    token twigil:sym<:> { <sym> <?before \w> }
+    token twigil:sym<*> { <sym> <?before \w> }
+    token twigil:sym<?> { <sym> <?before \w> }
+    token twigil:sym<=> { <sym> <?before \w> }
+    token twigil:sym<~> { <sym> <?before \w> }
 
     token lambda { '->' | '<->' }
 

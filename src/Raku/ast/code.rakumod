@@ -32,6 +32,11 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term {
         $obj
     }
 
+    method replace-body(RakuAST::Blockoid $new-body) {
+        nqp::bindattr(self, RakuAST::Block, '$!body', $new-body);
+        Nil
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         my $qb := QAST::Block.new(
             self.IMPL-QAST-DECLS($context),
@@ -57,11 +62,22 @@ class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term is RakuAST:
     has RakuAST::Signature $.signature;
     has RakuAST::Blockoid $.body;
 
-    method new(RakuAST::Signature :$signature!, RakuAST::Blockoid :$body) {
+    method new(RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::PointyBlock, '$!signature', $signature);
+        nqp::bindattr($obj, RakuAST::PointyBlock, '$!signature', $signature
+            // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::PointyBlock, '$!body', $body // RakuAST::Blockoid.new);
         $obj
+    }
+
+    method replace-signature(RakuAST::Signature $new-signature) {
+        nqp::bindattr(self, RakuAST::PointyBlock, '$!signature', $new-signature);
+        Nil
+    }
+
+    method replace-body(RakuAST::Blockoid $new-body) {
+        nqp::bindattr(self, RakuAST::PointyBlock, '$!body', $new-body);
+        Nil
     }
 
     method PRODUCE-META-OBJECT() {

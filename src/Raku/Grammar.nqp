@@ -734,6 +734,25 @@ grammar Raku::Grammar is HLL::Grammar {
        ]
     }
 
+    # ws is highly performance sensitive. So, we check if we already marked it
+    # at this point with a simple method, and only if that is not the case do
+    # we bother doing any pattern matching.
+    method ws() {
+        self.MARKED('ws') ?? self !! self._ws()
+    }
+    token _ws {
+        :my $old_highexpect := self.'!fresh_highexpect'();
+        :dba('whitespace')
+        <!ww>
+        [
+        | [\r\n || \v] # <.heredoc>
+        | <.unv>
+        | <.unsp>
+        ]*
+        <?MARKER('ws')>
+        :my $stub := self.'!fresh_highexpect'();
+    }
+
     token unsp {
         \\ <?before \s | '#'>
         :dba('unspace')
@@ -759,9 +778,14 @@ grammar Raku::Grammar is HLL::Grammar {
         :dba('horizontal whitespace')
         [
         | \h+
-#        | \h* <.comment>
+        | \h* <.comment>
 #        | <?before \h* '=' [ \w | '\\'] > ^^ <.pod_content_toplevel>
         ]
     }
 
+    proto token comment { <...> }
+
+    token comment:sym<#> {
+       '#' {} \N*
+    }
 }

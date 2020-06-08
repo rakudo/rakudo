@@ -23,6 +23,7 @@ grammar RakuASTParser {
     rule package:sym<class> {
         'class' <name> {}
         :my $*CLASS := ~$<name>;
+        :my %*ATTRS;
         [ 'is' <parent=.name> ]*
         '{'
         [ <attribute-decl> | <method-decl> ]*
@@ -125,6 +126,12 @@ class Attribute {
     method type() { $!type }
     method name() { $!name }
     method has-accessor() { $!has-accessor }
+    method getattr-op() {
+        $!type eq 'int' ?? 'getattr_i' !!
+        $!type eq 'num' ?? 'getattr_n' !!
+        $!type eq 'str' ?? 'getattr_s' !!
+                           'getattr'
+    }
 }
 
 class Method {
@@ -181,14 +188,17 @@ class RakuASTActions {
 
     method attribute-decl($/) {
         my $type := ~$<type>;
+        my $attr;
         if $<attribute> {
             my $name := ~$<attribute>;
-            make Attribute.new(:$type, :$name, :!has-accessor);
+            $attr := Attribute.new(:$type, :$name, :!has-accessor);
         }
         else {
             my $name := nqp::replace(~$<public-attribute>, 1, 1, '!');
-            make Attribute.new(:$type, :$name, :has-accessor);
+            $attr := Attribute.new(:$type, :$name, :has-accessor);
         }
+        %*ATTRS{$attr.name} := $attr;
+        make $attr;
     }
 
     method method-decl($/) {
@@ -236,7 +246,12 @@ class RakuASTActions {
             }
             elsif $<attribute> {
                 my $name := ~$<attribute>;
-                @chunks.push("nqp::getattr(\$SELF, $*CLASS, '$name')");
+                if %*ATTRS{$name} -> $attr {
+                    @chunks.push("nqp::" ~ $attr.getattr-op ~ "(\$SELF, $*CLASS, '$name')");
+                }
+                else {
+                    $/.panic("No such attribute $name in $*CLASS");
+                }
             }
             elsif $<string> {
                 @chunks.push($<string>.ast);
@@ -369,7 +384,7 @@ sub emit-package($package) {
         my $attr-name := $attr.name;
         say("    add-attribute($name, $type, '$attr-name');");
         if $attr.has-accessor {
-            %need-accessor{nqp::substr($attr-name, 2)} := $attr-name;
+            %need-accessor{nqp::substr($attr-name, 2)} := $attr;
         }
     }
 
@@ -380,9 +395,10 @@ sub emit-package($package) {
 
     for %need-accessor {
         my $method-name := $_.key;
-        my $attr-name := $_.value;
+        my $attr-name := $_.value.name;
+        my $op := $_.value.getattr-op;
         say("    add-method($name, '$method-name', [], anon sub $method-name (\$self) \{");
-        say("        nqp::getattr(nqp::decont(\$self), $name, '$attr-name')");
+        say("        nqp::" ~ $op ~ "(nqp::decont(\$self), $name, '$attr-name')");
         say("    });");
     }
 

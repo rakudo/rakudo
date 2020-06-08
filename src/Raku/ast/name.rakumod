@@ -28,15 +28,11 @@ class RakuAST::Name::Part {
 
 # A simple name part, wrapping a string name.
 class RakuAST::Name::Part::Simple is RakuAST::Name::Part {
-    has str $!name;
+    has str $.name;
 
     method new(Str $name) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Name::Part::Simple, '$!name', $name);
         $obj
-    }
-
-    method name() {
-        nqp::getattr_s(self, RakuAST::Name::Part::Simple, '$!name')
     }
 }

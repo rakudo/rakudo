@@ -109,6 +109,38 @@ grammar Raku::Grammar is HLL::Grammar {
         || { $/.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
     }
 
+    my $PBLOCK_NO_TOPIC := 0;
+    my $PBLOCK_OPTIONAL_TOPIC := 1;
+    my $PBLOCK_REQUIRED_TOPIC := 2;
+
+    token pblock($*IMPLICIT = $PBLOCK_NO_TOPIC) {
+        :dba('block or pointy block')
+        [
+        | <lambda>
+          :my $*GOAL := '{';
+          :my $*BLOCK;
+          <.enter-block-scope('PointyBlock')>
+          <signature>
+          <blockoid>
+          <.leave-block-scope>
+        ]
+    }
+
+    token blockoid {
+        [
+        | '{YOU_ARE_HERE}' <you_are_here>
+        | :dba('block')
+          '{'
+          <statementlist(1)>
+          '}'
+          <?ENDSTMT>
+        || <.missing_block()>
+        ]
+    }
+
+    token enter-block-scope($*SCOPE-KIND) { <?> }
+    token leave-block-scope() { <?> }
+
     ##
     ## Expression parsing and operators
     ##
@@ -409,6 +441,7 @@ grammar Raku::Grammar is HLL::Grammar {
 
     token term:sym<variable>           { <variable> }
     token term:sym<scope_declarator>   { <scope_declarator> }
+    token term:sym<lambda>             { <?lambda> <pblock> }
     token term:sym<value>              { <value> }
 
     token term:sym<identifier> {
@@ -553,6 +586,14 @@ grammar Raku::Grammar is HLL::Grammar {
     }
 
     ##
+    ## Signatures
+    ##
+
+    token signature {
+        <.ws>
+    }
+
+    ##
     ## Argument lists and captures
     ##
 
@@ -657,6 +698,13 @@ grammar Raku::Grammar is HLL::Grammar {
                     !! self.panic("Whitespace required after keyword '$n'")
            }>
         ]
+    }
+
+    token ENDSTMT {
+        [
+        | \h* $$ <.ws> <?MARKER('endstmt')>
+        | <.unv>? $$ <.ws> <?MARKER('endstmt')>
+        ]?
     }
 
     proto token terminator { <...> }

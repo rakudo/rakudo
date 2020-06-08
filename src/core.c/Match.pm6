@@ -135,7 +135,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 
     # from !cursor_next in nqp
-    method CURSOR_NEXT() is implementation-detail {
+    method CURSOR_NEXT() is raw is implementation-detail {
         nqp::if(
           nqp::defined($!restart),
           $!restart(self),
@@ -154,40 +154,32 @@ my class Match is Capture is Cool does NQPMatchRole {
 #?endif
 
     # adapted from !cursor_more in nqp
-    method CURSOR_OVERLAP() is implementation-detail {
-        nqp::stmts(
-          (my $new := nqp::create(self)),
-          nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
-          nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid),
-          nqp::bindattr_i($new,$?CLASS,'$!from',-1),
-          nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1)),
-          nqp::bindattr_i($new,$?CLASS,'$!to',-1),
-          $!regexsub($new)
-        )
+    method CURSOR_OVERLAP() is raw is implementation-detail {
+        my $new := nqp::create(self);
+        nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
+        nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
+        nqp::bindattr_i($new,$?CLASS,'$!from',
+          nqp::bindattr_i($new,$?CLASS,'$!to',-1));
+        nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1));
+        $!regexsub($new)
     }
 
     # adapted from !cursor_more in nqp
-    method CURSOR_MORE() is implementation-detail {
-        nqp::stmts(
-          (my $new := nqp::create(self)),
-          nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared),
-          nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid),
-          nqp::bindattr_i($new,$?CLASS,'$!from',-1),
-          nqp::bindattr_i($new,$?CLASS,'$!pos',
-            nqp::if(
-              nqp::isge_i($!from,$!pos),
+    method CURSOR_MORE() is raw is implementation-detail {
+        my $new := nqp::create(self);
+        nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
+        nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
+        nqp::bindattr_i($new,$?CLASS,'$!from',
+          nqp::bindattr_i($new,$?CLASS,'$!to',-1));
+        nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::isge_i($!from,$!pos)
 #?if !js
-              nqp::add_i($!from,1),
+          ?? nqp::add_i($!from,1)
 #?endif
 #?if js
-              nqp::add_i($!from, move_cursor(self.target, $!pos)),
+          ?? nqp::add_i($!from, move_cursor(self.target, $!pos))
 #?endif
-              $!pos
-            )
-          ),
-          nqp::bindattr_i($new,$?CLASS,'$!to',-1),
-          $!regexsub($new)
-        )
+          !! $!pos);
+        $!regexsub($new)
     }
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.

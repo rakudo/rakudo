@@ -51,7 +51,7 @@ class RakuAST::Declaration::Lexical is RakuAST::Declaration {
 # A lexical declaration that comes from an external symbol (for example, the
 # setting or an EVAL). XXX May break out the setting one.
 class RakuAST::Declaration::External is RakuAST::Declaration::Lexical {
-    has str $!lexical-name;
+    has str $.lexical-name;
     has Mu $!native-type;
 
     method new(str :$lexical-name, Mu :$native-type) {
@@ -59,10 +59,6 @@ class RakuAST::Declaration::External is RakuAST::Declaration::Lexical {
         nqp::bindattr_s($obj, RakuAST::Declaration::External, '$!lexical-name', $lexical-name);
         nqp::bindattr($obj, RakuAST::Declaration::External, '$!native-type', $native-type);
         $obj
-    }
-
-    method lexical-name() {
-        nqp::getattr_s(self, RakuAST::Declaration::External, '$!lexical-name')
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {

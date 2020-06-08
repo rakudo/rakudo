@@ -162,6 +162,10 @@ class Raku::Actions is HLL::Actions {
             value => $<val>.ast;
     }
 
+    method term:sym<scope_declarator>($/) {
+        make $<scope_declarator>.ast;
+    }
+
     method term:sym<value>($/) {
         make $<value>.ast;
     }
@@ -170,6 +174,42 @@ class Raku::Actions is HLL::Actions {
         make self.r('Call', 'Name').new:
             name => self.r('Name').from-identifier(~$<identifier>),
             args => $<args>.ast; 
+    }
+
+    ##
+    ## Declarations
+    ##
+
+    method scope_declarator:sym<my>($/) { make $<scoped>.ast; }
+
+    method scoped($/) {
+        make $<DECL>.ast;
+    }
+
+    method declarator($/) {
+        if $<variable_declarator> {
+            make $<variable_declarator>.ast;
+        }
+        else {
+            nqp::die('Unimplemented declarator');
+        }
+    }
+
+    method initializer:sym<=>($/) {
+        make self.r('Initializer', 'Assign').new($<EXPR>.ast);
+    }
+
+    method initializer:sym<:=>($/) {
+        make self.r('Initializer', 'Bind').new($<EXPR>.ast);
+    }
+
+    method variable_declarator($/) {
+        my str $name := $<sigil> ~ $<desigilname>;
+        my $initializer := $<initializer>
+            ?? $<initializer>.ast
+            !! self.r('Initializer');
+        my $decl := self.r('Declaration', 'Var').new(:$name, :$initializer);
+        make $decl;
     }
 
     ##

@@ -168,10 +168,14 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
 # A resolver may be created using an existing context, or it may be for a
 # compilation unit whose outer scope is some version of the setting.
 class RakuAST::Resolver::Compile is RakuAST::Resolver {
+    # Scopes stack; an array of RakuAST::Resolver::Compile::Scope.
+    has Mu $!scopes;
+
     method new(Mu :$setting!, Mu :$outer!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $outer);
+        nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes', []);
         $obj
     }
 
@@ -189,20 +193,60 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
         self.new(:$setting, :outer($setting))
     }
 
-    # Pushes an active lexical scope to be considered in lookup.
+    # Pushes an active lexical scope to be considered in lookup. Used only in
+    # batch resolve mode.
     method push-scope(RakuAST::LexicalScope $scope) {
-        # TODO
+        nqp::push($!scopes, RakuAST::Resolver::Compile::Scope.new(:$scope, :batch-mode));
+        Nil
     }
 
-    # Pops the top active lexical scope.
+    # Pops the top active lexical scope. Used only in batch resolve mode.
     method pop-scope() {
-        # TODO
+        nqp::pop($!scopes).batch-mode ||
+            nqp::die('pop-scope should only be used on batch mode scopes');
+        Nil
+    }
+
+    # Enters a new scope. Used in compilation mode. In this case, declarations
+    # are registered as they are made, so we don't have to have them immediately
+    # linked into the tree.
+    method enter-scope(RakuAST::LexicalScope $scope) {
+        nqp::push($!scopes, RakuAST::Resolver::Compile::Scope.new(:$scope, :!batch-mode));
+        Nil
+    }
+
+    # Leaves a lexical scope. Used in compilation mode.
+    method leave-scope() {
+        nqp::pop($!scopes).batch-mode &&
+            nqp::die('leave-scope should never be used on batch mode scopes');
+        Nil
+    }
+
+    # Add a lexical declaration. Used when the compiler produces the declaration,
+    # so that we can resovle it without requiring it to be linked into the tree.
+    method declare-lexical(RakuAST::Declaration::Lexical $decl) {
+        $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl);
     }
 
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
     method resolve-lexical(Str $name, Bool :$current-scope-only) {
-        # TODO scope handling
+        # If it's in the current scope only, we just look at the top one.
+        if $current-scope-only {
+            my @scopes := $!scopes;
+            my int $i := nqp::elems(@scopes);
+            return $i > 0 ?? @scopes[$i - 1].find-lexical($name) !! Nil;
+        }
+
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            my $found := $scope.find-lexical($name);
+            return $found if nqp::isconcrete($found);
+        }
+
         self.resolve-lexical-in-outer($name);
     }
 
@@ -211,5 +255,48 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     method resolve-lexical-constant(Str $name) {
         # TODO scope handling
         self.resolve-lexical-constant-in-outer($name);
+    }
+}
+
+# Information about a scope that we are currently compiling.
+class RakuAST::Resolver::Compile::Scope is RakuAST::Resolver {
+    # The scope.
+    has RakuAST::LexicalScope $.scope;
+
+    # If we are in batch mode. When we are, then we have a fully-formed tree
+    # and can just look at it, assume it's immutable, etc. If not, then we
+    # instead look at our live declaration map.
+    has int $!batch-mode;
+
+    # The live declaration map, used when not in batch mode.
+    has Mu $!live-decl-map;
+
+    method new(RakuAST::LexicalScope :$scope!, int :$batch-mode) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Resolver::Compile::Scope, '$!scope', $scope);
+        nqp::bindattr_i($obj, RakuAST::Resolver::Compile::Scope, '$!batch-mode', $batch-mode);
+        unless $batch-mode {
+            nqp::bindattr($obj, RakuAST::Resolver::Compile::Scope, '$!live-decl-map', {});
+        }
+        $obj
+    }
+
+    method batch-mode() {
+        $!batch-mode ?? True !! False
+    }
+
+    method find-lexical(Str $name) {
+        if $!batch-mode {
+            $!scope.find-lexical($name) // Nil
+        }
+        else {
+            $!live-decl-map{$name} // Nil
+        }
+    }
+
+    method declare-lexical(RakuAST::Declaration::Lexical $decl) {
+        nqp::die('Should not be calling declare-lexical in batch mode') if $!batch-mode;
+        $!live-decl-map{$decl.lexical-name} := $decl;
+        Nil
     }
 }

@@ -2,7 +2,123 @@ use NQPP6QRegex;
 use NQPP5QRegex;
 use Raku::Actions;
 
-grammar Raku::Grammar is HLL::Grammar {
+my role startstops[$start, $stop1, $stop2] {
+    token starter { $start }
+    token stopper { $stop1 | $stop2 }
+}
+
+my role startstop[$start, $stop] {
+    token starter { $start }
+    token stopper { $stop }
+}
+
+my role stop[$stop] {
+    token starter { <!> }
+    token stopper { $stop }
+}
+
+role Raku::Common {
+    token opener {
+        <[
+        \x0028 \x003C \x005B \x007B \x00AB \x0F3A \x0F3C \x169B \x2018 \x201A \x201B
+        \x201C \x201E \x201F \x2039 \x2045 \x207D \x208D \x2208 \x2209 \x220A \x2215
+        \x223C \x2243 \x2252 \x2254 \x2264 \x2266 \x2268 \x226A \x226E \x2270 \x2272
+        \x2274 \x2276 \x2278 \x227A \x227C \x227E \x2280 \x2282 \x2284 \x2286 \x2288
+        \x228A \x228F \x2291 \x2298 \x22A2 \x22A6 \x22A8 \x22A9 \x22AB \x22B0 \x22B2
+        \x22B4 \x22B6 \x22C9 \x22CB \x22D0 \x22D6 \x22D8 \x22DA \x22DC \x22DE \x22E0
+        \x22E2 \x22E4 \x22E6 \x22E8 \x22EA \x22EC \x22F0 \x22F2 \x22F3 \x22F4 \x22F6
+        \x22F7 \x2308 \x230A \x2329 \x23B4 \x2768 \x276A \x276C \x276E \x2770 \x2772
+        \x2774 \x27C3 \x27C5 \x27D5 \x27DD \x27E2 \x27E4 \x27E6 \x27E8 \x27EA \x2983
+        \x2985 \x2987 \x2989 \x298B \x298D \x298F \x2991 \x2993 \x2995 \x2997 \x29C0
+        \x29C4 \x29CF \x29D1 \x29D4 \x29D8 \x29DA \x29F8 \x29FC \x2A2B \x2A2D \x2A34
+        \x2A3C \x2A64 \x2A79 \x2A7D \x2A7F \x2A81 \x2A83 \x2A8B \x2A91 \x2A93 \x2A95
+        \x2A97 \x2A99 \x2A9B \x2AA1 \x2AA6 \x2AA8 \x2AAA \x2AAC \x2AAF \x2AB3 \x2ABB
+        \x2ABD \x2ABF \x2AC1 \x2AC3 \x2AC5 \x2ACD \x2ACF \x2AD1 \x2AD3 \x2AD5 \x2AEC
+        \x2AF7 \x2AF9 \x2E02 \x2E04 \x2E09 \x2E0C \x2E1C \x2E20 \x2E28 \x3008 \x300A
+        \x300C \x300E \x3010 \x3014 \x3016 \x3018 \x301A \x301D \xFD3E \xFE17 \xFE35
+        \xFE37 \xFE39 \xFE3B \xFE3D \xFE3F \xFE41 \xFE43 \xFE47 \xFE59 \xFE5B \xFE5D
+        \xFF08 \xFF1C \xFF3B \xFF5B \xFF5F \xFF62
+        ]>
+    }
+
+    method balanced($start, $stop) {
+        if nqp::istype($stop, VMArray) {
+            self.HOW.mixin(self, startstops.HOW.curry(startstops, $start, $stop[0], $stop[1]));
+        }
+        else {
+            self.HOW.mixin(self, startstop.HOW.curry(startstop, $start, $stop));
+        }
+    }
+
+    method unbalanced($stop) {
+        self.HOW.mixin(self, stop.HOW.curry(stop, $stop));
+    }
+
+    token starter { <!> }
+    token stopper { <!> }
+
+    method quote_lang($l, $start, $stop, @base_tweaks?, @extra_tweaks?) {
+        sub lang_key() {
+            my $stopstr := nqp::istype($stop,VMArray) ?? nqp::join(' ',$stop) !! $stop;
+            my @keybits := [
+                self.HOW.name(self), $l.HOW.name($l), $start, $stopstr
+            ];
+            for @base_tweaks {
+                @keybits.push($_);
+            }
+            for @extra_tweaks {
+                if $_[0] eq 'to' {
+                    return 'NOCACHE';
+                }
+                @keybits.push($_[0] ~ '=' ~ $_[1]);
+            }
+            nqp::join("\0", @keybits)
+        }
+        sub con_lang() {
+            my $lang := $l.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'()));
+            $lang.clone_braid_from(self);
+            for @base_tweaks {
+                $lang := $lang."tweak_$_"(1);
+            }
+
+            for @extra_tweaks {
+                my $t := $_[0];
+                if nqp::can($lang, "tweak_$t") {
+                    $lang := $lang."tweak_$t"($_[1]);
+                }
+                else {
+                    self.sorry("Unrecognized adverb: :$t");
+                }
+            }
+            for self.slangs {
+                if nqp::istype($lang, $_.value) {
+                    $lang.set_actions(self.slang_actions($_.key));
+                    last;
+                }
+            }
+            $lang.set_pragma("STOPPER",$stop);
+            nqp::istype($stop,VMArray) ||
+            $start ne $stop ?? $lang.balanced($start, $stop)
+                            !! $lang.unbalanced($stop);
+        }
+
+        # Get language from cache or derive it.
+        my $key := lang_key();
+        my %quote_lang_cache := %*QUOTE_LANGS;
+        my $quote_lang := nqp::existskey(%quote_lang_cache, $key) && $key ne 'NOCACHE'
+            ?? %quote_lang_cache{$key}
+            !! (%quote_lang_cache{$key} := con_lang());
+        $quote_lang.set_package(self.package);
+        $quote_lang;
+    }
+
+    # Note, $lang must carry its own actions by the time we call this.
+    method nibble($lang) {
+        $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'())).nibbler().set_braid_from(self)
+    }
+}
+
+grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     ##
     ## Compilation unit, language version and other entry point bits
@@ -13,7 +129,7 @@ grammar Raku::Grammar is HLL::Grammar {
         my $*LANG := self;
         my $*MAIN := 'MAIN';
         self.define_slang('MAIN',    self.WHAT,            self.actions);
-        #self.define_slang('Quote',   Raku::QGrammar,       Raku::QActions);
+        self.define_slang('Quote',   Raku::QGrammar,       Raku::QActions);
         #self.define_slang('Regex',   Raku::RegexGrammar,   Raku::RegexActions);
         #self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
         #self.define_slang('Pod',     Raku::PodGrammar,     Raku::PodActions);
@@ -22,6 +138,8 @@ grammar Raku::Grammar is HLL::Grammar {
         my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
         my $*IN_META := '';                       # parsing a metaoperator like [..]
         my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
+        my %*QUOTE_LANGS;                         # quote language cache
+        my $*LASTQUOTE := [0,0];                  # for runaway quote detection
 
         # Parse a compilation unit.
         self.comp_unit
@@ -550,7 +668,7 @@ grammar Raku::Grammar is HLL::Grammar {
     ##
 
     proto token value { <...> }
-#    token value:sym<quote>  { <quote> }
+    token value:sym<quote>  { <quote> }
     token value:sym<number> { <number> }
     token value:sym<version> { <version> }
 
@@ -594,6 +712,9 @@ grammar Raku::Grammar is HLL::Grammar {
     token vnum {
         \w+ | '*'
     }
+
+    proto token quote { <...> }
+    token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(self.slang_grammar('Quote'), "'", "'", ['q']))> }
 
     ##
     ## Signatures
@@ -797,5 +918,89 @@ grammar Raku::Grammar is HLL::Grammar {
 
     token comment:sym<#> {
        '#' {} \N*
+    }
+}
+
+grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
+    proto token escape {*}
+    proto token backslash {*}
+
+    role q {
+        token starter { \' }
+        token stopper { \' }
+
+        token escape:sym<\\> { <sym> <item=.backslash> }
+
+        token backslash:sym<qq> { <?[q]> <quote=.LANG('MAIN','quote')> }
+        token backslash:sym<\\> { <text=.sym> }
+        token backslash:delim { <text=.starter> | <text=.stopper> }
+
+        token backslash:sym<miscq> { {} . }
+
+        method tweak_q($v) { self.panic("Too late for :q") }
+        method tweak_qq($v) { self.panic("Too late for :qq") }
+    }
+
+    method truly($bool, $opt) {
+        self.sorry("Cannot negate $opt adverb") unless $bool;
+        self;
+    }
+
+    method apply_tweak($role) {
+        my $target := nqp::can(self, 'herelang') ?? self.herelang !! self;
+        $target.HOW.mixin($target, $role);
+        self
+    }
+
+    method tweak_q($v)          { self.truly($v, ':q'); self.apply_tweak(Raku::QGrammar::q) }
+
+    token nibbler {
+        :my @*nibbles;
+        <.do_nibbling>
+    }
+
+    token do_nibbling {
+        :my $from := self.pos;
+        :my $to   := $from;
+        [
+            <!stopper>
+            [
+            || <starter> <nibbler> <stopper>
+                {
+                    my $c := $/;
+                    $to   := $<starter>[-1].from;
+                    if $from != $to {
+                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+                    }
+
+                    nqp::push(@*nibbles, $<starter>[-1].Str);
+                    nqp::push(@*nibbles, $<nibbler>[-1]);
+                    nqp::push(@*nibbles, $<stopper>[-1].Str);
+
+                    $from := $to := $c.pos;
+                }
+            || <escape>
+                {
+                    my $c := $/;
+                    $to   := $<escape>[-1].from;
+                    if $from != $to {
+                        nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+                    }
+
+                    nqp::push(@*nibbles, $<escape>[-1]);
+
+                    $from := $to := $c.pos;
+                }
+            || .
+            ]
+        ]*
+        {
+            my $c := $/;
+            $to   := $c.pos;
+            $*LASTQUOTE := [self.pos, $to];
+            if $from != $to || !@*nibbles {
+                nqp::push(@*nibbles, nqp::substr($c.orig, $from, $to - $from));
+            }
+        }
     }
 }

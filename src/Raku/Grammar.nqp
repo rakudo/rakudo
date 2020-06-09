@@ -169,10 +169,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     # This is like HLL::Grammar.LANG but it allows to call a token of a Raku level grammar.
-    method FOREIGN_LANG($langname, $regex, *@args) {
+    method FOREIGN_LANG($langname, $regex) {
         my $grammar := self.slang_grammar($langname);
         if nqp::istype($grammar, NQPMatch) {
-            self.LANG($langname, $regex, @args);
+            self.LANG($langname, $regex);
         }
         else {
             nqp::die('FOREIGN_LANG non-NQP branch NYI')

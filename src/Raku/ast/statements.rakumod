@@ -29,7 +29,7 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         $stmts
     }
 
-    method propagate-sink(Bool $is-sunk) {
+    method propagate-sink(Bool $is-sunk, Bool :$has-block-parent) {
         # Sink all statements, with the possible exception of the last one (only if
         # we are not sunk).
         my @statements := $!statements;
@@ -39,6 +39,9 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         while $i < $n {
             my $cur-statement := @statements[$i];
             $cur-statement.apply-sink($i == $wanted-statement ?? False !! True);
+            if $has-block-parent && nqp::istype($cur-statement, RakuAST::BlockStatementSensitive) {
+                $cur-statement.mark-block-statement();
+            }
             $i++;
         }
         Nil

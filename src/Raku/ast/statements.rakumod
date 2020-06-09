@@ -3,7 +3,7 @@ class RakuAST::Statement is RakuAST::Node {
 }
 
 # A list of statements, often appearing as the body of a block.
-class RakuAST::StatementList is RakuAST::Node {
+class RakuAST::StatementList is RakuAST::SinkPropagator {
     has List $!statements;
 
     method new(*@statements) {
@@ -27,6 +27,21 @@ class RakuAST::StatementList is RakuAST::Node {
             $stmts.push($_.IMPL-TO-QAST($context));
         }
         $stmts
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        # Sink all statements, with the possible exception of the last one (only if
+        # we are not sunk).
+        my @statements := $!statements;
+        my int $i := 0;
+        my int $n := nqp::elems(@statements);
+        my int $wanted-statement := $is-sunk ?? -1 !! $n - 1;
+        while $i < $n {
+            my $cur-statement := @statements[$i];
+            $cur-statement.apply-sink($i == $wanted-statement ?? False !! True);
+            $i++;
+        }
+        Nil
     }
 
     method visit-children(Code $visitor) {
@@ -73,7 +88,7 @@ class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
 # An expression statement is a statement consisting of the evaluation of an
 # expression. It may have modifiers also, and the expression may consist of a
 # single term.
-class RakuAST::Statement::Expression is RakuAST::Statement {
+class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropagator {
     has RakuAST::Expression $.expression;
 
     method new($expression) {
@@ -86,13 +101,18 @@ class RakuAST::Statement::Expression is RakuAST::Statement {
         $!expression.IMPL-TO-QAST($context)
     }
 
+    method propagate-sink(Bool $is-sunk) {
+        $!expression.apply-sink($is-sunk) if $is-sunk;
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!expression);
     }
 }
 
 # An unless statement control.
-class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLookups {
+class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLookups
+                                 is RakuAST::SinkPropagator {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -117,6 +137,10 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
             $!body.IMPL-TO-QAST($context, :immediate),
             @lookups[0].IMPL-TO-QAST($context)
         )
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!body.body.statement-list.apply-sink($is-sunk);
     }
 
     method visit-children(Code $visitor) {

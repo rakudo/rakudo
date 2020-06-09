@@ -73,8 +73,14 @@ class Raku::Actions is HLL::Actions {
     }
 
     method comp_unit($/) {
+        # Put the body in place.
         my $cu := $*CU;
         $cu.replace-statement-list($<statementlist>.ast);
+
+        # Sort out sinking; the compilation unit is sunk as a whole if we are
+        # not in a REPL or EVAL context.
+        $cu.mark-sunk() unless nqp::isconcrete(%*COMPILING<%?OPTIONS><outer_ctx>);
+        $cu.calculate-sink();
         $cu.resolve-all($*R);
         make $cu;
     }

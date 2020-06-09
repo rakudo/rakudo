@@ -156,7 +156,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.lang_setup>
 
         { $*R.enter-scope($*CU) }
-        <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist', 1)>
+        <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist')>
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         { $*R.leave-scope() }
     }
@@ -183,7 +183,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ## Statements
     ##
 
-    rule statementlist($*statement_level = 0) {
+    rule statementlist {
         :dba('statement list')
         <.ws>
         # Define this scope to be a new language.
@@ -267,7 +267,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | '{YOU_ARE_HERE}' <you_are_here>
         | :dba('block')
           '{'
-          <statementlist(1)>
+          <statementlist>
           '}'
           <?ENDSTMT>
         || <.missing_block()>

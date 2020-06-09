@@ -95,6 +95,9 @@ class Raku::Actions is HLL::Actions {
         if $<EXPR> {
             make self.r('Statement', 'Expression').new($<EXPR>.ast);
         }
+        elsif $<statement_control> {
+            make $<statement_control>.ast;
+        }
         else {
             nqp::die('unimpl statemnet type');
         }
@@ -102,7 +105,9 @@ class Raku::Actions is HLL::Actions {
 
     method pblock($/) {
         my $block := $*BLOCK;
-        $block.replace-signature($<signature>.ast);
+        if $<signature> {
+            $block.replace-signature($<signature>.ast);
+        }
         $block.replace-body($<blockoid>.ast);
         make $block;
     }
@@ -119,6 +124,12 @@ class Raku::Actions is HLL::Actions {
 
     method leave-block-scope($/) {
         $*R.leave-scope();
+    }
+
+    method statement_control:sym<unless>($/) {
+        make self.r('Statement', 'Unless').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
     }
 
     ##

@@ -2667,6 +2667,72 @@ class Rakudo::Iterator {
         MatchCursorLimit.new(regex, string, limit, mover)
     }
 
+    # generate full blown Match objects for given regex, string and limit
+    my class MatchMatch does Iterator {
+        has Mu $!iterator;
+
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! MatchCursorLimit.new(regex, string, limit.Int, 0);
+
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! $cursor.MATCH
+        }
+        method skip-one() {
+            nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            nqp::until(
+              nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+              target.push($cursor.MATCH)
+            );
+        }
+    }
+    method MatchMatch(\regex, \string, \limit) {
+        MatchMatch.new(regex, string, limit)
+    }
+
+    # generate strings for given regex, string and limit
+    my class MatchStr does Iterator {
+        has Mu $!iterator;
+
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! MatchCursorLimit.new(regex, string, limit.Int, 0);
+
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! $cursor.MATCH.Str
+        }
+        method skip-one() {
+            nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            nqp::until(
+              nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+              target.push($cursor.MATCH.Str)
+            );
+        }
+    }
+    method MatchStr(\regex, \string, \limit) {
+        MatchStr.new(regex, string, limit)
+    }
+
     # basic split iterator functionality, with optional limiting
     my class MatchSplit does Iterator {
         has Mu $!string;

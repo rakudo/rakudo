@@ -41,7 +41,7 @@ class RakuAST::Node {
         self.IMPL-CHECK($resolver, True);
     }
 
-    # Perform CHECK-time acitivities on this node.
+    # Perform CHECK-time activities on this node.
     method IMPL-CHECK(RakuAST::Resolver $resolver, Bool $resolve-only) {
         # Perform resolutions.
         if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {

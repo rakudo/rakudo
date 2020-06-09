@@ -81,7 +81,10 @@ class Raku::Actions is HLL::Actions {
         # not in a REPL or EVAL context.
         $cu.mark-sunk() unless nqp::isconcrete(%*COMPILING<%?OPTIONS><outer_ctx>);
         $cu.calculate-sink();
-        $cu.resolve-all($*R);
+
+        # Have check time.
+        $cu.check($*R);
+
         make $cu;
     }
 

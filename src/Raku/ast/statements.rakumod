@@ -143,6 +143,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
     }
 
     method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
         $!body.body.statement-list.apply-sink($is-sunk);
     }
 
@@ -150,4 +151,115 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
         $visitor($!condition);
         $visitor($!body);
     }
+}
+
+# The base for various kinds of loop. Used directly for the loop construct,
+# and subclassed with assorted defaults for while/until/repeat.
+class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
+                               is RakuAST::Sinkable is RakuAST::SinkPropagator
+                               is RakuAST::BlockStatementSensitive {
+    # The setup expression for the loop.
+    has RakuAST::Expression $.setup;
+
+    # The condition of the loop.
+    has RakuAST::Expression $.condition;
+
+    # The body of the loop.
+    has RakuAST::Block $.body;
+
+    # The increment expression for the loop.
+    has RakuAST::Expression $.increment;
+
+    method new(RakuAST::Block :$body!, RakuAST::Expression :$condition,
+               RakuAST::Expression :$setup, RakuAST::Expression :$increment) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Loop, '$!body', $body);
+        nqp::bindattr($obj, RakuAST::Statement::Loop, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::Loop, '$!setup', $setup);
+        nqp::bindattr($obj, RakuAST::Statement::Loop, '$!increment', $increment);
+        $obj
+    }
+
+    # Is the condition negated?
+    method negate() { False }
+
+    # Is the loop always executed once?
+    method repeat() { False }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+        ])
+    }
+
+    method IMPL-DISCARD-RESULT() {
+        self.is-block-statement || self.sunk
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        if self.IMPL-DISCARD-RESULT {
+            # Select correct node type for the loop and produce it.
+            my str $op := self.repeat
+                ?? (self.negate ?? 'repeat_until' !! 'repeat_while')
+                !! (self.negate ?? 'until' !! 'while');
+            my $loop-qast := QAST::Op.new(
+                :$op,
+                $!condition ?? $!condition.IMPL-TO-QAST($context) !! QAST::IVal.new( :value(1) ),
+                $!body.IMPL-TO-QAST($context, :immediate),
+            );
+            if $!increment {
+                $loop-qast.push($!increment.IMPL-TO-QAST($context));
+            }
+
+            # Prepend setup code and evaluate to Nil if not sunk.
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $wrapper := QAST::Stmt.new();
+            if $!setup {
+                $wrapper.push($!setup.IMPL-TO-QAST($context));
+            }
+            $wrapper.push($loop-qast);
+            unless self.sunk {
+                $wrapper.push(@lookups[0].IMPL-TO-QAST($context));
+            }
+
+            $wrapper
+        }
+        else {
+            nqp::die('Compilation of lazy loops NYI')
+        }
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!body.body.statement-list.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+        $!setup.apply-sink(True) if $!setup;
+        $!increment.apply-sink(True) if $!increment;
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!body);
+        $visitor($!setup) if $!setup;
+        $visitor($!increment) if $!increment;
+    }
+}
+
+# A while loop.
+class RakuAST::Statement::Loop::While is RakuAST::Statement::Loop {
+}
+
+# An until loop.
+class RakuAST::Statement::Loop::Until is RakuAST::Statement::Loop {
+    method negate() { True }
+}
+
+# A repeat while loop.
+class RakuAST::Statement::Loop::RepeatWhile is RakuAST::Statement::Loop {
+    method repeat() { True }
+}
+
+# A repeat until loop.
+class RakuAST::Statement::Loop::RepeatUntil is RakuAST::Statement::Loop {
+    method negate() { True }
+    method repeat() { True }
 }

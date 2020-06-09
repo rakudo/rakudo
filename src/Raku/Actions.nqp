@@ -317,7 +317,15 @@ class Raku::Actions is HLL::Actions {
         }
     }
 
-    method quote:sym<apos>($/) { make $<nibble>.ast; }
+    method quote:sym<apos>($/)  { make $<nibble>.ast; }
+    method quote:sym<sapos>($/) { make $<nibble>.ast; }
+    method quote:sym<lapos>($/) { make $<nibble>.ast; }
+    method quote:sym<hapos>($/) { make $<nibble>.ast; }
+    method quote:sym<dblq>($/)  { make $<nibble>.ast; }
+    method quote:sym<sdblq>($/) { make $<nibble>.ast; }
+    method quote:sym<ldblq>($/) { make $<nibble>.ast; }
+    method quote:sym<hdblq>($/) { make $<nibble>.ast; }
+    method quote:sym<crnr>($/)  { make $<nibble>.ast; }
 
     ##
     ## Signatures
@@ -375,6 +383,43 @@ class Raku::QActions is HLL::Actions {
         nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}"))
     }
 
+    # This overrides NQP during the deprecation period for Unicode 1 names not covered by Alias Names
+    method charname-panic($/) { $/.panic("Unrecognized character name [$/]") }
+
+    method charname($/) {
+        my $codepoint := $<integer>
+                         ?? nqp::chr($<integer>.made)
+                         !! nqp::strfromname(~$/);
+        $codepoint := self.charname-notfound($/) if $codepoint eq '';
+        make $codepoint;
+    }
+
+    method charname-notfound($/) {
+        my @worry-text := ( "LINE FEED, NEW LINE, END OF LINE, LF, NL or EOL",
+                            "FORM FEED or FF",
+                            "CARRIAGE RETURN or CR",
+                            "NEXT LINE or NEL" );
+        my $text := "Deprecated character name [%s] in lookup of Unicode character by name.\n" ~
+                    "Unicode 1 names are deprecated.\nPlease use %s";
+        if ~$/ eq "LINE FEED (LF)" {
+            $/.worry(nqp::sprintf($text, (~$/, @worry-text[0]) ) );
+            return nqp::strfromname("LINE FEED");
+        }
+        if ~$/ eq "FORM FEED (FF)" {
+            $/.worry(nqp::sprintf($text, (~$/, @worry-text[1]) ) );
+            return nqp::strfromname("FORM FEED");
+        }
+        if ~$/ eq "CARRIAGE RETURN (CR)" {
+            $/.worry(nqp::sprintf($text, (~$/, @worry-text[2]) ) );
+            return nqp::strfromname("CARRIAGE RETURN");
+        }
+        if ~$/ eq "NEXT LINE (NEL)" {
+            $/.worry(nqp::sprintf($text, (~$/, @worry-text[3]) ) );
+            return nqp::strfromname("NEXT LINE");
+        }
+        self.charname-panic($/);
+    }
+
     method nibbler($/) {
         my @segments;
         my $lastlit := '';
@@ -399,4 +444,36 @@ class Raku::QActions is HLL::Actions {
 
         make self.r('QuotedString').new(|@segments);
     }
+
+    method escape:sym<\\>($/) { make $<item>.ast; }
+    method backslash:sym<qq>($/) { make $<quote>.ast; }
+    method backslash:sym<\\>($/) { make $<text>.Str; }
+    method backslash:delim ($/) { make $<text>.Str; }
+    method backslash:sym<miscq>($/) { make '\\' ~ ~$/; }
+    method backslash:sym<misc>($/) { make ~$/; }
+
+    method backslash:sym<a>($/) { make nqp::chr(7) }
+    method backslash:sym<b>($/) { make "\b" }
+    method backslash:sym<c>($/) { make $<charspec>.ast }
+    method backslash:sym<e>($/) { make "\c[27]" }
+    method backslash:sym<f>($/) { make "\c[12]" }
+    method backslash:sym<n>($/) {
+        # TODO heredoc special handling, $?NL
+        make "\n";
+    }
+    method backslash:sym<o>($/) { make self.ints_to_string( $<octint> ?? $<octint> !! $<octints><octint> ) }
+    method backslash:sym<r>($/) {
+        # TODO heredoc special handling
+        make "\r";
+    }
+    method backslash:sym<rn>($/) {
+        # TODO heredoc special handling
+        make "\r\n";
+    }
+    method backslash:sym<t>($/) {
+        # TODO heredoc special handling
+        make "\t";
+    }
+    method backslash:sym<x>($/) { make self.ints_to_string( $<hexint> ?? $<hexint> !! $<hexints><hexint> ) }
+    method backslash:sym<0>($/) { make "\c[0]" }
 }

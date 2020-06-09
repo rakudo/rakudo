@@ -715,6 +715,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto token quote { <...> }
     token quote:sym<apos>  { :dba('single quotes') "'" ~ "'" <nibble(self.quote_lang(self.slang_grammar('Quote'), "'", "'", ['q']))> }
+    token quote:sym<sapos> { :dba('curly single quotes') "‘" ~ "’" <nibble(self.quote_lang(self.slang_grammar('Quote'), "‘", "’", ['q']))> }
+    token quote:sym<lapos> { :dba('low curly single quotes') "‚" ~ <[’‘]> <nibble(self.quote_lang(self.slang_grammar('Quote'), "‚", ["’","‘"], ['q']))> }
+    token quote:sym<hapos> { :dba('high curly single quotes') "’" ~ <[’‘]> <nibble(self.quote_lang(self.slang_grammar('Quote'), "’", ["’","‘"], ['q']))> }
+    token quote:sym<dblq>  { :dba('double quotes') '"' ~ '"' <nibble(self.quote_lang(self.slang_grammar('Quote'), '"', '"', ['qq']))> }
+    token quote:sym<sdblq> { :dba('curly double quotes') '“' ~ '”' <nibble(self.quote_lang(self.slang_grammar('Quote'), '“', '”', ['qq']))> }
+    token quote:sym<ldblq> { :dba('low curly double quotes') '„' ~ <[”“]> <nibble(self.quote_lang(self.slang_grammar('Quote'), '„', ['”','“'], ['qq']))> }
+    token quote:sym<hdblq> { :dba('high curly double quotes') '”' ~ <[”“]> <nibble(self.quote_lang(self.slang_grammar('Quote'), '”', ['”','“'], ['qq']))> }
+    token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote_lang(self.slang_grammar('Quote'), '｢', '｣'))> }
 
     ##
     ## Signatures
@@ -925,6 +933,42 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     proto token escape {*}
     proto token backslash {*}
 
+    role b1 {
+        token escape:sym<\\> { <sym> {} <item=.backslash> }
+        token backslash:sym<qq> { <?[q]> <quote=.LANG('MAIN','quote')> }
+        token backslash:sym<\\> { <text=.sym> }
+        token backslash:delim { <text=.starter> | <text=.stopper> }
+        token backslash:sym<a> { <sym> }
+        token backslash:sym<b> { <sym> }
+        token backslash:sym<c> { <sym> <charspec> }
+        token backslash:sym<e> { <sym> }
+        token backslash:sym<f> { <sym> }
+        token backslash:sym<N> { <?before 'N{'<.[A..Z]>> <.obs('\N{CHARNAME}','\c[CHARNAME]')>  }
+        token backslash:sym<n> { <sym> }
+        token backslash:sym<o> { :dba('octal character') <sym> [ <octint> | '[' ~ ']' <octints> | '{' <.obsbrace> ] }
+        token backslash:sym<r> { <sym> }
+        token backslash:sym<rn> { 'r\n' }
+        token backslash:sym<t> { <sym> }
+        token backslash:sym<x> { :dba('hex character') <sym> [ <hexint> | '[' ~ ']' <hexints> | '{' <.obsbrace> ] }
+        token backslash:sym<0> { <sym> }
+        token backslash:sym<1> {
+            <[1..9]>\d* {
+              self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+                :sequence(~$/), :suggestion('$' ~ ($/ - 1))
+            }
+        }
+        token backslash:sym<unrec> {
+          {} (\w) {
+            self.typed_panic: 'X::Backslash::UnrecognizedSequence',
+              :sequence($/[0].Str)
+          }
+        }
+        token backslash:sym<misc> { \W }
+    }
+
+    role b0 {
+        token escape:sym<\\> { <!> }
+    }
     role q {
         token starter { \' }
         token stopper { \' }
@@ -941,6 +985,14 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         method tweak_qq($v) { self.panic("Too late for :qq") }
     }
 
+    role qq does b1 {
+        # TODO does c1 does s1 does a1 does h1 does f1 {
+        token starter { \" }
+        token stopper { \" }
+        method tweak_q($v) { self.panic("Too late for :q") }
+        method tweak_qq($v) { self.panic("Too late for :qq") }
+    }
+
     method truly($bool, $opt) {
         self.sorry("Cannot negate $opt adverb") unless $bool;
         self;
@@ -953,6 +1005,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     }
 
     method tweak_q($v)          { self.truly($v, ':q'); self.apply_tweak(Raku::QGrammar::q) }
+    method tweak_qq($v)         { self.truly($v, ':qq'); self.apply_tweak(Raku::QGrammar::qq); }
 
     token nibbler {
         :my @*nibbles;

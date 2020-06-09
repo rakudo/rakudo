@@ -96,7 +96,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
-    method new(RakuAST::Expression :$condition, RakuAST::Block :$body) {
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Unless, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Unless, '$!body', $body);

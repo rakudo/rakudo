@@ -8,7 +8,7 @@ class RakuAST::SinkBoundary is RakuAST::Node {
     # Calculates the sink for this bounded unit.
     method calculate-sink() {
         unless $!sink-calculated {
-            self.get-boundary-sink-propagator().propagate-sink(self.is-boundary-sunk());
+            self.get-boundary-sink-propagator().propagate-sink(self.is-boundary-sunk(), :has-block-parent);
             nqp::bindattr_i(self, RakuAST::SinkBoundary, '$!sink-calculated', 1);
         }
         Nil
@@ -53,4 +53,17 @@ class RakuAST::Sinkable is RakuAST::Node {
     }
 
     method sunk() { $!sunk ?? True !! False }
+}
+
+# Marks nodes that want to know if they are block-level statements or not.
+# This is used for loops, which at statement level produce Nil even if not
+# sunk.
+class RakuAST::BlockStatementSensitive is RakuAST::Node {
+    has int $!block-statement;
+
+    method mark-block-statement() {
+        nqp::bindattr_i(self, RakuAST::BlockStatementSensitive, '$!block-statement', 1);
+    }
+
+    method is-block-statement() { $!block-statement ?? True !! False }
 }

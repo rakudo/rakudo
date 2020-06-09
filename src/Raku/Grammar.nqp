@@ -210,7 +210,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         [
         #| <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
-        #| <statement_control>
+        | <statement_control>
         | <EXPR>
         | <?[;]>
         #| <?stopper>
@@ -234,14 +234,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token pblock($*IMPLICIT = $PBLOCK_NO_TOPIC) {
         :dba('block or pointy block')
+        :my $*BLOCK;
         [
         | <lambda>
           :my $*GOAL := '{';
-          :my $*BLOCK;
           <.enter-block-scope('PointyBlock')>
           <signature>
           <blockoid>
           <.leave-block-scope>
+        | <?[{]>
+          <.enter-block-scope('Block')>
+          <blockoid>
+          <.leave-block-scope>
+        || <.missing_block()>
         ]
     }
 
@@ -259,6 +264,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token enter-block-scope($*SCOPE-KIND) { <?> }
     token leave-block-scope() { <?> }
+
+    proto rule statement_control { <...> }
+
+    rule statement_control:sym<unless> {
+        $<sym>='unless'<.kok>
+        :my $*GOAL := '{';
+        <EXPR>
+        <pblock($PBLOCK_NO_TOPIC)>
+        [ <!before [els[e|if]|orwith]» >
+            || $<wrong-keyword>=[els[e|if]|orwith]» {}
+                <.typed_panic: 'X::Syntax::UnlessElse',
+                    keyword => ~$<wrong-keyword>,
+                >
+        ]
+    }
 
     ##
     ## Expression parsing and operators

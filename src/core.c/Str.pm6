@@ -1130,18 +1130,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method !match-iterator(&regex, &kind, \limit) {
-        my \iterator := POST-ITERATOR.new(
-          regex($cursor-init(Match,self,:0c)),CURSOR-GLOBAL,&kind
-        );
-        nqp::istype(limit,Whatever) || limit == Inf
-          ?? iterator
-          !! Rakudo::Iterator.NextNValues(iterator, limit.Int)
+    multi method comb(Str:D: Regex:D $regex, $limit = *, :$match! --> Seq:D) {
+        Seq.new: $match
+          ?? Rakudo::Iterator.MatchMatch: $regex, self, $limit
+          !! Rakudo::Iterator.MatchStr:   $regex, self, $limit
     }
-
-    multi method comb(Str:D: Regex:D $regex, $limit = *, :$match --> Seq:D) {
-        Seq.new: self!match-iterator:
-          $regex, $match ?? &POST-MATCH !! &POST-STR, $limit
+    multi method comb(Str:D: Regex:D $regex --> Seq:D) {
+        Seq.new: Rakudo::Iterator.MatchStr: $regex, self, *
     }
 
     # Look for short/long named parameter and remove it from the hash

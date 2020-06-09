@@ -18,9 +18,9 @@ introspect and fit in the type system like normal Raku objects.
 The overall approach to RakuAST is to:
 
 1. Flesh out a decent amount of the object model and test-cover it via. `EVAL`
-   of the ASTs. (This is where we are right now.)
+   of the ASTs.
 2. Then see about having alternative actions/world that, if an env var is set,
-   produce RakuAST and compile from that.
+   produce RakuAST and compile from that. (This is where we are right now.)
 3. Gradually work our way through passing the Rakudo tests with that env var set.
 4. And then the spectests.
 5. And then make it the default (hopefully this means we will have few problems
@@ -47,8 +47,6 @@ quite a few other things to do that will be helpful. Specifically:
 * Get the AST compiler to support roles, and gradually transition the things
   that should be roles to actually be roles. (Difficulty: maybe headachey,
   but you'll live)
-* Make sure the AST compiler generates accessors correctly for natively typed
-  attributes (it surely doesn't yet). (Difficulty: quite easy.)
 * Make the AST compiler support return types with `-->` and add them to the
   signature that is generated. Make accessors get these automatically based
   on the declared type. (Difficulty: not so bad.)

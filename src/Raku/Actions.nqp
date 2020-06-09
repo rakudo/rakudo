@@ -1,20 +1,21 @@
 use NQPP6QRegex;
 use NQPP5QRegex;
 
-class Raku::Actions is HLL::Actions {
-    # The AST nodes come from the Raku setting bootstrap, thus we need to load
-    # them from there.
-    my $ast_root;
-    sub ensure_raku_ast() {
-        unless nqp::isconcrete($ast_root) {
-            my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
-            my $unit := $loader.load_module('Perl6::BOOTSTRAP::v6c', {}, GLOBALish);
-            my $export := $unit<EXPORT>.WHO<DEFAULT>.WHO;
-            $ast_root := nqp::existskey($export, 'RakuAST')
-                    ?? nqp::atkey($export, 'RakuAST').WHO
-                    !! nqp::die('Cannot find RakuAST nodes');
-        }
+# The AST nodes come from the Raku setting bootstrap, thus we need to load
+# them from there.
+my $ast_root;
+sub ensure_raku_ast() {
+    unless nqp::isconcrete($ast_root) {
+        my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
+        my $unit := $loader.load_module('Perl6::BOOTSTRAP::v6c', {}, GLOBALish);
+        my $export := $unit<EXPORT>.WHO<DEFAULT>.WHO;
+        $ast_root := nqp::existskey($export, 'RakuAST')
+                ?? nqp::atkey($export, 'RakuAST').WHO
+                !! nqp::die('Cannot find RakuAST nodes');
     }
+}
+
+class Raku::Actions is HLL::Actions {
     proto method r(*@parts) {*}
     multi method r($t) {
         nqp::ifnull(nqp::atkey($ast_root, $t), nqp::die("No such node RakuAST::{$t}"))
@@ -316,6 +317,8 @@ class Raku::Actions is HLL::Actions {
         }
     }
 
+    method quote:sym<apos>($/) { make $<nibble>.ast; }
+
     ##
     ## Signatures
     ##
@@ -358,5 +361,42 @@ class Raku::Actions is HLL::Actions {
         else {
             make self.r('ArgList').new();
         }
+    }
+}
+
+class Raku::QActions is HLL::Actions {
+    proto method r(*@parts) {*}
+    multi method r($t) {
+        nqp::ifnull(nqp::atkey($ast_root, $t), nqp::die("No such node RakuAST::{$t}"))
+    }
+    multi method r($t1, $t2) {
+        my $res := nqp::atkey($ast_root, $t1);
+        $res := nqp::atkey($res.WHO, $t2) unless nqp::isnull($res);
+        nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}"))
+    }
+
+    method nibbler($/) {
+        my @segments;
+        my $lastlit := '';
+
+        for @*nibbles {
+            if nqp::istype($_, NQPMatch) {
+                if nqp::isstr($_.ast) {
+                    $lastlit := $lastlit ~ $_.ast;
+                }
+                else {
+                    nqp::die('complex quoted strings NYI');
+                }
+            }
+            else {
+                $lastlit := $lastlit ~ $_;
+            }
+        }
+
+        if $lastlit ne '' || !@segments {
+            @segments.push: self.r('StrLiteral').new($*LITERALS.intern-str($lastlit));
+        }
+
+        make self.r('QuotedString').new(|@segments);
     }
 }

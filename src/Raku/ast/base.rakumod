@@ -51,7 +51,7 @@ class RakuAST::Node {
             self.resolve-implicit-lookups-with($resolver);
         }
 
-        # Unless in resolve-only mode, do other check-time acitivities.
+        # Unless in resolve-only mode, do other check-time activities.
         unless $resolve-only {
             if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
                 self.calculate-sink();

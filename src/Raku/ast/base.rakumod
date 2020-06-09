@@ -72,6 +72,16 @@ class RakuAST::Node {
                 !! $list.FLATTENABLE_LIST
         }
     }
+
+    method dump(int $indent?) {
+        my str $prefix := nqp::x(' ', $indent);
+        my $name := nqp::substr(self.HOW.name(self), nqp::chars('RakuAST::'));
+        my $dump := "$prefix$name\n";
+        self.visit-children(-> $child {
+            $dump := $dump ~ $child.dump($indent + 2);
+        });
+        $dump
+    }
 }
 
 # Anything with a known compile time value does RakuAST::CompileTimeValue.

@@ -103,8 +103,13 @@ class RakuAST::Node {
     method dump(int $indent?) {
         my str $prefix := nqp::x(' ', $indent);
         my $name := nqp::substr(self.HOW.name(self), nqp::chars('RakuAST::'));
-        my $sunk := nqp::istype(self, RakuAST::Sinkable) && self.sunk ?? ' ⚓' !! '';
-        my $dump := "$prefix$name$sunk\n";
+
+        my @markers;
+        @markers.push('⚓') if nqp::istype(self, RakuAST::Sinkable) && self.sunk;
+        @markers.push('▪') if nqp::istype(self, RakuAST::BlockStatementSensitive) && self.is-block-statement;
+        my $markers := @markers ?? ' ' ~ nqp::join('', @markers) !! '';
+
+        my $dump := "$prefix$name$markers\n";
         self.visit-children(-> $child {
             $dump := $dump ~ $child.dump($indent + 2);
         });

@@ -1,9 +1,10 @@
 # A compilation unit is the main lexical scope of a program.
-class RakuAST::CompUnit is RakuAST::LexicalScope {
+class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary {
     has RakuAST::StatementList $.statement-list;
     has Str $.comp-unit-name;
     has Str $.setting-name;
     has Mu $!sc;
+    has int $!is-sunk;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
             Str :$setting-name) {
@@ -16,9 +17,25 @@ class RakuAST::CompUnit is RakuAST::LexicalScope {
         $obj
     }
 
+    # Replace the statement list of the compilation unit.
     method replace-statement-list(RakuAST::StatementList $statement-list) {
         nqp::bindattr(self, RakuAST::CompUnit, '$!statement-list', $statement-list);
         Nil
+    }
+
+    # Indicate that this compilation unit is sunk as a whole (that, is, the result of
+    # its last statement is unused).
+    method mark-sunk() {
+        nqp::bindattr_i(self, RakuAST::CompUnit, '$!is-sunk', 1);
+        Nil
+    }
+
+    method is-boundary-sunk() {
+        $!is-sunk ?? True !! False
+    }
+
+    method get-boundary-sink-propagator() {
+        $!statement-list
     }
 
     method IMPL-TO-QAST-COMP-UNIT(*%options) {

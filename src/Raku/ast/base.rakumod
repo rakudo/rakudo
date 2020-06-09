@@ -14,6 +14,27 @@ class RakuAST::Node {
         Nil
     }
 
+    # Recursively applies sinking up until a sink boundary.
+    method apply-sink(Bool $is-sunk) {
+        # If we are sunk and this is a sinkable node, apply that.
+        if $is-sunk && nqp::istype(self, RakuAST::Sinkable) {
+            self.mark-sunk();
+        }
+
+        # If this node knows how to propagate sinks itself, ask it to do so.
+        if nqp::istype(self, RakuAST::SinkPropagator) {
+            self.propagate-sink($is-sunk);
+        }
+
+        # Otherwise, we assume it's a wanted child, and just walk its children,
+        # unless it is a sink boundary.
+        elsif !nqp::istype(self, RakuAST::SinkBoundary) {
+            self.visit-children: -> $child {
+                $child.apply-sink(False);
+            }
+        }
+    }
+
     # Resolves all nodes beneath this one, recursively, using the specified
     # resolver.
     method resolve-all(RakuAST::Resolver $resolver) {
@@ -55,9 +76,15 @@ class RakuAST::Node {
     }
 
     method IMPL-WRAP-LIST(Mu $vm-array) {
-        my $result := nqp::create(List);
-        nqp::bindattr($result, List, '$!reified', $vm-array);
-        $result
+        if nqp::istype($vm-array, List) {
+            # It already is a list
+            $vm-array
+        }
+        else {
+            my $result := nqp::create(List);
+            nqp::bindattr($result, List, '$!reified', $vm-array);
+            $result
+        }
     }
 
     method IMPL-UNWRAP-LIST(Mu $list) {
@@ -76,7 +103,8 @@ class RakuAST::Node {
     method dump(int $indent?) {
         my str $prefix := nqp::x(' ', $indent);
         my $name := nqp::substr(self.HOW.name(self), nqp::chars('RakuAST::'));
-        my $dump := "$prefix$name\n";
+        my $sunk := nqp::istype(self, RakuAST::Sinkable) && self.sunk ?? ' ⚓' !! '';
+        my $dump := "$prefix$name$sunk\n";
         self.visit-children(-> $child {
             $dump := $dump ~ $child.dump($indent + 2);
         });

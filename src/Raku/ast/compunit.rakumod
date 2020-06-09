@@ -17,6 +17,14 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary {
         $obj
     }
 
+    # Perform all CHECK-time activities on the compilation unit. This includes
+    # doing any symbol resolution, any leftover sink marking, and performing
+    # any CHECK-time error checking. This may also produce information useful
+    # during optimization, though will not do any transforms in and of itself.
+    method check(RakuAST::Resolver $resolver) {
+        self.IMPL-CHECK($resolver, False);
+    }
+
     # Replace the statement list of the compilation unit.
     method replace-statement-list(RakuAST::StatementList $statement-list) {
         nqp::bindattr(self, RakuAST::CompUnit, '$!statement-list', $statement-list);

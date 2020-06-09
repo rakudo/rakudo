@@ -38,16 +38,32 @@ class RakuAST::Node {
     # Resolves all nodes beneath this one, recursively, using the specified
     # resolver.
     method resolve-all(RakuAST::Resolver $resolver) {
+        self.IMPL-CHECK($resolver, True);
+    }
+
+    # Perform CHECK-time acitivities on this node.
+    method IMPL-CHECK(RakuAST::Resolver $resolver, Bool $resolve-only) {
+        # Perform resolutions.
         if nqp::istype(self, RakuAST::Lookup) && !self.is-resolved {
             self.resolve-with($resolver);
         }
         if nqp::istype(self, RakuAST::ImplicitLookups) {
             self.resolve-implicit-lookups-with($resolver);
         }
+
+        # Unless in resolve-only mode, do other check-time acitivities.
+        unless $resolve-only {
+            if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
+                self.calculate-sink();
+            }
+        }
+
+        # Visit children.
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         $resolver.push-scope(self) if $is-scope;
         self.visit-children(-> $child { $child.resolve-all($resolver) });
         $resolver.pop-scope() if $is-scope;
+
         Nil
     }
 

@@ -658,6 +658,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #        }
     }
 
+    token term:sym<name> {
+        <longname>
+        # TODO is it a type or constant?
+        [ \\ <?before '('> ]? <args(1)>
+    }
+
     token variable {
         :my $*IN_META := '';
         [

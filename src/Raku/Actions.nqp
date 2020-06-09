@@ -259,6 +259,12 @@ class Raku::Actions is HLL::Actions {
             args => $<args>.ast; 
     }
 
+    method term:sym<name>($/) {
+        make self.r('Call', 'Name').new:
+            name => $<longname>.ast,
+            args => $<args>.ast;
+    }
+
     method variable($/) {
         my str $name := $<sigil> ~ $<desigilname>;
         my $resolution := $*R.resolve-lexical($name);
@@ -422,6 +428,20 @@ class Raku::Actions is HLL::Actions {
         else {
             make self.r('ArgList').new();
         }
+    }
+
+    ##
+    ## Lexer stuff
+    ##
+
+    method name($/) {
+        nqp::die('multi-part names NYI') if $<morename>;
+        make self.r('Name').from-identifier(~$<identifier>);
+    }
+
+    method longname($/) {
+        # TODO add colonpairs
+        make $<name>.ast;
     }
 }
 

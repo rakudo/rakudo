@@ -92,8 +92,14 @@ class RakuAST::ArgList is RakuAST::Node {
 
 # Base role for all kinds of calls (named sub calls, calling some term, and
 # method calls).
-class RakuAST::Call is RakuAST::Node {
+class RakuAST::Call is RakuAST::Sinkable {
     has RakuAST::ArgList $.args;
+
+    method IMPL-APPLY-SINK(Mu $qast) {
+        self.sunk
+            ?? QAST::Op.new( :op('p6sink'), $qast )
+            !! $qast
+    }
 }
 
 # A call to a named sub.
@@ -131,7 +137,7 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
             nqp::die('compiling complex call names NYI')
         }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        $call
+        self.IMPL-APPLY-SINK($call)
     }
 }
 
@@ -146,7 +152,7 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $callee-qast) {
         my $call := QAST::Op.new( :op('call'), $callee-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        $call
+        self.IMPL-APPLY-SINK($call)
     }
 }
 
@@ -166,7 +172,7 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
             my $call := QAST::Op.new( :op('callmethod'), :$name, $invocant-qast );
             self.args.IMPL-ADD-QAST-ARGS($context, $call);
-            $call
+            self.IMPL-APPLY-SINK($call)
         }
         else {
             nqp::die('Qualified method calls NYI');

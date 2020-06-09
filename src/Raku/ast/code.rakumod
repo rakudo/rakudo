@@ -133,7 +133,7 @@ class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term is RakuAST:
 }
 
 # Done by all kinds of Routine.
-class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term {
+class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::SinkBoundary {
     has Bool $.is-multi;
     has Bool $.is-proto;
     has RakuAST::Signature $.signature;

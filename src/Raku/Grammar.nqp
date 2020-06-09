@@ -250,6 +250,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    token block($*IMPLICIT = $PBLOCK_NO_TOPIC) {
+        :dba('block or pointy block')
+        :my $*BLOCK;
+        [
+        || <?[{]>
+           <.enter-block-scope('Block')>
+           <blockoid>
+           <.leave-block-scope>
+        || <.missing_block()>
+        ]
+    }
+
     token blockoid {
         [
         | '{YOU_ARE_HERE}' <you_are_here>
@@ -278,6 +290,52 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                     keyword => ~$<wrong-keyword>,
                 >
         ]
+    }
+
+    rule statement_control:sym<while> {
+        $<sym>=[while|until]<.kok> {}
+        :my $*GOAL := '{';
+        <EXPR>
+        <pblock($PBLOCK_NO_TOPIC)>
+    }
+
+    rule statement_control:sym<repeat> {
+        <sym><.kok> {}
+        [
+        | $<wu>=[while|until]<.kok>
+          :my $*GOAL := '{';
+          <EXPR>
+          <pblock($PBLOCK_NO_TOPIC)>
+        | <pblock($PBLOCK_NO_TOPIC)>
+          [$<wu>=['while'|'until']<.kok> || <.missing('"while" or "until"')>]
+          <EXPR>
+        ]
+    }
+
+    token statement_control:sym<loop> {
+        <sym><.kok>
+        :s''
+        [
+          :my $exprs := 0;
+          '('
+          [     <e1=.EXPR>? {$exprs := 1 if $<e1>}
+          [ ';' <e2=.EXPR>? {$exprs := 2}
+          [ ';' <e3=.EXPR>? {$exprs := 3}
+          ]? ]? ]? # succeed anyway, this will leave us with a nice cursor
+          [
+          || <?{ $exprs == 3 }> ')'
+          || <?before ')'>
+             [
+             || <?{ $exprs == 0 }>
+                <.malformed("loop spec (expected 3 semicolon-separated expressions)")>
+             || <.malformed("loop spec (expected 3 semicolon-separated expressions but got {$exprs})")>
+             ]
+          || <?before ‘;’>
+             <.malformed('loop spec (expected 3 semicolon-separated expressions but got more)')>
+          || <.malformed('loop spec')>
+          ]
+        ]?
+        <block>
     }
 
     ##

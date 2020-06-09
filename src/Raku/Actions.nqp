@@ -25,6 +25,12 @@ class Raku::Actions is HLL::Actions {
         $res := nqp::atkey($res.WHO, $t2) unless nqp::isnull($res);
         nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}"))
     }
+    multi method r($t1, $t2, $t3) {
+        my $res := nqp::atkey($ast_root, $t1);
+        $res := nqp::atkey($res.WHO, $t2) unless nqp::isnull($res);
+        $res := nqp::atkey($res.WHO, $t3) unless nqp::isnull($res);
+        nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}::{$t3}"))
+    }
 
     ##
     ## Compilation unit, language version and other entry point bits
@@ -121,6 +127,12 @@ class Raku::Actions is HLL::Actions {
         make $block;
     }
 
+    method block($/) {
+        my $block := $*BLOCK;
+        $block.replace-body($<blockoid>.ast);
+        make $block;
+    }
+
     method blockoid($/) {
         make self.r('Blockoid').new($<statementlist>.ast);
     }
@@ -139,6 +151,27 @@ class Raku::Actions is HLL::Actions {
         make self.r('Statement', 'Unless').new:
             condition => $<EXPR>.ast,
             body => $<pblock>.ast;
+    }
+
+    method statement_control:sym<while>($/) {
+        make self.r('Statement', 'Loop', $<sym> eq 'while' ?? 'While' !! 'Until').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement_control:sym<repeat>($/) {
+        make self.r('Statement', 'Loop', $<wu> eq 'while' ?? 'RepeatWhile' !! 'RepeatUntil').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement_control:sym<loop>($/) {
+        my %parts;
+        %parts<setup> := $<e1>.ast if $<e1>;
+        %parts<condition> := $<e2>.ast if $<e2>;
+        %parts<increment> := $<e3>.ast if $<e3>;
+        %parts<body> := $<block>.ast;
+        make self.r('Statement', 'Loop').new(|%parts);
     }
 
     ##

@@ -198,6 +198,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!!{ nqp::rebless($/, self.WHAT); 1 }>
     }
 
+    rule semilist {
+        :dba('list composer')
+        ''
+        [
+        | <?before <.[)\]}]> >
+        | [<statement><.eat_terminator> ]*
+        ]
+    }
+
     token statement($*LABEL = '') {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
@@ -578,6 +587,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token infix:sym<,>    {
         <.unsp>? <sym> <O(|%comma, :fiddly(0))>
+    }
+
+    token circumfix:sym<( )> {
+        :dba('parenthesized expression')
+        '(' ~ ')' <semilist>
+    }
+
+    token circumfix:sym<[ ]> {
+        :dba('array composer')
+        '[' ~ ']' <semilist>
     }
 
     ##

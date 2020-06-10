@@ -26,73 +26,75 @@ variables:
     $devShell    = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -latest -find **\Microsoft.VisualStudio.DevShell.dll
     Import-Module $devShell
     Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation -DevCmdArguments "-arch=amd64"
-  RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-$(Build.Repository.Uri)"
+  RAKUDO_CHECKOUT_TYPE: "rev-$(Build.SourceVersion)-selfrepo"
   NQP_CHECKOUT_TYPE: downstream
   MOAR_CHECKOUT_TYPE: downstream
-  TRIGGERING_REPO: rakudo
-
-
 
 stages:
 - stage: Test
   condition: ne( variables['BUILD_PRECOMP_RELEASE'], 'yes' )
   jobs:
-    - job: Test
+    # Keep the job and matrix entry names as short as possible as the webinterface
+    # leaves little space for the name.
+    - job: T
       strategy:
        matrix:
-         Windows_MoarVM:
-          IMAGE_NAME: 'windows-2019'
-          RAKUDO_OPTIONS: ''
-          NQP_OPTIONS: '--backends=moar'
-          MOAR_OPTIONS: ''
-         Windows_JVM:
-          IMAGE_NAME: 'windows-2019'
-          BACKEND: 'JVM'
-          RAKUDO_OPTIONS: ''
-          NQP_OPTIONS: '--backends=jvm'
-          MOAR_OPTIONS: ''
-         Windows_MoarVM_relocatable:
-          IMAGE_NAME: 'windows-2019'
-          RELOCATABLE: 'yes'
-          RAKUDO_OPTIONS: '--relocatable'
-          NQP_OPTIONS: '--backends=moar --relocatable'
-          MOAR_OPTIONS: '--relocatable'
+         Win_MVM:
+           IMAGE_NAME: 'windows-2019'
+           RAKUDO_OPTIONS: ''
+           NQP_OPTIONS: '--backends=moar'
+           MOAR_OPTIONS: ''
+         Win_JVM:
+           IMAGE_NAME: 'windows-2019'
+           BACKEND: 'JVM'
+           MOAR_CHECKOUT_TYPE: 'none'
+           RAKUDO_OPTIONS: ''
+           NQP_OPTIONS: '--backends=jvm'
+           MOAR_OPTIONS: ''
+         Win_MVM_relocatable:
+           IMAGE_NAME: 'windows-2019'
+           RELOCATABLE: 'yes'
+           RAKUDO_OPTIONS: '--relocatable'
+           NQP_OPTIONS: '--backends=moar --relocatable'
+           MOAR_OPTIONS: '--relocatable'
 
-         MacOS_MoarVM:
-          IMAGE_NAME: 'macOS-10.15'
-          RAKUDO_OPTIONS: ''
-          NQP_OPTIONS: '--backends=moar'
-          MOAR_OPTIONS: ''
-         MacOS_JVM:
-          IMAGE_NAME: 'macOS-10.15'
-          BACKEND: 'JVM'
-          RAKUDO_OPTIONS: ''
-          NQP_OPTIONS: '--backends=jvm'
-          MOAR_OPTIONS: ''
-         MacOS_MoarVM_relocatable:
-          IMAGE_NAME: 'macOS-10.15'
-          RELOCATABLE: 'yes'
-          RAKUDO_OPTIONS: '--relocatable'
-          NQP_OPTIONS: '--backends=moar --relocatable'
-          MOAR_OPTIONS: '--relocatable'
+         Mac_MVM:
+           IMAGE_NAME: 'macOS-10.15'
+           RAKUDO_OPTIONS: ''
+           NQP_OPTIONS: '--backends=moar'
+           MOAR_OPTIONS: ''
+         Mac_JVM:
+           IMAGE_NAME: 'macOS-10.15'
+           BACKEND: 'JVM'
+           MOAR_CHECKOUT_TYPE: 'none'
+           RAKUDO_OPTIONS: ''
+           NQP_OPTIONS: '--backends=jvm'
+           MOAR_OPTIONS: ''
+         Mac_MVM_reloc:
+           IMAGE_NAME: 'macOS-10.15'
+           RELOCATABLE: 'yes'
+           RAKUDO_OPTIONS: '--relocatable'
+           NQP_OPTIONS: '--backends=moar --relocatable'
+           MOAR_OPTIONS: '--relocatable'
 
-         Linux_MoarVM:
-          IMAGE_NAME: 'ubuntu-18.04'
-          RAKUDO_OPTIONS: ''
-          NQP_OPTIONS: '--backends=moar'
-          MOAR_OPTIONS: ''
-         Linux_JVM:
-          IMAGE_NAME: 'ubuntu-18.04'
-          BACKEND: 'JVM'
-          RAKUDO_OPTIONS: ''
-          NQP_OPTIONS: '--backends=jvm'
-          MOAR_OPTIONS: ''
-         Linux_MoarVM_relocatable:
-          IMAGE_NAME: 'ubuntu-18.04'
-          RELOCATABLE: 'yes'
-          RAKUDO_OPTIONS: '--relocatable'
-          NQP_OPTIONS: '--backends=moar --relocatable'
-          MOAR_OPTIONS: '--relocatable'
+         Lin_MVM:
+           IMAGE_NAME: 'ubuntu-18.04'
+           RAKUDO_OPTIONS: ''
+           NQP_OPTIONS: '--backends=moar'
+           MOAR_OPTIONS: ''
+         Lin_JVM:
+           IMAGE_NAME: 'ubuntu-18.04'
+           BACKEND: 'JVM'
+           MOAR_CHECKOUT_TYPE: 'none'
+           RAKUDO_OPTIONS: ''
+           NQP_OPTIONS: '--backends=jvm'
+           MOAR_OPTIONS: ''
+         Lin_MVM_reloc:
+           IMAGE_NAME: 'ubuntu-18.04'
+           RELOCATABLE: 'yes'
+           RAKUDO_OPTIONS: '--relocatable'
+           NQP_OPTIONS: '--backends=moar --relocatable'
+           MOAR_OPTIONS: '--relocatable'
 
       pool:
         vmImage: $(IMAGE_NAME)
@@ -125,14 +127,14 @@ stages:
           condition: and( eq( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
         - checkout: self
-          path: script-source
-          displayName: Checkout repository
+          path: selfrepo
+          displayName: Checkout script repo
 
-        - script: perl script-source/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
+        - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
           workingDirectory: $(Pipeline.Workspace)
           condition: ne( variables['BACKEND'], 'JVM')
           displayName: Checkout repositories (MoarVM)
-        - script: perl script-source/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) none
+        - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) none
           workingDirectory: $(Pipeline.Workspace)
           condition: eq( variables['BACKEND'], 'JVM')
           displayName: Checkout repositories (JVM)
@@ -194,38 +196,6 @@ stages:
           workingDirectory: $(Pipeline.Workspace)
           condition: and( eq( variables['RELOCATABLE'], 'yes' ), eq( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Move installation (Windows)
-
-        # Test NQP
-        - script: prove -j0 -r -e ../install/bin/nqp t/nqp t/hll t/qregex t/p5regex t/qast t/moar t/serialization t/nativecall t/concurrency
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and( ne( variables['TRIGGERING_REPO'], 'rakudo'), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test NQP
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -j0 -r -e ..\install\bin\nqp t\nqp t\hll t\qregex t\p5regex t\qast t\moar t\serialization t\nativecall t\concurrency
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and( ne( variables['TRIGGERING_REPO'], 'rakudo'), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test NQP (Windows)
-        - script: prove -j0 -r -e ../install/bin/nqp t/nqp t/hll t/qregex t/p5regex t/qast t/jvm t/serialization t/nativecall
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and( ne( variables['TRIGGERING_REPO'], 'rakudo'), ne( variables['RELOCATABLE'], 'yes' ), eq( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test NQP (JVM)
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -j0 -r -e ..\install\bin\nqp t\nqp t\hll t\qregex t\p5regex t\qast t\jvm t\serialization t\nativecall
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and( False, ne( variables['TRIGGERING_REPO'], 'rakudo'), ne( variables['RELOCATABLE'], 'yes' ), eq( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test NQP (Windows, JVM)
-        - script: prove -j0 -r -e ../install-moved/bin/nqp t/nqp t/hll t/qregex t/p5regex t/qast t/moar t/serialization t/nativecall t/concurrency
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and( ne( variables['TRIGGERING_REPO'], 'rakudo'), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test NQP (relocated)
-        - pwsh: |
-            ${{ variables.PWSH_DEV }}
-            prove -j0 -r -e ..\install-moved\bin\nqp t\nqp t\hll t\qregex t\p5regex t\qast t\moar t\serialization t\nativecall t\concurrency
-          workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: and( ne( variables['TRIGGERING_REPO'], 'rakudo'), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
-          displayName: Test NQP (relocated, Windows)
 
         # Test Rakudo
         - script: prove -e ../install/bin/perl6 -vlr t

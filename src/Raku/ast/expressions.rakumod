@@ -33,16 +33,25 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my str $op := $!operator;
-        if $op eq '||' || $op eq 'or' {
-            QAST::Op.new( :op('unless'), $left-qast, $right-qast )
+
+        # Some ops map directly into a QAST primitive.
+        my constant OP-TO-QAST-OP := nqp::hash(
+            '||', 'unless',
+            'or', 'unless',
+            '&&', 'if',
+            'and', 'if',
+            '^^', 'xor',
+            'xor', 'xor',
+            '//', 'defor'
+        );
+        my $qast-op := OP-TO-QAST-OP{$op};
+        if $qast-op {
+            return QAST::Op.new( :op($qast-op), $left-qast, $right-qast );
         }
-        elsif $op eq '&&' || $op eq 'and' {
-            QAST::Op.new( :op('if'), $left-qast, $right-qast )
-        }
-        else {
-            my $name := self.resolution.lexical-name;
-            QAST::Op.new( :op('call'), :$name, $left-qast, $right-qast )
-        }
+
+        # Otherwise, it's called by finding the lexical sub to call.
+        my $name := self.resolution.lexical-name;
+        QAST::Op.new( :op('call'), :$name, $left-qast, $right-qast )
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

@@ -594,14 +594,64 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<(-)>  { <sym> <O(|%junctive_or)> }
     token infix:sym«∖»    { <sym> <O(|%junctive_or)> }
 
+    token infix:sym<&&>   { <sym>  <O(|%tight_and, :iffy(1))> }
+
+    token infix:sym<||>   { <sym>  <O(|%tight_or, :iffy(1), :assoc<left>)> }
+    token infix:sym<^^>   { <sym>  <O(|%tight_or, :iffy(1), :thunky<..t>)> }
+    token infix:sym<//>   { <sym>  <O(|%tight_or, :assoc<left>)> }
+    token infix:sym<min>  { <sym> >> <O(|%tight_or_minmax)> }
+    token infix:sym<max>  { <sym> >> <O(|%tight_or_minmax)> }
+
     token infix:sym«=>» { <sym> <O(|%item_assignment)> }
 
     token prefix:sym<so> { <sym><.end_prefix> <O(|%loose_unary)> }
     token prefix:sym<not>  { <sym><.end_prefix> <O(|%loose_unary)> }
 
+    token infix:sym<minmax> { <sym> >> <O(|%list_infix)> }
+
     token infix:sym<,>    {
         <.unsp>? <sym> <O(|%comma, :fiddly(0))>
     }
+
+    token infix:sym<Z>    { <!before <.sym> <.infixish> > <sym>  <O(|%list_infix)> }
+    token infix:sym<X>    { <!before <.sym> <.infixish> > <sym>  <O(|%list_infix)> }
+
+    token infix:sym<...>  { <sym> <O(|%list_infix)> }
+    token infix:sym<…>    { <sym> <O(|%list_infix)> }
+    token infix:sym<...^> { <sym>  <O(|%list_infix)> }
+    token infix:sym<…^>   { <sym>  <O(|%list_infix)> }
+    token infix:sym<^...> { <sym>  <O(|%list_infix)> }
+    token infix:sym<^…>   { <sym>  <O(|%list_infix)> }
+    token infix:sym<^...^> { <sym>  <O(|%list_infix)> }
+    token infix:sym<^…^>   { <sym>  <O(|%list_infix)> }
+
+    token infix:sym<?>    { <sym> {} <![?]> <?before <.-[;]>*?':'> <.obs('? and : for the ternary conditional operator', '?? and !!')> <O(|%conditional)> }
+
+    token infix:sym<ff> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<^ff> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<ff^> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<^ff^> { <sym> <O(|%conditional_ff)> }
+
+    token infix:sym<fff> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<^fff> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<fff^> { <sym> <O(|%conditional_ff)> }
+    token infix:sym<^fff^> { <sym> <O(|%conditional_ff)> }
+
+    token infix:sym<and>  { <sym> >> <O(|%loose_and, :iffy(1))> }
+
+    token infix:sym<or>   { <sym> >> <O(|%loose_or, :iffy(1), :assoc<left>)> }
+    token infix:sym<xor>  { <sym> >> <O(|%loose_or, :iffy(1))> }
+
+    token infix:sym<..>   { <sym> [<!{ $*IN_META }> <?[)\]]> <.panic: "Please use ..* for indefinite range">]? <O(|%structural)> }
+    token infix:sym<^..>  { <sym> <O(|%structural)> }
+    token infix:sym<..^>  { <sym> <O(|%structural)> }
+    token infix:sym<^..^> { <sym> <O(|%structural)> }
+
+    token infix:sym<leg>    { <sym> >> <O(|%structural)> }
+    token infix:sym<cmp>    { <sym> >> <O(|%structural)> }
+    token infix:sym<unicmp> { <sym> >> <O(|%structural)> }
+    token infix:sym<coll>   { <sym> >> <O(|%structural)> }
+    token infix:sym«<=>»    { <sym> <O(|%structural)> }
 
     token circumfix:sym<( )> {
         :dba('parenthesized expression')

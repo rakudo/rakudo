@@ -453,8 +453,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <OPER=postfix>
         | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
-#        | <OPER=postcircumfix>
-#        | '.' <?[ [ { < ]> <OPER=postcircumfix>
+        | <OPER=postcircumfix>
+        | '.' <?[ [ { < ]> <OPER=postcircumfix>
 #        | <OPER=dotty>
 #        | <OPER=privop>
 #        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
@@ -469,11 +469,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token postop {
         | <postfix>         $<O> = {$<postfix><O>} $<sym> = {$<postfix><sym>}
-#        | <postcircumfix>   $<O> = {$<postcircumfix><O>} $<sym> = {$<postcircumfix><sym>}
+        | <postcircumfix>   $<O> = {$<postcircumfix><O>} $<sym> = {$<postcircumfix><sym>}
     }
 
     method AS_MATCH($v) {
         self.'!clone_match_at'($v,self.pos());
+    }
+
+    token postcircumfix:sym<[ ]> {
+        :my $*QSIGIL := '';
+        :dba('subscript')
+        '[' ~ ']' [ <.ws> <semilist> ]
+        <O(|%methodcall)>
+    }
+
+    token postcircumfix:sym<{ }> {
+        :my $*QSIGIL := '';
+        :dba('subscript')
+        '{' ~ '}' [ <.ws> <semilist> ]
+        <O(|%methodcall)>
     }
 
     token prefix:sym<++>  { <sym>  <O(|%autoincrement)> }

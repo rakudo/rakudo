@@ -2,7 +2,6 @@ my class Match is Capture is Cool does NQPMatchRole {
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $EMPTY_HASH := nqp::hash();
     my Mu $NO_CAPS    := nqp::hash();
-    my Mu $DID_MATCH  := nqp::create(NQPdidMATCH);
 
     # When nothing's `made`, we get an NQPMu that we'd like to replace
     # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
@@ -13,7 +12,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     method STR() is implementation-detail {
         nqp::if(
-          nqp::istype(nqp::getattr(self,Match,'$!match'), NQPdidMATCH),
+          nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
           self.Str,
           self.MATCH.Str
         )
@@ -21,7 +20,7 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     method MATCH() is implementation-detail {
         nqp::unless(
-          nqp::istype(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
+          nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
           nqp::if(                           # must still set up
             nqp::islt_i(
               nqp::getattr_i(self,Match,'$!pos'),
@@ -33,7 +32,7 @@ my class Match is Capture is Cool does NQPMatchRole {
             nqp::stmts(                      # no captures
               nqp::bindattr(self,Capture,'@!list',$EMPTY_LIST),
               nqp::bindattr(self,Capture,'%!hash',$EMPTY_HASH),
-              nqp::bindattr(self,Match,'$!match',$DID_MATCH)  # mark as set up
+              nqp::bindattr(self,Match,'$!match',NQPdidMATCH)  # mark as set up
             ),
             self!MATCH-CAPTURES($captures)  # go reify all the captures
           )
@@ -57,7 +56,7 @@ my class Match is Capture is Cool does NQPMatchRole {
           nqp::stmts(                      # no captures
             nqp::bindattr(self,Capture,'@!list',$EMPTY_LIST),
             nqp::bindattr(self,Capture,'%!hash',$EMPTY_HASH),
-            nqp::bindattr(self,Match,'$!match',$DID_MATCH)  # mark as set up
+            nqp::bindattr(self,Match,'$!match',NQPdidMATCH)  # mark as set up
           ),
           self!MATCH-CAPTURES($captures)  # go reify all the captures
         );
@@ -176,7 +175,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         );
 
         # mark as set up
-        nqp::bindattr(self,Match,'$!match',$DID_MATCH);
+        nqp::bindattr(self,Match,'$!match',NQPdidMATCH);
     }
 
     # from !cursor_next in nqp

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 15;
+plan 17;
 
 {
     my $x = 12;
@@ -140,4 +140,32 @@ plan 15;
         Nil,
         'Loop block with setup and increment expression evalutes to Nil';
     is-deeply $count, 9, 'Loop with setup/increment runs as expected';
+}
+
+{
+    my $count = 0;
+    is-deeply
+        EVAL(RakuAST::Statement::For.new(
+            source => RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(2),
+                infix => RakuAST::Infix.new('..'),
+                right => RakuAST::IntLiteral.new(7)
+            ),
+            body => RakuAST::PointyBlock.new(
+                signature => RakuAST::Signature.new(
+                    parameters => (
+                        RakuAST::Parameter.new(
+                            target => RakuAST::ParameterTarget::Var.new('$x')
+                        ),
+                    )
+                ),
+                body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            RakuAST::ApplyPrefix.new(
+                                prefix => RakuAST::Prefix.new('++'),
+                                operand => RakuAST::Var::Lexical.new('$count')))))))),
+        Nil,
+        'Statement level for loop evalutes to Nil';
+    is-deeply $count, 6, 'For loop does expected number of iterations';
 }

@@ -13,7 +13,8 @@ class RakuAST::Infixish is RakuAST::Node {
     }
 }
 
-# A lookup of a simple (non-meta) infix operator.
+# A simple (non-meta) infix operator. Some of these are just function calls, others
+# need more special attention.
 class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     has str $.operator;
 
@@ -61,6 +62,14 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
             $op.push($_);
         }
         $op
+    }
+}
+
+# A lookup of a chaining (non-meta) infix operator.
+class RakuAST::Infix::Chaining is RakuAST::Infix is RakuAST::Lookup {
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        my $name := self.resolution.lexical-name;
+        QAST::Op.new( :op('chain'), :$name, $left-qast, $right-qast )
     }
 }
 

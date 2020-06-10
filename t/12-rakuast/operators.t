@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 21;
+plan 23;
 
 is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -236,3 +236,23 @@ is-deeply
         )),
         (),
         'Application of a list infix operator on no operands';
+
+{
+    my $x = 4;
+    is-deeply
+        EVAL(RakuAST::ApplyInfix.new(
+            left => RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(5),
+                infix => RakuAST::Infix::Chaining.new('>'),
+                right => RakuAST::ApplyPostfix.new(
+                    postfix => RakuAST::Postfix.new('++'),
+                    operand => RakuAST::Var::Lexical.new('$x')
+                )
+            ),
+            infix => RakuAST::Infix::Chaining.new('>'),
+            right => RakuAST::IntLiteral.new(3)
+        )),
+        True,
+        'Chaining operator has correct outcome';
+    is-deeply $x, 5, 'Middle expression of chain only evaluated once';
+}

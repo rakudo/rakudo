@@ -594,6 +594,53 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<(-)>  { <sym> <O(|%junctive_or)> }
     token infix:sym«∖»    { <sym> <O(|%junctive_or)> }
 
+    token infix:sym«=~=»  { <sym>  <O(|%chaining)> }
+    token infix:sym«≅»    { <sym>  <O(|%chaining)> }
+    token infix:sym«==»   { <sym>  <O(|%chaining)> }
+    token infix:sym«!=»   { <sym> <?before \s|']'> <O(|%chaining)> }
+    token infix:sym«≠»    { <sym>  <O(|%chaining)> }
+    token infix:sym«<=»   { <sym>  <O(|%chaining)> }
+    token infix:sym«≤»    { <sym>  <O(|%chaining)> }
+    token infix:sym«>=»   { <sym>  <O(|%chaining)> }
+    token infix:sym«≥»    { <sym>  <O(|%chaining)> }
+    token infix:sym«<»    { <sym>  <O(|%chaining)> }
+    token infix:sym«>»    { <sym>  <O(|%chaining)> }
+    token infix:sym«eq»   { <sym> >> <O(|%chaining)> }
+    token infix:sym«ne»   { <sym> >> <O(|%chaining)> }
+    token infix:sym«le»   { <sym> >> <O(|%chaining)> }
+    token infix:sym«ge»   { <sym> >> <O(|%chaining)> }
+    token infix:sym«lt»   { <sym> >> <O(|%chaining)> }
+    token infix:sym«gt»   { <sym> >> <O(|%chaining)> }
+    token infix:sym«=:=»  { <sym>  <O(|%chaining)> }
+    token infix:sym<===>  { <sym>  <O(|%chaining)> }
+    token infix:sym<eqv>    { <sym> >> <O(|%chaining)> }
+    token infix:sym<before> { <sym> >> <O(|%chaining)> }
+    token infix:sym<after>  { <sym> >> <O(|%chaining)> }
+    token infix:sym<~~>   { <sym> <O(|%chaining)> }
+    token infix:sym<!~~>  { <sym> <O(|%chaining)> }
+    token infix:sym<(elem)> { <sym> <O(|%chaining)> }
+    token infix:sym«∈»      { <sym> <O(|%chaining)> }
+    token infix:sym«∉»      { <sym> <O(|%chaining)> }
+    token infix:sym<(cont)> { <sym> <O(|%chaining)> }
+    token infix:sym«∋»      { <sym> <O(|%chaining)> }
+    token infix:sym«∌»      { <sym> <O(|%chaining)> }
+    token infix:sym«(<)»    { <sym> <O(|%chaining)> }
+    token infix:sym«⊂»      { <sym> <O(|%chaining)> }
+    token infix:sym«⊄»      { <sym> <O(|%chaining)> }
+    token infix:sym«(>)»    { <sym> <O(|%chaining)> }
+    token infix:sym«⊃»      { <sym> <O(|%chaining)> }
+    token infix:sym«⊅»      { <sym> <O(|%chaining)> }
+    token infix:sym«(<=)»   { <sym> <O(|%chaining)> }
+    token infix:sym«⊆»      { <sym> <O(|%chaining)> }
+    token infix:sym«⊈»      { <sym> <O(|%chaining)> }
+    token infix:sym«(>=)»   { <sym> <O(|%chaining)> }
+    token infix:sym«⊇»      { <sym> <O(|%chaining)> }
+    token infix:sym«⊉»      { <sym> <O(|%chaining)> }
+    token infix:sym«(<+)»   { <sym> <O(|%chaining)> }
+    token infix:sym«≼»      { <sym> <O(|%chaining)> }
+    token infix:sym«(>+)»   { <sym> <O(|%chaining)> }
+    token infix:sym«≽»      { <sym> <O(|%chaining)> }
+
     token infix:sym<&&>   { <sym>  <O(|%tight_and, :iffy(1))> }
 
     token infix:sym<||>   { <sym>  <O(|%tight_or, :iffy(1), :assoc<left>)> }

@@ -943,7 +943,69 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ##
 
     token signature {
+        :my $*zone := 'posreq';
+        :my $*multi_invocant := 1;
+        :my @*seps := nqp::list();
         <.ws>
+        [
+        | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >
+        | <parameter>
+        ]+ % <param_sep>
+        <.ws>
+        [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' > || <.malformed('parameter')> ]
+        { $*IN_DECL := ''; }
+#        [ '-->' <.ws> [ || [<typename>|<value>||<typo_typename(1)>] <.ws>
+#                           [ || <?[ { ) ]>
+#                             || <?before <.param_sep>? <.parameter>>
+#                                <.malformed('return value (return constraints only allowed at the end of the signature)')>
+#                           ]
+#                        || <.malformed('return value')>
+#                      ] ]?
+        { $*LEFTSIGIL := '@'; }
+    }
+
+    rule param_sep {
+        '' $<sep>=[','|':'|';;'|';'] {
+            if $<sep> eq ';;' {
+                $/.panic("Can only specify ';;' once in a signature")
+                  if $*multi_invocant == 0;
+                $*multi_invocant := 0;
+            }
+            @*seps.push($<sep>);
+        }
+    }
+
+    token parameter {
+        <param_var>
+    }
+
+    token param_var {
+        :dba('formal parameter')
+        [
+#        | '[' ~ ']' <signature>
+#        | '(' ~ ')' <signature>
+        | $<declname>=[
+            <sigil>
+#            <twigil>?
+            [
+#            || <?{ $<sigil>.Str eq '&' }>
+#               [<?identifier> {} <name=.sublongname> | <sigterm>]
+            || <name=.identifier>
+            || <name=.decint> { $*W.throw($/, 'X::Syntax::Variable::Numeric', what => 'parameter') }
+            || $<name>=[<[/!]>]
+            ]?
+          ]
+
+          :dba('shape declaration')
+          :my $*IN_DECL := '';
+          [
+#          | <?before ':('>  ':'  # XXX allow fakesig parsed as subsig for the moment
+          | <?before '('>         <.sorry: "Shape declaration with () is reserved;\n  please use whitespace if you meant a subsignature for unpacking,\n  or use the :() form if you meant to add signature info to the function's type">
+#          | <?before '['> <arrayshape=.postcircumfix>
+          | <?before <.[ { < « ]>> <.sorry: 'Shape declaration is not yet implemented; please use whitespace if you meant something else'>
+               <postcircumfix>
+          ]?
+        ]
     }
 
     ##

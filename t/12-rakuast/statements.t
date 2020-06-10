@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 17;
+plan 21;
 
 {
     my $x = 12;
@@ -58,6 +58,44 @@ plan 17;
             )),
             Empty,
             'An unless block with a false condition evaluates to Empty';
+    is $y, 9, 'Side-effect of the body was not performed';
+}
+
+{
+    my $x = Nil;
+    my $y = 9;
+    is-deeply
+            EVAL(RakuAST::Statement::Without.new(
+                condition => RakuAST::Var::Lexical.new('$x'),
+                body => RakuAST::Block.new(body =>
+                    RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                RakuAST::ApplyPostfix.new(
+                                    postfix => RakuAST::Postfix.new('++'),
+                                    operand => RakuAST::Var::Lexical.new('$y'))))))
+            )),
+            9,
+            'An without block with an undefined object evaluates to its body';
+    is $y, 10, 'Side-effect of the body was performed';
+}
+
+{
+    my $x = True;
+    my $y = 9;
+    is-deeply
+            EVAL(RakuAST::Statement::Without.new(
+                condition => RakuAST::Var::Lexical.new('$x'),
+                body => RakuAST::Block.new(body =>
+                    RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                RakuAST::ApplyPrefix.new(
+                                    prefix => RakuAST::Prefix.new('++'),
+                                    operand => RakuAST::Var::Lexical.new('$y'))))))
+            )),
+            Empty,
+            'An without block with a defined object evaluates to Empty';
     is $y, 9, 'Side-effect of the body was not performed';
 }
 

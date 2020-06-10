@@ -422,7 +422,30 @@ class Raku::Actions is HLL::Actions {
     ##
 
     method signature($/) {
-        make self.r('Signature').new;
+        my @parameters;
+        for $<parameter> {
+            my $param := $_.ast;
+            # TODO have to twiddle based on sep
+            @parameters.push($param);
+        }
+        make self.r('Signature').new(:@parameters);
+    }
+
+    method parameter($/) {
+        make $<param_var>.ast;
+    }
+
+    method param_var($/) {
+        # Work out what kind of thing we're binding into, if any.
+        my %args;
+        if $<name> {
+            my $decl := self.r('ParameterTarget', 'Var').new(~$<declname>);
+            $*R.declare-lexical($decl);
+            %args<target> := $decl;
+        }
+
+        # Build the parameter.
+        make self.r('Parameter').new(|%args);
     }
 
     ##

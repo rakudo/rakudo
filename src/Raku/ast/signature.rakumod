@@ -121,6 +121,13 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
         $!name
     }
 
+    # Generate a lookup of this parameter, already resolved to this declaration.
+    method generate-lookup() {
+        my $lookup := RakuAST::Var::Lexical.new($!name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
     method sigil() {
         nqp::substr($!name, 0, 1)
     }

@@ -5,13 +5,20 @@ class RakuAST::LexicalScope is RakuAST::Node {
 
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
-        my $inner-code := self.find-nodes(RakuAST::Code, stopper => RakuAST::LexicalScope);
-        for self.IMPL-UNWRAP-LIST($inner-code) {
-            $stmts.push($_.IMPL-QAST-DECL($context));
-        }
+
+        # Visit code objects that need to make a declaration entry.
+        my $inner-code := self.visit(-> $node {
+            if nqp::istype($node, RakuAST::Code) {
+                $stmts.push($node.IMPL-QAST-DECL($context));
+            }
+            !(nqp::istype($node, RakuAST::LexicalScope) || nqp::istype($node, RakuAST::IMPL::ImmediateBlockUser))
+        });
+
+        # Visit declarations.
         for self.IMPL-UNWRAP-LIST(self.lexical-declarations()) {
             $stmts.push($_.IMPL-QAST-DECL($context));
         }
+
         $stmts
     }
 

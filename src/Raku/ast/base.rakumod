@@ -91,6 +91,22 @@ class RakuAST::Node {
         self.IMPL-WRAP-LIST(@result)
     }
 
+    # Walks nodes beneath this one, and call the callback for each of them.
+    # If the callback returns a true value, then its children will also be
+    # walked.
+    method visit(Code $callback) {
+        my @visit-queue := [self];
+        my $visitor := -> $node {
+            if $callback($node) {
+                nqp::push(@visit-queue, $node);
+            }
+        }
+        while @visit-queue {
+            nqp::shift(@visit-queue).visit-children($visitor);
+        }
+        Nil
+    }
+
     method IMPL-WRAP-LIST(Mu $vm-array) {
         if nqp::istype($vm-array, List) {
             # It already is a list

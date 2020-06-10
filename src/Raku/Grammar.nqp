@@ -135,6 +135,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         #self.define_slang('Pod',     Raku::PodGrammar,     Raku::PodActions);
 
         # Variables used during the parse.
+        my $*IN_DECL;                             # what declaration we're in
         my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
         my $*IN_META := '';                       # parsing a metaoperator like [..]
         my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct

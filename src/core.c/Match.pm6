@@ -128,12 +128,12 @@ my class Match is Capture is Cool does NQPMatchRole {
                                 ),
                                 nqp::if(                    # positional capture
                                   nqp::istype(nqp::atpos($list,$name),Array),
-                                  nqp::atpos($list,$name).append($match),
+                                  nqp::atpos($list,$name).push($match),
                                   nqp::bindpos($list,$name,$match)
                                 ),
                                 nqp::if(                    # named capture
                                   nqp::istype(nqp::atkey($hash,$name),Array),
-                                  nqp::atkey($hash,$name).append($match),
+                                  nqp::atkey($hash,$name).push($match),
                                   nqp::bindkey($hash,$name,$match)
                                 )
                               )
@@ -142,12 +142,12 @@ my class Match is Capture is Cool does NQPMatchRole {
                               nqp::iscclass(nqp::const::CCLASS_NUMERIC,$name,0),
                               nqp::if(                      # positional capture
                                 nqp::istype(nqp::atpos($list,$name),Array),
-                                nqp::atpos($list,$name).append($match),
+                                nqp::atpos($list,$name).push($match),
                                 nqp::bindpos($list,$name,$match)
                               ),
                               nqp::if(                       # named capture
                                 nqp::istype(nqp::atkey($hash,$name),Array),
-                                nqp::atkey($hash,$name).append($match),
+                                nqp::atkey($hash,$name).push($match),
                                 nqp::bindkey($hash,$name,$match)
                               )
                             )

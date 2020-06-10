@@ -191,7 +191,7 @@ class Raku::Actions is HLL::Actions {
             my $key := nqp::lc($KEY);
             if $KEY eq 'INFIX' {
                 make self.r('ApplyInfix').new:
-                    infix => $<infix>.ast // self.r('Infix').new($<infix><sym>),
+                    infix => $<OPER>.ast // self.r('Infix').new($<infix><sym>),
                     left => $/[0].ast,
                     right => $/[1].ast;
             }
@@ -201,17 +201,17 @@ class Raku::Actions is HLL::Actions {
                     @operands.push($_.ast);
                 }
                 make self.r('ApplyListInfix').new:
-                    infix => $<infix>.ast // self.r('Infix').new($<infix><sym>),
+                    infix => $<OPER>.ast // self.r('Infix').new($<infix><sym>),
                     operands => @operands;
             }
             elsif $KEY eq 'PREFIX' {
                 make self.r('ApplyPrefix').new:
-                    prefix => $<prefix>.ast // self.r('Prefix').new($<prefix><sym>),
+                    prefix => $<OPER>.ast // self.r('Prefix').new($<prefix><sym>),
                     operand => $/[0].ast;
             }
             elsif $KEY eq 'POSTFIX' {
                 make self.r('ApplyPostfix').new:
-                    postfix => $<postfix>.ast // self.r('Postfix').new($<postfix><sym>),
+                    postfix => $<OPER>.ast // self.r('Postfix').new($<postfix><sym>),
                     operand => $/[0].ast;
             }
             else {
@@ -222,6 +222,14 @@ class Raku::Actions is HLL::Actions {
             # Just a term.
             make $/.ast;
         }
+    }
+
+    method postcircumfix:sym<[ ]>($/) {
+        make self.r('Postcircumfix', 'ArrayIndex').new($<semilist>.ast);
+    }
+
+    method postcircumfix:sym<{ }>($/) {
+        make self.r('Postcircumfix', 'HashIndex').new($<semilist>.ast);
     }
 
     method infixish($/) {

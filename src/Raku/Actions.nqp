@@ -161,6 +161,12 @@ class Raku::Actions is HLL::Actions {
             body => $<pblock>.ast;
     }
 
+    method statement_control:sym<without>($/) {
+        make self.r('Statement', 'Without').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
     method statement_control:sym<while>($/) {
         make self.r('Statement', 'Loop', $<sym> eq 'while' ?? 'While' !! 'Until').new:
             condition => $<EXPR>.ast,

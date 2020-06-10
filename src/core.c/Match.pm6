@@ -46,83 +46,102 @@ my class Match is Capture is Cool does NQPMatchRole {
         # Initialize capture lists.
         my $list := nqp::findmethod($captures,'prepare-raku-list')($captures);
         my $hash := nqp::findmethod($captures,'prepare-raku-hash')($captures);
-        my str $onlyname = $captures.onlyname();
 
-        # Walk the capture stack and populate the Match.
-        my Mu $cs := nqp::getattr(self, Match, '$!cstack');
-        if nqp::isnull($cs) || nqp::not_i(nqp::istrue($cs)) {}
-        elsif nqp::isgt_i(nqp::chars($onlyname), 0) {
-            # If there's only one destination, avoid repeated hash lookups
-            my int $cselems = nqp::elems($cs);
-            my int $csi = -1;
+        # walk the capture stack and populate the Match.
+        if nqp::istrue(my $cs := nqp::getattr(self,Match,'$!cstack')) {
 
-            # numeric: <= ord("9") so positional capture
-            my Mu $dest := nqp::islt_i(nqp::ord($onlyname),58)
-              ?? nqp::atpos($list, $onlyname)
-              !! nqp::atkey($hash, $onlyname);
+            # only one destination, avoid repeated hash lookups
+            if $captures.onlyname -> str $onlyname {
 
-            my $subcur;
-            my str $name;
-            while nqp::islt_i(++$csi,$cselems) {
-                $subcur := nqp::atpos($cs, $csi);
-                $name    = nqp::getattr_s($subcur, $?CLASS, '$!name');
-                nqp::push($dest,$subcur.MATCH())
-                  if nqp::not_i(nqp::isnull_s($name));
+                # numeric: <= ord("9") so positional capture
+                my Mu $dest := nqp::atpos(
+                  nqp::islt_i(nqp::ord($onlyname),58) ?? $list !! $hash,
+                  $onlyname
+                );
+
+                # simpLy reify all the cursors
+                my int $i = -1;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($cs)),
+                  nqp::stmts(
+                    (my $cursor := nqp::atpos($cs,$i)),
+                    nqp::unless(
+                      nqp::isnull_s(nqp::getattr_s($cursor,$?CLASS,'$!name')),
+                      nqp::push($dest,$cursor.MATCH)  # recurse
+                    )
+                  )
+                );
+            }
+
+            # more than one destination
+            else {
+                my int $i = -1;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($cs)),
+                  nqp::stmts(                               # handle this cursor
+                    (my $cursor := nqp::atpos($cs,$i)),
+                    (my str $name = nqp::getattr_s($cursor,$?CLASS,'$!name')),
+                    nqp::if(
+                      nqp::not_i(nqp::isnull_s($name))
+                        && nqp::isge_i(nqp::chars($name),1),
+                      nqp::stmts(                           # has a name
+                        (my $match := $cursor.MATCH),  # recurse
+                        nqp::if(
+                          nqp::iseq_s($name,'$!from')
+                            || nqp::iseq_s($name,'$!to'),
+                          nqp::bindattr_i(self,Match,$name, # it's from|to
+                            nqp::getattr_i($match,Match,'$!from')),
+                          nqp::if(                          # other name(s)
+                            nqp::isgt_i(
+                              nqp::elems(my $names := nqp::split('=',$name)),
+                              1
+                            ),
+                            nqp::while(                     # multiple captures
+                              nqp::elems($names),
+                              nqp::if(
+                                nqp::iscclass(
+                                  nqp::const::CCLASS_NUMERIC,
+                                  ($name = nqp::shift($names)),
+                                  0
+                                ),
+                                nqp::if(                    # positional capture
+                                  nqp::istype(nqp::atpos($list,$name),Array),
+                                  nqp::atpos($list,$name).append($match),
+                                  nqp::bindpos($list,$name,$match)
+                                ),
+                                nqp::if(                    # named capture
+                                  nqp::istype(nqp::atkey($hash,$name),Array),
+                                  nqp::atkey($hash,$name).append($match),
+                                  nqp::bindkey($hash,$name,$match)
+                                )
+                              )
+                            ),
+                            nqp::if(                        # single capture
+                              nqp::iscclass(nqp::const::CCLASS_NUMERIC,$name,0),
+                              nqp::if(                      # positional capture
+                                nqp::istype(nqp::atpos($list,$name),Array),
+                                nqp::atpos($list,$name).append($match),
+                                nqp::bindpos($list,$name,$match)
+                              ),
+                              nqp::if(                       # named capture
+                                nqp::istype(nqp::atkey($hash,$name),Array),
+                                nqp::atkey($hash,$name).append($match),
+                                nqp::bindkey($hash,$name,$match)
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
             }
         }
-        else {
-            my int $cselems = nqp::elems($cs);
-            my int $csi     = -1;
-            my $subcur;
-            my str $name;
-            while nqp::islt_i(++$csi,$cselems) {
-                $subcur := nqp::atpos($cs, $csi);
-                $name    = nqp::getattr_s($subcur, $?CLASS, '$!name');
-                if nqp::not_i(nqp::isnull_s($name)) && nqp::isgt_i(nqp::chars($name), 0) {
-                    my Mu $submatch := $subcur.MATCH;
-                    my int $first = nqp::ord($name);
-                    if nqp::iseq_i($first, 36) && (nqp::iseq_s($name, '$!from') || nqp::iseq_s($name, '$!to')) {
-                        nqp::bindattr_i(self, Match, $name, $submatch.from);
-                    }
-                    elsif nqp::islt_i(nqp::index($name, '='), 0) {
-                        if nqp::islt_i($first, 58) && nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
-                            my $idx := nqp::iseq_i(nqp::chars($name), 1)
-                                ?? nqp::sub_i($first, 48)
-                                !! nqp::fromstr_I($name, Int);
-                            nqp::istype(nqp::atpos($list, $idx), Array)
-                                ?? nqp::atpos($list, $idx).append($submatch)
-                                !! nqp::bindpos($list, $idx, $submatch);
-                        }
-                        else {
-                            nqp::istype(nqp::atkey($hash, $name), Array)
-                                ?? nqp::atkey($hash, $name).append($submatch)
-                                !! nqp::bindkey($hash, $name, $submatch);
-                        }
-                    }
-                    else {
-                        my $names := nqp::split('=', $name);
-                        my $iter  := nqp::iterator($names);
-                        while $iter {
-                            $name = nqp::shift($iter);
-                            if nqp::iscclass(nqp::const::CCLASS_NUMERIC, $name, 0) {
-                                my $idx := nqp::fromstr_I($name, Int);
-                                nqp::istype(nqp::atpos($list, $idx), Array)
-                                    ?? nqp::atpos($list, nqp::fromstr_I($name, Int)).append($submatch)
-                                    !! nqp::bindpos($list, nqp::fromstr_I($name, Int), $submatch);
-                            }
-                            else {
-                                nqp::istype(nqp::atkey($hash, $name), Array)
-                                    ?? nqp::atkey($hash, $name).append($submatch)
-                                    !! nqp::bindkey($hash, $name, $submatch);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        nqp::bindattr(self, Capture, '@!list', nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
-        nqp::bindattr(self, Capture, '%!hash', $hash);
-        nqp::bindattr(self, Match, '$!match', $DID_MATCH);
+
+        nqp::bindattr(self,Capture,'@!list',
+          nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
+        nqp::bindattr(self,Capture,'%!hash',$hash);
+        nqp::bindattr(self,Match,'$!match',$DID_MATCH);
 
         # We've produced the captures. If we know we're finished and will
         # never be backtracked into, we can release cstack and regexsub.

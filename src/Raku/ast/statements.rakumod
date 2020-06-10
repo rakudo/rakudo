@@ -269,3 +269,94 @@ class RakuAST::Statement::Loop::RepeatUntil is RakuAST::Statement::Loop {
     method negate() { True }
     method repeat() { True }
 }
+
+# A for loop.
+class RakuAST::Statement::For is RakuAST::Statement
+                              is RakuAST::Sinkable is RakuAST::SinkPropagator
+                              is RakuAST::BlockStatementSensitive {
+    # The thing to iterate over.
+    has RakuAST::Expression $.source;
+
+    # The body of the loop.
+    has RakuAST::Block $.body;
+
+    # The mode of evaluation, (defaults to serial, may be race or hyper also).
+    has str $.mode;
+
+    method new(RakuAST::Expression :$source!, RakuAST::Block :$body!, str :$mode) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::For, '$!source', $source);
+        nqp::bindattr($obj, RakuAST::Statement::For, '$!body', $body);
+        nqp::bindattr_s($obj, RakuAST::Statement::For, '$!mode', $mode || 'serial');
+        $obj
+    }
+
+    method IMPL-DISCARD-RESULT() {
+        self.is-block-statement || self.sunk
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!source.apply-sink(False);
+        $!body.body.statement-list.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # TODO various optimized forms are possible here
+        self.IMPL-TO-QAST-GENERAL($context)
+    }
+
+    # The most general, least optimized, form for a `for` loop, which
+    # delegates to `map`.
+    method IMPL-TO-QAST-GENERAL(RakuAST::IMPL::QASTContext $context) {
+        # Figure out the execution mode modifiers to apply.
+        my str $mode := $!mode;
+        my str $after-mode := '';
+        if $mode eq 'lazy' {
+            $mode := 'serial';
+            $after-mode := 'lazy';
+        }
+        else {
+            $after-mode := self.IMPL-DISCARD-RESULT ?? 'sink' !! 'eager';
+        }
+
+        # Bind the source into a temporary.
+        my $for-list-name := QAST::Node.unique('for-list');
+        my $bind-source := QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
+            $!source.IMPL-TO-QAST($context)
+        );
+
+        # Produce the map call.
+        my $body-qast := $!body.IMPL-TO-QAST($context);
+        my $map-call := QAST::Op.new(
+            :op('if'),
+            QAST::Op.new( :op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ) ),
+            QAST::Op.new(
+                :op<callmethod>, :name<map>,
+                QAST::Var.new( :name($for-list-name), :scope('local') ),
+                $body-qast,
+                QAST::IVal.new( :value(1), :named('item') )
+            ),
+            QAST::Op.new(
+                :op<callmethod>, :name<map>,
+                QAST::Op.new(
+                    :op<callmethod>, :name($mode),
+                    QAST::Var.new( :name($for-list-name), :scope('local') )
+                ),
+                $body-qast
+            )
+        );
+
+        # Apply after mode to the map result, and we're done.
+        QAST::Stmts.new(
+            $bind-source,
+            QAST::Op.new( :op<callmethod>, :name($after-mode), $map-call )
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!source);
+        $visitor($!body);
+    }
+}

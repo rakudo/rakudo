@@ -348,6 +348,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <block>
     }
 
+    rule statement_control:sym<for> {
+        <sym><.kok> {}
+        [ <?before 'my'? '$'\w+\s+'(' >
+            <.typed_panic: 'X::Syntax::P5'> ]?
+        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
+            <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
+        :my $*GOAL := '{';
+        <EXPR>
+        <pblock($PBLOCK_REQUIRED_TOPIC)>
+    }
+
     ##
     ## Expression parsing and operators
     ##

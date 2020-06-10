@@ -289,6 +289,26 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     proto rule statement_control { <...> }
 
+    rule statement_control:sym<if> {
+        $<sym>=[if|with]<.kok> {}
+        :my $*GOAL := '{';
+        <condition=.EXPR>
+        <then=.pblock(~$<sym>[0] eq 'with' ?? $PBLOCK_REQUIRED_TOPIC !! $PBLOCK_NO_TOPIC)>
+        [
+            [
+            | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
+            | 'elif' { $/.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
+            | $<sym>='elsif' <condition=.EXPR> <then=.pblock>
+            | $<sym>='orwith' <condition=.EXPR> <then=.pblock($PBLOCK_REQUIRED_TOPIC)>
+            ]
+        ]*
+        {}
+        [
+            'else'
+            <else=.pblock(~$<sym>[-1] ~~ /with/ ?? $PBLOCK_REQUIRED_TOPIC !! $PBLOCK_NO_TOPIC)>
+        ]?
+    }
+
     rule statement_control:sym<unless> {
         $<sym>='unless'<.kok>
         :my $*GOAL := '{';

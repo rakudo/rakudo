@@ -190,8 +190,15 @@ class Raku::Actions is HLL::Actions {
         if $KEY {
             my $key := nqp::lc($KEY);
             if $KEY eq 'INFIX' {
+                my $infix := $<OPER>.ast;
+                unless $infix {
+                    my $type := $<OPER><O>.made<assoc> eq 'chain'
+                        ?? self.r('Infix', 'Chaining')
+                        !! self.r('Infix');
+                    $infix := $type.new($<infix><sym>);
+                }
                 make self.r('ApplyInfix').new:
-                    infix => $<OPER>.ast // self.r('Infix').new($<infix><sym>),
+                    infix => $infix,
                     left => $/[0].ast,
                     right => $/[1].ast;
             }

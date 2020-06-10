@@ -42,6 +42,29 @@ my class Match is Capture is Cool does NQPMatchRole {
         self
     }
 
+    # Version of MATCH that does *not* need to check for being set up already
+    # as this will only be called from within MATCH-CAPTURES, which by
+    # definition is called only when the Match object is not set up yet.
+    method SUBMATCH() is implementation-detail {
+        nqp::if(                           # must still set up
+          nqp::islt_i(
+            nqp::getattr_i(self,Match,'$!pos'),
+            nqp::getattr_i(self,Match,'$!from')
+          ) || nqp::isnull(my $rxsub := nqp::getattr(self,Match,'$!regexsub'))
+            || nqp::isnull(my $CAPS := nqp::tryfindmethod($rxsub,'CAPS'))
+            || nqp::isnull(my $captures := $CAPS($rxsub))
+            || nqp::not_i($captures.has-captures),
+          nqp::stmts(                      # no captures
+            nqp::bindattr(self,Capture,'@!list',$EMPTY_LIST),
+            nqp::bindattr(self,Capture,'%!hash',$EMPTY_HASH),
+            nqp::bindattr(self,Match,'$!match',$DID_MATCH)  # mark as set up
+          ),
+          self!MATCH-CAPTURES($captures)  # go reify all the captures
+        );
+
+        self
+    }
+
     method !MATCH-CAPTURES(Mu $captures --> Nil) {
         # Initialize capture lists.
         my $list := nqp::findmethod($captures,'prepare-raku-list')($captures);
@@ -67,7 +90,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                     (my $cursor := nqp::atpos($cs,$i)),
                     nqp::unless(
                       nqp::isnull_s(nqp::getattr_s($cursor,$?CLASS,'$!name')),
-                      nqp::push($dest,$cursor.MATCH)  # recurse
+                      nqp::push($dest,$cursor.SUBMATCH)  # recurse
                     )
                   )
                 );
@@ -85,7 +108,7 @@ my class Match is Capture is Cool does NQPMatchRole {
                       nqp::not_i(nqp::isnull_s($name))
                         && nqp::isge_i(nqp::chars($name),1),
                       nqp::stmts(                           # has a name
-                        (my $match := $cursor.MATCH),  # recurse
+                        (my $match := $cursor.SUBMATCH),  # recurse
                         nqp::if(
                           nqp::iseq_s($name,'$!from')
                             || nqp::iseq_s($name,'$!to'),
@@ -138,10 +161,10 @@ my class Match is Capture is Cool does NQPMatchRole {
             }
         }
 
+        # save in object
         nqp::bindattr(self,Capture,'@!list',
           nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
         nqp::bindattr(self,Capture,'%!hash',$hash);
-        nqp::bindattr(self,Match,'$!match',$DID_MATCH);
 
         # We've produced the captures. If we know we're finished and will
         # never be backtracked into, we can release cstack and regexsub.
@@ -151,6 +174,9 @@ my class Match is Capture is Cool does NQPMatchRole {
             nqp::bindattr(self,Match,'$!regexsub',nqp::null)
           )
         );
+
+        # mark as set up
+        nqp::bindattr(self,Match,'$!match',$DID_MATCH);
     }
 
     # from !cursor_next in nqp

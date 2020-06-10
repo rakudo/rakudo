@@ -182,6 +182,12 @@ class Raku::Actions is HLL::Actions {
         make self.r('Statement', 'Loop').new(|%parts);
     }
 
+    method statement_control:sym<for>($/) {
+        make self.r('Statement', 'For').new:
+            source => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
     ##
     ## Expression parsing and operators
     ##

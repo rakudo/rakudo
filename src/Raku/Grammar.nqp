@@ -302,6 +302,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    rule statement_control:sym<without> {
+        $<sym>='without'<.kok>
+        :my $*GOAL := '{';
+        <EXPR>
+        <pblock($PBLOCK_REQUIRED_TOPIC)>
+        [ <!before [els[e|if]|orwith]» >
+            || $<wrong-keyword>=[els[e|if]|orwith]» {}
+                <.typed_panic: 'X::Syntax::WithoutElse',
+                    keyword => ~$<wrong-keyword>,
+                >
+        ]
+    }
+
     rule statement_control:sym<while> {
         $<sym>=[while|until]<.kok> {}
         :my $*GOAL := '{';

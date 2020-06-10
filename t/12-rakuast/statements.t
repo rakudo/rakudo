@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 21;
+plan 33;
 
 {
     my $x = 12;
@@ -21,6 +21,181 @@ plan 21;
             'Statement list evaluates to its final statement';
     is $x, 13, 'First side-effecting statement was executed';
     is $y, 100, 'Second side-effecting statement was executed';
+}
+
+{
+    my ($a, $b, $c);
+
+    my $test-ast := RakuAST::Statement::If.new(
+        condition => RakuAST::Var::Lexical.new('$a'),
+        then => RakuAST::Block.new(body =>
+            RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(1)
+                    )))),
+        elsifs => [
+            RakuAST::Statement::Elsif.new(
+                condition => RakuAST::Var::Lexical.new('$b'),
+                then => RakuAST::Block.new(body =>
+                    RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                RakuAST::IntLiteral.new(2)
+                            ))))),
+            RakuAST::Statement::Elsif.new(
+                condition => RakuAST::Var::Lexical.new('$c'),
+                then => RakuAST::Block.new(body =>
+                    RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                RakuAST::IntLiteral.new(3)
+                            ))))),
+        ],
+        else => RakuAST::Block.new(body =>
+            RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(4)
+                    ))))
+    );
+
+    $a = $b = $c = False;
+    is-deeply EVAL($test-ast), 4, 'When all conditions False, else is evaluated';
+
+    $c = True;
+    is-deeply EVAL($test-ast), 3, 'Latest elsif reachable when matched';
+
+    $b = True;
+    is-deeply EVAL($test-ast), 2, 'First elsif reachable when matched';
+
+    $a = True;
+    is-deeply EVAL($test-ast), 1, 'When the main condition is true, the then block is picked';
+}
+
+{
+    my $a;
+
+    my $test-ast := RakuAST::Statement::If.new(
+        condition => RakuAST::Var::Lexical.new('$a'),
+        then => RakuAST::Block.new(body =>
+            RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(1)
+                    ))))
+    );
+
+    $a = True;
+    is-deeply EVAL($test-ast), 1, 'When simple if with no else has true condition, evaluates to branch';
+
+    $a = False;
+    is-deeply EVAL($test-ast), Empty, 'When simple if with no else has false condition, evaluates to Empty';
+}
+
+{
+    my ($a, $b, $c);
+
+    my $test-ast := RakuAST::Statement::With.new(
+        condition => RakuAST::Var::Lexical.new('$a'),
+        then => RakuAST::PointyBlock.new(
+            signature => RakuAST::Signature.new(
+                parameters => (
+                    RakuAST::Parameter.new(
+                        target => RakuAST::ParameterTarget::Var.new('$x')
+                    ),
+                )
+            ),
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(1)
+                    )))),
+        elsifs => [
+            RakuAST::Statement::Orwith.new(
+                condition => RakuAST::Var::Lexical.new('$b'),
+                then => RakuAST::PointyBlock.new(
+                    signature => RakuAST::Signature.new(
+                        parameters => (
+                            RakuAST::Parameter.new(
+                                target => RakuAST::ParameterTarget::Var.new('$x')
+                            ),
+                        )
+                    ),
+                    body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                RakuAST::IntLiteral.new(2)
+                            ))))),
+            RakuAST::Statement::Orwith.new(
+                condition => RakuAST::Var::Lexical.new('$c'),
+                then => RakuAST::PointyBlock.new(
+                    signature => RakuAST::Signature.new(
+                        parameters => (
+                            RakuAST::Parameter.new(
+                                target => RakuAST::ParameterTarget::Var.new('$x')
+                            ),
+                        )
+                    ),
+                    body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                RakuAST::IntLiteral.new(3)
+                            ))))),
+        ],
+        else => RakuAST::PointyBlock.new(
+            signature => RakuAST::Signature.new(
+                parameters => (
+                    RakuAST::Parameter.new(
+                        target => RakuAST::ParameterTarget::Var.new('$x')
+                    ),
+                )
+            ),
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(4)
+                    ))))
+    );
+
+    $a = $b = $c = Nil;
+    is-deeply EVAL($test-ast), 4, 'When all conditions undefined, else is evaluated';
+
+    $c = False;
+    is-deeply EVAL($test-ast), 3, 'Latest orwith reachable when matched';
+
+    $b = False;
+    is-deeply EVAL($test-ast), 2, 'First orwith reachable when matched';
+
+    $a = False;
+    is-deeply EVAL($test-ast), 1, 'When the main condition is defined, the then block is picked';
+}
+
+{
+    my $a;
+
+    my $test-ast := RakuAST::Statement::With.new(
+        condition => RakuAST::Var::Lexical.new('$a'),
+        then => RakuAST::PointyBlock.new(
+            signature => RakuAST::Signature.new(
+                parameters => (
+                    RakuAST::Parameter.new(
+                        target => RakuAST::ParameterTarget::Var.new('$x')
+                    ),
+                )
+            ),
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(1)
+                    ))))
+    );
+
+    $a = False;
+    is-deeply EVAL($test-ast), 1, 'When simple when with no else has defined condition, evaluates to branch';
+
+    $a = Nil;
+    is-deeply EVAL($test-ast), Empty, 'When simple with if with no else has undefined condition, evaluates to Empty';
 }
 
 {

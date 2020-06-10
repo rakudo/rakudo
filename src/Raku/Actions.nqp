@@ -155,6 +155,25 @@ class Raku::Actions is HLL::Actions {
         $*R.leave-scope();
     }
 
+    method statement_control:sym<if>($/) {
+        my $condition := $<condition>[0].ast;
+        my $then := $<then>[0].ast;
+        my @elsifs;
+        my $index := 0;
+        for $<sym> {
+            if $index > 0 {
+                my $elsif-type := $_ eq 'orwith' ?? 'Orwith' !! 'Elsif';
+                @elsifs.push: self.r('Statement', $elsif-type).new:
+                    condition => $<condition>[$index].ast,
+                    then => $<then>[$index].ast;
+            }
+            $index++;
+        }
+        my $else := $<else> ?? $<else>.ast !! self.r('Block');
+        make self.r('Statement', $<sym>[0] eq 'with' ?? 'With' !! 'If').new:
+            :$condition, :$then, :@elsifs, :$else;
+    }
+
     method statement_control:sym<unless>($/) {
         make self.r('Statement', 'Unless').new:
             condition => $<EXPR>.ast,

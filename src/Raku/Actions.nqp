@@ -106,6 +106,14 @@ class Raku::Actions is HLL::Actions {
         make $list;
     }
 
+    method semilist($/) {
+        my $list := self.r('SemiList').new();
+        for $<statement> {
+            $list.push($_.ast);
+        }
+        make $list;
+    }
+
     method statement($/) {
         if $<EXPR> {
             make self.r('Statement', 'Expression').new($<EXPR>.ast);
@@ -225,6 +233,14 @@ class Raku::Actions is HLL::Actions {
             nqp::die('unknown kind of infix');
         }
         make $ast;
+    }
+
+    method circumfix:sym<( )>($/) {
+        make self.r('Circumfix', 'Parentheses').new($<semilist>.ast);
+    }
+
+    method circumfix:sym<[ ]>($/) {
+        make self.r('Circumfix', 'ArrayComposer').new($<semilist>.ast);
     }
 
     ##

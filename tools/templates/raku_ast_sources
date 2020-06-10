@@ -5,6 +5,7 @@ src/Raku/ast/sink.rakumod
 src/Raku/ast/scoping.rakumod
 src/Raku/ast/statements.rakumod
 src/Raku/ast/expressions.rakumod
+src/Raku/ast/circumfix.rakumod
 src/Raku/ast/pair.rakumod
 src/Raku/ast/call.rakumod
 src/Raku/ast/name.rakumod

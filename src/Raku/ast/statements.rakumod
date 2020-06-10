@@ -158,6 +158,46 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
     }
 }
 
+# A without statement control.
+class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLookups
+                                  is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser {
+    has RakuAST::Expression $.condition;
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Without, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::Without, '$!body', $body);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty')),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        QAST::Op.new(
+            :op('without'),
+            $!condition.IMPL-TO-QAST($context),
+            $!body.IMPL-TO-QAST($context, :immediate),
+            @lookups[0].IMPL-TO-QAST($context)
+        )
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!body.body.statement-list.apply-sink($is-sunk);
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!body);
+    }
+}
+
 # The base for various kinds of loop. Used directly for the loop construct,
 # and subclassed with assorted defaults for while/until/repeat.
 class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups

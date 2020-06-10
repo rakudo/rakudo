@@ -118,6 +118,121 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
 class RakuAST::IMPL::ImmediateBlockUser is RakuAST::Node {
 }
 
+# An if conditional, with optional elsif/orwith/else parts.
+class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
+                             is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser{
+    has RakuAST::Expression $.condition;
+    has RakuAST::Expression $.then;
+    has Mu $!elsifs;
+    has RakuAST::Block $.else;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Expression :$then!,
+               List :$elsifs, RakuAST::Block :$else) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::If, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::If, '$!then', $then);
+        nqp::bindattr($obj, RakuAST::Statement::If, '$!elsifs',
+            self.IMPL-UNWRAP-LIST($elsifs // []));
+        nqp::bindattr($obj, RakuAST::Statement::If, '$!else', $else // RakuAST::block);
+        $obj
+    }
+    
+    method elsifs() {
+        self.IMPL-WRAP-LIST($!elsifs)
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST: $!else
+            ?? []
+            !! [RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Empty'))]
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # Start with the else (or Empty).
+        my $cur-end;
+        if $!else {
+            $cur-end := $!else.IMPL-TO-QAST($context, :immediate);
+        }
+        else {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            $cur-end := @lookups[0].IMPL-TO-QAST($context);
+        }
+
+        # Add the branches.
+        my int $i := nqp::elems($!elsifs);
+        while $i-- > 0 {
+            my $branch := $!elsifs[$i];
+            $cur-end := QAST::Op.new(
+                :op($branch.IMPL-QAST-TYPE),
+                $branch.condition.IMPL-TO-QAST($context),
+                $branch.then.IMPL-TO-QAST($context, :immediate),
+                $cur-end
+            );
+        }
+
+        # Finally, the initial condition.
+        QAST::Op.new(
+            :op(self.IMPL-QAST-TYPE),
+            $!condition.IMPL-TO-QAST($context),
+            $!then.IMPL-TO-QAST($context, :immediate),
+            $cur-end
+        )
+    }
+
+    method IMPL-QAST-TYPE() { 'if' }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!then.body.statement-list.apply-sink($is-sunk);
+        for $!elsifs {
+            $_.condition.apply-sink(False);
+            $_.then.body.statement-list.apply-sink($is-sunk);
+        }
+        if $!else {
+            $!else.body.statement-list.apply-sink($is-sunk);
+        }
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!then);
+        for $!elsifs {
+            $visitor($_.condition);
+            $visitor($_.then);
+        }
+        if $!else {
+            $visitor($!else);
+        }
+    }
+}
+
+# A with conditional, with optional elsif/orwith/else parts.
+class RakuAST::Statement::With is RakuAST::Statement::If {
+    method IMPL-QAST-TYPE() { 'with' }
+}
+
+# An elsif part. Not a standalone RakuAST node; can only be used inside of an If
+# or With node.
+class RakuAST::Statement::Elsif {
+    has RakuAST::Expression $.condition;
+    has RakuAST::Expression $.then;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Expression :$then!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Elsif, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::Elsif, '$!then', $then);
+        $obj
+    }
+
+    method IMPL-QAST-TYPE() { 'if' }
+}
+
+# An orwith part. Not a standalone RakuAST node; can only be used inside of an If
+# or With node.
+class RakuAST::Statement::Orwith is RakuAST::Statement::Elsif {
+    method IMPL-QAST-TYPE() { 'with' }
+}
+
 # An unless statement control.
 class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLookups
                                  is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser {

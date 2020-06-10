@@ -113,9 +113,14 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
     }
 }
 
+# Mark out things that immediately consume their body, rather than needing it as
+# a closure.
+class RakuAST::IMPL::ImmediateBlockUser is RakuAST::Node {
+}
+
 # An unless statement control.
 class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLookups
-                                 is RakuAST::SinkPropagator {
+                                 is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -157,7 +162,8 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
 # and subclassed with assorted defaults for while/until/repeat.
 class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
                                is RakuAST::Sinkable is RakuAST::SinkPropagator
-                               is RakuAST::BlockStatementSensitive {
+                               is RakuAST::BlockStatementSensitive
+                               is RakuAST::IMPL::ImmediateBlockUser {
     # The setup expression for the loop.
     has RakuAST::Expression $.setup;
 

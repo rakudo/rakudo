@@ -23,7 +23,7 @@ class RakuAST::Code is RakuAST::Node {
 }
 
 # A block, either without signature or with only a placeholder signature.
-class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term {
+class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta {
     has RakuAST::Blockoid $.body;
 
     method new(RakuAST::Blockoid :$body) {
@@ -37,64 +37,34 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
-        my $qb := QAST::Block.new(
-            self.IMPL-QAST-DECLS($context),
-            $!body.IMPL-TO-QAST($context)
-        );
-        if $immediate {
-            $qb.blocktype('immediate');
-            $qb
-        }
-        else {
-            nqp::die('Non-immediate block compilation NYI');
-        }
-    }
-
-    method visit-children(Code $visitor) {
-        $visitor($!body);
-    }
-}
-
-# A pointy block (-> $foo { ... }).
-class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Meta
-                           is RakuAST::Code {
-    has RakuAST::Signature $.signature;
-    has RakuAST::Blockoid $.body;
-
-    method new(RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::PointyBlock, '$!signature', $signature
-            // RakuAST::Signature.new);
-        nqp::bindattr($obj, RakuAST::PointyBlock, '$!body', $body // RakuAST::Blockoid.new);
-        $obj
-    }
-
-    method replace-signature(RakuAST::Signature $new-signature) {
-        nqp::bindattr(self, RakuAST::PointyBlock, '$!signature', $new-signature);
-        Nil
-    }
-
-    method replace-body(RakuAST::Blockoid $new-body) {
-        nqp::bindattr(self, RakuAST::PointyBlock, '$!body', $new-body);
-        Nil
-    }
+    method signature() { Nil }
 
     method PRODUCE-META-OBJECT() {
         # Create block object and install signature.
         my $block := nqp::create(Block);
-        nqp::bindattr($block, Code, '$!signature', $!signature.meta-object);
+        my $signature := self.signature;
+        nqp::bindattr($block, Code, '$!signature', $signature.meta-object) if $signature;
+        $block
+    }
+
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str $blocktype) {
+        my $block := QAST::Block.new(
+            :$blocktype,
+            self.IMPL-QAST-DECLS($context)
+        );
+        my $signature := self.signature;
+        if $signature {
+            $block.push($signature.IMPL-TO-QAST($context));
+            $block.arity($signature.arity);
+            $block.annotate('count', $signature.count);
+        }
+        $block.push($!body.IMPL-TO-QAST($context));
         $block
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself.
-        my $block := QAST::Block.new(
-            :blocktype('declaration_static'),
-            self.IMPL-QAST-DECLS($context),
-            $!signature.IMPL-TO-QAST($context),
-            $!body.IMPL-TO-QAST($context)
-        );
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
 
         # Obtain the meta-object and connect it to the code block.
         my $code-obj := self.meta-object;
@@ -115,20 +85,51 @@ class RakuAST::PointyBlock is RakuAST::LexicalScope is RakuAST::Term is RakuAST:
         $block
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $code-obj := self.meta-object;
-        QAST::Op.new(
-            :op('p6capturelex'),
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
+        if $immediate {
+            # For now, assume we never need a code object for such a block. The
+            # closure clone is done for us by the QAST compiler.
+            self.IMPL-QAST-FORM-BLOCK($context, 'immediate')
+        }
+        else {
+            # Not immediate, so already produced as a declaration above; just
+            # closure clone it.
+            my $code-obj := self.meta-object;
             QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($code-obj) )
+                :op('p6capturelex'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('clone'),
+                    QAST::WVal.new( :value($code-obj) )
+                )
             )
-        )
+        }
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!body);
+    }
+}
+
+# A pointy block (-> $foo { ... }).
+class RakuAST::PointyBlock is RakuAST::Block {
+    has RakuAST::Signature $.signature;
+
+    method new(RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::PointyBlock, '$!signature', $signature
+            // RakuAST::Signature.new);
+        nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
+        $obj
+    }
+
+    method replace-signature(RakuAST::Signature $new-signature) {
+        nqp::bindattr(self, RakuAST::PointyBlock, '$!signature', $new-signature);
+        Nil
     }
 
     method visit-children(Code $visitor) {
         $visitor($!signature);
-        $visitor($!body);
+        $visitor(self.body);
     }
 }
 

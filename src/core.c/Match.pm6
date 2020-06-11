@@ -852,10 +852,7 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::bindattr(  self, Match,   '$!made', nqp::decont($made)) if $made.defined;
     }
 
-    method clone() {
-        my $new := nqp::clone(self);
-        $new;
-    }
+    method clone() is raw { nqp::clone(self) }
 
     multi method WHICH(Match:D: --> ObjAt:D) {
         self.Mu::WHICH # skip Capture's as Match is not a value type

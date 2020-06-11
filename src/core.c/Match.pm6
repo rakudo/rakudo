@@ -113,12 +113,9 @@ my class Match is Capture is Cool does NQPMatchRole {
                             || nqp::iseq_s($name,'$!to'),
                           nqp::bindattr_i(self,Match,$name, # it's from|to
                             nqp::getattr_i($match,Match,'$!from')),
-                          nqp::if(                          # other name(s)
-                            nqp::isgt_i(
-                              nqp::elems(my $names := nqp::split('=',$name)),
-                              1
-                            ),
-                            nqp::while(                     # multiple captures
+                          nqp::stmts(                       # other name(s)
+                            (my $names := nqp::split('=',$name)),
+                            nqp::while(
                               nqp::elems($names),
                               nqp::if(
                                 nqp::iscclass(
@@ -136,19 +133,6 @@ my class Match is Capture is Cool does NQPMatchRole {
                                   nqp::atkey($hash,$name).push($match),
                                   nqp::bindkey($hash,$name,$match)
                                 )
-                              )
-                            ),
-                            nqp::if(                        # single capture
-                              nqp::iscclass(nqp::const::CCLASS_NUMERIC,$name,0),
-                              nqp::if(                      # positional capture
-                                nqp::istype(nqp::atpos($list,$name),Array),
-                                nqp::atpos($list,$name).push($match),
-                                nqp::bindpos($list,$name,$match)
-                              ),
-                              nqp::if(                       # named capture
-                                nqp::istype(nqp::atkey($hash,$name),Array),
-                                nqp::atkey($hash,$name).push($match),
-                                nqp::bindkey($hash,$name,$match)
                               )
                             )
                           )

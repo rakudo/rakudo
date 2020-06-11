@@ -885,16 +885,29 @@ my class Match is Capture is Cool does NQPMatchRole {
         nqp::substr(self.target,self.to)
     }
 
+    method !sort-on-from-pos() {
+        nqp::add_i(
+          nqp::bitshiftl_i(nqp::getattr_i(self,Match,'$!from'),32),
+          nqp::getattr_i(self,Match,'$!pos')
+        )
+    }
+
     method caps(Match:D:) {
-        my @caps;
-        for self.pairs -> $p {
-            if nqp::istype($p.value,List) {
-                @caps.push: $p.key => $_ for $p.value.list
-            } elsif $p.value.DEFINITE {
-                @caps.push: $p
+        my $caps := nqp::list;
+        for self.pairs {
+            my \key   := .key;
+            my \value := .value;
+
+            if nqp::istype(value,List) {
+                nqp::push($caps,Pair.new(key, $_)) for value.list;
+            }
+            elsif nqp::isconcrete(value) {
+                nqp::push($caps,$_);
             }
         }
-        @caps.sort: -> $a { $a.value.from +< 32 + $a.value.pos }
+        Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
+          $caps, *.value!sort-on-from-pos
+        )
     }
 
     method chunks(Match:D:) {

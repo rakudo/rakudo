@@ -3319,11 +3319,13 @@ BEGIN {
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
                 my $result := nqp::list();
-                my int $i := 0;
-                while $i < $n {
-                    nqp::bindpos($result, $i, nqp::create(Array))
-                        if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
-                    $i++;
+                my int $i := -1;
+                while ++$i < $n {
+                    if nqp::atpos_i(@!pos-capture-counts, $i) >= 2 {
+                        nqp::bindattr((my $List := nqp::create(List)),
+                            List,'$!reified',nqp::list);
+                        nqp::bindpos($result, $i, $List);
+                    }
                 }
                 $result
             }
@@ -3344,14 +3346,14 @@ BEGIN {
             my int $n := nqp::elems(@!named-capture-counts);
             if $n > 0 {
                 my $result := nqp::hash();
-                my int $i := 0;
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
                     if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
+                        nqp::bindattr((my $List := nqp::create(List)),
+                            List,'$!reified',nqp::list);
                         nqp::bindkey($result,
-                            nqp::atpos_s(@!named-capture-names, $i),
-                            nqp::create(Array));
+                            nqp::atpos_s(@!named-capture-names, $i),$List);
                     }
-                    $i++;
                 }
                 $result
             }

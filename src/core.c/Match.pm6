@@ -1,7 +1,6 @@
 my class Match is Capture is Cool does NQPMatchRole {
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $EMPTY_HASH := nqp::hash();
-    my Mu $NO_CAPS    := nqp::hash();
 
     # When nothing's `made`, we get an NQPMu that we'd like to replace
     # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't

@@ -309,6 +309,34 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-qualified',
     }
 });
 
+# Maybe method dispatch, of the form $obj.?foo.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-me-maybe', -> $capture {
+    # Establish a guard on the invocant type.
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+
+    # Try to find the method.
+    my $invocant := nqp::captureposarg($capture, 0);
+    my str $name := nqp::captureposarg_s($capture, 1);
+    my $meth := $invocant.HOW.find_method($invocant, $name);
+    if nqp::isconcrete($meth) {
+        # Found it. Drop decont'd invocant, put in resolved method.
+        my $capture_delegate := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+            0, $meth);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+                'raku-meth-call-resolved', $capture_delegate);
+    }
+    else {
+        # Not found. Insert a Nil value at the start (boot-constant ignores
+        # the rest of the args).
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $capture, 0, Nil));
+    }
+});
+
 # Resolved method call dispatcher. This is used to call a method, once we have
 # already resolved it to a callee. Its first arg is the callee, the second is
 # the method name (used in a continued dispatch), and the rest are the args to

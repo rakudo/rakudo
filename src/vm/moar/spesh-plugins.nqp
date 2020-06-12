@@ -9,48 +9,6 @@ nqp::speshreg('Raku', 'privmeth', -> $obj, str $name {
     $obj.HOW.find_private_method($obj, $name)
 });
 
-# A resolution like `self.Foo::bar()` can have the resolution specialized. We
-# fall back to the dispatch:<::> if there is an exception that'd need to be
-# thrown.
-nqp::speshreg('Raku', 'qualmeth', -> $obj, str $name, $type {
-    my $ctx := nqp::ctxcaller(nqp::ctx());
-    my $caller-type := nqp::null();
-    # Lookup outers of the caller and locate the first occurence of the symbols of interest
-    nqp::repeat_while(
-        nqp::isnull($caller-type) && !nqp::isnull($ctx),
-        nqp::stmts(
-            (my $pad := nqp::ctxlexpad($ctx)),
-            nqp::if(
-                nqp::existskey($pad, '$?CONCRETIZATION'),
-                ($caller-type := nqp::atkey($pad, '$?CONCRETIZATION')),
-                nqp::if(
-                    nqp::existskey($pad, '$?CLASS'),
-                    ($caller-type := nqp::atkey($pad, '$?CLASS')),
-                )
-            ),
-            ($ctx := nqp::ctxouterskipthunks($ctx)),
-        )
-    );
-    my $meth := nqp::null();
-    nqp::speshguardtype($type, $type.WHAT);
-    for ($caller-type, $obj.WHAT) {
-        if nqp::istype($_, $type) {
-            nqp::speshguardtype($obj, $_);
-            $meth := $_.HOW.find_method_qualified($_, $type, $name);
-            last unless nqp::isnull($meth);
-        }
-    }
-    nqp::ifnull(
-        $meth,
-        -> $inv, *@pos, *%named {
-            # We'll throw an exception; return a thunk that will delegate to the
-            # slow path implementation to do the throwing.
-            my $*SPESH-THUNKED-DISPATCH := 1;
-            $inv.'dispatch:<::>'($name, $type, |@pos, |%named)
-        }
-    )
-});
-
 # A call like `$obj.?foo` is probably worth specializing via the plugin. In
 # some cases, it will be code written to be generic that only hits one type
 # of invocant under a given use case, so we can handle it via deopt. Even if

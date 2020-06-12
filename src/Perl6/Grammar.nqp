@@ -685,6 +685,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         | [\r\n || \v] <.heredoc>
         | <.unv>
         | <.unsp>
+        | <.vcs-conflict>
         ]*
         <?MARKER('ws')>
         :my $stub := self.'!fresh_highexpect'();
@@ -705,10 +706,16 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
             [
             | \v
-            | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.sorry: 'Found a version control conflict marker'> \V* \v
-            | '=======' {} .*? \v '>>>>>>>' \V* \v   # ignore second half
+            | <.vcs-conflict>
             ]
         ]+
+    }
+
+    token vcs-conflict {
+        [
+        | '<<<<<<<' {} <?before [.*? \v '=======']: .*? \v '>>>>>>>' > <.sorry: 'Found a version control conflict marker'> \V* \v
+        | '=======' {} .*? \v '>>>>>>>' \V* \v   # ignore second half
+        ]
     }
 
     token unv {

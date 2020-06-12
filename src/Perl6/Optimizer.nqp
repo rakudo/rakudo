@@ -2396,19 +2396,18 @@ class Perl6::Optimizer {
         }
 
         # If resolution didn't work out this way, and we're on the MoarVM
-        # backend, use a spesh plugin to help speed it up.
+        # backend, use a dispatcher to speed it up. Give it the package and
+        # name ahead of the invocant, as this makes the calling far more
+        # optimal.
         if nqp::getcomp('Raku').backend.name eq 'moar' {
             my $inv := $op.shift;
             my $name := $op.shift;
             my $pkg := $op.shift;
             $op.unshift($inv);
-            $op.unshift(QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('privmeth') ),
-                $pkg,
-                $name
-            ));
-            $op.op('call');
+            $op.unshift($name_node);
+            $op.unshift($pkg);
+            $op.unshift(QAST::SVal.new( :value('raku-meth-private') ));
+            $op.op('dispatch');
             $op.name(NQPMu);
             return 1;
         }

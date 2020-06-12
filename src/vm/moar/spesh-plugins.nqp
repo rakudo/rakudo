@@ -1,14 +1,3 @@
-## Method plugins
-## Only used when the name is a constant at the use site!
-
-# Private method resolution can be specialized based on invocant type. This is
-# used for speeding up resolution of private method calls in roles; those in
-# classes can be resolved by static optimization.
-nqp::speshreg('Raku', 'privmeth', -> $obj, str $name {
-    nqp::speshguardtype($obj, $obj.WHAT);
-    $obj.HOW.find_private_method($obj, $name)
-});
-
 ## Return value decontainerization plugin
 
 # Often we have nothing at all to do, in which case we can make it a no-op.

@@ -337,6 +337,37 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-me-maybe', 
     }
 });
 
+# Private method dispatch. This is actually a fallback, since in the best
+# case we can resolve the private method into a constant at code-gen time
+# and just invoke that. This happens with private methods in roles.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-private', -> $capture {
+    # Find the private method.
+    my $type := nqp::captureposarg($capture, 0);
+    my str $name := nqp::captureposarg_s($capture, 1);
+    my $meth := $type.HOW.find_private_method($type, $name);
+
+    # If it's found, then we drop the first two arguments, insert the
+    # resolved callee, and invoke it. This goes directly to invoke, as
+    # there's no deferral (due to no inheritance relationship) or multi
+    # dispatch for private methods.
+    if nqp::isconcrete($meth) {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+            nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+        my $capture_delegate := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                0),
+            0, $meth);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+            $capture_delegate);
+    }
+    else {
+        # TODO typed exception
+        nqp::die("No such private method '$name' on " ~ $type.HOW.name($type));
+    }
+});
+
 # Resolved method call dispatcher. This is used to call a method, once we have
 # already resolved it to a callee. Its first arg is the callee, the second is
 # the method name (used in a continued dispatch), and the rest are the args to

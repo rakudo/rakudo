@@ -2483,16 +2483,13 @@ class Perl6::Optimizer {
             $inv
         ));
         $op.push(QAST::Op.new(
-            :op('call'),
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-meth-call-me-maybe') ),
             QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('maybemeth') ),
-                QAST::Op.new(
-                    :op('decont'),
-                    QAST::Var.new( :name($temp), :scope('local') )
-                ),
-                $name,
+                :op('decont'),
+                QAST::Var.new( :name($temp), :scope('local') )
             ),
+            $name_node,
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args
         ));

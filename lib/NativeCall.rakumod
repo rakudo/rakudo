@@ -209,19 +209,20 @@ my role NativeCallSymbol[Str $name] {
     method native_symbol()  { $name }
 }
 
-multi guess_library_name(IO::Path $lib) is export(:TEST) {
+multi guess_library_name(IO::Path $lib) returns Str is export(:TEST) {
     guess_library_name($lib.absolute)
 }
-multi guess_library_name(Distribution::Resource $lib) is export(:TEST) {
+multi guess_library_name(Distribution::Resource $lib) returns Str is export(:TEST) {
     $lib.platform-library-name.Str;
 }
-multi guess_library_name(Callable $lib) is export(:TEST) {
-    $lib();
+multi guess_library_name(Callable $lib) returns Str is export(:TEST) {
+    my \ret := $lib();
+    nqp::istype(ret, Str) ?? ret !! guess_library_name(ret)
 }
-multi guess_library_name(List $lib) is export(:TEST) {
+multi guess_library_name(List $lib) returns Str is export(:TEST) {
     guess_library_name($lib[0], $lib[1])
 }
-multi guess_library_name(Str $libname, $apiversion='') is export(:TEST) {
+multi guess_library_name(Str $libname, $apiversion='') returns Str is export(:TEST) {
     $libname.DEFINITE
         ?? $libname ~~ /[\.<.alpha>+ | \.so [\.<.digit>+]+ ] $/
             ?? $libname #Already a full name?

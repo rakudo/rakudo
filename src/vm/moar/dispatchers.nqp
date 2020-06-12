@@ -248,19 +248,128 @@
     });
 }
 
+# Qualified method call dispatcher. This is used for calls of the form
+# $foo.Some::ClassOrRole::bar($arg). It receives the decontainerized
+# invocant, the method name, the type qualifier, and then the args
+# (starting with the invocant including any container).
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-qualified', -> $capture {
+    # Lookup outers of the caller and locate the first occurence of the
+    # symbols of interest, which tell us about the caller type.
+    my $ctx := nqp::ctxcaller(nqp::ctx());
+    my $caller-type := nqp::null();
+    nqp::repeat_while(
+        nqp::isnull($caller-type) && !nqp::isnull($ctx),
+        nqp::stmts(
+            (my $pad := nqp::ctxlexpad($ctx)),
+            nqp::if(
+                nqp::existskey($pad, '$?CONCRETIZATION'),
+                ($caller-type := nqp::atkey($pad, '$?CONCRETIZATION')),
+                nqp::if(
+                    nqp::existskey($pad, '$?CLASS'),
+                    ($caller-type := nqp::atkey($pad, '$?CLASS')),
+                )
+            ),
+            ($ctx := nqp::ctxouterskipthunks($ctx)),
+        )
+    );
+
+    # Establish a guard on the invocant and qualifying type.
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 2));
+
+    # Try to resolve the method.
+    my $obj := nqp::captureposarg($capture, 0);
+    my str $name := nqp::captureposarg_s($capture, 1);
+    my $type := nqp::captureposarg($capture, 2);
+    my $meth;
+    for ($caller-type, $obj.WHAT) {
+        if nqp::istype($_, $type) {
+            $meth := $_.HOW.find_method_qualified($_, $type, $name);
+            last unless nqp::isconcrete($meth);
+        }
+    }
+
+    # If it's resolved, drop the invocant and type arguments targetted at
+    # resolution, and then insert the resolved method as a constant.
+    if nqp::isconcrete($meth) {
+        my $capture_simplified := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2),
+            0);
+        my $capture_delegate := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj', $capture_simplified, 0, $meth);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+                'raku-meth-call-resolved', $capture_delegate);
+    }
+
+    # Otherwise, exception. TODO proper one
+    else {
+        nqp::die(nqp::isconcrete($meth) ?? 'qual meth found' !! 'qual meth not found');
+    }
+});
+
 # Resolved method call dispatcher. This is used to call a method, once we have
 # already resolved it to a callee. Its first arg is the callee, the second is
 # the method name (used in a continued dispatch), and the rest are the args to
 # the method.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved', -> $capture {
-    my $method := nqp::captureposarg($capture, 0);
-
     # TODO Set dispatch state for resumption
 
+    # Drop the name, and delegate to multi-dispatch or just invoke if it's
+    # single dispatch.
+    my $without_name := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1);
+    my $method := nqp::captureposarg($capture, 0);
     if nqp::istype($method, Routine) && $method.is_dispatcher {
         nqp::die('multi meth disp in new dispatcher NYI');
     }
     else {
-        nqp::die('single meth disp in new dispatcher NYI');
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $without_name);
+    }
+});
+
+# This is where invocation bottoms out, however we reach it. By this point, we
+# just have something to invoke, which is either a code object or something that
+# hopefully has a CALL-ME.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture {
+    # Guard type and concreteness of code object. This is a no-op in the case
+    # that it's been determined a constant by an upper dispatcher.
+    my $code := nqp::captureposarg($capture, 0);
+    my $code_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $code_arg);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $code_arg);
+
+    # If it's already a VM-level code reference, just invoke it.
+    if nqp::reprname($code) eq 'MVMCode' {
+        # TODO probably boot-code, not boot-code-constant
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+            $capture);
+    }
+
+    # If it's a code object...
+    elsif nqp::istype($code, Code) {
+        # Concrete code object: extract the $!do, replace the code object,
+        # and delegate to boot-code.
+        # TODO probably boot-code, not boot-code-constant
+        if nqp::isconcrete($code) {
+            my $do := nqp::getattr($code, Code, '$!do');
+            my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $code_arg, Code, '$!do');
+            my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                0, $do_attr);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                $delegate_capture);
+        }
+
+        # Invoking non-concrete code object is an error.
+        else {
+            nqp::die('Cannot invoke a ' ~ $code.HOW.name($code) ~ ' type object');
+        }
+    }
+
+    # Otherwise, try the CALL-ME path.
+    else {
+        nqp::die('CALL-ME handling NYI in new dispatcher; got ' ~ $code.HOW.name($code));
     }
 });

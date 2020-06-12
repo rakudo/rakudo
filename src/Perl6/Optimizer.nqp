@@ -2415,7 +2415,7 @@ class Perl6::Optimizer {
     }
 
     method optimize_qual_method_call($op) {
-        # Spesh plugins only available on MoarVM.
+        # Dispatch only available on MoarVM for now.
         return $op unless nqp::getcomp('Raku').backend.name eq 'moar';
 
         # We can only optimize if we have a compile-time-known name.
@@ -2425,8 +2425,8 @@ class Perl6::Optimizer {
         }
         return $op unless nqp::istype($name_node, QAST::SVal);
 
-        # We need to evaluate the invocant only once, so will bind it into
-        # a temporary.
+        # We need to evaluate the invocant only once, but pass it both as is
+        # and decontainerized, so will bind it into a temporary.
         my $inv := $op.shift;
         my $name := $op.shift;
         my $type := $op.shift;
@@ -2442,14 +2442,14 @@ class Perl6::Optimizer {
             $inv
         ));
         $op.push(QAST::Op.new(
-            :op('call'),
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-meth-call-qualified') ),
             QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('qualmeth') ),
+                :op('decont'),
                 QAST::Var.new( :name($temp), :scope('local') ),
-                $name,
-                $type
             ),
+            $name_node,
+            $type,
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args
         ));

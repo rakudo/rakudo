@@ -956,7 +956,6 @@ register_op_desugar('time_n', -> $qast {
         }
         if $is_moar {
             my $cont := QAST::Node.unique('assign_cont');
-            my $value := QAST::Node.unique('assign_value');
             QAST::Stmts.new(
                 QAST::Op.new(
                     :op('bind'),
@@ -964,20 +963,10 @@ register_op_desugar('time_n', -> $qast {
                     $qast[0]
                 ),
                 QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($value), :scope('local'), :decl('var') ),
-                    QAST::Op.new( :op('decont'), $qast[1] )
-                ),
-                QAST::Op.new(
-                    :op('call'),
-                    QAST::Op.new(
-                        :op('speshresolve'),
-                        QAST::SVal.new( :value('assign') ),
-                        QAST::Var.new( :name($cont), :scope('local') ),
-                        QAST::Var.new( :name($value), :scope('local') ),
-                    ),
+                    :op('dispatch'),
+                    QAST::SVal.new( :value('raku-assign') ),
                     QAST::Var.new( :name($cont), :scope('local') ),
-                    QAST::Var.new( :name($value), :scope('local') ),
+                    QAST::Op.new( :op('decont'), $qast[1] )
                 ),
                 QAST::Var.new( :name($cont), :scope('local') )
             )

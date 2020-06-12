@@ -213,6 +213,40 @@
     });
 }
 
+# Assignment dispatcher, which case-analyzes assignments and provides optimized
+# paths for a range of common situations, and typically lifting type checks to
+# be guards.
+{
+    sub assign-type-error($desc, $value) {
+        my %x := nqp::gethllsym('Raku', 'P6EX');
+        if nqp::ishash(%x) {
+            %x<X::TypeCheck::Assignment>($desc.name, $value, $desc.of);
+        }
+        else {
+            nqp::die("Type check failed in assignment");
+        }
+    }
+
+    my $assign-fallback := -> $cont, $value {
+        nqp::assign($cont, $value)
+    }
+
+    nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-assign', -> $capture {
+        # Whatever we do, we'll guard on the type of the container and its
+        # concreteness.
+        my $cont_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $cont_arg);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $cont_arg);
+
+        # TODO optimized cases
+
+        # Otherwise, nothing we can optimize, so go for the fallback.
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $capture, 0, $assign-fallback));
+    });
+}
+
 # Coercion dispatcher. The first argument is the value to coerce, the second
 # is what to coerce it into.
 {

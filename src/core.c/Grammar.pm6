@@ -13,16 +13,17 @@ my class Grammar is Match {
             $grammar."$rule"()
           )),
           nqp::stmts(
-            (my $match := $cursor.MATCH),
             (my int $chars = nqp::chars($orig)),
             nqp::while(
-              $match && nqp::isne_i(
-                nqp::getattr_i(($match := $cursor.MATCH),Match,'$!pos'),
-                $chars
-              ),
-              $match := ($cursor := $cursor.'!cursor_next'()).MATCH
+              $cursor
+                && nqp::isne_i(nqp::getattr_i($cursor,Match,'$!pos'),$chars),
+              $cursor := $cursor.'!cursor_next'()
             ),
-            $match || Nil
+            nqp::if(
+              $cursor,
+              $cursor.MATCH,
+              Nil
+            )
           ),
           Nil
         ))

@@ -50,4 +50,4 @@ multi sub infix:<%>(Duration:D $a, Real $b --> Duration:D) {
     Duration.new: $a.tai % $b
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

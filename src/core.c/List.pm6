@@ -1728,4 +1728,4 @@ multi sub roundrobin(+lol --> Seq:D) {
     Seq.new(Rakudo::Iterator.RoundrobinIterables(lol))
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -2164,4 +2164,4 @@ multi sub sort(&by, +values) { values.sort(&by) }
 multi sub sort(@values)      { @values.sort }
 multi sub sort(+values)      { values.sort }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

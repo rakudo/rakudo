@@ -110,4 +110,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
       Distro.new(:$name, :$version, :$release, :$auth, :$path-sep, :$desc);
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

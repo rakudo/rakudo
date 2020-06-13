@@ -64,4 +64,4 @@ class CompUnit::Loader is repr('Uninstantiable') {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

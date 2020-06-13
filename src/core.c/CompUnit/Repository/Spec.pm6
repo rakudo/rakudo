@@ -35,4 +35,4 @@ class CompUnit::Repository::Spec {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

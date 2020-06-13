@@ -8,4 +8,4 @@ my class IO::ArgFiles is IO::CatHandle {
 
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

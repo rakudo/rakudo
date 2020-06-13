@@ -41,3 +41,5 @@ say 'ok ', +"\o[62,064]";
 
 
 ## TODO a lot more
+
+# vim: expandtab shiftwidth=4

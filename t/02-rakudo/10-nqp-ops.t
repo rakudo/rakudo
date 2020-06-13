@@ -14,3 +14,5 @@ lives-ok {
 # https://github.com/Raku/old-issue-tracker/issues/6614
 is-run ｢use nqp; quietly print nqp::getlexdyn('&DEPRECATED'); print 'pass'｣,
     :out<pass>, 'getlexdyn op does not segfault';
+
+# vim: expandtab shiftwidth=4

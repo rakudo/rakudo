@@ -822,4 +822,4 @@ my class IO::Path::QNX    does IO::Path::Spec[IO::Spec::QNX   ] { }
 my class IO::Path::Unix   does IO::Path::Spec[IO::Spec::Unix  ] { }
 my class IO::Path::Win32  does IO::Path::Spec[IO::Spec::Win32 ] { }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

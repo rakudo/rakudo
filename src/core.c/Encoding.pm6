@@ -5,4 +5,4 @@ role Encoding {
     method decoder(*%options --> Encoding::Decoder) { ... }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

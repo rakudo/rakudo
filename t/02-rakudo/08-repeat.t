@@ -21,3 +21,5 @@ plan 5;
 
     throws-like({ $a = 'a' x 9999999999999999999 }, Exception, 'too large repeat count throws instead of going negative');
 }
+
+# vim: expandtab shiftwidth=4

@@ -533,4 +533,4 @@ multi sub infix:«<=>»(Int:D \a, Rational:D \b --> Order:D) {
     )
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -91,3 +91,5 @@ is $d2.ConstInt(123),         11, 'name mangling of parameter `const int`';
 my int32 $int_ptr = 123;
 is $d2.IntPtr($int_ptr),      12, 'name mangling of parameter `int *`';
 is $d2.ConstIntPtr($int_ptr), 13, 'name mangling of parameter `const int *`';
+
+# vim: expandtab shiftwidth=4

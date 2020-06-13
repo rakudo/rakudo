@@ -50,4 +50,4 @@ my role QuantHash does Associative {
     method Hash() { ... }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

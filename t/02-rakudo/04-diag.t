@@ -29,3 +29,5 @@ my @includes = $*REPO.repo-chain.map({ slip "-I", .path-spec });
                'diag message is in STDERR';
     }
 }
+
+# vim: expandtab shiftwidth=4

@@ -105,4 +105,4 @@ multi sub EVALFILE($filename, :$lang = 'Raku', Bool() :$check = False) {
     EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

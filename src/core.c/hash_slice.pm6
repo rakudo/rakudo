@@ -248,4 +248,4 @@ multi sub postcircumfix:<{; }>(\SELF, @indices, :$exists!) {
     recurse-at-key(SELF, @indices)
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

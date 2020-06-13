@@ -46,4 +46,4 @@ my role Rakudo::Internals::HyperJoiner does Rakudo::Internals::HyperWorkStage {
     method SET-BATCH-USED-CHANNEL($!batch-used-channel) {}
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

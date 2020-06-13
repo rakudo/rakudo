@@ -71,4 +71,4 @@ is TakeSizeT(42),     13, 'passed size_t 42';
 sub TakeSSizeT(ssize_t --> int32) is native('./02-simple-args') { * }
 is TakeSSizeT(-42),   14, 'passed ssize_t -42';
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

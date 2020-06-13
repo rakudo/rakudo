@@ -125,4 +125,4 @@ class Pod::Raw {
     has @.contents;
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

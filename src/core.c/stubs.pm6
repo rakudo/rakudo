@@ -66,4 +66,4 @@ sub DYNAMIC(\name) is raw {  # is implementation-detail
     Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

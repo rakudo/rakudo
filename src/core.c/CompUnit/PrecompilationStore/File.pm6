@@ -325,4 +325,4 @@ class CompUnit::PrecompilationStore::File
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

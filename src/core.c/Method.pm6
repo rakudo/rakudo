@@ -4,4 +4,4 @@ my class Method { # declared in BOOTSTRAP
     multi method gist(Method:D:) { self.name }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

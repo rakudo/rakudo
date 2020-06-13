@@ -112,4 +112,4 @@ my class Awaiter::Blocking does Awaiter {
 
 PROCESS::<$AWAITER> := Awaiter::Blocking;
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -60,4 +60,4 @@ multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
     }) );
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

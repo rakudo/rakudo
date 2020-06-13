@@ -206,4 +206,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*KERNEL', {
     PROCESS::<$KERNEL> := Kernel.new;
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

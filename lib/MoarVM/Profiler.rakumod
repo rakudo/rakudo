@@ -678,4 +678,4 @@ sub profile(&code --> MoarVM::Profiler:D) is export {
     MoarVM::Profiler.profile(&code)
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

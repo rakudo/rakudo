@@ -70,3 +70,5 @@ subtest "nqp::p6clientcore", {
 }
 
 done-testing;
+
+# vim: expandtab shiftwidth=4

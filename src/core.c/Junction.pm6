@@ -548,4 +548,4 @@ Mu.HOW.setup_junction_fallback(Junction, -> $name, |c {
         |c);
 } );
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

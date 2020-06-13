@@ -160,4 +160,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*THREAD', {
     PROCESS::<$THREAD> := $init_thread;
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

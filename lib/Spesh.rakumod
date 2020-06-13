@@ -378,4 +378,4 @@ sub MAIN($filename where *.IO.e) {
     say $spesh.cuids[1]>>.file-line.Bag;
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

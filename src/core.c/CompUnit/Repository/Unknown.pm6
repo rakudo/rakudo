@@ -28,4 +28,4 @@ class CompUnit::Repository::Unknown does CompUnit::Repository {
     method Str() { self.^name ~ " $.short-name $.path-spec" }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

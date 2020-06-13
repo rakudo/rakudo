@@ -1753,4 +1753,4 @@ proto sub exit($?, *%) {*}
 multi sub exit() { &*EXIT(0) }
 multi sub exit(Int(Any) $status) { &*EXIT($status) }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

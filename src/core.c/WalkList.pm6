@@ -48,4 +48,4 @@ my class WalkList is List {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

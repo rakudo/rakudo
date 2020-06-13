@@ -58,3 +58,5 @@ is-deeply
   non-implementation(SETTING::, /^ "&" <[a..z]> /).grep({ !/':'/ } ) (^) @lower,
   set(),
   "were any global lowercase SETTING:: subs added";
+
+# vim: expandtab shiftwidth=4

@@ -128,4 +128,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {
           Rakudo::Internals.tai-from-posix(Rakudo::Internals.INITTIME,0).Rat)
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

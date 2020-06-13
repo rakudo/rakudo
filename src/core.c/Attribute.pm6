@@ -262,4 +262,4 @@ multi sub trait_mod:<is>(Attribute:D $a, :$built!) {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

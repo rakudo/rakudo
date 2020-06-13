@@ -530,4 +530,4 @@ multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
     b.new(b.Instant + a).in-timezone(b.timezone)
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -84,4 +84,4 @@ my role Sequence does PositionalBindFailover {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

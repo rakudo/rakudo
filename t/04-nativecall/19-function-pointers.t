@@ -16,3 +16,5 @@ my $ptr              = ReturnFunctionPointer();
 my &ReturnedFunction = nativecast(:(--> int32), $ptr);
 
 is ReturnedFunction(), 42, 'Pointer cast to Perl 6 Sub';
+
+# vim: expandtab shiftwidth=4

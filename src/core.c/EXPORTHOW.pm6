@@ -18,4 +18,4 @@ my module EXPORTHOW {
     nqp::bindkey($?PACKAGE.WHO, 'definite', Perl6::Metamodel::DefiniteHOW);
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

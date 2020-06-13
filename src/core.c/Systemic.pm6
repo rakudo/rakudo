@@ -13,4 +13,4 @@ role Systemic {
     method Str(--> Str:D) { $.name }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

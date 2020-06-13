@@ -130,4 +130,4 @@
 
 #========== closed down the Array class started in src/core.c/Array.pm6  =======
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

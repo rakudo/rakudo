@@ -72,4 +72,4 @@ multi sub infix:<(.)>(**@p) {
 # U+228D MULTISET MULTIPLICATION
 my constant &infix:<⊍> := &infix:<(.)>;
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

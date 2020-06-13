@@ -84,4 +84,4 @@ class Compiler does Systemic {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

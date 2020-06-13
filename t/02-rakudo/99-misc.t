@@ -157,3 +157,5 @@ class ParameterChild is Parameter {
 is ParameterChild.new(foobar => 'Baz').foobar, 'Baz', 'Subclassing of Parameter works';
 
 is Parameter.new(:name('$a'), :type(Int), :optional).perl, 'Int $a?', 'Parameter takes by-name parameters itself';
+
+# vim: expandtab shiftwidth=4

@@ -508,4 +508,4 @@ multi sub postcircumfix:<[ ]>(\SELF, *%other) is raw {
     SELF.ZEN-POS(|%other);
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

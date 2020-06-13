@@ -56,3 +56,5 @@ is ReturnUint16(), 0xFFFE, 'returning uint16 works';
 
 sub ReturnUint32() returns uint32 is native('./03-simple-returns') { * }
 is ReturnUint32(), 0xFFFFFFFE, 'returning uint32 works';
+
+# vim: expandtab shiftwidth=4

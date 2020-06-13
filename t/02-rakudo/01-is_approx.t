@@ -68,4 +68,4 @@ plan 11;
     # however passes, since numbers themselves are smaller than 1e-5
 }
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4

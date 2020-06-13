@@ -150,4 +150,4 @@ my role Mixy does Baggy  {
     multi method BagHash(Baggy:D:) { BAGGIFY(self, BagHash) }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

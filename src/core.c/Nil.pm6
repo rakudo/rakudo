@@ -38,4 +38,4 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method MixHash() { MixHash.new(Nil) }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -36,4 +36,4 @@ multi sub infix:<eqv>(ObjAt:D \a, ObjAt:D \b --> Bool:D) {
     )
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

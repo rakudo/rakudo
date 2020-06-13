@@ -38,4 +38,4 @@ my class Rakudo::Internals::RaceToIterator does Rakudo::Internals::HyperJoiner d
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

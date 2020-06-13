@@ -12,3 +12,5 @@ my $x = '0';
 
 ($x == $x) && say 'ok 3';
 ($x != $x) || say 'ok 4';
+
+# vim: expandtab shiftwidth=4

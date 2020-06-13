@@ -26,3 +26,5 @@ END {
     $was_in_second_end_block = 1;
     say "ok 1";
 }
+
+# vim: expandtab shiftwidth=4

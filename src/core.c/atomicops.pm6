@@ -217,4 +217,4 @@ multi sub cas(atomicint $target is rw, &code) {
 }
 #?endif
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

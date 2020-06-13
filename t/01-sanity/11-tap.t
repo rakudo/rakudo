@@ -18,3 +18,5 @@ say 'ok 7 # skip';
 say 'ok 8 # skip bar';
 say 'not ok 9 # TODO';
 say 'not ok 10 # TODO baz';
+
+# vim: expandtab shiftwidth=4

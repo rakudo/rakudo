@@ -628,4 +628,4 @@ sub dd(|c) {  # is implementation-detail
     return
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

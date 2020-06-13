@@ -65,4 +65,4 @@ BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 
 {YOU_ARE_HERE}
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

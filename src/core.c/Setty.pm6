@@ -306,4 +306,4 @@ multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
     )
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

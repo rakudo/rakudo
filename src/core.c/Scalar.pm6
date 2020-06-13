@@ -43,4 +43,4 @@ my class IntPosRef  { }
 my class NumPosRef  { }
 my class StrPosRef  { }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

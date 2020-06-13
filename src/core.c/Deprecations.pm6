@@ -137,4 +137,4 @@ sub DEPRECATED(|c) is hidden-from-backtrace is implementation-detail {
     Rakudo::Deprecations.DEPRECATED(|c)
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

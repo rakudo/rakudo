@@ -466,4 +466,4 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$v!) is raw {
     )
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

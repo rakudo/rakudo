@@ -63,3 +63,5 @@ END {
 #    say "cleaning up @cleanup[]";
     unlink @cleanup;
 }
+
+# vim: expandtab shiftwidth=4

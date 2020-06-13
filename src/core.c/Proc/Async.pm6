@@ -485,4 +485,4 @@ my class Proc::Async {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -45,4 +45,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*COLLATION', {
     PROCESS::<$COLLATION> := Collation.new;
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

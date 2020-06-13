@@ -773,4 +773,4 @@ multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pval
 }
 #?endif
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

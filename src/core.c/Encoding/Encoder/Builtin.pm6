@@ -34,4 +34,4 @@ my class Encoding::Encoder::Builtin does Encoding::Encoder {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

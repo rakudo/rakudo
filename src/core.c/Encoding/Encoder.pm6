@@ -2,4 +2,4 @@ role Encoding::Encoder {
     method encode-chars(Str:D --> Blob:D) { ... }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

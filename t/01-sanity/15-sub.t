@@ -18,3 +18,5 @@ sub ok_auto {
 
 ok_auto();
 ok_auto;
+
+# vim: expandtab shiftwidth=4

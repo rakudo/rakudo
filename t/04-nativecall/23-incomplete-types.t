@@ -20,3 +20,5 @@ for (<CUnion CStruct CPPStruct>) -> $cls {
     my $bad = ("class Oops2$cls is repr(", $cls, ') { HAS Oops2'~$cls~' $.more; }').join(｢'｣);
     throws-like { EVAL $bad }, Exception, :message(/inline.*before.*definition/);
 }
+
+# vim: expandtab shiftwidth=4

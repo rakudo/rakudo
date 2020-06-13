@@ -72,4 +72,4 @@ PROCESS::<$SCHEDULER> = JavaScriptScheduler.new();
 BEGIN {nqp::p6setassociativetype(Associative);}
 #?endif
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

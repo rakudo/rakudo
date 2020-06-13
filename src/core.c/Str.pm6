@@ -3818,4 +3818,4 @@ sub parse-names(Str:D \names) {
 proto sub uniparse($, *%) {*}
 multi sub uniparse(Str:D \names --> Str:D) { names.uniparse }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

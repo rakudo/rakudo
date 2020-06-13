@@ -15,4 +15,4 @@ my class Encoding::Encoder::TranslateNewlineWrapper does Encoding::Encoder {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

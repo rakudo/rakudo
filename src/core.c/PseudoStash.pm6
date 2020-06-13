@@ -331,4 +331,4 @@ my class PseudoStash is Map {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

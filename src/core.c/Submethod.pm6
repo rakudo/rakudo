@@ -4,4 +4,4 @@ my class Submethod { # declared in BOOTSTRAP
     multi method gist(Submethod:D:) { self.name }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

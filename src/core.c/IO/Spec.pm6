@@ -33,4 +33,4 @@ my class IO::Spec {
 # temporary non-lazy initialization of $*SPEC
 PROCESS::<$SPEC> = IO::Spec.select;
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

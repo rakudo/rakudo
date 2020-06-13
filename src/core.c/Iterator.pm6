@@ -131,4 +131,4 @@ my role PredictiveIterator does Iterator {
     method bool-only(--> Bool:D) { self.count-only.Bool }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

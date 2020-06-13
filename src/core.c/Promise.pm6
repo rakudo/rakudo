@@ -327,4 +327,4 @@ multi sub infix:<eqv>(Promise:D \a, Promise:D \b --> Bool:D) {
     )
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

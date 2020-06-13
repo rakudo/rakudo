@@ -719,4 +719,4 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
     True
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

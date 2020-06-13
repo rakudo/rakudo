@@ -39,3 +39,5 @@ print 'ok ';
 say -(-13);
 print 'ok ';
 say abs -14;
+
+# vim: expandtab shiftwidth=4

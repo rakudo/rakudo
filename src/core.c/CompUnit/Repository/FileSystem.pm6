@@ -282,4 +282,4 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

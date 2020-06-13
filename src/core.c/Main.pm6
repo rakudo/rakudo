@@ -342,4 +342,4 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

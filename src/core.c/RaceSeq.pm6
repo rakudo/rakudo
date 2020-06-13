@@ -51,4 +51,4 @@ my class RaceSeq is Seq {
 }
 #?endif
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

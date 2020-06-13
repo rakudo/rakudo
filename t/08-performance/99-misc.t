@@ -36,3 +36,5 @@ unless $skip { # https://github.com/rakudo/rakudo/issues/1740
     cmp-ok $t-hyper, '≤', $t-plain*10,
         'hypered .grep .is-prime is not hugely slower than plain grep';
 }
+
+# vim: expandtab shiftwidth=4

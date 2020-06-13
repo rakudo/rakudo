@@ -7,3 +7,5 @@ say '1..1';
 my $a = 1 eqv 3;
 
 say 'ok 1';
+
+# vim: expandtab shiftwidth=4

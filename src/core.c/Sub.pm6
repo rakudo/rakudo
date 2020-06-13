@@ -3,4 +3,4 @@ my class Sub { # declared in BOOTSTRAP
 
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

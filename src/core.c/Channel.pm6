@@ -312,4 +312,4 @@ my class Channel does Awaitable {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

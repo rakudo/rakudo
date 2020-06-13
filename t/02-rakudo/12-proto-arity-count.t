@@ -415,3 +415,5 @@ sub all-the-protos {
     &wordcase,
     &words,
 }
+
+# vim: expandtab shiftwidth=4

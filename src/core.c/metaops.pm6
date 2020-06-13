@@ -598,4 +598,4 @@ multi sub duckmap(\op, Associative \h) {
     hash @keys Z duckmap(op, h{@keys})
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

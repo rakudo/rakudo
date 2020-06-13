@@ -18,3 +18,5 @@ qast-is ｢(* + * + *)(1, 2, 3)｣, :target<ast>, -> \v {
       }
       $seen ≤ 1;
 }, 'whatever curries with 3+ args do not duplicate p6bindsig op';
+
+# vim: expandtab shiftwidth=4

@@ -260,4 +260,4 @@ my class MixHash does Mixy {
     multi method values(MixHash:D:) { Seq.new(Values.new($!elems)) }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

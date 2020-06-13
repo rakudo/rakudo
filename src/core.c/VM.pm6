@@ -137,4 +137,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*VM', {
     PROCESS::<$VM> := VM.new;
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

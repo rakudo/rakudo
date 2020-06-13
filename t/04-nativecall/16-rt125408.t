@@ -25,3 +25,5 @@ lives-ok {
 }, "stayed fixed";
 
 
+
+# vim: expandtab shiftwidth=4

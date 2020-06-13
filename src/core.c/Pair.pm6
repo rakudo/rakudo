@@ -210,4 +210,4 @@ multi sub infix:«=>»(Mu $key, Mu \value) { Pair.new($key, value) }
 proto sub pair(Mu, Mu, *%) is pure {*}
 multi sub pair(Mu \key, Mu \value) { Pair.new(key, value) }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

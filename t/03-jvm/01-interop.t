@@ -171,3 +171,5 @@ plan 30;
         skip 2;
     }
 }
+
+# vim: expandtab shiftwidth=4

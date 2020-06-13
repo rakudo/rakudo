@@ -53,4 +53,4 @@ atadistance();
 refresh($s);
 is($s.ptr.deref, 42, 'struct value after refresh');
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

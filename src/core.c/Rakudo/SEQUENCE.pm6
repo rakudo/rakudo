@@ -365,4 +365,4 @@ sub SEQUENCE(
         !! (gathered.Slip, Slip.from-iterator(righti)).iterator
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

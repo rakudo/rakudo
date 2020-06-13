@@ -1387,4 +1387,4 @@ my class Array { # declared in BOOTSTRAP
 
 #=============== class Array is closed in src/core.c/TypedArray.pm6 ============
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

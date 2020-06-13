@@ -75,4 +75,4 @@ my class IO::Pipe is IO::Handle {
     method path { IO::Path }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

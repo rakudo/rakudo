@@ -47,4 +47,4 @@ my class Grammar is Match {
     }
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

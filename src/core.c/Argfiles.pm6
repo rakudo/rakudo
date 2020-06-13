@@ -13,4 +13,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*ARGFILES', {
       !! $*IN
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -11,4 +11,4 @@ multi sub postcircumfix:<{ }>(WrappedJSObject \SELF, \key, \value) is raw {
   nqp::setjsattr(SELF, key, value);
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

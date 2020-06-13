@@ -909,4 +909,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DEFAULT-READ-ELEMS', {
     PROCESS::<$DEFAULT-READ-ELEMS> := %*ENV<RAKUDO_DEFAULT_READ_ELEMS> // 65536;
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

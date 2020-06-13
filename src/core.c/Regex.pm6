@@ -136,4 +136,4 @@ multi sub infix:<~~>(Mu \topic, Regex:D \matcher) {
     matcher.ACCEPTS(topic)
 }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

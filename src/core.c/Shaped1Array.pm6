@@ -250,4 +250,4 @@
         method sum() is nodal { self.List::sum }
     }
 
-# vim: expandtab sw=4
+# vim: expandtab shiftwidth=4

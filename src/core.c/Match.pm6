@@ -123,25 +123,13 @@ my class Match is Capture is Cool does NQPMatchRole {
                                   0
                                 ),
                                 nqp::if(                    # positional capture
-                                  nqp::istype(
-                                    (my $p := nqp::atpos($list,$name)),
-                                    List
-                                  ),
-                                  nqp::push(
-                                    nqp::getattr($p,List,'$!reified'),
-                                    $match
-                                  ),
+                                  nqp::istype(nqp::atpos($list,$name),Array),
+                                  nqp::atpos($list,$name).push($match),
                                   nqp::bindpos($list,$name,$match)  # XXX
                                 ),
                                 nqp::if(                    # named capture
-                                  nqp::istype(
-                                    (my $n := nqp::atkey($hash,$name)),
-                                    List
-                                  ),
-                                  nqp::push(
-                                    nqp::getattr($n,List,'$!reified'),
-                                    $match
-                                  ),
+                                  nqp::istype(nqp::atkey($hash,$name),Array),
+                                  nqp::atkey($hash,$name).push($match),
                                   nqp::bindkey($hash,$name,$match)  # XXX
                                 )
                               )

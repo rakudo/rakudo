@@ -2780,22 +2780,27 @@ class Rakudo::Iterator {
             )
         }
         method push-all(\target --> IterationEnd) {
-            my $string      := $!string;
-            my $iterator    := $!iterator;
-            my int $last-pos = $!last-pos;
+            if nqp::isge_i($!last-pos,0) {
+                my $string      := $!string;
+                my $iterator    := $!iterator;
+                my int $last-pos = $!last-pos;
 
-            nqp::until(
-              nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
-              nqp::stmts(
-                target.push(nqp::substr(
-                  $string,
-                  $last-pos,
-                  nqp::sub_i(nqp::getattr_i($cursor,Match,'$!from'),$last-pos)
-                )),
-                ($last-pos = nqp::getattr_i($cursor,Match,'$!pos'))
-              )
-            );
-            target.push(nqp::substr($string,$last-pos));
+                nqp::until(
+                  nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+                  nqp::stmts(
+                    target.push(nqp::substr(
+                      $string,
+                      $last-pos,
+                      nqp::sub_i(
+                        nqp::getattr_i($cursor,Match,'$!from'),
+                        $last-pos
+                      )
+                    )),
+                    ($last-pos = nqp::getattr_i($cursor,Match,'$!pos'))
+                  )
+                );
+                target.push(nqp::substr($string,$last-pos));
+            }
         }
     }
 

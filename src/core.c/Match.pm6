@@ -1,4 +1,18 @@
 my class Match is Capture is Cool does NQPMatchRole {
+# from NQPMatchRole
+#    has int $!from;  # start position of match
+#    has int $!pos;   # current cursor position
+#    has int $!to;    # (if negative, use $!pos)
+#    has $!shared;    # shared parse attributes, see ParseShared
+#    has $!braid;     # current braid
+#    has $!bstack;    # backtracking stack
+#    has $!cstack;    # captures stack
+#    has $!regexsub;  # actual sub for running the regex
+#    has $!restart;   # sub for restarting a search
+#    has $!made;      # value set by "make"
+#    has $!match;     # flag indicating Match object set up (NQPdidMATCH)
+#    has str $!name;  # name if named capture
+
     my Mu $EMPTY_LIST := nqp::list();
     my Mu $EMPTY_HASH := nqp::hash();
 

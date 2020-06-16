@@ -29,7 +29,7 @@ proto sub EVAL(
   Str()       :$lang is copy = 'Raku',
   PseudoStash :$context,
   Str()       :$filename = Str,
-  Bool()      :$check = False,
+  Bool()      :$check,
   *%_
 ) {
     die "EVAL() in Raku is intended to evaluate strings, did you mean 'try'?"
@@ -86,7 +86,7 @@ multi sub EVAL(
   Str :$lang where { ($lang // '') eq 'Perl5' },
   PseudoStash :$context,
   Str() :$filename = Str,
-  Bool() :$check = False,
+  :$check,
 ) {
     if $check {
         X::NYI.new(feature => ":check on EVAL :from<Perl5>").throw;
@@ -101,7 +101,7 @@ multi sub EVAL(
 }
 
 proto sub EVALFILE($, *%) {*}
-multi sub EVALFILE($filename, :$lang = 'Raku', Bool() :$check = False) {
+multi sub EVALFILE($filename, :$lang = 'Raku', :$check) {
     EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
 }
 

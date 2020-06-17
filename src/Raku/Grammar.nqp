@@ -500,7 +500,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
         | <OPER=postcircumfix>
         | '.' <?[ [ { < ]> <OPER=postcircumfix>
-#        | <OPER=dotty>
+        | <OPER=dotty>
 #        | <OPER=privop>
 #        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
 #            [
@@ -533,6 +533,44 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('subscript')
         '{' ~ '}' [ <.ws> <semilist> ]
         <O(|%methodcall)>
+    }
+
+    proto token dotty { <...> }
+    token dotty:sym<.> {
+        <sym> <dottyop>
+        <O(|%methodcall)>
+    }
+
+    token dottyop {
+        :dba('dotty method or postfix')
+        <.unsp>?
+        [
+        | <methodop>
+#        | <colonpair>
+        | <!alpha> <postop> $<O> = {$<postop><O>} $<sym> = {$<postop><sym>}
+        ]
+    }
+
+    token methodop {
+        [
+        | <longname> {
+                if $<longname> eq '::' { self.malformed("class-qualified postfix call") }
+          }
+#        | <?[$@&]> <variable>
+#        | <?['"]>
+#            [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
+#            <quote>
+#            [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
+        ] <.unsp>?
+        :dba('method arguments')
+        [
+            [
+            | <?[(]> <args>
+            | ':' <?before \s | '{'> <!{ $*QSIGIL }> <args=.arglist>
+            ]
+            || <!{ $*QSIGIL }> <?>
+            || <?{ $*QSIGIL }> <?[.]> <?>
+        ] <.unsp>?
     }
 
     token prefix:sym<++>  { <sym>  <O(|%autoincrement)> }

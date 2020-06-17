@@ -729,6 +729,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<fff^> { <sym> <O(|%conditional_ff)> }
     token infix:sym<^fff^> { <sym> <O(|%conditional_ff)> }
 
+    token infix:sym<=> {
+        <sym>
+        [
+        || <?{ $*LEFTSIGIL eq '$' || $*IN_META }> <O(|%item_assignment)>
+        || <O(|%list_assignment)>
+        ]
+        { $*LEFTSIGIL := '' }
+    }
+
+    token infix:sym<⚛=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛+=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛-=> { <sym> <O(|%item_assignment)> }
+    token infix:sym<⚛−=> { <sym> <O(|%item_assignment)> }
+
     token infix:sym<and>  { <sym> >> <O(|%loose_and, :iffy(1))> }
 
     token infix:sym<or>   { <sym> >> <O(|%loose_or, :iffy(1), :assoc<left>)> }

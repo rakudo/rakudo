@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 65;
+plan 66;
 
 {
     my $x = 42;
@@ -141,6 +141,27 @@ throws-like
     nok result.VAR.dynamic, 'Is not dynamic';
     lives-ok { result = 42 },
         'Can update the container that was produced';
+}
+
+{
+    my \result = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Declaration::Var.new(
+                name => '@var',
+                initializer => RakuAST::Initializer::Assign.new(
+                    RakuAST::ApplyListInfix.new(
+                        infix => RakuAST::Infix.new(','),
+                        operands => (RakuAST::IntLiteral.new(22), RakuAST::IntLiteral.new(33))
+                    )
+                )
+            )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('@var')
+        ),
+    ));
+    is-deeply result, [22,33],
+        'Lexical array declarations with assignment initializer works';
 }
 
 {

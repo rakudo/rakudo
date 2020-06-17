@@ -93,68 +93,55 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        # Need container descriptor, even for aggregate.
-        my @lookups := [
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('ContainerDescriptor')),
-        ];
-
-        # If it's an @ or % sigil, we need the aggergate type; if not,
-        # fall back to Scalar.
-        my str $sigil := self.sigil;
-        if $sigil eq '@' {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Array')));
-        }
-        elsif $sigil eq '%' {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Hash')));
-        }
-        else {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Scalar')));
-        }
-
-        # Also the type that goes inside of it.
+        # If we have a type, we need to resolve that.
+        my @lookups;
         if $!type {
-            @lookups.push($!type); # Constraint
-            @lookups.push($!type); # Default
+            @lookups.push($!type);
         }
-        else {
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Mu')));
-            @lookups.push(RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Any')));
-        }
-
         self.IMPL-WRAP-LIST(@lookups)
     }
 
     method PRODUCE-META-OBJECT() {
-        # If it's a natively typed scalar, no container.
+        # Extract implicit lookups.
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $of := @lookups[2].resolution.compile-time-value;
+        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+
+        # If it's a natively typed scalar, no container.
         my str $sigil := self.sigil;
-        if $sigil eq '$' && nqp::objprimspec($of) {
+        my int $is-native := nqp::objprimspec($of);
+        if $sigil eq '$' && $is-native {
             return Nil;
         }
 
         # Form container descriptor.
-        my $cont-desc-type := @lookups[0].resolution.compile-time-value;
-        my $default := @lookups[3].resolution.compile-time-value;
+        my $default := $!type ?? $of !! Any;
         my int $dynamic := self.twigil eq '*' ?? 1 !! 0;
-        my $cont-desc := $cont-desc-type.new(:$of, :$default, :$dynamic,
+        my $cont-desc := ContainerDescriptor.new(:$of, :$default, :$dynamic,
             :name($!name));
 
         # Form the container.
-        my $container-type := @lookups[1].resolution.compile-time-value;
-        my $container;
-        if nqp::isconcrete($!type) && $sigil eq '@' {
-            $container := nqp::create($container-type.HOW.parameterize($container-type, $of));
+        my $container-base-type;
+        my $container-type;
+        if $sigil eq '@' {
+            $container-base-type := Array;
+            $container-type := $!type
+                ?? Array.HOW.parameterize(Array, $of)
+                !! Array;
         }
-        elsif nqp::isconcrete($!type) && $sigil eq '%' {
-            $container := nqp::create($container-type.HOW.parameterize($container-type, $of));
+        elsif $sigil eq '%' {
+            $container-base-type := Hash;
+            $container-type := $!type
+                ?? Hash.HOW.parameterize(Hash, $of)
+                !! Hash;
         }
         else {
-            $container := nqp::create($container-type);
+            $container-base-type := Scalar;
+            $container-type := Scalar;
         }
-        nqp::bindattr($container, $container-type, '$!descriptor', $cont-desc);
+        my $container := nqp::create($container-type);
+        nqp::bindattr($container, $container-base-type, '$!descriptor', $cont-desc);
         unless $sigil eq '@' || $sigil eq '%' {
-            nqp::bindattr($container, $container-type, '$!value', $default);
+            nqp::bindattr($container, $container-base-type, '$!value', $default);
         }
 
         $container
@@ -162,7 +149,7 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $of := @lookups[2].resolution.compile-time-value;
+        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
         my str $sigil := self.sigil;
         if $sigil eq '$' && nqp::objprimspec($of) {
             # Natively typed; just declare it.
@@ -192,9 +179,9 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
         my str $sigil := self.sigil;
         my $var-access := QAST::Var.new( :$name, :scope<lexical> );
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $of := @lookups[2].resolution.compile-time-value;
+        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
         if $sigil eq '$' && (my int $prim-spec := nqp::objprimspec($of)) {
-            # Natively typed value. Need to initializer it to a default
+            # Natively typed value. Need to initialize it to a default
             # in the absence of an initializer.
             my $init;
             if $!initializer {
@@ -252,7 +239,8 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
             # Potentially l-value native lookups need a lexicalref.
             if self.sigil eq '$' {
                 my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-                if nqp::objprimspec(@lookups[2].resolution.compile-time-value) {
+                my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+                if nqp::objprimspec($of) {
                     $scope := 'lexicalref';
                 }
             }

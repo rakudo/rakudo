@@ -612,7 +612,7 @@ my class Hash { # declared in BOOTSTRAP
               Rakudo::Iterator.ReifiedList(
                 Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
                   self.IterationBuffer.List,
-                  { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
+                  *.key
                 )
               )
             )

@@ -13,7 +13,7 @@ my class Grammar is Match {
             $grammar."$rule"()
           )),
           nqp::stmts(
-            (my int $chars = nqp::chars($orig)),
+            (my int $chars = $orig.chars),  # must be HLL, $orig can be Cool
             nqp::while(
               $cursor
                 && nqp::isne_i(nqp::getattr_i($cursor,Match,'$!pos'),$chars),

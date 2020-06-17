@@ -217,8 +217,14 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
                 else {
                     # Assignment. Case-analyze by sigil.
                     if $sigil eq '@' || $sigil eq '%' {
-                        # Call STORE method.
-                        nqp::die('array/hash init NYI');
+                        # Call STORE method, passing :INITIALIZE to indicate it's
+                        # the initialization for immutable types.
+                        QAST::Op.new(
+                            :op('callmethod'), :name('STORE'),
+                            $var-access,
+                            $init-qast,
+                            QAST::WVal.new( :named('INITIALIZE'), :value(True) )
+                        )
                     }
                     else {
                         # Scalar assignment.

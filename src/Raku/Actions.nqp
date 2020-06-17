@@ -270,6 +270,32 @@ class Raku::Actions is HLL::Actions {
         make self.r('Postcircumfix', 'HashIndex').new($<semilist>.ast);
     }
 
+    method dotty:sym<.>($/) {
+        make $<dottyop>.ast;
+    }
+
+    method dottyop($/) {
+        if $<methodop> {
+            make $<methodop>.ast;
+        }
+        elsif $<postop> {
+            make $<postop>.ast;
+        }
+        else {
+            nqp::die('NYI kind of dottyop');
+        }
+    }
+
+    method methodop($/) {
+        my $args := $<args> ?? $<args>.ast !! self.r('ArgList').new();
+        if $<longname> {
+            make self.r('Call', 'Method').new(:name($<longname>.ast), :$args);
+        }
+        else {
+            nqp::die('NYI kind of methodop');
+        }
+    }
+
     method infixish($/) {
         my $ast;
         if $<infix> {

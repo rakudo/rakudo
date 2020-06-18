@@ -539,7 +539,7 @@ my class IO::Path is Cool does IO {
             X::IO::Dir.new(:path(self.absolute), :os-error(.Str)).throw
         } }
 
-        Seq.new: Rakudo::Iterator.Dir(self, $test)
+        Seq.new: Rakudo::Iterator.Dir(self.cleanup, $test)
     }
 
     multi method dir(IO::Path:D:) {
@@ -549,8 +549,8 @@ my class IO::Path is Cool does IO {
 
         # if default tester is system default, use implicit no . .. iterator
         Seq.new: nqp::eqaddr($!SPEC.curupdir,IO::Spec::Unix.curupdir)
-          ?? Rakudo::Iterator.Dir(self)
-          !! Rakudo::Iterator.Dir(self, $!SPEC.curupdir)
+          ?? Rakudo::Iterator.Dir(self.cleanup)
+          !! Rakudo::Iterator.Dir(self.cleanup, $!SPEC.curupdir)
     }
 
     # slurp contents of low level handle

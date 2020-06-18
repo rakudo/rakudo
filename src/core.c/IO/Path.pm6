@@ -526,11 +526,13 @@ my class IO::Path is Cool does IO {
     # create prefix to be added to each directory entry
     method prefix-for-dir() is implementation-detail {
         my str $dir-sep = $!SPEC.dir-sep;
-        nqp::iseq_s($!path,'.') || nqp::iseq_s($!path,$dir-sep)
+        nqp::iseq_s($!path,'.')
           ?? ''
-          !! $!path.ends-with($dir-sep)
-            ?? $!path
-            !! nqp::concat($!path,$dir-sep)
+          !! nqp::iseq_s($!path,$dir-sep)
+            ?? $dir-sep
+            !! $!path.ends-with($dir-sep)
+              ?? $!path
+              !! nqp::concat($!path,$dir-sep)
     }
 
     proto method dir(|) {*} # make it possible to augment with multies from modulespace

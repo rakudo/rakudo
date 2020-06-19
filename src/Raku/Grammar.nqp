@@ -834,6 +834,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         '[' ~ ']' <semilist>
     }
 
+    token circumfix:sym<{ }> {
+        <?[{]> <pblock($PBLOCK_OPTIONAL_TOPIC)>
+    }
+
     ##
     ## Terms
     ##

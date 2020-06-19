@@ -286,7 +286,7 @@ my class Proc::Async {
         $promise
     }
 
-    method !win-quote-CommandLineToArgvW(*@args where .so) {
+    method !win-quote-CommandLineToArgvW(*@args) {
         my @quoted_args;
         for @args -> $arg {
             if !$arg.contains(' ') && !$arg.contains('"') && !$arg.contains('\t') && !$arg.contains('\n') && !$arg.contains('\v') {
@@ -331,7 +331,7 @@ my class Proc::Async {
 #?if !jvm
         my @quoted-args;
         if Rakudo::Internals.IS-WIN {
-            @quoted-args.push($!win-verbatim-args
+            @quoted-args.append($!win-verbatim-args
                 ?? @!args.join(' ')
                 !! self!win-quote-CommandLineToArgvW(@!args));
         }

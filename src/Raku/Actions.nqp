@@ -620,14 +620,20 @@ class Raku::QActions is HLL::Actions {
     method nibbler($/) {
         my @segments;
         my $lastlit := '';
+        my $StrLiteral := self.r('StrLiteral');
 
         for @*nibbles {
             if nqp::istype($_, NQPMatch) {
-                if nqp::isstr($_.ast) {
-                    $lastlit := $lastlit ~ $_.ast;
+                my $ast := $_.ast;
+                if nqp::isstr($ast) {
+                    $lastlit := $lastlit ~ $ast;
                 }
                 else {
-                    nqp::die('complex quoted strings NYI');
+                    if $lastlit ne '' {
+                        @segments.push: $StrLiteral.new($*LITERALS.intern-str($lastlit));
+                        $lastlit := '';
+                    }
+                    @segments.push($ast);
                 }
             }
             else {
@@ -636,7 +642,7 @@ class Raku::QActions is HLL::Actions {
         }
 
         if $lastlit ne '' || !@segments {
-            @segments.push: self.r('StrLiteral').new($*LITERALS.intern-str($lastlit));
+            @segments.push: $StrLiteral.new($*LITERALS.intern-str($lastlit));
         }
 
         make self.r('QuotedString').new(|@segments);
@@ -673,4 +679,9 @@ class Raku::QActions is HLL::Actions {
     }
     method backslash:sym<x>($/) { make self.ints_to_string( $<hexint> ?? $<hexint> !! $<hexints><hexint> ) }
     method backslash:sym<0>($/) { make "\c[0]" }
+
+    method escape:sym<$>($/) { make $<EXPR>.ast; }
+    method escape:sym<@>($/) { make $<EXPR>.ast; }
+    method escape:sym<%>($/) { make $<EXPR>.ast; }
+    method escape:sym<&>($/) { make $<EXPR>.ast; }
 }

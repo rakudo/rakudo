@@ -23,7 +23,8 @@ class RakuAST::Code is RakuAST::Node {
 }
 
 # A block, either without signature or with only a placeholder signature.
-class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta {
+class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
+                     is RakuAST::BlockStatementSensitive {
     has RakuAST::Blockoid $.body;
 
     method new(RakuAST::Blockoid :$body) {
@@ -93,16 +94,23 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         }
         else {
             # Not immediate, so already produced as a declaration above; just
-            # closure clone it.
+            # closure clone it. Only invoke if it's a bare block.
             my $code-obj := self.meta-object;
-            QAST::Op.new(
+            my $ast := QAST::Op.new(
                 :op('p6capturelex'),
                 QAST::Op.new(
                     :op('callmethod'), :name('clone'),
                     QAST::WVal.new( :value($code-obj) )
                 )
-            )
+            );
+            self.bare-block
+                ?? QAST::Op.new( :op('call'), $ast )
+                !! $ast
         }
+    }
+
+    method bare-block() {
+        self.is-block-statement
     }
 
     method visit-children(Code $visitor) {
@@ -126,6 +134,8 @@ class RakuAST::PointyBlock is RakuAST::Block {
         nqp::bindattr(self, RakuAST::PointyBlock, '$!signature', $new-signature);
         Nil
     }
+
+    method bare-block() { False }
 
     method visit-children(Code $visitor) {
         $visitor($!signature);

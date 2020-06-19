@@ -39,8 +39,16 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         while $i < $n {
             my $cur-statement := @statements[$i];
             $cur-statement.apply-sink($i == $wanted-statement ?? False !! True);
-            if $has-block-parent && nqp::istype($cur-statement, RakuAST::BlockStatementSensitive) {
-                $cur-statement.mark-block-statement();
+            if $has-block-parent {
+                if nqp::istype($cur-statement, RakuAST::BlockStatementSensitive) {
+                    $cur-statement.mark-block-statement();
+                }
+                elsif nqp::istype($cur-statement, RakuAST::Statement::Expression) {
+                    my $expr := $cur-statement.expression;
+                    if nqp::istype($expr, RakuAST::BlockStatementSensitive) {
+                        $expr.mark-block-statement();
+                    }
+                }
             }
             $i++;
         }
@@ -120,7 +128,7 @@ class RakuAST::IMPL::ImmediateBlockUser is RakuAST::Node {
 
 # An if conditional, with optional elsif/orwith/else parts.
 class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
-                             is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser{
+                             is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
     has Mu $!elsifs;

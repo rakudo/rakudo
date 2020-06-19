@@ -323,6 +323,11 @@ class Raku::Actions is HLL::Actions {
         make self.r('Circumfix', 'ArrayComposer').new($<semilist>.ast);
     }
 
+    method circumfix:sym<{ }>($/) {
+        # TODO hash replacement based upon content
+        make $<pblock>.ast;
+    }
+
     ##
     ## Terms
     ##

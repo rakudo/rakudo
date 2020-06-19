@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 13;
+plan 19;
 
 {
     my $block := EVAL RakuAST::StatementList.new(
@@ -52,4 +52,52 @@ plan 13;
     is $block(199), 199, 'Invoking the block with an argument returns the expected value';
     dies-ok { $block(my $a = 42) = 1 }, 'Argument is bound read-only';
     dies-ok { $block() }, 'Invoking the block without an argument dies';
+}
+
+{
+    my $x = 99;
+    my $result := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::ApplyPostfix.new(
+                            operand => RakuAST::Var::Lexical.new('$x'),
+                            postfix => RakuAST::Postfix.new('++')
+                        )
+                    )
+                ))
+            )
+        )
+    );
+    is-deeply $result, 99, 'Bare block at statement level is executed';
+    is-deeply $x, 100, 'Side-effects were performed as expected';
+}
+
+{
+    my $x = 99;
+    my $result := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Circumfix::Parentheses.new(
+                RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Block.new(
+                            body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                                RakuAST::Statement::Expression.new(
+                                    RakuAST::ApplyPostfix.new(
+                                        operand => RakuAST::Var::Lexical.new('$x'),
+                                        postfix => RakuAST::Postfix.new('++')
+                                    )
+                                )
+                            ))
+                        )
+                    )
+                )
+            )
+        )
+    );
+    is-deeply $result.WHAT, Block, 'Bare block in parentheses evaluates to Block';
+    is-deeply $x, 99, 'No side-effects were performed';
+    is-deeply $result(), 99, 'Can evaluate the returned block';
+    is-deeply $x, 100, 'Block did perform side-effects when evaluated';
 }

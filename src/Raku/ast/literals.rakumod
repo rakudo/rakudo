@@ -126,8 +126,32 @@ class RakuAST::QuotedString is RakuAST::Term {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        nqp::die("multi-segment quoted strings NYI") unless nqp::elems($!segments) == 1;
-        $!segments[0].IMPL-TO-QAST($context)
+        my @segment-asts;
+        for $!segments {
+            if $_.type =:= Str {
+                @segment-asts.push($_.IMPL-TO-QAST($context));
+            }
+            else {
+                @segment-asts.push(QAST::Op.new(
+                    :op('callmethod'), :name('Str'),
+                    $_.IMPL-TO-QAST($context)
+                ));
+            }
+        }
+        my int $seg-count := nqp::elems(@segment-asts);
+        if $seg-count == 1 {
+            @segment-asts[0]
+        }
+        elsif $seg-count == 2 {
+            QAST::Op.new( :op('concat'), @segment-asts[0], @segment-asts[1] )
+        }
+        else {
+            QAST::Op.new(
+                :op('join'),
+                QAST::SVal.new( :value('') ),
+                QAST::Op.new( :op('list_s'), |@segment-asts )
+            )
+        }
     }
 
     method visit-children(Code $visitor) {

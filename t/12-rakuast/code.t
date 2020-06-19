@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 19;
+plan 25;
 
 {
     my $block := EVAL RakuAST::StatementList.new(
@@ -100,4 +100,31 @@ plan 19;
     is-deeply $x, 99, 'No side-effects were performed';
     is-deeply $result(), 99, 'Can evaluate the returned block';
     is-deeply $x, 100, 'Block did perform side-effects when evaluated';
+}
+
+{
+    my $sub := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Sub.new(
+                signature => RakuAST::Signature.new(
+                    parameters => (
+                        RakuAST::Parameter.new(
+                            target => RakuAST::ParameterTarget::Var.new('$param')
+                        ),
+                    )
+                ),
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Var::Lexical.new('$param')
+                    )
+                ))
+            )
+        )
+    );
+    ok $sub.WHAT === Sub, 'A sub node evaluates to a Sub';
+    is $sub.signature.params.elems, 1, 'The sub has one parameter';
+    is-deeply $sub.arity, 1, 'The block has 1 arity';
+    is-deeply $sub.count, 1, 'The block has 1 count';
+    is $sub(189), 189, 'Invoking the sub with an argument returns the expected value';
+    dies-ok { $sub() }, 'Invoking the sub without an argument dies';
 }

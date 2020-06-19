@@ -346,6 +346,10 @@ class Raku::Actions is HLL::Actions {
         make $<scope_declarator>.ast;
     }
 
+    method term:sym<routine_declarator>($/) {
+        make $<routine_declarator>.ast;
+    }
+
     method term:sym<lambda>($/) {
         make $<pblock>.ast;
     }
@@ -413,6 +417,20 @@ class Raku::Actions is HLL::Actions {
         my $decl := self.r('Declaration', 'Var').new(:$name, :$initializer);
         $*R.declare-lexical($decl);
         make $decl;
+    }
+
+    method routine_declarator:sym<sub>($/) {
+        make $<routine_def>.ast;
+    }
+
+    method routine_def($/) {
+        my $routine := $*BLOCK;
+        if $<signature> {
+            $routine.replace-signature($<signature>.ast);
+        }
+        $routine.replace-body($<blockoid>.ast);
+        $routine.calculate-sink();
+        make $routine;
     }
 
     ##
@@ -564,6 +582,11 @@ class Raku::Actions is HLL::Actions {
     }
 
     method longname($/) {
+        # TODO add colonpairs
+        make $<name>.ast;
+    }
+
+    method deflongname($/) {
         # TODO add colonpairs
         make $<name>.ast;
     }

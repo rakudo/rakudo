@@ -218,18 +218,18 @@ class Raku::Actions is HLL::Actions {
     ##
 
     method EXPR($/, $KEY?) {
+        my $ast := $/.ast // $<OPER>.ast;
         if $KEY {
             my $key := nqp::lc($KEY);
             if $KEY eq 'INFIX' {
-                my $infix := $<OPER>.ast;
-                unless $infix {
+                unless $ast {
                     my $type := $<OPER><O>.made<assoc> eq 'chain'
                         ?? self.r('Infix', 'Chaining')
                         !! self.r('Infix');
-                    $infix := $type.new($<infix><sym>);
+                    $ast := $type.new($<infix><sym>);
                 }
                 make self.r('ApplyInfix').new:
-                    infix => $infix,
+                    infix => $ast,
                     left => $/[0].ast,
                     right => $/[1].ast;
             }
@@ -239,17 +239,17 @@ class Raku::Actions is HLL::Actions {
                     @operands.push($_.ast);
                 }
                 make self.r('ApplyListInfix').new:
-                    infix => $<OPER>.ast // self.r('Infix').new($<infix><sym>),
+                    infix => $ast // self.r('Infix').new($<infix><sym>),
                     operands => @operands;
             }
             elsif $KEY eq 'PREFIX' {
                 make self.r('ApplyPrefix').new:
-                    prefix => $<OPER>.ast // self.r('Prefix').new($<prefix><sym>),
+                    prefix => $ast // self.r('Prefix').new($<prefix><sym>),
                     operand => $/[0].ast;
             }
             elsif $KEY eq 'POSTFIX' {
                 make self.r('ApplyPostfix').new:
-                    postfix => $<OPER>.ast // self.r('Postfix').new($<postfix><sym>),
+                    postfix => $ast // self.r('Postfix').new($<postfix><sym>),
                     operand => $/[0].ast;
             }
             else {
@@ -258,7 +258,7 @@ class Raku::Actions is HLL::Actions {
         }
         else {
             # Just a term.
-            make $/.ast;
+            make $ast;
         }
     }
 
@@ -304,7 +304,15 @@ class Raku::Actions is HLL::Actions {
         else {
             nqp::die('unknown kind of infix');
         }
+        if $<infix_postfix_meta_operator> {
+            $ast := $<infix_postfix_meta_operator>.ast.new:
+                $ast // self.r('Infix').new(~$<infix>);
+        }
         make $ast;
+    }
+
+    method infix_postfix_meta_operator:sym<=>($/) {
+        make self.r('MetaInfix', 'Assign');
     }
 
     method circumfix:sym<( )>($/) {

@@ -429,6 +429,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     my %loose_orelse    := nqp::hash('prec', 'c=', 'assoc', 'list', 'dba', 'loose or', 'thunky', '.b');
     my %sequencer       := nqp::hash('prec', 'b=', 'assoc', 'list', 'dba', 'sequencer');
 
+    method can_meta($op, $meta, $reason = "fiddly") {
+        if $op<OPER> && $op<OPER><O>.made{$reason} == 1 {
+            self.typed_panic: "X::Syntax::CannotMeta", :$meta, operator => ~$op<OPER>, dba => ~$op<OPER><O>.made<dba>, reason => "too $reason";
+        }
+        self;
+    }
+
     method EXPR(str $preclim = '') {
         my $*LEFTSIGIL := '';
         nqp::findmethod(HLL::Grammar, 'EXPR')(self, $preclim, :noinfix($preclim eq 'y='));
@@ -456,8 +463,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             | <infix> { $*OPER := $<infix> }
             | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
             ]
-#            [ <?before '='> <infix_postfix_meta_operator> { $*OPER := $<infix_postfix_meta_operator> }
-#            ]?
+            [ <?before '='> <infix_postfix_meta_operator> { $*OPER := $<infix_postfix_meta_operator> } ]?
         ]
         <OPER=.AS_MATCH($*OPER)>
         { nqp::bindattr_i($<OPER>, NQPMatch, '$!pos', $*OPER.pos); }
@@ -469,6 +475,27 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <?before '!!'> <?{ $*GOAL eq '!!' }>
         | <?before '{' | <.lambda> > <?MARKED('ws')> <?{ $*GOAL eq '{' || $*GOAL eq 'endargs' }>
         ]
+    }
+
+    proto token infix_postfix_meta_operator { <...> }
+
+    token infix_postfix_meta_operator:sym<=> {
+        :my %prec;
+        :my %fudge_oper;
+        '='
+        { %fudge_oper<OPER> := $*OPER }
+        <.can_meta(%fudge_oper, "make assignment out of")>
+        [ <!{ $*OPER<O>.made<diffy> }> || <.can_meta(%fudge_oper, "make assignment out of", "diffy")> ]
+        {
+            $<sym> := $*OPER<sym> ~ '=';
+            if $*OPER<O>.made<prec> gt 'g=' {
+                %prec := %item_assignment;
+            }
+            else {
+                %prec := %list_assignment;
+            }
+        }
+        <O(|%prec, :dba('assignment operator'), :iffy(0))> {}
     }
 
     token prefixish {

@@ -32,6 +32,21 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         Nil
     }
 
+    # Returns True if this is a built-in short-circuit operator, and False if not.
+    method short-circuit() {
+        my constant SC := nqp::hash(
+            '||', True,
+            'or', True,
+            '&&', True,
+            'and', True,
+            '//', True,
+            'andthen', True,
+            'notandthen', True,
+            'orelse', True
+        );
+        SC{$!operator} // False
+    }
+
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my str $op := $!operator;
 
@@ -63,6 +78,11 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         }
         $op
     }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $name := self.resolution.lexical-name;
+        QAST::Var.new( :sopce('lexical'), :$name )
+    }
 }
 
 # A lookup of a chaining (non-meta) infix operator.
@@ -70,6 +90,74 @@ class RakuAST::Infix::Chaining is RakuAST::Infix is RakuAST::Lookup {
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my $name := self.resolution.lexical-name;
         QAST::Op.new( :op('chain'), :$name, $left-qast, $right-qast )
+    }
+}
+
+# An assign meta-operator, operator on another infix.
+class RakuAST::MetaInfix::Assign is RakuAST::Infixish is RakuAST::Lookup {
+    has RakuAST::Infixish $.infix;
+
+    method new(RakuAST::Infixish $infix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Assign, '$!infix', $infix);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-infix('&METAOP_ASSIGN');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+    }
+
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        # TODO case-analyzed assignments
+        my $temp := QAST::Node.unique('meta_assign');
+        my $bind-lhs := QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :decl('var'), :scope('local'), :name($temp) ),
+            $left-qast
+        );
+        if nqp::istype($!infix, RakuAST::Infix) && $!infix.short-circuit {
+            # Compile the short-circuit ones "inside out", so we can avoid the
+            # assignment.
+            QAST::Stmt.new(
+                $bind-lhs,
+                $!infix.IMPL-INFIX-QAST(
+                    $context,
+                    QAST::Var.new( :scope('local'), :name($temp) ),
+                    QAST::Op.new(
+                        :op('assign'),
+                        QAST::Var.new( :scope('local'), :name($temp) ),
+                        $right-qast
+                    )
+                )
+            )
+        }
+        else {
+            QAST::Stmt.new(
+                $bind-lhs,
+                QAST::Op.new(
+                    :op('assign'),
+                    QAST::Var.new( :scope('local'), :name($temp) ),
+                    $!infix.IMPL-INFIX-QAST(
+                        $context,
+                        QAST::Var.new( :scope('local'), :name($temp) ),
+                        $right-qast
+                    )
+                )
+            )
+        }
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $name := self.resolution.lexical-name;
+        QAST::Op.new( :op('call'), :$name, $!infix.IMPL-HOP-INFIX-QAST($context) )
     }
 }
 

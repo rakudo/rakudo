@@ -149,13 +149,13 @@ multi sub infix:<(+)>(Any \a, Any \b) {
       nqp::istype(a,QuantHash) && nqp::isconcrete(a),
       nqp::if(
         nqp::istype(a,Mixy) || nqp::istype(b,Mixy),
-        infix:<(+)>(a.Mixy,  b.Mix(:view)),
-        infix:<(+)>(a.Baggy, b.Bag(:view))
+        infix:<(+)>(a.Mixy,  b.Mix(:view)),  # :view is implementation-detail
+        infix:<(+)>(a.Baggy, b.Bag(:view))   # :view is implementation-detail
       ),
       nqp::if(
         nqp::istype(a,Mixy) || nqp::istype(b,Mixy),
-        infix:<(+)>(a.Mix, b.Mix(:view)),
-        infix:<(+)>(a.Bag, b.Bag(:view))
+        infix:<(+)>(a.Mix, b.Mix(:view)),    # :view is implementation-detail
+        infix:<(+)>(a.Bag, b.Bag(:view))     # :view is implementation-detail
       )
     )
 }

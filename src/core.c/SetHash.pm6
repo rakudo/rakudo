@@ -179,7 +179,7 @@ my class SetHash does Setty {
     multi method values(SetHash:D:) { Seq.new(Values.new($!elems)) }
 
 #--- coercion methods
-    multi method Set(SetHash:D: :$view) {
+    multi method Set(SetHash:D: :$view) {  # :view is implementation-detail
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::create(Set).SET-SELF(nqp::if($view,$!elems,nqp::clone($!elems))),

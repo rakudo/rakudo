@@ -425,7 +425,7 @@ my class Array { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty
     }
 
-    multi method List(Array:D: :$view --> List:D) {
+    multi method List(Array:D: :$view --> List:D) {  # :view is implementation-detail
         nqp::if(
           self.is-lazy,                           # can't make a List
           X::Cannot::Lazy.new(:action<List>).throw,

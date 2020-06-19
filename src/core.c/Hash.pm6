@@ -9,7 +9,7 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
     multi method Map(Hash:U:) { Map }
-    multi method Map(Hash:D: :$view) {
+    multi method Map(Hash:D: :$view) {  # :view is implementation-detail
         nqp::if(
           $view,
           # Agreeing that the Hash won't be changed after the .Map

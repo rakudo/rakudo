@@ -116,6 +116,11 @@ role Raku::Common {
     method nibble($lang) {
         $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'())).nibbler().set_braid_from(self)
     }
+
+    token RESTRICTED {
+        [ <?{ $*RESTRICTED }> [ $ || <.security($*RESTRICTED)> ] ]?
+        <!>
+    }
 }
 
 grammar Raku::Grammar is HLL::Grammar does Raku::Common {
@@ -1373,6 +1378,59 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     role b0 {
         token escape:sym<\\> { <!> }
     }
+
+    role s1 {
+        token escape:sym<$> {
+            :my $*QSIGIL := '$';
+            <?[$]>
+            <!RESTRICTED>
+            [ <EXPR=.LANG('MAIN', 'EXPR', 'y=')> || { $*W.throw($/, 'X::Backslash::NonVariableDollar') } ]
+        }
+    }
+
+    role s0 {
+        token escape:sym<$> { <!> }
+    }
+
+    role a1 {
+        token escape:sym<@> {
+            :my $*QSIGIL := '@';
+            <?[@]>
+            <!RESTRICTED>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role a0 {
+        token escape:sym<@> { <!> }
+    }
+
+    role h1 {
+        token escape:sym<%> {
+            :my $*QSIGIL := '%';
+            <?[%]>
+            <!RESTRICTED>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role h0 {
+        token escape:sym<%> { <!> }
+    }
+
+    role f1 {
+        token escape:sym<&> {
+            :my $*QSIGIL := '&';
+            <?[&]>
+            <!RESTRICTED>
+            <EXPR=.LANG('MAIN', 'EXPR', 'y=')>
+        }
+    }
+
+    role f0 {
+        token escape:sym<&> { <!> }
+    }
+
     role q {
         token starter { \' }
         token stopper { \' }
@@ -1389,8 +1447,8 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         method tweak_qq($v) { self.panic("Too late for :qq") }
     }
 
-    role qq does b1 {
-        # TODO does c1 does s1 does a1 does h1 does f1 {
+    role qq does b1 does s1 does a1 does h1 does f1 {
+        # TODO does c1 {
         token starter { \" }
         token stopper { \" }
         method tweak_q($v) { self.panic("Too late for :q") }
@@ -1409,7 +1467,13 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     }
 
     method tweak_q($v)          { self.truly($v, ':q'); self.apply_tweak(Raku::QGrammar::q) }
+    method tweak_single($v)     { self.tweak_q($v) }
     method tweak_qq($v)         { self.truly($v, ':qq'); self.apply_tweak(Raku::QGrammar::qq); }
+    method tweak_double($v)     { self.tweak_qq($v) }
+    method tweak_b($v)          { self.apply_tweak($v ?? b1 !! b0) }
+    method tweak_backslash($v)  { self.tweak_b($v) }
+    method tweak_s($v)          { self.apply_tweak($v ?? s1 !! s0) }
+    method tweak_scalar($v)     { self.tweak_s($v) }
 
     token nibbler {
         :my @*nibbles;

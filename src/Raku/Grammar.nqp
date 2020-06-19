@@ -901,6 +901,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<variable>           { <variable> }
     token term:sym<scope_declarator>   { <scope_declarator> }
+    token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<lambda>             { <?lambda> <pblock> }
     token term:sym<value>              { <value> }
 
@@ -1009,6 +1010,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #    token initializer:sym<.=> {
 #        <sym> [ <.ws> <dottyopish> || <.malformed: 'mutator method call'> ]
 #    }
+
+    proto token routine_declarator { <...> }
+    token routine_declarator:sym<sub> {
+        <sym> <.end_keyword> <routine_def('sub')>
+    }
+
+    rule routine_def($declarator) {
+        :my $*IN_DECL := $declarator;
+        :my $*BLOCK;
+        <deflongname>?
+        <.enter-block-scope(nqp::tclc($declarator))>
+        [ '(' <signature> ')' ]?
+        <blockoid>
+        <.leave-block-scope>
+    }
 
     ##
     ## Values
@@ -1209,6 +1225,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token longname {
         <name> {} [ <?before ':' <.+alpha+[\< \[ \« ]>> <!RESTRICTED> <colonpair> ]*
+    }
+
+    token deflongname {
+        :dba('new name to be defined')
+        <name>
+#       <colonpair>*
     }
 
     token sigil { <[$@%&]> }

@@ -530,7 +530,9 @@ my class IO::Path is Cool does IO {
           ?? ''
           !! $!path.ends-with($dir-sep)
             ?? $!path
-            !! nqp::concat($!path,$dir-sep)
+            !! $!path.ends-with("$dir-sep.")
+              ?? nqp::substr($!path,0,nqp::chars($!path) - 1)
+              !! nqp::concat($!path,$dir-sep)
     }
 
     proto method dir(|) {*} # make it possible to augment with multies from modulespace

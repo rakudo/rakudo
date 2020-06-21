@@ -1,10 +1,12 @@
 my class Grammar is Match {
 
+    multi method new(Grammar:) { nqp::create(self).BUILDALL(Empty, %_) }
+
     method parse(
       $orig is raw, :$rule = "TOP", :$args, Mu :$actions
     ) is raw {
         my $*LINEPOSCACHE;
-        my $grammar := self.new(:$orig, |%_).set_actions($actions);
+        my $grammar := self.Match::new(:$orig, |%_).set_actions($actions);
 
         nqp::decont(nqp::getlexcaller('$/') = nqp::if(
           (my $cursor := nqp::if(
@@ -30,7 +32,7 @@ my class Grammar is Match {
     }
 
     method subparse($orig is raw, :$rule = "TOP", :$args, :$actions) is raw {
-        my $grammar := self.new(:$orig, |%_).set_actions($actions);
+        my $grammar := self.Match::new(:$orig, |%_).set_actions($actions);
         nqp::decont(nqp::getlexcaller('$/') = nqp::if(
           $args,
           $grammar."$rule"(|$args.Capture).MATCH,

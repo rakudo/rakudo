@@ -1529,6 +1529,45 @@ my class Rakudo::QuantHash {
         )
     }
 
+    method MIX-IS-EQUAL(\a,\b) {
+        nqp::unless(
+          nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+          nqp::stmts(                   # A and B not same object
+            (my \araw := a.RAW-HASH),
+            (my \braw := b.RAW-HASH),
+            nqp::if(
+              araw && braw,
+              nqp::if(                  # A and B both allocated
+                nqp::isne_i(nqp::elems(araw),nqp::elems(braw)),
+                (return False),         # different number of elements
+                nqp::stmts(             # same number of elements
+                  (my \iter := nqp::iterator(araw)),
+                  nqp::while(           # number of elems in B >= A
+                    iter,
+                    nqp::unless(
+                      nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!value')
+                        ==              # value in A should equal to B
+                      nqp::getattr(
+                        nqp::ifnull(nqp::atkey(braw,nqp::iterkey_s(iter)),$p0),
+                        Pair,
+                        '$!value'
+                      ),
+                      return False      # not same weight
+                    )
+                  )
+                )
+              ),
+              nqp::if(                  # A and B not both allocated
+                (araw && nqp::elems(araw)) || (braw && nqp::elems(braw)),
+                return False            # allocated side contains elements
+              )
+            )
+          )
+        );
+
+        True
+    }
+
     method MIX-IS-SUBSET($a,$b) {
         nqp::if(
           nqp::eqaddr(nqp::decont($a),nqp::decont($b)),

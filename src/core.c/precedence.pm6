@@ -118,6 +118,9 @@ BEGIN {
     trait_mod:<is>(&infix:<<(>)>>,  :prec($chaining));
 # U+2285 NOT A SUPERSET OF
     trait_mod:<is>(&infix:<⊅>,      :prec($chaining));
+    trait_mod:<is>(&infix:<<(==)>>, :prec($chaining));
+# U+2262 NOT IDENTICAL TO
+    trait_mod:<is>(&infix:<≢>,      :prec($chaining));
     trait_mod:<is>(&infix:<<(<=)>>, :prec($chaining));
 # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
     trait_mod:<is>(&infix:<⊈>,      :prec($chaining));

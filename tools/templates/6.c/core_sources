@@ -144,6 +144,7 @@ src/core.c/set_union.pm6
 src/core.c/set_intersection.pm6
 src/core.c/set_difference.pm6
 src/core.c/set_symmetric_difference.pm6
+src/core.c/set_equality.pm6
 src/core.c/set_subset.pm6
 src/core.c/set_proper_subset.pm6
 src/core.c/set_multiply.pm6

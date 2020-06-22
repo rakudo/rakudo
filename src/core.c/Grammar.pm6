@@ -1,60 +1,43 @@
 my class Grammar is Match {
 
-    method parse(\target, :$rule, :$args, Mu :$actions, :$filename) is raw {
+    multi method new(Grammar:) { nqp::create(self).BUILDALL(Empty, %_) }
+
+    method parse(
+      $orig is raw, :$rule = "TOP", :$args, Mu :$actions
+    ) is raw {
         my $*LINEPOSCACHE;
-        nqp::stmts(
-          (my $grammar := self.new(:orig(target), |%_).set_actions($actions)),
-          nqp::decont(nqp::getlexcaller('$/') =
+        my $grammar := self.Match::new(:$orig, |%_).set_actions($actions);
+
+        nqp::decont(nqp::getlexcaller('$/') = nqp::if(
+          (my $cursor := nqp::if(
+            $args,
+            $grammar."$rule"(|$args.Capture),
+            $grammar."$rule"()
+          )),
+          nqp::stmts(
+            (my int $chars = $orig.chars),  # must be HLL, $orig can be Cool
+            nqp::while(
+              $cursor
+                && nqp::isne_i(nqp::getattr_i($cursor,Match,'$!pos'),$chars),
+              $cursor := $cursor.'!cursor_next'()
+            ),
             nqp::if(
-              (my $cursor := nqp::if(
-                $rule,
-                nqp::if(
-                  $args,
-                  $grammar."$rule"(|$args.Capture),
-                  $grammar."$rule"()
-                ),
-                nqp::if(
-                  $args,
-                  $grammar.TOP(|$args.Capture),
-                  $grammar.TOP()
-                ),
-              )),
-              nqp::stmts(
-                (my $match := $cursor.MATCH),
-                nqp::while(
-                  $match && nqp::isne_i(
-                    nqp::getattr_i(($match := $cursor.MATCH),Match,'$!pos'),
-                    target.chars
-                  ),
-                  $match := ($cursor := $cursor.'!cursor_next'()).MATCH
-                ),
-                $match || Nil
-              ),
+              $cursor,
+              $cursor.MATCH,
               Nil
             )
-          )
-        )
+          ),
+          Nil
+        ))
     }
 
-    method subparse(\target, :$rule, :$args, :$actions) is raw {
-        nqp::stmts(
-          (my $grammar := self.new(:orig(target), |%_).set_actions($actions)),
-          nqp::decont(nqp::getlexcaller('$/') =
-            nqp::if(
-              $rule,
-              nqp::if(
-                $args,
-                $grammar."$rule"(|$args.Capture).MATCH,
-                $grammar."$rule"().MATCH,
-              ),
-              nqp::if(
-                $args,
-                $grammar.TOP(|$args.Capture).MATCH,
-                $grammar.TOP().MATCH
-              ),
-            )
-          )
-        )
+    method subparse($orig is raw, :$rule = "TOP", :$args, :$actions) is raw {
+        my $grammar := self.Match::new(:$orig, |%_).set_actions($actions);
+        nqp::decont(nqp::getlexcaller('$/') = nqp::if(
+          $args,
+          $grammar."$rule"(|$args.Capture).MATCH,
+          $grammar."$rule"().MATCH,
+        ))
       }
 
     method parsefile(Str(Cool) $filename, :$enc) is raw {
@@ -66,4 +49,4 @@ my class Grammar is Match {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

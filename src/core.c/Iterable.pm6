@@ -185,4 +185,4 @@ multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
 nqp::p6setitertype(Iterable);
 #?endif
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

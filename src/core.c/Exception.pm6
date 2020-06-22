@@ -7,18 +7,18 @@ my class Exception {
     has $!bt;
 
     method backtrace(Exception:D:) {
-        if $!bt { $!bt }
-        elsif nqp::isconcrete($!ex) {
-            $!bt := Backtrace.new($!ex);
-        }
-        else { '' }
+        $!bt
+          ?? $!bt
+          !! nqp::isconcrete($!ex)
+            ?? ($!bt := Backtrace.new($!ex))
+            !! Nil
     }
 
     # Only valid if .backtrace has not been called yet
     method vault-backtrace(Exception:D:) {
-        nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! ''
+        nqp::isconcrete($!ex) && $!bt ?? Backtrace.new($!ex) !! Nil
     }
-    method reset-backtrace(Exception:D:) {
+    method reset-backtrace(Exception:D: --> Nil) {
         $!ex := Nil
     }
 
@@ -3143,4 +3143,4 @@ my class Exceptions::JSON {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -265,3 +265,5 @@ my class RoleToRoleApplier {
 
     Perl6::Metamodel::Configuration.set_role_to_role_applier_type(RoleToRoleApplier);
 }
+
+# vim: expandtab sw=4

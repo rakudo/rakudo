@@ -211,3 +211,5 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         @!nonsignatured[0]
     }
 }
+
+# vim: expandtab sw=4

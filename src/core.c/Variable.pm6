@@ -197,4 +197,4 @@ multi sub trait_mod:<will>(Variable:D $v, $block, :compose($)! ) {
     );
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

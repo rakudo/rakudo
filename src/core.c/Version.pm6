@@ -162,7 +162,7 @@ class Version {
 }
 
 
-multi sub infix:<eqv>(Version:D \a, Version:D \b) {
+multi sub infix:<eqv>(Version:D \a, Version:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
@@ -221,4 +221,4 @@ multi sub infix:«!=» (Version:D \a, Version:D \b) { a cmp b != Same }
 multi sub infix:«>=» (Version:D \a, Version:D \b) { a cmp b != Less }
 multi sub infix:«>»  (Version:D \a, Version:D \b) { a cmp b == More }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -2,4 +2,4 @@
 use Perl6::Metamodel;
 use QRegex;
 
-# vim: expandtab shiftwidth=4
+# vim: expandtab sw=4

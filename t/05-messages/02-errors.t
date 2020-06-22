@@ -297,4 +297,4 @@ throws-like ｢^42  .^methods.say｣, X::Syntax::Malformed,
 
 #### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

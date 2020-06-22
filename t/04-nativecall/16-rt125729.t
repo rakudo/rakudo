@@ -8,3 +8,5 @@ use Test;
 
 plan 1;
 is 42, 42, 'symbol reexported by NativeCall used to cause trouble';
+
+# vim: expandtab shiftwidth=4

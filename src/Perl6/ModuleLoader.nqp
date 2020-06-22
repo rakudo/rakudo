@@ -303,6 +303,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
 }
 
-# We stash this in the perl6 HLL namespace, just so it's easy to
-# locate. Note this makes it invisible inside Perl 6 itself.
+# We stash this in the raku HLL namespace, just so it's easy to
+# locate. Note this makes it invisible inside Raku itself.
 nqp::bindhllsym('Raku', 'ModuleLoader', Perl6::ModuleLoader);
+
+# vim: expandtab sw=4

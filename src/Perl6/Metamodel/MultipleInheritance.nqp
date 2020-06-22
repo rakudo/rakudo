@@ -106,3 +106,5 @@ role Perl6::Metamodel::MultipleInheritance {
         $!hidden := 1;
     }
 }
+
+# vim: expandtab sw=4

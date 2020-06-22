@@ -182,3 +182,5 @@ sub wrong ($value, $code, $uniprop, $file-name) {
 sub hex (Str:D $string) {
      nqp::radix_I(16, $string,  0, 0, Int)[0]
 }
+
+# vim: expandtab shiftwidth=4

@@ -638,7 +638,7 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
 
     nqp::hllbool(
       nqp::unless(
-        nqp::eqaddr(a,b),
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::if(                                 # not comparing with self
           nqp::eqaddr(a.WHAT,b.WHAT),
           nqp::if(                               # same types
@@ -670,4 +670,4 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

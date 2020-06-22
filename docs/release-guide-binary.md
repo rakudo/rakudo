@@ -37,14 +37,14 @@ Windows
 =======
 
 - Create a fresh Windows 10 VM as described in [the Windows guide](windows.md) if you don't have an up to date Windows 10 available (the download is 20GB and turns unusable after ~ 2 months).
-- Install Git, Perl 5, and the C/C+ development tools as described in that guide.
+- Install Git, Perl, and the C/C+ development tools as described in that guide.
 - Download the [latest release](http://rakudo.org/files/rakudo) and extract it to `C:\rakudo`. The path will end up in the finished build, so if you don't want some other path to end up persisted in the build in some buildsystem variable put it in `C:\rakudo`.
 - Open the 'Developer Command Prompt for VS 20XX'.
 - Navigate to `C:\rakudo\`.
 - `perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable`
 - `nmake install`
 - `nmake test`
-- In `C:\rakudo` do `git clone https://github.com/ugexe/zef.git` and `cd zef` and `C:\rakudo\install\bin\perl6.exe -I. bin\zef install .`
+- In `C:\rakudo` do `git clone https://github.com/ugexe/zef.git` and `cd zef` and `C:\rakudo\install\bin\raku.exe -I. bin\zef install .`
 - Copy all files in the `tools\build\binary-release\Windows` folder into the `install` folder.
 - Rename the `install` folder to `rakudo-20XX.XX`.
 - Create a `.zip` archive. Name it `rakudo-moar-20XX.XX-01-win-x86_64.zip`.
@@ -66,21 +66,21 @@ As of 2019-07-08 CentOS 6 (using glibc 2.12) is a good pick.
 
     yum -y update && yum clean all
     yum install git perl perl-core gcc make
-    curl -L -o rakudo-2019.03.1.tar.gz https://rakudo.org/dl/rakudo/rakudo-2019.03.1.tar.gz
-    tar -xzf rakudo-2019.03.1.tar.gz
-    cd rakudo-2019.03.1
+    curl -L -o rakudo-2020.01.tar.gz https://rakudo.org/dl/rakudo/rakudo-2020.01.tar.gz
+    tar -xzf rakudo-2020.01.tar.gz
+    cd rakudo-2020.01
     perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
     make install
     make test
     git clone https://github.com/ugexe/zef.git
     cd zef
-    /rakudo-2019.03.1/install/bin/raku -I. bin/zef install .
-    cd /rakudo-2019.03.1
+    /rakudo-2020.01/install/bin/raku -I. bin/zef install .
+    cd /rakudo-2020.01
     cp -r tools/build/binary-release/Linux/* install
-    mv install rakudo-2019.03.1
-    tar -zcv --owner=0 --group=0 --numeric-owner -f /rakudo-moar-2019.03.1-01-linux-x86_64.tar.gz rakudo-2019.03.1
+    mv install rakudo-2020.01
+    tar -zcv --owner=0 --group=0 --numeric-owner -f /rakudo-moar-2020.01-01-linux-x86_64.tar.gz rakudo-2020.01
 
-- On the host linux (not inside the container) run `docker cp rakudo-build:/rakudo-moar-2019.03.1-01-linux-x86_64.tar.gz .` to copy the archive out of the container. If you happended to stop the container by exitting the console, type `docker start rakudo-build` to start it again and allow copying files out.
+- On the host linux (not inside the container) run `docker cp rakudo-build:/rakudo-moar-2020.01-01-linux-x86_64.tar.gz .` to copy the archive out of the container. If you happended to stop the container by exitting the console, type `docker start rakudo-build` to start it again and allow copying files out.
 - Sign the tarball archive as described in `release_guide.pod`.
 - Upload the tarball and signature as described in `release_guide.pod`.
 
@@ -91,20 +91,20 @@ Mac OS
 - Install XCode from the App Store.
 - Open a terminal and do the following:
 
-    curl -L -o /Applications/rakudo-2019.03.1.tar.gz https://rakudo.org/dl/rakudo/rakudo-2019.03.1.tar.gz
+    curl -L -o /Applications/rakudo-2020.01.tar.gz https://rakudo.org/dl/rakudo/rakudo-2020.01.tar.gz
     cd /Applications
-    tar -xzf rakudo-2019.03.1.tar.gz
-    cd rakudo-2019.03.1
+    tar -xzf rakudo-2020.01.tar.gz
+    cd rakudo-2020.01
     perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
     make install
     make test
     git clone https://github.com/ugexe/zef.git
     cd zef
-    /Applications/rakudo-2019.03.1/install/bin/raku -I. bin/zef install .
-    cd /Applications/rakudo-2019.03.1
+    /Applications/rakudo-2020.01/install/bin/raku -I. bin/zef install .
+    cd /Applications/rakudo-2020.01
     cp -r tools/build/binary-release/MacOS/* install
-    mv install rakudo-2019.03.1
-    tar -zcv --owner=0 --group=0 --numeric-owner -f /rakudo-moar-2019.03.1-01-macos-x86_64.tar.gz rakudo-2019.03.1
+    mv install rakudo-2020.01
+    tar -zcv --owner=0 --group=0 --numeric-owner -f /rakudo-moar-2020.01-01-macos-x86_64.tar.gz rakudo-2020.01
 
 - Sign the tarball archive as described in `release_guide.pod`.
 - Upload the tarball and signature as described in `release_guide.pod`.

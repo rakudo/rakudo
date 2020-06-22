@@ -35,4 +35,4 @@ my class Rakudo::Internals::HyperIteratorBatcher does Rakudo::Internals::HyperBa
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

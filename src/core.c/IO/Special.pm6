@@ -42,4 +42,4 @@ class IO::Special does IO {
     method mode(IO::Special:D: --> Nil) { }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

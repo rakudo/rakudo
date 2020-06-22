@@ -321,10 +321,10 @@ my class Promise does Awaitable {
     }
 }
 
-multi sub infix:<eqv>(Promise:D \a, Promise:D \b) {
+multi sub infix:<eqv>(Promise:D \a, Promise:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b) || a.result eqv b.result
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b)) || a.result eqv b.result
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

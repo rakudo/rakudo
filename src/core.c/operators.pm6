@@ -482,4 +482,4 @@ my constant &infix:<∘> := &infix:<o>;
 # to allow =~ to work with "no isms <Perl5>", otherwise caught in compilation
 sub infix:<=~>(\a,\b) { a = ~b }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

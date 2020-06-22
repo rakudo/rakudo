@@ -198,3 +198,5 @@ class Perl6::Metamodel::EnumHOW
         @!role_typecheck_list
     }
 }
+
+# vim: expandtab sw=4

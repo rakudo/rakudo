@@ -747,7 +747,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
     }
     multi method pairs(List:D: --> Seq:D) {
-        Seq.new(Rakudo::Iterator.Pair(self.iterator))
+        Seq.new(Rakudo::Iterator.Pairs(self.iterator))
     }
     multi method antipairs(List:D: --> Seq:D) {
         Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
@@ -1706,8 +1706,8 @@ multi sub infix:<cmp>(@a, @b --> Order:D) {
 }
 
 proto sub infix:<X>(|) is pure {*}
-multi sub infix:<X>(+lol, :&with! --> Seq:D) {
-    Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&with))
+multi sub infix:<X>(+lol, :$with! --> Seq:D) {
+    Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,$with))
 }
 multi sub infix:<X>(+lol --> Seq:D) {
     Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&infix:<,>))
@@ -1728,4 +1728,4 @@ multi sub roundrobin(+lol --> Seq:D) {
     Seq.new(Rakudo::Iterator.RoundrobinIterables(lol))
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

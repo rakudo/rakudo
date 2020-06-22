@@ -69,3 +69,5 @@ is ($p.add: 2).deref, 30, '.add(2)';
         TakeCArrayToInt8( $x );
         CODE
 }
+
+# vim: expandtab shiftwidth=4

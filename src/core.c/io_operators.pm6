@@ -295,4 +295,4 @@ multi sub symlink(IO() $target, IO() $name) { $target.symlink($name) }
 proto sub link($, $, *%) {*}
 multi sub link(IO() $target, IO() $name) { $target.link($name) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

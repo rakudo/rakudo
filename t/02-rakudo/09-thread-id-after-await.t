@@ -38,3 +38,5 @@ my $t2 = Thread.start({
 
 is await($p), 'correct',
     'Correct dynamic seen after invokving continuation on different thread';
+
+# vim: expandtab shiftwidth=4

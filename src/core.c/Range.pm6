@@ -706,9 +706,9 @@ multi sub infix:<^..^>($min, $max) {
 proto sub prefix:<^>($, *%) is pure {*}
 multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
 
-multi sub infix:<eqv>(Range:D \a, Range:D \b) {
+multi sub infix:<eqv>(Range:D \a, Range:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.min eqv b.min
              && a.max eqv b.max
@@ -751,4 +751,4 @@ multi sub infix:<cmp>(Range:D \a, Num(Real) \b --> Order:D) { a cmp (b..b) }
 multi sub infix:<cmp>(Positional \a, Range:D \b --> Order:D) { a cmp b.list }
 multi sub infix:<cmp>(Range:D \a, Positional \b --> Order:D) { a.list cmp b }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

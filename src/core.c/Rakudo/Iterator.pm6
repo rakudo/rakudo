@@ -2584,6 +2584,304 @@ class Rakudo::Iterator {
     }
     method Mappy-values(\map) { Mappy-values.new(map) }
 
+    # cache cursor initialization lookup
+    my $initialize-cursor := Match.^lookup("!cursor_init");
+
+    my &POPULATE := Match.^lookup("MATCH" );  # fully populate Match object
+
+    my $movers := nqp::list(
+      Match.^lookup("CURSOR_MORE"),     # :g
+      Match.^lookup("CURSOR_OVERLAP"),  # :ov
+      Match.^lookup("CURSOR_NEXT")      # :ex
+    );
+
+    # Iterate a cursor according to a given regex, string and mover
+    my class MatchCursor does Iterator {
+        has Mu $!cursor;
+        has Mu $!mover;
+        method !SET-SELF(&regex, \string, int $mover) {
+            $!cursor := regex($initialize-cursor(Match, string, :0c));
+            $!mover  := nqp::atpos($movers,$mover);
+            self
+        }
+        method new(\regex, \string, \mover) {
+            nqp::create(self)!SET-SELF(regex, string, mover)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                (my $current := $!cursor),
+                ($!cursor := $!mover($!cursor)),
+                $current
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              ($!cursor := $!mover($!cursor)),
+            )
+        }
+    }
+    method MatchCursor(\regex, \string, \mover) {
+        MatchCursor.new(regex, string, mover)
+    }
+
+    # Iterate a cursor according to a given regex, string, limit and mover
+    my class MatchCursorLimit does Iterator {
+        has Mu $!cursor;
+        has Mu $!mover;
+        has int $!todo;
+        method !SET-SELF(&regex, \string, int $todo, int $mover) {
+            $!cursor := regex($initialize-cursor(Match, string, :0c));
+            $!mover  := nqp::atpos($movers,$mover);
+            $!todo    = $todo + 1;
+            self
+        }
+        method new(\regex, \string, \todo, \mover) {
+            nqp::create(self)!SET-SELF(regex, string, todo, mover)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              ($!todo = nqp::sub_i($!todo,1))
+                && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                (my $current := $!cursor),
+                ($!cursor := $!mover($!cursor)),
+                $current
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              ($!todo = nqp::sub_i($!todo,1))
+                && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              ($!cursor := $!mover($!cursor)),
+            )
+        }
+    }
+    method MatchCursorLimit(\regex, \string, \limit, \mover) {
+        MatchCursorLimit.new(regex, string, limit, mover)
+    }
+
+    # generate full blown Match objects for given regex, string and limit
+    my class MatchMatch does Iterator {
+        has Mu $!iterator;
+
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! MatchCursorLimit.new(regex, string, limit.Int, 0);
+
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! $cursor.MATCH
+        }
+        method skip-one() {
+            nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            nqp::until(
+              nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+              target.push($cursor.MATCH)
+            );
+        }
+    }
+    method MatchMatch(\regex, \string, \limit) {
+        MatchMatch.new(regex, string, limit)
+    }
+
+    # generate strings for given regex, string and limit
+    my class MatchStr does Iterator {
+        has Mu $!iterator;
+
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! MatchCursorLimit.new(regex, string, limit.Int, 0);
+
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! $cursor.MATCH.Str
+        }
+        method skip-one() {
+            nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            nqp::until(
+              nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+              target.push($cursor.MATCH.Str)
+            );
+        }
+    }
+    method MatchStr(\regex, \string, \limit) {
+        MatchStr.new(regex, string, limit)
+    }
+
+    # basic split iterator functionality, with optional limiting
+    my class MatchSplit does Iterator {
+        has Mu $!string;
+        has Mu $!iterator;
+        has int $!last-pos;
+
+        method !SET-SELF(\iterator, \string) {
+            $!iterator := iterator;
+            $!string   := string;
+            self
+        }
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! limit == 1
+                  ?? (return Rakudo::Iterator.OneValue(string))
+                  !! MatchCursorLimit.new(regex, string, limit.Int - 1, 0);
+
+            nqp::create(self)!SET-SELF(iterator, string)
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::islt_i($!last-pos,0),
+              IterationEnd,                     # last part also done
+              nqp::if(
+                nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd),
+                nqp::stmts(                     # need to do last part still
+                  (my $result := nqp::substr($!string,$!last-pos)),
+                  ($!last-pos = -1),
+                  $result
+                ),
+                nqp::stmts(                     # produce next
+                  ($result := nqp::substr(
+                    $!string,
+                    $!last-pos,
+                    nqp::sub_i(nqp::getattr_i($cursor,Match,'$!from'),$!last-pos)
+                  )),
+                  ($!last-pos = nqp::getattr_i($cursor,Match,'$!pos')),
+                  $result
+                )
+              )
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            if nqp::isge_i($!last-pos,0) {
+                my $string      := $!string;
+                my $iterator    := $!iterator;
+                my int $last-pos = $!last-pos;
+
+                nqp::until(
+                  nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+                  nqp::stmts(
+                    target.push(nqp::substr(
+                      $string,
+                      $last-pos,
+                      nqp::sub_i(
+                        nqp::getattr_i($cursor,Match,'$!from'),
+                        $last-pos
+                      )
+                    )),
+                    ($last-pos = nqp::getattr_i($cursor,Match,'$!pos'))
+                  )
+                );
+                target.push(nqp::substr($string,$last-pos));
+            }
+        }
+    }
+
+    method MatchSplit(\regex, \string, \limit) {
+        MatchSplit.new(regex, string, limit)
+    }
+
+    # split iterator functionality with mapper for extra values and skip-empty
+    my class MatchSplitMap does Iterator {
+        has Mu $!string;
+        has Mu $!iterator;
+        has Mu $!mapper;
+        has int $!skip-empty;
+        has int $!last-pos;
+        has Mu $!slipped;
+
+        method !SET-SELF(\iterator, \string, \mapper, int $skip-empty) {
+            $!iterator  := iterator;
+            $!string    := string;
+            $!mapper    := mapper;
+            $!skip-empty = $skip-empty;
+            $!slipped   := nqp::list;
+            self
+        }
+        method new(\regex, \string, \mapper, \limit, \skip-empty) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1 || (skip-empty && nqp::not_i(nqp::chars(string)))
+                ?? (return Rakudo::Iterator.Empty)
+                !! limit == 1
+                  ?? (return Rakudo::Iterator.OneValue(string))
+                  !! MatchCursorLimit.new(regex, string, limit.Int - 1, 0);
+
+            nqp::create(self)!SET-SELF(
+              iterator, string, mapper, nqp::istrue(skip-empty))
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!slipped),
+              nqp::shift($!slipped),                   # produce slipped
+              nqp::if(                                 # nothing to slip
+                nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd),
+                nqp::if(                               # last cursor seen
+                  $!skip-empty && nqp::iseq_i($!last-pos,nqp::chars($!string)),
+                  IterationEnd,                        # last one empty, done
+                  nqp::stmts(
+                    nqp::push($!slipped,IterationEnd), # do last part still
+                    nqp::substr($!string,$!last-pos)   # produce final string
+                  )
+                ),
+                nqp::stmts(                            # produce next
+                  (my $result := nqp::substr(
+                    $!string,
+                    $!last-pos,
+                    nqp::sub_i(
+                      nqp::getattr_i($cursor,Match,'$!from'),
+                      $!last-pos
+                    )
+                  )),
+                  ($!last-pos = nqp::getattr_i($cursor,Match,'$!pos')),
+                  nqp::if(                             # preset slipped
+                    nqp::istype((my $mapped := $!mapper($cursor)),List),
+                    ($!slipped := nqp::getattr($mapped,List,'$!reified')),
+                    nqp::push($!slipped,$mapped)
+                  ),
+                  nqp::if(
+                    $!skip-empty && nqp::not_i(nqp::chars($result)),
+                    nqp::shift($!slipped),             # skipping, so slip
+                    $result                            # produce string
+                  )
+                )
+              )
+            )
+        }
+    }
+
+    method MatchSplitMap(\regex, \string, \mapper, \limit, \skip-empty) {
+        MatchSplitMap.new(regex, string, mapper, limit, skip-empty)
+    }
+
     # Return an iterator that will iterate over a source iterator and an
     # iterator generating monotonically increasing index values from a
     # given offset.  Optionally, call block if an out-of-sequence index
@@ -2790,52 +3088,42 @@ class Rakudo::Iterator {
     my class NextNValues does Iterator {
         has $!iterator;
         has int $!times;
-        method !SET-SELF($!iterator,$!times) { self }
-        method new(\iterator,\times) {
-            nqp::if(
-              nqp::istype(times,Whatever),
-              iterator,                   # * just give back itself
-              nqp::if(
-                times <= 0,               # must be HLL comparison
-                Rakudo::Iterator.Empty,   # negative is just nothing
-                nqp::if(
-                  nqp::istype(times,Int),
-                  nqp::if(
-                    nqp::isbig_I(nqp::decont(times)),
-                    iterator,             # big value = itself
-                    nqp::create(self)!SET-SELF(iterator,times)
-                  ),
-                  nqp::if(
-                    times == Inf,         # big value = itself
-                    iterator,
-                    nqp::create(self)!SET-SELF(iterator,times.Int)
-                  )
-                )
-              )
-            )
+        method !SET-SELF(\iterator, int $times) {
+            $!iterator := iterator;
+            $!times     = nqp::add_i($times,1);
+            self
+        }
+        method new(\iterator, \times) {
+            nqp::istype(times,Whatever)
+              ?? iterator                   # * just give back itself
+              !! times <= 0                 # must be HLL comparison
+                ?? Rakudo::Iterator.Empty   # negative is just nothing
+                !! nqp::istype(times,Int)
+                  ?? nqp::isbig_I(nqp::decont(times))
+                    ?? iterator             # big value = itself
+                    !! nqp::create(self)!SET-SELF(iterator,times)
+                  !! times == Inf           # big value = itself
+                    ?? iterator
+                    !! nqp::create(self)!SET-SELF(iterator,times.Int)
         }
         method pull-one() is raw {
-            nqp::if(
-              nqp::isgt_i($!times,0),
-              nqp::if(
-                nqp::eqaddr(
-                  (my \pulled := $!iterator.pull-one),
-                  IterationEnd
-                ),
-                nqp::stmts(
-                  ($!times = 0),
-                  IterationEnd
-                ),
-                nqp::stmts(
-                  ($!times = nqp::sub_i($!times,1)),
-                  pulled
-                )
-              ),
-              IterationEnd
-            )
+            ($!times = nqp::sub_i($!times,1))
+              ?? nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd)
+                ?? IterationEnd
+                !! pulled
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            my int $times = $!times;
+            nqp::until(
+              nqp::not_i($times = nqp::sub_i($times,1))
+                || nqp::eqaddr((my \pulled := $iterator.pull-one),IterationEnd),
+              target.push(pulled)
+            );
         }
     }
-    method NextNValues(\iterator,\times) { NextNValues.new(iterator,times) }
+    method NextNValues(\iterator, \times) { NextNValues.new(iterator, times) }
 
     # Return an iterator that only will return the given value once.
     # Basically the same as 42 xx 1.
@@ -2930,7 +3218,7 @@ class Rakudo::Iterator {
     # Return an iterator that will generate a pair with the index as the
     # key and as value the value of the given iterator, basically the
     # .pairs functionality on 1 dimensional lists.
-    my class PairIterator does Iterator {
+    my class Pairs does Iterator {
         has Mu $!iter;
         has int $!key;
 
@@ -2954,7 +3242,7 @@ class Rakudo::Iterator {
         }
         method is-lazy() { $!iter.is-lazy }
     }
-    method Pair(\iterator) { PairIterator.new(iterator) }
+    method Pairs(\iterator) { Pairs.new(iterator) }
 
     # Return an iterator for a given number of permutations.  Also specify
     # whether an IterationBuffer should be returned for each iteration (1),
@@ -4099,6 +4387,26 @@ class Rakudo::Iterator {
     }
     method Toggle(\iter, \conds, $on) { Toggle.new(iter, conds, $on) }
 
+    # Return an iterator for the Truthy values of an iterator
+    my class Truthy does Iterator {
+        has Mu $!iterator;
+        method new(\iterator) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::until(
+              nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
+              nqp::if(
+                $pulled,
+                return $pulled
+              )
+            );
+            IterationEnd
+        }
+    }
+    method Truthy(\iterator) { Truthy.new(iterator) }
+
     # Return an iterator that only will return the two given values.
     my class TwoValues does Iterator {
         has Mu $!val1;
@@ -4645,4 +4953,4 @@ class Rakudo::Iterator {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

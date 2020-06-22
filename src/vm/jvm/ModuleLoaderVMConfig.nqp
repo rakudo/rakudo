@@ -25,3 +25,5 @@ role Perl6::ModuleLoaderVMConfig {
         '.jar'
     }
 }
+
+# vim: expandtab sw=4

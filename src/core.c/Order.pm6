@@ -57,4 +57,4 @@ multi sub infix:«<=>»(int $a, int $b) {
     ORDER(nqp::cmp_i($a, $b))
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

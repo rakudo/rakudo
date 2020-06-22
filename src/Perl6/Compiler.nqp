@@ -57,7 +57,7 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
         nqp::bindhllsym('Raku', '$!ARGITER', $argiter);
         my $super := nqp::findmethod(HLL::Compiler, 'command_eval');
-        my %*COMPILING;
+        my %*COMPILING := nqp::clone(nqp::ifnull(nqp::getlexdyn('%*COMPILING'), nqp::hash()));
         %*COMPILING<%?OPTIONS> := %options;
         $super(self, |@args, |%options);
     }
@@ -143,6 +143,7 @@ With no arguments, enters a REPL (see --repl-mode option).
 With a "[programfile]" or the "-e" option, compiles the given program
 and, by default, also executes the compiled code.
 
+  -                    read program source from STDIN or start REPL if a TTY
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   --doc                extract documentation and print it as text
   -e program           one line of program, strict is enabled by default
@@ -188,3 +189,5 @@ The following environment variables are respected:
         #  For more information, see the raku(1) man page.\n");
     }
 }
+
+# vim: expandtab sw=4

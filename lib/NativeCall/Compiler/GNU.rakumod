@@ -97,3 +97,5 @@ sub cpp_param_letter($type, :$R = '', :$P = '', :$K = '') {
         }
     }
 }
+
+# vim: expandtab shiftwidth=4

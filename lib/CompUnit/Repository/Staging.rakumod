@@ -19,4 +19,4 @@ class CompUnit::Repository::Staging is CompUnit::Repository::Installation {
     }
 }
 
-# vim: ft=perl6
+# vim: expandtab shiftwidth=4

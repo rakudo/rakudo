@@ -21,3 +21,5 @@ role Perl6::Metamodel::ContainerSpecProtocol {
         }
     }
 }
+
+# vim: expandtab sw=4

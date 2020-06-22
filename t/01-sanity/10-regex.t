@@ -23,3 +23,5 @@ $l   ~~ $r and say 'ok 8';
 '25' ~~ $r and say 'ok 11';
 
 
+
+# vim: expandtab shiftwidth=4

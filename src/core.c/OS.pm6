@@ -4,4 +4,4 @@ multi sub gethostname(--> Str:D){
     $*KERNEL.hostname()
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

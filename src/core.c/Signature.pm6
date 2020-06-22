@@ -223,4 +223,4 @@ Perl6::Metamodel::Configuration.set_multi_sig_comparator(
     -> \a, \b { a.signature eqv b.signature }
 );
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

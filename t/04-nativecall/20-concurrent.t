@@ -40,4 +40,4 @@ start hang_around();
 
 is fib(30), 1346269, 'Can call native function while one in another thread is sleeping';
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

@@ -74,3 +74,5 @@ role Perl6::Metamodel::RolePunning {
         }
     }
 }
+
+# vim: expandtab sw=4

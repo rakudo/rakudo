@@ -45,4 +45,4 @@ my class CurrentThreadScheduler does Scheduler {
     method loads(--> 0) { }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

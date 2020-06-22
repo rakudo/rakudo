@@ -33,3 +33,5 @@ $b = "0x0b";  "ok $b" eq 'ok 0x0b' and say 'ok 11';
 
 $x = 'not ok 12';  { our $x = 'ok 12'; };  say $x;
 
+
+# vim: expandtab shiftwidth=4

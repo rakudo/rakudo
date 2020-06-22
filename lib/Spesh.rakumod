@@ -10,8 +10,8 @@
 # When used as a script, it will accept the name of a spesh file and output
 # a list of all of the opcodes that caused a bail, ordered by number of bails.
 #
-#   $ MVM_SPESH_LOG=spesh perl6 yourcode
-#   $ perl6 lib/Spesh.pm6 spesh
+#   $ MVM_SPESH_LOG=spesh raku yourcode
+#   $ raku lib/Spesh.rakumod spesh
 
 class Spesh {
     has @.parts;
@@ -377,3 +377,5 @@ sub MAIN($filename where *.IO.e) {
 
     say $spesh.cuids[1]>>.file-line.Bag;
 }
+
+# vim: expandtab shiftwidth=4

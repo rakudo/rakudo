@@ -67,3 +67,5 @@ $a %= 3;
 $a != 1 and print 'not ';
 say "ok $test_num";
 $test_num = $test_num + 1;
+
+# vim: expandtab shiftwidth=4

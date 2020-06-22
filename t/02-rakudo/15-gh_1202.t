@@ -23,4 +23,4 @@ await Promise.anyof(
 
 ok $complete, "all runs completed";
 
-# vim: ft=perl6 sw=4
+# vim: expandtab shiftwidth=4

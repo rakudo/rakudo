@@ -36,3 +36,5 @@ role Perl6::Metamodel::BaseType {
         @parents
     }
 }
+
+# vim: expandtab sw=4

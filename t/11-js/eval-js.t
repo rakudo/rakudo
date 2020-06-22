@@ -166,3 +166,5 @@ is($check.toString(False), 'false', 'right value of False when passing to js');
 is($check.toString(123), '123', 'right value of Int when passing to js');
 
 ok($check.isNull(Mu), 'Mu gets turned into null');
+
+# vim: expandtab shiftwidth=4

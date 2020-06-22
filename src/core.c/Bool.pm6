@@ -148,4 +148,4 @@ multi sub infix:<xor>(Mu \a, &b)          { a ^^ b }
 multi sub infix:<xor>(Mu \a, Mu \b)       { a ^^ b }
 multi sub infix:<xor>(|c)                 { &infix:<^^>(|c); }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

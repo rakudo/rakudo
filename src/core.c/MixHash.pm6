@@ -86,7 +86,7 @@ my class MixHash does Mixy {
     multi method new(MixHash:_:) { nqp::create(self) }
 
 #--- coercion methods
-    multi method Mix(MixHash:D: :$view) {
+    multi method Mix(MixHash:D: :$view) {  # :view is implementation-detail
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::p6bindattrinvres(
@@ -260,4 +260,4 @@ my class MixHash does Mixy {
     multi method values(MixHash:D:) { Seq.new(Values.new($!elems)) }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

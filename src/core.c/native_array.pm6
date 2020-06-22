@@ -93,7 +93,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2020-05-23T17:33:49+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
@@ -455,10 +455,10 @@ my class array does Iterable {
             Rakudo::Sorting.MERGESORT-str(nqp::clone(self))
         }
 
-        multi method ACCEPTS(strarray:D: strarray:D \other --> Bool:D) {
+        multi method ACCEPTS(strarray:D: strarray:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,other),
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my int $elems = nqp::elems(self)),
@@ -557,7 +557,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2020-05-23T17:33:49+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
@@ -919,10 +919,10 @@ my class array does Iterable {
             Rakudo::Sorting.MERGESORT-int(nqp::clone(self))
         }
 
-        multi method ACCEPTS(intarray:D: intarray:D \other --> Bool:D) {
+        multi method ACCEPTS(intarray:D: intarray:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,other),
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my int $elems = nqp::elems(self)),
@@ -1073,7 +1073,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2020-05-23T17:33:49+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
@@ -1435,10 +1435,10 @@ my class array does Iterable {
             Rakudo::Sorting.MERGESORT-num(nqp::clone(self))
         }
 
-        multi method ACCEPTS(numarray:D: numarray:D \other --> Bool:D) {
+        multi method ACCEPTS(numarray:D: numarray:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,other),
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my int $elems = nqp::elems(self)),
@@ -3346,4 +3346,4 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -64,3 +64,5 @@ BEGIN {
     });
     (Perl6::Metamodel::CoercionHOW.WHO)<root> := $root;
 }
+
+# vim: expandtab sw=4

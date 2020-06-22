@@ -19,4 +19,4 @@ sub HYPERWHATEVER (&c) {  # is implementation-detail
     sub (*@_) { map &c, @_ }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

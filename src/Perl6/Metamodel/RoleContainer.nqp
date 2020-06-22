@@ -28,3 +28,5 @@ role Perl6::Metamodel::RoleContainer {
         }
     }
 }
+
+# vim: expandtab sw=4

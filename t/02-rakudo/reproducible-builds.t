@@ -44,4 +44,4 @@ is @checksums[1], @checksums[0], 'Both precompilation runs resulted in the same 
 
 done-testing;
 
-# vim: ft=perl6
+# vim: expandtab shiftwidth=4

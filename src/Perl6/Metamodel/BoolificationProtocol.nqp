@@ -25,3 +25,5 @@ role Perl6::Metamodel::BoolificationProtocol {
         }
     }
 }
+
+# vim: expandtab sw=4

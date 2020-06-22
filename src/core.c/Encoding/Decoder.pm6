@@ -10,4 +10,4 @@ role Encoding::Decoder {
     method consume-exactly-bytes(int $bytes --> Blob) { ... }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

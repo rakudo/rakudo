@@ -9,4 +9,4 @@ my role Associative[::TValue = Mu, ::TKey = Str(Any)] {
 #    method EXISTS-KEY($) { ... }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

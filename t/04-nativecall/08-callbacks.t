@@ -68,4 +68,4 @@ is CheckReturnsFloat(&return_float),   6, 'callback returned a float to C';
 is CheckReturnsStr(&return_str),       7, 'callback returned a string to C';
 is CheckReturnsStruct(&return_struct), 8, 'callback returned a struct to C';
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

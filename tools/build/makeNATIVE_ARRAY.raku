@@ -409,10 +409,10 @@ for $*IN.lines -> $line {
             Rakudo::Sorting.MERGESORT-#type#(nqp::clone(self))
         }
 
-        multi method ACCEPTS(#type#array:D: #type#array:D \other --> Bool:D) {
+        multi method ACCEPTS(#type#array:D: #type#array:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,other),
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my int $elems = nqp::elems(self)),
@@ -499,3 +499,5 @@ SOURCE
     say "#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE";
     say $end ~ $type ~ "array role -------------------------------------";
 }
+
+# vim: expandtab sw=4

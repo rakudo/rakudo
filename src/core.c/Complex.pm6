@@ -496,4 +496,4 @@ multi sub postfix:<i>(Cool      \a --> Complex:D) { a.Numeric * Complex.new(0e0,
 
 constant i = Complex.new(0e0, 1e0);
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

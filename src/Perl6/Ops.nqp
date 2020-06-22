@@ -1,5 +1,5 @@
 
-# Registers ops so they're availabe to both NQP for Metamodel and Perl6
+# Registers ops so they're availabe to both NQP for Metamodel and Raku
 sub _register_op_with_nqp($name, $desugar) {
     register_op_desugar($name, $desugar, :compiler<nqp>);
     register_op_desugar($name, $desugar, :compiler<Raku>);
@@ -377,3 +377,5 @@ _register_op_with_nqp( 'p6getlexclient', -> $qast {
         )
     }
 );
+
+# vim: expandtab sw=4

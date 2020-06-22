@@ -643,4 +643,4 @@ See http://design.raku.org/S22.html#provides for more information.\n";
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

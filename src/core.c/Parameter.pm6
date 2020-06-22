@@ -408,7 +408,7 @@ my class Parameter { # declared in BOOTSTRAP
 
     method !flags() { $!flags }
 
-    multi method ACCEPTS(Parameter:D: Parameter:D \other) {
+    multi method ACCEPTS(Parameter:D: Parameter:D \other --> Bool:D) {
 
         # we're us
         my \o := nqp::decont(other);
@@ -719,4 +719,4 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
     True
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -105,3 +105,5 @@ sub REACT-ONE-WHENEVER(&block --> Nil) is implementation-detail {
     $*AWAITER.await(Rakudo::Internals::ReactAwaitable.new(
         Rakudo::Internals::ReactOneWheneverAwaitHandle.not-ready(&block)));
 }
+
+# vim: expandtab shiftwidth=4

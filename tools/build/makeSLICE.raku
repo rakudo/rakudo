@@ -478,4 +478,6 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,$key,$value,%adv) { # is implementation-detail
 SOURCE
 }
 
-say "# vim: set ft=perl6 nomodifiable :";
+say "# vim: expandtab sw=4";
+
+# vim: expandtab sw=4

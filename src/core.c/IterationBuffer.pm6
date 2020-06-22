@@ -73,4 +73,4 @@ my class IterationBuffer {
 nqp::p6setiterbuftype(IterationBuffer);
 #?endif
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

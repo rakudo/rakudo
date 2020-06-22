@@ -85,7 +85,7 @@ my class BagHash does Baggy {
     method total() { Rakudo::QuantHash.BAG-TOTAL($!elems) }
 
 #--- coercion methods
-    multi method Bag(BagHash:D: :$view) {
+    multi method Bag(BagHash:D: :$view) {  # :view is implementation-detail
         nqp::if(
           $!elems && nqp::elems($!elems),
           nqp::create(Bag).SET-SELF(                  # not empty
@@ -328,4 +328,4 @@ my class BagHash does Baggy {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

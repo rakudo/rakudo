@@ -11,3 +11,5 @@ sub MAIN (Str $folder?, Bool:D :$debug = False) {
     test-file $folder-io, $filename, $property, :answer-column($answer-column);
     done-testing;
 }
+
+# vim: expandtab shiftwidth=4

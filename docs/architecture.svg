@@ -19,7 +19,7 @@
    sodipodi:docname="architecture.svg"
    inkscape:output_extension="org.inkscape.output.svg.inkscape">
   <title
-     id="title3260">Rakudo Perl 6 Architecture</title>
+     id="title3260">Rakudo Raku Architecture</title>
   <metadata
      id="metadata106">
     <rdf:RDF>
@@ -28,7 +28,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title>Rakudo Perl 6 Architecture</dc:title>
+        <dc:title>Rakudo Raku Architecture</dc:title>
         <cc:license
            rdf:resource="http://opensource.org/licenses/artistic-license-2.0" />
         <dc:subject>
@@ -104,7 +104,7 @@
          id="tspan2573">Core setting</tspan><tspan
          x="78.422783"
          y="272.36749"
-         id="tspan2577">(Perl 6)</tspan></text>
+         id="tspan2577">(Raku)</tspan></text>
   </a>
   <a
      xlink:href="architecture.html#the-world"
@@ -138,9 +138,9 @@
      target="_top"
      transform="matrix(0.5,0,0,0.5,12.2667,-77.083296)">
     <desc
-       id="desc3046">The Perl 6 source code is transformed in various stages. The first one is the parser stage, which creates a parse tree out of the Perl 6 source code.
+       id="desc3046">The Raku source code is transformed in various stages. The first one is the parser stage, which creates a parse tree out of the Raku source code.
 
-The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is part of Rakudo and hosted in the Rakudo repository.
+The parser stage is implemented in &quot;Not Quite Perl&quot; (NQP) and is part of Rakudo and hosted in the Rakudo repository.
 
 </desc>
     <title
@@ -217,7 +217,7 @@ The parser stage is implemented in &quot;Not Quite Perl 6&quot; (NQP) and is par
      style="font-size:12.36547184px;font-style:normal;font-weight:normal;text-align:center;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Bitstream Vera Sans"><tspan
        x="206.18925"
        y="16.676073"
-       id="tspan2475">Perl 6</tspan><tspan
+       id="tspan2475">Raku</tspan><tspan
        x="206.18925"
        y="32.132919"
        id="tspan2483">source</tspan></text>

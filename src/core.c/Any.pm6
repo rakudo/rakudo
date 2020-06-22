@@ -568,7 +568,7 @@ multi sub item(\x)    { my $ = x }
 multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
-sub dd(|) {  # is implementation-detail
+sub dd(|c) {  # is implementation-detail
 
     # handler for BOOTxxxArrays
     sub BOOTArray(Mu \array) {
@@ -616,6 +616,9 @@ sub dd(|) {  # is implementation-detail
             note $name ?? "$type $name = $what" !! $what;
         }
     }
+    elsif c.hash -> %named {
+        note .raku for %named.sort: { .key }
+    }
     else { # tell where we are
         note .name
           ?? "{lc .^name} {.name}{.signature.gist}"
@@ -625,4 +628,4 @@ sub dd(|) {  # is implementation-detail
     return
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

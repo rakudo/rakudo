@@ -26,4 +26,4 @@ my $res;
 lives-ok { $res = $a.Add(2) }, "native sub as method";
 is $res, 44, "and got the result we expected";
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

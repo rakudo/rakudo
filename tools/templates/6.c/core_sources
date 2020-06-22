@@ -98,6 +98,7 @@ src/core.c/StrDistance.pm6
 src/core.c/Exception.pm6
 src/core.c/Failure.pm6
 src/core.c/Match.pm6
+src/core.c/INTERPOLATE.pm6
 src/core.c/Cursor.pm6
 src/core.c/Grammar.pm6
 src/core.c/Regex.pm6

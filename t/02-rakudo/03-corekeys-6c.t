@@ -764,3 +764,5 @@ my @expected = (
 );
 
 has-symbols CORE::, @expected, "Symbols in 6.c CORE::";
+
+# vim: expandtab shiftwidth=4

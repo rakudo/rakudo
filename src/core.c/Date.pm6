@@ -449,4 +449,4 @@ multi sub sleep-until(Instant() $until --> Bool:D) {
     True;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

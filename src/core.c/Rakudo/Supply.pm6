@@ -522,4 +522,4 @@ sub REACT-ONE-WHENEVER(&block) is implementation-detail {
     await $p;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

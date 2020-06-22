@@ -90,4 +90,4 @@ is-run ｢my @a[Int] = 1,2,3; dd @a｣,
     'ignored shape specification issues a warning',
     :err(/'Ignoring [Int] as shape specification'/);
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

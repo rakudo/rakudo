@@ -42,3 +42,5 @@ class Perl6::Metamodel::GenericHOW
         0
     }
 }
+
+# vim: expandtab sw=4

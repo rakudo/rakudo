@@ -1181,18 +1181,23 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
     $r
 }
 
-multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
+multi sub infix:<eqv>(Blob:D \a, Blob:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
     )
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
-multi sub infix:<eq> (Blob:D \a, Blob:D \b) {
-    nqp::hllbool(nqp::eqaddr(a,b) || a.SAME(b))
+multi sub infix:<eq> (Blob:D \a, Blob:D \b --> Bool:D) {
+    nqp::hllbool(
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b)) || a.SAME(b)
+    )
 }
-multi sub infix:<ne> (Blob:D \a, Blob:D \b) {
-    nqp::hllbool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
+multi sub infix:<ne> (Blob:D \a, Blob:D \b --> Bool:D) {
+    nqp::hllbool(
+      nqp::not_i(nqp::eqaddr(nqp::decont(a),nqp::decont(b)) || a.SAME(b))
+    )
 }
 multi sub infix:<lt> (Blob:D \a, Blob:D \b) {
     nqp::hllbool(nqp::iseq_i(a.COMPARE(b),-1))
@@ -1218,4 +1223,4 @@ multi sub subbuf-rw(Buf:D \b, $from, $elems) is rw {
     b.subbuf-rw($from, $elems)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

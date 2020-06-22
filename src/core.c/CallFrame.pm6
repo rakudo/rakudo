@@ -63,4 +63,4 @@ only sub callframe(Int:D $level = 0) { # MUST BE an only wrt to backtrace levels
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

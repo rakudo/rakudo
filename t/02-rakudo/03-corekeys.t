@@ -795,3 +795,5 @@ my @allowed =
 for @allowed -> (:key($rev), :value(@syms)) {
     has-symbols(CORE::{"v6$rev"}.WHO, @syms, "Symbols in CORE::v6{$rev}");
 }
+
+# vim: expandtab shiftwidth=4

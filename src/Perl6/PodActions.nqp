@@ -4,3 +4,5 @@
 # place holder for a new slang for Pod
 class Perl6::PodActions is Perl6::Actions does STDActions {
 }
+
+# vim: expandtab sw=4

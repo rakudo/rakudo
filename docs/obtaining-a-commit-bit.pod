@@ -2,7 +2,7 @@
 
 Firstly, what's a "commit bit"? If you don't know what it is, you
 probably don't need one :-) But, in any case, a "commit bit" is the
-colloquial way that L<#perl6|https://webchat.freenode.net/?channels=#perl6>
+colloquial way that L<#raku|https://webchat.freenode.net/?channels=#raku>
 describes how you obtain access to make commits directly to the rakudo
 repository. (i.e., not via a fork and pull request, but directly
 to https://github.com/rakudo/rakudo)
@@ -13,7 +13,7 @@ address it can be mailed to can
 be found at https://www.perlfoundation.org/contributor-license-agreement.html
 Some contributors chose to email the CLA to C<trademark -at- perlfoundation.org>
 instead; you can speak to C<[Coke]> on
-L<our IRC chat|https://webchat.freenode.net/?channels=#perl6> for details about
+L<our IRC chat|https://webchat.freenode.net/?channels=#raku> for details about
 the process as well as follow up on whether your CLA has been received by
 The Perl Foundation.
 
@@ -34,12 +34,12 @@ as far as you are aware, your contributions are yours alone to give.
 
 B<Once you send off your signed CLA,> and it's received by The Perl Foundation
 you can then inquire on
-L<irc://freenode.net/#perl6|https://webchat.freenode.net/?channels=#perl6>
+L<irc://freenode.net/#raku|https://webchat.freenode.net/?channels=#raku>
 about getting commit access to the Rakudo
 repository. The main source code repository for Rakudo is administered
 on GitHub, so it would be a good idea to have a github account before
 you request a commit bit. There is at least one officer of the Perl
-Foundation on #perl6 who can verify the reception of your signed CLA and
+Foundation on #raku who can verify the reception of your signed CLA and
 several people that can then add you to the Rakudo project.
 
 Typically a commit bit is granted after a new contributor has submitted

@@ -27,8 +27,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
     my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
 
-    my \POST-MATCH  := Match.^lookup("MATCH" );  # Match object
-    my \POST-STR    := Match.^lookup("STR"   );  # Str object
+    my &POST-MATCH  := Match.^lookup("MATCH" );  # Match object
+    my &POST-STR    := Match.^lookup("STR"   );  # Str object
+
+    my &POPULATE := Match.^lookup("MATCH" );  # populate Match object
 
     multi method IO(Str:D:) { IO::Path.new(self) }
 
@@ -1128,19 +1130,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method !match-iterator(&regex, &kind, \limit) {
-        my \iterator := POST-ITERATOR.new(
-          regex($cursor-init(Match,self,:0c)),CURSOR-GLOBAL,&kind
-        );
-        nqp::istype(limit,Whatever) || limit == Inf
-          ?? iterator
-          !! Rakudo::Iterator.NextNValues(iterator, limit.Int)
+    multi method comb(Str:D: Regex:D $regex, $limit = *, :$match! --> Seq:D) {
+        Seq.new: $match
+          ?? Rakudo::Iterator.MatchMatch: $regex, self, $limit
+          !! Rakudo::Iterator.MatchStr:   $regex, self, $limit
     }
-
-    multi method comb(Str:D: Regex:D $regex, $limit = *, :$match --> Seq:D) {
-        Seq.new(
-          self!match-iterator($regex, $match ?? POST-MATCH !! POST-STR, $limit)
-        )
+    multi method comb(Str:D: Regex:D $regex --> Seq:D) {
+        Seq.new: Rakudo::Iterator.MatchStr: $regex, self, *
     }
 
     # Look for short/long named parameter and remove it from the hash
@@ -1235,7 +1231,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::if($ov, CURSOR-OVERLAP, CURSOR-GLOBAL))),
 
           fetch-short-long($opts, "as", "as", my $as),
-          (my \post := nqp::if(nqp::istype($as,Str), POST-STR, POST-MATCH)),
+          (my \post := nqp::if(nqp::istype($as,Str), &POST-STR, &POST-MATCH)),
 
           fetch-short-long($opts, "g", "global", my $g),
           nqp::if(
@@ -1287,7 +1283,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-as-one(\slash, \cursor, \as) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
-          nqp::if(nqp::istype(as,Str), POST-STR, POST-MATCH)(cursor),
+          nqp::if(nqp::istype(as,Str), &POST-STR, &POST-MATCH)(cursor),
           Nil
         ))
     }
@@ -1548,7 +1544,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $g,
             self!match-list(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)),
-              CURSOR-GLOBAL, POST-MATCH),
+              CURSOR-GLOBAL, &POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)))
           )
@@ -1563,7 +1559,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $ov,
             self!match-list(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)),
-              CURSOR-OVERLAP, POST-MATCH),
+              CURSOR-OVERLAP, &POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)))
           )
@@ -1578,7 +1574,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $ex,
             self!match-list(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)),
-              CURSOR-EXHAUSTIVE, POST-MATCH),
+              CURSOR-EXHAUSTIVE, &POST-MATCH),
             self!match-one(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)))
           )
@@ -1593,7 +1589,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::defined($x),
             self!match-x(nqp::getlexcaller('$/'),
               POST-ITERATOR.new($pattern($cursor-init(Match,self,:0c)),
-                CURSOR-GLOBAL, POST-MATCH
+                CURSOR-GLOBAL, &POST-MATCH
               ), $x),
             self!match-one(nqp::getlexcaller('$/'),
               $pattern($cursor-init(Match,self,:0c)), $x)
@@ -1603,27 +1599,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method match(Regex:D $pattern, :$st!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $st, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $st, %_)
     }
     multi method match(Regex:D $pattern, :$nd!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $nd, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $nd, %_)
     }
     multi method match(Regex:D $pattern, :$rd!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $rd, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $rd, %_)
     }
     multi method match(Regex:D $pattern, :$th!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $th, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $th, %_)
     }
     multi method match(Regex:D $pattern, :$nth!, *%_) {
         self!match-nth(nqp::getlexcaller('$/'),
           $pattern($cursor-init(Match,self,:0c)),
-          CURSOR-GLOBAL, POST-MATCH, $nth, %_)
+          CURSOR-GLOBAL, &POST-MATCH, $nth, %_)
     }
     multi method match(Regex:D $pattern, :$as!, *%_) {
         nqp::if(
@@ -2071,123 +2067,27 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method parse-base(Str:D: "camel" --> Int:D) { self!eggify: "🐪🐫" }
     multi method parse-base(Str:D: "beer"  --> Int:D) { self!eggify: "🍺🍻" }
 
-    multi method split(Str:D: Regex:D $regex, $limit is copy = Inf;;
+    multi method split(Str:D: Regex:D $regex, $limit = Whatever;;
       :$v , :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
-
-        # sanity checks
-        my int $any = self!ensure-split-sanity($v,$k,$kv,$p);
-        self!ensure-limit-sanity($limit);
-
-        if $limit <= 1 {
-            Seq.new($limit == 1
-              ?? Rakudo::Iterator.OneValue(self)
-              !! Rakudo::Iterator.Empty
-            )
-        }
-        else {
-
-            # get all the matches
-            self!match-iterator($regex, POST-MATCH, $limit - 1)
-              .push-all(my \matches := nqp::create(IterationBuffer));
-
-            # do the split
-            nqp::elems(matches)
-              ?? $any
-                ?? $k || $v
-                  ?? self!split-with-kv(matches,?$k,?$v,!$skip-empty)
+        
+        Seq.new: self!ensure-split-sanity($v,$k,$kv,$p)
+          ?? Rakudo::Iterator.MatchSplitMap(   # additional mapping needed
+              $regex,
+              self,
+              $k                               # mapper
+                ?? { 0 }                        # just dummy keys
+                !! $v
+                  ?? &POPULATE                  # full Match objects
                   !! $kv
-                    ?? self!split-with-kv(matches, 1, 1, !$skip-empty)
-                    !! self!split-with-p(matches, !$skip-empty)
-                !! $skip-empty
-                  ?? self!split-empty(matches)
-                  !! self!split(matches)
-              !! Seq.new(Rakudo::Iterator.OneValue(self))
-        }
-    }
-
-    method !split-with-kv(\matches, int $k, int $v, int $dontskip --> Seq:D) {
-        my \result := nqp::create(IterationBuffer);
-
-        my $match;
-        my int $pos;
-        my int $found;
-        while nqp::elems(matches) {
-            $match := nqp::shift(matches);
-            $found  = nqp::getattr_i($match,Match,'$!from');
-            if $dontskip {
-                nqp::push(result,nqp::substr(self,$pos,$found - $pos));
-            }
-            elsif $found - $pos -> int $chars {
-                nqp::push(result,nqp::substr(self,$pos,$chars));
-            }
-            nqp::push(result,0)      if $k;
-            nqp::push(result,$match) if $v;
-            $pos = nqp::getattr_i($match,Match,'$!pos');
-        }
-        nqp::push(result,nqp::substr(self,$pos))
-          if $dontskip || $pos < nqp::chars(self);
-
-        result.Seq
-    }
-
-    method !split-with-p(\matches, int $dontskip --> Seq:D) {
-        my \result := nqp::create(IterationBuffer);
-
-        my $match;
-        my int $pos;
-        my int $found;
-        while nqp::elems(matches) {
-            $match := nqp::shift(matches);
-            $found  = nqp::getattr_i($match,Match,'$!from');
-            if $dontskip {
-                nqp::push(result,nqp::substr(self,$pos,$found - $pos));
-            }
-            elsif $found - $pos -> int $chars {
-                nqp::push(result,nqp::substr(self,$pos,$chars));
-            }
-            nqp::push(result, Pair.new(0,$match));
-            $pos = nqp::getattr_i($match,Match,'$!pos')
-        }
-        nqp::push(result,nqp::substr(self,$pos))
-          if $dontskip || $pos < nqp::chars(self);
-
-        result.Seq
-    }
-
-    method !split-empty(\matches --> Seq:D) {
-        my \result := nqp::create(IterationBuffer);
-
-        my $match;
-        my int $pos;
-        while nqp::elems(matches) {
-            $match := nqp::shift(matches);
-            if nqp::getattr_i($match,Match,'$!from') - $pos -> int $chars {
-                nqp::push(result,nqp::substr(self,$pos,$chars));
-            }
-            $pos = nqp::getattr_i($match,Match,'$!pos');
-        }
-        nqp::push(result,nqp::substr(self,$pos))
-          if $pos < nqp::chars(self);
-
-        result.Seq
-    }
-
-    method !split(\matches --> Seq:D) {
-        my \result := nqp::create(IterationBuffer);
-
-        my $match;
-        my int $pos;
-        while nqp::elems(matches) {
-            $match := nqp::shift(matches);
-            nqp::push(
-              result,
-              nqp::substr(self,$pos,nqp::getattr_i($match,Match,'$!from')-$pos)
-            );
-            $pos = nqp::getattr_i($match,Match,'$!pos');
-        }
-        nqp::push(result,nqp::substr(self,$pos));
-
-        result.Seq
+                    ?? { (0, POPULATE($_)) }    # alternating key/Match
+                    !! { 0 => POPULATE($_) },   # key => Match
+              $limit,
+              $skip-empty)
+          !! $skip-empty                       # no additional mapping
+            ?? Rakudo::Iterator.Truthy(        # skip empties
+                 Rakudo::Iterator.MatchSplit($regex, self, $limit))
+            !! Rakudo::Iterator.MatchSplit(    # produce all strings
+                 $regex, self, $limit)
     }
 
     multi method split(Str:D: Str(Cool) $match;;
@@ -3918,4 +3818,4 @@ sub parse-names(Str:D \names) {
 proto sub uniparse($, *%) {*}
 multi sub uniparse(Str:D \names --> Str:D) { names.uniparse }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

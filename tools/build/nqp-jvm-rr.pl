@@ -29,3 +29,5 @@ $runner =~ s/"\$\@"/$args/;
 $runner =~ s/\%\*/$args/;
 
 system $runner;
+
+# vim: expandtab sw=4

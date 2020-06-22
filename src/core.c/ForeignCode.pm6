@@ -29,7 +29,7 @@ proto sub EVAL(
   Str()       :$lang is copy = 'Raku',
   PseudoStash :$context,
   Str()       :$filename = Str,
-  Bool()      :$check = False,
+  Bool()      :$check,
   *%_
 ) {
     die "EVAL() in Raku is intended to evaluate strings, did you mean 'try'?"
@@ -55,7 +55,6 @@ $lang = 'Raku' if $lang eq 'perl6';
     $context := CALLER:: unless nqp::defined($context);
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
     my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
-    my \mast_frames := nqp::hash();
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the
                   # currently compiling compilation unit
 
@@ -67,7 +66,6 @@ $lang = 'Raku' if $lang eq 'perl6';
         $code,
         :outer_ctx($eval_ctx),
         :global(GLOBAL),
-        :mast_frames(mast_frames),
         :language_version(nqp::getcomp('Raku').language_version),
         |(:optimize($_) with nqp::getcomp('Raku').cli-options<optimize>),
         |(%(:grammar($LANG<MAIN>), :actions($LANG<MAIN-actions>)) if $LANG);
@@ -76,8 +74,6 @@ $lang = 'Raku' if $lang eq 'perl6';
         Nil
     }
     else {
-        $*W.add_additional_frames(mast_frames)
-          if $*W and $*W.is_precompilation_mode; # we are still compiling
         nqp::forceouterctx(
           nqp::getattr($compiled,ForeignCode,'$!do'),$eval_ctx
         );
@@ -90,7 +86,7 @@ multi sub EVAL(
   Str :$lang where { ($lang // '') eq 'Perl5' },
   PseudoStash :$context,
   Str() :$filename = Str,
-  Bool() :$check = False,
+  :$check,
 ) {
     if $check {
         X::NYI.new(feature => ":check on EVAL :from<Perl5>").throw;
@@ -105,8 +101,8 @@ multi sub EVAL(
 }
 
 proto sub EVALFILE($, *%) {*}
-multi sub EVALFILE($filename, :$lang = 'Raku', Bool() :$check = False) {
+multi sub EVALFILE($filename, :$lang = 'Raku', :$check) {
     EVAL slurp(:bin, $filename), :$lang, :$check, :context(CALLER::), :$filename
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

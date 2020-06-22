@@ -14,3 +14,5 @@ for my $dir (@ARGV) {
 }
 remove_tree(@d);
 exit;
+
+# vim: expandtab sw=4

@@ -310,4 +310,4 @@ my class Code does Callable { # declared in BOOTSTRAP
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

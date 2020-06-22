@@ -39,3 +39,5 @@ role Perl6::Metamodel::Finalization {
         @!destroyers
     }
 }
+
+# vim: expandtab sw=4

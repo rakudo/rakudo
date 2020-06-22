@@ -163,3 +163,5 @@ else {
     install "rakudo-eval-server", "java -Xmx3000m $jopts org.raku.nqp.tools.EvalServer";
     install "perl6-eval-server", "java -Xmx3000m $jopts org.raku.nqp.tools.EvalServer";
 }
+
+# vim: expandtab sw=4

@@ -72,4 +72,4 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

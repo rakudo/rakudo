@@ -30,20 +30,10 @@ my class IO::Handle {
             nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
         }
     }
-    method !forget-about-closing(int $fileno --> Nil) {
+    method !forget-about-closing(--> Nil) {
         $opened-locker.protect: {
-            nqp::bindpos($opened,$fileno,nqp::null)
+            nqp::bindpos($opened,nqp::filenofh($!PIO),nqp::null)
         }
-    }
-    method !close(int $fileno --> Nil) {
-        nqp::unless(
-          nqp::isnull(nqp::atpos($opened,$fileno)),
-          nqp::stmts(                            # still marked for closing
-            self!forget-about-closing($fileno),  # mark as closed
-            nqp::closefh($!PIO)                  # close, ignore errors
-          )
-        );
-        $!PIO := nqp::null;         # mark HLL handle now also closed
     }
     method !close-all-open-handles(--> Nil) {
         if nqp::elems($opened) -> int $elems {
@@ -60,7 +50,7 @@ my class IO::Handle {
 
     method do-not-close-automatically(IO::Handle:D: --> Bool:D) {
         if nqp::defined($!PIO) {
-            self!forget-about-closing(nqp::filenofh($!PIO));
+            self!forget-about-closing;
             True
         }
         else {
@@ -69,10 +59,6 @@ my class IO::Handle {
     }
 #?endif
 #?if !moar    
-    method !close(int $fileno --> Nil) {
-        nqp::closefh($!PIO);
-        $!PIO := nqp::null;
-    }
     method do-not-close-automatically(IO::Handle:D: --> False) { }
 #?endif
 
@@ -248,7 +234,11 @@ my class IO::Handle {
               nqp::isconcrete($!decoder),
               ($!decoder := Encoding::Decoder)
             ),
-            self!close(nqp::filenofh($!PIO))
+#?if moar
+            self!forget-about-closing,  # mark as closed
+#?endif
+            nqp::closefh($!PIO),        # close, ignore errors
+            $!PIO := nqp::null          # mark HLL handle now also closed
           )
         )
     }
@@ -646,7 +636,7 @@ my class IO::Handle {
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
 #?if moar
-        self!forget-about-closing(nqp::filenofh($!PIO));
+        self!forget-about-closing;
 #?endif
         nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
@@ -898,9 +888,14 @@ my class IO::Handle {
         # are our $*IN, $*OUT, and $*ERR, and we don't want them closed
         # implicitly via DESTROY, since you can't get them back again.
 
-        self!close(nqp::filenofh($!PIO))
-          if nqp::defined($!PIO)
-          && nqp::isgt_i(nqp::filenofh($!PIO),2);
+        self.close
+          if nqp::defined($!PIO)                   # not closed yet
+          && nqp::isgt_i(nqp::filenofh($!PIO),2)   # not a standard handle
+#?if moar
+          && nqp::not_i(                           # marked for closing
+               nqp::isnull(nqp::atpos($opened,nqp::filenofh($!PIO)))
+             )
+#?endif
     }
 
     method native-descriptor(IO::Handle:D:) {
@@ -914,4 +909,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DEFAULT-READ-ELEMS', {
     PROCESS::<$DEFAULT-READ-ELEMS> := %*ENV<RAKUDO_DEFAULT_READ_ELEMS> // 65536;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

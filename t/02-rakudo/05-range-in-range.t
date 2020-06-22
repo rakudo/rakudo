@@ -18,3 +18,5 @@ for @false-tests -> ($range, $thing) {
 throws-like { (-∞^..^∞).in-range: 0/0 }, X::OutOfRange,
     message => /'<0/0>'/,
 '0/0 is not in -Inf^..^Inf range';
+
+# vim: expandtab shiftwidth=4

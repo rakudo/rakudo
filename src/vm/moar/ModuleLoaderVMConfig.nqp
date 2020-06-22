@@ -25,3 +25,5 @@ role Perl6::ModuleLoaderVMConfig {
         '.moarvm'
     }
 }
+
+# vim: expandtab sw=4

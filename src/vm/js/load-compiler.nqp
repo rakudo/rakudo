@@ -48,3 +48,5 @@ nqp::sethllconfig('Raku', nqp::hash(
         nqp::getcomp('Raku').handle-exception($exception);
     }
 ));
+
+# vim: expandtab sw=4

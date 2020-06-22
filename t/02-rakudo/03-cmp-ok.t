@@ -114,3 +114,5 @@ group-of 2 => 'objects lacking support for methods' => {
         cmp-ok Foo, &[=:=], Foo, 'can compare two objects without support for methods...';
     }, '...without throwing';
 }
+
+# vim: expandtab shiftwidth=4

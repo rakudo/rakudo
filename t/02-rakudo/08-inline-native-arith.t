@@ -21,3 +21,5 @@ like $p.out.slurp(:close), /mul_i/,
     nok nqp::p6trialbind(:(*% where *.so), nqp::list(), nqp::list()),
         'trial bind notices `where` in the named slurpy';
 }
+
+# vim: expandtab shiftwidth=4

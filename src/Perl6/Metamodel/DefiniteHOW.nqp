@@ -135,3 +135,5 @@ BEGIN {
     });
     (Perl6::Metamodel::DefiniteHOW.WHO)<root> := $root;
 }
+
+# vim: expandtab sw=4

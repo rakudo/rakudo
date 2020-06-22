@@ -17,3 +17,5 @@ say 'ok ', $counter;
 
 ++$counter;
 say 'ok ' ~ $counter;
+
+# vim: expandtab shiftwidth=4

@@ -19,3 +19,5 @@ throws-like q[multi sub f(Int $foo is rw) { }; f(42)],
         'calling multi sub that expects a rw non-native argument with a literal is caught at compile time';
 
 done-testing;
+
+# vim: expandtab shiftwidth=4

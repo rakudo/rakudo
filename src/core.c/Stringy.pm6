@@ -2,12 +2,10 @@ my class X::NYI { ... }
 
 my role Stringy { }
 
-multi sub infix:<eqv>(Stringy:D \a, Stringy:D \b) {
+multi sub infix:<eqv>(Stringy:D \a, Stringy:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::unless(
-        nqp::eqaddr(a,b),
-        nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_i(a cmp b,0)
-      )
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_i(a cmp b,0))
     )
 }
 
@@ -75,4 +73,4 @@ multi sub infix:<~&>(\a, \b)       { a.Stringy ~& b.Stringy }
 proto sub prefix:<~^>($, *%) is pure {*}
 multi sub prefix:<~^>(\a)         { ~^ a.Stringy }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

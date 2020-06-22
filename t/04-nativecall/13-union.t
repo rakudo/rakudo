@@ -136,4 +136,4 @@ isa-ok $uos.b, YourStruct, 'member b of union is-a YourStruct';
 is $uos.a.byte, 42, 'a.byte was set to 42 by C';
 is $uos.b.byte, 42, 'b.byte must be the same';
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

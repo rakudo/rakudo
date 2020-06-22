@@ -17,4 +17,4 @@ my class IO::Spec::QNX is IO::Spec::Unix {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

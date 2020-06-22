@@ -425,7 +425,7 @@ my class Array { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty
     }
 
-    multi method List(Array:D: :$view --> List:D) {
+    multi method List(Array:D: :$view --> List:D) {  # :view is implementation-detail
         nqp::if(
           self.is-lazy,                           # can't make a List
           X::Cannot::Lazy.new(:action<List>).throw,
@@ -1387,4 +1387,4 @@ my class Array { # declared in BOOTSTRAP
 
 #=============== class Array is closed in src/core.c/TypedArray.pm6 ============
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

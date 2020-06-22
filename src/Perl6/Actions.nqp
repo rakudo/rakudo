@@ -11221,4 +11221,4 @@ class Perl6::P5RegexActions is QRegex::P5Regex::Actions does STDActions {
     }
 }
 
-# vim: ft=perl6 et sw=4
+# vim: expandtab sw=4

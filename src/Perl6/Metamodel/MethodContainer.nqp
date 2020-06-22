@@ -144,3 +144,5 @@ role Perl6::Metamodel::MethodContainer {
         $value
     }
 }
+
+# vim: expandtab sw=4

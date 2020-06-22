@@ -718,4 +718,4 @@
 
 # continued in src/core.c/Supply-coercers.pm6
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

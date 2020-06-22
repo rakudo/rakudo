@@ -44,4 +44,4 @@ unless $*DISTRO.is-win { # https://github.com/rakudo/rakudo/issues/3244
 
 done-testing();
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

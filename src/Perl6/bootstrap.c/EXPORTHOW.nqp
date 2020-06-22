@@ -17,3 +17,5 @@ my module EXPORTHOW {
     ($?PACKAGE.WHO)<coercion>     := Perl6::Metamodel::CoercionHOW;
     ($?PACKAGE.WHO)<definite>     := Perl6::Metamodel::DefiniteHOW;
 }
+
+# vim: expandtab sw=4

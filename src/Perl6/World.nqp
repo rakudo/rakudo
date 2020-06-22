@@ -521,10 +521,6 @@ class Perl6::World is HLL::World {
         @!CHECKs := [];
     }
 
-    method create_nested() {
-        Perl6::World.new(:handle(self.handle), :context(self.context()))
-    }
-
     method lang-ver-before(str $want) {
         nqp::chars($want) == 1 || nqp::die(
           'Version to $*W.lang-ver-before'
@@ -2897,7 +2893,7 @@ class Perl6::World is HLL::World {
                 # outer lexical context's symbols as those may contain or
                 # reference unserializable objects leading to compilation
                 # failures. Needs a smarter approach as noted above.
-                unless self.is_nested() || %seen{$name} {
+                if !%seen{$name} && ($name eq '$_' || !self.is_nested()) {
                     # Add symbol.
                     my %sym   := %symbols{$name};
                     my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
@@ -4421,6 +4417,8 @@ class Perl6::World is HLL::World {
     # Does any cleanups needed after compilation.
     method cleanup() {
         for self.context().cleanup_tasks() { $_() }
+
+        self.finish;
     }
 
     # Represents a longname after having parsed it.
@@ -5677,4 +5675,4 @@ class Perl6::World is HLL::World {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

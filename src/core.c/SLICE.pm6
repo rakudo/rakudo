@@ -891,5 +891,4 @@ sub SLICE_MORE_HASH(\SELF,$more,$key,$value,%adv) { # is implementation-detail
       !! result;
 } #SLICE_MORE_HASH
 
-
-# vim: set ft=perl6 nomodifiable :
+# vim: expandtab shiftwidth=4

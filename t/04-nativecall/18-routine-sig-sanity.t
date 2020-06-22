@@ -126,3 +126,5 @@ eval-lives-ok 'use NativeCall; class Foo is repr("CPointer") {sub foo() returns 
 
 done-testing
 
+
+# vim: expandtab shiftwidth=4

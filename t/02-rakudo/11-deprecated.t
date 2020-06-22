@@ -18,3 +18,5 @@ sub isn't-deprecated (|c) { test-deprecation |c              }
 
 isn't-deprecated 'v6.c', v6.d, v6.e, :lang-vers;
 is-deprecated    'v6.d', v6.d, v6.e, :lang-vers;
+
+# vim: expandtab shiftwidth=4

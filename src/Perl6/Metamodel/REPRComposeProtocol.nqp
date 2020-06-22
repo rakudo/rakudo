@@ -71,3 +71,5 @@ role Perl6::Metamodel::REPRComposeProtocol {
         $!composed_repr;
     }
 }
+
+# vim: expandtab sw=4

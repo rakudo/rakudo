@@ -109,3 +109,5 @@ subtest 'nested metaops get fully rewritten away from &METAOP sub calls' => {
     qast-is ｢my $a; (((($a //= 0) += 1) //= 0) += 1)｣, -> \v { not qast-contains-call v, /METAOP/ },
       '((((//=)+=) //=) +=)';
 }
+
+# vim: expandtab shiftwidth=4

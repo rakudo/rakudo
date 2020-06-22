@@ -188,8 +188,15 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                     ~ "     got: $got.raku()";
             }
             else {
-                _diag "expected: '$expected'\n"
+                 try { # if the type support Stringification
+                      # note: we can't use ^can('Str') as Buf error in its Str method itself
+                    _diag "expected: '$expected'\n"
                     ~ "     got: '$got'";
+                    True;
+                } or {
+                    _diag "expected: $expected.raku()\n"
+                    ~ "     got: $got.raku()";
+                }
             }
         }
     }
@@ -871,10 +878,10 @@ Test - Rakudo Testing Library
 Please check the section Language/testing of the doc repository.
 If you have 'p6doc' installed, you can do 'p6doc Language/testing'.
 
-You can also check the documentation about testing in Perl 6 online on:
+You can also check the documentation about testing in Raku online on:
 
   https://doc.raku.org/language/testing
 
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4

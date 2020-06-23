@@ -2075,7 +2075,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               $k                      # mapper
                 ?? { 0 }              # just dummy keys
                 !! $v
-                  ?? $_               # Match objects
+                  ?? { $_ }           # Match objects
                   !! $kv
                     ?? { (0, $_) }    # alternating key/Match
                     !! { 0 => $_ },   # key => Match

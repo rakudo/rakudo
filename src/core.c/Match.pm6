@@ -1,4 +1,7 @@
-my class Match is Capture is Cool does NQPMatchRole {
+my class Match is Cool does NQPMatchRole {
+    method STR() { self.Str }
+    method MATCH() { self }
+    method Capture(Match:D:) { self }
 # from NQPMatchRole
 #    has int $!from;  # start position of match
 #    has int $!pos;   # current cursor position
@@ -13,146 +16,743 @@ my class Match is Capture is Cool does NQPMatchRole {
 #    has $!match;     # flag indicating Match object set up (NQPdidMATCH)
 #    has str $!name;  # name if named capture
 
-    my Mu $EMPTY_LIST := nqp::list();
-    my Mu $EMPTY_HASH := nqp::hash();
+    # This is mostly to accommodate grammars, as they do a .new on a
+    # potentially already reified object.
+    method new(Match:
+        str :$orig = '',
+        str :$name = '',
+        int :$from,
+        int :to(:$pos),
+        :ast(:$made),
+        :$shared,
+        :$braid,
+        :$cstack,
+        :$capnames
+    --> Match:D) {
 
-    # When nothing's `made`, we get an NQPMu that we'd like to replace
-    # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
-    method ast()  { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
-    method made() { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
+        my $new := self.'!cursor_init'(
+          $orig,
+          :build(nqp::isconcrete(self)),
+          :p($pos),
+          :$shared,
+          :$braid
+        );
+        nqp::bindattr_s($new,Match,'$!name',$name);
+        nqp::bindattr_i($new,Match,'$!from',$from);
+        nqp::bindattr($new,Match,'$!made',nqp::decont($made))
+          if $made.defined;
 
-    method Int(--> Int:D) { self.Str.Int }
+        nqp::bindattr($new,Match,'$!cstack',
+          nqp::getattr(nqp::decont($cstack),List,'$!reified')
+        ) if $cstack;
 
-    method STR() is implementation-detail {
-        nqp::if(
-          nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
-          self.Str,
-          self.MATCH.Str
-        )
+        nqp::bindattr(
+          nqp::bindattr($new,Match,'$!regexsub',nqp::create(Regex)),
+          Regex,
+          '$!capnames',
+          nqp::getattr(nqp::decont($capnames),Map,'$!storage')
+        ) if $capnames;
+          
+        $new
     }
 
-    method MATCH() is implementation-detail {
-        nqp::unless(
-          nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
-          nqp::if(                           # must still set up
-            nqp::islt_i(
-              nqp::getattr_i(self,Match,'$!pos'),
-              nqp::getattr_i(self,Match,'$!from')
-            ) || nqp::isnull(my $rxsub := nqp::getattr(self,Match,'$!regexsub'))
-              || nqp::isnull(my $CAPS := nqp::tryfindmethod($rxsub,'CAPS'))
-              || nqp::isnull(my $captures := $CAPS($rxsub))
-              || nqp::not_i($captures.has-captures),
-            nqp::stmts(                      # no captures
-              nqp::bindattr(self,Capture,'@!list',$EMPTY_LIST),
-              nqp::bindattr(self,Capture,'%!hash',$EMPTY_HASH),
-              nqp::bindattr(self,Match,'$!match',NQPdidMATCH)  # mark as set up
-            ),
-            self!MATCH-CAPTURES($captures)  # go reify all the captures
+    method from() { self!deeper('$!from') }
+    method to() {
+        my int $to = self!deeper('$!to');
+        nqp::islt_i($to,0) ?? $!pos !! $to
+    }
+
+    # look for a capture for the given special name
+    method !deeper(str $name) {
+        my int $pos = nqp::getattr_i(self,Match,$name);
+
+        # try to find capture with special name, can have multiple
+        nqp::if(
+          $!cstack,
+          nqp::stmts(
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $found :=
+                  nqp::getattr_s(nqp::atpos($!cstack,$i),Match,'$!name'))
+                  && nqp::iseq_s($found,$name),
+                ($pos = nqp::getattr_i(
+                  nqp::atpos($!cstack,$i)!deeper-still($name),
+                  Match,
+                  '$!from'
+                ))
+              )
+            )
           )
         );
 
+        $pos
+    }
+
+    # recursively look for a capture for the given special name
+    method !deeper-still(str $name) {
+
+        # try to find capture with special name
+        nqp::if(
+          $!cstack,
+          nqp::stmts(
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $found :=
+                  nqp::getattr_s(nqp::atpos($!cstack,$i),Match,'$!name'))
+                  && nqp::iseq_s($found,$name),
+                (return nqp::atpos($!cstack,$i)!deeper-still($name))
+              )
+            )
+          )
+        );
+
+        # not found, return object for later $!from extraction
         self
     }
 
-    method !MATCH-CAPTURES(Mu $captures --> Nil) {
-        # Initialize capture lists.
-        my $list := nqp::findmethod($captures,'prepare-raku-list')($captures);
-        my $hash := nqp::findmethod($captures,'prepare-raku-hash')($captures);
+    method capnames(Match:D:) is raw is implementation-detail {
+        nqp::isconcrete($!regexsub)
+          ?? nqp::getattr($!regexsub,Regex,'$!capnames')
+          !! Nil
+    }
 
-        # walk the capture stack and populate the Match.
-        if nqp::istrue(my $cs := nqp::getattr(self,Match,'$!cstack')) {
+    method cstack(Match:D:) { nqp::isconcrete($!cstack) ?? $!cstack !! Nil }
+    method name(Match:D: --> Str:D) {
+        nqp::isnull_s($!name) ?? "" !! $!name
+    }
 
-            # only one destination, avoid repeated hash lookups
-            if $captures.onlyname -> str $onlyname {
+    method clone(Match:D:) is raw { nqp::clone(self) }
 
-                # numeric: <= ord("9") so positional capture
-                my Mu $dest := nqp::atpos(
-                  nqp::islt_i(nqp::ord($onlyname),58) ?? $list !! $hash,
-                  $onlyname
+    # API function for $0, $1 ...
+    method AT-POS(int $pos) {
+        nqp::isge_i($!pos,$!from)  # $!from is good enough here
+          && nqp::not_i(nqp::isnull(my \val =
+               nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$pos)
+             ))
+          ?? nqp::isgt_i(val,1)         # could be found
+            ?? self!find-multi(my str $ = $pos)   # multiple captures possible
+            !! self!find-single(my str $ = $pos)  # only single capture possble
+          !! Nil                        # no match or unexpected positional
+    }
+
+    # API function for $/[0]:exists ...
+    method EXISTS-POS(int $pos) {
+        nqp::hllbool(
+          nqp::isge_i($!pos,$!from)     # $!from is good enough here
+            && nqp::not_i(nqp::isnull(
+                 nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$pos)
+               ))
+        )
+    }
+
+    # Positional API functions that are not supported
+    method ASSIGN-POS(int $pos, \val) {
+        self!cannot("assign to index $pos")
+    }
+    method BIND-POS(  int $pos, \val) {
+        self!cannot("bind to index $pos")
+    }
+    method DELETE-POS(int $pos) {
+        self!cannot("delete index $pos")
+    }
+
+    # API function for $<foo>, $<bar> ...
+    method AT-KEY(str $name) {
+        nqp::isge_i($!pos,$!from)       # $!from is good enough here
+          && nqp::not_i(nqp::isnull(my \val =
+               nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
+             ))
+          ?? nqp::isgt_i(val,1)         # could be found
+            ?? self!find-multi($name)   # multiple captures possible
+            !! self!find-single($name)  # only single capture possble
+          !! Nil                        # no match or unexpected positional
+    }
+
+
+    # API function for $/<foo>:exists ...
+    method EXISTS-KEY(str $name) {
+        nqp::hllbool(
+          nqp::isge_i($!pos,self.from)  # $!from is good enough here
+            && nqp::not_i(nqp::isnull(
+                 nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
+               ))
+        )
+    }
+
+    # Associative API functions that are not supported
+    method ASSIGN-KEY(str $name, \val) {
+        self!cannot("assign to key '$name'")
+    }
+    method BIND-KEY(  str $name, \val) {
+        self!cannot("bind to key '$name'")
+    }
+    method DELETE-KEY(str $name) {
+        self!cannot("delete key '$name'")
+    }
+
+    # too bad
+    method !cannot(str $what) {
+        die "Cannot $what from a '{self.^name}' object";
+    }
+
+    # find a single capture like (.), knowing there are captures
+    method !find-single(str $name) {
+        my $result := Nil;
+
+        # we haz captures
+        nqp::if(
+          $!cstack,
+          nqp::stmts(
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $known-as :=
+                  nqp::getattr_s(nqp::atpos($!cstack,$i),Match,'$!name')),
+                nqp::stmts(
+                  (my $names := nqp::split("=",$known-as)),
+                  nqp::while(
+                    nqp::elems($names),
+                    nqp::if(
+                      nqp::iseq_s($name,nqp::shift($names)),
+                      ($result := nqp::atpos($!cstack,$i))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        $result
+    }
+
+    # find a multi capture, like (.)+, knowing there are captures
+    method !find-multi(str $name) {
+        my @captures;
+
+        nqp::if(
+          $!cstack,
+          nqp::stmts(
+            (my $captures :=
+              nqp::bindattr(@captures,List,'$!reified',
+                nqp::create(IterationBuffer))
+            ),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $known-as :=
+                  nqp::getattr_s(nqp::atpos($!cstack,$i),Match,'$!name')),
+                nqp::stmts(
+                  (my $names := nqp::split("=",$known-as)),
+                  nqp::while(
+                    nqp::elems($names),
+                    nqp::if(
+                      nqp::iseq_s($name,nqp::shift($names)),
+                      nqp::push($captures,nqp::atpos($!cstack,$i))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        @captures   # ecosystem expects an Array
+    }
+
+    proto method Bool(|) {*}  # NQPMatchRole has only "Bool", need proto here
+    multi method Bool(Match:U: --> False) { }
+    multi method Bool(Match:D:) {
+        nqp::hllbool(nqp::isge_i($!pos,$!from))  # $!from is good enough here
+    }
+
+    # Int is handled by NQPMatchRole
+    multi method Numeric(Match:D:) { self.Str.Numeric }
+    multi method ACCEPTS(Match:D: Any $) { self }
+
+    # Basically NQP's .Str which gets shadowed by Cool
+    method Str(Match:D: --> Str:D) {
+        my int $from = self.from;  # must use .from and .to here
+        nqp::isge_i($!pos,$from)
+          ?? nqp::substr(self.target,$from,nqp::sub_i(self.to,$from))
+          !! ''
+    }
+
+    multi method gist(Match:D: str $indent = "\n " --> Str:D) {
+        if nqp::isge_i($!pos,$!from) {  # $!from is good enough here
+            my $parts := nqp::list_s;
+            nqp::push_s($parts,"=> ") if nqp::isne_s($indent,"\n ");
+            nqp::push_s($parts,"｢");
+            nqp::push_s($parts,self.Str);
+            nqp::push_s($parts,"｣");
+
+            for self.caps {
+                nqp::push_s($parts,$indent);
+                nqp::push_s($parts,.key.Str);
+                nqp::push_s($parts," ");
+                nqp::push_s($parts,.value.gist(nqp::concat($indent," ")));
+            }
+
+            nqp::join("",$parts);
+        }
+        else {
+            "#<failed match>"
+        }
+    }
+
+    multi method raku(Match:D: --> Str:D) {
+        my $attrs := nqp::list_s;
+        nqp::push_s($attrs,
+          nqp::concat(':orig(',nqp::concat(self.target.raku,')')));
+        nqp::push_s($attrs,
+          nqp::concat(':from(',nqp::concat($!from,')')));
+        nqp::push_s($attrs,
+          nqp::concat(':pos(',nqp::concat($!pos,')')));
+
+        if nqp::isge_i($!pos,$!from) {  # $!from is good enough here
+            nqp::push_s($attrs,":name<$!name>") if $!name;
+
+            if $!cstack {
+                nqp::push_s($attrs,
+                  nqp::concat(
+                    ':cstack',
+                    nqp::p6bindattrinvres(
+                      nqp::create(List),List,'$!reified',$!cstack
+                    ).raku
+                  )
                 );
-
-                # simpLy reify all the cursors
-                my int $i = -1;
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($cs)),
-                  nqp::stmts(
-                    (my $cursor := nqp::atpos($cs,$i)),
-                    nqp::unless(
-                      nqp::isnull_s(nqp::getattr_s($cursor,$?CLASS,'$!name')),
-                      nqp::push($dest,$cursor.MATCH)  # recurse
+                nqp::push_s($attrs,
+                  nqp::concat(
+                    ':capnames(',
+                    nqp::concat(
+                      nqp::p6bindattrinvres(
+                        nqp::create(Map),Map,'$!storage',
+                        nqp::getattr($!regexsub,Regex,'$!capnames')
+                      ).raku,
+                      ')'
                     )
                   )
                 );
             }
+            with self.made {
+                nqp::push_s($attrs,nqp::concat(':made(',nqp::concat(.raku,')')));
+            }
+        }
 
-            # more than one destination
-            else {
-                my int $i = -1;
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($cs)),
-                  nqp::stmts(                               # handle this cursor
-                    (my $cursor := nqp::atpos($cs,$i)),
-                    (my str $name = nqp::getattr_s($cursor,$?CLASS,'$!name')),
+        nqp::concat('Match.new(',nqp::concat(nqp::join(', ',$attrs),')'))
+    }
+
+    method prematch(Match:D: --> Str:D) { nqp::substr(self.target,0,self.from) }
+    method postmatch(Match:D: --> Str:D) { nqp::substr(self.target,self.to) }
+    method replace-with(Match:D: Str() $replacement --> Str:D) {
+        nqp::concat(
+          nqp::substr(self.target,0,self.from),
+          nqp::concat(
+            $replacement,
+            nqp::substr(self.target,self.to)
+          )
+        )
+    }
+
+    # Produce a value for sorting on match position
+    method !sort-on-from-pos() {
+        nqp::add_i(nqp::bitshiftl_i(self.from,32),$!pos)
+    }
+
+    # Produce all captures as they were found
+    method caps(--> List:D) {
+        if $!cstack {
+            my $caps := nqp::list;
+            my int $i = -1;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $known-as := nqp::getattr_s(
+                  (my $match := nqp::atpos($!cstack,$i)),Match,'$!name')),
+                nqp::stmts(
+                  (my $names := nqp::split("=",$known-as)),
+                  nqp::while(
+                    nqp::elems($names),
                     nqp::if(
-                      nqp::not_i(nqp::isnull_s($name))
-                        && nqp::isge_i(nqp::chars($name),1),
-                      nqp::stmts(                           # has a name
-                        (my $match := $cursor.MATCH),  # recurse
+                      nqp::isne_i(
+                        nqp::ord(my str $key = nqp::shift($names)),
+                        36    # not a $, assume not $!from or $!to
+                      ),
+                      nqp::push($caps,Pair.new(
                         nqp::if(
-                          nqp::iseq_s($name,'$!from')
-                            || nqp::iseq_s($name,'$!to'),
-                          nqp::bindattr_i(self,Match,$name, # it's from|to
-                            nqp::getattr_i($match,Match,'$!from')),
-                          nqp::stmts(                       # other name(s)
-                            (my $names := nqp::split('=',$name)),
-                            nqp::while(
-                              nqp::elems($names),
-                              nqp::if(
-                                nqp::iscclass(
-                                  nqp::const::CCLASS_NUMERIC,
-                                  ($name = nqp::shift($names)),
-                                  0
-                                ),
-                                nqp::if(                    # positional capture
-                                  nqp::istype(nqp::atpos($list,$name),Array),
-                                  nqp::atpos($list,$name).push($match),
-                                  nqp::bindpos($list,$name,$match)  # XXX
-                                ),
-                                nqp::if(                    # named capture
-                                  nqp::istype(nqp::atkey($hash,$name),Array),
-                                  nqp::atkey($hash,$name).push($match),
-                                  nqp::bindkey($hash,$name,$match)  # XXX
-                                )
-                              )
-                            )
+                          nqp::islt_i(nqp::ord($key),58),  # numeric
+                          (my int $ = $key),  # converts to Int as key
+                          $key
+                        ),
+                        $match
+                      ))
+                    )
+                  )
+                )
+              )
+            );
+
+            Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
+              $caps, *.value!sort-on-from-pos
+            ) 
+        }
+        else {
+            Empty
+        }
+    }
+
+    # Produce all captures as they were found and non-matching strings inbetween
+    method chunks(Match:D: --> Seq:D) {
+        my int $prev = self.from;
+        my $target  := self.target;
+        my $buffer  := nqp::create(IterationBuffer);
+
+        for self.caps {
+            my \value := .value;
+
+            nqp::push(
+              $buffer,
+              Pair.new(
+                '~',
+                nqp::substr($target,$prev,nqp::sub_i(value.from,$prev))
+              )
+            ) if nqp::isgt_i(value.from,$prev);  # before match?
+
+            nqp::push($buffer,$_);
+            $prev = value.pos;
+        }
+
+        nqp::push(
+          $buffer,
+          Pair.new(
+            '~',
+            nqp::substr($target,$prev,nqp::sub_i($!pos,$prev))
+          )
+        ) if nqp::islt_i($prev,$!pos);  # after last match?
+
+        $buffer.Seq
+    }
+
+    # Produce an iterator for this Match (pairs)
+    method iterator(--> Iterator:D) {
+        my $positionals := nqp::list;
+        my $nameds      := nqp::hash;
+
+        # there appear to be captures
+        if $!cstack {
+
+            # pass 1: put all captures in the hash
+            my int $i = -1;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $known-as :=
+                  nqp::getattr_s((my $match :=
+                    nqp::atpos($!cstack,$i)),Match,'$!name')
+                ) && nqp::isne_i(nqp::ord($known-as),36),  # not a $
+                nqp::stmts(
+                  (my $names := nqp::split("=",$known-as)),
+                  nqp::while(
+                    nqp::elems($names),
+                    nqp::stmts(
+                      (my str $key = nqp::shift($names)),
+                      nqp::if(
+                        nqp::isnull(my $current := nqp::atkey($nameds,$key)),
+                        nqp::bindkey($nameds,$key,$match),
+                        nqp::if(
+                          nqp::islist($current),
+                          nqp::push($current,$match),
+                          nqp::bindkey($nameds,$key,nqp::list($current,$match))
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            );
+        }
+
+        # some regex action has been done
+        if nqp::isconcrete($!regexsub) {
+
+            # pass 2: make sure all multi captures are Arrays
+            my $iter :=
+              nqp::iterator(nqp::getattr($!regexsub,Regex,'$!capnames'));
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::iseq_i(nqp::iterval(nqp::shift($iter)),2),
+                nqp::bindkey($nameds,nqp::iterkey_s($iter),nqp::if(
+                  nqp::isnull(my $current := nqp::atkey($nameds,nqp::iterkey_s($iter))),
+                  nqp::create(Array),
+                  nqp::p6bindattrinvres(
+                    nqp::create(Array),List,'$!reified',nqp::if(
+                      nqp::islist($current),
+                      $current,
+                      nqp::list($current)
+                    )
+                  )
+                ))
+              )
+            );
+        }
+
+        # Historically, the Match iterator first produced all of the
+        # positional captures in order, and *then* produced the named
+        # captures in random order.  Some internals and some spectests
+        # depend on this behaviour, so rather than just producing the
+        # captures from the hash, we first need to extract the positional
+        # ones in order to be able to produce them first.  Hopefully
+        # we can get rid of this rigamarole at some point in the future.
+
+        # pass 3: extract the positional captures into an array
+        my $iter := nqp::iterator($nameds);
+        nqp::while(
+          $iter,
+          nqp::if(
+            nqp::islt_i(
+              nqp::ord(my str $key = nqp::iterkey_s(nqp::shift($iter))),
+              58  # numeric
+            ),
+            nqp::stmts(
+              nqp::bindpos($positionals,$key,nqp::iterval($iter)),
+              nqp::deletekey($nameds,$key)
+            )
+          )
+        );
+
+        # return appropriate iterator, potentially combined
+        nqp::elems($positionals)
+          ?? nqp::elems($nameds)
+            ?? Rakudo::Iterator.SequentialIterators:
+                 (Rakudo::Iterator.Pairs(nqp::hllize($positionals).iterator),
+                  nqp::hllize($nameds).iterator
+                 ).iterator
+            !! Rakudo::Iterator.Pairs(nqp::hllize($positionals).iterator)
+          !! nqp::elems($nameds)
+            ?? nqp::hllize($nameds).iterator
+            !! Rakudo::Iterator.Empty
+    }
+
+    multi method pairs(Match:D: --> Seq:D)     { Seq.new: self.iterator }
+    multi method kv(Match:D: --> Seq:D)        { self.pairs.map: { slip(.key, .value) } }
+    multi method keys(Match:D: --> Seq:D)      { self.pairs.map: *.key }
+    multi method values(Match:D: --> Seq:D)    { self.pairs.map: *.value }
+    multi method antipairs(Match:D: --> Seq:D) { self.pairs.map: *.antipair }
+
+    # create an IterationBuffer with positional captures
+    method FLATTENABLE_LIST() is raw is implementation-detail {
+        my $buffer := nqp::create(IterationBuffer);
+
+        # we haz captures
+        if $!cstack {
+
+            # pass 1: put all positional captures in the list
+            my int $i = -1;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $known-as := nqp::getattr_s(
+                  (my $match := nqp::atpos($!cstack,$i)),Match,'$!name')
+                ),
+                nqp::stmts(
+                  (my $names := nqp::split("=",$known-as)),
+                  nqp::while(
+                    nqp::elems($names),
+                    nqp::stmts(
+                      (my str $pos = nqp::shift($names)),
+                      nqp::if(
+                        nqp::islt_i(nqp::ord($pos),58)       # probably numeric
+                          && nqp::isne_i(nqp::ord($pos),36), # not a $
+                        nqp::if(                             # numeric!
+                          nqp::isnull(my $current := nqp::atpos($buffer,$pos)),
+                          nqp::bindpos($buffer,$pos,$match),
+                          nqp::if(
+                            nqp::islist($current),
+                            nqp::push($current,$match),
+                            nqp::bindpos($buffer,$pos,nqp::list($current,$match))
                           )
                         )
                       )
                     )
                   )
                 )
-            }
+              )
+            );
         }
 
-        # save in object
-        nqp::bindattr(self,Capture,'@!list',
-          nqp::isconcrete($list) ?? $list !! $EMPTY_LIST);
-        nqp::bindattr(self,Capture,'%!hash',$hash);
+        # had some regex action
+        if nqp::isconcrete($!regexsub) {
 
-        # We've produced the captures. If we know we're finished and will
-        # never be backtracked into, we can release cstack and regexsub.
-        nqp::unless(
-          nqp::defined(nqp::getattr(self,Match,'$!bstack')),
-          nqp::bindattr(self,Match,'$!cstack',
-            nqp::bindattr(self,Match,'$!regexsub',nqp::null)
-          )
-        );
+            # pass 2: make sure all multi captures are Arrays
+            my $iter :=
+              nqp::iterator(nqp::getattr($!regexsub,Regex,'$!capnames'));
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::isgt_i(nqp::iterval(nqp::shift($iter)),1),
+                nqp::if(
+                  (my str $pos = nqp::iterkey_s($iter)) # not empty
+                    && nqp::islt_i(nqp::ord($pos),58)   # probably numeric
+                    && nqp::isne_i(nqp::ord($pos),36),  # not a $
+                  nqp::bindpos($buffer,$pos,nqp::if(
+                    nqp::isnull(my $current := nqp::atpos($buffer,$pos)),
+                    nqp::create(Array),
+                    nqp::p6bindattrinvres(
+                      nqp::create(Array),List,'$!reified',nqp::if(
+                        nqp::islist($current),
+                        $current,
+                        nqp::list($current)
+                      )
+                    )
+                  ))
+                )
+              )
+            );
+        }
 
-        # mark as set up
-        nqp::bindattr(self,Match,'$!match',NQPdidMATCH);
+        $buffer
     }
 
-    # from !cursor_next in nqp
+    # produce a list with positional captures
+    multi method list(Match:D: --> List:D) { self.FLATTENABLE_LIST.List }
+    multi method elems(Match:D: --> Int:D) { nqp::elems(self.FLATTENABLE_LIST) }
+    multi method head(Match:D:) { self.AT-POS(0) }
+    multi method head(Match:D: $head) {
+        $head == 1
+          ?? self.AT-POS(0)
+          !! self.list.head($head)
+    }
+    multi method tail(Match:D:) {
+        nqp::elems(my \buffer := self.FLATTENABLE_LIST)
+          ?? nqp::atpos(buffer,nqp::sub_i(nqp::elems(buffer),1))
+          !! Nil
+    }
+    multi method tail(Match:D: $tail) {
+        self.list.tail($tail)
+    }
+
+    # produce a hash with named captures
+    method hash(--> Map:D) {
+        my $hash := nqp::hash;
+
+        # we haz captures
+        if $!cstack {
+
+            # pass 1: put all positional captures in the list
+            my int $i = -1;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $known-as := nqp::getattr_s(
+                  (my $match := nqp::atpos($!cstack,$i)),Match,'$!name')
+                ),
+                nqp::stmts(
+                  (my $names := nqp::split("=",$known-as)),
+                  nqp::while(
+                    nqp::elems($names),
+                    nqp::if(
+                      nqp::isge_i(
+                        nqp::ord(my str $key = nqp::shift($names)),
+                        58                 # not numeric nor $
+                      ),
+                      nqp::if(
+                        nqp::isnull(my $current := nqp::atkey($hash,$key)),
+                        nqp::bindkey($hash,$key,$match),
+                        nqp::if(
+                          nqp::islist($current),
+                          nqp::push($current,$match),
+                          nqp::bindkey($hash,$key,nqp::list($current,$match))
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            );
+        }
+
+        # had some regex action
+        if nqp::isconcrete($!regexsub) {
+
+            # pass 2: make sure all multi captures are Arrays
+            my $iter :=
+              nqp::iterator(nqp::getattr($!regexsub,Regex,'$!capnames'));
+            nqp::while(
+              $iter,
+              nqp::if(
+                nqp::iseq_i(nqp::iterval(nqp::shift($iter)),2),
+                nqp::if(
+                  (my str $key = nqp::iterkey_s($iter)) # not empty
+                    && nqp::isge_i(nqp::ord($key),58),  # not numeric nor $
+                  nqp::bindkey($hash,$key,nqp::if(
+                    nqp::isnull(my $current := nqp::atkey($hash,$key)),
+                    nqp::create(Array),
+                    nqp::p6bindattrinvres(
+                      nqp::create(Array),List,'$!reified',nqp::if(
+                        nqp::islist($current),
+                        $current,
+                        nqp::list($current)
+                      )
+                    )
+                  ))
+                )
+              )
+            );
+        }
+
+        nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',$hash)
+    }
+    method FLATTENABLE_HASH() is raw is implementation-detail {
+        nqp::getattr(self.hash,Map,'$!storage')
+    }
+
+#?if js
+    my sub move_cursor($target, $pos) {
+       nqp::chars(nqp::substrnfg(nqp::substr($target, $pos), 0, 1)) || 1;
+    }
+#?endif
+
+    # adapted from !cursor_more in nqp, used for :g matching
+    method CURSOR_MORE() is raw is implementation-detail {
+        my $new := nqp::create(self);
+        nqp::bindattr(  $new,Match,'$!shared',$!shared);
+        nqp::bindattr(  $new,Match,'$!braid',$!braid);
+        nqp::bindattr_i($new,Match,'$!from',
+          nqp::bindattr_i($new,Match,'$!to',-1));
+        nqp::bindattr_i($new,Match,'$!pos',nqp::isge_i($!from,$!pos)
+#?if !js
+          ?? nqp::add_i($!from,1)
+#?endif
+#?if js
+          ?? nqp::add_i($!from, move_cursor(self.target, $!pos))
+#?endif
+          !! $!pos);
+        $!regexsub($new)
+    }
+
+    # adapted from !cursor_more in nqp, used for :ov matching
+    method CURSOR_OVERLAP() is raw is implementation-detail {
+        my $new := nqp::create(self);
+        nqp::bindattr(  $new,Match,'$!shared',$!shared);
+        nqp::bindattr(  $new,Match,'$!braid',$!braid);
+        nqp::bindattr_i($new,Match,'$!from',
+          nqp::bindattr_i($new,Match,'$!to',-1));
+        nqp::bindattr_i($new,Match,'$!pos',nqp::add_i($!from,1));
+        $!regexsub($new)
+    }
+
+    # from !cursor_next in nqp, used for :ex matching
     method CURSOR_NEXT() is raw is implementation-detail {
         nqp::if(
           nqp::defined($!restart),
@@ -165,163 +765,28 @@ my class Match is Capture is Cool does NQPMatchRole {
         )
     }
 
-#?if js
-    my sub move_cursor($target, $pos) {
-       nqp::chars(nqp::substrnfg(nqp::substr($target, $pos), 0, 1)) || 1;
-    }
-#?endif
-
-    # adapted from !cursor_more in nqp
-    method CURSOR_OVERLAP() is raw is implementation-detail {
-        my $new := nqp::create(self);
-        nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
-        nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
-        nqp::bindattr_i($new,$?CLASS,'$!from',
-          nqp::bindattr_i($new,$?CLASS,'$!to',-1));
-        nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::add_i($!from,1));
-        $!regexsub($new)
-    }
-
-    # adapted from !cursor_more in nqp
-    method CURSOR_MORE() is raw is implementation-detail {
-        my $new := nqp::create(self);
-        nqp::bindattr(  $new,$?CLASS,'$!shared',$!shared);
-        nqp::bindattr(  $new,$?CLASS,'$!braid',$!braid);
-        nqp::bindattr_i($new,$?CLASS,'$!from',
-          nqp::bindattr_i($new,$?CLASS,'$!to',-1));
-        nqp::bindattr_i($new,$?CLASS,'$!pos',nqp::isge_i($!from,$!pos)
-#?if !js
-          ?? nqp::add_i($!from,1)
-#?endif
-#?if js
-          ?? nqp::add_i($!from, move_cursor(self.target, $!pos))
-#?endif
-          !! $!pos);
-        $!regexsub($new)
-    }
-
-    submethod BUILD(
-        :$orig = '',
-        :$from = 0,
-        :to(:$pos),
-        :ast(:$made),
-        :$shared,
-        :$braid,
-        :$list,
-        :$hash)
-    {
-        # :build tells !cursor_init that it's too late to do a CREATE
-        self.'!cursor_init'($orig, :build, :p($pos), :$shared, :$braid);
-        nqp::bindattr_i(self, Match,   '$!from', $from);
-        nqp::bindattr(  self, Match,   '$!made', nqp::decont($made)) if $made.defined;
-    }
-
-    method clone() is raw { nqp::clone(self) }
-
-    multi method WHICH(Match:D: --> ObjAt:D) {
-        self.Mu::WHICH # skip Capture's as Match is not a value type
-    }
-
-    proto method Bool(|) {*}
-    multi method Bool(Match:U: --> False) { }
-    multi method Bool(Match:D:) { nqp::hllbool($!pos >= $!from) }
-
-    multi method Numeric(Match:D:) {
-        self.Str.Numeric
-    }
-    multi method ACCEPTS(Match:D: Any $) { self }
-
-    method prematch(Match:D:) {
-        nqp::substr(self.target,0,$!from)
-    }
-    method postmatch(Match:D:) {
-        nqp::substr(self.target,self.to)
-    }
-
-    method !sort-on-from-pos() {
-        nqp::add_i(
-          nqp::bitshiftl_i(nqp::getattr_i(self,Match,'$!from'),32),
-          nqp::getattr_i(self,Match,'$!pos')
-        )
-    }
-
-    method caps(Match:D:) {
-        my $caps := nqp::list;
-        for self.pairs {
-            my \key   := .key;
-            my \value := .value;
-
-            if nqp::istype(value,List) {
-                nqp::push($caps,Pair.new(key, $_)) for value.list;
-            }
-            elsif nqp::isconcrete(value) {
-                nqp::push($caps,$_);
-            }
-        }
-        Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-          $caps, *.value!sort-on-from-pos
-        )
-    }
-
-    method chunks(Match:D:) {
-        my $prev = $!from;
-        my $target := self.target;
-        gather {
-            for self.caps {
-                if .value.from > $prev {
-                    take '~' => substr($target,$prev, .value.from - $prev)
-                }
-                take $_;
-                $prev = .value.pos;
-            }
-            take '~' => substr($target,$prev, $!pos - $prev) if $prev < $!pos;
-        }
-    }
-
-    multi method raku(Match:D: --> Str:D) {
-        my $attrs := nqp::list_s;
-
-        nqp::push_s($attrs,(orig => self.orig // '').raku);
-        nqp::push_s($attrs,(from => self.from // 0).raku);
-        nqp::push_s($attrs,(pos  => self.pos // 0).raku);
-        if self.Capture::list -> @list { nqp::push_s($attrs,:@list.raku) }
-        if self.Capture::hash -> %hash { nqp::push_s($attrs,:%hash.raku) }
-        nqp::push_s($attrs,(made => $_).raku) with self.made;
-
-        nqp::concat('Match.new(',nqp::concat(nqp::join(', ',$attrs),')'))
-    }
-    multi method gist (Match:D: $d = 0) {
-        return "#<failed match>" unless self;
-        my $s = ' ' x ($d + 1);
-        my $r = ("=> " if $d) ~ "\x[FF62]{self}\x[FF63]\n";
-        for @.caps {
-            $r ~= $s ~ (.key // '?') ~ ' ' ~ .value.gist($d + 1)
-        }
-        $d == 0 ?? $r.chomp !! $r;
-    }
-
-    method replace-with(Match:D: Str() $replacement --> Str:D) {
-        self.prematch ~ $replacement ~ self.postmatch
-    }
-}
-
-multi sub infix:<eqv>(Match:D \a, Match:D \b) {
-    a =:= b
-    ||
-    [&&] (
-        a.pos  eqv b.pos,
-        a.from eqv b.from,
-        a.orig eqv b.orig,
-        (a.made // Any) eqv (b.made // Any),
-        (a.Capture::list // nqp::list ) eqv (b.Capture::list // nqp::list ),
-        (a.Capture::hash // nqp::hash ) eqv (b.Capture::hash // nqp::hash )
+    # method "made" is also known as "ast"
+    BEGIN Match.^add_method("ast",
+      # When nothing's `made`, we get an NQPMu that we'd like to replace
+      # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
+      method made() { nqp::istype($!made,Mu) ?? $!made !! Nil }
     );
 }
 
+multi sub infix:<eqv>(Match:D \a, Match:D \b) {
+    nqp::hllbool(
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+        || (nqp::iseq_i(a.pos,b.pos)
+            && nqp::iseq_i(a.from,b.from)
+            && nqp::iseq_s(a.target,b.target)
+            && a.made eqv b.made
+            && a.cstack eqv b.cstack
+           )
+    )
+}
 
 sub make(Mu \made) {
     nqp::bindattr(nqp::decont(nqp::getlexcaller('$/')),Match,'$!made',made)
 }
-
 
 # vim: expandtab shiftwidth=4

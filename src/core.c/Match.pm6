@@ -1,5 +1,4 @@
 my class Match is Cool does NQPMatchRole {
-    method STR() { self.Str }
     method MATCH() { self }
     method Capture(Match:D:) { self }
 # from NQPMatchRole

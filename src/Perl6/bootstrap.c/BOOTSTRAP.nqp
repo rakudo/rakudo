@@ -3387,7 +3387,7 @@ BEGIN {
             nqp::bindkey(%alts, $name, $nfa);
         }));
     Regex.HOW.add_method(Regex, 'CAPS', nqp::getstaticcode(sub ($self) {
-            unless nqp::isconcrete(nqp::getattr(nqp::decont($self), Regex, '$!capnames')) {
+            unless nqp::isconcrete(nqp::getattr(nqp::decont($self), Regex, '$!caps')) {
                 nqp::bindattr(nqp::decont($self), Regex, '$!caps',
                     RegexCaptures.from-capnames(
                         nqp::getattr(nqp::decont($self), Regex, '$!capnames')));

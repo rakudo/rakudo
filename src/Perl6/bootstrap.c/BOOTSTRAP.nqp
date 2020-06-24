@@ -3308,67 +3308,13 @@ BEGIN {
             nqp::elems(@!named-capture-counts) || nqp::elems(@!pos-capture-counts)
         }
 
-        ## Raku Match object building
-        ## (for use in standard Raku regexes)
-
-        # Build a list of positional captures, or return a shared empty list if
-        # there are none. This only populates the slots which need an array.
-        my $EMPTY-LIST := nqp::list();
-        my $EMPTY-HASH := nqp::hash();
-        method prepare-raku-list() {
-            my int $n := nqp::elems(@!pos-capture-counts);
-            if $n > 0 {
-                my $result := nqp::list();
-                my int $i := -1;
-                while ++$i < $n {
-                    nqp::bindpos($result, $i, nqp::create(Array))
-                        if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
-                }
-                $result
-            }
-            else {
-#?if js
-                # HACK js backend bug workaround
-                nqp::list()
-#?endif
-#?if !js
-                $EMPTY-LIST
-#?endif
-            }
-        }
-
-        # Build a hash of named captures, or return a shared empty hash if there
-        # are none. This only populates the slots that need an array.
-        method prepare-raku-hash() {
-            my int $n := nqp::elems(@!named-capture-counts);
-            if $n > 0 {
-                my $result := nqp::hash();
-                my int $i := -1;
-                while ++$i < $n {
-                    if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
-                        nqp::bindkey($result,
-                            nqp::atpos_s(@!named-capture-names, $i),
-                            nqp::create(Array));
-                    }
-                }
-                $result
-            }
-            else {
-#?if js
-                # HACK js backend bug workaround
-                nqp::hash()
-#?endif
-#?if !js
-                $EMPTY-HASH
-#?endif
-            }
-        }
-
         ## NQP Match object building
         ## (for use when we override stuff from the Rakudo grammar)
 
         # Build a list of positional captures, or return a shared empty list if
         # there are none. This only populates the slots which need an array.
+        my $EMPTY-LIST := nqp::list();
+        my $EMPTY-HASH := nqp::hash();
         method prepare-list() {
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
@@ -3428,8 +3374,6 @@ BEGIN {
     Regex.HOW.add_attribute(Regex, scalar_attr('$!slash', Mu, Regex));
     Regex.HOW.add_method(Regex, 'SET_CAPS', nqp::getstaticcode(sub ($self, $capnames) {
             nqp::bindattr(nqp::decont($self), Regex, '$!capnames', $capnames);
-            nqp::bindattr(nqp::decont($self), Regex, '$!caps',
-                RegexCaptures.from-capnames($capnames))
         }));
     Regex.HOW.add_method(Regex, 'SET_NFA', nqp::getstaticcode(sub ($self, $nfa) {
             nqp::bindattr(nqp::decont($self), Regex, '$!nfa', $nfa)
@@ -3443,6 +3387,11 @@ BEGIN {
             nqp::bindkey(%alts, $name, $nfa);
         }));
     Regex.HOW.add_method(Regex, 'CAPS', nqp::getstaticcode(sub ($self) {
+            unless nqp::isconcrete(nqp::getattr(nqp::decont($self), Regex, '$!capnames')) {
+                nqp::bindattr(nqp::decont($self), Regex, '$!caps',
+                    RegexCaptures.from-capnames(
+                        nqp::getattr(nqp::decont($self), Regex, '$!capnames')));
+            }
             nqp::getattr(nqp::decont($self), Regex, '$!caps')
         }));
     Regex.HOW.add_method(Regex, 'NFA', nqp::getstaticcode(sub ($self) {

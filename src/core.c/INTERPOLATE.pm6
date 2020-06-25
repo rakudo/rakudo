@@ -26,6 +26,10 @@ augment class Match {
         (var)(self)
     }
 
+    multi method INTERPOLATE(Hash:D \var, int \im, int \mo, int \s, $, \ct) {
+        X::Syntax::Reserved.new(reserved => "use of hashes in regexes").throw
+    }
+
     multi method INTERPOLATE(Iterable:D \var, int \im, int \monkey, int \s, $, \context) {
         my $maxmatch;
         my \cur    := self.'!cursor_start_cur'();
@@ -38,10 +42,6 @@ augment class Match {
         my int $nomod  = im == 0;
 
         my Mu $order;
-
-        X::Syntax::Reserved.new(
-            reserved => "use of hashes in regexes",
-        ).throw if nqp::istype(var,Hash);
 
         # Looks something we need to loop over
         if !nqp::iscont(var) {

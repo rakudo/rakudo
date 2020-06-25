@@ -18,7 +18,7 @@ my class Match is Cool does NQPMatchRole {
     # This is mostly to accommodate grammars, as they do a .new on a
     # potentially already reified object.
     method new(Match:
-        str :$orig = '',
+        :$orig = '',
         str :$name = '',
         int :$from,
         int :to(:$pos),

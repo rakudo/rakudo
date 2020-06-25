@@ -1,5 +1,13 @@
 augment class Match {
 
+    # Simplified from NQP's Cursor!cursor_pass, as it is always called
+    # here without a name and without specifying :backtrack.
+    method !cursor_pass_quick(int $pos) {
+        nqp::bindattr_i(self,Match,'$!pos',$pos);
+        nqp::bindattr(self,Match,'$!bstack',nqp::null);
+        self
+    }
+
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
     # If it can't match against pattern var (or any element of var if it is
     # an array) it will increment $pos and try again. Therefore it is important
@@ -197,7 +205,7 @@ augment class Match {
         nqp::istype($maxmatch, Match)
           ?? $maxmatch
           !! nqp::isge_i($maxlen,0)
-            ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+            ?? cur!cursor_pass_quick(nqp::add_i($pos,$maxlen))
             !! cur
     }
 
@@ -292,7 +300,7 @@ augment class Match {
         nqp::istype($maxmatch, Match)
           ?? $maxmatch
           !! nqp::isge_i($maxlen,0)
-            ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+            ?? cur!cursor_pass_quick(nqp::add_i($pos,$maxlen))
             !! cur
     }
 
@@ -318,7 +326,7 @@ augment class Match {
         nqp::istype($maxmatch, Match)
           ?? $maxmatch
           !! nqp::isge_i($maxlen,0)
-            ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+            ?? cur!cursor_pass_quick(nqp::add_i($pos,$maxlen))
             !! cur
     }
 
@@ -409,7 +417,7 @@ augment class Match {
         }
 
         nqp::isge_i($maxlen,0)
-          ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+          ?? cur!cursor_pass_quick(nqp::add_i($pos,$maxlen))
           !! cur
     }
 
@@ -511,7 +519,7 @@ augment class Match {
         nqp::istype($maxmatch, Match)
           ?? $maxmatch
           !! nqp::isge_i($maxlen,0)
-            ?? cur.'!cursor_pass'(nqp::add_i($pos,$maxlen), '')
+            ?? cur!cursor_pass_quick(nqp::add_i($pos,$maxlen))
             !! cur
     }
 

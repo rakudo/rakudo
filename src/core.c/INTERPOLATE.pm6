@@ -1,16 +1,16 @@
 augment class Match {
 
     # INTERPOLATE will iterate over the string $tgt beginning at position 0.
-    # If it can't match against pattern var (or any element of var if it is an array)
-    # it will increment $pos and try again. Therefore it is important to only match
-    # against the current position.
+    # If it can't match against pattern var (or any element of var if it is
+    # an array) it will increment $pos and try again. Therefore it is important
+    # to only match against the current position.
     # $i is case insensitive flag
     # $m is ignore accent marks flag
     # $s is for sequential matching instead of junctive
     # $a is true if we are in an assertion
 
-    # INTERPOLATE's parameters are non-optional since the ops for optional params
-    # aren't currently JITted on MoarVM
+    # INTERPOLATE's parameters are non-optional since the ops for optional
+    # params aren't currently JITted on MoarVM
     proto method INTERPOLATE(|) is implementation-detail {*}
 
     multi method INTERPOLATE(Callable:D \var, $, $, $, $, $) {

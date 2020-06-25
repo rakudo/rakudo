@@ -55,8 +55,8 @@ my class Match is Cool does NQPMatchRole {
         $new
     }
 
-    method from() { self!deeper('$!from') }
-    method to() {
+    method !from() { self!deeper('$!from') }
+    method !to() {
         my int $to = self!deeper('$!to');
         nqp::islt_i($to,0) ?? $!pos !! $to
     }
@@ -175,7 +175,7 @@ my class Match is Cool does NQPMatchRole {
     # API function for $/<foo>:exists ...
     method EXISTS-KEY(str $name) {
         nqp::hllbool(
-          nqp::isge_i($!pos,self.from)  # $!from is good enough here
+          nqp::isge_i($!pos,self!from)  # $!from is good enough here
             && nqp::not_i(nqp::isnull(
                  nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
                ))
@@ -277,9 +277,9 @@ my class Match is Cool does NQPMatchRole {
 
     # Basically NQP's .Str which gets shadowed by Cool
     method Str(Match:D: --> Str:D) {
-        my int $from = self.from;  # must use .from and .to here
+        my int $from = self!from;  # must use !from and !to here
         nqp::isge_i($!pos,$from)
-          ?? nqp::substr(self.target,$from,nqp::sub_i(self.to,$from))
+          ?? nqp::substr(self.target,$from,nqp::sub_i(self!to,$from))
           !! ''
     }
 
@@ -347,21 +347,21 @@ my class Match is Cool does NQPMatchRole {
         nqp::concat('Match.new(',nqp::concat(nqp::join(', ',$attrs),')'))
     }
 
-    method prematch(Match:D: --> Str:D) { nqp::substr(self.target,0,self.from) }
-    method postmatch(Match:D: --> Str:D) { nqp::substr(self.target,self.to) }
+    method prematch(Match:D: --> Str:D) { nqp::substr(self.target,0,self!from) }
+    method postmatch(Match:D: --> Str:D) { nqp::substr(self.target,self!to) }
     method replace-with(Match:D: Str() $replacement --> Str:D) {
         nqp::concat(
-          nqp::substr(self.target,0,self.from),
+          nqp::substr(self.target,0,self!from),
           nqp::concat(
             $replacement,
-            nqp::substr(self.target,self.to)
+            nqp::substr(self.target,self!to)
           )
         )
     }
 
     # Produce a value for sorting on match position
     method !sort-on-from-pos() {
-        nqp::add_i(nqp::bitshiftl_i(self.from,32),$!pos)
+        nqp::add_i(nqp::bitshiftl_i(self!from,32),$!pos)
     }
 
     # Produce all captures as they were found
@@ -409,7 +409,7 @@ my class Match is Cool does NQPMatchRole {
 
     # Produce all captures as they were found and non-matching strings inbetween
     method chunks(Match:D: --> Seq:D) {
-        my int $prev = self.from;
+        my int $prev = self!from;
         my $target  := self.target;
         my $buffer  := nqp::create(IterationBuffer);
 
@@ -420,9 +420,9 @@ my class Match is Cool does NQPMatchRole {
               $buffer,
               Pair.new(
                 '~',
-                nqp::substr($target,$prev,nqp::sub_i(value.from,$prev))
+                nqp::substr($target,$prev,nqp::sub_i(value!from,$prev))
               )
-            ) if nqp::isgt_i(value.from,$prev);  # before match?
+            ) if nqp::isgt_i(value!from,$prev);  # before match?
 
             nqp::push($buffer,$_);
             $prev = value.pos;
@@ -775,11 +775,16 @@ my class Match is Cool does NQPMatchRole {
 multi sub infix:<eqv>(Match:D \a, Match:D \b) {
     nqp::hllbool(
       nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::iseq_i(a.pos,b.pos)
-            && nqp::iseq_i(a.from,b.from)
-            && nqp::iseq_s(a.target,b.target)
-            && a.made eqv b.made
-            && a.cstack eqv b.cstack
+        || (nqp::iseq_i(
+              nqp::getattr_i(nqp::decont(a),Match,'$!pos'),
+              nqp::getattr_i(nqp::decont(b),Match,'$!pos')
+            ) && nqp::iseq_i(
+                   nqp::getattr_i(nqp::decont(a),Match,'$!from'),
+                   nqp::getattr_i(nqp::decont(b),Match,'$!from')
+                 )
+              && nqp::iseq_s(a.target,b.target)
+              && a.made eqv b.made
+              && a.cstack eqv b.cstack
            )
     )
 }

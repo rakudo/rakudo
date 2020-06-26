@@ -142,9 +142,11 @@ my class Match is Cool does NQPMatchRole {
     method EXISTS-POS(int $pos) {
         nqp::hllbool(
           nqp::isge_i($!pos,$!from)     # $!from is good enough here
+            && $!cstack
             && nqp::not_i(nqp::isnull(
                  nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$pos)
                ))
+            && self!exists($pos)
         )
     }
 
@@ -176,9 +178,11 @@ my class Match is Cool does NQPMatchRole {
     method EXISTS-KEY(str $name) {
         nqp::hllbool(
           nqp::isge_i($!pos,$!from)     # $!from is good enough here
+            && $!cstack
             && nqp::not_i(nqp::isnull(
                  nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
                ))
+            && self!exists($name)
         )
     }
 
@@ -196,6 +200,31 @@ my class Match is Cool does NQPMatchRole {
     # too bad
     method !cannot(str $what) {
         die "Cannot $what from a '{self.^name}' object";
+    }
+
+    # check for existence of a capture given by name
+    method !exists(str $name) {
+        my int $i = -1;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+          nqp::if(
+            (my $known-as :=
+              nqp::getattr_s(nqp::atpos($!cstack,$i),Match,'$!name')),
+            nqp::stmts(
+              (my $names := nqp::split("=",$known-as)),
+              nqp::while(
+                nqp::elems($names),
+                nqp::if(
+                  nqp::iseq_s($name,nqp::shift($names)),
+                  (return 1)
+                )
+              )
+            )
+          )
+        );
+
+        0
     }
 
     # find a single capture like (.), knowing there are captures

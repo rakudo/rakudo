@@ -459,7 +459,7 @@ my class Match is Cool does NQPMatchRole {
             ) if nqp::isgt_i($from,$prev);  # before match?
 
             nqp::push($buffer,$_);
-            $prev = value.capture-pos;
+            $prev = value.pos;
         }
 
         nqp::push(

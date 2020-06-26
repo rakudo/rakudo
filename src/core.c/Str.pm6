@@ -1738,7 +1738,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             for flat matches -> $m {
                 try cds = $m if SDS;
                 nqp::push_s(
-                  $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
+                  $result,
+                  nqp::substr($str,$prev,nqp::unbox_i($m.capture-from) - $prev)
                 );
 
                 if fancy {
@@ -1776,7 +1777,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                       !! $replacement
                     ) ) );
                 }
-                $prev = nqp::unbox_i($m.to);
+                $prev = nqp::unbox_i($m.capture-to);
             }
             nqp::push_s($result,nqp::substr($str,$prev));
             nqp::p6box_s(nqp::join('',$result));
@@ -1786,9 +1787,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         else {
             for flat matches -> $m {
                 nqp::push_s(
-                  $result,nqp::substr($str,$prev,nqp::unbox_i($m.from) - $prev)
+                  $result,
+                  nqp::substr($str,$prev,nqp::unbox_i($m.capture-from) - $prev)
                 );
-                $prev = nqp::unbox_i($m.to);
+                $prev = nqp::unbox_i($m.capture-to);
             }
             nqp::push_s($result,nqp::substr($str,$prev));
             nqp::p6box_s(nqp::join(nqp::unbox_s(~$replacement),$result));
@@ -3045,7 +3047,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 if nqp::istype($key,Regex) {
                     if $!source.match($key, :continue($!index)) -> \m {
                         $!last_match_obj = $/;
-                        self!compare_substitution($this, m.from, m.to - m.from);
+                        self!compare_substitution(
+                          $this, m.capture-from, m.capture-to - m.capture-from);
                         nqp::push($todo,$this);
                     }
                 }

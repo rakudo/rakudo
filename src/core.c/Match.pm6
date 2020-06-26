@@ -139,16 +139,7 @@ my class Match is Cool does NQPMatchRole {
     }
 
     # API function for $/[0]:exists ...
-    method EXISTS-POS(int $pos) {
-        nqp::hllbool(
-          nqp::isge_i($!pos,$!from)     # $!from is good enough here
-            && $!cstack
-            && nqp::not_i(nqp::isnull(
-                 nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$pos)
-               ))
-            && self!exists($pos)
-        )
-    }
+    method EXISTS-POS(int $pos --> Bool:D) { self.EXISTS-KEY(my str $ = $pos) }
 
     # Positional API functions that are not supported
     method ASSIGN-POS(int $pos, \val) {
@@ -175,14 +166,13 @@ my class Match is Cool does NQPMatchRole {
 
 
     # API function for $/<foo>:exists ...
-    method EXISTS-KEY(str $name) {
+    method EXISTS-KEY(str $name --> Bool:D) {
         nqp::hllbool(
           nqp::isge_i($!pos,$!from)     # $!from is good enough here
-            && $!cstack
-            && nqp::not_i(nqp::isnull(
+            && nqp::not_i(nqp::isnull(my $max-captures :=
                  nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
                ))
-            && self!exists($name)
+            && (nqp::isge_i($max-captures,2) || self!exists($name))
         )
     }
 
@@ -204,20 +194,24 @@ my class Match is Cool does NQPMatchRole {
 
     # check for existence of a capture given by name
     method !exists(str $name) {
-        my int $i = -1;
-
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
-          nqp::if(
-            (my $known-as :=
-              nqp::getattr_s(nqp::atpos($!cstack,$i),Match,'$!name')),
-            nqp::stmts(
-              (my $names := nqp::split("=",$known-as)),
-              nqp::while(
-                nqp::elems($names),
-                nqp::if(
-                  nqp::iseq_s($name,nqp::shift($names)),
-                  (return 1)
+        nqp::if(
+          $!cstack,
+          nqp::stmts(
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!cstack)),
+              nqp::if(
+                (my $known-as :=
+                  nqp::getattr_s(nqp::atpos($!cstack,$i),Match,'$!name')),
+                nqp::stmts(
+                  (my $names := nqp::split("=",$known-as)),
+                  nqp::while(
+                    nqp::elems($names),
+                    nqp::if(
+                      nqp::iseq_s($name,nqp::shift($names)),
+                      (return 1)
+                    )
+                  )
                 )
               )
             )

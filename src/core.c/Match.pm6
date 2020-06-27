@@ -139,7 +139,10 @@ my class Match is Cool does NQPMatchRole {
     }
 
     # API function for $/[0]:exists ...
-    method EXISTS-POS(int $pos --> Bool:D) { self.EXISTS-KEY(my str $ = $pos) }
+    method EXISTS-POS(int $pos --> Bool:D) {
+        # $!from is good enough here
+        nqp::hllbool(nqp::isge_i($!pos,$!from) && self!exists(my str $ = $pos))
+    }
 
     # Positional API functions that are not supported
     method ASSIGN-POS(int $pos, \val) {
@@ -167,13 +170,8 @@ my class Match is Cool does NQPMatchRole {
 
     # API function for $/<foo>:exists ...
     method EXISTS-KEY(str $name --> Bool:D) {
-        nqp::hllbool(
-          nqp::isge_i($!pos,$!from)     # $!from is good enough here
-            && nqp::not_i(nqp::isnull(my $max-captures :=
-                 nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
-               ))
-            && (nqp::isge_i($max-captures,2) || self!exists($name))
-        )
+        # $!from is good enough here
+        nqp::hllbool(nqp::isge_i($!pos,$!from) && self!exists($name))
     }
 
     # Associative API functions that are not supported
@@ -218,7 +216,10 @@ my class Match is Cool does NQPMatchRole {
           )
         );
 
-        0
+        # check for multiple capture
+        nqp::not_i(nqp::isnull(my $max-captures :=
+          nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
+        )) && nqp::isge_i($max-captures,2)
     }
 
     # find a single capture like (.), knowing there are captures

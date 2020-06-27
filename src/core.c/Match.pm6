@@ -127,15 +127,20 @@ my class Match is Cool does NQPMatchRole {
     method clone(Match:D:) is raw { nqp::clone(self) }
 
     # API function for $0, $1 ...
-    method AT-POS(int $pos) {
-        nqp::isge_i($!pos,$!from)  # $!from is good enough here
-          && nqp::not_i(nqp::isnull(my \val =
-               nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$pos)
-             ))
-          ?? nqp::isgt_i(val,1)         # could be found
-            ?? self!find-multi(my str $ = $pos)   # multiple captures possible
-            !! self!find-single(my str $ = $pos)  # only single capture possble
-          !! Nil                        # no match or unexpected positional
+    method AT-POS(int $index) {
+        nqp::if(
+          nqp::isge_i($!pos,$!from)              # $!from is good enough here
+            && (my int $max-captures = nqp::ifnull(
+                 nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$index),
+                 0
+               )),
+          nqp::if(                               # could be found
+            nqp::isgt_i($max-captures,1),
+            self!find-multi(my str $ = $index),  # multiple captures possible
+            self!find-single(my str $ = $index)  # only single capture possble
+          ),
+          Nil                                    # no match / can not be found
+        )
     }
 
     # API function for $/[0]:exists ...
@@ -157,16 +162,20 @@ my class Match is Cool does NQPMatchRole {
 
     # API function for $<foo>, $<bar> ...
     method AT-KEY(str $name) {
-        nqp::isge_i($!pos,$!from)       # $!from is good enough here
-          && nqp::not_i(nqp::isnull(my \val =
-               nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
-             ))
-          ?? nqp::isgt_i(val,1)         # could be found
-            ?? self!find-multi($name)   # multiple captures possible
-            !! self!find-single($name)  # only single capture possble
-          !! Nil                        # no match or unexpected positional
+        nqp::if(
+          nqp::isge_i($!pos,$!from)          # $!from is good enough here
+            && (my int $max-captures = nqp::ifnull(
+                 nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name),
+                 0
+               )),
+          nqp::if(                           # could be found
+            nqp::isgt_i($max-captures,1),
+            self!find-multi($name),          # multiple captures possible
+            self!find-single($name)          # only single capture possble
+          ),
+          Nil                                # no match / can not be found
+        )
     }
-
 
     # API function for $/<foo>:exists ...
     method EXISTS-KEY(str $name --> Bool:D) {
@@ -217,9 +226,13 @@ my class Match is Cool does NQPMatchRole {
         );
 
         # check for multiple capture
-        nqp::not_i(nqp::isnull(my $max-captures :=
-          nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name)
-        )) && nqp::isge_i($max-captures,2)
+        nqp::isge_i(
+          nqp::ifnull(
+            nqp::atkey(nqp::getattr($!regexsub,Regex,'$!capnames'),$name),
+            1
+          ),
+          2
+        )
     }
 
     # find a single capture like (.), knowing there are captures

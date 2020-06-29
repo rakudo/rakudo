@@ -414,10 +414,280 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved', 
     my $without_name := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1);
     my $method := nqp::captureposarg($capture, 0);
     if nqp::istype($method, Routine) && $method.is_dispatcher {
-        nqp::die('multi meth disp in new dispatcher NYI');
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $without_name);
     }
     else {
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $without_name);
+    }
+});
+
+# Multi-dispatch dispatcher, used for both multi sub and multi method dispatch.
+# There are a number of cases that we need to deal with here.
+# 1. Everything about the dispatch is possible to express with guards, so we
+#    need do no more than add guards as needed and then delegate to raku-invoke
+#    to dispatch to the chosen result.
+# 2. Even if the properties above are true, we can only narrow down the list
+#    of candidates to (hopefully) some subset of them, guarding against them.
+#    Those will need further checks per dispatch. This is also the case when
+#    we have to do things like reading from Proxy, which we cannot express via
+#    the guard mechanism.
+# 3. The dispatch fails, but then we do the Junction failover. In this case,
+#    we can delegate to an invoke of the auto-threader, conditional on there
+#    being a Junction in that argument spot.
+my int $DEFCON_DEFINED    := 1;
+my int $DEFCON_UNDEFINED  := 2;
+my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
+my int $TYPE_NATIVE_INT   := 4;
+my int $TYPE_NATIVE_NUM   := 8;
+my int $TYPE_NATIVE_STR   := 16;
+my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+my int $BIND_VAL_OBJ      := 0;
+my int $BIND_VAL_INT      := 1;
+my int $BIND_VAL_NUM      := 2;
+my int $BIND_VAL_STR      := 3;
+sub raku-multi-filter(@candidates, $capture, int $all) {
+    # Look through all candidates. Eliminate those that can be ruled out by
+    # setting guards on the incoming arguments OR by the shape of the
+    # callsite. That callsite shape includes argument count, which named
+    # arguments are present, and which arguments are natively typed.
+    my int $num_args := nqp::captureposelems($capture);
+    my int $cur_idx := 0;
+    my int $done := 0;
+    my $need_scalar_read := nqp::list_i();
+    my $need_type_guard := nqp::list_i();
+    my $need_conc_guard := nqp::list_i();
+    my int $group_has_unguardable := 0;
+    my @possibles;
+    my @filtered_candidates;
+    until $done {
+        # The candidate list is broken into tied groups (that is, groups of
+        # candidates that are equally narrow). Those are seperated by a
+        # type object sentinel.
+        my $cur_candidate := nqp::atpos(@candidates, $cur_idx++);
+        if nqp::isconcrete($cur_candidate) {
+            # Candidate; does the arity fit? (If not, it drops out on callsite
+            # shape.)
+            if $num_args >= nqp::atkey($cur_candidate, 'min_arity') &&
+                    $num_args <= nqp::atkey($cur_candidate, 'max_arity') {
+                # Arity OK; now go through the arguments and see if we can
+                # eliminate any of them based on guardable properties.
+                my int $type_check_count := nqp::atkey($cur_candidate, 'num_types') > $num_args
+                    ?? $num_args
+                    !! nqp::atkey($cur_candidate, 'num_types');
+                my int $type_mismatch := 0;
+                my int $rwness_mismatch := 0;
+                my int $unguardable := 0;
+                my int $i := 0;
+                while $i < $type_check_count && !($unguardable +| $type_mismatch +| $rwness_mismatch) {
+                    # Obtain parameter properties.
+                    my $type := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+                    my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
+                    my int $definedness := $type_flags +& $DEFCON_MASK;
+                    my int $rwness := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
+
+                    # Get the primitive type of the argument, and go on whether it's an
+                    # object or primitive type.
+                    my int $got_prim := nqp::captureposprimspec($capture, $i);
+                    if $got_prim == 0 {
+                        # It's an object type. Obtain the value, and go by if it's a
+                        # container or not.
+                        my $value := nqp::captureposarg($capture, $i);
+                        nqp::bindpos_i($need_type_guard, $i, 1);
+                        if nqp::iscont($value) {
+                            nqp::die('multi disp on containerized object type NYI');
+                        }
+                        else {
+                            # If we need an rw argument and didn't get a container,
+                            # we're out of luck.
+                            if $rwness {
+                                $rwness_mismatch := 1;
+                            }
+                        }
+
+                        # Ensure the value meets the required type constraints.
+                        unless nqp::istype_nd($value, $type) {
+                            # XXX various failovers
+                            $type_mismatch := 1;
+                        }
+
+                        # Also ensure any concreteness constraints are unheld.
+                        if !$type_mismatch && $definedness {
+                            my int $got := nqp::isconcrete_nd($value);
+                            if ($got && $definedness == $DEFCON_UNDEFINED) ||
+                                    (!$got && $definedness == $DEFCON_DEFINED) {
+                                $type_mismatch := 1;
+                            }
+                            nqp::bindpos_i($need_conc_guard, $i, 1);
+                        }
+                    }
+                    else {
+                        # It's a primitive type. If we want rw, then we ain't got it.
+                        if $rwness {
+                            $rwness_mismatch := 1;
+                        }
+                        # If we want a type object, it's certainly not that either.
+                        elsif $definedness == $DEFCON_UNDEFINED {
+                            $type_mismatch := 1;
+                        }
+                        # If we want a primitive type, but got the wrong one, then it's
+                        # a mismatch.
+                        elsif (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
+                               (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
+                               (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
+                            # Mismatch.
+                            $type_mismatch := 1;
+                        }
+                        # Otherwise, we want an object type. Figure out the correct
+                        # one that we shall box to.
+                        else {
+                            my $test_type := $got_prim == $BIND_VAL_INT ?? Int !!
+                                             $got_prim == $BIND_VAL_NUM ?? Num !!
+                                                                           Str;
+                            $type_mismatch := 1 unless nqp::istype($test_type, $type);
+                        }
+                    }
+                    $i++;
+                }
+
+                # If it's unguardable, we must always add it to the list of
+                # possibles. Otherwise, it's guardable and we only add it to
+                # the list if there's no mismatch.
+                if $unguardable || !($type_mismatch || $rwness_mismatch) {
+                    nqp::push(@possibles, $cur_candidate);
+                }
+                $group_has_unguardable := 1 if $unguardable;
+#                            if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
+#                                # If we need a container but don't have one it clearly can't work.
+#                                $rwness_mismatch := 1;
+#                            }
+#                            elsif $type_flags +& $TYPE_NATIVE_MASK {
+#                                # Looking for a natively typed value. Did we get one?
+#                                if $got_prim == $BIND_VAL_OBJ {
+#                                    # Object, but could be a native container. If not, mismatch.
+#                                    my $contish := nqp::captureposarg($capture, $i);
+#                                    unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
+#                                           (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
+#                                           (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
+#                                        $type_mismatch := 1;
+#                                    }
+#                                }
+#                            }
+#                            else {
+#                                my $param;
+#                                if $got_prim == $BIND_VAL_OBJ {
+#                                    $param := nqp::captureposarg($capture, $i);
+#                                    if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
+#                                    elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
+#                                    elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
+#                                    else { $param := nqp::hllizefor($param, 'Raku') }
+#                                }
+#                                if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
+#                                    if $i == 0 && nqp::existskey($cur_candidate, 'exact_invocant') {
+#                                        unless $param.WHAT =:= $type_obj {
+#                                            $type_mismatch := 1;
+#                                        }
+#                                    }
+#                                }
+#                                else {
+#                                    if $type_obj =:= $Positional {
+#                                        my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
+#                                        unless nqp::istype($param, $PositionalBindFailover) {
+#                                            $type_mismatch := 1;
+#                                        }
+#                                    } else {
+#                                        $type_mismatch := 1;
+#                                    }
+#                                }
+#                            }
+#                            ++$i;
+#                        }
+            }
+        }
+        else {
+            # End of tied group. If there's possibles...
+            if nqp::elems(@possibles) {
+                if nqp::elems(@possibles) == 1 && !$group_has_unguardable {
+                    # Exactly one guardable result.
+                    nqp::push(@filtered_candidates, @possibles[0]);
+                    $done := 1;
+                }
+                else {
+                    nqp::die('disambig of multis NYI with new dispatcher');
+                }
+
+                # Mark end of group.
+                nqp::push(@filtered_candidates, Mu);
+
+                # Clear sttate for next group.
+                nqp::setelems(@possibles, 0);
+                $group_has_unguardable := 0;
+            }
+
+            # If we're really and the end of the list, we're done.
+            unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
+                $done := 1;
+            }
+        }
+    }
+
+    # Install guards as required.
+    my int $i := 0;
+    while $i < $num_args {
+        if nqp::atpos_i($need_scalar_read, $i) {
+            my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);
+            nqp::die('Guarding containerized args in multi dispatch NYI');
+        }
+        elsif nqp::atpos_i($need_type_guard, $i) {
+            my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked);
+            if nqp::atpos_i($need_conc_guard, $i) {
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked);
+            }
+        }
+        $i++;
+    }
+
+    # Evaluate to filtered candidates list.
+    @filtered_candidates
+}
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi', -> $capture {
+    # Obtain the candidate list, producing it if it doesn't already exist.
+    my $target := nqp::captureposarg($capture, 0);
+    my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
+    if nqp::isnull(@candidates) {
+        nqp::scwbdisable();
+        @candidates := $target.'!sort_dispatchees_internal'();
+        nqp::bindattr($target, Routine, '@!dispatch_order', @candidates);
+        nqp::scwbenable();
+    }
+
+    # TODO Set dispatch state for resumption (we only need consider those that
+    # might match)
+
+    # Drop the first argument, to get just the arguments to dispatch on, and
+    # then pre-filter the candidate list.
+    my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
+    my @filtered_candidates := raku-multi-filter(@candidates, $arg-capture, 0);
+    my int $onlystar := nqp::getattr_i($target, Routine, '$!onlystar');
+    if nqp::elems(@filtered_candidates) == 2 {
+        # Simple case where we have a single group with a single filtered
+        # candidate, and so we can invoke that.
+        # XXX Not quite so simple, as may need bind check, etc.
+        if $onlystar {
+            # Add this resolved target to the argument capture and delegate to
+            # raku-invoke to run it.
+            my $capture_delegate := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
+                @filtered_candidates[0]<sub>);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+                $capture_delegate);
+        }
+        else {
+            nqp::die('non-onlystar case of multi dispatch NYI in new dispatcher');
+        }
+    }
+    else {
+        nqp::die('new multi disp requiring per-dispatch disambiguation NYI');
     }
 });
 

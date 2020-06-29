@@ -454,6 +454,7 @@ sub raku-multi-filter(@candidates, $capture, int $all) {
     my int $cur_idx := 0;
     my int $done := 0;
     my $need_scalar_read := nqp::list_i();
+    my $need_scalar_rw_check := nqp::list_i();
     my $need_type_guard := nqp::list_i();
     my $need_conc_guard := nqp::list_i();
     my int $group_has_unguardable := 0;
@@ -494,7 +495,21 @@ sub raku-multi-filter(@candidates, $capture, int $all) {
                         my $value := nqp::captureposarg($capture, $i);
                         nqp::bindpos_i($need_type_guard, $i, 1);
                         if nqp::iscont($value) {
-                            nqp::die('multi disp on containerized object type NYI');
+                            # Containerized. Scalar we handle specially.
+                            if nqp::istype_nd($value, Scalar) {
+                                nqp::bindpos_i($need_scalar_read, $i, 1);
+                                if $rwness {
+                                    nqp::bindpos_i($need_scalar_rw_check, $i, 1);
+                                    my $desc := nqp::getattr($value, Scalar, '$!descriptor');
+                                    unless nqp::isconcrete($desc) {
+                                        $rwness_mismatch := 1;
+                                    }
+                                }
+                                $value := nqp::getattr($value, Scalar, '$!value');
+                            }
+                            else {
+                                nqp::die('multi disp on non-Scalar container NYI');
+                            }
                         }
                         else {
                             # If we need an rw argument and didn't get a container,
@@ -635,7 +650,17 @@ sub raku-multi-filter(@candidates, $capture, int $all) {
     while $i < $num_args {
         if nqp::atpos_i($need_scalar_read, $i) {
             my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);
-            nqp::die('Guarding containerized args in multi dispatch NYI');
+            if nqp::atpos_i($need_scalar_rw_check, $i) {
+                my $tracked_desc := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                        $tracked, Scalar, '$!descriptor');
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked_desc);
+            }
+            my $tracked_value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $tracked, Scalar, '$!value');
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked_value);
+            if nqp::atpos_i($need_conc_guard, $i) {
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked_value);
+            }
         }
         elsif nqp::atpos_i($need_type_guard, $i) {
             my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);

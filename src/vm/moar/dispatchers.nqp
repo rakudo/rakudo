@@ -132,6 +132,30 @@
             !! return_error($ret, $orig_type)
     }
 
+    my $check_type_typeobj_coerce := -> $ret, $orig_type, $type, $name {
+        nqp::istype($ret, $type) && !nqp::isconcrete($ret)
+            ?? (nqp::isnull(my $cmeth := nqp::tryfindmethod($ret, $name))
+                    ?? coercion_error($ret.HOW.name($ret), $name)
+                    !! $cmeth($ret))
+            !! return_error($ret, $orig_type)
+    }
+
+    my $check_type_concrete_coerce := -> $ret, $orig_type, $type, $name {
+        nqp::istype($ret, $type) && nqp::isconcrete($ret)
+            ?? (nqp::isnull(my $cmeth := nqp::tryfindmethod($ret, $name))
+                    ?? coercion_error($ret.HOW.name($ret), $name)
+                    !! $cmeth($ret))
+            !! return_error($ret, $orig_type)
+    }
+
+    my $check_type_coerce := -> $ret, $orig_type, $type, $name {
+        nqp::istype($ret, $type) || nqp::istype($ret, Nil)
+            ?? (nqp::isnull(my $cmeth := nqp::tryfindmethod($ret, $name))
+                    ?? coercion_error($ret.HOW.name($ret), $name)
+                    !! $cmeth($ret))
+            !! return_error($ret, $orig_type)
+    }
+
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-rv-typecheck', -> $capture {
         # If the type is Mu or unset, then nothing is needed except identity.
         my $type := nqp::captureposarg($capture, 1);
@@ -206,7 +230,22 @@
                             'boot-code-constant', $target-capture);
                 }
                 else {
-                    nqp::die('NYI return value case (checked coerce)')
+                    # Need to delegate to code that will do the check and then
+                    # do a coercion. We give it two extra args: the unwrapped
+                    # type and the name of the type, for the purpose of coercion.
+                    my $with-unwrapped-type-capture := nqp::dispatch('boot-syscall',
+                        'dispatcher-insert-arg-literal-obj', $capture, 2, $type);
+                    my str $name := $coerce_to.HOW.name($coerce_to);
+                    my $with-name-capture := nqp::dispatch('boot-syscall',
+                        'dispatcher-insert-arg-literal-str', $with-unwrapped-type-capture,
+                        3, $name);
+                    my $target := $definite_check == 0 ?? $check_type_typeobj_coerce !!
+                                  $definite_check == 1 ?? $check_type_concrete_coerce !!
+                                                          $check_type_coerce;
+                    my $target-capture := nqp::dispatch('boot-syscall',
+                        'dispatcher-insert-arg-literal-obj', $with-name-capture, 0, $target);
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+                            'boot-code-constant', $target-capture);
                 }
             }
         }

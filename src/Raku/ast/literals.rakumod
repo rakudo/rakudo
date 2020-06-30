@@ -132,9 +132,13 @@ class RakuAST::QuotedString is RakuAST::Term {
                 @segment-asts.push($_.IMPL-TO-QAST($context));
             }
             else {
+                my $inter-qast := $_.IMPL-TO-QAST($context);
+                if nqp::istype($_, RakuAST::Block) {
+                    $inter-qast := QAST::Op.new( :op('call'), $inter-qast );
+                }
                 @segment-asts.push(QAST::Op.new(
                     :op('callmethod'), :name('Str'),
-                    $_.IMPL-TO-QAST($context)
+                    $inter-qast
                 ));
             }
         }

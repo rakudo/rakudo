@@ -25,6 +25,17 @@ class RakuAST::Name is RakuAST::Node {
         nqp::die('canonicalize NYI for non-identifier names') unless self.is-identifier;
         $!parts[0].name
     }
+
+    method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package) {
+        my $result := $start-package;
+        my $final := $!parts[nqp::elems($!parts) - 1];
+        for $!parts {
+            # We do .WHO on the current package, followed by the index into it.
+            $result := QAST::Op.new( :op('who'), $result );
+            $result := $_.IMPL-QAST-PACKAGE-LOOKUP-PART($context, $result, $_ =:= $final);
+        }
+        $result
+    }
 }
 
 # Marker role for a part of a name.
@@ -39,5 +50,14 @@ class RakuAST::Name::Part::Simple is RakuAST::Name::Part {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Name::Part::Simple, '$!name', $name);
         $obj
+    }
+
+    method IMPL-QAST-PACKAGE-LOOKUP-PART(RakuAST::IMPL::QASTContext $context, Mu $stash-qast, Int $is-final) {
+        QAST::Op.new(
+            :op('callmethod'),
+            :name($is-final ?? 'AT-KEY' !! 'package_at_key'),
+            $stash-qast,
+            QAST::SVal.new( :value($!name) )
+        )
     }
 }

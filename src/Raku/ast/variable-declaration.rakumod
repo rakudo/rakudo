@@ -99,19 +99,32 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     }
 
     method allowed-scopes() {
-        self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has'])
+        self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has', 'HAS'])
+    }
+
+    method is-lexical() {
+        # Overridden here because our-scoped variables are really lexical aliases.
+        my str $scope := self.scope;
+        $scope eq 'my' || $scope eq 'state' || $scope eq 'our'
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
-        # If we have a type, we need to resolve that.
         my @lookups;
-        if $!type {
+        # If it's our-scoped, we need the package to bind it from.
+        if self.scope eq 'our' {
+            @lookups.push(RakuAST::Var::Compiler.new('$?PACKAGE'));
+        }
+        # If we have a type, we need to resolve that.
+        elsif $!type {
             @lookups.push($!type);
         }
         self.IMPL-WRAP-LIST(@lookups)
     }
 
     method PRODUCE-META-OBJECT() {
+        # If it's our-scoped, then container is vivified via. package access.
+        return Nil if self.scope eq 'our';
+
         # Extract implicit lookups.
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
@@ -159,28 +172,45 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
-        my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
-        my str $sigil := self.sigil;
-        if $sigil eq '$' && nqp::objprimspec($of) {
-            # Natively typed; just declare it.
-            QAST::Var.new(
-                :scope('lexical'), :decl('var'), :name($!name),
-                :returns($of)
-            )
+        my str $scope := self.scope;
+        if $scope eq 'my' {
+            # Lexically scoped
+            my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+            my str $sigil := self.sigil;
+            if $sigil eq '$' && nqp::objprimspec($of) {
+                # Natively typed; just declare it.
+                QAST::Var.new(
+                    :scope('lexical'), :decl('var'), :name($!name),
+                    :returns($of)
+                )
+            }
+            elsif $!initializer && $!initializer.is-binding {
+                # Will be bound on first use, so just a declaration.
+                QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) )
+            }
+            else {
+                # Need to vivify the object. Note: maybe we want to drop the
+                # contvar, though we'll need an alternative for BEGIN.
+                my $container := self.meta-object;
+                $context.ensure-sc($container);
+                QAST::Var.new(
+                    :scope('lexical'), :decl('contvar'), :name($!name),
+                    :value($container)
+                )
+            }
         }
-        elsif $!initializer && $!initializer.is-binding {
-            # Will be bound on first use, so just a declaration.
-            QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) )
+        elsif $scope eq 'our' {
+            # Package scoped lexical alias. We want to bind the lexical to a lookup
+            # in the package.
+            my $name := RakuAST::Name.from-identifier($!name);
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :scope('lexical'), :decl('var'), :name($!name) ),
+                $name.IMPL-QAST-PACKAGE-LOOKUP($context, @lookups[0].IMPL-TO-QAST($context))
+            )
         }
         else {
-            # Need to vivify the object. Note: maybe we want to drop the
-            # contvar, though we'll need an alternative for BEGIN.
-            my $container := self.meta-object;
-            $context.ensure-sc($container);
-            QAST::Var.new(
-                :scope('lexical'), :decl('contvar'), :name($!name),
-                :value($container)
-            )
+            nqp::die("Don't know how to compile $scope scope variable");
         }
     }
 
@@ -253,7 +283,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         my str $scope := 'lexical';
         unless $rvalue {
             # Potentially l-value native lookups need a lexicalref.
-            if self.sigil eq '$' {
+            if self.sigil eq '$' && self.scope ne 'our' {
                 my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
                 my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
                 if nqp::objprimspec($of) {

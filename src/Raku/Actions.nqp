@@ -421,7 +421,7 @@ class Raku::Actions is HLL::Actions {
             ?? $<initializer>.ast
             !! self.r('Initializer');
         my $decl := self.r('VarDeclaration', 'Simple').new(:$scope, :$name, :$initializer);
-        if $scope eq 'my' || $scope eq 'state' {
+        if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
             $*R.declare-lexical($decl);
         }
         make $decl;

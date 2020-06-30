@@ -20,6 +20,11 @@ class RakuAST::Name is RakuAST::Node {
     method is-identifier() {
         nqp::elems($!parts) == 1 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
     }
+
+    method canonicalize() {
+        nqp::die('canonicalize NYI for non-identifier names') unless self.is-identifier;
+        $!parts[0].name
+    }
 }
 
 # Marker role for a part of a name.

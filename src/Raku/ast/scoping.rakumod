@@ -9,7 +9,7 @@ class RakuAST::LexicalScope is RakuAST::Node {
         # Visit code objects that need to make a declaration entry.
         my $inner-code := self.visit(-> $node {
             if nqp::istype($node, RakuAST::Code) {
-                $stmts.push($node.IMPL-QAST-DECL($context));
+                $stmts.push($node.IMPL-QAST-DECL-CODE($context));
             }
             !(nqp::istype($node, RakuAST::LexicalScope) || nqp::istype($node, RakuAST::IMPL::ImmediateBlockUser))
         });
@@ -36,7 +36,7 @@ class RakuAST::LexicalScope is RakuAST::Node {
         unless nqp::isconcrete(%lookup) {
             %lookup := {};
             for self.IMPL-UNWRAP-LIST(self.lexical-declarations) {
-                %lookup{$_.lexical-name} := $_;
+                %lookup{$_.lexical-name} := $_ unless $_.anonymous;
             }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!lexical-lookup-hash', %lookup);
         }
@@ -53,6 +53,11 @@ class RakuAST::Declaration::Lexical is RakuAST::Declaration {
     method lexical-name() {
         nqp::die("Lexical name not implemented for " ~ self.HOW.name(self))
     }
+
+    # Some things that are typically lexical declarations may also come in
+    # anonymous forms. In that case, they may override this method to return
+    # True in such a case.
+    method anonymous() { False }
 }
 
 # A lexical declaration that comes from an external symbol (for example, the

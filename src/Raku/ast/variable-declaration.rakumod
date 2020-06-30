@@ -44,9 +44,9 @@ class RakuAST::Initializer::Bind is RakuAST::Initializer {
     }
 }
 
-# A basic variable declaration.
-class RakuAST::Declaration::Var is RakuAST::Declaration is RakuAST::ImplicitLookups
-                                is RakuAST::Meta {
+# A basic variable declaration of the form `my SomeType $foo = 42` or `has Foo $x .= new`.
+class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::ImplicitLookups
+                                      is RakuAST::Meta {
     has RakuAST::Type $.type;
     has str $.name;
     has RakuAST::Initializer $.initializer;
@@ -54,10 +54,10 @@ class RakuAST::Declaration::Var is RakuAST::Declaration is RakuAST::ImplicitLook
     method new(str :$name!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
                str :$scope) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration::Var, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name', $name);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
-        nqp::bindattr($obj, RakuAST::Declaration::Var, '$!type', $type // RakuAST::Type);
-        nqp::bindattr($obj, RakuAST::Declaration::Var, '$!initializer',
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
         $obj
     }

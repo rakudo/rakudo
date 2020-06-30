@@ -332,7 +332,7 @@ plan 33;
     my $count = 0;
     is-deeply
         EVAL(RakuAST::Statement::Loop.new(
-            setup => RakuAST::Declaration::Var.new(
+            setup => RakuAST::VarDeclaration::Simple.new(
                 name => '$i',
                 initializer => RakuAST::Initializer::Assign.new(
                     RakuAST::IntLiteral.new(9)

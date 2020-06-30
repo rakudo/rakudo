@@ -7,12 +7,12 @@ class RakuAST::LexicalScope is RakuAST::Node {
         my $stmts := QAST::Stmts.new();
 
         # Visit code objects that need to make a declaration entry.
-        self.visit(-> $node {
+        self.visit: -> $node {
             if nqp::istype($node, RakuAST::Code) {
                 $stmts.push($node.IMPL-QAST-DECL-CODE($context));
             }
             !(nqp::istype($node, RakuAST::LexicalScope) || nqp::istype($node, RakuAST::IMPL::ImmediateBlockUser))
-        });
+        }
 
         # Visit declarations.
         for self.IMPL-UNWRAP-LIST(self.lexical-declarations()) {
@@ -24,10 +24,26 @@ class RakuAST::LexicalScope is RakuAST::Node {
 
     method lexical-declarations() {
         unless nqp::isconcrete($!declarations-cache) {
-            nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache',
-                self.find-nodes(RakuAST::Declaration,
-                    condition => -> $decl { $decl.is-lexical },
-                    stopper => RakuAST::LexicalScope));
+            my @declarations;
+            self.visit: -> $node {
+                if nqp::istype($node, RakuAST::Declaration) && $node.is-lexical {
+                    nqp::push(@declarations, $node);
+                }
+                if $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
+                    if nqp::istype($node, RakuAST::ImplicitDeclarations) {
+                        for $node.get-implicit-declarations() -> $decl {
+                            if $decl.is-lexical {
+                                nqp::push(@declarations, $node);
+                            }
+                        }
+                    }
+                    1 # visit children
+                }
+                else {
+                    0 # it's an inner scope, don't visit its children
+                }
+            }
+            nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache', @declarations);
         }
         $!declarations-cache
     }
@@ -74,8 +90,34 @@ class RakuAST::Declaration is RakuAST::Node {
     }
 }
 
+# Done by anything that may make implicit declarations. For example, a package
+# declares $?PACKAGE inside of it, a sub declares a fresh $_, $/, and $!, etc.
+# While a declaration is considered something external to a node, and so exposed
+# to the enclosing lexical scope, implicit declarations are considered as being
+# on the inside; this makes a difference in the case the node is also doing
+# RakuAST::LexicalScope and is thus a lexical scope boundary.
+class RakuAST::ImplicitDeclarations is RakuAST::Node {
+    has List $!implicit-declarations-cache;
+
+    # A node typically implements this to specify the implicit declarations
+    # that it makes. This is called once per instance of a node and then
+    # remains constant. Nodes that may be mutated must instead implement
+    # get-implicit-declarations and handle the caching themselves.
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-WRAP-LIST(nqp::list())
+    }
+
+    # Get a list of the implicit declarations.
+    method get-implicit-declarations() {
+        $!implicit-declarations-cache //
+            nqp::bindattr(self, RakuAST::ImplicitDeclarations,
+                '$!implicit-declarations-cache',
+                self.PRODUCE-IMPLICIT-DECLARATIONS())
+    }
+}
+
 # A lexical declaration that comes from an external symbol (for example, the
-# setting or an EVAL). XXX May break out the setting one.
+# setting or an EVAL).
 class RakuAST::Declaration::External is RakuAST::Declaration {
     has str $.lexical-name;
     has Mu $!native-type;

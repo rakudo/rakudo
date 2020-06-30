@@ -1019,8 +1019,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule routine_def($declarator) {
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
-        <deflongname>?
         <.enter-block-scope(nqp::tclc($declarator))>
+        <deflongname>?
         [ '(' <signature> ')' ]?
         <blockoid>
         <.leave-block-scope>

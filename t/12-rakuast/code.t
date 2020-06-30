@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 25;
+plan 26;
 
 {
     my $block := EVAL RakuAST::StatementList.new(
@@ -127,4 +127,35 @@ plan 25;
     is-deeply $sub.count, 1, 'The block has 1 count';
     is $sub(189), 189, 'Invoking the sub with an argument returns the expected value';
     dies-ok { $sub() }, 'Invoking the sub without an argument dies';
+}
+
+{
+    is-deeply
+        EVAL(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Sub.new(
+                    name => RakuAST::Name.from-identifier('my-sub'),
+                    signature => RakuAST::Signature.new(
+                        parameters => (
+                            RakuAST::Parameter.new(
+                                target => RakuAST::ParameterTarget::Var.new('$param')
+                            ),
+                        )
+                    ),
+                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            RakuAST::Var::Lexical.new('$param')
+                        )
+                    ))
+                )
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('my-sub'),
+                    args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(66))
+                )
+            )
+        )),
+        66,
+        'Can call a named sub declaration';
 }

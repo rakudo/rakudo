@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 66;
+plan 71;
 
 {
     my $x = 42;
@@ -420,4 +420,43 @@ throws-like
         ),
     ));
     is-deeply cont, 'nine six three', 'Native str assign initializer works';
+}
+
+{
+    my module M {
+        our $var = 66;
+        is-deeply
+            EVAL(RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                    RakuAST::VarDeclaration::Simple.new(
+                        scope => 'our',
+                        name => '$var',
+                    ),
+                ),
+                RakuAST::Statement::Expression.new(
+                    RakuAST::Var::Lexical.new('$var')
+                ),
+            )),
+            66,
+            'our-scoped variable declaration without initializer takes current value';
+        is-deeply $var, 66, 'Value of our-scoped package variable intact after EVAL';
+
+        is-deeply
+            EVAL(RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                    RakuAST::VarDeclaration::Simple.new(
+                        scope => 'our',
+                        name => '$x',
+                        initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(42))
+                    ),
+                ),
+                RakuAST::Statement::Expression.new(
+                    RakuAST::Var::Lexical.new('$x')
+                ),
+            )),
+            42,
+            'our-scoped variable declaration with initializer works';
+    }
+    is-deeply $M::x, 42, 'our variable in EVAL is installed into the current package';
+    ok $M::x.VAR ~~ Scalar, 'It is a bound scalar';
 }

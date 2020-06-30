@@ -44,16 +44,18 @@ class RakuAST::Initializer::Bind is RakuAST::Initializer {
     }
 }
 
-# A basic normal variable declaration.
-class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
-        is RakuAST::ImplicitLookups is RakuAST::Meta {
+# A basic variable declaration.
+class RakuAST::Declaration::Var is RakuAST::Declaration is RakuAST::ImplicitLookups
+                                is RakuAST::Meta {
     has RakuAST::Type $.type;
     has str $.name;
     has RakuAST::Initializer $.initializer;
 
-    method new(str :$name!, RakuAST::Type :$type, RakuAST::Initializer :$initializer) {
+    method new(str :$name!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
+               str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration::Var, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Declaration::Var, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Declaration::Var, '$!initializer',
             $initializer // RakuAST::Initializer);
@@ -90,6 +92,14 @@ class RakuAST::Declaration::Var is RakuAST::Declaration::Lexical
         $visitor($type) if nqp::isconcrete($type);
         my $initializer := $!initializer;
         $visitor($initializer) if nqp::isconcrete($initializer);
+    }
+
+    method default-scope() {
+        'my'
+    }
+
+    method allowed-scopes() {
+        self.IMPL-WRAP-LIST(['my', 'state', 'our', 'has'])
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {

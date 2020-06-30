@@ -45,7 +45,7 @@ is-deeply
 is-deeply
     EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(name => '$foo')
+            RakuAST::VarDeclaration::Simple.new(name => '$foo')
         ),
         RakuAST::Statement::Expression.new(
             RakuAST::ApplyInfix.new(
@@ -64,7 +64,7 @@ is-deeply
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(name => '$foo')
+            RakuAST::VarDeclaration::Simple.new(name => '$foo')
         ),
         RakuAST::Statement::Expression.new(
             RakuAST::Var::Lexical.new('$foo')
@@ -77,7 +77,7 @@ is-deeply
 is-deeply
     EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$foo',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
             )
@@ -100,7 +100,7 @@ throws-like
     {
         EVAL(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::Declaration::Var.new(
+                RakuAST::VarDeclaration::Simple.new(
                     name => '$foo',
                     type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int')),
                 )
@@ -125,7 +125,7 @@ throws-like
 {
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$var',
                 initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(125))
             )
@@ -146,7 +146,7 @@ throws-like
 {
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '@var',
                 initializer => RakuAST::Initializer::Assign.new(
                     RakuAST::ApplyListInfix.new(
@@ -167,7 +167,7 @@ throws-like
 {
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$var',
                 initializer => RakuAST::Initializer::Bind.new(RakuAST::IntLiteral.new(225))
             )
@@ -200,7 +200,7 @@ throws-like
 {
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$*var',
                 initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(360))
             )
@@ -221,7 +221,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(name => '@arr')
+            RakuAST::VarDeclaration::Simple.new(name => '@arr')
         ),
         RakuAST::Statement::Expression.new(
             RakuAST::Var::Lexical.new('@arr')
@@ -239,7 +239,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(name => '%hash')
+            RakuAST::VarDeclaration::Simple.new(name => '%hash')
         ),
         RakuAST::Statement::Expression.new(
             RakuAST::Var::Lexical.new('%hash')
@@ -257,7 +257,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '@arr',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
             ),
@@ -278,7 +278,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '%hash',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
             ),
@@ -320,7 +320,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$native-int',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int'))
             ),
@@ -339,7 +339,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$num',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num'))
             ),
@@ -358,7 +358,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$str',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str'))
             ),
@@ -377,7 +377,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$native-int',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('int')),
                 initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(963))
@@ -393,7 +393,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$native-num',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num')),
                 initializer => RakuAST::Initializer::Assign.new(RakuAST::NumLiteral.new(96e3))
@@ -409,7 +409,7 @@ throws-like
 {
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::Declaration::Var.new(
+            RakuAST::VarDeclaration::Simple.new(
                 name => '$native-str',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str')),
                 initializer => RakuAST::Initializer::Assign.new(RakuAST::StrLiteral.new('nine six three'))

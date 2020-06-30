@@ -57,15 +57,15 @@ class Raku::Actions is HLL::Actions {
 
         # Create a compilation unit.
         my $file := nqp::getlexdyn('$?FILES');
+        my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
         my $comp-unit-name := nqp::sha1($file ~ (
-            nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>)
+            nqp::defined($outer_ctx)
                 ?? $/.target() ~ SerializationContextId.next-id()
                 !! $/.target()));
         $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name);
 
         # Set up the resolver.
         my $resolver_type := self.r('Resolver', 'Compile');
-        my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
         if nqp::isconcrete($outer_ctx) {
             $*R := $resolver_type.from-context(:context($outer_ctx));
         }
@@ -73,9 +73,23 @@ class Raku::Actions is HLL::Actions {
             $*R := $resolver_type.from-setting(:$setting-name);
         }
 
+        # Locate an EXPORTHOW and set those mappings on our current language.
+        my $EXPORTHOW := $*R.resolve-lexical-constant('EXPORTHOW').compile-time-value;
+        for stash_hash($EXPORTHOW) {
+            $*LANG.set_how($_.key, $_.value);
+        }
+
         # Set up the literals builder, so we can produce and intern literal
         # values.
         $*LITERALS := self.r('LiteralBuilder').new();
+    }
+
+    sub stash_hash($pkg) {
+        my $hash := $pkg.WHO;
+        unless nqp::ishash($hash) {
+            $hash := $hash.FLATTENABLE_HASH();
+        }
+        $hash
     }
 
     method comp_unit($/) {

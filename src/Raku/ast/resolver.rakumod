@@ -224,7 +224,7 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
 
     # Add a lexical declaration. Used when the compiler produces the declaration,
     # so that we can resovle it without requiring it to be linked into the tree.
-    method declare-lexical(RakuAST::Declaration::Lexical $decl) {
+    method declare-lexical(RakuAST::Declaration $decl) {
         $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl);
     }
 
@@ -294,7 +294,7 @@ class RakuAST::Resolver::Compile::Scope is RakuAST::Resolver {
         }
     }
 
-    method declare-lexical(RakuAST::Declaration::Lexical $decl) {
+    method declare-lexical(RakuAST::Declaration $decl) {
         nqp::die('Should not be calling declare-lexical in batch mode') if $!batch-mode;
         $!live-decl-map{$decl.lexical-name} := $decl;
         Nil

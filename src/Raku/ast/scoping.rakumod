@@ -7,7 +7,7 @@ class RakuAST::LexicalScope is RakuAST::Node {
         my $stmts := QAST::Stmts.new();
 
         # Visit code objects that need to make a declaration entry.
-        my $inner-code := self.visit(-> $node {
+        self.visit(-> $node {
             if nqp::istype($node, RakuAST::Code) {
                 $stmts.push($node.IMPL-QAST-DECL-CODE($context));
             }
@@ -25,7 +25,8 @@ class RakuAST::LexicalScope is RakuAST::Node {
     method lexical-declarations() {
         unless nqp::isconcrete($!declarations-cache) {
             nqp::bindattr(self, RakuAST::LexicalScope, '$!declarations-cache',
-                self.find-nodes(RakuAST::Declaration::Lexical,
+                self.find-nodes(RakuAST::Declaration,
+                    condition => -> $decl { $decl.is-lexical },
                     stopper => RakuAST::LexicalScope));
         }
         $!declarations-cache
@@ -36,7 +37,7 @@ class RakuAST::LexicalScope is RakuAST::Node {
         unless nqp::isconcrete(%lookup) {
             %lookup := {};
             for self.IMPL-UNWRAP-LIST(self.lexical-declarations) {
-                %lookup{$_.lexical-name} := $_ unless $_.anonymous;
+                %lookup{$_.lexical-name} := $_;
             }
             nqp::bindattr(self, RakuAST::LexicalScope, '$!lexical-lookup-hash', %lookup);
         }
@@ -46,23 +47,36 @@ class RakuAST::LexicalScope is RakuAST::Node {
 
 # Done by anything that is a declaration - that is, declares a symbol.
 class RakuAST::Declaration is RakuAST::Node {
-}
+    has str $!scope;
 
-# Done by a declaration that installs a lexical symbol.
-class RakuAST::Declaration::Lexical is RakuAST::Declaration {
-    method lexical-name() {
-        nqp::die("Lexical name not implemented for " ~ self.HOW.name(self))
+    # Returns the default scope of this kind of declaration.
+    method default-scope() {
+        nqp::die('default-scope is not implemented on ' ~ self.HOW.name(self))
     }
 
-    # Some things that are typically lexical declarations may also come in
-    # anonymous forms. In that case, they may override this method to return
-    # True in such a case.
-    method anonymous() { False }
+    # Returns the list of allowed scopes for this kind of declaration.
+    method allowed-scopes() {
+        nqp::die('allowed-scopes is not implemented on ' ~ self.HOW.name(self))
+    }
+
+    # Gets the scope of this declaration.
+    method scope() {
+        my str $scope := $!scope;
+        nqp::isnull_s($scope) || $scope eq ''
+            ?? self.default-scope
+            !! $scope
+    }
+
+    # Tests if this is a lexical declaration.
+    method is-lexical() {
+        my str $scope := self.scope;
+        $scope eq 'my' || $scope eq 'state'
+    }
 }
 
 # A lexical declaration that comes from an external symbol (for example, the
 # setting or an EVAL). XXX May break out the setting one.
-class RakuAST::Declaration::External is RakuAST::Declaration::Lexical {
+class RakuAST::Declaration::External is RakuAST::Declaration {
     has str $.lexical-name;
     has Mu $!native-type;
 
@@ -83,6 +97,10 @@ class RakuAST::Declaration::External is RakuAST::Declaration::Lexical {
         }
         QAST::Var.new( :name($!lexical-name), :$scope, :returns($!native-type) )
     }
+
+    method default-scope() { 'my' }
+
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
 }
 
 # A lexical declaration that comes with an external symbol, which has a fixed
@@ -98,6 +116,8 @@ class RakuAST::Declaration::External::Constant is RakuAST::Declaration::External
             '$!compile-time-value', $compile-time-value);
         $obj
     }
+
+    method type() { $!compile-time-value.WHAT }
 }
 
 # Done by anything that is a lookup of a symbol. May or may not need resolution

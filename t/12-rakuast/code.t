@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 26;
+plan 27;
 
 {
     my $block := EVAL RakuAST::StatementList.new(
@@ -159,3 +159,26 @@ plan 26;
         66,
         'Can call a named sub declaration';
 }
+
+dies-ok
+    {
+        EVAL(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Sub.new(
+                    scope => 'anon',
+                    name => RakuAST::Name.from-identifier('my-sub'),
+                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            RakuAST::IntLiteral.new(66)
+                        )
+                    ))
+                )
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('my-sub')
+                )
+            )
+        )),
+    },
+    'A routine declared anonymous does not declare anything';

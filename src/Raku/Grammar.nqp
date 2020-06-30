@@ -942,7 +942,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ##
 
     proto token scope_declarator { <...> }
-    token scope_declarator:sym<my> { <sym> <scoped('my')> }
+    token scope_declarator:sym<my>    { <sym> <scoped('my')> }
+    token scope_declarator:sym<our>   { <sym> <scoped('our')> }
+    token scope_declarator:sym<has>   { <sym> <scoped('has')> }
+    token scope_declarator:sym<HAS>   { <sym> <scoped('HAS')> }
+    token scope_declarator:sym<anon>  { <sym> <scoped('anon')> }
+    token scope_declarator:sym<state> { <sym> <scoped('state')> }
 
     token scoped($*SCOPE) {
         <.end_keyword>

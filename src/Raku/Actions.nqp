@@ -386,7 +386,12 @@ class Raku::Actions is HLL::Actions {
     ## Declarations
     ##
 
-    method scope_declarator:sym<my>($/) { make $<scoped>.ast; }
+    method scope_declarator:sym<my>($/)    { make $<scoped>.ast; }
+    method scope_declarator:sym<our>($/)   { make $<scoped>.ast; }
+    method scope_declarator:sym<has>($/)   { make $<scoped>.ast; }
+    method scope_declarator:sym<HAS>($/)   { make $<scoped>.ast; }
+    method scope_declarator:sym<anon>($/)  { make $<scoped>.ast; }
+    method scope_declarator:sym<state>($/) { make $<scoped>.ast; }
 
     method scoped($/) {
         make $<DECL>.ast;
@@ -410,12 +415,15 @@ class Raku::Actions is HLL::Actions {
     }
 
     method variable_declarator($/) {
+        my str $scope := $*SCOPE;
         my str $name := $<sigil> ~ $<desigilname>;
         my $initializer := $<initializer>
             ?? $<initializer>.ast
             !! self.r('Initializer');
-        my $decl := self.r('Declaration', 'Var').new(:$name, :$initializer);
-        $*R.declare-lexical($decl);
+        my $decl := self.r('Declaration', 'Var').new(:$scope, :$name, :$initializer);
+        if $scope eq 'my' || $scope eq 'state' {
+            $*R.declare-lexical($decl);
+        }
         make $decl;
     }
 

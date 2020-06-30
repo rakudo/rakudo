@@ -72,14 +72,16 @@ class RakuAST::Node {
     # if it satisfies the specified type, but it's children shall not be
     # visited. The search is strict - that is to say, it starts at the children
     # of the current node, but doesn't consider the current one.
-    method find-nodes(Mu $type, Mu :$stopper) {
+    method find-nodes(Mu $type, Code :$condition, Mu :$stopper) {
         # Walk the tree searching for matching nodes.
         my int $have-stopper := !nqp::eqaddr($stopper, Mu);
         my @visit-queue := [self];
         my @result;
         my $collector := sub collector($node) {
             if nqp::istype($node, $type) {
-                nqp::push(@result, $node);
+                unless $condition && !$condition($node) {
+                    nqp::push(@result, $node);
+                }
             }
             unless $have-stopper && nqp::istype($node, $stopper) {
                 nqp::push(@visit-queue, $node);

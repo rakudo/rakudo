@@ -108,7 +108,7 @@ class RakuAST::ParameterTarget is RakuAST::Node {
 }
 
 # A binding of a parameter into a lexical variable (with sigil).
-class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Declaration::Lexical {
+class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Declaration {
     has str $.name;
 
     method new(str $name!) {
@@ -148,4 +148,8 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
         my str $scope := 'lexical';
         QAST::Var.new( :name($!name), :$scope )
     }
+
+    method default-scope() { 'my' }
+
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
 }

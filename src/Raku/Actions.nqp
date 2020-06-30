@@ -718,4 +718,8 @@ class Raku::QActions is HLL::Actions {
     method escape:sym<@>($/) { make $<EXPR>.ast; }
     method escape:sym<%>($/) { make $<EXPR>.ast; }
     method escape:sym<&>($/) { make $<EXPR>.ast; }
+
+    method escape:sym<{ }>($/) {
+        make $<block>.ast;
+    }
 }

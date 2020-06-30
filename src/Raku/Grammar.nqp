@@ -1458,6 +1458,14 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         token escape:sym<&> { <!> }
     }
 
+    role c1 {
+        token escape:sym<{ }> { :my $*ESCAPEBLOCK := 1; <?[{]> <!RESTRICTED> <block=.LANG('MAIN','block')> }
+    }
+
+    role c0 {
+        token escape:sym<{ }> { <!> }
+    }
+
     role q {
         token starter { \' }
         token stopper { \' }
@@ -1474,8 +1482,7 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         method tweak_qq($v) { self.panic("Too late for :qq") }
     }
 
-    role qq does b1 does s1 does a1 does h1 does f1 {
-        # TODO does c1 {
+    role qq does b1 does s1 does a1 does h1 does f1 does c1 {
         token starter { \" }
         token stopper { \" }
         method tweak_q($v) { self.panic("Too late for :q") }
@@ -1501,6 +1508,14 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     method tweak_backslash($v)  { self.tweak_b($v) }
     method tweak_s($v)          { self.apply_tweak($v ?? s1 !! s0) }
     method tweak_scalar($v)     { self.tweak_s($v) }
+    method tweak_a($v)          { self.apply_tweak($v ?? a1 !! a0) }
+    method tweak_array($v)      { self.tweak_a($v) }
+    method tweak_h($v)          { self.apply_tweak($v ?? h1 !! h0) }
+    method tweak_hash($v)       { self.tweak_h($v) }
+    method tweak_f($v)          { self.apply_tweak($v ?? f1 !! f0) }
+    method tweak_function($v)   { self.tweak_f($v) }
+    method tweak_c($v)          { self.apply_tweak($v ?? c1 !! c0) }
+    method tweak_closure($v)    { self.tweak_c($v) }
 
     token nibbler {
         :my @*nibbles;

@@ -66,6 +66,29 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
     }
 }
 
+# A special compiler variable lookup, such as $?PACKAGE.
+class RakuAST::Var::Compiler is RakuAST::Var is RakuAST::Lookup {
+    has str $.name;
+
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Compiler, '$!name', $name);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical($!name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.resolution.IMPL-LOOKUP-QAST($context)
+    }
+}
+
 # A regex positional capture variable (e.g. $0).
 class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookups {
     has Int $.index;

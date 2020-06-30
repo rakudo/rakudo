@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 5;
+plan 6;
 
 is-deeply
     EVAL(RakuAST::QuotedString.new(
@@ -43,3 +43,19 @@ is-deeply
     )),
     'The answer is 42 of course!',
     'Quoted string with 3 parts works';
+
+my $bv = 'interpolated';
+is-deeply
+    EVAL(RakuAST::QuotedString.new(
+        RakuAST::StrLiteral.new('An '),
+        RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                    RakuAST::Var::Lexical.new('$bv')
+                )
+            ))
+        ),
+        RakuAST::StrLiteral.new(' block')
+    )),
+    'An interpolated block',
+    'Quoted string involving an interpolated block';

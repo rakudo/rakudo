@@ -148,13 +148,14 @@ class RakuAST::PointyBlock is RakuAST::Block {
 
 # Done by all kinds of Routine.
 class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
-                       is RakuAST::SinkBoundary {
+                       is RakuAST::SinkBoundary is RakuAST::Declaration {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
     has RakuAST::Blockoid $.body;
 
-    method new(RakuAST::Name :$name, RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
+    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
         my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
             // RakuAST::Signature.new);
@@ -228,9 +229,9 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        # If we're a named lexical thing, install us.
+        # If we're a named lexical thing, install us in the block.
         my $name := self.lexical-name;
-        if $name {
+        if $name && self.scope eq 'my' {
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
@@ -243,8 +244,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        # TODO check if lexical
-        if $!name {
+        if self.scope eq 'my' {
             my $canon-name := $!name.canonicalize;
             QAST::Var.new( :scope<lexical>, :name('&' ~ $canon-name) )
         }
@@ -252,6 +252,17 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             self.IMPL-CLOSURE-QAST
         }
     }
+
+    method lexical-name() {
+        my $name := self.name;
+        if $name {
+            '&' ~ $name.canonicalize
+        }
+        else {
+            Nil
+        }
+    }
+
 
     method get-boundary-sink-propagator() {
         $!body.statement-list
@@ -268,30 +279,40 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 }
 
 # A subroutine.
-class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration::Lexical {
+class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
     method IMPL-META-OBJECT-TYPE() { Sub }
 
-    method lexical-name() {
-        my $name := self.name;
-        if $name {
-            '&' ~ $name.canonicalize
-        }
-        else {
-            Nil
-        }
+    method default-scope() {
+        self.name ?? 'my' !! 'anon'
     }
 
-    method anonymous() {
-        self.name ?? False !! True
+    method allowed-scopes() {
+        self.IMPL-WRAP-LIST(['my', 'anon', 'our'])
     }
 }
 
 # A method.
 class RakuAST::Method is RakuAST::Routine {
     method IMPL-META-OBJECT-TYPE() { Method }
+
+    method default-scope() {
+        self.name ?? 'has' !! 'anon'
+    }
+
+    method allowed-scopes() {
+        self.IMPL-WRAP-LIST(['has', 'my', 'anon', 'our'])
+    }
 }
 
 # A submethod.
 class RakuAST::Submethod is RakuAST::Routine {
     method IMPL-META-OBJECT-TYPE() { Submethod }
+
+    method default-scope() {
+        self.name ?? 'has' !! 'anon'
+    }
+
+    method allowed-scopes() {
+        self.IMPL-WRAP-LIST(['has', 'my', 'anon', 'our'])
+    }
 }

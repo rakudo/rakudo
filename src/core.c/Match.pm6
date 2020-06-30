@@ -58,11 +58,11 @@ my class Match is Cool does NQPMatchRole {
     }
 
     method from() is raw {
-        self!captures if $!cstack && nqp::not_i(nqp::isconcrete($!captures));
+        self!captures if $!cstack && nqp::isfalse($!captures);
         $!from
     }
     method to() is raw {
-        self!captures if $!cstack && nqp::not_i(nqp::isconcrete($!captures));
+        self!captures if $!cstack && nqp::isfalse($!captures);
         nqp::islt_i($!to,0) ?? $!pos !! $!to
     }
 
@@ -237,7 +237,7 @@ my class Match is Cool does NQPMatchRole {
 
     # Basically NQP's .Str which gets shadowed by Cool
     method Str(Match:D: --> Str:D) {
-        self!captures if $!cstack && nqp::not_i(nqp::isconcrete($!captures));
+        self!captures if $!cstack && nqp::isfalse($!captures);
 
         nqp::isge_i($!pos,$!from)
           ?? nqp::substr(
@@ -272,7 +272,7 @@ my class Match is Cool does NQPMatchRole {
     }
 
     multi method raku(Match:D: --> Str:D) {
-        self!captures unless nqp::isconcrete($!captures);
+        self!captures if $!cstack && nqp::isfalse($!captures);
 
         my $attrs := nqp::list_s;
         nqp::push_s($attrs,

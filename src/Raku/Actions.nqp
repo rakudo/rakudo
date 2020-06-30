@@ -587,8 +587,11 @@ class Raku::Actions is HLL::Actions {
     }
 
     method deflongname($/) {
+        # Set the name on the definition immediately, since it's known at this
+        # point onwards.
+        my $name := $<name>.ast;
         # TODO add colonpairs
-        make $<name>.ast;
+        $*BLOCK.replace-name($name);
     }
 }
 

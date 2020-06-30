@@ -20,6 +20,16 @@ class RakuAST::Blockoid is RakuAST::Node {
 
 # Marker for all code-y things.
 class RakuAST::Code is RakuAST::Node {
+    method IMPL-CLOSURE-QAST() {
+        my $code-obj := self.meta-object;
+        QAST::Op.new(
+            :op('p6capturelex'),
+            QAST::Op.new(
+                :op('callmethod'), :name('clone'),
+                QAST::WVal.new( :value($code-obj) )
+            )
+        )
+    }
 }
 
 # A block, either without signature or with only a placeholder signature.
@@ -63,7 +73,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         $block
     }
 
-    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the block itself.
         my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
 
@@ -95,14 +105,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         else {
             # Not immediate, so already produced as a declaration above; just
             # closure clone it. Only invoke if it's a bare block.
-            my $code-obj := self.meta-object;
-            my $ast := QAST::Op.new(
-                :op('p6capturelex'),
-                QAST::Op.new(
-                    :op('callmethod'), :name('clone'),
-                    QAST::WVal.new( :value($code-obj) )
-                )
-            );
+            my $ast := self.IMPL-CLOSURE-QAST();
             self.bare-block
                 ?? QAST::Op.new( :op('call'), $ast )
                 !! $ast
@@ -146,17 +149,22 @@ class RakuAST::PointyBlock is RakuAST::Block {
 # Done by all kinds of Routine.
 class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
                        is RakuAST::SinkBoundary {
-    has Str $.name;
+    has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
     has RakuAST::Blockoid $.body;
 
-    method new(Str :$name, RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
+    method new(RakuAST::Name :$name, RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // Str);
+        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
             // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Routine, '$!body', $body // RakuAST::Blockoid.new);
         $obj
+    }
+
+    method replace-name(RakuAST::Name $new-name) {
+        nqp::bindattr(self, RakuAST::Routine, '$!name', $new-name);
+        Nil
     }
 
     method replace-body(RakuAST::Blockoid $new-body) {
@@ -190,7 +198,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         $block
     }
 
-    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
         # Form the QAST block itself.
         my $block := self.IMPL-QAST-FORM-BLOCK($context);
 
@@ -210,18 +218,39 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             )
         });
 
+        # Set a name, if there is one.
+        if $!name {
+            my $canon-name := $!name.canonicalize;
+            $block.name($canon-name);
+        }
+
         $block
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $code-obj := self.meta-object;
-        QAST::Op.new(
-            :op('p6capturelex'),
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        # If we're a named lexical thing, install us.
+        my $name := self.lexical-name;
+        if $name {
             QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($code-obj) )
+                :op('bind'),
+                QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
+                self.IMPL-CLOSURE-QAST()
             )
-        )
+        }
+        else {
+            QAST::Op.new( :op('null') )
+        }
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # TODO check if lexical
+        if $!name {
+            my $canon-name := $!name.canonicalize;
+            QAST::Var.new( :scope<lexical>, :name('&' ~ $canon-name) )
+        }
+        else {
+            self.IMPL-CLOSURE-QAST
+        }
     }
 
     method get-boundary-sink-propagator() {
@@ -239,8 +268,22 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 }
 
 # A subroutine.
-class RakuAST::Sub is RakuAST::Routine {
+class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration::Lexical {
     method IMPL-META-OBJECT-TYPE() { Sub }
+
+    method lexical-name() {
+        my $name := self.name;
+        if $name {
+            '&' ~ $name.canonicalize
+        }
+        else {
+            Nil
+        }
+    }
+
+    method anonymous() {
+        self.name ?? False !! True
+    }
 }
 
 # A method.

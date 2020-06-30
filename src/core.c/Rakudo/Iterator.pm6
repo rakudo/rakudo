@@ -2587,6 +2587,8 @@ class Rakudo::Iterator {
     # cache cursor initialization lookup
     my $initialize-cursor := Match.^lookup("!cursor_init");
 
+    my &POPULATE := Match.^lookup("MATCH" );  # fully populate Match object
+
     my $movers := nqp::list(
       Match.^lookup("CURSOR_MORE"),     # :g
       Match.^lookup("CURSOR_OVERLAP"),  # :ov
@@ -2681,7 +2683,7 @@ class Rakudo::Iterator {
         method pull-one() is raw {
             nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
               ?? IterationEnd
-              !! $cursor
+              !! $cursor.MATCH
         }
         method skip-one() {
             nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
@@ -2690,7 +2692,7 @@ class Rakudo::Iterator {
             my $iterator := $!iterator;
             nqp::until(
               nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
-              target.push($cursor)
+              target.push($cursor.MATCH)
             );
         }
     }
@@ -2714,7 +2716,7 @@ class Rakudo::Iterator {
         method pull-one() is raw {
             nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
               ?? IterationEnd
-              !! $cursor.Str
+              !! $cursor.MATCH.Str
         }
         method skip-one() {
             nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
@@ -2723,7 +2725,7 @@ class Rakudo::Iterator {
             my $iterator := $!iterator;
             nqp::until(
               nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
-              target.push($cursor.Str)
+              target.push($cursor.MATCH.Str)
             );
         }
     }

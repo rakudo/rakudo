@@ -39,7 +39,7 @@ my class Regex { # declared in BOOTSTRAP
         my \cursor :=
           SELF.(Match.'!cursor_init'(topic, :c(0), :$braid, :$fail_cursor));
         nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
-          ?? cursor
+          ?? cursor.MATCH
           !! Nil
     }
 
@@ -79,8 +79,8 @@ my class Regex { # declared in BOOTSTRAP
             ),
             nqp::if(
               nqp::eqaddr($pulled,IterationEnd),
-              Nil,         # no match found
-              cursor       # found it!
+              Nil,               # no match found
+              cursor.MATCH       # found it!
             )
           )
         )

@@ -30,6 +30,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my &POST-MATCH  := { $_ };                # Match object
     my &POST-STR    := Match.^lookup("Str");  # Str object
 
+    my &POPULATE := Match.^lookup("MATCH" );  # populate Match object
+
     multi method IO(Str:D:) { IO::Path.new(self) }
 
     multi method WHY('Life, the Universe and Everything': --> 42) { }
@@ -1272,7 +1274,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method !match-one(\slash, \cursor) {
         nqp::decont(slash = nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
-          cursor,
+          cursor.MATCH,
           Nil
         ))
     }
@@ -1366,7 +1368,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             IterationEnd
           ),
           Nil,
-          $pulled
+          $pulled.MATCH
         ))
     }
 
@@ -1380,7 +1382,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             IterationEnd
           ),
           Nil,
-          $pulled
+          $pulled.MATCH
         ))
     }
 
@@ -2074,13 +2076,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
           ?? Rakudo::Iterator.MatchSplitMap(   # additional mapping needed
               $regex,
               self,
-              $k                      # mapper
-                ?? { 0 }              # just dummy keys
+              $k                               # mapper
+                ?? { 0 }                        # just dummy keys
                 !! $v
-                  ?? { $_ }           # Match objects
+                  ?? &POPULATE                  # full Match objects
                   !! $kv
-                    ?? { (0, $_) }    # alternating key/Match
-                    !! { 0 => $_ },   # key => Match
+                    ?? { (0, POPULATE($_)) }    # alternating key/Match
+                    !! { 0 => POPULATE($_) },   # key => Match
               $limit,
               $skip-empty)
           !! $skip-empty                       # no additional mapping

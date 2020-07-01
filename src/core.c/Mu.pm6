@@ -684,8 +684,9 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
     # Handle the typical "foo.say"
     multi method say() {
 
-        # no own print method, so use $*OUT.print
-        if nqp::eqaddr(self.^find_method("print").package,Mu) {
+        my $method := self.^find_method("print");
+        if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
+          || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*OUT
             $_ := $*OUT;
             .print(nqp::concat(self.gist,.nl-out))
         }
@@ -712,8 +713,9 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
     # Handle the typical "foo.put"
     multi method put() {
 
-        # no own print method, so use $*OUT.print
-        if nqp::eqaddr(self.^find_method("print").package,Mu) {
+        my $method := self.^find_method("print");
+        if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
+          || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*OUT
             $_ := $*OUT;
             .print(nqp::concat(self.Str,.nl-out))
         }
@@ -740,8 +742,9 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
     # Handle the typical "foo.note"
     multi method note() {
 
-        # no own print method, so use $*ERR.print
-        if nqp::eqaddr(self.^find_method("print").package,Mu) {
+        my $method := self.^find_method("print");
+        if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
+          || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*ERR
             $_ := $*ERR;
             .print(nqp::concat(self.gist,.nl-out))
         }

@@ -93,8 +93,20 @@
     });
 
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-rv-decont-6c', -> $capture {
-        # TODO proxy hack
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-rv-decont', $capture);
+        # This emulates a bug where Proxy was never decontainerized no
+        # matter what. The ecosystem came to depend on that, so we will
+        # accept it for now. We need to revisit this in the future.
+        my $rv := nqp::captureposarg($capture, 0);
+        if nqp::eqaddr(nqp::what_nd($rv), Proxy) && nqp::isconcrete_nd($rv) {
+            my $rv_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                    $capture, 0);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $rv_arg);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $rv_arg);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+        }
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-rv-decont', $capture);
+        }
     });
 }
 

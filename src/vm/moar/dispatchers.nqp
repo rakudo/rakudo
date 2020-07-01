@@ -376,9 +376,16 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-qualified',
                 'raku-meth-call-resolved', $capture_delegate);
     }
 
-    # Otherwise, exception. TODO proper one
+    # Otherwise, exception.
     else {
-        nqp::die(nqp::isconcrete($meth) ?? 'qual meth found' !! 'qual meth not found');
+        my %ex := nqp::gethllsym('Raku', 'P6EX');
+        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Method::InvalidQualifier') {
+            nqp::die("Cannot dispatch to method $name on " ~ $type.HOW.name($type) ~
+                " because it is not inherited or done by " ~ $obj.HOW.name($obj));
+        }
+        else {
+            nqp::atkey(%ex, 'X::Method::InvalidQualifier')($name, $obj, $type)
+        }
     }
 });
 

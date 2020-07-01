@@ -3042,6 +3042,10 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
   -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False, :$in-class-call is raw = False {
       X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private, :$in-class-call).throw
   },
+  'X::Method::InvalidQualifier',
+  -> $method, Mu $invocant, Mu $qualifier-type {
+      X::Method::InvalidQualifier.new(:$method, :$invocant, :$qualifier-type).throw
+  },
   'X::Multi::Ambiguous',
   -> $dispatcher is raw, @ambiguous is raw, $capture is raw {
       X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw

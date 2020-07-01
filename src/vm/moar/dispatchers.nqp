@@ -503,7 +503,11 @@ my int $BIND_VAL_OBJ      := 0;
 my int $BIND_VAL_INT      := 1;
 my int $BIND_VAL_NUM      := 2;
 my int $BIND_VAL_STR      := 3;
-sub raku-multi-filter(@candidates, $capture, int $all) {
+my int $REQUIRE_CHECK_NONE        := 0; # Candidate can be chosen with no checking
+my int $REQUIRE_CHECK_ALL         := 1; # Candidate needs checking in full
+my int $REQUIRE_CHECK_BINDABILITY := 2; # Candidate needs only bindability checking
+sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
+        $filtered_check_requirements) {
     # Look through all candidates. Eliminate those that can be ruled out by
     # setting guards on the incoming arguments OR by the shape of the
     # callsite. That callsite shape includes argument count, which named
@@ -517,7 +521,7 @@ sub raku-multi-filter(@candidates, $capture, int $all) {
     my $need_conc_guard := nqp::list_i();
     my int $group_has_unguardable := 0;
     my @possibles;
-    my @filtered_candidates;
+    my $possibles_unguardable := nqp::list_i();
     until $done {
         # The candidate list is broken into tied groups (that is, groups of
         # candidates that are equally narrow). Those are seperated by a
@@ -627,6 +631,7 @@ sub raku-multi-filter(@candidates, $capture, int $all) {
                 # the list if there's no mismatch.
                 if $unguardable || !($type_mismatch || $rwness_mismatch) {
                     nqp::push(@possibles, $cur_candidate);
+                    nqp::push_i($possibles_unguardable, $unguardable);
                 }
                 $group_has_unguardable := 1 if $unguardable;
 #                            if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
@@ -680,19 +685,45 @@ sub raku-multi-filter(@candidates, $capture, int $all) {
             # End of tied group. If there's possibles...
             if nqp::elems(@possibles) {
                 if nqp::elems(@possibles) == 1 && !$group_has_unguardable {
-                    # Exactly one guardable result.
+                    # Exactly one guardable result, so we just take it and we
+                    # are done.
                     nqp::push(@filtered_candidates, @possibles[0]);
+                    nqp::push_i($filtered_check_requirements, $REQUIRE_CHECK_NONE);
                     $done := 1;
                 }
                 else {
-                    nqp::die('disambig of multis NYI with new dispatcher');
+                    # We have multiple candidates. We will visit them and see
+                    # if any drop out by lack of required named argument; if
+                    # that is not the case, then they survive into the filtered
+                    # set.
+                    my int $i := 0;
+                    my int $n := nqp::elems(@possibles);
+                    while $i < $n {
+                        my %info := @possibles[$i];
+                        unless nqp::existskey(%info, 'req_named') &&
+                                !nqp::captureexistsnamed($capture, nqp::atkey(%info, 'req_named')) {
+                            # Will need disambiguation later.
+                            nqp::push(@filtered_candidates, %info);
+                            nqp::push_i($filtered_check_requirements,
+                                nqp::atpos_i($possibles_unguardable, $i) ?? $REQUIRE_CHECK_ALL !!
+                                nqp::existskey(%info, 'bind_check') ?? $REQUIRE_CHECK_BINDABILITY !!
+                                $REQUIRE_CHECK_NONE);
+                        }
+                        $i++;
+                    }
+
+                    # Done if we're ran out of candidates to consider.
+                    unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
+                        $done := 1;
+                    }
                 }
 
                 # Mark end of group.
                 nqp::push(@filtered_candidates, Mu);
 
-                # Clear sttate for next group.
+                # Clear state for next group.
                 nqp::setelems(@possibles, 0);
+                nqp::setelems($possibles_unguardable, 0);
                 $group_has_unguardable := 0;
             }
 
@@ -729,9 +760,7 @@ sub raku-multi-filter(@candidates, $capture, int $all) {
         }
         $i++;
     }
-
-    # Evaluate to filtered candidates list.
-    @filtered_candidates
+    0
 }
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi', -> $capture {
     # Obtain the candidate list, producing it if it doesn't already exist.
@@ -750,12 +779,19 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi', -> $capture {
     # Drop the first argument, to get just the arguments to dispatch on, and
     # then pre-filter the candidate list.
     my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
-    my @filtered_candidates := raku-multi-filter(@candidates, $arg-capture, 0);
+    my @filtered_candidates;
+    my $filtered_check_requirements := nqp::list_i();
+    raku-multi-filter(@candidates, $arg-capture, 0, @filtered_candidates,
+        $filtered_check_requirements);
+
+    # See what we're left with after filtering. In the best case, it's only one
+    # result.
     my int $onlystar := nqp::getattr_i($target, Routine, '$!onlystar');
-    if nqp::elems(@filtered_candidates) == 2 {
+    if nqp::elems(@filtered_candidates) == 2 &&
+            nqp::atpos($filtered_check_requirements, 0) == $REQUIRE_CHECK_NONE {
         # Simple case where we have a single group with a single filtered
-        # candidate, and so we can invoke that.
-        # XXX Not quite so simple, as may need bind check, etc.
+        # candidate, which was chosen based on guardable properties and has
+        # no late-bound checks to do.
         if $onlystar {
             # Add this resolved target to the argument capture and delegate to
             # raku-invoke to run it.
@@ -770,6 +806,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi', -> $capture {
         }
     }
     else {
+        # We need to perform disambiguation per-dispatch, but we hopefully have
+        # saved ourselves some of the up-front work.
         nqp::die('new multi disp requiring per-dispatch disambiguation NYI');
     }
 });

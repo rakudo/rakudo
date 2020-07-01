@@ -27,8 +27,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
     my \CURSOR-OVERLAP    := Match.^lookup("CURSOR_OVERLAP");  # :ov
     my \CURSOR-EXHAUSTIVE := Match.^lookup("CURSOR_NEXT"   );  # :ex
 
-    my &POST-MATCH  := { $_ };                # Match object
-    my &POST-STR    := Match.^lookup("Str");  # Str object
+    my &POST-MATCH  := Match.^lookup("MATCH");  # vivify object
+    my &POST-STR    := Match.^lookup("STR");    # stringify object
 
     my &POPULATE := Match.^lookup("MATCH" );  # populate Match object
 

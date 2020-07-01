@@ -360,7 +360,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-qualified',
     for ($caller-type, $obj.WHAT) {
         if nqp::istype($_, $type) {
             $meth := $_.HOW.find_method_qualified($_, $type, $name);
-            last unless nqp::isconcrete($meth);
+            last if nqp::isconcrete($meth);
         }
     }
 

@@ -1,5 +1,5 @@
 # A blockoid represents the block part of some kind of code declaration.
-class RakuAST::Blockoid is RakuAST::Node {
+class RakuAST::Blockoid is RakuAST::SinkPropagator {
     has RakuAST::StatementList $.statement-list;
 
     method new(RakuAST::StatementList $statement-list?) {
@@ -7,6 +7,10 @@ class RakuAST::Blockoid is RakuAST::Node {
         nqp::bindattr($obj, RakuAST::Blockoid, '$!statement-list',
             $statement-list // RakuAST::StatementList.new);
         $obj
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!statement-list.propagate-sink($is-sunk, :has-block-parent(True))
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -34,7 +38,7 @@ class RakuAST::Code is RakuAST::Node {
 
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
-                     is RakuAST::BlockStatementSensitive {
+                     is RakuAST::BlockStatementSensitive is RakuAST::SinkPropagator {
     has RakuAST::Blockoid $.body;
 
     method new(RakuAST::Blockoid :$body) {
@@ -49,6 +53,10 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
     }
 
     method signature() { Nil }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!body.apply-sink($is-sunk);
+    }
 
     method PRODUCE-META-OBJECT() {
         # Create block object and install signature.
@@ -139,6 +147,11 @@ class RakuAST::PointyBlock is RakuAST::Block {
     }
 
     method bare-block() { False }
+
+    method propagate-sink(Bool $is-sunk) {
+        self.body.apply-sink($is-sunk);
+        $!signature.apply-sink(True);
+    }
 
     method visit-children(Code $visitor) {
         $visitor($!signature);

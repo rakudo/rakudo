@@ -191,13 +191,13 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!then.body.statement-list.apply-sink($is-sunk);
+        $!then.body.apply-sink($is-sunk);
         for $!elsifs {
             $_.condition.apply-sink(False);
-            $_.then.body.statement-list.apply-sink($is-sunk);
+            $_.then.body.apply-sink($is-sunk);
         }
         if $!else {
-            $!else.body.statement-list.apply-sink($is-sunk);
+            $!else.body.apply-sink($is-sunk);
         }
     }
 
@@ -272,7 +272,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.statement-list.apply-sink($is-sunk);
+        $!body.body.apply-sink($is-sunk);
     }
 
     method visit-children(Code $visitor) {
@@ -312,7 +312,7 @@ class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLook
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.statement-list.apply-sink($is-sunk);
+        $!body.body.apply-sink($is-sunk);
     }
 
     method visit-children(Code $visitor) {
@@ -400,7 +400,7 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
 
     method propagate-sink(Bool $is-sunk) {
         $!condition.apply-sink(False);
-        $!body.body.statement-list.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+        $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
         $!setup.apply-sink(True) if $!setup;
         $!increment.apply-sink(True) if $!increment;
     }
@@ -460,7 +460,7 @@ class RakuAST::Statement::For is RakuAST::Statement
 
     method propagate-sink(Bool $is-sunk) {
         $!source.apply-sink(False);
-        $!body.body.statement-list.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+        $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

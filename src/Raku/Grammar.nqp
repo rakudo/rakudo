@@ -843,6 +843,26 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <?[{]> <pblock($PBLOCK_OPTIONAL_TOPIC)>
     }
 
+    token circumfix:sym<ang> {
+        :dba('quote words')
+        '<' ~ '>'
+        [
+            [ <?before 'STDIN>' > <.obs('<STDIN>', '$*IN.lines (or add whitespace to suppress warning)')> ]?
+            [ <?[>]> <.obs('<>', 'lines() to read input, (\'\') to represent a null string or () to represent an empty list')> ]?
+            <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))>
+        ]
+    }
+
+    token circumfix:sym«<< >>» {
+        :dba('shell-quote words')
+        '<<' ~ '>>' <nibble(self.quote_lang(self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']))>
+    }
+
+    token circumfix:sym<« »> {
+        :dba('shell-quote words')
+        '«' ~ '»' <nibble(self.quote_lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))>
+    }
+
     ##
     ## Terms
     ##
@@ -1466,6 +1486,18 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
         token escape:sym<{ }> { <!> }
     }
 
+    role ww {
+        token escape:sym<'> {
+            <?[ ' " ‘ ‚ ’ “ „ ” ｢ ]> <quote=.LANG('MAIN','quote')>
+        }
+        token escape:sym<colonpair> {
+            <?[:]> <!RESTRICTED> <colonpair=.LANG('MAIN','colonpair')>
+        }
+        token escape:sym<#> {
+            <?[#]> <.LANG('MAIN', 'comment')>
+        }
+    }
+
     role q {
         token starter { \' }
         token stopper { \' }
@@ -1516,6 +1548,35 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
     method tweak_function($v)   { self.tweak_f($v) }
     method tweak_c($v)          { self.apply_tweak($v ?? c1 !! c0) }
     method tweak_closure($v)    { self.tweak_c($v) }
+
+    my role postproc[@curlist] {
+        method postprocessors() {
+            @curlist;
+        }
+    }
+
+    method add-postproc(str $newpp) {
+        my $target := nqp::can(self, 'herelang') ?? self.herelang !! self;
+
+        my @pplist := nqp::can($target, "postprocessors")
+            ?? $target.postprocessors
+            !! nqp::list_s();
+        nqp::push_s(@pplist, $newpp);
+
+        # yes, the currying is necessary. Otherwise weird things can happen,
+        # e.g.  raku -e 'q:w:x//; q:ww:v//' turning the second into q:w:x:v//
+        $target.HOW.mixin($target, postproc.HOW.curry(postproc, @pplist));
+        self
+    }
+
+    method tweak_x($v)          { $v ?? self.add-postproc("exec") !! self }
+    method tweak_exec($v)       { self.tweak_x($v) }
+    method tweak_w($v)          { $v ?? self.add-postproc("words") !! self }
+    method tweak_words($v)      { self.tweak_w($v) }
+    method tweak_ww($v)         { $v ?? self.add-postproc("quotewords").apply_tweak(ww) !! self }
+    method tweak_quotewords($v) { self.tweak_ww($v) }
+    method tweak_v($v)          { $v ?? self.add-postproc("val") !! self }
+    method tweak_val($v)        { self.tweak_v($v) }
 
     token nibbler {
         :my @*nibbles;

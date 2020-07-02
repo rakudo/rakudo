@@ -93,11 +93,15 @@ class RakuAST::Node {
         self.IMPL-WRAP-LIST(@result)
     }
 
-    # Walks nodes beneath this one, and call the callback for each of them.
-    # If the callback returns a true value, then its children will also be
-    # walked.
-    method visit(Code $callback) {
-        my @visit-queue := [self];
+    # Visit the AST starting at the current node. Call the callback for each
+    # AST node. If the callback returns a true value, then its children will
+    # also be walked. The strict option, if set, will not visit the current
+    # node.
+    method visit(Code $callback, Bool :$strict) {
+        my @visit-queue;
+        if $strict || $callback(self) {
+            @visit-queue[0] := self;
+        }
         my $visitor := -> $node {
             if $callback($node) {
                 nqp::push(@visit-queue, $node);

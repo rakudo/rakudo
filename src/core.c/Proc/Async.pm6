@@ -385,7 +385,7 @@ my class Proc::Async {
           self!capture($callbacks,'merge',$!merge_supply)
         ) if $!merge_supply;
 
-        nqp::bindkey($callbacks, 'buf_type', buf8.new);
+        nqp::bindkey($callbacks, 'buf_type', nqp::create(buf8.^pun));
         nqp::bindkey($callbacks, 'write', True) if $.w;
         nqp::bindkey($callbacks, 'stdin_fd', $!stdin-fd) if $!stdin-fd.DEFINITE;
         nqp::bindkey($callbacks, 'stdin_fd_close', True) if $!stdin-fd-close;

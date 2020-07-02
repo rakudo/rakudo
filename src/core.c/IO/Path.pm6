@@ -252,7 +252,7 @@ my class IO::Path is Cool does IO {
         # part of the path part.
         nqp::stmts(
           (my $p := nqp::encode(
-            nqp::unbox_s($path), 'utf8-c8', buf8.new)),
+            nqp::unbox_s($path), 'utf8-c8', nqp::create(buf8.^pun))),
           (my int $ord-sep = nqp::ord($sep)),
           (my int $els = nqp::elems($p)),
           (my int $i = -1),
@@ -558,13 +558,14 @@ my class IO::Path is Cool does IO {
     # slurp contents of low level handle
     sub slurp-PIO(Mu \PIO) is raw {
         constant slurp-size = 0x100000;
-        nqp::readfh(PIO,(my $blob := buf8.new),slurp-size);
+        nqp::readfh(PIO,(my $blob := nqp::create(buf8.^pun)),slurp-size);
 
         # enough to read entire buffer, assume there's more
         if nqp::iseq_i(nqp::elems($blob),slurp-size) {
             nqp::while(
               nqp::iseq_i(
-                nqp::elems(nqp::readfh(PIO,(my $part := buf8.new),slurp-size)),
+                nqp::elems(
+                  nqp::readfh(PIO,(my $part := nqp::create(buf8.^pun)),slurp-size)),
                 slurp-size
               ),
               $blob.append($part)
@@ -638,7 +639,7 @@ my class IO::Path is Cool does IO {
         my $blob := nqp::encode(
           $text,
           (my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding)),
-          buf8.new
+          nqp::create(buf8.^pun)
         );
 
         # check if we need a BOM

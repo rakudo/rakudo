@@ -54,7 +54,7 @@ my class Encoding::Decoder::Builtin is repr('Decoder') does Encoding::Decoder {
     }
 
     method consume-exactly-bytes(int $bytes --> Blob) {
-        nqp::ifnull(nqp::decodertakebytes(self, buf8.new, $bytes), Blob)
+        nqp::ifnull(nqp::decodertakebytes(self, nqp::create(buf8.^pun), $bytes), Blob)
     }
 }
 

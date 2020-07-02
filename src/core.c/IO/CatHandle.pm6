@@ -248,9 +248,9 @@ my class IO::CatHandle is IO::Handle {
         #       case we can read a zero-sized chunk and EOF would still be false
         nqp::unless(
           nqp::defined($!active-handle),
-          buf8.new,
+          nqp::create(buf8.^pun),
           nqp::stmts(
-            (my $ret := buf8.new),
+            (my $ret := nqp::create(buf8.^pun)),
             (my int $stop = 0),
             nqp::until(
               $stop,

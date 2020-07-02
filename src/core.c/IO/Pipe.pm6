@@ -31,7 +31,7 @@ my class IO::Pipe is IO::Handle {
                 }
                 else {
                     $!eof = True;
-                    return buf8.new
+                    return nqp::create(buf8.^pun)
                 }
             }
         }

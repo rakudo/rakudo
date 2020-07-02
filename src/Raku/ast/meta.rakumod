@@ -2,7 +2,7 @@
 # that meta-object is used in a very general sense: it's any object that
 # models a program element that still exists until runtime. The meta-object
 # of a class is actually its type object, not its HOW.
-class RakuAST::Meta is RakuAST::Node {
+class RakuAST::Meta is RakuAST::CompileTimeValue {
     has Mu $!cached-meta-object;
     has Bool $!meta-object-produced;
 

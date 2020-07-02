@@ -61,7 +61,7 @@ class RakuAST::Node {
         # Visit children.
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         $resolver.push-scope(self) if $is-scope;
-        self.visit-children(-> $child { $child.resolve-all($resolver) });
+        self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $resolve-only) });
         $resolver.pop-scope() if $is-scope;
 
         Nil

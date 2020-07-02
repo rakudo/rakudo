@@ -229,6 +229,12 @@ my class Match is Cool does NQPMatchRole {
           nqp::elems($captures) ?? $captures !! $EMPTY_HASH
         );
 
+        # Once we've produced the captures, and if we know we're finished and
+        # will never be backtracked into, we can release cstack and regexsub.
+        nqp::bindattr(self,Match,'$!cstack',
+          nqp::bindattr(self,Match,'$!regexsub',nqp::null)
+        ) unless nqp::isconcrete($!bstack);
+
         self
     }
 

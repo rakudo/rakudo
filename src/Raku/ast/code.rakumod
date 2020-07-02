@@ -305,7 +305,7 @@ class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
 }
 
 # A method.
-class RakuAST::Method is RakuAST::Routine {
+class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
     method IMPL-META-OBJECT-TYPE() { Method }
 
     method default-scope() {
@@ -315,17 +315,21 @@ class RakuAST::Method is RakuAST::Routine {
     method allowed-scopes() {
         self.IMPL-WRAP-LIST(['has', 'my', 'anon', 'our'])
     }
+
+    method attach(RakuAST::Resolver $resolver) {
+        if self.scope eq 'has' {
+            my $package := $resolver.find-attach-target('package');
+            if $package {
+                $package.ATTACH-METHOD(self);
+            }
+            else {
+                # TODO check-time problem
+            }
+        }
+    }
 }
 
 # A submethod.
-class RakuAST::Submethod is RakuAST::Routine {
+class RakuAST::Submethod is RakuAST::Method {
     method IMPL-META-OBJECT-TYPE() { Submethod }
-
-    method default-scope() {
-        self.name ?? 'has' !! 'anon'
-    }
-
-    method allowed-scopes() {
-        self.IMPL-WRAP-LIST(['has', 'my', 'anon', 'our'])
-    }
 }

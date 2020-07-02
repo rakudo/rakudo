@@ -284,6 +284,12 @@ class Raku::Actions is HLL::Actions {
         make self.r('Postcircumfix', 'HashIndex').new($<semilist>.ast);
     }
 
+    method circumfix:sym<ang>($/) { make $<nibble>.ast; }
+
+    method circumfix:sym«<< >>»($/) { make $<nibble>.ast; }
+
+    method circumfix:sym<« »>($/) { make $<nibble>.ast; }
+
     method dotty:sym<.>($/) {
         make $<dottyop>.ast;
     }
@@ -693,7 +699,8 @@ class Raku::QActions is HLL::Actions {
             @segments.push: $StrLiteral.new($*LITERALS.intern-str($lastlit));
         }
 
-        make self.r('QuotedString').new(|@segments);
+        my @processors := nqp::can($/, 'postprocessors') ?? $/.postprocessors !! [];
+        make self.r('QuotedString').new(:@segments, :@processors);
     }
 
     method escape:sym<\\>($/) { make $<item>.ast; }
@@ -736,4 +743,9 @@ class Raku::QActions is HLL::Actions {
     method escape:sym<{ }>($/) {
         make $<block>.ast;
     }
+
+    method escape:sym<'>($/) { make self.qwatom($<quote>.ast); }
+    method escape:sym<colonpair>($/) { make self.qwatom($<colonpair>.ast); }
+    method escape:sym<#>($/) { make ''; }
+    method qwatom($ast) { self.r('QuoteWordsAtom').new($ast) }
 }

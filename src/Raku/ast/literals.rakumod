@@ -1,4 +1,4 @@
-class RakuAST::IntLiteral is RakuAST::Term {
+class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     has Int $.value;
     
     method new(Int $value) {
@@ -19,9 +19,11 @@ class RakuAST::IntLiteral is RakuAST::Term {
             ?? $wval
             !! QAST::Want.new( $wval, 'Ii', QAST::IVal.new( :value(nqp::unbox_i($value)) ) )
     }
+
+    method compile-time-value() { $!value }
 }
 
-class RakuAST::NumLiteral is RakuAST::Term {
+class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     has Num $.value;
 
     method new(Num $value) {
@@ -40,9 +42,11 @@ class RakuAST::NumLiteral is RakuAST::Term {
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new( $wval, 'Nn', QAST::NVal.new( :value(nqp::unbox_n($value)) ) )
     }
+
+    method compile-time-value() { $!value }
 }
 
-class RakuAST::RatLiteral is RakuAST::Term {
+class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     has Rat $.value;
 
     method new(Rat $value) {
@@ -60,9 +64,11 @@ class RakuAST::RatLiteral is RakuAST::Term {
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
+
+    method compile-time-value() { $!value }
 }
 
-class RakuAST::VersionLiteral is RakuAST::Term {
+class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     has Any $.value;
 
     method new($value) {
@@ -80,12 +86,14 @@ class RakuAST::VersionLiteral is RakuAST::Term {
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
+
+    method compile-time-value() { $!value }
 }
 
 # A StrLiteral is a basic string literal without any kind of interpolation
 # taking place. It may be placed in the tree directly, but a compiler will
 # typically emit it in a quoted string wrapper.
-class RakuAST::StrLiteral is RakuAST::Term {
+class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     has Str $.value;
 
     method new(Str $value) {
@@ -104,6 +112,8 @@ class RakuAST::StrLiteral is RakuAST::Term {
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new( $wval, 'Ss', QAST::SVal.new( :value(nqp::unbox_s($value)) ) )
     }
+
+    method compile-time-value() { $!value }
 }
 
 # A quoted string consists of a sequence of segments that should be evaluated

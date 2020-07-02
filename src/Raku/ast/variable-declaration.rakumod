@@ -294,3 +294,53 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         QAST::Var.new( :name($!name), :$scope )
     }
 }
+
+# An implicitly declared variable. Typically used for $/, $!, and $_.
+class RakuAST::VarDeclaration::Implicit is RakuAST::Declaration {
+    has str $.name;
+
+    method new(str :$name!, str :$scope) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj
+    }
+
+    method lexical-name() {
+        $!name
+    }
+
+    method default-scope() {
+        'my'
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-LOOKUP-QAST($context)
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        QAST::Var.new( :name($!name), :scope('lexical') )
+    }
+}
+
+# An implicitly declared constant variable - that is, one with a value that is
+# fixed at compile time. Used for $?PACKAGE and similar.
+class RakuAST::VarDeclaration::Implicit::Constant is RakuAST::VarDeclaration::Implicit
+                                                  is RakuAST::CompileTimeValue {
+    has Mu $.value;
+
+    method new(str :$name!, Mu :$value!, str :$scope) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::Constant, '$!value', $value);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        $obj
+    }
+
+    method compile-time-value() { $!value }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        $context.ensure-sc($!value);
+        QAST::Var.new( :decl('static'), :scope('lexical'), :name(self.name), :value($!value) )
+    }
+}

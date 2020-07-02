@@ -547,8 +547,14 @@ my class Match is Cool does NQPMatchRole {
         self.list.tail($tail)
     }
 
-    # produce a hash with named captures
-    method hash(--> Map:D) { self.FLATTENABLE_HASH }  # auto-upgrades
+    # produce a Map (for historical reasons) with named captures
+    method hash(--> Map:D) {
+        nqp::p6bindattrinvres(
+          nqp::create(Map),Map,'$!storage',
+          nqp::getattr(self.FLATTENABLE_HASH,Map,'$!storage')
+        )
+    }
+
 
 #?if js
     my sub move_cursor($target, $pos) {

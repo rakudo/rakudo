@@ -254,7 +254,7 @@ my class IO::Handle {
     }
 
     method READ(Int:D $bytes) {
-        nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
+        nqp::readfh($!PIO,nqp::create(buf8.^pun),$bytes)
     }
 
     method get(IO::Handle:D:) {
@@ -530,13 +530,13 @@ my class IO::Handle {
 
     method !read-slow-path($bytes) {
         if self.EOF && $!decoder.is-empty {
-            buf8.new
+            nqp::create(buf8.^pun)
         }
         else {
             $!decoder.add-bytes(self.READ($bytes max 0x100000));
             $!decoder.consume-exactly-bytes($bytes)
                 // $!decoder.consume-exactly-bytes($!decoder.bytes-available)
-                // buf8.new
+                // nqp::create(buf8.^pun)
         }
     }
 
@@ -742,7 +742,7 @@ my class IO::Handle {
         # Testing of it in roast master has been removed and only kept in 6.c
         # If you're changing this code for whatever reason, test with 6.c-errata
         LEAVE self.close if $close;
-        my $res := buf8.new;
+        my $res := nqp::create(buf8.^pun);
         loop {
             my $buf := self.read(0x100000);
             nqp::elems($buf)
@@ -767,7 +767,7 @@ my class IO::Handle {
           nqp::if(
             $bin,
             nqp::stmts(
-              ($res := buf8.new),
+              ($res := nqp::create(buf8.^pun)),
               nqp::if(
                 $!decoder.bytes-available,
                 $res.append(
@@ -777,7 +777,7 @@ my class IO::Handle {
             ),
             ($res := self!slurp-all-chars)
           ),
-          ($res := buf8.new)
+          ($res := nqp::create(buf8.^pun))
         );
 
         nqp::if(

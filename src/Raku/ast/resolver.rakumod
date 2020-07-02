@@ -106,7 +106,7 @@ class RakuAST::Resolver {
 # to perform resolutions. We expect a context and GLOBAL to be provided in this
 # mode.
 class RakuAST::Resolver::EVAL is RakuAST::Resolver {
-    # The stack of scopes we are in.
+    # The stack of scopes we are in (an array of RakuAST::LexicalScope).
     has Mu $!scopes;
 
     # The global symbol table.
@@ -215,6 +215,14 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
         Nil
     }
 
+    # Indicates that any implicit declarations for the current scope should now
+    # come into force. Only used in compilation mode. Called by the compiler at
+    # the appropriate point.
+    method create-scope-implicits() {
+        $!scopes[nqp::elems($!scopes) - 1].create-implicits();
+        Nil
+    }
+
     # Leaves a lexical scope. Used in compilation mode.
     method leave-scope() {
         nqp::pop($!scopes).batch-mode &&
@@ -297,6 +305,18 @@ class RakuAST::Resolver::Compile::Scope is RakuAST::Resolver {
     method declare-lexical(RakuAST::Declaration $decl) {
         nqp::die('Should not be calling declare-lexical in batch mode') if $!batch-mode;
         $!live-decl-map{$decl.lexical-name} := $decl;
+        Nil
+    }
+
+    method create-implicits() {
+        nqp::die('Should not be calling create-implicits in batch mode') if $!batch-mode;
+        if nqp::istype($!scope, RakuAST::ImplicitDeclarations) {
+            for $!scope.IMPL-UNWRAP-LIST($!scope.get-implicit-declarations) -> $decl {
+                if $decl.is-lexical {
+                    $!live-decl-map{$decl.lexical-name} := $decl;
+                }
+            }
+        }
         Nil
     }
 }

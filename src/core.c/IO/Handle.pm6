@@ -525,7 +525,9 @@ my class IO::Handle {
         # If we have one, read bytes via. the decoder to support mixed-mode I/O.
         $!decoder
             ?? ($!decoder.consume-exactly-bytes($bytes) // self!read-slow-path($bytes))
-            !! self.READ($bytes)
+            !! nqp::eqaddr(nqp::what(self),IO::Handle)
+              ?? nqp::readfh($!PIO,nqp::create(buf8.^pun),$bytes)
+              !! self.READ($bytes)
     }
 
     method !read-slow-path($bytes) {

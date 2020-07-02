@@ -5,6 +5,47 @@ class RakuAST::Resolver {
     # Our outer context. When not an EVAL, this is the same as $!setting.
     has Mu $!outer;
 
+    # Current attachment target stacks (a hash keyed on the target name, where each value
+    # is a stack, where the top is the active target).
+    has Mu $!attach-targets;
+
+    # Push an attachment target, so children can attach to it.
+    method push-attach-target(RakuAST::AttachTarget $target) {
+        $target.clear-attachments();
+        for $target.IMPL-UNWRAP-LIST($target.attach-target-names()) -> str $name {
+            my @stack := $!attach-targets{$name};
+            unless nqp::isconcrete(@stack) {
+                @stack := [];
+                $!attach-targets{$name} := @stack;
+            }
+            nqp::push(@stack, $target);
+        }
+        Nil
+    }
+
+    # Pop an attachment target, so it will no longer be found.
+    method pop-attach-target(RakuAST::AttachTarget $target) {
+        for $target.IMPL-UNWRAP-LIST($target.attach-target-names()) -> str $name {
+            my @stack := $!attach-targets{$name};
+            unless nqp::pop(@stack) =:= $target {
+                nqp::die('Inconsistent attachment target stack for ' ~ $target.HOW.name($target));
+            }
+        }
+        Nil
+    }
+
+    # Find an attachment target with the specified name.
+    method find-attach-target(str $name) {
+        my @stack := $!attach-targets{$name};
+        if nqp::isconcrete(@stack) {
+            my int $n := nqp::elems(@stack);
+            $n > 0 ?? @stack[$n - 1] !! Nil
+        }
+        else {
+            Nil
+        }
+    }
+
     # Name-mangle an infix operator and resolve it.
     method resolve-infix(Str $operator-name) {
         self.resolve-lexical('&infix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
@@ -116,6 +157,7 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $context);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $context); # XXX TODO
+        nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!scopes', []);
         $obj
@@ -124,11 +166,19 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
     # Pushes an active lexical scope to be considered in lookup.
     method push-scope(RakuAST::LexicalScope $scope) {
         $!scopes.push($scope);
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.push-attach-target($scope);
+        }
+        Nil
     }
 
     # Pops the top active lexical scope.
     method pop-scope() {
-        $!scopes.pop
+        my $scope := $!scopes.pop;
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.pop-attach-target($scope);
+        }
+        Nil
     }
 
     # Resolves a lexical to its declaration. The declaration need not have a
@@ -175,6 +225,7 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $outer);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes', []);
         $obj
     }
@@ -197,13 +248,20 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     # batch resolve mode.
     method push-scope(RakuAST::LexicalScope $scope) {
         nqp::push($!scopes, RakuAST::Resolver::Compile::Scope.new(:$scope, :batch-mode));
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.push-attach-target($scope);
+        }
         Nil
     }
 
     # Pops the top active lexical scope. Used only in batch resolve mode.
     method pop-scope() {
-        nqp::pop($!scopes).batch-mode ||
+        my $scope := nqp::pop($!scopes);
+        $scope.batch-mode ||
             nqp::die('pop-scope should only be used on batch mode scopes');
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.pop-attach-target($scope);
+        }
         Nil
     }
 
@@ -212,6 +270,9 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     # linked into the tree.
     method enter-scope(RakuAST::LexicalScope $scope) {
         nqp::push($!scopes, RakuAST::Resolver::Compile::Scope.new(:$scope, :!batch-mode));
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.push-attach-target($scope);
+        }
         Nil
     }
 
@@ -225,8 +286,12 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
 
     # Leaves a lexical scope. Used in compilation mode.
     method leave-scope() {
-        nqp::pop($!scopes).batch-mode &&
+        my $scope := nqp::pop($!scopes);
+        $scope.batch-mode &&
             nqp::die('leave-scope should never be used on batch mode scopes');
+        if nqp::istype($scope, RakuAST::AttachTarget) {
+            self.pop-attach-target($scope);
+        }
         Nil
     }
 

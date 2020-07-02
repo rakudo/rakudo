@@ -50,6 +50,9 @@ class RakuAST::Node {
         if nqp::istype(self, RakuAST::ImplicitLookups) {
             self.resolve-implicit-lookups-with($resolver);
         }
+        if nqp::istype(self, RakuAST::Attaching) {
+            self.attach($resolver);
+        }
 
         # Unless in resolve-only mode, do other check-time activities.
         unless $resolve-only {

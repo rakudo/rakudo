@@ -7,7 +7,7 @@ class RakuAST::LexicalScope is RakuAST::Node {
         my $stmts := QAST::Stmts.new();
 
         # Visit code objects that need to make a declaration entry.
-        self.visit: -> $node {
+        self.visit: :strict, -> $node {
             if nqp::istype($node, RakuAST::Code) {
                 $stmts.push($node.IMPL-QAST-DECL-CODE($context));
             }
@@ -31,9 +31,9 @@ class RakuAST::LexicalScope is RakuAST::Node {
                 }
                 if $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
                     if nqp::istype($node, RakuAST::ImplicitDeclarations) {
-                        for $node.get-implicit-declarations() -> $decl {
+                        for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
                             if $decl.is-lexical {
-                                nqp::push(@declarations, $node);
+                                nqp::push(@declarations, $decl);
                             }
                         }
                     }

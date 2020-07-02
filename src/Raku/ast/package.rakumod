@@ -1,4 +1,5 @@
-class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::LexicalScope {
+class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::LexicalScope
+                       is RakuAST::Declaration {
     has Str $.package-declarator;
     has Mu $.how;
     has Str $.name;
@@ -12,6 +13,8 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         $obj
     }
+
+    method default-scope() { 'our' }
 
     method PRODUCE-STUBBED-META-OBJECT() {
         # Create the type object and return it; this stubs the type.

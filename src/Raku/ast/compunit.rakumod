@@ -1,19 +1,25 @@
 # A compilation unit is the main lexical scope of a program.
-class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary {
+class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
+                        is RakuAST::ImplicitDeclarations {
     has RakuAST::StatementList $.statement-list;
     has Str $.comp-unit-name;
     has Str $.setting-name;
     has Mu $!sc;
     has int $!is-sunk;
+    has int $!is-eval;
+    has Mu $!global-package-how;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
-            Str :$setting-name) {
+            Str :$setting-name, Bool :$eval, Mu :$global-package-how) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!statement-list',
             $statement-list // RakuAST::StatementList.new);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!comp-unit-name', $comp-unit-name);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!setting-name', $setting-name // Str);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!sc', nqp::createsc($comp-unit-name));
+        nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', $eval ?? 1 !! 0);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
+            $global-package-how =:= NQPMu ?? Perl6::Metamodel::PackageHOW !! $global-package-how);
         $obj
     }
 
@@ -44,6 +50,27 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary {
 
     method get-boundary-sink-propagator() {
         $!statement-list
+    }
+
+    # Checks if the compilation unit was created in EVAL mode, meaning that it
+    # does not declare its own GLOBAL and so forth.
+    method is-eval() { $!is-eval ?? True !! False }
+
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        # If we're not in an EVAL, we should produce a GLOBAL package and set
+        # it as the current package.
+        my @decls;
+        unless $!is-eval {
+            my $global := RakuAST::Package.new:
+                    package-declarator => 'package',
+                    how => $!global-package-how,
+                    name => 'GLOBAL';
+            nqp::push(@decls, $global);
+            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
+                name => '$?PACKAGE', value => $global.compile-time-value
+            ));
+        }
+        self.IMPL-WRAP-LIST(@decls)
     }
 
     method IMPL-TO-QAST-COMP-UNIT(*%options) {

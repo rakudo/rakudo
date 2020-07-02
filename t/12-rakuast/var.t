@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 71;
+plan 73;
 
 {
     my $x = 42;
@@ -438,7 +438,7 @@ throws-like
                 ),
             )),
             66,
-            'our-scoped variable declaration without initializer takes current value';
+            'our-scoped variable declaration without initializer takes current value (eval mode)';
         is-deeply $var, 66, 'Value of our-scoped package variable intact after EVAL';
 
         is-deeply
@@ -455,8 +455,29 @@ throws-like
                 ),
             )),
             42,
-            'our-scoped variable declaration with initializer works';
+            'our-scoped variable declaration with initializer works (eval mode)';
+
+        is-deeply
+            EVAL(RakuAST::CompUnit.new(
+                :!eval,
+                :comp-unit-name('TEST_1'),
+                :statement-list(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::VarDeclaration::Simple.new(
+                            scope => 'our',
+                            name => '$y',
+                            initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(99))
+                        ),
+                    ),
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Var::Lexical.new('$y')
+                    )
+                ))
+            )),
+            99,
+            'our-scoped variable declaration with initializer works (top-level mode)';
     }
-    is-deeply $M::x, 42, 'our variable in EVAL is installed into the current package';
+    is-deeply $M::x, 42, 'our variable set in eval mode is installed into the current package';
     ok $M::x.VAR ~~ Scalar, 'It is a bound scalar';
+    nok M.WHO<$y>:exists, 'our-scoped variable declaration in top-level comp unit does not leak out';
 }

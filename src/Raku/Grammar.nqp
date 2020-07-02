@@ -161,7 +161,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*LITERALS;
         <.lang_setup>
 
-        { $*R.enter-scope($*CU) }
+        { $*R.enter-scope($*CU); $*R.create-scope-implicits(); }
         <statementlist=.FOREIGN_LANG($*MAIN, 'statementlist')>
         [ $ || <.typed_panic: 'X::Syntax::Confused'> ]
         { $*R.leave-scope() }

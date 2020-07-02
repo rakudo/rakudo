@@ -55,17 +55,9 @@ class Raku::Actions is HLL::Actions {
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
         my $setting-name := $loader.transform_setting_name("$name.$version");
 
-        # Create a compilation unit.
-        my $file := nqp::getlexdyn('$?FILES');
-        my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
-        my $comp-unit-name := nqp::sha1($file ~ (
-            nqp::defined($outer_ctx)
-                ?? $/.target() ~ SerializationContextId.next-id()
-                !! $/.target()));
-        $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name);
-
         # Set up the resolver.
         my $resolver_type := self.r('Resolver', 'Compile');
+        my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
         if nqp::isconcrete($outer_ctx) {
             $*R := $resolver_type.from-context(:context($outer_ctx));
         }
@@ -77,6 +69,20 @@ class Raku::Actions is HLL::Actions {
         my $EXPORTHOW := $*R.resolve-lexical-constant('EXPORTHOW').compile-time-value;
         for stash_hash($EXPORTHOW) {
             $*LANG.set_how($_.key, $_.value);
+        }
+
+        # Create a compilation unit.
+        my $file := nqp::getlexdyn('$?FILES');
+        if nqp::isconcrete($outer_ctx) {
+            # It's an EVAL. We'll take our GLOBAL, $?PACKAGE, etc. from that.
+            my $comp-unit-name := nqp::sha1($file ~ $/.target() ~ SerializationContextId.next-id());
+            $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name, :eval);
+        }
+        else {
+            # Top-level compilation. Create a GLOBAL using the correct package meta-object.
+            my $comp-unit-name := nqp::sha1($file ~ $/.target());
+            $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name,
+                :global-package-how($*LANG.how('package')));
         }
 
         # Set up the literals builder, so we can produce and intern literal

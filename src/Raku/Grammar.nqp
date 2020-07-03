@@ -192,7 +192,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*MAIN := 'MAIN';
         self.define_slang('MAIN',    self.WHAT,            self.actions);
         self.define_slang('Quote',   Raku::QGrammar,       Raku::QActions);
-        #self.define_slang('Regex',   Raku::RegexGrammar,   Raku::RegexActions);
+        self.define_slang('Regex',   Raku::RegexGrammar,   Raku::RegexActions);
         #self.define_slang('P5Regex', Raku::P5RegexGrammar, Raku::P5RegexActions);
         #self.define_slang('Pod',     Raku::PodGrammar,     Raku::PodActions);
 
@@ -1212,6 +1212,31 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
     }
 
+    token quote:sym</null/> { '/' \s* '/' <.typed_panic: "X::Syntax::Regex::NullRegex"> }
+    token quote:sym</ /> {
+        :my %*RX;
+        :my $*INTERPOLATE := 1;
+        '/'
+        <nibble(self.quote_lang(self.slang_grammar('Regex'), '/', '/'))>
+        [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
+        <.old_rx_mods>?
+    }
+
+    token old_rx_mods {
+        (<[ i g s m x c e ]>)
+        {
+            my $m := $/[0].Str;
+            if    $m eq 'i' { $/.obs('/i',':i');                                   }
+            elsif $m eq 'g' { $/.obs('/g',':g');                                   }
+            elsif $m eq 'm' { $/.obs('/m','^^ and $$ anchors');                    }
+            elsif $m eq 's' { $/.obs('/s','. or \N');                              }
+            elsif $m eq 'x' { $/.obs('/x','normal default whitespace');            }
+            elsif $m eq 'c' { $/.obs('/c',':c or :p');                             }
+            elsif $m eq 'e' { $/.obs('/e','interpolated {...} or s{} = ... form'); }
+            else            { $/.obs('suffix regex modifiers','prefix adverbs');   }
+        }
+    }
+
     ##
     ## Signatures
     ##
@@ -1727,4 +1752,29 @@ grammar Raku::QGrammar is HLL::Grammar does Raku::Common {
             }
         }
     }
+}
+
+grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
+    method throw_unrecognized_metachar ($metachar) {
+        self.typed_sorry('X::Syntax::Regex::UnrecognizedMetachar', :$metachar);
+    }
+    method throw_null_pattern() {
+        self.typed_sorry('X::Syntax::Regex::NullRegex');
+    }
+    method throw_unrecognized_regex_modifier($modifier) {
+        self.typed_panic('X::Syntax::Regex::UnrecognizedModifier', :$modifier);
+    }
+
+    method throw_malformed_range() { self.typed_sorry('X::Syntax::Regex::MalformedRange') }
+    method throw_confused() { self.typed_sorry('X::Syntax::Confused') }
+    method throw_unspace($char) { self.typed_sorry('X::Syntax::Regex::Unspace', :$char) }
+    method throw_regex_not_terminated() { self.typed_sorry('X::Syntax::Regex::Unterminated') }
+    method throw_spaces_in_bare_range() { self.typed_sorry('X::Syntax::Regex::SpacesInBareRange') }
+    method throw_non_quantifiable() { self.typed_sorry('X::Syntax::Regex::NonQuantifiable') }
+    method throw_solitary_quantifier() { self.typed_panic('X::Syntax::Regex::SolitaryQuantifier') }
+    method throw_solitary_backtrack_control() { self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl') }
+
+    token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
+
+    token rxstopper { <stopper> }
 }

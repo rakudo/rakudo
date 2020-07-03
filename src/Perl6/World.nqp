@@ -4366,7 +4366,7 @@ class Perl6::World is HLL::World {
         }
         elsif $phaser eq 'END' {
             $*UNIT[0].push(QAST::Op.new(
-                :op('callmethod'), :name('unshift'),
+                :op('unshift'),
                 QAST::Op.new(
                     :op('getcurhllsym'),
                     QAST::SVal.new( :value('@END_PHASERS') ),

@@ -811,8 +811,9 @@ implementation detail and has no serviceable parts inside"
         $compiler.addstage('syntaxcheck', :before<ast>);
         $compiler.addstage('optimize', :after<ast>);
 
-        my $end_phasers := nqp::gethllsym('perl6', '@END_PHASERS');
-        nqp::bindhllsym('perl6', '@END_PHASERS', []);
+
+        my $end_phasers := nqp::gethllsym('Raku', '@END_PHASERS');
+        nqp::bindhllsym('Raku', '@END_PHASERS', nqp::list);
 
         nqp::bindattr($compiler, HLL::Compiler, '$!user_progname', $path);
         my $source = $path.IO.slurp;
@@ -846,7 +847,7 @@ implementation detail and has no serviceable parts inside"
                 if $dependencies;
         }
 
-        nqp::bindhllsym('perl6', '@END_PHASERS', $end_phasers);
+        nqp::bindhllsym('Raku', '@END_PHASERS', $end_phasers);
         $dependencies ?? $dependencies.list !! Empty;
     }
 

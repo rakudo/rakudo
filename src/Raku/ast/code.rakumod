@@ -34,6 +34,24 @@ class RakuAST::Code is RakuAST::Node {
             )
         )
     }
+
+    method IMPL-LINK-META-OBJECT(RakuAST::IMPL::QASTContext $context, Mu $block) {
+        # Obtain the meta-object and connect it to the code block.
+        my $code-obj := self.meta-object;
+        $context.ensure-sc($code-obj);
+        $block.code_object($code-obj);
+
+        # We need to do a fixup of the code block for the non-precompiled case.
+        $context.add-fixup-task(-> {
+            QAST::Op.new(
+                :op('bindattr'),
+                QAST::WVal.new( :value($code-obj) ),
+                QAST::WVal.new( :value(Code) ),
+                QAST::SVal.new( :value('$!do') ),
+                QAST::BVal.new( :value($block) )
+            )
+        });
+    }
 }
 
 # A block, either without signature or with only a placeholder signature.
@@ -82,25 +100,9 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
-        # Form the block itself.
+        # Form the block itself and link it with the meta-object.
         my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
-
-        # Obtain the meta-object and connect it to the code block.
-        my $code-obj := self.meta-object;
-        $context.ensure-sc($code-obj);
-        $block.code_object($code-obj);
-
-        # We need to do a fixup of the code block for the non-precompiled case.
-        $context.add-fixup-task(-> {
-            QAST::Op.new(
-                :op('bindattr'),
-                QAST::WVal.new( :value($code-obj) ),
-                QAST::WVal.new( :value(Code) ),
-                QAST::SVal.new( :value('$!do') ),
-                QAST::BVal.new( :value($block) )
-            )
-        });
-
+        self.IMPL-LINK-META-OBJECT($context, $block);
         $block
     }
 
@@ -213,24 +215,9 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
-        # Form the QAST block itself.
+        # Form the QAST block itself and link it with the meta-object.
         my $block := self.IMPL-QAST-FORM-BLOCK($context);
-
-        # Obtain the meta-object and connect it to the code block.
-        my $code-obj := self.meta-object;
-        $context.ensure-sc($code-obj);
-        $block.code_object($code-obj);
-
-        # We need to do a fixup of the code block for the non-precompiled case.
-        $context.add-fixup-task(-> {
-            QAST::Op.new(
-                :op('bindattr'),
-                QAST::WVal.new( :value($code-obj) ),
-                QAST::WVal.new( :value(Code) ),
-                QAST::SVal.new( :value('$!do') ),
-                QAST::BVal.new( :value($block) )
-            )
-        });
+        self.IMPL-LINK-META-OBJECT($context, $block);
 
         # Set a name, if there is one.
         if $!name {
@@ -332,4 +319,102 @@ class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
 # A submethod.
 class RakuAST::Submethod is RakuAST::Method {
     method IMPL-META-OBJECT-TYPE() { Submethod }
+}
+
+# A regex declaration, such as `token foo { bar }`. This implies its own
+# lexical scope.
+class RakuAST::RegexDeclaration is RakuAST::Code is RakuAST::LexicalScope {
+    has RakuAST::Signature $.signature;
+    has RakuAST::Regex $.body;
+
+    method new(RakuAST::Signature :$signature, RakuAST::Regex :$body) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::RegexDeclaration, '$!signature',
+            $signature // RakuAST::Signature.new);
+        nqp::bindattr($obj, RakuAST::RegexDeclaration, '$!body',
+            $body // RakuAST::Regex::Assertion::Fail.new);
+        $obj
+    }
+
+    method replace-body(RakuAST::Regex $new-body) {
+        nqp::bindattr(self, RakuAST::RegexDeclaration, '$!body', $new-body);
+        Nil
+    }
+
+    method replace-signature(RakuAST::Signature $new-signature) {
+        nqp::bindattr(self, RakuAST::RegexDeclaration, '$!signature', $new-signature);
+        Nil
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!signature);
+        $visitor($!body);
+    }
+}
+
+# A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
+# new lexical scope.
+class RakuAST::QuotedRegex is RakuAST::Code is RakuAST::Meta is RakuAST::Sinkable {
+    has RakuAST::Regex $.body;
+
+    method new(RakuAST::Regex :$body) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::QuotedRegex, '$!body',
+            $body // RakuAST::Regex::Assertion::Fail.new);
+        $obj
+    }
+
+    method replace-body(RakuAST::Regex $new-body) {
+        nqp::bindattr(self, RakuAST::QuotedRegex, '$!body', $new-body);
+        Nil
+    }
+
+    method PRODUCE-META-OBJECT() {
+        # Create default signature, receiving invocant only.
+        my $signature := nqp::create(Signature);
+        my $parameter := nqp::create(Parameter);
+        nqp::bindattr($parameter, Parameter, '$!nominal_type', Mu);
+        nqp::bindattr($signature, Signature, '@!params', nqp::list($parameter));
+
+        # Create Regex object.
+        my $regex := nqp::create(Regex);
+        nqp::bindattr($regex, Code, '$!signature', $signature);
+        $regex
+    }
+
+    method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str $blocktype) {
+        QAST::Block.new(
+            :blocktype('declaration_static'),
+            QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
+            QAST::Var.new( :decl('var'), :scope('lexical'), :name('$¢') ),
+            QAST::Var.new(
+                :decl('param'), :scope('local'), :name('__lowered_param'),
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :scope('local'), :name('self') ),
+                    QAST::Op.new(
+                        :op('decont'),
+                        QAST::Var.new( :scope('local'), :name('__lowered_param') )
+                    )
+                )
+            ),
+            $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
+        )
+    }
+
+    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
+        # Form the block itself and link it with the meta-object.
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
+        self.IMPL-LINK-META-OBJECT($context, $block);
+        $block
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # TODO topic/slash capture and sink context
+        self.IMPL-CLOSURE-QAST
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!body);
+    }
 }

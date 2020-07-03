@@ -19,3 +19,4 @@ src/Raku/ast/code.rakumod
 src/Raku/ast/signature.rakumod
 src/Raku/ast/package.rakumod
 src/Raku/ast/literals.rakumod
+src/Raku/ast/regex.rakumod

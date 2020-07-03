@@ -386,14 +386,24 @@ Need to re-check dependencies.")
         #my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
 
         $!RMD("Precompiling $path into $bc") if $!RMD;
-        my @dependencies = Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
+        my @dependencies = do {
+            CATCH {
+                when X::Pragma::CannotPrecomp {
+                    $!RMD("$path aborted precompilation without failure")
+                      if $!RMD;
 
-        unless Rakudo::Internals.FILETEST-ES($bc.absolute) {
-            $!RMD("$path aborted precompilation without failure")
-              if $!RMD;
+                    $store.unlock;
+                    return False;
+                }
+                default {
+                    $store.unlock;
+                    $_.rethrow;
+                }
+            }
 
-            $store.unlock;
-            return False;
+            my @*PRECOMP-LOADING = @precomp-loading;
+
+            Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
         }
 
         $!RMD("Precompiled $path into $bc") if $!RMD;

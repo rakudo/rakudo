@@ -548,6 +548,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method quote:sym<q>($/)     { make $<quibble>.ast; }
     method quote:sym<Q>($/)     { make $<quibble>.ast; }
 
+    method quote:sym</ />($/) {
+        make self.r('QuotedRegex').new(body => $<nibble>.ast);
+    }
+
     ##
     ## Signatures
     ##
@@ -763,4 +767,103 @@ class Raku::QActions is HLL::Actions {
     method escape:sym<colonpair>($/) { make self.qwatom($<colonpair>.ast); }
     method escape:sym<#>($/) { make ''; }
     method qwatom($ast) { self.r('QuoteWordsAtom').new($ast) }
+}
+
+class Raku::RegexActions is HLL::Actions {
+    proto method r(*@parts) {*}
+    multi method r($t) {
+        nqp::ifnull(nqp::atkey($ast_root, $t), nqp::die("No such node RakuAST::{$t}"))
+    }
+    multi method r($t1, $t2) {
+        my $res := nqp::atkey($ast_root, $t1);
+        $res := nqp::atkey($res.WHO, $t2) unless nqp::isnull($res);
+        nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}"))
+    }
+
+    method nibbler($/) {
+        make $<termseq>.ast;
+    }
+
+    method termseq($/) {
+        make $<termaltseq>.ast;
+    }
+
+    method termaltseq($/) {
+        if nqp::elems($<termconjseq>) == 1 {
+            make $<termconjseq>[0].ast;
+        }
+        else {
+            my @branches;
+            for $<termconjseq> {
+                @branches.push($_.ast);
+            }
+            make self.r('Regex', 'SequentialAlternation').new(|@branches);
+        }
+    }
+
+    method termconjseq($/) {
+        if nqp::elems($<termalt>) == 1 {
+            make $<termalt>[0].ast;
+        }
+        else {
+            my @branches;
+            for $<termalt> {
+                @branches.push($_.ast);
+            }
+            make self.r('Regex', 'SequentialConjunction').new(|@branches);
+        }
+    }
+
+    method termalt($/) {
+        if nqp::elems($<termconj>) == 1 {
+            make $<termconj>[0].ast;
+        }
+        else {
+            my @branches;
+            for $<termconj> {
+                @branches.push($_.ast);
+            }
+            make self.r('Regex', 'Alternation').new(|@branches);
+        }
+    }
+
+    method termconj($/) {
+        if nqp::elems($<termish>) == 1 {
+            make $<termish>[0].ast;
+        }
+        else {
+            my @branches;
+            for $<termish> {
+                @branches.push($_.ast);
+            }
+            make self.r('Regex', 'Conjunction').new(|@branches);
+        }
+    }
+
+    method termish($/) {
+        if nqp::elems($<noun>) == 1 {
+            make $<noun>[0].ast;
+        }
+        else {
+            my @terms;
+            for $<noun> {
+                @terms.push($_.ast);
+            }
+            make self.r('Regex', 'Sequence').new(|@terms);
+        }
+    }
+
+    method quantified_atom($/) {
+        # TODO quantifier, separator, sigspace
+        make $<atom>.ast;
+    }
+
+    method atom($/) {
+        if $<metachar> {
+            make $<metachar>.ast;
+        }
+        else {
+            make self.r('Regex', 'Literal').new(~$/);
+        }
+    }
 }

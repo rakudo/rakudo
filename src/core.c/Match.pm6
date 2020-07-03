@@ -395,9 +395,43 @@ my class Match is Cool does NQPMatchRole {
         $buffer.Seq
     }
 
-    # Produce an iterator for this Match (pairs)
+    # Produce an iterator for this Match
     method iterator(--> Iterator:D) {
         nqp::if(
+          # Historically, the Match iterator first produced all of the
+          # positional captures in order, and *then* produced the named
+          # captures in random order.  Some internals and some spectests
+          # depend on this behaviour, so rather than just producing the
+          # captures from the hash, we first need to extract the positional
+          # ones in order to be able to produce them first.  Hopefully
+          # we can get rid of this rigamarole at some point in the future.
+          (my $iter := nqp::iterator($!match)),
+          nqp::stmts(               # haz captures
+            (my $values := nqp::create(IterationBuffer)),
+            (my $nameds := nqp::create(IterationBuffer)),
+            nqp::while(
+              $iter,
+              nqp::push(
+                nqp::if(
+                  nqp::islt_i(
+                    nqp::ord(nqp::iterkey_s(nqp::shift($iter))),
+                    58  # numeric
+                  ),
+                  $values,
+                  $nameds
+                ),
+                nqp::iterval($iter)
+              )
+            ),
+            nqp::splice($values,$nameds,nqp::elems($values),0),
+            $values.iterator
+          ),
+          Rakudo::Iterator.Empty    # haz no captures
+        )
+    }
+
+    multi method pairs(Match:D: --> Seq:D) {
+        Seq.new: nqp::if(
           # Historically, the Match iterator first produced all of the
           # positional captures in order, and *then* produced the named
           # captures in random order.  Some internals and some spectests
@@ -442,8 +476,6 @@ my class Match is Cool does NQPMatchRole {
           Rakudo::Iterator.Empty    # haz no captures
         )
     }
-
-    multi method pairs(Match:D: --> Seq:D)     { Seq.new: self.iterator }
     multi method kv(Match:D: --> Seq:D)        { self.pairs.map: { slip(.key, .value) } }
     multi method keys(Match:D: --> Seq:D)      { self.pairs.map: *.key }
     multi method values(Match:D: --> Seq:D)    { self.pairs.map: *.value }

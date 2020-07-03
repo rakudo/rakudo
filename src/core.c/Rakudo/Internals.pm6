@@ -819,6 +819,7 @@ implementation detail and has no serviceable parts inside"
         my $source = $path.IO.slurp;
         my $dependencies;
         {
+            my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
             my $?FILES := $source-name;
             my $*CTXSAVE;
             my $*W;
@@ -845,6 +846,13 @@ implementation detail and has no serviceable parts inside"
             $dependencies = %*COMPILING<dependencies>;
             $dependencies = $dependencies.clone
                 if $dependencies;
+            nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
+            CATCH {
+                default {
+                    nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
+                    .throw;
+                }
+            }
         }
 
         nqp::bindhllsym('Raku', '@END_PHASERS', $end_phasers);

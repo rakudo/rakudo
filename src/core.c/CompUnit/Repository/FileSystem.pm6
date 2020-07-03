@@ -237,9 +237,11 @@ class CompUnit::Repository::FileSystem
         else {
             # Path contains a META6.json file, so only use paths/modules
             # explicitly declared therein ( -I ./ )
+            nqp::scwbdisable();
             my $dist := $!prefix.add('META6.json').f
               ?? Distribution::Path.new($!prefix)
               !! self!dist-from-ls;
+            nqp::scwbenable();
 
             $!distribution := .clone(:dist-id(.Str))
               with CompUnit::Repository::Distribution.new($dist, :repo(self));

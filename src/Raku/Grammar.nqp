@@ -117,6 +117,63 @@ role Raku::Common {
         $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'())).nibbler().set_braid_from(self)
     }
 
+    token quibble($l, *@base_tweaks) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+        <babble($l, @base_tweaks)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+
+        $start
+        <nibble($lang)>
+        [
+        || $stop
+        || {
+            self.fail-terminator($/, $start, $stop,
+                HLL::Compiler.lineof($<babble><B>.orig(), $<babble><B>.from(), :cache(1)))
+           }
+        ]
+
+#        {
+#            nqp::can($lang, 'herelang') && self.queue_heredoc(
+#                $*W.nibble_to_str($/, $<nibble>.ast[1], -> { "Stopper '" ~ $<nibble> ~ "' too complex for heredoc" }),
+#                $lang.herelang)
+#        }
+    }
+
+    token babble($l, @base_tweaks?) {
+        :my @extra_tweaks;
+
+#        [ <quotepair> <.ws>
+#            {
+#                my $kv := $<quotepair>[-1].ast;
+#                my $k  := $kv.named;
+#                if nqp::istype($kv, QAST::Stmts) || nqp::istype($kv, QAST::Stmt) && +@($kv) == 1 {
+#                    $kv := $kv[0];
+#                }
+#                my $v := nqp::istype($kv, QAST::IVal)
+#                    ?? $kv.value
+#                    !! $kv.has_compile_time_value
+#                        ?? $kv.compile_time_value
+#                        !! self.panic("Invalid adverb value for " ~ $<quotepair>[-1].Str);
+#                nqp::push(@extra_tweaks, [$k, $v]);
+#            }
+#        ]*
+
+        $<B>=[<?before .>]
+        {
+            # Work out the delimiters.
+            my $c := $/;
+            my @delims := $c.peek_delimiters($c.target, $c.pos);
+            my $start := @delims[0];
+            my $stop  := @delims[1];
+
+            # Get the language.
+            my $lang := self.quote_lang($l, $start, $stop, @base_tweaks, @extra_tweaks);
+            $<B>.make([$lang, $start, $stop]);
+        }
+    }
+
     token RESTRICTED {
         [ <?{ $*RESTRICTED }> [ $ || <.security($*RESTRICTED)> ] ]?
         <!>
@@ -1111,6 +1168,49 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token quote:sym<ldblq> { :dba('low curly double quotes') '„' ~ <[”“]> <nibble(self.quote_lang(self.slang_grammar('Quote'), '„', ['”','“'], ['qq']))> }
     token quote:sym<hdblq> { :dba('high curly double quotes') '”' ~ <[”“]> <nibble(self.quote_lang(self.slang_grammar('Quote'), '”', ['”','“'], ['qq']))> }
     token quote:sym<crnr>  { :dba('corner quotes') '｢' ~ '｣' <nibble(self.quote_lang(self.slang_grammar('Quote'), '｢', '｣'))> }
+    token quote:sym<q> {
+        :my $qm;
+        'q'
+        [
+        | <quote_mod> {} <.qok($/)> { $qm := $<quote_mod>.Str } <quibble(self.slang_grammar('Quote'), 'q', $qm)>
+        | {} <.qok($/)> <quibble(self.slang_grammar('Quote'), 'q')>
+        ]
+    }
+    token quote:sym<qq> {
+        :my $qm;
+        'qq'
+        [
+        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(self.slang_grammar('Quote'), 'qq', $qm)>
+        | {} <.qok($/)> <quibble(self.slang_grammar('Quote'), 'qq')>
+        ]
+    }
+    token quote:sym<Q> {
+        :my $qm;
+        'Q'
+        [
+        | <quote_mod> { $qm := $<quote_mod>.Str } <.qok($/)> <quibble(self.slang_grammar('Quote'), $qm)>
+        | {} <.qok($/)> <quibble(self.slang_grammar('Quote'))>
+        ]
+    }
+
+    proto token quote_mod   {*}
+    token quote_mod:sym<w>  { <sym> }
+    token quote_mod:sym<ww> { <sym> }
+    token quote_mod:sym<x>  { <sym> }
+    token quote_mod:sym<to> { <sym> }
+    token quote_mod:sym<s>  { <sym> }
+    token quote_mod:sym<a>  { <sym> }
+    token quote_mod:sym<h>  { <sym> }
+    token quote_mod:sym<f>  { <sym> }
+    token quote_mod:sym<c>  { <sym> }
+    token quote_mod:sym<b>  { <sym> }
+
+    token qok($x) {
+        » <![(]>
+#        [ <?[:]> || <!{ my str $n := ~$x; $*W.is_name([$n]) || $*W.is_name(['&' ~ $n]) }> ]
+        [ \s* '#' <.panic: "# not allowed as delimiter"> ]?
+        <.ws>
+    }
 
     ##
     ## Signatures

@@ -4,7 +4,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
             state $level = %*ENV<RAKUDO_MODULE_DEBUG>++;
             my $indent = (($level - 1) * 4) + 1;
             my $str = @str>>.indent(7 + $indent).join("\n").substr(7 + $indent);
-            note sprintf "%2d%sRMD: $str", $level, " " x $indent;
+            note sprintf "%2d%sRMD: %s", $level, " " x $indent, $str;
          }
       !! False
 }

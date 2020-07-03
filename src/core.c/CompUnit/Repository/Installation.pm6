@@ -277,11 +277,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     next;
                 }
                 note("Precompiling $id ($_.key())") if $verbose;
+                my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
+                nqp::bindhllsym('Raku', 'GLOBAL', Metamodel::PackageHOW.new_type(:name<GLOBAL>));
                 $precomp.precompile(
                     $source,
                     CompUnit::PrecompilationId.new-without-check($id),
                     :source-name("$source-file ($_.key())"),
                 );
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
                 %done{$id} = 1;
             }
             PROCESS::<$REPO> := $head;

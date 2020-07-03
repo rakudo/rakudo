@@ -58,10 +58,20 @@ class CompUnit::PrecompilationRepository::Default
         $!RMD("try-load $id: $source")
           if $!RMD;
 
+        my $World := $*W;
+
         # Even if we may no longer precompile, we should use already loaded files
         $loaded-lock.protect: {
             my \precomped := nqp::atkey($loaded,$id.Str);
-            return precomped if precomped;
+            if precomped {
+                if $World and $World.record_precompilation_dependencies {
+                    my $unit := self!load-file(@precomp-stores, $id);
+                    $dependency.checksum = $unit.checksum;
+                    %*COMPILING<dependencies>.append: $unit.dependencies;
+                    %*COMPILING<dependencies>.push: $dependency;
+                }
+                return precomped;
+            }
         }
 
         my ($handle, $checksum) = (
@@ -72,7 +82,6 @@ class CompUnit::PrecompilationRepository::Default
             )
         );
 
-        my $World := $*W;
         if $World && $World.record_precompilation_dependencies {
             if $handle {
                 $dependency.checksum = $checksum;

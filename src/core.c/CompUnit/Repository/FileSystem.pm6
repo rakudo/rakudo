@@ -71,7 +71,9 @@ class CompUnit::Repository::FileSystem
 
         --> CompUnit:D)
     {
-        return $_ with %!loaded{~$spec};
+        unless $*W and $*W.record_precompilation_dependencies {
+            return $_ with %!loaded{~$spec};
+        }
 
         with self!matching-dist($spec) {
             my $name = $spec.short-name;

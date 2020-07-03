@@ -549,7 +549,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 unless $source-file-name;
             my $loader = $.prefix.add('sources').add($source-file-name);
             my $id     = $loader.basename;
-            return $_ with %!loaded{$id};
+            unless $*W and $*W.record_precompilation_dependencies {
+                return $_ with %!loaded{~$spec};
+            }
 
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($_, :repo(self), :dist-id(.dist-id));
             my $*RESOURCES  = Distribution::Resources.new(:repo(self), :dist-id(.dist-id));

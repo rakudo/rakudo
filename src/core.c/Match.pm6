@@ -25,9 +25,7 @@ my class Match is Cool does NQPMatchRole {
     my $EMPTY_LIST := nqp::create(IterationBuffer);
     my $EMPTY_HASH := nqp::hash;
 
-    # This is mostly to accommodate grammars, as they do a .new on a
-    # potentially already reified object.
-    method new(Match:
+    method TWEAK(Match:
         :$orig = '',
         str :$name = '',
         int :$from,
@@ -36,27 +34,18 @@ my class Match is Cool does NQPMatchRole {
         :$shared,
         :$braid,
         :$captures
-    --> Match:D) {
+    --> Nil) {
 
-        my $new := self.'!cursor_init'(
-          $orig,
-          :build(nqp::isconcrete(self)),
-          :p($pos),
-          :$shared,
-          :$braid
-        );
-        nqp::bindattr_s($new,Match,'$!name',$name);
-        nqp::bindattr_i($new,Match,'$!from',$from);
-        nqp::bindattr($new,Match,'$!made',nqp::decont($made))
+        self.'!cursor_init'($orig,:build,:p($pos),:$shared,:$braid);
+        nqp::bindattr_s(self,Match,'$!name',$name);
+        nqp::bindattr_i(self,Match,'$!from',$from);
+        nqp::bindattr(self,Match,'$!made',nqp::decont($made))
           if $made.defined;
 
-        nqp::bindattr($new,Match,'$!match',
-          $captures
-            ?? nqp::getattr(nqp::decont($captures),Map,'$!storage')
-            !! $EMPTY_HASH
+        nqp::bindattr(self,Match,'$!match',$captures
+          ?? nqp::getattr(nqp::decont($captures),Map,'$!storage')
+          !! $EMPTY_HASH
         );
-          
-        $new
     }
 
     method MATCH() is raw is implementation-detail {
@@ -554,7 +543,6 @@ my class Match is Cool does NQPMatchRole {
           nqp::getattr(self.FLATTENABLE_HASH,Map,'$!storage')
         )
     }
-
 
 #?if js
     my sub move_cursor($target, $pos) {

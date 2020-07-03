@@ -104,6 +104,20 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     sub is_stub($how) {
         $how.HOW.name($how) eq $stub_how || $how.HOW.name($how) eq $nqp_stub_how
     }
+    sub is_from_dependency($sc-desc) {
+        if $*W && $sc-desc eq nqp::scgetdesc($*W.sc) {
+            note("repossessing into same sc!");
+            return 1;
+        }
+        if %*COMPILING && %*COMPILING<dependencies> {
+            my @dependencies := %*COMPILING<dependencies>.FLATTENABLE_LIST;
+            for @dependencies {
+                note("repossessing a dependency!");
+                return 1 if $_.source-name eq $sc-desc;
+            }
+        }
+        return 0;
+    }
     method merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
@@ -113,41 +127,78 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
         my %source := stash_hash($source);
         for sorted_keys(%source) -> $sym {
+            note("merge_globals $sym -> " ~ (nqp::ishash($target) ?? nqp::objectid($target) !! $target.Str));
+            dump_scs();
             my $value := %source{$sym};
             if !%known_symbols{$sym} {
+                note("    merged");
                 ($target){$sym} := $value;
             }
             elsif nqp::decont(($target){$sym}) =:= nqp::decont($value) { # Stash entries are containerized
+                note("    already there");
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
                 my $source_is_stub := is_stub($value.HOW);
                 my $target_is_stub := is_stub(($target){$sym}.HOW);
+                note("    source is stub " ~ $source.name) if $source_is_stub;
+                note("    target is stub " ~ $target.name) if $target_is_stub;
+                my $existing-sc := nqp::getobjsc(($target){$sym}.WHO);
+                my $existing-sc-desc := nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc);
+                my $repossess := is_from_dependency($existing-sc-desc);
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
+                    my $value-sc := nqp::getobjsc($value.WHO);
+                    note("existing sc: " ~ (nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc)) ~ ", value sc: " ~ (nqp::isnull($value-sc) ?? "<null>" !! nqp::scgetdesc($value-sc)));
+                    #my $repossess := $existing-sc-desc eq '/home/nine/rakudo/lib/NativeCall.rakumod (NativeCall)';
+                    #my $repossess := $*W && nqp::scgetdesc($*W.sc) eq '/home/nine/rakudo/lib/NativeCall.rakumod (NativeCall)';
+                    nqp::scwbdisable() unless $repossess;
+                    #nqp::neverrepossess(($target){$sym}.WHO);
+                    #note("repossessing!") if $repossess;
                     self.merge_globals(($target){$sym}.WHO, $value.WHO);
+                    nqp::scwbenable() unless $repossess;
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
+                    nqp::scwbdisable() unless $repossess;
                     self.merge_globals(($target){$sym}.WHO, $value.WHO);
+                    nqp::scwbenable() unless $repossess;
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
+                    nqp::scwbdisable() unless $repossess;
                     self.merge_globals($value.WHO, ($target){$sym}.WHO);
+                    nqp::scwbenable() unless $repossess;
                     ($target){$sym} := $value;
                 }
                 elsif nqp::eqat($sym, '&', 0) {
                     # "Latest wins" semantics for functions
+                    #note("    is a function");
                     ($target){$sym} := $value;
                 }
                 else {
-                    nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    #nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    #note("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }
             }
+        }
+    }
+    sub dump_scs() {
+        my @scs;
+        {
+            while 1 {
+                my $sc := nqp::popcompsc;
+                nqp::unshift(@scs, $sc);
+                note("    * " ~ nqp::scgetdesc($sc));
+            }
+            CATCH { }
+        }
+        for @scs {
+            nqp::pushcompsc($_);
         }
     }
     method merge_globals_lexically($world, $target, $source) {
@@ -159,12 +210,15 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
         my %source := stash_hash($source);
         for sorted_keys(%source) -> $sym {
+            note("merge_globals_lexically $sym -> " ~ (nqp::ishash($target) ?? nqp::objectid($target) !! $target.name));
+            dump_scs();
             my $value := %source{$sym};
             my $outer := 0;
             if !nqp::existskey(%known_symbols, $sym) {
                 try {
                     %known_symbols{$sym} := $world.find_single_symbol($sym);
                     $outer := 1;
+                    note("    outer");
                 }
             }
             if !nqp::existskey(%known_symbols, $sym) {
@@ -173,29 +227,47 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     :scope('lexical'), :name($sym), :decl('static'), :value($value)
                 ));
                 $world.add_object_if_no_sc($value);
+                note("    created lexical");
             }
             elsif nqp::decont(%known_symbols{$sym}) =:= nqp::decont($value) { # Stash entries are containerized
+                note("    already there");
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
                 my $existing := %known_symbols{$sym};
                 my $source_is_stub := is_stub($value.HOW);
                 my $target_is_stub := is_stub($existing.HOW);
+                my $existing-sc := nqp::getobjsc($existing.WHO);
+                my $existing-sc-desc := nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc);
+                my $repossess := is_from_dependency($existing-sc-desc);
+                note("    source is stub " ~ $source.name) if $source_is_stub;
+                note("    target is stub " ~ $target.name) if $target_is_stub;
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
+                    my $value-sc := nqp::getobjsc($value.WHO);
+                    note("existing sc: " ~ (nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc)) ~ ", value sc: " ~ (nqp::isnull($value-sc) ?? "<null>" !! nqp::scgetdesc($value-sc)));
+                    #my $repossess := $*W && nqp::scgetdesc($*W.sc) eq '/home/nine/rakudo/lib/NativeCall.rakumod (NativeCall)';
+                    #note("repossessing!") if $repossess;
+                    nqp::scwbdisable() unless $repossess;
+                    #nqp::neverrepossess($existing.WHO);
                     self.merge_globals($existing.WHO, $value.WHO);
+                    nqp::scwbenable() unless $repossess;
                 }
                 elsif $source_is_stub {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
+                    nqp::scwbdisable() unless $repossess;
                     self.merge_globals($existing.WHO, $value.WHO);
+                    nqp::scwbenable() unless $repossess;
                 }
                 elsif $target_is_stub {
                     # The tricky case: here the interesting package is the
                     # one in the module. So we merge the other way around
                     # and install that as the result.
+                    nqp::scwbdisable() unless $repossess;
                     self.merge_globals($value.WHO, $existing.WHO);
+                    nqp::scwbenable() unless $repossess;
                     $target.symbol($sym, :scope('lexical'), :value($value));
                 }
                 elsif nqp::eqat($sym, '&', 0) {
@@ -207,7 +279,8 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     $target.symbol($sym, :scope('lexical'), :value($value));
                 }
                 else {
-                    nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    #nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    #note("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }
             }
         }

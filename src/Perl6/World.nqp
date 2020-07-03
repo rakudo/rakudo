@@ -2147,6 +2147,22 @@ class Perl6::World is HLL::World {
         self.context().is_lexical_marked_ro($name)
     }
 
+    method is_from_dependency($sc-desc) {
+        if $sc-desc eq nqp::scgetdesc(self.sc) {
+            note("repossessing into same sc!");
+            return 1;
+        }
+        if %*COMPILING && %*COMPILING<dependencies> {
+            my @dependencies := %*COMPILING<dependencies>.FLATTENABLE_LIST;
+            for @dependencies {
+                note("repossessing a dependency!");
+                return 1 if $_.source-name eq $sc-desc;
+            }
+        }
+        return 1 if $sc-desc eq 'gen/moar/CORE.c.setting' || $sc-desc eq 'gen/moar/CORE.d.setting' || $sc-desc eq 'gen/moar/CORE.e.setting' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6c.nqp' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6d.nqp' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6e.nqp';
+        return 0;
+    }
+
     # Installs a symbol into the package.
     method install_package_symbol($/, $package, $name, $obj, $declaration) {
         if nqp::can($package.HOW, 'archetypes') && $package.HOW.archetypes.parametric {
@@ -2155,7 +2171,16 @@ class Perl6::World is HLL::World {
         self.install_package_symbol_unchecked($package, $name, $obj);
     }
     method install_package_symbol_unchecked($package, $name, $obj) {
+        my $existing-sc := nqp::getobjsc($package.WHO);
+        my $repossess := $existing-sc ?? self.is_from_dependency(nqp::scgetdesc($existing-sc)) !! 1;
+        note("Installing package symbol $name into " ~ $package.HOW.name($package));
+        note("Repossessing anyway as it's about the compiling package, otherwise: " ~ $repossess) if $package =:= $*PACKAGE;
+        $repossess := 1 if $package =:= $*PACKAGE;
+        $repossess := 1 if $*COMPILING_CORE_SETTING;
+        note("Not repossessing $name into " ~ $package.HOW.name($package) ~ " " ~ nqp::scgetdesc($existing-sc)) unless $repossess;
+        nqp::scwbdisable() unless $repossess;
         ($package.WHO){$name} := $obj;
+        nqp::scwbenable() unless $repossess;
         1;
     }
 

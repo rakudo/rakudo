@@ -345,6 +345,8 @@ Need to re-check dependencies.")
       Str  :$source-name = $path.Str,
            :$precomp-stores,
     --> Bool:D) {
+        $resolved      := nqp::hash;
+        $first-repo-id := Nil;
 
         my $env := nqp::clone(nqp::getattr(%*ENV,Map,'$!storage'));
         my $rpl := nqp::atkey($env,'RAKUDO_PRECOMP_LOADING');

@@ -15,7 +15,13 @@ sub ensure_raku_ast() {
     }
 }
 
-class Raku::Actions is HLL::Actions {
+role Raku::CommonActions {
+    method quibble($/) {
+        make $<nibble>.ast;
+    }
+}
+
+class Raku::Actions is HLL::Actions does Raku::CommonActions {
     proto method r(*@parts) {*}
     multi method r($t) {
         nqp::ifnull(nqp::atkey($ast_root, $t), nqp::die("No such node RakuAST::{$t}"))
@@ -538,6 +544,9 @@ class Raku::Actions is HLL::Actions {
     method quote:sym<ldblq>($/) { make $<nibble>.ast; }
     method quote:sym<hdblq>($/) { make $<nibble>.ast; }
     method quote:sym<crnr>($/)  { make $<nibble>.ast; }
+    method quote:sym<qq>($/)    { make $<quibble>.ast; }
+    method quote:sym<q>($/)     { make $<quibble>.ast; }
+    method quote:sym<Q>($/)     { make $<quibble>.ast; }
 
     ##
     ## Signatures

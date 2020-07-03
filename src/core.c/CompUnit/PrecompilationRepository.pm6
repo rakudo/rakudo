@@ -378,7 +378,10 @@ Need to re-check dependencies.")
         my $REPO := $*REPO;
 
         my @*PRECOMP-WITH = $REPO.repo-chain.map(*.path-spec).join(',');
-        my @*PRECOMP-LOADING := @*MODULES;
+        my @precomp-loading = @*PRECOMP-LOADING // ();
+        die "Circular module loading detected trying to precompile $path"
+            if @precomp-loading and $path.Str ∈ @precomp-loading;
+        @precomp-loading.push: $path.Str;
 
         #my $*ADD-DEPENDENCY = -> $dependency { @dependencies.push: $dependency };
 

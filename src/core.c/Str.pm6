@@ -3550,6 +3550,45 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method Date(Str:D:)     { Date.new(self)     }
     method DateTime(Str:D:) { DateTime.new(self) }
+
+    # A naive word wrapper intended to be used for aligning error messages.
+    # Naive in the sense that it assumes all graphemes are the same width,
+    # and words that are too long for a line, will simply live on a line of
+    # their own, even if that is longer than the given maximum width.
+    method naive-word-wrapper(
+      int :$max    = 72,
+      str :$indent = "",
+    --> Str:D) is implementation-detail {
+        my $lines := nqp::list_s;
+        my $line  := nqp::list_s;
+        my int $width = nqp::chars($indent);
+
+        for self.words -> str $word {
+            if $width + nqp::chars($word) >= $max {
+                if nqp::elems($line) {
+                    nqp::push_s(
+                      $lines,
+                      nqp::concat($indent,nqp::join(" ",$line))
+                    );
+                    $line := nqp::list_s($word);
+                    $width = nqp::chars($indent) + nqp::chars($word);
+                }
+                else {
+                    nqp::push_s($lines,nqp::concat($indent,$word));
+                    $width = nqp::chars($indent);
+                }
+            }
+            else {
+                nqp::push_s($line,$word);
+                $width = $width + 1 + nqp::chars($word);
+            }
+        }
+
+        nqp::push_s($lines,nqp::concat($indent,nqp::join(" ",$line)))
+          if nqp::elems($line);
+
+        nqp::join("\n",$lines)
+    }
 }
 
 multi sub prefix:<~>(Str:D \a --> Str:D) { a.Str }

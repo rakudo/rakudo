@@ -1934,6 +1934,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
 
     proto method head(|) {*}
+    multi method head(Any:U: |c) { (self,).head(|c) }
     multi method head(Any:D:) is raw {
         nqp::if(
           nqp::eqaddr((my $pulled := self.iterator.pull-one),IterationEnd),
@@ -1951,6 +1952,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
 
     proto method tail(|) {*}
+    multi method tail(Any:U: |c) { (self,).tail(|c) }
     multi method tail(Any:D:) is raw {
         nqp::if(
           nqp::eqaddr((my $pulled :=

@@ -1641,18 +1641,6 @@ class Rakudo::Iterator {
     multi method Dir(IO::Path:D \path)          {     Dir.new(path)         }
     multi method Dir(IO::Path:D \path, \tester) { DirTest.new(path, tester) }
 
-    # Takes two iterators and mixes in a role into the second iterator that
-    # delegates .count-only method to the first iterator if the first is a
-    # PredictiveIterator
-    my role DelegateCountOnly[\iter] does PredictiveIterator {
-        method count-only(--> Int:D) { iter.count-only }
-    }
-    method delegate-iterator-opt-methods (Iterator:D \a, Iterator:D \b) {
-        nqp::istype(a,PredictiveIterator)
-          ?? b.^mixin(DelegateCountOnly[a])
-          !! b
-    }
-
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
     # was encountered, in which case it will repeat the last seen value
@@ -2441,7 +2429,7 @@ class Rakudo::Iterator {
     # Return an iterator given a List and an iterator that generates
     # an IterationBuffer of indexes for each pull.  Each value is
     # is a List with the mapped elements.
-    my class ListIndexes does Iterator {
+    my role ListIndex {
         has $!list;
         has $!indexes;
         method !SET-SELF(\list,\indexes) {
@@ -2474,12 +2462,17 @@ class Rakudo::Iterator {
             )
         }
     }
+    my class ListIndexes does ListIndex does Iterator { }
+    my class ListPredictiveIndexes does ListIndex does PredictiveIterator {
+        method count-only() { $!indexes.count-only }
+        method bool-only()  { $!indexes.bool-only  }
+    }
     method ListIndexes(\list,\indexes) {
-        nqp::if(
-          (my int $elems = list.elems),     # reifies
-          ListIndexes.new(list,indexes),    # actually need to do some mapping
-          Rakudo::Iterator.OneValue(nqp::create(List)) # only one
-        )
+        list.elems            # reifies
+          ?? nqp::istype(indexes,PredictiveIterator)
+            ?? ListPredictiveIndexes.new(list,indexes)
+            !! ListIndexes.new(list,indexes)
+          !! Rakudo::Iterator.OneValue(nqp::create(List)) # only one
     }
 
     # Returns an iterator that handles all properties of a bare -loop-

@@ -593,6 +593,9 @@
             }
         }
     }
+    multi method tail(Supply:D: Callable:D $limit) {
+        self.skip(-$limit(0))
+    }
     multi method tail(Supply:D: \limit) {
         nqp::istype(limit,Whatever) || limit == Inf
           ?? self

@@ -584,18 +584,19 @@
                }
     }
 
-    method tail(Supply:D: Int(Cool) $number = 1) {
-        my int $size = $number;
-
+    multi method tail(Supply:D:) {
         supply {
-            if $size == 1 {
-                my $last;
-                whenever self -> \val {
-                    $last := val;
-                    LAST emit $last;
-                }
+            my $last;
+            whenever self -> \val {
+                $last := val;
+                LAST emit $last;
             }
-            elsif $size > 1 {
+        }
+    }
+    multi method tail(Supply:D: Int(Cool) $number) {
+        if $number > 1 {
+            my int $size = $number;
+            supply {
                 my $lastn := nqp::list;
                 my int $index = 0;
                 nqp::setelems($lastn,$number);  # presize list
@@ -616,7 +617,12 @@
                     }
                 }
             }
-            else {  # number <= 0, needed to keep tap open
+        }
+        elsif $number == 1 {
+            self.tail
+        }
+        else {  # number <= 0, needed to keep tap open
+            supply {
                 whenever self -> \val { }
             }
         }

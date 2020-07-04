@@ -1951,7 +1951,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
 
     proto method tail(|) {*}
-    multi method tail() is raw {
+    multi method tail(Any:D:) is raw {
         nqp::if(
           nqp::eqaddr((my $pulled :=
             Rakudo::Iterator.LastValue(self.iterator,'tail')),
@@ -1961,7 +1961,7 @@ Consider using a block if any of these are necessary for your mapping code."
           $pulled
         )
     }
-    multi method tail($n) {
+    multi method tail(Any:D: $n) {
         Seq.new(
           nqp::if(
             nqp::istype($n,Callable),

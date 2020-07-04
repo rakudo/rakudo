@@ -64,8 +64,7 @@ my class Pair does Associative {
             invocant => $other,
             method   => $method,
             typename => $other.^name,
-            addendum => "Did you try to smartmatch against a Pair specifically?  If so, then the
-key of the Pair should be a valid method name, not '$method'."
+            addendum => "Or did you try to smartmatch against a Pair specifically?  If so, then the key of the Pair should be a valid method name, not '$method'."
           ).throw
         )
     }

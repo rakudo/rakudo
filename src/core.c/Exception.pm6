@@ -210,12 +210,13 @@ my class X::Method::NotFound is Exception {
             $message ~= ". Did you mean '%suggestions.keys()'?";
         }
         elsif +%suggestions > 1 {
-            $message ~= ". Did you mean any of these?\n    { %suggestions.sort(*.value)>>.key.head(4).join("\n    ") }\n";
+            $message ~= ". Did you mean any of these: { %suggestions.sort(*.value)>>.key.head(4).map( { "'$_'" } ).join(", ") }?";
         }
 
-        $.addendum
-          ?? "$message\n$.addendum"
+        ($.addendum
+          ?? "$message. $.addendum"
           !!  $message
+        ).naive-word-wrapper
     }
 }
 

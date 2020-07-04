@@ -571,7 +571,20 @@
         supply { whenever self -> \val { emit val; done } }
     }
     multi method head(Supply:D: Callable:D $limit) {
-        self.tail(-$limit(0))
+        (my int $lose = -$limit(0)) <= 0
+          ?? self
+          !! supply {
+                 my $values := nqp::list;
+                 whenever self -> \val {
+                     nqp::push($values,val);
+                     LAST {
+                         nqp::while(
+                           nqp::elems($values) > $lose,
+                           (emit nqp::shift($values))
+                         );
+                     }
+                 }
+             }
     }
     multi method head(Supply:D: \limit) {
         nqp::istype(limit,Whatever) || limit == Inf

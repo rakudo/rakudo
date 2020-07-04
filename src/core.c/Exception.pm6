@@ -965,7 +965,8 @@ my class X::Buf::AsStr is Exception {
         my $message = $.method.starts-with('Str')
           ?? "Stringification of a {$.object.^name} is not done with '$.method'"
           !! "A {$.object.^name} is not a Str, so using '$.method' will not work";
-        $message ~ ".\nThe 'decode' method should be used to convert {$.object.^name} to a Str."
+        ($message ~ ". The 'decode' method should be used to convert a {$.object.^name} to a Str."
+        ).naive-word-wrapper
     }
 }
 my class X::Buf::Pack is Exception {

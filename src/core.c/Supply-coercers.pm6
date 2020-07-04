@@ -593,39 +593,34 @@
             }
         }
     }
-    multi method tail(Supply:D: Int(Cool) $number) {
-        if $number > 1 {
-            my int $size = $number;
-            supply {
-                my $lastn := nqp::list;
-                my int $index = 0;
-                nqp::setelems($lastn,$number);  # presize list
-                nqp::setelems($lastn,0);
+    multi method tail(Supply:D: \limit) {
+        nqp::istype(limit,Whatever) || limit == Inf
+          ?? self
+          !! limit <= 0
+            ?? supply { whenever self -> \val { } }
+            !! (my int $size = limit.Int) == 1
+              ?? self.tail
+              !! supply {
+                     my $lastn := nqp::list;
+                     my int $index = 0;
+                     nqp::setelems($lastn,$size);  # presize list
+                     nqp::setelems($lastn,0);
 
-                whenever self -> \val {
-                    nqp::bindpos($lastn,$index,val);
-                    $index = ($index + 1) % $size;
-                    LAST {
-                        my int $todo = nqp::elems($lastn);
-                        $index = 0           # start from beginning
-                          if $todo < $size;  # if not a full set
-                        while $todo {
-                            emit nqp::atpos($lastn,$index);
-                            $index = ($index + 1) % $size;
-                            $todo = $todo - 1;
-                        }
-                    }
-                }
-            }
-        }
-        elsif $number == 1 {
-            self.tail
-        }
-        else {  # number <= 0, needed to keep tap open
-            supply {
-                whenever self -> \val { }
-            }
-        }
+                     whenever self -> \val {
+                         nqp::bindpos($lastn,$index,val);
+                         $index = ($index + 1) % $size;
+                         LAST {
+                             my int $todo = nqp::elems($lastn);
+                             $index = 0           # start from beginning
+                               if $todo < $size;  # if not a full set
+                             while $todo {
+                                 emit nqp::atpos($lastn,$index);
+                                 $index = ($index + 1) % $size;
+                                 $todo = $todo - 1;
+                             }
+                         }
+                     }
+                 }
     }
 
     method skip(Supply:D: Int(Cool) $number = 1) {

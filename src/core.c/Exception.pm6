@@ -101,18 +101,11 @@ my class X::SecurityPolicy::Eval is X::SecurityPolicy {
     my role SlurpySentry { }
 
     method message() {
-        do {
-            # Remove spaces for die(*@msg)/fail(*@msg) forms
-            given $.payload {
-                when SlurpySentry {
-                    $_.list.join;
-                }
-                default {
-                    .Str;
-                }
-            }
-        } ~ " (use the MONKEY-SEE-NO-EVAL pragma to override this error,\n"
-          ~ "but only if you're VERY sure your data contains no injection attacks)";
+        (($.payload ~~ SlurpySentry
+          ?? $.payload.list.join # Remove spaces die(*@msg)/fail(*@msg) forms
+          !! $.payload.Str
+         ) ~ " (use the MONKEY-SEE-NO-EVAL pragma to override this error but only if you're VERY sure your data contains no injection attacks)."
+        ).naive-word-wrapper
     }
     method Numeric() { $.payload.Numeric }
     method from-slurpy (|cap) {

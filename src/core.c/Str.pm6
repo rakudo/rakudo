@@ -3582,6 +3582,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::push_s($line,$word);
                 $width = $width + 1 + nqp::chars($word);
             }
+
+            # double space after . or ?
+            if $word.ends-with('.') || $word.ends-with('?') {
+                nqp::push_s($line,"");
+                ++$width;
+            }
         }
 
         nqp::push_s($lines,nqp::concat($indent,nqp::join(" ",$line)))

@@ -1157,9 +1157,10 @@ my class X::Import::OnlystarProto does X::Comp {
     has @.symbols;
     has $.source-package-name;
     method message() {
-        @.symbols == 1
-            ?? "Cannot import symbol @.symbols[0] from $.source-package-name, only onlystar-protos can be merged"
-            !! ("Cannot import the following symbols from $.source-package-name, only onlystar-protos can be merged: ", @.symbols.join(', '));
+        (@.symbols == 1
+           ?? "Cannot import symbol '@.symbols[0]' from '$.source-package-name', because only onlystar-protos ('proto foo(|) {*}') can be merged."
+           !! "Cannot import the following symbols from '$.source-package-name', only onlystar-protos ('proto foo(|) {*}') can be merged: { @.symbols.map( { "'$_'" } ).join(', ')}."
+        ).naive-word-wrapper
     }
 }
 

@@ -3590,6 +3590,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
 
+        nqp::pop_s($line) if nqp::atpos_s($line,-1) eq "";
         nqp::push_s($lines,nqp::concat($indent,nqp::join(" ",$line)))
           if nqp::elems($line);
 

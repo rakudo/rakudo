@@ -1138,7 +1138,7 @@ my class X::Dynamic::Postdeclaration does X::Comp {
 my class X::Dynamic::Package does X::Comp {
     has $.symbol;
     method message() {
-        "Dynamic variables cannot have package-like names, like $!symbol"
+        "Dynamic variables cannot have package-like names (with '::'), so '$!symbol' is not allowed.".naive-word-wrapper
     }
 }
 

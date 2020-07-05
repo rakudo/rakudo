@@ -214,7 +214,7 @@ my class X::Method::NotFound is Exception {
         }
 
         ($.addendum
-          ?? "$message. $.addendum"
+          ?? "$message $.addendum"
           !!  $message
         ).naive-word-wrapper
     }

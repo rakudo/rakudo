@@ -1165,12 +1165,15 @@ my class X::Import::OnlystarProto does X::Comp {
 }
 
 my class X::PoisonedAlias does X::Comp {
-    has $.alias;
-    has $.package-type = 'package';
-    has $.package-name;
+    has str $.alias;
+    has str $.package-type = 'package';
+    has str $.package-name;
     method message() {
-        "Cannot use poisoned alias $!alias, because it was declared by several {$!package-type}s." ~
-        ($!package-name ?? "\nPlease access it via explicit package name like: {$!package-name}::{$!alias}" !! '')
+        ("Cannot directly use poisoned alias '$.alias' because it was declared by several {$.package-type}s." ~
+         ($.package-name
+           ?? " Please access it via explicit package name like: '{$.package-name}::{$!alias}'"
+           !! '')
+        ).naive-word-wrapper
     }
 }
 

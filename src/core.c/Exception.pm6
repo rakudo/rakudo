@@ -1223,8 +1223,7 @@ my class X::Parameter::Placeholder does X::Comp {
     has $.parameter;
     has $.right;
     method message() {
-        "In signature parameter, placeholder variables like $.parameter are illegal\n"
-        ~ "you probably meant a named parameter: '$.right'";
+        "Named placeholder variables like '$.parameter' are not allowed in signatures.  Did you mean: '$.right' ?".naive-word-wrapper
     }
 }
 

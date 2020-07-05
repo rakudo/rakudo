@@ -1131,9 +1131,7 @@ my class X::Redeclaration::Outer does X::Comp {
 my class X::Dynamic::Postdeclaration does X::Comp {
     has $.symbol;
     method message() {
-        "Illegal post-declaration of dynamic variable '$.symbol';\n" ~
-        "earlier access must be written as CALLERS::<$.symbol>\n" ~
-        "if that's what you meant"
+        "Illegal post-declaration of dynamic variable '$.symbol'. Earlier access must be written as 'CALLERS::<$.symbol>' if that's what you meant.".naive-word-wrapper
     }
 }
 

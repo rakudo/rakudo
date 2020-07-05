@@ -1028,9 +1028,9 @@ my class X::Undeclared does X::Comp {
         if +@.suggestions == 1 {
             $message := "$message. Did you mean '@.suggestions[0]'?";
         } elsif +@.suggestions > 1 {
-            $message := "$message. Did you mean any of these?\n    { @.suggestions.join("\n    ") }\n";
+            $message := "$message. Did you mean any of these: { @.suggestions.map( { "'$_'" } ).join(", ") }?";
         }
-        $message;
+        $message.naive-word-wrapper
     }
 }
 

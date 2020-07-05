@@ -1002,9 +1002,8 @@ my class X::Placeholder::NonPlaceholder does X::Comp {
     has $.placeholder;
     has $.decl;
     method message() {
-        my $decl = $!decl ?? ' ' ~ $!decl !! '';
-        "$!variable_name has already been used as a non-placeholder in the surrounding$decl block,\n" ~
-        "  so you will confuse the reader if you suddenly declare $!placeholder here"
+        my $decl = $!decl ?? $!decl !! 'block';
+        "'$!variable_name' has already been used as a non-placeholder in the surrounding $decl, so you will confuse the reader if you suddenly declare $!placeholder here.".naive-word-wrapper
     }
 }
 

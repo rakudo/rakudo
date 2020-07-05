@@ -1202,10 +1202,11 @@ my class X::Parameter::Default does X::Comp {
 }
 
 my class X::Parameter::Default::TypeCheck does X::Comp {
+    has $.what = 'parameter';
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method message() {
-        "Default value '{Rakudo::Internals.MAYBE-GIST: $!got}' will never bind to a parameter of type {$!expected.^name}"
+        "Default value '{Rakudo::Internals.MAYBE-GIST: $!got}' will never bind to a $.what of type '{$!expected.^name}'.".naive-word-wrapper
     }
 }
 

@@ -1215,8 +1215,7 @@ my class X::Parameter::AfterDefault does X::Syntax {
     has $.modifier;
     has $.default;
     method message() {
-        "The $.type \"$.modifier\" came after the default value\n"
-        ~ "(did you mean \"...$.modifier $.default\"?)"
+        "The $.type '$.modifier' came after the default value. Did you mean: ...$.modifier $.default?".naive-word-wrapper
     }
 }
 

@@ -1186,7 +1186,9 @@ my class X::Obsolete does X::Comp {
     has $.old;
     has $.replacement; # can't call it $.new, collides with constructor
     has $.when = 'in Raku';
-    method message() { "Unsupported use of $.old; $.when please use $.replacement" }
+    method message() {
+        "Unsupported use of $.old. $.when.tc() please use: $.replacement.".naive-word-wrapper
+    }
 }
 
 my class X::Parameter::Default does X::Comp {

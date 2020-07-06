@@ -1320,7 +1320,7 @@ my class X::Method::Private::Permission does X::Comp {
     has $.source-package;
     has $.calling-package;
     method message() {
-        "Cannot call private method '$.method' on package $.source-package because it does not trust $.calling-package";
+        "Cannot call private method '$.method' on package '$.source-package' because it does not trust the '$.calling-package' package.".naive-word-wrapper
     }
 }
 

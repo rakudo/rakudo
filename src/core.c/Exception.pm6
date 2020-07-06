@@ -1297,7 +1297,7 @@ my class X::Parameter::RW is Exception {
     has $.got;
     has $.symbol;
     method message() {
-        "Parameter '$.symbol' expected a writable container, but got $.got.^name() value"
+        "Parameter '$.symbol' expects a writable container (variable) as an argument, but got '{Rakudo::Internals.MAYBE-GIST: $.got}' ($.got.^name()) as a value without a container.".naive-word-wrapper
     }
 }
 

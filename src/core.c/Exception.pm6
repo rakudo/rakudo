@@ -1248,7 +1248,7 @@ my class X::Parameter::BadType does X::Comp {
     has Mu $.type;
     method message() {
         my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
-        "$what $!type.^name() is insufficiently type-like to qualify a parameter"
+        "$what '$!type.^name()' is insufficiently type-like to qualify a parameter.  Did you mean 'class'?".naive-word-wrapper
     }
 }
 
@@ -1495,7 +1495,7 @@ my class X::Syntax::Variable::BadType does X::Comp {
     has Mu $.type;
     method message() {
         my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
-        "$what $!type.^name() is insufficiently type-like to qualify a variable"
+        "$what '$!type.^name()' is insufficiently type-like to qualify a variable.  Did you mean 'class'?".naive-word-wrapper
     }
 }
 

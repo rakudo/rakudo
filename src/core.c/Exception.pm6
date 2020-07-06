@@ -1232,7 +1232,7 @@ my class X::Parameter::Twigil does X::Comp {
     has $.parameter;
     has $.twigil;
     method message() {
-        "In signature parameter $.parameter, it is illegal to use the $.twigil twigil";
+        "Parameters with a '$.twigil' twigil, like '$.parameter', are not allowed in signatures.".naive-word-wrapper
     }
 }
 

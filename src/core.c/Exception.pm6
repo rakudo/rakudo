@@ -1289,7 +1289,7 @@ my class X::Parameter::InvalidType does X::Comp {
         if +@.suggestions > 0 {
             $msg := $msg ~ " Did you mean '" ~ @.suggestions.join("', '") ~ "'?";
         }
-        $msg;
+        $msg.naive-word-wrapper
     }
 }
 

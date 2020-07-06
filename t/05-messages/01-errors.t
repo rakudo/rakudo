@@ -103,11 +103,11 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 {
     throws-like { sub f(Mu:D $a) {}; f(Int) },
         Exception,
-        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<'must be an object instance'>>/, /<<'not a type object'>>/, /<<'Mu'>>/,  /<<'Int'>>/, /\W '.new'>>/),
+        message => all(/Parameter/, /\W '$a'>>/, /<<'f'>>/, /<<must \s+ be \s+ an \s+ object \s+ instance>>/, /<<not \s+ a \s+ type \s+ object>>/, /<<'Mu'>>/,  /<<'Int'>>/, /\W '.new'>>/),
         'types and names shown in the exception message are correct';
     throws-like { sub f(Mu:U $a) {}; f(123) },
         Exception,
-        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<'not an object instance'>>/, /<<'must be a type object'>>/, /<<'Mu'>>/,  /<<'Int'>>/, /<<'multi'>>/),
+        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<not \s+ an \s+ object \s+ instance>>/, /<<must \s+ be \s+ a \s+ type \s+ object>>/, /<<'Mu'>>/,  /<<'Int'>>/, /<<'multi'>>/),
         'types shown in the exception message are correct';
 }
 

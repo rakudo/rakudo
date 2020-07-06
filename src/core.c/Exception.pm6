@@ -1277,7 +1277,7 @@ my class X::Parameter::InvalidConcreteness is Exception {
         my $not-a      = $!should-be-concrete ?? 'a type object'      !! 'an object instance';
         my $suggestion = $!should-be-concrete ?? '.new'               !! 'multi';
 
-        "$beginning '$!routine' must be $must-be of type '$!expected', not $not-a of type '$!got'.  Did you forget a '$suggestion'?"
+        "$beginning '$!routine' must be $must-be of type '$!expected', not $not-a of type '$!got'.  Did you forget a '$suggestion'?".naive-word-wrapper
     }
 }
 

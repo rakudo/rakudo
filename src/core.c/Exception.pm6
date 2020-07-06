@@ -1327,7 +1327,7 @@ my class X::Method::Private::Permission does X::Comp {
 my class X::Method::Private::Unqualified does X::Comp {
     has $.method;
     method message() {
-        "Private method call to $.method must be fully qualified with the package containing the method";
+        "Calling private method '$.method' must be fully qualified with the package containing that private method.".naive-word-wrapper
     }
 }
 

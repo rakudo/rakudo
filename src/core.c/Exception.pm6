@@ -1220,10 +1220,11 @@ my class X::Parameter::AfterDefault does X::Syntax {
 }
 
 my class X::Parameter::Placeholder does X::Comp {
+    has $.type;
     has $.parameter;
     has $.right;
     method message() {
-        "Named placeholder variables like '$.parameter' are not allowed in signatures.  Did you mean: '$.right' ?".naive-word-wrapper
+        "$.type.tc() placeholder variables like '$.parameter' are not allowed in signatures.  Did you mean: '$.right' ?".naive-word-wrapper
     }
 }
 

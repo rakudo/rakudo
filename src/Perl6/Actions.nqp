@@ -5516,8 +5516,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 if $twigil eq ':' {
                     $/.typed_sorry('X::Parameter::Placeholder',
+                        type      => "named",
                         parameter => ~$/,
                         right     => ':' ~ $<sigil> ~ ~$<name>,
+                    );
+                }
+                elsif $twigil eq '^' {
+                    $/.typed_sorry('X::Parameter::Placeholder',
+                        type      => "positional",
+                        parameter => ~$/,
+                        right     => $<sigil> ~ $<name>,
                     );
                 }
                 else {

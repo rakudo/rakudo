@@ -993,7 +993,7 @@ my class X::Signature::Placeholder does X::Comp {
 my class X::Placeholder::Block does X::Comp {
     has $.placeholder;
     method message() {
-        "Placeholder variable $.placeholder may not be used here because the surrounding block takes no signature";
+        "Placeholder variable '$.placeholder' may not be used here because the surrounding block does not take a signature.".naive-word-wrapper;
     }
 }
 

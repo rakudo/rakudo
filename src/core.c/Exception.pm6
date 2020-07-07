@@ -1484,10 +1484,13 @@ my class X::Syntax::Variable::Initializer does X::Syntax {
 
 my class X::Syntax::Variable::Twigil does X::Syntax {
     has $.what = 'variable';
+    has $.name;
     has $.twigil;
     has $.scope;
     has $.additional = '';
-    method message() { "Cannot use $.twigil twigil on '$.scope' $.what$.additional" }
+    method message() {
+        "Cannot use a '$.twigil' twigil on a '$.scope $.name' $.what$.additional.".naive-word-wrapper
+    }
 }
 
 my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {

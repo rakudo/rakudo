@@ -2944,6 +2944,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $twigil eq '?' && $*IN_DECL eq 'variable' && !$*COMPILING_CORE_SETTING {
             $*W.throw($/, 'X::Syntax::Variable::Twigil',
+              name       => $name,
               twigil     => $twigil,
               scope      => $*SCOPE,
               additional => ' because it is reserved'
@@ -3024,8 +3025,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $name eq '$?LANG' || $name eq '$?LINE' || $name eq '$?FILE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
-                  twigil => '?',
-                  scope  => $*SCOPE,
+                  name       => $name,
+                  twigil     => '?',
+                  scope      => $*SCOPE,
+                  additional => " because it is reserved",
                 );
             }
             if $name eq '$?LANG' {
@@ -3075,8 +3078,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         elsif $name eq '&?BLOCK' || $name eq '&?ROUTINE' {
             if $*IN_DECL eq 'variable' {
                 $*W.throw($/, 'X::Syntax::Variable::Twigil',
-                  twigil => '?',
-                  scope  => $*SCOPE,
+                  name       => $name,
+                  twigil     => '?',
+                  scope      => $*SCOPE,
+                  additional => " because it is reserved",
                 );
             }
             my $Routine := $*W.find_single_symbol('Routine', :setting-only);
@@ -5163,10 +5168,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 elsif $twigil eq '*' {
                     $W.throw($/, 'X::Syntax::Variable::Twigil',
+                      name       => ~$<variable>,
                       what       => 'constant',
                       twigil     => $twigil,
                       scope      => $*SCOPE,
-                      additional => ' because dynamic constants are an oxymoron'
+                      additional => ' because values cannot be constant and dynamic at the same time',
                     );
                 }
 

@@ -873,6 +873,10 @@ class Raku::RegexActions is HLL::Actions {
         }
     }
 
+    method metachar:sym<.>($/) {
+        make self.r('Regex', 'CharClass', 'Any').new;
+    }
+
     method metachar:sym<^>($/) {
         make self.r('Regex', 'Anchor', 'BeginningOfString').new;
     }
@@ -895,5 +899,18 @@ class Raku::RegexActions is HLL::Actions {
 
     method metachar:sym<rwb>($/) {
         make self.r('Regex', 'Anchor', 'RightWordBoundary').new;
+    }
+
+    method metachar:sym<bs>($/) {
+        make $<backslash>.ast;
+    }
+
+    method metachar:sym<assert>($/) {
+        make $<assertion>.ast;
+    }
+
+    method backslash:sym<s>($/) {
+        my constant NAME := nqp::hash('d', 'Digit', 'n', 'Newline', 's', 'Space', 'w', 'Word');
+        make self.r('Regex', 'CharClass', NAME{nqp::lc(~$<sym>)}).new(negated => $<sym> le 'Z');
     }
 }

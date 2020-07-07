@@ -162,3 +162,60 @@ class RakuAST::Regex::Anchor::LeftWordBoundary is RakuAST::Regex::Anchor {
 class RakuAST::Regex::Anchor::RightWordBoundary is RakuAST::Regex::Anchor {
     method IMPL-QAST-SUBTYPE() { 'rwb' }
 }
+
+# The base for all kinds of built-in character class. These include "." (match
+# anything), \d (digit chars), and also things like \xCAFE because while they
+# may in some senses be a literal, they are also possible to negate, in which
+# case they imply a class of characters too.
+class RakuAST::Regex::CharClass is RakuAST::Regex::Atom {
+    method new() {
+        nqp::create(self)
+    }
+}
+
+# The character class matching anything (".").
+class RakuAST::Regex::CharClass::Any is RakuAST::Regex::CharClass {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new( :rxtype<cclass>, :name<.> )
+    }
+}
+
+# The base for all negatable built-in character classes.
+class RakuAST::Regex::CharClass::Negatable is RakuAST::Regex::CharClass {
+    has Bool $.negated;
+
+    method new(Bool :$negated) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::CharClass::Negatable, '$!negated',
+            $negated ?? True !! False);
+        $obj
+    }
+}
+
+# The digit character class (\d, \D).
+class RakuAST::Regex::CharClass::Digit is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new( :rxtype<cclass>, :name<d>, :negate(self.negated) )
+    }
+}
+
+# The newline character class (\n, \N).
+class RakuAST::Regex::CharClass::Newline is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new( :rxtype<cclass>, :name<n>, :negate(self.negated) )
+    }
+}
+
+# The space character class (\s, \S).
+class RakuAST::Regex::CharClass::Space is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new( :rxtype<cclass>, :name<s>, :negate(self.negated) )
+    }
+}
+
+# The word character class (\w, \W).
+class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new( :rxtype<cclass>, :name<w>, :negate(self.negated) )
+    }
+}

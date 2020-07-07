@@ -121,3 +121,44 @@ class RakuAST::Regex::Literal is RakuAST::Regex::Atom {
         QAST::Regex.new( :rxtype<literal>, $!text )
     }
 }
+
+#| The base for all kinds of anchor.
+class RakuAST::Regex::Anchor is RakuAST::Regex::Atom {
+    method new() {
+        nqp::create(self)
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new( :rxtype<anchor>, :subtype(self.IMPL-QAST-SUBTYPE) )
+    }
+}
+
+#| The beginning of string (^) anchor.
+class RakuAST::Regex::Anchor::BeginningOfString is RakuAST::Regex::Anchor {
+    method IMPL-QAST-SUBTYPE() { 'bos' }
+}
+
+#| The beginning of line (^^) anchor.
+class RakuAST::Regex::Anchor::BeginningOfLine is RakuAST::Regex::Anchor {
+    method IMPL-QAST-SUBTYPE() { 'bol' }
+}
+
+#| The end of string ($) anchor.
+class RakuAST::Regex::Anchor::EndOfString is RakuAST::Regex::Anchor {
+    method IMPL-QAST-SUBTYPE() { 'eos' }
+}
+
+#| The end of line (^^) anchor.
+class RakuAST::Regex::Anchor::EndOfLine is RakuAST::Regex::Anchor {
+    method IMPL-QAST-SUBTYPE() { 'eol' }
+}
+
+#| The left word boundary (<<) anchor.
+class RakuAST::Regex::Anchor::LeftWordBoundary is RakuAST::Regex::Anchor {
+    method IMPL-QAST-SUBTYPE() { 'lwb' }
+}
+
+#| The right word boundary (>>) anchor.
+class RakuAST::Regex::Anchor::RightWordBoundary is RakuAST::Regex::Anchor {
+    method IMPL-QAST-SUBTYPE() { 'rwb' }
+}

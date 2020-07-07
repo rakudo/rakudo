@@ -779,6 +779,12 @@ class Raku::RegexActions is HLL::Actions {
         $res := nqp::atkey($res.WHO, $t2) unless nqp::isnull($res);
         nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}"))
     }
+    multi method r($t1, $t2, $t3) {
+        my $res := nqp::atkey($ast_root, $t1);
+        $res := nqp::atkey($res.WHO, $t2) unless nqp::isnull($res);
+        $res := nqp::atkey($res.WHO, $t3) unless nqp::isnull($res);
+        nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}::{$t3}"))
+    }
 
     method nibbler($/) {
         make $<termseq>.ast;
@@ -865,5 +871,29 @@ class Raku::RegexActions is HLL::Actions {
         else {
             make self.r('Regex', 'Literal').new(~$/);
         }
+    }
+
+    method metachar:sym<^>($/) {
+        make self.r('Regex', 'Anchor', 'BeginningOfString').new;
+    }
+
+    method metachar:sym<^^>($/) {
+        make self.r('Regex', 'Anchor', 'BeginningOfLine').new;
+    }
+
+    method metachar:sym<$>($/) {
+        make self.r('Regex', 'Anchor', 'EndOfString').new;
+    }
+
+    method metachar:sym<$$>($/) {
+        make self.r('Regex', 'Anchor', 'EndOfLine').new;
+    }
+
+    method metachar:sym<lwb>($/) {
+        make self.r('Regex', 'Anchor', 'LeftWordBoundary').new;
+    }
+
+    method metachar:sym<rwb>($/) {
+        make self.r('Regex', 'Anchor', 'RightWordBoundary').new;
     }
 }

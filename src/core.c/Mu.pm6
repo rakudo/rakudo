@@ -83,8 +83,7 @@ my class Mu { # declared in BOOTSTRAP
 
         my role Suggestion[$name] {
             method gist {
-                "No documentation available for type '$name'.
-Perhaps it can be found at https://docs.raku.org/type/$name"
+                "No documentation available for type '$name'. Perhaps it can be found at https://docs.raku.org/type/$name".naive-word-wrapper
             }
         }
 

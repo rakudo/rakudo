@@ -5,6 +5,9 @@ my class Seq is Cool does Iterable does Sequence {
     # way through. Can only be obtained once.
     has Iterator $!iter;
 
+    # The number of values that have been produced
+    has int $!produced;
+
     # The only valid way to create a Seq directly is by giving it the
     # iterator it will consume and maybe memoize.
     multi method new(Seq: Iterator:D $iter) {
@@ -39,6 +42,33 @@ my class Seq is Cool does Iterable does Sequence {
             X::Seq::Consumed.new.throw
           )
         )
+    }
+
+    proto method AT-POS(|) {*}
+    multi method AT-POS(Seq:D: Int:D $idx) is raw {
+        if $idx < $!produced {
+            die "asked $idx, which was already produced";
+        }
+        else {
+            my int $skip = $idx - $!produced;
+            $!produced = $idx;
+            $!iter.skip($skip)
+              ?? $!iter.pull-one
+              !! Nil
+        }
+    }
+
+    multi method AT-POS(Seq:D: int $idx) is raw {
+        if $idx < $!produced {
+            die "asked $idx, which was already produced";
+        }
+        else {
+            my int $skip = $idx - $!produced;
+            $!produced = $idx;
+            $!iter.skip($skip)
+              ?? $!iter.pull-one
+              !! Nil
+        }
     }
 
     multi method Seq(Seq:D:)   { self }

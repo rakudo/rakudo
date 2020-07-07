@@ -163,7 +163,8 @@ class RakuAST::PointyBlock is RakuAST::Block {
 
 # Done by all kinds of Routine.
 class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
-                       is RakuAST::SinkBoundary is RakuAST::Declaration {
+                       is RakuAST::SinkBoundary is RakuAST::Declaration
+                       is RakuAST::ImplicitDeclarations {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
     has RakuAST::Blockoid $.body;
@@ -199,6 +200,14 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         my $signature := self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
         $routine
+    }
+
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')),
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')),
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')),
+        ])
     }
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context) {

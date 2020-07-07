@@ -1431,8 +1431,10 @@ my class X::Syntax::KeywordAsFunction does X::Syntax {
     has $.word;
     has $.needparens;
     method message {
-        "Word '$.word' interpreted as '{$.word}()' function call; please use whitespace "
-            ~ ($.needparens ?? 'around the parens' !! 'instead of parens')
+        ("The word '$.word' is interpreted as a '{$.word}()' function call.  Please use whitespace "
+          ~ ($.needparens ?? 'around the' !! 'instead of')
+          ~ " parentheses."
+        ).naive-word-wrapper
     }
 }
 

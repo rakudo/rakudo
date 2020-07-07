@@ -1340,14 +1340,14 @@ my class X::Adverb is Exception {
         my $text = '';
         if @!unexpected.elems -> $elems {
             $text = $elems > 1
-              ?? "$elems unexpected adverbs (@.unexpected[])"
+              ?? "$elems unexpected adverbs ('@.unexpected.join("', '")')"
               !! "Unexpected adverb '@!unexpected[0]'"
         }
         if @!nogo {
             $text ~= $text ?? " and u" !! "U";
-            $text ~= "nsupported combination of adverbs (@.nogo[])";
+            $text ~= "nsupported combination of adverbs ('@.nogo.join("', '")')";
         }
-        $text ~ " passed to $!what on $!source";
+        ($text ~ " passed to $!what on '$!source'.").naive-word-wrapper
     }
     method unexpected { @!unexpected.sort }
     method nogo       { @!nogo.sort }

@@ -36,7 +36,7 @@ class RakuAST::Regex::Branching is RakuAST::Regex {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $qast := QAST::Regex.new(:rxtype(self.IMPL-QAST-REGEX-TYPE));
         for $!branches {
-            $qast.push($_.IMPL-REGEX-QAST($context, $_));
+            $qast.push($_.IMPL-REGEX-QAST($context, %mods));
         }
         $qast
     }
@@ -86,7 +86,7 @@ class RakuAST::Regex::Sequence is RakuAST::Regex {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $concat := QAST::Regex.new(:rxtype<concat>);
         for $!terms {
-            $concat.push($_.IMPL-REGEX-QAST($context, $_));
+            $concat.push($_.IMPL-REGEX-QAST($context, %mods));
         }
         $concat
     }
@@ -217,5 +217,101 @@ class RakuAST::Regex::CharClass::Space is RakuAST::Regex::CharClass::Negatable {
 class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<w>, :negate(self.negated) )
+    }
+}
+
+# A quantified atom in a regex - that is, an atom with a quantifier and
+# optional separator.
+class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {
+    has RakuAST::Atom $.atom;
+    has RakuAST::Quantifier $.quantifier;
+    has RakuAST::Term $.separator;
+
+    method new(RakuAST::Atom :$atom!, RakuAST::Quantifier :$quantifier!,
+               RakuAST::Separator :$separator) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!atom', $atom);
+        nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!quantifier', $quantifier);
+        nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!separator',
+            $separator // RakuAST::Term);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $atom := $!atom.IMPL-REGEX-QAST($context, %mods);
+        my $quantified := $!quantifier.IMPL-QAST-QUANTIFY($context, $atom, %mods);
+        if $!separator {
+            nqp::die("Cannot yet compile separators");
+        }
+        else {
+            $quantified
+        }
+    }
+}
+
+# The base of all regex quantifiers.
+class RakuAST::Regex::Quantifier {
+    has RakuAST::Regex::Backtrack $.backtrack;
+
+    method new(RakuAST::Regex::Backtrack :$backtrack) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Quantifier, '$!backtrack',
+            nqp::istype($backtrack, RakuAST::Regex::Backtrack)
+                ?? $backtrack
+                !! RakuAST::Regex::Backtrack);
+        $obj
+    }
+}
+
+# The zero or one (?) quantifier. 
+class RakuAST::Regex::Quantifier::ZeroOrOne is RakuAST::Regex::Quantifier {
+    method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
+        self.backtrack.IMPL-QAST-APPLY:
+            QAST::Regex.new( :rxtype<quant>, :min(0), :max(1), $atom-qast ),
+            %mods
+    }
+}
+
+# The zero or more (*) quantifier. 
+class RakuAST::Regex::Quantifier::ZeroOrMore is RakuAST::Regex::Quantifier {
+    method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
+        self.backtrack.IMPL-QAST-APPLY:
+            QAST::Regex.new( :rxtype<quant>, :min(0), :max(-1), $atom-qast ),
+            %mods
+    }
+}
+
+# The one or more (+) quantifier. 
+class RakuAST::Regex::Quantifier::OneOrMore is RakuAST::Regex::Quantifier {
+    method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
+        self.backtrack.IMPL-QAST-APPLY:
+            QAST::Regex.new( :rxtype<quant>, :min(1), :max(-1), $atom-qast ),
+            %mods
+    }
+}
+
+# Backtracking modifiers.
+class RakuAST::Regex::Backtrack {
+    method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
+        $quant-qast.backtrack('r') if %mods<r>;
+        $quant-qast
+    }
+}
+class RakuAST::Regex::Backtrack::Greedy is RakuAST::Regex::Backtrack {
+    method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
+        $quant-qast.backtrack('r');
+        $quant-qast
+    }
+}
+class RakuAST::Regex::Backtrack::Frugal is RakuAST::Regex::Backtrack {
+    method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
+        $quant-qast.backtrack('f');
+        $quant-qast
+    }
+}
+class RakuAST::Regex::Backtrack::Ratchet is RakuAST::Regex::Backtrack {
+    method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
+        $quant-qast.backtrack('g');
+        $quant-qast
     }
 }

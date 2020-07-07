@@ -295,7 +295,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
     }
 }
 
-# An implicitly declared variable. Typically used for $/, $!, and $_.
+# The commonalities for implicitly declared variables.
 class RakuAST::VarDeclaration::Implicit is RakuAST::Declaration {
     has str $.name;
 
@@ -314,12 +314,47 @@ class RakuAST::VarDeclaration::Implicit is RakuAST::Declaration {
         'my'
     }
 
+    method generate-lookup() {
+        my $lookup := RakuAST::Var::Lexical.new($!name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-LOOKUP-QAST($context)
     }
 
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
         QAST::Var.new( :name($!name), :scope('lexical') )
+    }
+}
+
+# An implicitly declared special variable. Typically used for $/, $!, and $_.
+class RakuAST::VarDeclaration::Implicit::Special is RakuAST::VarDeclaration::Implicit
+                                                 is RakuAST::Meta {
+    method PRODUCE-META-OBJECT() {
+        # Reuse the container descriptor for the common cases that we expect
+        # to have.
+        my constant COMMON := nqp::hash(
+            '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
+            '$/', ContainerDescriptor.new(:of(Mu), :default(Any), :dynamic, :name('$/')),
+            '$!', ContainerDescriptor.new(:of(Mu), :default(Any), :dynamic, :name('$!'))
+        );
+        my $cont-desc := COMMON{self.name} //
+            ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name(self.name));
+        my $container := nqp::create(Scalar);
+        nqp::bindattr($container, Scalar, '$!descriptor', $cont-desc);
+        nqp::bindattr($container, Scalar, '$!value', Any);
+        $container
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $container := self.meta-object;
+        $context.ensure-sc($container);
+        QAST::Var.new(
+            :scope('lexical'), :decl('contvar'), :name(self.name),
+            :value($container)
+        )
     }
 }
 

@@ -63,7 +63,7 @@ class RakuAST::Regex::Alternation is RakuAST::Regex::Branching {
     method IMPL-QAST-REGEX-TYPE() { 'alt' }
 }
 
-# Conjunction (|).
+# Conjunction (&).
 class RakuAST::Regex::Conjunction is RakuAST::Regex::Branching {
     method IMPL-QAST-REGEX-TYPE() { 'conj' }
 }

@@ -52,9 +52,10 @@ my class Seq is Cool does Iterable does Sequence {
         else {
             my int $skip = $idx - $!produced;
             $!produced = $idx;
-            $!iter.skip($skip)
-              ?? $!iter.pull-one
-              !! Nil
+            nqp::while($skip && $!iter.skip-one, --$skip);
+            $skip
+              ?? Nil
+              !! $!iter.pull-one
         }
     }
 
@@ -65,9 +66,10 @@ my class Seq is Cool does Iterable does Sequence {
         else {
             my int $skip = $idx - $!produced;
             $!produced = $idx;
-            $!iter.skip($skip)
-              ?? $!iter.pull-one
-              !! Nil
+            nqp::while($skip && $!iter.skip-one, --$skip);
+            $skip
+              ?? Nil
+              !! $!iter.pull-one
         }
     }
 

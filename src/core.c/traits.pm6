@@ -67,10 +67,18 @@ multi sub trait_mod:<is>(Mu:U $type, Mu :$array_type!) {
     $type.^set_array_type($array_type);
 }
 multi sub trait_mod:<is>(Mu:U $type, Mu:U $parent, Block) {
-    X::Syntax::ParentAsHash.new(:$parent).throw;
+    X::Syntax::ParentAsHash.new(
+      :type($type.^name),
+      :parent($parent.^name),
+      :what<Block>
+    ).throw;
 }
 multi sub trait_mod:<is>(Mu:U $type, Mu:U $parent, Hash) {
-    X::Syntax::ParentAsHash.new(:$parent).throw;
+    X::Syntax::ParentAsHash.new(
+      :type($type.^name),
+      :parent($parent.^name),
+      :what<Hash>
+    ).throw;
 }
 multi sub trait_mod:<is>(Mu:U $type, *%fail) {
     if %fail.keys[0] !eq $type.^name {

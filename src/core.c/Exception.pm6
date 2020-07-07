@@ -1439,10 +1439,11 @@ my class X::Syntax::KeywordAsFunction does X::Syntax {
 }
 
 my class X::Syntax::ParentAsHash does X::Syntax {
+    has $.type;
     has $.parent;
+    has $.what;
     method message() {
-        "Syntax error while specifying a parent class:\n"
-        ~ "Must specify a space between {$.parent.^name} and \{";
+        "Parent class specification is probably missing some whitespace. Found '$.type is $.parent\{ ...', which tries to specify a parent with a '$.what'.  You probably meant '$.type is $.parent \{ ...'.".naive-word-wrapper
     }
 }
 

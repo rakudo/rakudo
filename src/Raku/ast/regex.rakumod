@@ -33,6 +33,14 @@ class RakuAST::Regex::Branching is RakuAST::Regex {
         self.IMPL-WRAP-LIST($!branches)
     }
 
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $qast := QAST::Regex.new(:rxtype(self.IMPL-QAST-REGEX-TYPE));
+        for $!branches {
+            $qast.push($_.IMPL-REGEX-QAST($context, $_));
+        }
+        $qast
+    }
+
     method visit-children(Code $visitor) {
         for $!branches {
             $visitor($_);
@@ -42,18 +50,22 @@ class RakuAST::Regex::Branching is RakuAST::Regex {
 
 # Sequential alternation (||).
 class RakuAST::Regex::SequentialAlternation is RakuAST::Regex::Branching {
+    method IMPL-QAST-REGEX-TYPE() { 'altseq' }
 }
 
 # Sequential conjunction (&&).
 class RakuAST::Regex::SequentialConjunction is RakuAST::Regex::Branching {
+    method IMPL-QAST-REGEX-TYPE() { 'conjseq' }
 }
 
 # Alternation (|).
 class RakuAST::Regex::Alternation is RakuAST::Regex::Branching {
+    method IMPL-QAST-REGEX-TYPE() { 'alt' }
 }
 
 # Conjunction (|).
 class RakuAST::Regex::Conjunction is RakuAST::Regex::Branching {
+    method IMPL-QAST-REGEX-TYPE() { 'conj' }
 }
 
 # A sequence of terms to match, one after the other.
@@ -69,6 +81,14 @@ class RakuAST::Regex::Sequence is RakuAST::Regex {
 
     method terms() {
         self.IMPL-WRAP-LIST($!terms)
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $concat := QAST::Regex.new(:rxtype<concat>);
+        for $!terms {
+            $concat.push($_.IMPL-REGEX-QAST($context, $_));
+        }
+        $concat
     }
 
     method visit-children(Code $visitor) {

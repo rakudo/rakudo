@@ -860,8 +860,24 @@ class Raku::RegexActions is HLL::Actions {
     }
 
     method quantified_atom($/) {
-        # TODO quantifier, separator, sigspace
-        make $<atom>.ast;
+        my $atom := $<atom>.ast;
+        if $<quantifier> {
+            my $quantifier := $<quantifier>.ast;
+            if $<separator> {
+                my $separator := $<separator>.ast;
+                make self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier, :$separator);
+            }
+            else {
+                make self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier);
+            }
+        }
+        else {
+            if $<separator> {
+                $/.panic("'" ~ $<separator><septype> ~
+                    "' may only be used immediately following a quantifier")
+            }
+            make $atom;
+        }
     }
 
     method atom($/) {
@@ -870,6 +886,34 @@ class Raku::RegexActions is HLL::Actions {
         }
         else {
             make self.r('Regex', 'Literal').new(~$/);
+        }
+    }
+
+    method quantifier:sym<*>($/) {
+        make self.r('Regex', 'Quantifier', 'ZeroOrMore').new(backtrack => $<backmod>.ast);
+    }
+
+    method quantifier:sym<+>($/) {
+        make self.r('Regex', 'Quantifier', 'OneOrMore').new(backtrack => $<backmod>.ast);
+    }
+
+    method quantifier:sym<?>($/) {
+        make self.r('Regex', 'Quantifier', 'ZeroOrOne').new(backtrack => $<backmod>.ast);
+    }
+
+    method backmod($/) {
+        my str $backmod := ~$/;
+        if $backmod eq ':' {
+            self.r('Regex', 'Backtrack', 'Ratchet')
+        }
+        elsif $backmod eq ':?' || $backmod eq '?' {
+            self.r('Regex', 'Backtrack', 'Frugal')
+        }
+        elsif $backmod eq ':!' || $backmod eq '!' {
+            self.r('Regex', 'Backtrack', 'Greedy')
+        }
+        else {
+            self.r('Regex', 'Backtrack')
         }
     }
 

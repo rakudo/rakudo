@@ -215,9 +215,9 @@ scopes). It is free to make a cache of these to avoid having to search each
 time, allowing for faster resolution of symbols. It will be for tree modifiers
 to invalidate such things.
 
-### Proverence
+### Provenance
 
-All nodes will have an optional "proverence" attribute, which answers "where did
+All nodes will have an optional "provenance" attribute (name TBD), which answers "where did
 I come from". By default we'll only attach such information to some elements
 (good enough to provide line information at statement level, as today), but will
 support a detailed mode where the exact textual positions of all elements can be

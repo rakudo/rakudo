@@ -69,6 +69,9 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
                 name => '$?PACKAGE', value => $global.compile-time-value
             ));
+            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
+            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
+            nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')));
         }
         self.IMPL-WRAP-LIST(@decls)
     }

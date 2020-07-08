@@ -1777,4 +1777,21 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
     token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
 
     token rxstopper { <stopper> }
+
+    token assertion:sym<name> {
+        <longname=.LANG('MAIN','longname')>
+            [
+            | <?[>]>
+            | '=' <assertion>
+            | ':' <arglist>
+            | '(' <arglist> ')'
+            | <.normspace> <nibbler>
+            ]?
+    }
+
+    token arglist {
+        :my $*IN_REGEX_ASSERTION := 1;
+        <!RESTRICTED>
+        <arglist=.LANG('MAIN','arglist')>
+    }
 }

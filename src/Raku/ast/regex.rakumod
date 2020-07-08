@@ -220,6 +220,165 @@ class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
     }
 }
 
+# The base of all regex assertions (things of the form `<...>`, such as subrule
+# calls, lookaheads, and user-defined character classes).
+class RakuAST::Regex::Assertion is RakuAST::Regex::Atom {
+}
+
+# An assertion that always passes.
+class RakuAST::Regex::Assertion::Pass is RakuAST::Regex::Assertion {
+    method new() {
+        nqp::create(self)
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new( :rxtype<anchor>, :subtype<pass> )
+    }
+}
+
+# An assertion that always fails.
+class RakuAST::Regex::Assertion::Fail is RakuAST::Regex::Assertion {
+    method new() {
+        nqp::create(self)
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new( :rxtype<anchor>, :subtype<fail> )
+    }
+}
+
+# A named assertion, which may or may not capture. Models `<foo>` and
+# `<.foo>`, and also `<foo::bar>`. Forms with arguments or taking a regex
+# argument are modeled as subclasses of this.
+class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion {
+    has RakuAST::Name $.name;
+    has Bool $.capturing;
+
+    method new(RakuAST::Name :$name!, Bool :$capturing) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!capturing',
+            $capturing ?? True !! False);
+        $obj
+    }
+
+    method set-capturing(Bool $capturing) {
+        nqp::bindattr(self, RakuAST::Regex::Assertion::Named, '$!capturing',
+            $capturing ?? True !! False);
+        Nil
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $longname := $!name;
+        if $longname.is-identifier {
+            my $name := $longname.canonicalize;
+            if $name eq 'sym' {
+                nqp::die('special <sym> name not yet compiled');
+            }
+            else {
+                my $qast := QAST::Regex.new: :rxtype<subrule>,
+                    QAST::NodeList.new(QAST::SVal.new( :value($name) ));
+                if $!capturing {
+                    $qast.subtype('capture');
+                    $qast.name($name);
+                }
+                $qast
+            }
+        }
+        else {
+            nqp::die('non-identifier rule calls not yet compiled');
+        }
+    }
+}
+
+# A named rule called with args.
+class RakuAST::Regex::Assertion::Named::Args is RakuAST::Regex::Assertion::Named {
+    has RakuAST::ArgList $.args;
+
+    method new(RakuAST::Name :$name!, Bool :$capturing, Raku::ArgList :$args!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!capturing',
+            $capturing ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Named::Args, '$!args', $args);
+        $obj
+    }
+}
+
+# A named rule called with a regex argument.
+class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::Named {
+    has RakuAST::Regex $.regex-arg;
+
+    method new(RakuAST::Name :$name!, Bool :$capturing, Raku::Regex :$regex-arg!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Named, '$!capturing',
+            $capturing ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Named::RegexArg,
+            '$!regex-arg', $regex-arg);
+        $obj
+    }
+}
+
+# An alias assertion (where another assertion is given an extra name - or, in
+# the case it's anonymous, perhaps just a name).
+class RakuAST::Regex::Assertion::Alias is RakuAST::Regex::Assertion {
+    has str $.name;
+    has RakuAST::Regex::Assertion $.assertion;
+
+    method new(str :$name!, RakuAST::Regex::Assertion :$assertion!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Regex::Assertion::Alias, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Alias, '$!assertion', $assertion);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $qast := $!assertion.IMPL-REGEX-QAST($context, %mods);
+        if $qast.rxtype eq 'subrule' {
+            self.IMPL-SUBRULE-ALIAS($qast, $!name);
+        }
+        else {
+            QAST::Regex.new( $qast, :name($!name), :rxtype<subcapture> );
+        }
+    }
+
+    method IMPL-SUBRULE-ALIAS(Mu $qast, str $name) {
+        if $qast.name gt '' {
+            $qast.name($name ~ '=' ~ $qast.name);
+        }
+        else {
+            $qast.name($name);
+        }
+        $qast.subtype('capture');
+        $qast
+    }
+}
+
+# A lookahead assertion (where another assertion is evaluated as a
+# zerowidth lookahead, either positive or negative).
+class RakuAST::Regex::Assertion::Lookahead is RakuAST::Regex::Assertion {
+    has Bool $.negated;
+    has RakuAST::Regex::Assertion $.assertion;
+
+    method new(Bool :$negated, RakuAST::Regex::Assertion :$assertion!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Lookahead, '$!negated',
+            $negated ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Lookahead, '$!assertion', $assertion);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $qast := $!assertion.IMPL-REGEX-QAST($context, %mods);
+        $qast.subtype('zerowidth');
+        if $!negated {
+            $qast.negate(!$qast.negate);
+        }
+        $qast
+    }
+}
+
 # A quantified atom in a regex - that is, an atom with a quantifier and
 # optional separator.
 class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {

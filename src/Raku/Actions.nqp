@@ -785,6 +785,13 @@ class Raku::RegexActions is HLL::Actions {
         $res := nqp::atkey($res.WHO, $t3) unless nqp::isnull($res);
         nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}::{$t3}"))
     }
+    multi method r($t1, $t2, $t3, $t4) {
+        my $res := nqp::atkey($ast_root, $t1);
+        $res := nqp::atkey($res.WHO, $t2) unless nqp::isnull($res);
+        $res := nqp::atkey($res.WHO, $t3) unless nqp::isnull($res);
+        $res := nqp::atkey($res.WHO, $t4) unless nqp::isnull($res);
+        nqp::ifnull($res, nqp::die("No such node RakuAST::{$t1}::{$t2}::{$t3}::{$t4}"))
+    }
 
     method nibbler($/) {
         make $<termseq>.ast;
@@ -956,5 +963,59 @@ class Raku::RegexActions is HLL::Actions {
     method backslash:sym<s>($/) {
         my constant NAME := nqp::hash('d', 'Digit', 'n', 'Newline', 's', 'Space', 'w', 'Word');
         make self.r('Regex', 'CharClass', NAME{nqp::lc(~$<sym>)}).new(negated => $<sym> le 'Z');
+    }
+
+    method assertion:sym<?>($/) {
+        if $<assertion> {
+            my $assertion := $<assertion>.ast;
+            make self.r('Regex', 'Assertion', 'Lookahead').new(:$assertion);
+        }
+        else {
+            make self.r('Regex', 'Assertion', 'Pass').new();
+        }
+    }
+
+    method assertion:sym<!>($/) {
+        if $<assertion> {
+            my $assertion := $<assertion>.ast;
+            make self.r('Regex', 'Assertion', 'Lookahead').new(:$assertion, :negated);
+        }
+        else {
+            make self.r('Regex', 'Assertion', 'Fail').new();
+        }
+    }
+
+    method assertion:sym<method>($/) {
+        my $ast := $<assertion>.ast;
+        if nqp::can($ast, 'set-capturing') {
+            $ast.set-capturing(0);
+        }
+        make $ast;
+    }
+
+    method assertion:sym<name>($/) {
+        my $name := ~$<longname>;
+        my $qast;
+        if $<assertion> {
+            my str $name := ~$<longname>;
+            my $assertion := $<assertion>.ast;
+            make self.r('Regex', 'Assertion', 'Alias').new(:$name, :$assertion);
+        }
+        else {
+            my $name := $<longname>.ast;
+            if $<arglist> {
+                my $args := $<arglist>.ast;
+                make self.r('Regex', 'Assertion', 'Named', 'Args').new(
+                    :$name, :capturing, :$args);
+            }
+            elsif $<nibbler> {
+                my $regex-arg := $<nibbler>.ast;
+                make self.r('Regex', 'Assertion', 'Named', 'RegexArg').new(
+                    :$name, :capturing, :$regex-arg);
+            }
+            else {
+                make self.r('Regex', 'Assertion', 'Named').new(:$name, :capturing);
+            }
+        }
     }
 }

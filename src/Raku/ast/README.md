@@ -58,6 +58,7 @@ quite a few other things to do that will be helpful. Specifically:
   the RakuAST compiler.)
 * Make us indicate slurpiness when signatures are introspected. (Difficulty:
   easy, just need to make sure the AST compiler passes that along when we
+  build the Parameter object.
 
 And in general:
 

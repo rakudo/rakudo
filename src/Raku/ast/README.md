@@ -151,7 +151,7 @@ Such `RakuAST::Meta` elements have the methods:
   produced, and `False` otherwise
 
 The production of the meta-object may entail the production of dependent
-meta-objects as a side-effect (for exmaple, demanding the meta-object of a
+meta-objects as a side-effect (for example, demanding the meta-object of a
 routine in turn requires the signature meta-object, which in turn requires
 the parameter meta-objects).
 

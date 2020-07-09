@@ -8,7 +8,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
     has $!distribution;
     has $!files-prefix;
 
-    my constant @extensions = <rakumod pm6 pm>;
+    my constant @extensions = <.rakumod .pm6 .pm>;
 
     method !matching-dist(CompUnit::DependencySpecification $spec) {
         return $_ with %!seen{~$spec};
@@ -164,7 +164,7 @@ class CompUnit::Repository::FileSystem does CompUnit::Repository::Locally does C
 
             # Break the !distribution cache if we failed to find a match using the cached distribution
             # but still found an existing file that matches the $spec.short-name
-            return Empty unless @extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ ".$_") }).first(*.f);
+            return Empty unless @extensions.map({ $!prefix.add($spec.short-name.subst(:g, "::", $*SPEC.dir-sep) ~ $_) }).first(*.f);
             $!distribution = Nil;
             $distribution = self!distribution;
         }

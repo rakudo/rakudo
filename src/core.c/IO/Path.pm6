@@ -192,8 +192,16 @@ my class IO::Path is Cool does IO {
           $!SPEC.join(.<volume>, .<dirname>, sibling)
     }
 
-    method succ(IO::Path:D:) { nqp::clone(self).cloned-with-path($!path.succ) }
-    method pred(IO::Path:D:) { nqp::clone(self).cloned-with-path($!path.pred) }
+    method succ(IO::Path:D:) {
+        my int $i = nqp::index($!path,".");
+        $i = nqp::iseq_i($i,-1) ?? nqp::chars($!path) !! $i;
+        nqp::clone(self).cloned-with-path(Rakudo::Internals.SUCC($!path,$i - 1))
+    }
+    method pred(IO::Path:D:) {
+        my int $i = nqp::index($!path,".");
+        $i = nqp::iseq_i($i,-1) ?? nqp::chars($!path) !! $i;
+        nqp::clone(self).cloned-with-path(Rakudo::Internals.PRED($!path,$i - 1))
+    }
 
     multi method IO() { self }
     method open(IO::Path:D: |c) { IO::Handle.new(:path(self)).open(|c) }

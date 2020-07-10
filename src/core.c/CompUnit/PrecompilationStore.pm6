@@ -4,7 +4,7 @@ role CompUnit::PrecompilationStore {
     { ... }
 
     # Initiates the item-level lock
-    method initiate-lock(IO::Path:D $path)
+    method initiate-lock(Str $location)
     { ... }
 
     # Load the precompilation identified by the pairing of the specified

@@ -395,8 +395,9 @@ Need to re-check dependencies.")
         nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',
           $distribution ?? $distribution.serialize !! '{}');
 
-        my $bc := "$io.bc".IO;
+        my $bc := "$io.bc";
         my $bc-lock := $store.initiate-lock($bc);
+        $bc := $bc.IO;
         $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
           if $!RMD;
 

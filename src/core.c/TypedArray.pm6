@@ -104,12 +104,12 @@
             )
         }
 
-        multi method raku(::?CLASS:D:) {
-            my $type := self.^name;
+        multi method raku(::?CLASS:D \SELF:) {
+            my $type := TValue.raku;
             my $raku := self.map({
                 nqp::isconcrete($_) ?? .raku(:arglist) !! $type
             }).join(', ');
-            $type ~ '.new(' ~ $raku ~ ')'
+            'Array[' ~ $type ~ '].new(' ~ $raku ~ ')';
         }
     }
     method ^parameterize(Mu:U \arr, Mu \t, |c) {

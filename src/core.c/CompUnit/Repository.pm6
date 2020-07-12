@@ -4,7 +4,7 @@ role CompUnit::Repository {
     # Resolves a dependency specification to a concrete dependency. If the
     # dependency was not already loaded, loads it. Returns a CompUnit
     # object that represents the selected dependency. If there is no
-    # matching dependency, returns Nil
+    # matching dependency, throws X::CompUnit::UnsatisfiedDependency.
     method need(CompUnit::DependencySpecification $spec,
                 # If we're first in the chain, our precomp repo is the chosen one.
                 CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),

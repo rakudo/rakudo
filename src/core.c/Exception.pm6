@@ -3114,7 +3114,6 @@ my class X::Proc::Unsuccessful is Exception {
 class CompUnit::DependencySpecification { ... }
 my class X::CompUnit::UnsatisfiedDependency is Exception {
     has CompUnit::DependencySpecification $.specification;
-    has $.suggestions;
 
     my sub is-core($name) {
         my @parts = $name.split("::");
@@ -3129,22 +3128,16 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
     }
 
     method message() {
-        my $name := $.specification.short-name;
-        if is-core($name) {
-            "'$name' is a builtin type (not an external module) and as such does not needs to be explicitely loaded.".naive-word-wrapper
-        }
-        else {
-            my $list := "Could not find $.specification in:\n"
-              ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4);
-            my $suggestions := ($.specification ~~ / $<name>=.+ '::from' /
-               ?? "If you meant to use the :from adverb, use a single colon for it: $<name>:from<...>"
-               !! $!suggestions
-            ).naive-word-wrapper;
-
-            $suggestions
-              ?? "$list\n\n$suggestions"
-              !! $list
-        }
+        my $name = $.specification.short-name;
+        is-core($name)
+            ?? "{$name} is a builtin type, not an external module"
+            !! "Could not find $.specification in:\n"
+                ~ $*REPO.repo-chain.map(*.path-spec).join("\n").indent(4)
+                ~ ($.specification ~~ / $<name>=.+ '::from' $ /
+                    ?? "\n\nIf you meant to use the :from adverb, use"
+                        ~ " a single colon for it: $<name>:from<...>\n"
+                    !! ''
+                )
     }
 }
 

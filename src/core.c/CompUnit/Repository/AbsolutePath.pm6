@@ -5,8 +5,9 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
                 CompUnit::PrecompilationRepository $precomp = self.precomp-repository()
         --> CompUnit:D)
     {
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
-        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+        self.next-repo
+          ?? self.next-repo.need($spec, $precomp)
+          !! Nil
     }
 
     method load(IO::Path:D $file --> CompUnit:D) {

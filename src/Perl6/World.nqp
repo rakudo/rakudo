@@ -1499,15 +1499,21 @@ class Perl6::World is HLL::World {
         );
         self.add_object_if_no_sc($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);
-        my $comp_unit := $registry.head.need($spec);
-        my $globalish := $comp_unit.handle.globalish-package;
-        nqp::gethllsym('Raku','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
+        my $comp_unit := $registry.head.need($spec,:first);
 
-        CATCH {
-            self.rethrow($/, $_);
+        if $comp_unit {
+            my $globalish := $comp_unit.handle.globalish-package;
+            nqp::gethllsym('Raku','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
+
+            CATCH {
+                self.rethrow($/, $_);
+            }
+            return $comp_unit;
         }
 
-        return $comp_unit;
+        self.throw($/, 'X::CompUnit::UnsatisfiedDependency',
+          specification => $spec,
+        );
     }
 
     # Uses the NQP module loader to load Perl6::ModuleLoader, which

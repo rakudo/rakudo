@@ -31,8 +31,9 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
             }
         }
 
-        return self.next-repo.need($spec, $precomp) if self.next-repo;
-        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+        self.next-repo
+          ?? self.next-repo.need($spec, $precomp)
+          !! Nil
     }
 
     method loaded() {

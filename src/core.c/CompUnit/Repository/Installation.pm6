@@ -583,8 +583,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 return %!loaded{$id} //= $compunit;
             }
         }
-        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
-        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+
+        self.next-repo
+          ?? self.next-repo.need($spec, $precomp, :@precomp-stores)
+          !! Nil
     }
 
     method resource($dist-id, $key) {

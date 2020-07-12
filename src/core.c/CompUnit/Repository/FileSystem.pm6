@@ -98,8 +98,9 @@ class CompUnit::Repository::FileSystem
             );
         }
 
-        return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
-        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+        self.next-repo
+          ?? self.next-repo.need($spec, $precomp, :@precomp-stores)
+          !! Nil
     }
 
     method load(IO::Path:D $file --> CompUnit:D) {

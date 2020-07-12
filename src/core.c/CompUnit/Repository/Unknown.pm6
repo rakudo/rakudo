@@ -10,11 +10,11 @@ class CompUnit::Repository::Unknown does CompUnit::Repository {
         ),
         --> CompUnit:D)
     {
-        return $precomp
+        self.next-repo
+          ?? $precomp
             ?? self.next-repo.need($spec, $precomp, :@precomp-stores)
             !! self.next-repo.need($spec, :@precomp-stores)
-            if self.next-repo;
-        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
+          !! Nil
     }
 
     method loaded() {

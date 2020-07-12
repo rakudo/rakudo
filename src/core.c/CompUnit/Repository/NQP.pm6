@@ -16,9 +16,8 @@ class CompUnit::Repository::NQP does CompUnit::Repository {
             );
         }
 
-        self.next-repo
-          ?? self.next-repo.need($spec, $precomp)
-          !! Nil
+        return self.next-repo.need($spec, $precomp) if self.next-repo;
+        X::CompUnit::UnsatisfiedDependency.new(:specification($spec)).throw;
     }
 
     method loaded() {

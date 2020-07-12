@@ -68,8 +68,9 @@ class CompUnit::Repository::FileSystem
         CompUnit::DependencySpecification $spec,
         CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
         CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
-        :$first,
-    --> CompUnit:D) {
+
+        --> CompUnit:D)
+    {
         return $_ with %!loaded{~$spec};
 
         with self!matching-dist($spec) {
@@ -97,20 +98,9 @@ class CompUnit::Repository::FileSystem
             );
         }
 
-        my $found := self.next-repo
+        self.next-repo
           ?? self.next-repo.need($spec, $precomp, :@precomp-stores)
-          !! Nil;
-        return $found if $found or !$first;
-
-        # set up suggestion if applicable
-        my $suggestions := $!prefix.add("META6.json").e
-          ?? "Please note that a 'META6.json' file was found in '$!prefix.relative()', of which the 'provides' section was used to determine if a dependency is available or not.  Perhaps you need to add '$spec' in the <provides> section of that file?  Or need to specify a directory that does *not* have a 'META6.json' file?"
-          !! '';
-
-        X::CompUnit::UnsatisfiedDependency.new(
-          specification => $spec,
-          suggestions   => $suggestions,
-        ).throw
+          !! Nil
     }
 
     method load(IO::Path:D $file --> CompUnit:D) {

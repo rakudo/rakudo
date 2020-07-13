@@ -332,7 +332,7 @@ class RakuAST::Submethod is RakuAST::Method {
 
 # A regex declaration, such as `token foo { bar }`. This implies its own
 # lexical scope.
-class RakuAST::RegexDeclaration is RakuAST::Code is RakuAST::LexicalScope {
+class RakuAST::RegexDeclaration is RakuAST::Code is RakuAST::LexicalScope is RakuAST::Term {
     has RakuAST::Signature $.signature;
     has RakuAST::Regex $.body;
 
@@ -363,7 +363,8 @@ class RakuAST::RegexDeclaration is RakuAST::Code is RakuAST::LexicalScope {
 
 # A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
 # new lexical scope.
-class RakuAST::QuotedRegex is RakuAST::Code is RakuAST::Meta is RakuAST::Sinkable {
+class RakuAST::QuotedRegex is RakuAST::Code is RakuAST::Meta is RakuAST::Term
+                           is RakuAST::Sinkable {
     has RakuAST::Regex $.body;
 
     method new(RakuAST::Regex :$body) {

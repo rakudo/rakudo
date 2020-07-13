@@ -3112,6 +3112,7 @@ my class X::Proc::Unsuccessful is Exception {
 }
 
 class CompUnit::DependencySpecification { ... }
+class CompUnit::Repository::FileSystem { ... }
 my class X::CompUnit::UnsatisfiedDependency is Exception {
     has CompUnit::DependencySpecification $.specification;
 
@@ -3127,6 +3128,10 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
             and not nqp::istype(nqp::how($ns{$last}), Metamodel::PackageHOW)
     }
 
+    method !is-missing-from-meta-file() {
+        $*REPO.isa(CompUnit::Repository::FileSystem) and $*REPO.prefix.add("META6.json").e
+    }
+
     method message() {
         my $name = $.specification.short-name;
         is-core($name)
@@ -3136,7 +3141,12 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
                 ~ ($.specification ~~ / $<name>=.+ '::from' $ /
                     ?? "\n\nIf you meant to use the :from adverb, use"
                         ~ " a single colon for it: $<name>:from<...>\n"
-                    !! ''
+                    !! self!is-missing-from-meta-file
+                        ?? "\n\nPlease note that a 'META6.json' file was found in '$*REPO.prefix.relative()',"
+                            ~ " of which the 'provides' section was used to determine if a dependency is available"
+                            ~ " or not.  Perhaps you need to add '$!specification' in the <provides> section of"
+                            ~ " that file?  Or need to specify a directory that does *not* have a 'META6.json' file?"
+                        !! ''
                 )
     }
 }

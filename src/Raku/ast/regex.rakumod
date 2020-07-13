@@ -407,15 +407,18 @@ class RakuAST::Regex::Assertion::Lookahead is RakuAST::Regex::Assertion {
 class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {
     has RakuAST::Atom $.atom;
     has RakuAST::Quantifier $.quantifier;
-    has RakuAST::Term $.separator;
+    has RakuAST::Regex::Term $.separator;
+    has Bool $.trailing-separator;
 
     method new(RakuAST::Atom :$atom!, RakuAST::Quantifier :$quantifier!,
-               RakuAST::Separator :$separator) {
+               RakuAST::Separator :$separator, Bool :$trailing-separator) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!atom', $atom);
         nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!quantifier', $quantifier);
         nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!separator',
-            $separator // RakuAST::Term);
+            $separator // RakuAST::Regex::Term);
+        nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!trailing-separator',
+            $trailing-separator ?? True !! False);
         $obj
     }
 
@@ -423,7 +426,20 @@ class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {
         my $atom := $!atom.IMPL-REGEX-QAST($context, %mods);
         my $quantified := $!quantifier.IMPL-QAST-QUANTIFY($context, $atom, %mods);
         if $!separator {
-            nqp::die("Cannot yet compile separators");
+            $quantified.push($!separator.IMPL-REGEX-QAST($context, %mods));
+            if $!trailing-separator {
+                QAST::Regex.new(
+                    :rxtype<concat>,
+                    $quantified,
+                    QAST::Regex.new(
+                        :rxtype<quant>, :min(0), :max(1),
+                        $!separator.IMPL-REGEX-QAST($context, %mods)
+                    )
+                )
+            }
+            else {
+                $quantified
+            }
         }
         else {
             $quantified

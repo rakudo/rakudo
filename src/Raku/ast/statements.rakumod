@@ -1,5 +1,10 @@
+# Block or statement, used in statement prefixes which can take either a
+# block or a statement.
+class RakuAST::Blorst is RakuAST::Node {
+}
+
 # Everything that can appear at statement level does RakuAST::Statement.
-class RakuAST::Statement is RakuAST::Node {
+class RakuAST::Statement is RakuAST::Blorst {
 }
 
 # A list of statements, often appearing as the body of a block.

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 12;
+plan 28;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -60,4 +60,105 @@ sub rx(RakuAST::Regex $body) {
             RakuAST::Regex::CharClass::Any.new,
             RakuAST::Regex::Literal.new('cd'))),
         'Conjunction fails when items match different lengths';
+
+    is "abcde" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::CharClass::Any.new,
+            RakuAST::Regex::Literal.new('d'))),
+        'cd',
+        'Sequence needs one thing to match after the other (pass case)';
+    nok "abcde" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::CharClass::Any.new,
+            RakuAST::Regex::Literal.new('a'))),
+        'Sequence needs one thing to match after the other (failure case)';
+
+    is "abcde" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Anchor::BeginningOfString.new,
+            RakuAST::Regex::CharClass::Any.new)),
+        'a',
+        'Beginning of string anchor works (pass case)';
+    nok "abcde" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Anchor::BeginningOfString.new,
+            RakuAST::Regex::Literal.new('b'))),
+        'Beginning of string anchor works (failure case)';
+
+    is "abcde" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::CharClass::Any.new,
+            RakuAST::Regex::Anchor::EndOfString.new)),
+        'e',
+        'End of string anchor works (pass case)';
+    nok "abcde" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Literal.new('b'),
+            RakuAST::Regex::Anchor::EndOfString.new)),
+        'End of string anchor works (failure case)';
+
+    is "elizabeth the second" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::CharClass::Any.new,
+            RakuAST::Regex::Literal.new('e'),
+            RakuAST::Regex::Anchor::RightWordBoundary.new)),
+        'he',
+        'Right word boundary works (pass case)';
+    nok "elizabeth second" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::CharClass::Any.new,
+            RakuAST::Regex::Literal.new('e'),
+            RakuAST::Regex::Anchor::RightWordBoundary.new)),
+        'Right word boundary works (failure case)';
+
+    is "cat ethics committee" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Anchor::LeftWordBoundary.new,
+            RakuAST::Regex::CharClass::Any.new,
+            RakuAST::Regex::Literal.new('t'))),
+        'et',
+        'Left word boundary works (pass case)';
+    nok "cat committee" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Anchor::LeftWordBoundary.new,
+            RakuAST::Regex::CharClass::Any.new,
+            RakuAST::Regex::Literal.new('t'))),
+        'Left word boundary works (failure case)';
+
+    is "99cents" ~~ rx(RakuAST::Regex::QuantifiedAtom.new(
+            atom => RakuAST::Regex::CharClass::Digit.new,
+            quantifier => RakuAST::Regex::Quantifier::OneOrMore.new)),
+        '99',
+        'Quantified built-in character class matches';
+    is "99cents" ~~ rx(RakuAST::Regex::QuantifiedAtom.new(
+            atom => RakuAST::Regex::CharClass::Digit.new(:negated),
+            quantifier => RakuAST::Regex::Quantifier::OneOrMore.new)),
+        'cents',
+        'Quantified negated built-in character class matches';
+    is "99cents" ~~ rx(RakuAST::Regex::QuantifiedAtom.new(
+            atom => RakuAST::Regex::CharClass::Digit.new,
+            quantifier => RakuAST::Regex::Quantifier::OneOrMore.new(
+                backtrack => RakuAST::Regex::Backtrack::Frugal
+            ))),
+        '9',
+        'Quantified built-in character class matches (frugal mode)';
+    is "99cents" ~~ rx(RakuAST::Regex::QuantifiedAtom.new(
+            atom => RakuAST::Regex::CharClass::Digit.new(:negated),
+            quantifier => RakuAST::Regex::Quantifier::OneOrMore.new(
+                backtrack => RakuAST::Regex::Backtrack::Frugal
+            ))),
+        'c',
+        'Quantified negated built-in character class matches (frugal mode)';
+
+    is "99cents" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Anchor::BeginningOfString.new,
+            RakuAST::Regex::QuantifiedAtom.new(
+                atom => RakuAST::Regex::CharClass::Digit.new,
+                quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+            ),
+            RakuAST::Regex::Literal.new('9'),
+        )),
+        '99',
+        'Greedy quantifier will backtrack';
+    nok "99cents" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Anchor::BeginningOfString.new,
+            RakuAST::Regex::QuantifiedAtom.new(
+                atom => RakuAST::Regex::CharClass::Digit.new,
+                quantifier => RakuAST::Regex::Quantifier::OneOrMore.new(
+                    backtrack => RakuAST::Regex::Backtrack::Ratchet
+                )
+            ),
+            RakuAST::Regex::Literal.new('9'),
+        )),
+        'Ratchet quantifier will not backtrack';
 }

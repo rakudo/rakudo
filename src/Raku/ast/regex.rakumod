@@ -5,7 +5,7 @@ class RakuAST::Regex is RakuAST::Node {
         my $regex-qast := self.IMPL-REGEX-QAST($context, %mods);
 
         # Store its captures and NFA.
-        QRegex::P6Regex::Actions.store_regex_caps($code-object, nqp::null, nqp::hash());
+        $code-object.SET_CAPS(QRegex::P6Regex::Actions.capnames($regex-qast, 0));
         # TODO top-level NFA if applicable (e.g. if named rule)
         QRegex::P6Regex::Actions.alt_nfas($code-object, $regex-qast, $context.sc-handle);
 

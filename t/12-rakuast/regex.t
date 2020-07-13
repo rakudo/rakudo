@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 32;
+plan 44;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -193,4 +193,46 @@ sub rx(RakuAST::Regex $body) {
             separator => RakuAST::Regex::Literal.new(','))),
         '1,2,33,400',
         'Regex groups compile correctly';
+
+    is "1a2" ~~ rx(RakuAST::Regex::Assertion::Named.new(
+            name => RakuAST::Name.from-identifier('alpha'),
+            capturing => True
+        )),
+        'a',
+        'Named assertion matches correctly';
+    is-deeply $/.hash.keys, ('alpha',).Seq, 'Correct match keys';
+    is $<alpha>, 'a', 'Correct match captured';
+
+    is "1a2" ~~ rx(RakuAST::Regex::Assertion::Alias.new(
+            name => 'foo',
+            assertion => RakuAST::Regex::Assertion::Named.new(
+                name => RakuAST::Name.from-identifier('alpha'),
+                capturing => True
+            )
+        )),
+        'a',
+        'Named assertion with alias matches correctly';
+    is-deeply $/.hash.keys.sort, ('alpha', 'foo').Seq, 'Correct match keys';
+    is $<alpha>, 'a', 'Correct match captured (original name)';
+    is $<foo>, 'a', 'Correct match captured (aliased name)';
+
+    is "1a2" ~~ rx(RakuAST::Regex::Assertion::Named.new(
+            name => RakuAST::Name.from-identifier('alpha'),
+            capturing => False
+        )),
+        'a',
+        'Non-capturing named assertion matches correctly';
+    is-deeply $/.hash.keys, ().Seq, 'No match keys';
+
+    is "1a2" ~~ rx(RakuAST::Regex::Assertion::Alias.new(
+            name => 'foo',
+            assertion => RakuAST::Regex::Assertion::Named.new(
+                name => RakuAST::Name.from-identifier('alpha'),
+                capturing => False
+            )
+        )),
+        'a',
+        'Non-capturing named assertion with alias matches correctly';
+    is-deeply $/.hash.keys.sort, ('foo',).Seq, 'Correct match keys';
+    is $<foo>, 'a', 'Correct match captured (aliased name)';
 }

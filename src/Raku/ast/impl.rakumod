@@ -11,6 +11,12 @@ class RakuAST::IMPL::QASTContext {
         $obj
     }
 
+    # Get the handle of the serialization context.
+    method sc-handle() {
+        nqp::scgethandle($!sc)
+    }
+
+    # Ensure that the passed object is in a serialization context.
     method ensure-sc(Mu $obj is raw) {
         if nqp::isnull(nqp::getobjsc($obj)) {
             my $sc := $!sc;

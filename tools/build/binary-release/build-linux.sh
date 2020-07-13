@@ -3,7 +3,7 @@
 # This script should be allowed to run sudo in a CentOS 6 installation (a
 # container will do just fine).
 # For some strange reason the environment variables are lost when running this
-# script with `sudo` in azure pipelines. So we just do sudo our selves for the
+# script with `sudo` in azure pipelines. So we just do sudo ourselves for the
 # dependency install part.
 
 set -o errexit

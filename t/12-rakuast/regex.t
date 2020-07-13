@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 30;
+plan 32;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -175,4 +175,22 @@ sub rx(RakuAST::Regex $body) {
             trailing-separator => True)),
         '1,2,3,4,',
         'Separator works (trailing case)';
+    is "values: 1,2,33,4,stuff" ~~ rx(RakuAST::Regex::QuantifiedAtom.new(
+            atom => RakuAST::Regex::CharClass::Digit.new,
+            quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
+            separator => RakuAST::Regex::Literal.new(','))),
+        '1,2,3',
+        'Separator must be between every quantified item';
+
+    is "values: 1,2,33,400,stuff" ~~ rx(RakuAST::Regex::QuantifiedAtom.new(
+            atom => RakuAST::Regex::Group.new(
+                RakuAST::Regex::QuantifiedAtom.new(
+                    atom => RakuAST::Regex::CharClass::Digit.new,
+                    quantifier => RakuAST::Regex::Quantifier::OneOrMore.new
+                )
+            ),
+            quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
+            separator => RakuAST::Regex::Literal.new(','))),
+        '1,2,33,400',
+        'Regex groups compile correctly';
 }

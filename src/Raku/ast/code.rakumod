@@ -56,7 +56,8 @@ class RakuAST::Code is RakuAST::Node {
 
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
-                     is RakuAST::BlockStatementSensitive is RakuAST::SinkPropagator {
+                     is RakuAST::BlockStatementSensitive is RakuAST::SinkPropagator
+                     is RakuAST::Blorst {
     has RakuAST::Blockoid $.body;
 
     method new(RakuAST::Blockoid :$body) {

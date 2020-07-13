@@ -455,6 +455,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     ##
+    ## Statement prefixes
+    ##
+
+    proto token statement_prefix { <...> }
+
+    token statement_prefix:sym<do>      { <sym><.kok> <blorst> }
+
+    token blorst {
+        [
+        | <?[{]> <block>
+        | <![;]> <statement> # <.cheat_heredoc>?
+        || <.missing: 'block or statement'>
+        ]
+    }
+
+    ##
     ## Expression parsing and operators
     ##
 
@@ -979,6 +995,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<variable>           { <variable> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
+    token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<lambda>             { <?lambda> <pblock> }
     token term:sym<value>              { <value> }
 

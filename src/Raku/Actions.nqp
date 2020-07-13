@@ -872,7 +872,9 @@ class Raku::RegexActions is HLL::Actions {
             my $quantifier := $<quantifier>.ast;
             if $<separator> {
                 my $separator := $<separator>.ast;
-                make self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier, :$separator);
+                my $trailing-separator := $<separator><septype> eq '%%';
+                make self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier,
+                    :$separator, :$trailing-separator);
             }
             else {
                 make self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier);
@@ -922,6 +924,10 @@ class Raku::RegexActions is HLL::Actions {
         else {
             self.r('Regex', 'Backtrack')
         }
+    }
+
+    method separator($/) {
+        make $<quantified_atom>.ast;
     }
 
     method metachar:sym<.>($/) {

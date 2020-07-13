@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 28;
+plan 30;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -161,4 +161,18 @@ sub rx(RakuAST::Regex $body) {
             RakuAST::Regex::Literal.new('9'),
         )),
         'Ratchet quantifier will not backtrack';
+
+    is "values: 1,2,3,4,stuff" ~~ rx(RakuAST::Regex::QuantifiedAtom.new(
+            atom => RakuAST::Regex::CharClass::Digit.new,
+            quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
+            separator => RakuAST::Regex::Literal.new(','))),
+        '1,2,3,4',
+        'Separator works (non-trailing case)';
+    is "values: 1,2,3,4,stuff" ~~ rx(RakuAST::Regex::QuantifiedAtom.new(
+            atom => RakuAST::Regex::CharClass::Digit.new,
+            quantifier => RakuAST::Regex::Quantifier::OneOrMore.new,
+            separator => RakuAST::Regex::Literal.new(','),
+            trailing-separator => True)),
+        '1,2,3,4,',
+        'Separator works (trailing case)';
 }

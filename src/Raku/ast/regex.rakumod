@@ -290,6 +290,10 @@ class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion {
             nqp::die('non-identifier rule calls not yet compiled');
         }
     }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+    }
 }
 
 # A named rule called with args.
@@ -303,6 +307,11 @@ class RakuAST::Regex::Assertion::Named::Args is RakuAST::Regex::Assertion::Named
             $capturing ?? True !! False);
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named::Args, '$!args', $args);
         $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor(self.name);
+        $visitor($!args);
     }
 }
 
@@ -318,6 +327,11 @@ class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::N
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named::RegexArg,
             '$!regex-arg', $regex-arg);
         $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor(self.name);
+        $visitor($!regex-arg);
     }
 }
 
@@ -354,6 +368,10 @@ class RakuAST::Regex::Assertion::Alias is RakuAST::Regex::Assertion {
         $qast.subtype('capture');
         $qast
     }
+
+    method visit-children(Code $visitor) {
+        $visitor($!assertion);
+    }
 }
 
 # A lookahead assertion (where another assertion is evaluated as a
@@ -377,6 +395,10 @@ class RakuAST::Regex::Assertion::Lookahead is RakuAST::Regex::Assertion {
             $qast.negate(!$qast.negate);
         }
         $qast
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!assertion);
     }
 }
 
@@ -407,10 +429,16 @@ class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {
             $quantified
         }
     }
+
+    method visit-children(Code $visitor) {
+        $visitor($!atom);
+        $visitor($!quantifier);
+        $visitor($!separator) if $!separator;
+    }
 }
 
 # The base of all regex quantifiers.
-class RakuAST::Regex::Quantifier {
+class RakuAST::Regex::Quantifier is RakuAST::Node {
     has RakuAST::Regex::Backtrack $.backtrack;
 
     method new(RakuAST::Regex::Backtrack :$backtrack) {
@@ -420,6 +448,10 @@ class RakuAST::Regex::Quantifier {
                 ?? $backtrack
                 !! RakuAST::Regex::Backtrack);
         $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!backtrack) if $!backtrack;
     }
 }
 
@@ -451,7 +483,7 @@ class RakuAST::Regex::Quantifier::OneOrMore is RakuAST::Regex::Quantifier {
 }
 
 # Backtracking modifiers.
-class RakuAST::Regex::Backtrack {
+class RakuAST::Regex::Backtrack is RakuAST::Node {
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
         $quant-qast.backtrack('r') if %mods<r>;
         $quant-qast

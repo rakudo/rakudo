@@ -123,6 +123,21 @@ class RakuAST::Regex::Literal is RakuAST::Regex::Atom {
     }
 }
 
+# A (non-capturing) regex group, from the [...] syntax.
+class RakuAST::Regex::Group is RakuAST::Regex::Atom {
+    has RakuAST::Regex $.regex;
+
+    method new(RakuAST::Group $regex) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Group, '$!regex', $regex);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        $!regex.IMPL-REGEX-QAST($context, nqp::clone(%mods))
+    }
+}
+
 #| The base for all kinds of anchor.
 class RakuAST::Regex::Anchor is RakuAST::Regex::Atom {
     method new() {

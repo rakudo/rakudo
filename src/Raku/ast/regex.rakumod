@@ -491,7 +491,7 @@ class RakuAST::Regex::Backtrack is RakuAST::Node {
 }
 class RakuAST::Regex::Backtrack::Greedy is RakuAST::Regex::Backtrack {
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
-        $quant-qast.backtrack('r');
+        $quant-qast.backtrack('g');
         $quant-qast
     }
 }
@@ -503,7 +503,7 @@ class RakuAST::Regex::Backtrack::Frugal is RakuAST::Regex::Backtrack {
 }
 class RakuAST::Regex::Backtrack::Ratchet is RakuAST::Regex::Backtrack {
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {
-        $quant-qast.backtrack('g');
+        $quant-qast.backtrack('r');
         $quant-qast
     }
 }

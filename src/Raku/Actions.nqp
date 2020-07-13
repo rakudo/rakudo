@@ -975,6 +975,10 @@ class Raku::RegexActions is HLL::Actions {
         make self.r('Regex', 'CharClass', NAME{nqp::lc(~$<sym>)}).new(negated => $<sym> le 'Z');
     }
 
+    method backslash:sym<misc>($/) {
+        make self.r('Regex', 'Literal').new(~$/);
+    }
+
     method assertion:sym<?>($/) {
         if $<assertion> {
             my $assertion := $<assertion>.ast;

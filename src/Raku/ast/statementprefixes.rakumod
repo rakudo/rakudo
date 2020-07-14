@@ -84,6 +84,17 @@ class RakuAST::StatementPrefix::Thunky is RakuAST::StatementPrefix
     }
 }
 
+# The `gather` statement prefix.
+class RakuAST::StatementPrefix::Gather is RakuAST::StatementPrefix::Thunky is RakuAST::SinkPropagator {
+    method propagate-sink(Bool $is-sunk) {
+        self.blorst.apply-sink(True);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new( :op('call'), :name('&GATHER'), self.IMPL-CLOSURE-QAST() )
+    }
+}
+
 # Done by all phasers. Serves as little more than a marker for phasers, for
 # easing locating them all.
 class RakuAST::StatementPrefix::Phaser is RakuAST::StatementPrefix {

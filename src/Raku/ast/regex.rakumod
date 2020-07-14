@@ -356,6 +356,10 @@ class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion {
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        self.IMPL-REGEX-QAST-CALL($context)
+    }
+
+    method IMPL-REGEX-QAST-CALL(RakuAST::IMPL::QASTContext $context) {
         my $longname := $!name;
         if $longname.is-identifier {
             my $name := $longname.canonicalize;
@@ -402,8 +406,13 @@ class RakuAST::Regex::Assertion::Named::Args is RakuAST::Regex::Assertion::Named
 }
 
 # A named rule called with a regex argument.
-class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::Named {
+class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::Named
+                                                 is RakuAST::RegexThunk {
     has RakuAST::Regex $.regex-arg;
+
+    # Used during compilation
+    has str $!unique-name;
+    has Mu $!body-qast;
 
     method new(RakuAST::Name :$name!, Bool :$capturing, Raku::Regex :$regex-arg!) {
         my $obj := nqp::create(self);
@@ -413,6 +422,48 @@ class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::N
         nqp::bindattr($obj, RakuAST::Regex::Assertion::Named::RegexArg,
             '$!regex-arg', $regex-arg);
         $obj
+    }
+
+    method IMPL-UNIQUE-NAME() {
+        my str $unique-name := $!unique-name;
+        unless $unique-name {
+            nqp::bindattr_s(self, RakuAST::Regex::Assertion::Named::RegexArg, '$!unique-name',
+                ($unique-name := QAST::Node.unique('!__REGEX_ARG_')));
+        }
+        $unique-name
+    }
+
+    method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!regex-arg.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash(),
+            :body-qast($!body-qast // nqp::die('Misordered regex compilation')),
+            :no-scan);
+    }
+
+    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
+        # Form the block itself and link it with the meta-object. Install it
+        # in the lexpad; we'll look it up when we need it. This means we can
+        # avoid closure-cloning it per time we enter it, which may help if we
+        # are scanning or it's in a quantified thing.
+        my str $name := self.IMPL-UNIQUE-NAME;
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
+        self.IMPL-LINK-META-OBJECT($context, $block);
+        QAST::Stmts.new(
+            $block,
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
+                self.IMPL-CLOSURE-QAST()
+            )
+        )
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        nqp::bindattr(self, RakuAST::Regex::Assertion::Named::RegexArg, '$!body-qast',
+            $!regex-arg.IMPL-REGEX-QAST($context, %mods));
+        my $qast := self.IMPL-REGEX-QAST-CALL($context);
+        my str $name := self.IMPL-UNIQUE-NAME;
+        $qast[0].push(QAST::Var.new( :$name, :scope('lexical') ));
+        $qast
     }
 
     method visit-children(Code $visitor) {

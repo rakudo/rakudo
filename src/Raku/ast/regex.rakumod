@@ -1,21 +1,25 @@
 # Base marker for all things that may appear as top-level regex syntax.
 class RakuAST::Regex is RakuAST::Node {
-    method IMPL-REGEX-TOP-LEVEL-QAST(RakuAST::IMPL::QASTContext $context, Mu $code-object, %mods) {
+    method IMPL-REGEX-TOP-LEVEL-QAST(RakuAST::IMPL::QASTContext $context, Mu $code-object,
+            %mods, int :$no-scan, Mu :$body-qast) {
         # Compile the regex.
-        my $regex-qast := self.IMPL-REGEX-QAST($context, %mods);
+        my $regex-qast := $body-qast // self.IMPL-REGEX-QAST($context, %mods);
 
         # Store its captures and NFA.
         $code-object.SET_CAPS(QRegex::P6Regex::Actions.capnames($regex-qast, 0));
         # TODO top-level NFA if applicable (e.g. if named rule)
         QRegex::P6Regex::Actions.alt_nfas($code-object, $regex-qast, $context.sc-handle);
 
-        # Wrap in scan/pass
-        QAST::Regex.new(
+        # Wrap in scan/pass as appropriate.
+        my $wrap-qast := QAST::Regex.new(
             :rxtype('concat'),
-            QAST::Regex.new( :rxtype('scan') ),
             $regex-qast,
             QAST::Regex.new( :rxtype('pass') )
-        )
+        );
+        unless $no-scan {
+            $wrap-qast.unshift(QAST::Regex.new( :rxtype('scan') ));
+        }
+        $wrap-qast
     }
 }
 
@@ -127,7 +131,7 @@ class RakuAST::Regex::Literal is RakuAST::Regex::Atom {
 class RakuAST::Regex::Group is RakuAST::Regex::Atom {
     has RakuAST::Regex $.regex;
 
-    method new(RakuAST::Group $regex) {
+    method new(RakuAST::Regex $regex) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Regex::Group, '$!regex', $regex);
         $obj
@@ -135,6 +139,73 @@ class RakuAST::Regex::Group is RakuAST::Regex::Atom {
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         $!regex.IMPL-REGEX-QAST($context, nqp::clone(%mods))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!regex);
+    }
+}
+
+# A (positional, at least by default) capturing regex group, from the (...) syntax.
+class RakuAST::Regex::CapturingGroup is RakuAST::Regex::Atom is RakuAST::RegexThunk {
+    has RakuAST::Regex $.regex;
+
+    # Used as part of QAST compilation.
+    has str $!unique-name;
+    has Mu $!body-qast;
+
+    method new(RakuAST::Regex $regex) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::CapturingGroup, '$!regex', $regex);
+        $obj
+    }
+
+    method IMPL-UNIQUE-NAME() {
+        my str $unique-name := $!unique-name;
+        unless $unique-name {
+            nqp::bindattr_s(self, RakuAST::Regex::CapturingGroup, '$!unique-name',
+                ($unique-name := QAST::Node.unique('!__REGEX_CAPTURE_')));
+        }
+        $unique-name
+    }
+
+    method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!regex.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash(),
+            :body-qast($!body-qast // nqp::die('Misordered regex compilation')),
+            :no-scan);
+    }
+
+    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
+        # Form the block itself and link it with the meta-object. Install it
+        # in the lexpad; we'll look it up when we need it. This means we can
+        # avoid closure-cloning it per time we enter it, for example if it is
+        # quantified.
+        my str $name := self.IMPL-UNIQUE-NAME;
+        my $block := self.IMPL-QAST-FORM-BLOCK($context, 'declaration_static');
+        self.IMPL-LINK-META-OBJECT($context, $block);
+        QAST::Stmts.new(
+            $block,
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
+                self.IMPL-CLOSURE-QAST()
+            )
+        )
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my str $name := self.IMPL-UNIQUE-NAME;
+        my $body-qast := $!regex.IMPL-REGEX-QAST($context, %mods);
+        nqp::bindattr(self, RakuAST::Regex::CapturingGroup, '$!body-qast', $body-qast);
+        QAST::Regex.new(
+            :rxtype('subrule'), :subtype('capture'),
+            QAST::NodeList.new(QAST::Var.new( :$name, :scope('lexical') )),
+            $body-qast
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!regex);
     }
 }
 

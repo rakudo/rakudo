@@ -982,6 +982,14 @@ class Raku::RegexActions is HLL::Actions {
         make self.r('Regex', 'Anchor', 'RightWordBoundary').new;
     }
 
+    method metachar:sym<from>($/) {
+        make self.r('Regex', 'MatchFrom').new;
+    }
+
+    method metachar:sym<to>($/) {
+        make self.r('Regex', 'MatchTo').new;
+    }
+
     method metachar:sym<bs>($/) {
         make $<backslash>.ast;
     }

@@ -169,15 +169,57 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
     }
 
     method type {
-        # XXX depends on processors
-        Str
+        if $!processors {
+            # Can probably figure some of these out.
+            Mu
+        }
+        else {
+            # Always a string if no processors.
+            Str
+        }
+    }
+
+    # Tries to get a literal value for the quoted string. If that is not
+    # possible, returns Nil.
+    method literal-value() {
+        my $base-str;
+        if nqp::elems($!segments) == 1 && nqp::istype($!segments[0], RakuAST::StrLiteral) {
+            $base-str := $!segments[0].value;
+        }
+        else {
+            my str $base-from-parts := '';
+            for $!segments {
+                if nqp::istype($_, RakuAST::StrLiteral) {
+                    $base-from-parts := $base-from-parts ~ $_.value;
+                }
+                else {
+                    return Nil;
+                }
+            }
+            $base-str := nqp::box_s($base-from-parts, Str);
+        }
+        my $result := $base-str;
+        for $!processors {
+            if $_ eq 'words' {
+                return Nil unless nqp::istype($result, Str);
+                $result := $result.WORDS_AUTODEREF();
+            }
+            else {
+                return Nil;
+            }
+        }
+        return $result;
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        if nqp::elems($!segments) == 1 {
-            my $optimized := self.IMPL-TO-QAST-LITERAL($context);
-            return $optimized if $optimized;
+        # If we can constant fold it, just produce the constant.
+        my $literal-value := self.literal-value;
+        if nqp::isconcrete($literal-value) {
+            $context.ensure-sc($literal-value);
+            return QAST::WVal.new( :value($literal-value) );
         }
+
+        # Otherwise, needs compilation.
         my @segment-asts;
         for $!segments {
             if $_.type =:= Str {
@@ -210,17 +252,6 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
             )
         }
         self.IMPL-QAST-PROCESSORS($context, $qast)
-    }
-
-    method IMPL-TO-QAST-LITERAL(RakuAST::IMPL::QASTContext $context) {
-        # When we have a single piece and it's a literal string, we may be able
-        # to optimize processing of it better.
-        my $seg := $!segments[0];
-        if nqp::istype($seg, RakuAST::StrLiteral) {
-            # TODO
-        }
-
-        Nil
     }
 
     method IMPL-QAST-PROCESSORS(RakuAST::IMPL::QASTContext $context, Mu $qast) {

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 63;
+plan 64;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -311,4 +311,13 @@ sub rx(RakuAST::Regex $body) {
         'Negated lookahead assertion calling before with a regex arg works';
     is $/.list.elems, 0, 'No positional captures';
     is $/.hash.elems, 0, 'No named captures';
+
+    is "a1b2c" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Literal.new('b'),
+            RakuAST::Regex::MatchFrom.new,
+            RakuAST::Regex::CharClass::Digit.new,
+            RakuAST::Regex::MatchTo.new,
+            RakuAST::Regex::Literal.new('c'))),
+        '2',
+        'Match from and match to markers works';
 }

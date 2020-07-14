@@ -243,6 +243,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Statement prefixes
     ##
 
+    method statement_prefix:sym<END>($/) {
+        make self.r('StatementPrefix', 'Phaser', 'End').new($<blorst>.ast);
+    }
+
     method statement_prefix:sym<do>($/) {
         make self.r('StatementPrefix', 'Do').new($<blorst>.ast);
     }

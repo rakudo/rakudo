@@ -1,6 +1,6 @@
 # A compilation unit is the main lexical scope of a program.
 class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
-                        is RakuAST::ImplicitDeclarations {
+                        is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget {
     has RakuAST::StatementList $.statement-list;
     has Str $.comp-unit-name;
     has Str $.setting-name;
@@ -8,6 +8,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     has int $!is-sunk;
     has int $!is-eval;
     has Mu $!global-package-how;
+    has Mu $!end-phasers;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
             Str :$setting-name, Bool :$eval, Mu :$global-package-how) {
@@ -20,6 +21,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::bindattr_i($obj, RakuAST::CompUnit, '$!is-eval', $eval ?? 1 !! 0);
         nqp::bindattr($obj, RakuAST::CompUnit, '$!global-package-how',
             $global-package-how =:= NQPMu ?? Perl6::Metamodel::PackageHOW !! $global-package-how);
+        nqp::bindattr($obj, RakuAST::CompUnit, '$!end-phasers', []);
         $obj
     }
 
@@ -55,6 +57,20 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     # Checks if the compilation unit was created in EVAL mode, meaning that it
     # does not declare its own GLOBAL and so forth.
     method is-eval() { $!is-eval ?? True !! False }
+
+    method attach-target-names() {
+        self.IMPL-WRAP-LIST(['compunit'])
+    }
+
+    method clear-attachments() {
+        nqp::setelems($!end-phasers, 0);
+        Nil
+    }
+
+    method add-end-phaser(RakuAST::StatementPrefix::Phaser::End $phaser) {
+        nqp::push($!end-phasers, $phaser);
+        Nil
+    }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         # If we're not in an EVAL, we should produce a GLOBAL package and set
@@ -131,8 +147,24 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         QAST::Stmts.new(
             QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
             self.IMPL-QAST-DECLS($context),
+            self.IMPL-QAST-END-PHASERS($context),
             $!statement-list.IMPL-TO-QAST($context)
         )
+    }
+
+    method IMPL-QAST-END-PHASERS(RakuAST::IMPL::QASTContext $context) {
+        my $end-setup := QAST::Stmts.new;
+        for $!end-phasers {
+            $end-setup.push(QAST::Op.new(
+                :op('callmethod'), :name('unshift'),
+                QAST::Op.new(
+                    :op('getcurhllsym'),
+                    QAST::SVal.new( :value('@END_PHASERS') ),
+                ),
+                QAST::WVal.new( :value($_.meta-object) )
+            ));
+        }
+        $end-setup
     }
 
     method visit-children(Code $visitor) {

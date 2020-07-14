@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 57;
+plan 63;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -280,6 +280,35 @@ sub rx(RakuAST::Regex $body) {
         )),
         '2',
         'Negated lookahead assertion with named rule works';
+    is $/.list.elems, 0, 'No positional captures';
+    is $/.hash.elems, 0, 'No named captures';
+
+    is "!2a" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Assertion::Lookahead.new(
+                assertion => RakuAST::Regex::Assertion::Named::RegexArg.new(
+                    name => RakuAST::Name.from-identifier('before'),
+                    regex-arg => RakuAST::Regex::CharClass::Digit.new,
+                )
+            ),
+            RakuAST::Regex::CharClass::Word.new
+        )),
+        '2',
+        'Lookahead assertion calling before with a regex arg works';
+    is $/.list.elems, 0, 'No positional captures';
+    is $/.hash.elems, 0, 'No named captures';
+
+    is "!2a" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Assertion::Lookahead.new(
+                negated => True,
+                assertion => RakuAST::Regex::Assertion::Named::RegexArg.new(
+                    name => RakuAST::Name.from-identifier('before'),
+                    regex-arg => RakuAST::Regex::CharClass::Digit.new,
+                )
+            ),
+            RakuAST::Regex::CharClass::Word.new
+        )),
+        'a',
+        'Negated lookahead assertion calling before with a regex arg works';
     is $/.list.elems, 0, 'No positional captures';
     is $/.hash.elems, 0, 'No named captures';
 }

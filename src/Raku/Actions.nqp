@@ -950,6 +950,10 @@ class Raku::RegexActions is HLL::Actions {
         make self.r('Regex', 'Group').new($<nibbler>.ast);
     }
 
+    method metachar:sym<( )>($/) {
+        make self.r('Regex', 'CapturingGroup').new($<nibbler>.ast);
+    }
+
     method metachar:sym<.>($/) {
         make self.r('Regex', 'CharClass', 'Any').new;
     }

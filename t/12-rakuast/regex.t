@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 64;
+plan 67;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -320,4 +320,26 @@ sub rx(RakuAST::Regex $body) {
             RakuAST::Regex::Literal.new('c'))),
         '2',
         'Match from and match to markers works';
+
+    is "believe" ~~ rx(RakuAST::Regex::Quote.new(RakuAST::QuotedString.new(
+            :segments[RakuAST::StrLiteral.new('lie')]
+        ))),
+        'lie',
+        'Match involving a quoted string literal works';
+
+    my $end = 've';
+    is "believe" ~~ EVAL(RakuAST::QuotedRegex.new(body =>
+            RakuAST::Regex::Quote.new(RakuAST::QuotedString.new(
+                :segments[RakuAST::StrLiteral.new('e'), RakuAST::Var::Lexical.new('$end')]
+            ))
+        )),
+        'eve',
+        'Match involving a quoted string with interpolation works';
+
+    is "slinky spring" ~~ rx(RakuAST::Regex::Quote.new(RakuAST::QuotedString.new(
+            :segments[RakuAST::StrLiteral.new('link inky linky')],
+            :processors['words']
+        ))),
+        'linky',
+        'Match involving quote words works';
 }

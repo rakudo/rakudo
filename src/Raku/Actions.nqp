@@ -998,6 +998,14 @@ class Raku::RegexActions is HLL::Actions {
         make $<assertion>.ast;
     }
 
+    method metachar:sym<qw>($/) {
+        make self.r('Regex', 'Quote').new($<nibble>.ast);
+    }
+
+    method metachar:sym<'>($/) {
+        make self.r('Regex', 'Quote').new($<quote>.ast);
+    }
+
     method backslash:sym<s>($/) {
         my constant NAME := nqp::hash('d', 'Digit', 'n', 'Newline', 's', 'Space', 'w', 'Word');
         make self.r('Regex', 'CharClass', NAME{nqp::lc(~$<sym>)}).new(negated => $<sym> le 'Z');

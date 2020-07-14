@@ -127,6 +127,65 @@ class RakuAST::Regex::Literal is RakuAST::Regex::Atom {
     }
 }
 
+# A quoted string appearing in the regex. Covers both standard single/double
+# quotes which compile into a literal match of the evaluated string, or
+# quote words, which compile into an LTM alternation of literals.
+class RakuAST::Regex::Quote is RakuAST::Regex::Atom {
+    has RakuAST::QuotedString $.quoted;
+
+    method new(RakuAST::QuotedString $quoted) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Quote, '$!quoted', $quoted);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $literal-value := $!quoted.literal-value;
+        if nqp::isconcrete($literal-value) {
+            if nqp::istype($literal-value, Str) {
+                # Really simple string; just match it.
+                # TODO modifiers
+                QAST::Regex.new( :rxtype<literal>, $literal-value )
+            }
+            elsif nqp::istype($literal-value, List) {
+                # Quote words alternation.
+                my $alt := QAST::Regex.new( :rxtype<alt> );
+                for self.IMPL-UNWRAP-LIST($literal-value) {
+                    # TODO modifiers 
+                    $alt.push(QAST::Regex.new( :rxtype<literal>, $_ ));
+                }
+                $alt
+            }
+            else {
+                nqp::die('Unexpected quoted string literal value type in regex quote; got ' ~
+                    $literal-value.HOW.name($literal-value));
+            }
+        }
+        else {
+            if self.IMPL-UNWRAP-LIST($!quoted.processors) {
+                # Somehow, overly complex quote words construct. Weird.
+                nqp::die('Unsupported quoted string literal in regex quote');
+            }
+            else {
+                # Complex string that needs interpolation.
+                QAST::Regex.new(
+                    :rxtype<subrule>, :subtype<method>,
+                    QAST::NodeList.new(
+                        QAST::SVal.new( :value('!LITERAL') ),
+                        $!quoted.IMPL-TO-QAST($context),
+                        QAST::IVal.new( :value(%mods<i> ?? 1 !! 0) )
+                    )
+                )
+            }
+        }
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!quoted);
+    }
+}
+
+
 # A (non-capturing) regex group, from the [...] syntax.
 class RakuAST::Regex::Group is RakuAST::Regex::Atom {
     has RakuAST::Regex $.regex;

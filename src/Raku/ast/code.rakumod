@@ -362,24 +362,11 @@ class RakuAST::RegexDeclaration is RakuAST::Code is RakuAST::LexicalScope is Rak
     }
 }
 
-# A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
-# new lexical scope.
-class RakuAST::QuotedRegex is RakuAST::Code is RakuAST::Meta is RakuAST::Term
-                           is RakuAST::Sinkable {
-    has RakuAST::Regex $.body;
-
-    method new(RakuAST::Regex :$body) {
-        my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::QuotedRegex, '$!body',
-            $body // RakuAST::Regex::Assertion::Fail.new);
-        $obj
-    }
-
-    method replace-body(RakuAST::Regex $new-body) {
-        nqp::bindattr(self, RakuAST::QuotedRegex, '$!body', $new-body);
-        Nil
-    }
-
+# Done by things that "thunk" a regex - that is to say, they want to compile as
+# a separate regex code object but without introducing a new lexical scope. This#
+# includes quoted regexes like /.../, capturing groups, and calls of the  form
+# `<?before foo>`, where `foo` is the thunked regex.
+class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
     method PRODUCE-META-OBJECT() {
         # Create default signature, receiving invocant only.
         my $signature := nqp::create(Signature);
@@ -409,8 +396,31 @@ class RakuAST::QuotedRegex is RakuAST::Code is RakuAST::Meta is RakuAST::Term
                     )
                 )
             ),
-            $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
+            self.IMPL-THUNKED-REGEX-QAST($context)
         )
+    }
+}
+
+# A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
+# new lexical scope.
+class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
+                           is RakuAST::Sinkable {
+    has RakuAST::Regex $.body;
+
+    method new(RakuAST::Regex :$body) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::QuotedRegex, '$!body',
+            $body // RakuAST::Regex::Assertion::Fail.new);
+        $obj
+    }
+
+    method replace-body(RakuAST::Regex $new-body) {
+        nqp::bindattr(self, RakuAST::QuotedRegex, '$!body', $new-body);
+        Nil
+    }
+
+    method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {

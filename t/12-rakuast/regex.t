@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 44;
+plan 51;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -193,6 +193,8 @@ sub rx(RakuAST::Regex $body) {
             separator => RakuAST::Regex::Literal.new(','))),
         '1,2,33,400',
         'Regex groups compile correctly';
+    nok $/.list.keys, 'No positional captures from non-capturing group';
+    nok $/.hash.keys, 'No named captures from non-capturing group';
 
     is "1a2" ~~ rx(RakuAST::Regex::Assertion::Named.new(
             name => RakuAST::Name.from-identifier('alpha'),
@@ -235,4 +237,20 @@ sub rx(RakuAST::Regex $body) {
         'Non-capturing named assertion with alias matches correctly';
     is-deeply $/.hash.keys.sort, ('foo',).Seq, 'Correct match keys';
     is $<foo>, 'a', 'Correct match captured (aliased name)';
+
+    is "2a1b" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::CapturingGroup.new(
+                RakuAST::Regex::CharClass::Word.new
+            ),
+            RakuAST::Regex::CharClass::Digit.new,
+            RakuAST::Regex::CapturingGroup.new(
+                RakuAST::Regex::CharClass::Word.new
+            )
+        )),
+        'a1b',
+        'Regex with two positional capturing groups matches correctly';
+    is $/.list.elems, 2, 'Two positional captures';
+    is $0, 'a', 'First positional capture is correct';
+    is $1, 'b', 'Second positional capture is correct';
+    nok $/.hash, 'No named captures';
 }

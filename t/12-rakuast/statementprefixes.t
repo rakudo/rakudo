@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 6;
+plan 12;
 
 is-deeply
         EVAL(RakuAST::StatementList.new(
@@ -77,4 +77,54 @@ is-deeply
             "survived",
             'The quietly statement prefix works with a block';
     nok $warned, 'The warning was suppressed';
+}
+
+{
+    my $done = False;
+    sub do-takes() {
+        $done = True;
+        take 111;
+        take 222;
+    }
+    my \result = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::StatementPrefix::Gather.new(
+                RakuAST::Statement::Expression.new(
+                    RakuAST::Call::Name.new(
+                        name => RakuAST::Name.from-identifier('do-takes')
+                    )
+                )
+            )
+        )
+    ));
+    isa-ok result, Seq, 'Got a Seq back from gather (expression form)';
+    nok $done, 'The gather is lazy';
+    my @elems = result;
+    is-deeply @elems, [111, 222], 'Got correct result from the gather expression';
+}
+
+{
+    my $done = False;
+    sub do-takes() {
+        $done = True;
+        take 333;
+        take 444;
+    }
+    my \result = EVAL(RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::StatementPrefix::Gather.new(
+                RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Call::Name.new(
+                            name => RakuAST::Name.from-identifier('do-takes')
+                        )
+                    )
+                )))
+            )
+        )
+    ));
+    isa-ok result, Seq, 'Got a Seq back from gather (block form)';
+    nok $done, 'The gather is lazy';
+    my @elems = result;
+    is-deeply @elems, [333, 444], 'Got correct result from the gather block';
 }

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 51;
+plan 57;
 
 sub rx(RakuAST::Regex $body) {
     EVAL RakuAST::QuotedRegex.new(:$body)
@@ -253,4 +253,33 @@ sub rx(RakuAST::Regex $body) {
     is $0, 'a', 'First positional capture is correct';
     is $1, 'b', 'Second positional capture is correct';
     nok $/.hash, 'No named captures';
+
+    is "!2a" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Assertion::Lookahead.new(
+                assertion => RakuAST::Regex::Assertion::Named.new(
+                    name => RakuAST::Name.from-identifier('alpha'),
+                    capturing => True
+                )
+            ),
+            RakuAST::Regex::CharClass::Word.new
+        )),
+        'a',
+        'Lookahead assertion with named rule works';
+    is $/.list.elems, 0, 'No positional captures';
+    is $/.hash.elems, 0, 'No named captures';
+
+    is "!2a" ~~ rx(RakuAST::Regex::Sequence.new(
+            RakuAST::Regex::Assertion::Lookahead.new(
+                negated => True,
+                assertion => RakuAST::Regex::Assertion::Named.new(
+                    name => RakuAST::Name.from-identifier('alpha'),
+                    capturing => True
+                )
+            ),
+            RakuAST::Regex::CharClass::Word.new
+        )),
+        '2',
+        'Negated lookahead assertion with named rule works';
+    is $/.list.elems, 0, 'No positional captures';
+    is $/.hash.elems, 0, 'No named captures';
 }

@@ -1795,6 +1795,23 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
 
     token rxstopper { <stopper> }
 
+    token metachar:sym<qw> {
+        <?before '<' \s >  # (note required whitespace)
+        '<' <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w']))> '>'
+        <.SIGOK>
+    }
+
+    token metachar:sym<'> { <?[ ' " ‘ ‚ ’ “ „ ” ｢ ]> <quote=.LANG('MAIN','quote')> <.SIGOK> }
+
+    token metachar:sym<{}> { \\<[xo]>'{' <.obsbrace> }
+
+    token backslash:sym<1> {
+        <.[\d] - [0]>\d*
+        {}
+        :my int $br := nqp::radix(10, $/, 0, 0)[0];
+        <.typed_panic: 'X::Backslash::UnrecognizedSequence', :sequence(~$/), :suggestion('$' ~ ($/ - 1))>
+    }
+
     token assertion:sym<name> {
         <longname=.LANG('MAIN','longname')>
             [

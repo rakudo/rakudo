@@ -461,6 +461,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     proto token statement_prefix { <...> }
 
     token statement_prefix:sym<do>      { <sym><.kok> <blorst> }
+    token statement_prefix:sym<quietly> { <sym><.kok> <blorst> }
 
     token blorst {
         [

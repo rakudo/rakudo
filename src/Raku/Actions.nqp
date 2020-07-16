@@ -247,6 +247,43 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make self.r('StatementPrefix', 'Phaser', 'End').new($<blorst>.ast);
     }
 
+    method statement_prefix:sym<race>($/) {
+        my $blorst := $<blorst>.ast;
+        if nqp::istype($blorst, self.r('Statement', 'For')) {
+            $blorst.replace-mode('race');
+            make $blorst;
+        }
+        else {
+            make self.r('StatementPrefix', 'Race').new($blorst);
+        }
+    }
+
+    method statement_prefix:sym<hyper>($/) {
+        my $blorst := $<blorst>.ast;
+        if nqp::istype($blorst, self.r('Statement', 'For')) {
+            $blorst.replace-mode('hyper');
+            make $blorst;
+        }
+        else {
+            make self.r('StatementPrefix', 'Hyper').new($blorst);
+        }
+    }
+
+    method statement_prefix:sym<lazy>($/) {
+        my $blorst := $<blorst>.ast;
+        if nqp::istype($blorst, self.r('Statement', 'For')) {
+            $blorst.replace-mode('lazy');
+            make $blorst;
+        }
+        else {
+            make self.r('StatementPrefix', 'Lazy').new($blorst);
+        }
+    }
+
+    method statement_prefix:sym<eager>($/) {
+        make self.r('StatementPrefix', 'Eager').new($<blorst>.ast);
+    }
+
     method statement_prefix:sym<do>($/) {
         make self.r('StatementPrefix', 'Do').new($<blorst>.ast);
     }

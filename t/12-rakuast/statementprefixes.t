@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 12;
+plan 28;
 
 is-deeply
         EVAL(RakuAST::StatementList.new(
@@ -127,4 +127,50 @@ is-deeply
     nok $done, 'The gather is lazy';
     my @elems = result;
     is-deeply @elems, [333, 444], 'Got correct result from the gather block';
+}
+
+{
+    my class ContextMe {
+        has @.called;
+        method race() { @!called.push('race'); 'result' }
+        method hyper() { @!called.push('hyper'); 'result' }
+        method lazy() { @!called.push('lazy'); 'result' }
+        method eager() { @!called.push('eager'); 'result' }
+    }
+
+    for <race hyper lazy eager> -> $context {
+        my $c = ContextMe.new;
+        is-deeply
+                EVAL(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::StatementPrefix::{tclc $context}.new(
+                            RakuAST::Statement::Expression.new(
+                                RakuAST::Var::Lexical.new('$c')
+                            )
+                        )
+                    )
+                )),
+                'result',
+                "The $context statement prefix works with a statement";
+        is-deeply $c.called, [$context], 'Correct context method was called';
+    }
+
+    for <race hyper lazy eager> -> $context {
+        my $c = ContextMe.new;
+        is-deeply
+                EVAL(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::StatementPrefix::{tclc $context}.new(
+                            RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                                RakuAST::Statement::Expression.new(
+                                    RakuAST::Var::Lexical.new('$c')
+                                )
+                            )))
+                        )
+                    )
+                )),
+                'result',
+                "The $context statement prefix works with a block";
+        is-deeply $c.called, [$context], 'Correct context method was called';
+    }
 }

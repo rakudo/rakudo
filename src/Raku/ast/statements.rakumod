@@ -459,6 +459,11 @@ class RakuAST::Statement::For is RakuAST::Statement
         $obj
     }
 
+    method replace-mode(str $mode) {
+        nqp::bindattr_s(self, RakuAST::Statement::For, '$!mode', $mode);
+        Nil
+    }
+
     method IMPL-DISCARD-RESULT() {
         self.is-block-statement || self.sunk
     }

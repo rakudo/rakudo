@@ -4,9 +4,17 @@ class RakuAST::StatementPrefix is RakuAST::Term {
 
     method new(RakuAST::Blorst $blorst) {
         my $obj := nqp::create(self);
+        unless self.allowed-on-for-statement {
+            if nqp::istype($blorst, RakuAST::Statement::For) {
+                nqp::die('Do not use this statement prefix on a RakuAST::Statement::For; ' ~
+                    'instead, set the mode on that node');
+            }
+        }
         nqp::bindattr($obj, RakuAST::StatementPrefix, '$!blorst', $blorst);
         $obj
     }
+
+    method allowed-on-for-statement() { True }
 
     method IMPL-CALLISH-QAST(RakuAST::IMPL::QASTContext $context) {
         if nqp::istype($!blorst, RakuAST::Block) {
@@ -45,6 +53,52 @@ class RakuAST::StatementPrefix::Quietly is RakuAST::StatementPrefix is RakuAST::
             self.IMPL-CALLISH-QAST($context),
             'WARN',
             QAST::Op.new( :op('resume'), QAST::Op.new( :op('exception') ) )
+        )
+    }
+}
+
+# The `race` statement prefix.
+class RakuAST::StatementPrefix::Race is RakuAST::StatementPrefix {
+    method allowed-on-for-statement() { False }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('callmethod'), :name('race'),
+            self.IMPL-CALLISH-QAST($context),
+        )
+    }
+}
+
+# The `hyper` statement prefix.
+class RakuAST::StatementPrefix::Hyper is RakuAST::StatementPrefix {
+    method allowed-on-for-statement() { False }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('callmethod'), :name('hyper'),
+            self.IMPL-CALLISH-QAST($context),
+        )
+    }
+}
+
+# The `lazy` statement prefix.
+class RakuAST::StatementPrefix::Lazy is RakuAST::StatementPrefix {
+    method allowed-on-for-statement() { False }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('callmethod'), :name('lazy'),
+            self.IMPL-CALLISH-QAST($context),
+        )
+    }
+}
+
+# The `eager` statement prefix.
+class RakuAST::StatementPrefix::Eager is RakuAST::StatementPrefix {
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('callmethod'), :name('eager'),
+            self.IMPL-CALLISH-QAST($context),
         )
     }
 }

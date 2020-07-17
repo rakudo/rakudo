@@ -450,6 +450,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <pblock>
     }
 
+    rule statement_control:sym<given> {
+        <sym><.kok>
+        :my $*GOAL := '{';
+        <EXPR>
+        <pblock>
+    }
+
     ##
     ## Statement prefixes
     ##

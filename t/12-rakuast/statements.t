@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 39;
+plan 43;
 
 {
     my $x = 12;
@@ -472,4 +472,43 @@ plan 39;
         Nil,
         'Statement level for loop with implicit topic evalutes to Nil';
     is-deeply $total, (2..7).sum, 'For loop puts correct value in imlicit topic $_';
+}
+
+{
+    my $ast = RakuAST::Statement::Given.new(
+        source => RakuAST::Var::Lexical.new('$a'),
+        body => RakuAST::PointyBlock.new(
+            signature => RakuAST::Signature.new(
+                parameters => (
+                    RakuAST::Parameter.new(
+                        target => RakuAST::ParameterTarget::Var.new('$x')
+                    ),
+                )
+            ),
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Var::Lexical.new('$x')
+                    ))))
+    );
+    my $a = 'concrete';
+    is-deeply EVAL($ast), 'concrete', 'given topicalizes on the source (signature)';
+    $a = Str;
+    is-deeply EVAL($ast), Str, 'given topicalizes even an undefined source (signature)';
+}
+
+{
+    my $ast = RakuAST::Statement::Given.new(
+        source => RakuAST::Var::Lexical.new('$a'),
+        body => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Var::Lexical.new('$_')
+                    ))))
+    );
+    my $a = 'concrete';
+    is-deeply EVAL($ast), 'concrete', 'given topicalizes on the source (implicit $_)';
+    $a = Str;
+    is-deeply EVAL($ast), Str, 'given topicalizes even an undefined source (implicit $_)';
 }

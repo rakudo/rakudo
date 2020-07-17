@@ -24,8 +24,6 @@ constant FULL_ROAST_TEST_LIST_FILE = 't/spectest.data';
 constant ROAST_VERSION_FILE        = 't/spec/VERSION';
 
 my $vm = $*VM.name;
-my $build_rakudo_repo = "inst#{$*PROGRAM.parent}/../gen/build_rakudo_home/site";
-%*ENV<RAKULIB> = $build_rakudo_repo;
 
 sub MAIN(
     Str  :$tests-from-file is copy = Str,
@@ -51,7 +49,7 @@ sub MAIN(
             say 'Inline::Perl5 not installed: not running Perl 5 integration tests';
             say 'You can install Inline::Perl5 into the build directory with';
             say '';
-            say "    zef --install-to=$build_rakudo_repo install Inline::Perl5";
+            say "    zef --install-to=inst#{$*PROGRAM.parent}/../gen/build_rakudo_home/site install Inline::Perl5";
             say '';
         }
 

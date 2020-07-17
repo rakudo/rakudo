@@ -53,6 +53,9 @@ class RakuAST::Node {
         if nqp::istype(self, RakuAST::Attaching) {
             self.attach($resolver);
         }
+        if nqp::istype(self, RakuAST::ImplicitTopicProvider) {
+            self.apply-implicit-topic();
+        }
 
         # Unless in resolve-only mode, do other check-time activities.
         unless $resolve-only {

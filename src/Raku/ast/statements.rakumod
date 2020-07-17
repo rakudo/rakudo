@@ -7,6 +7,14 @@ class RakuAST::Blorst is RakuAST::Node {
 class RakuAST::Statement is RakuAST::Blorst {
 }
 
+# Some nodes cause their child nodes to gain an implicit, or even required,
+# topic. They can supply a callback to do that during resolution.
+class RakuAST::ImplicitTopicProvider is RakuAST::Node {
+    method apply-implicit-topic() {
+        nqp::die('apply-implicit-topic not implemented by ' ~ self.HOW.name(self));
+    }
+}
+
 # A list of statements, often appearing as the body of a block.
 class RakuAST::StatementList is RakuAST::SinkPropagator {
     has List $!statements;
@@ -133,7 +141,8 @@ class RakuAST::IMPL::ImmediateBlockUser is RakuAST::Node {
 
 # An if conditional, with optional elsif/orwith/else parts.
 class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
-                             is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser {
+                             is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
+                             is RakuAST::ImplicitTopicProvider {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
     has Mu $!elsifs;
@@ -146,12 +155,35 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
         nqp::bindattr($obj, RakuAST::Statement::If, '$!then', $then);
         nqp::bindattr($obj, RakuAST::Statement::If, '$!elsifs',
             self.IMPL-UNWRAP-LIST($elsifs // []));
-        nqp::bindattr($obj, RakuAST::Statement::If, '$!else', $else // RakuAST::block);
+        nqp::bindattr($obj, RakuAST::Statement::If, '$!else', $else // RakuAST::Block);
         $obj
     }
     
     method elsifs() {
         self.IMPL-WRAP-LIST($!elsifs)
+    }
+
+    method apply-implicit-topic() {
+        my int $last-was-with;
+        if self.IMPL-QAST-TYPE eq 'with' {
+            $last-was-with := 1;
+            $!then.set-implicit-topic(True, :required);
+        }
+        else {
+            $!then.set-implicit-topic(False, :required);
+        }
+        for $!elsifs {
+            $_.apply-implicit-topic();
+            $last-was-with := $_.IMPL-QAST-TYPE eq 'with';
+        }
+        if $!else {
+            if $last-was-with {
+                $!else.set-implicit-topic(True, :required);
+            }
+            else {
+                $!else.set-implicit-topic(False);
+            }
+        }
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -237,6 +269,10 @@ class RakuAST::Statement::Elsif {
         $obj
     }
 
+    method apply-implicit-topic() {
+        $!then.set-implicit-topic(False);
+    }
+
     method IMPL-QAST-TYPE() { 'if' }
 }
 
@@ -244,11 +280,16 @@ class RakuAST::Statement::Elsif {
 # or With node.
 class RakuAST::Statement::Orwith is RakuAST::Statement::Elsif {
     method IMPL-QAST-TYPE() { 'with' }
+
+    method apply-implicit-topic() {
+        self.then.set-implicit-topic(True, :required);
+    }
 }
 
 # An unless statement control.
 class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLookups
-                                 is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser {
+                                 is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
+                                 is RakuAST::ImplicitTopicProvider {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -257,6 +298,10 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
         nqp::bindattr($obj, RakuAST::Statement::Unless, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Unless, '$!body', $body);
         $obj
+    }
+
+    method apply-implicit-topic() {
+        $!body.set-implicit-topic(False);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -288,7 +333,8 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
 
 # A without statement control.
 class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLookups
-                                  is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser {
+                                  is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
+                                  is RakuAST::ImplicitTopicProvider {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -297,6 +343,10 @@ class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLook
         nqp::bindattr($obj, RakuAST::Statement::Without, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Without, '$!body', $body);
         $obj
+    }
+
+    method apply-implicit-topic() {
+        $!body.set-implicit-topic(True, :required);
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -331,7 +381,8 @@ class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLook
 class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
                                is RakuAST::Sinkable is RakuAST::SinkPropagator
                                is RakuAST::BlockStatementSensitive
-                               is RakuAST::IMPL::ImmediateBlockUser {
+                               is RakuAST::IMPL::ImmediateBlockUser
+                               is RakuAST::ImplicitTopicProvider {
     # The setup expression for the loop.
     has RakuAST::Expression $.setup;
 
@@ -359,6 +410,10 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
 
     # Is the loop always executed once?
     method repeat() { False }
+
+    method apply-implicit-topic() {
+        $!body.set-implicit-topic(False);
+    }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -441,7 +496,8 @@ class RakuAST::Statement::Loop::RepeatUntil is RakuAST::Statement::Loop {
 # A for loop.
 class RakuAST::Statement::For is RakuAST::Statement
                               is RakuAST::Sinkable is RakuAST::SinkPropagator
-                              is RakuAST::BlockStatementSensitive {
+                              is RakuAST::BlockStatementSensitive
+                              is RakuAST::ImplicitTopicProvider {
     # The thing to iterate over.
     has RakuAST::Expression $.source;
 
@@ -471,6 +527,10 @@ class RakuAST::Statement::For is RakuAST::Statement
     method propagate-sink(Bool $is-sunk) {
         $!source.apply-sink(False);
         $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
+    }
+
+    method apply-implicit-topic() {
+        $!body.set-implicit-topic(True, :required);
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

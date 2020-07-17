@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 27;
+plan 31;
 
 {
     my $block := EVAL RakuAST::StatementList.new(
@@ -97,9 +97,33 @@ plan 27;
         )
     );
     is-deeply $result.WHAT, Block, 'Bare block in parentheses evaluates to Block';
+    is $result.arity, 0, 'Block has arity 0';
+    is $result.count, 1, 'Block has count 1';
     is-deeply $x, 99, 'No side-effects were performed';
     is-deeply $result(), 99, 'Can evaluate the returned block';
     is-deeply $x, 100, 'Block did perform side-effects when evaluated';
+}
+
+{
+    my $result := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Circumfix::Parentheses.new(
+                RakuAST::SemiList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Block.new(
+                            body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                                RakuAST::Statement::Expression.new(
+                                    RakuAST::Var::Lexical.new('$_')
+                                )
+                            ))
+                        )
+                    )
+                )
+            )
+        )
+    );
+    is-deeply $result('xxx'), 'xxx', 'Block has default $_ parameter';
+    lives-ok { $result() }, 'That $_ parameter is optional';
 }
 
 {

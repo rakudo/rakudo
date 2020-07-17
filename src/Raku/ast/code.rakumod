@@ -57,17 +57,31 @@ class RakuAST::Code is RakuAST::Node {
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
                      is RakuAST::BlockStatementSensitive is RakuAST::SinkPropagator
-                     is RakuAST::Blorst {
+                     is RakuAST::Blorst is RakuAST::ImplicitDeclarations {
     has RakuAST::Blockoid $.body;
 
-    method new(RakuAST::Blockoid :$body) {
+    # Should this block have an implicit topic, in the absence of a (perhaps
+    # placeholder) signature?
+    # 0 = no implicit topic
+    # 1 = optional implicit topic
+    # 2 = required implicit topic
+    has int $!implicit-topic-mode;
+
+    method new(RakuAST::Blockoid :$body, Bool :$implicit-topic, Bool :$required-topic) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
+        nqp::bindattr_i($obj, RakuAST::Block, '$!implicit-topic-mode', 1);
         $obj
     }
 
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Block, '$!body', $new-body);
+        Nil
+    }
+
+    method set-implicit-topic(Bool $implicit, Bool :$required) {
+        nqp::bindattr_i(self, RakuAST::Block, '$!implicit-topic-mode',
+            $implicit ?? ($required ?? 2 !! 1) !! 0);
         Nil
     }
 
@@ -77,11 +91,51 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         $!body.apply-sink($is-sunk);
     }
 
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        my @implicit;
+        unless self.signature {
+            if $!implicit-topic-mode == 1 {
+                @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new;
+            }
+            elsif $!implicit-topic-mode == 2 {
+                @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new(:required);
+            }
+        }
+        self.IMPL-WRAP-LIST(@implicit)
+    }
+
     method PRODUCE-META-OBJECT() {
-        # Create block object and install signature.
+        # Create block object and install signature. If it doesn't have one, then
+        # we can create it based upon the implicit topic it may or may not have.
         my $block := nqp::create(Block);
         my $signature := self.signature;
-        nqp::bindattr($block, Code, '$!signature', $signature.meta-object) if $signature;
+        if $signature {
+            nqp::bindattr($block, Code, '$!signature', $signature.meta-object);
+        }
+        elsif $!implicit-topic-mode {
+            my constant REQUIRED-TOPIC-SIG := -> {
+                my $param := nqp::create(Parameter);
+                nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');
+                my $sig := nqp::create(Signature);
+                nqp::bindattr($sig, Signature, '@!params', [$param]);
+                nqp::bindattr_i($sig, Signature, '$!arity', 1);
+                nqp::bindattr($sig, Signature, '$!count', nqp::box_i(1, Int));
+                $sig
+            }();
+            my constant OPTIONAL-TOPIC-SIG := -> {
+                my $param := nqp::create(Parameter);
+                nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');
+                nqp::bindattr_i($param, Parameter, '$!flags', 2048 + 16384); # Optional + default from outer
+                my $sig := nqp::create(Signature);
+                nqp::bindattr($sig, Signature, '@!params', [$param]);
+                nqp::bindattr_i($sig, Signature, '$!arity', 0);
+                nqp::bindattr($sig, Signature, '$!count', nqp::box_i(1, Int));
+                $sig
+            }();
+            nqp::bindattr($block, Code, '$!signature', $!implicit-topic-mode == 2
+                ?? REQUIRED-TOPIC-SIG
+                !! OPTIONAL-TOPIC-SIG);
+        }
         $block
     }
 
@@ -95,6 +149,14 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
             $block.push($signature.IMPL-TO-QAST($context));
             $block.arity($signature.arity);
             $block.annotate('count', $signature.count);
+        }
+        elsif $!implicit-topic-mode == 1 {
+            $block.arity(0);
+            $block.annotate('count', 1);
+        }
+        elsif $!implicit-topic-mode == 2 {
+            $block.arity(1);
+            $block.annotate('count', 1);
         }
         $block.push($!body.IMPL-TO-QAST($context));
         $block

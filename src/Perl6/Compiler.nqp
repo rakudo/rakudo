@@ -115,10 +115,10 @@ class Perl6::Compiler is HLL::Compiler {
                 ?? self.config<prefix>
                 !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
 
-            $!rakudo-home := self.config<static-rakudo-home>
-                || nqp::getenvhash()<RAKUDO_HOME>
+            $!rakudo-home := nqp::getenvhash()<RAKUDO_HOME>
                 // nqp::getenvhash()<PERL6_HOME>
-                // $install-dir ~ '/share/perl6';
+                // self.config<static-rakudo-home>
+                || $install-dir ~ '/share/perl6';
             if nqp::substr($!rakudo-home, nqp::chars($!rakudo-home) - 1) eq $sep {
                 $!rakudo-home := nqp::substr($!rakudo-home, 0, nqp::chars($!rakudo-home) - 1);
             }

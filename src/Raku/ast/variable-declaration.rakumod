@@ -329,7 +329,8 @@ class RakuAST::VarDeclaration::Implicit is RakuAST::Declaration {
     }
 }
 
-# An implicitly declared special variable. Typically used for $/, $!, and $_.
+# An implicitly declared special variable. Typically used for $/, $!, and $_ in
+# routines.
 class RakuAST::VarDeclaration::Implicit::Special is RakuAST::VarDeclaration::Implicit
                                                  is RakuAST::Meta {
     method PRODUCE-META-OBJECT() {
@@ -355,6 +356,28 @@ class RakuAST::VarDeclaration::Implicit::Special is RakuAST::VarDeclaration::Imp
             :scope('lexical'), :decl('contvar'), :name(self.name),
             :value($container)
         )
+    }
+}
+
+# Implicit topic parameter declaration.
+class RakuAST::VarDeclaration::Implicit::TopicParameter is RakuAST::VarDeclaration::Implicit {
+    has Bool $.required;
+
+    method new(Bool :$required) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$_');
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::TopicParameter, '$!required',
+            $required // False);
+        $obj
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        my $param := QAST::Var.new( :decl('param'), :scope('lexical'), :name('$_') );
+        unless $!required {
+            $param.default(QAST::Op.new(:op('getlexouter'), QAST::SVal.new(:value('$_'))));
+        }
+        $param
     }
 }
 

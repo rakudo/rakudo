@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 33;
+plan 39;
 
 {
     my $x = 12;
@@ -199,6 +199,28 @@ plan 33;
 }
 
 {
+    my $ast = RakuAST::Statement::With.new(
+        condition => RakuAST::Var::Lexical.new('$a'),
+        then => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Var::Lexical.new('$_')
+                    )))),
+        else => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Var::Lexical.new('$_')
+                    )))),
+    );
+    my $a = 42;
+    is-deeply EVAL($ast), 42, 'with topicalizes in the body';
+    $a = Int;
+    is-deeply EVAL($ast), Int, 'with topicalizes in the else body too';
+}
+
+{
     my $x = False;
     my $y = 9;
     is-deeply
@@ -272,6 +294,21 @@ plan 33;
             Empty,
             'An without block with a defined object evaluates to Empty';
     is $y, 9, 'Side-effect of the body was not performed';
+}
+
+{
+    my $x = Cool;
+    is-deeply
+            EVAL(RakuAST::Statement::Without.new(
+                condition => RakuAST::Var::Lexical.new('$x'),
+                body => RakuAST::Block.new(body =>
+                    RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                            RakuAST::Statement::Expression.new(
+                                RakuAST::Var::Lexical.new('$_')))))
+            )),
+            Cool,
+            'Without block with no argument sets the topic';
 }
 
 {
@@ -381,4 +418,58 @@ plan 33;
         Nil,
         'Statement level for loop evalutes to Nil';
     is-deeply $count, 6, 'For loop does expected number of iterations';
+}
+
+{
+    my $total = 0;
+    EVAL(RakuAST::Statement::For.new(
+        source => RakuAST::ApplyInfix.new(
+            left => RakuAST::IntLiteral.new(2),
+            infix => RakuAST::Infix.new('..'),
+            right => RakuAST::IntLiteral.new(7)
+        ),
+        body => RakuAST::PointyBlock.new(
+            signature => RakuAST::Signature.new(
+                parameters => (
+                    RakuAST::Parameter.new(
+                        target => RakuAST::ParameterTarget::Var.new('$x')
+                    ),
+                )
+            ),
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::ApplyInfix.new(
+                            left => RakuAST::Var::Lexical.new('$total'),
+                            infix => RakuAST::Infix.new('='),
+                            right => RakuAST::ApplyInfix.new(
+                                left => RakuAST::Var::Lexical.new('$total'),
+                                infix => RakuAST::Infix.new('+'),
+                                right => RakuAST::Var::Lexical.new('$x')))))))));
+    is-deeply $total, (2..7).sum, 'For loop puts correct value into explicit iteration variable';
+}
+
+{
+    my $total = 0;
+    is-deeply
+        EVAL(RakuAST::Statement::For.new(
+            source => RakuAST::ApplyInfix.new(
+                left => RakuAST::IntLiteral.new(2),
+                infix => RakuAST::Infix.new('..'),
+                right => RakuAST::IntLiteral.new(7)
+            ),
+            body => RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                    RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            RakuAST::ApplyInfix.new(
+                                left => RakuAST::Var::Lexical.new('$total'),
+                                infix => RakuAST::Infix.new('='),
+                                right => RakuAST::ApplyInfix.new(
+                                    left => RakuAST::Var::Lexical.new('$total'),
+                                    infix => RakuAST::Infix.new('+'),
+                                    right => RakuAST::Var::Lexical.new('$_'))))))))),
+        Nil,
+        'Statement level for loop with implicit topic evalutes to Nil';
+    is-deeply $total, (2..7).sum, 'For loop puts correct value in imlicit topic $_';
 }

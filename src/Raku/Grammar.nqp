@@ -300,11 +300,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || { $/.typed_panic( 'X::Syntax::Confused', reason => "Confused" ) }
     }
 
-    my $PBLOCK_NO_TOPIC := 0;
-    my $PBLOCK_OPTIONAL_TOPIC := 1;
-    my $PBLOCK_REQUIRED_TOPIC := 2;
-
-    token pblock($*IMPLICIT = $PBLOCK_NO_TOPIC) {
+    token pblock {
         :dba('block or pointy block')
         :my $*BLOCK;
         [
@@ -322,7 +318,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token block($*IMPLICIT = $PBLOCK_NO_TOPIC) {
+    token block {
         :dba('block or pointy block')
         :my $*BLOCK;
         [
@@ -355,19 +351,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $<sym>=[if|with]<.kok> {}
         :my $*GOAL := '{';
         <condition=.EXPR>
-        <then=.pblock(~$<sym>[0] eq 'with' ?? $PBLOCK_REQUIRED_TOPIC !! $PBLOCK_NO_TOPIC)>
+        <then=.pblock>
         [
             [
             | 'else'\h*'if' <.typed_panic: 'X::Syntax::Malformed::Elsif'>
             | 'elif' { $/.typed_panic('X::Syntax::Malformed::Elsif', what => "elif") }
             | $<sym>='elsif' <condition=.EXPR> <then=.pblock>
-            | $<sym>='orwith' <condition=.EXPR> <then=.pblock($PBLOCK_REQUIRED_TOPIC)>
+            | $<sym>='orwith' <condition=.EXPR> <then=.pblock>
             ]
         ]*
         {}
         [
             'else'
-            <else=.pblock(~$<sym>[-1] ~~ /with/ ?? $PBLOCK_REQUIRED_TOPIC !! $PBLOCK_NO_TOPIC)>
+            <else=.pblock>
         ]?
     }
 
@@ -375,7 +371,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $<sym>='unless'<.kok>
         :my $*GOAL := '{';
         <EXPR>
-        <pblock($PBLOCK_NO_TOPIC)>
+        <pblock>
         [ <!before [els[e|if]|orwith]» >
             || $<wrong-keyword>=[els[e|if]|orwith]» {}
                 <.typed_panic: 'X::Syntax::UnlessElse',
@@ -388,7 +384,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $<sym>='without'<.kok>
         :my $*GOAL := '{';
         <EXPR>
-        <pblock($PBLOCK_REQUIRED_TOPIC)>
+        <pblock>
         [ <!before [els[e|if]|orwith]» >
             || $<wrong-keyword>=[els[e|if]|orwith]» {}
                 <.typed_panic: 'X::Syntax::WithoutElse',
@@ -401,7 +397,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $<sym>=[while|until]<.kok> {}
         :my $*GOAL := '{';
         <EXPR>
-        <pblock($PBLOCK_NO_TOPIC)>
+        <pblock>
     }
 
     rule statement_control:sym<repeat> {
@@ -410,8 +406,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | $<wu>=[while|until]<.kok>
           :my $*GOAL := '{';
           <EXPR>
-          <pblock($PBLOCK_NO_TOPIC)>
-        | <pblock($PBLOCK_NO_TOPIC)>
+          <pblock>
+        | <pblock>
           [$<wu>=['while'|'until']<.kok> || <.missing('"while" or "until"')>]
           <EXPR>
         ]
@@ -451,7 +447,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
         :my $*GOAL := '{';
         <EXPR>
-        <pblock($PBLOCK_REQUIRED_TOPIC)>
+        <pblock>
     }
 
     ##
@@ -921,7 +917,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token circumfix:sym<{ }> {
-        <?[{]> <pblock($PBLOCK_OPTIONAL_TOPIC)>
+        <?[{]> <pblock>
     }
 
     token circumfix:sym<ang> {

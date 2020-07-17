@@ -40,11 +40,9 @@ GetOptions(
 
 my @pass_through_options = grep m/^--?[^-]/, @ARGV;
 my @files = grep m/^[^-]/, @ARGV;
-my $build_rakudo_repo = "inst#$FindBin::Bin/../gen/build_rakudo_home/site";
 
 $ENV{'HARNESS_PERL'} = ".${slash}rakudo-" . ($js ? "js" : $moar ? "m" : $jvm ? "j" : "m");
 $ENV{'PERL6LIB'} = "./lib"; 
-$ENV{RAKULIB} = $build_rakudo_repo;
 
 my @slow;
 if ($list_file) {
@@ -54,7 +52,7 @@ if ($list_file) {
     if (!$perl5) {
         print "Inline::Perl5 not installed: not running Perl 5 integration tests\n";
         print "You can install Inline::Perl5 into the build directory with\n\n";
-        print "    zef --install-to=$build_rakudo_repo install Inline::Perl5\n\n";
+        print "    zef --install-to=inst#$FindBin::Bin/../gen/build_rakudo_home/site install Inline::Perl5\n\n";
     }
 
     open(my $f, '<', $list_file)

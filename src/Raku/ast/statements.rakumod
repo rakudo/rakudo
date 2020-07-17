@@ -593,3 +593,42 @@ class RakuAST::Statement::For is RakuAST::Statement
         $visitor($!body);
     }
 }
+
+# A given statement
+class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
+                                is RakuAST::ImplicitTopicProvider {
+    # The thing to topicalize.
+    has RakuAST::Expression $.source;
+
+    # The body of the given statement.
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Expression :$source!, RakuAST::Block :$body!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Given, '$!source', $source);
+        nqp::bindattr($obj, RakuAST::Statement::Given, '$!body', $body);
+        $obj
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!source.apply-sink(False);
+        $!body.body.apply-sink($is-sunk);
+    }
+
+    method apply-implicit-topic() {
+        $!body.set-implicit-topic(True, :required);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('call'),
+            $!body.IMPL-TO-QAST($context),
+            $!source.IMPL-TO-QAST($context)
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!source);
+        $visitor($!body);
+    }
+}

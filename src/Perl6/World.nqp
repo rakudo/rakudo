@@ -572,8 +572,6 @@ class Perl6::World is HLL::World {
         }
     }
 
-    # NOTE: Revision .c has special meaning because it doesn't have own dedicated CORE setting and serves as the base
-    # for all other revisions.
     method load-lang-ver($ver-match, $comp) {
         if $*INSIDE-EVAL && $!have_outer {
             # XXX Calling typed_panic is the desirable behavior. But it breaks some code. Just ignore version change for
@@ -697,7 +695,7 @@ class Perl6::World is HLL::World {
                 nqp::getcomp('Raku').set_language_version( nqp::isgt_s($!setting_revision, $default_revision)
                                                             ?? $!setting_revision
                                                             !! $default_revision );
-                                            }
+            }
             $*UNIT.annotate('IN_DECL', 'mainline');
         }
 
@@ -955,7 +953,6 @@ class Perl6::World is HLL::World {
         }
         # Do nothing for the NULL.c setting.
         if $setting_name ne 'NULL.c' {
-            # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
             # Load it immediately, so the compile time info is available.
             # Once it's loaded, set it as the outer context of the code

@@ -57,7 +57,8 @@ class RakuAST::Code is RakuAST::Node {
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
                      is RakuAST::BlockStatementSensitive is RakuAST::SinkPropagator
-                     is RakuAST::Blorst is RakuAST::ImplicitDeclarations {
+                     is RakuAST::Blorst is RakuAST::ImplicitDeclarations
+                     is RakuAST::AttachTarget {
     has RakuAST::Blockoid $.body;
 
     # Should this block have an implicit topic, in the absence of a (perhaps
@@ -82,6 +83,15 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
     method set-implicit-topic(Bool $implicit, Bool :$required) {
         nqp::bindattr_i(self, RakuAST::Block, '$!implicit-topic-mode',
             $implicit ?? ($required ?? 2 !! 1) !! 0);
+        Nil
+    }
+
+    method attach-target-names() {
+        self.IMPL-WRAP-LIST(['block'])
+    }
+
+    method clear-attachments() {
+        self.clear-handler-attachments();
         Nil
     }
 
@@ -158,7 +168,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
             $block.arity(1);
             $block.annotate('count', 1);
         }
-        $block.push($!body.IMPL-TO-QAST($context));
+        $block.push(self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!body.IMPL-TO-QAST($context)));
         $block
     }
 
@@ -227,7 +237,7 @@ class RakuAST::PointyBlock is RakuAST::Block {
 # Done by all kinds of Routine.
 class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
                        is RakuAST::SinkBoundary is RakuAST::Declaration
-                       is RakuAST::ImplicitDeclarations {
+                       is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
     has RakuAST::Blockoid $.body;
@@ -257,6 +267,15 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         Nil
     }
 
+    method attach-target-names() {
+        self.IMPL-WRAP-LIST(['routine', 'block'])
+    }
+
+    method clear-attachments() {
+        self.clear-handler-attachments();
+        Nil
+    }
+
     method PRODUCE-META-OBJECT() {
         # Create meta-object and install signature.
         my $routine := nqp::create(self.IMPL-META-OBJECT-TYPE);
@@ -282,7 +301,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         $block.push($!signature.IMPL-TO-QAST($context));
         $block.arity($!signature.arity);
         $block.annotate('count', $!signature.count);
-        $block.push($!body.IMPL-TO-QAST($context));
+        $block.push(self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!body.IMPL-TO-QAST($context)));
         $block
     }
 

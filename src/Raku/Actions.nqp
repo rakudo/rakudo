@@ -245,6 +245,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             body => $<pblock>.ast;
     }
 
+    method statement_control:sym<when>($/) {
+        make self.r('Statement', 'When').new:
+            condition => $<EXPR>.ast,
+            body => $<pblock>.ast;
+    }
+
+    method statement_control:sym<default>($/) {
+        make self.r('Statement', 'Default').new(body => $<block>.ast);
+    }
+
     ##
     ## Statement prefixes
     ##

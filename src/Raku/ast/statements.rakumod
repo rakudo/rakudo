@@ -5,6 +5,18 @@ class RakuAST::Blorst is RakuAST::Node {
 
 # Everything that can appear at statement level does RakuAST::Statement.
 class RakuAST::Statement is RakuAST::Blorst {
+    method IMPL-WRAP-WHEN-OR-DEFAULT(RakuAST::IMPL::QASTContext $context, Mu $qast) {
+        my $succeed-qast := QAST::Op.new( :op('call'), :name('&succeed'), $qast );
+        QAST::Op.new(
+            :op('handle'),
+            $succeed-qast,
+            'PROCEED',
+            QAST::Op.new(
+                :op('getpayload'),
+                QAST::Op.new( :op('exception') )
+            )
+        )
+    }
 }
 
 # Some nodes cause their child nodes to gain an implicit, or even required,
@@ -594,7 +606,7 @@ class RakuAST::Statement::For is RakuAST::Statement
     }
 }
 
-# A given statement
+# A given statement.
 class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
                                 is RakuAST::ImplicitTopicProvider {
     # The thing to topicalize.
@@ -629,6 +641,109 @@ class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
 
     method visit-children(Code $visitor) {
         $visitor($!source);
+        $visitor($!body);
+    }
+}
+
+# A when statement, smart-matching the topic against the specified expression,
+# with `succeed`/`proceed` handling.
+class RakuAST::Statement::When is RakuAST::Statement is RakuAST::SinkPropagator
+                               is RakuAST::ImplicitTopicProvider is RakuAST::ImplicitLookups
+                               is RakuAST::Attaching {
+    has RakuAST::Expression $.condition;
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::When, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Statement::When, '$!body', $body);
+        $obj
+    }
+
+    method apply-implicit-topic() {
+        $!body.set-implicit-topic(False);
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!condition.apply-sink(False);
+        $!body.body.apply-sink(False); # Used as enclosing block outcome
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        my $block := $resolver.find-attach-target('block') //
+            $resolver.find-attach-target('compunit');
+        if $block {
+            $block.require-succeed-handler();
+        }
+        else {
+            nqp::die('when found no enclosing block to attach to');
+        }
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Var::Lexical.new('$_'),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $sm-qast := QAST::Op.new(
+            :op('callmethod'), :name('ACCEPTS'),
+            $!condition.IMPL-TO-QAST($context),
+            @lookups[0].IMPL-TO-QAST($context)
+        );
+        QAST::Op.new(
+            :op('if'),
+            $sm-qast,
+            self.IMPL-WRAP-WHEN-OR-DEFAULT($context,
+                QAST::Op.new( :op('call'), $!body.IMPL-TO-QAST($context) )
+            ))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!body);
+    }
+}
+
+# A default statement.
+class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagator
+                                  is RakuAST::ImplicitTopicProvider is RakuAST::Attaching {
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Block :$body!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Default, '$!body', $body);
+        $obj
+    }
+
+    method apply-implicit-topic() {
+        $!body.set-implicit-topic(False);
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!body.body.apply-sink(False); # Used as enclosing block outcome
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        my $block := $resolver.find-attach-target('block') //
+            $resolver.find-attach-target('compunit');
+        if $block {
+            $block.require-succeed-handler();
+        }
+        else {
+            nqp::die('default found no enclosing block to attach to');
+        }
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-WRAP-WHEN-OR-DEFAULT($context,
+            QAST::Op.new( :op('call'), $!body.IMPL-TO-QAST($context) )
+        )
+    }
+
+    method visit-children(Code $visitor) {
         $visitor($!body);
     }
 }

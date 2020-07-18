@@ -1,7 +1,11 @@
 # Done by anything that implies a lexical scope.
 class RakuAST::LexicalScope is RakuAST::Node {
+    # Caching of lexical declarations in this scope.
     has List $!declarations-cache;
     has Mu $!lexical-lookup-hash;
+
+    # Handlers related to this scope.
+    has int $!need-succeed-handler;
 
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
@@ -58,6 +62,28 @@ class RakuAST::LexicalScope is RakuAST::Node {
             nqp::bindattr(self, RakuAST::LexicalScope, '$!lexical-lookup-hash', %lookup);
         }
         %lookup{$name} // Nil
+    }
+
+    method require-succeed-handler() {
+        nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 1);
+        Nil
+    }
+
+    method clear-handler-attachments() {
+        nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 0);
+        Nil
+    }
+
+    method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements) {
+        if $!need-succeed-handler {
+            my $handle := QAST::Op.new( :op('handle'), $statements );
+            $handle.push('SUCCEED');
+            $handle.push(QAST::Op.new( :op('getpayload'), QAST::Op.new( :op('exception') ) ));
+            $handle
+        }
+        else {
+            $statements
+        }
     }
 }
 

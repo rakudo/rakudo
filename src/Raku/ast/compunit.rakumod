@@ -64,6 +64,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
 
     method clear-attachments() {
         nqp::setelems($!end-phasers, 0);
+        self.clear-handler-attachments();
         Nil
     }
 
@@ -148,7 +149,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             QAST::Var.new( :name('__args__'), :scope('local'), :decl('param'), :slurpy(1) ),
             self.IMPL-QAST-DECLS($context),
             self.IMPL-QAST-END-PHASERS($context),
-            $!statement-list.IMPL-TO-QAST($context)
+            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!statement-list.IMPL-TO-QAST($context))
         )
     }
 

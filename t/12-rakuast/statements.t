@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 43;
+plan 46;
 
 {
     my $x = 12;
@@ -511,4 +511,43 @@ plan 43;
     is-deeply EVAL($ast), 'concrete', 'given topicalizes on the source (implicit $_)';
     $a = Str;
     is-deeply EVAL($ast), Str, 'given topicalizes even an undefined source (implicit $_)';
+}
+
+{
+    my $ast = RakuAST::Statement::Given.new(
+        source => RakuAST::Var::Lexical.new('$a'),
+        body => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                    RakuAST::Statement::When.new(
+                        condition => RakuAST::IntLiteral.new(2),
+                        body => RakuAST::Block.new(
+                            body => RakuAST::Blockoid.new(
+                                RakuAST::StatementList.new(
+                                    RakuAST::Statement::Expression.new(
+                                        RakuAST::StrLiteral.new('two')
+                    ))))),
+                    RakuAST::Statement::When.new(
+                        condition => RakuAST::IntLiteral.new(3),
+                        body => RakuAST::Block.new(
+                            body => RakuAST::Blockoid.new(
+                                RakuAST::StatementList.new(
+                                    RakuAST::Statement::Expression.new(
+                                        RakuAST::StrLiteral.new('three')
+                    ))))),
+                    RakuAST::Statement::Default.new(
+                        body => RakuAST::Block.new(
+                            body => RakuAST::Blockoid.new(
+                                RakuAST::StatementList.new(
+                                    RakuAST::Statement::Expression.new(
+                                        RakuAST::StrLiteral.new('another')
+                    )))))
+    ))));
+
+    my $a = 2;
+    is-deeply EVAL($ast), 'two', 'First when statement matching gives correct result';
+    $a = 3;
+    is-deeply EVAL($ast), 'three', 'Second when statement matching gives correct result';
+    $a = 4;
+    is-deeply EVAL($ast), 'another', 'No when statement matching gives default';
 }

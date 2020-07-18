@@ -49,200 +49,301 @@ my class Parameter { # declared in BOOTSTRAP
                                          +| $SIG_ELEM_IS_COPY
                                          +| $SIG_ELEM_IS_RAW;
 
-    my $sigils2bit := nqp::null;
-    sub set-sigil-bits(str $sigil, \flags --> Nil) {
-        if nqp::atkey(
-          nqp::ifnull(
-            $sigils2bit,
-            $sigils2bit := nqp::hash(
-              Q/@/, $SIG_ELEM_ARRAY_SIGIL,
-              Q/%/, $SIG_ELEM_HASH_SIGIL,
-              Q/&/, $SIG_ELEM_CODE_SIGIL,
-              Q/\/, $SIG_ELEM_IS_RAW,
-              Q/|/, $SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_IS_RAW,
-            )
-          ),
-          $sigil
-        ) -> $bit {
-            flags +|= $bit
-        }
-    }
-
-    sub definitize-type(Str:D $type, Bool:D $definite) {
-        Metamodel::DefiniteHOW.new_type(:base_type(::($type)), :$definite)
-    }
-
-    sub str-to-type(Str:D $type, $flags is rw) {
-        if $type.ends-with(Q/:D/) {
-            $flags +|= $SIG_ELEM_DEFINED_ONLY;
-            definitize-type($type.chop(2), True)
-        }
-        elsif $type.ends-with(Q/:U/) {
-            $flags +|= $SIG_ELEM_UNDEFINED_ONLY;
-            definitize-type($type.chop(2), False)
-        }
-        elsif $type.ends-with(Q/:_/) {
-            ::($type.chop(2))
-        }
-        else {
-            ::($type)
-        }
+    sub to-type(Str:D $type --> Mu) {
+        $type.ends-with(':D')
+          ?? Metamodel::DefiniteHOW.new_type(:base_type(::($type.chop: 2)), :definite)
+          !! $type.ends-with(':U')
+            ?? Metamodel::DefiniteHOW.new_type(:base_type(::($type.chop: 2)), :!definite)
+            !! $type.ends-with(':_')
+              ?? ::($type.chop: 2)
+              !! ::($type)
     }
 
     submethod BUILD(
-       Str:D :$name      is copy = "",
-       Int:D :$flags     is copy = 0,
-      Bool:D :$named     is copy = False,
-      Bool:D :$optional  is copy = False,
-      Bool:D :$mandatory is copy = False,
-      Bool:D :$is-copy = False,
-      Bool:D :$is-raw = False,
-      Bool:D :$is-rw = False,
-      Bool:D :$multi-invocant = True,
-             *%args  # type / default / where / sub_signature captured through %_
-      ) {
-
-        if $name {                                 # specified a name?
-
-            if $name.ends-with(Q/!/) {
-                $name      = $name.substr(0,*-1);
-                $mandatory = True;
+        Parameter:D:
+        Str:D       :name($name-arg) is copy = "",
+        Int:D       :$flags          is copy = 0,
+        Bool:D      :$named          is copy = False,
+        Bool:D      :$optional       is copy = False,
+        Bool:D      :$mandatory      is copy = False,
+        Bool:D      :$is-raw         is copy = False,
+        Bool:D      :$is-rw          is copy = False,
+        Bool:D      :$is-copy        = False,
+        Bool:D      :$multi-invocant = True,
+        Signature:_ :$sub-signature,
+                    :@where          where .all ~~ Code:D,
+                     *%args  # type / default captured through %_
+        --> Nil
+    ) {
+        if %args<type>:exists {
+            my Mu $type-arg = my Mu $type = %args<type>;
+            if $type.DEFINITE {
+                if nqp::istype($type, Str) {
+                    # Parse a type name. This may include an arbitrary number
+                    # of type coercions:
+                    if gather loop {
+                        my Int:_ $l = $type.index: '(';
+                        my Int:_ $r = $type.rindex: ')';
+                        with $l & $r {
+                            my Str:D $target     := $type.substr: 0, $l;
+                            my Str:D $constraint := $type.substr: $l + 1, $r - $l - 1;
+                            take $target.&to-type;
+                            $type = $constraint;
+                        }
+                        orwith $l | $r {
+                            die "Cannot parse coercive type ($type-arg)";
+                        }
+                        else {
+                            take $type.&to-type unless $type eq $type-arg;
+                            last;
+                        }
+                    } -> Seq:D $types {
+                        my Mu $coercion := $types.reverse.reduce({
+                            Metamodel::CoercionHOW.new_type: $^target, $^constraint
+                        });
+                        $!coerce_type  := $coercion.^target_type;
+                        $!nominal_type := $coercion.^constraint_type;
+                        if nqp::istype($!coerce_type.HOW, Metamodel::DefiniteHOW) {
+                            $flags +|= $!coerce_type.^definite
+                                    ?? $SIG_ELEM_DEFINED_ONLY
+                                    !! $SIG_ELEM_UNDEFINED_ONLY;
+                        }
+                    }
+                    else {
+                        $!nominal_type := $type.&to-type;
+                        if nqp::istype($!nominal_type.HOW, Metamodel::DefiniteHOW) {
+                            $flags         +|= $!nominal_type.^definite
+                                            ?? $SIG_ELEM_DEFINED_ONLY
+                                            !! $SIG_ELEM_UNDEFINED_ONLY;
+                            $!nominal_type  := $!nominal_type.^base_type;
+                        }
+                    }
+                }
+                else { # not nqp::istype($type, Str)
+                    $!nominal_type := $type.WHAT;
+                }
             }
-            elsif $name.ends-with(Q/?/) {
-                $name     = $name.substr(0,*-1);
-                $optional = True;
+            else { # not $type.DEFINITE
+                $!nominal_type := $type;
+                if nqp::istype($!nominal_type.HOW, Metamodel::DefiniteHOW) {
+                    $flags         +|= $!nominal_type.^definite
+                                    ?? $SIG_ELEM_DEFINED_ONLY
+                                    !! $SIG_ELEM_UNDEFINED_ONLY;
+                    $!nominal_type  := $!nominal_type.^base_type;
+                }
             }
+        }
+        else { # not %args<type>:exists
+            $!nominal_type := Mu;
+        }
 
-            my $sigil = $name.substr(0,1);
-
-            if $sigil eq Q/:/ {
-                $name  = $name.substr(1);
-                $sigil = $name.substr(0,1);
-                $named = True;
-            }
-            elsif $sigil eq Q/+/ {
-                $name  = $name.substr(1);
-                $sigil = $name.substr(0,1);
-                $flags +|= $SIG_ELEM_IS_RAW +| $SIG_ELEM_SLURPY_ONEARG;
-            }
-
-            if $name.ends-with(Q/)/) {
-                if $named {
-                    my $start = $name.index(Q/(/); # XXX handle multiple
-                    @!named_names := nqp::list_s($name.substr(0,$start));
-                    $name := $name.substr($start + 1, *-1);
+        if $name-arg {
+            my Str:D $name   = $name-arg;
+            my Str:D $prefix = '';
+            my Str:D $sigil  = '';
+            if $named ||= $name.starts-with: ':' { # Named:
+                if $name.ends-with: '!' {
+                    $name       .= chop;
+                    $optional  &&= False;
+                    $mandatory ||= True;
+                }
+                elsif $name.ends-with: '?' {
+                    $name       .= chop;
+                    $optional  ||= True;
+                    $mandatory &&= False;
+                }
+                elsif $mandatory {
+                    $optional &&= False;
                 }
                 else {
-                    die "Can only specify alternative names on named parameters: $name";
+                    $optional ||= True;
+                }
+
+                @!named_names := nqp::list_s;
+                while $name.starts-with: ':' {
+                    my Int:_ $l = $name.index: '(';
+                    my Int:_ $r = $name.rindex: ')';
+                    with $l & $r {
+                        nqp::unshift_s(@!named_names, nqp::unbox_s($name.substr: 1, $l - 1));
+                        $name .= substr: $l + 1, $r - $l - 1;
+                    }
+                    orwith $l | $r {
+                        die "Cannot parse named parameter ($name-arg)";
+                    }
+                    else {
+                        $name .= substr: 1;
+                        my Int:D $idx := $name.substr(1, 1) eq '!' | '.' | '*' ?? 2 !! 1;
+                        nqp::unshift_s(@!named_names, nqp::unbox_s($name.substr: $idx));
+                    }
+                }
+
+                $sigil = $name.substr: 0, 1;
+                die "Invalid sigil for a named parameter ($name-arg): $sigil"
+                    unless $sigil eq '$' | '@' | '%' | '&';
+            }
+            elsif $name.starts-with: '**' { # Slurpy list of lists:
+                $sigil = $name.substr: 2, 1;
+                die "Invalid sigil for a slurpy list of lists parameter ($name-arg): $sigil"
+                    unless $sigil eq '@';
+
+                $!nominal_type   := Positional;
+                $name            .= substr: 2;
+                $name            .= chop if $name.ends-with: '!' | '?';
+                $prefix           = '**';
+                $named          &&= False;
+                $optional       &&= False;
+                $mandatory      &&= False;
+                $flags          +|= $SIG_ELEM_SLURPY_LOL;
+            }
+            elsif $name.starts-with: '*' { # Slurpy positional or named:
+                $sigil = $name.substr: 1, 1;
+                if $sigil eq '@' {
+                    $!nominal_type  := Positional;
+                    $named         &&= False;
+                    $flags         +|= $SIG_ELEM_SLURPY_POS;
+                }
+                elsif $sigil eq '%' {
+                    $!nominal_type  := Associative;
+                    $named         ||= True;
+                    $flags         +|= $SIG_ELEM_SLURPY_NAMED;
+                }
+                else {
+                    die "Invalid sigil for a slurpy positional or named parameter ($name-arg): $sigil";
+                }
+
+                $name       .= substr: 1;
+                $name       .= chop if $name.ends-with: '!' | '?';
+                $prefix      = '*';
+                $optional  &&= False;
+                $mandatory &&= False;
+            }
+            elsif $name.starts-with: '+' { # Slurpy onearg:
+                let $sigil = $name.substr: 1, 1;
+                if $sigil eq '@' {
+                    $!nominal_type := Positional;
+                    $name          .= substr: 1;
+                }
+                elsif $sigil eq '$' | '%' | '&' {
+                    die "Invalid sigil for a slurpy onearg parameter ($name-arg): $sigil";
+                }
+                else {
+                    $!nominal_type  := Mu;
+                    $sigil           = '\\';
+                    $is-raw        ||= True;
+                }
+
+                $name       .= chop if $name.ends-with: '!' | '?';
+                $prefix      = '+';
+                $named     &&= False;
+                $optional  &&= False;
+                $mandatory &&= False;
+                $flags     +|= $SIG_ELEM_SLURPY_ONEARG;
+            }
+            elsif $name.starts-with: '|' { # Capture:
+                let $sigil = $name.substr: 1, 1;
+                die "Invalid sigil for a capture parameter ($name-arg): $sigil"
+                    if $sigil eq '$' | '@' | '%' | '&';
+
+                $!nominal_type  := Mu;
+                $name           .= chop if $name.ends-with: '!' | '?';
+                $prefix          = '|';
+                $sigil           = '\\';
+                $named         &&= False;
+                $optional      &&= False;
+                $mandatory     &&= False;
+                $flags         +|= $SIG_ELEM_IS_CAPTURE;
+            }
+            else { # Positional:
+                $sigil = $name.substr: 0, 1;
+                die "Invalid sigil for a positional parameter ($name-arg): $sigil"
+                    unless $sigil eq '$' | '@' | '%' | '&' | '\\';
+
+                if $name.ends-with: '?' {
+                    $name       .= chop;
+                    $optional  ||= True;
+                    $mandatory &&= False;
+                }
+                elsif $name.ends-with: '!' {
+                    $name       .= chop;
+                    $optional  &&= False;
+                    $mandatory ||= True;
+                }
+                elsif $optional {
+                    $mandatory &&= False;
+                }
+                else {
+                    $mandatory ||= True;
                 }
             }
 
-            if $sigil eq Q/*/ {                     # is it a slurpy?
-                $name  = $name.substr(1);
-                $sigil = $name.substr(0,1);
-
-                if %_.EXISTS-KEY('type') {
-                    die "Slurpy named parameters with type constraints are not supported|"
-                }
-
-                if $sigil eq Q/*/ {                  # is it a double slurpy?
-                    $name  = $name.substr(1);
-                    $sigil = $name.substr(0,1);
-                    $flags +|= $SIG_ELEM_SLURPY_LOL;
-                }
-                elsif $sigil eq Q/@/ {               # a slurpy array?
-                    $flags +|= $SIG_ELEM_SLURPY_POS;
-                }
-                elsif $sigil eq Q/%/ {               # a slurpy hash?
-                    $flags +|= $SIG_ELEM_SLURPY_NAMED;
-                }
+            if $sigil eq '\\' {
+                $name    .= substr: 1;
+                $is-raw ||= True;
+                $is-rw  &&= False;
             }
+            else {
+                if $sigil eq '@' {
+                    $!nominal_type  := %args<type>:exists ?? Positional[$!nominal_type] !! Positional;
+                    $is-rw         &&= False;
+                    $flags         +|= $SIG_ELEM_ARRAY_SIGIL;
+                }
+                elsif $sigil eq '%' {
+                    $!nominal_type  := %args<type>:exists ?? Associative[$!nominal_type] !! Associative;
+                    $is-rw         &&= False;
+                    $flags         +|= $SIG_ELEM_HASH_SIGIL;
+                }
+                elsif $sigil eq '&' {
+                    $!nominal_type  := %args<type>:exists ?? Callable[$!nominal_type] !! Callable;
+                    $is-rw         &&= False;
+                    $flags         +|= $SIG_ELEM_CODE_SIGIL;
+                }
 
-            if $name.substr(1,1) -> $twigil {
-                if $twigil eq Q/!/ {
+                my Str:D $twigil := $name.substr: 1, 1;
+                if $twigil eq '!' {
                     $flags +|= $SIG_ELEM_BIND_PRIVATE_ATTR;
                 }
-                elsif $twigil eq Q/./ {
+                elsif $twigil eq '.' {
                     $flags +|= $SIG_ELEM_BIND_PUBLIC_ATTR;
                 }
             }
 
-            set-sigil-bits($sigil, $flags);
-            $name = $name.substr(1) if $sigil eq Q/\/ || $sigil eq Q/|/;
-        }
-
-        if %args.EXISTS-KEY('type') {
-            my $type := %args.AT-KEY('type');
-            if $type.DEFINITE {
-                if nqp::istype($type,Str) {
-                    if $type.ends-with(Q/)/) {
-                        my $start = $type.index(Q/(/);
-                        $!nominal_type :=
-                          str-to-type($type.substr($start + 1, *-1), my $);
-                        $!coerce_type :=
-                          str-to-type($type.substr(0, $start), $flags);
-                    }
-                    else {
-                        $!nominal_type := str-to-type($type, $flags)
-                    }
+            unless $prefix || not %args<default>:exists {
+                my Mu $default := %args<default>;
+                if $default ~~ Code:D {
+                    $!default_value := nqp::decont($default);
                 }
                 else {
-                    $!nominal_type := $type.WHAT;
+                    nqp::bindattr(self, Parameter, '$!default_value', $default);
+                    $flags +|= $SIG_ELEM_DEFAULT_IS_LITERAL;
                 }
+                $optional  ||= True;
+                $mandatory &&= False;
             }
-            else {
-                $!nominal_type := $type;
-            }
-        }
-        else {
-            $!nominal_type := Any;
+
+            $!variable_name = $name;
         }
 
-        if %args.EXISTS-KEY('default') {
-            my $default := %args.AT-KEY('default');
-            if nqp::istype($default,Code) {
-                $!default_value := $default;
-            }
-            else {
-                nqp::bind($!default_value,$default);
-                $flags +|= $SIG_ELEM_DEFAULT_IS_LITERAL;
-            }
-            $flags +|= $SIG_ELEM_IS_OPTIONAL;
+        $!sub_signature := nqp::decont($sub-signature) with $sub-signature;
+        if @where {
+            nqp::bindattr(self, Parameter, '@!post_constraints', nqp::list);
+            nqp::push(@!post_constraints, nqp::decont($_)) for %args<where>;
         }
 
-        if %args.EXISTS-KEY('where') {
-            nqp::bind(@!post_constraints,nqp::list(%args.AT-KEY('where')));
-        }
-
-        if %args.EXISTS-KEY('sub-signature') {
-            $!sub_signature := %args.AT-KEY('sub-signature');
-        }
-
-        if $named {
-            $flags +|= $SIG_ELEM_IS_OPTIONAL unless $mandatory;
-            @!named_names := nqp::list_s($name.substr(1))
-              unless @!named_names;
-        }
-        else {
-            $flags +|= $SIG_ELEM_IS_OPTIONAL if $optional;
-        }
-
-        $flags +|= $SIG_ELEM_MULTI_INVOCANT if $multi-invocant;
-        $flags +|= $SIG_ELEM_IS_COPY        if $is-copy;
-        $flags +|= $SIG_ELEM_IS_RAW         if $is-raw;
-        $flags +|= $SIG_ELEM_IS_RW          if $is-rw;
-
-        $!variable_name = $name if $name;
-        $!flags = $flags;
-        self
+        $flags  +|= $SIG_ELEM_IS_OPTIONAL    if $optional;
+        $flags  +|= $SIG_ELEM_IS_RAW         if $is-raw;
+        $flags  +|= $SIG_ELEM_IS_RW          if $is-rw && $mandatory;
+        $flags  +|= $SIG_ELEM_IS_COPY        if $is-copy;
+        $flags  +|= $SIG_ELEM_MULTI_INVOCANT if $multi-invocant;
+        $!flags   = $flags;
     }
 
-    method name() {
-        nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
+    method name(Parameter:D: --> Str:D) {
+        nqp::isnull_s($!variable_name) ?? '' !! $!variable_name
     }
-    method usage-name() {
+
+    method usage-name(Parameter:D: --> Str:D) {
         nqp::isnull_s($!variable_name)
-          ?? Nil
+          ?? ''
           !! nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
             ?? $!variable_name
             !! nqp::iseq_i(nqp::index('*!.',nqp::substr($!variable_name,1,1)),-1)
@@ -250,7 +351,7 @@ my class Parameter { # declared in BOOTSTRAP
               !! nqp::substr($!variable_name,2)
     }
 
-    method sigil() {
+    method sigil(Parameter:D: --> Str:D) {
         nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE)
           ?? '|'
           !! nqp::isnull_s($!variable_name)
@@ -271,7 +372,7 @@ my class Parameter { # declared in BOOTSTRAP
               !! nqp::substr($!variable_name,0,1)
     }
 
-    method twigil() {
+    method twigil(Parameter:D: --> Str:D) {
         nqp::bitand_i($!flags,$SIG_ELEM_BIND_PUBLIC_ATTR)
           ?? '.'
           !! nqp::bitand_i($!flags,$SIG_ELEM_BIND_PRIVATE_ATTR)
@@ -303,7 +404,7 @@ my class Parameter { # declared in BOOTSTRAP
             !! '!'
     }
 
-    method modifier() {
+    method modifier(Parameter:D: --> Str:D) {
         nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY)
           ?? ':D'
           !! nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY)
@@ -311,19 +412,19 @@ my class Parameter { # declared in BOOTSTRAP
             !! ''
     }
 
-    method constraint_list() {
-        nqp::isnull(@!post_constraints) ?? () !!
-            nqp::hllize(@!post_constraints)
+    method constraint_list(Parameter:D: --> List:D) {
+        nqp::isnull(@!post_constraints) ?? () !! nqp::hllize(@!post_constraints)
     }
 
-    method constraints() {
-        all(nqp::isnull(@!post_constraints) ?? () !!
-            nqp::hllize(@!post_constraints))
+    method constraints(Parameter:D: --> Junction:D) {
+        all(nqp::isnull(@!post_constraints) ?? () !! nqp::hllize(@!post_constraints))
     }
 
-    method type() { $!nominal_type }
-    method coerce_type() { $!coerce_type }
-    method named_names() {
+    method type(Parameter:D: --> Mu) { $!nominal_type }
+
+    method coerce_type(Parameter:D: --> Mu) { $!coerce_type }
+
+    method named_names(Parameter:D: --> List:D) {
         nqp::if(
           @!named_names && (my int $elems = nqp::elems(@!named_names)),
           nqp::stmts(
@@ -338,59 +439,53 @@ my class Parameter { # declared in BOOTSTRAP
           nqp::create(List)
         )
     }
-    method named() {
-        nqp::hllbool(
-          nqp::not_i(nqp::isnull(@!named_names)) || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED)
-        )
-    }
 
-    method positional() {
-        nqp::hllbool(
-          nqp::isnull(@!named_names)
-          && nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_POSITIONAL),0)
-        )
+    method named(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::not_i(nqp::isnull(@!named_names)) || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
     }
-
-    method slurpy() {
+    method positional(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::isnull(@!named_names) && nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_POSITIONAL),0))
+    }
+    method slurpy(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_SLURPY))
     }
-    method optional() {
+    method optional(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
     }
-    method raw() {
+    method raw(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW))
     }
-    method capture() {
+    method capture(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE))
     }
-    method rw() {
+    method rw(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RW))
     }
-    method onearg() {
+    method onearg(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
     }
-    method copy() {
+    method copy(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COPY))
     }
-    method readonly() {
-        nqp::hllbool(
-          nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_READONLY),0)
-        )
+    method readonly(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_READONLY),0))
     }
-    method invocant() {
+    method invocant(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_INVOCANT))
     }
-    method multi-invocant() {
+    method multi-invocant(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
     }
-    method default() {
+
+    method default(Parameter:D: --> Code:_) {
         nqp::isnull($!default_value)
-          ?? Any
+          ?? Code
           !! nqp::bitand_i($!flags,$SIG_ELEM_DEFAULT_IS_LITERAL)
             ?? { $!default_value }
             !! $!default_value
     }
-    method type_captures() {
+
+    method type_captures(Parameter:D: --> List:D) {
         nqp::if(
           @!type_captures && (my int $elems = nqp::elems(@!type_captures)),
           nqp::stmts(
@@ -543,7 +638,7 @@ my class Parameter { # declared in BOOTSTRAP
         True;
     }
 
-    multi method raku(Parameter:D: Mu:U :$elide-type = Any) {
+    multi method raku(Parameter:D: Mu:U :$elide-type = Any --> Str:D) {
         my $perl = '';
         $perl ~= "::$_ " for @.type_captures;
 
@@ -628,15 +723,15 @@ my class Parameter { # declared in BOOTSTRAP
         $perl
     }
 
-    method sub_signature(Parameter:D:) {
-        nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
+    method sub_signature(Parameter:D: --> Signature:_) {
+        nqp::isnull($!sub_signature) ?? Signature !! $!sub_signature
     }
 
-    method set_why($why --> Nil) {
+    method set_why(Parameter:D: $why --> Nil) {
         $!why := $why;
     }
 
-    method set_default(Code:D $default --> Nil) {
+    method set_default(Parameter:D: Code:D $default --> Nil) {
         $!default_value := $default;
     }
 }

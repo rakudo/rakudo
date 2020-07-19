@@ -2385,7 +2385,8 @@ class Perl6::Optimizer {
                 else {
                     $!problems.add_exception(['X', 'Method', 'NotFound'], $op,
                         :private(nqp::hllboolfor(1, "Raku")), :method($name),
-                        :typename($pkg.HOW.name($pkg)), :invocant($pkg));
+                        :typename($pkg.HOW.name($pkg)), :invocant($pkg),
+                        :in-class-call(nqp::hllboolfor(1, "Raku")));
                     return 1;
                 }
             }

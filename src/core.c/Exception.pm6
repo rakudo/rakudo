@@ -153,6 +153,8 @@ my class X::Method::NotFound is Exception {
     has $.typename;
     has Bool $.private;
     has $.addendum;
+    # This attribute is an implementation detail. Not to be documented.
+    has $.in-class-call;
 
     method of-type() {
         nqp::eqaddr(nqp::decont($!invocant),IterationEnd)
@@ -164,6 +166,14 @@ my class X::Method::NotFound is Exception {
         my $message = $.private
           ?? "No such private method '!$.method' for invocant $.of-type"
           !! "No such method '$.method' for invocant $.of-type";
+
+        my @tips;
+        my $indirect-method = "";
+
+        if $.method.starts-with("!") && !$.private {
+            $indirect-method = $.method.substr(1);
+            @tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
+        }
 
         my %suggestions;
         my int $max_length = do given $.method.chars {
@@ -184,6 +194,7 @@ my class X::Method::NotFound is Exception {
             %suggestions<encode($encoding).bytes> = 0;
         }
 
+        my $public_suggested = 0;
         if nqp::can($!invocant.HOW, 'methods') {
             my @invocant_methods = $!invocant.^methods(:local)>>.name;
             for $!invocant.^methods(:all) -> $method_candidate {
@@ -192,31 +203,50 @@ my class X::Method::NotFound is Exception {
                 next if $method_candidate.^name eq 'Submethod' && !@invocant_methods.first($method_name, :k).defined;
                 my $dist = StrDistance.new(:before($.method), :after(~$method_name));
                 if $dist <= $max_length {
+                    $public_suggested = 1;
                     %suggestions{$method_name} = ~$dist;
                 }
             }
         }
 
-        if nqp::can($!invocant.HOW, 'private_method_table') {
+        my $private_suggested = 0;
+        if $.in-class-call && nqp::can($!invocant.HOW, 'private_method_table') {
             for $!invocant.^private_method_table.keys -> $method_name {
                 my $dist = StrDistance.new(:before($.method), :after(~$method_name));
-                if $dist <= $max_length {
+                if $dist <= $max_length && $indirect-method ne $method_name {
+                    $private_suggested = 1;
                     %suggestions{"!$method_name"} = ~$dist;
                 }
             }
         }
 
         if +%suggestions == 1 {
-            $message ~= ". Did you mean '%suggestions.keys()'?";
+            @tips.push: "Did you mean '%suggestions.keys()'?";
         }
         elsif +%suggestions > 1 {
-            $message ~= ". Did you mean any of these: { %suggestions.sort(*.value)>>.key.head(4).map( { "'$_'" } ).join(", ") }?";
+            @tips.push: "Did you mean any of these: { %suggestions.sort(*.value)>>.key.head(4).map( { "'$_'" } ).join(", ") }?";
+        }
+
+        if !$indirect-method
+           &&($private_suggested ^^ $public_suggested)
+           && ($private_suggested ^^ $.private)
+        {
+            @tips.push: "Perhaps a " ~ ($private_suggested ?? "private" !! "public") ~ " method call must be used."
+        }
+
+        if +@tips == 1 {
+            @tips[0] = ". " ~ @tips[0];
+        }
+        elsif +@tips {
+            @tips = @tips.map: *.naive-word-wrapper(:indent("    - "));
+            @tips.unshift: ". Possible causes are:";
         }
 
         ($.addendum
           ?? "$message $.addendum"
           !!  $message
         ).naive-word-wrapper
+        ~ @tips.join("\n")
     }
 }
 
@@ -2875,8 +2905,8 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::NoDispatcher.new(:$redispatcher).throw;
   },
   'X::Method::NotFound',
-  -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False {
-      X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private).throw
+  -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False, :$in-class-call is raw = False {
+      X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private, :$in-class-call).throw
   },
   'X::Multi::Ambiguous',
   -> $dispatcher is raw, @ambiguous is raw, $capture is raw {

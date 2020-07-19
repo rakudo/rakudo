@@ -3933,6 +3933,7 @@ nqp::sethllconfig('Raku', nqp::hash(
         }
     },
     'method_not_found_error', -> $obj, str $name {
+        my $class := nqp::getlexcaller('$?CLASS');
         if nqp::gethllsym('Raku', 'P6EX') -> %ex {
             if $name eq 'STORE' {
                 if nqp::atkey(%ex,'X::Assignment::RO') -> $thrower {
@@ -3940,7 +3941,7 @@ nqp::sethllconfig('Raku', nqp::hash(
                 }
             }
             elsif nqp::atkey(%ex,'X::Method::NotFound') -> $thrower {
-                $thrower($obj, $name, $obj.HOW.name($obj));
+                $thrower($obj, $name, $obj.HOW.name($obj), :in-class-call(nqp::eqaddr(nqp::what($obj), $class)));
             }
         }
 

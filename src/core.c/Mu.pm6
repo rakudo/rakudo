@@ -1026,6 +1026,7 @@ my class Mu { # declared in BOOTSTRAP
 
     method dispatch:<!>(Mu \SELF: \name, Mu \type, |c) is raw {
         my $meth := type.^find_private_method(name);
+        my $class := nqp::getlexcaller('$?CLASS');
         $meth ??
             $meth(SELF, |c) !!
             X::Method::NotFound.new(
@@ -1033,6 +1034,7 @@ my class Mu { # declared in BOOTSTRAP
               method   => name,
               typename => type.^name,
               :private,
+              :in-class-call(nqp::eqaddr(nqp::what(SELF), $class)),
             ).throw;
     }
 

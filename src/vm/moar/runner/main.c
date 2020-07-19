@@ -32,7 +32,9 @@ enum {
     FLAG_FULL_CLEANUP,
     FLAG_TRACING,
 
-    OPT_DEBUGPORT
+    OPT_DEBUGPORT,
+
+    OPT_RAKUDO_HOME
 };
 
 static const char *const FLAGS[] = {
@@ -66,6 +68,8 @@ static int parse_flag(const char *arg)
         return (int)(found - FLAGS);
     else if (starts_with(arg, "--debug-port="))
         return OPT_DEBUGPORT;
+    else if (starts_with(arg, "--rakudo-home="))
+        return OPT_RAKUDO_HOME;
     else
         return UNKNOWN_FLAG;
 }
@@ -107,14 +111,20 @@ int retrieve_home(
           char   *exec_dir_path,
           size_t  exec_dir_path_size,
     const char   *check_file,
-    const size_t  check_file_size
+    const size_t  check_file_size,
+          char   *static_home,
+          char   *options_home
 ) {
     char   *check_file_path;
     size_t  home_size;
     int     ret;
     char   *env_home         = getenv(env_var);
 
-    if (env_home) {
+    if (options_home) {
+        *out_home = options_home;
+        home_size = strlen(*out_home);
+    }
+    else if (env_home) {
         home_size = strlen(env_home);
         *out_home = (char*)malloc(home_size + 1);
         strcpy(*out_home, env_home);
@@ -126,6 +136,10 @@ int retrieve_home(
             *(*out_home + home_size - 1) = '\0';
             home_size--;
         }
+    }
+    else if (static_home) {
+        *out_home = static_home;
+        home_size = strlen(*out_home);
     }
     else {
         home_size = exec_dir_path_size + rel_home_size;
@@ -156,28 +170,25 @@ int wmain(int argc, wchar_t *wargv[])
     size_t  exec_path_size;
 
     char   *exec_dir_path_temp;
-#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME)) || defined(_WIN32)
     char   *exec_dir_path;
     size_t  exec_dir_path_size;
-#endif
 
           char   *nqp_home;
           size_t  nqp_home_size;
-#ifndef STATIC_NQP_HOME
+          char   *static_nqp_home     = 0;
     const char    nqp_rel_path[14]    = "/../share/nqp";
     const size_t  nqp_rel_path_size   = 13;
     const char    nqp_check_path[28]  = "/lib/NQPCORE.setting.moarvm";
     const size_t  nqp_check_path_size = 27;
-#endif
 
           char   *rakudo_home;
           size_t  rakudo_home_size;
-#ifndef STATIC_RAKUDO_HOME
+          char   *static_rakudo_home    = 0;
+          char   *option_rakudo_home    = 0;
     const char    perl6_rel_path[16]    = "/../share/perl6";
     const size_t  perl6_rel_path_size   = 15;
     const char    perl6_check_path[22]  = "/runtime/perl6.moarvm";
     const size_t  perl6_check_path_size = 21;
-#endif
 
     char *lib_path[3];
     char *perl6_file;
@@ -250,6 +261,10 @@ int wmain(int argc, wchar_t *wargv[])
                 break;
             }
 
+            case OPT_RAKUDO_HOME:
+                option_rakudo_home = argv[argi] + strlen("--rakudo-home=");
+                break;
+
             default:
             argv[new_argc++] = argv[argi];
         }
@@ -287,7 +302,6 @@ int wmain(int argc, wchar_t *wargv[])
     /* The +1 is the trailing \0 terminating the string. */
     exec_dir_path_temp = (char*)malloc(exec_path_size + 1);
     memcpy(exec_dir_path_temp, exec_path, exec_path_size + 1);
-#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME)) || defined(_WIN32)
 #ifdef _WIN32
     PathRemoveFileSpecA(exec_dir_path_temp);
     exec_dir_path_size = strlen(exec_dir_path_temp);
@@ -297,40 +311,42 @@ int wmain(int argc, wchar_t *wargv[])
     exec_dir_path      = dirname(exec_dir_path_temp);
     exec_dir_path_size = strlen(exec_dir_path);
 #endif
-#endif
 
     /* Retrieve RAKUDO_HOME and NQP_HOME. */
 
 #ifdef STATIC_NQP_HOME
-    nqp_home = STRINGIFY(STATIC_NQP_HOME);
-#else
+    static_nqp_home = STRINGIFY(STATIC_NQP_HOME);
+#endif
     if (!retrieve_home(&nqp_home, nqp_rel_path, nqp_rel_path_size, "NQP_HOME",
-            exec_dir_path, exec_dir_path_size, nqp_check_path, nqp_check_path_size)) {
+            exec_dir_path, exec_dir_path_size, nqp_check_path,
+            nqp_check_path_size, static_nqp_home, 0)) {
         fprintf(stderr, "ERROR: NQP_HOME is invalid: %s\n", nqp_home);
         return EXIT_FAILURE;
     }
-#endif
     nqp_home_size = strlen(nqp_home);
 
 #ifdef STATIC_RAKUDO_HOME
-    rakudo_home = STRINGIFY(STATIC_RAKUDO_HOME);
-#else
+    static_rakudo_home = STRINGIFY(STATIC_RAKUDO_HOME);
+#endif
     /* XXX Isn't it time to move RAKUDO_HOME in front of PERL6_HOME?? */
     if (getenv("PERL6_HOME")) {
-        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
-                exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
+        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size,
+                "PERL6_HOME", exec_dir_path, exec_dir_path_size,
+                perl6_check_path, perl6_check_path_size, static_rakudo_home,
+                option_rakudo_home)) {
             fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", rakudo_home);
             return EXIT_FAILURE;
         }
     }
     else {
-        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size, "RAKUDO_HOME",
-                exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
+        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size,
+                "RAKUDO_HOME", exec_dir_path, exec_dir_path_size,
+                perl6_check_path, perl6_check_path_size, static_rakudo_home,
+                option_rakudo_home)) {
             fprintf(stderr, "ERROR: RAKUDO_HOME is invalid: %s\n", rakudo_home);
             return EXIT_FAILURE;
         }
     }
-#endif
     rakudo_home_size = strlen(rakudo_home);
 
     /* Put together the lib paths and perl6_file path. */

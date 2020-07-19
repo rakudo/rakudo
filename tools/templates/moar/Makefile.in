@@ -11,7 +11,7 @@ MOAR_PREFIX = @nfp(@moar::prefix@)@
 MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 @bpv(NQP)@       = @nfpq(@m_nqp@)@
 @bpv(NQP_RR)@    = @bpm(NQP)@
-@bpv(RUN_RAKUDO)@ = $(MOAR) --libpath=@nfpq($(BASE_DIR)/blib)@ --libpath=@q(@bpm(NQP_LIBDIR)@)@ @bsm(RAKUDO)@ --nqp-lib=@nfpq($(BASE_DIR)/blib)@
+@bpv(RUN_RAKUDO)@ = $(MOAR) --libpath=@nfpq($(BASE_DIR)/blib)@ --libpath=@q(@bpm(NQP_LIBDIR)@)@ @bsm(RAKUDO)@ --nqp-lib=@nfpq($(BASE_DIR)/blib)@ --rakudo-home=@nfpq($(BASE_DIR)/gen/build_rakudo_home)@
 
 @bpv(RUNNER_SUFFIX)@ = @moar::exe@
 

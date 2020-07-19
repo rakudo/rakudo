@@ -115,7 +115,8 @@ class Perl6::Compiler is HLL::Compiler {
                 ?? self.config<prefix>
                 !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
 
-            $!rakudo-home := nqp::getenvhash()<RAKUDO_HOME>
+            $!rakudo-home := self.cli-options()<rakudo-home>
+                // nqp::getenvhash()<RAKUDO_HOME>
                 // nqp::getenvhash()<PERL6_HOME>
                 // self.config<static-rakudo-home>
                 || $install-dir ~ '/share/perl6';
@@ -182,6 +183,7 @@ and, by default, also executes the compiled code.
   -M module            loads the module prior to running the program
   --target=stage       specify compilation stage to emit
   --optimize=level     use the given level of optimization (0..3)
+  --rakudo-home=path   Override the path of the Rakudo runtime files
   -o, --output=name    specify name of output file
   -v, --version        display version information
   -V                   print configuration summary

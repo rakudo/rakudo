@@ -4,7 +4,7 @@
 @bpv(NQP_BASE_FLAGS)@ = --nqp-runtime @bpm(RUNTIME)@ --perl6-runtime @perl6_runtime@ --libpath "@bpm(BLIB)@|||@nqp::libdir@@nfp(/nqp-js-on-js/)@"
 @bpv(NQP_FLAGS)@ = @bpm(NQP_BASE_FLAGS)@ --substagestats --stagestats --source-map
 @bpv(NQP_FLAGS_EXTRA)@ = --execname @bpm(RUNNER)@ --shebang
-@bpv(RUN_RAKUDO)@ = node --max-old-space-size=8192 rakudo.js @bpm(NQP_BASE_FLAGS)@ --source-map
+@bpv(RUN_RAKUDO)@ = node --max-old-space-size=8192 rakudo.js @bpm(NQP_BASE_FLAGS)@ --source-map --rakudo-home=@nfpq($(BASE_DIR)/gen/build_rakudo_home)@
 
 @bpv(CLEANUPS)@ = \
 	@bsm(RAKUDO)@ \

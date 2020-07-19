@@ -1,9 +1,11 @@
 sub hll-config($config) {
+    ### Language
     $config<implementation>   := 'Rakudo';
     $config<version>          := '@version@';
     $config<release-number>   := '@release@';
     $config<codename>         := '@codename@';
     $config<language-version> := '6.@lang_spec@';
+
     # Though language-revisions key provides more information
     # can-language-versions is used for speeding up and ordering
     # Perl6::Compiler.can_langauge_versions method
@@ -33,9 +35,22 @@ sub hll-config($config) {
     }
 )@
     );
+
+    # This mapping is for handling custom settings
+    $config<prev-revision>      := nqp::hash(@for_specs(
+        '@lcspec@', '@lcprevspec@',)@
+    );
+    # This mapping is for quick-transforming of core setting name
+    $config<prev-setting-name>  := nqp::hash(@for_specs(
+        'NULL.@lcspec@', '@if(lcspec==c NULL)@@if(lcspec!=c CORE)@.@lcprevspec@',
+        'CORE.@lcspec@', 'CORE.@lcspec@',)@
+    );
+
+    ### Location
     $config<prefix>             := '@prefix@';
     $config<static-nqp-home>    := '@static_nqp_home@';
     $config<static-rakudo-home> := '@static_rakudo_home@';
+
     $config<source-digest>      := '@source_digest()@';
 }
 

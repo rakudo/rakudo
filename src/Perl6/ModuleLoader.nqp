@@ -213,18 +213,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
         }
     }
 
-    my %previous_setting_name := nqp::hash(
-      'NULL.c',  'NULL.c',    # identity
-      'CORE.c',  'CORE.c',
-      'NULL.d',  'CORE.c',
-      'CORE.d',  'CORE.d',
-      'NULL.e',  'CORE.d',
-      'CORE.e',  'CORE.e'
-    );
-
-    # Transforms NULL.<release> into CORE.<previous-release>
+    # Transforms NULL.<release> into CORE.<previous-release>, CORE.<release> into CORE.<previous-release>
     method previous_setting_name ($setting_name, :$base = 'CORE') {
-        %previous_setting_name{$setting_name} // nqp::die("Don't know setting $setting_name")
+        nqp::getcomp('Raku').config()<prev-setting-name>{$setting_name}
+            // nqp::die("Don't know setting $setting_name")
     }
 
     method transform_setting_name ($setting_name) {
@@ -236,7 +228,6 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
         if $setting_name ne 'NULL.c' {
             DEBUG("Requested for settings $setting_name") if $DEBUG;
-            # XXX TODO: see https://github.com/rakudo/rakudo/issues/2432
             $setting_name := self.transform_setting_name($setting_name);
 
             # First, pre-load previous setting.

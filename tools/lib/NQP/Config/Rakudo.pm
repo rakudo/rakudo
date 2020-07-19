@@ -726,8 +726,10 @@ sub _specs_iterate {
 
     $self->not_in_context( specs => 'spec' );
 
+    my $prev_spec_char;
     for my $spec ( $cfg->raku_specs ) {
         my $spec_char   = $spec->[0];
+        $prev_spec_char //= $spec_char; # Map c -> c
         my $spec_subdir = "6.$spec_char";
         my %config      = (
             ctx_subdir    => $spec_subdir,
@@ -736,6 +738,9 @@ sub _specs_iterate {
             spec_with_mod => $spec_char,
             ucspec        => uc $spec_char,
             lcspec        => lc $spec_char,
+            prevspec      => $prev_spec_char,
+            ucprevspec    => uc $prev_spec_char,
+            lcprevspec    => lc $prev_spec_char,
         );
         my $spec_ctx = {
             spec    => $spec,
@@ -758,6 +763,7 @@ sub _specs_iterate {
                 $cb->(@_);
             }
         }
+        $prev_spec_char = $spec_char;
     }
 }
 

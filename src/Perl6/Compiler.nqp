@@ -7,6 +7,7 @@ class Perl6::Compiler is HLL::Compiler {
     has $!language_modifier; # Active language modifier; PREVIEW mostly.
     has $!language_revisions; # Hash of language revision letters. See gen/<vm>/main-version.nqp
     has $!can_language_versions; # List of valid language version
+    has $!rakudo-home;
 
     method compilation-id() {
         my class IDHolder { }
@@ -96,6 +97,33 @@ class Perl6::Compiler is HLL::Compiler {
         my $stdin    := stdin();
 
         $p6repl.repl-loop(:interactive(1), |%adverbs)
+    }
+
+    method rakudo-home() {
+        if !$!rakudo-home {
+            # Determine Perl6 and NQP dirs.
+#?if jvm
+            my $sep := nqp::atkey(nqp::jvmgetproperties,'os.name') eq 'MSWin32' ?? '\\' !! '/';
+            my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname') // '';
+#?endif
+#?if !jvm
+            my $config := nqp::backendconfig();
+            my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
+            my $execname := nqp::execname();
+#?endif
+            my $install-dir := $execname eq ''
+                ?? self.config<prefix>
+                !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
+
+            $!rakudo-home := nqp::getenvhash()<RAKUDO_HOME>
+                // nqp::getenvhash()<PERL6_HOME>
+                // self.config<static-rakudo-home>
+                || $install-dir ~ '/share/perl6';
+            if nqp::substr($!rakudo-home, nqp::chars($!rakudo-home) - 1) eq $sep {
+                $!rakudo-home := nqp::substr($!rakudo-home, 0, nqp::chars($!rakudo-home) - 1);
+            }
+        }
+        $!rakudo-home;
     }
 
     method usage($name?, :$use-stderr = False) {

@@ -5,7 +5,7 @@ JAR     = jar
 NQP_PREFIX  = @nqp_prefix@
 @bpv(NQP)@       = @shquot(@j_nqp@)@
 @bpv(NQP_RR)@    = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
-@bpv(RUN_RAKUDO)@ = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@rakudo.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ perl6
+@bpv(RUN_RAKUDO)@ = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@rakudo.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ perl6 --rakudo-home=@nfpq($(BASE_DIR)/gen/build_rakudo_home)@
 
 @bpv(DEBUG_RUNNER)@ = rakudo-debug-@backend_abbr@@bpm(RUNNER_SUFFIX)@
 

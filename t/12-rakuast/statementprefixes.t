@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 28;
+plan 36;
 
 is-deeply
         EVAL(RakuAST::StatementList.new(
@@ -174,3 +174,53 @@ is-deeply
         is-deeply $c.called, [$context], 'Correct context method was called';
     }
 }
+
+is-deeply
+    EVAL(RakuAST::StatementPrefix::Try.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::IntLiteral.new(99)
+        )
+    )),
+    99,
+    'try statement prefix with expression producing value results in the value';
+is-deeply $!, Nil, 'The $! variable is Nil when not exception';
+
+is-deeply
+    EVAL(RakuAST::StatementPrefix::Try.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier('die'),
+                args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('hard'))
+            )
+        )
+    )),
+    Nil,
+    'try statement prefix with throwing expression handles the exception';
+is $!, 'hard', '$! is populated with the exception';
+
+is-deeply
+    EVAL(RakuAST::StatementPrefix::Try.new(
+        RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::IntLiteral.new(999)
+            )
+        )))
+    )),
+    999,
+    'try statement prefix with block producing value results in the value';
+is-deeply $!, Nil, 'The $! variable is Nil when not exception';
+
+is-deeply
+    EVAL(RakuAST::StatementPrefix::Try.new(
+        RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('die'),
+                    args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('another day'))
+                )
+            )
+        )))
+    )),
+    Nil,
+    'try statement prefix with throwing block handles the exception';
+is $!, 'another day', '$! is populated with the exception';

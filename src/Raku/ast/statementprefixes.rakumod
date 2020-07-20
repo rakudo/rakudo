@@ -103,6 +103,59 @@ class RakuAST::StatementPrefix::Eager is RakuAST::StatementPrefix {
     }
 }
 
+# The `try` statement prefix.
+class RakuAST::StatementPrefix::Try is RakuAST::StatementPrefix is RakuAST::SinkPropagator
+                                    is RakuAST::ImplicitLookups {
+    method propagate-sink(Bool $is-sunk) {
+        self.blorst.apply-sink($is-sunk);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+            RakuAST::Var::Lexical.new('$!')
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # If it's a block that already has a CATCH handler, just run it.
+        my $blorst := self.blorst;
+        if nqp::istype($blorst, RakuAST::Block) && $blorst.IMPL-HAS-CATCH-HANDLER {
+            self.IMPL-CALLISH-QAST($context)
+        }
+
+        # Otherwise, need to wrap it in exception handler logic.
+        else {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $nil := @lookups[0].IMPL-TO-QAST($context);
+            my $bang := @lookups[1].IMPL-TO-QAST($context);
+            QAST::Op.new(
+                :op('handle'),
+
+                # Success path puts Nil into $! and evaluates to the block.
+                QAST::Stmt.new(
+                    :resultchild(0),
+                    self.IMPL-CALLISH-QAST($context),
+                    QAST::Op.new( :op('p6assign'), $bang, $nil )
+                ),
+
+                # On failure, capture the exception object into $!.
+                'CATCH', QAST::Stmts.new(
+                    QAST::Op.new(
+                        :op('p6assign'),
+                        $bang,
+                        QAST::Op.new(
+                            :name<&EXCEPTION>, :op<call>,
+                            QAST::Op.new( :op('exception') )
+                        ),
+                    ),
+                    $nil
+                )
+            )
+        }
+    }
+}
+
 # Done by statement prefixes that insist on thunking expressions into a code
 # object.
 class RakuAST::StatementPrefix::Thunky is RakuAST::StatementPrefix

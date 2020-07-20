@@ -338,8 +338,8 @@ class RakuAST::VarDeclaration::Implicit::Special is RakuAST::VarDeclaration::Imp
         # to have.
         my constant COMMON := nqp::hash(
             '$_', ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name('$_')),
-            '$/', ContainerDescriptor.new(:of(Mu), :default(Any), :dynamic, :name('$/')),
-            '$!', ContainerDescriptor.new(:of(Mu), :default(Any), :dynamic, :name('$!'))
+            '$/', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$/')),
+            '$!', ContainerDescriptor.new(:of(Mu), :default(Nil), :dynamic, :name('$!'))
         );
         my $cont-desc := COMMON{self.name} //
             ContainerDescriptor.new(:of(Mu), :default(Any), :!dynamic, :name(self.name));

@@ -1206,7 +1206,7 @@ my class X::Parameter::Default::TypeCheck does X::Comp {
     has $.got is default(Nil);
     has $.expected is default(Nil);
     method message() {
-        "Default value '{Rakudo::Internals.MAYBE-GIST: $!got}' will never bind to a $.what of type '{$!expected.^name}'.".naive-word-wrapper
+        "Default value '{Rakudo::Internals.MAYBE-STRING: $!got}' will never bind to a parameter of type {$!expected.^name}"
     }
 }
 
@@ -2167,8 +2167,8 @@ my class X::Str::Sprintf::Directives::BadType is Exception {
     has $.value;
     method message() {
         $.expected
-          ??  "Directive $.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
-          !! "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-GIST: $.value[0]})"
+          ??  "Directive $.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
+          !! "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
     }
 }
 
@@ -2318,26 +2318,32 @@ my class X::ParametricConstant is Exception {
 
 my class X::TypeCheck is Exception {
     has $.operation;
-    has $.got is default(Nil);
-    has $.expected is default(Nil);
+    has $!got      is built(:bind) is default(Nil);
+    has $!expected is built(:bind) is default(Nil);
+    method got()      { $!got }
+    method expected() { $!expected }
     method gotn() {
-        my $perl = (try $!got.raku) // "?";
-        my $max-len = 24;
-        $max-len += chars $!got.^name if $perl.starts-with: $!got.^name;
-        $perl = "$perl.substr(0,$max-len-3)..." if $perl.chars > $max-len;
-        (try $!got.^name eq $!expected.^name
-          ?? $perl
-          !! "$!got.^name() ($perl)"
-        ) // "?"
+        nqp::stmts(
+          (my Str:D $raku := Rakudo::Internals.SHORT-STRING: $!got, :method<raku>),
+          nqp::if(
+            nqp::eqaddr($!got.WHAT, $!expected.WHAT),
+            $raku,
+            nqp::if(
+              nqp::can($!got.HOW, 'name'),
+              "$!got.^name() ($raku)",
+              $raku)))
     }
     method expectedn() {
-        (try $!got.^name eq $!expected.^name
-          ?? $!expected.raku
-          !! $!expected.^name
-        ) // "?"
+        nqp::if(
+          nqp::eqaddr($!got.WHAT, $!expected.WHAT),
+          Rakudo::Internals.MAYBE-STRING($!expected, :method<raku>),
+          nqp::if(
+            nqp::can($!expected.HOW, 'name'),
+            $!expected.^name,
+            '?'))
     }
     method priors() {
-        (try nqp::isconcrete($!got) && $!got ~~ Failure)
+        nqp::isconcrete($!got) && nqp::istype($!got, Failure)
           ?? "Earlier failure:\n " ~ $!got.mess ~ "\nFinal error:\n "
           !! ''
     }
@@ -2354,7 +2360,7 @@ my class X::TypeCheck::Binding is X::TypeCheck {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to '$.symbol'"
             !! "";
-        my $expected = (try nqp::eqaddr($.expected,$.got))
+        my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         self.priors() ~ "Type check failed in $.operation$to; $expected";
@@ -2364,7 +2370,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
     has Parameter $.parameter;
     has Bool $.constraint;
     method expectedn() {
-        $.constraint && $.expected ~~ Code
+        $.constraint && nqp::istype(self.expected, Code)
             ?? 'anonymous constraint to be met'
             !! callsame()
     }
@@ -2372,7 +2378,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to parameter '$.symbol'"
             !! " to anonymous parameter";
-        my $expected = (try nqp::eqaddr($.expected,$.got))
+        my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         my $what-check = $.constraint ?? 'Constraint type' !! 'Type';
@@ -2382,7 +2388,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
 my class X::TypeCheck::Return is X::TypeCheck {
     method operation { 'returning' }
     method message() {
-        my $expected = $.expected =:= $.got
+        my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected return type $.expectedn cannot be itself " ~
                "(perhaps $.operation a :D type object?)"
             !! "expected $.expectedn but got $.gotn";
@@ -2396,13 +2402,13 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     method message {
         my $to = $.symbol.defined && $.symbol ne '$'
             ?? " to $.symbol" !! "";
-        my $is-itself := try $.expected =:= $.got;
+        my $is-itself := nqp::eqaddr(self.expected, self.got);
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
         my $maybe-Nil := $is-itself
-          || nqp::istype($.expected.HOW, Metamodel::DefiniteHOW)
-          && $.expected.^base_type =:= $.got
+          || nqp::istype(self.expected.HOW, Metamodel::DefiniteHOW)
+          && nqp::eqaddr(self.expected.^base_type, self.got)
           ?? ' (perhaps Nil was assigned to a :D which had no default?)' !! '';
 
         self.priors() ~ "Type check failed in assignment$to; $expected$maybe-Nil"
@@ -2446,7 +2452,7 @@ my class X::Assignment::RO is Exception {
     method message {
         nqp::isconcrete($!value)
           ?? "Cannot modify an immutable {$!value.^name} ({
-                 Rakudo::Internals.SHORT-GIST: $!value
+                 Rakudo::Internals.SHORT-STRING: $!value
              })"
           !! "Cannot modify an immutable '{$!value.^name}' type object"
     }
@@ -2751,7 +2757,7 @@ my class X::Multi::NoMatch is Exception {
         if $.capture {
             for $.capture.list {
                 try @bits.push(
-                    $where ?? Rakudo::Internals.SHORT-GIST($_) !! .WHAT.raku ~ ':' ~ (.defined ?? "D" !! "U")
+                    $where ?? Rakudo::Internals.SHORT-STRING($_) !! .WHAT.raku ~ ':' ~ (.defined ?? "D" !! "U")
                 );
                 @bits.push($_.^name) if $!;
                 if nqp::istype($_,Failure) {
@@ -2767,7 +2773,7 @@ my class X::Multi::NoMatch is Exception {
                 }
                 else {
                     try @bits.push(":$(.key)\($($where
-                        ?? Rakudo::Internals.SHORT-GIST: .value
+                        ?? Rakudo::Internals.SHORT-STRING(.value)
                         !! .value.WHAT.raku
                     ))");
                     @bits.push(':' ~ .value.^name) if $!;
@@ -2840,77 +2846,77 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
 nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
 #?endif
   'X::TypeCheck::Binding',
-  -> Mu $got, Mu $expected, $symbol? {
+  -> Mu $got is raw, Mu $expected is raw, $symbol? is raw {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
   },
   'X::TypeCheck::Binding::Parameter',
-  -> Mu $got, Mu $expected, $symbol, $parameter, $is-constraint? {
+  -> Mu $got is raw, Mu $expected is raw, $symbol is raw, $parameter is raw, $is-constraint? is raw {
       my $constraint = $is-constraint ?? True !! False;
       X::TypeCheck::Binding::Parameter.new(:$got, :$expected, :$symbol, :$parameter, :$constraint).throw;
   },
   'X::TypeCheck::Assignment',
-  -> Mu $symbol, Mu $got, Mu $expected {
+  -> Mu $symbol is raw, Mu $got is raw, Mu $expected is raw {
       X::TypeCheck::Assignment.new(:$symbol, :$got, :$expected).throw;
   },
   'X::TypeCheck::Return',
-  -> Mu $got, Mu $expected {
+  -> Mu $got is raw, Mu $expected is raw {
       X::TypeCheck::Return.new(:$got, :$expected).throw;
   },
   'X::Assignment::RO',
-  -> $value = "value" {
+  -> $value is raw = "value" {
       X::Assignment::RO.new(:$value).throw;
   },
   'X::ControlFlow::Return',
-  -> $out-of-dynamic-scope = False {
+  -> $out-of-dynamic-scope is raw = False {
       X::ControlFlow::Return.new(:$out-of-dynamic-scope).throw;
   },
   'X::NoDispatcher',
-  -> $redispatcher {
+  -> $redispatcher is raw {
       X::NoDispatcher.new(:$redispatcher).throw;
   },
   'X::Method::NotFound',
-  -> Mu $invocant, $method, $typename, $private = False {
+  -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False {
       X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private).throw
   },
   'X::Multi::Ambiguous',
-  -> $dispatcher, @ambiguous, $capture {
+  -> $dispatcher is raw, @ambiguous is raw, $capture is raw {
       X::Multi::Ambiguous.new(:$dispatcher, :@ambiguous, :$capture).throw
   },
   'X::Multi::NoMatch',
-  -> $dispatcher, $capture {
+  -> $dispatcher is raw, $capture is raw {
       X::Multi::NoMatch.new(:$dispatcher, :$capture).throw
   },
   'X::Role::Initialization',
-  -> $role {
+  -> $role is raw {
       X::Role::Initialization.new(:$role).throw
   },
   'X::Role::Parametric::NoSuchCandidate',
-  -> Mu $role {
+  -> Mu $role is raw {
       X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
   },
   'X::Inheritance::NotComposed',
-  -> $child-name, $parent-name {
+  -> $child-name is raw, $parent-name is raw {
       X::Inheritance::NotComposed.new(:$child-name, :$parent-name).throw;
   },
   'X::Parameter::RW',
-  -> Mu $got, $symbol {
+  -> Mu $got is raw, $symbol is raw {
       X::Parameter::RW.new(:$got, :$symbol).throw;
   },
   'X::PhaserExceptions',
-  -> @exceptions {
+  -> @exceptions is raw {
       X::PhaserExceptions.new(exceptions =>
         @exceptions.map(-> Mu \e { EXCEPTION(e) })).throw;
   },
   'X::Trait::Invalid',
-  -> $type, $subtype, $declaring, $name {
+  -> $type is raw, $subtype is raw, $declaring is raw, $name is raw {
       X::Trait::Invalid.new(:$type, :$subtype, :$declaring, :$name).throw;
   },
   'X::Parameter::InvalidConcreteness',
-  -> $expected, $got, $routine, $param, Bool() $should-be-concrete, Bool() $param-is-invocant {
+  -> $expected is raw, $got is raw, $routine is raw, $param is raw, Bool() $should-be-concrete is raw, Bool() $param-is-invocant is raw {
       X::Parameter::InvalidConcreteness.new(:$expected, :$got, :$routine, :$param, :$should-be-concrete, :$param-is-invocant).throw;
   },
   'X::NYI',
-  -> $feature {
+  -> $feature is raw {
       X::NYI.new(:$feature).throw;
   },
 ));

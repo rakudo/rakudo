@@ -78,7 +78,7 @@ int wmain(int argc, wchar_t *argv[]) {
     STARTUPINFOW si;
     PROCESS_INFORMATION pi;
 
-    moar_argc = 7;
+    moar_argc = 6;
 
     // moar args + passed args (without program name) + NULL pointer
     exec_argc = moar_argc + (argc - 1) + 1;
@@ -91,7 +91,6 @@ int wmain(int argc, wchar_t *argv[]) {
     exec_argv[3] = L"--libpath=@c_escape(@nfp(@base_dir@/blib)@)@";
     exec_argv[4] = L"--libpath=@c_escape(@nfp(@nqp_lib_dir@)@)@";
     exec_argv[5] = L"@c_escape(@nfp(@base_dir@/@mbc@)@)@";
-    exec_argv[6] = L"--nqp-lib=@c_escape(@nfp(@base_dir@/blib)@)@";
 
     // Copy passed args.
     for (c = 0; c < argc - 1; c++) {

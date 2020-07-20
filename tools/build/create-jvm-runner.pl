@@ -8,9 +8,9 @@ use File::Spec;
 use File::Copy 'cp';
 use Cwd 'abs_path';
 
-my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp-home> <rakudo-home> <blib> <third party jars>\n";
+my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp-home> <rakudo-home> <third party jars>\n";
 
-my ($type, $destdir, $prefix, $static_nqp_home, $static_rakudo_home, $blib, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $static_nqp_home, $static_rakudo_home, $thirdpartyjars) = @ARGV
     or die $USAGE;
 
 my $relocatable = $static_nqp_home eq '' && $static_rakudo_home eq '';
@@ -49,7 +49,7 @@ my $rakudo_jars = join( $cpsep,
     File::Spec->catfile($jardir, 'rakudo-runtime.jar'),
     File::Spec->catfile($jardir, $debugger ? 'rakudo-debug.jar' : 'rakudo.jar'));
 
-my $NQP_LIB = $blib ? ': ${NQP_LIB:="blib"}' : '';
+my $NQP_LIB = $type eq 'install' ? '' : ': ${NQP_LIB:="blib"}';
 
 my $preamble_unix = <<'EOS';
 #!/bin/sh
@@ -156,10 +156,10 @@ if ($debugger) {
     install "perl6-debug-j", "java $jopts rakudo-debug";
 }
 else {
-    install "rakudo-j", "java $jopts perl6 $blib";
-    install "perl6-j", "java $jopts perl6 $blib";
-    install "rakudo-jdb-server", "java $jdbopts $jopts perl6 $blib";
-    install "perl6-jdb-server", "java $jdbopts $jopts perl6 $blib";
+    install "rakudo-j", "java $jopts perl6";
+    install "perl6-j", "java $jopts perl6";
+    install "rakudo-jdb-server", "java $jdbopts $jopts perl6";
+    install "perl6-jdb-server", "java $jdbopts $jopts perl6";
     install "rakudo-eval-server", "java -Xmx3000m $jopts org.raku.nqp.tools.EvalServer";
     install "perl6-eval-server", "java -Xmx3000m $jopts org.raku.nqp.tools.EvalServer";
 }

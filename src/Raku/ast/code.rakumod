@@ -66,7 +66,14 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
     # 0 = no implicit topic
     # 1 = optional implicit topic
     # 2 = required implicit topic
+    # 3 = required implicit topic populated from exception
     has int $!implicit-topic-mode;
+
+    # Should this block declare a fresh implicit `$/`?
+    has int $!fresh-match;
+
+    # Should this block declare a fresh implicit `$!`?
+    has int $!fresh-exception;
 
     method new(RakuAST::Blockoid :$body, Bool :$implicit-topic, Bool :$required-topic) {
         my $obj := nqp::create(self);
@@ -80,10 +87,18 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         Nil
     }
 
-    method set-implicit-topic(Bool $implicit, Bool :$required) {
-        nqp::bindattr_i(self, RakuAST::Block, '$!implicit-topic-mode',
-            $implicit ?? ($required ?? 2 !! 1) !! 0);
+    method set-implicit-topic(Bool $implicit, Bool :$required, Bool :$exception) {
+        nqp::bindattr_i(self, RakuAST::Block, '$!implicit-topic-mode', $implicit
+            ?? ($exception ?? 3 !!
+                $required  ?? 2 !!
+                              1)
+            !! 0);
         Nil
+    }
+
+    method set-fresh-variables(Bool :$match, Bool :$exception) {
+        nqp::bindattr_i(self, RakuAST::Block, '$!fresh-match', $match ?? 1 !! 0);
+        nqp::bindattr_i(self, RakuAST::Block, '$!fresh-exception', $exception ?? 1 !! 0);
     }
 
     method attach-target-names() {
@@ -109,6 +124,16 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
             }
             elsif $!implicit-topic-mode == 2 {
                 @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new(:required);
+            }
+            elsif $!implicit-topic-mode == 3 {
+                @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new(:required,
+                    :exception);
+            }
+            if $!fresh-match {
+                nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
+            }
+            if $!fresh-exception {
+                nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
             }
         }
         self.IMPL-WRAP-LIST(@implicit)
@@ -142,18 +167,23 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
                 nqp::bindattr($sig, Signature, '$!count', nqp::box_i(1, Int));
                 $sig
             }();
-            nqp::bindattr($block, Code, '$!signature', $!implicit-topic-mode == 2
-                ?? REQUIRED-TOPIC-SIG
-                !! OPTIONAL-TOPIC-SIG);
+            nqp::bindattr($block, Code, '$!signature', $!implicit-topic-mode == 1
+                ?? OPTIONAL-TOPIC-SIG
+                !! REQUIRED-TOPIC-SIG);
         }
         $block
     }
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str $blocktype) {
+        # Form block with declarations.
         my $block := QAST::Block.new(
             :$blocktype,
             self.IMPL-QAST-DECLS($context)
         );
+
+        # Compile body and, if needed, a signature, and set up arity and any
+        # exception rethrow logic.
+        my $body-qast := $!body.IMPL-TO-QAST($context);
         my $signature := self.signature;
         if $signature {
             $block.push($signature.IMPL-TO-QAST($context));
@@ -164,11 +194,13 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
             $block.arity(0);
             $block.annotate('count', 1);
         }
-        elsif $!implicit-topic-mode == 2 {
+        elsif $!implicit-topic-mode >= 2 {
             $block.arity(1);
             $block.annotate('count', 1);
         }
-        $block.push(self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!body.IMPL-TO-QAST($context)));
+
+        my $is-handler := $!implicit-topic-mode == 3 ?? True !! False;
+        $block.push(self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $body-qast, :$is-handler));
         $block
     }
 

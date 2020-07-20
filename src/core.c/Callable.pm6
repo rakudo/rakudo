@@ -6,4 +6,4 @@ my role Callable[::T = Mu] {
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

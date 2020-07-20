@@ -29,3 +29,5 @@ is $GlobalString, "epic cuteness", 'global string works';
 
 my $GlobalNullString := cglobal('./10-cglobals', 'GlobalNullString', str);
 nok $GlobalNullString.defined, 'global null string pointer';
+
+# vim: expandtab shiftwidth=4

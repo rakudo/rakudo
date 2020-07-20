@@ -1,3 +1,5 @@
+# continued from src/core.c/Supply.pm6
+
     ## Supply factories
     ##
 
@@ -478,18 +480,13 @@
 
     method reduce(Supply:D: &with) {
         supply {
-            my $first := True;
-            my $reduced := Nil;
+            my $reduced := nqp::null;
             whenever self -> \value {
-                if $first {
-                    $reduced := value;
-                    $first := False;
-                }
-                else {
-                    $reduced := with($reduced, value);
-                }
+                $reduced := nqp::isnull($reduced)
+                  ?? value
+                  !! with($reduced, value);
                 LAST {
-                    emit $reduced;
+                    emit nqp::ifnull($reduced,Nil);
                 }
             }
         }
@@ -497,17 +494,11 @@
 
     method produce(Supply:D: &with) {
         supply {
-            my $first := True;
-            my $reduced := Nil;
+            my $reduced := nqp::null;
             whenever self -> \value {
-                if $first {
-                    $reduced := value;
-                    $first := False;
-                }
-                else {
-                    $reduced := with($reduced, value);
-                }
-                emit $reduced;
+                emit $reduced := nqp::isnull($reduced)
+                  ?? value
+                  !! with($reduced, value);
             }
         }
     }
@@ -620,6 +611,7 @@
           ?? supply {
                  my str $str;
                  my str $needle = $the-needle;
+                 my int $len = nqp::chars($needle);
                  whenever self -> str $val {
                      $str = nqp::concat($str,$val);
 
@@ -629,7 +621,7 @@
                        nqp::isgt_i(($i = nqp::index($str,$needle,$pos)),-1),
                        nqp::stmts(
                          emit($the-needle),
-                         ($pos = $i + 1)
+                         ($pos = $i + $len)
                        )
                      );
                      $str = nqp::substr($str,$pos);
@@ -724,4 +716,6 @@
         }
     }
 
-# vim: ft=perl6 expandtab sw=4
+# continued in src/core.c/Supply-coercers.pm6
+
+# vim: expandtab shiftwidth=4

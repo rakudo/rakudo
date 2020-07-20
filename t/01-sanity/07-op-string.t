@@ -42,3 +42,5 @@ $foo++;
 $bar--;
 $foo eq 'free' and say 'ok 17';
 $bar eq 'frec' and say 'ok 18';
+
+# vim: expandtab shiftwidth=4

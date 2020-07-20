@@ -20,31 +20,21 @@ my class Array { # declared in BOOTSTRAP
         has $!descriptor;
 
         method new(\target, Mu \descriptor) {
-            nqp::stmts(
-              nqp::bindattr((my \rt = nqp::create(self)),
-                self,'$!target',target),
-              nqp::p6bindattrinvres(rt,
-                self,'$!descriptor',descriptor)
-            )
+            nqp::bindattr((my \rt = nqp::create(self)),self,'$!target',target);
+            nqp::p6bindattrinvres(rt,self,'$!descriptor',descriptor)
         }
 
         method push(Mu \value --> Nil) {
             nqp::push($!target, nqp::p6scalarwithvalue($!descriptor, value));
         }
 
-        method append(IterationBuffer:D $buffer --> Nil) {
-            nqp::if(
-              (my int $elems = nqp::elems($buffer)),
-              nqp::stmts(
-                (my int $i = -1),
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::push($!target,
-                    nqp::p6scalarwithvalue($!descriptor,nqp::atpos($buffer,$i))
-                  )
-                )
+        method append(IterationBuffer:D \buffer --> Nil) {
+            nqp::while(
+              nqp::elems(buffer),
+              nqp::push($!target,
+                nqp::p6scalarwithvalue($!descriptor,nqp::shift(buffer))
               )
-            )
+            );
         }
     }
 
@@ -56,8 +46,7 @@ my class Array { # declared in BOOTSTRAP
         }
 
         method push(Mu \value --> Nil) {
-            nqp::push($!target,
-                nqp::decont(value));
+            nqp::push($!target,nqp::decont(value));
         }
 
         method append(IterationBuffer:D \buffer --> Nil) {
@@ -116,7 +105,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
               nqp::if(
                 nqp::islt_i($!i,nqp::elems($!reified)),
-                self.hole($!i),
+                self!hole($!i),
                 nqp::if(
                   nqp::isconcrete($!todo),
                   nqp::if(
@@ -125,18 +114,19 @@ my class Array { # declared in BOOTSTRAP
                       $!todo.reify-at-least(nqp::add_i($!i,1))
                     ),
                     nqp::atpos($!reified,$!i), # cannot be nqp::null
-                    self.done
+                    self!done
                   ),
                   IterationEnd
                 )
               )
             )
         }
-        method hole(int $i) {
-             nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindArrayPos.new(
-                 $!descriptor, $!reified, $i))
+        method !hole(int $i) is raw {
+            nqp::p6scalarfromcertaindesc(
+              ContainerDescriptor::BindArrayPos.new($!descriptor,$!reified,$i)
+            )
         }
-        method done() is raw {
+        method !done() is raw {
             $!todo := nqp::bindattr($!array,List,'$!todo',Mu);
             IterationEnd
         }
@@ -155,7 +145,7 @@ my class Array { # declared in BOOTSTRAP
                   $!todo.fully-reified,
                   nqp::stmts(
                     ($!i = $i),
-                    self.done
+                    self!done
                   ),
                   nqp::stmts(
                     ($!i = nqp::sub_i($elems,1)),
@@ -169,7 +159,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::while(   # doesn't sink
                   nqp::islt_i($i = nqp::add_i($i,1),$elems),
                   target.push(
-                    nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
+                    nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
                   )
                 ),
                 ($!i = $i),
@@ -382,7 +372,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method FLATTENABLE_LIST() {
+    method FLATTENABLE_LIST() is implementation-detail {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
           nqp::stmts(
@@ -419,7 +409,23 @@ my class Array { # declared in BOOTSTRAP
     multi method flat(Array:U:) { self }
     multi method flat(Array:D:) { Seq.new(self.iterator) }
 
-    multi method List(Array:D: :$view --> List:D) {
+    method reverse(Array:D: --> Seq:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
+          !! Seq.new: nqp::getattr(self,List,'$!reified')
+            ?? Rakudo::Iterator.ReifiedReverse(self, $!descriptor)
+            !! Rakudo::Iterator.Empty
+    }
+
+    method rotate(List:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<rotate>))
+          !! Seq.new: nqp::getattr(self,List,'$!reified')
+            ?? Rakudo::Iterator.ReifiedRotate($rotate, self, $!descriptor)
+            !! Rakudo::Iterator.Empty
+    }
+
+    multi method List(Array:D: :$view --> List:D) {  # :view is implementation-detail
         nqp::if(
           self.is-lazy,                           # can't make a List
           X::Cannot::Lazy.new(:action<List>).throw,
@@ -839,20 +845,28 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method pop(Array:D:) is raw is nodal {
+    # helper subs to reduce size of pop / shift
+    method !lazy($action) is hidden-from-backtrace {
+        Failure.new(X::Cannot::Lazy.new(:$action))
+    }
+    method !empty($action) is hidden-from-backtrace {
+        Failure.new(X::Cannot::Empty.new(:$action,:what(self.^name)))
+    }
+
+    method pop(Array:D:) is nodal {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'pop from')),
+          self!lazy('pop from'),
           nqp::if(
             nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
               && nqp::elems(nqp::getattr(self,List,'$!reified')),
             nqp::pop(nqp::getattr(self,List,'$!reified')),
-            Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
+            self!empty('pop')
           )
         )
     }
 
-    method shift(Array:D:) is raw is nodal {
+    method shift(Array:D:) is nodal {
         nqp::if(
           nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
             && nqp::elems(nqp::getattr(self,List,'$!reified')),
@@ -864,7 +878,7 @@ my class Array { # declared in BOOTSTRAP
             nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
               && nqp::getattr(self,List,'$!todo').reify-at-least(1),
             nqp::shift(nqp::getattr(self,List,'$!reified')),
-            Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
+            self!empty('shift')
           )
         )
     }
@@ -1335,7 +1349,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    method GRAB_ONE(Array:D:) {
+    method GRAB_ONE(Array:D:) is implementation-detail {
         nqp::stmts(
           (my $reified := nqp::getattr(self,List,'$!reified')),
           (my $value := nqp::atpos(
@@ -1373,4 +1387,4 @@ my class Array { # declared in BOOTSTRAP
 
 #=============== class Array is closed in src/core.c/TypedArray.pm6 ============
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

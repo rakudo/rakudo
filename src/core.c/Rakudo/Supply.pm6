@@ -483,18 +483,18 @@ class Rakudo::Supply {
     }
 }
 
-sub SUPPLY(&block) {
+sub SUPPLY(&block) is implementation-detail {
     Supply.new(Rakudo::Supply::BlockTappable.new(:&block))
 }
 
-sub WHENEVER(Supply() $supply, &block) {
-    my \adder = nqp::getlexdyn('&*ADD-WHENEVER');
+sub WHENEVER(Supply() $supply, &block) is implementation-detail {
+    my \adder := nqp::getlexdyn('&*ADD-WHENEVER');
     nqp::isnull(adder)
         ?? X::WheneverOutOfScope.new.throw
         !! adder.($supply, &block)
 }
 
-sub REACT(&block) {
+sub REACT(&block) is implementation-detail {
     my $s := SUPPLY(&block);
     my $p := Promise.new;
     $s.tap(
@@ -504,15 +504,15 @@ sub REACT(&block) {
     await $p;
 }
 
-sub SUPPLY-ONE-EMIT(&block) {
+sub SUPPLY-ONE-EMIT(&block) is implementation-detail {
     Supply.new(Rakudo::Supply::OneEmitTappable.new(:&block))
 }
 
-sub SUPPLY-ONE-WHENEVER(&block) {
+sub SUPPLY-ONE-WHENEVER(&block) is implementation-detail {
     Supply.new(Rakudo::Supply::OneWheneverTappable.new(:&block))
 }
 
-sub REACT-ONE-WHENEVER(&block) {
+sub REACT-ONE-WHENEVER(&block) is implementation-detail {
     my $s := SUPPLY-ONE-WHENEVER(&block);
     my $p := Promise.new;
     $s.tap(
@@ -522,4 +522,4 @@ sub REACT-ONE-WHENEVER(&block) {
     await $p;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

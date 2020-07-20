@@ -53,4 +53,4 @@ multi sub await(Supply:D $s) {
 multi sub await(Iterable:D $i) { eager $i.eager.map({ await $_ }) }
 multi sub await(*@awaitables)  { eager @awaitables.eager.map({await $_}) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

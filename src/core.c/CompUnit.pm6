@@ -22,10 +22,8 @@ class CompUnit {
     has Distribution $.distribution is built(:bind);
     has ValueObjAt $!WHICH;
 
-    multi method WHICH(CompUnit:D:) {
-        nqp::isconcrete($!WHICH)
-          ?? $!WHICH
-          !! self!WHICH
+    multi method WHICH(CompUnit:D: --> ValueObjAt:D) {
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
     }
     method !WHICH() {
         my $parts :=
@@ -39,6 +37,7 @@ class CompUnit {
              ).Str
           !! $!repo-id
         );
+
         $!WHICH := nqp::box_s(
           nqp::concat(
             nqp::concat(self.^name, '|'),
@@ -56,4 +55,4 @@ class CompUnit {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

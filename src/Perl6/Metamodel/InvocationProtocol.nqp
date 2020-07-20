@@ -92,3 +92,5 @@ role Perl6::Metamodel::InvocationProtocol {
         }
     }
 }
+
+# vim: expandtab sw=4

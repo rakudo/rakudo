@@ -46,7 +46,7 @@ do {
         my $read = $Readline.new;
         if ! $*DISTRO.is-win {
             $read.read-init-file("/etc/inputrc");
-            $read.read-init-file("~/.inputrc");
+            $read.read-init-file(%*ENV<INPUTRC> // "~/.inputrc");
         }
         method init-line-editor {
             $read.read-history($.history-file);
@@ -400,12 +400,13 @@ do {
         }
 
         method repl-print(Mu $value --> Nil) {
-            nqp::can($value, 'gist')
-              and say $value
+            my $method := %*ENV<RAKU_REPL_OUTPUT_METHOD> // "gist";
+            nqp::can($value,$method)
+              and say $value."$method"()
               or say "(low-level object `$value.^name()`)";
 
             CATCH {
-                default { say $_ }
+                default { say ."$method"() }
             }
         }
 
@@ -439,4 +440,4 @@ do {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

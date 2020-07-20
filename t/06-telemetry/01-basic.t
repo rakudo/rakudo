@@ -99,4 +99,4 @@ is @report[1], 'Number of Snapshots: 0', 'line 2 of report';
     'giving unknown column in RAKUDO_REPORT_COLUMNS warns instead of crashing'
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

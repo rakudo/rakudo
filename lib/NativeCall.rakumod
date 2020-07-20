@@ -132,7 +132,7 @@ sub nativesizeof($obj) is export(:DEFAULT) {
 my constant $signed_ints_by_size =
   nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
 
-# Gets the NCI type code to use based on a given Perl 6 type.
+# Gets the NCI type code to use based on a given Raku type.
 my constant $type_map = nqp::hash(
   "Bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
   "bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
@@ -504,19 +504,12 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     }
 
     method !compile-function-body(Mu $block) {
-        my $perl6comp := nqp::getcomp("Raku");
-        my @stages = $perl6comp.stages;
-        Nil until @stages.shift eq 'optimize';
+        my $compiler := nqp::getcomp("Raku");
+        my $body := $compiler.compile($block, :from<optimize>);
 
-        my $result := $block;
-        $result := $perl6comp.^can($_)
-            ?? $perl6comp."$_"($result)
-            !! $perl6comp.backend."$_"($result)
-            for @stages;
-        my $body := nqp::compunitmainline($result);
         $*W.add_object($body) if $*W;
 
-        nqp::setcodename($body, $!name);
+        nqp::setcodename(nqp::getattr($body, ForeignCode, '$!do'), $!name);
         $body
     }
 
@@ -669,17 +662,17 @@ multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
 role CPPConst {
     method cpp-const(--> 1) { }
 }
-multi trait_mod:<is>(Routine $p, :$cpp-const!) is export(:DEFAULT, :traits) {
+multi trait_mod:<is>(Routine $p, :cpp-const($)!) is export(:DEFAULT, :traits) {
     $p does CPPConst;
 }
-multi trait_mod:<is>(Parameter $p, :$cpp-const!) is export(:DEFAULT, :traits) {
+multi trait_mod:<is>(Parameter $p, :cpp-const($)!) is export(:DEFAULT, :traits) {
     $p does CPPConst;
 }
 
 role CPPRef {
     method cpp-ref(--> 1) { }
 }
-multi trait_mod:<is>(Parameter $p, :$cpp-ref!) is export(:DEFAULT, :traits) {
+multi trait_mod:<is>(Parameter $p, :cpp-ref($)!) is export(:DEFAULT, :traits) {
     $p does CPPRef;
 }
 
@@ -784,4 +777,4 @@ sub EXPORT(|) {
     );
 }
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

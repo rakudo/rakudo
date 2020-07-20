@@ -20,12 +20,12 @@ development via following command line options:
 
 - `--github-user=<user>` defines the GitHub account where cloned repositories of `MoarVM`, `NQP`, and `Rakudo` are all
   located. With this option sources of `NQP` will be cloned from `git@github.com:<user>/nqp` instead of the default
-  `git@github.com:perl6/nqp`.
+  `git@github.com:Raku/nqp`.
 - `--[rakudo|moar|nqp|roast]-repo` command line options allow to define particular URL for each individual repository.
 
 ### nqp-configure submodule
 
-`Configure.pl` is based on modules implemented by [nqp-configure](https://github.com/perl6/nqp-configure) repository.
+`Configure.pl` is based on modules implemented by [nqp-configure](https://github.com/Raku/nqp-configure) repository.
 This repo is included as a submodule into `rakudo` source repository. To set a user free of manual update of submodules
 upon each update of `nqp-configure` `Configure.pl` does a few things under the hood upon startup:
 
@@ -44,11 +44,11 @@ upon each update of `nqp-configure` `Configure.pl` does a few things under the h
 _... needs documenting ..._
 
 See documentation on macros in
-[nqp-configure repository](https://github.com/perl6/nqp-configure/blob/master/doc/Macros.md).
+[nqp-configure repository](https://github.com/Raku/nqp-configure/blob/master/doc/Macros.md).
 
 ## Language Revisions
 
-Language revisions supported by current `Rakudo` version are defined in `tools/templates/PERL6_SPECS` file. At the
+Language revisions supported by current `Rakudo` version are defined in `tools/templates/RAKU_SPECS` file. At the
 moment of writing this section it has the following look:
 
 ```
@@ -67,7 +67,7 @@ The life cycle of a release modifier `PREVIEW` must follow these rules:
 
 1. For a revision being developed it has to be marked as required. In this status use of the revision letter in a
    language version is not possible without the modifier. With the file in the example if we try `use v6.e;` the
-   compiler must die with _'Perl v6.e requires modifier PREVIEW'_ message.
+   compiler must die with _'Raku v6.e requires modifier PREVIEW'_ message.
 1. When revision gets released the modifier status changes into normal status for a couple of monthly releases of
    `Rakudo` to allow graceful transition for modules which were built specifically for the just released revision.
 
@@ -75,18 +75,18 @@ The life cycle of a release modifier `PREVIEW` must follow these rules:
 1. When the transition period is considered over the `PREVIEW` modifier must be marked as _deprecated_. With this
    status it's still possible to use it. But the compiler will generate a warning message.
 1. The _deprecation_ period should be over after another few releases and followed by complete removal of `PREVIEW`
-   modifier from `PERL6_SPECS` file. At this point its use is considered illegal and compiler will be dying whenever
+   modifier from `RAKU_SPECS` file. At this point its use is considered illegal and compiler will be dying whenever
    find it in a code.
 
 ### Steps to add a new revision
 
-1. Edit `PERL6_SPECS` to add a line containing the new revision letter similar to this:
+1. Edit `RAKU_SPECS` to add a line containing the new revision letter similar to this:
 
    ```<revision letter> !PREVIEW```
 
    _Note_ that here and below `<revision letter>` must be replaced with the next letter to be used.
 
-1. Change the status of `PREVIEW` modifier of the previous release from _required_ to _normal_. Save `PERL6_SPECS`.
+1. Change the status of `PREVIEW` modifier of the previous release from _required_ to _normal_. Save `RAKU_SPECS`.
 1. Create `src/core.<revision letter>` directory.
 1. Create file `src/core.<revision letter>/core_prologue.pm6` with the following lines in it:
 
@@ -96,9 +96,9 @@ The life cycle of a release modifier `PREVIEW` must follow these rules:
    # This dynamic is purely for testing support.
    PROCESS::<$CORE-SETTING-REV> := '<revision letter>';
 
-   # vim: ft=perl6 expandtab sw=4
+   # vim: ft=raku expandtab sw=4
    ```
 
-1. Edit file `t/02-rakudo/14-revisions.t` to reflect all changes done in `PERL6_SPECS` on the previous steps: add one
+1. Edit file `t/02-rakudo/14-revisions.t` to reflect all changes done in `RAKU_SPECS` on the previous steps: add one
    more test for the new revision, remove `PREVIEW` from the previous revision, etc.
 1. Change `VERSION` file in `roast` repository.

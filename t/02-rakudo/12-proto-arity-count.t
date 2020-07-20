@@ -119,7 +119,7 @@ sub all-the-protos {
     &deepmap,
     &defined,
     &die,
-    &dir,
+#    &dir,
     &duckmap,
     &elems,
     &end,
@@ -358,13 +358,13 @@ sub all-the-protos {
     &sleep-timer,
     &sleep-until,
     &slip,
-    &slurp,
+#    &slurp,
     &so,
     &sort,
     &splice,
     &split,
     &sprintf,
-    &spurt,
+#    &spurt,
     &sqrt,
     &squish,
     &srand,
@@ -415,3 +415,5 @@ sub all-the-protos {
     &wordcase,
     &words,
 }
+
+# vim: expandtab shiftwidth=4

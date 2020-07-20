@@ -10,3 +10,5 @@ is-run 'dd Failure.new',
 ｢Failures don't get marked as handled in &dd｣;
 
 is-run 'dd 42.any', :err("any(42)\n"), 'Junctions do not crash';
+
+# vim: expandtab shiftwidth=4

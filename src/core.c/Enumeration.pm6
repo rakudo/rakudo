@@ -86,7 +86,7 @@ my role NumericStringyEnumeration {
     }
 }
 
-sub ENUM_VALUES(*@args --> Map:D) {
+sub ENUM_VALUES(*@args --> Map:D) is implementation-detail {
     my Mu $prev = -1;
     my $res := nqp::hash;
 
@@ -118,8 +118,8 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, @enum_values {
 # We use this one because, for example, Int:D === Int:D, has an optimization
 # that simply unboxes the values. That's no good for us, since two different
 # Enumeration:Ds could have the same Int:D value.
-multi infix:<===> (Enumeration:D \a, Enumeration:D \b) {
+multi infix:<===> (Enumeration:D \a, Enumeration:D \b --> Bool:D) {
     nqp::hllbool(nqp::eqaddr(nqp::decont(a), nqp::decont(b)))
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

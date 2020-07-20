@@ -368,46 +368,9 @@ for $*IN.lines -> $line {
               Range.new(Inf,-Inf)
             )
         }
-
-        my class Iterate does Iterator {
-            has int $!i;
-            has $!array;    # Native array we're iterating
-
-            method !SET-SELF(\array) {
-                $!array := nqp::decont(array);
-                $!i = -1;
-                self
-            }
-            method new(\array) { nqp::create(self)!SET-SELF(array) }
-
-            method pull-one() is raw {
-                ($!i = $!i + 1) < nqp::elems($!array)
-                  ?? nqp::atposref_#postfix#($!array,$!i)
-                  !! IterationEnd
-            }
-            method skip-one() {
-                ($!i = $!i + 1) < nqp::elems($!array)
-            }
-            method skip-at-least(int $toskip) {
-                nqp::unless(
-                  ($!i = $!i + $toskip) < nqp::elems($!array),
-                  nqp::stmts(
-                    ($!i = nqp::elems($!array)),
-                    0
-                  )
-                )
-            }
-            method push-all(\target --> IterationEnd) {
-                my int $i     = $!i;
-                my int $elems = nqp::elems($!array);
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  target.push(nqp::atposref_#postfix#($!array,$i))
-                );
-                $!i = $i;
-            }
+        method iterator(#type#array:D: --> PredictiveIterator:D) {
+            Rakudo::Iterator.native_#postfix#(self)
         }
-        method iterator(#type#array:D: --> Iterate:D) { Iterate.new(self) }
 
         method reverse(#type#array:D: --> #type#array:D) is nodal {
             nqp::stmts(
@@ -446,10 +409,10 @@ for $*IN.lines -> $line {
             Rakudo::Sorting.MERGESORT-#type#(nqp::clone(self))
         }
 
-        multi method ACCEPTS(#type#array:D: #type#array:D \other --> Bool:D) {
+        multi method ACCEPTS(#type#array:D: #type#array:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,other),
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my int $elems = nqp::elems(self)),
@@ -520,7 +483,7 @@ for $*IN.lines -> $line {
             ))
         }
 
-        method GRAB_ONE(#type#array:D: --> #type#) {
+        method GRAB_ONE(#type#array:D: --> #type#) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_#postfix#(
                 self,
@@ -536,3 +499,5 @@ SOURCE
     say "#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE";
     say $end ~ $type ~ "array role -------------------------------------";
 }
+
+# vim: expandtab sw=4

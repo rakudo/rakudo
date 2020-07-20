@@ -9,74 +9,57 @@ my class DateTime does Dateish {
 
     method !formatter() { # ISO 8601 timestamp
         my $parts := nqp::list_s;
-        nqp::push_s($parts, $!year < 1000 || $!year > 9999
-          ?? self!year-Str
-          !! nqp::tostr_I($!year)
-        );
+        nqp::islt_i($!year,1000) || nqp::isgt_i($!year,9999)
+          ?? nqp::push_s($parts,self!year-Str)
+          !! nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!year'));
 
         nqp::push_s($parts,'-');
-
-        nqp::push_s($parts,nqp::concat(
-          nqp::x('0',nqp::islt_i($!month,10)),
-          nqp::tostr_I($!month)
-        ));
+        nqp::push_s($parts,nqp::x('0',nqp::islt_i($!month,10)));
+        nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!month'));
 
         nqp::push_s($parts,'-');
-
-        nqp::push_s($parts,nqp::concat(
-          nqp::x('0',nqp::islt_i($!day,10)),
-          nqp::tostr_I($!day)
-        ));
+        nqp::push_s($parts,nqp::x('0',nqp::islt_i($!day,10)));
+        nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!day'));
 
         nqp::push_s($parts,'T');
-
-        nqp::push_s($parts,nqp::concat(
-          nqp::x('0',nqp::islt_i($!hour,10)),
-          nqp::tostr_I(nqp::getattr_i(self,DateTime,'$!hour'))
-        ));
+        nqp::push_s($parts,nqp::x('0',nqp::islt_i($!hour,10)));
+        nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!hour'));
 
         nqp::push_s($parts,':');
-
-        nqp::push_s($parts,nqp::concat(
-          nqp::x('0',nqp::islt_i($!minute,10)),
-          nqp::tostr_I(nqp::getattr_i(self,DateTime,'$!minute'))
-        ));
+        nqp::push_s($parts,nqp::x('0',nqp::islt_i($!minute,10)));
+        nqp::push_s($parts,nqp::getattr_i(self,DateTime,'$!minute'));
 
         nqp::push_s($parts,':');
-
         my int $second = $!second.floor;
         if $second == $!second {
-            nqp::push_s($parts,nqp::concat(
-              nqp::x('0',nqp::islt_i($second,10)),
-              $second
-            ));
+            nqp::push_s($parts,nqp::x('0',nqp::islt_i($second,10)));
+            nqp::push_s($parts,$second);
+        }
+        elsif $second {
+            my int $int   = ($!second * 1000000 + .5).Int;
+            my int $whole = nqp::substr($int,0,nqp::chars($int) - 6);
+            nqp::push_s($parts,nqp::x('0',nqp::islt_i($whole,10)));
+            nqp::push_s($parts,$whole);
+            nqp::push_s($parts,'.');
+            nqp::push_s($parts,nqp::substr($int,nqp::chars($int) - 6));
         }
         else {
             my int $int = ($!second * 1000000 + .5).Int;
-            my int $whole = nqp::substr($int,0,nqp::chars($int) - 6);
-            nqp::push_s($parts,nqp::concat(
-              nqp::x('0',nqp::islt_i($whole,10)),
-              $whole
-            ));
-            nqp::push_s($parts,'.');
-            nqp::push_s($parts,nqp::substr($int,nqp::chars($int) - 6));
+            nqp::push_s($parts,'00.');
+            nqp::push_s($parts,nqp::x('0',6 - nqp::chars($int)));
+            nqp::push_s($parts,$int);
         }
 
         if nqp::getattr_i(self,DateTime,'$!timezone') -> int $tz {
             nqp::push_s($parts,nqp::islt_i($tz,0) ?? '-' !! '+');
             my int $hours = nqp::div_i(nqp::abs_i($tz),3600);
-            nqp::push_s($parts,nqp::concat(
-              nqp::x('0',nqp::islt_i($hours,10)),
-              $hours
-            ));
+            nqp::push_s($parts,nqp::x('0',nqp::islt_i($hours,10)));
+            nqp::push_s($parts,$hours);
 
             nqp::push_s($parts,':');
-
             my int $minutes = nqp::div_i(nqp::mod_i(nqp::abs_i($tz),3600),60);
-            nqp::push_s($parts,nqp::concat(
-              nqp::x('0',nqp::islt_i($minutes,10)),
-              $minutes
-            ));
+            nqp::push_s($parts,nqp::x('0',nqp::islt_i($minutes,10)));
+            nqp::push_s($parts,$minutes);
         }
         else {
             nqp::push_s($parts,'Z');
@@ -496,7 +479,7 @@ my class DateTime does Dateish {
     proto method Date() {*}
     multi method Date(DateTime:D: --> Date:D) { Date.new($!year,$!month,$!day) }
     multi method Date(DateTime:U: --> Date:U) { Date }
-    method DateTime(--> DateTime) { self }
+    method DateTime() { self }
 
     multi method raku(DateTime:D: --> Str:D) {
         self.^name
@@ -547,4 +530,4 @@ multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
     b.new(b.Instant + a).in-timezone(b.timezone)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

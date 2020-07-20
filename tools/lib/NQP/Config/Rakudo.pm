@@ -160,6 +160,11 @@ sub configure_refine_vars {
               || File::Spec->catdir( $config->{'prefix'}, 'share', 'perl6' )
         )
     );
+
+    $config->{static_rakudo_home} =
+      $config->{relocatable} eq 'reloc'
+      ? ''
+      : $config->{rakudo_home};
 }
 
 sub parse_lang_specs {
@@ -320,6 +325,8 @@ sub configure_jvm_backend {
         $config->{'nqp_classpath'} = $nqp_config->{'jvm::runtime.classpath'};
         $config->{'nqp::libdir'}   = $nqp_config->{'nqp::libdir'};
         $config->{'j_runner'}      = $self->batch_file('rakudo-j');
+
+        $nqp_config->{static_nqp_home} = $nqp_config->{'nqp::static-nqp-home'};
     }
 }
 
@@ -344,14 +351,12 @@ sub configure_moar_backend {
 
     if ( $config->{relocatable} eq 'reloc' ) {
         $nqp_config->{static_nqp_home}           = '';
-        $nqp_config->{static_rakudo_home}        = '';
         $nqp_config->{static_nqp_home_define}    = '';
         $nqp_config->{static_rakudo_home_define} = '';
     }
     else {
         my $qchar = $config->{quote};
-        $nqp_config->{static_nqp_home}    = $nqp_config->{'nqp::nqp_home'};
-        $nqp_config->{static_rakudo_home} = $config->{rakudo_home};
+        $nqp_config->{static_nqp_home} = $nqp_config->{'nqp::static-nqp-home'};
         $nqp_config->{static_nqp_home_define} =
             '-DSTATIC_NQP_HOME='
           . $qchar
@@ -360,7 +365,7 @@ sub configure_moar_backend {
         $nqp_config->{static_rakudo_home_define} =
             '-DSTATIC_RAKUDO_HOME='
           . $qchar
-          . $self->c_escape_string( $nqp_config->{static_rakudo_home} )
+          . $self->c_escape_string( $config->{static_rakudo_home} )
           . $qchar;
     }
 
@@ -454,6 +459,7 @@ sub configure_js_backend {
         'js',
         js_build_dir => File::Spec->catdir( $config->{base_dir}, qw<gen js> ),
         js_blib => File::Spec->catdir( $config->{base_dir}, "node_modules" ),
+        static_nqp_home => $nqp_config->{'nqp::static-nqp-home'},
     );
 }
 
@@ -594,7 +600,6 @@ sub gen_nqp {
     my $prefix        = $config->{prefix};
     my $sdkroot       = $config->{'sdkroot'};
     my $startdir      = $config->{'base_dir'};
-    my $exe           = $config->{exe};
     my $nqp_want      = $config->{nqp_want};
     my $git_protocol  = $options->{'git-protocol'} // 'https';
     my @moar_options  = @{ $options->{'moar-option'} // [] };
@@ -612,6 +617,7 @@ sub gen_nqp {
     for my $b ( $self->active_backends ) {
         my $bconfig = $self->backend_config($b);
         my $postfix = $self->backend_abbr($b);
+        my $exe     = $b eq 'moar' ? $config->{exe} : $config->{bat};
         my $tpath   = File::Spec->catfile( $prefix, 'bin', "nqp-$postfix$exe" );
         my $bin     = $bconfig->{nqp_bin}
           || (
@@ -682,9 +688,9 @@ sub gen_nqp {
         push @cmd, $opt_str if $opt_str;
     }
 
-    push @cmd, '--git-cache-dir='
-        . File::Spec->rel2abs($options->{'git-cache-dir'})
-        if $options->{'git-cache-dir'};
+    push @cmd,
+      '--git-cache-dir=' . File::Spec->rel2abs( $options->{'git-cache-dir'} )
+      if $options->{'git-cache-dir'};
 
     push @cmd, "--backends=" . join( ",", $self->active_backends );
 
@@ -720,8 +726,10 @@ sub _specs_iterate {
 
     $self->not_in_context( specs => 'spec' );
 
+    my $prev_spec_char;
     for my $spec ( $cfg->raku_specs ) {
         my $spec_char   = $spec->[0];
+        $prev_spec_char //= $spec_char; # Map c -> c
         my $spec_subdir = "6.$spec_char";
         my %config      = (
             ctx_subdir    => $spec_subdir,
@@ -730,6 +738,9 @@ sub _specs_iterate {
             spec_with_mod => $spec_char,
             ucspec        => uc $spec_char,
             lcspec        => lc $spec_char,
+            prevspec      => $prev_spec_char,
+            ucprevspec    => uc $prev_spec_char,
+            lcprevspec    => lc $prev_spec_char,
         );
         my $spec_ctx = {
             spec    => $spec,
@@ -752,8 +763,35 @@ sub _specs_iterate {
                 $cb->(@_);
             }
         }
+        $prev_spec_char = $spec_char;
     }
 }
+
+# --- Utility methods
+
+{
+    my @all_sources;
+
+    sub _all_sources {
+        my $self     = shift;
+        my $base_dir = $self->cfg->cfg('base_dir');
+        unless (@all_sources) {
+            find(
+                sub {
+                    push @all_sources,
+                      File::Spec->abs2rel(
+                        File::Spec->catfile( $File::Find::dir, $_ ), $base_dir )
+                      if /\.(nqp|pm6)\z/;
+                },
+                File::Spec->catdir( $base_dir, "src" )
+            );
+            push @all_sources, 'gen/nqp-version';
+        }
+        return @all_sources;
+    }
+}
+
+# --- Macro implementations
 
 # for_specs(text)
 # Iterates over active backends and expands text in the context of each backend.
@@ -838,16 +876,18 @@ sub _m_for_langalias {
     return $out;
 }
 
+sub _m_source_digest_files {
+    my $self   = shift;
+    my $indent = " " x ( $self->cfg->{config}{filelist_indent} || 4 );
+    return join( " \\\n$indent", _all_sources($self) );
+}
+
 sub _m_source_digest {
     my $self = shift;
     my $sha  = Digest::SHA->new;
-    find(
-        sub {
-            $sha->addfile($_) if /\.(nqp|pm6)\z/;
-        },
-        File::Spec->catdir( $self->cfg->cfg('base_dir'), "src" )
-    );
-    $sha->addfile('gen/nqp-version');
+    foreach my $src ( _all_sources($self) ) {
+        $sha->addfile($src);
+    }
     return $sha->hexdigest;
 }
 
@@ -882,14 +922,15 @@ $text
 TPL
 }
 
-NQP::Macros->register_macro( 'for_specs',     \&_m_for_specs );
-NQP::Macros->register_macro( 'for_specmods',  \&_m_for_specmods );
-NQP::Macros->register_macro( 'for_toolchain', \&_m_for_toolchain );
-NQP::Macros->register_macro( 'for_langalias', \&_m_for_langalias );
-NQP::Macros->register_macro( 'source_digest', \&_m_source_digest );
-NQP::Macros->register_macro( 'gencat',        \&_m_gencat );
-NQP::Macros->register_macro( 'comp',          \&_m_comp, in_receipe => 1, );
-NQP::Macros->register_macro( 'comp_rr',       \&_m_comp_rr, in_receipe => 1, );
+NQP::Macros->register_macro( 'for_specs',           \&_m_for_specs );
+NQP::Macros->register_macro( 'for_specmods',        \&_m_for_specmods );
+NQP::Macros->register_macro( 'for_toolchain',       \&_m_for_toolchain );
+NQP::Macros->register_macro( 'for_langalias',       \&_m_for_langalias );
+NQP::Macros->register_macro( 'source_digest',       \&_m_source_digest );
+NQP::Macros->register_macro( 'source_digest_files', \&_m_source_digest_files );
+NQP::Macros->register_macro( 'gencat',              \&_m_gencat );
+NQP::Macros->register_macro( 'comp', \&_m_comp, in_receipe => 1, );
+NQP::Macros->register_macro( 'comp_rr', \&_m_comp_rr, in_receipe => 1, );
 
 1;
 

@@ -78,7 +78,7 @@ my class Backtrace {
     has Int $!bt-next;   # next bt index to vivify
 
     my $RAKUDO_VERBOSE_STACKFRAME := nqp::null;
-    method RAKUDO_VERBOSE_STACKFRAME() {
+    method RAKUDO_VERBOSE_STACKFRAME() is implementation-detail {
         nqp::ifnull(
           $RAKUDO_VERBOSE_STACKFRAME,
           $RAKUDO_VERBOSE_STACKFRAME :=
@@ -102,19 +102,23 @@ my class Backtrace {
           nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
           1 + $offset)
     }
-    multi method new(Mu \ex) {
+    multi method new(Exception:D \ex) {
         nqp::create(self)!SET-SELF(
-          ex.^name eq 'BOOTException'
-            ?? nqp::backtrace(nqp::decont(ex))
-            !! nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
+          nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
           0)
     }
-    multi method new(Mu \ex, Int:D $offset) {
+    multi method new(Mu \ex) {
+        # assume BOOTException
+        nqp::create(self)!SET-SELF(nqp::backtrace(nqp::decont(ex)),0)
+    }
+    multi method new(Exception:D \ex, Int:D $offset) {
         nqp::create(self)!SET-SELF(
-          ex.^name eq 'BOOTException'
-            ?? nqp::backtrace(nqp::decont(ex))
-            !! nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
+          nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
           $offset)
+    }
+    multi method new(Mu \ex, Int:D $offset) {
+        # assume BOOTException
+        nqp::create(self)!SET-SELF(nqp::backtrace(nqp::decont(ex)),$offset)
     }
     # note that backtraces are nqp::list()s, marshalled to us as a List
     multi method new(List:D $bt) {
@@ -351,4 +355,4 @@ my class Backtrace {
 
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

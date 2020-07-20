@@ -201,4 +201,4 @@ package EXPORT::collation {
     # in t/02-rakudo/99-misc.t that will need to be removed too at the time
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

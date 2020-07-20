@@ -102,4 +102,6 @@ my class Supply does Awaitable {
         self.sanitize.tap(&actor, |%others)
     }
 
-# vim: ft=perl6 expandtab sw=4
+# continued in src/core.c/Supply-factories.pm6
+
+# vim: expandtab shiftwidth=4

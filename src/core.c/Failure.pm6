@@ -8,18 +8,25 @@ my class Failure is Nil {
     has Int $!handled;   # alas, native int breaks on the JVM
 #?endif
 
-    method !SET-SELF($!exception) {
-        $!backtrace = $!exception.backtrace || Backtrace.new(3);
-        $!exception.reset-backtrace;
+    method !SET-SELF(\exception) {
+        $!exception := exception;
+        $!backtrace := exception.backtrace || Backtrace.new(3);
+        exception.reset-backtrace;
         self
     }
 
     multi method new(Failure:D:) { self!throw }
     multi method new(Failure:U:) {
-        my $stash := CALLER::LEXICAL::;
-        my $payload = ($stash<$!>:exists && $stash<$!>.DEFINITE) ?? $stash<$!> !! "Failed";
+        my $stash   := CALLER::LEXICAL::;
+        my $payload := nqp::existskey($stash,'$!')
+          ?? nqp::atkey($stash,'$!')
+          !! "Failed";
         nqp::create(self)!SET-SELF(
-          $payload ~~ Exception ?? $payload !! X::AdHoc.new(:$payload)
+          nqp::isconcrete($payload)
+            ?? nqp::istype($payload,Exception)
+              ?? $payload
+              !! X::AdHoc.new(:$payload)
+            !! X::AdHoc.new(:payload<Failed>)
         )
     }
     multi method new(Failure:U: Exception:D \exception) {
@@ -169,4 +176,4 @@ multi sub die(Failure:U $f --> Nil) {
     X::AdHoc.new(:payload("Died with undefined " ~ $f.^name)).throw;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

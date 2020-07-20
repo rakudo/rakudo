@@ -1,19 +1,19 @@
 =head1 S11-Modules proposal for Rakudo * implementation
 
-The aim will be to implement it all in NQP if possible.
+The aim will be to implement it all in C<NQP> if possible.
 
 =head1 Overriding Principle
 
 The source code must always be the absolute source of all information.
-Everything else should act as a cache.  That means *.pir files and
+Everything else should act as a cache.  That means C<*.pir> files and
 databases of metadata may be automatically or manually derived from the
-*.pm files, but they may not add information (from the command line, for
+C<*.rakumod> files, but they may not add information (from the command line, for
 example).
 
 If there is to be cached metadata in future, it should be stored in
 files as close to the corresponding source files as possible.
-If modules are precompiled to *.pir files, those files will be stored
-in the same directories as their corresponding *.pm source files, with
+If modules are precompiled to C<*.pir> files, those files will be stored
+in the same directories as their corresponding C<*.rakumod> source files, with
 identical names apart from the extension.
 
 =head1 Restrictions and limitations
@@ -32,7 +32,7 @@ file, in order to keep the implementation simple.  In order to keep
 users sane, multiple C<:ver> or C<:auth> name parts in the same source
 file will make the using program die with a NYI error.
 
-The following is ok (loaded by "use Foo::Bar:ver<1.2.3>:auth<baz>"):
+The following is ok (loaded by C<"use Foo::Bar:ver<1.2.3>:auth<baz>">):
 
     # in Foo/Bar.pm
     class Foo::Bar:ver<1.2.3>:auth<baz> {       # or module, grammar etc
@@ -58,21 +58,21 @@ If you want to use Unicode in your module names, your file system must
 support Unicode as well.  If you want users without Unicode file names
 to use your modules, don't use Unicode in your module names.
 
-=head2 Retain @*INC to specify where searching begins
+=head2 Retain C<@*INC> to specify where searching begins
 
-Rakudo effectively gives the following output to -e'.say for @*INC'
+Rakudo effectively gives the following output to C<-e '.say for @*INC'>
 
     ~/.perl6/lib
     parrot_install/lib/2.1.0-devel/share/perl6/lib
     .
 
-The . entry may be removed from the default @*INC because it creates a
+The . entry may be removed from the default C<@*INC> because it creates a
 security risk, but it is needed in the medium term for the build process
 to conveniently find F<Test.pm>.
 
-Unlike the Perl 5 case, all matching candidate files in all applicable
+Unlike the Perl case, all matching candidate files in all applicable
 directories will be considered, so in most cases the order of
-directories in @*INC is not significant.  If copies of the same module
+directories in C<@*INC> is not significant.  If copies of the same module
 name with the same C<:auth> and C<:ver> name parts exist in the same or
 even different directories, Rakudo may arbitrarily use any one of those
 files and ignore the others.  The module installer utility should try to
@@ -82,11 +82,11 @@ exists.
 =head2 Room for wriggling on file names
 
 If multiple instances of a module exist, they may be distributed among
-all the @*INC directories.  Folders correspond to packages (aka
-namespaces) and they are not allowed to have :ver and :auth name parts.
+all the C<@*INC> directories.  Folders correspond to packages (aka
+namespaces) and they are not allowed to have C<:ver> and C<:auth> name parts.
 
 In every directory, file name collisions are avoided by optionally
-inserting a unique .infix in the name before the .pm extension.  The
+inserting a unique C<.infix> in the name before the C<.pm> extension.  The
 following would all match a C<use Foo;> command:
 
     Foo.pm
@@ -96,38 +96,38 @@ following would all match a C<use Foo;> command:
 Currently only digits are being considered, but anything within reason
 between the two dots should be allowed, and is under the control of the
 module installer.  The infix characters are meaningless.  Only the code
-inside the file specifies :ver and :auth.
+inside the file specifies C<:ver> and C<:auth>.
 
 =head1 Searches in C<use>, C<need> and C<require> commands
 
-In commands such as C<use>, the :auth and :ver name parts are
-independently optional.  Rakudo * will do only exact matches on :auth
-and :ver name parts, because the alternative gives headaches...
+In commands such as C<use>, the C<:auth> and C<:ver> name parts are
+independently optional.  Rakudo * will do only exact matches on C<:auth>
+and C<:ver> name parts, because the alternative gives headaches...
 
-Consider the example "use Foo::Bar:ver<1.2.3>:auth<baz>"
+Consider the example C<"use Foo::Bar:ver<1.2.3>:auth<baz>">
 
-Rakudo * will look for files matching Foo/Bar.pm and Foo/Bar.*.pm from
-every starting point listed in @*INC.  Rakudo will then open each file
-in turn and partially (how?) parse the content to extract the first :ver
-and :auth values, building a list of the results.  Caching will
+Rakudo * will look for files matching C<Foo/Bar.pm> and C<Foo/Bar.*.pm> from
+every starting point listed in C<@*INC>.  Rakudo will then open each file
+in turn and partially (how?) parse the content to extract the first C<:ver>
+and C<:auth> values, building a list of the results.  Caching will
 probably be added soon after the initial implementation works, in order to
 reduce the obvious overheads.
 
 If the C<use> specified an C<:auth> or a C<:ver>, the values must match,
 and non-matching files are disqualified.
 
-Rakudo will consider files in the user's local directories (. and
-~/.perl6/lib) that omit :auth and :ver values.  Modules in the
-parrot_install tree should all have :auth and :ver.
+Rakudo will consider files in the user's local directories (C<.> and
+C<~/.perl6/lib>) that omit C<:auth> and C<:ver> values.  Modules in the
+parrot_install tree should all have C<:auth> and C<:ver>.
 
-If the :ver is not specified, Rakudo must select the file containing the
-highest :ver value.  Files without :ver are considered as having the
-lowest possible :ver value.  Multiple files without :ver, or multiple
-files with the same :ver, will result in an arbitrary selection.
+If the C<:ver> is not specified, Rakudo must select the file containing the
+highest C<:ver> value.  Files without C<:ver> are considered as having the
+lowest possible C<:ver> value.  Multiple files without C<:ver>, or multiple
+files with the same C<:ver>, will result in an arbitrary selection.
 
 =head1 Implementation notes
 
-There is a Perl 5 stub implementation of the module finding algorithm in the
+There is a Perl stub implementation of the module finding algorithm in the
 rmp repository L<http://github.com/moritz/rmp> in the file
 C<loader-fulllist.pl>. Commit bits to that repo are handed out freely; just
-ask hugme on #perl6 :-).
+ask HUG-me on #raku https://webchat.freenode.net/?channels=#raku :-).

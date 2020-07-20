@@ -747,7 +747,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
     }
     multi method pairs(List:D: --> Seq:D) {
-        Seq.new(Rakudo::Iterator.Pair(self.iterator))
+        Seq.new(Rakudo::Iterator.Pairs(self.iterator))
     }
     multi method antipairs(List:D: --> Seq:D) {
         Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
@@ -759,7 +759,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     # Store in List targets containers with in the list. This handles list
     # assignments, like ($a, $b) = foo().
     proto method STORE(List:D: |) {*}
-    multi method STORE(List:D: Iterable:D \iterable, :$INITIALIZE! --> List:D) {
+    multi method STORE(List:D: Iterable:D \iterable, :INITIALIZE($)! --> List:D) {
         my \buffer := nqp::create(IterationBuffer);
         iterable.iterator.push-all(buffer);
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
@@ -875,7 +875,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         })
     }
 
-    multi method List(List:D: --> List:D) { self }
+    multi method List(List:D:) { self }
 
     multi method Slip(List:D: --> Slip:D) {
         nqp::if(
@@ -937,7 +937,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::create(Capture)
         }
     }
-    method FLATTENABLE_LIST() {
+    method FLATTENABLE_LIST() is implementation-detail {
         nqp::if(
           nqp::isconcrete($!todo),
           nqp::stmts(
@@ -951,7 +951,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           )
         )
     }
-    method FLATTENABLE_HASH() { nqp::hash() }
+    method FLATTENABLE_HASH() is implementation-detail { nqp::hash() }
 
     multi method Supply(List:D: --> Supply:D) { Supply.from-list(self) }
 
@@ -1132,35 +1132,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         self.is-lazy    # reifies
           ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
           !! Seq.new: $!reified
-            ?? nqp::stmts(
-                 (my \src := nqp::clone(nqp::getattr(self,List,'$!reified'))),
-                 (my \dst := nqp::create(src.WHAT)),
-                 nqp::while(
-                   nqp::elems(src),
-                   nqp::push(dst,nqp::pop(src))
-                 ),
-                 Rakudo::Iterator.ReifiedList(dst)
-               )
+            ?? Rakudo::Iterator.ReifiedReverse(self, Mu)
             !! Rakudo::Iterator.Empty
     }
 
-    method rotate(List:D: Int(Cool) $rotate = 1) is nodal {
-        nqp::if(
-          self.is-lazy,    # reifies
-          Failure.new(X::Cannot::Lazy.new(:action<rotate>)),
-          nqp::if(
-            $!reified,
-            Rakudo::Internals.RotateListToList(
-              self, $rotate,
-              nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',
-                nqp::setelems(
-                  nqp::create(IterationBuffer),nqp::elems($!reified)
-                )
-              )
-            ),
-            nqp::create(self)
-          )
-        )
+    method rotate(List:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
+        self.is-lazy    # reifies
+          ?? Failure.new(X::Cannot::Lazy.new(:action<rotate>))
+          !! Seq.new: $!reified
+            ?? Rakudo::Iterator.ReifiedRotate($rotate, self, Mu)
+            !! Rakudo::Iterator.Empty
     }
 
     proto method combinations(|) is nodal {*}
@@ -1242,9 +1223,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method permutations(|) is nodal {*}
     multi method permutations(--> Seq:D) {
-        my \perm-iter = Rakudo::Iterator.Permutations: self.elems, 1;
-        Seq.new: Rakudo::Iterator.delegate-iterator-opt-methods:
-            perm-iter, Rakudo::Iterator.ListIndexes: self, perm-iter
+        Seq.new:
+          Rakudo::Iterator.ListIndexes:
+            self, Rakudo::Iterator.Permutations: self.elems, 1
     }
 
     method join(List:D: Str(Cool) $separator = '') is nodal {
@@ -1695,11 +1676,12 @@ multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 proto sub prefix:<|>($, *%) {*}
 multi sub prefix:<|>(\x --> Slip:D) { x.Slip }
 
-sub CMP-SLOW(@a, @b) {
-    (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
-}
-
 multi sub infix:<cmp>(@a, @b --> Order:D) {
+
+    sub CMP-SLOW(@a, @b) {
+        (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
+    }
+
     nqp::if(
         @a.is-lazy || @b.is-lazy,
         CMP-SLOW(@a, @b),
@@ -1724,8 +1706,8 @@ multi sub infix:<cmp>(@a, @b --> Order:D) {
 }
 
 proto sub infix:<X>(|) is pure {*}
-multi sub infix:<X>(+lol, :&with! --> Seq:D) {
-    Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&with))
+multi sub infix:<X>(+lol, :$with! --> Seq:D) {
+    Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,$with))
 }
 multi sub infix:<X>(+lol --> Seq:D) {
     Seq.new(Rakudo::Iterator.CrossIterablesOp(lol,&infix:<,>))
@@ -1746,4 +1728,4 @@ multi sub roundrobin(+lol --> Seq:D) {
     Seq.new(Rakudo::Iterator.RoundrobinIterables(lol))
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

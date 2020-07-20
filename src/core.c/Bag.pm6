@@ -8,24 +8,24 @@ my class Bag does Baggy {
 
 #--- introspection methods
     multi method WHICH(Bag:D: --> ValueObjAt:D)   {
-        nqp::if(
-          nqp::attrinited(self,Bag,'$!WHICH'),
-          $!WHICH,
-          $!WHICH := nqp::box_s(
-            nqp::concat(
-              nqp::if(
-                nqp::eqaddr(self.WHAT,Bag),
-                'Bag|',
-                nqp::concat(nqp::unbox_s(self.^name), '|')
-              ),
-              nqp::sha1(
-                nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
-                  Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
-                ))
-              )
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+
+    method !WHICH() {
+        $!WHICH := nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Bag),
+              'Bag|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ValueObjAt
-          )
+            nqp::sha1(
+              nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+              ))
+            )
+          ),
+          ValueObjAt
         )
     }
     method total(Bag:D: --> Int:D) {
@@ -37,7 +37,7 @@ my class Bag does Baggy {
     }
 
 #--- interface methods
-    multi method STORE(Bag:D: *@pairs, :$INITIALIZE! --> Bag:D) {
+    multi method STORE(Bag:D: *@pairs, :INITIALIZE($)! --> Bag:D) {
         (my \iterator := @pairs.iterator).is-lazy
           ?? Failure.new(
                X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
@@ -46,7 +46,7 @@ my class Bag does Baggy {
                nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
              ))
     }
-    multi method STORE(Bag:D: \objects, \values, :$INITIALIZE! --> Bag:D) {
+    multi method STORE(Bag:D: \objects, \values, :INITIALIZE($)! --> Bag:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
             nqp::create(Rakudo::Internals::IterationSet),
@@ -106,4 +106,4 @@ my class Bag does Baggy {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

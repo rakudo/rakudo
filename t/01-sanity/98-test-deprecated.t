@@ -17,4 +17,4 @@ nok $approx4, 'is_approx 1, 2; fails and returns False';
 ok Deprecation.report ~~ /is_approx/, 'is_approx is deprecated';
 done-testing;
 
-# vim: ft=perl6
+# vim: expandtab shiftwidth=4

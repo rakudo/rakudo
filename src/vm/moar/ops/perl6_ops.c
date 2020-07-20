@@ -1,6 +1,5 @@
 #define MVM_SHARED 1
 #include "moar.h"
-#include "container.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -50,7 +49,6 @@ static MVMObject * get_thrower(MVMThreadContext *tc, MVMString *type) {
 /* Initializes the Raku extension ops. */
 static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
     if (!initialized) {
-        Rakudo_containers_setup(tc);
         initialized = 1;
 
         /* Strings. */

@@ -130,11 +130,13 @@ throws-like {
 }, X::Multi::Ambiguous, :message{ .contains: 'ambigu-arg-tester' & 'IntStr' },
     'an ambiguous call includes the arguments in the error message';
 
+
 # https://github.com/Raku/old-issue-tracker/issues/3542
+# GH #3682
 throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
     :message('Your printf-style directives specify 1 argument, but no '
-      ~ 'argument was supplied'),
-    'sprintf %d directive with find a corresponding argument throws';
+      ~ "argument was supplied.\nAre you using an interpolated '\$'?"),
+    'sprintf %d directive with one directive and no corresponding argument throws';
 
 { # https://github.com/perl6/roast/commit/20fe657466
     my int @arr;
@@ -290,9 +292,9 @@ throws-like ｢need v6.0;｣, Exception, :message{
 
 # https://github.com/Raku/old-issue-tracker/issues/4839
 throws-like ｢^42  .^methods.say｣, X::Syntax::Malformed,
-    :message{ .contains: 'only alphabetic methods may be detached' },
+    :message{ .contains: 'only basic method calls that exclusively use a dot can be detached' },
     'detached non-alpha method says what the problem is';
 
 #### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

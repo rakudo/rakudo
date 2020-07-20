@@ -1,21 +1,6 @@
 my class Date does Dateish {
 
-    method !formatter(--> Str:D) {
-        my $parts := nqp::list_s;
-        nqp::push_s($parts, $!year < 1000 || $!year > 9999
-          ?? self!year-Str
-          !! nqp::tostr_I($!year)
-        );
-        nqp::push_s($parts, $!month < 10
-          ?? nqp::concat('0',nqp::tostr_I($!month))
-          !! nqp::tostr_I($!month)
-        );
-        nqp::push_s($parts, $!day < 10
-          ?? nqp::concat('0',nqp::tostr_I($!day))
-          !! nqp::tostr_I($!day)
-        );
-        nqp::join('-',$parts)
-    }
+    method !formatter(--> Str:D) { self.yyyy-mm-dd }
 
 #?if moar
     my constant $valid-units = nqp::hash(
@@ -188,6 +173,36 @@ my class Date does Dateish {
                &formatter, %_)
     }
 
+    method first-date-in-month(Date:D: --> Date:D) {
+        if $!day == 1 {
+            self
+        }
+        else {
+            my $date := nqp::clone(self);
+            nqp::bindattr_i($date,self.WHAT,'$!day',1);
+            nqp::bindattr_i(
+              $date,self.WHAT,'$!daycount',$!daycount + 1 - $!day
+            ) if $!daycount;
+            $date
+        }
+    }
+
+    method last-date-in-month(Date:D: --> Date:D) {
+        my int $last-day = self.days-in-month;
+
+        if $!day == $last-day {
+            self
+        }
+        else {
+            my $date := nqp::clone(self);
+            nqp::bindattr_i($date,self.WHAT,'$!day',$last-day);
+            nqp::bindattr_i(
+              $date,self.WHAT,'$!daycount',$!daycount + $last-day - $!day
+            ) if $!daycount;
+            $date
+        }
+    }
+
     multi method WHICH(Date:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(
@@ -283,17 +298,22 @@ my class Date does Dateish {
 
     # Helper method to move a number of days
     method !move-days(int $days --> Date:D) {
-        my int $daycount = self.daycount + $days;
-        self!ymd-from-daycount(
-          $daycount, my int $year, my int $month, my int $day);
+        if $days > 0 && $!day + $days <= self.days-in-month {
+            self!move-days-within-month($days)
+        }
+        else {
+            my int $daycount = self.daycount + $days;
+            self!ymd-from-daycount(
+              $daycount, my int $year, my int $month, my int $day);
 
-        my $new := nqp::clone(self);
-        nqp::bindattr_i($new,Date,'$!year',$year);
-        nqp::bindattr_i($new,Date,'$!month',$month);
-        nqp::bindattr_i($new,Date,'$!day',
-          $day < 28 ?? $day !! self!clip-day($year,$month,$day));
-        nqp::bindattr_i($new,Date,'$!daycount',$daycount);
-        $new
+            my $new := nqp::clone(self);
+            nqp::bindattr_i($new,Date,'$!year',$year);
+            nqp::bindattr_i($new,Date,'$!month',$month);
+            nqp::bindattr_i($new,Date,'$!day',
+              $day < 28 ?? $day !! self!clip-day($year,$month,$day));
+            nqp::bindattr_i($new,Date,'$!daycount',$daycount);
+            $new
+        }
     }
 
     # If we overflow on days in the month, rather than throw an
@@ -326,7 +346,7 @@ my class Date does Dateish {
     }
 
     # internal method that needs to be public for operators
-    method MOVE-DAYS(Date:D: int $diff --> Date:D) {
+    method MOVE-DAYS(Date:D: int $diff --> Date:D) is implementation-detail {
         my int $day = $!day + $diff;
         $day > 0 && $day < 28
           ?? self!move-days-within-month($diff)
@@ -356,7 +376,7 @@ my class Date does Dateish {
         DateTime.new(:$!year, :$!month, :$!day)
     }
     multi method DateTime(Date:U: --> DateTime:U) { DateTime }
-    method Date(--> Date) { self }
+    method Date() { self }
 }
 
 multi sub infix:<+>(Date:D \date, Int:D $x --> Date:D) {
@@ -429,4 +449,4 @@ multi sub sleep-until(Instant() $until --> Bool:D) {
     True;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

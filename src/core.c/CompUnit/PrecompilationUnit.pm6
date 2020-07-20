@@ -1,47 +1,28 @@
 class CompUnit::PrecompilationId {
     has $.id;
 
-    my $cache-lock := Lock.new;
-    my $cache      := nqp::hash;
-
-    method new(str $id) {
-        $cache-lock.protect: {
-            nqp::ifnull(
-              nqp::atkey($cache,$id),
-              do {
-                  2 < nqp::chars($id) < 64 && $id ~~ /^<[A..Za..z0..9._-]>+$/
-                    ?? nqp::bindkey($cache,$id,
-                         nqp::p6bindattrinvres(nqp::create(self),
-                           CompUnit::PrecompilationId,'$!id',$id)
-                       )
-                    !! die "Invalid precompilation id: $id"
-              }
-            )
-        }
+    method new(str $id --> CompUnit::PrecompilationId:D) {
+        nqp::atpos(nqp::radix_I(16,$id,0,0,Int),2) == 40
+          ?? nqp::p6bindattrinvres(nqp::create(self),
+               CompUnit::PrecompilationId,'$!id',$id)
+          !! die "Invalid precompilation id: '$id'"
     }
 
-    method new-from-string(str $id) {
-        $cache-lock.protect: {
-            nqp::ifnull(
-              nqp::atkey($cache,$id),
-              nqp::bindkey($cache,$id,
-                nqp::p6bindattrinvres(nqp::create(self),
-                  CompUnit::PrecompilationId,'$!id',nqp::sha1($id))
-              )
-            )
-        }
+    method new-from-string(str $id --> CompUnit::PrecompilationId:D) {
+        nqp::p6bindattrinvres(nqp::create(self),
+          CompUnit::PrecompilationId,'$!id',nqp::sha1($id))
     }
 
-    method new-without-check(str $id) {
-        $cache-lock.protect: {
-            nqp::ifnull(
-              nqp::atkey($cache,$id),
-              nqp::bindkey($cache,$id,
-                nqp::p6bindattrinvres(nqp::create(self),
-                  CompUnit::PrecompilationId,'$!id',$id)
-              )
-            )
-        }
+    method new-without-check(str $id --> CompUnit::PrecompilationId:D) {
+        nqp::p6bindattrinvres(nqp::create(self),
+          CompUnit::PrecompilationId,'$!id',$id)
+    }
+
+    multi method WHICH(CompUnit::PrecompilationId:D: --> ValueObjAt:D) {
+        nqp::box_s(
+          nqp::concat('CompUnit::PrecompilationId|',$!id),
+          ValueObjAt
+        )
     }
 
     method Str()      { $!id }
@@ -71,51 +52,58 @@ role CompUnit::PrecompilationUnit {
     method source-checksum(--> Str:D) { ... }
     method bytecode-handle(--> IO::Handle:D) { ... }
     method close(--> Nil) { ... }
-    method is-up-to-date(CompUnit::PrecompilationDependency $dependency, Bool :$check-source --> Bool) {
-        my $RMD = $*RAKUDO_MODULE_DEBUG;
-        if $check-source { # a repo changed, so maybe it's a change in our source file
-            my $source-checksum = $.source-checksum;
 
-            my $srcIO = CompUnit::RepositoryRegistry.file-for-spec($dependency.src) // $dependency.src.IO;
-            return False unless $srcIO and $srcIO.e;
+    method is-up-to-date(
+      CompUnit::PrecompilationDependency $dependency,
+      Bool :$check-source
+    --> Bool:D) {
+        my $RMD := $*RAKUDO_MODULE_DEBUG;
 
-            my $current-source-checksum := nqp::sha1($srcIO.slurp(:enc<iso-8859-1>).Str);
+        # a repo changed, so maybe it's a change in our source file
+        if $check-source {
+            my $srcIO :=
+              CompUnit::RepositoryRegistry.file-for-spec($dependency.src)
+              // $dependency.src.IO;
+            return False unless $srcIO.e;
+
+            my $current-source-checksum := $srcIO.CHECKSUM;
+
             $RMD(
                 "$.path\nspec: $dependency.spec()\nsource: $srcIO\n"
-                ~ "source-checksum: $source-checksum\ncurrent-source-checksum: $current-source-checksum"
+                ~ "source-checksum: $.source-checksum\ncurrent-source-checksum: $current-source-checksum"
             ) if $RMD;
-            return False if $source-checksum ne $current-source-checksum;
+
+            return False if $.source-checksum ne $current-source-checksum;
         }
 
-        $RMD("dependency checksum $dependency.checksum() unit: $.checksum()") if $RMD;
+        $RMD("dependency checksum $dependency.checksum() unit: $.checksum()")
+          if $RMD;
 
         $.checksum eq $dependency.checksum
     }
 }
 
-class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDependency {
-    has CompUnit::PrecompilationId $.id;
-    has Str $.src;
-    has Str $.checksum is rw;
-    has Str $!serialized-spec;
-    has CompUnit::DependencySpecification $.spec;
+class CompUnit::PrecompilationDependency::File
+  does CompUnit::PrecompilationDependency
+{
+    has CompUnit::PrecompilationId        $.id   is built(:bind);
+    has CompUnit::DependencySpecification $.spec is built(:bind);
+    has Str $.src             is built(:bind);
+    has Str $.checksum        is rw;
+    has Str $!serialized-spec is built(:bind);
 
     method source-name() {
         "$.src ($.spec.short-name())"
     }
 
     method deserialize(str $str) {
-        my $parts := nqp::split("\0", $str);
-        nqp::p6bindattrinvres(
-            self.new(
-                :id(CompUnit::PrecompilationId.new-without-check(nqp::atpos($parts, 0))),
-                :src(nqp::atpos($parts, 1)),
-                :checksum(nqp::atpos($parts, 2))
-            ),
-            CompUnit::PrecompilationDependency::File,
-            '$!serialized-spec',
-            nqp::atpos($parts, 3),
-        );
+        my $parts := nqp::split("\0",$str);
+        self.new(
+          :id(CompUnit::PrecompilationId.new-without-check(nqp::atpos($parts,0))),
+          :src(nqp::atpos($parts,1)),
+          :checksum(nqp::atpos($parts,2))
+          :serialized-spec(nqp::atpos($parts,3))
+        )
     }
 
     method spec(--> CompUnit::DependencySpecification:D) {
@@ -143,10 +131,12 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
         for $.spec.^attributes {
             $specs ~= .name.substr(2) ~ ":" ~ $.spec."$(.name.substr(2))"() ~ "\0";
         }
-        "$.id\0$.src\0$.checksum\0$specs"
+        "$!id\0$!src\0$!checksum\0$specs"
 #?endif
 #?if !jvm
-        "$.id\0$.src\0$.checksum\0{$!serialized-spec ?? $!serialized-spec !! $!spec.raku}"
+        "$!id\0$!src\0$!checksum\0{
+            $!serialized-spec ?? $!serialized-spec !! $!spec.raku
+        }"
 #?endif
     }
 
@@ -155,4 +145,4 @@ class CompUnit::PrecompilationDependency::File does CompUnit::PrecompilationDepe
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

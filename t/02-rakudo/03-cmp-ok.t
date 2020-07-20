@@ -4,7 +4,7 @@ use Test;
 use Test::Helpers;
 use CustomOps; # test cmp-ok handling custom infixes that we imported
 
-plan 6;
+plan 7;
 
 sub check-fail (&test-to-run) {
     my $message = 'should fail due to requested comparison';
@@ -98,3 +98,21 @@ group-of 24 => 'custom operators (imported)' => {
 group-of 2 => 'no EVAL exploit (RT#128283)' => {
     check-fail { cmp-ok '', '~~>;exit; <z', '', '' };
 }
+
+group-of 2 => 'objects lacking support for methods' => {
+    my class FooHOW does Metamodel::Naming {
+        method new_type(::?CLASS:_: Str:D :$name! --> Mu) {
+            my ::?CLASS:D $meta := self.new;
+            my Mu         $obj  := Metamodel::Primitives.create_type: $meta, 'Uninstantiable';
+            $meta.set_name: $obj, $name;
+            $obj
+        }
+    }
+
+    lives-ok {
+        my Mu \Foo = FooHOW.new_type: :name<Foo>;
+        cmp-ok Foo, &[=:=], Foo, 'can compare two objects without support for methods...';
+    }, '...without throwing';
+}
+
+# vim: expandtab shiftwidth=4

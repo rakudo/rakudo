@@ -9,3 +9,5 @@ sub infix:['<=»']  is export { $^a < $^b }
 sub infix:['<«']   is export { $^a < $^b }
 sub infix:['>»']   is export { $^a < $^b }
 sub infix:['<«>»'] is export { $^a < $^b }
+
+# vim: expandtab shiftwidth=4

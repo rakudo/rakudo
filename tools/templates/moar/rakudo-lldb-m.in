@@ -2,4 +2,8 @@
 
 @insert(rakudo-debug-notice)@
 
-lldb -o run "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"
+LLDB="lldb"
+if [ -n "$RAKUDO_LLDB" ]; then
+    LLDB="$RAKUDO_LLDB"
+fi
+"$LLDB" -o run "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"

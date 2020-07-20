@@ -36,3 +36,5 @@ class Perl6::Metamodel::ModuleHOW
         $!composed
     }
 }
+
+# vim: expandtab sw=4

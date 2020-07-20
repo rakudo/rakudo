@@ -28,7 +28,9 @@ my class Junction { # declared in BOOTSTRAP
     # Swap 2 Junctions in place if they need to be for an infix operation
     # on the two Junctions.  Returns a truthy (0|1)value if the Junctions
     # were of the same type and can be merged.
-    method INFIX-TWO(Junction:U: Junction:D \a, Junction:D \b) {
+    method INFIX-TWO(Junction:U:
+      Junction:D \a, Junction:D \b
+    ) is implementation-detail {
         nqp::if(
           nqp::iseq_s(
             (my \atype := nqp::getattr(nqp::decont(a),Junction,'$!type')),
@@ -174,12 +176,7 @@ my class Junction { # declared in BOOTSTRAP
         )
     }
 
-    multi method ACCEPTS(Junction:U: Mu:D \topic) {
-        nqp::hllbool(nqp::istype(topic, Junction));
-    }
-    multi method ACCEPTS(Junction:U: Any \topic) {
-        nqp::hllbool(nqp::istype(topic, Junction));
-    }
+    multi method ACCEPTS(Junction:U: Junction:D --> True) { }
     multi method ACCEPTS(Junction:D: Mu \topic) {
         nqp::hllbool(
           nqp::stmts(
@@ -299,7 +296,7 @@ my class Junction { # declared in BOOTSTRAP
     # Helper method for handling those cases where auto-threading doesn't cut it.
     # Call the given Callable with each of the Junction values, and return a
     # Junction with the results of the calls.
-    method THREAD(&call) {
+    method THREAD(&call) is implementation-detail {
         my \storage := nqp::getattr(self,Junction,'$!eigenstates');
         my int $i = -1;
         my int $elems = nqp::elems(storage);
@@ -311,7 +308,7 @@ my class Junction { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(nqp::clone(self),Junction,'$!eigenstates',result)
     }
 
-    method AUTOTHREAD(&call, |args) {
+    method AUTOTHREAD(&call, |args) is implementation-detail {
         my \positionals := nqp::getattr(nqp::decont(args),Capture,'@!list');
 
         sub thread_junction(int $pos) {
@@ -341,7 +338,6 @@ my class Junction { # declared in BOOTSTRAP
         my int $elems = nqp::elems(positionals);
         my int $i     = -1;
         while nqp::islt_i(++$i,$elems) {
-
             # Junctional positional argument?
             my Mu $arg := nqp::atpos(positionals, $i);
             if nqp::istype($arg,Junction) {
@@ -552,4 +548,4 @@ Mu.HOW.setup_junction_fallback(Junction, -> $name, |c {
         |c);
 } );
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

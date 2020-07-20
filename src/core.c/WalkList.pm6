@@ -47,3 +47,5 @@ my class WalkList is List {
         self.invoke(c)
     }
 }
+
+# vim: expandtab shiftwidth=4

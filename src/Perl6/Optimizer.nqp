@@ -1,5 +1,5 @@
-# This file contains a bunch of classes related to static optimization of Perl
-# 6 programs. It takes place after we've done all of the stuff in the grammar
+# This file contains a bunch of classes related to static optimization of Raku
+# programs. It takes place after we've done all of the stuff in the grammar
 # and actions, which means CHECK time is over. Thus we're allowed to assume that
 # lexpads are immutable, declarations are over and done with, multi candidate
 # lists won't change and so forth.
@@ -250,9 +250,9 @@ my class Symbols {
             $i := $i - 1;
             my $block := @!block_stack[$i];
             my %sym := $block.symbol($name);
-            if +%sym && nqp::existskey(%sym, 'value') {
-                my %sym := $block.symbol("CORE-SETTING-REV");
-                if +%sym {
+            if +%sym && (nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')) {
+                my %isym := $block.symbol("CORE-SETTING-REV");
+                if +%isym {
                     return 1;
                 }
                 return 0;
@@ -737,7 +737,7 @@ my class BlockVarOptimizer {
             unless nqp::existskey(%!usages_inner, $name) ||
                     nqp::existskey(%!used_in_handle_handler, $name) {
                 # Lowerable if it's a normal variable, including $_ if we're in a
-                # Perl 6 version that allows lowering that.
+                # Raku version that allows lowering that.
                 next if nqp::chars($name) < 1;
                 unless nqp::iscclass(nqp::const::CCLASS_ALPHABETIC, $name, 0) {
                     my str $sigil := nqp::substr($name, 0, 1);
@@ -1114,11 +1114,11 @@ class Perl6::Optimizer {
         # Visit children.
         if $block.ann('DYNAMICALLY_COMPILED') {
             my $*DYNAMICALLY_COMPILED := 1;
-            self.visit_children($block, :resultchild(+@($block) - 1),
+            self.visit_children($block, :resultchild(nqp::elems($block) - 1),
                 :void_default, :block_structure);
         }
         else {
-            self.visit_children($block, :resultchild(+@($block) - 1),
+            self.visit_children($block, :resultchild(nqp::elems($block) - 1),
                 :void_default, :block_structure);
         }
 
@@ -1199,7 +1199,7 @@ class Perl6::Optimizer {
     # QAST::Stmt. Works recursively. Otherwise returns what was passed.
     sub get_last_stmt($op) {
         if nqp::istype($op, QAST::Stmt) || nqp::istype($op, QAST::Stmts) {
-            my int $resultchild := $op.resultchild // +@($op) - 1;
+            my int $resultchild := $op.resultchild // nqp::elems($op) - 1;
             $resultchild >= 0 ?? get_last_stmt($op[$resultchild]) !! $op
         }
         else {
@@ -1332,7 +1332,7 @@ class Perl6::Optimizer {
 
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
         # check this here, before the tree is transformed by call inline opts.
-        if ($optype eq 'p6for' || $optype eq 'p6forstmt') && $op.sunk && @($op) == 2 {
+        if ($optype eq 'p6for' || $optype eq 'p6forstmt') && $op.sunk && nqp::elems($op) == 2 {
             my $reverse := 0;
             my $theop := $op[0];
             if nqp::istype($theop, QAST::Op)
@@ -1359,7 +1359,7 @@ class Perl6::Optimizer {
         # with a method call to "map".
         if $optype eq 'callmethod' && $op.name eq 'sink'
         && nqp::istype($op[0], QAST::Op) && $op[0].op eq 'callmethod'
-        && $op[0].name eq 'map' && @($op[0]) == 2
+        && $op[0].name eq 'map' && nqp::elems($op[0]) == 2
         && $op[0][1].has_ann('code_object')
         && (
                nqp::istype((my $c1 := $op[0][0]), QAST::Op)
@@ -1576,6 +1576,9 @@ class Perl6::Optimizer {
                     $last_stmt.scope('attribute');
                     return $value;
                 }
+                if $scope eq 'lexical' && $last_stmt.name eq 'self' {
+                    return $value; # The invocant is always decontainerized
+                }
             }
             elsif nqp::istype($last_stmt, QAST::WVal) {
                 return $value unless nqp::iscont($last_stmt.value);
@@ -1592,11 +1595,11 @@ class Perl6::Optimizer {
         # a hllbool if there's already an integer result behind it. For if/unless,
         # we can only do that when we have the `else` branch, since otherwise we
         # might return the no-longer-Bool value from the conditional.
-        elsif ((+@($op) == 3 || $!void_context) && ($optype eq 'if' || $optype eq 'unless'))
+        elsif ((nqp::elems($op) == 3 || $!void_context) && ($optype eq 'if' || $optype eq 'unless'))
         || $optype eq 'while' || $optype eq 'until' {
             my $update := $op;
             my $target := $op[0];
-            while (nqp::istype($target, QAST::Stmt) || nqp::istype($target, QAST::Stmts)) && +@($target) == 1 {
+            while (nqp::istype($target, QAST::Stmt) || nqp::istype($target, QAST::Stmts)) && nqp::elems($target) == 1 {
                 $update := $target;
                 $target := $target[0];
             }
@@ -1646,7 +1649,7 @@ class Perl6::Optimizer {
             && self.op_eq_core($op, '&postcircumfix:<[ ]>')
 
             # if it's 3 that means the slice is on the LHS of an assignment
-            && +@($op) == 2
+            && nqp::elems($op) == 2
 
             && nqp::istype($op[0], QAST::Var)
             && nqp::substr($op[0].name, 0, 1) eq '@'
@@ -2590,7 +2593,7 @@ class Perl6::Optimizer {
 
         # If it's the sink context void node, then only visit the first
         # child. Otherwise, see all.
-        if +@($want) == 3 && $want[1] eq 'v' {
+        if nqp::elems($want) == 3 && $want[1] eq 'v' {
             my $sinker := $want[2];
             my int $tweak_sinkee := nqp::istype($sinker, QAST::Op)
                 && $sinker.op eq 'p6sink'
@@ -2607,7 +2610,7 @@ class Perl6::Optimizer {
         # (Check the following after we've checked children, since they may have useless bits too.)
 
         # Any literal in void context deserves a warning.
-        if $!void_context && +@($want) == 3 && $want.node
+        if $!void_context && nqp::elems($want) == 3 && $want.node
            && !$want.ann('sink-quietly') {
             my str $warning;
             my $no-sink;
@@ -2747,7 +2750,7 @@ class Perl6::Optimizer {
                 $type.HOW.archetypes.nominal();
             unless $ok_type {
                 # nqp::ops end up labeled with nqp primitive types; we swap
-                # those out for their Perl 6 equivalents.
+                # those out for their Raku equivalents.
                 my int $ps := nqp::objprimspec($type);
                 if $ps >= 1 && $ps <= 3 {
                     $type := $!symbols.find_lexical(@prim_names[$ps]);
@@ -2772,7 +2775,7 @@ class Perl6::Optimizer {
         # See if we have an allomorphic constant that may allow us to do
         # a native dispatch with it; takes at least one declaratively
         # native argument to make this happen.
-        if @types == 2 && $num_prim == 1 && $num_allo == 1 {
+        if nqp::elems(@types) == 2 && $num_prim == 1 && $num_allo == 1 {
             my int $prim_flag := @flags[0] || @flags[1];
             my int $allo_idx := @allomorphs[0] ?? 0 !! 1;
             if @allomorphs[$allo_idx] eq @allo_map[$prim_flag] {
@@ -2782,7 +2785,7 @@ class Perl6::Optimizer {
 
         # Alternatively, a single arg that is allomorphic will prefer
         # the literal too.
-        if @types == 1 && $num_allo == 1 {
+        if nqp::elems(@types) == 1 && $num_allo == 1 {
             my $rev := %allo_rev{@allomorphs[0]};
             @flags[0] := nqp::defined($rev) ?? $rev +| $ARG_IS_LITERAL !! 0;
         }
@@ -2828,7 +2831,7 @@ class Perl6::Optimizer {
         note("method visit_children $!void_context\n" ~ $node.dump) if $!debug;
         my int $r := $resultchild // -1;
         my int $i := 0;
-        my int $n := +@($node);
+        my int $n := nqp::elems($node);
         while $i < $n {
             my int $outer_void := $!void_context;
             my int $outer_decl := $!in_declaration;
@@ -2868,7 +2871,7 @@ class Perl6::Optimizer {
                     $node[$i] := $visit[0];
                 }
                 elsif nqp::istype($visit, QAST::Stmt) || nqp::istype($visit, QAST::Stmts) {
-                    my int $resultchild := $visit.resultchild // +@($visit) - 1;
+                    my int $resultchild := $visit.resultchild // nqp::elems($visit) - 1;
                     if $resultchild >= 0 {
                         self.visit_children($visit, :$resultchild,:void_default);
                         if !nqp::can($visit,'returns') {
@@ -2915,10 +2918,10 @@ class Perl6::Optimizer {
                         self.poison_var_lowering();
                     }
                     elsif nqp::istype($visit.value, $!symbols.Regex) {
-                        @!block_var_stack[@!block_var_stack - 1].poison_topic_lowering();
+                        @!block_var_stack[nqp::elems(@!block_var_stack) - 1].poison_topic_lowering();
                     }
                     elsif nqp::istype($visit.value, $!symbols.AST) {
-                        @!block_var_stack[@!block_var_stack - 1].poison_lowering();
+                        @!block_var_stack[nqp::elems(@!block_var_stack) - 1].poison_lowering();
                     }
                 }
                 elsif nqp::istype($visit, QAST::ParamTypeCheck) {
@@ -3006,7 +3009,7 @@ class Perl6::Optimizer {
     # Inlines an immediate block.
     method inline_immediate_block($block, $outer) {
         # Sanity check.
-        return $block if +@($block) != 2;
+        return $block if nqp::elems($block) != 2;
         return $block unless nqp::istype($outer[0], QAST::Stmts);
 
         # Extract interesting parts of block.
@@ -3204,4 +3207,4 @@ class Perl6::Optimizer {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab sw=4

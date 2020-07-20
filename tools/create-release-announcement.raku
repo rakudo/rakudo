@@ -29,8 +29,8 @@ pragma. Our goal is to ensure that anything that is tested as part of
 6.c and 6.d specifications will continue to work unchanged. There may
 be incremental spec releases this year as well.
 
-If you would like to contribute or find out more information, visit
-<https://raku.org>, <https://rakudo.org/how-to-help>, ask on the
+If you would like to contribute or get more information, visit
+<https://raku.org>, <https://rakudo.org/community>, ask on the
 <perl6-compiler@perl.org> mailing list, or ask on IRC #raku on freenode.
 
 Additionally, we invite you to make a donation to The Perl Foundation

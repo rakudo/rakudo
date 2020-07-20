@@ -61,13 +61,15 @@ my class IO::Spec::Cygwin is IO::Spec::Unix {
         IO::Spec::Win32.catpath(|c).subst(:global, '\\', '/');
     }
     method split(IO::Spec::Cygwin: Cool:D $path) {
-        IO::Spec::Win32.split($path).map(
-          { .key => .value.subst(:global, '\\', '/') }
-        ).List;
+        my $parts := IO::Spec::Win32.split($path);
+        IO::Path::Parts.new:
+          $parts.volume.subst(:global, '\\', '/'),
+          $parts.dirname.subst(:global, '\\', '/'),
+          $parts.basename.subst(:global, '\\', '/')
     }
     method join(|c) {
         IO::Spec::Win32.join(|c).subst(:global, '\\', '/');
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

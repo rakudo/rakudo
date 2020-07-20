@@ -3,7 +3,9 @@ my class Duration is Cool does Real {
       # A linear count of seconds.
 
     multi method new(Duration: Rat:D \tai --> Duration:D) {
-        nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
+        nqp::p6bindattrinvres(
+          nqp::create(Duration),Duration,'$!tai',nqp::decont(tai)
+        )
     }
     multi method new(Duration: \value --> Duration:D) {
         nqp::if(
@@ -48,4 +50,4 @@ multi sub infix:<%>(Duration:D $a, Real $b --> Duration:D) {
     Duration.new: $a.tai % $b
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

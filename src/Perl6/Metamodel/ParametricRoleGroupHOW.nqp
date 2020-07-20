@@ -182,6 +182,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $c.HOW.attributes($c, |@pos, |%name);
     }
 
+    method parents($obj, *%named) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.parents($c, |%named)
+    }
+
     method roles($obj, *%named) {
         my $c := self.'!get_default_candidate'($obj);
         $c.HOW.roles($c, |%named)
@@ -206,3 +211,5 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         @!nonsignatured[0]
     }
 }
+
+# vim: expandtab sw=4

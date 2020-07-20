@@ -34,3 +34,5 @@ class Perl6::Metamodel::JavaHOW
         nqp::null()
     }
 }
+
+# vim: expandtab sw=4

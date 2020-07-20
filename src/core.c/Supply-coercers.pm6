@@ -1,3 +1,5 @@
+# continued from src/core.c/Supply-factories.pm6
+
     ##
     ## Coercions
     ##
@@ -13,30 +15,61 @@
         $c
     }
 
-    my class ConcQueue is repr('ConcBlockingQueue') { }
+    my class SupplyIterator does Iterator {
+        my class ConcQueue is repr('ConcBlockingQueue') { }
+        has $!queue;
+        has $!exception;
+
+        method new($supply) {
+            nqp::create(self)!SET-SELF($supply)
+        }
+        method !SET-SELF($supply) {
+            $!queue     := nqp::create(ConcQueue);
+            $!exception := Nil;
+            $supply.tap: {
+                nqp::push($!queue, $_)
+            }, done => -> {
+                nqp::push($!queue, ConcQueue); # Sentinel value.
+            }, quit => {
+                $!exception := $_;
+                nqp::push($!queue, ConcQueue); # Sentinel value.
+            };
+            self
+        }
+
+        method pull-one() is raw {
+            nqp::stmts(
+              (my $got := nqp::shift($!queue)),
+              nqp::if(
+                nqp::eqaddr($got,ConcQueue),
+                nqp::if(
+                  nqp::isconcrete($!exception),
+                  $!exception.throw,
+                  IterationEnd),
+                $got))
+        }
+
+        method push-all(\target --> IterationEnd) {
+            nqp::stmts(
+              nqp::until(
+                nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue),
+                target.push($got)),
+              nqp::if(
+                nqp::isconcrete($!exception),
+                $!exception.throw))
+        }
+
+        # method is-lazy(--> Bool:D) { ... }
+    }
+
+    multi method iterator(Supply:D:) {
+        SupplyIterator.new: self
+    }
     multi method list(Supply:D:) {
-        self.Seq.list
+        List.from-iterator: self.iterator
     }
     method Seq(Supply:D:) {
-        gather {
-            my Mu \queue = nqp::create(ConcQueue);
-            my $exception;
-            self.tap(
-                -> \val { nqp::push(queue, val) },
-                done => -> { nqp::push(queue, ConcQueue) }, # type obj as sentinel
-                quit => -> \ex { $exception := ex; nqp::push(queue, ConcQueue) });
-            loop {
-                my \got = nqp::shift(queue);
-                if got =:= ConcQueue {
-                    $exception.DEFINITE
-                        ?? $exception.throw
-                        !! last
-                }
-                else {
-                    take got;
-                }
-            }
-        }
+        Seq.new: self.iterator
     }
 
     method Promise(Supply:D:) {
@@ -192,13 +225,11 @@
 
     multi method squish(Supply:D:) {
         supply {
-            my int $first = 1;
-            my $last;
+            my $last := nqp::null;
             my $which;
             whenever self -> \val {
-                if $first {
+                if nqp::isnull($last) {
                     emit val;
-                    $first = 0;
                     $last := val.WHICH;
                 }
                 elsif $last ne ($which := val.WHICH) {
@@ -210,14 +241,12 @@
     }
     multi method squish(Supply:D: :&as!, :&with!) {
         supply {
-            my int $first = 1;
             my $target;
-            my $last;
+            my $last := nqp::null;
             whenever self -> \val {
                 $target := as(val);
-                if $first {
+                if nqp::isnull($last) {
                     emit val;
-                    $first = 0;
                 }
                 else {
                     emit val unless with($last, $target);
@@ -228,15 +257,13 @@
     }
     multi method squish(Supply:D: :&as!) {
         supply {
-            my int $first = 1;
             my $target;
-            my $last;
+            my $last := nqp::null;
             my $which;
             whenever self -> \val {
                 $target := as(val);
-                if $first {
+                if nqp::isnull($last) {
                     emit val;
-                    $first = 0;
                     $last := $target.WHICH;
                 }
                 elsif $last ne ($which := $target.WHICH) {
@@ -248,16 +275,11 @@
     }
     multi method squish(Supply:D: :&with!) {
         supply {
-            my int $first = 1;
-            my $last;
+            my $last := nqp::null;
             whenever self -> \val {
-                if $first {
-                    emit val;
-                    $first = 0;
-                }
-                elsif nqp::not_i(with($last, val)) {
-                    emit val;
-                }
+                emit val
+                  if nqp::isnull($last)
+                  || nqp::not_i(with($last, val));
                 $last := val;
             }
         }
@@ -549,7 +571,20 @@
         supply { whenever self -> \val { emit val; done } }
     }
     multi method head(Supply:D: Callable:D $limit) {
-        self.tail(-$limit(0))
+        (my int $lose = -$limit(0)) <= 0
+          ?? self
+          !! supply {
+                 my $values := nqp::list;
+                 whenever self -> \val {
+                     nqp::push($values,val);
+                     LAST {
+                         nqp::while(
+                           nqp::elems($values) > $lose,
+                           (emit nqp::shift($values))
+                         );
+                     }
+                 }
+             }
     }
     multi method head(Supply:D: \limit) {
         nqp::istype(limit,Whatever) || limit == Inf
@@ -562,42 +597,46 @@
                }
     }
 
-    method tail(Supply:D: Int(Cool) $number = 1) {
-        my int $size = $number;
-
+    multi method tail(Supply:D:) {
         supply {
-            if $size == 1 {
-                my $last;
-                whenever self -> \val {
-                    $last := val;
-                    LAST emit $last;
-                }
-            }
-            elsif $size > 1 {
-                my $lastn := nqp::list;
-                my int $index = 0;
-                nqp::setelems($lastn,$number);  # presize list
-                nqp::setelems($lastn,0);
-
-                whenever self -> \val {
-                    nqp::bindpos($lastn,$index,val);
-                    $index = ($index + 1) % $size;
-                    LAST {
-                        my int $todo = nqp::elems($lastn);
-                        $index = 0           # start from beginning
-                          if $todo < $size;  # if not a full set
-                        while $todo {
-                            emit nqp::atpos($lastn,$index);
-                            $index = ($index + 1) % $size;
-                            $todo = $todo - 1;
-                        }
-                    }
-                }
-            }
-            else {  # number <= 0, needed to keep tap open
-                whenever self -> \val { }
+            my $last;
+            whenever self -> \val {
+                $last := val;
+                LAST emit $last;
             }
         }
+    }
+    multi method tail(Supply:D: Callable:D $limit) {
+        self.skip(-$limit(0))
+    }
+    multi method tail(Supply:D: \limit) {
+        nqp::istype(limit,Whatever) || limit == Inf
+          ?? self
+          !! limit <= 0
+            ?? supply { whenever self -> \val { } }
+            !! (my int $size = limit.Int) == 1
+              ?? self.tail
+              !! supply {
+                     my $lastn := nqp::list;
+                     my int $index = 0;
+                     nqp::setelems($lastn,$size);  # presize list
+                     nqp::setelems($lastn,0);
+
+                     whenever self -> \val {
+                         nqp::bindpos($lastn,$index,val);
+                         $index = ($index + 1) % $size;
+                         LAST {
+                             my int $todo = nqp::elems($lastn);
+                             $index = 0           # start from beginning
+                               if $todo < $size;  # if not a full set
+                             while $todo {
+                                 emit nqp::atpos($lastn,$index);
+                                 $index = ($index + 1) % $size;
+                                 $todo = $todo - 1;
+                             }
+                         }
+                     }
+                 }
     }
 
     method skip(Supply:D: Int(Cool) $number = 1) {
@@ -660,20 +699,58 @@
 
     method grab(Supply:D: &when_done) {
         supply {
-            my @seen;
+            my $seen := nqp::create(IterationBuffer);
             whenever self -> \val {
-                @seen.push: val;
+                nqp::push($seen,val);
                 LAST {
-                    emit($_) for when_done(@seen);
+                    emit($_) for when_done($seen.List);
                 }
             }
         }
     }
 
-    method reverse(Supply:D:)        { self.grab( {.reverse} ) }
-    multi method sort(Supply:D:)     { self.grab( {.sort} ) }
-    multi method sort(Supply:D: &by) { self.grab( {.sort(&by)} ) }
-    multi method collate(Supply:D:)  { self.grab( {.collate} ) }
+    method rotate(Supply:D: Int(Cool) $rotate = 1) {
+
+        # potentially ok
+        if $rotate > 0 {
+            my $rotated := nqp::create(IterationBuffer);
+            supply {
+                whenever self -> \val {
+                    nqp::elems($rotated) < $rotate
+                      ?? nqp::push($rotated,val)
+                      !! emit(val);
+
+                    LAST {
+                        # not enough elems found to rotate, adapt rotation
+                        if nqp::elems($rotated) < $rotate {
+                            emit($_) for $rotated.List.rotate($rotate);
+                        }
+
+                        # produce the rotated values at the end
+                        else {
+                            emit(nqp::shift($rotated))
+                              while nqp::elems($rotated);
+                        }
+                    }
+                }
+            }
+        }
+
+        # must first grab all
+        elsif $rotate < 0 {
+            self.grab: *.rotate($rotate)
+        }
+
+        # no need to change anything
+        else {
+            self
+        }
+    }
+
+    method reverse(Supply:D:)        { self.grab: *.reverse }
+    multi method sort(Supply:D:)     { self.grab: *.sort }
+    multi method sort(Supply:D: &by) { self.grab: *.sort(&by) }
+    multi method collate(Supply:D:)  { self.grab: *.collate }
 
     method zip(**@s, :&with) {
         @s.unshift(self) if self.DEFINITE;  # add if instance method
@@ -950,4 +1027,4 @@
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

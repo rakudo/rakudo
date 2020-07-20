@@ -9,7 +9,7 @@ class Deprecation {
     has Version $.removed;  # release version when will be removed
 
     my %DEPRECATIONS; # where we keep our deprecation info
-    method DEPRECATIONS() is raw { %DEPRECATIONS }
+    method DEPRECATIONS() is raw is implementation-detail { %DEPRECATIONS }
 
     multi method WHICH (Deprecation:D: --> ValueObjAt:D) {
         my $which := nqp::list_s("Deprecation");
@@ -65,7 +65,10 @@ class Rakudo::Deprecations {
     my %DEPRECATIONS := Deprecation.DEPRECATIONS;
 
     my $ver;
-    method DEPRECATED($alternative,$from?,$removed?,:$up = 1,:$what,:$file,:$line,Bool :$lang-vers) {
+    method DEPRECATED(
+      $alternative, $from?, $removed?,
+      :$up = 1, :$what, :$file, :$line, Bool :$lang-vers
+    ) is implementation-detail {
         $ver //= $*RAKU.compiler.version;
         my $version = $lang-vers ?? nqp::getcomp('Raku').language_version !! $ver;
         # if $lang-vers was given, treat the provided versions as language
@@ -130,8 +133,8 @@ adapted, so that this message will disappear!';
     }
 }
 
-sub DEPRECATED(|c) is hidden-from-backtrace {
+sub DEPRECATED(|c) is hidden-from-backtrace is implementation-detail {
     Rakudo::Deprecations.DEPRECATED(|c)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

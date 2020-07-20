@@ -128,15 +128,11 @@ my class Rakudo::QuantHash {
           (my $elems := quanthash.RAW-HASH)
             && (my $iter := nqp::iterator($elems)),
           nqp::stmts(
-            (my $keys := nqp::setelems(nqp::list_s,nqp::elems($elems))),
-            (my int $i = -1),
+            (my $keys :=    # presize result back to 0 so we can push_s
+              nqp::setelems(nqp::setelems(nqp::list_s,nqp::elems($elems)),0)),
             nqp::while(
               $iter,
-              nqp::bindpos_s(
-                $keys,
-                ($i = nqp::add_i($i,1)),
-                nqp::iterkey_s(nqp::shift($iter))
-              )
+              nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
             ),
             $keys
           ),
@@ -150,15 +146,11 @@ my class Rakudo::QuantHash {
           (my $elems := quanthash.RAW-HASH)
             && (my $iter := nqp::iterator($elems)),
           nqp::stmts(
-            (my $values := nqp::setelems(nqp::list_s,nqp::elems($elems))),
-            (my int $i = -1),
+            (my $values :=    # presize result back to 0 so we can push_s
+              nqp::setelems(nqp::setelems(nqp::list_s,nqp::elems($elems)),0)),
             nqp::while(
               $iter,
-              nqp::bindpos_s(
-                $values,
-                ($i = nqp::add_i($i,1)),
-                mapper(nqp::iterval(nqp::shift($iter)))
-              )
+              nqp::push_s($values,mapper(nqp::iterval(nqp::shift($iter))))
             ),
             $values
           ),
@@ -173,15 +165,14 @@ my class Rakudo::QuantHash {
           (my $elems := baggy.RAW-HASH)
             && (my $iter := nqp::iterator($elems)),
           nqp::stmts(
-            (my $list := nqp::setelems(nqp::list_s,nqp::elems($elems))),
-            (my int $i = -1),
+            (my $list :=    # presize result back to 0 so we can push_s
+              nqp::setelems(nqp::setelems(nqp::list_s,nqp::elems($elems)),0)),
             nqp::while(
               $iter,
               nqp::stmts(
                 nqp::shift($iter),
-                nqp::bindpos_s(
+                nqp::push_s(
                   $list,
-                  ($i = nqp::add_i($i,1)),
                   nqp::concat(
                     nqp::iterkey_s($iter),
                     nqp::concat(
@@ -1538,6 +1529,45 @@ my class Rakudo::QuantHash {
         )
     }
 
+    method MIX-IS-EQUAL(\a,\b) {
+        nqp::unless(
+          nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+          nqp::stmts(                   # A and B not same object
+            (my \araw := a.RAW-HASH),
+            (my \braw := b.RAW-HASH),
+            nqp::if(
+              araw && braw,
+              nqp::if(                  # A and B both allocated
+                nqp::isne_i(nqp::elems(araw),nqp::elems(braw)),
+                (return False),         # different number of elements
+                nqp::stmts(             # same number of elements
+                  (my \iter := nqp::iterator(araw)),
+                  nqp::while(           # number of elems in B >= A
+                    iter,
+                    nqp::unless(
+                      nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!value')
+                        ==              # value in A should equal to B
+                      nqp::getattr(
+                        nqp::ifnull(nqp::atkey(braw,nqp::iterkey_s(iter)),$p0),
+                        Pair,
+                        '$!value'
+                      ),
+                      return False      # not same weight
+                    )
+                  )
+                )
+              ),
+              nqp::if(                  # A and B not both allocated
+                (araw && nqp::elems(araw)) || (braw && nqp::elems(braw)),
+                return False            # allocated side contains elements
+              )
+            )
+          )
+        );
+
+        True
+    }
+
     method MIX-IS-SUBSET($a,$b) {
         nqp::if(
           nqp::eqaddr(nqp::decont($a),nqp::decont($b)),
@@ -1760,4 +1790,4 @@ my class Rakudo::QuantHash {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

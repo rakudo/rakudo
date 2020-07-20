@@ -1,14 +1,14 @@
-package org.perl6.rakudo;
+package org.raku.rakudo;
 
 import java.util.*;
 
-import org.perl6.nqp.runtime.*;
-import org.perl6.nqp.sixmodel.*;
-import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
-import org.perl6.nqp.sixmodel.reprs.P6int;
-import org.perl6.nqp.sixmodel.reprs.P6str;
-import org.perl6.nqp.sixmodel.reprs.P6num;
-import org.perl6.nqp.sixmodel.reprs.P6OpaqueREPRData;
+import org.raku.nqp.runtime.*;
+import org.raku.nqp.sixmodel.*;
+import org.raku.nqp.sixmodel.reprs.ContextRefInstance;
+import org.raku.nqp.sixmodel.reprs.P6int;
+import org.raku.nqp.sixmodel.reprs.P6str;
+import org.raku.nqp.sixmodel.reprs.P6num;
+import org.raku.nqp.sixmodel.reprs.P6OpaqueREPRData;
 
 @SuppressWarnings("unused")
 public final class Binder {

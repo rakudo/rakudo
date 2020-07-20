@@ -32,4 +32,4 @@ lives-ok { class C { }; await start { for ^10_0000 { C.^set_name('B') } } xx 4 }
     is nqp::rand_n(100e0), $second, 'does srand produce same rand_n values 2';
 }
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4

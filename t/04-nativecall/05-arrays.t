@@ -207,4 +207,4 @@ subtest 'CArray allocation' => {
     is-deeply @t2682[0..*-2], (1, 2), 'Indexing with WhateverStar works on CArray';
 }
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

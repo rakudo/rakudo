@@ -41,7 +41,7 @@ multi sub infix:<eqv>(Numeric:D \a, Numeric:D \b --> Bool:D) {
     # Use === for Nums, to properly handle signed zeros and NaNs
     # For Rationals, properly handle NaN-y Rationals
     nqp::hllbool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || nqp::eqaddr(a.WHAT,b.WHAT)
         && nqp::if(
           nqp::istype(a,Num),
@@ -364,4 +364,4 @@ multi sub infix:«+>»($x,$y)      { $x.Numeric.Int +> $y.Numeric.Int }
 proto sub prefix:<+^>($, *%) is pure {*}
 multi sub prefix:<+^>($x)        { +^ $x.Numeric.Int }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

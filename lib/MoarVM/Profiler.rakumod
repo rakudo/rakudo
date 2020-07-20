@@ -2,17 +2,17 @@
 # nqp::mvmendprofile, when started with mvmstartprofile({:instrumented})
 
 # The nqp::mvmendprofile returns an nqp::list that needs to be nqp::hllize'd
-# before you can iterate over it in Perl 6.  The documentation of this
+# before you can iterate over it in Raku.  The documentation of this
 # structure can be found in the nqp repository, docs/ops.markdown (or on
 # github at:
 #
-#  https://github.com/perl6/nqp/blob/master/docs/ops.markdown#mvmendprofile
+#  https://github.com/Raku/nqp/blob/master/docs/ops.markdown#mvmendprofile-moar
 
 # To reduce any additional memory pressure, the objects created by this class
 # are just shims around the arrays / hashes that have been returned.  This
 # means that access to attributes is slightly more expensive CPU-wise then
 # they could be.  On the other hand, no additional CPU was spent to create
-# "proper" Perl 6 objects to begin with, so when inspecting only parts of a
+# "proper" Raku objects to begin with, so when inspecting only parts of a
 # big profile, will only cause addtional overhead in accessing those parts,
 # rather than using a lot of CPU and additional memory on the whole structure.
 
@@ -678,4 +678,4 @@ sub profile(&code --> MoarVM::Profiler:D) is export {
     MoarVM::Profiler.profile(&code)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

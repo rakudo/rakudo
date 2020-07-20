@@ -83,3 +83,5 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         }
     }
 }
+
+# vim: expandtab sw=4

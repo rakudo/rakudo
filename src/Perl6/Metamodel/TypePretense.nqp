@@ -21,3 +21,5 @@ role Perl6::Metamodel::TypePretense {
         0;
     }
 }
+
+# vim: expandtab sw=4

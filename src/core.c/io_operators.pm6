@@ -1,59 +1,82 @@
 my class IO::ArgFiles { ... }
 
+proto sub printf($, |) {*}
+multi sub printf(Str(Cool) $format, Junction:D \j) {
+    my $out := $*OUT;
+    j.THREAD: { $out.print: sprintf $format, |$_ }
+}
+multi sub printf(Str(Cool) $format, |) {
+   my $args := nqp::p6argvmarray;
+   nqp::shift($args);
+   $*OUT.print: sprintf $format, nqp::hllize($args)
+}
+
 proto sub print(|) {*}
 multi sub print(--> True) { }    # nothing to do
-multi sub print(Junction:D \j)  { j.THREAD(&print) }
-multi sub print(Str:D \x)       { $*OUT.print(x) }
-multi sub print(\x)             { $*OUT.print(x.Str) }
-multi sub print(**@args is raw) { $*OUT.print: @args.join }
-
-proto sub say(|) {*}
-multi sub say() { $*OUT.print-nl }
-multi sub say(\x) {
-    nqp::if(
-      nqp::istype((my $out := $*OUT),IO::Handle),
-      $out.say(x.gist),
-      $out.print(nqp::concat(nqp::unbox_s(x.gist),$out.nl-out))
-    )
-}
-multi sub say(**@args is raw) {
-    my str $str;
-    my $iter := @args.iterator;
-    nqp::until(
-      nqp::eqaddr(($_ := $iter.pull-one), IterationEnd),
-      $str = nqp::concat($str, nqp::unbox_s(.gist)));
+multi sub print(Junction:D \j) {
     my $out := $*OUT;
-    $out.print(nqp::concat($str,$out.nl-out));
+    j.THREAD: { $out.print: .Str }
+}
+multi sub print(Str:D \x) { $*OUT.print(x) }
+multi sub print(\x) { $*OUT.print(x.Str) }
+multi sub print(|) {
+    $*OUT.print:
+      nqp::join("",Rakudo::Internals.StrList2list_s(nqp::p6argvmarray))
+}
+
+# To ensure that classes that mimic the $*OUT / $*ERR API (which are only
+# required to provide a ".print" method), all logic is done in the subs
+# here, and then passed on to the .print method.
+proto sub say(|) {*}
+multi sub say() {
+    $_ := $*OUT;
+    .print: .nl-out
+}
+multi sub say(\x) {
+    $_ := $*OUT;
+    .print: nqp::concat(x.gist,.nl-out)
+}
+multi sub say(|) {
+    my $parts := Rakudo::Internals.GistList2list_s(nqp::p6argvmarray);
+    $_ := $*OUT;
+    nqp::push_s($parts,.nl-out);
+    .print: nqp::join("",$parts)
 }
 
 proto sub put(|) {*}
-multi sub put() { $*OUT.print-nl }
-multi sub put(Junction:D \j) {
-    j.THREAD(&put)
+multi sub put() {
+    $_ := $*OUT;
+    .print: .nl-out
 }
-multi sub put(Str:D \x) {
+multi sub put(Junction:D \j) {
     my $out := $*OUT;
-    $out.print(nqp::concat(nqp::unbox_s(x),$out.nl-out));
+    j.THREAD: { $out.print: nqp::concat(.Str,$out.nl-out) }
 }
 multi sub put(\x) {
-    my $out := $*OUT;
-    $out.print(nqp::concat(nqp::unbox_s(x.Str),$out.nl-out));
+    $_ := $*OUT;
+    .print: nqp::concat(x.Str,.nl-out)
 }
-multi sub put(**@args is raw) {
-    my $out := $*OUT;
-    $out.print: @args.join ~ $out.nl-out
+multi sub put(|) {
+    my $parts := Rakudo::Internals.StrList2list_s(nqp::p6argvmarray);
+    $_ := $*OUT;
+    nqp::push_s($parts,.nl-out);
+    .print: nqp::join("",$parts)
 }
 
 proto sub note(|) {*}
 multi sub note() {
-    my $err := $*ERR;
-    $err.print(nqp::concat("Noted",$err.nl-out));
+    $_ := $*ERR;
+    .print: nqp::concat("Noted",.nl-out)
 }
-multi sub note(**@args is raw) {
-    my $err := $*ERR;
-    my str $str;
-    $str = nqp::concat($str,nqp::unbox_s(.gist)) for @args;
-    $err.print(nqp::concat($str,$err.nl-out));
+multi sub note(\x) {
+    $_ := $*ERR;
+    .print: nqp::concat(x.gist,.nl-out)
+}
+multi sub note(|) {
+    my $parts := Rakudo::Internals.GistList2list_s(nqp::p6argvmarray);
+    $_ := $*ERR;
+    nqp::push_s($parts,.nl-out);
+    .print: nqp::join("",$parts)
 }
 
 proto sub gist(|) {*}
@@ -76,9 +99,10 @@ multi sub prompt($msg) {
 }
 
 proto sub dir(|) {*}
-multi sub dir(*%_) { $*SPEC.curdir.IO.dir(:!absolute, |%_) }
-multi sub dir(IO::Path:D $path, |c) { $path.dir(|c) }
-multi sub dir(IO()       $path, |c) { $path.dir(|c) }
+multi sub dir(IO() $path, :$test!) { $path.dir(:$test) }
+multi sub dir(IO() $path         ) { $path.dir         }
+multi sub dir(:$test!) { IO::Path.new($*SPEC.curdir).dir(:$test) }
+multi sub dir(       ) { IO::Path.new($*SPEC.curdir).dir         }
 
 proto sub open($, |) {*}
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
@@ -100,12 +124,36 @@ multi sub close(IO::Handle:D $fh) { $fh.close }
 multi sub close(Channel:D $channel) { $channel.close }
 
 proto sub slurp(|) {*}
-multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c) { $fh.slurp(|c) }
-multi sub slurp(IO() $path, |c) { $path.slurp(|c) }
+multi sub slurp(*%_) { $*ARGFILES.slurp(|%_) }
+multi sub slurp(IO::Handle:D $fh, *%_) { $fh.slurp(|%_) }
+multi sub slurp(IO() $path, :$bin!) { $path.slurp(:$bin) }
+multi sub slurp(IO() $path, :$enc ) { $path.slurp(:$enc) }
+multi sub slurp(IO() $path        ) { $path.slurp(:enc<utf8>) }
 
-proto sub spurt($, |) {*}
-multi sub spurt(IO::Handle:D $fh,   |c) { $fh  .spurt(|c) }
-multi sub spurt(IO()       $path, |c) { $path.spurt(|c) }
+proto sub spurt($, $, |) {*}
+# Don't do anything special for the IO::Handle, as using spurt() as a sub
+# when you've gone through the trouble of creating an IO::Handle, is not
+# so likely, as you would probably just call the .spurt method on the handle.
+multi sub spurt(IO::Handle:D $fh, $data, *%_) is default {
+    $fh.spurt($data, |%_)
+}
+multi sub spurt(IO() $path, Blob:D \data, :$append!) {
+    $path.spurt(data, :$append)
+}
+multi sub spurt(IO() $path, Blob:D \data, :$createonly!) {
+    $path.spurt(data, :$createonly)
+}
+multi sub spurt(IO() $path, Blob:D \data) {
+    $path.spurt(data)
+}
+multi sub spurt(IO() $path, \text, :$append!, :$enc) {
+    $path.spurt(text, :$append, :$enc)
+}
+multi sub spurt(IO() $path, \text, :$createonly!, :$enc) {
+    $path.spurt(text, :$createonly, :$enc)
+}
+multi sub spurt(IO() $path, \text, :$enc!) { $path.spurt(text, :$enc) }
+multi sub spurt(IO() $path, \text        ) { $path.spurt(text, :enc<utf8>) }
 
 {
     sub chdir(IO() $path) {
@@ -247,4 +295,4 @@ multi sub symlink(IO() $target, IO() $name) { $target.symlink($name) }
 proto sub link($, $, *%) {*}
 multi sub link(IO() $target, IO() $name) { $target.link($name) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

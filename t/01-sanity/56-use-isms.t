@@ -25,3 +25,5 @@ for '', ' <C++>' -> $ism {
       'Can we run C++ish code without it complaining';
     is $ran, 'foo', "Did the code with 'use isms$ism' actually run";
 }
+
+# vim: expandtab shiftwidth=4

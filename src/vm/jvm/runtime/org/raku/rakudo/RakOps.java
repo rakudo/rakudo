@@ -1,15 +1,15 @@
-package org.perl6.rakudo;
+package org.raku.rakudo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Comparator;
-import org.perl6.nqp.runtime.*;
-import org.perl6.nqp.sixmodel.*;
-import org.perl6.nqp.sixmodel.reprs.CallCaptureInstance;
-import org.perl6.nqp.sixmodel.reprs.ContextRefInstance;
-import org.perl6.nqp.sixmodel.reprs.NativeRefInstance;
-import org.perl6.nqp.sixmodel.reprs.VMArrayInstance;
+import org.raku.nqp.runtime.*;
+import org.raku.nqp.sixmodel.*;
+import org.raku.nqp.sixmodel.reprs.CallCaptureInstance;
+import org.raku.nqp.sixmodel.reprs.ContextRefInstance;
+import org.raku.nqp.sixmodel.reprs.NativeRefInstance;
+import org.raku.nqp.sixmodel.reprs.VMArrayInstance;
 
 /**
  * Contains implementation of nqp:: ops specific to Rakudo
@@ -76,7 +76,7 @@ public final class RakOps {
     public static SixModelObject p6init(ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         if (!gcx.initialized) {
-            tc.gc.contConfigs.put("rakudo_scalar", new RakudoContainerConfigurer());
+            tc.gc.contConfigs.put("value_desc_cont", new RakudoContainerConfigurer());
             SixModelObject BOOTArray = tc.gc.BOOTArray;
             gcx.EMPTYARR = BOOTArray.st.REPR.allocate(tc, BOOTArray.st);
             SixModelObject BOOTHash = tc.gc.BOOTHash;
@@ -154,7 +154,7 @@ public final class RakOps {
 
     public static SixModelObject p6definite(SixModelObject obj, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
-        return obj == null || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
+        return Ops.isnull(obj) == 1 || Ops.decont(obj, tc) instanceof TypeObject ? gcx.False : gcx.True;
     }
 
     public static SixModelObject p6box_i(long value, ThreadContext tc) {
@@ -321,7 +321,7 @@ public final class RakOps {
         }
         else {
             SixModelObject meth = Ops.findmethodNonFatal(cont, "STORE", tc);
-            if (meth != null) {
+            if (Ops.isnull(meth) == 0) {
                 Ops.invokeDirect(tc, meth,
                     STORE, new Object[] { cont, value });
             }

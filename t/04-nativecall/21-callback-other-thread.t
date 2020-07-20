@@ -28,4 +28,4 @@ my @threads = do for ^8 -> $i {
 }
 @threads>>.join;
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

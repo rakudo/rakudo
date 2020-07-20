@@ -1,6 +1,19 @@
 class CompUnit::PrecompilationStore::File
   does CompUnit::PrecompilationStore
 {
+    my class Compunit::PrecompilationStore::File::Item
+      does CompUnit::PrecompilationStore::Item
+    {
+        has IO::Handle $!item;
+
+        submethod BUILD (:$!item) { }
+
+        method unlock {
+            $!item.close;
+            $!item.path.unlink;
+        }
+    }
+
     my class CompUnit::PrecompilationUnit::File
       does CompUnit::PrecompilationUnit
     {
@@ -63,6 +76,7 @@ class CompUnit::PrecompilationStore::File
                     self!read-dependencies;
                     $!bytecode := $!handle.slurp(:bin,:close)
                 }
+                $!bytecode
             }
         }
 
@@ -95,6 +109,10 @@ class CompUnit::PrecompilationStore::File
 
         method save-to(IO::Path $precomp-file) {
             my $handle := $precomp-file.open(:w);
+            # cw: There may be an urge to just perform the file locking, here.
+            #     it should be resisted. Much of the work that requires the
+            #     locking starts from the moment !file() is called. So a lock
+            #     here would be too late.
             $handle.print($!checksum ~ "\n");
             $handle.print($!source-checksum ~ "\n");
             $handle.print($_.serialize ~ "\n") for @!dependencies;
@@ -167,17 +185,17 @@ class CompUnit::PrecompilationStore::File
         self!dir($compiler-id, $precomp-id).add($precomp-id ~ $extension)
     }
 
-    method !lock(--> Nil) {
+    method !lock(IO::Path $to-lock --> Nil) {
         unless $!wont-lock {
             $!update-lock.lock;
-            $!lock := $.prefix.add('.lock').open(:create, :rw)
+            $!lock := $to-lock.add('.lock').open(:create, :rw)
               unless $!lock;
             $!lock.lock if $!lock-count++ == 0;
         }
     }
 
     method unlock() {
-        if $!wont-lock {
+        if $!wont-lock || $!lock-count == 0 {
             Nil
         }
         else {
@@ -227,20 +245,38 @@ class CompUnit::PrecompilationStore::File
     method remove-from-cache(CompUnit::PrecompilationId:D $precomp-id) {
         $!update-lock.protect: {
             nqp::deletekey($!loaded,$precomp-id.Str);
+            # cw: Remove file lock object?
         }
     }
 
     method destination(
       CompUnit::PrecompilationId:D $compiler-id,
       CompUnit::PrecompilationId:D $precomp-id,
-      Str:D :$extension = ''
+      Str:D  :$extension = '',
+      Bool:D :$lock-full = False
     --> IO::Path:D) {
-        $!prefix.mkdir;  # don't care whether worked
 
-        if $!prefix.w {  # have a writable prefix
-            self!lock();
+        # have a writable prefix, assume it's a directory
+        if $!prefix.w {
+            self!lock($.prefix) if $lock-full;
             self!file($compiler-id, $precomp-id, :$extension);
         }
+
+        # directory creation successful and writeable
+        elsif $!prefix.mkdir && $!prefix.w {
+
+            # make sure we have a tag in it
+            $!prefix.child('CACHEDIR.TAG').spurt:
+'Signature: 8a477f597d28d172789f06886806bc55
+# This file is a cache directory tag created by Rakudo.
+# For information about cache directory tags, see:
+# http://www.brynosaurus.com/cachedir';
+
+            # call ourselves again, now that we haz a cache directory
+            self.destination($compiler-id, $precomp-id, :$extension)
+        }
+
+        # huh?
         else {
             Nil
         }
@@ -257,6 +293,23 @@ class CompUnit::PrecompilationStore::File
         my $dest := self!dir($compiler-id, $precomp-id);
         $dest.mkdir unless $dest.e;
 
+        # cw: <strikethru>Create lock object, here?</strikethru>
+        # cw: Create STOREUNIT object, here?
+        # A mutant chicken and egg problem. The "lock" object is really something
+        # that wraps an IO::Handle so that .lock can be called upon it. What is
+        # created here is an IO::Path. Should we create the handle here, or
+        # wait until it is created later in this process.
+        #
+        # Object wants to be an IO::Path, but proper ITEM-LEVEL lock handling
+        # also needs control of .lock and .unlock, which is an IO::Handle
+        # method.
+        #
+        # Frankensteining an amalgamation might be an answer but it could cause
+        # developer confusion down the road.
+        #
+        # A new object that wraps both IO::Handle and IO::Path may be the
+        # better way.
+
         $dest.add($precomp-id ~ $extension)
     }
 
@@ -266,7 +319,8 @@ class CompUnit::PrecompilationStore::File
       IO::Path:D $path,
       Str:D :$extension = ''
     ) {
-        $path.rename(self!file($compiler-id, $precomp-id, :$extension));
+        my $file := self!file($compiler-id, $precomp-id, :$extension);
+        try $path.rename($file);
     }
 
     method store-unit(
@@ -276,7 +330,7 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $precomp-file := self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
-        $precomp-file.rename(self!file($compiler-id, $precomp-id));
+        try $precomp-file.rename(self!file($compiler-id, $precomp-id));
         self.remove-from-cache($precomp-id);
     }
 
@@ -287,7 +341,7 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
         $repo-id-file.spurt($repo-id);
-        $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
+        try $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
     }
 
     method delete(
@@ -306,6 +360,16 @@ class CompUnit::PrecompilationStore::File
          }
          $compiler-dir.rmdir;
     }
+
+    method initiate-lock (
+      Str:D $location is copy
+      --> Compunit::PrecompilationStore::File::Item:D
+    ) {
+        my $item = $location.IO.extension('lock').open(:create, :rw);
+        $item.lock;
+
+        Compunit::PrecompilationStore::File::Item.new(:$item)
+    }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -86,13 +86,18 @@ my class Range is Cool does Iterable does Positional {
         $!is-int && nqp::not_i(nqp::isbig_I($!min) || nqp::isbig_I($!max))
     }
 
-    multi method WHICH (Range:D:) {
-        (nqp::istype(self.WHAT,Range) ?? 'Range|' !! (self.^name ~ '|'))
-          ~ $!min
-          ~ ("^" if $!excludes-min)
-          ~ '..'
-          ~ ("^" if $!excludes-max)
-          ~ $!max;
+    multi method WHICH(Range:D: --> ValueObjAt:D) {
+        nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Range),
+              'Range|',
+              nqp::concat(self.^name, '|')
+            ),
+            self.raku
+          ),
+          ValueObjAt
+        )
     }
     multi method EXISTS-POS(Range:D: int \pos) {
         0 <= pos < self.elems;
@@ -161,7 +166,7 @@ my class Range is Cool does Iterable does Positional {
                          ($!excludes-min ?? $!min.succ !! $!min),
                          $!max,
                          :exclude_end($!excludes-max)
-                       ).iterator
+                       )
                   # general case
                   !! Rakudo::Iterator.SuccFromTo(
                        $!excludes-min ?? $!min.succ !! $!min,
@@ -286,9 +291,16 @@ my class Range is Cool does Iterable does Positional {
             )
         }
 
-        # doesn't make much sense, but there you go
+        # can never go down to -Inf
         elsif $!max === -Inf {
-            InfReverse.new
+            Rakudo::Iterator.Empty
+        }
+
+        # endpoints are same
+        elsif $!min === $!max {
+            $!excludes-min || $!excludes-max
+              ?? Rakudo::Iterator.Empty
+              !! Rakudo::Iterator.OneValue($!min)
         }
 
         # Also something quick and easy for -Inf..42 style things
@@ -303,7 +315,7 @@ my class Range is Cool does Iterable does Positional {
               ?? ().iterator
               !! $max.chars == 1 && nqp::istype($!min,Str) && $!min.chars == 1
                 ?? CharReverse.new($max,$!excludes-min ?? $!min.succ !! $!min)
-                !! SEQUENCE($max,$!min,:exclude_end($!excludes-min)).iterator
+                !! SEQUENCE($max,$!min,:exclude_end($!excludes-min))
         }
 
         # General case according to spec
@@ -438,9 +450,18 @@ my class Range is Cool does Iterable does Positional {
     }
 
     multi method raku(Range:D:) {
-        $!is-int && $!min == 0 && !$!excludes-min && $!excludes-max
-            ?? "^$!max"
-            !! "{$!min.raku}{'^' if $!excludes-min}..{'^' if $!excludes-max}$!max.raku()"
+        if $!is-int && $!min == 0
+          && nqp::not_i($!excludes-min) && $!excludes-max {
+            "^$!max"
+        }
+        else {
+            my $parts := nqp::list_s($!min.raku);
+            nqp::push_s($parts,'^') if $!excludes-min;
+            nqp::push_s($parts,'..');
+            nqp::push_s($parts,'^') if $!excludes-max;
+            nqp::push_s($parts,$!max.raku);
+            nqp::join('',$parts)
+        }
     }
 
     proto method roll(|) {*}
@@ -685,9 +706,9 @@ multi sub infix:<^..^>($min, $max) {
 proto sub prefix:<^>($, *%) is pure {*}
 multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
 
-multi sub infix:<eqv>(Range:D \a, Range:D \b) {
+multi sub infix:<eqv>(Range:D \a, Range:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.min eqv b.min
              && a.max eqv b.max
@@ -730,4 +751,4 @@ multi sub infix:<cmp>(Range:D \a, Num(Real) \b --> Order:D) { a cmp (b..b) }
 multi sub infix:<cmp>(Positional \a, Range:D \b --> Order:D) { a cmp b.list }
 multi sub infix:<cmp>(Range:D \a, Positional \b --> Order:D) { a.list cmp b }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -5,7 +5,7 @@ my class Slip { # is List
     # XXX this makes an empty Slip undefined?
     multi method defined (Slip:D: --> Bool:D) { self.Bool }
 
-    multi method Slip(Slip:D: --> Slip:D) { self }
+    multi method Slip(Slip:D:) { self }
     method CALL-ME (+args)     { args.Slip }
     multi method raku(Slip:D: --> Str:D) {
         nqp::if(
@@ -45,4 +45,4 @@ multi sub slip(--> Empty) { }
 multi sub slip(@args --> Slip:D) { @args.Slip }
 multi sub slip(+args --> Slip:D) { args.Slip }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

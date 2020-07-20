@@ -543,9 +543,9 @@ my class PseudoStash is Map {
     method pseudo-package(PseudoStash:D: Str:D $name) is raw {
         nqp::setwho(
             ($!package := Metamodel::ModuleHOW.new_type(:$name)),
-            nqp::decont(self)
+            self
         )
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

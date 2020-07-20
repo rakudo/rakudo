@@ -175,4 +175,4 @@ cmp-ok X::OutOfRange.new(
 is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
 'Use placeholder variables in a method should yield a useful error message';
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

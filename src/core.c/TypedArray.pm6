@@ -104,12 +104,12 @@
             )
         }
 
-        multi method raku(::?CLASS:D \SELF:) {
-            my $type := TValue.raku;
+        multi method raku(::?CLASS:D:) {
+            my $type := nqp::getattr(self,Array,'$!descriptor').of.^name;
             my $raku := self.map({
                 nqp::isconcrete($_) ?? .raku(:arglist) !! $type
             }).join(', ');
-            'Array[' ~ $type ~ '].new(' ~ $raku ~ ')';
+            'Array[' ~ $type ~ '].new(' ~ $raku ~ ')'
         }
     }
     method ^parameterize(Mu:U \arr, Mu \t, |c) {
@@ -130,4 +130,4 @@
 
 #========== closed down the Array class started in src/core.c/Array.pm6  =======
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

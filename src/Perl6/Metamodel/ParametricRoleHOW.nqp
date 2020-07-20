@@ -246,3 +246,5 @@ class Perl6::Metamodel::ParametricRoleHOW
         [$obj]
     }
 }
+
+# vim: expandtab sw=4

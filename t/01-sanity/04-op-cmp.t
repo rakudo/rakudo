@@ -28,3 +28,5 @@ say '1..24';
 'd' gt 'c' gt 'c' or say 'ok 22';
 'a' ne 'b' and say 'ok 23';
 'a' ne 'a' or say 'ok 24';
+
+# vim: expandtab shiftwidth=4

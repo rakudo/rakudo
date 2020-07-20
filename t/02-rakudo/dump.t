@@ -63,3 +63,5 @@ todo 'NYI (can it even?)', 3;
 is DUMP($int),      DUMP(42),         'DUMP(int) dumps as a literal';
 is DUMP($num),      DUMP(12345e0),    'DUMP(num) dumps as a literal';
 is DUMP($str),      DUMP('a string'), 'DUMP(str) dumps as a literal';
+
+# vim: expandtab shiftwidth=4

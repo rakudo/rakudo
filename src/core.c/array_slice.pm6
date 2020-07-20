@@ -10,7 +10,7 @@
 # if called with an Int.  Before it does so, it may cause the calling code
 # to switch to a memoized version of an iterator by modifying variables in
 # the caller's scope.
-proto sub POSITIONS(|) {*}
+proto sub POSITIONS(|) is implementation-detail {*}
 multi sub POSITIONS(
   \SELF,
   \pos,
@@ -245,9 +245,6 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
             or not nqp::istype(val, Iterator)
                and not nqp::istype(val, Iterable) {
             (nqp::decont(val),).Slip
-        }
-        elsif nqp::istype(val, Iterator) {
-            Slip.from-loop({ nqp::decont(val.pull-one) })
         }
         elsif nqp::istype(val, Iterable) {
             val.map({ nqp::decont($_) }).Slip
@@ -511,4 +508,4 @@ multi sub postcircumfix:<[ ]>(\SELF, *%other) is raw {
     SELF.ZEN-POS(|%other);
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

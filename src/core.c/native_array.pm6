@@ -93,7 +93,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
@@ -414,46 +414,9 @@ my class array does Iterable {
               Range.new(Inf,-Inf)
             )
         }
-
-        my class Iterate does Iterator {
-            has int $!i;
-            has $!array;    # Native array we're iterating
-
-            method !SET-SELF(\array) {
-                $!array := nqp::decont(array);
-                $!i = -1;
-                self
-            }
-            method new(\array) { nqp::create(self)!SET-SELF(array) }
-
-            method pull-one() is raw {
-                ($!i = $!i + 1) < nqp::elems($!array)
-                  ?? nqp::atposref_s($!array,$!i)
-                  !! IterationEnd
-            }
-            method skip-one() {
-                ($!i = $!i + 1) < nqp::elems($!array)
-            }
-            method skip-at-least(int $toskip) {
-                nqp::unless(
-                  ($!i = $!i + $toskip) < nqp::elems($!array),
-                  nqp::stmts(
-                    ($!i = nqp::elems($!array)),
-                    0
-                  )
-                )
-            }
-            method push-all(\target --> IterationEnd) {
-                my int $i     = $!i;
-                my int $elems = nqp::elems($!array);
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  target.push(nqp::atposref_s($!array,$i))
-                );
-                $!i = $i;
-            }
+        method iterator(strarray:D: --> PredictiveIterator:D) {
+            Rakudo::Iterator.native_s(self)
         }
-        method iterator(strarray:D: --> Iterate:D) { Iterate.new(self) }
 
         method reverse(strarray:D: --> strarray:D) is nodal {
             nqp::stmts(
@@ -492,10 +455,10 @@ my class array does Iterable {
             Rakudo::Sorting.MERGESORT-str(nqp::clone(self))
         }
 
-        multi method ACCEPTS(strarray:D: strarray:D \other --> Bool:D) {
+        multi method ACCEPTS(strarray:D: strarray:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,other),
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my int $elems = nqp::elems(self)),
@@ -566,7 +529,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(strarray:D: --> str) {
+        method GRAB_ONE(strarray:D: --> str) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_s(
                 self,
@@ -594,7 +557,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
@@ -915,46 +878,9 @@ my class array does Iterable {
               Range.new(Inf,-Inf)
             )
         }
-
-        my class Iterate does Iterator {
-            has int $!i;
-            has $!array;    # Native array we're iterating
-
-            method !SET-SELF(\array) {
-                $!array := nqp::decont(array);
-                $!i = -1;
-                self
-            }
-            method new(\array) { nqp::create(self)!SET-SELF(array) }
-
-            method pull-one() is raw {
-                ($!i = $!i + 1) < nqp::elems($!array)
-                  ?? nqp::atposref_i($!array,$!i)
-                  !! IterationEnd
-            }
-            method skip-one() {
-                ($!i = $!i + 1) < nqp::elems($!array)
-            }
-            method skip-at-least(int $toskip) {
-                nqp::unless(
-                  ($!i = $!i + $toskip) < nqp::elems($!array),
-                  nqp::stmts(
-                    ($!i = nqp::elems($!array)),
-                    0
-                  )
-                )
-            }
-            method push-all(\target --> IterationEnd) {
-                my int $i     = $!i;
-                my int $elems = nqp::elems($!array);
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  target.push(nqp::atposref_i($!array,$i))
-                );
-                $!i = $i;
-            }
+        method iterator(intarray:D: --> PredictiveIterator:D) {
+            Rakudo::Iterator.native_i(self)
         }
-        method iterator(intarray:D: --> Iterate:D) { Iterate.new(self) }
 
         method reverse(intarray:D: --> intarray:D) is nodal {
             nqp::stmts(
@@ -993,10 +919,10 @@ my class array does Iterable {
             Rakudo::Sorting.MERGESORT-int(nqp::clone(self))
         }
 
-        multi method ACCEPTS(intarray:D: intarray:D \other --> Bool:D) {
+        multi method ACCEPTS(intarray:D: intarray:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,other),
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my int $elems = nqp::elems(self)),
@@ -1067,7 +993,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(intarray:D: --> int) {
+        method GRAB_ONE(intarray:D: --> int) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_i(
                 self,
@@ -1147,7 +1073,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2019-08-12T21:36:23+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
@@ -1468,46 +1394,9 @@ my class array does Iterable {
               Range.new(Inf,-Inf)
             )
         }
-
-        my class Iterate does Iterator {
-            has int $!i;
-            has $!array;    # Native array we're iterating
-
-            method !SET-SELF(\array) {
-                $!array := nqp::decont(array);
-                $!i = -1;
-                self
-            }
-            method new(\array) { nqp::create(self)!SET-SELF(array) }
-
-            method pull-one() is raw {
-                ($!i = $!i + 1) < nqp::elems($!array)
-                  ?? nqp::atposref_n($!array,$!i)
-                  !! IterationEnd
-            }
-            method skip-one() {
-                ($!i = $!i + 1) < nqp::elems($!array)
-            }
-            method skip-at-least(int $toskip) {
-                nqp::unless(
-                  ($!i = $!i + $toskip) < nqp::elems($!array),
-                  nqp::stmts(
-                    ($!i = nqp::elems($!array)),
-                    0
-                  )
-                )
-            }
-            method push-all(\target --> IterationEnd) {
-                my int $i     = $!i;
-                my int $elems = nqp::elems($!array);
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  target.push(nqp::atposref_n($!array,$i))
-                );
-                $!i = $i;
-            }
+        method iterator(numarray:D: --> PredictiveIterator:D) {
+            Rakudo::Iterator.native_n(self)
         }
-        method iterator(numarray:D: --> Iterate:D) { Iterate.new(self) }
 
         method reverse(numarray:D: --> numarray:D) is nodal {
             nqp::stmts(
@@ -1546,10 +1435,10 @@ my class array does Iterable {
             Rakudo::Sorting.MERGESORT-num(nqp::clone(self))
         }
 
-        multi method ACCEPTS(numarray:D: numarray:D \other --> Bool:D) {
+        multi method ACCEPTS(numarray:D: numarray:D \o --> Bool:D) {
             nqp::hllbool(
               nqp::unless(
-                nqp::eqaddr(self,other),
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
                 nqp::if(
                   nqp::iseq_i(
                     (my int $elems = nqp::elems(self)),
@@ -1620,7 +1509,7 @@ my class array does Iterable {
             ))
         }
 
-        method GRAB_ONE(numarray:D: --> num) {
+        method GRAB_ONE(numarray:D: --> num) is implementation-detail {
             nqp::stmts(
               (my $value := nqp::atpos_n(
                 self,
@@ -3457,4 +3346,4 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

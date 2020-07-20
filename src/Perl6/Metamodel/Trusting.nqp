@@ -32,3 +32,5 @@ role Perl6::Metamodel::Trusting {
         0
     }
 }
+
+# vim: expandtab sw=4

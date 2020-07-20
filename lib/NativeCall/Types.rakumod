@@ -30,7 +30,7 @@ our class Pointer                               is repr('CPointer') {
 
     method Numeric(::?CLASS:D:) { self.Int }
     method Int(::?CLASS:D:) {
-        nqp::p6box_i(nqp::unbox_i(nqp::decont(self)))
+        nqp::p6box_i(nqp::unbox_i(self))
     }
 
     proto method Bool() {*}
@@ -72,7 +72,7 @@ our class Pointer                               is repr('CPointer') {
                 TValue,
                 nqp::istype(TValue, Int) ?? Int
                                          !! nqp::istype(TValue, Num) ?? Num !! TValue,
-                nqp::box_i(nqp::unbox_i(nqp::decont(self)) + nqp::nativecallsizeof(TValue) * $pos, Pointer)
+                nqp::box_i(nqp::unbox_i(self) + nqp::nativecallsizeof(TValue) * $pos, Pointer)
             )
         }
     }
@@ -252,3 +252,5 @@ multi sub map_return_type($type) {
     nqp::istype($type, Int) ?? Int
                             !! nqp::istype($type, Num) ?? Num !! $type;
 }
+
+# vim: expandtab shiftwidth=4

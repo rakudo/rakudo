@@ -1,7 +1,7 @@
 my class Pair does Associative {
     has $.key is default(Nil);
     has $.value is rw is default(Nil);
-    has Mu $!WHICH;
+    has ObjAt $!WHICH;
 
     proto method new(|) {*}
     # This candidate is needed because it currently JITS better
@@ -28,24 +28,25 @@ my class Pair does Associative {
         nqp::p6bindattrinvres(self.Mu::clone, Pair, '$!WHICH', nqp::null)
     }
     multi method WHICH(Pair:D: --> ObjAt:D) {
-        nqp::unless(
-          $!WHICH,
-          ($!WHICH := nqp::if(
-            nqp::iscont($!value)
-              || nqp::not_i(nqp::istype((my $VALUE := $!value.WHICH),ValueObjAt)),
-            self.Mu::WHICH,
-            nqp::box_s(
-              nqp::concat(
-                nqp::if(
-                  nqp::eqaddr(self.WHAT,Pair),
-                  'Pair|',
-                  nqp::concat(self.^name,'|')
-                ),
-                nqp::sha1(nqp::concat(nqp::concat($!key.WHICH,"\0"),$VALUE))
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+
+    method !WHICH() {
+        $!WHICH := nqp::if(
+          nqp::iscont($!value)
+            || nqp::not_i(nqp::istype((my $VALUE := $!value.WHICH),ValueObjAt)),
+          self.Mu::WHICH,
+          nqp::box_s(
+            nqp::concat(
+              nqp::if(
+                nqp::eqaddr(self.WHAT,Pair),
+                'Pair|',
+                nqp::concat(self.^name,'|')
               ),
-              ValueObjAt
-            )
-          ))
+              nqp::sha1(nqp::concat(nqp::concat($!key.WHICH,"\0"),$VALUE))
+            ),
+            ValueObjAt
+          )
         )
     }
 
@@ -63,8 +64,7 @@ my class Pair does Associative {
             invocant => $other,
             method   => $method,
             typename => $other.^name,
-            addendum => "Did you try to smartmatch against a Pair specifically?  If so, then the
-key of the Pair should be a valid method name, not '$method'."
+            addendum => "Or did you try to smartmatch against a Pair specifically?  If so, then the key of the Pair should be a valid method name, not '$method'."
           ).throw
         )
     }
@@ -160,10 +160,14 @@ key of the Pair should be a valid method name, not '$method'."
                     ?? nqp::concat($!key.raku,
                          nqp::concat(' => ',
                            $!value.raku))
-                    !! nqp::concat('(',
-                         nqp::concat($!key.raku,
-                           nqp::concat(') => ',
-                             $!value.raku)))
+                    !! nqp::istype($!key,Pair)
+                      ?? nqp::concat('(',
+                           nqp::concat($!key.raku,
+                             nqp::concat(') => ',
+                               $!value.raku)))
+                      !! nqp::concat($!key.raku,
+                           nqp::concat(' => ',
+                             $!value.raku))
                 !! nqp::concat('(',
                      nqp::concat($!key.^name,
                        nqp::concat(') => ',
@@ -178,13 +182,17 @@ key of the Pair should be a valid method name, not '$method'."
     multi method AT-KEY(Pair:D: $key)     { $key eq $!key ?? $!value !! Nil }
     multi method EXISTS-KEY(Pair:D: $key) { $key eq $!key }
 
-    method FLATTENABLE_LIST() { nqp::list() }
-    method FLATTENABLE_HASH() { nqp::hash($!key.Str, $!value) }
+    method FLATTENABLE_LIST() is implementation-detail {
+        nqp::list()
+    }
+    method FLATTENABLE_HASH() is implementation-detail {
+        nqp::hash($!key.Str, $!value)
+    }
 }
 
-multi sub infix:<eqv>(Pair:D \a, Pair:D \b) {
+multi sub infix:<eqv>(Pair:D \a, Pair:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
              && a.key   eqv b.key
              && a.value eqv b.value)
@@ -201,4 +209,4 @@ multi sub infix:«=>»(Mu $key, Mu \value) { Pair.new($key, value) }
 proto sub pair(Mu, Mu, *%) is pure {*}
 multi sub pair(Mu \key, Mu \value) { Pair.new(key, value) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

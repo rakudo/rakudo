@@ -110,7 +110,8 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
             my ($vol, $dir, $base) = $SPEC.splitpath($name);
             $dir = $SPEC.canonpath($dir);
             for $SPEC.path() -> $elem {
-                if $SPEC.catpath($vol, $elem, $base).IO.x {
+                my $file = $SPEC.catpath($vol, $elem, $base).IO;
+                if $file.x && $file.f {
                     return $base if $SPEC.canonpath($elem) eq $dir;
                     # Shadowed command found in earlier PATH element
                     return $name;
@@ -341,4 +342,4 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

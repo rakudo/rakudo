@@ -6,11 +6,14 @@ use warnings;
 use 5.008;
 use File::Spec;
 use File::Copy 'cp';
+use Cwd 'abs_path';
 
 my $USAGE = "Usage: $0 <type> <destdir> <prefix> <nqp-home> <rakudo-home> <blib> <third party jars>\n";
 
-my ($type, $destdir, $prefix, $nqp_home, $rakudo_home, $blib, $thirdpartyjars) = @ARGV
+my ($type, $destdir, $prefix, $static_nqp_home, $static_rakudo_home, $blib, $thirdpartyjars) = @ARGV
     or die $USAGE;
+
+my $relocatable = $static_nqp_home eq '' && $static_rakudo_home eq '';
 
 my $debugger = 0;
 if ($type =~ /^(\w+)\-debug$/) {
@@ -20,14 +23,24 @@ if ($type =~ /^(\w+)\-debug$/) {
 
 die "Invalid target type $type" unless $type eq 'dev' || $type eq 'install';
 
-my $cpsep = $^O eq 'MSWin32' ? ';' : ':';
-my $bat   = $^O eq 'MSWin32' ? '.bat' : '';
+my $cpsep     = $^O eq 'MSWin32' ? ';'    : ':';
+my $bat       = $^O eq 'MSWin32' ? '.bat' : '';
+my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($static_nqp_home, 'lib') : File::Spec->catfile('${NQP_HOME}', 'lib');
 
-my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($nqp_home, 'lib') : File::Spec->catfile('${NQP_HOME}', 'lib');
-my $nqpjars = $^O eq 'MSWin32' ? $thirdpartyjars : join( $cpsep, map { $_ =~ s,$nqp_home,\${NQP_HOME},g; $_ } split($cpsep, $thirdpartyjars) );
+my $nqpjars;
+if ($^O eq 'MSWin32' || !$relocatable) {
+    $nqpjars = $thirdpartyjars;
+}
+elsif ($relocatable) {
+    my @thirdpartyjars = map { abs_path($_) } split($cpsep, $thirdpartyjars);
+    my $nqp_home       = abs_path(File::Spec->catpath($prefix, 'share', 'nqp'));
+    @thirdpartyjars    = map { $_ =~ s,$nqp_home,\${NQP_HOME},; $_ } @thirdpartyjars;
+    $nqpjars           = join($cpsep, @thirdpartyjars);
+}
+
 my $bindir = $type eq 'install' ? File::Spec->catfile($prefix, 'bin') : $prefix;
-my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $rakudo_home : '${RAKUDO_HOME}', 'runtime') : $prefix;
-my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $rakudo_home : '${RAKUDO_HOME}', 'lib') : 'blib';
+my $jardir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $static_rakudo_home : '${RAKUDO_HOME}', 'runtime') : $prefix;
+my $libdir = $type eq 'install' ? File::Spec->catfile($^O eq 'MSWin32' ? $static_rakudo_home : '${RAKUDO_HOME}', 'lib') : 'blib';
 my $sharedir = File::Spec->catfile(
     ($type eq 'install' && $^O ne 'MSWin32' ? '${RAKUDO_HOME}' : File::Spec->catfile($prefix, 'share', 'perl6') ),
     'site', 'lib');
@@ -73,20 +86,44 @@ DIR=$(dirname -- "$EXEC")
 
 EOS
 
+my $preamble;
+if ($^O eq 'MSWin32') {
+    $preamble = '@';
+}
+elsif ($type eq 'install') {
+    if ($relocatable) {
+        $preamble = join("\n",
+            $preamble_unix,
+            ": \${NQP_HOME:=\"\$DIR/../share/nqp\"}",
+            ": \${NQP_JARS:=\"$nqpjars\"}",
+            ": \${RAKUDO_HOME:=\"\$DIR/../share/perl6\"}",
+            ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",
+            "exec "
+        );
+    }
+    else {
+        $preamble = join("\n",
+            $preamble_unix,
+            ": \${NQP_HOME:=\"$static_nqp_home\"}",
+            ": \${NQP_JARS:=\"$nqpjars\"}",
+            ": \${RAKUDO_HOME:=\"$static_rakudo_home\"}",
+            ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",
+            "exec "
+        );
+    }
+}
+else {
+    $preamble = join("\n",
+        $preamble_unix,
+        "$NQP_LIB",
+        ": \${NQP_HOME:=\"$static_nqp_home\"}",
+        ": \${NQP_JARS:=\"$nqpjars\"}",
+        ": \${RAKUDO_HOME:=\"$prefix\"}",
+        ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",
+        "exec "
+    );
+}
 
-my $preamble = $^O eq 'MSWin32' ? '@' :
-            $type eq 'install'
-? $preamble_unix . ": \${NQP_HOME=\"\$DIR/../share/nqp\"}
-: \${NQP_JARS:=\"$nqpjars\"}
-: \${RAKUDO_HOME:=\"\$DIR/../share/perl6\"}
-: \${RAKUDO_JARS:=\"$rakudo_jars\"}
-exec "
-: $preamble_unix . "$NQP_LIB
-: \${NQP_HOME:=\"$nqp_home\"}
-: \${NQP_JARS:=\"$nqpjars\"}
-: \${RAKUDO_HOME:=\"$prefix\"}
-: \${RAKUDO_JARS:=\"$rakudo_jars\"}
-exec ";
 my $postamble = $^O eq 'MSWin32' ? ' %*' : ' "$@"';
 
 sub install {
@@ -116,9 +153,15 @@ my $jdbopts = '-Xdebug -Xrunjdwp:transport=dt_socket,address='
 
 if ($debugger) {
     install "rakudo-debug-j", "java $jopts rakudo-debug";
+    install "perl6-debug-j", "java $jopts rakudo-debug";
 }
 else {
     install "rakudo-j", "java $jopts perl6 $blib";
+    install "perl6-j", "java $jopts perl6 $blib";
     install "rakudo-jdb-server", "java $jdbopts $jopts perl6 $blib";
-    install "rakudo-eval-server", "java -Xmx3000m $jopts org.perl6.nqp.tools.EvalServer";
+    install "perl6-jdb-server", "java $jdbopts $jopts perl6 $blib";
+    install "rakudo-eval-server", "java -Xmx3000m $jopts org.raku.nqp.tools.EvalServer";
+    install "perl6-eval-server", "java -Xmx3000m $jopts org.raku.nqp.tools.EvalServer";
 }
+
+# vim: expandtab sw=4

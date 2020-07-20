@@ -314,3 +314,5 @@ class Perl6::Metamodel::ClassHOW
         $!pun_source := nqp::decont($role);
     }
 }
+
+# vim: expandtab sw=4

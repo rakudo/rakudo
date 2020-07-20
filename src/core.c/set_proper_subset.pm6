@@ -130,4 +130,4 @@ multi sub infix:<⊃>(\a, \b --> Bool:D) { b (<) a }
 proto sub infix:<⊅>($, $, *%) is pure {*}
 multi sub infix:<⊅>(\a, \b --> Bool:D) { not b (<) a }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

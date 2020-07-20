@@ -1,7 +1,9 @@
 # all sub postcircumfix [;] candidates here please
 proto sub postcircumfix:<[; ]>($, $, Mu $?, *%) is nodal {*}
 
-sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw {
+sub MD-ARRAY-SLICE-ONE-POSITION(
+  \SELF, \indices, \idx, int $dim, \target
+) is raw is implementation-detail {
     my int $next-dim = $dim + 1;
     if $next-dim < indices.elems {
         if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
@@ -46,7 +48,7 @@ sub MD-ARRAY-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) is raw
         }
     }
 }
-sub MD-ARRAY-SLICE(\SELF, @indices) is raw {
+sub MD-ARRAY-SLICE(\SELF, @indices) is raw is implementation-detail {
     my \target = nqp::create(IterationBuffer);
     MD-ARRAY-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
     target.List
@@ -464,4 +466,4 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$v!) is raw {
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

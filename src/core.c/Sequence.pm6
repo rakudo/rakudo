@@ -83,3 +83,5 @@ my role Sequence does PositionalBindFailover {
         self.cache.gist
     }
 }
+
+# vim: expandtab shiftwidth=4

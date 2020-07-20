@@ -144,7 +144,7 @@ my class IO::Socket::Async {
         method serial(--> True) { }
     }
 
-    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$datagram, :$enc, :$scheduler = $*SCHEDULER) {
+    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = nqp::create(buf8.^pun), :$datagram, :$enc, :$scheduler = $*SCHEDULER) {
         if $bin {
             Supply.new: SocketReaderTappable.new:
                 :$!VMIO, :$scheduler, :$buf, :$!close-promise, udp => $!udp && $datagram
@@ -400,4 +400,4 @@ my class IO::Socket::Async {
 #?endif
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

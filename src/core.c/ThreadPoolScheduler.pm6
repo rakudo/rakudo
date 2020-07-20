@@ -433,7 +433,10 @@ my class ThreadPoolScheduler does Scheduler {
                 (my $cand := nqp::atpos($cur-affinity-workers,$i)),
                 nqp::unless(
                   nqp::elems(my $queue := $cand.queue),
-                  (return $queue)
+                  nqp::unless(
+                    $cand.working,
+                    (return $queue),
+                  ),
                 ),
                 nqp::if(
                   nqp::islt_i(
@@ -457,11 +460,11 @@ my class ThreadPoolScheduler does Scheduler {
                   nqp::elems($cur-affinity-workers),
                   $affinity-max-index
                 ),
-                $affinity-max-threshold,
                 nqp::atpos_i(
                   $affinity-add-thresholds,
                   nqp::elems($cur-affinity-workers)
-                )
+                ),
+                $affinity-max-threshold,
               )
             ),
             # found one that is empty enough
@@ -1160,4 +1163,4 @@ my class ThreadPoolScheduler does Scheduler {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

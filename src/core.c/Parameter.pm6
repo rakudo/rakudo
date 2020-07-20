@@ -68,11 +68,11 @@ my class Parameter { # declared in BOOTSTRAP
         }
     }
 
-    sub definitize-type(Str:D $type, Bool:D $definite) {
+    sub definitize-type(Str:D $type, Bool:D $definite --> Mu) {
         Metamodel::DefiniteHOW.new_type(:base_type(::($type)), :$definite)
     }
 
-    sub str-to-type(Str:D $type, $flags is rw) {
+    sub str-to-type(Str:D $type, Int:D $flags is rw --> Mu) {
         if $type.ends-with(Q/:D/) {
             $flags +|= $SIG_ELEM_DEFINED_ONLY;
             definitize-type($type.chop(2), True)
@@ -90,16 +90,18 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     submethod BUILD(
-       Str:D :$name      is copy = "",
-       Int:D :$flags     is copy = 0,
-      Bool:D :$named     is copy = False,
-      Bool:D :$optional  is copy = False,
-      Bool:D :$mandatory is copy = False,
-      Bool:D :$is-copy = False,
-      Bool:D :$is-raw = False,
-      Bool:D :$is-rw = False,
-      Bool:D :$multi-invocant = True,
-             *%args  # type / default / where / sub_signature captured through %_
+        Parameter:D:
+        Str:D  :$name           is copy = "",
+        Int:D  :$flags          is copy = 0,
+        Bool:D :$named          is copy = False,
+        Bool:D :$optional       is copy = False,
+        Bool:D :$mandatory      is copy = False,
+        Bool:D :$is-copy        = False,
+        Bool:D :$is-raw         = False,
+        Bool:D :$is-rw          = False,
+        Bool:D :$multi-invocant = True,
+               *%args  # type / default / where / sub_signature captured through %_
+        --> Nil
       ) {
 
         if $name {                                 # specified a name?
@@ -234,23 +236,23 @@ my class Parameter { # declared in BOOTSTRAP
 
         $!variable_name = $name if $name;
         $!flags = $flags;
-        self
     }
 
-    method name() {
-        nqp::isnull_s($!variable_name) ?? Nil !! $!variable_name
+    method name(Parameter:D: --> Str:D) {
+        nqp::isnull_s($!variable_name) ?? '' !! $!variable_name
     }
-    method usage-name() {
+
+    method usage-name(Parameter:D: --> Str:D) {
         nqp::isnull_s($!variable_name)
-          ?? Nil
+          ?? ''
           !! nqp::iseq_i(nqp::index('@$%&',nqp::substr($!variable_name,0,1)),-1)
             ?? $!variable_name
-            !! nqp::iseq_i(nqp::index('*!',nqp::substr($!variable_name,1,1)),-1)
+            !! nqp::iseq_i(nqp::index('*!.',nqp::substr($!variable_name,1,1)),-1)
               ?? nqp::substr($!variable_name,1)
               !! nqp::substr($!variable_name,2)
     }
 
-    method sigil() {
+    method sigil(Parameter:D: --> Str:D) {
         nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE)
           ?? '|'
           !! nqp::isnull_s($!variable_name)
@@ -271,14 +273,14 @@ my class Parameter { # declared in BOOTSTRAP
               !! nqp::substr($!variable_name,0,1)
     }
 
-    method twigil() {
+    method twigil(Parameter:D: --> Str:D) {
         nqp::bitand_i($!flags,$SIG_ELEM_BIND_PUBLIC_ATTR)
           ?? '.'
           !! nqp::bitand_i($!flags,$SIG_ELEM_BIND_PRIVATE_ATTR)
             ?? '!'
             !! nqp::isnull_s($!variable_name)
               ?? ''
-              !! nqp::iseq_s(nqp::substr($!variable_name,1,1),"*")
+              !! nqp::eqat($!variable_name,"*",1)
                 ?? '*'
                 !! ''
     }
@@ -303,7 +305,7 @@ my class Parameter { # declared in BOOTSTRAP
             !! '!'
     }
 
-    method modifier() {
+    method modifier(Parameter:D: --> Str:D) {
         nqp::bitand_i($!flags,$SIG_ELEM_DEFINED_ONLY)
           ?? ':D'
           !! nqp::bitand_i($!flags,$SIG_ELEM_UNDEFINED_ONLY)
@@ -311,19 +313,19 @@ my class Parameter { # declared in BOOTSTRAP
             !! ''
     }
 
-    method constraint_list() {
-        nqp::isnull(@!post_constraints) ?? () !!
-            nqp::hllize(@!post_constraints)
+    method constraint_list(Parameter:D: --> List:D) {
+        nqp::isnull(@!post_constraints) ?? () !! nqp::hllize(@!post_constraints)
     }
 
-    method constraints() {
-        all(nqp::isnull(@!post_constraints) ?? () !!
-            nqp::hllize(@!post_constraints))
+    method constraints(Parameter:D: --> Junction:D) {
+        all(nqp::isnull(@!post_constraints) ?? () !! nqp::hllize(@!post_constraints))
     }
 
-    method type() { $!nominal_type }
-    method coerce_type() { $!coerce_type }
-    method named_names() {
+    method type(Parameter:D: --> Mu) { $!nominal_type }
+
+    method coerce_type(Parameter:D: --> Mu) { $!coerce_type }
+
+    method named_names(Parameter:D: --> List:D) {
         nqp::if(
           @!named_names && (my int $elems = nqp::elems(@!named_names)),
           nqp::stmts(
@@ -338,59 +340,53 @@ my class Parameter { # declared in BOOTSTRAP
           nqp::create(List)
         )
     }
-    method named() {
-        nqp::hllbool(
-          nqp::not_i(nqp::isnull(@!named_names)) || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED)
-        )
-    }
 
-    method positional() {
-        nqp::hllbool(
-          nqp::isnull(@!named_names)
-          && nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_POSITIONAL),0)
-        )
+    method named(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::not_i(nqp::isnull(@!named_names)) || nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_NAMED))
     }
-
-    method slurpy() {
+    method positional(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::isnull(@!named_names) && nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_POSITIONAL),0))
+    }
+    method slurpy(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_SLURPY))
     }
-    method optional() {
+    method optional(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_OPTIONAL))
     }
-    method raw() {
+    method raw(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RAW))
     }
-    method capture() {
+    method capture(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_CAPTURE))
     }
-    method rw() {
+    method rw(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_RW))
     }
-    method onearg() {
+    method onearg(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_SLURPY_ONEARG))
     }
-    method copy() {
+    method copy(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COPY))
     }
-    method readonly() {
-        nqp::hllbool(
-          nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_READONLY),0)
-        )
+    method readonly(Parameter:D: --> Bool:D) {
+        nqp::hllbool(nqp::iseq_i(nqp::bitand_i($!flags,$SIG_ELEM_IS_NOT_READONLY),0))
     }
-    method invocant() {
+    method invocant(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_INVOCANT))
     }
-    method multi-invocant() {
+    method multi-invocant(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
     }
-    method default() {
+
+    method default(Parameter:D: --> Code:_) {
         nqp::isnull($!default_value)
-          ?? Any
+          ?? Code
           !! nqp::bitand_i($!flags,$SIG_ELEM_DEFAULT_IS_LITERAL)
             ?? { $!default_value }
             !! $!default_value
     }
-    method type_captures() {
+
+    method type_captures(Parameter:D: --> List:D) {
         nqp::if(
           @!type_captures && (my int $elems = nqp::elems(@!type_captures)),
           nqp::stmts(
@@ -408,7 +404,7 @@ my class Parameter { # declared in BOOTSTRAP
 
     method !flags() { $!flags }
 
-    multi method ACCEPTS(Parameter:D: Parameter:D \other) {
+    multi method ACCEPTS(Parameter:D: Parameter:D \other --> Bool:D) {
 
         # we're us
         my \o := nqp::decont(other);
@@ -543,7 +539,7 @@ my class Parameter { # declared in BOOTSTRAP
         True;
     }
 
-    multi method raku(Parameter:D: Mu:U :$elide-type = Any) {
+    multi method raku(Parameter:D: Mu:U :$elide-type = Any --> Str:D) {
         my $perl = '';
         $perl ~= "::$_ " for @.type_captures;
 
@@ -570,11 +566,11 @@ my class Parameter { # declared in BOOTSTRAP
         if $prefix eq '+' && $sigil eq '\\' {
             # We don't want \ to end up in the name of slurpy parameters, but
             # we still need to know whether or not they have this sigil later.
-            $name ~= $prefix ~ $usage-name;
+            $name ~= $usage-name;
         } else {
-            $name ~= $prefix ~ $sigil ~ $twigil ~ $usage-name;
+            $name ~= $sigil ~ $twigil ~ $usage-name;
         }
-        if $.named {
+        if nqp::isconcrete(@!named_names) {
             my $var-is-named = False;
             my @outer-names  = gather for @.named_names {
                 if !$var-is-named && $_ eq $usage-name {
@@ -586,8 +582,6 @@ my class Parameter { # declared in BOOTSTRAP
             $name = ":$name" if $var-is-named;
             $name = ":$_\($name)" for @outer-names;
         }
-        $name ~= $.suffix;
-        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
 
         my $rest = '';
         if $!flags +& $SIG_ELEM_IS_RW {
@@ -623,20 +617,22 @@ my class Parameter { # declared in BOOTSTRAP
         elsif $!flags +& $SIG_ELEM_DEFAULT_FROM_OUTER {
             $rest ~= " = OUTER::<$name>";
         }
-        $perl ~= $rest if $rest;
 
+        $name = "$prefix$name$.suffix";
+        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
+        $perl ~= $rest if $rest;
         $perl
     }
 
-    method sub_signature(Parameter:D:) {
-        nqp::isnull($!sub_signature) ?? Any !! $!sub_signature
+    method sub_signature(Parameter:D: --> Signature:_) {
+        nqp::isnull($!sub_signature) ?? Signature !! $!sub_signature
     }
 
-    method set_why($why --> Nil) {
+    method set_why(Parameter:D: $why --> Nil) {
         $!why := $why;
     }
 
-    method set_default(Code:D $default --> Nil) {
+    method set_default(Parameter:D: Code:D $default --> Nil) {
         $!default_value := $default;
     }
 }
@@ -719,4 +715,4 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
     True
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

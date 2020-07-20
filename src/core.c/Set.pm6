@@ -6,24 +6,24 @@ my class Set does Setty {
     }
 
     multi method WHICH (Set:D: --> ValueObjAt:D) {
-        nqp::if(
-          nqp::attrinited(self,Set,'$!WHICH'),
-          $!WHICH,
-          $!WHICH := nqp::box_s(
-            nqp::concat(
-              nqp::if(
-                nqp::eqaddr(self.WHAT,Set),
-                'Set|',
-                nqp::concat(nqp::unbox_s(self.^name), '|')
-              ),
-              nqp::sha1(
-                nqp::join("\0",Rakudo::Sorting.MERGESORT-str(
-                  Rakudo::QuantHash.RAW-KEYS(self)
-                ))
-              )
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+    
+    method !WHICH() {
+        $!WHICH := nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Set),
+              'Set|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ValueObjAt
-          )
+            nqp::sha1(
+              nqp::join("\0",Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.RAW-KEYS(self)
+              ))
+            )
+          ),
+          ValueObjAt
         )
     }
 
@@ -96,7 +96,7 @@ my class Set does Setty {
     multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
-    multi method STORE(Set:D: *@pairs, :$INITIALIZE! --> Set:D) {
+    multi method STORE(Set:D: *@pairs, :INITIALIZE($)! --> Set:D) {
         (my \iterator := @pairs.iterator).is-lazy
           ?? Failure.new(
                X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
@@ -106,7 +106,7 @@ my class Set does Setty {
                self.keyof
              ))
     }
-    multi method STORE(Set:D: \objects, \bools, :$INITIALIZE! --> Set:D) {
+    multi method STORE(Set:D: \objects, \bools, :INITIALIZE($)! --> Set:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-SET(
             nqp::create(Rakudo::Internals::IterationSet),
@@ -127,4 +127,4 @@ my class Set does Setty {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

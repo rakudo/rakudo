@@ -9,7 +9,7 @@ my role Dateish {
         IO::Path.new(~self)
     }
 
-    method CALL-ME(Dateish:U: Str:D $dateish) { self.new($dateish) }
+    method CALL-ME(Dateish:U: \dateish) { self.new(dateish) }
 
     # this sub is also used by DAYS-IN-MONTH, which is used by other types
     sub IS-LEAP-YEAR(int $y --> Bool:D) {
@@ -132,8 +132,49 @@ my role Dateish {
           + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 
-    method yyyy-mm-dd(--> Str:D) {
-        sprintf '%04d-%02d-%02d',$!year,$!month,$!day
+    method yyyy-mm-dd(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::join($sep,$parts)
+    }
+
+    method dd-mm-yyyy(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::join($sep,$parts)
+    }
+
+    method mm-dd-yyyy(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::join($sep,$parts)
     }
 
     method earlier(*%unit) { self.later(:earlier, |%unit) }
@@ -158,9 +199,9 @@ my role Dateish {
 # =begin pod
 #
 # =head1 SEE ALSO
-# Perl 6 spec <S32-Temporal|http://design.perl6.org/S32/Temporal.html>.
-# The Perl 5 DateTime Project home page L<http://datetime.perl.org>.
-# Perl 5 perldoc L<doc:DateTime> and L<doc:Time::Local>.
+# Raku spec <S32-Temporal|https://design.raku.org/S32/Temporal.html>.
+# The Perl DateTime Project home page L<http://datetime.perl.org>.
+# Perl perldoc L<doc:DateTime> and L<doc:Time::Local>.
 #
 # The best yet seen explanation of calendars, by Claus Tøndering
 # L<Calendar FAQ|http://www.tondering.dk/claus/calendar.html>.
@@ -175,4 +216,4 @@ my role Dateish {
 #
 # =end pod
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -6,12 +6,12 @@ Please include a way for developers to reproduce the problem. A small program
 that demonstrates a problem is best.
 
 Describe the behaviour you're observing and how it differs from expectations.
-Include the version of the compiler you're using (run `perl6 -v`) as well as
+Include the version of the compiler you're using (run `raku -v`) as well as
 the type and version of the operating system (e.g. `Windows 10`)
 
 --------------------------------
 
-# How to Contribute to Rakudo Perl 6
+# How to Contribute to Rakudo
 
 Contributions to Rakudo are very welcome.
 
@@ -29,7 +29,7 @@ This includes
 * implementation of features that are already specified
 
 If you want to implement a new language feature or built-in of your own
-design, please discuss it first in the `#perl6-dev` IRC channel on
+design, please discuss it first in the `#raku-dev` IRC channel on
 irc.freenode.org.
 
 If you get no feedback on your pull request, feel free to nudge us in the
@@ -49,8 +49,8 @@ adding/removing debug output.
 ## Test Coverage
 
 New features should be accompanied by test cases in the [roast
-repository](https://github.com/perl6/roast/). Please ask for direct push
-access in the `#perl6-dev` or `#perl6` IRC channels on freenode, or submit a
+repository](https://github.com/Raku/roast/). Please ask for direct push
+access in the `#raku-dev` or `#raku` IRC channels on freenode, or submit a
 pull request.
 
 Bug fixes should also come with test cases (if practical), though we prefer
@@ -70,7 +70,7 @@ very basic guidelines:
 * Indentation happens with four spaces
 * Use uncuddled `else`, so use a newline between a closing curly brace and
   the `else` keyword
-* Perl 5 code (part of the build system) should `use strict; use warnings;`
+* Perl code (part of the build system) should `use strict; use warnings;`
   and loosely follow [perlstyle](http://perldoc.perl.org/perlstyle.html).
 
 ## Commit messages
@@ -89,11 +89,10 @@ the subject should be easy to read at a glance what you did.
 A good commit is one where months from now you be able to read
 this commit and understand what you did and why you did it.
 
-Don't make a commit that only says `Fix RT #130979` because when the time to do
-the monthly changelog comes, someone will need to look up the ticket.
-And then usually wade through several replies on that ticket to figure out what
+Don't make a commit that only says `Fix #130979` because when the time to do
+the release changelog comes, someone will need to look up the ticket and then usually wade through several replies on that ticket to figure out what
 the problem was and at the end I'm often unsure what the ACTUAL problem was
-that got fixed in the commit, not just the RT number.
+that got fixed in the commit, not just the issue number.
 
 If somebody is trying to find a recent commit that affected, say, `infix:<xx>`,
 would they be able to find it by searching through the subject and body for
@@ -105,17 +104,17 @@ The body should tell the reader:
 * Background info
 
 Don't end commit subjects with periods for ease of viewing a commit log by
-title. If there are multiple
-sentences in the subject, you can have a period, but do not have one at the end
-of the commit. Example: `Fix foo and bar. This is good because reasons`
+title. If there are multiple sentences in the subject, you can have a period,
+but do not have one at the end of the commit. Example: `Fix foo and bar. This
+is good because reasons`
 
 This makes them look better and easier to read in shortlog/oneline form.
 
 If you fixed a ticket, or the commit relates to a specific ticket, please
-mention the ticket in the title or the body as `RT #12345`.
-
+mention the ticket in the title or the body as `#12345` so that
+GitHub will automatically link to the corresponding issue. 
 If there was an IRC conversation that can give some background or useful information,
-you can link to it by visiting [irclog.perlgeek.de](https://irclog.perlgeek.de/perl6/) and
+you can link to it by visiting [the IRC logs](https://colabti.org/irclogger/irclogger_log/raku-dev) and
 linking the link provided by the timestamps on the left side of the page.
 
 Put links on their own line if they are going to go over the 76 character maximum
@@ -126,7 +125,7 @@ for the body text.
 Capitalized, short (50 chars or less) summary
 
 More detailed explanatory text.  The commit relates to a ticket,
-please write it as RT #12345. Wrap at about 72 characters, but never above
+please write it as #12345. Wrap at about 72 characters, but never above
 76, unless it is a URL or code that cannot be separated.
 
 The blank line separating the summary from the body is critical;

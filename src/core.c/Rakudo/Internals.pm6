@@ -20,6 +20,24 @@ my class Rakudo::Internals::RegexBoolification6cMarker { }
 
 my class Rakudo::Internals {
 
+    method SLICE_HUH(\object, @nogo, %d, %adv) {
+        @nogo.unshift('delete')  # recover any :delete if necessary
+          if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
+        for <delete exists kv p k v> -> $valid { # check all valid params
+            if nqp::existskey(%d,nqp::unbox_s($valid)) {
+                nqp::deletekey(%d,nqp::unbox_s($valid));
+                @nogo.push($valid);
+            }
+        }
+
+        Failure.new(X::Adverb.new(
+          :what<slice>,
+          :source(try { object.VAR.name } // object.^name),
+          :unexpected(%d.keys),
+          :nogo(@nogo),
+        ))
+    }
+
     # for use in nqp::splice
     my $empty := nqp::list;
 
@@ -40,30 +58,6 @@ my class Rakudo::Internals {
     # Marker symbol for lexicals that we have lowered away.
     class LoweredAwayLexical {
         method dynamic() { False }
-    }
-
-    # rotate nqp list to another given list without using push/pop
-    method RotateListToList(\from,\n,\to) {
-        nqp::stmts(
-          (my $from := nqp::getattr(from,List,'$!reified')),
-          nqp::if((my int $elems = nqp::elems($from)),
-            nqp::stmts(
-              (my $to := nqp::getattr(to,List,'$!reified')),
-              (my int $i = -1),
-              (my int $j = nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),n),$elems)),
-              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos(
-                  $to,
-                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
-                  nqp::atpos($from,$i)
-                ),
-              ),
-            ),
-          ),
-          to
-        )
     }
 
     method RANGE-AS-ints ($range, $exception) {
@@ -89,6 +83,26 @@ my class Rakudo::Internals {
         nqp::if( nqp::isgt_I(nqp::decont($max),  2**63-1),
                                          $max =  2**63-1);
         ($min, $max);
+    }
+
+    method GistList2list_s(List:D \list) {
+        my \values := nqp::getattr(list,List,'$!reified');
+        my \parts  := nqp::list_s;
+        nqp::while(
+          nqp::elems(values),
+          nqp::push_s(parts,nqp::shift(values).gist)
+        );
+        parts
+    }
+
+    method StrList2list_s(List:D \list) {
+        my \values := nqp::getattr(list,List,'$!reified');
+        my \parts  := nqp::list_s;
+        nqp::while(
+          nqp::elems(values),
+          nqp::push_s(parts,nqp::shift(values).Str)
+        );
+        parts
     }
 
     method SET_LEADING_DOCS($obj, $docs) {
@@ -322,13 +336,17 @@ my class Rakudo::Internals {
       # GB18030
       'gb18030',         'gb18030',
     );
-    method NORMALIZE_ENCODING(Str:D \encoding) {
-        nqp::ifnull(
-          nqp::atkey($encodings,encoding),
+    method NORMALIZE_ENCODING(\encoding) {
+        nqp::if(
+          nqp::isconcrete(encoding),
           nqp::ifnull(
-            nqp::atkey($encodings,nqp::lc(encoding)),
-            nqp::lc(encoding)
-          )
+            nqp::atkey($encodings,encoding),
+            nqp::ifnull(
+              nqp::atkey($encodings,nqp::lc(encoding)),
+              nqp::lc(encoding)
+            )
+          ),
+          'utf8'
         )
     }
 
@@ -521,12 +539,27 @@ implementation detail and has no serviceable parts inside"
             self.gistseen('Array', { self!gist(nqp::create(Array),self.shape) })
         }
         method !gist(@path, @dims) {
-            if @dims.elems == 1 {
-                 '[' ~ (^@dims[0]).map({ self.AT-POS(|@path, $_).gist }).join(' ') ~ ']';
-            }
-            else {
+            if @dims.elems == 1  {
+                '[' ~ (^@dims[0]).map(
+                    -> $elem {
+                        given ++$ {
+                            when 11 { '...' }
+                            when 12 { last }
+                            default { self.AT-POS(|@path, $elem).gist }
+                        }
+                    }
+                ).join(' ') ~ ']';
+            } else {
                 my @nextdims = @dims[1..^@dims.elems];
-                '[' ~ (^@dims[0]).map({ self!gist((flat @path, $_), @nextdims) }).join(' ') ~ ']';
+                '[' ~ (^@dims[0]).map(
+                    -> $elem {
+                        given ++$ {
+                            when 11 { '...' }
+                            when 12 { last }
+                            default { self!gist((flat @path, $elem), @nextdims) }
+                        }
+                    }
+                ).join("\n" ~ (' ' x @path.elems + 1)) ~ ']';
             }
         }
 
@@ -1260,87 +1293,60 @@ implementation detail and has no serviceable parts inside"
         Seq.new(DirRecurse.new(abspath,$dir,$file))
     }
 
-    method FILETEST-E(Str:D \abspath) {
-        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+    method FILETEST-E(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_EXISTS)
     }
-    method FILETEST-LE(Str:D \abspath) {
-        nqp::lstat(nqp::unbox_s(abspath),nqp::const::STAT_EXISTS)
+    method FILETEST-LE(str \abspath) is raw {
+        nqp::lstat(abspath,nqp::const::STAT_EXISTS)
     }
-    method FILETEST-D(Str:D \abspath) {
-        my int $d = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISDIR);
-        nqp::isge_i($d,0)
-          ?? $d
-          !! Failure.new(X::IO::Unknown.new(:trying<d>))
+    method FILETEST-D(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_ISDIR);
     }
-    method FILETEST-F(Str:D \abspath) {
-        my int $f = nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_ISREG);
-        nqp::isge_i($f,0)
-          ?? $f
-          !! Failure.new(X::IO::Unknown.new(:trying<f>))
+    method FILETEST-F(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_ISREG);
     }
-    method FILETEST-S(Str:D \abspath) {
-        nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE)
+    method FILETEST-S(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_FILESIZE)
     }
-    method FILETEST-L(Str:D \abspath) {
-        my int $l = nqp::fileislink(nqp::unbox_s(abspath));
-        nqp::isge_i($l,0)
-          ?? $l
-          !! Failure.new(X::IO::Unknown.new(:trying<l>))
+    method FILETEST-ES(str \abspath) is raw {
+        nqp::stat(abspath,nqp::const::STAT_EXISTS)
+          && nqp::stat(abspath,nqp::const::STAT_FILESIZE)
     }
-    method FILETEST-R(Str:D \abspath) {
-        my int $r = nqp::filereadable(nqp::unbox_s(abspath));
-        nqp::isge_i($r,0)
-          ?? $r
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+    method FILETEST-L(str \abspath) is raw {
+        nqp::fileislink(abspath)
     }
-    method FILETEST-W(Str:D \abspath) {
-        my int $w = nqp::filewritable(nqp::unbox_s(abspath));
-        nqp::isge_i($w,0)
-          ?? $w
-          !! Failure.new(X::IO::Unknown.new(:trying<w>))
+    method FILETEST-R(str \abspath) is raw {
+        nqp::filereadable(abspath)
     }
-    method FILETEST-RW(Str:D \abspath) {
-        my str $abspath = nqp::unbox_s(abspath);
-        my int $r = nqp::filereadable($abspath);
-        my int $w = nqp::filewritable($abspath);
-        nqp::isge_i($r,0)
-          ?? nqp::isge_i($w,0)
-            ?? nqp::bitand_i($r,$w)
-            !! Failure.new(X::IO::Unknown.new(:trying<w>))
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+    method FILETEST-W(str \abspath) is raw {
+        nqp::filewritable(abspath)
     }
-    method FILETEST-X(Str:D \abspath) {
-        my int $x = nqp::fileexecutable(nqp::unbox_s(abspath));
-        nqp::isge_i($x,0)
-          ?? $x
-          !! Failure.new(X::IO::Unknown.new(:trying<x>))
+    method FILETEST-RW(str \abspath) is raw {
+        nqp::filereadable(abspath) && nqp::filewritable(abspath)
     }
-    method FILETEST-RWX(Str:D \abspath) {
-        my str $abspath = nqp::unbox_s(abspath);
-        my int $r = nqp::filereadable($abspath);
-        my int $w = nqp::filewritable($abspath);
-        my int $x = nqp::fileexecutable($abspath);
-        nqp::isge_i($r,0)
-          ?? nqp::isge_i($w,0)
-            ?? nqp::isge_i($x,0)
-              ?? nqp::bitand_i(nqp::bitand_i($r,$w),$x)
-              !! Failure.new(X::IO::Unknown.new(:trying<x>))
-            !! Failure.new(X::IO::Unknown.new(:trying<w>))
-          !! Failure.new(X::IO::Unknown.new(:trying<r>))
+    method FILETEST-X(str \abspath) is raw {
+        nqp::fileexecutable(abspath)
     }
-    method FILETEST-Z(Str:D \abspath) {
-        nqp::iseq_i(
-          nqp::stat(nqp::unbox_s(abspath),nqp::const::STAT_FILESIZE),0)
+    method FILETEST-RWX(str \abspath) is raw {
+        nqp::filereadable(abspath)
+          && nqp::filewritable(abspath)
+          && nqp::fileexecutable(abspath)
+    }
+    method FILETEST-Z(str \abspath) is raw {
+        nqp::iseq_i(nqp::stat(abspath,nqp::const::STAT_FILESIZE),0)
     }
 
-    method FILETEST-MODIFIED(Str:D \abspath) {
-        nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_MODIFYTIME)
+    method FILETEST-MODIFIED(str \abspath) is raw {
+        nqp::stat_time(abspath,nqp::const::STAT_MODIFYTIME)
     }
-    method FILETEST-ACCESSED(Str:D \abspath) {
-        nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_ACCESSTIME)
+    method FILETEST-ACCESSED(str \abspath) is raw {
+        nqp::stat_time(abspath,nqp::const::STAT_ACCESSTIME)
     }
-    method FILETEST-CHANGED(Str:D \abspath) {
-        nqp::stat_time(nqp::unbox_s(abspath), nqp::const::STAT_CHANGETIME)
+    method FILETEST-CHANGED(str \abspath) is raw {
+        nqp::stat_time(abspath,nqp::const::STAT_CHANGETIME)
+    }
+    method FILETEST-MODE(str \abspath) is raw {
+        nqp::bitand_i(nqp::stat(abspath,nqp::const::STAT_PLATFORM_MODE),0o7777)
     }
 
     method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {
@@ -1526,7 +1532,7 @@ implementation detail and has no serviceable parts inside"
         hash @keys Z self.coremap(op, h{@keys}, :$deep)
     }
 
-    my class CoreMap does SlippyIterator {
+    my class CoreMap does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!deep;
@@ -1756,4 +1762,4 @@ proto sub exit($?, *%) {*}
 multi sub exit() { &*EXIT(0) }
 multi sub exit(Int(Any) $status) { &*EXIT($status) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

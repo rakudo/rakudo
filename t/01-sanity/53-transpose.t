@@ -41,3 +41,5 @@ test "oooo","o","xx", "xxxxxxxx";
 test "oooo","x","",       "oooo";
 test "oooo","x","y",      "oooo";
 test "oooo","x","yy",     "oooo";
+
+# vim: expandtab shiftwidth=4

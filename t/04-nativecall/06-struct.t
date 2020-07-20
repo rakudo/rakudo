@@ -205,4 +205,4 @@ is $iais2.b[1], 333, 'Can inline fixed sizes array (4)';
 is $iais2.b[2], 444, 'Can inline fixed sizes array (5)';
 is $iais2.c,    555, 'Can inline fixed sizes array (6)';
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

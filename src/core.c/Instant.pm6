@@ -34,7 +34,8 @@ my class Instant is Cool does Real {
         'Instant:' ~ $!tai
     }
     multi method raku(Instant:D: --> Str:D) {
-        "Instant.from-posix{self.to-posix.raku}";
+        my ($posix,$flag) = self.to-posix;
+        'Instant.from-posix(' ~ $posix.raku ~ ($flag ?? ',True)' !! ')')
     }
     method Bridge(Instant:D:          ) { $!tai.Bridge }
     method Num   (Instant:D: --> Num:D) { $!tai.Num    }
@@ -44,7 +45,7 @@ my class Instant is Cool does Real {
 
     method Date(Instant:D:     --> Date:D)     { Date.new(self)     }
     method DateTime(Instant:D: --> DateTime:D) { DateTime.new(self) }
-    method Instant(--> Instant) { self }
+    method Instant() { self }
 
 #    TODO: should be the new .gist, probably
 #    method Str() {
@@ -127,4 +128,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {
           Rakudo::Internals.tai-from-posix(Rakudo::Internals.INITTIME,0).Rat)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

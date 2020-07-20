@@ -35,7 +35,7 @@ for 1, 0 -> $array {  # 1 = [], 0 = {}
 
     say Q:a:to/SOURCE/;
 # internal 1 element @TYPE[].chop.lc() access with adverbs
-sub SLICE_ONE_@TYPE[]\SELF,$one,$key,$value,%adv) {
+sub SLICE_ONE_@TYPE[]\SELF,$one,$key,$value,%adv) { # is implementation-detail
     my Mu $d := nqp::clone(nqp::getattr(%adv,Map,'$!storage'));
     nqp::bindkey($d,nqp::unbox_s($key),nqp::decont($value));
 
@@ -221,12 +221,12 @@ sub SLICE_ONE_@TYPE[]\SELF,$one,$key,$value,%adv) {
     }
 
     @nogo || nqp::elems($d)
-      ?? SLICE_HUH( SELF, @nogo, $d, %adv )
+      ?? Rakudo::Internals.SLICE_HUH( SELF, @nogo, $d, %adv )
       !! result;
 } #SLICE_ONE_@TYPE[].chop()
 
 # internal >1 element @TYPE[].chop.lc() access with adverbs
-sub SLICE_MORE_@TYPE[]\SELF,$more,$key,$value,%adv) {
+sub SLICE_MORE_@TYPE[]\SELF,$more,$key,$value,%adv) { # is implementation-detail
     my Mu $d := nqp::clone(nqp::getattr(%adv,Map,'$!storage'));
     nqp::bindkey($d,nqp::unbox_s($key),nqp::decont($value));
 
@@ -471,11 +471,13 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,$key,$value,%adv) {
     }
 
     @nogo || nqp::elems($d)
-      ?? SLICE_HUH( SELF, @nogo, $d, %adv )
+      ?? Rakudo::Internals.SLICE_HUH( SELF, @nogo, $d, %adv )
       !! result;
 } #SLICE_MORE_@TYPE[].chop()
 
 SOURCE
 }
 
-say "# vim: set ft=perl6 nomodifiable :";
+say "# vim: expandtab sw=4";
+
+# vim: expandtab sw=4

@@ -32,25 +32,25 @@ my class Mix does Mixy {
     }
 
 #--- introspection methods
-    multi method WHICH(Mix:D: --> ValueObjAt:D)    {
-        nqp::if(
-          nqp::attrinited(self,Mix,'$!WHICH'),
-          $!WHICH,
-          $!WHICH := nqp::box_s(
-            nqp::concat(
-              nqp::if(
-                nqp::eqaddr(self.WHAT,Mix),
-                'Mix|',
-                nqp::concat(nqp::unbox_s(self.^name), '|')
-              ),
-              nqp::sha1(
-                nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
-                  Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
-                ))
-              )
+    multi method WHICH(Mix:D: --> ValueObjAt:D) {
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+
+    method !WHICH() {
+        $!WHICH := nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Mix),
+              'Mix|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ValueObjAt
-          )
+            nqp::sha1(
+              nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+              ))
+            )
+          ),
+          ValueObjAt
         )
     }
     method total(Mix:D: --> Real:D) {
@@ -102,4 +102,4 @@ my class Mix does Mixy {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

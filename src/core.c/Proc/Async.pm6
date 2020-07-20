@@ -101,6 +101,7 @@ my class Proc::Async {
     has $.w;
     has $.enc = 'utf8';
     has $.translate-nl = True;
+    has $.win-verbatim-args = False;
     has Bool $.started = False;
     has $!stdout_supply;
     has CharsOrBytes $!stdout_type;
@@ -285,6 +286,22 @@ my class Proc::Async {
         $promise
     }
 
+    method !win-quote-CommandLineToArgvW(*@args) {
+        my @quoted_args;
+        for @args -> $arg {
+            if !$arg.contains(' ') && !$arg.contains('"') && !$arg.contains('\t') && !$arg.contains('\n') && !$arg.contains('\v') {
+                @quoted_args.push: $arg;
+            }
+            else {
+                my $quoted_arg = $arg;
+                $quoted_arg ~~ s:g/ ( \\* ) \" /$0$0\\\"/;
+                $quoted_arg ~~ s/ ( \\+ ) $ /$0$0/;
+                @quoted_args.push: '"' ~ $quoted_arg ~ '"';
+            }
+        }
+        @quoted_args.join: ' '
+    }
+
     method start(Proc::Async:D:
       :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD
     --> Promise) {
@@ -302,6 +319,27 @@ my class Proc::Async {
 
     method !start-internal($scheduler, $ENV, $cwd --> Promise) {
         my %ENV := $ENV ?? $ENV.hash !! %*ENV;
+
+#?if jvm
+        # The Java process API does not allow disabling Javas
+        # sophisticated heuristics of command mangling.
+        # So it's not easily possible to do the quoting ourselves.
+        # So the $!win-quote-args argument is ignored on JVM and we
+        # just let Java do its magic.
+        my @quoted-args := @!args;
+#?endif
+#?if !jvm
+        my @quoted-args;
+        if Rakudo::Internals.IS-WIN {
+            @quoted-args.append($!win-verbatim-args
+                ?? @!args.join(' ')
+                !! self!win-quote-CommandLineToArgvW(@!args));
+        }
+        else {
+            @quoted-args := @!args;
+        }
+#?endif
+
         $!exit_promise := Promise.new;
 
         my Mu $callbacks := nqp::hash();
@@ -347,7 +385,7 @@ my class Proc::Async {
           self!capture($callbacks,'merge',$!merge_supply)
         ) if $!merge_supply;
 
-        nqp::bindkey($callbacks, 'buf_type', buf8.new);
+        nqp::bindkey($callbacks, 'buf_type', nqp::create(buf8.^pun));
         nqp::bindkey($callbacks, 'write', True) if $.w;
         nqp::bindkey($callbacks, 'stdin_fd', $!stdin-fd) if $!stdin-fd.DEFINITE;
         nqp::bindkey($callbacks, 'stdin_fd_close', True) if $!stdin-fd-close;
@@ -355,7 +393,7 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'stderr_fd', $!stderr-fd) if $!stderr-fd.DEFINITE;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue(:hint-affinity),
-            CLONE-LIST-DECONTAINERIZED($!path,@!args),
+            CLONE-LIST-DECONTAINERIZED($!path,@quoted-args),
             $cwd.Str,
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,
@@ -447,4 +485,4 @@ my class Proc::Async {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

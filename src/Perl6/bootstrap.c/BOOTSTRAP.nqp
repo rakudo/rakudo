@@ -1646,7 +1646,10 @@ BEGIN {
 
     # Scalar needs to be registered as a container type. Also provide the
     # slow-path implementation of various container operations.
-    nqp::setcontspec(Scalar, 'rakudo_scalar', nqp::hash(
+    nqp::setcontspec(Scalar, 'value_desc_cont', nqp::hash(
+        'attrs_class', Scalar,
+        'descriptor_attr', '$!descriptor',
+        'value_attr', '$!value',
         'store', nqp::getstaticcode(sub ($cont, $val) {
             my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
             if nqp::isconcrete($desc) {
@@ -2250,18 +2253,11 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!wrappers>, :type(Mu), :package(Routine)));
 
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
             my $disp_list := nqp::getattr($dc_self, Routine, '@!dispatchees');
             nqp::hllboolfor(nqp::defined($disp_list), "Raku");
-        }));
-    Routine.HOW.add_method(Routine, 'is_wrapped', nqp::getstaticcode(sub ($self) {
-            nqp::hllboolfor(
-                nqp::defined(
-                    nqp::getattr(nqp::decont($self), Routine, '$!wrappers')),
-                "Raku");
         }));
     Routine.HOW.add_method(Routine, 'add_dispatchee', nqp::getstaticcode(sub ($self, $dispatchee) {
             my $dc_self   := nqp::decont($self);
@@ -2295,10 +2291,6 @@ BEGIN {
     Routine.HOW.add_method(Routine, 'dispatchees', nqp::getstaticcode(sub ($self) {
             nqp::getattr(nqp::decont($self),
                 Routine, '@!dispatchees')
-        }));
-    Routine.HOW.add_method(Routine, 'wrappers', nqp::getstaticcode(sub ($self) {
-            nqp::hllize(nqp::getattr(nqp::decont($self),
-                Routine, '$!wrappers'))
         }));
     Routine.HOW.add_method(Routine, '!configure_positional_bind_failover',
         nqp::getstaticcode(sub ($self, $Positional, $PositionalBindFailover) {
@@ -3253,11 +3245,6 @@ BEGIN {
             nqp::bindattr_i($dcself, Routine, '$!onlystar', 1);
             $dcself
         }));
-    Routine.HOW.add_method(Routine, '!set_package', nqp::getstaticcode(sub ($self, $package) {
-            my $dcself := nqp::decont($self);
-            nqp::bindattr($dcself, Routine, '$!package', $package);
-            $dcself
-        }));
     Routine.HOW.compose_repr(Routine);
     Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
     Routine.HOW.compose_invocation(Routine);
@@ -3332,11 +3319,10 @@ BEGIN {
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
                 my $result := nqp::list();
-                my int $i := 0;
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
                     nqp::bindpos($result, $i, nqp::create(Array))
                         if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
-                    $i++;
                 }
                 $result
             }
@@ -3357,14 +3343,13 @@ BEGIN {
             my int $n := nqp::elems(@!named-capture-counts);
             if $n > 0 {
                 my $result := nqp::hash();
-                my int $i := 0;
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
                     if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
                         nqp::bindkey($result,
                             nqp::atpos_s(@!named-capture-names, $i),
                             nqp::create(Array));
                     }
-                    $i++;
                 }
                 $result
             }
@@ -4084,4 +4069,4 @@ nqp::gethllsym('Raku', 'JavaModuleLoader').set_interop_loader(-> {
 Perl6::Metamodel::JavaHOW.pretend_to_be([Any, Mu]);
 #?endif
 
-# vim: expandtab shiftwidth=4
+# vim: expandtab sw=4

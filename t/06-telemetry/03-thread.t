@@ -89,4 +89,4 @@ for @columns {
     is $P1{$_}, $P1."$_"(), "did AT-KEY/method on T:P give same value for $_";
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

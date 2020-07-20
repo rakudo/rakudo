@@ -19,7 +19,6 @@ my @allowed =
       Q{$_},
       Q{&CLONE-HASH-DECONTAINERIZED},
       Q{&CLONE-LIST-DECONTAINERIZED},
-      Q{&CMP-SLOW},
       Q{&COMP_EXCEPTION},
       Q{CORE-SETTING-REV},
       Q{&CREATE_RATIONAL_FROM_INTS},
@@ -37,10 +36,8 @@ my @allowed =
       Q{&HYPER},
       Q{&HYPERWHATEVER},
       Q{&INDIRECT_NAME_LOOKUP},
-      Q{&INITIALIZE-A-DISTRO-NOW},
       Q{&MD-ARRAY-SLICE},
       Q{&MD-ARRAY-SLICE-ONE-POSITION},
-      Q{&MD-HASH-SLICE-ONE-POSITION},
       Q{&METAOP_ASSIGN},
       Q{&METAOP_CROSS},
       Q{&METAOP_HYPER},
@@ -74,7 +71,6 @@ my @allowed =
       Q{&RETURN-LIST},
       Q{&RUN-MAIN},
       Q{&SEQUENCE},
-      Q{&SLICE_HUH},
       Q{&SLICE_MORE_HASH},
       Q{&SLICE_MORE_LIST},
       Q{&SLICE_ONE_HASH},
@@ -203,6 +199,8 @@ my @allowed =
       Q{&infix:<->},
       Q{&infix:<...>},
       Q{&infix:<...^>},
+      Q{&infix:<^...>},
+      Q{&infix:<^...^>},
       Q{&infix:<..>},
       Q{&infix:<..^>},
       Q{&infix:<//>},
@@ -264,6 +262,8 @@ my @allowed =
       Q{&infix:<÷>},
       Q{&infix:<…>},
       Q{&infix:<…^>},
+      Q{&infix:<^…>},
+      Q{&infix:<^…^>},
       Q{&infix:<∈>},
       Q{&infix:<∉>},
       Q{&infix:<∋>},
@@ -294,6 +294,9 @@ my @allowed =
       Q{&infix:<⚛-=>},
       Q{&infix:<⚛=>},
       Q{&infix:<⚛−=>},
+      Q{&infix:<(==)>},
+      Q{&infix:<≡>},
+      Q{&infix:<≢>},
       Q{&infix:«(<)»},
       Q{&infix:«(<+)»},
       Q{&infix:«(<=)»},
@@ -694,7 +697,6 @@ my @allowed =
       Q{Signature},
       Q{Slang},
       Q{Slip},
-      Q{SlippyIterator},
       Q{SocketType},
       Q{SoftRoutine},
       Q{Stash},
@@ -793,3 +795,5 @@ my @allowed =
 for @allowed -> (:key($rev), :value(@syms)) {
     has-symbols(CORE::{"v6$rev"}.WHO, @syms, "Symbols in CORE::v6{$rev}");
 }
+
+# vim: expandtab shiftwidth=4

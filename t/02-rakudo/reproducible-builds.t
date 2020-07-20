@@ -1,6 +1,6 @@
 use lib 'lib';
 BEGIN my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
-BEGIN my $id = CompUnit::PrecompilationId.new('000');
+BEGIN my $id = CompUnit::PrecompilationId.new('1F3B9959EF798485A266FE735E772328311AD787');
 BEGIN my $dest = $*REPO.precomp-store.destination($compiler-id, $id); # not really used
 END { $*REPO.precomp-store.unlock }
 use Test;
@@ -26,6 +26,7 @@ for ^2 -> $run {
     $store.delete-by-compiler($compiler-id);
 }
 $store.prefix.child('.lock').unlink;
+$store.prefix.child('CACHEDIR.TAG').unlink;
 $store.prefix.rmdir;
 
 is @checksums[1], @checksums[0], 'Both precompilation runs resulted in the same checksum'
@@ -43,4 +44,4 @@ is @checksums[1], @checksums[0], 'Both precompilation runs resulted in the same 
 
 done-testing;
 
-# vim: ft=perl6
+# vim: expandtab shiftwidth=4

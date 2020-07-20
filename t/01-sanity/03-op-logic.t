@@ -25,3 +25,5 @@ say '1..16';
 ## more interesting
 (5 and 0 xor 0 || 3) == 3 and say 'ok 15';
 (0 xor 0 ^^ 42 or 1) == 1 or say 'ok 16';
+
+# vim: expandtab shiftwidth=4

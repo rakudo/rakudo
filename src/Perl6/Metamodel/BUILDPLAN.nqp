@@ -112,7 +112,10 @@ role Perl6::Metamodel::BUILDPLAN {
                     # binding may need type info for runtime checks
                     if $action == 13 {
                         my $type := $_.type;
-                        unless $type =:= $*W.find_symbol(["Mu"]) {
+                        # since we may wind up here at runtime, get Mu by
+                        # HLLizing a VMNull instead of looking it up through
+                        # $*W
+                        unless $type =:= nqp::hllizefor(nqp::null(), 'Raku') {
                             nqp::push($info,$type);
                         }
                     }
@@ -153,19 +156,19 @@ role Perl6::Metamodel::BUILDPLAN {
 
                 # currently compiling, so we can do typechecking now.
                 if !nqp::isnull(nqp::getlexdyn('$*W')) && $*W.in_unit_parse {
-                    if nqp::istype(nqp::decont($default), $*W.find_symbol(["Code"])) {
+                    if nqp::istype(nqp::decont($default), $*W.find_single_symbol('Code')) {
                         # cannot typecheck code to be run later
                     }
 
                     # check native attribute
                     elsif $primspec {
-                        my $destination := $*W.find_symbol([
+                        my $destination := $*W.find_single_symbol(
                           $primspec == 2
                             ?? "Num"
                             !! $primspec == 3
                               ?? "Str"
                               !! "Int"  # 1,4,5
-                        ]);
+                        );
                         nqp::istype($default,$destination)
                           ?? ($check-at-runtime := 0)
                           !! self.throw_typecheck($_, $default, $destination)
@@ -177,14 +180,14 @@ role Perl6::Metamodel::BUILDPLAN {
                     }
 
                     # associatives need to be checked at runtime
-                    elsif nqp::istype($type,$*W.find_symbol(["Associative"])) {
+                    elsif nqp::istype($type,$*W.find_single_symbol('Associative')) {
                         # cannot do type checks on associatives
                     }
 
                     # positionals could be checked now
                     elsif nqp::istype(
                       $type,
-                      my $Positional := $*W.find_symbol(["Positional"])
+                      my $Positional := $*W.find_single_symbol('Positional')
                     ) && nqp::istype($default,$Positional.of) {
                         $check-at-runtime := 0;
                     }
@@ -196,9 +199,11 @@ role Perl6::Metamodel::BUILDPLAN {
                 }
 
                 # add type if we need to check at runtime
+                # since we may wind up here at runtime, get Mu by HLLizing
+                # a VMNull instead of looking it up through $*W
                 nqp::push(@action,$type)
                   if $check-at-runtime
-                  && !nqp::eqaddr($type,$*W.find_symbol(["Mu"]));
+                  && !nqp::eqaddr($type,nqp::hllizefor(nqp::null(), 'Raku'));
 
                 # store the action, mark as seen
                 nqp::push(@plan,@action);
@@ -303,3 +308,5 @@ role Perl6::Metamodel::BUILDPLAN {
         @!BUILDALLPLAN
     }
 }
+
+# vim: expandtab sw=4

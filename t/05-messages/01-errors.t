@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 48;
+plan 50;
 
 # https://github.com/Raku/old-issue-tracker/issues/5707
 throws-like '1++', X::Multi::NoMatch,
@@ -103,11 +103,11 @@ throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
 {
     throws-like { sub f(Mu:D $a) {}; f(Int) },
         Exception,
-        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<'must be an object instance'>>/, /<<'not a type object'>>/, /<<'Mu'>>/,  /<<'Int'>>/, /\W '.new'>>/),
+        message => all(/Parameter/, /\W '$a'>>/, /<<'f'>>/, /<<must \s+ be \s+ an \s+ object \s+ instance>>/, /<<not \s+ a \s+ type \s+ object>>/, /<<'Mu'>>/,  /<<'Int'>>/, /\W '.new'>>/),
         'types and names shown in the exception message are correct';
     throws-like { sub f(Mu:U $a) {}; f(123) },
         Exception,
-        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<'not an object instance'>>/, /<<'must be a type object'>>/, /<<'Mu'>>/,  /<<'Int'>>/, /<<'multi'>>/),
+        message => all(/'Parameter'/, /\W '$a'>>/, /<<'f'>>/, /<<not \s+ an \s+ object \s+ instance>>/, /<<must \s+ be \s+ a \s+ type \s+ object>>/, /<<'Mu'>>/,  /<<'Int'>>/, /<<'multi'>>/),
         'types shown in the exception message are correct';
 }
 
@@ -230,6 +230,19 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         'longer method names are suggested also';
 }
 
+# https://github.com/rakudo/rakudo/issues/1758
+{
+    throws-like q| class GH1758_1 { submethod x { }; }; class B is GH1758_1 {}; B.new._ |,
+        X::Method::NotFound,
+        :message{ !.contains: "Did you mean 'x'" },
+        'Ancestor submethods should not be typo-suggested';
+
+    throws-like q| class GH1758_2 { submethod x { };}; GH1758_2.new._ |,
+        X::Method::NotFound,
+        message => /"Did you mean 'x'"/,
+        'Submethods at the same inheritance level should be typo-suggested';
+}
+
 subtest '`IO::Socket::INET.new: :listen` fails with useful error' => {
     plan 3;
     my $res = IO::Socket::INET.new: :listen;
@@ -277,4 +290,4 @@ subtest '.new on native types works (deprecated; will die)' => {
 
 #### THIS FILE ALREADY LOTS OF TESTS ADD NEW TESTS TO THE NEXT error.t FILE
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

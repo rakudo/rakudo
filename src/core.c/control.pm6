@@ -6,21 +6,21 @@ my class PseudoStash { ... }
 my class Label { ... }
 class CompUnit::DependencySpecification { ... }
 
-sub THROW(int $type, Mu \arg) is raw {
+sub THROW(int $type, Mu \arg) is raw {  # is implementation-detail
     my Mu $ex := nqp::newexception();
     nqp::setpayload($ex, arg);
     nqp::setextype($ex, $type);
     nqp::throw($ex);
     arg;
 }
-sub THROW-NIL(int $type --> Nil) {
+sub THROW-NIL(int $type --> Nil) {  # is implementation-detail
     my Mu $ex := nqp::newexception();
 #    nqp::setpayload($ex, Nil);
     nqp::setextype($ex, $type);
     nqp::throw($ex);
 }
 
-sub RETURN-LIST(Mu \list) is raw {
+sub RETURN-LIST(Mu \list) is raw {  # is implementation-detail
     my \reified := nqp::getattr(list, List, '$!reified');
     nqp::isgt_i(nqp::elems(reified),1)
       ?? list
@@ -148,21 +148,8 @@ sub lastcall(--> True) {
 }
 
 sub nextcallee() {
-    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    if $dispatcher.exhausted {
-        Nil
-    }
-    else {
-        # XXX Until there is a nqp op which would repace $*NEXT-DISPATCHER, this is the only way for nextcallee to
-        # support chaining of dispatchers.
-        my @call = $dispatcher.shift_callee;
-        @call[0]
-            ?? -> |args {
-                my $*NEXT-DISPATCHER := @call[1];
-                @call[0]( |args )
-            }
-            !! Nil
-    }
+    my Mu $dispatcher := nqp::p6finddispatcher('nextcallee');
+    $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
 }
 
 sub samewith(|c) {
@@ -236,7 +223,7 @@ constant NaN = nqp::p6box_n(nqp::nan());
 
 # For some reason, we cannot move this to Rakudo::Internals as a class
 # method, because then the return value is always HLLized :-(
-sub CLONE-HASH-DECONTAINERIZED(\hash) {
+sub CLONE-HASH-DECONTAINERIZED(\hash) {  # is implementation-detail
     nqp::stmts(
       (my \clone := nqp::hash),
       (my \iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
@@ -255,10 +242,10 @@ sub CLONE-HASH-DECONTAINERIZED(\hash) {
     )
 }
 
-sub CLONE-LIST-DECONTAINERIZED(*@list) {
+sub CLONE-LIST-DECONTAINERIZED(*@list) {  # is implementation-detail
     my Mu \list-without := nqp::list();
     nqp::push(list-without, nqp::decont(~$_)) for @list.eager;
     list-without;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

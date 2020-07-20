@@ -277,7 +277,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method Capture(Blob:D:) { self.List.Capture }
 
     multi method elems(Blob:D:)   { nqp::p6box_i(nqp::elems(self)) }
-    multi method elems(Blob:U: --> 1)   { }
+
     method Numeric(Blob:D:) { nqp::p6box_i(nqp::elems(self)) }
     method Int(Blob:D:)     { nqp::p6box_i(nqp::elems(self)) }
 
@@ -324,32 +324,49 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?endif
 
-    my class BlobAsList does Rakudo::Iterator::Blobby {
-        method pull-one() is raw {
-            nqp::if(
-              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-              nqp::atpos_i($!blob,$!i),
-              IterationEnd
-            )
-        }
+    multi method list(Blob:D:) {
+        my int $elems = nqp::elems(self);
+
+        # presize memory, but keep it empty, so we can just push
+        my $buffer := nqp::setelems(
+          nqp::setelems(nqp::create(IterationBuffer),$elems),
+          0
+        );
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::push($buffer,nqp::atpos_i(self,$i))
+        );
+        $buffer.List
     }
-    multi method list(Blob:D:) { Seq.new(BlobAsList.new(self)).cache }
+
+    my $char := nqp::list_s(
+      '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
+    );
 
     multi method gist(Blob:D:) {
         my int $todo = nqp::elems(self) min 100;
-        my $bytes := nqp::list_s;
-        for ^$todo -> int $i {
+        my int $i    = -1;
+        my $bytes   := nqp::list_s;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$todo),
+          nqp::stmts(
+            (my int $byte = nqp::atpos_i(self,$i)),
             nqp::push_s(
               $bytes,
-              nqp::if(
-                nqp::isle_i((my int $byte = nqp::atpos_i(self,$i)),15),
-                nqp::concat("0",nqp::base_I(nqp::box_i($byte,Int),16)),
-                nqp::base_I(nqp::box_i($byte,Int),16)
+              nqp::concat(
+                nqp::atpos_s($char,nqp::bitshiftr_i($byte,4)),
+                nqp::atpos_s($char,nqp::bitand_i($byte,0xF)),
               )
             )
-        }
-        nqp::push_s($bytes,"...") if nqp::elems(self) > $todo;
-        self.^name ~ ':0x<' ~ nqp::join(" ",$bytes) ~ '>'
+          )
+        );
+
+        nqp::push_s($bytes,"...") if nqp::isgt_i(nqp::elems(self),$todo);
+
+        nqp::join('',nqp::list_s(self.^name,':0x<',nqp::join(" ",$bytes),'>'))
     }
     multi method raku(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';
@@ -469,7 +486,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         $reversed
     }
 
-    method COMPARE(Blob:D: Blob:D \other) {
+    method COMPARE(Blob:D: Blob:D \other) is implementation-detail {
         nqp::unless(
           nqp::cmp_i(
             (my int $elems = nqp::elems(self)),
@@ -492,7 +509,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
 
-    method SAME(Blob:D: Blob:D \other) {
+    method SAME(Blob:D: Blob:D \other) is implementation-detail {
         nqp::if(
           nqp::iseq_i(
             (my int $elems = nqp::elems(self)),
@@ -512,12 +529,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method join(Blob:D: $delim = '') {
         my int $elems = nqp::elems(self);
-        my $list     := nqp::setelems(nqp::list_s,$elems);
         my int $i     = -1;
+        my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
 
-        nqp::bindpos_s($list,$i,
-          nqp::tostr_I(nqp::p6box_i(nqp::atpos_i(self,$i))))
-          while nqp::islt_i(++$i,$elems);
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::push_s($list,nqp::atpos_i(self,$i))
+        );
 
         nqp::join($delim.Str,$list)
     }
@@ -919,15 +937,20 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
 
     multi method list(Buf:D:) {
-        Seq.new(class :: does Rakudo::Iterator::Blobby {
-            method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!blob)),
-                  nqp::atposref_i($!blob,$!i),
-                  IterationEnd
-                )
-            }
-        }.new(self)).cache
+        my int $elems = nqp::elems(self);
+
+        # presize memory, but keep it empty, so we can just push
+        my $buffer := nqp::setelems(
+          nqp::setelems(nqp::create(IterationBuffer),$elems),
+          0
+        );
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::push($buffer,nqp::atposref_i(self,$i))
+        );
+        $buffer.List
     }
 
     proto method pop(|) { * }
@@ -1158,18 +1181,23 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
     $r
 }
 
-multi sub infix:<eqv>(Blob:D \a, Blob:D \b) {
+multi sub infix:<eqv>(Blob:D \a, Blob:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
     )
 }
 
 multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
-multi sub infix:<eq> (Blob:D \a, Blob:D \b) {
-    nqp::hllbool(nqp::eqaddr(a,b) || a.SAME(b))
+multi sub infix:<eq> (Blob:D \a, Blob:D \b --> Bool:D) {
+    nqp::hllbool(
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b)) || a.SAME(b)
+    )
 }
-multi sub infix:<ne> (Blob:D \a, Blob:D \b) {
-    nqp::hllbool(nqp::not_i(nqp::eqaddr(a,b) || a.SAME(b)))
+multi sub infix:<ne> (Blob:D \a, Blob:D \b --> Bool:D) {
+    nqp::hllbool(
+      nqp::not_i(nqp::eqaddr(nqp::decont(a),nqp::decont(b)) || a.SAME(b))
+    )
 }
 multi sub infix:<lt> (Blob:D \a, Blob:D \b) {
     nqp::hllbool(nqp::iseq_i(a.COMPARE(b),-1))
@@ -1195,4 +1223,4 @@ multi sub subbuf-rw(Buf:D \b, $from, $elems) is rw {
     b.subbuf-rw($from, $elems)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

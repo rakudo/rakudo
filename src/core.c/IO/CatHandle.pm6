@@ -248,9 +248,9 @@ my class IO::CatHandle is IO::Handle {
         #       case we can read a zero-sized chunk and EOF would still be false
         nqp::unless(
           nqp::defined($!active-handle),
-          buf8.new,
+          nqp::create(buf8.^pun),
           nqp::stmts(
-            (my $ret := buf8.new),
+            (my $ret := nqp::create(buf8.^pun)),
             (my int $stop = 0),
             nqp::until(
               $stop,
@@ -284,16 +284,16 @@ my class IO::CatHandle is IO::Handle {
           '')
     }
 
-    method slurp (::?CLASS:D:) {
+    method slurp (::?CLASS:D: :$bin) {
         # we don't take a :close arg, because we close exhausted handles
         # and .slurp isn't lazy, so all handles will get exhausted
         nqp::if(
           nqp::defined($!active-handle),
           ([~] gather nqp::stmts( # the [~] takes care of both Str and Blobs
-            (take $!active-handle.slurp),
+            (take $!active-handle.slurp(:$bin, :close)),
             nqp::while(
               nqp::defined(self.next-handle),
-              take $!active-handle.slurp))),
+              take $!active-handle.slurp(:$bin, :close)))),
           Nil)
     }
     method slurp-rest (|) {
@@ -409,15 +409,12 @@ my class IO::CatHandle is IO::Handle {
     multi method flush      (|) { X::NYI.new(:feature<flush>).throw      }
     proto method out-buffer (|) {*}
     multi method out-buffer (|) { X::NYI.new(:feature<out-buffer>).throw }
-    proto method print      (|) {*}
     multi method print      (|) { X::NYI.new(:feature<print>).throw      }
     proto method printf     (|) {*}
     multi method printf     (|) { X::NYI.new(:feature<printf>).throw     }
     proto method print-nl   (|) {*}
     multi method print-nl   (|) { X::NYI.new(:feature<print-nl>).throw   }
-    proto method put        (|) {*}
     multi method put        (|) { X::NYI.new(:feature<put>).throw        }
-    proto method say        (|) {*}
     multi method say        (|) { X::NYI.new(:feature<say>).throw        }
     proto method write      (|) {*}
     multi method write      (|) { X::NYI.new(:feature<write>).throw      }
@@ -436,4 +433,4 @@ my class IO::CatHandle is IO::Handle {
     # }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

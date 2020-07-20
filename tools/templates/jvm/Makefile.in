@@ -5,14 +5,14 @@ JAR     = jar
 NQP_PREFIX  = @nqp_prefix@
 @bpv(NQP)@       = @shquot(@j_nqp@)@
 @bpv(NQP_RR)@    = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
-@bpv(RUN_RAKUDO)@ = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@rakudo.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ perl6
+@bpv(RUN_RAKUDO)@ = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@rakudo.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ perl6 --rakudo-home=@nfpq($(BASE_DIR)/gen/build_rakudo_home)@
 
 @bpv(DEBUG_RUNNER)@ = rakudo-debug-@backend_abbr@@bpm(RUNNER_SUFFIX)@
 
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
 
-RUNTIME_JAVAS = @nfp(src/vm/jvm/runtime/org/perl6/rakudo/*.java)@
+RUNTIME_JAVAS = @nfp(src/vm/jvm/runtime/org/raku/rakudo/*.java)@
 RUNTIME_JAR = rakudo-runtime.jar
 
 @bpv(BAT)@    = @runner_suffix@
@@ -45,7 +45,7 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 
 $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
 	@echo(+++ Setting up	$@)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q(@bpm(NQP_HOME)@)@ @q($(RAKUDO_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ --nqp-lib=blib @q($(NQP_JARS))@
 
 @backend_prefix@-runner-default: @backend_prefix@-all
 	@echo(+++ Setting up @uc(@backend@)@ runner)@
@@ -54,7 +54,7 @@ $(J_RUNNER):    @@script(create-jvm-runner.pl)@@
 
 @bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(RAKUDO_DEBUG)@
 	@echo(+++ Setting up	$@)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q(@bpm(NQP_HOME)@)@ @q($(RAKUDO_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ --nqp-lib=blib @q($(NQP_JARS))@
 
 eval-client.pl:
 	@echo(+++ Setting up	$@)@
@@ -84,14 +84,14 @@ sometests: @backend_prefix@-all
 
 @backend_prefix@-runner-default-install: @backend_prefix@-install
 	@echo(+++ Installing @uc(@backend@)@ launcher)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(RAKUDO_HOME))@ "" @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ "" @q($(NQP_JARS))@
 	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo$(J_BAT))@
 	$(NOECHO)$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo$(J_BAT))@
 
 @backend_prefix@-install-main:: $(RUNTIME_JAR) @@script(create-jvm-runner.pl)@@
 	$(NOECHO)$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@static_nqp_home@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(DESTDIR))@ @q($(PREFIX))@ @q(@static_nqp_home@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
 
 ##  cleaning
 @backend_prefix@-clean:

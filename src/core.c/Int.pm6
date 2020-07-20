@@ -49,7 +49,11 @@ my class Int does Real { # declared in BOOTSTRAP
 
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
 
-    method Int(--> Int) { self }
+    method Int() { self }
+
+    method sign(Int:D: --> Int:D) {
+        nqp::isgt_I(self,0) || nqp::neg_i(nqp::islt_I(self,0))
+    }
 
     multi method Str(Int:D: --> Str:D) {
         nqp::p6box_s(nqp::tostr_I(self));
@@ -83,7 +87,7 @@ my class Int does Real { # declared in BOOTSTRAP
     method chr(Int:D: --> Str:D) {
         nqp::if(
           nqp::isbig_I(self),
-            die("Error encoding UTF-8 string: could not encode codepoint %i (0x%X), codepoint out of bounds.".sprintf(self, self)),
+          die("chr codepoint %i (0x%X) is out of bounds".sprintf(self, self)),
           nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
         )
     }
@@ -155,10 +159,10 @@ my class Int does Real { # declared in BOOTSTRAP
     }
     method is-prime(--> Bool:D) { nqp::hllbool(nqp::isprime_I(self,100)) }
 
-    method floor(Int:D: --> Int:D) { self }
-    method ceiling(Int:D: --> Int:D) { self }
+    method floor(Int:D:) { self }
+    method ceiling(Int:D:) { self }
     proto method round(|) {*}
-    multi method round(Int:D: --> Int:D) { self }
+    multi method round(Int:D:) { self }
     multi method round(Int:D: Real(Cool) $scale --> Real:D) {
         (self / $scale + 1/2).floor * $scale
     }
@@ -209,7 +213,7 @@ my class Int does Real { # declared in BOOTSTRAP
               $msb)))
     }
 
-    method narrow(Int:D: --> Int:D) { self }
+    method narrow(Int:D:) { self }
 
     method Range(Int:U: --> Range:D) {
         given self {
@@ -542,4 +546,4 @@ multi sub lsb(Int:D \i --> Int:D) { i.lsb }
 proto sub msb($, *%) {*}
 multi sub msb(Int:D \i --> Int:D) { i.msb }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

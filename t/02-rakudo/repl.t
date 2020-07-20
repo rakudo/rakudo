@@ -314,3 +314,5 @@ is-run-repl 'my $fh = $*EXECUTABLE.open(:r)',
 	:out{.contains: 'IO::Handle' and not .contains('Failed to write')},
 	:err(''),
 	｢no complaints about failed writing to filehandle when opening a file｣;
+
+# vim: expandtab shiftwidth=4

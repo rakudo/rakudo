@@ -18,11 +18,17 @@ my class Mu { # declared in BOOTSTRAP
     method perlseen(Mu \SELF: |c) { SELF.rakuseen(|c) }
 
     proto method ACCEPTS(|) {*}
-    multi method ACCEPTS(Mu:U: Any \topic) {
+    multi method ACCEPTS(Mu:U: Mu \topic) {
         nqp::hllbool(nqp::istype(topic, self))
     }
-    multi method ACCEPTS(Mu:U: Mu:U \topic) {
-        nqp::hllbool(nqp::istype(topic, self))
+    # Typically, junctions shouldn't be typechecked literally. There are
+    # exceptions though, such as Junction in particular, so this probably
+    # shouldn't be handled by the compiler itself. Having a default ACCEPTS
+    # candidate to handle junctions allows them to get threaded as they should
+    # while preserving compatibility with existing code that has any ACCEPTS
+    # candidates for Mu or Junction.
+    multi method ACCEPTS(Mu:U \SELF: Junction:D \topic) is default {
+        topic.THREAD: { SELF.ACCEPTS: $_ }
     }
 
     method WHERE() {
@@ -50,14 +56,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method iterator(|) {*}
-    multi method iterator(Mu:) {
-        my $buf := nqp::create(IterationBuffer);
-        $buf.push(Mu);
-        # note: cannot use R:I.OneValue, as that doesn't (and shouldn't)
-        # take Mu for the value to produce, as Mu is used to indicate
-        # exhaustion.
-        Rakudo::Iterator.ReifiedList($buf)
-    }
+    multi method iterator(Mu:) { Rakudo::Iterator.OneValue(self) }
 
     proto method split(|) {*}
 
@@ -84,8 +83,7 @@ my class Mu { # declared in BOOTSTRAP
 
         my role Suggestion[$name] {
             method gist {
-                "No documentation available for type '$name'.
-Perhaps it can be found at https://docs.raku.org/type/$name"
+                "No documentation available for type '$name'. Perhaps it can be found at https://docs.raku.org/type/$name".naive-word-wrapper
             }
         }
 
@@ -678,10 +676,88 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
     method item(Mu \item:) is raw { item }
 
     proto method say(|) {*}
-    multi method say() { say(self) }
-    method print() { print(self) }
-    method put() { put(self) }
-    method note() { note(self) }
+    proto method put(|) {*}
+    proto method note(|) {*}
+    proto method print(|) {*}
+
+    # Handle the typical "foo.say"
+    multi method say() {
+
+        my $method := self.^find_method("print");
+        if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
+          || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*OUT
+            $_ := $*OUT;
+            .print(nqp::concat(self.gist,.nl-out))
+        }
+
+        # has its own .print, let it handle the empty case
+        else {
+            self.print(self.nl-out)
+        }
+    }
+
+    # Fallback for classes that act as $*OUT / $*ERR, but which do not have
+    # a .say method themselves.
+    multi method say(\x) {
+        self.print: nqp::concat(x.gist,self.nl-out)
+    }
+    multi method say(|) {
+        my \args := nqp::p6argvmarray;
+        nqp::shift(args);  # lose self
+        my $parts := Rakudo::Internals.GistList2list_s(args);
+        nqp::push_s($parts,self.nl-out);
+        self.print: nqp::join("",$parts)
+    }
+
+    # Handle the typical "foo.put"
+    multi method put() {
+
+        my $method := self.^find_method("print");
+        if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
+          || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*OUT
+            $_ := $*OUT;
+            .print(nqp::concat(self.Str,.nl-out))
+        }
+
+        # has its own .print, let it handle the empty case
+        else {
+            self.print(self.nl-out)
+        }
+    }
+
+    # Fallback for classes that act as $*OUT / $*ERR, but which do not have
+    # a .put method themselves.
+    multi method put(\x) {
+        self.print: nqp::concat(x.Str,self.nl-out)
+    }
+    multi method put(|) {
+        my \args := nqp::p6argvmarray;
+        nqp::shift(args);  # lose self
+        my $parts := Rakudo::Internals.StrList2list_s(args);
+        nqp::push_s($parts,self.nl-out);
+        self.print: nqp::join("",$parts)
+    }
+
+    # Handle the typical "foo.note"
+    multi method note() {
+
+        my $method := self.^find_method("print");
+        if nqp::not_i(nqp::istype($method,Mu))  # an NQP routine
+          || nqp::eqaddr($method.package,Mu) {  # no own print method, use $*ERR
+            $_ := $*ERR;
+            .print(nqp::concat(self.gist,.nl-out))
+        }
+
+        # has its own .print, let it handle the empty case
+        else {
+            self.print(self.nl-out)
+        }
+    }
+
+    # Handle the typical "foo.print"
+    multi method print() {
+        $*OUT.print: self.Str
+    }
 
     method gistseen(Mu:D \SELF: $id, $gist, *%named) {
         if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*gistseen'))) {
@@ -772,7 +848,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
         }
     }
 
-    proto method DUMP(|) {*}
+    proto method DUMP(|) {*}  # is implementation-detail
     multi method DUMP(Mu:U:) { self.raku }
     multi method DUMP(Mu:D: :$indent-step = 4, :%ctx?) {
         return DUMP(self, :$indent-step) unless %ctx;
@@ -791,14 +867,13 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
                 $value := $attr.get_value(self);
             }
             elsif nqp::can($attr, 'package') {
-                my Mu $decont  := nqp::decont(self);
                 my Mu $package := $attr.package;
 
                 $value := do given nqp::p6box_i(nqp::objprimspec($attr.type)) {
-                    when 0 {              nqp::getattr(  $decont, $package, $name)  }
-                    when 1 { nqp::p6box_i(nqp::getattr_i($decont, $package, $name)) }
-                    when 2 { nqp::p6box_n(nqp::getattr_n($decont, $package, $name)) }
-                    when 3 { nqp::p6box_s(nqp::getattr_s($decont, $package, $name)) }
+                    when 0 {              nqp::getattr(  self,$package,$name)  }
+                    when 1 { nqp::p6box_i(nqp::getattr_i(self,$package,$name)) }
+                    when 2 { nqp::p6box_n(nqp::getattr_n(self,$package,$name)) }
+                    when 3 { nqp::p6box_s(nqp::getattr_s(self,$package,$name)) }
                 };
             }
             else {
@@ -811,11 +886,15 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
 
         self.DUMP-OBJECT-ATTRS($attrs, :$indent-step, :%ctx);
     }
-    method DUMP-PIECES(@pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step) {
+    method DUMP-PIECES(
+      @pieces: $before, $after = ')', :$indent = @pieces > 1, :$indent-step
+    ) {  # is implementation-detail
         $indent ?? $before ~ "\n" ~ @pieces.join(",\n").indent($indent-step) ~ "\n" ~ $after
                 !! $before ~        @pieces.join(', ')                              ~ $after;
     }
-    method DUMP-OBJECT-ATTRS(|args (*@args, :$indent-step, :%ctx, :$flags?)) {
+    method DUMP-OBJECT-ATTRS(
+      |args (*@args, :$indent-step, :%ctx, :$flags?)
+    ) {  # is implementation-detail
         my Mu  $attrs := nqp::clone(nqp::captureposarg(nqp::usecapture(), 1));
         my str $where  = nqp::base_I(nqp::where(self), 16);
         my str $before = ($flags if defined $flags) ~ self.^name ~ '<' ~ %ctx{$where} ~ '>(';
@@ -1019,7 +1098,7 @@ Perhaps it can be found at https://docs.raku.org/type/$name"
             HYPER( -> \obj { obj."$meth-name"(  ) }, SELF )))
     }
 
-    proto method WALK(|) {*}
+    proto method WALK(|) {*}  # is implementation-detail
     multi method WALK(:$name!, :$canonical, :$ascendant, :$descendant, :$preorder, :$breadth,
                 :$super, :$omit, :$include, :$roles, :$submethods = True, :$methods = True
                 --> WalkList)
@@ -1135,7 +1214,7 @@ multi sub infix:<eqv>(Any:D \a, Any:D \b) {
     )
 }
 
-sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
+sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) { # is implementation-detail
     my Mu $capture := nqp::usecapture();
     my Mu $topic   := nqp::captureposarg($capture, 0);
 
@@ -1197,10 +1276,12 @@ sub DUMP(|args (*@args, :$indent-step = 4, :%ctx?)) {
 
 # These must collapse Junctions
 proto sub so(Mu, *%) {*}
-multi sub so(Mu $x)  { ?$x }
+multi sub so(Bool:U --> False) { }
+multi sub so(Bool:D \x) { x }
+multi sub so(Mu \x) { nqp::hllbool(nqp::istrue(x)) }
+
 proto sub not(Mu, *%) {*}
-multi sub not(Mu $x) { !$x }
+multi sub not(Bool:U --> True) { }
+multi sub not(Mu \x) { nqp::hllbool(nqp::isfalse(x)) }
 
-Metamodel::ClassHOW.exclude_parent(Mu);
-
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

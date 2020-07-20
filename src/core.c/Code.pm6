@@ -1,14 +1,18 @@
-my class Code does Callable { # declared in BOOTSTRAP
-    # class Code is Any
+my class Code { # declared in BOOTSTRAP
+    # class Code is Any does Callable
     #     has Code $!do;              # Low level code object
     #     has Signature $!signature;  # Signature object
     #     has @!compstuff;            # Place for the compiler to hang stuff
 
     multi method ACCEPTS(Code:D $self: Mu $topic is raw) {
-        $self.count ?? $self($topic) !! $self()
+        nqp::getattr($!signature,Signature,'$!count')
+          ?? $self($topic)
+          !! $self()
     }
 
-    proto method POSITIONS(|) {*}
+    method is-implementation-detail(--> False) { }
+
+    proto method POSITIONS(|) {*} #  is implementation-detail
 
     method arity(Code:D:) { nqp::getattr_i($!signature,Signature,'$!arity') }
 
@@ -44,8 +48,6 @@ my class Code does Callable { # declared in BOOTSTRAP
     method line(Code:D:) {
         nqp::getcodelocation($!do)<line>;
     }
-
-    multi method raku(Code:D:) { '{ ... }' }
 
     method assuming(Code:D $self: |primers) {
         my $sig = nqp::getattr(nqp::decont($self), Code, '$!signature');
@@ -308,4 +310,4 @@ my class Code does Callable { # declared in BOOTSTRAP
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

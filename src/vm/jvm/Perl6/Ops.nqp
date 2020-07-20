@@ -1,12 +1,12 @@
 # Type containing Raku specific ops.
-my $TYPE_P6OPS := 'Lorg/perl6/rakudo/RakOps;';
+my $TYPE_P6OPS := 'Lorg/raku/rakudo/RakOps;';
 
 # Other types we'll refer to.
-my $TYPE_OPS   := 'Lorg/perl6/nqp/runtime/Ops;';
-my $TYPE_CSD   := 'Lorg/perl6/nqp/runtime/CallSiteDescriptor;';
-my $TYPE_SMO   := 'Lorg/perl6/nqp/sixmodel/SixModelObject;';
-my $TYPE_TC    := 'Lorg/perl6/nqp/runtime/ThreadContext;';
-my $TYPE_CF    := 'Lorg/perl6/nqp/runtime/CallFrame;';
+my $TYPE_OPS   := 'Lorg/raku/nqp/runtime/Ops;';
+my $TYPE_CSD   := 'Lorg/raku/nqp/runtime/CallSiteDescriptor;';
+my $TYPE_SMO   := 'Lorg/raku/nqp/sixmodel/SixModelObject;';
+my $TYPE_TC    := 'Lorg/raku/nqp/runtime/ThreadContext;';
+my $TYPE_CF    := 'Lorg/raku/nqp/runtime/CallFrame;';
 my $TYPE_STR   := 'Ljava/lang/String;';
 my $TYPE_OBJ   := 'Ljava/lang/Object;';
 
@@ -299,3 +299,5 @@ QAST::OperationsJAST.add_hll_unbox('Raku', $RT_STR, -> $qastcomp {
         'decont_s', $TYPE_STR, $TYPE_SMO, $TYPE_TC ));
     $il
 });
+
+# vim: expandtab sw=4

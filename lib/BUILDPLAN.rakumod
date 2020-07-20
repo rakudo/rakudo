@@ -172,3 +172,5 @@ sub EXPORT(*@classes) {
 
     EXPORT::DEFAULT::
 }
+
+# vim: expandtab shiftwidth=4

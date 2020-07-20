@@ -6,7 +6,7 @@ class Encoding::Builtin does Encoding {
         X::Cannot::New.new(class => self.WHAT).throw
     }
 
-    method SET-SELF(\name, \alternatives) {
+    method SET-SELF(\name, \alternatives) is implementation-detail {
         nqp::stmts(
           ($!name := name),
           ($!alternative-names := alternatives),
@@ -53,4 +53,4 @@ class Encoding::Builtin does Encoding {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

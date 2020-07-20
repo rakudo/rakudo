@@ -1,11 +1,14 @@
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
-# Copyright (C) 2007 - 2018 The Perl Foundation.
+# Copyright (C) 2007 - 2020 The Perl Foundation.
 
 # settable from outside
-my int $perl6_test_times = ?%*ENV<PERL6_TEST_TIMES>;
-my int $die_on_fail      = ?%*ENV<PERL6_TEST_DIE_ON_FAIL>;
+my %ENV := %*ENV;  # reduce dynamic lookups
+my int $perl6_test_times =
+  ?(%ENV<RAKU_TEST_TIME> // %ENV<PERL6_TEST_TIMES>);
+my int $die_on_fail =
+  ?(%ENV<RAKU_TEST_DIE_ON_FAIL> // %ENV<PERL6_TEST_DIE_ON_FAIL>);
 
 # global state
 my @vars;
@@ -185,8 +188,15 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                     ~ "     got: $got.raku()";
             }
             else {
-                _diag "expected: '$expected'\n"
+                 try { # if the type support Stringification
+                      # note: we can't use ^can('Str') as Buf error in its Str method itself
+                    _diag "expected: '$expected'\n"
                     ~ "     got: '$got'";
+                    True;
+                } or {
+                    _diag "expected: $expected.raku()\n"
+                    ~ "     got: $got.raku()";
+                }
             }
         }
     }
@@ -237,7 +247,7 @@ multi sub isnt(Mu $got, Mu:D $expected, $desc = '') is export {
 
 multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export {
     $time_after = nqp::time_n;
-    $got.defined; # Hack to deal with Failures
+    $got.defined if nqp::istype($got, Failure); # Hack to deal with Failures
     my $ok;
 
     # the three labeled &CALLERS below are as follows:
@@ -253,8 +263,8 @@ multi sub cmp-ok(Mu $got is raw, $op, Mu $expected is raw, $desc = '') is export
     if $matcher {
         $ok = proclaim($matcher($got,$expected), $desc);
         if !$ok {
-            my $expected-desc = (try $expected.raku) // $expected.gist;
-            my      $got-desc = (try $got     .raku) // $got     .gist;
+            my $expected-desc = stringify $expected;
+            my      $got-desc = stringify $got;
             _diag "expected: $expected-desc\n"
                 ~ " matcher: '" ~ ($matcher.?name || $matcher.^name) ~ "'\n"
                 ~ "     got: $got-desc";
@@ -680,9 +690,10 @@ sub _is_deeply(Mu $got, Mu $expected) {
 
 sub die-on-fail {
     if !$todo_reason && !$subtest_level && nqp::iseq_i($die_on_fail,1) {
-        _diag 'Test failed. Stopping test suite, because'
-                ~ ' PERL6_TEST_DIE_ON_FAIL environmental variable is set'
-                ~ ' to a true value.';
+        _diag 'Test failed. Stopping test suite, because the '
+          ~ (%ENV<RAKU_TEST_DIE_ON_FAIL> ?? 'RAKU' !! 'PERL6')
+          ~ "_TEST_DIE_ON_FAIL\n"
+          ~ 'environmental variable is set to a true value.';
         exit 255;
     }
 
@@ -696,6 +707,14 @@ sub eval_exception($code) {
         EVAL ($code);
     }
     $!;
+}
+
+# Stringifies values passed to &cmp-ok.
+sub stringify(Mu $obj is raw --> Str:D) {
+    (try $obj.raku if nqp::can($obj, 'raku'))
+        // ($obj.gist if nqp::can($obj, 'gist'))
+        // ($obj.HOW.name($obj) if nqp::can($obj.HOW, 'name'))
+        // '?'
 }
 
 # Take $cond as Mu so we don't thread with Junctions:
@@ -859,10 +878,10 @@ Test - Rakudo Testing Library
 Please check the section Language/testing of the doc repository.
 If you have 'p6doc' installed, you can do 'p6doc Language/testing'.
 
-You can also check the documentation about testing in Perl 6 online on:
+You can also check the documentation about testing in Raku online on:
 
   https://doc.raku.org/language/testing
 
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4

@@ -465,3 +465,5 @@ nqp::speshreg('Raku', 'assign', sub ($cont, $value) {
     # place.
     return &assign-fallback;
 });
+
+# vim: expandtab sw=4

@@ -28,8 +28,8 @@ consideration:
   involve the execution of code, some of which may come from the compilation
   unit being compiled (as happens with `BEGIN` blocks).
 * A **script** refers to a compilation unit that is provided to Raku as the
-  entry point for execution. In an invocation like `perl6 foo.p6`, we say that
-  `foo.p6` is first compiled and then executed. In Rakudo Raku, in this case,
+  entry point for execution. In an invocation like `raku foo.raku`, we say that
+  `foo.raku` is first compiled and then executed. In Rakudo Raku, in this case,
   the results of the compilation only exist in memory.
 * A **module** refers to a compilation unit that is used by a script, or by
   another module used from a script. A module must also be compiled before it
@@ -96,10 +96,10 @@ the point they were formed.
 
 Furthermore, precompilations are statically linked against the precompilations
 of their transitive dependencies as well as against a particular compilation
-of the Raku compiler and its `CORE.setting`. Therefore, the identify of the
-Raku compiler - obtained through `$*PERL.compiler.id` - should also be
+of the Raku compiler and its `CORE.setting`. Therefore, the identity of the
+Raku compiler - obtained through `$*RAKU.compiler.id` - should also be
 considered part of the environment the precompilation was formed in. This will
-also support `rakudobrew` style tools, which enable switching between different
+also support `rakubrew` style tools, which enable switching between different
 versions and backends.
 
 In an ideal world, precompilation would always be possible for all compilation
@@ -129,7 +129,7 @@ to another. A repository can always provide its unique identity, which must
 incorporate the identity of any repository it refers to. In normal startup, the
 `PROCESS::<$REPO>` symbol will be set to a default repository that supports the
 installation of distributions (a `CompUnit::Repository::Installation`). Any
-`-I` includes, or any paths in a `PERL6LIB` environment variable, will cause
+`-I` includes, or any paths in a `RAKULIB` environment variable, will cause
 `PROCESS::<$REPO>` to instead point to a chain of repositories that ends with
 the default `CompUnit::Repository::Installation` that is normally there.
 
@@ -426,7 +426,7 @@ should implement the following role:
     role CompUnit::Repository::Installable does CompUnit::Repository {
         # Installs a distribution into the repository.
         method install(
-            # A Distribution object 
+            # A Distribution object
             Distribution $dist,
             # A hash mapping entries in `provides` to a disk location that
             # holds the source files; they will be copied (and may also be
@@ -438,11 +438,11 @@ should implement the following role:
             { ... }
 
         # Returns True if we can install modules (this will typically do a
-        # .w check on the module databaes).
+        # .w check on the module database).
         method can-install() returns Bool { ... }
 
         # Returns the Distribution objects for all installed distributions.
-        method installed() returns Iterable { }
+        method installed() returns Iterable { ... }
     }
 
 ### Implementations
@@ -494,7 +494,7 @@ establishes the following structure:
     repo.lock         # A lock file
     dist/[sha1]       # JSON-serialized distribution info (SHA-1 of dist ID)
     sources/[index]   # Module source files, by ascending ID
-    resources/[index] # Module resourece files, by ascending ID
+    resources/[index] # Module resource files, by ascending ID
     short/[sha1]      # Short-name quick lookup file by sha1 of the shortname
     precomp/...       # Precompilation store
     dependencies      # Pairs of short-name to short-name SHA-1s
@@ -560,17 +560,17 @@ versioning or authority.
 
     class CompUnit::Repository::FileSystem does CompUnit::Repository {
         has $.prefix is required;
-        
+
         ...
     }
 
 ## Questions and, if you're lucky, answers
 
-### Where libraries are installed?
+### Where are libraries installed?
 
 System-wide modules go in a path derived from the `--prefix` that Rakudo is
 built with. The `Configure.pl` script can also be given a `--module-prefix`,
-which will override this. Tools like rakudobrew will likely wish to specify
+which will override this. Tools like rakubrew will likely wish to specify
 a single common `--module-prefix` so modules are shared between the things
 they will switch between. This directory will be managed by an instance of
 `CompUnitRepo::Installation`.

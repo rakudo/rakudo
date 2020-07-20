@@ -7,6 +7,7 @@ class Perl6::Compiler is HLL::Compiler {
     has $!language_modifier; # Active language modifier; PREVIEW mostly.
     has $!language_revisions; # Hash of language revision letters. See gen/<vm>/main-version.nqp
     has $!can_language_versions; # List of valid language version
+    has $!rakudo-home;
 
     method compilation-id() {
         my class IDHolder { }
@@ -57,7 +58,7 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::shift($argiter) if $argiter && !nqp::defined(%options<e>);
         nqp::bindhllsym('Raku', '$!ARGITER', $argiter);
         my $super := nqp::findmethod(HLL::Compiler, 'command_eval');
-        my %*COMPILING;
+        my %*COMPILING := nqp::clone(nqp::ifnull(nqp::getlexdyn('%*COMPILING'), nqp::hash()));
         %*COMPILING<%?OPTIONS> := %options;
         $super(self, |@args, |%options);
     }
@@ -96,6 +97,34 @@ class Perl6::Compiler is HLL::Compiler {
         my $stdin    := stdin();
 
         $p6repl.repl-loop(:interactive(1), |%adverbs)
+    }
+
+    method rakudo-home() {
+        if !$!rakudo-home {
+            # Determine Perl6 and NQP dirs.
+#?if jvm
+            my $sep := nqp::atkey(nqp::jvmgetproperties,'os.name') eq 'MSWin32' ?? '\\' !! '/';
+            my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname') // '';
+#?endif
+#?if !jvm
+            my $config := nqp::backendconfig();
+            my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
+            my $execname := nqp::execname();
+#?endif
+            my $install-dir := $execname eq ''
+                ?? self.config<prefix>
+                !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
+
+            $!rakudo-home := self.cli-options()<rakudo-home>
+                // nqp::getenvhash()<RAKUDO_HOME>
+                // nqp::getenvhash()<PERL6_HOME>
+                // self.config<static-rakudo-home>
+                || $install-dir ~ '/share/perl6';
+            if nqp::substr($!rakudo-home, nqp::chars($!rakudo-home) - 1) eq $sep {
+                $!rakudo-home := nqp::substr($!rakudo-home, 0, nqp::chars($!rakudo-home) - 1);
+            }
+        }
+        $!rakudo-home;
     }
 
     method usage($name?, :$use-stderr = False) {
@@ -143,6 +172,7 @@ With no arguments, enters a REPL (see --repl-mode option).
 With a "[programfile]" or the "-e" option, compiles the given program
 and, by default, also executes the compiled code.
 
+  -                    read program source from STDIN or start REPL if a TTY
   -c                   check syntax only (runs BEGIN and CHECK blocks)
   --doc                extract documentation and print it as text
   -e program           one line of program, strict is enabled by default
@@ -153,6 +183,7 @@ and, by default, also executes the compiled code.
   -M module            loads the module prior to running the program
   --target=stage       specify compilation stage to emit
   --optimize=level     use the given level of optimization (0..3)
+  --rakudo-home=path   Override the path of the Rakudo runtime files
   -o, --output=name    specify name of output file
   -v, --version        display version information
   -V                   print configuration summary
@@ -188,3 +219,5 @@ The following environment variables are respected:
         #  For more information, see the raku(1) man page.\n");
     }
 }
+
+# vim: expandtab sw=4

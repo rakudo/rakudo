@@ -65,6 +65,28 @@ my class Metamodel::Primitives {
     method is_type(Mu \obj, Mu \type) {
         nqp::hllbool(nqp::istype(obj, type))
     }
+
+    method set_parameterizer(Mu \obj, &parameterizer --> Nil) {
+        nqp::setparameterizer(obj, nqp::decont(&parameterizer))
+    }
+
+    method parameterize_type(Mu \obj, +parameters --> Mu) {
+        my Mu $parameters := nqp::list();
+        nqp::push($parameters, $_) for parameters;
+        nqp::parameterizetype(obj, $parameters)
+    }
+
+    method type_parameterized(Mu \obj --> Mu) {
+        nqp::typeparameterized(obj)
+    }
+
+    method type_parameters(Mu \obj --> List:D) {
+        nqp::hllize(nqp::typeparameters(obj))
+    }
+
+    method type_parameter_at(Mu \obj, Int:D $idx --> Mu) is raw {
+        nqp::typeparameterat(obj, nqp::decont_i($idx))
+    }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

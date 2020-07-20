@@ -105,40 +105,15 @@ my role Setty does QuantHash {
     multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
     multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
 
-    multi method ACCEPTS(Setty:U: \other) { other.^does(self) }
-    multi method ACCEPTS(Setty:D: Setty:D \other) {
-        nqp::hllbool(
-          nqp::unless(
-            nqp::eqaddr(self,other),
-            nqp::if(                                # not same object
-              $!elems && nqp::elems($!elems),
-              nqp::if(                              # something on left
-                nqp::isconcrete(my $oraw := other.RAW-HASH)
-                  && nqp::elems($oraw),
-                nqp::if(                            # something on both sides
-                  nqp::iseq_i(nqp::elems($!elems),nqp::elems($oraw)),
-                  nqp::stmts(                       # same size
-                    (my $iter := nqp::iterator($!elems)),
-                    nqp::while(
-                      $iter,
-                      nqp::unless(
-                        nqp::existskey($oraw,nqp::iterkey_s(nqp::shift($iter))),
-                        return False                # missing key, we're done
-                      )
-                    ),
-                    True                            # all keys identical
-                  )
-                )
-              ),
-              # true -> both empty
-              nqp::isfalse(
-                ($oraw := other.RAW-HASH) && nqp::elems($oraw)
-              )
-            )
-          )
-        )
+    multi method ACCEPTS(Setty:U: \other --> Bool:D) {
+        other.^does(self)
     }
-    multi method ACCEPTS(Setty:D: \other) { self.ACCEPTS(other.Set) }
+    multi method ACCEPTS(Setty:D: Setty:D \other --> Bool:D) {
+        self (==) other
+    }
+    multi method ACCEPTS(Setty:D: \other --> Bool:D) {
+        self (==) other.Set
+    }
 
     multi method Str(Setty:D $ : --> Str:D) {
         nqp::join(" ",Rakudo::QuantHash.RAW-VALUES-MAP(self, *.Str))
@@ -146,11 +121,7 @@ my role Setty does QuantHash {
     multi method gist(Setty:D $ : --> Str:D) {
         nqp::concat(
           nqp::concat(
-            nqp::if(
-              nqp::istype(self,Set),
-              'set(',
-              nqp::concat(self.^name,'(')
-            ),
+            nqp::concat(self.^name,'('),
             nqp::join(" ",
               Rakudo::Sorting.MERGESORT-str(
                 Rakudo::QuantHash.RAW-VALUES-MAP(self, *.gist)
@@ -298,15 +269,16 @@ my role Setty does QuantHash {
         )
     }
 
-    method RAW-HASH() is raw { $!elems }
+    method RAW-HASH() is raw is implementation-detail { $!elems }
 
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 
 multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b) || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

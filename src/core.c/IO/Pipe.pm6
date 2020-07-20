@@ -31,7 +31,7 @@ my class IO::Pipe is IO::Handle {
                 }
                 else {
                     $!eof = True;
-                    return buf8.new
+                    return nqp::create(buf8.^pun)
                 }
             }
         }
@@ -75,4 +75,4 @@ my class IO::Pipe is IO::Handle {
     method path { IO::Path }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

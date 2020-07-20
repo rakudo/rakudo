@@ -9,8 +9,8 @@ role Distribution {
     # `content($content-id)` provides an API to the data itself
     #   -   Use `.meta` to determine the $address of a specific $content-id
     #   -   IO::Handle is meant to be a data stream that may or may not be available; for now
-    #       it would return an IO::Handle and have `.open.slurp-rest(:bin)` called on it. So if
-    #       a socket wants to handle this role currently it would have to wrap `open` or `.slurp-rest`
+    #       it would return an IO::Handle and have `.open(:bin).slurp` called on it. So if
+    #       a socket wants to handle this role currently it would have to wrap `open` or `.slurp`
     #       to handle any protocol negotiation as well as probably saving the data to a tmpfile and
     #       return an IO::Handle to that
 
@@ -256,4 +256,4 @@ class Distribution::Resources does Associative {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

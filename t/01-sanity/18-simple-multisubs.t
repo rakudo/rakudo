@@ -22,3 +22,5 @@ multi sub foo ($arg1, $arg2) {
 
 foo "only_one_arg";
 foo "arg1", "arg2";
+
+# vim: expandtab shiftwidth=4

@@ -37,3 +37,5 @@ print 'ok ';
 # Indirect call on result of expression
 print 'ok ';
 say 2**4-4;
+
+# vim: expandtab shiftwidth=4

@@ -118,8 +118,7 @@ my class Signature { # declared in BOOTSTRAP
                 $invocant .= chop(2) if $invocant.ends-with(' $');
                 $text ~= "$invocant: ";
             }
-            $text ~= ';; '
-                if !@params[0].multi-invocant;
+            $text ~= ';; ' if @params && !@params[0].multi-invocant;
 
             my $sep = '';
             for @params.kv -> $i, $param {
@@ -224,4 +223,4 @@ Perl6::Metamodel::Configuration.set_multi_sig_comparator(
     -> \a, \b { a.signature eqv b.signature }
 );
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -292,10 +292,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method ASSIGN-KEY(Map:D: \key, Mu \new) {
         nqp::isnull(my \old := nqp::atkey($!storage,key.Str))
-          ?? "Cannot add key '{key}' to an immutable {self.^name}"
+          ?? die("Cannot add key '{key}' to an immutable {self.^name}")
           !! nqp::iscont(old)
             ?? (old = new)
-            !! "Cannot change key '{key}' in an immutable {self.^name}"
+            !! die("Cannot change key '{key}' in an immutable {self.^name}")
     }
 
     # Directly copy from the other Map's internals.
@@ -461,7 +461,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!, :$DECONT! --> Map:D) {
+    multi method STORE(Map:D: Map:D \map, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
         nqp::if(
           nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           nqp::if(
@@ -476,7 +476,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
         )
     }
-    multi method STORE(Map:D: Map:D \map, :$INITIALIZE! --> Map:D) {
+    multi method STORE(Map:D: Map:D \map, :INITIALIZE($)! --> Map:D) {
         nqp::if(
           nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
           nqp::if(
@@ -491,19 +491,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           self!STORE_MAP_FROM_OBJECT_HASH(map)
         )
     }
-    multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE!, :$DECONT! --> Map:D) {
+    multi method STORE(Map:D: Iterator:D \iter, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
         self!STORE_MAP_FROM_ITERATOR_DECONT(iter)
     }
-    multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE! --> Map:D) {
+    multi method STORE(Map:D: Iterator:D \iter, :INITIALIZE($)! --> Map:D) {
         self!STORE_MAP_FROM_ITERATOR(iter)
     }
-    multi method STORE(Map:D: \to_store, :$INITIALIZE!, :$DECONT! --> Map:D) {
+    multi method STORE(Map:D: \to_store, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
         self!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator)
     }
-    multi method STORE(Map:D: \to_store, :$INITIALIZE! --> Map:D) {
+    multi method STORE(Map:D: \to_store, :INITIALIZE($)! --> Map:D) {
         self!STORE_MAP_FROM_ITERATOR(to_store.iterator)
     }
-    multi method STORE(Map:D: \keys, \values, :$INITIALIZE! --> Map:D) {
+    multi method STORE(Map:D: \keys, \values, :INITIALIZE($)! --> Map:D) {
         my \iterkeys   := keys.iterator;
         my \itervalues := values.iterator;
         my \storage    := $!storage := nqp::hash;
@@ -523,8 +523,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(nqp::create(Capture),Capture,'%!hash',$!storage)
     }
 
-    method FLATTENABLE_LIST() { nqp::list() }
-    method FLATTENABLE_HASH() { $!storage }
+    method FLATTENABLE_LIST() is implementation-detail { nqp::list() }
+    method FLATTENABLE_HASH() is implementation-detail { $!storage }
 
     method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n" --> Str:D) {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
@@ -533,7 +533,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method hash() { self }
-    method clone(Map:D: --> Map:D) is raw { self }
+    method clone(Map:D:) { self }
 
     multi method roll(Map:D:) {
         nqp::if(
@@ -638,7 +638,7 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
 
     nqp::hllbool(
       nqp::unless(
-        nqp::eqaddr(a,b),
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::if(                                 # not comparing with self
           nqp::eqaddr(a.WHAT,b.WHAT),
           nqp::if(                               # same types
@@ -670,4 +670,4 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

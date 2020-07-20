@@ -10,4 +10,4 @@ role CompUnit::Repository::Installable does CompUnit::Repository {
     method installed(--> Iterable:D) { }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

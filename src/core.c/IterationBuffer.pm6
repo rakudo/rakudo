@@ -41,6 +41,12 @@ my class IterationBuffer {
 
     # For maintainability mainly, and possibly for creating smaller, more
     # inlineable candidates
+    method Slip(IterationBuffer:D:) {
+        nqp::p6bindattrinvres(nqp::create(Slip),List,'$!reified',self)
+    }
+
+    # For maintainability mainly, and possibly for creating smaller, more
+    # inlineable candidates
     method List(IterationBuffer:D:) {
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',self)
     }
@@ -49,6 +55,12 @@ my class IterationBuffer {
     # inlineable candidates
     method Seq(IterationBuffer:D:) {
         Seq.new(Rakudo::Iterator.ReifiedList(self))
+    }
+
+    # For maintainability mainly, and possibly for creating smaller, more
+    # inlineable candidates
+    method iterator(IterationBuffer:D:) {
+        Rakudo::Iterator.ReifiedList(self)
     }
 
     # For core debugging purposes only: basically warp the IterationBuffer
@@ -61,4 +73,4 @@ my class IterationBuffer {
 nqp::p6setiterbuftype(IterationBuffer);
 #?endif
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

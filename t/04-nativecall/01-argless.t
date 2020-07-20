@@ -36,3 +36,5 @@ sub test-native-closure() {
 
 test-native-closure();
 test-native-closure(); # again cause we may have created an optimized version to run
+
+# vim: expandtab shiftwidth=4

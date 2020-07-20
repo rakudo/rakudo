@@ -574,9 +574,6 @@ multi sub sprintf(Cool:D $format, *@args) {
     )
 }
 
-proto sub printf($, |) {*}
-multi sub printf(Cool:D $format, *@args) { print sprintf $format, @args }
-
 proto sub samecase($, $, *%) {*}
 multi sub samecase(Cool:D $string, Cool:D $pattern) { $string.samecase($pattern) }
 
@@ -776,4 +773,4 @@ multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pval
 }
 #?endif
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

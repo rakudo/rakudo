@@ -53,11 +53,7 @@ class Rakudo::Iterator {
             )
         }
         method count-only(--> Int:D) {
-            nqp::p6box_i(
-              nqp::elems($!blob)
-                - $!i
-                - nqp::islt_i($!i,nqp::elems($!blob))
-            )
+            nqp::elems($!blob) - $!i - nqp::islt_i($!i,nqp::elems($!blob))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!blob) }
     }
@@ -419,6 +415,44 @@ class Rakudo::Iterator {
 #-------------------------------------------------------------------------------
 # Methods that generate an Iterator (in alphabetical order)
 
+    # Return iterator that produces all but the first value
+    method AllButFirst(\iterator) { iterator.skip-one; iterator }
+
+    # Create iterator that produces all values *except* the last of a given
+    # iterator.  Returns an empty iterator if the given iterator did not
+    # produce any value
+    my role AllButLastRole {
+        has $!iterator;
+        has $!value;
+
+        method !SET-SELF(\iterator) {
+            $!iterator := iterator;
+            nqp::eqaddr(($!value := iterator.pull-one),IterationEnd)
+              ?? Rakudo::Iterator.Empty
+              !! self
+        }
+        method new(\iterator) { nqp::create(self)!SET-SELF(iterator) }
+        method pull-one() is raw {
+            my \this := $!value;
+            nqp::eqaddr(($!value := $!iterator.pull-one),IterationEnd)
+              ?? $!value
+              !! this
+        }
+    }
+    my class AllButLast does Iterator does AllButLastRole { }
+    my class AllButLastPredictive does PredictiveIterator does AllButLastRole {
+        method count-only() { ($!iterator.count-only || 1) - 1 }
+        method bool-only()  {  $!iterator.count-only > 1       }
+    }
+
+    proto method AllButLast(|) {*}
+    multi method AllButLast(PredictiveIterator:D \iterator) {
+        AllButLastPredictive.new(iterator)
+    }
+    multi method AllButLast(Iterator:D \iterator) {
+        AllButLast.new(iterator)
+    }
+
     # Create iterator that produces all values *except* the last N values
     # of a given iterator.  Returns an empty iterator if the given iterator
     # produced fewer than N values.
@@ -473,7 +507,9 @@ class Rakudo::Iterator {
         }
     }
     method AllButLastNValues(\iterator, \n) {
-        AllButLastNValues.new(iterator,n)
+        n == 1
+          ?? AllButLast.new(iterator)
+          !! AllButLastNValues.new(iterator,n)
     }
 
     # Return an iterator that will generate a pair with the value as the
@@ -739,7 +775,7 @@ class Rakudo::Iterator {
             target.push(nqp::chr($i)) while ($i = $i + 1) <= $n;
             $!i = $i;
         }
-        method count-only(--> Int:D) { nqp::p6box_i($!n - $!i) }
+        method count-only(--> Int:D) { $!n - $!i }
         method sink-all(--> IterationEnd) { $!i = $!n }
     }
     method CharFromTo(\min,\max,\excludes-min,\excludes-max) {
@@ -1364,25 +1400,28 @@ class Rakudo::Iterator {
         )
     }
 
-    # Returns an iterator that handles all properties of a -while- with
+    # Returns an iterator that handles all properties of a C-style loop with
     # a condition.  Takes a Callable to be considered the body of the loop,
-    # and a Callable for the condition..
-    my class CStyleLoop does SlippyIterator {
+    # another Callable for the condition, and a third Callable to be executed
+    # after each iteration.
+    my class CStyleLoop does Rakudo::SlippyIterator {
         has &!body;
         has &!cond;
         has &!afterwards;
+        has $!label;
         has int $!seen-first;
 
-        method !SET-SELF(\body,\cond,\afterwards) {
+        method !SET-SELF(\body,\cond,\afterwards,\label) {
             nqp::stmts(
               (&!body := body),
               (&!cond := cond),
               (&!afterwards := afterwards),
+              ($!label := nqp::decont(label)),
               self
             )
         }
-        method new(\body,\cond,\afterwards) {
-            nqp::create(self)!SET-SELF(body,cond,afterwards)
+        method new(\body,\cond,\afterwards,\label) {
+            nqp::create(self)!SET-SELF(body,cond,afterwards,label)
         }
 
         method pull-one() {
@@ -1419,6 +1458,7 @@ class Rakudo::Iterator {
                                 )
                               )
                             ),
+                            'LABELED', $!label,
                             'NEXT', nqp::stmts(
                               &!afterwards(),
                               ($stopped = nqp::if(&!cond(),0,1))
@@ -1437,22 +1477,169 @@ class Rakudo::Iterator {
             }
         }
     }
-    method CStyleLoop(&body,&cond,&afterwards) {
-        CStyleLoop.new(&body,&cond,&afterwards)
+    method CStyleLoop(&body, &cond, &afterwards, $label) {
+        CStyleLoop.new(&body, &cond, &afterwards, $label)
     }
 
-    my role DelegateCountOnly[\iter] does PredictiveIterator {
-        method count-only(--> Int:D) { iter.count-only }
+    # Returns an iterator for iterating file system directories, producing
+    # IO::Path objects for a directory entry if it smart matches the given
+    # tester.  Takes an IO::Path object and a prefix to be added to each
+    # director entry produced.
+    class DirTest does Iterator {
+        has Mu  $!path;      # IO::Path object to do dir for
+        has str $!prefix;    # string to prefix to elements found
+        has Mu  $!CWD;       # IO::Path object for $*CWD when testing
+        has Mu  $!tester;    # object to call .ACCEPTS on to accept entry
+        has Mu  $!dirhandle; # low level directory handle
+#?if jvm
+        has $!dots;  # JVM doesnt produce "." and "..", so we need to fake them
+#?endif
+
+        method !SET-SELF(\path, \tester) {
+            $!path      := path;
+            $!prefix     = path.prefix-for-dir;
+            $!CWD       := path.CWD.IO;
+            $!tester    := tester;
+            $!dirhandle := nqp::opendir(path.absolute);
+#?if jvm
+            $!dots   := nqp::list_s(".","..");
+#?endif
+
+            self
+        }
+
+        method new(\path, \tester) { nqp::create(self)!SET-SELF(path, tester) }
+
+        method pull-one() {
+            my str $entry;
+            my $*CWD := $!CWD;
+
+            nqp::while(
+#?if jvm
+              ($entry = nqp::if(
+                nqp::elems($!dots),
+                nqp::shift_s($!dots),
+                nqp::nextfiledir($!dirhandle)
+              )),
+#?endif
+#?if !jvm
+              ($entry = nqp::nextfiledir($!dirhandle)),
+#?endif
+              nqp::if(
+                $!tester.ACCEPTS($entry),
+                return nqp::clone(
+                  $!path
+                ).cloned-with-path(nqp::concat($!prefix,$entry))
+              )
+            );
+
+            IterationEnd
+        }
+
+        method push-all(\target --> IterationEnd) {
+#?if jvm
+            my $dots      := $!dots;
+#?endif
+            my $path      := $!path;
+            my str $prefix = $!prefix;
+            my $tester    := $!tester;
+            my $dirhandle := $!dirhandle;
+            my str $entry;
+
+            my $*CWD := $!CWD;
+            nqp::while(
+#?if jvm
+              ($entry = nqp::if(
+                nqp::elems($dots),
+                nqp::shift_s($dots),
+                nqp::nextfiledir($dirhandle)
+              )),
+#?endif
+#?if !jvm
+              ($entry = nqp::nextfiledir($dirhandle)),
+#?endif
+              nqp::if(
+                $tester.ACCEPTS($entry),
+                target.push: nqp::clone(
+                  $path
+                ).cloned-with-path(nqp::concat($prefix,$entry))
+              )
+            );
+
+            nqp::closedir($dirhandle);
+        }
     }
 
-    # Takes two iterators and mixes in a role into the second iterator that
-    # delegates .count-only method to the first iterator if the first is a
-    # PredictiveIterator
-    method delegate-iterator-opt-methods (Iterator:D \a, Iterator:D \b) {
-        nqp::istype(a,PredictiveIterator)
-          ?? b.^mixin(DelegateCountOnly[a])
-          !! b
+    # Returns an iterator for iterating file system directories, producing
+    # IO::Path objects for *each* directory entry found (except "." and "..").
+    # Takes an IO::Path and a prefix to be added to each directory entry
+    # produced.
+    class Dir does Iterator {
+        has Mu  $!path;      # IO::Path object to do dir for
+        has str $!prefix;    # string to prefix to elements found
+        has Mu  $!dirhandle; # low level directory handle
+
+        method !SET-SELF(\path) {
+            $!path  := path;
+            $!prefix = path.prefix-for-dir;
+
+#?if !jvm
+            my $dirhandle := nqp::opendir(path.absolute);
+            # skipping . and .. worked, JVM never produces them
+            if nqp::iseq_s(nqp::nextfiledir($dirhandle),'.')
+              && nqp::iseq_s(nqp::nextfiledir($dirhandle),'..') {
+                $!dirhandle  := $dirhandle;
+#?endif
+#?if jvm
+                $!dirhandle := nqp::opendir(path.absolute);
+#?endif
+
+                self
+#?if !jvm
+            }
+
+            # strange, no '.' or '..' at start, run with tester
+            else {
+                DirTest.new(
+                  path,
+                  -> str $d { nqp::isne_s($d,'.') && nqp::isne_s($d,'..') },
+                )
+            }
+#?endif
+        }
+
+        method new(\path) { nqp::create(self)!SET-SELF(path) }
+
+        method pull-one() {
+            nqp::if(
+              (my str $entry = nqp::nextfiledir($!dirhandle)),
+              nqp::clone($!path).cloned-with-path(nqp::concat($!prefix,$entry)),
+              nqp::stmts(
+                nqp::closedir($!dirhandle),
+                IterationEnd
+              )
+            )
+        }
+
+        method push-all(\target --> IterationEnd) {
+            my $path      := $!path;
+            my str $prefix = $!prefix;
+            my $dirhandle := $!dirhandle;
+            my str $entry;
+
+            nqp::while(
+              ($entry = nqp::nextfiledir($dirhandle)),
+              target.push:
+                nqp::clone($path).cloned-with-path(nqp::concat($prefix,$entry))
+            );
+
+            nqp::closedir($dirhandle);
+        }
     }
+
+    proto method Dir(|) {*}
+    multi method Dir(IO::Path:D \path)          {     Dir.new(path)         }
+    multi method Dir(IO::Path:D \path, \tester) { DirTest.new(path, tester) }
 
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
@@ -1770,7 +1957,7 @@ class Rakudo::Iterator {
 
     # Return an iterator for the basic "gather" functionality on the
     # given block.
-    my class Gather does SlippyIterator {
+    my class Gather does Rakudo::SlippyIterator {
         has &!resumption;
         has $!push-target;
         has int $!wanted;
@@ -1970,9 +2157,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy(--> Bool:D) { $!is-lazy }
-        method count-only(--> Int:D) {
-            nqp::p6box_i($!last - $!i + nqp::isgt_i($!i,$!last))
-        }
+        method count-only(--> Int:D) { $!last - $!i + nqp::isgt_i($!i,$!last) }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
     method IntRange(\from,\to) { IntRange.new(from,to) }
@@ -2224,29 +2409,17 @@ class Rakudo::Iterator {
         }
 
         method pull-one() is raw {
-#?if !jvm
             nqp::ifnull(
               $!iterator,
               $!iterator := $!iterable.iterator
             ).pull-one
-#?endif
-#?if jvm
-            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.pull-one
-#?endif
         }
 
         method push-exactly(\target, int $n) {
-#?if !jvm
             nqp::ifnull(
               $!iterator,
               $!iterator := $!iterable.iterator
             ).push-exactly(target, $n);
-#?endif
-#?if jvm
-            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.push-exactly(target, $n);
-#?endif
         }
 
         method is-lazy(--> True) { }
@@ -2256,7 +2429,7 @@ class Rakudo::Iterator {
     # Return an iterator given a List and an iterator that generates
     # an IterationBuffer of indexes for each pull.  Each value is
     # is a List with the mapped elements.
-    my class ListIndexes does Iterator {
+    my role ListIndex {
         has $!list;
         has $!indexes;
         method !SET-SELF(\list,\indexes) {
@@ -2289,21 +2462,35 @@ class Rakudo::Iterator {
             )
         }
     }
+    my class ListIndexes does ListIndex does Iterator { }
+    my class ListPredictiveIndexes does ListIndex does PredictiveIterator {
+        method count-only() { $!indexes.count-only }
+        method bool-only()  { $!indexes.bool-only  }
+    }
     method ListIndexes(\list,\indexes) {
-        nqp::if(
-          (my int $elems = list.elems),     # reifies
-          ListIndexes.new(list,indexes),    # actually need to do some mapping
-          Rakudo::Iterator.OneValue(nqp::create(List)) # only one
-        )
+        list.elems            # reifies
+          ?? nqp::istype(indexes,PredictiveIterator)
+            ?? ListPredictiveIndexes.new(list,indexes)
+            !! ListIndexes.new(list,indexes)
+          !! Rakudo::Iterator.OneValue(nqp::create(List)) # only one
     }
 
     # Returns an iterator that handles all properties of a bare -loop-
     # Takes a Callable to be considered the body of the loop.
-    my class Loop does SlippyIterator {
+    my class Loop does Rakudo::SlippyIterator {
         has &!body;
+        has $!label;
 
-        method new(&body) {
-            nqp::p6bindattrinvres(nqp::create(self),self,'&!body',&body)
+        method !SET-SELF(\body,\label) {
+            nqp::stmts(
+              (&!body := body),
+              ($!label := nqp::decont(label)),
+              self
+            )
+        }
+
+        method new(\body,\label) {
+            nqp::create(self)!SET-SELF(body,label)
         }
 
         method pull-one() {
@@ -2327,6 +2514,7 @@ class Rakudo::Iterator {
                           IterationEnd
                         ))
                       ),
+                      'LABELED', $!label,
                       'NEXT', ($stopped = 0),
                       'REDO', ($stopped = 0),
                       'LAST', ($result := IterationEnd)
@@ -2341,7 +2529,7 @@ class Rakudo::Iterator {
 
         method is-lazy(--> True) { }
     }
-    method Loop(&body) { Loop.new(&body) }
+    method Loop(&body, $label) { Loop.new(&body, $label) }
 
     # An often occurring use of the Mappy role to generate all of the
     # keys of a Map / Hash.  Takes a Map / Hash as the only parameter.
@@ -2388,6 +2576,304 @@ class Rakudo::Iterator {
         }
     }
     method Mappy-values(\map) { Mappy-values.new(map) }
+
+    # cache cursor initialization lookup
+    my $initialize-cursor := Match.^lookup("!cursor_init");
+
+    my &POPULATE := Match.^lookup("MATCH" );  # fully populate Match object
+
+    my $movers := nqp::list(
+      Match.^lookup("CURSOR_MORE"),     # :g
+      Match.^lookup("CURSOR_OVERLAP"),  # :ov
+      Match.^lookup("CURSOR_NEXT")      # :ex
+    );
+
+    # Iterate a cursor according to a given regex, string and mover
+    my class MatchCursor does Iterator {
+        has Mu $!cursor;
+        has Mu $!mover;
+        method !SET-SELF(&regex, \string, int $mover) {
+            $!cursor := regex($initialize-cursor(Match, string, :0c));
+            $!mover  := nqp::atpos($movers,$mover);
+            self
+        }
+        method new(\regex, \string, \mover) {
+            nqp::create(self)!SET-SELF(regex, string, mover)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                (my $current := $!cursor),
+                ($!cursor := $!mover($!cursor)),
+                $current
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              ($!cursor := $!mover($!cursor)),
+            )
+        }
+    }
+    method MatchCursor(\regex, \string, \mover) {
+        MatchCursor.new(regex, string, mover)
+    }
+
+    # Iterate a cursor according to a given regex, string, limit and mover
+    my class MatchCursorLimit does Iterator {
+        has Mu $!cursor;
+        has Mu $!mover;
+        has int $!todo;
+        method !SET-SELF(&regex, \string, int $todo, int $mover) {
+            $!cursor := regex($initialize-cursor(Match, string, :0c));
+            $!mover  := nqp::atpos($movers,$mover);
+            $!todo    = $todo + 1;
+            self
+        }
+        method new(\regex, \string, \todo, \mover) {
+            nqp::create(self)!SET-SELF(regex, string, todo, mover)
+        }
+        method pull-one() is raw {
+            nqp::if(
+              ($!todo = nqp::sub_i($!todo,1))
+                && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              nqp::stmts(
+                (my $current := $!cursor),
+                ($!cursor := $!mover($!cursor)),
+                $current
+              ),
+              IterationEnd
+            )
+        }
+        method skip-one() is raw {
+            nqp::if(
+              ($!todo = nqp::sub_i($!todo,1))
+                && nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
+              ($!cursor := $!mover($!cursor)),
+            )
+        }
+    }
+    method MatchCursorLimit(\regex, \string, \limit, \mover) {
+        MatchCursorLimit.new(regex, string, limit, mover)
+    }
+
+    # generate full blown Match objects for given regex, string and limit
+    my class MatchMatch does Iterator {
+        has Mu $!iterator;
+
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! MatchCursorLimit.new(regex, string, limit.Int, 0);
+
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! $cursor.MATCH
+        }
+        method skip-one() {
+            nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            nqp::until(
+              nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+              target.push($cursor.MATCH)
+            );
+        }
+    }
+    method MatchMatch(\regex, \string, \limit) {
+        MatchMatch.new(regex, string, limit)
+    }
+
+    # generate strings for given regex, string and limit
+    my class MatchStr does Iterator {
+        has Mu $!iterator;
+
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! MatchCursorLimit.new(regex, string, limit.Int, 0);
+
+            nqp::p6bindattrinvres(nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! $cursor.MATCH.Str
+        }
+        method skip-one() {
+            nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            nqp::until(
+              nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+              target.push($cursor.MATCH.Str)
+            );
+        }
+    }
+    method MatchStr(\regex, \string, \limit) {
+        MatchStr.new(regex, string, limit)
+    }
+
+    # basic split iterator functionality, with optional limiting
+    my class MatchSplit does Iterator {
+        has Mu $!string;
+        has Mu $!iterator;
+        has int $!last-pos;
+
+        method !SET-SELF(\iterator, \string) {
+            $!iterator := iterator;
+            $!string   := string;
+            self
+        }
+        method new(\regex, \string, \limit) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1
+                ?? (return Rakudo::Iterator.Empty)
+                !! limit == 1
+                  ?? (return Rakudo::Iterator.OneValue(string))
+                  !! MatchCursorLimit.new(regex, string, limit.Int - 1, 0);
+
+            nqp::create(self)!SET-SELF(iterator, string)
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::islt_i($!last-pos,0),
+              IterationEnd,                     # last part also done
+              nqp::if(
+                nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd),
+                nqp::stmts(                     # need to do last part still
+                  (my $result := nqp::substr($!string,$!last-pos)),
+                  ($!last-pos = -1),
+                  $result
+                ),
+                nqp::stmts(                     # produce next
+                  ($result := nqp::substr(
+                    $!string,
+                    $!last-pos,
+                    nqp::sub_i(nqp::getattr_i($cursor,Match,'$!from'),$!last-pos)
+                  )),
+                  ($!last-pos = nqp::getattr_i($cursor,Match,'$!pos')),
+                  $result
+                )
+              )
+            )
+        }
+        method push-all(\target --> IterationEnd) {
+            if nqp::isge_i($!last-pos,0) {
+                my $string      := $!string;
+                my $iterator    := $!iterator;
+                my int $last-pos = $!last-pos;
+
+                nqp::until(
+                  nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
+                  nqp::stmts(
+                    target.push(nqp::substr(
+                      $string,
+                      $last-pos,
+                      nqp::sub_i(
+                        nqp::getattr_i($cursor,Match,'$!from'),
+                        $last-pos
+                      )
+                    )),
+                    ($last-pos = nqp::getattr_i($cursor,Match,'$!pos'))
+                  )
+                );
+                target.push(nqp::substr($string,$last-pos));
+            }
+        }
+    }
+
+    method MatchSplit(\regex, \string, \limit) {
+        MatchSplit.new(regex, string, limit)
+    }
+
+    # split iterator functionality with mapper for extra values and skip-empty
+    my class MatchSplitMap does Iterator {
+        has Mu $!string;
+        has Mu $!iterator;
+        has Mu $!mapper;
+        has int $!skip-empty;
+        has int $!last-pos;
+        has Mu $!slipped;
+
+        method !SET-SELF(\iterator, \string, \mapper, int $skip-empty) {
+            $!iterator  := iterator;
+            $!string    := string;
+            $!mapper    := mapper;
+            $!skip-empty = $skip-empty;
+            $!slipped   := nqp::list;
+            self
+        }
+        method new(\regex, \string, \mapper, \limit, \skip-empty) {
+            my \iterator := nqp::istype(limit,Whatever) || limit == Inf
+              ?? MatchCursor.new(regex, string, 0)
+              !! limit < 1 || (skip-empty && nqp::not_i(nqp::chars(string)))
+                ?? (return Rakudo::Iterator.Empty)
+                !! limit == 1
+                  ?? (return Rakudo::Iterator.OneValue(string))
+                  !! MatchCursorLimit.new(regex, string, limit.Int - 1, 0);
+
+            nqp::create(self)!SET-SELF(
+              iterator, string, mapper, nqp::istrue(skip-empty))
+        }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::elems($!slipped),
+              nqp::shift($!slipped),                   # produce slipped
+              nqp::if(                                 # nothing to slip
+                nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd),
+                nqp::if(                               # last cursor seen
+                  $!skip-empty && nqp::iseq_i($!last-pos,nqp::chars($!string)),
+                  IterationEnd,                        # last one empty, done
+                  nqp::stmts(
+                    nqp::push($!slipped,IterationEnd), # do last part still
+                    nqp::substr($!string,$!last-pos)   # produce final string
+                  )
+                ),
+                nqp::stmts(                            # produce next
+                  (my $result := nqp::substr(
+                    $!string,
+                    $!last-pos,
+                    nqp::sub_i(
+                      nqp::getattr_i($cursor,Match,'$!from'),
+                      $!last-pos
+                    )
+                  )),
+                  ($!last-pos = nqp::getattr_i($cursor,Match,'$!pos')),
+                  nqp::if(                             # preset slipped
+                    nqp::istype((my $mapped := $!mapper($cursor)),List),
+                    ($!slipped := nqp::getattr($mapped,List,'$!reified')),
+                    nqp::push($!slipped,$mapped)
+                  ),
+                  nqp::if(
+                    $!skip-empty && nqp::not_i(nqp::chars($result)),
+                    nqp::shift($!slipped),             # skipping, so slip
+                    $result                            # produce string
+                  )
+                )
+              )
+            )
+        }
+    }
+
+    method MatchSplitMap(\regex, \string, \mapper, \limit, \skip-empty) {
+        MatchSplitMap.new(regex, string, mapper, limit, skip-empty)
+    }
 
     # Return an iterator that will iterate over a source iterator and an
     # iterator generating monotonically increasing index values from a
@@ -2441,60 +2927,200 @@ class Rakudo::Iterator {
         MonotonicIndexes.new(source,indexes,offset,&out)
     }
 
+    # Class for iterating native str arrays and nqp::list_s
+    my class native_s does PredictiveIterator {
+        has $!list;
+        has int $!i;
+
+        method !SET-SELF(Mu \list) {
+            $!list := nqp::decont(list);
+            $!i     = -1;
+            self
+        }
+        method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+
+        method pull-one() is raw {
+            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+              ?? nqp::atposref_s($!list,$!i)
+              !! IterationEnd
+        }
+
+        method push-all(\target --> IterationEnd) {
+            my $list := $!list;
+            my int $i = $!i;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($list)),
+              target.push(nqp::atposref_s($list,$i))
+            );
+            $!i = $i;
+        }
+
+        method skip-one() {
+            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+        }
+
+        method skip-at-least(int $toskip) {
+            nqp::unless(
+              nqp::islt_i(($!i = nqp::add_i($!i,$toskip)),nqp::elems($!list)),
+              nqp::stmts(
+                ($!i = nqp::elems($!list)),
+                0
+              )
+            )
+        }
+
+        method sink-all(--> IterationEnd) { $!i = nqp::elems($!list) }
+
+        method count-only(--> Int:D) {
+            nqp::elems($!list) - $!i - nqp::islt_i($!i,nqp::elems($!list))
+        }
+    }
+    method native_s(Mu \list --> Iterator:D) { native_s.new(list) }
+
+    # Class for iterating native int arrays and nqp::list_i
+    my class native_i does PredictiveIterator {
+        has $!list;
+        has int $!i;
+
+        method !SET-SELF(Mu \list) {
+            $!list := nqp::decont(list);
+            $!i     = -1;
+            self
+        }
+        method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+
+        method pull-one() is raw {
+            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+              ?? nqp::atposref_i($!list,$!i)
+              !! IterationEnd
+        }
+
+        method push-all(\target --> IterationEnd) {
+            my $list := $!list;
+            my int $i = $!i;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($list)),
+              target.push(nqp::atposref_i($list,$i))
+            );
+            $!i = $i;
+        }
+
+        method skip-one() {
+            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+        }
+
+        method skip-at-least(int $toskip) {
+            nqp::unless(
+              nqp::islt_i(($!i = nqp::add_i($!i,$toskip)),nqp::elems($!list)),
+              nqp::stmts(
+                ($!i = nqp::elems($!list)),
+                0
+              )
+            )
+        }
+
+        method sink-all(--> IterationEnd) { $!i = nqp::elems($!list) }
+
+        method count-only(--> Int:D) {
+            nqp::elems($!list) - $!i - nqp::islt_i($!i,nqp::elems($!list))
+        }
+    }
+    method native_i(Mu \list --> Iterator:D) { native_i.new(list) }
+
+    # Class for iterating native num arrays and nqp::list_n
+    my class native_n does PredictiveIterator {
+        has $!list;
+        has int $!i;
+
+        method !SET-SELF(Mu \list) {
+            $!list := nqp::decont(list);
+            $!i     = -1;
+            self
+        }
+        method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+
+        method pull-one() is raw {
+            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+              ?? nqp::atposref_n($!list,$!i)
+              !! IterationEnd
+        }
+
+        method push-all(\target --> IterationEnd) {
+            my $list := $!list;
+            my int $i = $!i;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($list)),
+              target.push(nqp::atposref_n($list,$i))
+            );
+            $!i = $i;
+        }
+
+        method skip-one() {
+            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+        }
+
+        method skip-at-least(int $toskip) {
+            nqp::unless(
+              nqp::islt_i(($!i = nqp::add_i($!i,$toskip)),nqp::elems($!list)),
+              nqp::stmts(
+                ($!i = nqp::elems($!list)),
+                0
+              )
+            )
+        }
+
+        method sink-all(--> IterationEnd) { $!i = nqp::elems($!list) }
+
+        method count-only(--> Int:D) {
+            nqp::elems($!list) - $!i - nqp::islt_i($!i,nqp::elems($!list))
+        }
+    }
+    method native_n(Mu \list --> Iterator:D) { native_n.new(list) }
+
     # Returns an iterator for the next N values of given iterator.
     my class NextNValues does Iterator {
         has $!iterator;
         has int $!times;
-        method !SET-SELF($!iterator,$!times) { self }
-        method new(\iterator,\times) {
-            nqp::if(
-              nqp::istype(times,Whatever),
-              iterator,                   # * just give back itself
-              nqp::if(
-                times <= 0,               # must be HLL comparison
-                Rakudo::Iterator.Empty,   # negative is just nothing
-                nqp::if(
-                  nqp::istype(times,Int),
-                  nqp::if(
-                    nqp::isbig_I(nqp::decont(times)),
-                    iterator,             # big value = itself
-                    nqp::create(self)!SET-SELF(iterator,times)
-                  ),
-                  nqp::if(
-                    times == Inf,         # big value = itself
-                    iterator,
-                    nqp::create(self)!SET-SELF(iterator,times.Int)
-                  )
-                )
-              )
-            )
+        method !SET-SELF(\iterator, int $times) {
+            $!iterator := iterator;
+            $!times     = nqp::add_i($times,1);
+            self
+        }
+        method new(\iterator, \times) {
+            nqp::istype(times,Whatever)
+              ?? iterator                   # * just give back itself
+              !! times <= 0                 # must be HLL comparison
+                ?? Rakudo::Iterator.Empty   # negative is just nothing
+                !! nqp::istype(times,Int)
+                  ?? nqp::isbig_I(nqp::decont(times))
+                    ?? iterator             # big value = itself
+                    !! nqp::create(self)!SET-SELF(iterator,times)
+                  !! times == Inf           # big value = itself
+                    ?? iterator
+                    !! nqp::create(self)!SET-SELF(iterator,times.Int)
         }
         method pull-one() is raw {
-            nqp::if(
-              nqp::isgt_i($!times,0),
-              nqp::if(
-                nqp::eqaddr(
-                  (my \pulled := $!iterator.pull-one),
-                  IterationEnd
-                ),
-                nqp::stmts(
-                  ($!times = 0),
-                  IterationEnd
-                ),
-                nqp::stmts(
-                  ($!times = nqp::sub_i($!times,1)),
-                  pulled
-                )
-              ),
-              IterationEnd
-            )
+            ($!times = nqp::sub_i($!times,1))
+              ?? nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd)
+                ?? IterationEnd
+                !! pulled
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $iterator := $!iterator;
+            my int $times = $!times;
+            nqp::until(
+              nqp::not_i($times = nqp::sub_i($times,1))
+                || nqp::eqaddr((my \pulled := $iterator.pull-one),IterationEnd),
+              target.push(pulled)
+            );
         }
     }
-    method NextNValues(\iterator,\times) { NextNValues.new(iterator,times) }
+    method NextNValues(\iterator, \times) { NextNValues.new(iterator, times) }
 
     # Return an iterator that only will return the given value once.
     # Basically the same as 42 xx 1.
-    my class OneValue does Iterator {
+    my class OneValue does PredictiveIterator {
         has Mu $!value;
         method new(Mu \value) {
             nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
@@ -2527,6 +3153,9 @@ class Rakudo::Iterator {
         }
         method sink-all(--> IterationEnd) {
             $!value := IterationEnd
+        }
+        method count-only() {
+            nqp::not_i(nqp::eqaddr($!value,IterationEnd))
         }
     }
     method OneValue(Mu \value) { OneValue.new(value) }
@@ -2582,7 +3211,7 @@ class Rakudo::Iterator {
     # Return an iterator that will generate a pair with the index as the
     # key and as value the value of the given iterator, basically the
     # .pairs functionality on 1 dimensional lists.
-    my class PairIterator does Iterator {
+    my class Pairs does Iterator {
         has Mu $!iter;
         has int $!key;
 
@@ -2606,7 +3235,7 @@ class Rakudo::Iterator {
         }
         method is-lazy() { $!iter.is-lazy }
     }
-    method Pair(\iterator) { PairIterator.new(iterator) }
+    method Pairs(\iterator) { Pairs.new(iterator) }
 
     # Return an iterator for a given number of permutations.  Also specify
     # whether an IterationBuffer should be returned for each iteration (1),
@@ -2689,9 +3318,7 @@ class Rakudo::Iterator {
               IterationEnd
             )
         }
-        method count-only(--> Int:D) {
-            nqp::p6box_i(nqp::isgt_i($!todo,0) && $!todo)
-        }
+        method count-only(--> Int:D) { nqp::isgt_i($!todo,0) && $!todo }
     }
     method Permutations($n, int $b) {
         nqp::if(
@@ -2796,11 +3423,7 @@ class Rakudo::Iterator {
             )
         }
         method count-only(--> Int:D) {
-            nqp::p6box_i(
-              nqp::elems($!reified)
-                - $!i
-                - nqp::islt_i($!i,nqp::elems($!reified))
-            )
+            nqp::elems($!reified) - $!i - nqp::islt_i($!i,nqp::elems($!reified))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
@@ -2811,7 +3434,7 @@ class Rakudo::Iterator {
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements that don't exist
     # before the end of the reified list.
-    my class ReifiedListIterator does Iterator {
+    my class ReifiedListIterator does PredictiveIterator {
         has $!reified;
         has int $!i;
 
@@ -2886,16 +3509,152 @@ class Rakudo::Iterator {
             )
         }
         method count-only(--> Int:D) {
-            nqp::p6box_i(
-              nqp::elems($!reified)
-                - $!i
-                - nqp::islt_i($!i,nqp::elems($!reified))
-            )
+            nqp::elems($!reified) - $!i - nqp::islt_i($!i,nqp::elems($!reified))
         }
         method sink-all(--> IterationEnd) { $!i = nqp::elems($!reified) }
     }
     method ReifiedList(\list) {
         ReifiedListIterator.new(list)
+    }
+
+    # Return an iterator for a List/Array that has been completely reified,
+    # or an IterationBuffer, that will produce values in reverse order.  Takes
+    # a descriptor to create correct values for holes in the List/Array, use
+    # Mu to have holes returned as Nil.
+    my class ReifiedReverseIterator does PredictiveIterator {
+        has $!reified;
+        has $!descriptor;
+        has int $!i;
+
+        method !SET-SELF(\list, Mu \descriptor) {
+            $!reified := nqp::istype(list,List)
+              ?? nqp::getattr(list,List,'$!reified')
+              !! list;
+            $!descriptor := nqp::eqaddr(descriptor,Mu)
+              ?? nqp::null()
+              !! descriptor;
+            ($!i = nqp::elems($!reified))
+              ?? self
+              !! Rakudo::Iterator.Empty
+        }
+        method new(\list, Mu \des) { nqp::create(self)!SET-SELF(list, des) }
+
+        method !hole(int $i) is raw {
+            nqp::isnull($!descriptor)
+              ?? Nil
+              !! nqp::p6scalarfromdesc(
+                   ContainerDescriptor::BindArrayPos.new(
+                     $!descriptor, $!reified, $i
+                   )
+                 )
+        }
+
+        method pull-one() is raw {
+            nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
+              ?? nqp::ifnull(nqp::atpos($!reified,$!i),self!hole($!i))
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $reified := $!reified; # lexicals are faster than attributes
+            my int $i    = $!i;
+            nqp::while(  # doesn't sink
+              nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+              target.push(nqp::ifnull(nqp::atpos($reified,$i),self!hole($i)))
+            );
+            $!i = $i;
+        }
+        method skip-one() { nqp::isge_i(($!i = nqp::sub_i($!i,1)),0) }
+        method count-only(--> Int:D) { $!i + nqp::islt_i($!i,0) }
+        method sink-all(--> IterationEnd) { $!i = -1 }
+    }
+    method ReifiedReverse(\list, Mu \descriptor) {
+        ReifiedReverseIterator.new(list, descriptor)
+    }
+
+    # Return an iterator for a List/Array that has been completely reified,
+    # or an IterationBuffer, that will produce values in according to a given
+    # rotation value.  Takes a descriptor to create correct values for holes
+    # in the List/Array, use Mu to have holes returned as Nil.
+    my class ReifiedRotateIterator does PredictiveIterator {
+        has $!reified;
+        has $!descriptor;
+        has int $!todo;
+        has int $!i;
+
+        method !SET-SELF(int $rotate, \list, Mu \descriptor) {
+            $!reified := nqp::istype(list,List)
+              ?? nqp::getattr(list,List,'$!reified')
+              !! list;
+            $!descriptor := nqp::eqaddr(descriptor,Mu)
+              ?? nqp::null()
+              !! descriptor;
+
+            nqp::if(
+              ($!todo = my int $elems = nqp::elems($!reified)),
+              nqp::stmts(
+                ($!i = nqp::sub_i(nqp::mod_i(
+                  nqp::add_i(nqp::mod_i($rotate,$elems),$elems),
+                  $elems
+                ),1)),
+                self
+              ),
+              Rakudo::Iterator.Empty
+            )
+        }
+        method new(\rotate, \list, Mu \des) {
+            nqp::create(self)!SET-SELF(rotate, list, des)
+        }
+
+        method !hole(int $i) is raw {
+            nqp::isnull($!descriptor)
+              ?? Nil
+              !! nqp::p6scalarfromdesc(
+                   ContainerDescriptor::BindArrayPos.new(
+                     $!descriptor, $!reified, $i
+                   )
+                 )
+        }
+
+        method pull-one() is raw {
+            nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0)
+              ?? nqp::ifnull(
+                   nqp::atpos(
+                     $!reified,
+                     ($!i = nqp::mod_i(nqp::add_i($!i,1),nqp::elems($!reified)))
+                   ),
+                   self!hole($!i)
+                 )
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $reified  := $!reified; # lexicals are faster than attributes
+            my int $elems = nqp::elems($reified);
+            my int $todo  = $!todo;
+            my int $i     = $!i;
+
+            nqp::while(  # doesn't sink
+              nqp::isge_i(($todo = nqp::sub_i($todo,1)),0),
+              target.push(
+                nqp::ifnull(
+                  nqp::atpos(
+                    $reified,
+                    ($i = nqp::mod_i(nqp::add_i($i,1),$elems))
+                  ),
+                  self!hole($i)
+                )
+              )
+            );
+            $!todo = $todo;
+        }
+        method skip-one() {
+            $!i = nqp::mod_i(nqp::add_i($!i,1),nqp::elems($!reified));
+            nqp::isge_i(($!todo = nqp::sub_i($!todo,1)),0)
+        }
+        method count-only(--> Int:D) { $!todo + nqp::islt_i($!todo,0) }
+        method sink-all(--> IterationEnd) { $!todo = -1 }
+    }
+    method ReifiedRotate(\rotate, \list, Mu \descriptor) {
+        ReifiedRotateIterator.new(rotate, list, descriptor)
     }
 
     # Return a lazy iterator that will repeat the values of a given
@@ -2953,21 +3712,23 @@ class Rakudo::Iterator {
     # Returns an iterator that handles all properties of a -repeat- with
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition..
-    my class RepeatLoop does SlippyIterator {
+    my class RepeatLoop does Rakudo::SlippyIterator {
         has $!body;
         has $!cond;
+        has $!label;
         has int $!skip;
 
-        method !SET-SELF(\body,\cond) {
+        method !SET-SELF(\body,\cond,\label) {
             nqp::stmts(
               ($!body := body),
               ($!cond := cond),
+              ($!label := nqp::decont(label)),
               ($!skip = 1),
               self
             )
         }
-        method new(\body,\cond) {
-            nqp::create(self)!SET-SELF(body,cond)
+        method new(\body,\cond,\label) {
+            nqp::create(self)!SET-SELF(body,cond,label)
         }
 
         method pull-one() {
@@ -2993,6 +3754,7 @@ class Rakudo::Iterator {
                               IterationEnd
                             ) && nqp::if($!cond(),0,1))
                           ),
+                          'LABELED', $!label,
                           'NEXT', ($stopped = nqp::if($!cond(),0,1)),
                           'REDO', ($stopped = 0),
                           'LAST', ($result := IterationEnd)
@@ -3007,7 +3769,54 @@ class Rakudo::Iterator {
             }
         }
     }
-    method RepeatLoop(&body, &cond) { RepeatLoop.new(&body,&cond) }
+    method RepeatLoop(&body, &cond, $label) {
+        RepeatLoop.new(&body, &cond, $label)
+    }
+
+    # Return an iterator for a non-lazy iterator that rotates values for a
+    # given positive amount.  This will cache the given amount, and produce
+    # them at the end after the given iterator is exhausted.
+    my class RotateIterator does Iterator {
+        has $!iterator;
+        has $!rotated;
+
+        method !SET-SELF(int $rotate, \iterator) {
+
+            # set up values to be rotated
+            my $rotated := nqp::create(IterationBuffer);
+            nqp::until(
+              nqp::iseq_i(nqp::elems($rotated),$rotate),
+              nqp::if(
+                nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),
+                (return ReifiedRotateIterator.new($rotate, $rotated, Mu)),
+                nqp::push($rotated,pulled)
+              )
+            );
+
+            $!iterator := iterator;
+            $!rotated  := $rotated;
+            self
+        }
+        method new(\rot, \iter) { nqp::create(self)!SET-SELF(rot, iter) }
+
+        method !exhausted() is raw {
+            $!iterator := nqp::null;
+            nqp::shift($!rotated)
+        }
+
+        method pull-one() is raw {
+            nqp::isnull($!iterator)
+              ?? nqp::elems($!rotated)
+                ?? nqp::shift($!rotated)
+                !! IterationEnd
+              !! nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd)
+                ?? self!exhausted()
+                !! pulled
+        }
+    }
+    method Rotate(\rotate, \iterator) {
+        RotateIterator.new(rotate, iterator)
+    }
 
     # Return an iterator that rotorizes the given iterator with the
     # given cycle.  If the cycle is a Cool, then it is assumed to
@@ -3259,13 +4068,15 @@ class Rakudo::Iterator {
     my class SequentialIterators does Iterator {
         has $!source;
         has $!current;
-        method !SET-SELF(\source) {
-            nqp::stmts(
-              ($!current := ($!source := source).pull-one),
-              self
-            )
+        has $!is-lazy;
+        method !SET-SELF(\source, \is-lazy) {
+            ($!current := ($!source := source).pull-one);
+            $!is-lazy  := is-lazy;
+            self
         }
-        method new(\source) { nqp::create(self)!SET-SELF(source) }
+        method new(\source, \is-lazy) {
+            nqp::create(self)!SET-SELF(source, is-lazy)
+        }
         method pull-one() {
             nqp::if(
               nqp::eqaddr($!current,IterationEnd),
@@ -3283,8 +4094,11 @@ class Rakudo::Iterator {
               )
             )
         }
+        method is-lazy() { $!is-lazy }
     }
-    method SequentialIterators(\source) { SequentialIterators.new(source) }
+    method SequentialIterators(\source, Bool() $is-lazy = False) {
+        SequentialIterators.new(source, $is-lazy)
+    }
 
     # Return an iterator that generates all possible keys of the
     # given shape.  Each value generated is a reified List.  This is
@@ -3565,6 +4379,26 @@ class Rakudo::Iterator {
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method Toggle(\iter, \conds, $on) { Toggle.new(iter, conds, $on) }
+
+    # Return an iterator for the Truthy values of an iterator
+    my class Truthy does Iterator {
+        has Mu $!iterator;
+        method new(\iterator) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),self,'$!iterator',iterator)
+        }
+        method pull-one() is raw {
+            nqp::until(
+              nqp::eqaddr((my $pulled := $!iterator.pull-one),IterationEnd),
+              nqp::if(
+                $pulled,
+                return $pulled
+              )
+            );
+            IterationEnd
+        }
+    }
+    method Truthy(\iterator) { Truthy.new(iterator) }
 
     # Return an iterator that only will return the two given values.
     my class TwoValues does Iterator {
@@ -3890,19 +4724,21 @@ class Rakudo::Iterator {
     # Returns an iterator that handles all properties of a -while- with
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition.
-    my class WhileLoop does SlippyIterator {
+    my class WhileLoop does Rakudo::SlippyIterator {
         has $!body;
         has $!cond;
+        has $!label;
 
-        method !SET-SELF(\body,\cond) {
+        method !SET-SELF(\body,\cond,\label) {
             nqp::stmts(
               ($!body := body),
               ($!cond := cond),
+              ($!label := nqp::decont(label)),
               self
             )
         }
-        method new(\body,\cond) {
-            nqp::create(self)!SET-SELF(body,cond)
+        method new(\body,\cond,\label) {
+            nqp::create(self)!SET-SELF(body,cond,label)
         }
 
         method pull-one() {
@@ -3927,6 +4763,7 @@ class Rakudo::Iterator {
                               IterationEnd
                             ) && nqp::if($!cond(),0,1))
                           ),
+                          'LABELED', $!label,
                           'NEXT', ($stopped = nqp::if($!cond(),0,1)),
                           'REDO', ($stopped = 0),
                           'LAST', ($result := IterationEnd)
@@ -3940,8 +4777,11 @@ class Rakudo::Iterator {
                 )
             }
         }
+
     }
-    method WhileLoop(&body, &cond) { WhileLoop.new(&body,&cond) }
+    method WhileLoop(&body, &cond, $label) {
+        WhileLoop.new(&body, &cond, $label)
+    }
 
     # Return an iterator that will zip the given iterables (with &[,])
     # Basically the functionality of @a Z @b
@@ -4106,4 +4946,4 @@ class Rakudo::Iterator {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -22,3 +22,5 @@ my $allowed = (
 my $unknown = PROCESS::.keys (-) $allowed;
 diag "Found {+$unknown} unexpected entries: $unknown" unless
 ok $unknown == 0, "No unexpected entries in PROCESS::";
+
+# vim: expandtab shiftwidth=4

@@ -15,13 +15,10 @@ my role  Numeric { ... }
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu
 
-    multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
-    multi method ACCEPTS(Any:D: Mu:U $ --> False) { }
-
-    # use of Any on topic to force autothreading
-    # so that all(@foo) ~~ Type works as expected
-    multi method ACCEPTS(Any:U: Any \topic --> Bool:D) {
-        nqp::hllbool(nqp::istype(topic, self))
+    multi method ACCEPTS(Any:D: Mu:U --> False) { }
+    multi method ACCEPTS(Any:D: Mu:D \topic) {
+        # XXX: &[===] works with Any, not Mu!
+        self === topic
     }
 
     proto method EXISTS-KEY(|) is nodal {*}
@@ -571,25 +568,7 @@ multi sub item(\x)    { my $ = x }
 multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
-sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
-    @nogo.unshift('delete')  # recover any :delete if necessary
-      if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
-    for <delete exists kv p k v> -> $valid { # check all valid params
-        if nqp::existskey(%d,nqp::unbox_s($valid)) {
-            nqp::deletekey(%d,nqp::unbox_s($valid));
-            @nogo.push($valid);
-        }
-    }
-
-    Failure.new(X::Adverb.new(
-      :what<slice>,
-      :source(try { SELF.VAR.name } // SELF.WHAT.raku),
-      :unexpected(%d.keys),
-      :nogo(@nogo),
-    ))
-} #SLICE_HUH
-
-sub dd(|) {
+sub dd(|c) {  # is implementation-detail
 
     # handler for BOOTxxxArrays
     sub BOOTArray(Mu \array) {
@@ -637,6 +616,9 @@ sub dd(|) {
             note $name ?? "$type $name = $what" !! $what;
         }
     }
+    elsif c.hash -> %named {
+        note .raku for %named.sort: { .key }
+    }
     else { # tell where we are
         note .name
           ?? "{lc .^name} {.name}{.signature.gist}"
@@ -646,4 +628,4 @@ sub dd(|) {
     return
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -37,3 +37,5 @@ diag "Missing symbols: { @missing.sort }" if @missing;
 @unknown.push($_) unless %allowed{$_}:exists for SETTING::.keys;
 diag "Found {+@unknown} unexpected entries: { @unknown.sort }" if @unknown;
 ok @unknown == 0, "No unexpected entries in SETTING::";
+
+# vim: expandtab shiftwidth=4

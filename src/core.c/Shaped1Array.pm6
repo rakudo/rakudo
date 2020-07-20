@@ -168,7 +168,7 @@
             Seq.new(Rakudo::Iterator.KeyValue(self.iterator))
         }
         multi method pairs(::?CLASS:D:) {
-            Seq.new(Rakudo::Iterator.Pair(self.iterator))
+            Seq.new(Rakudo::Iterator.Pairs(self.iterator))
         }
         multi method antipairs(::?CLASS:D:) {
             Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
@@ -235,30 +235,19 @@
         }
         method iterator(::?CLASS:D: --> Iterator:D) { Iterate.new(self) }
 
-        method reverse(::?CLASS:D:) is nodal {
-            Seq.new(nqp::if(
-              (my int $elems = nqp::elems(
-                my $from := nqp::getattr(self,List,'$!reified')
-              )),
-              nqp::stmts(
-                (my int $last = nqp::sub_i($elems,1)),
-                (my int $i = -1),
-                (my $to := nqp::setelems(nqp::create(IterationBuffer),$elems)),
-                nqp::while(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos($to,nqp::sub_i($last,$i),
-                    nqp::decont(nqp::atpos($from,$i)))
-                ),
-                Rakudo::Iterator.ReifiedList($to)
-              ),
-              Rakudo::Iterator.Empty
-            ))
+        method reverse(::?CLASS:D: --> Seq:D) is nodal {
+            Seq.new: nqp::elems(nqp::getattr(self,List,'$!reified'))
+              ?? Rakudo::Iterator.ReifiedReverse(
+                   self, nqp::getattr(self,Array,'$!descriptor'))
+              !! Rakudo::Iterator.Empty
         }
-        method rotate(::?CLASS:D: Int(Cool) $rotate = 1) is nodal {
-            Rakudo::Internals.RotateListToList(
-              self, $rotate, self.new(:shape(self.shape)))
+
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
+            Seq.new: Rakudo::Iterator.ReifiedRotate(
+              $rotate, self, nqp::getattr(self,Array,'$!descriptor')
+            )
         }
         method sum() is nodal { self.List::sum }
     }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

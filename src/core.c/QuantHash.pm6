@@ -2,7 +2,7 @@ my role QuantHash does Associative {
 
     method keyof() { Mu }
 
-    method SET-SELF(QuantHash:D: \elems) {  # cannot be a private method
+    method SET-SELF(QuantHash:D: \elems) is implementation-detail {
         nqp::stmts(
           nqp::if(
             nqp::elems(elems),
@@ -50,4 +50,4 @@ my role QuantHash does Associative {
     method Hash() { ... }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

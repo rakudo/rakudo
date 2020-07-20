@@ -6,56 +6,61 @@ my class Capture { # declared in BOOTSTRAP
     method from-args(|c) { c }
 
     submethod BUILD(:@list, :%hash --> Nil) {
-        @list.elems; # force reification of all
+        my Int:D $elems = @list.elems; # force reification of all
         nqp::bindattr(self, Capture, '@!list',
-            nqp::getattr(nqp::decont(@list.list), List, '$!reified')
-        );
+          nqp::getattr(nqp::decont(@list.list), List, '$!reified'))
+            if $elems;
         nqp::bindattr(self,Capture,'%!hash',
           nqp::getattr(nqp::decont(%hash),Map,'$!storage'))
             if nqp::attrinited(nqp::decont(%hash),Map,'$!storage')
     }
 
     multi method WHICH (Capture:D: --> ValueObjAt:D) {
-        my str $WHICH = nqp::istype(self.WHAT,Capture)
-          ?? 'Capture'
-          !! self.^name;
-        if !nqp::isnull(@!list) && @!list {
-            $WHICH ~= '|';
-            for nqp::hllize(@!list) -> \elem {
-                $WHICH ~= ( '(' ~ elem.VAR.WHICH ~ ')' )
+        my Mu $WHICH := nqp::list_s(nqp::eqaddr(self.WHAT,Capture) ?? 'Capture' !! nqp::unbox_s(self.^name));
+        if nqp::isconcrete(@!list) && nqp::elems(@!list) {
+            nqp::push_s($WHICH, '|');
+            my Mu $iter := nqp::iterator(@!list);
+            while $iter {
+                my Mu \value = nqp::shift($iter);
+                nqp::push_s($WHICH, '(');
+                nqp::push_s($WHICH, nqp::unbox_s(value.VAR.WHICH));
+                nqp::push_s($WHICH, ')');
             }
         }
-        if !nqp::isnull(%!hash) && %!hash {
-            $WHICH ~= '|';
-            $WHICH ~= ( $_ ~ '(' ~ nqp::atkey(%!hash, nqp::unbox_s($_)).WHICH ~ ')' )
-              for nqp::hllize(%!hash).keys.sort;
+        if nqp::isconcrete(%!hash) && nqp::elems(%!hash) {
+            nqp::push_s($WHICH, '|');
+            for nqp::hllize(%!hash).keys.sort -> str \key {
+                nqp::push_s($WHICH, key);
+                nqp::push_s($WHICH, '(');
+                nqp::push_s($WHICH, nqp::unbox_s(nqp::atkey(%!hash,key).WHICH));
+                nqp::push_s($WHICH, ')');
+            }
         }
-        nqp::box_s($WHICH,ValueObjAt)
+        nqp::box_s(nqp::join('',$WHICH),ValueObjAt)
     }
 
     multi method AT-KEY(Capture:D: Str:D \key) is raw {
         nqp::if(
-          (nqp::isnull(%!hash) || !nqp::defined(%!hash)),
-          Nil,
-          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil)
-        )
+          nqp::isconcrete(%!hash),
+          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil),
+          Nil)
     }
     multi method AT-KEY(Capture:D: \key) is raw {
         nqp::if(
-          (nqp::isnull(%!hash) || !nqp::defined(%!hash)),
-          Nil,
-          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil)
-        )
+          nqp::isconcrete(%!hash),
+          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil),
+          Nil)
     }
 
-    multi method AT-POS(Capture:D: int \pos) is raw {
-        nqp::islt_i(pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-          !! nqp::ifnull(nqp::atpos(@!list,pos),Nil)
-    }
     multi method AT-POS(Capture:D: Int:D \pos) is raw {
         my int $pos = nqp::unbox_i(pos);
+        nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          !! nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
+    }
+    multi method AT-POS(Capture:D: \pos) is raw {
+        my int $pos = nqp::unbox_i(pos.Int);
         nqp::islt_i($pos,0)
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
@@ -70,11 +75,30 @@ my class Capture { # declared in BOOTSTRAP
         )
     }
 
-    multi method EXISTS-KEY(Capture:D: Str:D \key ) {
-        nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key)));
+    multi method EXISTS-KEY(Capture:D: Str:D \key) {
+        nqp::if(
+          nqp::isconcrete(%!hash),
+          nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key))),
+          False)
     }
-    multi method EXISTS-KEY(Capture:D: \key ) {
-        nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str)));
+    multi method EXISTS-KEY(Capture:D: \key) {
+        nqp::if(
+          nqp::isconcrete(%!hash),
+          nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str))),
+          False)
+    }
+
+    multi method EXISTS-POS(Capture:D: Int:D \pos) {
+        nqp::if(
+          nqp::isconcrete(@!list),
+          nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos))),
+          False)
+    }
+    multi method EXISTS-POS(Capture:D: \pos) {
+        nqp::if(
+          nqp::isconcrete(@!list),
+          nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos.Int))),
+          False)
     }
 
     method list(Capture:D:) {
@@ -102,26 +126,51 @@ my class Capture { # declared in BOOTSTRAP
                 nqp::push_s($str, nqp::unbox_s((nqp::p6box_s(nqp::iterkey_s($kv)) => nqp::iterval($kv).Str).Str));
             }
         }
-        nqp::p6box_s(nqp::join(' ', $str))
+        nqp::join(' ', $str)
     }
-    multi method gist(Capture:D:) { self.Capture::perl }
+
+    multi method gist(Capture:D:) { self.Capture::raku }
+
     multi method raku(Capture:D:) {
-        my %hash := self.Capture::hash;
-        if self.^name eq 'Capture' {
-            "\\({
-                join ', ',
-                    ((nqp::atpos(@!list, $_).raku for ^nqp::elems(@!list)) if @!list),
-                    %hash.sort.map( *.raku )
-            })";
+        my int $has-list  = nqp::isconcrete(@!list) && nqp::elems(@!list);
+        my int $has-hash  = nqp::isconcrete(%!hash) && nqp::elems(%!hash);
+        my Mu  $raku     := nqp::list_s();
+        if nqp::eqaddr(self.WHAT, Capture) {
+            nqp::push_s($raku, '\(');
+            if $has-list {
+                my Mu $iter := nqp::iterator(@!list);
+                nqp::push_s($raku, nqp::unbox_s(nqp::shift($iter).raku));
+                nqp::push_s($raku, nqp::concat(', ', nqp::unbox_s(nqp::shift($iter).raku))) while $iter;
+                nqp::push_s($raku, ', ') if $has-hash;
+            }
+            if $has-hash {
+                nqp::push_s($raku,
+                    nqp::unbox_s(self.Capture::hash.sort.map(*.raku).join(', ')));
+            }
+            nqp::push_s($raku, ')');
         } else {
-            self.^name
-              ~ '.new('
-              ~ ( 'list => (' ~ (nqp::atpos(@!list, $_).raku for ^nqp::elems(@!list)).join(', ') ~ ',)' if @!list)
-              ~ (', ' if +@!list and +%hash)
-              ~ ( 'hash => {' ~ %hash.sort.map( *.raku ).join(', ') ~ '}' if +%hash)
-              ~ ')';
+            nqp::push_s($raku, nqp::concat(nqp::unbox_s(self.^name), '.new'));
+            if $has-list || $has-hash {
+                nqp::push_s($raku, '(');
+                if $has-list {
+                    my Mu $iter := nqp::iterator(@!list);
+                    nqp::push_s($raku, 'list => (');
+                    nqp::push_s($raku, nqp::unbox_s(nqp::shift($iter).raku));
+                    nqp::push_s($raku, nqp::concat(', ', nqp::unbox_s(nqp::shift($iter).raku))) while $iter;
+                    nqp::push_s($raku, ')');
+                    nqp::push_s($raku, ', ') if $has-hash;
+                }
+                if $has-hash {
+                    nqp::push_s($raku, 'hash => {');
+                    nqp::push_s($raku, nqp::unbox_s(self.Capture::hash.sort.map(*.raku).join(', ')));
+                    nqp::push_s($raku, '}');
+                }
+                nqp::push_s($raku, ')');
+            }
         }
+        nqp::join('', $raku)
     }
+
     multi method Bool(Capture:D:) {
         nqp::hllbool(
           nqp::elems(@!list) || nqp::elems(%!hash)
@@ -136,10 +185,10 @@ my class Capture { # declared in BOOTSTRAP
         self.Capture::elems
     }
 
-    method FLATTENABLE_LIST() is raw {
+    method FLATTENABLE_LIST() is raw is implementation-detail {
         nqp::if(nqp::isconcrete(@!list),@!list,nqp::list)
     }
-    method FLATTENABLE_HASH() is raw {
+    method FLATTENABLE_HASH() is raw is implementation-detail {
         nqp::if(nqp::isconcrete(%!hash),%!hash,nqp::hash)
     }
 
@@ -160,12 +209,13 @@ my class Capture { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Capture:D \a, Capture:D \b) {
+multi sub infix:<eqv>(Capture:D \a, Capture:D \b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a,b)
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
         || (nqp::eqaddr(a.WHAT,b.WHAT)
-             && a.Capture::list eqv b.Capture::list && a.Capture::hash eqv b.Capture::hash)
+             && a.Capture::list eqv b.Capture::list
+             && a.Capture::hash eqv b.Capture::hash)
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

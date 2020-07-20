@@ -21,6 +21,7 @@ The overall approach to RakuAST is to:
    of the ASTs.
 2. Then see about having alternative actions/world that, if an env var is set,
    produce RakuAST and compile from that. (This is where we are right now.)
+   Currently, this variable is `RAKUDO_RAKUAST`.
 3. Gradually work our way through passing the Rakudo tests with that env var set.
 4. And then the spectests.
 5. And then make it the default (hopefully this means we will have few problems

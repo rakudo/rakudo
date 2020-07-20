@@ -197,7 +197,7 @@ class CompUnit::PrecompilationStore::File
     method unlock() {
         if $!wont-lock || $!lock-count == 0 {
             Nil
-        }        
+        }
         else {
             LEAVE $!update-lock.unlock;
             die "unlock when we're not locked!" if $!lock-count == 0;
@@ -320,7 +320,7 @@ class CompUnit::PrecompilationStore::File
       Str:D :$extension = ''
     ) {
         my $file := self!file($compiler-id, $precomp-id, :$extension);
-        $path.rename($file) if $file.e;
+        try $path.rename($file);
     }
 
     method store-unit(
@@ -330,8 +330,7 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $precomp-file := self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
-        $precomp-file.rename(self!file($compiler-id, $precomp-id))
-          if $precomp-file.e;
+        try $precomp-file.rename(self!file($compiler-id, $precomp-id));
         self.remove-from-cache($precomp-id);
     }
 
@@ -342,8 +341,7 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
         $repo-id-file.spurt($repo-id);
-        $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>)
-          if $repo-id-file.e;
+        try $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
     }
 
     method delete(

@@ -39,6 +39,16 @@ my role PositionalBindFailover { ... }
 BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);
 nqp::bindhllsym('Raku', 'Iterable', Iterable);
 
+BEGIN {
+    # Ensure routines with traits using mixins applied to them typecheck as Callable.
+    Code.^add_role: Callable;
+    # Compose routine types used in the setting so traits using mixins can be
+    # applied to them.
+    Sub.^compose;
+    Method.^compose;
+    Submethod.^compose;
+}
+
 # Set up Empty, which is a Slip created with an empty IterationBuffer (which
 # we also stub here). This is needed in a bunch of simple constructs (like if
 # with only one branch).

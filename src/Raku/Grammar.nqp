@@ -468,6 +468,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym><.kok> <block>
     }
 
+    rule statement_control:sym<CATCH> { <sym> <block> }
+    rule statement_control:sym<CONTROL> { <sym> <block> }
+
     ##
     ## Statement prefixes
     ##

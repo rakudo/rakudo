@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 46;
+plan 50;
 
 {
     my $x = 12;
@@ -551,3 +551,45 @@ plan 46;
     $a = 4;
     is-deeply EVAL($ast), 'another', 'No when statement matching gives default';
 }
+
+{
+    my $handled = False;
+    is-deeply EVAL(RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('die'),
+                    args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('oops'))
+            )),
+            RakuAST::Statement::Catch.new(body => RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Default.new(body => RakuAST::Block.new(
+                        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            RakuAST::ApplyPostfix.new(
+                                operand => RakuAST::Var::Lexical.new('$handled'),
+                                postfix => RakuAST::Postfix.new('++')
+                        )))))
+            )))))
+        )))),
+        Nil,
+        'Block with CATCH/default handles exception and evalutes to Nil';
+    ok $handled, 'The exception handler ran';
+    is $!, 'oops', '$! in the outer scope has the exception';
+}
+
+throws-like
+    {
+        EVAL(RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('die'),
+                    args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('gosh'))
+            )),
+            RakuAST::Statement::Catch.new(body => RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new()
+            )))
+        ))));
+    },
+    X::AdHoc,
+    message => /gosh/,
+    'Exception is rethrown if unhandled';

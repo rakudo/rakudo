@@ -255,6 +255,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make self.r('Statement', 'Default').new(body => $<block>.ast);
     }
 
+    method statement_control:sym<CATCH>($/) {
+        make self.r('Statement', 'Catch').new(body => $<block>.ast);
+    }
+
+    method statement_control:sym<CONTROL>($/) {
+        make self.r('Statement', 'Control').new(body => $<block>.ast);
+    }
+
     ##
     ## Statement prefixes
     ##

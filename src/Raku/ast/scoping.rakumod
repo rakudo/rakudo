@@ -107,6 +107,12 @@ class RakuAST::LexicalScope is RakuAST::Node {
         Nil
     }
 
+    # This is only accurate after resolution - but since we only need it at
+    # code-gen time, that's fine.
+    method IMPL-HAS-CATCH-HANDLER() {
+        $!catch-handlers ?? True !! False
+    }
+
     method clear-handler-attachments() {
         nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 0);
         nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', Mu);

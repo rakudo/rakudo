@@ -362,22 +362,45 @@ class RakuAST::VarDeclaration::Implicit::Special is RakuAST::VarDeclaration::Imp
 # Implicit topic parameter declaration.
 class RakuAST::VarDeclaration::Implicit::TopicParameter is RakuAST::VarDeclaration::Implicit {
     has Bool $.required;
+    has Bool $.exception;
 
-    method new(Bool :$required) {
+    method new(Bool :$required, Bool :$exception) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$_');
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
         nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::TopicParameter, '$!required',
             $required // False);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Implicit::TopicParameter, '$!exception',
+            $exception // False);
         $obj
     }
 
     method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
-        my $param := QAST::Var.new( :decl('param'), :scope('lexical'), :name('$_') );
-        unless $!required {
-            $param.default(QAST::Op.new(:op('getlexouter'), QAST::SVal.new(:value('$_'))));
+        if $!exception {
+            QAST::Stmts.new(
+                QAST::Var.new( :decl('param'), :scope('local'), :name('EXCEPTION') ),
+                QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :decl('var'), :scope('lexical'), :name('$_') ),
+                    QAST::Op.new(
+                        :op('call'), :name('&EXCEPTION'),
+                        QAST::Var.new( :scope('local'), :name('EXCEPTION') )
+                    )
+                ),
+                QAST::Op.new(
+                    :op('p6assign'),
+                    QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$!') ) ),
+                    QAST::Var.new( :scope('lexical'), :name('$_') )
+                )
+            )
         }
-        $param
+        else {
+            my $param := QAST::Var.new( :decl('param'), :scope('lexical'), :name('$_') );
+            unless $!required {
+                $param.default(QAST::Op.new(:op('getlexouter'), QAST::SVal.new(:value('$_'))));
+            }
+            $param
+        }
     }
 }
 

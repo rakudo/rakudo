@@ -6,6 +6,8 @@ class RakuAST::LexicalScope is RakuAST::Node {
 
     # Handlers related to this scope.
     has int $!need-succeed-handler;
+    has Mu $!catch-handlers;
+    has Mu $!control-handlers;
 
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
@@ -21,6 +23,22 @@ class RakuAST::LexicalScope is RakuAST::Node {
         # Visit declarations.
         for self.IMPL-UNWRAP-LIST(self.lexical-declarations()) {
             $stmts.push($_.IMPL-QAST-DECL($context));
+        }
+
+        # If there's handler block declarations, add those.
+        if $!catch-handlers {
+            $stmts.push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :decl('var'), :name('__CATCH_HANDLER'), :scope('lexical') ),
+                $!catch-handlers[0].body.IMPL-CLOSURE-QAST()
+            ));
+        }
+        if $!control-handlers {
+            $stmts.push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :decl('var'), :name('__CONTROL_HANDLER'), :scope('lexical') ),
+                $!control-handlers[0].body.IMPL-CLOSURE-QAST()
+            ));
         }
 
         $stmts
@@ -69,21 +87,90 @@ class RakuAST::LexicalScope is RakuAST::Node {
         Nil
     }
 
-    method clear-handler-attachments() {
-        nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 0);
+    method attach-catch-handler(RakuAST::Statement::Catch $catch) {
+        if $!catch-handlers {
+            nqp::push($!catch-handlers, $catch);
+        }
+        else {
+            nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', [$catch]);
+        }
         Nil
     }
 
-    method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements) {
-        if $!need-succeed-handler {
+    method attach-control-handler(RakuAST::Statement::Control $control) {
+        if $!control-handlers {
+            nqp::push($!control-handlers, $control);
+        }
+        else {
+            nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', [$control]);
+        }
+        Nil
+    }
+
+    method clear-handler-attachments() {
+        nqp::bindattr_i(self, RakuAST::LexicalScope, '$!need-succeed-handler', 0);
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!catch-handlers', Mu);
+        nqp::bindattr(self, RakuAST::LexicalScope, '$!control-handlers', Mu);
+        Nil
+    }
+
+    method IMPL-WRAP-SCOPE-HANDLER-QAST(RakuAST::IMPL::QASTContext $context, Mu $statements,
+                                        Bool :$is-handler) {
+        # If it's an exception handler, add rethrow logic.
+        if $is-handler {
+            $statements := QAST::Stmts.new(
+                # Set up a generic exception rethrow, so that exception handlers
+                # from unwanted frames will get skipped if the code in our handler
+                # throws an exception.
+                QAST::Op.new(
+                    :op('handle'),
+                    $statements,
+                    'CATCH',
+                    QAST::Op.new(
+                        :op('rethrow'),
+                        QAST::Op.new( :op('exception') )
+                    )
+                ),
+                # Otherwise, rethrow the exception if we reach the end of the handler
+                # without `succeed`ing (that handler is wrapped outside of this one,
+                # just below)
+                QAST::Op.new(
+                    :op('rethrow'),
+                    QAST::Var.new( :name('EXCEPTION'), :scope('local') )
+                )
+            );
+        }
+
+        # Now wrap our own handlers.
+        if $!need-succeed-handler || $!catch-handlers || $!control-handlers {
             my $handle := QAST::Op.new( :op('handle'), $statements );
-            $handle.push('SUCCEED');
-            $handle.push(QAST::Op.new( :op('getpayload'), QAST::Op.new( :op('exception') ) ));
+            if $!need-succeed-handler {
+                $handle.push('SUCCEED');
+                $handle.push(QAST::Op.new( :op('getpayload'), QAST::Op.new( :op('exception') ) ));
+            }
+            if $!catch-handlers {
+                self.IMPL-ADD-HANDLER($handle, 'CATCH');
+            }
+            if $!control-handlers {
+                self.IMPL-ADD-HANDLER($handle, 'CONTROL');
+            }
             $handle
         }
         else {
             $statements
         }
+    }
+
+    method IMPL-ADD-HANDLER(Mu $handle, str $handler) {
+        $handle.push($handler);
+        $handle.push(QAST::Stmt.new(
+            QAST::Op.new(
+                :op('call'),
+                QAST::Var.new( :name('__' ~ $handler ~ '_HANDLER'), :scope('lexical') ),
+                QAST::Op.new( :op('exception') )
+            ),
+            QAST::WVal.new( :value(Nil) )
+        ));
     }
 }
 

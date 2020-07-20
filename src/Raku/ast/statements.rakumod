@@ -21,9 +21,9 @@ class RakuAST::Statement is RakuAST::Blorst {
 
 # Some nodes cause their child nodes to gain an implicit, or even required,
 # topic. They can supply a callback to do that during resolution.
-class RakuAST::ImplicitTopicProvider is RakuAST::Node {
-    method apply-implicit-topic() {
-        nqp::die('apply-implicit-topic not implemented by ' ~ self.HOW.name(self));
+class RakuAST::ImplicitBlockSemanticsProvider is RakuAST::Node {
+    method apply-implicit-block-semantics() {
+        nqp::die('apply-implicit-block-semantics not implemented by ' ~ self.HOW.name(self));
     }
 }
 
@@ -154,7 +154,7 @@ class RakuAST::IMPL::ImmediateBlockUser is RakuAST::Node {
 # An if conditional, with optional elsif/orwith/else parts.
 class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
                              is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
-                             is RakuAST::ImplicitTopicProvider {
+                             is RakuAST::ImplicitBlockSemanticsProvider {
     has RakuAST::Expression $.condition;
     has RakuAST::Expression $.then;
     has Mu $!elsifs;
@@ -175,7 +175,7 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
         self.IMPL-WRAP-LIST($!elsifs)
     }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         my int $last-was-with;
         if self.IMPL-QAST-TYPE eq 'with' {
             $last-was-with := 1;
@@ -185,7 +185,7 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
             $!then.set-implicit-topic(False, :required);
         }
         for $!elsifs {
-            $_.apply-implicit-topic();
+            $_.apply-implicit-block-semantics();
             $last-was-with := $_.IMPL-QAST-TYPE eq 'with';
         }
         if $!else {
@@ -281,7 +281,7 @@ class RakuAST::Statement::Elsif {
         $obj
     }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         $!then.set-implicit-topic(False);
     }
 
@@ -293,7 +293,7 @@ class RakuAST::Statement::Elsif {
 class RakuAST::Statement::Orwith is RakuAST::Statement::Elsif {
     method IMPL-QAST-TYPE() { 'with' }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         self.then.set-implicit-topic(True, :required);
     }
 }
@@ -301,7 +301,7 @@ class RakuAST::Statement::Orwith is RakuAST::Statement::Elsif {
 # An unless statement control.
 class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLookups
                                  is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
-                                 is RakuAST::ImplicitTopicProvider {
+                                 is RakuAST::ImplicitBlockSemanticsProvider {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -312,7 +312,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
         $obj
     }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         $!body.set-implicit-topic(False);
     }
 
@@ -346,7 +346,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
 # A without statement control.
 class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLookups
                                   is RakuAST::SinkPropagator is RakuAST::IMPL::ImmediateBlockUser
-                                  is RakuAST::ImplicitTopicProvider {
+                                  is RakuAST::ImplicitBlockSemanticsProvider {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
@@ -357,7 +357,7 @@ class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLook
         $obj
     }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         $!body.set-implicit-topic(True, :required);
     }
 
@@ -394,7 +394,7 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
                                is RakuAST::Sinkable is RakuAST::SinkPropagator
                                is RakuAST::BlockStatementSensitive
                                is RakuAST::IMPL::ImmediateBlockUser
-                               is RakuAST::ImplicitTopicProvider {
+                               is RakuAST::ImplicitBlockSemanticsProvider {
     # The setup expression for the loop.
     has RakuAST::Expression $.setup;
 
@@ -423,7 +423,7 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
     # Is the loop always executed once?
     method repeat() { False }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         $!body.set-implicit-topic(False);
     }
 
@@ -509,7 +509,7 @@ class RakuAST::Statement::Loop::RepeatUntil is RakuAST::Statement::Loop {
 class RakuAST::Statement::For is RakuAST::Statement
                               is RakuAST::Sinkable is RakuAST::SinkPropagator
                               is RakuAST::BlockStatementSensitive
-                              is RakuAST::ImplicitTopicProvider {
+                              is RakuAST::ImplicitBlockSemanticsProvider {
     # The thing to iterate over.
     has RakuAST::Expression $.source;
 
@@ -541,7 +541,7 @@ class RakuAST::Statement::For is RakuAST::Statement
         $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
     }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         $!body.set-implicit-topic(True, :required);
     }
 
@@ -608,7 +608,7 @@ class RakuAST::Statement::For is RakuAST::Statement
 
 # A given statement.
 class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
-                                is RakuAST::ImplicitTopicProvider {
+                                is RakuAST::ImplicitBlockSemanticsProvider {
     # The thing to topicalize.
     has RakuAST::Expression $.source;
 
@@ -627,7 +627,7 @@ class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
         $!body.body.apply-sink($is-sunk);
     }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         $!body.set-implicit-topic(True, :required);
     }
 
@@ -648,7 +648,7 @@ class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
 # A when statement, smart-matching the topic against the specified expression,
 # with `succeed`/`proceed` handling.
 class RakuAST::Statement::When is RakuAST::Statement is RakuAST::SinkPropagator
-                               is RakuAST::ImplicitTopicProvider is RakuAST::ImplicitLookups
+                               is RakuAST::ImplicitBlockSemanticsProvider is RakuAST::ImplicitLookups
                                is RakuAST::Attaching {
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
@@ -660,7 +660,7 @@ class RakuAST::Statement::When is RakuAST::Statement is RakuAST::SinkPropagator
         $obj
     }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         $!body.set-implicit-topic(False);
     }
 
@@ -709,7 +709,7 @@ class RakuAST::Statement::When is RakuAST::Statement is RakuAST::SinkPropagator
 
 # A default statement.
 class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagator
-                                  is RakuAST::ImplicitTopicProvider is RakuAST::Attaching {
+                                  is RakuAST::ImplicitBlockSemanticsProvider is RakuAST::Attaching {
     has RakuAST::Block $.body;
 
     method new(RakuAST::Block :$body!) {
@@ -718,7 +718,7 @@ class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagat
         $obj
     }
 
-    method apply-implicit-topic() {
+    method apply-implicit-block-semantics() {
         $!body.set-implicit-topic(False);
     }
 
@@ -745,5 +745,70 @@ class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagat
 
     method visit-children(Code $visitor) {
         $visitor($!body);
+    }
+}
+
+# The commonalities of exception handlers (CATCH and CONTROL).
+class RakuAST::Statement::ExceptionHandler is RakuAST::Statement is RakuAST::SinkPropagator
+                                           is RakuAST::ImplicitBlockSemanticsProvider
+                                           is RakuAST::ImplicitLookups {
+    has RakuAST::Block $.body;
+
+    method new(RakuAST::Block :$body!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::ExceptionHandler, '$!body', $body);
+        $obj
+    }
+
+    method apply-implicit-block-semantics() {
+        $!body.set-implicit-topic(True, :exception);
+        $!body.set-fresh-variables(:match, :exception);
+    }
+
+    method propagate-sink(Bool $is-sunk) {
+        $!body.body.apply-sink(True);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        @lookups[0].IMPL-TO-QAST($context)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!body);
+    }
+}
+
+# A CATCH statement.
+class RakuAST::Statement::Catch is RakuAST::Statement::ExceptionHandler is RakuAST::Attaching {
+    method attach(RakuAST::Resolver $resolver) {
+        my $block := $resolver.find-attach-target('block') //
+            $resolver.find-attach-target('compunit');
+        if $block {
+            $block.attach-catch-handler(self);
+        }
+        else {
+            nqp::die('CATCH found no enclosing block to attach to');
+        }
+    }
+}
+
+# A CONTROL statement.
+class RakuAST::Statement::Control is RakuAST::Statement::ExceptionHandler is RakuAST::Attaching {
+    method attach(RakuAST::Resolver $resolver) {
+        my $block := $resolver.find-attach-target('block') //
+            $resolver.find-attach-target('compunit');
+        if $block {
+            $block.attach-control-handler(self);
+        }
+        else {
+            nqp::die('CONTROL found no enclosing block to attach to');
+        }
     }
 }

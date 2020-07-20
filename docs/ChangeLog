@@ -1,3 +1,40 @@
+New in 2020.07:
+  + Fixes:
+    + Improve "Method not found" error message for some rare cases [0a86798f]
+    + Fix calling `.say`/`.put`/`.note` methods on Match objects [9f546ef6]
+    + Add word wrapping to numerous error messages, improve wording
+      [eb589c03][1b84e036][3cb29a03][6db1fb1d][80aaede3][42031860][f70a3ccd]
+      [3ffed2fb][a7a1fe24][cd8846ad][83a126b3][3add8615][3d9a9fc4][697596fd]
+      [56e5f7dc][88b0e7a3][7a93c907][f550c9f9][a4b982cd][93963433][58685eeb]
+      [5f423a7e][92f8c19b][5627e02b][5b7ecdc0][a7455050][f96a641f][1f93724f]
+      [98c7e512][248664c6][3bc4fa90]
+    + Wordwrap `Mu.WHY` [16d24a21]
+    + Fix check for valid Raku module extension to be an exact match instead of suffix-like one [d4eef8d4]
+    + Fix result of `.raku` method called on a generic typed array [90f86d4c]
+  + Additions:
+    + Set equality operators: `(==)` Unicode `≡` and `≢` which allow to check
+      for sameness of the operands using QuantHash semantics
+      (for example, `1,2,3 (==) 3,1,2` returns `True`) [701f4cfb][dbd69ba7]
+    + Add support for Supply.tail(*) and .tail(Inf) [9ccfc90e]
+    + Add support for Supply.tail(*-3) [eaa72afa]
+    + Make `Supply.head(*-3)` consistent with `List.head(*-3)` [5c8c7324][70e5cfb9]
+    + Rakudo now supports the `--rakudo-home` command line option to specify the path of the Rakudo home [914bcbad]
+  + Efficiency:
+    + Make <a b c d>.permutations between 23 and 85x faster [682a4d4f]
+    + Make IO::Handle.read(1) about 3x as fast and consuming less memory [2946ed64][252b9349]
+  + Internal:
+    + Micro-optimize `buf8.new` creation code in compiler [ed936c14]
+    + Give `Supply.tail` its own candidate [1a91af8c]
+    + Add `Str.naive-word-wrapper` (implementation detail)
+      [056d6a4e][9ea66e13][6db1fb1d][45893495][821f582f][3674f812]
+    + Make `IO::Path` use its own `.succ` / `.pred` logic [305fc7bd]
+    + Remove placeholder files [07009cc0]
+    + Re-imagine `CompUnit::Repository::FileSystem!distribution` [f3b1c8df]
+    + Change `perl6` to `Raku` in nqp-configure submodule URL [ddebab5a]
+    + Refactor `Rakudo home` and `NQP home` handling [e4f020ca]
+    + Do core setting name mapping via compiler config [6e087e13]
+    + Fix for spectest not seeing Inline::Perl5 [d5630720]
+
 New in 2020.06:
   + SPECIAL NOTES:
     + Results of `dir` routine called with dirty base path are presented

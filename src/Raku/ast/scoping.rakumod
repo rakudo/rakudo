@@ -202,7 +202,7 @@ class RakuAST::Lookup is RakuAST::Node {
     method resolution() {
         nqp::isconcrete($!resolution)
             ?? $!resolution
-            !! nqp::die('This element has not been resolved')
+            !! nqp::die('This element has not been resolved. Type: ' ~ self.HOW.name(self))
     }
 
     method set-resolution(RakuAST::Declaration $resolution) {

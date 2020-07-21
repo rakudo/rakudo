@@ -170,11 +170,6 @@ my class X::Method::NotFound is Exception {
         my @tips;
         my $indirect-method = "";
 
-        if $.method.starts-with("!") && !$.private {
-            $indirect-method = $.method.substr(1);
-            @tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
-        }
-
         my %suggestions;
         my int $max_length = do given $.method.chars {
             when 0..3 { 1 }
@@ -218,6 +213,11 @@ my class X::Method::NotFound is Exception {
                     %suggestions{"!$method_name"} = ~$dist;
                 }
             }
+        }
+
+        if $.method.starts-with("!") && !$.private && $private_suggested {
+            $indirect-method = $.method.substr(1);
+            @tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
         }
 
         if +%suggestions == 1 {

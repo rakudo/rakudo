@@ -788,7 +788,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi', -> $capture {
     # result.
     my int $onlystar := nqp::getattr_i($target, Routine, '$!onlystar');
     if nqp::elems(@filtered_candidates) == 2 &&
-            nqp::atpos($filtered_check_requirements, 0) == $REQUIRE_CHECK_NONE {
+            nqp::atpos_i($filtered_check_requirements, 0) == $REQUIRE_CHECK_NONE {
         # Simple case where we have a single group with a single filtered
         # candidate, which was chosen based on guardable properties and has
         # no late-bound checks to do.

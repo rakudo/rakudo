@@ -282,19 +282,169 @@
         nqp::assign($cont, $value)
     }
 
+    my $assign-scalar-no-whence-no-typecheck := -> $cont, $value {
+        nqp::bindattr($cont, Scalar, '$!value', $value)
+    }
+
+    my $assign-scalar-nil-no-whence := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        nqp::bindattr($cont, Scalar, '$!value',
+            nqp::getattr($desc, ContainerDescriptor, '$!default'))
+    }
+
+    my $assign-scalar-no-whence := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
+        if nqp::istype($value, $type) {
+            nqp::bindattr($cont, Scalar, '$!value', $value);
+        }
+        else {
+            assign-type-error($desc, $value);
+        }
+    }
+
+    my $assign-scalar-bindpos-no-typecheck := -> $cont, $value {
+        nqp::bindattr($cont, Scalar, '$!value', $value);
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        nqp::bindpos(
+            nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),
+            nqp::getattr_i($desc, ContainerDescriptor::BindArrayPos, '$!pos'),
+            $cont);
+        nqp::bindattr($cont, Scalar, '$!descriptor',
+            nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor'));
+    }
+
+    my $assign-scalar-bindpos := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor');
+        my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
+        if nqp::istype($value, $type) {
+            nqp::bindattr($cont, Scalar, '$!value', $value);
+            nqp::bindpos(
+                nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),
+                nqp::getattr_i($desc, ContainerDescriptor::BindArrayPos, '$!pos'),
+                $cont);
+            nqp::bindattr($cont, Scalar, '$!descriptor', $next);
+        }
+        else {
+            assign-type-error($next, $value);
+        }
+    }
+
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-assign', -> $capture {
         # Whatever we do, we'll guard on the type of the container and its
         # concreteness.
-        my $cont_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $cont_arg);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $cont_arg);
+        my $tracked-cont := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-cont);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked-cont);
 
-        # TODO optimized cases
+        # We have various fast paths for an assignment to a Scalar.
+        my int $optimized := 0;
+        my $cont := nqp::captureposarg($capture, 0);
+        if nqp::eqaddr(nqp::what_nd($cont), Scalar) && nqp::isconcrete_nd($cont) {
+            # Now see what the Scalar descriptor type is.
+            my $tracked-desc := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $tracked-cont, Scalar, '$!descriptor');
+            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+            my $tracked-value := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
+            my $value := nqp::captureposarg($capture, 1);
+            if nqp::eqaddr($desc.WHAT, ContainerDescriptor) && nqp::isconcrete($desc) {
+                # Simple assignment, no whence. But is Nil being assigned?
+                my $of := $desc.of;
+                if nqp::eqaddr($value, Nil) {
+                    # Yes; just copy in the default, provided we've a simple type.
+                    if $of.HOW.archetypes.nominal {
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-value);
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
+                        my $tracked-of := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                                $tracked-desc, ContainerDescriptor, '$!of');
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $tracked-of);
+                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                $capture, 0, $assign-scalar-nil-no-whence));
+                        $optimized := 1;
+                    }
+                }
+                else {
+                    # No whence, no Nil. Is it a nominal type? If yes, we can check
+                    # it here.
+                    if $of.HOW.archetypes.nominal && nqp::istype($value, $of) {
+                        # Nominal and passes type check; stack up gurads and delegate to
+                        # simple bind.
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
+                        my $tracked-of := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                                $tracked-desc, ContainerDescriptor, '$!of');
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $tracked-of);
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-value);
+                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                $capture, 0, $assign-scalar-no-whence-no-typecheck));
+                        $optimized := 1;
+                    }
+                    else {
+                        # Non-nominal or type check error.
+                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                $capture, 0, $assign-scalar-no-whence));
+                        $optimized := 1;
+                    }
+                }
+            }
+            elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) && nqp::isconcrete($desc) {
+                if nqp::eqaddr($value, Nil) {
+                    # Nil case is NYI.
+                }
+                else {
+                    # Assignment to an untyped container descriptor; no type check
+                    # is required, just bind the value into place.
+                    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
+                    nqp::dispatch('boot-syscall', 'dispatcher-guard-not-literal-obj',
+                        $tracked-value, Nil);
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            $capture, 0, $assign-scalar-no-whence-no-typecheck));
+                    $optimized := 1;
+                }
+            }
+            elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::BindArrayPos) {
+                # Bind into an array. We can produce a fast path for this, though
+                # should check what the ultimate descriptor is. It really should
+                # be a normal, boring, container descriptor.
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
+                my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos,
+                    '$!next-descriptor');
+                if nqp::eqaddr($next.WHAT, ContainerDescriptor) {
+                    # Ensure we're not assigning Nil. (This would be very odd, as
+                    # a Scalar starts off with its default value, and if we are
+                    # vivifying we'll likely have a new container).
+                    unless nqp::eqaddr($value.WHAT, Nil) {
+                        # Go by whether we can type check the target.
+                        my $tracked-next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $tracked-desc, ContainerDescriptor::BindArrayPos,
+                            '$!next-descriptor');
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                            $tracked-next);
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-value);
+                        my $of := $next.of;
+                        my $delegate := $of.HOW.archetypes.nominal &&
+                                (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
+                            ?? $assign-scalar-bindpos-no-typecheck
+                            !! $assign-scalar-bindpos;
+                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                $capture, 0, $delegate));
+                        $optimized := 1;
+                    }
+                }
+            }
+        }
 
-        # Otherwise, nothing we can optimize, so go for the fallback.
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
-            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $capture, 0, $assign-fallback));
+        # If nothing we could optimize, go for the fallback.
+        unless $optimized {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    $capture, 0, $assign-fallback));
+        }
     });
 }
 

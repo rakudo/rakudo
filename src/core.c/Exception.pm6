@@ -168,7 +168,9 @@ my class X::Method::NotFound is Exception {
           !! "No such method '$.method' for invocant $.of-type";
 
         my @tips;
-        my $indirect-method = "";
+        my $indirect-method = $.method.starts-with("!")
+                                ?? $.method.substr(1)
+                                !! "";
 
         my %suggestions;
         my int $max_length = do given $.method.chars {
@@ -208,15 +210,15 @@ my class X::Method::NotFound is Exception {
         if $.in-class-call && nqp::can($!invocant.HOW, 'private_method_table') {
             for $!invocant.^private_method_table.keys -> $method_name {
                 my $dist = StrDistance.new(:before($.method), :after(~$method_name));
-                if $dist <= $max_length && $indirect-method ne $method_name {
+                if $dist <= $max_length {
                     $private_suggested = 1;
-                    %suggestions{"!$method_name"} = ~$dist;
+                    %suggestions{"!$method_name"} = ~$dist
+                        unless $indirect-method eq $method_name;
                 }
             }
         }
 
-        if $.method.starts-with("!") && !$.private && $private_suggested {
-            $indirect-method = $.method.substr(1);
+        if $indirect-method && !$.private && $private_suggested {
             @tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
         }
 

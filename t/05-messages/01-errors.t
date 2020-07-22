@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 50;
+plan 51;
 
 # https://github.com/Raku/old-issue-tracker/issues/5707
 throws-like '1++', X::Multi::NoMatch,
@@ -220,6 +220,10 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         X::Method::NotFound,
         message => all(/<<"No such private method '!bar'" \W/, /<<'RT123078_2'>>/, /<<'bar'>>/, /<<'baz'>>/),
         'a public method of the same name as the missing private method is suggested';
+    throws-like q| class RT123078_3 { method !bar { }; method baz { } }; RT123078_3.new.bar |,
+        X::Method::NotFound,
+        message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_3'>>/, /\s+ Did \s+ you \s+ mean \s+ "'baz'"/),
+        'a private method of the same name as the public missing method is not suggested for out-of-class call';
     throws-like q| <a a b>.uniq |,
         X::Method::NotFound,
         message => all(/<<"No such method 'uniq'" \W/, /<<'unique'>>/),

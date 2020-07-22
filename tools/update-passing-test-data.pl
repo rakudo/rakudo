@@ -25,7 +25,7 @@ use TAP::Parser::Aggregator 3.01;
 
 use File::Find;
 
-my %not_process = map { $_ => 1 } read_specfile('t/spectest.data');
+my %not_process = map { $_ => 1 } read_specfile('t/spec/spectest.data');
 # this is a p5 file, don't try to test it.
 $not_process{'t/spec/t/fudge.t'}=1;
 
@@ -124,7 +124,7 @@ sub read_specfile {
 sub get_harness {
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => [$^X, 'tools/perl6-limited.pl', qw/-Ilib -I./],
+            exec        => [$^X, 'tools/rakudo-limited.pl', qw/-Ilib -I./],
             merge       => 1,
     });
 }

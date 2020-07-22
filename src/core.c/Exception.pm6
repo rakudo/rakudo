@@ -163,9 +163,11 @@ my class X::Method::NotFound is Exception {
     }
 
     method message() {
-        my $message = $.private
+        my @message = $.private
           ?? "No such private method '!$.method' for invocant $.of-type"
           !! "No such method '$.method' for invocant $.of-type";
+
+        @message.push: $.addendum if $.addendum;
 
         my @tips;
         my $indirect-method = $.method.starts-with("!")
@@ -236,19 +238,17 @@ my class X::Method::NotFound is Exception {
             @tips.push: "Perhaps a " ~ ($private_suggested ?? "private" !! "public") ~ " method call must be used."
         }
 
-        if +@tips == 1 {
-            @tips[0] = ". " ~ @tips[0];
+        if +@tips > 1 {
+            @tips = @tips.map: "\n" ~ ("- " ~ *).naive-word-wrapper(:indent("    "));
+            @message.push: ($.addendum ?? "Other possible" !! "Possible") ~ " causes are:";
         }
-        elsif +@tips {
-            @tips = @tips.map: *.naive-word-wrapper(:indent("    - "));
-            @tips.unshift: ". Possible causes are:";
+        elsif @tips {
+            @message.push: @tips.shift;
         }
 
-        ($.addendum
-          ?? "$message $.addendum"
-          !!  $message
-        ).naive-word-wrapper
-        ~ @tips.join("\n")
+        @message[0] ~= "." if +@message > 1;
+
+        @message.join(" ").naive-word-wrapper ~ @tips.join
     }
 }
 

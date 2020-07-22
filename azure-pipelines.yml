@@ -320,7 +320,7 @@ stages:
           OUT_DIR=rakudo-builds-$(VERSION)-$(REVISION)
           mkdir $OUT_DIR
           cp $(Pipeline.Workspace)/rakudo-linux/rakudo-linux.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-linux-x86_64.tar.gz
-          cp $(Pipeline.Workspace)/rakudo-macos/rakudo-macos.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-linux-x86_64.tar.gz
+          cp $(Pipeline.Workspace)/rakudo-macos/rakudo-macos.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-macos-x86_64.tar.gz
           cp $(Pipeline.Workspace)/rakudo-win/rakudo-win.zip        $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-win-x86_64.zip
           tar -czf rakudo-moar-builds-$(VERSION)-$(REVISION).tar.gz $OUT_DIR
 

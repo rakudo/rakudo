@@ -1033,6 +1033,7 @@ my class Mu { # declared in BOOTSTRAP
               method   => name,
               typename => type.^name,
               :private,
+              :in-class-call(nqp::eqaddr(nqp::what(SELF), nqp::getlexcaller('$?CLASS'))),
             ).throw;
     }
 

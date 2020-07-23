@@ -111,7 +111,7 @@ sub eval_server {
 
 my @files;
 
-$specfile = 't/spectest.data' if $auto;
+$specfile = 't/spec/spectest.data' if $auto;
 
 if ($specfile){
     @files = read_specfile($specfile);
@@ -240,7 +240,7 @@ Valid options:
     --debug             Enable debug output
     --impl impl         Specify a different implementation
     --specfile file     Specification file to read filenames from
-    --auto              use t/spectest.data for --specfile
+    --auto              use t/spec/spectest.data for --specfile
     --keep-env          Keep RAKUDOLIB environment variable.
     --exclude regex     Don't run the tests that match regex
     --section number    Run only on tests belonging to section <number>

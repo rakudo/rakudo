@@ -19,6 +19,7 @@ spectest:	@for_backends(@backend_prefix@-spectest$(HARNESS_TYPE) )@
 coretest:	@for_backends(@backend_prefix@-coretest$(HARNESS_TYPE) )@
 localtest:	@for_backends(@backend_prefix@-localtest$(HARNESS_TYPE) )@
 stresstest: @for_backends(@backend_prefix@-stresstest$(HARNESS_TYPE) )@
+quicktest:  @for_backends(@backend_prefix@-quicktest$(HARNESS_TYPE) )@
 
 @include(Makefile-common-rules)@
 

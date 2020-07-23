@@ -10,7 +10,7 @@ For each file that passes at least one test (criterion might change in future)
 it prints out a short summary about the status of this file.
 
 This is primarily used to identify tests that could be added to
-F<t/spectest.data>, and those that are worth a closer look. But
+F<t/spec/spectest.data>, and those that are worth a closer look. But
 please don't add them blindly just because they all pass - chances are that
 there's a good reason for them not already being included.
 
@@ -25,7 +25,7 @@ use TAP::Parser::Aggregator 3.01;
 
 use File::Find;
 
-my %not_process = map { $_ => 1 } read_specfile('t/spectest.data');
+my %not_process = map { $_ => 1 } read_specfile('t/spec/spectest.data');
 # this is a p5 file, don't try to test it.
 $not_process{'t/spec/t/fudge.t'}=1;
 
@@ -124,7 +124,7 @@ sub read_specfile {
 sub get_harness {
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => [$^X, 'tools/perl6-limited.pl', qw/-Ilib -I./],
+            exec        => [$^X, 'tools/rakudo-limited.pl', qw/-Ilib -I./],
             merge       => 1,
     });
 }

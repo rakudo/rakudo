@@ -1443,15 +1443,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $i := 0;
             while $i < $e { nqp::bindkey( %opts, ~ @parts[$i], ~ @vals[$i++] ) };
 
-            my $renderer := ~ nqp::atkey($s,'name');
-            my $module;
-            try {
-                $module := $*W.load_module($/, $renderer, %opts, $block);
-                CATCH {
-                    $renderer := 'Pod::To::' ~ nqp::atkey($s,'name');
-                    $module := $*W.load_module($/, $renderer, %opts, $block);
-                }
-            }
+            my $renderer := 'Pod::To::' ~ nqp::atkey($s,'name');
+            my $module := $*W.load_module($/, $renderer, %opts, $block);
+
             my $pod2text := QAST::Op.new(
                 :op<callmethod>, :name<render>, :node($/),
                 self.make_indirect_lookup([$renderer]),

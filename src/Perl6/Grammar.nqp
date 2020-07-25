@@ -3636,7 +3636,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '(' ~ ')' <semilist>
     }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
-    token circumfix:sym<ang> {
+    token circumfix:sym«< >» {
         :dba('quote words')
         '<' ~ '>'
         [
@@ -3998,7 +3998,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <O(|%methodcall)>
     }
 
-    token postcircumfix:sym<ang> {
+    token postcircumfix:sym«< >» {
         '<'
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))> '>'

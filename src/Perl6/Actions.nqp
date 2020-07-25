@@ -6752,7 +6752,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make $past;
     }
 
-    method circumfix:sym<ang>($/) { make $<nibble>.ast; }
+    method circumfix:sym«< >»($/) { make $<nibble>.ast; }
 
     method circumfix:sym«<< >>»($/) { make $<nibble>.ast; }
 
@@ -8080,7 +8080,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make WANTED($past, '.{}');
     }
 
-    method postcircumfix:sym<ang>($/) {
+    method postcircumfix:sym«< >»($/) {
         my $past := QAST::Op.new( :name('&postcircumfix:<{ }>'), :op('call'), :node($/) );
         my $nib  := $<nibble>.ast;
         $past.push($nib)

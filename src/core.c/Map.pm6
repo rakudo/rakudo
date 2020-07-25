@@ -182,10 +182,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method raku(Map:D \SELF: --> Str:D) {
-        my $p := self.^name
-          ~ '.new(('
-          ~ self.sort.map({.raku}).join(',')
-          ~ '))';
+        my $p := nqp::elems($!storage)
+          ?? self.^name ~ '.new((' ~ self.sort.map(*.raku).join(',') ~ '))'
+          !! self.^name ~ '.new';
         nqp::iscont(SELF) ?? '$(' ~ $p ~ ')' !! $p
     }
 

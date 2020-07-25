@@ -4526,7 +4526,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'infix:sym<:=>', NQPMu,
         'infix:sym<::=>', NQPMu,
         'infix:sym<~~>', '(consider implementing an ACCEPTS method)',
-        'prefix:sym<|>', NQPMu);
+        'prefix:sym<|>', NQPMu,
+        'postcircumfix:sym«< >»', '(consider implementing \'&postcircumfix:<{ }>\', or method AT-KEY, or Associative role)',
+        'postcircumfix:sym«<< >>»', '(consider implementing \'&postcircumfix:<{ }>\', or method AT-KEY, or Associative role)',
+        'postcircumfix:sym<« »>', '(consider implementing \'&postcircumfix:<{ }>\', or method AT-KEY, or Associative role)',
+        );
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $actions := self.actions;
 

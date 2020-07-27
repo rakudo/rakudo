@@ -1,1 +1,1 @@
-@shquot(--execname="\@envvar(EXEC)@" --libpath="\@envvar(DIR)@" --libpath="\@nfp(\@envvar(DIR)@/blib)@" --libpath="\@nfp(\@nqp::libdir@)@" "\@nfp(\@envvar(DIR)@/perl6.moarvm)@" --nqp-lib="\@nfp(\@envvar(DIR)@/blib)@")@
+@shquot(--execname="\@envvar(EXEC)@" --libpath="\@envvar(DIR)@" --libpath="\@nfp(\@envvar(DIR)@/blib)@" --libpath="\@nfp(\@nqp::libdir@)@" "\@nfp(\@envvar(DIR)@/perl6.moarvm)@")@

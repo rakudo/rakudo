@@ -193,11 +193,19 @@ my class X::Method::NotFound is Exception {
             %suggestions<encode($encoding).bytes> = 0;
         }
 
+        my sub code-name(Mu $meth) {
+            # KnowHOW `methods` method returns a hash. Respectively, iteration over .^methods gives us Pairs.
+            return $meth.key if $meth ~~ Pair;
+            my $code-obj := nqp::decont($meth);
+            (try nqp::can($code-obj,'name') ?? $code-obj.name !! nqp::getcodename($code-obj)) // '?'
+        }
+
         my $public_suggested = 0;
         if nqp::can($!invocant.HOW, 'methods') {
-            my @invocant_methods = $!invocant.^methods(:local)>>.name;
+            # $!invocant can be a KnowHOW which method `methods` returns a hash, not a list.
+            my @invocant_methods = $!invocant.^methods(:local).map: { code-name($_) };
             for $!invocant.^methods(:all) -> $method_candidate {
-                my $method_name = (try $method_candidate.name) // '?';
+                my $method_name = code-name($method_candidate);
                 # GH#1758 do not suggest a submethod from a parent
                 next if $method_candidate.^name eq 'Submethod' && !@invocant_methods.first($method_name, :k).defined;
                 my $dist = StrDistance.new(:before($.method), :after(~$method_name));

@@ -1,4 +1,3 @@
-sub hll-config($config) {
     ### Language
     $config<implementation>   := 'Rakudo';
     $config<version>          := '@version@';
@@ -48,9 +47,6 @@ sub hll-config($config) {
 
     ### Location
     $config<prefix>             := '@prefix@';
-    $config<static-nqp-home>    := '@static_nqp_home@';
     $config<static-rakudo-home> := '@static_rakudo_home@';
 
     $config<source-digest>      := '@source_digest()@';
-}
-

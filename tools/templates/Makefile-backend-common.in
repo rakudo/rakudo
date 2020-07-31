@@ -178,7 +178,9 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 
 @nfp(@bpm(BUILD_DIR)@/main-version.nqp)@: @@template(main-version)@@ $(CONFIGURE_SOURCES) @bpm(SOURCE_DIGEST_FILES)@
 	@echo(+++ Expanding	$@)@
-	$(NOECHO)$(CONFIGURE) --expand main-version --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/main-version)@ \
+	          --out @nfpq(@bpm(BUILD_DIR)@/main-version.nqp)@ \
+			  --set-var=static_nqp_home=@static_nqp_home@
 
 @comp_rr(@bsm(RAKUDO)@: @use_prereqs(@nfp(@bpm(BUILD_DIR)@/rakudo.nqp)@)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_A)@ @bsm(RAKUDO_C)@ @bsm(RAKUDO_P)@ @bpm(RAKUDO_DEPS_EXTRA)@)@
 

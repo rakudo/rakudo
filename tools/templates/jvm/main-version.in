@@ -1,0 +1,6 @@
+sub hll-config($config) {
+@include(main-version-common)@
+
+    $config<static-nqp-home>    := '@static_nqp_home@';
+}
+

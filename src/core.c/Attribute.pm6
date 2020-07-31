@@ -26,7 +26,11 @@ my class Attribute { # declared in BOOTSTRAP
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);
             my $meth_name := nqp::substr($name, 2);
-            unless $package.^declares_method($meth_name) || $package.^has_multi_candidate($meth_name) {
+            unless nqp::existskey($package.^method_table, $meth_name)
+                    || nqp::existskey($package.^submethod_table, $meth_name)
+                    || (nqp::can($package.HOW, 'has_multi_candidate')
+                        && $package.^has_multi_candidate($meth_name))
+            {
                 my $dcpkg := nqp::decont($package);
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);

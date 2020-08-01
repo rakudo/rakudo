@@ -44,7 +44,7 @@
                 nqp::eqaddr($got,ConcQueue),
                 nqp::if(
                   nqp::isconcrete($!exception),
-                  $!exception.throw,
+                  $!exception.rethrow,
                   IterationEnd),
                 $got))
         }
@@ -56,7 +56,7 @@
                 target.push($got)),
               nqp::if(
                 nqp::isconcrete($!exception),
-                $!exception.throw))
+                $!exception.rethrow))
         }
 
         # method is-lazy(--> Bool:D) { ... }

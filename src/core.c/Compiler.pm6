@@ -1,9 +1,12 @@
 class Compiler does Systemic {
     my constant $id = nqp::p6box_s(nqp::sha1(
         $*W.handle.Str
-        ~ nqp::atkey(nqp::getcurhllsym('$COMPILER_CONFIG'), 'source-digest')
+        ~ nqp::atkey(nqp::gethllsym(
+        'default', 'SysConfig').rakudo-build-config(), 'source-digest')
     ));
-    my Mu $compiler := nqp::getcurhllsym('$COMPILER_CONFIG');
+
+    my Mu $compiler := nqp::gethllsym('default', 'SysConfig')
+        .rakudo-build-config();
 
     # XXX Various issues with this stuff on JVM
     has $.id is built(:bind) = nqp::ifnull(nqp::atkey($compiler,'id'),$id);

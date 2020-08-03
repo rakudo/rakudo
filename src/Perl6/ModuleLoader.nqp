@@ -215,7 +215,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
 
     # Transforms NULL.<release> into CORE.<previous-release>, CORE.<release> into CORE.<previous-release>
     method previous_setting_name ($setting_name, :$base = 'CORE') {
-        nqp::getcomp('Raku').config()<prev-setting-name>{$setting_name}
+        nqp::gethllsym('default', 'SysConfig').rakudo-build-config()<prev-setting-name>{$setting_name}
             // nqp::die("Don't know setting $setting_name")
     }
 

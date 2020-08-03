@@ -128,7 +128,7 @@ class CompUnit::RepositoryRegistry {
         # set up and normalize $prefix if needed
         my str $prefix = nqp::ifnull(
           nqp::atkey($ENV,'RAKUDO_PREFIX'),
-          nqp::getcomp('Raku').rakudo-home()
+          nqp::gethllsym('default', 'SysConfig').rakudo-home()
         );
         $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
 

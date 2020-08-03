@@ -6169,7 +6169,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         my $ast_class := $*W.find_single_symbol('AST');
         unless istype($macro_ast, $ast_class) {
-            $*W.throw('X::TypeCheck::Splice',
+            $*W.throw($/, 'X::TypeCheck::Splice',
                 got         => $macro_ast,
                 expected    => $ast_class,
                 symbol      => $name,

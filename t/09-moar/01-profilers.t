@@ -11,9 +11,6 @@ my $htmlpath = $tempdir.child("profile.html").absolute;
 is-run "", "can launch with profiling requested", compiler-args => ["--profile=$htmlpath"],
     err => / "profiler output" .*? "$htmlpath" /;
 
-skip-rest, 'Currently broken, remove this skip as soon as profiling paths are fixed';
-exit;
-
 ok $htmlpath.IO.f, "profiler html output file exists on disk";
 ok (try $htmlpath.IO.s > 128), "profiler html output file isn't tiny";
 

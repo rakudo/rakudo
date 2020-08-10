@@ -1,10 +1,14 @@
 use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
+use Perl6::SysConfig;
 
 
 # Initialize Rakudo runtime support.
 nqp::p6init();
+
+nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new());
+hll-config(nqp::gethllsym('default', 'SysConfig').rakudo-build-config);
 
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
@@ -14,8 +18,6 @@ $comp.parsegrammar(Perl6::Grammar);
 $comp.parseactions(Perl6::Actions);
 $comp.addstage('syntaxcheck', :before<ast>);
 $comp.addstage('optimize', :after<ast>);
-hll-config($comp.config);
-nqp::bindhllsym('Raku', '$COMPILER_CONFIG', $comp.config);
 
 # Add extra command line options.
 my @clo := $comp.commandline_options();

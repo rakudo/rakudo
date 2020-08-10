@@ -587,7 +587,7 @@ class Perl6::World is HLL::World {
         my @vparts := nqp::split('.', $version);
         my $vWhatever := nqp::isge_i(nqp::index($version, '*'), 0);
         my $vPlus := nqp::isge_i(nqp::index($version, '+'), 0);
-        my $default_rev := nqp::substr($comp.config<language-version>, 2, 1);
+        my $default_rev := nqp::substr(nqp::gethllsym('default', 'SysConfig').rakudo-build-config()<language-version>, 2, 1);
 
         # Do we have dot-splitted version string?
         if !($vWhatever || $vPlus) &&
@@ -608,7 +608,7 @@ class Perl6::World is HLL::World {
             }
 
             # Speed up loading assuming that the default language version would be the most used one.
-            if $lang_ver eq $comp.config<language-version> {
+            if $lang_ver eq nqp::gethllsym('default', 'SysConfig').rakudo-build-config()<language-version> {
                 $!setting_name := 'CORE.' ~ $revision;
                 # self.load_setting: $ver-match, 'CORE.' ~ $revision;
                 return;

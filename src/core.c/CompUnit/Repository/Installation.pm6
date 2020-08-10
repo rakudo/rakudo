@@ -1,6 +1,6 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
     has $!lock = Lock.new;
-    has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('Raku', '$COMPILER_CONFIG'), 'version'));
+    has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('default', 'SysConfig').rakudo-build-config(), 'version'));
     has %!loaded; # cache compunit lookup for self.need(...)
     has %!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;

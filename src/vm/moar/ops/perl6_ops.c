@@ -172,7 +172,11 @@ static void p6stateinit(MVMThreadContext *tc, MVMuint8 *cur_op) {
 }
 
 /* First FIRST, use a flag in the object header. */
+#ifdef MVM_COLLECTABLE_FLAGS1
+#define RAKUDO_FIRST_FLAG 128
+#else
 #define RAKUDO_FIRST_FLAG 16384
+#endif
 
 static MVMuint8 s_p6setfirstflag[] = {
     MVM_operand_obj | MVM_operand_write_reg,
@@ -181,7 +185,11 @@ static MVMuint8 s_p6setfirstflag[] = {
 static void p6setfirstflag(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *code_obj = GET_REG(tc, 2).o;
     MVMObject *vm_code  = MVM_frame_find_invokee(tc, code_obj, NULL);
+#ifdef MVM_COLLECTABLE_FLAGS1
+    vm_code->header.flags1 |= RAKUDO_FIRST_FLAG;
+#else
     vm_code->header.flags |= RAKUDO_FIRST_FLAG;
+#endif
     GET_REG(tc, 0).o = code_obj;
 }
 
@@ -190,8 +198,13 @@ static MVMuint8 s_p6takefirstflag[] = {
 };
 static void p6takefirstflag(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *vm_code = tc->cur_frame->code_ref;
+#ifdef MVM_COLLECTABLE_FLAGS1
+    if (vm_code->header.flags1 & RAKUDO_FIRST_FLAG) {
+        vm_code->header.flags1 ^= RAKUDO_FIRST_FLAG;
+#else
     if (vm_code->header.flags & RAKUDO_FIRST_FLAG) {
         vm_code->header.flags ^= RAKUDO_FIRST_FLAG;
+#endif
         GET_REG(tc, 0).i64 = 1;
     }
     else {

@@ -6,13 +6,7 @@ class Perl6::SysConfig is HLL::SysConfig {
         %!rakudo-build-config := nqp::hash();
 
         # Determine Rakudo home.
-#?if jvm
-        # TODO could be replaced by nqp::execname() after the next bootstrap for JVM
-        my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname') // '';
-#?endif
-#?if !jvm
         my $execname := nqp::execname();
-#?endif
         my $install-dir := $execname eq ''
             ?? %!rakudo-build-config<prefix>
             !! nqp::substr($execname, 0, nqp::rindex($execname, self.path-sep, nqp::rindex($execname, self.path-sep) - 1));

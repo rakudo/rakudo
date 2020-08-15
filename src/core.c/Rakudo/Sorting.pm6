@@ -10,6 +10,25 @@ my class Rakudo::Sorting {
         )
     }
 
+    # Define a local default compare function that is basically the core's
+    # infix:<cmp> for all values *but* Junctions.  If a Junction is involved
+    # in the comparison, it will throw an exception, as there is no logical
+    # way to handle that case.
+    proto sub compare(|) {*}
+    multi sub compare(Junction:D \a, \b) {
+        X::Cannot::Junction.new(
+          junction  => a.raku,
+          for       => "as a value when sorting",
+        ).throw
+    }
+    multi sub compare(\a, Junction:D \b) {
+        X::Cannot::Junction.new(
+          junction  => b.raku,
+          for       => "as a value when sorting",
+        ).throw
+    }
+    multi sub compare(\a, \b) { a cmp b }
+
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.
     method MERGESORT-REIFIED-LIST(\list) {
@@ -55,7 +74,7 @@ my class Rakudo::Sorting {
                           nqp::isge_i($j,$end)
                             || nqp::iseq_i(
                                  nqp::decont(  # for some reason we need this
-                                   nqp::atpos($A,$i) cmp nqp::atpos($A,$j)
+                                   compare(nqp::atpos($A,$i), nqp::atpos($A,$j))
                                      || nqp::cmp_i($i,$j)
                                  ), # apparently code gen with || isn't right
                                  -1
@@ -88,7 +107,7 @@ my class Rakudo::Sorting {
           ),
           nqp::if(
             nqp::islt_i($n,2)
-              || nqp::isle_i(nqp::atpos($A,0) cmp nqp::atpos($A,1),0),
+              || nqp::isle_i(compare(nqp::atpos($A,0), nqp::atpos($A,1)),0),
             list,  # nothing to be done, we already have the result
             nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
               IB2(nqp::atpos($A,1),nqp::atpos($A,0)))
@@ -234,9 +253,10 @@ my class Rakudo::Sorting {
                           nqp::isge_i($j,$end)
                             || (nqp::iseq_i(
                                  nqp::decont(
-                                   nqp::atpos($S,nqp::atpos_i($A,$i))
-                                     cmp nqp::atpos($S,nqp::atpos_i($A,$j))
-                                     || nqp::cmp_i($i,$j)
+                                   compare(
+                                     nqp::atpos($S,nqp::atpos_i($A,$i)),
+                                     nqp::atpos($S,nqp::atpos_i($A,$j))
+                                   ) || nqp::cmp_i($i,$j)
                                  ),
                                  -1
                                ))
@@ -275,8 +295,10 @@ my class Rakudo::Sorting {
           nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
             nqp::if(
               nqp::islt_i($n,2)
-                || nqp::isle_i(
-                    mapper(nqp::atpos($O,0)) cmp mapper(nqp::atpos($O,1)),0),
+                || nqp::isle_i(compare(
+                     mapper(nqp::atpos($O,0)),
+                     mapper(nqp::atpos($O,1))
+                   ),0),
               $O,  # nothing to be done, we already have the result
               IB2(nqp::atpos($O,1),nqp::atpos($O,0))  # need to swap
             )

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 36;
+plan 42;
 
 is-deeply
         EVAL(RakuAST::StatementList.new(
@@ -224,3 +224,47 @@ is-deeply
     Nil,
     'try statement prefix with throwing block handles the exception';
 is $!, 'another day', '$! is populated with the exception';
+
+{
+    my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::IntLiteral.new(111)
+        )
+    ));
+    isa-ok $promise, Promise, 'start statement prefix with expression evalutes to Promise';
+    is-deeply await($promise), 111, 'Correct result from Promise';
+}
+
+{
+    my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
+        RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::IntLiteral.new(137)
+            )
+        )))
+    ));
+    isa-ok $promise, Promise, 'start statement prefix with block evalutes to Promise';
+    is-deeply await($promise), 137, 'Correct result from Promise';
+}
+
+{
+    my $/ = 42;
+    my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$/')
+        )
+    ));
+    todo 'fresh specials nyi';
+    nok await($promise) ~~ 42, 'A start has a fresh $/';
+}
+
+{
+    my $! = 42;
+    my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$!')
+        )
+    ));
+    todo 'fresh specials nyi';
+    nok await($promise) ~~ 42, 'A start has a fresh $!';
+}

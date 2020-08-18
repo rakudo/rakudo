@@ -202,6 +202,38 @@ class RakuAST::StatementPrefix::Gather is RakuAST::StatementPrefix::Thunky is Ra
     }
 }
 
+# The `start` statement prefix.
+class RakuAST::StatementPrefix::Start is RakuAST::StatementPrefix::Thunky
+                                      is RakuAST::SinkPropagator
+                                      is RakuAST::ImplicitLookups {
+    method propagate-sink(Bool $is-sunk) {
+        self.blorst.apply-sink(False);
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Promise')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('True')),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $promise := @lookups[0].IMPL-TO-QAST($context);
+        my $qast := QAST::Op.new(
+            :op('callmethod'), :name('start'),
+            $promise,
+            self.IMPL-CLOSURE-QAST()
+        );
+        unless $context.lang-version eq 'c' {
+            my $true := @lookups[1].IMPL-TO-QAST($context);
+            $true.named('report-broken-if-sunk');
+            $qast.push($true);
+        }
+        $qast
+    }
+}
+
 # Done by all phasers. Serves as little more than a marker for phasers, for
 # easing locating them all.
 class RakuAST::StatementPrefix::Phaser is RakuAST::StatementPrefix {

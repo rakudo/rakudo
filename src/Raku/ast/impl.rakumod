@@ -16,6 +16,10 @@ class RakuAST::IMPL::QASTContext {
         nqp::scgethandle($!sc)
     }
 
+    # The langauge version we're compiling.
+    # TODO implement this properly
+    method lang-version() { 'd' }
+
     # Ensure that the passed object is in a serialization context.
     method ensure-sc(Mu $obj is raw) {
         if nqp::isnull(nqp::getobjsc($obj)) {

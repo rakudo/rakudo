@@ -57,7 +57,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         # Calculate the setting name to use.
         # TODO don't hardcode this
         my $name := 'CORE';
-        my $version := nqp::substr(nqp::getcomp('Raku').config<language-version>, 2);
+        my $version := nqp::substr(nqp::getcomp('Raku').language_version, 2);
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
         my $setting-name := $loader.transform_setting_name("$name.$version");
 

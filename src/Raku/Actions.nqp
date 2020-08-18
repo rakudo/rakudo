@@ -324,6 +324,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make self.r('StatementPrefix', 'Gather').new($<blorst>.ast);
     }
 
+    method statement_prefix:sym<start>($/) {
+        make self.r('StatementPrefix', 'Start').new($<blorst>.ast);
+    }
+
     method blorst($/) {
         make $<block> ?? $<block>.ast !! $<statement>.ast;
     }

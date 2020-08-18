@@ -381,7 +381,7 @@ my role Baggy does QuantHash {
         )
     }
     multi method pickpairs(Baggy:D: Callable:D $calculate) {
-        self.pickpairs( $calculate(self.total) )
+        self.pickpairs( $calculate(self.elems) )
     }
     multi method pickpairs(Baggy:D: Whatever $) {
         self.pickpairs(Inf)

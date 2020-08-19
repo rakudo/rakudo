@@ -11,6 +11,10 @@ my class Mu { # declared in BOOTSTRAP
 
     method sink(--> Nil) { }
 
+    # This method is only here so that it can be introspected.  The codegen
+    # will actually generate an nqp::what in all cases.
+    method WHAT() { self.WHAT }
+
     proto method perl(|) {*}
     multi method perl(Mu \SELF: |c) { SELF.raku(|c) }
     # although technically not a documented method, some module authors have

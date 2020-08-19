@@ -7,7 +7,7 @@ plan 6;
     my $class = EVAL RakuAST::Package.new:
         package-declarator => 'class',
         how => Metamodel::ClassHOW,
-        name => 'MyTestClass',
+        name => RakuAST::Name.from-identifier('MyTestClass'),
         repr => 'P6opaque';
     nok $class.DEFINITE, 'Class evluates to a type object';
     is $class.^name, 'MyTestClass', 'Correct class name';
@@ -18,7 +18,7 @@ plan 6;
     my $class = EVAL RakuAST::Package.new:
         package-declarator => 'class',
         how => Metamodel::ClassHOW,
-        name => 'TestClassWithMethods',
+        name => RakuAST::Name.from-identifier('TestClassWithMethods'),
         body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::Method.new(

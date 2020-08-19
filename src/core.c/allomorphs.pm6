@@ -1,5 +1,7 @@
+my role allomorph { }
+
 # the uses of add_I in this class are a trick to make bigints work right
-my class IntStr is Int is Str {
+my class IntStr is Int is Str does allomorph {
     method new(Int:D $i, Str:D $s) {
         my \SELF = nqp::add_I($i, 0, self);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
@@ -37,7 +39,7 @@ my class IntStr is Int is Str {
     }
 }
 
-my class NumStr is Num is Str {
+my class NumStr is Num is Str does allomorph {
     method new(Num $n, Str $s) {
         my \SELF = nqp::create(self);
         nqp::bindattr_n(SELF, Num, '$!value', $n);
@@ -76,7 +78,7 @@ my class NumStr is Num is Str {
     }
 }
 
-my class RatStr is Rat is Str {
+my class RatStr is Rat is Str does allomorph {
     method new(Rat $r, Str $s) {
         my \SELF = nqp::create(self);
         nqp::bindattr(SELF, Rat, '$!numerator', $r.numerator);
@@ -133,7 +135,7 @@ my class RatStr is Rat is Str {
     multi method raku(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.raku ~ ', ' ~ self.Str.raku ~ ')' }
 }
 
-my class ComplexStr is Complex is Str {
+my class ComplexStr is Complex is Str does allomorph {
     method new(Complex $c, Str $s) {
         my \SELF = nqp::create(self);
         nqp::bindattr_n(SELF, Complex, '$!re', $c.re);

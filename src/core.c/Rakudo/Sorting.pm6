@@ -1,4 +1,5 @@
 my class Date { ... }
+my role allomorph { ... }
 
 my class Rakudo::Sorting {
 
@@ -29,28 +30,19 @@ my class Rakudo::Sorting {
           for       => "as a value when sorting",
         ).throw
     }
-    multi sub compare(Int:D $a, Int:D $b) is raw {
-        nqp::cmp_I($a,$b) || (
-          nqp::istype($a,Str) || nqp::istype($b,Str)
-            ?? nqp::cmp_s($a.Str,$b.Str)
-            !! 0
-        )
+    multi sub compare(allomorph:D \a, allomorph:D \b) is raw is default {
+        a cmp b
     }
-    multi sub compare(Num:D $a, Num:D $b) is raw {
-        nqp::cmp_n($a,$b) || (
-          nqp::istype($a,Str) || nqp::istype($b,Str)
-            ?? nqp::cmp_s($a.Str,$b.Str)
-            !! 0
-        )
-    }
+    multi sub compare(allomorph:D \a,             \b) is raw { a cmp b }
+    multi sub compare(            \a, allomorph:D \b) is raw { a cmp b }
+
+    multi sub compare(Str:D $a, Str:D $b) is raw { nqp::cmp_s($a,$b) }
+    multi sub compare(Int:D $a, Int:D $b) is raw { nqp::cmp_I($a,$b) }
+    multi sub compare(Num:D $a, Num:D $b) is raw { nqp::cmp_n($a,$b) }
     multi sub compare(Date:D $a, Date:D $b) is raw {
         nqp::cmp_i($a.daycount,$b.daycount)
     }
-    multi sub compare(Str:D $a, Str:D $b) is raw {
-        nqp::istype($a,Numeric) || nqp::istype($b,Numeric)
-          ?? $a cmp $b
-          !! nqp::cmp_s($a,$b)
-    }
+
     multi sub compare(\a, \b) { a cmp b }
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation

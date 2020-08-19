@@ -81,7 +81,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             my $global := RakuAST::Package.new:
                     package-declarator => 'package',
                     how => $!global-package-how,
-                    name => 'GLOBAL';
+                    name => RakuAST::Name.from-identifier('GLOBAL');
             nqp::push(@decls, $global);
             nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
                 name => '$?PACKAGE', value => $global.compile-time-value

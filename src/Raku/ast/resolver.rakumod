@@ -82,6 +82,25 @@ class RakuAST::Resolver {
         }
     }
 
+    # Check if an identifier is a known type.
+    method is-idenfitier-type(Str $identifier) {
+        # Can optimize this later to avoid the throwaway name creation
+        self.is-name-type(RakuAST::Name.from-identifier($identifier))
+    }
+
+    # Check if a name is a known type.
+    method is-name-type(RakuAST::Name $name) {
+        my $constant := self.resolve-name-constant($name);
+        if nqp::isconcrete($constant) {
+            # Name resolves, but is it an instance or a type object?
+            !nqp::isconcrete($constant.compile-time-value)
+        }
+        else {
+            # Name doesn't resolve to a constant at all, so can't be a type.
+            0
+        }
+    }
+
     # Resolves a lexical in the chain of outer contexts.
     method resolve-lexical-in-outer(Str $name, Bool :$current-scope-only) {
         # Look through the contexts for the name.

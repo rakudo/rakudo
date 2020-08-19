@@ -494,9 +494,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method term:sym<name>($/) {
-        make self.r('Call', 'Name').new:
-            name => $<longname>.ast,
-            args => $<args>.ast;
+        if $<args> {
+            make self.r('Call', 'Name').new:
+                name => $<longname>.ast,
+                args => $<args>.ast;
+        }
+        else {
+            make self.r('Type', 'Simple').new($<longname>.ast);
+        }
     }
 
     method variable($/) {

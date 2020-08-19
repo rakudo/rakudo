@@ -1028,7 +1028,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<identifier> {
         <identifier>
-        # <!{ $*W.is_type([~$<identifier>]) }>
+        <!{ $*R.is-identifier-type(~$<identifier>) }>
         [ <?before <.unsp>? '('> | \\ <?before '('> ]
         <args(1)>
 #        {
@@ -1045,8 +1045,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<name> {
         <longname>
-        # TODO is it a type or constant?
-        [ \\ <?before '('> ]? <args(1)>
+        [
+        || <?{ $*R.is-name-type($<longname>.ast) }>
+        || [ \\ <?before '('> ]? <args(1)>
+        ]
     }
 
     token variable {

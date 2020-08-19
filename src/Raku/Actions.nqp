@@ -467,6 +467,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $<variable>.ast;
     }
 
+    method term:sym<package_declarator>($/) {
+        make $<package_declarator>.ast;
+    }
+
     method term:sym<scope_declarator>($/) {
         make $<scope_declarator>.ast;
     }
@@ -519,6 +523,40 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ##
     ## Declarations
     ##
+
+    method package_declarator:sym<package>($/) { make $<package_def>.ast; }
+    method package_declarator:sym<module>($/)  { make $<package_def>.ast; }
+    method package_declarator:sym<class>($/)   { make $<package_def>.ast; }
+    method package_declarator:sym<grammar>($/) { make $<package_def>.ast; }
+    method package_declarator:sym<role>($/)    { make $<package_def>.ast; }
+    method package_declarator:sym<knowhow>($/) { make $<package_def>.ast; }
+    method package_declarator:sym<native>($/)  { make $<package_def>.ast; }
+
+    method package_def($/) {
+        my $package := $*PACKAGE;
+        $package.replace-body($<blockoid>.ast);
+        make $package;
+    }
+
+    method enter-package-scope($/) {
+        # Resolve the meta-object.
+        my $package-declarator := $*PKGDECL;
+        my $how;
+        if $/.know_how($package-declarator) {
+            $how := $/.how($package-declarator);
+        }
+        else {
+            $/.panic("Cannot resolve meta-object for $package-declarator")
+        }
+
+        # Stub the package meta-object.
+        my $name-match := $*PACKAGE-NAME;
+        my $name := $name-match ?? $name-match.ast !! self.r('Name');
+        $*PACKAGE := self.r('Package').new: :$package-declarator, :$how, :$name;
+    }
+
+    method leave-package-scope($/) {
+    }
 
     method scope_declarator:sym<my>($/)    { make $<scoped>.ast; }
     method scope_declarator:sym<our>($/)   { make $<scoped>.ast; }

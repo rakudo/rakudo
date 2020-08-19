@@ -203,15 +203,26 @@ my class X::Method::NotFound is Exception {
         my $public_suggested = 0;
         if nqp::can($!invocant.HOW, 'methods') {
             # $!invocant can be a KnowHOW which method `methods` returns a hash, not a list.
-            my @invocant_methods = $!invocant.^methods(:local).map: { code-name($_) };
+            my $invocant_methods :=
+              Set.new: $!invocant.^methods(:local).map: { code-name($_) };
+
             for $!invocant.^methods(:all) -> $method_candidate {
-                my $method_name = code-name($method_candidate);
+                my $method_name := code-name($method_candidate);
                 # GH#1758 do not suggest a submethod from a parent
-                next if $method_candidate.^name eq 'Submethod' && !@invocant_methods.first($method_name, :k).defined;
-                my $dist = StrDistance.new(:before($.method), :after(~$method_name));
-                if $dist <= $max_length {
-                    $public_suggested = 1;
-                    %suggestions{$method_name} = ~$dist;
+                next
+                  if $method_candidate.^name eq 'Submethod'  # a submethod
+                  && !$invocant_methods{$method_name};       # unknown method
+
+                if $.method.fc eq $method_name.fc {
+                    %suggestions{$method_name} = "";  # assume identity
+                }
+                else {
+                    my $dist =
+                      StrDistance.new(:before($.method), :after($method_name));
+                    if $dist <= $max_length {
+                        $public_suggested = 1;
+                        %suggestions{$method_name} = ~$dist;
+                    }
                 }
             }
         }

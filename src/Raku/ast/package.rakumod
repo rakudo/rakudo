@@ -2,7 +2,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
                        is RakuAST::Declaration is RakuAST::AttachTarget {
     has Str $.package-declarator;
     has Mu $.how;
-    has Str $.name;
+    has RakuAST::Name $.name;
     has Str $.repr;
     has RakuAST::Blockoid $.body;
 
@@ -11,11 +11,11 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
     has Mu $!attached-methods;
     has Mu $!attached-attributes;
 
-    method new(Str :$package-declarator!, Mu :$how!, Str :$name, Str :$repr, RakuAST::Blockoid :$body) {
+    method new(Str :$package-declarator!, Mu :$how!, RakuAST::Name :$name, Str :$repr, RakuAST::Blockoid :$body) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Package, '$!package-declarator', $package-declarator);
         nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
-        nqp::bindattr($obj, RakuAST::Package, '$!name', $name // Str);
+        nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!body', $body // RakuAST::Blockoid.new);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-methods', []);
@@ -47,7 +47,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
     method PRODUCE-STUBBED-META-OBJECT() {
         # Create the type object and return it; this stubs the type.
         my %options;
-        %options<name> := $!name if $!name;
+        %options<name> := $!name.canonicalize if $!name;
         %options<repr> := $!repr if $!repr;
         $!how.new_type(|%options)
     }

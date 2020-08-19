@@ -1020,6 +1020,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<variable>           { <variable> }
+    token term:sym<package_declarator> { <package_declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<statement_prefix>   { <statement_prefix> }
@@ -1063,6 +1064,47 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     ##
     ## Declarations
     ##
+
+    proto token package_declarator { <...> }
+    token package_declarator:sym<package> {
+        <sym><.kok> <package_def('package')>
+    }
+    token package_declarator:sym<module> {
+        <sym><.kok> <package_def('module')>
+    }
+    token package_declarator:sym<class> {
+        <sym><.kok> <package_def('class')>
+    }
+    token package_declarator:sym<grammar> {
+        <sym><.kok> <package_def('grammar')>
+    }
+    token package_declarator:sym<role> {
+        <sym><.kok> <package_def('role')>
+    }
+    token package_declarator:sym<knowhow> {
+        <sym><.kok> <package_def('knowhow')>
+    }
+    token package_declarator:sym<native> {
+        <sym><.kok> <package_def('native')>
+    }
+
+    rule package_def($*PKGDECL) {
+        :my $*BLOCK;
+        :my $*PACKAGE;
+        <longname>? {}
+        <.enter-package-scope($<longname>)>
+        [
+        || <?[{]>
+           <.enter-block-scope('Block')>
+           <blockoid>
+           <.leave-block-scope>
+        || <.panic("Unable to parse $*PKGDECL definition")>
+        ]
+        <.leave-package-scope>
+    }
+
+    token enter-package-scope($*PACKAGE-NAME) { <?> }
+    token leave-package-scope { <?> }
 
     proto token scope_declarator { <...> }
     token scope_declarator:sym<my>    { <sym> <scoped('my')> }

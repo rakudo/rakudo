@@ -23,6 +23,11 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
         $obj
     }
 
+    method replace-body(RakuAST::Blockoid $new-body) {
+        nqp::bindattr(self, RakuAST::Package, '$!body', $new-body);
+        Nil
+    }
+
     method default-scope() { 'our' }
 
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }

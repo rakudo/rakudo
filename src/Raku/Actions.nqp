@@ -721,8 +721,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ##
 
     method name($/) {
-        nqp::die('multi-part names NYI') if $<morename>;
-        make self.r('Name').from-identifier(~$<identifier>);
+        if $<morename> {
+            my @parts;
+            if $<identifier> {
+                @parts.push(self.r('Name', 'Part', 'Simple').new(~$<identifier>));
+            }
+            for $<morename> {
+                @parts.push($_.ast);
+            }
+            make self.r('Name').new(|@parts);
+        }
+        else {
+            make self.r('Name').from-identifier(~$<identifier>);
+        }
+    }
+
+    method morename($/) {
+        if $<identifier> {
+            make self.r('Name', 'Part', 'Simple').new(~$<identifier>);
+        }
+        else {
+            nqp::die('Complex name parts NYI');
+        }
     }
 
     method longname($/) {

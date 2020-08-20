@@ -201,6 +201,23 @@ my class X::Method::NotFound is Exception {
         }
 
         my $public_suggested = 0;
+        sub find_public_suggestion($before, $after --> Nil) {
+            if $before.fc eq $after.fc {
+                $public_suggested = 1;
+                %suggestions{$after} = "";  # assume identity
+            }
+            else {
+                my $dist := StrDistance.new(
+                  before => $before.fc,
+                  after  => $after.fc
+                );
+                if $dist <= $max_length {
+                    $public_suggested = 1;
+                    %suggestions{$after} = ~$dist;
+                }
+            }
+        }
+
         if nqp::can($!invocant.HOW, 'methods') {
             # $!invocant can be a KnowHOW which method `methods` returns a hash, not a list.
             my $invocant_methods :=
@@ -213,19 +230,12 @@ my class X::Method::NotFound is Exception {
                   if $method_candidate.^name eq 'Submethod'  # a submethod
                   && !$invocant_methods{$method_name};       # unknown method
 
-                if $.method.fc eq $method_name.fc {
-                    %suggestions{$method_name} = "";  # assume identity
-                }
-                else {
-                    my $dist = StrDistance.new(
-                      before => $.method.fc,
-                      after  => $method_name.fc
-                    );
-                    if $dist <= $max_length {
-                        $public_suggested = 1;
-                        %suggestions{$method_name} = ~$dist;
-                    }
-                }
+                find_public_suggestion($.method, $method_name);
+            }
+
+            # handle special unintrospectable cases
+            for <HOW WHAT WHO> -> $method_name {
+                find_public_suggestion($.method, $method_name);
             }
         }
 

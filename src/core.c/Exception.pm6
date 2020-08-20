@@ -208,7 +208,7 @@ my class X::Method::NotFound is Exception {
                 my $method_name = code-name($method_candidate);
                 # GH#1758 do not suggest a submethod from a parent
                 next if $method_candidate.^name eq 'Submethod' && !@invocant_methods.first($method_name, :k).defined;
-                my $dist = StrDistance.new(:before($.method), :after(~$method_name));
+                my $dist = StrDistance.new(:before($.method.fc), :after(~$method_name.fc));
                 if $dist <= $max_length {
                     $public_suggested = 1;
                     %suggestions{$method_name} = ~$dist;
@@ -219,7 +219,7 @@ my class X::Method::NotFound is Exception {
         my $private_suggested = 0;
         if $.in-class-call && nqp::can($!invocant.HOW, 'private_method_table') {
             for $!invocant.^private_method_table.keys -> $method_name {
-                my $dist = StrDistance.new(:before($.method), :after(~$method_name));
+                my $dist = StrDistance.new(:before($.method.fc), :after(~$method_name.fc));
                 if $dist <= $max_length {
                     $private_suggested = 1;
                     %suggestions{"!$method_name"} = ~$dist

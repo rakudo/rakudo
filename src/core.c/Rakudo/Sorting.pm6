@@ -1,4 +1,5 @@
 my class Date { ... }
+my class X::Cannot::Junction { ... }
 my role allomorph { ... }
 
 my class Rakudo::Sorting {

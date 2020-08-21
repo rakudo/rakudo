@@ -57,6 +57,18 @@ class RakuAST::Node {
             self.apply-implicit-block-semantics();
         }
 
+        # Apply any pre-children BEGIN-time effects that were not yet
+        # performed (and figure out if we have to do the later).
+        my int $needs-begin-after;
+        if nqp::istype(self, RakuAST::BeginTime) {
+            if self.is-begin-performed-before-children() {
+                self.ensure-begin-performed($resolver);
+            }
+            else {
+                $needs-begin-after := 1;
+            }
+        }
+
         # Unless in resolve-only mode, do other check-time activities.
         unless $resolve-only {
             if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
@@ -69,6 +81,11 @@ class RakuAST::Node {
         $resolver.push-scope(self) if $is-scope;
         self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $resolve-only) });
         $resolver.pop-scope() if $is-scope;
+
+        # Perform any after-children BEGIN-time effects.
+        if $needs-begin-after {
+            self.ensure-begin-performed($resolver);
+        }
 
         Nil
     }
@@ -158,6 +175,58 @@ class RakuAST::Node {
             $dump := $dump ~ $child.dump($indent + 2);
         });
         $dump
+    }
+
+    method IMPL-SORTED-KEYS(Mu $hash) {
+        # Due to these classes being pieced together at compile time we can't
+        # reach the sorted_hash sub in the NQP setting, so it's copied here. 
+        my @keys;
+        for $hash {
+            nqp::push(@keys, $_.key);
+        }
+
+        my int $count := +@keys;
+        my int $start := $count / 2 - 1;
+        while $start >= 0 {
+            self.IMPL-SIFT-DOWN(@keys, $start, $count - 1);
+            $start := $start - 1;
+        }
+
+        my int $end := +@keys - 1;
+        while $end > 0 {
+            my str $swap := @keys[$end];
+            @keys[$end] := @keys[0];
+            @keys[0] := $swap;
+            $end := $end - 1;
+            self.IMPL-SIFT-DOWN(@keys, 0, $end);
+        }
+
+        return @keys;
+    }
+
+    method IMPL-SIFT-DOWN(Mu $a, int $start, int $end) {
+        my @a := $a;
+        my int $root := $start;
+
+        while 2*$root + 1 <= $end {
+            my $child := 2*$root + 1;
+            my $swap := $root;
+
+            if @a[$swap] gt @a[$child] {
+                $swap := $child;
+            }
+            if $child + 1 <= $end && @a[$swap] ge @a[$child + 1] {
+                $swap := $child + 1;
+            }
+            if $swap == $root {
+                return;
+            } else {
+                my str $tmp := @a[$root];
+                @a[$root] := @a[$swap];
+                @a[$swap] := $tmp;
+                $root := $swap;
+            }
+        }
     }
 }
 

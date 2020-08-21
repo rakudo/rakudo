@@ -4,6 +4,7 @@ src/Raku/ast/base.rakumod
 src/Raku/ast/sink.rakumod
 src/Raku/ast/scoping.rakumod
 src/Raku/ast/attaching.rakumod
+src/Raku/ast/begintime.rakumod
 src/Raku/ast/statements.rakumod
 src/Raku/ast/expressions.rakumod
 src/Raku/ast/circumfix.rakumod

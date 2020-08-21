@@ -99,6 +99,7 @@ elsif ($type eq 'install') {
             $preamble_unix,
             ": \${NQP_HOME:=\"\$DIR/../share/nqp\"}",
             ": \${NQP_JARS:=\"$nqpjars\"}",
+            ": \${RAKUDO_HOME:=\"\$PERL6_HOME\"}",
             ": \${RAKUDO_HOME:=\"\$DIR/../share/perl6\"}",
             ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",
             "exec "
@@ -109,6 +110,7 @@ elsif ($type eq 'install') {
             $preamble_unix,
             ": \${NQP_HOME:=\"$static_nqp_home\"}",
             ": \${NQP_JARS:=\"$nqpjars\"}",
+            ": \${RAKUDO_HOME:=\"\$PERL6_HOME\"}",
             ": \${RAKUDO_HOME:=\"$static_rakudo_home\"}",
             ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",
             "exec "

@@ -172,6 +172,11 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
         Nil
     }
 
+    # Gets the current RakuAST::LexicalScope we are in during resolution.
+    method current-scope() {
+        $!scopes[nqp::elems($!scopes) - 1]
+    }
+
     # Pops the top active lexical scope.
     method pop-scope() {
         my $scope := $!scopes.pop;
@@ -252,6 +257,11 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
             self.push-attach-target($scope);
         }
         Nil
+    }
+
+    # Gets the current RakuAST::LexicalScope we are in during resolution.
+    method current-scope() {
+        $!scopes[nqp::elems($!scopes) - 1].scope
     }
 
     # Pops the top active lexical scope. Used only in batch resolve mode.

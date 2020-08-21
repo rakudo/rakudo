@@ -812,3 +812,90 @@ class RakuAST::Statement::Control is RakuAST::Statement::ExceptionHandler is Rak
         }
     }
 }
+
+# A use statement.
+class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
+                              is RakuAST::ImplicitLookups {
+    has RakuAST::Name $.module-name;
+
+    method new(RakuAST::Name :$module-name!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil')),
+        ])
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        my $comp-unit := self.IMPL-LOAD-MODULE($resolver);
+        self.IMPL-IMPORT($resolver, $comp-unit.handle);
+    }
+
+    method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver) {
+        # TODO When we can resolve multi-part names in the resolver, do it
+        # that way instead.
+        my $CompUnit := $resolver.resolve-lexical-constant('CompUnit').compile-time-value;
+        # TODO options
+        my $opts := nqp::hash();
+        my $spec := $CompUnit.WHO<DependencySpecification>.new(
+            :short-name($!module-name.canonicalize),
+            :from($opts<from> // 'Perl6'),
+            :auth-matcher($opts<auth> // True),
+            :api-matcher($opts<api> // True),
+            :version-matcher($opts<ver> // True),
+        );
+        my $registry := $CompUnit.WHO<RepositoryRegistry>;
+        my $comp-unit := $registry.head.need($spec);
+        # TODO global merging
+        $comp-unit
+    }
+
+    method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle) {
+        my $EXPORT := $handle.export-package;
+        if nqp::isconcrete($EXPORT) {
+            $EXPORT := $EXPORT.FLATTENABLE_HASH();
+            # TODO deal with non-default imports due to tags
+            my @to-import := ['MANDATORY', 'DEFAULT'];
+            for @to-import -> $tag {
+                if nqp::existskey($EXPORT, $tag) {
+                    self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($EXPORT{$tag}));
+                }
+            }
+        }
+    }
+
+    method IMPL-IMPORT-ONE(RakuAST::Resolver $resolver, Mu $stash, Bool :$need-decont) {
+        my $target-scope := $resolver.current-scope;
+        for self.IMPL-SORTED-KEYS($stash) -> $key {
+            my $value := $stash{$key};
+            if $need-decont && nqp::islt_i(nqp::index('$&', nqp::substr($key,0,1)),0) {
+                $value := nqp::decont($value);
+            }
+            # TODO decide where conflict handling lives
+            $target-scope.add-generated-lexical-declaration:
+                RakuAST::Declaration::Import.new:
+                    :lexical-name($key), :compile-time-value($value);
+        }
+    }
+
+    method IMPL-STASH-HASH(Mu $pkg) {
+        my $hash := $pkg.WHO;
+        unless nqp::ishash($hash) {
+            $hash := $hash.FLATTENABLE_HASH();
+        }
+        $hash
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        @lookups[0].IMPL-TO-QAST($context)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!module-name);
+    }
+}

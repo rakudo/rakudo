@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 50;
+plan 51; # Do not change this file to done-testing
 
 {
     my $x = 12;
@@ -593,3 +593,22 @@ throws-like
     X::AdHoc,
     message => /gosh/,
     'Exception is rethrown if unhandled';
+
+# This test calls an imported `&ok` to check the `use` works; the test plan
+# verifies that it really works.
+{
+    sub ok(|) { die "Imported ok was not used" };
+    EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Use.new(
+            module-name => RakuAST::Name.from-identifier('Test')
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier('ok'),
+                args => RakuAST::ArgList.new(
+                    RakuAST::IntLiteral.new(1),
+                    RakuAST::StrLiteral.new('use statements work')
+                )
+        ))
+    );
+}

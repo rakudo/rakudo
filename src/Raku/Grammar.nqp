@@ -471,6 +471,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_control:sym<CATCH> { <sym> <block> }
     rule statement_control:sym<CONTROL> { <sym> <block> }
 
+    token statement_control:sym<use> {
+        # TODO this is massively simplified
+        <sym> <.ws>
+        [
+        | <version>
+            { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
+        | <module_name=.longname>
+        ]
+        <.ws>
+    }
+
     ##
     ## Statement prefixes
     ##

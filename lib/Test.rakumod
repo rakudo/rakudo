@@ -775,7 +775,8 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
     $cond
 }
 
-sub done-testing() is export {
+sub done-testing(-->Bool:D) is export {
+    my $return = True;
     _init_io() unless $output;
     $done_testing_has_been_run = 1;
 
@@ -784,16 +785,20 @@ sub done-testing() is export {
         $output.say: $indents ~ "1..$num_of_tests_planned";
     }
 
-    # Wrong quantity of tests
-    _diag("You planned $num_of_tests_planned test"
-        ~ ($num_of_tests_planned == 1 ?? '' !! 's')
-        ~ ", but ran $num_of_tests_run"
-    ) if ($num_of_tests_planned or $num_of_tests_run) && ($num_of_tests_planned != $num_of_tests_run);
-
-    _diag("You failed $num_of_tests_failed test"
-        ~ ($num_of_tests_failed == 1 ?? '' !! 's')
-        ~ " of $num_of_tests_run"
-    ) if $num_of_tests_failed && ! $subtest_todo_reason;
+    if ($num_of_tests_planned or $num_of_tests_run)
+        && ($num_of_tests_planned != $num_of_tests_run) {
+        _diag("You planned $num_of_tests_planned test"
+            ~ ($num_of_tests_planned == 1 ?? '' !! 's')
+            ~ ", but ran $num_of_tests_run");
+        $return = False;
+    }
+    if $num_of_tests_failed && ! $subtest_todo_reason {
+        _diag("You failed $num_of_tests_failed test"
+            ~ ($num_of_tests_failed == 1 ?? '' !! 's')
+            ~ " of $num_of_tests_run");
+        $return = False;
+    }
+    $return;
 }
 
 sub _init_vars {

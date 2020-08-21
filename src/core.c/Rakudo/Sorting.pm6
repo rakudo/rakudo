@@ -39,7 +39,21 @@ my class Rakudo::Sorting {
 
     multi sub compare(Str:D $a, Str:D $b) is raw { nqp::cmp_s($a,$b) }
     multi sub compare(Int:D $a, Int:D $b) is raw { nqp::cmp_I($a,$b) }
-    multi sub compare(Num:D $a, Num:D $b) is raw { nqp::cmp_n($a,$b) }
+    multi sub compare(Num:D $a, Num:D $b) is raw {
+
+    # This logic is a little tricky because of the need to handle NaN
+    # since nqp::cmp_n returns 0 for *any* comparison with NaN.
+        nqp::cmp_n($a,$b) || (
+          nqp::iseq_n($a,$b)           # same, could have a NaN involved
+            ?? 0                       # no NaN, so ±Inf cmp ±Inf, so Same
+            !! nqp::add_i(             # NaN involved, add results of checks
+                 nqp::iseq_s(nqp::unbox_n($a),"NaN"),   # left NaN: NaN > x
+                 nqp::neg_i(
+                   nqp::iseq_s(nqp::unbox_n($b),"NaN")  # right NaN: x < NaN
+                 )
+               )                       # end up with 0 if both NaN
+        )
+    }
     multi sub compare(Date:D $a, Date:D $b) is raw {
         nqp::cmp_i($a.daycount,$b.daycount)
     }

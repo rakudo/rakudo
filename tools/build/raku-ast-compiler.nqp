@@ -64,7 +64,7 @@ grammar RakuASTParser {
         | <attribute>
         | $<variable>=['$' <.identifier>]
         | <string>
-        | '/' <-[/]>+ '/' || '//' # regex or // operator
+        | ['/' <-[/]>+ '/' || '//' || '/' <?before \s* [\d | '$']>] # regex or // operator
         | $<numeric>=[ \d+ ['.' \d*]? [<[eE]> \d+]? ]
         | $<paren>='(' <nqp-code> [ ')' || <.panic('Missing )')> ]
         | $<brace>='{' <nqp-code> [ '}' || <.panic('Missing }')> ]

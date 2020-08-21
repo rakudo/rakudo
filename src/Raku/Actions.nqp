@@ -263,6 +263,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make self.r('Statement', 'Control').new(body => $<block>.ast);
     }
 
+    method statement_control:sym<use>($/) {
+        my $ast := self.r('Statement', 'Use').new(module-name => $<module_name>.ast);
+        $ast.ensure-begin-performed($*R);
+        make $ast;
+    }
+
     ##
     ## Statement prefixes
     ##

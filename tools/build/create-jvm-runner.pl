@@ -28,12 +28,15 @@ my $bat       = $^O eq 'MSWin32' ? '.bat' : '';
 my $nqplibdir = $^O eq 'MSWin32' ? File::Spec->catfile($static_nqp_home, 'lib') : File::Spec->catfile('${NQP_HOME}', 'lib');
 
 my $nqpjars;
-if ($^O eq 'MSWin32' || !$relocatable) {
+if ($^O eq 'MSWin32') {
     $nqpjars = $thirdpartyjars;
 }
-elsif ($relocatable) {
+else {
+    # The following is a workaround turning the third-party JARS into relative
+    # paths. The clean solution would be to pass in relative paths and only
+    # prefix those with ${NQP_HOME} here.
     my @thirdpartyjars = map { abs_path($_) } split($cpsep, $thirdpartyjars);
-    my $nqp_home       = abs_path(File::Spec->catpath($prefix, 'share', 'nqp'));
+    my $nqp_home       = File::Spec->catdir(abs_path($prefix), 'share', 'nqp');
     @thirdpartyjars    = map { $_ =~ s,$nqp_home,\${NQP_HOME},; $_ } @thirdpartyjars;
     $nqpjars           = join($cpsep, @thirdpartyjars);
 }

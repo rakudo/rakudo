@@ -549,10 +549,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $/.panic("Cannot resolve meta-object for $package-declarator")
         }
 
-        # Stub the package meta-object.
+        # Stub the package AST node.
+        my str $scope := $*SCOPE // 'our';
         my $name-match := $*PACKAGE-NAME;
         my $name := $name-match ?? $name-match.ast !! self.r('Name');
-        $*PACKAGE := self.r('Package').new: :$package-declarator, :$how, :$name;
+        $*PACKAGE := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
     }
 
     method leave-package-scope($/) {

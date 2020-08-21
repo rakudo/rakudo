@@ -11,8 +11,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
     has Mu $!attached-methods;
     has Mu $!attached-attributes;
 
-    method new(Str :$package-declarator!, Mu :$how!, RakuAST::Name :$name, Str :$repr, RakuAST::Blockoid :$body) {
+    method new(Str :$package-declarator!, Mu :$how!, RakuAST::Name :$name, Str :$repr,
+               RakuAST::Blockoid :$body, str :$scope) {
         my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!package-declarator', $package-declarator);
         nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);

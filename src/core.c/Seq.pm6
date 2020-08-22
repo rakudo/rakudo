@@ -7,11 +7,12 @@ my class Seq is Cool does Iterable does Sequence {
 
     # The only valid way to create a Seq directly is by giving it the
     # iterator it will consume and maybe memoize.
+    proto method new(Seq: |) {*}
     multi method new(Seq: Iterator:D $iter) {
         nqp::p6bindattrinvres(nqp::create(self),Seq,'$!iter',nqp::decont($iter))
     }
     # This candidate exists purely for being able to EVAL a .raku
-    # representation of a Seq of which the iterator has already been taken, 
+    # representation of a Seq of which the iterator has already been taken,
     multi method new(Seq:) { nqp::create(self) }
 
     method iterator(Seq:D:) {

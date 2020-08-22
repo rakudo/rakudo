@@ -230,19 +230,10 @@ Need to re-check dependencies.")
         }
 
         if $resolve {
-            # cw: Will return false if the file is already locked. This now
-            #     implies that the Store must cache its created locking objects
-            #     so that existing objects can be returned, or new ones
-            #     created, upon this check.
-            #
-            #     Actually, this implies two things:
-            #       1) Creation
-            #       2) Lock state check.
             if self.store.destination(
                  $compiler-id,
                  $precomp-unit.id,
-                 :extension<.repo-id>,
-                 :lock-full
+                 :extension<.repo-id>
             ) {
                 self.store.store-repo-id(
                   $compiler-id,
@@ -348,7 +339,7 @@ Need to re-check dependencies.")
            :$precomp-stores,
     --> Bool:D) {
 
-        # obtain destination, lock the file for other processes
+        # obtain destination, lock the store for other processes
         my $store := self.store;
         my $io    := $store.destination($compiler-id, $id);
         return False unless $io;
@@ -395,13 +386,9 @@ Need to re-check dependencies.")
         nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',
           $distribution ?? $distribution.serialize !! '{}');
 
-        my $bc := "$io.bc";
-        my $bc-lock := $store.initiate-lock($bc);
-        $bc := $bc.IO;
+        my $bc := "$io.bc".IO;
         $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
           if $!RMD;
-
-        LEAVE { $bc-lock.unlock if $bc-lock; }
 
         my $raku := $*EXECUTABLE.absolute
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
@@ -459,7 +446,7 @@ Need to re-check dependencies.")
         }
 
         if $status {  # something wrong
-            #$store.unlock;
+            $store.unlock;
             $!RMD("Precompiling $path failed: $status")
               if $!RMD;
 
@@ -477,7 +464,7 @@ Need to re-check dependencies.")
             $!RMD("$path aborted precompilation without failure")
               if $!RMD;
 
-            #$store.unlock;
+            $store.unlock;
             return False;
         }
 
@@ -531,7 +518,7 @@ Need to re-check dependencies.")
         );
         $bc.unlink;
         $store.store-repo-id($compiler-id, $id, :repo-id($REPO.id));
-        #$store.unlock;
+        $store.unlock;
         True
     }
 }

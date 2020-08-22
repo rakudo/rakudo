@@ -1,3 +1,43 @@
+New in 2020.08:
+  + Changes:
+    + Methods `name` and `usage-name` of `Parameter` now return an empty `Str`,
+      when there is no name, instead of `Nil`. Method `default` returns `Code` type object,
+      when no default was provided instead of `Any` type object [c11f4b18]
+    + Remove redundant `(())` from `Map.new.raku` [491e1def]
+    + Routine `done-testing` of `Test` module returns `Bool` now,
+      indicating if the tests passed or not [337848fe]
+  + Deprecations:
+    + Deprecate `--nqp-lib` command line option,
+      which had no effect for more than a year [9071653e]
+  + Fixes:
+    + Make `X::Method::NotFound` exception more user-friendly
+      [b36afcb3][760034ef][eb0ca2a3][66adb771][acc5e64d][4546a603]
+    + Fix false positive typechecking exceptions for some generic types
+      [3d5fba7b][973b83de][8d40691d][1db17c46][1eb712d5]
+    + Ensure `Routine` subtypes are composed before performing mixins with
+      their instances [7f2ae26c][e3c2646e]
+    + Fix mixing in a role with attributes into a NQP class [1b5f6b98][9e51d01b]
+    + Make exceptions thrown by supply iterators don't claim to have
+      originally been thrown within the iterator itself [fcfc60b6]
+    + Fix `Baggy.pickpairs` called with a `Callable` [08f81f24]
+    + Fix a rare, yet possible data race [9d6d8dd7]
+  + Additions:
+    + Add `set_parameterizer`, `parameterize_type`, `type_parameterized`,
+      `type_parameters` and `type_parameter_at` methods for `Metamodel::Primitives` [2ab94429]
+  + Internal:
+    + Type `Parameter` methods [c11f4b18]
+    + Fix release pipeline to not delete the GNU/Linux build [4ad4bd30]
+    + Make `Rakudo::Internals::JSON` up to 4.4x as fast [b60e1636][43bd739f]
+    + Do roast-related cleanup, add `quicktest` make target
+      [1e20dfca][6fd09811][333ce78c][dd8cd411]
+    + Rework `tools/update-passing-test-data.pl` to support backends [ea0c98cf]
+    + Make `main-version.nqp` a backend-specific configuration file [80b0747a]
+    + Add a `Perl6::SysConfig` class [ace5e22f]
+    + Simplify binary release instructions a little [27eb5ea9]
+    + Add tests to make sure profilers can be invoked [d7aa7e66]
+    + Remove an outdated workaround from `Cool` implementation [a3af5833]
+    + Fix incorrect method call [02a83442]
+
 New in 2020.07:
   + Fixes:
     + Improve "Method not found" error message for some rare cases [0a86798f]

@@ -252,13 +252,13 @@ class CompUnit::PrecompilationStore::File
     method destination(
       CompUnit::PrecompilationId:D $compiler-id,
       CompUnit::PrecompilationId:D $precomp-id,
-      Str:D  :$extension = '',
-      Bool:D :$lock-full = False
+      Str:D :$extension = '',
+      Bool:D :$full-lock = False
     --> IO::Path:D) {
 
         # have a writable prefix, assume it's a directory
         if $!prefix.w {
-            self!lock($.prefix) if $lock-full;
+            self!lock() if $full-lock;
             self!file($compiler-id, $precomp-id, :$extension);
         }
 

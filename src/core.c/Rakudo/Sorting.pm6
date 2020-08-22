@@ -2,6 +2,74 @@ my class Date { ... }
 my class X::Cannot::Junction { ... }
 my role allomorph { ... }
 
+# Define a special compare function that is basically the core's infix:<cmp>
+# except:
+# - it throws an X::Cannot::Junction if it encounters a Junction
+# - returns a native int, so no need to cast to an Order enum
+# - has specific candidates for Str/Num/Int and their allomorph counterparts
+#   for performance (4x as fast for these
+# The reason for not allowing Junctions is that there is no logical way to
+# collapse a Junction of Order enums to a single Order enum.
+proto sub CMP_DISALLOW_JUNCTIONS(|) is implementation-detail {*}
+multi sub CMP_DISALLOW_JUNCTIONS(Junction:D \a, \b) {
+    X::Cannot::Junction.new(
+      junction  => a.raku,
+      for       => "as a value when sorting",
+    ).throw
+}
+multi sub CMP_DISALLOW_JUNCTIONS(\a, Junction:D \b) {
+    X::Cannot::Junction.new(
+      junction  => b.raku,
+      for       => "as a value when sorting",
+    ).throw
+}
+multi sub CMP_DISALLOW_JUNCTIONS(allomorph:D \a, allomorph:D \b) is raw is default {
+    CMP_DISALLOW_JUNCTIONS(a.Numeric, b.Numeric)
+      || CMP_DISALLOW_JUNCTIONS(a.Str, b.Str)
+}
+multi sub CMP_DISALLOW_JUNCTIONS(allomorph:D \a, \b) is raw {
+    CMP_DISALLOW_JUNCTIONS(a.Numeric, b) || CMP_DISALLOW_JUNCTIONS(a.Str, b)
+}
+multi sub CMP_DISALLOW_JUNCTIONS(\a, allomorph:D \b) is raw {
+    CMP_DISALLOW_JUNCTIONS(a, b.Numeric) || CMP_DISALLOW_JUNCTIONS(a, b.Str)
+}
+
+multi sub CMP_DISALLOW_JUNCTIONS(Str:D $a, Str:D $b) is raw {
+    nqp::cmp_s($a,$b)
+}
+multi sub CMP_DISALLOW_JUNCTIONS(Int:D $a, Int:D $b) is raw {
+    nqp::cmp_I($a,$b)
+}
+multi sub CMP_DISALLOW_JUNCTIONS(Num:D $a, Num:D $b) is raw {
+
+# This logic is a little tricky because of the need to handle NaN
+# since nqp::cmp_n returns 0 for *any* comparison with NaN.
+    nqp::cmp_n($a,$b) || (
+      nqp::iseq_n($a,$b)           # same, could have a NaN involved
+        ?? 0                       # no NaN, so ±Inf cmp ±Inf, so Same
+        !! nqp::add_i(             # NaN involved, add results of checks
+             nqp::iseq_s(nqp::unbox_n($a),"NaN"),   # left NaN: NaN > x
+             nqp::neg_i(
+               nqp::iseq_s(nqp::unbox_n($b),"NaN")  # right NaN: x < NaN
+             )
+           )                       # end up with 0 if both NaN
+    )
+}
+multi sub CMP_DISALLOW_JUNCTIONS(Date:D $a, Date:D $b) is raw {
+    nqp::cmp_i($a.daycount,$b.daycount)
+}
+
+# Also, cmp returning a Junction indicates something in the elements
+# being cmp'ed was a Junction, and we can't handle that either.
+multi sub CMP_DISALLOW_JUNCTIONS(\a, \b) {
+    nqp::istype((my \order := a cmp b),Junction)
+      ?? X::Cannot::Junction.new(
+           junction  => order.raku,
+           for       => "as a value when sorting",
+         ).throw
+      !! order
+}
+
 my class Rakudo::Sorting {
 
     # Return new IterationBuffer with the two given values
@@ -12,55 +80,6 @@ my class Rakudo::Sorting {
           nqp::bindpos($buf,1,two),
           $buf
         )
-    }
-
-    sub no-junction-allowed(Mu $junction --> Nil) is hidden-from-backtrace {
-        X::Cannot::Junction.new(
-          junction  => $junction.raku,
-          for       => "as a value when sorting",
-        ).throw
-    }
-
-    # Define a local default compare function that is basically the core's
-    # infix:<cmp> for all values *but* Junctions.  If a Junction is involved
-    # in the comparison, it will throw an exception, as there is no logical
-    # way to handle that case.
-    proto sub compare(|) {*}
-    multi sub compare(Junction:D \a, \b) { no-junction-allowed(a) }
-    multi sub compare(\a, Junction:D \b) { no-junction-allowed(b) }
-    multi sub compare(allomorph:D \a, allomorph:D \b) is raw is default {
-        a cmp b
-    }
-    multi sub compare(allomorph:D \a,             \b) is raw { a cmp b }
-    multi sub compare(            \a, allomorph:D \b) is raw { a cmp b }
-
-    multi sub compare(Str:D $a, Str:D $b) is raw { nqp::cmp_s($a,$b) }
-    multi sub compare(Int:D $a, Int:D $b) is raw { nqp::cmp_I($a,$b) }
-    multi sub compare(Num:D $a, Num:D $b) is raw {
-
-    # This logic is a little tricky because of the need to handle NaN
-    # since nqp::cmp_n returns 0 for *any* comparison with NaN.
-        nqp::cmp_n($a,$b) || (
-          nqp::iseq_n($a,$b)           # same, could have a NaN involved
-            ?? 0                       # no NaN, so ±Inf cmp ±Inf, so Same
-            !! nqp::add_i(             # NaN involved, add results of checks
-                 nqp::iseq_s(nqp::unbox_n($a),"NaN"),   # left NaN: NaN > x
-                 nqp::neg_i(
-                   nqp::iseq_s(nqp::unbox_n($b),"NaN")  # right NaN: x < NaN
-                 )
-               )                       # end up with 0 if both NaN
-        )
-    }
-    multi sub compare(Date:D $a, Date:D $b) is raw {
-        nqp::cmp_i($a.daycount,$b.daycount)
-    }
-
-    # Also, cmp returning a Junction indicates something in the elements
-    # being cmp'ed was a Junction, and we can't handle that either.
-    multi sub compare(\a, \b) {
-        nqp::istype((my \order := a cmp b),Junction)
-          ?? no-junction-allowed(order)
-          !! order
     }
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
@@ -108,7 +127,7 @@ my class Rakudo::Sorting {
                           nqp::isge_i($j,$end)
                             || nqp::iseq_i(
                                  nqp::decont(  # for some reason we need this
-                                   compare(nqp::atpos($A,$i), nqp::atpos($A,$j))
+                                   CMP_DISALLOW_JUNCTIONS(nqp::atpos($A,$i), nqp::atpos($A,$j))
                                      || nqp::cmp_i($i,$j)
                                  ), # apparently code gen with || isn't right
                                  -1
@@ -141,7 +160,7 @@ my class Rakudo::Sorting {
           ),
           nqp::if(
             nqp::islt_i($n,2)
-              || nqp::isle_i(compare(nqp::atpos($A,0), nqp::atpos($A,1)),0),
+              || nqp::isle_i(CMP_DISALLOW_JUNCTIONS(nqp::atpos($A,0), nqp::atpos($A,1)),0),
             list,  # nothing to be done, we already have the result
             nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
               IB2(nqp::atpos($A,1),nqp::atpos($A,0)))
@@ -287,7 +306,7 @@ my class Rakudo::Sorting {
                           nqp::isge_i($j,$end)
                             || (nqp::iseq_i(
                                  nqp::decont(
-                                   compare(
+                                   CMP_DISALLOW_JUNCTIONS(
                                      nqp::atpos($S,nqp::atpos_i($A,$i)),
                                      nqp::atpos($S,nqp::atpos_i($A,$j))
                                    ) || nqp::cmp_i($i,$j)
@@ -329,7 +348,7 @@ my class Rakudo::Sorting {
           nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
             nqp::if(
               nqp::islt_i($n,2)
-                || nqp::isle_i(compare(
+                || nqp::isle_i(CMP_DISALLOW_JUNCTIONS(
                      mapper(nqp::atpos($O,0)),
                      mapper(nqp::atpos($O,1))
                    ),0),

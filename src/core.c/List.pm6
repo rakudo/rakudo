@@ -1679,12 +1679,14 @@ multi sub prefix:<|>(\x --> Slip:D) { x.Slip }
 multi sub infix:<cmp>(@a, @b --> Order:D) {
 
     sub CMP-SLOW(@a, @b) {
-        (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
+        (@a Z[&CMP_DISALLOW_JUNCTIONS] @b).first({ $_ })
+          || CMP_DISALLOW_JUNCTIONS( |do .is-lazy for @a, @b )
+          || @a <=> @b
     }
 
     nqp::if(
         @a.is-lazy || @b.is-lazy,
-        CMP-SLOW(@a, @b),
+        ORDER(CMP-SLOW(@a, @b)),
         nqp::stmts(
             ( my $a_r := nqp::getattr(@a, List, '$!reified') ),
             ( my $b_r := nqp::getattr(@b, List, '$!reified') ),
@@ -1696,7 +1698,7 @@ multi sub infix:<cmp>(@a, @b --> Order:D) {
             nqp::while(
                 nqp::not_i($res) && nqp::islt_i($i, $total_iters),
                 nqp::stmts(
-                    $res = &infix:<cmp>(nqp::atpos($a_r, $i), nqp::atpos($b_r, $i)),
+                    $res = CMP_DISALLOW_JUNCTIONS(nqp::atpos($a_r, $i), nqp::atpos($b_r, $i)),
                     $i   = nqp::add_i($i, 1)
                 )
             ),

@@ -1,3 +1,10 @@
+New in 2020.08.1:
+  + Changes:
+    + Fix compiler version [1336e5f3]
+    + Method `invoke` of `WalkList` returns a lazy `Seq` instance now [fe40ee1e]
+  + Internal:
+    + `Seq` class now has its own proto for `new` method [a19996db]
+
 New in 2020.08:
   + Changes:
     + Methods `name` and `usage-name` of `Parameter` now return an empty `Str`,

@@ -362,10 +362,10 @@ class CompUnit::PrecompilationStore::File
     }
 
     method initiate-lock (
-      Str:D $location is copy
+      IO::Path:D $path is copy
       --> Compunit::PrecompilationStore::File::Item:D
     ) {
-        my $item = $location.IO.extension('lock').open(:create, :rw);
+        my $item = $path.extension('lock').open(:create, :rw);
         $item.lock;
 
         Compunit::PrecompilationStore::File::Item.new(:$item)

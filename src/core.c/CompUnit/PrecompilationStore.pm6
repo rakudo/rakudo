@@ -3,10 +3,6 @@ role CompUnit::PrecompilationStore {
     method new-unit(| --> CompUnit::PrecompilationUnit:D)
     { ... }
 
-    # Initiates the item-level lock
-    method initiate-lock(IO::Path:D $path)
-    { ... }
-
     # Load the precompilation identified by the pairing of the specified
     # compiler and precompilation ID.
     method load-unit(CompUnit::PrecompilationId $compiler-id,
@@ -51,9 +47,4 @@ role CompUnit::PrecompilationStore {
     { ... }
 }
 
-role CompUnit::PrecompilationStore::Item {
-    # Unlock the precomp-item
-    method unlock { ... }
-}
-
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

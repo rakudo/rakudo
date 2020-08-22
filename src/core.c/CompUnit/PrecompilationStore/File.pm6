@@ -319,8 +319,7 @@ class CompUnit::PrecompilationStore::File
       IO::Path:D $path,
       Str:D :$extension = ''
     ) {
-        my $file := self!file($compiler-id, $precomp-id, :$extension);
-        $path.rename($file) if $file.e;
+        $path.rename(self!file($compiler-id, $precomp-id, :$extension));
     }
 
     method store-unit(
@@ -330,8 +329,7 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $precomp-file := self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
-        $precomp-file.rename(self!file($compiler-id, $precomp-id))
-          if $precomp-file.e;
+        $precomp-file.rename(self!file($compiler-id, $precomp-id));
         self.remove-from-cache($precomp-id);
     }
 
@@ -342,8 +340,7 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
         $repo-id-file.spurt($repo-id);
-        $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>)
-          if $repo-id-file.e;
+        $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
     }
 
     method delete(

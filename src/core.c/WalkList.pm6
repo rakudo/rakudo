@@ -1,41 +1,46 @@
 # This is what Mu::WALK method returns.
 my class WalkList is List {
     has Mu $.invocant;
-    has $.quiet = False;
-
-    method new(|) {
-        callsame.quiet(False)
-    }
+    has $.is-quiet is built(False) = False;
 
     proto method invoke(|) {*}
-    multi method invoke(::?CLASS:D: Capture:D $args) {
-        my @rv;
-        for |self -> &method {
-            my $val = $!invocant.&method(|$args);
-            @rv.push: $val ~~ Slip ?? $val.List !! $val;
-            CATCH {
-                default {
-                    $_.throw unless $!quiet;
-                    @rv.push: Failure.new($_)
-                }
+    multi method invoke(::?CLASS:D: Capture:D $args --> Seq:D) {
+        Seq.new(class :: does Iterator {
+            has $!is-quiet;
+            has $!invocant;
+            has $!wl-iterator;
+            has $.is-lazy = True;
+            method !SET-SELF(\wlist) {
+                $!is-quiet = wlist.is-quiet;
+                $!wl-iterator = wlist.iterator;
+                $!invocant = wlist.invocant;
+                self
             }
-        }
-        @rv
+            method new(\wlist) { nqp::create(self)!SET-SELF(wlist) }
+            method pull-one() {
+                CATCH {
+                    .rethrow unless $!is-quiet;
+                    return Failure.new($_)
+                }
+                nqp::if(nqp::eqaddr((my $method := nqp::decont($!wl-iterator.pull-one)), IterationEnd),
+                    IterationEnd,
+                    $!invocant.$method(|$args))
+            }
+        }.new(self))
     }
-    multi method invoke(::?CLASS:D: |c) {
-        note "invoke(", c.raku, ")" if %*ENV<RAKUDO_DEBUG>;
-        samewith(c)
+    multi method invoke(::?CLASS:D: |c --> Seq:D) {
+        self.invoke(c)
     }
 
     method quiet(::?CLASS:D: Bool() $quiet = True --> ::?CLASS:D) {
-        $!quiet = $quiet;
+        $!is-quiet = $quiet;
         self
     }
 
     method reverse(::?CLASS:D: --> ::?CLASS:D) {
         self.WHAT.new(|self.List::reverse)
             .set_invocant($!invocant)
-            .quiet($!quiet)
+            .quiet($!is-quiet)
     }
 
     method set_invocant(::?CLASS:D: Mu \inv) {

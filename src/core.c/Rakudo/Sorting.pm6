@@ -14,23 +14,20 @@ my class Rakudo::Sorting {
         )
     }
 
+    sub no-junction-allowed(Mu $junction --> Nil) is hidden-from-backtrace {
+        X::Cannot::Junction.new(
+          junction  => $junction.raku,
+          for       => "as a value when sorting",
+        ).throw
+    }
+
     # Define a local default compare function that is basically the core's
     # infix:<cmp> for all values *but* Junctions.  If a Junction is involved
     # in the comparison, it will throw an exception, as there is no logical
     # way to handle that case.
     proto sub compare(|) {*}
-    multi sub compare(Junction:D \a, \b) {
-        X::Cannot::Junction.new(
-          junction  => a.raku,
-          for       => "as a value when sorting",
-        ).throw
-    }
-    multi sub compare(\a, Junction:D \b) {
-        X::Cannot::Junction.new(
-          junction  => b.raku,
-          for       => "as a value when sorting",
-        ).throw
-    }
+    multi sub compare(Junction:D \a, \b) { no-junction-allowed(a) }
+    multi sub compare(\a, Junction:D \b) { no-junction-allowed(b) }
     multi sub compare(allomorph:D \a, allomorph:D \b) is raw is default {
         a cmp b
     }
@@ -58,7 +55,13 @@ my class Rakudo::Sorting {
         nqp::cmp_i($a.daycount,$b.daycount)
     }
 
-    multi sub compare(\a, \b) { a cmp b }
+    # Also, cmp returning a Junction indicates something in the elements
+    # being cmp'ed was a Junction, and we can't handle that either.
+    multi sub compare(\a, \b) {
+        nqp::istype((my \order := a cmp b),Junction)
+          ?? no-junction-allowed(order)
+          !! order
+    }
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # The parameter is the HLL List to be sorted *in place* using simple cmp.

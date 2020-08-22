@@ -7,7 +7,7 @@ my role allomorph { ... }
 # - it throws an X::Cannot::Junction if it encounters a Junction
 # - returns a native int, so no need to cast to an Order enum
 # - has specific candidates for Str/Num/Int and their allomorph counterparts
-#   for performance (4x as fast for these
+#   for performance (4x as fast for these)
 # The reason for not allowing Junctions is that there is no logical way to
 # collapse a Junction of Order enums to a single Order enum.
 proto sub CMP_DISALLOW_JUNCTIONS(|) is implementation-detail {*}

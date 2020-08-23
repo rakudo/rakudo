@@ -153,6 +153,10 @@ my class X::Method::NotFound is Exception {
     has $.typename;
     has Bool $.private;
     has $.addendum;
+    has $.message is built(False);
+    has @.suggestions is built(False);
+    has @.tips is built(False);
+
     # This attribute is an implementation detail. Not to be documented.
     has $.in-class-call;
 
@@ -162,14 +166,13 @@ my class X::Method::NotFound is Exception {
           !! "of type '$.typename'"
     }
 
-    method message() {
+    method TWEAK() {
         my @message = $.private
           ?? "No such private method '!$.method' for invocant $.of-type"
           !! "No such method '$.method' for invocant $.of-type";
 
         @message.push: $.addendum if $.addendum;
 
-        my @tips;
         my $indirect-method = $.method.starts-with("!")
                                 ?? $.method.substr(1)
                                 !! "";
@@ -204,7 +207,7 @@ my class X::Method::NotFound is Exception {
         sub find_public_suggestion($before, $after --> Nil) {
             if $before.fc eq $after.fc {
                 $public_suggested = 1;
-                %suggestions{$after} = "";  # assume identity
+                %suggestions{$after} = 0;  # assume identity
             }
             else {
                 my $dist := StrDistance.new(
@@ -213,7 +216,7 @@ my class X::Method::NotFound is Exception {
                 );
                 if $dist <= $max_length {
                     $public_suggested = 1;
-                    %suggestions{$after} = ~$dist;
+                    %suggestions{$after} = $dist;
                 }
             }
         }
@@ -248,41 +251,43 @@ my class X::Method::NotFound is Exception {
                 );
                 if $dist <= $max_length {
                     $private_suggested = 1;
-                    %suggestions{"!$method_name"} = ~$dist
+                    %suggestions{"!$method_name"} = $dist
                         unless $indirect-method eq $method_name;
                 }
             }
         }
 
         if $indirect-method && !$.private && $private_suggested {
-            @tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
+            @!tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
         }
 
-        if +%suggestions == 1 {
-            @tips.push: "Did you mean '%suggestions.keys()'?";
+        @!suggestions = %suggestions.sort(*.value).map(*.key).head(4);
+
+        if @!suggestions == 1 {
+            @!tips.push: "Did you mean '@!suggestions[0]'?";
         }
-        elsif +%suggestions > 1 {
-            @tips.push: "Did you mean any of these: { %suggestions.sort(*.value)>>.key.head(4).map( { "'$_'" } ).join(", ") }?";
+        elsif @!suggestions {
+            @!tips.push: "Did you mean any of these: { @!suggestions.map( { "'$_'" } ).join(", ") }?";
         }
 
         if !$indirect-method
            &&($private_suggested ^^ $public_suggested)
            && ($private_suggested ^^ $.private)
         {
-            @tips.push: "Perhaps a " ~ ($private_suggested ?? "private" !! "public") ~ " method call must be used."
+            @!tips.push: "Perhaps a " ~ ($private_suggested ?? "private" !! "public") ~ " method call must be used."
         }
 
-        if +@tips > 1 {
-            @tips = @tips.map: "\n" ~ ("- " ~ *).naive-word-wrapper(:indent("    "));
+        if @!tips > 1 {
+            @!tips = @!tips.map: "\n" ~ ("- " ~ *).naive-word-wrapper(:indent("    "));
             @message.push: ($.addendum ?? "Other possible" !! "Possible") ~ " causes are:";
         }
-        elsif @tips {
-            @message.push: @tips.shift;
+        elsif @!tips {
+            @message.push: @!tips.shift;
         }
 
-        @message[0] ~= "." if +@message > 1;
+        @message[0] ~= "." if @message > 1;
 
-        @message.join(" ").naive-word-wrapper ~ @tips.join
+        $!message = @message.join(" ").naive-word-wrapper ~ @!tips.join
     }
 }
 

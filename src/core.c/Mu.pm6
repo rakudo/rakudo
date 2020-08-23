@@ -639,14 +639,16 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     proto method Numeric(|) {*}
-    multi method Numeric(Mu:U \v:) {
+    multi method Numeric(Mu:U: --> 0) {
         warn "Use of uninitialized value of type {self.^name} in numeric context";
-        0
     }
     proto method Real(|) {*}
-    multi method Real(Mu:U \v:) {
+    multi method Real(Mu:U: --> 0) {
         warn "Use of uninitialized value of type {self.^name} in numeric context";
-        0
+    }
+    proto method Int(|) {*}
+    multi method Int(Mu:U: --> 0) {
+        warn "Use of uninitialized value of type {self.^name} in numeric context";
     }
 
     proto method Str(|) {*}

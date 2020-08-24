@@ -78,8 +78,40 @@ class RakuAST::Resolver {
             self.resolve-lexical-constant($name.IMPL-UNWRAP-LIST($name.parts)[0].name)
         }
         else {
-            nqp::die('Resovling complex names NYI')
+            # Obtain parts.
+            my @parts := $name.IMPL-UNWRAP-LIST($name.parts);
+            if nqp::elems(@parts) == 0 {
+                nqp::die('0-part name lookup not possible as a constant');
+            }
+
+            # See if we can obtain the first part lexically.
+            # TODO pseudo-packages
+            # TODO GLOBALish fallback
+            my $first-resolved := self.resolve-lexical-constant(@parts[0].name);
+            return Nil unless $first-resolved;
+
+            # Now chase down through the packages until we find something.
+            my $cur-symbol := $first-resolved.compile-time-value;
+            my int $i := 1;
+            my int $n := nqp::elems(@parts);
+            while $i < $n {
+                my %hash := self.IMPL-STASH-HASH($cur-symbol);
+                $cur-symbol := nqp::atkey(%hash, @parts[$i].name);
+                return Nil if nqp::isnull($cur-symbol);
+                $i++;
+            }
+
+            # Wrap it.
+            RakuAST::Declaration::PackageConstant.new(compile-time-value => $cur-symbol)
         }
+    }
+
+    method IMPL-STASH-HASH(Mu $pkg) {
+        my $hash := $pkg.WHO;
+        unless nqp::ishash($hash) {
+            $hash := $hash.FLATTENABLE_HASH();
+        }
+        $hash
     }
 
     # Resolves a lexical in the chain of outer contexts.

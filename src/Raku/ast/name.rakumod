@@ -13,6 +13,17 @@ class RakuAST::Name is RakuAST::Node {
         self.new(RakuAST::Name::Part::Simple.new($identifier))
     }
 
+    method from-identifier-parts(*@identifiers) {
+        my @parts;
+        for @identifiers {
+            unless nqp::istype($_, Str) || nqp::isstr($_) {
+                nqp::die('Expected identifier parts to be Str, but got ' ~ $_.HOW.name($_));
+            }
+            @parts.push(RakuAST::Name::Part::Simple.new($_));
+        }
+        self.new(|@parts)
+    }
+
     method parts() {
         self.IMPL-WRAP-LIST($!parts)
     }

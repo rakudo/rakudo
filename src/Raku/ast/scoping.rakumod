@@ -17,12 +17,22 @@ class RakuAST::LexicalScope is RakuAST::Node {
     method IMPL-QAST-DECLS(RakuAST::IMPL::QASTContext $context) {
         my $stmts := QAST::Stmts.new();
 
-        # Visit code objects that need to make a declaration entry.
-        self.visit: :strict, -> $node {
-            if nqp::istype($node, RakuAST::Code) {
-                $stmts.push($node.IMPL-QAST-DECL-CODE($context));
+        # Visit code objects that need to make a declaration entry. We don't
+        # visit any code objects immediately under an ImmediateBlockUser (but
+        # should visit their other nodes).
+        my @code-todo := [self];
+        while @code-todo {
+            my $visit := @code-todo.shift;
+            $visit.visit-children: -> $node {
+                if nqp::istype($node, RakuAST::Code) {
+                    unless nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) {
+                        $stmts.push($node.IMPL-QAST-DECL-CODE($context));
+                    }
+                }
+                unless nqp::istype($node, RakuAST::LexicalScope) {
+                    @code-todo.push($node);
+                }
             }
-            !(nqp::istype($node, RakuAST::LexicalScope) || nqp::istype($node, RakuAST::IMPL::ImmediateBlockUser))
         }
 
         # Visit declarations and produce declaration QAST.

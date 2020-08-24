@@ -729,6 +729,7 @@ my @allowed =
       Q{WhateverCode},
       Q{WrapDispatcher},
       Q{X},
+      Q{allomorph},
       Q{array},
       Q{atomicint},
       Q{blob16},

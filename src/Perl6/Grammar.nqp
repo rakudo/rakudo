@@ -3874,7 +3874,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*IN_REDUCE := 1;
         :my $op;
         <?before '['\S+']'>
-        <!before '[' <.[ - + ? ~ ^ ]> <.[ \w $ @ ]> >  # disallow accidental prefix before termish thing
+        <!before '['+ <.[ - + ? ~ ^ ]> <.[ \w $ @ ]> >  # disallow accidental prefix before termish thing
 
         '['
         [

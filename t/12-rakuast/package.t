@@ -22,7 +22,7 @@ plan 7;
         body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::Method.new(
-                    name => 'test-meth',
+                    name => RakuAST::Name.from-identifier('test-meth'),
                     body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
                         RakuAST::Statement::Expression.new(
                             RakuAST::IntLiteral.new(456)

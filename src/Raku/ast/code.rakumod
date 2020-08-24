@@ -396,6 +396,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method visit-children(Code $visitor) {
+        $visitor($!name);
         $visitor($!signature);
         $visitor($!body);
     }

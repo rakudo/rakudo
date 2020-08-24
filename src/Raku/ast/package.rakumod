@@ -65,7 +65,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
 
         # Add methods and attributes.
         for $!attached-methods {
-            $type.HOW.add_method($type, $_.name, $_.meta-object);
+            $type.HOW.add_method($type, $_.name.canonicalize, $_.meta-object);
         }
         for $!attached-attributes {
             $type.HOW.add_attribute($type, $_.meta-object);
@@ -83,6 +83,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
     }
 
     method visit-children(Code $visitor) {
+        $visitor($!name);
         $visitor($!body);
     }
 }

@@ -149,6 +149,10 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
         $obj
     }
 
+    method visit-children(Code $visitor) {
+        $visitor(self.args);
+    }
+
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $callee-qast) {
         my $call := QAST::Op.new( :op('call'), $callee-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
@@ -165,6 +169,11 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
         nqp::bindattr($obj, RakuAST::Call::Method, '$!name', $name);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
         $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+        $visitor(self.args);
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {

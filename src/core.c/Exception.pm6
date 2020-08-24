@@ -2771,7 +2771,10 @@ my class X::Multi::Ambiguous is Exception {
         @priors = flat "Earlier failures:\n", @priors, "\nFinal error:\n " if @priors;
         @priors.join ~ join "\n",
             "Ambiguous call to '$.dispatcher.name()$cap'; these signatures all match:",
-            @.ambiguous.map(*.signature.raku)
+            @.ambiguous.map: {
+                my $sig := .signature.raku.substr(1).subst(/ \s* "-->" <-[)]>+ /);
+                .?default ?? "  $sig is default" !! "  $sig"
+            }
     }
 }
 

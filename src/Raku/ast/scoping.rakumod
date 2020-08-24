@@ -359,7 +359,7 @@ class RakuAST::Declaration::Import is RakuAST::Declaration::External::Constant {
     }
 }
 
-# A constant resolved in a package. Has a comple time value, and the resolution
+# A constant resolved in a package. Has a compile time value, and the resolution
 # always compiles into that. The name it was looked up under is not preserved.
 class RakuAST::Declaration::PackageConstant is RakuAST::Declaration is RakuAST::CompileTimeValue {
     has Mu $.compile-time-value;

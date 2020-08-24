@@ -330,6 +330,12 @@ class RakuAST::Declaration::External::Constant is RakuAST::Declaration::External
     }
 
     method type() { $!compile-time-value.WHAT }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        my $value := $!compile-time-value;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
 }
 
 # An imported lexical declaration. Has a compile-time value. Must create a
@@ -341,6 +347,31 @@ class RakuAST::Declaration::Import is RakuAST::Declaration::External::Constant {
             :value(self.compile-time-value)
         )
     }
+}
+
+# A constant resolved in a package. Has a comple time value, and the resolution
+# always compiles into that. The name it was looked up under is not preserved.
+class RakuAST::Declaration::PackageConstant is RakuAST::Declaration is RakuAST::CompileTimeValue {
+    has Mu $.compile-time-value;
+
+    method new(Mu :$compile-time-value!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Declaration::PackageConstant,
+            '$!compile-time-value', $compile-time-value);
+        $obj
+    }
+
+    method type() { $!compile-time-value.WHAT }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        my $value := $!compile-time-value;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method default-scope() { 'package' }
+
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['package']) }
 }
 
 # Done by anything that is a lookup of a symbol. May or may not need resolution

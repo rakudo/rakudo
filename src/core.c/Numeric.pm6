@@ -308,9 +308,9 @@ multi sub infix:<=~=>(\a, \b, :$tolerance = $*TOLERANCE)    {
 # U+2245 APPROXIMATELY EQUAL TO
 my constant &infix:<≅> = &infix:<=~=>;
 
-proto sub infix:<!=>(Mu $?, Mu $?, *%) is pure  {*}
+proto sub infix:<!=>($?, $?, *%) is pure  {*}
 multi sub infix:<!=>($?)                    { Bool::True }
-multi sub infix:<!=>(Mu \a, Mu \b)          { not a == b }
+multi sub infix:<!=>(\a, \b)                { not a == b }
 # U+2260 NOT EQUAL TO
 my constant &infix:<≠> := &infix:<!=>;
 

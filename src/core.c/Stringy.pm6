@@ -36,9 +36,13 @@ proto sub infix:<eq>($?, $?, *%)  is pure {*}
 multi sub infix:<eq>($x?)          { Bool::True }
 multi sub infix:<eq>(\a, \b)       { a.Stringy eq b.Stringy }
 
-proto sub infix:<ne>($?, $?, *%) is pure {*}
-multi sub infix:<ne>($x?)            { Bool::True }
-multi sub infix:<ne>(Any \a, Any \b) { a.Stringy ne b.Stringy }
+proto sub infix:<ne>(Mu $?, Mu $?, *%) is pure {*}
+multi sub infix:<ne>($x?) { Bool::True }
+multi sub infix:<ne>(Mu \a, Mu \b) {
+    nqp::istype(($_ := a.Stringy eq b.Stringy),Junction)
+      ?? $_ but .not
+      !! .not
+}
 
 proto sub infix:<lt>($?, $?, *%) is pure {*}
 multi sub infix:<lt>($x?)          { Bool::True }

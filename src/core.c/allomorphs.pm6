@@ -1,14 +1,14 @@
-my class allomorph is Str {
+my class Allomorph is Str {
     multi method Bool(::?CLASS:D:) { self.Numeric.Bool }
 
-    method succ(allomorph:D:) { self.Numeric.succ }
-    method pred(allomorph:D:) { self.Numeric.pred }
+    method succ(Allomorph:D:) { self.Numeric.succ }
+    method pred(Allomorph:D:) { self.Numeric.pred }
 
-    multi method Str(allomorph:D:) {
+    multi method Str(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value')
     }
 
-    multi method WHICH(allomorph:D:) {
+    multi method WHICH(Allomorph:D:) {
         nqp::box_s(
           nqp::join('|',nqp::list_s(
             self.^name,
@@ -19,7 +19,7 @@ my class allomorph is Str {
         )
     }
 
-    multi method raku(allomorph:D:) {
+    multi method raku(Allomorph:D:) {
         nqp::join("",nqp::list_s(
           self.^name,'.new(',self.Numeric.raku,', ',self.Str.raku,')'
         ))
@@ -27,7 +27,7 @@ my class allomorph is Str {
 }
 
 # the uses of add_I in this class are a trick to make bigints work right
-my class IntStr is allomorph is Int {
+my class IntStr is Allomorph is Int {
     method new(Int:D $i, Str:D $s) {
         my \SELF = nqp::add_I($i, 0, self);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
@@ -51,7 +51,7 @@ my class IntStr is allomorph is Int {
     multi method Int(IntStr:D:) { nqp::add_I(self,0,Int) }
 }
 
-my class NumStr is allomorph is Num {
+my class NumStr is Allomorph is Num {
     method new(Num:D $n, Str:D $s) {
         my \new = nqp::create(self);
         nqp::bindattr_n(new,Num,'$!value',$n);
@@ -75,7 +75,7 @@ my class NumStr is allomorph is Num {
     multi method Int(NumStr:D:)     { nqp::getattr_n(self,Num,'$!value').Int }
 }
 
-my class RatStr is allomorph is Rat {
+my class RatStr is Allomorph is Rat {
     method new(Rat:D $r, Str:D $s) {
         my \new = nqp::create(self);  # no need to normalize, so don't call .new
         nqp::bindattr(new,Rat,'$!numerator',
@@ -114,7 +114,7 @@ my class RatStr is allomorph is Rat {
     }
 }
 
-my class ComplexStr is allomorph is Complex {
+my class ComplexStr is Allomorph is Complex {
     method new(Complex:D $c, Str $s) {
         my \new = nqp::create(self);
         nqp::bindattr_n(new,Complex,'$!re',
@@ -191,7 +191,7 @@ multi sub infix:<cmp>(ComplexStr:D $a, RatStr:D     $b) { $a.Complex cmp $b.Rat 
 multi sub infix:<cmp>(ComplexStr:D $a, NumStr:D     $b) { $a.Complex cmp $b.Num     || $a.Str cmp $b.Str }
 multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b) { $a.Complex cmp $b.Complex || $a.Str cmp $b.Str }
 
-multi sub infix:<eqv>(allomorph:D $a, allomorph:D $b --> Bool:D) is default {
+multi sub infix:<eqv>(Allomorph:D $a, Allomorph:D $b --> Bool:D) is default {
     nqp::eqaddr($a.WHAT,$b.WHAT)
       ?? $a.Numeric eqv $b.Numeric && $a.Str eqv $b.Str
       !! False

@@ -517,6 +517,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2020-07-20   Rakudo #137                     (Altai-man + Releasable)
   2020-08-22   Rakudo #138                     (Altai-man + Releasable)
   2020-08-23   2020.08.1                       (Altai-man + Releasable)
+  2020-08-26   2020.08.2                       (Altai-man + Releasable)
 
 =head1 COPYRIGHT
 

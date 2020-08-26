@@ -70,13 +70,13 @@ class RakuAST::LexicalScope is RakuAST::Node {
         unless nqp::isconcrete($!declarations-cache) {
             my @declarations;
             self.visit: -> $node {
-                if nqp::istype($node, RakuAST::Declaration) && $node.is-lexical {
+                if nqp::istype($node, RakuAST::Declaration) && $node.is-simple-lexical-declaration {
                     nqp::push(@declarations, $node);
                 }
                 if $node =:= self || !nqp::istype($node, RakuAST::LexicalScope) {
                     if nqp::istype($node, RakuAST::ImplicitDeclarations) {
                         for self.IMPL-UNWRAP-LIST($node.get-implicit-declarations()) -> $decl {
-                            if $decl.is-lexical {
+                            if $decl.is-simple-lexical-declaration {
                                 nqp::push(@declarations, $decl);
                             }
                         }
@@ -263,10 +263,18 @@ class RakuAST::Declaration is RakuAST::Node {
             !! $scope
     }
 
-    # Tests if this is a lexical declaration.
+    # Tests if this is a lexical declaration (`my` or `state` scope).
     method is-lexical() {
         my str $scope := self.scope;
         $scope eq 'my' || $scope eq 'state'
+    }
+
+    # Tests if this declaration should be gathered as a lexical declaration.
+    # By default, anything that is lexically scoped will be, however some
+    # things (such as packages) perform their own, more imperative, logic
+    # for doing installation.
+    method is-simple-lexical-declaration() {
+        self.is-lexical
     }
 }
 
@@ -356,6 +364,38 @@ class RakuAST::Declaration::Import is RakuAST::Declaration::External::Constant {
             :scope('lexical'), :decl('static'), :name(self.lexical-name),
             :value(self.compile-time-value)
         )
+    }
+}
+
+# A lexical declaration that points to a package. Generated as part of package
+# installation in RakuAST::Package, and installed as a generated lexical in a
+# RakuAST::LexicalScope.
+class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration is RakuAST::CompileTimeValue {
+    has str $.lexical-name;
+    has Mu $.compile-time-value;
+
+    method new(str :$lexical-name!, Mu :$compile-time-value!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration::LexicalPackage,
+            '$!lexical-name', $lexical-name);
+        nqp::bindattr($obj, RakuAST::Declaration::LexicalPackage,
+            '$!compile-time-value', $compile-time-value);
+        $obj
+    }
+
+    method type() { $!compile-time-value.WHAT }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new(
+            :scope('lexical'), :decl('static'), :name($!lexical-name),
+            :value($!compile-time-value)
+        )
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        my $value := $!compile-time-value;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
     }
 }
 

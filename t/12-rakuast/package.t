@@ -1,10 +1,11 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 7;
+plan 10;
 
 {
     my $class = EVAL RakuAST::Package.new:
+        scope => 'my',
         package-declarator => 'class',
         how => Metamodel::ClassHOW,
         name => RakuAST::Name.from-identifier('MyTestClass'),
@@ -16,6 +17,7 @@ plan 7;
 
 {
     my $class = EVAL RakuAST::Package.new:
+        scope => 'my',
         package-declarator => 'class',
         how => Metamodel::ClassHOW,
         name => RakuAST::Name.from-identifier('TestClassWithMethods'),
@@ -40,3 +42,22 @@ plan 7;
 is-deeply EVAL(RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('Proc', 'Async'))),
     Proc::Async,
     'Can resolve a multi-part type name from the setting';
+
+{
+    my $result := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Package.new(
+                scope => 'my',
+                package-declarator => 'class',
+                how => Metamodel::ClassHOW,
+                name => RakuAST::Name.from-identifier('LexicalTestClass'),
+                repr => 'P6opaque'
+            )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('LexicalTestClass'))
+        ));
+    nok $result.defined, 'Got type object back from looking up package';
+    is $result.^name, 'LexicalTestClass', 'Resolved lexically to the correct class';
+    nok GLOBAL::<LexicalTestClass>:exists, 'Was not installed globally';
+}

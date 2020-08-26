@@ -243,9 +243,21 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
     # Resolves a lexical to its declaration. The declaration must have a
     # compile-time value.
     method resolve-lexical-constant(Str $name) {
-        # TODO walk scopes we've encountered while walking
-
-        self.resolve-lexical-constant-in-outer($name);
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            my $found := $scope.find-lexical($name);
+            if nqp::isconcrete($found) {
+                if nqp::istype($found, RakuAST::CompileTimeValue) {
+                    return $found;
+                }
+                else {
+                    nqp::die("Symbol '$name' does not have a compile-time value");
+                }
+            }
+        }
+        self.resolve-lexical-constant-in-outer($name)
     }
 }
 
@@ -368,7 +380,23 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     # Resolves a lexical to its declaration. The declaration must have a
     # compile-time value.
     method resolve-lexical-constant(Str $name) {
-        # TODO scope handling
+        # Walk active scopes, most nested first.
+        my @scopes := $!scopes;
+        my int $i := nqp::elems(@scopes);
+        while $i-- {
+            my $scope := @scopes[$i];
+            my $found := $scope.find-lexical($name);
+            if nqp::isconcrete($found) {
+                if nqp::istype($found, RakuAST::CompileTimeValue) {
+                    return $found;
+                }
+                else {
+                    nqp::die("Symbol '$name' does not have a compile-time value");
+                }
+            }
+        }
+
+        # Fall back to looking in outer scopes.
         self.resolve-lexical-constant-in-outer($name);
     }
 
@@ -424,7 +452,7 @@ class RakuAST::Resolver::Compile::Scope is RakuAST::Resolver {
             $!scope.find-lexical($name) // Nil
         }
         else {
-            $!live-decl-map{$name} // Nil
+            $!live-decl-map{$name} // $!scope.find-generated-lexical($name) // Nil
         }
     }
 

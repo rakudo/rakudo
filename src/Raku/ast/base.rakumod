@@ -78,9 +78,12 @@ class RakuAST::Node {
 
         # Visit children.
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
+        my int $is-package := nqp::istype(self, RakuAST::Package);
         $resolver.push-scope(self) if $is-scope;
+        $resolver.push-package(self) if $is-package;
         self.visit-children(-> $child { $child.IMPL-CHECK($resolver, $resolve-only) });
         $resolver.pop-scope() if $is-scope;
+        $resolver.pop-package() if $is-package;
 
         # Perform any after-children BEGIN-time effects.
         if $needs-begin-after {

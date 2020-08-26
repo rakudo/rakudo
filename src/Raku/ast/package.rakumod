@@ -75,9 +75,11 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
                         :lexical-name($name.canonicalize),
                         :compile-time-value($type-object);
 
-                # If `our`-scoped, also put it in GLOBAL.
+                # If `our`-scoped, also put it into the current package.
                 if $scope eq 'our' {
-                    # XXX TODO
+                    # TODO conflicts, claiming of packages
+                    my %stash := $resolver.IMPL-STASH-HASH($resolver.current-package);
+                    %stash{$name.canonicalize} := $type-object;
                 }
             }
             else {

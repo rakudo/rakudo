@@ -9,7 +9,7 @@ class Perl6::Compiler is HLL::Compiler {
     has $!can_language_versions; # List of valid language version
     has $!rakudo-home;
 
-    method sysconfig() {
+    method config() {
         nqp::gethllsym('default', 'SysConfig').rakudo-build-config();
     }
 
@@ -19,7 +19,7 @@ class Perl6::Compiler is HLL::Compiler {
         $IDHolder::ID
     }
 
-    method implementation()   { self.sysconfig<implementation> }
+    method implementation()   { self.config<implementation> }
     method language_name()    { 'Raku' }
     method reset_language_version() {
         $!language_version := NQPMu;
@@ -36,7 +36,7 @@ class Perl6::Compiler is HLL::Compiler {
             $!language_version
         }
         else {
-            $!language_version := %*COMPILING<%?OPTIONS><language_version> || self.sysconfig<language-version>
+            $!language_version := %*COMPILING<%?OPTIONS><language_version> || self.config<language-version>
         }
     }
     method language_modifier() {
@@ -45,12 +45,12 @@ class Perl6::Compiler is HLL::Compiler {
     method    can_language_versions() {
             $!can_language_versions
         ??  $!can_language_versions
-        !! ($!can_language_versions := self.sysconfig<can-language-versions>)
+        !! ($!can_language_versions := self.config<can-language-versions>)
     }
     method language_revisions() {
            $!language_revisions
         ?? $!language_revisions
-        !! ($!language_revisions := self.sysconfig<language-revisions>)
+        !! ($!language_revisions := self.config<language-revisions>)
     }
 
     method command_eval(*@args, *%options) {

@@ -5,9 +5,15 @@ class RakuAST::Resolver {
     # Our outer context. When not an EVAL, this is the same as $!setting.
     has Mu $!outer;
 
+    # Our current idea of the global symbol table.
+    has Mu $!global;
+
     # Current attachment target stacks (a hash keyed on the target name, where each value
     # is a stack, where the top is the active target).
     has Mu $!attach-targets;
+
+    # Packages we're currently in.
+    has Mu $!packages;
 
     # Push an attachment target, so children can attach to it.
     method push-attach-target(RakuAST::AttachTarget $target) {
@@ -44,6 +50,32 @@ class RakuAST::Resolver {
         else {
             Nil
         }
+    }
+
+    # Set the global package when we're starting a fresh compilation unit.
+    method set-global(Mu $global) {
+        nqp::die("This resovler's GLOBAL is already set") unless nqp::eqaddr($!global, Mu);
+        nqp::bindattr(self, RakuAST::Resolver, '$!global', $global);
+        Nil
+    }
+
+    # Push a package, at the point we enter it.
+    method push-package(RakuAST::Package $package) {
+        nqp::push($!packages, $package);
+        Nil
+    }
+
+    # Obtains the current package. This is not a RakuAST::Package node, but
+    # rather the type object of the package we are currently in.
+    method current-package() {
+        int $n := nqp::elems($!packages);
+        $n == 0 ?? $!global !! $!packages[$n - 1].compile-time-value
+    }
+
+    # Pops a package, at the point we leave it.
+    method pop-package() {
+        nqp::pop($!packages);
+        Nil
     }
 
     # Name-mangle an infix operator and resolve it.
@@ -182,15 +214,15 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
     # The stack of scopes we are in (an array of RakuAST::LexicalScope).
     has Mu $!scopes;
 
-    # The global symbol table.
-    has Mu $!global;
-
     method new(Mu :$global!, Mu :$context!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $context);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $context); # XXX TODO
+        nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
-        nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!global', $global);
+        my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
+        nqp::bindattr($obj, RakuAST::Resolver, '$!packages',
+            $cur-package ?? [$cur-package] !! []);
         nqp::bindattr($obj, RakuAST::Resolver::EVAL, '$!scopes', []);
         $obj
     }
@@ -270,11 +302,13 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     # Scopes stack; an array of RakuAST::Resolver::Compile::Scope.
     has Mu $!scopes;
 
-    method new(Mu :$setting!, Mu :$outer!) {
+    method new(Mu :$setting!, Mu :$outer!, Mu :$global!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $setting);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $outer);
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
+        nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
+        nqp::bindattr($obj, RakuAST::Resolver, '$!packages', []);
         nqp::bindattr($obj, RakuAST::Resolver::Compile, '$!scopes', []);
         $obj
     }
@@ -290,7 +324,10 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     method from-setting(Str :$setting-name!) {
         my $loader := nqp::gethllsym('Raku', 'ModuleLoader');
         my $setting := $loader.load_setting($setting-name);
-        self.new(:$setting, :outer($setting))
+        # We can't actually have the global yet, since the resolver is
+        # needed in order to look up the package meta-object used to
+        # create it. Thus it's set later.
+        self.new(:$setting, :outer($setting), :global(Mu))
     }
 
     # Pushes an active lexical scope to be considered in lookup. Used only in

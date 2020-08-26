@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 10;
+plan 18;
 
 {
     my $class = EVAL RakuAST::Package.new:
@@ -60,4 +60,44 @@ is-deeply EVAL(RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('Pr
     nok $result.defined, 'Got type object back from looking up package';
     is $result.^name, 'LexicalTestClass', 'Resolved lexically to the correct class';
     nok GLOBAL::<LexicalTestClass>:exists, 'Was not installed globally';
+}
+
+{
+    my $result := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Package.new(
+                scope => 'our',
+                package-declarator => 'class',
+                how => Metamodel::ClassHOW,
+                name => RakuAST::Name.from-identifier('OurTestClass'),
+                repr => 'P6opaque'
+            )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('OurTestClass'))
+        ));
+    nok $result.defined, 'Got type object back from looking up our-scoped package';
+    is $result.^name, 'OurTestClass', 'Resolved to the correct class';
+    ok GLOBAL::<OurTestClass>:exists, 'Was installed globally';
+    ok GLOBAL::<OurTestClass> === $result, 'Correct thing installed';
+}
+
+module Enclosing {
+    my $result := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Package.new(
+                scope => 'our',
+                package-declarator => 'class',
+                how => Metamodel::ClassHOW,
+                name => RakuAST::Name.from-identifier('OurEnclosedClass'),
+                repr => 'P6opaque'
+            )
+        ),
+        RakuAST::Statement::Expression.new(
+            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('OurEnclosedClass'))
+        ));
+    is $result.^name, 'OurEnclosedClass', 'EVAL of package AST inside a module works';
+    nok GLOBAL::<OurEnclosedClass>:exists, 'Was not installed globally';
+    ok Enclosing::<OurEnclosedClass>:exists, 'Was installed in the current package';
+    ok Enclosing::<OurEnclosedClass> === $result, 'Correct thing installed';
 }

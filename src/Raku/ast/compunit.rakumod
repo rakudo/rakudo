@@ -81,7 +81,7 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             my $global := RakuAST::Package.new:
                     package-declarator => 'package',
                     how => $!global-package-how,
-                    name => RakuAST::Name.from-identifier('GLOBAL');
+                    name => RakuAST::Name.from-identifier('GLOBALish');
             nqp::push(@decls, $global);
             nqp::push(@decls, RakuAST::VarDeclaration::Implicit::Constant.new(
                 name => '$?PACKAGE', value => $global.compile-time-value
@@ -166,6 +166,11 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
             ));
         }
         $end-setup
+    }
+
+    method generated-global() {
+        nqp::die('No generated global in an EVAL-mode compilation unit') if $!is-eval;
+        self.IMPL-UNWRAP-LIST(self.get-implicit-declarations)[0].compile-time-value
     }
 
     method visit-children(Code $visitor) {

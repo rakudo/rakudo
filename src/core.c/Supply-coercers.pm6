@@ -592,8 +592,11 @@
           !! limit <= 0
             ?? supply { }
             !! supply {
-                   my int $todo = limit.Int + 1;
-                   whenever self -> \val { --$todo ?? emit(val) !! done }
+                   my int $todo = limit.Int;
+                   whenever self -> \val {
+                       emit(val);
+                       done unless --$todo;
+                   }
                }
     }
 

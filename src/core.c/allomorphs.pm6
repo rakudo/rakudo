@@ -1,6 +1,14 @@
 my class Allomorph is Str {
     multi method Bool(::?CLASS:D:) { self.Numeric.Bool }
 
+    multi method ACCEPTS(Allomorph:D: Any:D \a) is default {
+        nqp::istype(a, Numeric)
+          ?? self.Numeric.ACCEPTS(a)
+          !! nqp::istype(a, Str)
+            ?? self.Str.ACCEPTS(a)
+            !! self.Str.ACCEPTS(a) && self.Numeric.ACCEPTS(a)
+    }
+
     method succ(Allomorph:D:) { self.Numeric.succ }
     method pred(Allomorph:D:) { self.Numeric.pred }
 
@@ -33,15 +41,7 @@ my class IntStr is Allomorph is Int {
         nqp::bindattr_s(SELF, Str, '$!value', $s);
         SELF
     }
-    multi method ACCEPTS(IntStr:D: Any:D \a) is default {
-        nqp::if(
-          nqp::istype(a, Numeric),
-            self.Int.ACCEPTS(a),
-          nqp::if(
-            nqp::istype(a, Str),
-            self.Str.ACCEPTS(a),
-            self.Str.ACCEPTS(a) && self.Int.ACCEPTS(a)))
-    }
+
     multi method Numeric(IntStr:U:) { self.Mu::Numeric }
     multi method Numeric(IntStr:D:) { nqp::add_I(self,0,Int) }
 
@@ -59,13 +59,6 @@ my class NumStr is Allomorph is Num {
         new
     }
 
-    multi method ACCEPTS(NumStr:D: Any:D \a) is default {
-        nqp::istype(a,Numeric)
-          ?? self.Num.ACCEPTS(a)
-          !! nqp::istype(a,Str)
-            ?? self.Str.ACCEPTS(a)
-            !! self.Str.ACCEPTS(a) && self.Num.ACCEPTS(a)
-    }
     multi method Numeric(NumStr:U: --> 0e0) { self.Mu::Numeric }
     multi method Numeric(NumStr:D:) { nqp::getattr_n(self,Num,'$!value') }
 
@@ -84,14 +77,6 @@ my class RatStr is Allomorph is Rat {
           nqp::getattr($r,Rat,'$!denominator'));
         nqp::bindattr_s(new,Str,'$!value',$s);
         new
-    }
-
-    multi method ACCEPTS(RatStr:D: Any:D \a) is default {
-        nqp::istype(a,Numeric)
-          ?? self.Rat.ACCEPTS(a)
-          !! nqp::istype(a,Str)
-            ?? self.Str.ACCEPTS(a)
-            !! self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)
     }
 
     method Capture(RatStr:D:) { self.Mu::Capture }
@@ -123,14 +108,6 @@ my class ComplexStr is Allomorph is Complex {
           nqp::getattr_n($c,Complex,'$!im'));
         nqp::bindattr_s(new,Str,'$!value',$s);
         new
-    }
-
-    multi method ACCEPTS(ComplexStr:D: Any:D \a) is default {
-        nqp::istype(a,Numeric)
-          ?? self.Complex.ACCEPTS(a)
-          !! nqp::istype(a,Str)
-            ?? self.Str.ACCEPTS(a)
-            !! self.Str.ACCEPTS(a) && self.Complex.ACCEPTS(a)
     }
 
     method Capture(ComplexStr:D:) { self.Mu::Capture }

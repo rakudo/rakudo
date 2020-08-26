@@ -1,3 +1,7 @@
+New in 2020.08.2:
+  + Fixes:
+    + Fix output of `--show-config` option [1a1fe7fb][f00c4198]
+
 New in 2020.08.1:
   + Changes:
     + Fix compiler version [1336e5f3]

@@ -1,5 +1,6 @@
 class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::LexicalScope
-                       is RakuAST::Declaration is RakuAST::AttachTarget {
+                       is RakuAST::Declaration is RakuAST::AttachTarget
+                       is RakuAST::BeginTime {
     has Str $.package-declarator;
     has Mu $.how;
     has RakuAST::Name $.name;
@@ -32,6 +33,13 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
 
     method default-scope() { 'our' }
 
+    # While a package may be declared `my`, its installation semantics are
+    # more complex, and thus handled as a BEGIN-time effect. (For example,
+    # `my Foo::Bar { }` should not create a lexical symbol Foo::Bar.)
+    method is-simple-lexical-declaration() {
+        False
+    }
+
     method attach-target-names() { self.IMPL-WRAP-LIST(['package', 'also']) }
 
     method clear-attachments() {
@@ -49,6 +57,33 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
     method ATTACH-ATTRIBUTE(RakuAST::VarDeclaration::Simple $attribute) {
         nqp::push($!attached-attributes, $attribute);
         Nil
+    }
+
+    # We install the name before parsing the class body.
+    method is-begin-performed-before-children() { True }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        my str $scope := self.scope;
+        my $name := $!name;
+        if $name && !$name.is-empty && ($scope eq 'my' || $scope eq 'our') {
+            # Need to install the package somewhere.
+            my $type-object := self.stubbed-meta-object;
+            if $name.is-identifier {
+                # We always install it as a lexical symbol.
+                $resolver.current-scope.add-generated-lexical-declaration:
+                    RakuAST::Declaration::LexicalPackage.new:
+                        :lexical-name($name.canonicalize),
+                        :compile-time-value($type-object);
+
+                # If `our`-scoped, also put it in GLOBAL.
+                if $scope eq 'our' {
+                    # XXX TODO
+                }
+            }
+            else {
+                nqp::die('multi-part package declarations NYI');
+            }
+        }
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {

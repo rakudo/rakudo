@@ -89,6 +89,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my $comp-unit-name := nqp::sha1($file ~ $/.target());
             $*CU := self.r('CompUnit').new(:$comp-unit-name, :$setting-name,
                 :global-package-how($*LANG.how('package')));
+            $*R.set-global($*CU.generated-global);
         }
 
         # Set up the literals builder, so we can produce and intern literal
@@ -561,10 +562,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $name := $name-match ?? $name-match.ast !! self.r('Name');
         my $ast := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
         $ast.ensure-begin-performed($*R);
+
+        # Let the resovler know which package we're in.
+        $*R.push-package($ast);
         $*PACKAGE := $ast;
     }
 
     method leave-package-scope($/) {
+        $*R.pop-package();
     }
 
     method scope_declarator:sym<my>($/)    { make $<scoped>.ast; }

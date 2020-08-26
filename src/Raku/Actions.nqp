@@ -559,7 +559,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my str $scope := $*SCOPE // 'our';
         my $name-match := $*PACKAGE-NAME;
         my $name := $name-match ?? $name-match.ast !! self.r('Name');
-        $*PACKAGE := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
+        my $ast := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
+        $ast.ensure-begin-performed($*R);
+        $*PACKAGE := $ast;
     }
 
     method leave-package-scope($/) {

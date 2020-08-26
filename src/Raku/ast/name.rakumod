@@ -32,6 +32,10 @@ class RakuAST::Name is RakuAST::Node {
         nqp::elems($!parts) == 1 && nqp::istype($!parts[0], RakuAST::Name::Part::Simple)
     }
 
+    method is-empty() {
+        nqp::elems($!parts) ?? False !! True
+    }
+
     method canonicalize() {
         nqp::die('canonicalize NYI for non-identifier names') unless self.is-identifier;
         $!parts[0].name

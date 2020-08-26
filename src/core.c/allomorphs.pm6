@@ -146,27 +146,9 @@ my class ComplexStr is Allomorph is Complex {
     }
 }
 
-# we define cmp ops for these allomorphic types as numeric first, then Str. If
-# you want just one half of the cmp, you'll need to coerce the args
-multi sub infix:<cmp>(IntStr:D     $a, IntStr:D     $b) { $a.Int     cmp $b.Int     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(IntStr:D     $a, RatStr:D     $b) { $a.Int     cmp $b.Rat     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(IntStr:D     $a, NumStr:D     $b) { $a.Int     cmp $b.Num     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(IntStr:D     $a, ComplexStr:D $b) { $a.Int     cmp $b.Complex || $a.Str cmp $b.Str }
-
-multi sub infix:<cmp>(RatStr:D     $a, IntStr:D     $b) { $a.Rat     cmp $b.Int     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(RatStr:D     $a, RatStr:D     $b) { $a.Rat     cmp $b.Rat     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(RatStr:D     $a, NumStr:D     $b) { $a.Rat     cmp $b.Num     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(RatStr:D     $a, ComplexStr:D $b) { $a.Rat     cmp $b.Complex || $a.Str cmp $b.Str }
-
-multi sub infix:<cmp>(NumStr:D     $a, IntStr:D     $b) { $a.Num     cmp $b.Int     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(NumStr:D     $a, RatStr:D     $b) { $a.Num     cmp $b.Rat     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(NumStr:D     $a, NumStr:D     $b) { $a.Num     cmp $b.Num     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(NumStr:D     $a, ComplexStr:D $b) { $a.Num     cmp $b.Complex || $a.Str cmp $b.Str }
-
-multi sub infix:<cmp>(ComplexStr:D $a, IntStr:D     $b) { $a.Complex cmp $b.Int     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(ComplexStr:D $a, RatStr:D     $b) { $a.Complex cmp $b.Rat     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(ComplexStr:D $a, NumStr:D     $b) { $a.Complex cmp $b.Num     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b) { $a.Complex cmp $b.Complex || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(Allomorph:D $a, Allomorph:D $b) is default {
+    $a.Numeric cmp $b.Numeric || $a.Str cmp $b.Str
+}
 
 multi sub infix:<eqv>(Allomorph:D $a, Allomorph:D $b --> Bool:D) is default {
     nqp::eqaddr($a.WHAT,$b.WHAT)

@@ -462,17 +462,22 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
         my $constant := self.resolve-name-constant($name);
         if nqp::isconcrete($constant) {
             # Name resolves, but is it an instance or a type object?
-            !nqp::isconcrete($constant.compile-time-value)
+            nqp::isconcrete($constant.compile-time-value) ?? False !! True
         }
         else {
             # Name doesn't resolve to a constant at all, so can't be a type.
-            0
+            False
         }
     }
 
     # Check if an identifier is known (declared) at all.
     method is-identifier-known(Str $identifier) {
         nqp::isconcrete(self.resolve-lexical($identifier)) ?? True !! False
+    }
+
+    # Check if a name is known (declared) at all.
+    method is-name-known(RakuAST::Name $name) {
+        nqp::isconcrete(self.resolve-name($name)) ?? True !! False
     }
 }
 

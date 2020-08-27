@@ -1113,10 +1113,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <longname>? {}
         <.enter-package-scope($<longname>)>
         [
-        || <?[{]>
-           <.enter-block-scope('Block')>
-           <blockoid>
-           <.leave-block-scope>
+        || <?[{]> <block>
         || <.panic("Unable to parse $*PKGDECL definition")>
         ]
         <.leave-package-scope>

@@ -62,6 +62,7 @@ class RakuAST::Resolver {
     # Push a package, at the point we enter it.
     method push-package(RakuAST::Package $package) {
         nqp::push($!packages, $package);
+        self.push-attach-target($package);
         Nil
     }
 
@@ -74,7 +75,8 @@ class RakuAST::Resolver {
 
     # Pops a package, at the point we leave it.
     method pop-package() {
-        nqp::pop($!packages);
+        my $package := nqp::pop($!packages);
+        self.pop-attach-target($package);
         Nil
     }
 

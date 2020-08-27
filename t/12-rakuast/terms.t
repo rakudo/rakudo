@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 2;
+plan 5;
 
 {
     my $class = EVAL RakuAST::Package.new:
@@ -52,3 +52,15 @@ is-deeply
     )),
     'ARGH',
     'Topic call applies the call to $_';
+
+isa-ok EVAL(RakuAST::Term::Named.new('now')),
+    Instant,
+    'now named term can be called';
+
+isa-ok EVAL(RakuAST::Term::Rand.new),
+    Num,
+    'rand term works';
+
+is-deeply EVAL(RakuAST::Term::EmptySet.new),
+    ∅,
+    'Empty set term works';

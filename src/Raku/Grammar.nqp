@@ -1034,6 +1034,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         $last eq ')' || $last eq '}' || $last eq ']' || $last eq '>' || $last eq '»'
     }
 
+    token term:sym<self> {
+        <sym> <.end_keyword>
+    }
+
     token term:sym<fatarrow> {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }

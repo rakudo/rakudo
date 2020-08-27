@@ -520,6 +520,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method term:sym<dotty>($/) {
+        make self.r('Term', 'TopicCall').new($<dotty>.ast);
+    }
+
     method variable($/) {
         my str $name := $<sigil> ~ $<desigilname>;
         my $resolution := $*R.resolve-lexical($name);

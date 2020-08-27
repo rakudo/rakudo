@@ -1075,6 +1075,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    token term:sym<dotty> { <dotty> }
+
     token variable {
         :my $*IN_META := '';
         [

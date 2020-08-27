@@ -188,6 +188,11 @@ class RakuAST::Resolver {
         return Nil;
     }
 
+    method IMPL-SETTING-FROM-CONTEXT(Mu $context) {
+        # TODO locate the setting frame
+        $context
+    }
+
     method IMPL-CANONICALIZE-PAIR(Str $k, Str $v) {
         if $v ~~ /<[ < > ]>/ && !($v ~~ /<[ « » $ \\ " ' ]>/) {
             ':' ~ $k ~ '«' ~ $v ~ '»'
@@ -217,7 +222,8 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
     method new(Mu :$global!, Mu :$context!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Resolver, '$!outer', $context);
-        nqp::bindattr($obj, RakuAST::Resolver, '$!setting', $context); # XXX TODO
+        nqp::bindattr($obj, RakuAST::Resolver, '$!setting',
+            self.IMPL-SETTING-FROM-CONTEXT($context));
         nqp::bindattr($obj, RakuAST::Resolver, '$!global', $global);
         nqp::bindattr($obj, RakuAST::Resolver, '$!attach-targets', nqp::hash());
         my $cur-package := $obj.resolve-lexical-constant-in-outer('$?PACKAGE');
@@ -316,7 +322,8 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
     # Create a resolver from a context and existing global. Used when we are
     # compiling a textual EVAL.
     method from-context(Mu :$context!, Mu :$global!) {
-        nqp::die('from-context NYI');
+        my $setting := self.IMPL-SETTING-FROM-CONTEXT($context);
+        self.new(:$setting, :outer($context), :$global)
     }
 
     # Create a resolver for a fresh compilation unit of the specified language

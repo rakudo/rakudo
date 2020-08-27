@@ -65,7 +65,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $resolver_type := self.r('Resolver', 'Compile');
         my $outer_ctx := %*COMPILING<%?OPTIONS><outer_ctx>;
         if nqp::isconcrete($outer_ctx) {
-            $*R := $resolver_type.from-context(:context($outer_ctx));
+            my $global := %*COMPILING<%?OPTIONS><global>;
+            $*R := $resolver_type.from-context(:context($outer_ctx), :$global);
         }
         else {
             $*R := $resolver_type.from-setting(:$setting-name);

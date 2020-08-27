@@ -21,7 +21,7 @@ plan 18;
         package-declarator => 'class',
         how => Metamodel::ClassHOW,
         name => RakuAST::Name.from-identifier('TestClassWithMethods'),
-        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::Method.new(
                     name => RakuAST::Name.from-identifier('test-meth'),
@@ -32,7 +32,7 @@ plan 18;
                     ))
                 )
             )
-        ));
+        )));
     nok $class.DEFINITE, 'Class with method evluates to a type object';
     is $class.^name, 'TestClassWithMethods', 'Correct class name';
     ok $class.^lookup('test-meth'), 'The class has a test-meth method';

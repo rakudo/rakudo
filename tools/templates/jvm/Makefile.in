@@ -45,7 +45,7 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 
 $(J_RUNNER): @@script(create-jvm-runner.pl)@@
 	@echo(+++ Setting up	$@)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev @q($(BASE_DIR))@ . . @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev @q($(BASE_DIR))@ . . @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
 
 @backend_prefix@-runner-default: @backend_prefix@-all
 	@echo(+++ Setting up @uc(@backend@)@ runner)@
@@ -54,7 +54,7 @@ $(J_RUNNER): @@script(create-jvm-runner.pl)@@
 
 @bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(RAKUDO_DEBUG)@
 	@echo(+++ Setting up	$@)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug @q($(BASE_DIR))@ . . @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug @q($(BASE_DIR))@ . . @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
 
 eval-client.pl:
 	@echo(+++ Setting up	$@)@
@@ -84,14 +84,14 @@ sometests: @backend_prefix@-all
 
 @backend_prefix@-runner-default-install: @backend_prefix@-install @@script(create-jvm-runner.pl)@@
 	@echo(+++ Installing @uc(@backend@)@ launcher)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
 	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo$(J_BAT))@
 	$(NOECHO)$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo$(J_BAT))@
 
 @backend_prefix@-install-main:: $(RUNTIME_JAR) @@script(create-jvm-runner.pl)@@
 	$(NOECHO)$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@static_nqp_home@)@ @q($(NQP_PREFIX))@ @q($(NQP_JARS))@
-	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@static_nqp_home@)@ @q($(NQP_PREFIX))@ @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
 
 ##  cleaning
 @backend_prefix@-clean:

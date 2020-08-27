@@ -10,6 +10,7 @@ src/Raku/ast/expressions.rakumod
 src/Raku/ast/circumfix.rakumod
 src/Raku/ast/pair.rakumod
 src/Raku/ast/call.rakumod
+src/Raku/ast/term.rakumod
 src/Raku/ast/name.rakumod
 src/Raku/ast/type.rakumod
 src/Raku/ast/meta.rakumod

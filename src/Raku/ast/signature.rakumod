@@ -140,6 +140,13 @@ class RakuAST::Parameter is RakuAST::Meta {
         ));
         
         # Bind parameter into its target.
+        if self.invocant {
+            $param-qast.push(QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('self'), :scope('lexical') ),
+                $temp-qast
+            ));
+        }
         if nqp::isconcrete($!target) {
             $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast));
         }

@@ -425,3 +425,17 @@ class RakuAST::VarDeclaration::Implicit::Constant is RakuAST::VarDeclaration::Im
         QAST::Var.new( :decl('static'), :scope('lexical'), :name(self.name), :value($!value) )
     }
 }
+
+# The implicit `self` term declaration for the invocant.
+class RakuAST::VarDeclaration::Implicit::Self is RakuAST::VarDeclaration::Implicit {
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', 'self');
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) )
+    }
+}

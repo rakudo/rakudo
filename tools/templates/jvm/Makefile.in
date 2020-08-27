@@ -25,8 +25,12 @@ RUNTIME_JAR = rakudo-runtime.jar
 @bpv(CLEANUPS)@ = \
   $(RUNTIME_JAR) \
   rakudo-eval-server \
+  perl6-eval-server \
   rakudo-jdb-server \
-  eval-client.pl
+  perl6-jdb-server \
+  eval-client.pl \
+  perl6-j \
+  perl6-debug-j
 
 @bpv(ML_EXTRA)@ = @nfp(src/vm/jvm/Perl6/JavaModuleLoader.nqp)@
 @bpv(RAKUDO_DEPS_EXTRA)@ = $(RUNTIME_JAR)

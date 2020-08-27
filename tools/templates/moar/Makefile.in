@@ -123,7 +123,8 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 		--set-var=base_dir=@shquot(@nfp(@base_dir@)@)@ \
 		--set-var=nqp_lib_dir=@shquot(@nfp(@nqp::libdir@)@)@ \
 		--set-var=exec_name=@shquot(@nfp(@base_dir@/@bpm(RUNNER)@)@)@ \
-		--set-var=mbc=@bsm(RAKUDO)@
+		--set-var=mbc=@bsm(RAKUDO)@ \
+		--set-var=nqp_home=@shquot(@nfp(@nqp_home@)@)@
 	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@rakudo-m@moar::obj@ rakudo-m.c
 	$(NOECHO)@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ rakudo-m@moar::obj@
 

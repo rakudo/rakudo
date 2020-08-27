@@ -161,6 +161,13 @@ sub configure_refine_vars {
         )
     );
 
+    $config->{nqp_home} = $self->nfp(
+        File::Spec->rel2abs(
+            $config->{nqp_home}
+              || File::Spec->catdir( $config->{'prefix'}, 'share', 'nqp' )
+        )
+    );
+
     $config->{static_rakudo_home} =
       $config->{relocatable} eq 'reloc'
       ? ''

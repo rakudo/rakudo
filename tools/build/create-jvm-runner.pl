@@ -118,10 +118,12 @@ elsif ($type eq 'install') {
     }
 }
 else {
+    my $nqp_home = File::Spec->catdir(abs_path($prefix), 'share', 'nqp');
+
     $preamble = join("\n",
         $preamble_unix,
         "$NQP_LIB",
-        ": \${NQP_HOME:=\"$static_nqp_home\"}",
+        "NQP_HOME=\"$nqp_home\"",
         ": \${NQP_JARS:=\"$nqpjars\"}",
         ": \${RAKUDO_HOME:=\"$prefix\"}",
         ": \${RAKUDO_JARS:=\"$rakudo_jars\"}",

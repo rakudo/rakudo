@@ -542,7 +542,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method package_def($/) {
         my $package := $*PACKAGE;
-        $package.replace-body($<blockoid>.ast);
+        $package.replace-body($<block>.ast);
         make $package;
     }
 

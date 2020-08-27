@@ -1204,8 +1204,24 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token routine_declarator:sym<sub> {
         <sym> <.end_keyword> <routine_def('sub')>
     }
+    token routine_declarator:sym<method> {
+        <sym> <.end_keyword> <method_def('method')>
+    }
+    token routine_declarator:sym<submethod> {
+        <sym> <.end_keyword> <method_def('submethod')>
+    }
 
     rule routine_def($declarator) {
+        :my $*IN_DECL := $declarator;
+        :my $*BLOCK;
+        <.enter-block-scope(nqp::tclc($declarator))>
+        <deflongname>?
+        [ '(' <signature> ')' ]?
+        <blockoid>
+        <.leave-block-scope>
+    }
+
+    rule method_def($declarator) {
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>

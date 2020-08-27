@@ -386,7 +386,6 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         }
     }
 
-
     method get-boundary-sink-propagator() {
         $!body.statement-list
     }
@@ -425,6 +424,15 @@ class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
 
     method allowed-scopes() {
         self.IMPL-WRAP-LIST(['has', 'my', 'anon', 'our'])
+    }
+
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')),
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')),
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')),
+            RakuAST::VarDeclaration::Implicit::Self.new(),
+        ])
     }
 
     method attach(RakuAST::Resolver $resolver) {

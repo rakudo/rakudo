@@ -465,6 +465,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     ## Terms
     ##
 
+    method term:sym<self>($/) {
+        make self.r('Term', 'Self').new();
+    }
+
     method term:sym<fatarrow>($/) {
         make self.r('FatArrow').new:
             key => $*LITERALS.intern-str(~$<key>),

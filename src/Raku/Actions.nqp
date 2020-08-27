@@ -608,6 +608,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $<DECL>.ast;
     }
 
+    method multi_declarator:sym<null>($/) {
+        make $<declarator>.ast;
+    }
+
     method declarator($/) {
         if $<variable_declarator> {
             make $<variable_declarator>.ast;
@@ -627,11 +631,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method variable_declarator($/) {
         my str $scope := $*SCOPE;
+        my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
         my str $name := $<sigil> ~ $<desigilname>;
         my $initializer := $<initializer>
             ?? $<initializer>.ast
             !! self.r('Initializer');
-        my $decl := self.r('VarDeclaration', 'Simple').new(:$scope, :$name, :$initializer);
+        my $decl := self.r('VarDeclaration', 'Simple').new:
+            :$scope, :$type, :$name, :$initializer;
         if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
             $*R.declare-lexical($decl);
         }
@@ -745,6 +751,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method quote:sym</ />($/) {
         make self.r('QuotedRegex').new(body => $<nibble>.ast);
+    }
+
+    ##
+    ## Types
+    ##
+
+    method typename($/) {
+        my $base-name := $<longname>
+            ?? $<longname>.ast
+            !! self.r('Name').from-identifier(~$<identifier>);
+        make self.r('Type', 'Simple').new($base-name);
     }
 
     ##

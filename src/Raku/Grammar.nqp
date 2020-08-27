@@ -198,6 +198,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
         # Variables used during the parse.
         my $*IN_DECL;                             # what declaration we're in
+        my $*OFTYPE;                              # type of the current declarator
         my $*LEFTSIGIL;                           # sigil of LHS for item vs list assignment
         my $*IN_META := '';                       # parsing a metaoperator like [..]
         my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
@@ -989,6 +990,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token termish {
         :my $*SCOPE := "";
         :my $*MULTINESS := "";
+        :my $*OFTYPE;
         :dba('term')
         # TODO try to use $/ for lookback to check for erroneous
         #      use of pod6 trailing declarator block, e.g.:
@@ -1157,9 +1159,25 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || <.ws>
            [
            | <DECL=declarator>
+           | <DECL=package_declarator>
+           | [<typename><.ws>]+
+             {
+                if nqp::elems($<typename>) > 1 {
+                    $/.NYI('Multiple prefix constraints');
+                }
+                $*OFTYPE := $<typename>[0];
+             }
+             <DECL=multi_declarator>
+           | <DECL=multi_declarator>
            ]
         || <.malformed($*SCOPE)>
         ]
+    }
+
+    proto token multi_declarator { <...> }
+    token multi_declarator:sym<null> {
+        :my $*MULTINESS := '';
+        <declarator>
     }
 
     token declarator {
@@ -1375,6 +1393,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             elsif $m eq 'e' { $/.obs('/e','interpolated {...} or s{} = ... form'); }
             else            { $/.obs('suffix regex modifiers','prefix adverbs');   }
         }
+    }
+
+    ##
+    ## Types
+    ##
+
+    token typename {
+        [
+        | # parse ::?CLASS as special case
+          # TODO colonpairs
+          '::?'<identifier>
+        | <longname>
+          <?{
+            # ::T introduces a type, so always is one
+            nqp::eqat(~$<longname>, '::', 0) || $*R.is-name-known($<longname>.ast)
+          }>
+        ]
     }
 
     ##

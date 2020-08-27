@@ -1,11 +1,12 @@
-class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::LexicalScope
+class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
+                       is RakuAST::IMPL::ImmediateBlockUser
                        is RakuAST::Declaration is RakuAST::AttachTarget
                        is RakuAST::BeginTime {
     has Str $.package-declarator;
     has Mu $.how;
     has RakuAST::Name $.name;
     has Str $.repr;
-    has RakuAST::Blockoid $.body;
+    has RakuAST::Block $.body;
 
     # Methods and attributes are not directly added, but rather thorugh the
     # RakuAST::Attaching mechanism.
@@ -13,20 +14,20 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
     has Mu $!attached-attributes;
 
     method new(Str :$package-declarator!, Mu :$how!, RakuAST::Name :$name, Str :$repr,
-               RakuAST::Blockoid :$body, str :$scope) {
+               RakuAST::Block :$body, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!package-declarator', $package-declarator);
         nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
-        nqp::bindattr($obj, RakuAST::Package, '$!body', $body // RakuAST::Blockoid.new);
+        nqp::bindattr($obj, RakuAST::Package, '$!body', $body // RakuAST::Block.new);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-methods', []);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attributes', []);
         $obj
     }
 
-    method replace-body(RakuAST::Blockoid $new-body) {
+    method replace-body(RakuAST::Block $new-body) {
         nqp::bindattr(self, RakuAST::Package, '$!body', $new-body);
         Nil
     }
@@ -116,7 +117,10 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term is RakuAST::Lexic
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
-        QAST::WVal.new( :value($type-object) )
+        QAST::Stmts.new(
+            $!body.IMPL-TO-QAST($context, :immediate),
+            QAST::WVal.new( :value($type-object) )
+        )
     }
 
     method visit-children(Code $visitor) {

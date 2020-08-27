@@ -95,6 +95,11 @@ class RakuAST::Resolver {
         self.resolve-lexical('&postfix' ~ self.IMPL-CANONICALIZE-PAIR('', $operator-name))
     }
 
+    # Name-mangle a term and resolve it.
+    method resolve-term(Str $term-name) {
+        self.resolve-lexical('&term' ~ self.IMPL-CANONICALIZE-PAIR('', $term-name))
+    }
+
     # Resolve a RakuAST::Name, optionally adding the specified sigil to the
     # final component.
     method resolve-name(RakuAST::Name $name, Str :$sigil) {
@@ -463,6 +468,11 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
             # Name doesn't resolve to a constant at all, so can't be a type.
             0
         }
+    }
+
+    # Check if an identifier is known (declared) at all.
+    method is-identifier-known(Str $identifier) {
+        nqp::isconcrete(self.resolve-lexical($identifier)) ?? True !! False
     }
 }
 

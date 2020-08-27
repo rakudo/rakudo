@@ -1038,6 +1038,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <sym> <.end_keyword>
     }
 
+    token term:sym<now> { <sym> <.tok> }
+
+    token term:sym<time> { <sym> <.tok> }
+
+    token term:sym<empty_set> { "∅" <!before <.[ \( \\ ' \- ]> || \h* '=>'> }
+
+    token term:sym<rand> {
+        <!{ $*LANG.pragma('p5isms') }>
+        <sym> »
+        [ <?before '('? \h* [\d|'$']> <.obs('rand(N)', 'N.rand for Num or (^N).pick for Int result')> ]?
+        [ <?before '()'> <.obs('rand()', 'rand')> ]?
+        <.end_keyword>
+    }
+
     token term:sym<fatarrow> {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }
@@ -1539,11 +1553,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || <?before <.[ \s \# ]> > <.ws>
         || <?{
                 my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
-                $*W.is_name([$n]) || $*W.is_name(['&' ~ $n])
+                $*R.is-identifier-known($n) || $*R.is-identifier-known('&' ~ $n)
                     ?? False
                     !! self.panic("Whitespace required after keyword '$n'")
            }>
         ]
+    }
+
+    token tok {
+        <.end_keyword>
+        <!{
+            my $n := nqp::substr(self.orig, self.from, self.pos - self.from);
+            $*R.is-identifier-known($n) || $*R.is-identifier-known('&' ~ $n)
+        }>
     }
 
     token ENDSTMT {

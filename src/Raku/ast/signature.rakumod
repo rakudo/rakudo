@@ -1,7 +1,11 @@
 # A signature, typically part of a block though also contained within a
 # signature literal or a signature-based variable declarator.
-class RakuAST::Signature is RakuAST::Meta {
+class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     has List $.parameters;
+    has int $!is-on-method;
+    has RakuAST::Package $!method-package;
+    has RakuAST::Parameter $!implicit-invocant;
+    has RakuAST::Parameter $!implicit-slurpy-hash;
 
     method new(List :$parameters) {
         my $obj := nqp::create(self);
@@ -10,11 +14,46 @@ class RakuAST::Signature is RakuAST::Meta {
         $obj
     }
 
+    method attach(RakuAST::Resolver $resolver) {
+        # If we're the signature for a method...
+        my $owner := $resolver.find-attach-target('block');
+        if nqp::istype($owner, RakuAST::Method) {
+            # Stash away the fact we should generate implicit parameters, and
+            # also retrieve the enclosing package so we can set an implicit
+            # invocant parameter up correctly.
+            nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', 1);
+            nqp::bindattr(self, RakuAST::Signature, '$!method-package',
+                $resolver.find-attach-target('package'));
+        }
+        else {
+            nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', 0);
+        }
+    }
+
+    method IMPL-ENSURE-IMPLICITS() {
+        if $!is-on-method && !($!implicit-invocant || $!implicit-slurpy-hash) {
+            my @param-asts := self.IMPL-UNWRAP-LIST($!parameters);
+            unless @param-asts && @param-asts[0].invocant {
+                # TODO set type of this
+                nqp::bindattr(self, RakuAST::Signature, '$!implicit-invocant',
+                    RakuAST::Parameter.new(:invocant));
+            }
+            # TODO implicit slurpy hash
+        }
+    }
+
     method PRODUCE-META-OBJECT() {
         # Produce meta-objects for each parameter.
+        self.IMPL-ENSURE-IMPLICITS();
         my @parameters;
+        if $!implicit-invocant {
+            @parameters.push($!implicit-invocant.meta-object);
+        }
         for self.IMPL-UNWRAP-LIST($!parameters) {
             @parameters.push($_.meta-object);
+        }
+        if $!implicit-slurpy-hash {
+            @parameters.push($!implicit-slurpy-hash.meta-object);
         }
 
         # Build signature object.
@@ -26,9 +65,16 @@ class RakuAST::Signature is RakuAST::Meta {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-ENSURE-IMPLICITS();
         my $bindings := QAST::Stmts.new();
+        if $!implicit-invocant {
+            $bindings.push($!implicit-invocant.IMPL-TO-QAST($context));
+        }
         for self.IMPL-UNWRAP-LIST($!parameters) {
             $bindings.push($_.IMPL-TO-QAST($context));
+        }
+        if $!implicit-slurpy-hash {
+            $bindings.push($!implicit-slurpy-hash.IMPL-TO-QAST($context));
         }
         $bindings
     }
@@ -62,10 +108,12 @@ class RakuAST::Signature is RakuAST::Meta {
 # into a target; this is modeled by a RakuAST::ParameterTarget, which is optional.
 class RakuAST::Parameter is RakuAST::Meta {
     has RakuAST::ParameterTarget $.target;
+    has Bool $.invocant;
 
-    method new(RakuAST::ParameterTarget :$target) {
+    method new(RakuAST::ParameterTarget :$target, Bool :$invocant) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
         $obj
     }
 

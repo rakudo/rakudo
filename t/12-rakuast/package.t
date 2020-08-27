@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 18;
+plan 19;
 
 {
     my $class = EVAL RakuAST::Package.new:
@@ -36,7 +36,7 @@ plan 18;
     nok $class.DEFINITE, 'Class with method evluates to a type object';
     is $class.^name, 'TestClassWithMethods', 'Correct class name';
     ok $class.^lookup('test-meth'), 'The class has a test-meth method';
-    #is $class.test-meth(), 456, 'Can call method without signature and get expected return value';
+    is $class.test-meth(), 456, 'Can call method without signature and get expected return value';
 }
 
 is-deeply EVAL(RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('Proc', 'Async'))),

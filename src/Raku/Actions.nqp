@@ -469,6 +469,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make self.r('Term', 'Self').new();
     }
 
+    method term:sym<now>($/) {
+        make self.r('Term', 'Named').new('now');
+    }
+
+    method term:sym<time>($/) {
+        make self.r('Term', 'Named').new('time');
+    }
+
+    method term:sym<empty_set>($/) {
+        make self.r('Term', 'EmptySet').new();
+    }
+
+    method term:sym<rand>($/) {
+        make self.r('Term', 'Rand').new();
+    }
+
     method term:sym<fatarrow>($/) {
         make self.r('FatArrow').new:
             key => $*LITERALS.intern-str(~$<key>),

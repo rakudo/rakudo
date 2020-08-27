@@ -617,8 +617,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method routine_declarator:sym<sub>($/) {
         make $<routine_def>.ast;
     }
+    method routine_declarator:sym<method>($/) {
+        make $<method_def>.ast;
+    }
+    method routine_declarator:sym<submethod>($/) {
+        make $<method_def>.ast;
+    }
 
     method routine_def($/) {
+        my $routine := $*BLOCK;
+        if $<signature> {
+            $routine.replace-signature($<signature>.ast);
+        }
+        $routine.replace-body($<blockoid>.ast);
+        $routine.calculate-sink();
+        make $routine;
+    }
+
+    method method_def($/) {
         my $routine := $*BLOCK;
         if $<signature> {
             $routine.replace-signature($<signature>.ast);

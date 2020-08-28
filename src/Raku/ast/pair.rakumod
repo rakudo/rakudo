@@ -38,4 +38,142 @@ class RakuAST::FatArrow is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST:
             $!value.IMPL-TO-QAST($context)
         )
     }
+
+    method visit-children(Code $visitor) {
+        $visitor($!value);
+    }
+}
+
+# The base of all colonpair constructs.
+class RakuAST::ColonPair is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST::NamedArg {
+    has Str $.key;
+    
+    method value() { nqp::die(self.HOW.name(self) ~ ' does not implement key') }
+
+    method named-arg-name() { $!key }
+
+    method named-arg-value() { self.value }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
+        ])
+    }
+    
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $pair-type := @lookups[0].resolution.compile-time-value;
+        my $key := $!key;
+        $context.ensure-sc($key);
+        QAST::Op.new(
+            :op('callmethod'), :name('new'),
+            QAST::WVal.new( :value($pair-type) ),
+            QAST::WVal.new( :value($key) ),
+            self.IMPL-VALUE-QAST($context)
+        )
+    }
+
+    method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.value.IMPL-TO-QAST($context)
+    }
+}
+
+# A truthy colonpair (:foo).
+class RakuAST::ColonPair::True is RakuAST::ColonPair {
+    method new(Str :$key!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
+            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True')),
+        ])
+    }
+
+    method value() {
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[1]
+    }
+
+    method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := True;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+}
+
+# A falsey colonpair (:!foo).
+class RakuAST::ColonPair::False is RakuAST::ColonPair {
+    method new(Str :$key!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
+            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('False')),
+        ])
+    }
+
+    method value() {
+        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[1]
+    }
+    
+    method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := False;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+}
+
+# A number colonpair (:2th).
+class RakuAST::ColonPair::Number is RakuAST::ColonPair {
+    has RakuAST::IntLiteral $.value;
+
+    method new(Str :$key!, RakuAST::IntLiteral :$value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
+        nqp::bindattr($obj, RakuAST::ColonPair::Number, '$!value', $value);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!value);
+    }
+}
+
+# A colonpair with a value (:foo(42)).
+class RakuAST::ColonPair::Value is RakuAST::ColonPair {
+    has RakuAST::Expression $.value;
+
+    method new(Str :$key!, RakuAST::Expression :$value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
+        nqp::bindattr($obj, RakuAST::ColonPair::Value, '$!value', $value);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!value);
+    }
+}
+
+# A variable colonpair (:$var, :$<match>).
+class RakuAST::ColonPair::Variable is RakuAST::ColonPair {
+    has RakuAST::Var $.value;
+
+    method new(Str :$key!, RakuAST::Var :$value) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
+        nqp::bindattr($obj, RakuAST::ColonPair::Variable, '$!value', $value);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!value);
+    }
 }

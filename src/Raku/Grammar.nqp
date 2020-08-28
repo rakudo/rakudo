@@ -1064,6 +1064,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
     token term:sym<statement_prefix>   { <statement_prefix> }
+    token term:sym<*>                  { <sym> }
+    token term:sym<**>                 { <sym> }
     token term:sym<lambda>             { <?lambda> <pblock> }
     token term:sym<value>              { <value> }
 

@@ -515,6 +515,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $<statement_prefix>.ast;
     }
 
+    method term:sym<*>($/) {
+        make self.r('Term', 'Whatever').new;
+    }
+
+    method term:sym<**>($/) {
+        make self.r('Term', 'HyperWhatever').new;
+    }
+
     method term:sym<lambda>($/) {
         make $<pblock>.ast;
     }

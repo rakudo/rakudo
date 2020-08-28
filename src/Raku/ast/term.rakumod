@@ -25,6 +25,7 @@ class RakuAST::Term::Name is RakuAST::Term is RakuAST::Lookup {
     }
 }
 
+# The self term for getting the current invocant
 class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup {
     method new() {
         nqp::create(self)
@@ -43,6 +44,7 @@ class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup {
     }
 }
 
+# The term for a dotty operation on the current topic (for example in `.lc with $foo`).
 class RakuAST::Term::TopicCall is RakuAST::Term is RakuAST::ImplicitLookups {
     has RakuAST::Postfixish $.call;
 
@@ -64,6 +66,7 @@ class RakuAST::Term::TopicCall is RakuAST::Term is RakuAST::ImplicitLookups {
     }
 }
 
+# A named term that is implemented by a call to term:<foo>.
 class RakuAST::Term::Named is RakuAST::Term is RakuAST::Lookup {
     has str $.name;
 
@@ -86,6 +89,7 @@ class RakuAST::Term::Named is RakuAST::Term is RakuAST::Lookup {
     }
 }
 
+# The empty set term.
 class RakuAST::Term::EmptySet is RakuAST::Term is RakuAST::Lookup {
     method new() {
         nqp::create(self)
@@ -104,6 +108,7 @@ class RakuAST::Term::EmptySet is RakuAST::Term is RakuAST::Lookup {
     }
 }
 
+# The rand term.
 class RakuAST::Term::Rand is RakuAST::Term is RakuAST::Lookup {
     method new() {
         nqp::create(self)
@@ -119,5 +124,47 @@ class RakuAST::Term::Rand is RakuAST::Term is RakuAST::Lookup {
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
+    }
+}
+
+# The whatever (*) term.
+class RakuAST::Term::Whatever is RakuAST::Term is RakuAST::Attaching {
+    has RakuAST::CompUnit $!enclosing-comp-unit;
+
+    method new() {
+        nqp::create(self)
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        my $compunit := $resolver.find-attach-target('compunit');
+        $compunit.ensure-singleton-whatever($resolver);
+        nqp::bindattr(self, RakuAST::Term::Whatever, '$!enclosing-comp-unit', $compunit);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $whatever := $!enclosing-comp-unit.singleton-whatever();
+        $context.ensure-sc($whatever);
+        QAST::WVal.new( :value($whatever) )
+    }
+}
+
+# The hyper whatever (**) term.
+class RakuAST::Term::HyperWhatever is RakuAST::Term is RakuAST::Attaching {
+    has RakuAST::CompUnit $!enclosing-comp-unit;
+
+    method new() {
+        nqp::create(self)
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        my $compunit := $resolver.find-attach-target('compunit');
+        $compunit.ensure-singleton-hyper-whatever($resolver);
+        nqp::bindattr(self, RakuAST::Term::HyperWhatever, '$!enclosing-comp-unit', $compunit);
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $whatever := $!enclosing-comp-unit.singleton-hyper-whatever();
+        $context.ensure-sc($whatever);
+        QAST::WVal.new( :value($whatever) )
     }
 }

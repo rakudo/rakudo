@@ -26,7 +26,7 @@ echo "========= Installing Rakudo"
 make install
 
 echo "========= Testing Rakudo"
-make test
+prove -e install/bin/raku -vlr t
 
 echo "========= Cloning Zef"
 git clone https://github.com/ugexe/zef.git

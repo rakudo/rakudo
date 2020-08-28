@@ -45,7 +45,7 @@ nmake install
 CheckLastExitCode
 
 echo "========= Testing Rakudo"
-nmake test
+prove -e ..\install\bin\perl6 -vlr t
 CheckLastExitCode
 
 echo "========= Cloning Zef"

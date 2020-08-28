@@ -758,8 +758,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<integer> {
             make self.r('IntLiteral').new($<integer>.ast);
         }
+        elsif $<uinf> {
+            make make self.r('NumLiteral').new($*LITERALS.intern-num('Inf'));
+        }
         else {
-            nqp::die('unimpl numish');
+            make make self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
         }
     }
 

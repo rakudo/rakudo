@@ -1344,7 +1344,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | 'NaN' >>
         | <integer>
-#        | <dec_number>
+        | <dec_number>
 #        | <rad_number>
 #        | <rat_number>
 #        | <complex_number>
@@ -1368,6 +1368,19 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #        <!!before ['.' <?before \s | ',' | '=' | ':' <!before  <coloncircumfix <OPER=prefix> > > | <.terminator> | $ > <.typed_sorry: 'X::Syntax::Number::IllegalDecimal'>]? >
         [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
+
+    token dec_number {
+        :dba('decimal number')
+        [
+        | $<coeff> = [               '.' <frac=.decint> ] <escale>?
+        | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
+        | $<coeff> = [ <int=.decint>                    ] <escale>
+        ]
+    }
+
+    token escale { <[Ee]> <sign> <decint> }
+
+    token sign { '+' | '-' | '−' | '' }
 
     token version {
         <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' '+'?]

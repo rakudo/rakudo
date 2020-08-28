@@ -758,11 +758,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<integer> {
             make self.r('IntLiteral').new($<integer>.ast);
         }
+        elsif $<dec_number> {
+            make $<dec_number>.ast;
+        }
         elsif $<uinf> {
-            make make self.r('NumLiteral').new($*LITERALS.intern-num('Inf'));
+            make self.r('NumLiteral').new($*LITERALS.intern-num('Inf'));
         }
         else {
-            make make self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
+            make self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
         }
     }
 
@@ -787,6 +790,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method binint($/) {
         make $*LITERALS.intern-int: ~$/, 2, -> {
             $/.panic("'$/' is not a valid number")
+        }
+    }
+
+    method dec_number($/) {
+        if $<escale> { # wants a Num
+            make self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
+        }
+        else { # wants a Rat
+            nqp::die('Compilation of Rat NYI');
         }
     }
 

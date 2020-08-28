@@ -1342,14 +1342,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token numish {
         [
-#        | 'NaN' >>
+        | 'NaN' >>
         | <integer>
 #        | <dec_number>
 #        | <rad_number>
 #        | <rat_number>
 #        | <complex_number>
-#        | 'Inf' >>
-#        | $<uinf>='∞'
+        | 'Inf' >>
+        | $<uinf>='∞'
 #        | <unum=:No+:Nl>
         ]
     }

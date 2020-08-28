@@ -221,13 +221,24 @@ class RakuAST::LiteralBuilder {
         nqp::atpos($res, 0)
     }
 
+    # Build a Num constant and intern it.
+    method intern-num(str $chars) {
+        # TODO interning
+        self.build-num($chars)
+    }
+
+    # Build a Num constant, but do not intern it.
+    method build-num(str $chars) {
+        nqp::box_n(nqp::numify($chars), Num)
+    }
+
     # Build a Str constant and intern it.
     method intern-str(str $chars) {
         # TODO interning
         self.build-str($chars)
     }
 
-    # Build an Str constant, but do not intern it.
+    # Build a Str constant, but do not intern it.
     method build-str(str $chars) {
         nqp::box_s($chars, Str)
     }

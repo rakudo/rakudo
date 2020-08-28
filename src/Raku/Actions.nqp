@@ -532,7 +532,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 args => $<args>.ast;
         }
         else {
-            make self.r('Type', 'Simple').new($<longname>.ast);
+            if $*is-type {
+                make self.r('Type', 'Simple').new($<longname>.ast);
+            }
+            else {
+                make self.r('Term', 'Name').new($<longname>.ast);
+            }
         }
     }
 

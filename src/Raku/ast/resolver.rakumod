@@ -103,12 +103,17 @@ class RakuAST::Resolver {
     # Resolve a RakuAST::Name, optionally adding the specified sigil to the
     # final component.
     method resolve-name(RakuAST::Name $name, Str :$sigil) {
-        unless $name.is-identifier {
-            nqp::die('Resovling complex names NYI')
+        if $name.is-identifier {
+            # Single-part name, so look lexically.
+            my str $bare-name := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
+            my str $lexical-name := $sigil ?? $sigil ~ $bare-name !! $bare-name;
+            self.resolve-lexical($lexical-name)
         }
-        my $trailing := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
-        my str $lexical-name := $sigil ?? $sigil ~ $trailing !! $trailing;
-        self.resolve-lexical($lexical-name)
+        else {
+            # All package name installations happen via the symbol table as
+            # BEGIN-time effects, so chase it down as if it were a constant.
+            self.resolve-name-constant($name)
+        }
     }
 
     # Resolve a RakuAST::Name to a constant.

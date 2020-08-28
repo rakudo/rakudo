@@ -1,3 +1,30 @@
+# A name, which may resolve to a type or a constant, may be indirect, etc.
+# Things that are known to be types will instead be compiled into some
+# kind of RakuAST::Type.
+class RakuAST::Term::Name is RakuAST::Term is RakuAST::Lookup {
+    has RakuAST::Name $.name;
+
+    method new(RakuAST::Name $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Term::Name, '$!name', $name);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        # TODO non-constants or indirects and so forth
+        my $resolved := $resolver.resolve-name-constant($!name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # TODO indirects, trailing ::, etc.
+        self.resolution.IMPL-LOOKUP-QAST($context)
+    }
+}
+
 class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup {
     method new() {
         nqp::create(self)

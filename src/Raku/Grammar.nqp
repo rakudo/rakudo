@@ -1058,6 +1058,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <key=.identifier> \h* '=>' <.ws> <val=.EXPR('i<=')>
     }
 
+    token term:sym<colonpair>          { <colonpair> }
     token term:sym<variable>           { <variable> }
     token term:sym<package_declarator> { <package_declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
@@ -1094,6 +1095,63 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<dotty> { <dotty> }
+
+    token colonpair {
+        :my $*key;
+
+        ':'
+        :dba('colon pair')
+        [
+        | $<neg>='!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
+            [ <[ \[ \( \< \{ ]> {
+            $/.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
+            { $*key := $<identifier>.Str }
+        | $<num> = [\d+] <identifier> [ <?before <.[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
+            <?{
+                # Here we go over each character in the numeral and check $ch.chr eq $ch.ord.chr
+                # to fail any matches that have synthetics, such as 7\x[308]
+                my $num       := ~$<num>;
+                my $chars-num := nqp::chars($num);
+                my $pos       := -1;
+                nqp::while(
+                    nqp::islt_i( ($pos := nqp::add_i($pos, 1)), $chars-num )
+                    && nqp::eqat(
+                        $num,
+                        nqp::chr( nqp::ord($num, $pos) ),
+                        $pos,
+                    ),
+                    nqp::null,
+                );
+                nqp::iseq_i($chars-num, $pos);
+            }>
+            { $*key := $<identifier>.Str }
+        | <identifier>
+            { $*key := $<identifier>.Str }
+            [ <.unsp>? :dba('pair value') <coloncircumfix($*key)> ]?
+        | <var=.colonpair_variable>
+            { $*key := $<var><desigilname>.Str }
+        ]
+    }
+
+    token coloncircumfix($front) {
+        # reset $*IN_DECL in case this colonpair is part of var we're
+        # declaring, since colonpair might have other vars. Don't make those
+        # think we're declaring them
+        :my $*IN_DECL := '';
+        [
+        | '<>' <.worry("Pair with <> really means an empty list, not null string; use :$front" ~ "('') to represent the null string,\n  or :$front" ~ "() to represent the empty list more accurately")>
+        | {} <circumfix>
+        ]
+    }
+
+    token colonpair_variable {
+        <sigil> {}
+        [
+        # TODO twigil
+        | <desigilname>
+        | $<capvar>='<' <desigilname> '>'
+        ]
+    }
 
     token variable {
         :my $*IN_META := '';

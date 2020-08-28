@@ -491,6 +491,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             value => $<val>.ast;
     }
 
+    method term:sym<colonpair>($/) {
+        make $<colonpair>.ast;
+    }
+
     method term:sym<variable>($/) {
         make $<variable>.ast;
     }
@@ -543,6 +547,49 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method term:sym<dotty>($/) {
         make self.r('Term', 'TopicCall').new($<dotty>.ast);
+    }
+
+    method colonpair($/) {
+        my $key-str := $*key;
+        if $key-str {
+            my $key := $*LITERALS.intern-str($key-str);
+            if $<num> {
+                my $value := self.r('IntLiteral').new($*LITERALS.intern-int(~$<num>, 10));
+                make self.r('ColonPair', 'Number').new(:$key, :$value);
+            }
+            elsif $<coloncircumfix> {
+                my $value := $<coloncircumfix>.ast;
+                make self.r('ColonPair', 'Value').new(:$key, :$value);
+            }
+            elsif $<var> {
+                my $value := $<var>.ast; 
+                make self.r('ColonPair', 'Variable').new(:$key, :$value);
+            }
+            elsif $<neg> {
+                make self.r('ColonPair', 'False').new(:$key);
+            }
+            else {
+                make self.r('ColonPair', 'True').new(:$key);
+            }
+        }
+        else {
+            nqp::die('non-key colonpair compilation NYI');
+        }
+    }
+
+    method coloncircumfix($/) {
+        make $<circumfix>
+            ?? $<circumfix>.ast
+            !! self.r('Term', 'Name').new(self.r('Name').from-identifier('Nil'));
+    }
+
+    method colonpair_variable($/) {
+        if $<capvar> {
+            make self.r('Var', 'NamedCapture').new($*LITERALS.intern-str(~$<desigilname>));
+        }
+        else {
+            make self.r('Var', 'Lexical').new(~$/);
+        }
     }
 
     method variable($/) {

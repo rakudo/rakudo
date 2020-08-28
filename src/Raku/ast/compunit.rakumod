@@ -9,6 +9,8 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
     has int $!is-eval;
     has Mu $!global-package-how;
     has Mu $!end-phasers;
+    has Mu $!singleton-whatever;
+    has Mu $!singleton-hyper-whatever;
 
     method new(RakuAST::StatementList :$statement-list, Str :$comp-unit-name!,
             Str :$setting-name, Bool :$eval, Mu :$global-package-how) {
@@ -72,6 +74,28 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
         nqp::push($!end-phasers, $phaser);
         Nil
     }
+
+    method ensure-singleton-whatever(RakuAST::Resolver $resolver) {
+        unless nqp::isconcrete($!singleton-whatever) {
+            my $Whatever := $resolver.resolve-lexical-constant-in-setting('Whatever');
+            nqp::bindattr(self, RakuAST::CompUnit, '$!singleton-whatever',
+                nqp::create($Whatever.compile-time-value));
+        }
+        Nil
+    }
+
+    method singleton-whatever() { $!singleton-whatever }
+
+    method ensure-singleton-hyper-whatever(RakuAST::Resolver $resolver) {
+        unless nqp::isconcrete($!singleton-hyper-whatever) {
+            my $HyperWhatever := $resolver.resolve-lexical-constant-in-setting('HyperWhatever');
+            nqp::bindattr(self, RakuAST::CompUnit, '$!singleton-hyper-whatever',
+                nqp::create($HyperWhatever.compile-time-value));
+        }
+        Nil
+    }
+
+    method singleton-hyper-whatever() { $!singleton-hyper-whatever }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         # If we're not in an EVAL, we should produce a GLOBAL package and set

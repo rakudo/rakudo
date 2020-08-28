@@ -200,6 +200,21 @@ class RakuAST::Resolver {
         return Nil;
     }
 
+    # Resolves a lexical using the outer contexts. The declaration must have a
+    # compile-time value.
+    method resolve-lexical-constant-in-setting(Str $name) {
+        my $ctx := $!setting;
+        while !nqp::isnull($ctx) {
+            if nqp::existskey($ctx, $name) {
+                my $compile-time-value := nqp::atkey($ctx, $name);
+                return RakuAST::Declaration::External::Constant.new(:lexical-name($name),
+                    :$compile-time-value);
+            }
+            $ctx := nqp::ctxouter($ctx);
+        }
+        return Nil;
+    }
+
     method IMPL-SETTING-FROM-CONTEXT(Mu $context) {
         # TODO locate the setting frame
         $context

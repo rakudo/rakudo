@@ -1084,9 +1084,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token term:sym<name> {
+        :my $*is-type;
         <longname>
         [
-        || <?{ $*R.is-name-type($<longname>.ast) }>
+        || <?{ $*R.is-name-known($<longname>.ast) }>
+           { $*is-type := $*R.is-name-type($<longname>.ast) }
         || [ \\ <?before '('> ]? <args(1)>
         ]
     }

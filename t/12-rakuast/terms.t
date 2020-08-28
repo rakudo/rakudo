@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 5;
+plan 7;
 
 {
     my $class = EVAL RakuAST::Package.new:
@@ -64,3 +64,11 @@ isa-ok EVAL(RakuAST::Term::Rand.new),
 is-deeply EVAL(RakuAST::Term::EmptySet.new),
     ∅,
     'Empty set term works';
+
+is-deeply EVAL(RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True'))),
+    True,
+    'Name term works with single-part name';
+
+is-deeply EVAL(RakuAST::Term::Name.new(RakuAST::Name.from-identifier-parts('Bool', 'True'))),
+    True,
+    'Name term works with multi-part name';

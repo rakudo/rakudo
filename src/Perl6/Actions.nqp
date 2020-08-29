@@ -3680,7 +3680,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*OFTYPE {
             $of_type := $*OFTYPE.ast;
             my $archetypes := $of_type.HOW.archetypes;
-            unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic || $archetypes.definite {
+            unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic || $archetypes.definite || $archetypes.coercive {
                 $*OFTYPE.typed_sorry('X::Syntax::Variable::BadType', type => $of_type);
             }
         }
@@ -8962,6 +8962,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @result;
         my $clear_topic_bind;
         my $saw_slurpy;
+        my $instantiated_code;
+        my $Code     := $*W.find_single_symbol('Code', :setting-only);
         my $Sig      := $*W.find_single_symbol('Signature', :setting-only);
         my $Param    := $*W.find_single_symbol('Parameter', :setting-only);
         my $Iterable := $*W.find_single_symbol('Iterable');
@@ -9179,7 +9181,83 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Handle coercion.
             my $coerce_to := nqp::getattr($param_obj, $Param, '$!coerce_type');
-            unless nqp::isnull($coerce_to) {
+            my $nominal_type := nqp::getattr($param_obj, $Param, '$!nominal_type');
+            if nqp::getenvhash<RAKUDO_DEBUG> {
+                say("<<< Parameter ", $name, " type: ", $nominal_type.HOW.name($nominal_type), ", generic: ", $nominal_type.HOW.archetypes.generic);
+            }
+            if $nominal_type.HOW.archetypes.generic {
+                # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
+                $decont_name_invalid := 1;
+                unless $instantiated_code {
+                    # Produce current code object variable with the first generic-typed parameter encountered. Any
+                    # next generic paramter would re-use the variable sparing a few CPU cycles per call.
+                    $instantiated_code := QAST::Node.unique('__lowered_code_obj_');
+                    $var.push(
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new(:name($instantiated_code), :scope('local'), :decl('var')),
+                            QAST::Op.new(
+                                :op('getcodeobj'),
+                                QAST::Op.new(
+                                    :op('ctxcode'),
+                                    QAST::Op.new(:op('ctx')))
+                            )
+                        ));
+                }
+                my $inst_param := QAST::Node.unique('__lowered_param_obj_');
+                $var.push(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($inst_param), :scope('local'), :decl('var') ),
+                        QAST::Op.new(
+                            :op('atpos'),
+                            QAST::Op.new(
+                                :op('getattr'),
+                                QAST::Op.new(
+                                    :op('getattr'),
+                                    QAST::Var.new(:name($instantiated_code), :scope('local')),
+                                    QAST::WVal.new(:value($Code)),
+                                    QAST::SVal.new(:value('$!signature'))
+                                ),
+                                QAST::WVal.new(:value($Sig)),
+                                QAST::SVal.new(:value('@!params'))
+                            ),
+                            QAST::IVal.new(:value($i)))));
+                my $nominal_type := QAST::Node.unique('__lowered_nominal_type_');
+                $var.push(
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('callmethod'),
+                            :name('coercive'),
+                            QAST::Var.new(:name($inst_param), :scope('local'))
+                        ),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($name), :scope('local') ),
+                            QAST::Stmts.new(
+                                QAST::Op.new(
+                                    :op('bind'),
+                                    QAST::Var.new(:name($nominal_type), :scope('local'), :decl('var')),
+                                    QAST::Op.new(
+                                        :op('getattr'),
+                                        QAST::Var.new(:name($inst_param), :scope('local')),
+                                        QAST::WVal.new(:value($Param)),
+                                        QAST::SVal.new(:value('$!nominal_type'))
+                                    )
+                                ),
+                                QAST::Op.new(
+                                    :op('callmethod'),
+                                    :name('coerce'),
+                                    QAST::Op.new(
+                                        :op('how'),
+                                        QAST::Var.new(:name($nominal_type), :scope('local')),
+                                    ),
+                                    QAST::Var.new(:name($nominal_type), :scope('local')),
+                                    QAST::Var.new(:name($name), :scope('local'))
+                                )))));
+            }
+            elsif !nqp::isnull($coerce_to) {
                 if $coerce_to.HOW.archetypes.generic {
                     return 0;
                 }

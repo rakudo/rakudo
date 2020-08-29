@@ -335,6 +335,10 @@ sub assign-scalar-nil-no-whence($cont, $value) {
 }
 sub assign-scalar-no-whence($cont, $value) {
     my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+    my $of := $desc.of;
+    if $of.HOW.archetypes.coercive {
+        $value := $of.HOW.coerce($of, $value);
+    }
     my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
     if nqp::istype($value, $type) {
         nqp::bindattr($cont, Scalar, '$!value', $value);
@@ -358,6 +362,9 @@ sub assign-scalar-bindpos($cont, $value) {
     my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor');
     my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
     if nqp::istype($value, $type) {
+        if $type.HOW.archetypes.coercive {
+            $value := $type.HOW.coerce($type, $value);
+        }
         nqp::bindattr($cont, Scalar, '$!value', $value);
         nqp::bindpos(
             nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),

@@ -123,8 +123,11 @@ class Perl6::Metamodel::CoercionHOW
             return $method($!target_type, $value);
         }
 
-        # TODO To be replaced with a proper Exception throwing.
-        nqp::die("Impossible coercion of " ~ $value_type.HOW.name($value_type)
+        my %ex := nqp::gethllsym('Raku', 'P6EX');
+        if %ex {
+            %ex<X::Coerce::Impossible>($!target_type, $value_type)
+        }
+        nqp::die("Impossible coercion from " ~ $value_type.HOW.name($value_type)
                     ~ " into " ~ $!target_type.HOW.name($!target_type));
     }
 }

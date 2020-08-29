@@ -339,6 +339,14 @@ Need to re-check dependencies.")
            :$precomp-stores,
     --> Bool:D) {
 
+        my $env := nqp::clone(nqp::getattr(%*ENV,Map,'$!storage'));
+        my $rpl := nqp::atkey($env,'RAKUDO_PRECOMP_LOADING');
+        if $rpl {
+            my @modules := Rakudo::Internals::JSON.from-json: $rpl;
+            die "Circular module loading detected trying to precompile $path"
+              if $path.Str (elem) @modules;
+        }
+
         # obtain destination, lock the store for other processes
         my $store := self.store;
         my $io    := $store.destination($compiler-id, $id);
@@ -360,17 +368,14 @@ Need to re-check dependencies.")
         }
 
         # Local copy for us to tweak
-        my $env := nqp::clone(nqp::getattr(%*ENV,Map,'$!storage'));
+        $env := nqp::clone($env);
 
         my $REPO := $*REPO;
         nqp::bindkey($env,'RAKUDO_PRECOMP_WITH',
           $REPO.repo-chain.map(*.path-spec).join(',')
         );
 
-        if nqp::atkey($env,'RAKUDO_PRECOMP_LOADING') -> $rpl {
-            my @modules := Rakudo::Internals::JSON.from-json: $rpl;
-            die "Circular module loading detected trying to precompile $path"
-              if $path.Str (elem) @modules;
+        if $rpl {
             nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING',
               $rpl.chop
                 ~ ','

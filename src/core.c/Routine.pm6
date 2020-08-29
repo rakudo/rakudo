@@ -27,7 +27,8 @@ my class Routine { # declared in BOOTSTRAP
             (self,)
     }
 
-    method cando(Capture:D $c) {
+    proto method cando(|) {*}
+    multi method cando(Capture:D $c) {
         my $disp;
         if self.is_dispatcher {
             $disp := self;
@@ -42,6 +43,7 @@ my class Routine { # declared in BOOTSTRAP
         }
         checker(|$c);
     }
+    multi method cando(|c) { self.cando(c) }
 
     method multi() {
         self.dispatcher.defined

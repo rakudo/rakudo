@@ -33,12 +33,7 @@ class Perl6::Metamodel::CoercionHOW
         }
         my $tt := $coercion_type.HOW.target_type($coercion_type);
         my $ct := $coercion_type.HOW.constraint_type($coercion_type);
-        note("CoercionHOW.compose(", $coercion_type.HOW.name($coercion_type), "|", nqp::objectid($coercion_type), ") ", $tt.HOW.name($tt), " ", $ct.HOW.name($ct));
-        # TODO typecache must iterate over MRO with roles
-        nqp::settypecache($coercion_type,
-            nqp::list(
-                $coercion_type.HOW.target_type($coercion_type),
-                $coercion_type.HOW.constraint_type($coercion_type)));
+        nqp::settypecheckmode($coercion_type, 2);
         $!composed := 1;
         $coercion_type
     }
@@ -140,8 +135,7 @@ BEGIN {
         my $metaclass := $type.HOW.new();
         $metaclass.set_target_type($params[0]);
         $metaclass.set_constraint_type($params[1]);
-        my $coercion_type := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'Raku');
-        nqp::settypecheckmode($coercion_type, 2)
+        nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'Raku');
     });
     (Perl6::Metamodel::CoercionHOW.WHO)<root> := $root;
 }

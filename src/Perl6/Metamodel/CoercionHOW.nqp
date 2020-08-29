@@ -110,8 +110,10 @@ class Perl6::Metamodel::CoercionHOW
 
         # Next we try $value.COERCE-INTO(TargetType). This would make possible coercion into types with compound names
         # like MyPackage::TargetType.
+        # XXX COERCE-* methods can only be of type Routine now. Does it ever makes sense for them to be of some other
+        # base class?
         $method := $value_type.HOW.find_method($value_type, 'COERCE-INTO');
-        if nqp::defined($method) && $method.cando($value, $!target_type) {
+        if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($value, $!target_type) {
             return $method($value, $!target_type);
         }
 
@@ -119,7 +121,7 @@ class Perl6::Metamodel::CoercionHOW
         # the best possible coercion may require access to source calss private data. Yet, this may work for many simple
         # cases like TargetType(Str), for example.
         $method := $!target_type.HOW.find_method($!target_type, 'COERCE-FROM');
-        if nqp::defined($method) && $method.cando($!target_type, $value) {
+        if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($!target_type, $value) {
             return $method($!target_type, $value);
         }
 

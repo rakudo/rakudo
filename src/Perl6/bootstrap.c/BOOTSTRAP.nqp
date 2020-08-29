@@ -1656,7 +1656,12 @@ BEGIN {
                 $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
                 my $type := $desc.of;
                 if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
-                    nqp::bindattr($cont, Scalar, '$!value', $val);
+                    if $type.HOW.archetypes.coercive {
+                        nqp::bindattr($cont, Scalar, '$!value', $type.HOW.coerce($type, $val));
+                    }
+                    else {
+                        nqp::bindattr($cont, Scalar, '$!value', $val);
+                    }
                     unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
                            nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
                         $desc.assigned($cont);

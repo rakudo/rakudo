@@ -35,6 +35,7 @@ my class Parameter { # declared in BOOTSTRAP
     my constant $SIG_ELEM_DEFAULT_IS_LITERAL = 1 +< 20;
     my constant $SIG_ELEM_SLURPY_ONEARG      = 1 +< 24;
     my constant $SIG_ELEM_CODE_SIGIL         = 1 +< 25;
+    my constant $SIG_ELEM_IS_COERCIVE        = 1 +< 26;
 
     my constant $SIG_ELEM_IS_NOT_POSITIONAL = $SIG_ELEM_SLURPY_POS
                                            +| $SIG_ELEM_SLURPY_NAMED
@@ -375,6 +376,13 @@ my class Parameter { # declared in BOOTSTRAP
     }
     method multi-invocant(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
+    }
+    method coercive(Parameter:D: --> Bool:D) {
+        if nqp::getenvhash<RAKUDO_DEBUG> {
+            nqp::say("??? Parameter::coercive on " ~ self.name ~ " of " ~ $!nominal_type.^name);
+            nqp::say("??? " ~ $SIG_ELEM_IS_COERCIVE.fmt('%08x') ~ " +& " ~ $!flags.fmt('%08x') ~ " -> " ~ nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COERCIVE)));
+        }
+        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COERCIVE))
     }
 
     method default(Parameter:D: --> Code:_) {

@@ -1949,6 +1949,13 @@ BEGIN {
             nqp::bindattr($ins, Parameter, '$!nominal_type', $ins_type);
             nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd);
             nqp::bindattr($ins, Parameter, '$!attr_package', $ins_ap);
+            nqp::say("...PARAM type: " ~ $ins_type.HOW.name($ins_type)) if nqp::getenvhash<RAKUDO_DEBUG>;
+            if $ins_type.HOW.archetypes.coercive {
+                nqp::say("... COERCIVE") if nqp::getenvhash<RAKUDO_DEBUG>;
+                my $target_type := $ins_type.HOW.target_type($ins_type);
+                nqp::say("... SETTING PARAM coerce_type to " ~ $target_type.HOW.name($target_type)) if nqp::getenvhash<RAKUDO_DEBUG>;
+                $ins.set_coercion($target_type);
+            }
             $ins
         }));
     Parameter.HOW.add_method(Parameter, 'set_rw', nqp::getstaticcode(sub ($self) {
@@ -2016,12 +2023,21 @@ BEGIN {
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'set_coercion', nqp::getstaticcode(sub ($self, $type) {
+            nqp::say('... set_coercion method') if nqp::getenvhash<RAKUDO_DEBUG>;
+            my int $SIG_ELEM_IS_COERCIVE := 67108864;
             my $dcself := nqp::decont($self);
+            my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             nqp::bindattr_s($dcself, Parameter, '$!coerce_method',
-              nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW)
-              ?? $type.HOW.base_type($type).HOW.name($type.HOW.base_type: $type)
-              !! $type.HOW.name($type));
+                nqp::istype($type.HOW, Perl6::Metamodel::DefiniteHOW)
+                    ?? $type.HOW.base_type($type).HOW.name($type.HOW.base_type: $type)
+                    !! $type.HOW.name($type));
             nqp::bindattr($dcself, Parameter, '$!coerce_type', nqp::decont($type));
+            nqp::say("<<< set flags " ~ nqp::defined($flags) ~ " -- " ~ $flags) if nqp::getenvhash<RAKUDO_DEBUG>;
+            unless $flags +& $SIG_ELEM_IS_COERCIVE {
+                nqp::say("... FLAGS") if nqp::getenvhash<RAKUDO_DEBUG>;
+                nqp::bindattr_i($dcself, Parameter, '$!flags',
+                    nqp::bitor_i($flags, $SIG_ELEM_IS_COERCIVE));
+            }
             $dcself
         }));
     Parameter.HOW.add_method(Parameter, 'WHY', nqp::getstaticcode(sub ($self) {
@@ -4034,8 +4050,8 @@ Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
-Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
-Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
+# Perl6::Metamodel::CoercionHOW.pretend_to_be([Any, Mu]);
+# Perl6::Metamodel::CoercionHOW.delegate_methods_to(Any);
 
 # Let ClassHOW and EnumHOW know about the invocation handler.
 Perl6::Metamodel::ClassHOW.set_default_invoke_handler(

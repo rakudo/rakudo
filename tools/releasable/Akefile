@@ -86,28 +86,38 @@ task ‘foo’, {
 }
 
 task ‘all’ => ‘clean’, { # except human-upload
+    run <ake human-1>;
+    run <ake nqp>;
+    run <ake human-2>;
+    run <ake rakudo>;
+    run <ake human-3>;
+    say ‘Now run ｢ake human-upload｣ to publish your changes’;
+    True
+}
+
+task ‘ssh-all’ => ‘clean’, { # except human-upload
     # TODO maybe don't runout but just depend on other tasks
     # You may need to *prepend* PATH modifications in bashrc
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake clean”;
-    run <sake human-1>;
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake nqp”;
-    run <sake human-2>;
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake rakudo”;
-    run <sake human-3>;
-    say ‘Now run ｢sake human-upload｣ to publish your changes’;
+    run <ssh -t>, $SSH, “cd $SSH-PATH && ake clean”;
+    run <ake human-1>;
+    run <ssh -t>, $SSH, “cd $SSH-PATH && ake nqp”;
+    run <ake human-2>;
+    run <ssh -t>, $SSH, “cd $SSH-PATH && ake rakudo”;
+    run <ake human-3>;
+    say ‘Now run ｢ake human-upload｣ to publish your changes’;
     True
 }
 
 task ‘all-rakudo-only’ => ‘clean’, {
     # TODO maybe don't runout but just depend on other tasks
     # You may need to *prepend* PATH modifications in bashrc
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake clean”;
-    run <sake get-all rsync-push>; # just ｢get-all｣ and ｢rsync-push｣ instead of ｢human-1｣
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake nqp”;
-    run <sake human-2>;
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake rakudo”;
-    run <sake human-3>;
-    say ‘Now run ｢sake human-upload-rakudo-only｣ to publish your changes’;
+    run <ssh -t>, $SSH, “cd $SSH-PATH && ake clean”;
+    run <ake get-all rsync-push>; # just ｢get-all｣ and ｢rsync-push｣ instead of ｢human-1｣
+    run <ssh -t>, $SSH, “cd $SSH-PATH && ake nqp”;
+    run <ake human-2>;
+    run <ssh -t>, $SSH, “cd $SSH-PATH && ake rakudo”;
+    run <ake human-3>;
+    say ‘Now run ｢ake human-upload-rakudo-only｣ to publish your changes’;
     True
 }
 
@@ -354,7 +364,7 @@ task ‘rakudo-manual-check’, { # Step ❶ (rakudo release guide)
     say ‘  + Review the RT queue’;
     say ‘  + Update the release announcement draft’;
     say ‘’;
-    say ‘Everything else will be done for you by this Sakefile’;
+    say ‘Everything else will be done for you by this Akefilefile’;
     # TODO more?
 }
 

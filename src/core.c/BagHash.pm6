@@ -312,7 +312,7 @@ my class BagHash does Baggy {
     }
 
 #--- convenience methods
-    method add(\to-add --> Nil) {
+    method add(BagHash:D: \to-add --> Nil) {
         nqp::bindattr(
           self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
         ) unless $!elems;
@@ -321,7 +321,7 @@ my class BagHash does Baggy {
         );
     }
 
-    method remove(\to-remove --> Nil) {
+    method remove(BagHash:D: \to-remove --> Nil) {
         Rakudo::QuantHash.SUB-ITERATOR-FROM-BAG(
           $!elems, to-remove.iterator
         ) if $!elems;

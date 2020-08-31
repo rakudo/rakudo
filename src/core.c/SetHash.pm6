@@ -271,7 +271,7 @@ my class SetHash does Setty {
     }
 
 #--- convenience methods
-    method set(\to-set --> Nil) {
+    method set(SetHash:D: \to-set --> Nil) {
         nqp::bindattr(
           self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
         ) unless $!elems;
@@ -280,7 +280,7 @@ my class SetHash does Setty {
         );
     }
 
-    method unset(\to-unset --> Nil) {
+    method unset(SetHash:D: \to-unset --> Nil) {
         my \iterator := to-unset.iterator;
         nqp::until(
           nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),

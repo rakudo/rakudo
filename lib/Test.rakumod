@@ -49,8 +49,6 @@ sub _init_io {
     $todo_output    = $PROCESS::OUT;
 }
 
-sub MONKEY-SEE-NO-EVAL() is export { 1 }
-
 ## test functions
 
 our sub output is rw {
@@ -531,6 +529,7 @@ multi sub unlike(
 multi sub use-ok(Str $code, $desc = "$code module can be use-d ok") is export {
     $time_after = nqp::time_n;
     try {
+        use MONKEY-SEE-NO-EVAL;
         EVAL ( "use $code" );
     }
     my $ok = proclaim((not defined $!), $desc) or _diag($!);
@@ -626,6 +625,7 @@ sub throws-like($code, $ex_type, $reason?, *%matcher) is export {
             $code()
         } else {
             $msg = "'$code' died";
+            use MONKEY-SEE-NO-EVAL;
             EVAL $code, context => $caller-context;
         }
         flunk $msg;
@@ -704,6 +704,7 @@ sub die-on-fail {
 
 sub eval_exception($code) {
     try {
+        use MONKEY-SEE-NO-EVAL;
         EVAL ($code);
     }
     $!;

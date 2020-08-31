@@ -9,6 +9,7 @@ class Perl6::Metamodel::CoercionHOW
 {
     has $!composed;
     has $!target_type;
+    has $!nominal_target;
     has $!constraint_type;
 
     my $archetypes := Perl6::Metamodel::Archetypes.new(:coercive, :nominalizable);
@@ -40,6 +41,9 @@ class Perl6::Metamodel::CoercionHOW
 
     method set_target_type($target_type) {
         $!target_type := $target_type;
+        $!nominal_target := nqp::if($!target_type.HOW.archetypes.nominalizable,
+                                    $!target_type.HOW.nominalize($!target_type),
+                                    $!target_type);
     }
 
     method set_constraint_type($constraint_type) {
@@ -96,14 +100,15 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     # Coercion protocol method.
-    method coerce($obj, $value) {
+    method !coerce($target_type, $value) {
+        say("!!! coerce ", $value.HOW.name($value), " into ", $target_type.HOW.name($target_type)) if nqp::getenvhash<RAKUDO_DEBUG>;
         my $value_type := nqp::what($value);
-        if nqp::istype($value_type, $!target_type) {
+        if nqp::istype($value_type, $target_type) {
             return $value
         }
 
         # First we try $value.TargetType() approach
-        my $method := $value_type.HOW.find_method($value_type, $!target_type.HOW.name($!target_type), :no_fallback);
+        my $method := $value_type.HOW.find_method($value_type, $!nominal_target.HOW.name($!nominal_target), :no_fallback);
         unless nqp::isnull($method) {
             return $method($value)
         }
@@ -113,24 +118,28 @@ class Perl6::Metamodel::CoercionHOW
         # XXX COERCE-* methods can only be of type Routine now. Does it ever makes sense for them to be of some other
         # base class?
         $method := $value_type.HOW.find_method($value_type, 'COERCE-INTO');
-        if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($value, $!target_type) {
-            return $method($value, $!target_type);
+        if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($value, $target_type) {
+            return $method($value, $target_type);
         }
 
         # As the last resort we fallback to TargetType.COERCE-FROM($value). This is the worst possible variant because
         # the best possible coercion may require access to source calss private data. Yet, this may work for many simple
         # cases like TargetType(Str), for example.
-        $method := $!target_type.HOW.find_method($!target_type, 'COERCE-FROM');
-        if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($!target_type, $value) {
-            return $method($!target_type, $value);
+        $method := $target_type.HOW.find_method($target_type, 'COERCE-FROM');
+        if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($target_type, $value) {
+            return $method($target_type, $value);
         }
 
         my %ex := nqp::gethllsym('Raku', 'P6EX');
         if %ex {
-            %ex<X::Coerce::Impossible>($!target_type, $value_type)
+            %ex<X::Coerce::Impossible>($target_type, $value_type)
         }
         nqp::die("Impossible coercion from " ~ $value_type.HOW.name($value_type)
-                    ~ " into " ~ $!target_type.HOW.name($!target_type));
+                    ~ " into " ~ $target_type.HOW.name($target_type));
+    }
+
+    method coerce($obj, $value) {
+        self."!coerce"($!target_type, $value)
     }
 }
 BEGIN {

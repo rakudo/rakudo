@@ -725,6 +725,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ] <.unsp>?
     }
 
+    token postfix:sym<i>  { <sym> >> <O(|%methodcall)> }
+
     token prefix:sym<++>  { <sym>  <O(|%autoincrement)> }
     token prefix:sym<-->  { <sym>  <O(|%autoincrement)> }
     token prefix:sym<++⚛> { <sym>  <O(|%autoincrement)> }

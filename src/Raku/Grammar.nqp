@@ -884,6 +884,22 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<min>  { <sym> >> <O(|%tight_or_minmax)> }
     token infix:sym<max>  { <sym> >> <O(|%tight_or_minmax)> }
 
+    token infix:sym<?? !!> {
+        :my $*GOAL := '!!';
+        $<sym>='??'
+        <.ws>
+        <EXPR('i=')>
+        [ '!!'
+        || <?before '::' <.-[=]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => "::" }
+        || <?before ':' <.-[=\w]>> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartInvalid", second-part => ":" }
+        || <infixish> { self.typed_panic: "X::Syntax::ConditionalOperator::PrecedenceTooLoose", operator => ~$<infixish> }
+        || <?{ ~$<EXPR> ~~ / '!!' / }> { self.typed_panic: "X::Syntax::ConditionalOperator::SecondPartGobbled" }
+        || <?before \N*? [\n\N*?]? '!!'> { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Bogus code found before the !! of conditional operator" }
+        || { self.typed_panic: "X::Syntax::Confused", reason => "Confused: Found ?? but no !!" }
+        ]
+        <O(|%conditional, :reducecheck<ternary>)>
+    }
+
     token infix:sym«=>» { <sym> <O(|%item_assignment)> }
 
     token prefix:sym<so> { <sym><.end_prefix> <O(|%loose_unary)> }

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 23;
+plan 25;
 
 is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -255,4 +255,17 @@ is-deeply
         True,
         'Chaining operator has correct outcome';
     is-deeply $x, 5, 'Middle expression of chain only evaluated once';
+}
+
+{
+    my $ternary = RakuAST::Ternary.new(
+        condition => RakuAST::Var::Lexical.new('$a'),
+        then => RakuAST::IntLiteral.new(22),
+        else => RakuAST::IntLiteral.new(33)
+    );
+
+    my $a = 1;
+    is EVAL($ternary), 22, 'Correct outcome of ternary operator with true condition';
+    $a = 0;
+    is EVAL($ternary), 33, 'Correct outcome of ternary operator with false condition';
 }

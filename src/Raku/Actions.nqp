@@ -349,16 +349,25 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $KEY {
             my $key := nqp::lc($KEY);
             if $KEY eq 'INFIX' {
-                unless $ast {
-                    my $type := $<OPER><O>.made<assoc> eq 'chain'
-                        ?? self.r('Infix', 'Chaining')
-                        !! self.r('Infix');
-                    $ast := $type.new($<infix><sym>);
+                my $sym := $<infix><sym>;
+                if $sym && $sym eq '??' {
+                    make self.r('Ternary').new:
+                        condition => $/[0].ast,
+                        then => $/[1].ast,
+                        else => $/[2].ast;
                 }
-                make self.r('ApplyInfix').new:
-                    infix => $ast,
-                    left => $/[0].ast,
-                    right => $/[1].ast;
+                else {
+                    unless $ast {
+                        my $type := $<OPER><O>.made<assoc> eq 'chain'
+                            ?? self.r('Infix', 'Chaining')
+                            !! self.r('Infix');
+                        $ast := $type.new($sym);
+                    }
+                    make self.r('ApplyInfix').new:
+                        infix => $ast,
+                        left => $/[0].ast,
+                        right => $/[1].ast;
+                }
             }
             elsif $KEY eq 'LIST' {
                 my @operands;

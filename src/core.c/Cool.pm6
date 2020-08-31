@@ -397,10 +397,6 @@ my class Cool { # declared in BOOTSTRAP
     method trim-leading () { self.Stringy.trim-leading  };
     method trim-trailing() { self.Stringy.trim-trailing };
 
-    method EVAL(*%opts) {
-        EVAL(self, context => CALLER::, |%opts);
-    }
-
     multi method Real() {
         nqp::if(
             nqp::istype((my $numeric := self.Numeric), Failure),

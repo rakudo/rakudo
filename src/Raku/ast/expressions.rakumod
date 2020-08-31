@@ -387,3 +387,34 @@ class RakuAST::ApplyPostfix is RakuAST::Expression {
         $visitor($!postfix);
     }
 }
+
+# The ternary conditional operator (?? !!).
+class RakuAST::Ternary is RakuAST::Expression {
+    has RakuAST::Expression $.condition;
+    has RakuAST::Expression $.then;
+    has RakuAST::Expression $.else;
+
+    method new(RakuAST::Expression :$condition!, RakuAST::Expression :$then!,
+            RakuAST::Expression :$else!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Ternary, '$!condition', $condition);
+        nqp::bindattr($obj, RakuAST::Ternary, '$!then', $then);
+        nqp::bindattr($obj, RakuAST::Ternary, '$!else', $else);
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Op.new(
+            :op('if'),
+            $!condition.IMPL-TO-QAST($context),
+            $!then.IMPL-TO-QAST($context),
+            $!else.IMPL-TO-QAST($context),
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!condition);
+        $visitor($!then);
+        $visitor($!else);
+    }
+}

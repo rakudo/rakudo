@@ -648,6 +648,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             elsif $twigil eq '*' {
                 make self.r('Var', 'Dynamic').new($name);
             }
+            elsif $twigil eq '!' {
+                make self.r('Var', 'Attribute').new($name);
+            }
             else {
                 nqp::die("Lookup with twigil '$twigil' NYI");
             }

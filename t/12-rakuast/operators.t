@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 25;
+plan 28;
 
 is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -195,6 +195,45 @@ is-deeply
         )),
         %h,
         'Zen hash slice';
+
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+                RakuAST::QuotedString.new(
+                    segments => [RakuAST::StrLiteral.new('s')],
+                    processors => ['words']
+                )
+            )
+        )),
+        'subtract',
+        'Basic literal hash index';
+
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+                RakuAST::QuotedString.new(
+                    segments => [RakuAST::StrLiteral.new('s a')],
+                    processors => ['words']
+                )
+            )
+        )),
+        ('subtract', 'add'),
+        'Literal hash index with multiple keys';
+
+    is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::Var::Lexical.new('%h'),
+            postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+                RakuAST::QuotedString.new(
+                    segments => [RakuAST::StrLiteral.new('')],
+                    processors => ['words']
+                )
+            )
+        )),
+        %h,
+        'Empty litreal hash index works as zen slice';
 }
 
 {

@@ -3085,7 +3085,7 @@ my class X::InvalidTypeSmiley does X::Comp {
 
 my class X::MultipleTypeSmiley does X::Comp {
     method message() {
-        "Multiple type smileys cannot be used";
+        "Multiple type smileys cannot be used, did you forget a ':' somewhere?";
     }
 }
 

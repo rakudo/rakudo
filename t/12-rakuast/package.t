@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 34;
+plan 37;
 
 {
     my $class = EVAL RakuAST::Package.new:
@@ -152,4 +152,34 @@ module Enclosing {
     }
     ok $class.^lookup('foo'), 'Seems like an accessor method was generated';
     is $class.new(foo => 42).foo, 42, 'Accessor and default constructor work fine';
+}
+
+{
+    my $class = EVAL RakuAST::Package.new:
+        scope => 'my',
+        package-declarator => 'class',
+        how => Metamodel::ClassHOW,
+        name => RakuAST::Name.from-identifier('TestClassWithAttributeUsage'),
+        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::VarDeclaration::Simple.new(
+                    scope => 'has',
+                    name => '$.bar',
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+                )
+            ),
+            RakuAST::Statement::Expression.new(
+                RakuAST::Method.new(
+                    name => RakuAST::Name.from-identifier('test-meth'),
+                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                        RakuAST::Statement::Expression.new(
+                            RakuAST::Var::Attribute.new('$!bar')
+                        )
+                    ))
+                )
+            )
+        )));
+    nok $class.DEFINITE, 'Class with attribute with accessor usage evaluates to a type object';
+    is $class.^name, 'TestClassWithAttributeUsage', 'Correct class name';
+    is $class.new(bar => 99).test-meth, 99, 'Attribute access compiles correctly';
 }

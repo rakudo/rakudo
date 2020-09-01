@@ -66,6 +66,50 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
     }
 }
 
+# An attribute access (e.g. $!foo).
+class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
+                              is RakuAST::Attaching {
+    has str $.name;
+    has RakuAST::Package $!package;
+
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Var::Attribute, '$!name', $name);
+        $obj
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        my $package := $resolver.find-attach-target('package');
+        if $package {
+            # We can't check attributes exist until we compose the
+            # package, since they may come from roles. Thus we need to
+            # attach them to the package.
+            $package.ATTACH-ATTRIBUTE-USAGE(self);
+            nqp::bindattr(self, RakuAST::Var::Attribute, '$!package', $package);
+        }
+        else {
+            # TODO check-time error
+        }
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Term::Self.new,
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $package := $!package.meta-object;
+        my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
+        QAST::Var.new(
+            :scope('attribute'), :name($!name), :returns($attr-type),
+            @lookups[0].IMPL-TO-QAST($context),
+            QAST::WVal.new( :value($package) ),
+        )
+    }
+}
+
 # A special compiler variable lookup, such as $?PACKAGE.
 class RakuAST::Var::Compiler is RakuAST::Var is RakuAST::Lookup {
     has str $.name;

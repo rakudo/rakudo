@@ -687,6 +687,37 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%methodcall)>
     }
 
+    token postcircumfix:sym<ang> {
+        '<'
+        [
+        || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))> '>'
+        || '='* <?before \h* [ \d | <.sigil> | ':' ] >
+           { $/.panic("Whitespace required before $/ operator") }
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>' (corresponding '<' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
+        ]
+        <O(|%methodcall)>
+    }
+
+    token postcircumfix:sym«<< >>» {
+        :dba('shell-quote words')
+        '<<'
+        [
+        || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<<", ">>", ['qq', 'ww', 'v']))> '>>'
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '>>' (corresponding '<<' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
+        ]
+        <O(|%methodcall)>
+    }
+
+    token postcircumfix:sym<« »> {
+        :dba('shell-quote words')
+        '«'
+        [
+        || <nibble(self.quote_lang(self.slang_grammar('Quote'), "«", "»", ['qq', 'ww', 'v']))> '»'
+        || { $/.panic("Unable to parse quote-words subscript; couldn't find '»' (corresponding '«' was at line {HLL::Compiler.lineof($/.orig(), $/.from(), :cache(1))})") }
+        ]
+        <O(|%methodcall)>
+    }
+
     token postcircumfix:sym<( )> {
         :dba('argument list')
         '(' ~ ')' [ <.ws> <arglist> ]

@@ -366,6 +366,36 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
     }
 }
 
+# A postcircumfix literal hash index operator.
+class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is RakuAST::Lookup {
+    has RakuAST::QuotedString $.index;
+
+    method new(RakuAST::QuotedString $index) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Postcircumfix::LiteralHashIndex, '$!index', $index);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical('&postcircumfix:<{ }>');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!index);
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        my $name := self.resolution.lexical-name;
+        my $op := QAST::Op.new( :op('call'), :$name, $operand-qast );
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
+        $op
+    }
+}
+
 # Application of an postfix operator.
 class RakuAST::ApplyPostfix is RakuAST::Expression {
     has RakuAST::Postfixish $.postfix;

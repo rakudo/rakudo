@@ -1176,7 +1176,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token variable {
         :my $*IN_META := '';
         [
-        | <sigil> <desigilname>
+        | <sigil> <twigil>? <desigilname>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         ]
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }

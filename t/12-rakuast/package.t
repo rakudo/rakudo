@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 19;
+plan 34;
 
 {
     my $class = EVAL RakuAST::Package.new:
@@ -100,4 +100,56 @@ module Enclosing {
     nok GLOBAL::<OurEnclosedClass>:exists, 'Was not installed globally';
     ok Enclosing::<OurEnclosedClass>:exists, 'Was installed in the current package';
     ok Enclosing::<OurEnclosedClass> === $result, 'Correct thing installed';
+}
+
+{
+    my $class = EVAL RakuAST::Package.new:
+        scope => 'my',
+        package-declarator => 'class',
+        how => Metamodel::ClassHOW,
+        name => RakuAST::Name.from-identifier('TestClassWithAttribute'),
+        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::VarDeclaration::Simple.new(
+                    scope => 'has',
+                    name => '$!foo',
+                )
+            )
+        )));
+    nok $class.DEFINITE, 'Class with attribute evluates to a type object';
+    is $class.^name, 'TestClassWithAttribute', 'Correct class name';
+    is $class.^attributes.elems, 1, 'Class has one attribute';
+    given $class.^attributes[0] {
+        is .name, '$!foo', 'Correct attribute name';
+        ok .type =:= Mu, 'Correct (default) type';
+        nok .has_accessor, 'Correctly claims to have no accessor';
+    }
+    nok $class.^lookup('foo'), 'No accessor method was generated';
+}
+
+{
+    my $class = EVAL RakuAST::Package.new:
+        scope => 'my',
+        package-declarator => 'class',
+        how => Metamodel::ClassHOW,
+        name => RakuAST::Name.from-identifier('TestClassWithAttributeAccessor'),
+        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::VarDeclaration::Simple.new(
+                    scope => 'has',
+                    name => '$.foo',
+                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+                )
+            )
+        )));
+    nok $class.DEFINITE, 'Class with attribute with accessor evluates to a type object';
+    is $class.^name, 'TestClassWithAttributeAccessor', 'Correct class name';
+    is $class.^attributes.elems, 1, 'Class has one attribute';
+    given $class.^attributes[0] {
+        is .name, '$!foo', 'Correct attribute name';
+        is-deeply .type, Int, 'Correct type constraint';
+        ok .has_accessor, 'Correctly claims to have an accessor';
+    }
+    ok $class.^lookup('foo'), 'Seems like an accessor method was generated';
+    is $class.new(foo => 42).foo, 42, 'Accessor and default constructor work fine';
 }

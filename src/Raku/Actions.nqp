@@ -701,7 +701,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method variable_declarator($/) {
         my str $scope := $*SCOPE;
         my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
-        my str $name := $<sigil> ~ $<desigilname>;
+        my str $name := $<sigil> ~ ($<twigil> || '') ~ $<desigilname>;
         my $initializer := $<initializer>
             ?? $<initializer>.ast
             !! self.r('Initializer');

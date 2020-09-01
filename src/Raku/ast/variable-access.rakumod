@@ -121,9 +121,9 @@ class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookup
 
 # A regex named capture variable (e.g. $<foo>).
 class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
-    has Str $.index;
+    has RakuAST::QuotedString $.index;
 
-    method new(Str $index) {
+    method new(RakuAST::QuotedString $index) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!index', $index);
         $obj
@@ -138,11 +138,16 @@ class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-        QAST::Op.new(
+        my $op := QAST::Op.new(
             :op('call'),
             :name(@lookups[0].resolution.lexical-name),
             @lookups[1].IMPL-TO-QAST($context),
-            QAST::WVal.new( :value($!index) )
-        )
+        );
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
+        $op
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!index);
     }
 }

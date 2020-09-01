@@ -95,7 +95,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Set up the literals builder, so we can produce and intern literal
         # values.
-        $*LITERALS := self.r('LiteralBuilder').new();
+        $*LITERALS := self.r('LiteralBuilder').new(:resolver($*R));
     }
 
     sub stash_hash($pkg) {
@@ -843,7 +843,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             make self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
         }
         else { # wants a Rat
-            nqp::die('Compilation of Rat NYI');
+            make self.r('RatLiteral').new($*LITERALS.intern-rat(
+                $<int> ?? $<int>.ast !! NQPMu,
+                ~$<frac>));
         }
     }
 

@@ -486,6 +486,7 @@ my @expected = (
   Q{&words},
   Q{&zip},
   Q{AST},
+  Q{Allomorph},
   Q{Any},
   Q{Array},
   Q{Associative},

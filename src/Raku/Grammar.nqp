@@ -1178,6 +1178,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <sigil> <twigil>? <desigilname>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
+        | <sigil> $<index>=[\d+]
         ]
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
     }

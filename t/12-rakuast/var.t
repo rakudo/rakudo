@@ -33,11 +33,19 @@ is-deeply
     my $/;
     "abc" ~~ /$<x>=(.)$<y>=(.)/;
     is-deeply
-        EVAL(RakuAST::Var::NamedCapture.new('y')).Str,
+        EVAL(RakuAST::Var::NamedCapture.new(
+            RakuAST::QuotedString.new(
+                segments => [RakuAST::StrLiteral.new('y')]
+            )
+        )).Str,
         "b",
         'Named capture variable lookup works (1)';
     is-deeply
-        EVAL(RakuAST::Var::NamedCapture.new("x")).Str,
+        EVAL(RakuAST::Var::NamedCapture.new(
+            RakuAST::QuotedString.new(
+                segments => [RakuAST::StrLiteral.new('x')]
+            )
+        )).Str,
         "a",
         'Named capture variable lookup works (2)';
 }

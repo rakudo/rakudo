@@ -687,6 +687,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%methodcall)>
     }
 
+    token postcircumfix:sym<( )> {
+        :dba('argument list')
+        '(' ~ ')' [ <.ws> <arglist> ]
+        <O(|%methodcall)>
+    }
+
     proto token dotty { <...> }
     token dotty:sym<.> {
         <sym> <dottyop>

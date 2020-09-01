@@ -4,6 +4,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                        is RakuAST::BeginTime {
     has Str $.package-declarator;
     has Mu $.how;
+    has Mu $.attribute-type;
     has RakuAST::Name $.name;
     has Str $.repr;
     has RakuAST::Block $.body;
@@ -13,12 +14,14 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     has Mu $!attached-methods;
     has Mu $!attached-attributes;
 
-    method new(Str :$package-declarator!, Mu :$how!, RakuAST::Name :$name, Str :$repr,
-               RakuAST::Block :$body, str :$scope) {
+    method new(Str :$package-declarator!, Mu :$how!, Mu :$attribute-type,
+               RakuAST::Name :$name, Str :$repr, RakuAST::Block :$body, str :$scope) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!package-declarator', $package-declarator);
         nqp::bindattr($obj, RakuAST::Package, '$!how', $how);
+        nqp::bindattr($obj, RakuAST::Package, '$!attribute-type',
+            nqp::eqaddr($attribute-type, NQPMu) ?? Attribute !! $attribute-type);
         nqp::bindattr($obj, RakuAST::Package, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Package, '$!repr', $repr // Str);
         nqp::bindattr($obj, RakuAST::Package, '$!body', $body // RakuAST::Block.new);

@@ -629,6 +629,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<index> {
             make self.r('Var', 'PositionalCapture').new($*LITERALS.intern-int(~$<index>, 10));
         }
+        elsif $<postcircumfix> {
+            make self.r('Var', 'NamedCapture').new($<postcircumfix>.ast.index);
+        }
         else {
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
             my str $name := $<sigil> ~ $twigil ~ $<desigilname>;

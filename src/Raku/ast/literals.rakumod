@@ -211,6 +211,24 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
         return $result;
     }
 
+    # Checks if this is an empty words list, as seen in a form like %h<>.
+    method is-empty-words() {
+        # Is it empty?
+        return False if nqp::elems($!segments) >= 2;
+        if nqp::elems($!segments) == 1 {
+            my $seg := $!segments[0];
+            return False unless nqp::istype($seg, RakuAST::StrLiteral) && $seg.value eq '';
+        }
+
+        # Yes, but is it quote words?
+        for $!processors {
+            if $_ eq 'words' {
+                return True;
+            }
+        }
+        False
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         # If we can constant fold it, just produce the constant.
         my $literal-value := self.literal-value;

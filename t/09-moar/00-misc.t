@@ -21,15 +21,19 @@ lives-ok { class C { }; await start { for ^10_0000 { C.^set_name('B') } } xx 4 }
     my $first  := nqp::rand_I(100,Int);
     my $second := nqp::rand_I(100,Int);
     nqp::srand(1);
-    is nqp::rand_I(100,Int), $first, 'does srand produce same rand_I values 1';
-    is nqp::rand_I(100,Int), $second, 'does srand produce same rand_I values 2';
+    is-deeply nqp::rand_I(100,Int), $first,
+      'does srand produce same rand_I values 1';
+    is-deeply nqp::rand_I(100,Int), $second,
+      'does srand produce same rand_I values 2';
 
     nqp::srand(1);
     $first  := nqp::rand_n(100e0);
     $second := nqp::rand_n(100e0);
     nqp::srand(1);
-    is nqp::rand_n(100e0), $first, 'does srand produce same rand_n values 1';
-    is nqp::rand_n(100e0), $second, 'does srand produce same rand_n values 2';
+    is-deeply nqp::rand_n(100e0), $first,
+      'does srand produce same rand_n values 1';
+    is-deeply nqp::rand_n(100e0), $second,
+      'does srand produce same rand_n values 2';
 }
 
 # vim: expandtab shiftwidth=4

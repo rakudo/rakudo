@@ -610,23 +610,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method variable($/) {
-        my str $twigil := $<twigil> ?? ~$<twigil> !! '';
-        my str $name := $<sigil> ~ $twigil ~ $<desigilname>;
-        if $twigil eq '' {
-            my $resolution := $*R.resolve-lexical($name);
-            if nqp::isconcrete($resolution) {
-                make $resolution.generate-lookup();
-            }
-            else {
-                # TODO restore good error
-                nqp::die("Undeclared variable $name");
-            }
-        }
-        elsif $twigil eq '*' {
-            make self.r('Var', 'Dynamic').new($name);
+        if $<index> {
+            make self.r('Var', 'PositionalCapture').new($*LITERALS.intern-int(~$<index>, 10));
         }
         else {
-            nqp::die("Lookup with twigil '$twigil' NYI");
+            my str $twigil := $<twigil> ?? ~$<twigil> !! '';
+            my str $name := $<sigil> ~ $twigil ~ $<desigilname>;
+            if $twigil eq '' {
+                my $resolution := $*R.resolve-lexical($name);
+                if nqp::isconcrete($resolution) {
+                    make $resolution.generate-lookup();
+                }
+                else {
+                    # TODO restore good error
+                    nqp::die("Undeclared variable $name");
+                }
+            }
+            elsif $twigil eq '*' {
+                make self.r('Var', 'Dynamic').new($name);
+            }
+            else {
+                nqp::die("Lookup with twigil '$twigil' NYI");
+            }
         }
     }
 

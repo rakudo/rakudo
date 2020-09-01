@@ -108,11 +108,13 @@ class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookup
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $index := $!index;
+        $context.ensure-sc($index);
         QAST::Op.new(
             :op('call'),
             :name(@lookups[0].resolution.lexical-name),
             @lookups[1].IMPL-TO-QAST($context),
-            QAST::WVal.new( :value($!index) )
+            QAST::WVal.new( :value($index) )
         )
     }
 }

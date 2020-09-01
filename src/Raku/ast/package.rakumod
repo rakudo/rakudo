@@ -10,9 +10,11 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     has RakuAST::Block $.body;
 
     # Methods and attributes are not directly added, but rather thorugh the
-    # RakuAST::Attaching mechanism.
+    # RakuAST::Attaching mechanism. Attribute usages are also attached for
+    # checking after compose time.
     has Mu $!attached-methods;
     has Mu $!attached-attributes;
+    has Mu $!attached-attribute-usages;
 
     method new(Str :$package-declarator!, Mu :$how!, Mu :$attribute-type,
                RakuAST::Name :$name, Str :$repr, RakuAST::Block :$body, str :$scope) {
@@ -27,6 +29,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         nqp::bindattr($obj, RakuAST::Package, '$!body', $body // RakuAST::Block.new);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-methods', []);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attributes', []);
+        nqp::bindattr($obj, RakuAST::Package, '$!attached-attribute-usages', []);
         $obj
     }
 
@@ -60,6 +63,11 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     # TODO also list-y declarations
     method ATTACH-ATTRIBUTE(RakuAST::VarDeclaration::Simple $attribute) {
         nqp::push($!attached-attributes, $attribute);
+        Nil
+    }
+
+    method ATTACH-ATTRIBUTE-USAGE(RakuAST::Var::Attribute $attribute) {
+        nqp::push($!attached-attribute-usages, $attribute);
         Nil
     }
 

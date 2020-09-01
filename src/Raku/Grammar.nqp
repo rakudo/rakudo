@@ -1270,7 +1270,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token variable_declarator {
         :my $*IN_DECL := 'variable';
         [
-        | <sigil> <desigilname>
+        | <sigil> <twigil>? <desigilname>
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         # TODO error cases for when yoiu declare something you're not allowed to
         ]

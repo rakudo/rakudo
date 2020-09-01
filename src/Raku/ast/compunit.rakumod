@@ -204,6 +204,16 @@ class RakuAST::CompUnit is RakuAST::LexicalScope is RakuAST::SinkBoundary
 
 # Builds and interns numeric and string literals.
 class RakuAST::LiteralBuilder {
+    has RakuAST::Resolver $!resolver;
+    has Mu $!cached-rat;
+    has int $!has-cached-rat;
+
+    method new(RakuAST::Resolver :$resolver!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::LiteralBuilder, '$!resolver', $resolver);
+        $obj
+    }
+
     # Build an Int constant and intern it.
     method intern-int(str $chars, int $base, Mu $error-reporter?) {
         # TODO interning
@@ -241,5 +251,47 @@ class RakuAST::LiteralBuilder {
     # Build a Str constant, but do not intern it.
     method build-str(str $chars) {
         nqp::box_s($chars, Str)
+    }
+
+    # Build a Rat constant and intern it.
+    method intern-rat($whole-part, $fractional-part) {
+        # TODO interning
+        self.build-rat($whole-part, $fractional-part)
+    }
+
+    # Build a Rat constant, but do not intern it.
+    method build-rat(Mu $whole-part, str $fractional-part) {
+        # Whole part may be provided as an Int already, or may be missing.
+        my $parti;
+        if nqp::isconcrete($whole-part) {
+            if nqp::istype($whole-part, Int) {
+                $parti := $whole-part;
+            }
+            else {
+                $parti := self.intern-int($whole-part, 10);
+            }
+        }
+        else {
+            $parti := self.intern-int('0', 10);
+        }
+
+        # Now deal with the fractional part.
+        my $partf;
+        if nqp::chars($fractional-part) {
+            $partf := nqp::radix_I(10, $fractional-part, 0, 4, Int);
+            $parti := nqp::mul_I($parti, $partf[1], Int);
+            $parti := nqp::add_I($parti, $partf[0], Int);
+            $partf := $partf[1];
+        } else {
+            $partf := self.intern-int(1, 10);
+        }
+
+        # Produce the Rat object.
+        unless $!has-cached-rat {
+            nqp::bindattr(self, RakuAST::LiteralBuilder, '$!cached-rat',
+                $!resolver.resolve-lexical-constant-in-setting('Rat').compile-time-value);
+            nqp::bindattr_i(self, RakuAST::LiteralBuilder, '$!has-cached-rat', 1);
+        }
+        $!cached-rat.new($parti, $partf)
     }
 }

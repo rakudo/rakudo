@@ -3230,7 +3230,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method parse-names(Str:D: --> Str:D) {
-        # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
+        Rakudo::Deprecations.DEPRECATED('uniparse');
         self.uniparse
     }
     method uniparse(Str:D: --> Str:D) {
@@ -3857,7 +3857,7 @@ proto sub samemark($, $, *%) {*}
 multi sub samemark($s, $pat --> Str:D) { $s.samemark($pat) }
 
 sub parse-names(Str:D \names) {
-    # XXX TODO: issue deprecation warning in 6.d; remove in 6.e
+    Rakudo::Deprecations.DEPRECATED('uniparse');
     names.uniparse
 }
 

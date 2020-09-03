@@ -3230,8 +3230,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method parse-names(Str:D: --> Str:D) {
-        Rakudo::Deprecations.DEPRECATED('uniparse');
-        self.uniparse
+        if nqp::getcomp('Raku').language_version eq '6.d' {
+            Rakudo::Deprecations.DEPRECATED('uniparse', '6.d', '6.e');
+        }
+        self.uniparse;
     }
     method uniparse(Str:D: --> Str:D) {
         my     \names := nqp::split(',', self);
@@ -3857,7 +3859,7 @@ proto sub samemark($, $, *%) {*}
 multi sub samemark($s, $pat --> Str:D) { $s.samemark($pat) }
 
 sub parse-names(Str:D \names) {
-    Rakudo::Deprecations.DEPRECATED('uniparse');
+    # Deprecated in 6.d; remove in 6.e
     names.uniparse
 }
 

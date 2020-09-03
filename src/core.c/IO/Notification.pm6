@@ -13,6 +13,15 @@ my class IO::Notification {
             "$.path: $.event";
         }
         method IO { $!path.IO }
+
+        multi method WHICH(Change:D: --> ValueObjAt:D) {
+            nqp::box_s(
+              nqp::join('|',nqp::list_s(
+                self.^name,nqp::substr($!event.Str,4),$!path
+              )),
+              ValueObjAt
+            )
+        }
     }
 
     method watch-path(Str() $path, :$scheduler = $*SCHEDULER) {

@@ -666,7 +666,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             elsif $twigil eq '?' {
                 if $name eq '$?FILE' {
                     my str $file := self.current_file();
-                    make self.r('Var', 'Compiler', 'Line').new($*LITERALS.intern-str($file));
+                    make self.r('Var', 'Compiler', 'File').new($*LITERALS.intern-str($file));
                 }
                 elsif $name eq '$?LINE' {
                     my int $line := self.current_line($/);

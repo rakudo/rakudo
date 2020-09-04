@@ -37,8 +37,16 @@ class RakuAST::Name is RakuAST::Node {
     }
 
     method canonicalize() {
-        nqp::die('canonicalize NYI for non-identifier names') unless self.is-identifier;
-        $!parts[0].name
+        my $canon-parts := nqp::list_s();
+        for $!parts {
+            if nqp::istype($_, RakuAST::Name::Part::Simple) {
+                nqp::push_s($canon-parts, $_.name);
+            }
+            else {
+                nqp::die('canonicalize NYI for non-simple name parts');
+            }
+        }
+        nqp::join('::', $canon-parts)
     }
 
     method IMPL-QAST-PACKAGE-LOOKUP(RakuAST::IMPL::QASTContext $context, Mu $start-package) {

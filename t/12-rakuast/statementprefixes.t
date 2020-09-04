@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 42;
+plan 43;
 
 is-deeply
         EVAL(RakuAST::StatementList.new(
@@ -268,3 +268,12 @@ is $!, 'another day', '$! is populated with the exception';
     todo 'fresh specials nyi';
     nok await($promise) ~~ 42, 'A start has a fresh $!';
 }
+
+is-deeply
+    EVAL(RakuAST::StatementPrefix::Phaser::Begin.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::IntLiteral.new(12)
+        )
+    )),
+    12,
+    'BEGIN phaser producing a literal expression works';

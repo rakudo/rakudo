@@ -44,3 +44,8 @@ class RakuAST::IMPL::QASTContext {
         $!post-deserialize.push($qast);
     }
 }
+
+# Rakudo-specific class used for holding state used during interpretation of
+# simple code at BEGIN time.
+class RakuAST::IMPL::InterpContext {
+}

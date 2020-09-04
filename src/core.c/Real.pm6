@@ -148,7 +148,7 @@ multi sub infix:<**>(Real \a, Real \b)  { a.Bridge ** b.Bridge }
 
 multi sub infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }
 
-multi sub infix:<==>(Real \a, Real \b)  { a.Bridge == b.Bridge }
+multi sub infix:<==>(Real:D \a, Real:D \b)  { a.Bridge == b.Bridge }
 
 multi sub infix:«<»(Real \a, Real \b)   { a.Bridge < b.Bridge }
 

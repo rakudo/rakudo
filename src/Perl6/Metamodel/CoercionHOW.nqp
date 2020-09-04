@@ -152,9 +152,6 @@ class Perl6::Metamodel::CoercionHOW
     method coerce($obj, $value) {
         self."!coerce"($!target_type, $value)
     }
-    method no-coerce($obj) {
-        say("Not coercing ", $obj.HOW.name($obj)) if nqp::getenvhash<RAKUDO_DEBUG>;
-    }
 }
 BEGIN {
     my $root := nqp::newtype(Perl6::Metamodel::CoercionHOW.new, 'Uninstantiable');

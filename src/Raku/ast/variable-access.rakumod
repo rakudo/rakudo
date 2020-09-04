@@ -122,13 +122,59 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
     }
 }
 
-# A special compiler variable lookup, such as $?PACKAGE.
-class RakuAST::Var::Compiler is RakuAST::Var is RakuAST::Lookup {
+# The base for special compiler variables ($?FOO).
+class RakuAST::Var::Compiler is RakuAST::Var {
+}
+
+# The $?FILE variable, which is created pre-resolved to a string value.
+class RakuAST::Var::Compiler::File is RakuAST::Var::Compiler {
+    has Str $.file;
+
+    method new(Str $file) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Var::Compiler::File, '$!file', $file);
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!file;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!file }
+}
+
+# The $?LINE variable, which is created pre-resolved to an integer value.
+class RakuAST::Var::Compiler::Line is RakuAST::Var::Compiler {
+    has Int $.line;
+
+    method new(Int $line) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Var::Compiler::Line, '$!line', $line);
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!line;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!line }
+}
+
+# A special compiler variable that resolves to a lookup, such as $?PACKAGE.
+class RakuAST::Var::Compiler::Lookup is RakuAST::Var::Compiler is RakuAST::Lookup {
     has str $.name;
 
     method new(str $name) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Var::Compiler, '$!name', $name);
+        nqp::bindattr_s($obj, RakuAST::Var::Compiler::Lookup, '$!name', $name);
         $obj
     }
 

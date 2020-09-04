@@ -662,10 +662,38 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             elsif $twigil eq '!' {
                 make self.r('Var', 'Attribute').new($name);
             }
+            elsif $twigil eq '?' {
+                if $name eq '$?FILE' {
+                    my str $file := self.current_file();
+                    make self.r('Var', 'Compiler', 'Line').new($*LITERALS.intern-str($file));
+                }
+                elsif $name eq '$?LINE' {
+                    my int $line := self.current_line($/);
+                    make self.r('Var', 'Compiler', 'Line').new($*LITERALS.intern-int($line, 10));
+                }
+                else {
+                    make self.r('Var', 'Compiler', 'Lookup').new($name);
+                }
+            }
             else {
                 nqp::die("Lookup with twigil '$twigil' NYI");
             }
         }
+    }
+
+    method current_file() {
+        my $file := nqp::getlexdyn('$?FILES');
+        if nqp::isnull($file) {
+            $file := '<unknown file>';
+        }
+        elsif !nqp::eqat($file,'/',0) && !nqp::eqat($file,'-',0) && !nqp::eqat($file,':',1) {
+            $file := nqp::cwd ~ '/' ~ $file;
+        }
+        $file;
+    }
+
+    method current_line($/) {
+        HLL::Compiler.lineof($/.orig,$/.from,:cache(1));
     }
 
     ##

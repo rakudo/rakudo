@@ -38,9 +38,7 @@ class RakuAST::ArgList is RakuAST::Node {
 
         # Now emit code to compile and pass each argument.
         for $!args -> $arg {
-            if nqp::istype($arg, RakuAST::ApplyPrefix) &&
-                    nqp::istype($arg.prefix, RakuAST::Prefix) &&
-                    $arg.prefix.operator eq '|' {
+            if self.IMPL-IS-FLATTENING($arg) {
                 # Flattening argument; evaluate it once and pass the array and hash
                 # flattening parts.
                 my $temp := QAST::Node.unique('flattening_');
@@ -87,6 +85,43 @@ class RakuAST::ArgList is RakuAST::Node {
                 $call.push($arg.IMPL-TO-QAST($context))
             }
         }
+    }
+
+    method IMPL-IS-FLATTENING(RakuAST::Node $arg) {
+        nqp::istype($arg, RakuAST::ApplyPrefix) &&
+            nqp::istype($arg.prefix, RakuAST::Prefix) &&
+            $arg.prefix.operator eq '|'
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        for $!args -> $arg {
+            if self.IMPL-IS-FLATTENING($arg) {
+                # Flattening args not implemented in the interpreter
+                # (possible, maybe some ordering subtleties).
+                return False;
+            }
+            elsif nqp::istype($arg, RakuAST::NamedArg) {
+                return False unless $arg.named-arg-value.IMPL-CAN-INTERPRET;
+            }
+            else {
+                return False unless $arg.IMPL-CAN-INTERPRET;
+            }
+        }
+        True
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @pos;
+        my %named;
+        for $!args -> $arg {
+            if nqp::istype($arg, RakuAST::NamedArg) {
+                %named{$arg.named-arg-name} := $arg.named-arg-value.IMPL-INTERPRET($ctx);
+            }
+            else {
+                nqp::push(@pos, $arg.IMPL-INTERPRET($ctx));
+            }
+        }
+        [@pos, %named]
     }
 }
 
@@ -201,6 +236,39 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
         }
         else {
             nqp::die('Qualified method calls NYI');
+        }
+    }
+
+    method IMPL-CAN-INTERPRET() { $!name.is-identifier && self.args.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, Mu $invocant-compiler) {
+        my $invocant := $invocant-compiler();
+        my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+        if $name eq 'WHAT' {
+            $invocant.WHAT
+        }
+        elsif $name eq 'HOW' {
+            $invocant.HOW
+        }
+        elsif $name eq 'WHO' {
+            $invocant.WHO
+        }
+        elsif $name eq 'VAR' {
+            my $var := nqp::create(Scalar);
+            nqp::bindattr_s($var, Scalar, '$!value', $invocant);
+            $var
+        }
+        elsif $name eq 'REPR' {
+            nqp::box_s(nqp::reprname($invocant), Str)
+        }
+        elsif $name eq 'DEFINITE' {
+            nqp::isconcrete($invocant) ?? True !! False
+        }
+        else {
+            my @args := self.args.IMPL-INTERPRET($ctx);
+            my @pos := @args[0];
+            my %named := @args[1];
+            $invocant."$name"(|@pos, |%named)
         }
     }
 }

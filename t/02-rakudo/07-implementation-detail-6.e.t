@@ -10,7 +10,7 @@ sub non-implementation(\base, \matcher) {
       .map( *.value.name )
 }
 
-my @UPPER = <EVAL EVALFILE HOW RUN-MAIN VAR WHAT>;
+my @UPPER = <DYNAMIC-FALLBACK EVAL EVALFILE HOW RUN-MAIN VAR WHAT>;
 
 my @lower = ("",<<
   abs acos acosec acosech acosh acotan acotanh all any append

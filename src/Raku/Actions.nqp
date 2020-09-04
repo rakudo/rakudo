@@ -266,7 +266,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method statement_control:sym<use>($/) {
-        my $ast := self.r('Statement', 'Use').new(module-name => $<module_name>.ast);
+        my $ast := $<arglist><EXPR>
+            ?? self.r('Statement', 'Use').new(
+                   module-name => $<module_name>.ast,
+                   argument => $<arglist><EXPR>.ast
+               )
+            !! self.r('Statement', 'Use').new(module-name => $<module_name>.ast);
         $ast.ensure-begin-performed($*R);
         make $ast;
     }

@@ -506,6 +506,7 @@ Need to re-check dependencies.")
         $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
           if $!RMD;
 
+        $store.store-repo-id($compiler-id, $id, :repo-id($REPO.id));
         $store.store-unit(
             $compiler-id,
             $id,
@@ -517,7 +518,6 @@ Need to re-check dependencies.")
             ),
         );
         $bc.unlink;
-        $store.store-repo-id($compiler-id, $id, :repo-id($REPO.id));
         $store.unlock;
         True
     }

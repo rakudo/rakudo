@@ -6,7 +6,7 @@ plan 17;
 sub no-args() {
     444
 }
-is-deeply
+is-deeply  # no-args()
         EVAL(RakuAST::Call::Name.new(
             name => RakuAST::Name.from-identifier('no-args')
         )),
@@ -16,7 +16,7 @@ is-deeply
 sub one-arg($x) {
     9 * $x
 }
-is-deeply
+is-deeply  # one-arg(5)
         EVAL(RakuAST::Call::Name.new(
             name => RakuAST::Name.from-identifier('one-arg'),
             args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(5))
@@ -27,7 +27,7 @@ is-deeply
 sub two-args($x, $y) {
     $x - $y
 }
-is-deeply
+is-deeply  # two-args(5, 3)
         EVAL(RakuAST::Call::Name.new(
             name => RakuAST::Name.from-identifier('two-args'),
             args => RakuAST::ArgList.new(
@@ -41,7 +41,7 @@ is-deeply
 sub two-named(:$n1, :$n2) {
     $n1 / $n2
 }
-is-deeply
+is-deeply  # two-named(n1 => 200, n2 => 4)
         EVAL(RakuAST::Call::Name.new(
             name => RakuAST::Name.from-identifier('two-named'),
             args => RakuAST::ArgList.new(
@@ -58,7 +58,7 @@ is-deeply
         50.0,
         'Can make a named call with two named arguments';
 
-is-deeply
+is-deeply  # two-named(n1 => 200, n2 => 4, n1 => 400)
         EVAL(RakuAST::Call::Name.new(
             name => RakuAST::Name.from-identifier('two-named'),
             args => RakuAST::ArgList.new(
@@ -80,7 +80,7 @@ is-deeply
         'Duplicated named arguments are correctly handled';
 
 my $target = -> $a, $b { $a - $b }
-is-deeply
+is-deeply  # $target(9, 4)
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('$target'),
             postfix => RakuAST::Call::Term.new(
@@ -97,7 +97,7 @@ class TestTarget {
     my $.route = 66;
     method subtract($x, $y) { $x - $y }
 }
-is-deeply
+is-deeply  # TestTarget.route
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('TestTarget')),
             postfix => RakuAST::Call::Method.new(
@@ -106,7 +106,7 @@ is-deeply
         )),
         66,
         'Can make a call on a method without arguments';
-is-deeply
+is-deeply  # TestTarget.subtract(14, 6)
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('TestTarget')),
             postfix => RakuAST::Call::Method.new(
@@ -120,7 +120,7 @@ is-deeply
         8,
         'Can make a call on a method with positional arguments';
 
-is-deeply
+is-deeply  # 42.WHAT
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::IntLiteral.new(42),
             postfix => RakuAST::Call::Method.new(
@@ -129,7 +129,7 @@ is-deeply
         )),
         Int,
         'Method call WHAT compiles into MOP primitive';
-is-deeply
+is-deeply  # 42.HOW
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::IntLiteral.new(42),
             postfix => RakuAST::Call::Method.new(
@@ -138,7 +138,7 @@ is-deeply
         )),
         Int.HOW,
         'Method call HOW compiles into MOP primitive';
-isa-ok
+isa-ok     # 42.WHO
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::IntLiteral.new(42),
             postfix => RakuAST::Call::Method.new(
@@ -147,7 +147,7 @@ isa-ok
         )),
         Stash,
         'Method call WHO compiles into MOP primitive';
-is-deeply
+is-deeply  # 42.DEFINITE
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::IntLiteral.new(42),
             postfix => RakuAST::Call::Method.new(
@@ -156,7 +156,7 @@ is-deeply
         )),
         True,
         'Method call DEFINITE compiles into MOP primitive';
-is-deeply
+is-deeply  # 42.REPR
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::IntLiteral.new(42),
             postfix => RakuAST::Call::Method.new(
@@ -168,7 +168,7 @@ is-deeply
 
 {
     my @args;
-    is-deeply
+    is-deeply  # no-args(|@args)
             EVAL(RakuAST::Call::Name.new(
                 name => RakuAST::Name.from-identifier('no-args'),
                 args => RakuAST::ArgList.new(
@@ -182,7 +182,7 @@ is-deeply
             'Can make a call that flattens arguments (empty flattening list)';
 
     @args = 95, 40;
-    is-deeply
+    is-deeply  # two-args(|@args)
             EVAL(RakuAST::Call::Name.new(
                 name => RakuAST::Name.from-identifier('two-args'),
                 args => RakuAST::ArgList.new(
@@ -196,7 +196,7 @@ is-deeply
             'Can make a call that flattens two positional arguments';
 
     my %args;
-    is-deeply
+    is-deeply  # no-args(|%args)
             EVAL(RakuAST::Call::Name.new(
                 name => RakuAST::Name.from-identifier('no-args'),
                 args => RakuAST::ArgList.new(
@@ -210,7 +210,7 @@ is-deeply
             'Can make a call that flattens arguments (empty flattening hash)';
 
     %args<n1 n2> = 60, 12;
-    is-deeply
+    is-deeply  # two-named(|%args)
             EVAL(RakuAST::Call::Name.new(
                 name => RakuAST::Name.from-identifier('two-named'),
                 args => RakuAST::ArgList.new(

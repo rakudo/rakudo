@@ -16,9 +16,7 @@ my class IO::Notification {
 
         multi method WHICH(Change:D: --> ValueObjAt:D) {
             nqp::box_s(
-              nqp::join('|',nqp::list_s(
-                self.^name,nqp::substr($!event.Str,4),$!path
-              )),
+              nqp::join('|',nqp::list_s(self.^name,$!event.Str,$!path)),
               ValueObjAt
             )
         }

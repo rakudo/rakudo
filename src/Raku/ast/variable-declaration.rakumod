@@ -138,7 +138,7 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         # If it's our-scoped, we need the package to bind it from.
         my str $scope := self.scope;
         if $scope eq 'our' {
-            @lookups.push(RakuAST::Var::Compiler.new('$?PACKAGE'));
+            @lookups.push(RakuAST::Var::Compiler::Lookup.new('$?PACKAGE'));
         }
         # If we have a type, we need to resolve that.
         elsif $!type {

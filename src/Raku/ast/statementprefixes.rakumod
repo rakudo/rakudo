@@ -259,6 +259,25 @@ class RakuAST::StatementPrefix::Phaser::Sinky is RakuAST::StatementPrefix::Phase
     }
 }
 
+# The BEGIN phaser.
+class RakuAST::StatementPrefix::Phaser::Begin is RakuAST::StatementPrefix::Phaser
+                                              is RakuAST::BeginTime {
+    has Mu $!produced-value;
+
+    # Perform BEGIN-time evaluation.
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
+            '$!produced-value', self.IMPL-BEGIN-TIME-EVALUATE(self.blorst, $resolver));
+        Nil
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $value := $!produced-value;
+        $context.ensure-sc($value);
+        QAST::WVal.new( :$value )
+    }
+}
+
 # The END phaser.
 class RakuAST::StatementPrefix::Phaser::End is RakuAST::StatementPrefix::Phaser::Sinky
                                             is RakuAST::StatementPrefix::Thunky

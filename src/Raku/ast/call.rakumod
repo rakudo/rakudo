@@ -177,11 +177,27 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
     }
 
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        my constant SPECIAL-OPS := nqp::hash(
+            'WHAT',     'what',
+            'HOW',      'how',
+            'WHO',      'who',
+            'VAR',      'p6var',
+            'REPR',     'p6reprname',
+            'DEFINITE', 'p6definite',
+        );
         if $!name.is-identifier {
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
-            my $call := QAST::Op.new( :op('callmethod'), :$name, $invocant-qast );
-            self.args.IMPL-ADD-QAST-ARGS($context, $call);
-            self.IMPL-APPLY-SINK($call)
+            my $op := SPECIAL-OPS{$name};
+            if $op {
+                # Not really a method call, just using that syntax.
+                QAST::Op.new( :$op, $invocant-qast )
+            }
+            else {
+                # A standard method call.
+                my $call := QAST::Op.new( :op('callmethod'), :$name, $invocant-qast );
+                self.args.IMPL-ADD-QAST-ARGS($context, $call);
+                self.IMPL-APPLY-SINK($call)
+            }
         }
         else {
             nqp::die('Qualified method calls NYI');

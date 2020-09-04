@@ -823,10 +823,13 @@ class RakuAST::Statement::Control is RakuAST::Statement::ExceptionHandler is Rak
 class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
                               is RakuAST::ImplicitLookups {
     has RakuAST::Name $.module-name;
+    has RakuAST::Expression $.argument;
 
-    method new(RakuAST::Name :$module-name!) {
+    method new(RakuAST::Name :$module-name!, RakuAST::Expression :$argument) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Use, '$!module-name', $module-name);
+        nqp::bindattr($obj, RakuAST::Statement::Use, '$!argument',
+            $argument // RakuAST::Expression);
         $obj
     }
 
@@ -837,24 +840,72 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
-        my $comp-unit := self.IMPL-LOAD-MODULE($resolver);
-        self.IMPL-IMPORT($resolver, $comp-unit.handle);
+        # Evaluate the argument to the module load, if any.
+        my $arglist := $!argument
+            ?? self.IMPL-BEGIN-TIME-EVALUATE($!argument, $resolver).List.FLATTENABLE_LIST
+            !! Nil;
+
+        # See if it's a pragma of some kind.
+        unless self.IMPL-DO-PRAGMA($resolver, $arglist) {
+            # Not a pragma; try it as a module.
+            my $comp-unit := self.IMPL-LOAD-MODULE($resolver);
+            self.IMPL-IMPORT($resolver, $comp-unit.handle);
+        }
+    }
+
+    method IMPL-DO-PRAGMA(RakuAST::Resolver $resolver, Mu $arglist) {
+        return False unless $!module-name.is-identifier;
+        my str $name := self.IMPL-UNWRAP-LIST($!module-name.parts)[0].name;
+        if $name eq 'lib' {
+            if nqp::islist($arglist) {
+                my $registry := $resolver.resolve-name-constant(
+                    RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')
+                ).compile-time-value;
+                my $io-path := $resolver.resolve-name-constant(
+                    RakuAST::Name.from-identifier-parts('IO', 'Path')
+                ).compile-time-value;
+                for $arglist -> $arg {
+                    if $arg {
+                        $registry.use-repository($registry.repository-for-spec(
+                            nqp::istype($arg, $io-path) ?? $arg.absolute !! $arg
+                        ));
+                    }
+                    else {
+                        # TODO X::LibEmpty
+                        nqp::die('todo lib empty')
+                    }
+                }
+            }
+            else {
+                # TODO X::LibNone
+                nqp::die('todo no arg lib')
+            }
+            True
+        }
+        else {
+            False
+        }
     }
 
     method IMPL-LOAD-MODULE(RakuAST::Resolver $resolver) {
-        # TODO When we can resolve multi-part names in the resolver, do it
-        # that way instead.
-        my $CompUnit := $resolver.resolve-lexical-constant('CompUnit').compile-time-value;
+        # Build dependency specification for the module.
+        my $dependency-specification := $resolver.resolve-name-constant(
+            RakuAST::Name.from-identifier-parts('CompUnit', 'DependencySpecification')
+        ).compile-time-value;
         # TODO options
         my $opts := nqp::hash();
-        my $spec := $CompUnit.WHO<DependencySpecification>.new(
+        my $spec := $dependency-specification.new(
             :short-name($!module-name.canonicalize),
             :from($opts<from> // 'Perl6'),
             :auth-matcher($opts<auth> // True),
             :api-matcher($opts<api> // True),
             :version-matcher($opts<ver> // True),
         );
-        my $registry := $CompUnit.WHO<RepositoryRegistry>;
+
+        # Load it using the registry.
+        my $registry := $resolver.resolve-name-constant(
+            RakuAST::Name.from-identifier-parts('CompUnit', 'RepositoryRegistry')
+        ).compile-time-value;
         my $comp-unit := $registry.head.need($spec);
         # TODO global merging
         $comp-unit

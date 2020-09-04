@@ -1403,11 +1403,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <integer>
         | <dec_number>
 #        | <rad_number>
-#        | <rat_number>
+        | <rat_number>
 #        | <complex_number>
         | 'Inf' >>
         | $<uinf>='∞'
-#        | <unum=:No+:Nl>
+        | <unum=:No+:Nl>
         ]
     }
 
@@ -1426,6 +1426,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <?before '_' '_'+\d> <.sorry: "Only isolated underscores are allowed inside numbers"> ]?
     }
 
+    token signed-integer { <sign> <integer> }
+
     token dec_number {
         :dba('decimal number')
         [
@@ -1438,6 +1440,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token escale { <[Ee]> <sign> <decint> }
 
     token sign { '+' | '-' | '−' | '' }
+
+    token rat_number { '<' <bare_rat_number> '>' }
+    token bare_rat_number {
+        <?before <.[-−+0..9<>:boxd]>+? '/'>
+        <nu=.signed-integer> '/' <de=integer>
+    }
 
     token version {
         <?before v\d+\w*> 'v' $<vstr>=[<vnum>+ % '.' '+'?]

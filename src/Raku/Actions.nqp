@@ -806,6 +806,23 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<dec_number> {
             make $<dec_number>.ast;
         }
+        elsif $<rat_number> {
+            make $<rat_number>.ast;
+        }
+        elsif $<unum> {
+            my $code := nqp::ord($/.Str);
+            my int $nu := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Numerator"));
+            my int $de := +nqp::getuniprop_str($code, nqp::unipropcode("Numeric_Value_Denominator"));
+            if !$de || $de == 1 {
+                make self.r('IntLiteral').new($*LITERALS.intern-int($nu, 10));
+            }
+            else {
+                make self.r('RatLiteral').new($*LITERALS.intern-rat(
+                    $*LITERALS.intern-int($nu, 10),
+                    $*LITERALS.intern-int($de, 10)
+                ));
+            }
+        }
         elsif $<uinf> {
             make self.r('NumLiteral').new($*LITERALS.intern-num('Inf'));
         }
@@ -838,6 +855,13 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method signed-integer($/) {
+        my $integer := $<integer>.ast;
+        make $<sign> eq '-' || $<sign> eq '−'
+            ?? nqp::neg_I($integer, $integer.WHAT)
+            !! $integer;
+    }
+
     method dec_number($/) {
         if $<escale> { # wants a Num
             make self.r('NumLiteral').new($*LITERALS.intern-num(~$/));
@@ -847,6 +871,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 $<int> ?? $<int>.ast !! NQPMu,
                 ~$<frac>));
         }
+    }
+
+    method rat_number($/) {
+        make $<bare_rat_number>.ast;
+    }
+
+    method bare_rat_number($/) {
+        make self.r('RatLiteral').new($*LITERALS.intern-rat($<nu>.ast, $<de>.ast));
     }
 
     method version($/) {

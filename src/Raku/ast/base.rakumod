@@ -139,6 +139,12 @@ class RakuAST::Node {
         Nil
     }
 
+    method IMPL-CAN-INTERPRET() { False }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        nqp::die('Missing IMPL-INTERPRET implementation on ' ~ self.HOW.name(self))
+    }
+
     method IMPL-WRAP-LIST(Mu $vm-array) {
         if nqp::istype($vm-array, List) {
             # It already is a list

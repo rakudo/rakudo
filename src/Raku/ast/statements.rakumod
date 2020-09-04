@@ -144,6 +144,12 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
     method visit-children(Code $visitor) {
         $visitor($!expression);
     }
+
+    method IMPL-CAN-INTERPRET() { $!expression.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        $!expression.IMPL-INTERPRET($ctx)
+    }
 }
 
 # Mark out things that immediately consume their body, rather than needing it as

@@ -3,7 +3,7 @@ use Test;
 
 plan 28;
 
-is-deeply
+is-deeply  # 44 + 22
         EVAL(RakuAST::ApplyInfix.new(
             left => RakuAST::IntLiteral.new(44),
             infix => RakuAST::Infix.new('+'),
@@ -13,7 +13,7 @@ is-deeply
         'Application of an infix operator on two literals';
 
 {
-    is-deeply
+    is-deeply  # 22 || 44
             EVAL(RakuAST::ApplyInfix.new(
                 left => RakuAST::IntLiteral.new(22),
                 infix => RakuAST::Infix.new('||'),
@@ -21,7 +21,7 @@ is-deeply
             )),
             22,
             'The special form || operator works (1)';
-    is-deeply
+    is-deeply  # 0 || 44
             EVAL(RakuAST::ApplyInfix.new(
                 left => RakuAST::IntLiteral.new(0),
                 infix => RakuAST::Infix.new('||'),
@@ -30,7 +30,7 @@ is-deeply
             44,
             'The special form || operator works (2)';
 
-    is-deeply
+    is-deeply  # 22 or 44
             EVAL(RakuAST::ApplyInfix.new(
                 left => RakuAST::IntLiteral.new(22),
                 infix => RakuAST::Infix.new('or'),
@@ -38,7 +38,7 @@ is-deeply
             )),
             22,
             'The special form or operator works (1)';
-    is-deeply
+    is-deeply  # 0 or 44
             EVAL(RakuAST::ApplyInfix.new(
                 left => RakuAST::IntLiteral.new(0),
                 infix => RakuAST::Infix.new('or'),
@@ -47,7 +47,7 @@ is-deeply
             44,
             'The special form or operator works (2)';
 
-    is-deeply
+    is-deeply  # 22 && 44
             EVAL(RakuAST::ApplyInfix.new(
                 left => RakuAST::IntLiteral.new(22),
                 infix => RakuAST::Infix.new('&&'),
@@ -55,7 +55,7 @@ is-deeply
             )),
             44,
             'The special form && operator works (1)';
-    is-deeply
+    is-deeply  # 0 && 44
             EVAL(RakuAST::ApplyInfix.new(
                 left => RakuAST::IntLiteral.new(0),
                 infix => RakuAST::Infix.new('&&'),
@@ -64,7 +64,7 @@ is-deeply
             0,
             'The special form && operator works (2)';
 
-    is-deeply
+    is-deeply  # 22 and 44
             EVAL(RakuAST::ApplyInfix.new(
                 left => RakuAST::IntLiteral.new(22),
                 infix => RakuAST::Infix.new('and'),
@@ -72,7 +72,7 @@ is-deeply
             )),
             44,
             'The special form and operator works (1)';
-    is-deeply
+    is-deeply  # 0 and 44
             EVAL(RakuAST::ApplyInfix.new(
                 left => RakuAST::IntLiteral.new(0),
                 infix => RakuAST::Infix.new('and'),
@@ -82,7 +82,7 @@ is-deeply
             'The special form and operator works (2)';
 }
 
-is-deeply
+is-deeply  # ?2
         EVAL(RakuAST::ApplyPrefix.new(
             prefix => RakuAST::Prefix.new('?'),
             operand => RakuAST::IntLiteral.new(2)
@@ -90,7 +90,7 @@ is-deeply
         True,
         'Application of a prefix operator to a literal (1)';
 
-is-deeply
+is-deeply  # ?0
         EVAL(RakuAST::ApplyPrefix.new(
             prefix => RakuAST::Prefix.new('?'),
             operand => RakuAST::IntLiteral.new(0)
@@ -102,7 +102,7 @@ is-deeply
     sub postfix:<!>($n) {
         [*] 1..$n
     }
-    is-deeply
+    is-deeply  # 4!
             EVAL(RakuAST::ApplyPostfix.new(
                 operand => RakuAST::IntLiteral.new(4),
                 postfix => RakuAST::Postfix.new('!'),
@@ -113,7 +113,7 @@ is-deeply
 
 {
     my $a = 1;
-    is-deeply
+    is-deeply  # $a = 4
         EVAL(RakuAST::ApplyInfix.new(
             left => RakuAST::Var::Lexical.new('$a'),
             infix => RakuAST::Infix.new('='),
@@ -125,7 +125,7 @@ is-deeply
 
 {
     my @a = 10..20;
-    is-deeply
+    is-deeply  # @a[5]
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('@a'),
             postfix => RakuAST::Postcircumfix::ArrayIndex.new(
@@ -139,7 +139,7 @@ is-deeply
         15,
         'Basic single-dimension array index';
 
-    is-deeply
+    is-deeply  # @a[]
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('@a'),
             postfix => RakuAST::Postcircumfix::ArrayIndex.new(
@@ -152,7 +152,7 @@ is-deeply
 
 {
     my @a[3;3] = <a b c>, <d e f>, <g h i>;
-    is-deeply
+    is-deeply  # @a[2;1]
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('@a'),
             postfix => RakuAST::Postcircumfix::ArrayIndex.new(
@@ -172,7 +172,7 @@ is-deeply
 
 {
     my %h = a => 'add', s => 'subtract';
-    is-deeply
+    is-deeply  # %h{('s',)}         XXX not sure
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('%h'),
             postfix => RakuAST::Postcircumfix::HashIndex.new(
@@ -186,7 +186,7 @@ is-deeply
         'subtract',
         'Basic single-dimension hash index';
 
-    is-deeply
+    is-deeply  # %h{}
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('%h'),
             postfix => RakuAST::Postcircumfix::HashIndex.new(
@@ -196,7 +196,7 @@ is-deeply
         %h,
         'Zen hash slice';
 
-    is-deeply
+    is-deeply  # %h<s>
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('%h'),
             postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
@@ -209,7 +209,7 @@ is-deeply
         'subtract',
         'Basic literal hash index';
 
-    is-deeply
+    is-deeply  # %h<s a>
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('%h'),
             postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
@@ -222,7 +222,7 @@ is-deeply
         ('subtract', 'add'),
         'Literal hash index with multiple keys';
 
-    is-deeply
+    is-deeply  # %h<>
         EVAL(RakuAST::ApplyPostfix.new(
             operand => RakuAST::Var::Lexical.new('%h'),
             postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
@@ -233,10 +233,10 @@ is-deeply
             )
         )),
         %h,
-        'Empty litreal hash index works as zen slice';
+        'Empty literal hash index works as zen slice';
 }
 
-{
+{  # %h{'y'}{'a'}
     my %h = x => { :1a, :2b }, y => { :3a, :4b };
     is-deeply
         EVAL(RakuAST::ApplyPostfix.new(
@@ -256,7 +256,7 @@ is-deeply
         'Multi-dimensional hash indexing';
 }
 
-is-deeply
+is-deeply  # (10, 11, 12)
         EVAL(RakuAST::ApplyListInfix.new(
             infix => RakuAST::Infix.new(','),
             operands => (
@@ -268,7 +268,7 @@ is-deeply
         (10, 11, 12),
         'Application of a list infix operator on three operands';
 
-is-deeply
+is-deeply  # ()
         EVAL(RakuAST::ApplyListInfix.new(
             infix => RakuAST::Infix.new(','),
             operands => ()
@@ -276,7 +276,7 @@ is-deeply
         (),
         'Application of a list infix operator on no operands';
 
-{
+{  # 5 > $x++ > 3
     my $x = 4;
     is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -296,7 +296,7 @@ is-deeply
     is-deeply $x, 5, 'Middle expression of chain only evaluated once';
 }
 
-{
+{  # $a ?? 22 !! 33
     my $ternary = RakuAST::Ternary.new(
         condition => RakuAST::Var::Lexical.new('$a'),
         then => RakuAST::IntLiteral.new(22),

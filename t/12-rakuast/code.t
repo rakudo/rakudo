@@ -3,7 +3,7 @@ use Test;
 
 plan 31;
 
-{
+{  # -> () { 101 };
     my $block := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::PointyBlock.new(
@@ -26,7 +26,7 @@ plan 31;
     dies-ok { $block(1) }, 'Invoking the block with an argument dies';
 }
 
-{
+{  # -> $param { $param };
     my $block := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::PointyBlock.new(
@@ -54,7 +54,7 @@ plan 31;
     dies-ok { $block() }, 'Invoking the block without an argument dies';
 }
 
-{
+{  # { $x++ };
     my $x = 99;
     my $result := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
@@ -74,7 +74,7 @@ plan 31;
     is-deeply $x, 100, 'Side-effects were performed as expected';
 }
 
-{
+{  # { $x++ };        XXX not 100% sure
     my $x = 99;
     my $result := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
@@ -104,7 +104,7 @@ plan 31;
     is-deeply $x, 100, 'Block did perform side-effects when evaluated';
 }
 
-{
+{  # { $_ };
     my $result := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Circumfix::Parentheses.new(
@@ -126,7 +126,7 @@ plan 31;
     lives-ok { $result() }, 'That $_ parameter is optional';
 }
 
-{
+{  # sub ($param) { $param };
     my $sub := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Sub.new(
@@ -153,7 +153,7 @@ plan 31;
     dies-ok { $sub() }, 'Invoking the sub without an argument dies';
 }
 
-{
+{  # sub my-sub($param) { $param }; my-sub(66)
     is-deeply
         EVAL(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -185,7 +185,7 @@ plan 31;
 }
 
 dies-ok
-    {
+    {  # anon sub my-sub() { 66 }; my-sub()
         EVAL(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::Sub.new(

@@ -260,7 +260,7 @@ class RakuAST::LiteralBuilder {
     }
 
     # Build a Rat constant, but do not intern it.
-    method build-rat(Mu $whole-part, str $fractional-part) {
+    method build-rat(Mu $whole-part, Mu $fractional-part) {
         # Whole part may be provided as an Int already, or may be missing.
         my $parti;
         if nqp::isconcrete($whole-part) {
@@ -275,9 +275,13 @@ class RakuAST::LiteralBuilder {
             $parti := self.intern-int('0', 10);
         }
 
-        # Now deal with the fractional part.
+        # Now deal with the fractional part; this may also come as an Int
+        # denominator.
         my $partf;
-        if nqp::chars($fractional-part) {
+        if nqp::istype($fractional-part, Int) {
+            $partf := $fractional-part;
+        }
+        elsif nqp::chars($fractional-part) {
             $partf := nqp::radix_I(10, $fractional-part, 0, 4, Int);
             $parti := nqp::mul_I($parti, $partf[1], Int);
             $parti := nqp::add_I($parti, $partf[0], Int);

@@ -3,7 +3,7 @@ use Test;
 
 plan 6;
 
-{
+{  # $a += 3
     my $a = 10;
     is-deeply
         EVAL(RakuAST::ApplyInfix.new(
@@ -16,7 +16,7 @@ plan 6;
     is-deeply $a, 13, 'Really did mutate the variable';
 }
 
-{
+{  # $test ||= $update++
     my $test = 10;
     my $update = 2;
 

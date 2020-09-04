@@ -486,7 +486,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <version>
             { $/.typed_panic: 'X::Language::TooLate', version => ~$<version> }
-        | <module_name=.longname>
+        | <module_name=.longname> [ <.spacey> <arglist> ]?
         ]
         <.ws>
     }

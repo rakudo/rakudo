@@ -180,7 +180,7 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
         if nqp::elems($!processors) {
             for $!processors {
                 if $_ eq 'val' {
-                    nqp::push(@needed, RakuAST::Var::Lexical.new('&val'));
+                    nqp::push(@needed, RakuAST::Var::Lexical::Setting.new('&val'));
                     last;
                 }
             }
@@ -223,6 +223,11 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
             if $_ eq 'words' {
                 return Nil unless nqp::istype($result, Str);
                 $result := $result.WORDS_AUTODEREF();
+            }
+            elsif $_ eq 'val' {
+                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+                my $val := @lookups[0].resolution.compile-time-value;
+                $result := $val($result);
             }
             else {
                 return Nil;

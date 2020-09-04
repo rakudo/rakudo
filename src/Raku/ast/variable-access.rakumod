@@ -25,6 +25,18 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
     }
 }
 
+# A lexical looked up in the setting (used for when we really want the setting
+# version of a routine).
+class RakuAST::Var::Lexical::Setting is RakuAST::Var::Lexical is RakuAST::Lookup {
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical-constant-in-setting(self.name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+}
+
 # A dynamic variable lookup (e.g. $*foo).
 class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
     has str $.name;

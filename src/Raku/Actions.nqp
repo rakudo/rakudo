@@ -383,7 +383,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             elsif $KEY eq 'LIST' {
                 my @operands;
                 for $/.list {
-                    @operands.push($_.ast);
+                    my $ast := $_.ast;
+                    @operands.push($ast) if nqp::isconcrete($ast);
                 }
                 make self.r('ApplyListInfix').new:
                     infix => $ast // self.r('Infix').new($<infix><sym>),

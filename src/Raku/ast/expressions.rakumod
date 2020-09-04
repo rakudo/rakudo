@@ -416,6 +416,12 @@ class RakuAST::ApplyPostfix is RakuAST::Expression {
         $visitor($!operand);
         $visitor($!postfix);
     }
+
+    method IMPL-CAN-INTERPRET() { $!operand.IMPL-CAN-INTERPRET && $!postfix.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        $!postfix.IMPL-INTERPRET($ctx, -> { $!operand.IMPL-INTERPRET($ctx) })
+    }
 }
 
 # The ternary conditional operator (?? !!).

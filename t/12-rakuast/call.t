@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 12;
+plan 17;
 
 sub no-args() {
     444
@@ -119,6 +119,52 @@ is-deeply
         )),
         8,
         'Can make a call on a method with positional arguments';
+
+is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::IntLiteral.new(42),
+            postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('WHAT')
+            )
+        )),
+        Int,
+        'Method call WHAT compiles into MOP primitive';
+is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::IntLiteral.new(42),
+            postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('HOW')
+            )
+        )),
+        Int.HOW,
+        'Method call HOW compiles into MOP primitive';
+isa-ok
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::IntLiteral.new(42),
+            postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('WHO')
+            )
+        )),
+        Stash,
+        'Method call WHO compiles into MOP primitive';
+is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::IntLiteral.new(42),
+            postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('DEFINITE')
+            )
+        )),
+        True,
+        'Method call DEFINITE compiles into MOP primitive';
+is-deeply
+        EVAL(RakuAST::ApplyPostfix.new(
+            operand => RakuAST::IntLiteral.new(42),
+            postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('REPR')
+            )
+        )),
+        'P6opaque',
+        'Method call REPR compiles into MOP primitive';
 
 {
     my @args;

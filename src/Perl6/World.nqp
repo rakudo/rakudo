@@ -24,13 +24,14 @@ my $SIG_ELEM_DEFAULT_FROM_OUTER  := 16384;
 my $SIG_ELEM_IS_CAPTURE          := 32768;
 my $SIG_ELEM_UNDEFINED_ONLY      := 65536;
 my $SIG_ELEM_DEFINED_ONLY        := 131072;
-my $SIG_ELEM_NOMINAL_GENERIC     := 524288;
+my $SIG_ELEM_TYPE_GENERIC        := 524288;
 my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
 my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
 my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
 my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 my $SIG_ELEM_SLURPY_ONEARG       := 16777216;
 my $SIG_ELEM_CODE_SIGIL          := 33554432;
+my int $SIG_ELEM_IS_COERCIVE     := 67108864;
 
 sub p6ize_recursive($x) {
     if nqp::islist($x) {
@@ -2251,13 +2252,19 @@ class Perl6::World is HLL::World {
         if %param_info<default_from_outer> {
             $flags := $flags + $SIG_ELEM_DEFAULT_FROM_OUTER;
         }
-        if %param_info<nominal_generic> {
-            $flags := $flags + $SIG_ELEM_NOMINAL_GENERIC;
+        if %param_info<type_generic> {
+            $flags := $flags + $SIG_ELEM_TYPE_GENERIC;
+        }
+        if %param_info<type_coercive> {
+            if nqp::getenvhash<RAKUDO_DEBUG> {
+                nqp::say("??? ... adding " ~ $SIG_ELEM_IS_COERCIVE ~ " (is coercive) flag, name: " ~ (%param_info<variable_name> // '*WTF?*'));
+            }
+            $flags := $flags + $SIG_ELEM_IS_COERCIVE;
         }
         if %param_info<default_is_literal> {
             $flags := $flags + $SIG_ELEM_DEFAULT_IS_LITERAL;
         }
-        my $primspec := nqp::objprimspec(%param_info<nominal_type>);
+        my $primspec := nqp::objprimspec(%param_info<type>);
         if $primspec == 1 {
             $flags := $flags + $SIG_ELEM_NATIVE_INT_VALUE;
         }
@@ -2272,8 +2279,11 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%param_info, 'variable_name') {
             nqp::bindattr_s($parameter, $par_type, '$!variable_name', %param_info<variable_name>);
         }
-        nqp::bindattr($parameter, $par_type, '$!nominal_type', %param_info<nominal_type>);
+        nqp::bindattr($parameter, $par_type, '$!type', %param_info<type>);
         nqp::bindattr_i($parameter, $par_type, '$!flags', $flags);
+        if nqp::getenvhash<RAKUDO_DEBUG> {
+            nqp::say("??? ... flags " ~ nqp::sprintf('%08x', [$flags // -1]));
+        }
         if %param_info<named_names> {
             nqp::bindattr($parameter, $par_type, '@!named_names', %param_info<named_names>);
         }
@@ -2295,9 +2305,6 @@ class Perl6::World is HLL::World {
         }
         if nqp::existskey(%param_info, 'sub_signature') {
             nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
-        }
-        if nqp::existskey(%param_info, 'coerce_type') {
-            $parameter.set_coercion(%param_info<coerce_type>);
         }
 
         if nqp::existskey(%param_info, 'dummy') {
@@ -2333,7 +2340,7 @@ class Perl6::World is HLL::World {
             my $package := nqp::istype($/,NQPMu) ?? $*LEAF.package !! $/;
             unless @params[0]<is_invocant> {
                 @params.unshift(hash(
-                    nominal_type => $invocant_type,
+                    type => $invocant_type,
                     is_invocant => 1,
                     is_multi_invocant => 1
                 ));
@@ -2342,7 +2349,7 @@ class Perl6::World is HLL::World {
                 unless nqp::can($package.HOW, 'hidden') && $package.HOW.hidden($package) {
                     @params.push(hash(
                         variable_name => '%_',
-                        nominal_type => self.find_single_symbol('Mu', :setting-only),
+                        type => self.find_single_symbol('Mu', :setting-only),
                         named_slurpy => 1,
                         is_multi_invocant => 1,
                         sigil => '%'
@@ -2359,9 +2366,16 @@ class Perl6::World is HLL::World {
         my @param_objs;
         my %seen_names;
         for @params {
+            if nqp::getenvhash<RAKUDO_DEBUG> {
+                nqp::say("??? Param " ~ ($_<variable_name> // '*unnamed*'));
+            }
             # Set default nominal type, if we lack one.
-            unless nqp::existskey($_, 'nominal_type') {
-                $_<nominal_type> := $default_type;
+            unless nqp::existskey($_, 'type') {
+                $_<type> := $default_type;
+            }
+
+            if nqp::getenvhash<RAKUDO_DEBUG> {
+                nqp::say("??? ... type " ~ $_<type>.HOW.name($_<type>) ~ ", coercive: " ~ ($_<type_coercive> ?? "YES" !! "NO"));
             }
 
             # Default to rw if needed.
@@ -2403,7 +2417,7 @@ class Perl6::World is HLL::World {
             if $varname && ($flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_COPY) {
                 my %sym := $lexpad.symbol($varname);
                 if +%sym && !nqp::existskey(%sym, 'descriptor') {
-                    my $type := $_<nominal_type>;
+                    my $type := $_<type>;
                     my $desc := self.create_container_descriptor($type, $varname);
                     $_<container_descriptor> := $desc;
                     nqp::bindattr($param_obj, $param_type, '$!container_descriptor', $desc);
@@ -2413,7 +2427,7 @@ class Perl6::World is HLL::World {
 
             # If it's natively typed and we got "is rw" set, need to mark the
             # container as being a lexical ref.
-            if $varname && nqp::objprimspec($_<nominal_type>) {
+            if $varname && nqp::objprimspec($_<type>) {
                 if $flags +& $SIG_ELEM_IS_RW {
                     for @($lexpad[0]) {
                         if nqp::istype($_, QAST::Var) && $_.name eq $varname {
@@ -4379,7 +4393,7 @@ class Perl6::World is HLL::World {
                     nqp::getattr($block.signature, self.find_single_symbol('Signature', :setting-only), '@!params'),
                     self.create_parameter($/, hash(
                             variable_name => '$_', is_raw => 1,
-                            nominal_type => self.find_single_symbol('Mu', :setting-only)
+                            type => self.find_single_symbol('Mu', :setting-only)
                         )));
             }
 

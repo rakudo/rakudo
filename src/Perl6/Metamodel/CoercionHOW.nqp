@@ -66,6 +66,10 @@ class Perl6::Metamodel::CoercionHOW
         $!constraint_type
     }
 
+    method nominal_target($coercion_type) {
+        $!nominal_target
+    }
+
     method nominalize($coercion_type) {
         my $target_type := $coercion_type.HOW.target_type($coercion_type);
         $target_type.HOW.archetypes.nominalizable
@@ -74,9 +78,16 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method find_method($coercion_type, $name, *%c) {
-        say('find_method(', $coercion_type.HOW.name($coercion_type), ", ", $name, ')') if nqp::getenvhash<RAKUDO_DEBUG>;
+        if nqp::getenvhash<RAKUDO_DEBUG> {
+            say("&&& find_method on ", $coercion_type.HOW.name($coercion_type), " for ", $name);
+        }
         my $target_type := $coercion_type.HOW.target_type($coercion_type);
         $target_type.HOW.find_method($target_type, $name, |%c)
+    }
+
+    method find_method_qualified($coercion_type, $qtype, $name) {
+        my $target_type := $coercion_type.HOW.target_type($coercion_type);
+        $target_type.HOW.find_method_qualified($target_type, $qtype, $name)
     }
 
     method type_check($obj, $checkee) {
@@ -140,6 +151,9 @@ class Perl6::Metamodel::CoercionHOW
 
     method coerce($obj, $value) {
         self."!coerce"($!target_type, $value)
+    }
+    method no-coerce($obj) {
+        say("Not coercing ", $obj.HOW.name($obj)) if nqp::getenvhash<RAKUDO_DEBUG>;
     }
 }
 BEGIN {

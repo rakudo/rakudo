@@ -1737,7 +1737,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     my $optional := $*IMPLICIT == 1;
                     @params.push(hash(
                         :variable_name('$_'), :$optional,
-                        :nominal_type($*W.find_single_symbol('Mu')),
+                        :type($*W.find_single_symbol('Mu')),
                         :default_from_outer($optional), :is_raw(1),
                     ));
                 }
@@ -4225,7 +4225,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         ));
         $*W.pop_lexpad();
         $install_in.push(QAST::Stmt.new($p_past));
-        my @p_params := [hash(is_capture => 1, nominal_type => $*W.find_single_symbol('Mu') )];
+        my @p_params := [hash(is_capture => 1, type => $*W.find_single_symbol('Mu') )];
         my $p_sig := $*W.create_signature(nqp::hash('parameter_objects',
             [$*W.create_parameter($/, @p_params[0])]));
         add_signature_binding_code($p_past, $p_sig, @p_params);
@@ -4265,7 +4265,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my %arg_placeholders;
         while $i < $n {
             my %info := @params[$i];
-            return 0 unless nqp::objprimspec(%info<nominal_type>); # non-native
+            return 0 unless nqp::objprimspec(%info<type>); # non-native
             return 0 if %info<optional> || %info<post_constraints> ||  %info<bind_attr> ||
                 %info<bind_accessor> || %info<named_names> || %info<type_captures>;
             my $param_obj := @p_objs[$i];
@@ -5411,8 +5411,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub check_param_default_type($/, $value) {
-        if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-            my $expected := %*PARAM_INFO<nominal_type>;
+        if nqp::existskey(%*PARAM_INFO, 'type') {
+            my $expected := %*PARAM_INFO<type>;
             if nqp::objprimspec($expected) == 0 {
                 unless nqp::istype($value, $expected) {
                     # Ensure both types are composed before complaining,
@@ -5424,7 +5424,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $<default_value>[0].typed_sorry(
                             'X::Parameter::Default::TypeCheck',
                             got => $value,
-                            expected => %*PARAM_INFO<nominal_type>);
+                            expected => %*PARAM_INFO<type>);
                     }
                 }
             }
@@ -5439,7 +5439,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             %*PARAM_INFO<sub_signature_params> := $<signature>.ast;
             if nqp::eqat(~$/, '[', 0) {
                 %*PARAM_INFO<sigil> := '@';
-                %*PARAM_INFO<nominal_type> := $*W.find_single_symbol('Positional');
+                %*PARAM_INFO<type> := $*W.find_single_symbol('Positional');
             }
         }
         else {
@@ -5466,12 +5466,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $need_role := 1;
             }
             if $need_role {
-                if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
-                    %*PARAM_INFO<nominal_type> := $*W.parameterize_type_with_args($/,
-                        $role_type, [%*PARAM_INFO<nominal_type>], nqp::hash());
+                if nqp::existskey(%*PARAM_INFO, 'type') {
+                    %*PARAM_INFO<type> := $*W.parameterize_type_with_args($/,
+                        $role_type, [%*PARAM_INFO<type>], nqp::hash());
                 }
                 else {
-                    %*PARAM_INFO<nominal_type> := $role_type;
+                    %*PARAM_INFO<type> := $role_type;
                 }
             }
 
@@ -5610,10 +5610,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $cur_pad.symbol($name) {
             $*W.throw($/, ['X', 'Redeclaration'], symbol => $name);
         }
-        if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
+        if nqp::existskey(%*PARAM_INFO, 'type') {
             $cur_pad[0].push(QAST::Var.new( :$name, :scope('lexical'),
-                :decl('var'), :returns(%*PARAM_INFO<nominal_type>) ));
-            $cur_pad.symbol(%*PARAM_INFO<variable_name>, :type(%*PARAM_INFO<nominal_type>));
+                :decl('var'), :returns(%*PARAM_INFO<type>) ));
+            $cur_pad.symbol(%*PARAM_INFO<variable_name>, :type(%*PARAM_INFO<type>));
         } else {
             $cur_pad[0].push(QAST::Var.new( :name($name), :scope('lexical'), :decl('var') ));
         }
@@ -5649,7 +5649,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $<typename>.ast);
             }
             else {
-                if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
+                if nqp::existskey(%*PARAM_INFO, 'type') {
                     $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints'],
                         parameter => (%*PARAM_INFO<variable_name> // ''),
                     );
@@ -5658,7 +5658,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         elsif $<value> {
-            if nqp::existskey(%*PARAM_INFO, 'nominal_type') {
+            if nqp::existskey(%*PARAM_INFO, 'type') {
                 $*W.throw($/, ['X', 'Parameter', 'MultipleTypeConstraints'],
                         parameter => (%*PARAM_INFO<variable_name> // ''),
                 );
@@ -5674,7 +5674,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.add_object_if_no_sc($val);
             }
 
-            %*PARAM_INFO<nominal_type> := $val.WHAT;
+            %*PARAM_INFO<type> := $val.WHAT;
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
@@ -5698,29 +5698,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Actual a value that parses type-ish.
-            %*PARAM_INFO<nominal_type> := $type.WHAT;
+            %*PARAM_INFO<type> := $type.WHAT;
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
             %*PARAM_INFO<post_constraints>.push($type);
         }
         elsif $type.HOW.archetypes.nominal {
-            %*PARAM_INFO<nominal_type> := $type;
+            %*PARAM_INFO<type> := $type;
         }
         elsif $type.HOW.archetypes.coercive {
-            %*PARAM_INFO<nominal_type> := $type.HOW.constraint_type($type);
-            %*PARAM_INFO<coerce_type>  := $type.HOW.target_type($type);
+            %*PARAM_INFO<type> := $type;
+            %*PARAM_INFO<type_coercive> := 1;
         }
         elsif $type.HOW.archetypes.definite {
             dissect_type_into_parameter($/, $type.HOW.base_type($type));
         }
         elsif $type.HOW.archetypes.generic {
-            %*PARAM_INFO<nominal_type> := $type;
-            %*PARAM_INFO<nominal_generic> := 1;
+            %*PARAM_INFO<type> := $type;
+            %*PARAM_INFO<type_generic> := 1;
         }
         elsif $type.HOW.archetypes.nominalizable {
+            # XXX The actual nominalization is likely to be done by Parameter class itself.
             my $nom := $type.HOW.nominalize($type);
-            %*PARAM_INFO<nominal_type> := $nom;
+            %*PARAM_INFO<type> := $nom;
             unless %*PARAM_INFO<post_constraints> {
                 %*PARAM_INFO<post_constraints> := [];
             }
@@ -5729,7 +5730,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $<typename>.typed_sorry('X::Parameter::BadType', :$type);
         }
-        %*PARAM_INFO<of_type> := %*PARAM_INFO<nominal_type>;
+        %*PARAM_INFO<of_type> := %*PARAM_INFO<type>;
         %*PARAM_INFO<of_type_match> := $<typename>;
         %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<D>;
         %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<U>;
@@ -8934,7 +8935,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if $only<is_capture> && !nqp::existskey($only, 'variable_name')
                                  && !nqp::existskey($only, 'sub_signature')
                                  && !nqp::existskey($only, 'post_constraints') {
-                if !nqp::istype($*W.find_single_symbol('Capture'), $only<nominal_type>) {
+                if !nqp::istype($*W.find_single_symbol('Capture'), $only<type>) {
                     $only<node>.panic("Capture parameter must have a type accepting a Capture");
                 }
                 else {
@@ -8948,7 +8949,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if nqp::elems(@params) == 1 {
             my $only := @params[0];
             if $only<is_raw> && $only<variable_name> eq '$_' &&
-                    $only<nominal_type> =:= $*W.find_single_symbol('Mu') {
+                    $only<type> =:= $*W.find_single_symbol('Mu') {
                 return $only<default_from_outer> ?? 'optional' !! 'required';
             }
         }
@@ -8989,7 +8990,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 return 0 if $saw_slurpy;
                 return 0 unless $i + 1 == $n ||
                                 $i + 2 == $n && @params[$i + 1]<named_slurpy>;
-                if !nqp::istype($*W.find_single_symbol('Capture'), %info<nominal_type>) {
+                if !nqp::istype($*W.find_single_symbol('Capture'), %info<type>) {
                     %info<node>.panic("Capture parameter must have a type accepting a Capture");
                 }
                 $var.slurpy(1);
@@ -9073,8 +9074,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Add type checks.
-            my $nomtype   := %info<nominal_type>;
-            my int $is_generic := %info<nominal_generic>;
+            my $nomtype   := %info<type>;
+            my int $is_generic := %info<type_generic>;
             my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
             my int $spec  := nqp::objprimspec($nomtype);
             my $decont_name;
@@ -9095,7 +9096,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 return $decont_name;
             }
-            if $spec && !%info<nominal_generic> {
+            if $spec && !%info<type_generic> {
                 if $is_rw {
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op(@iscont_ops[$spec]),
@@ -9180,12 +9181,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Handle coercion.
-            my $coerce_to := nqp::getattr($param_obj, $Param, '$!coerce_type');
-            my $nominal_type := nqp::getattr($param_obj, $Param, '$!nominal_type');
+            my $param_type := nqp::getattr($param_obj, $Param, '$!type');
             if nqp::getenvhash<RAKUDO_DEBUG> {
-                say("<<< Parameter ", $name, " type: ", $nominal_type.HOW.name($nominal_type), ", generic: ", $nominal_type.HOW.archetypes.generic);
+                if !$param_obj.coercive && $param_type.HOW.archetypes.coercive {
+                    nqp::say("!!! Parameter " ~ $param_obj.name ~ " doesn't have coercive flag");
+                }
             }
-            if $nominal_type.HOW.archetypes.generic {
+            if $param_type.HOW.archetypes.generic {
                 # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
                 $decont_name_invalid := 1;
                 unless $instantiated_code {
@@ -9223,7 +9225,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 QAST::SVal.new(:value('@!params'))
                             ),
                             QAST::IVal.new(:value($i)))));
-                my $nominal_type := QAST::Node.unique('__lowered_nominal_type_');
+                my $low_param_type := QAST::Node.unique('__lowered_param_type_');
                 $var.push(
                     QAST::Op.new(
                         :op('if'),
@@ -9238,45 +9240,51 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Stmts.new(
                                 QAST::Op.new(
                                     :op('bind'),
-                                    QAST::Var.new(:name($nominal_type), :scope('local'), :decl('var')),
+                                    QAST::Var.new(:name($low_param_type), :scope('local'), :decl('var')),
                                     QAST::Op.new(
                                         :op('getattr'),
                                         QAST::Var.new(:name($inst_param), :scope('local')),
                                         QAST::WVal.new(:value($Param)),
-                                        QAST::SVal.new(:value('$!nominal_type'))
+                                        QAST::SVal.new(:value('$!type'))
                                     )
                                 ),
                                 QAST::Op.new(
                                     :op('callmethod'),
-                                    :name('coerce'),
+                                    :name('!coerce'),
                                     QAST::Op.new(
                                         :op('how'),
-                                        QAST::Var.new(:name($nominal_type), :scope('local')),
+                                        QAST::Var.new(:name($low_param_type), :scope('local')),
                                     ),
-                                    QAST::Var.new(:name($nominal_type), :scope('local')),
+                                    QAST::Var.new(:name($low_param_type), :scope('local')),
                                     QAST::Var.new(:name($name), :scope('local'))
                                 )))));
             }
-            elsif !nqp::isnull($coerce_to) {
-                if $coerce_to.HOW.archetypes.generic {
-                    return 0;
-                }
+            elsif $param_obj.coercive {
+                # if $param_type.HOW.archetypes.generic {
+                #     return 0;
+                # }
+                nqp::say("Coercive param type on " ~ $param_obj.name) if nqp::getenvhash<RAKUDO_DEBUG>;
                 $decont_name_invalid := 1;
+                my $target_type := $param_type.HOW.target_type($param_type);
+                $*W.add_object_if_no_sc($param_type.HOW);
+                $*W.add_object_if_no_sc($target_type);
                 $var.push(QAST::Op.new(
                     :op('unless'),
                     QAST::Op.new(
                         :op('istype'),
                         QAST::Var.new( :name($name), :scope('local') ),
-                        QAST::WVal.new( :value($coerce_to) )
+                        QAST::WVal.new( :value($target_type) )
                     ),
                     QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :name($name), :scope('local') ),
                         QAST::Op.new(
                             :op('callmethod'),
-                            :name(nqp::getattr_s($param_obj, $Param, '$!coerce_method')),
-                            QAST::Var.new( :name($name), :scope('local') )
-                        ))));
+                            :name('coerce'),
+                            QAST::WVal.new(:value($param_type.HOW)),
+                            QAST::WVal.new(:value($param_type)),
+                            QAST::Var.new( :name($name), :scope('local') ))))
+                );
             }
 
             # If it's optional, do any default handling.
@@ -9438,13 +9446,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     # we need not wrap it in a read-only scalar.
                     my $wrap := $flags +& $SIG_ELEM_IS_COPY;
                     unless $wrap {
-                        if nqp::isnull($coerce_to) {
+                        if !$param_obj.coercive {
                             $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);
                         }
                         else {
-                            my $coerce_nom := $coerce_to.HOW.archetypes.nominalizable
-                                ?? $coerce_to.HOW.nominalize($coerce_to)
-                                !! $coerce_to;
+                            my $coerce_nom := $param_type.HOW.nominal_target($param_type);
                             $wrap := nqp::istype($coerce_nom, $Iterable) || nqp::istype($Iterable, $coerce_nom);
                         }
                     }
@@ -9546,7 +9552,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         # Some optimizations we must handle specially if no
                         # autothreading of Junctions will happen:
                         $param.annotate: 'no-autothread', 1
-                          unless nqp::istype(%info<nominal_type>,
+                          unless nqp::istype(%info<type>,
                             $*W.find_symbol: ['Any'], :setting-only);
                     }
 
@@ -9669,13 +9675,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Apply any type implied by the sigil.
         if $sigil eq '@' {
-            %param_info<nominal_type> := $*W.find_single_symbol('Positional');
+            %param_info<type> := $*W.find_single_symbol('Positional');
         }
         elsif $sigil eq '%' {
-            %param_info<nominal_type> := $*W.find_single_symbol('Associative');
+            %param_info<type> := $*W.find_single_symbol('Associative');
         }
         elsif $sigil eq '&' {
-            %param_info<nominal_type> := $*W.find_single_symbol('Callable');
+            %param_info<type> := $*W.find_single_symbol('Callable');
         }
 
         # If it's slurpy, just goes on the end.
@@ -9761,7 +9767,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             });
         }
         ($*W.cur_lexpad())[0].push($block);
-        my $param := hash( :variable_name('$_'), :nominal_type($*W.find_single_symbol('Mu')));
+        my $param := hash( :variable_name('$_'), :type($*W.find_single_symbol('Mu')));
         if $copy {
             $param<container_descriptor> := $*W.create_container_descriptor(
                 $*W.find_single_symbol('Mu'), '$_');
@@ -9800,7 +9806,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Give it a signature and create code object.
         my $param := hash(
             variable_name => '$_',
-            nominal_type => $*W.find_single_symbol('Mu'));
+            type => $*W.find_single_symbol('Mu'));
         my $sig := $*W.create_signature(nqp::hash('parameter_objects',
             [$*W.create_parameter($/, $param)]));
         add_signature_binding_code($past, $sig, [$param]);
@@ -9966,8 +9972,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Need to construct and install an initializer method
         my @params := [
-          hash( is_invocant => 1, nominal_type => $/.package),
-          hash( variable_name => '$_', nominal_type => $*W.find_single_symbol('Mu'))
+          hash( is_invocant => 1, type => $/.package),
+          hash( variable_name => '$_', type => $*W.find_single_symbol('Mu'))
         ];
         my $sig := $*W.create_signature(nqp::hash('parameter_objects', [
           $*W.create_parameter($/, @params[0]),
@@ -10201,7 +10207,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $curry[0].push: $_;
                             @params.push: hash(
                               :variable_name($_.name),
-                              :nominal_type(
+                              :type(
                                   $*W.find_symbol: ['Mu'], :setting-only),
                               :is_raw(1))
                         }
@@ -10226,7 +10232,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                   ).annotate_self: 'whatever-var', 1;
                 @params.push: hash(
                     :variable_name($param.name),
-                    :nominal_type($*W.find_symbol: ['Mu'], :setting-only),
+                    :type($*W.find_symbol: ['Mu'], :setting-only),
                     :is_raw(1));
                 $curry[0].push: $param.decl_as: <var>;
                 $qast[$i] := $param;

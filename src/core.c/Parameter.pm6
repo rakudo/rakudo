@@ -4,10 +4,7 @@ my class Parameter { # declared in BOOTSTRAP
     #     has @!named_names
     #     has @!type_captures
     #     has int $!flags
-    #     has Mu $!nominal_type
     #     has @!post_constraints
-    #     has Mu $!coerce_type
-    #     has str $!coerce_method
     #     has Signature $!sub_signature
     #     has Code $!default_value
     #     has Mu $!container_descriptor;
@@ -179,25 +176,26 @@ my class Parameter { # declared in BOOTSTRAP
                 if nqp::istype($type,Str) {
                     if $type.ends-with(Q/)/) {
                         my $start = $type.index(Q/(/);
-                        $!nominal_type :=
+                        my $target-type :=
                           str-to-type($type.substr($start + 1, *-1), my $);
-                        $!coerce_type :=
+                        my $constraint-type :=
                           str-to-type($type.substr(0, $start), $flags);
+                        $!type := Metamodel::CoercionHOW.new_type($target-type, $constraint-type);
                     }
                     else {
-                        $!nominal_type := str-to-type($type, $flags)
+                        $!type := str-to-type($type, $flags)
                     }
                 }
                 else {
-                    $!nominal_type := $type.WHAT;
+                    $!type := $type.WHAT;
                 }
             }
             else {
-                $!nominal_type := $type;
+                $!type := $type;
             }
         }
         else {
-            $!nominal_type := Any;
+            $!type := Any;
         }
 
         if %args.EXISTS-KEY('default') {
@@ -233,6 +231,7 @@ my class Parameter { # declared in BOOTSTRAP
         $flags +|= $SIG_ELEM_IS_COPY        if $is-copy;
         $flags +|= $SIG_ELEM_IS_RAW         if $is-raw;
         $flags +|= $SIG_ELEM_IS_RW          if $is-rw;
+        $flags +|= $SIG_ELEM_IS_COERCIVE    if $!type.HOW.archetypes.coercive;
 
         $!variable_name = $name if $name;
         $!flags = $flags;
@@ -321,9 +320,9 @@ my class Parameter { # declared in BOOTSTRAP
         all(nqp::isnull(@!post_constraints) ?? () !! nqp::hllize(@!post_constraints))
     }
 
-    method type(Parameter:D: --> Mu) { $!nominal_type }
+    method type(Parameter:D: --> Mu) { $!type }
 
-    method coerce_type(Parameter:D: --> Mu) { $!coerce_type }
+    method nominal_type(Parameter:D --> Mu) { $!type.HOW.archetypes.nominalizable ?? $!type.^nominalize !! $!type }
 
     method named_names(Parameter:D: --> List:D) {
         nqp::if(
@@ -377,13 +376,6 @@ my class Parameter { # declared in BOOTSTRAP
     method multi-invocant(Parameter:D: --> Bool:D) {
         nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_MULTI_INVOCANT))
     }
-    method coercive(Parameter:D: --> Bool:D) {
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            nqp::say("??? Parameter::coercive on " ~ self.name ~ " of " ~ $!nominal_type.^name);
-            nqp::say("??? " ~ $SIG_ELEM_IS_COERCIVE.fmt('%08x') ~ " +& " ~ $!flags.fmt('%08x') ~ " -> " ~ nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COERCIVE)));
-        }
-        nqp::hllbool(nqp::bitand_i($!flags,$SIG_ELEM_IS_COERCIVE))
-    }
 
     method default(Parameter:D: --> Code:_) {
         nqp::isnull($!default_value)
@@ -409,8 +401,6 @@ my class Parameter { # declared in BOOTSTRAP
         )
     }
 
-    method !flags() { $!flags }
-
     multi method ACCEPTS(Parameter:D: Parameter:D \other --> Bool:D) {
 
         # we're us
@@ -418,7 +408,7 @@ my class Parameter { # declared in BOOTSTRAP
         return True if nqp::eqaddr(self,o);
 
         # nominal type is acceptable
-        if $!nominal_type.ACCEPTS(nqp::getattr(o,Parameter,'$!nominal_type')) {
+        if $!type.ACCEPTS(nqp::getattr(o,Parameter,'$!type')) {
             my \oflags := nqp::getattr(o,Parameter,'$!flags');
 
             # flags are not same, so we need to look more in depth
@@ -551,9 +541,7 @@ my class Parameter { # declared in BOOTSTRAP
         $perl ~= "::$_ " for @.type_captures;
 
         my $modifier = $.modifier;
-        my $type     = $!nominal_type.^name;
-        $type = $!coerce_type.^name ~ "($type)"
-          unless nqp::isnull($!coerce_type);
+        my $type     = $!type.^name;
         if $!flags +& $SIG_ELEM_ARRAY_SIGIL or
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $!flags +& $SIG_ELEM_CODE_SIGIL {
@@ -561,7 +549,7 @@ my class Parameter { # declared in BOOTSTRAP
             $perl ~= $/ ~ $modifier if $/;
         }
         elsif $modifier or
-                !nqp::eqaddr($!nominal_type, nqp::decont($elide-type)) {
+                !nqp::eqaddr($!type, nqp::decont($elide-type)) {
             $perl ~= $type ~ $modifier;
         }
 
@@ -653,16 +641,10 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
     return False unless a.WHAT =:= b.WHAT;
 
     # different nominal or coerce type
-    my $acoerce := nqp::getattr(a,Parameter,'$!coerce_type');
-    my $bcoerce := nqp::getattr(b,Parameter,'$!coerce_type');
     return False
-      unless nqp::iseq_s(
-          nqp::getattr(a,Parameter,'$!nominal_type').^name,
-          nqp::getattr(b,Parameter,'$!nominal_type').^name
-        )
-      && nqp::iseq_s(
-          nqp::isnull($acoerce) ?? "" !! $acoerce.^name,
-          nqp::isnull($bcoerce) ?? "" !! $bcoerce.^name
+        unless nqp::eqaddr(
+            nqp::getattr(a,Parameter,'$!type'),
+            nqp::getattr(b,Parameter,'$!type')
         );
 
     # different flags

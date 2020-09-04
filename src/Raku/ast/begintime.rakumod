@@ -21,4 +21,16 @@ class RakuAST::BeginTime is RakuAST::Node {
         }
         Nil
     }
+
+    # Called when a BEGIN-time construct needs to evaluate code. Tries to
+    # interpret simple things to avoid the cost of compilation.
+    method IMPL-BEGIN-TIME-EVALUATE(RakuAST::Node $code, RakuAST::Resolver $resolver) {
+        $code.IMPL-CHECK($resolver, False);
+        if $code.IMPL-CAN-INTERPRET {
+            $code.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new)
+        }
+        else {
+            nqp::die('BEGIN time evaluation only supported for simple constructs so far')
+        }
+    }
 }

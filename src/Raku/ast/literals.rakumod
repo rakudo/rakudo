@@ -21,6 +21,10 @@ class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     }
 
     method compile-time-value() { $!value }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
 class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
@@ -44,6 +48,10 @@ class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     }
 
     method compile-time-value() { $!value }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
 class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
@@ -66,6 +74,10 @@ class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     }
 
     method compile-time-value() { $!value }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
 class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
@@ -88,6 +100,10 @@ class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     }
 
     method compile-time-value() { $!value }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
 # A StrLiteral is a basic string literal without any kind of interpolation
@@ -114,6 +130,10 @@ class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
     }
 
     method compile-time-value() { $!value }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) { $!value }
 }
 
 # A quoted string consists of a sequence of segments that should be evaluated
@@ -303,6 +323,14 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
         for @segments {
             $visitor($_);
         }
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        nqp::isconcrete(self.literal-value) ?? True !! False
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.literal-value
     }
 }
 

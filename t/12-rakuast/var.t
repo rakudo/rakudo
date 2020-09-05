@@ -5,13 +5,13 @@ plan 73;
 
 {
     my $x = 42;
-    is-deeply
+    is-deeply  # $x
             EVAL(RakuAST::Var::Lexical.new('$x')),
             42,
             'Lexical variable lookup ($ sigil)';
 }
 
-is-deeply
+is-deeply  # &plan
         EVAL(RakuAST::Var::Lexical.new('&plan')),
         &plan,
         'Lexical variable lookup (& sigil)';
@@ -19,11 +19,11 @@ is-deeply
 {
     my $/;
     "abc" ~~ /(.)(.)/;
-    is-deeply
+    is-deeply  # $0
         EVAL(RakuAST::Var::PositionalCapture.new(0)).Str,
         "a",
         'Positional capture variable lookup works (1)';
-    is-deeply
+    is-deeply  # $1
         EVAL(RakuAST::Var::PositionalCapture.new(1)).Str,
         "b",
         'Positional capture variable lookup works (2)';
@@ -32,7 +32,7 @@ is-deeply
 {
     my $/;
     "abc" ~~ /$<x>=(.)$<y>=(.)/;
-    is-deeply
+    is-deeply  # $<y>
         EVAL(RakuAST::Var::NamedCapture.new(
             RakuAST::QuotedString.new(
                 segments => [RakuAST::StrLiteral.new('y')]
@@ -40,7 +40,7 @@ is-deeply
         )).Str,
         "b",
         'Named capture variable lookup works (1)';
-    is-deeply
+    is-deeply  # $<x>
         EVAL(RakuAST::Var::NamedCapture.new(
             RakuAST::QuotedString.new(
                 segments => [RakuAST::StrLiteral.new('x')]
@@ -50,7 +50,7 @@ is-deeply
         'Named capture variable lookup works (2)';
 }
 
-is-deeply
+is-deeply  # my $foo = 10; $foo
     EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(name => '$foo')
@@ -69,7 +69,7 @@ is-deeply
     10,
     'Lexical variable declarations work';
 
-{
+{  # my $foo; $foo
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(name => '$foo')
@@ -82,7 +82,7 @@ is-deeply
     ok cont.VAR.of =:= Mu, 'Default constraint of untyped container is Mu';
 }
 
-is-deeply
+is-deeply  # my Int $foo; $foo = 99; $foo
     EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -105,7 +105,7 @@ is-deeply
     'Typed variable declarations work (type matches in assignment)';
 
 throws-like
-    {
+    {  # my Int $foo; $foo = 1e5; $foo
         EVAL(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::VarDeclaration::Simple.new(
@@ -130,7 +130,7 @@ throws-like
     got => 1e5,
     'Typed variable declarations work (type mismatch throws)';
 
-{
+{  # my $var = 125; $var
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -151,7 +151,7 @@ throws-like
         'Can update the container that was produced';
 }
 
-{
+{  # my @var = 22, 33; @var
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -172,7 +172,7 @@ throws-like
         'Lexical array declarations with assignment initializer works';
 }
 
-{
+{  # my $var := 225
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -192,7 +192,7 @@ throws-like
         'Cannot assign as it is not a container';
 }
 
-{
+{  # $*dyn
     sub with-dyn(&test) {
         my $*dyn = 'in';
     }
@@ -205,7 +205,7 @@ throws-like
         'Dynamic variable fallback also works';
 }
 
-{
+{  # my $*var = 360;
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -226,7 +226,7 @@ throws-like
         'Can update the container that was produced';
 }
 
-{
+{  # my @arr; @arr
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(name => '@arr')
@@ -244,7 +244,7 @@ throws-like
     ok cont[0].VAR.of =:= Mu, 'Constraint is Mu by default';
 }
 
-{
+{  # my %hash; %hash
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(name => '%hash')
@@ -262,7 +262,7 @@ throws-like
     ok cont<k>.VAR.of =:= Mu, 'Constraint is Mu by default';
 }
 
-{
+{  # my Int @arr; @arr
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -283,7 +283,7 @@ throws-like
     ok cont[0].VAR.of =:= Int, 'Constraint is Int';
 }
 
-{
+{  # my Int %hash; %hash
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -304,28 +304,28 @@ throws-like
     ok cont<k>.VAR.of =:= Int, 'Constraint is Int';
 }
 
-{
+{  # $x
     my int $x = 42;
     is-deeply EVAL(RakuAST::Var::Lexical.new('$x')),
         42,
         'Can access external native int var';
 }
 
-{
+{  # $x
     my num $x = 4e2;
     is-deeply EVAL(RakuAST::Var::Lexical.new('$x')),
         4e2,
         'Can access external native num var';
 }
 
-{
+{  # $x
     my str $x = 'answer';
     is-deeply EVAL(RakuAST::Var::Lexical.new('$x')),
         'answer',
         'Can access external native str var';
 }
 
-{
+{  # my int $native-int; $native-int
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -344,16 +344,16 @@ throws-like
     is-deeply cont, 0, 'Native int initialized to 0 by default';
 }
 
-{
+{  # my num $native-num; $native-num
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
-                name => '$num',
+                name => '$native-num',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('num'))
             ),
         ),
         RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$num')
+            RakuAST::Var::Lexical.new('$native-num')
         ),
     ));
     my $desc = 'num declaration creates a native num container';
@@ -363,16 +363,16 @@ throws-like
     is-deeply cont, 0e0, 'Native num initialized to 0e0 by default';
 }
 
-{
+{  # my str $native-str; $native-str
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
-                name => '$str',
+                name => '$native-str',
                 type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('str'))
             ),
         ),
         RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$str')
+            RakuAST::Var::Lexical.new('$native-str')
         ),
     ));
     my $desc = 'str declaration creates a native str container';
@@ -382,7 +382,7 @@ throws-like
     is-deeply cont, '', 'Native str initialized to empty string by default';
 }
 
-{
+{  # my int $native-int = 963; $native-int
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -398,7 +398,7 @@ throws-like
     is-deeply cont, 963, 'Native int assign initializer works';
 }
 
-{
+{  # my num $native-num = 96e3; $native-num
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -414,7 +414,7 @@ throws-like
     is-deeply cont, 96e3, 'Native num assign initializer works';
 }
 
-{
+{  # my str $native-str = 'nine six three'; $native-str
     my \cont = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::VarDeclaration::Simple.new(
@@ -433,7 +433,7 @@ throws-like
 {
     my module M {
         our $var = 66;
-        is-deeply
+        is-deeply  # our $var; $var
             EVAL(RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
                     RakuAST::VarDeclaration::Simple.new(
@@ -449,7 +449,7 @@ throws-like
             'our-scoped variable declaration without initializer takes current value (eval mode)';
         is-deeply $var, 66, 'Value of our-scoped package variable intact after EVAL';
 
-        is-deeply
+        is-deeply  # our $x = 42; $x
             EVAL(RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
                     RakuAST::VarDeclaration::Simple.new(
@@ -465,7 +465,7 @@ throws-like
             42,
             'our-scoped variable declaration with initializer works (eval mode)';
 
-        is-deeply
+        is-deeply  # our $y = 99; $y
             EVAL(RakuAST::CompUnit.new(
                 :!eval,
                 :comp-unit-name('TEST_1'),

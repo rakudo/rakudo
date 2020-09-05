@@ -39,7 +39,7 @@ quite a few other things to do that will be helpful. Specifically:
 
 * Fix `make test`, which is grumpy because we're adding all the new `RakuAST`
   nodes and they're visible in the setting, but it wants to test there's no
-  new symbols (which, well, there are). (Difficulty: probably easy.)
+  new symbols (which, well, there are). (done, for now at least)
 * Get the compiler ID to factor in the AST nodes, so that a re-compile with
   only AST changes will invalidate previous pre-comps, so we don't have to
   remove `lib/.precomp/` after such a build. (Difficulty: probably easy.)

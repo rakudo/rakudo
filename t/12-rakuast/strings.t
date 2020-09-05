@@ -3,24 +3,24 @@ use Test;
 
 plan 13;
 
-is-deeply
+is-deeply  # "hello"
     EVAL(RakuAST::QuotedString.new(
         :segments[RakuAST::StrLiteral.new('hello')]
     )),
     'hello',
     'One-part quoted string with literal piece comes out as the right thing';
 
-my $str = 'hello, ';
-is-deeply
+my $str = 'hello,';
+is-deeply  # "$str world"
     EVAL(RakuAST::QuotedString.new(:segments[
         RakuAST::Var::Lexical.new('$str'),
-        RakuAST::StrLiteral.new('world')
+        RakuAST::StrLiteral.new(' world')
     ])),
     'hello, world',
     'Quoted string with interpolated string variable works';
 
 my $int = 42;
-is-deeply
+is-deeply  # "$int is the answer"
     EVAL(RakuAST::QuotedString.new(:segments[
         RakuAST::Var::Lexical.new('$int'),
         RakuAST::StrLiteral.new(' is the answer')
@@ -28,14 +28,14 @@ is-deeply
     '42 is the answer',
     'Quoted string with interpolated integer variable works';
 
-is-deeply
+is-deeply  # "$int"
     EVAL(RakuAST::QuotedString.new(:segments[
         RakuAST::Var::Lexical.new('$int'),
     ])),
     '42',
     'Quoted string consisting of only interpolated integer variable gives a string';
 
-is-deeply
+is-deeply  # "The answer is $int of course"
     EVAL(RakuAST::QuotedString.new(:segments[
         RakuAST::StrLiteral.new('The answer is '),
         RakuAST::Var::Lexical.new('$int'),
@@ -45,7 +45,7 @@ is-deeply
     'Quoted string with 3 parts works';
 
 my $bv = 'interpolated';
-is-deeply
+is-deeply  # "An { $bv } block"
     EVAL(RakuAST::QuotedString.new(:segments[
         RakuAST::StrLiteral.new('An '),
         RakuAST::Block.new(
@@ -60,7 +60,7 @@ is-deeply
     'An interpolated block',
     'Quoted string involving an interpolated block';
 
-is-deeply
+is-deeply  # qqw/ foo bar 42 /
     EVAL(RakuAST::QuotedString.new(
         :segments[RakuAST::StrLiteral.new('foo bar 42')],
         :processors['words']
@@ -69,13 +69,13 @@ is-deeply
     'Using the words processor splits a single literal string into words';
 
 {
-    my $stuff = 'r ba';
-    is-deeply
+    my $stuff = 'r baz';
+    is-deeply  # qqw/ ba$stuff 66 /
         EVAL(RakuAST::QuotedString.new(
             :segments[
                 RakuAST::StrLiteral.new('ba'),
                 RakuAST::Var::Lexical.new('$stuff'),
-                RakuAST::StrLiteral.new('z 66')
+                RakuAST::StrLiteral.new(' 66')
             ],
             :processors['words']
         )),
@@ -83,7 +83,7 @@ is-deeply
         'Words processor applied to a quoted string with interpolation works';
 }
 
-is-deeply
+is-deeply  # <42>
     EVAL(RakuAST::QuotedString.new(
         :segments[RakuAST::StrLiteral.new('42')],
         :processors['val']
@@ -93,7 +93,7 @@ is-deeply
 
 {
     my $end = '6';
-    is-deeply
+    is-deeply  #           XXX  not sure how to express this
         EVAL(RakuAST::QuotedString.new(
             :segments[
                 RakuAST::StrLiteral.new('4'),
@@ -105,7 +105,7 @@ is-deeply
         'Using the val processor alone with interpolation gives expected result';
 }
 
-is-deeply
+is-deeply  # < foo bar 42 >
     EVAL(RakuAST::QuotedString.new(
         :segments[RakuAST::StrLiteral.new('foo bar 42')],
         :processors['words', 'val']
@@ -114,13 +114,13 @@ is-deeply
     'Using the words and val processor one after the other gives expected result';
 
 {
-    my $stuff = 'r ba';
-    is-deeply
+    my $stuff = 'r baz';
+    is-deeply  #           XXX  not sure how to express this
         EVAL(RakuAST::QuotedString.new(
             :segments[
                 RakuAST::StrLiteral.new('ba'),
                 RakuAST::Var::Lexical.new('$stuff'),
-                RakuAST::StrLiteral.new('z 66')
+                RakuAST::StrLiteral.new(' 66')
             ],
             :processors['words', 'val']
         )),
@@ -128,7 +128,7 @@ is-deeply
         'Words processor applied to a quoted string with interpolation works';
 }
 
-is-deeply
+is-deeply  # qx/ echo 123 /
     EVAL(RakuAST::QuotedString.new(
         :segments[RakuAST::StrLiteral.new('echo 123')],
         :processors['exec']

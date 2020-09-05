@@ -179,11 +179,18 @@ class RakuAST::Node {
         @markers.push('▪') if nqp::istype(self, RakuAST::BlockStatementSensitive) && self.is-block-statement;
         my $markers := @markers ?? ' ' ~ nqp::join('', @markers) !! '';
 
-        my $dump := "$prefix$name$markers\n";
+        my $rest := self.dump_extras($indent);
+        if nqp::chars($rest) > 0 { $rest := ' ' ~ $rest; }
+
+        my $dump := "$prefix$name$markers$rest\n";
         self.visit-children(-> $child {
             $dump := $dump ~ $child.dump($indent + 2);
         });
         $dump
+    }
+
+    method dump_extras(int $indent?) {
+        ""
     }
 
     method IMPL-SORTED-KEYS(Mu $hash) {

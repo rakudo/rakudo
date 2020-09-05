@@ -20,6 +20,10 @@ class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
             !! QAST::Want.new( $wval, 'Ii', QAST::IVal.new( :value(nqp::unbox_i($value)) ) )
     }
 
+    method dump_extras(int $indent?) {
+        nqp::isbig_I($!value) ?? "big integer" !! nqp::unbox_i($!value);
+    }
+
     method compile-time-value() { $!value }
 
     method IMPL-CAN-INTERPRET() { True }
@@ -45,6 +49,10 @@ class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new( $wval, 'Nn', QAST::NVal.new( :value(nqp::unbox_n($value)) ) )
+    }
+
+    method dump_extras(int $indent?) {
+        ~nqp::unbox_n($!value);
     }
 
     method compile-time-value() { $!value }
@@ -127,6 +135,10 @@ class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
         QAST::Want.new( $wval, 'Ss', QAST::SVal.new( :value(nqp::unbox_s($value)) ) )
+    }
+
+    method dump_extras(int $indent?) {
+        "'" ~ nqp::escape(nqp::unbox_s($!value)) ~ "'"
     }
 
     method compile-time-value() { $!value }

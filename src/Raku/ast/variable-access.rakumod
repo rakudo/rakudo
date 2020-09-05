@@ -20,6 +20,10 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
         Nil
     }
 
+    method dump_extras(int $indent?) {
+        $!name
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)
     }

@@ -79,6 +79,10 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         $op
     }
 
+    method dump_extras(int $indent?) {
+        $!operator
+    }
+
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := self.resolution.lexical-name;
         QAST::Var.new( :sopce('lexical'), :$name )

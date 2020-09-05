@@ -174,6 +174,10 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         self.IMPL-APPLY-SINK($call)
     }
+
+    method dump_extras(int $indent?) {
+        $!name.canonicalize();
+    }
 }
 
 # A call to any term (the postfix () operator).

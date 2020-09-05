@@ -3,7 +3,7 @@ use Test;
 
 plan 43;
 
-is-deeply
+is-deeply  # do 137
         EVAL(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::StatementPrefix::Do.new(
@@ -16,7 +16,7 @@ is-deeply
         137,
         'The do statement prefix works with a statement';
 
-is-deeply
+is-deeply  # do { 199 }
         EVAL(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::StatementPrefix::Do.new(
@@ -44,7 +44,7 @@ is-deeply
         "survived"
     }
 
-    is-deeply
+    is-deeply  # quietly do-warning()
             EVAL(RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
                     RakuAST::StatementPrefix::Quietly.new(
@@ -60,7 +60,7 @@ is-deeply
             'The quietly statement prefix works with a statement';
     nok $warned, 'The warning was suppressed';
 
-    is-deeply
+    is-deeply  # quietly { do-warning() }
             EVAL(RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
                     RakuAST::StatementPrefix::Quietly.new(
@@ -86,6 +86,7 @@ is-deeply
         take 111;
         take 222;
     }
+    # gather do-takes()
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::StatementPrefix::Gather.new(
@@ -110,6 +111,7 @@ is-deeply
         take 333;
         take 444;
     }
+    # gather { do-takes() }
     my \result = EVAL(RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::StatementPrefix::Gather.new(
@@ -140,7 +142,7 @@ is-deeply
 
     for <race hyper lazy eager> -> $context {
         my $c = ContextMe.new;
-        is-deeply
+        is-deeply  # race|hyper|lazy|eager $c
                 EVAL(RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
                         RakuAST::StatementPrefix::{tclc $context}.new(
@@ -157,7 +159,7 @@ is-deeply
 
     for <race hyper lazy eager> -> $context {
         my $c = ContextMe.new;
-        is-deeply
+        is-deeply  # race|hyper|lazy|eager { $c }
                 EVAL(RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
                         RakuAST::StatementPrefix::{tclc $context}.new(
@@ -175,7 +177,7 @@ is-deeply
     }
 }
 
-is-deeply
+is-deeply  # try 99
     EVAL(RakuAST::StatementPrefix::Try.new(
         RakuAST::Statement::Expression.new(
             RakuAST::IntLiteral.new(99)
@@ -185,7 +187,7 @@ is-deeply
     'try statement prefix with expression producing value results in the value';
 is-deeply $!, Nil, 'The $! variable is Nil when not exception';
 
-is-deeply
+is-deeply  # try die "hard"
     EVAL(RakuAST::StatementPrefix::Try.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Call::Name.new(
@@ -198,7 +200,7 @@ is-deeply
     'try statement prefix with throwing expression handles the exception';
 is $!, 'hard', '$! is populated with the exception';
 
-is-deeply
+is-deeply  # try { 999 }
     EVAL(RakuAST::StatementPrefix::Try.new(
         RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -210,7 +212,7 @@ is-deeply
     'try statement prefix with block producing value results in the value';
 is-deeply $!, Nil, 'The $! variable is Nil when not exception';
 
-is-deeply
+is-deeply  # try { die "another day" }
     EVAL(RakuAST::StatementPrefix::Try.new(
         RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -225,7 +227,7 @@ is-deeply
     'try statement prefix with throwing block handles the exception';
 is $!, 'another day', '$! is populated with the exception';
 
-{
+{  # start 111
     my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
         RakuAST::Statement::Expression.new(
             RakuAST::IntLiteral.new(111)
@@ -235,7 +237,7 @@ is $!, 'another day', '$! is populated with the exception';
     is-deeply await($promise), 111, 'Correct result from Promise';
 }
 
-{
+{  # start { 137 }
     my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
         RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -249,6 +251,7 @@ is $!, 'another day', '$! is populated with the exception';
 
 {
     my $/ = 42;
+    # start $/
     my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Var::Lexical.new('$/')
@@ -260,6 +263,7 @@ is $!, 'another day', '$! is populated with the exception';
 
 {
     my $! = 42;
+    # start $!
     my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Var::Lexical.new('$!')
@@ -269,7 +273,7 @@ is $!, 'another day', '$! is populated with the exception';
     nok await($promise) ~~ 42, 'A start has a fresh $!';
 }
 
-is-deeply
+is-deeply  # BEGIN 12
     EVAL(RakuAST::StatementPrefix::Phaser::Begin.new(
         RakuAST::Statement::Expression.new(
             RakuAST::IntLiteral.new(12)

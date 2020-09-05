@@ -6,7 +6,7 @@ plan 51; # Do not change this file to done-testing
 {
     my $x = 12;
     my $y = 99;
-    is-deeply
+    is-deeply  # ++$x; ++$y
             EVAL(RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
                     RakuAST::ApplyPrefix.new(
@@ -26,6 +26,7 @@ plan 51; # Do not change this file to done-testing
 {
     my ($a, $b, $c);
 
+    # if $a { 1 } elsif $b { 2 } elsif $c {3 } else { 4 }
     my $test-ast := RakuAST::Statement::If.new(
         condition => RakuAST::Var::Lexical.new('$a'),
         then => RakuAST::Block.new(body =>
@@ -76,6 +77,7 @@ plan 51; # Do not change this file to done-testing
 {
     my $a;
 
+    # if $a { 1 }
     my $test-ast := RakuAST::Statement::If.new(
         condition => RakuAST::Var::Lexical.new('$a'),
         then => RakuAST::Block.new(body =>
@@ -96,6 +98,7 @@ plan 51; # Do not change this file to done-testing
 {
     my ($a, $b, $c);
 
+    # with $a -> $x { 1 } elsif -> $x { 2 } elsif -> $x { 3 } else -> $x { 4 }
     my $test-ast := RakuAST::Statement::With.new(
         condition => RakuAST::Var::Lexical.new('$a'),
         then => RakuAST::PointyBlock.new(
@@ -174,6 +177,7 @@ plan 51; # Do not change this file to done-testing
 {
     my $a;
 
+    # with $a -> $x { 1 }
     my $test-ast := RakuAST::Statement::With.new(
         condition => RakuAST::Var::Lexical.new('$a'),
         then => RakuAST::PointyBlock.new(
@@ -198,7 +202,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply EVAL($test-ast), Empty, 'When simple with if with no else has undefined condition, evaluates to Empty';
 }
 
-{
+{  # with $a { $_ } else { $_ }
     my $ast = RakuAST::Statement::With.new(
         condition => RakuAST::Var::Lexical.new('$a'),
         then => RakuAST::Block.new(
@@ -220,7 +224,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply EVAL($ast), Int, 'with topicalizes in the else body too';
 }
 
-{
+{  # unless $x { ++$y }
     my $x = False;
     my $y = 9;
     is-deeply
@@ -239,7 +243,7 @@ plan 51; # Do not change this file to done-testing
     is $y, 10, 'Side-effect of the body was performed';
 }
 
-{
+{  # unless $x { ++$y }
     my $x = True;
     my $y = 9;
     is-deeply
@@ -258,7 +262,7 @@ plan 51; # Do not change this file to done-testing
     is $y, 9, 'Side-effect of the body was not performed';
 }
 
-{
+{  # without $x { ++$y }
     my $x = Nil;
     my $y = 9;
     is-deeply
@@ -273,11 +277,11 @@ plan 51; # Do not change this file to done-testing
                                     operand => RakuAST::Var::Lexical.new('$y'))))))
             )),
             9,
-            'An without block with an undefined object evaluates to its body';
+            'A without block with an undefined object evaluates to its body';
     is $y, 10, 'Side-effect of the body was performed';
 }
 
-{
+{  # without $x { ++$y }
     my $x = True;
     my $y = 9;
     is-deeply
@@ -296,7 +300,7 @@ plan 51; # Do not change this file to done-testing
     is $y, 9, 'Side-effect of the body was not performed';
 }
 
-{
+{  # without $x { $_ }
     my $x = Cool;
     is-deeply
             EVAL(RakuAST::Statement::Without.new(
@@ -311,7 +315,7 @@ plan 51; # Do not change this file to done-testing
             'Without block with no argument sets the topic';
 }
 
-{
+{  # while $x { --$x }
     my $x = 5;
     is-deeply
         EVAL(RakuAST::Statement::Loop::While.new(
@@ -328,7 +332,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply $x, 0, 'Loop variable was decremented to zero';
 }
 
-{
+{  # until !$x { -- $x }
     my $x = 5;
     is-deeply
         EVAL(RakuAST::Statement::Loop::Until.new(
@@ -348,7 +352,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply $x, 0, 'Loop variable was decremented to zero';
 }
 
-{
+{  # repeat until $x { --$x }
     my $x = 0;
     is-deeply
         EVAL(RakuAST::Statement::Loop::RepeatUntil.new(
@@ -365,7 +369,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply $x, -1, 'Repeat while loop ran once';
 }
 
-{
+{  # loop (my $i = 9; $i; --$i) { ++$count }
     my $count = 0;
     is-deeply
         EVAL(RakuAST::Statement::Loop.new(
@@ -392,7 +396,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply $count, 9, 'Loop with setup/increment runs as expected';
 }
 
-{
+{  # for 2 .. 7 -> $x { ++$count }
     my $count = 0;
     is-deeply
         EVAL(RakuAST::Statement::For.new(
@@ -420,7 +424,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply $count, 6, 'For loop does expected number of iterations';
 }
 
-{
+{  # for 2 .. 7 -> $x { $total = $total + $x }
     my $total = 0;
     EVAL(RakuAST::Statement::For.new(
         source => RakuAST::ApplyInfix.new(
@@ -449,7 +453,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply $total, (2..7).sum, 'For loop puts correct value into explicit iteration variable';
 }
 
-{
+{  # for 2 .. 7 { $total = $total + $_ }
     my $total = 0;
     is-deeply
         EVAL(RakuAST::Statement::For.new(
@@ -474,7 +478,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply $total, (2..7).sum, 'For loop puts correct value in imlicit topic $_';
 }
 
-{
+{  # given $a -> $x { $x }
     my $ast = RakuAST::Statement::Given.new(
         source => RakuAST::Var::Lexical.new('$a'),
         body => RakuAST::PointyBlock.new(
@@ -497,7 +501,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply EVAL($ast), Str, 'given topicalizes even an undefined source (signature)';
 }
 
-{
+{  # given $a { $_ }
     my $ast = RakuAST::Statement::Given.new(
         source => RakuAST::Var::Lexical.new('$a'),
         body => RakuAST::Block.new(
@@ -513,7 +517,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply EVAL($ast), Str, 'given topicalizes even an undefined source (implicit $_)';
 }
 
-{
+{  # given $a { when 2 { "two" } when 3 { "three" } default { "another" } }
     my $ast = RakuAST::Statement::Given.new(
         source => RakuAST::Var::Lexical.new('$a'),
         body => RakuAST::Block.new(
@@ -552,7 +556,7 @@ plan 51; # Do not change this file to done-testing
     is-deeply EVAL($ast), 'another', 'No when statement matching gives default';
 }
 
-{
+{  # { die "oops"; CATCH { $handled++ } }
     my $handled = False;
     is-deeply EVAL(RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
@@ -578,7 +582,7 @@ plan 51; # Do not change this file to done-testing
 }
 
 throws-like
-    {
+    {  # { die "gosh"; CATCH { } }
         EVAL(RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
                 RakuAST::Call::Name.new(
@@ -598,6 +602,7 @@ throws-like
 # verifies that it really works.
 {
     sub ok(|) { die "Imported ok was not used" };
+    # use Test; ok 1, "use statement works"
     EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Use.new(
             module-name => RakuAST::Name.from-identifier('Test')
@@ -607,7 +612,7 @@ throws-like
                 name => RakuAST::Name.from-identifier('ok'),
                 args => RakuAST::ArgList.new(
                     RakuAST::IntLiteral.new(1),
-                    RakuAST::StrLiteral.new('use statements work')
+                    RakuAST::StrLiteral.new('use statements works')
                 )
         ))
     );

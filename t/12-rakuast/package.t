@@ -3,19 +3,19 @@ use Test;
 
 plan 37;
 
-{
+{  # my class MyTestClass is repr<P6opaque> { }
     my $class = EVAL RakuAST::Package.new:
         scope => 'my',
         package-declarator => 'class',
         how => Metamodel::ClassHOW,
         name => RakuAST::Name.from-identifier('MyTestClass'),
         repr => 'P6opaque';
-    nok $class.DEFINITE, 'Class evluates to a type object';
+    nok $class.DEFINITE, 'Class evaluates to a type object';
     is $class.^name, 'MyTestClass', 'Correct class name';
     is $class.REPR, 'P6opaque', 'Correct representation';
 }
 
-{
+{  # my class TestClassWithMethods { method test-meth() { 456 } }
     my $class = EVAL RakuAST::Package.new:
         scope => 'my',
         package-declarator => 'class',
@@ -43,7 +43,7 @@ is-deeply EVAL(RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('Pr
     Proc::Async,
     'Can resolve a multi-part type name from the setting';
 
-{
+{  # { my class LexicalTestClass is repr<P6opaque> { }; LexicalTestClass }
     my $result := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Package.new(
@@ -62,7 +62,7 @@ is-deeply EVAL(RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('Pr
     nok GLOBAL::<LexicalTestClass>:exists, 'Was not installed globally';
 }
 
-{
+{  # { our class OurTestClass is repr<P6opaque> { }; OurTestClass }
     my $result := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Package.new(
@@ -82,7 +82,7 @@ is-deeply EVAL(RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('Pr
     ok GLOBAL::<OurTestClass> === $result, 'Correct thing installed';
 }
 
-module Enclosing {
+module Enclosing {  # our class OurEnclosedClass is repr<P6opaque> { }; OurEnclosedClass
     my $result := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Package.new(
@@ -102,7 +102,7 @@ module Enclosing {
     ok Enclosing::<OurEnclosedClass> === $result, 'Correct thing installed';
 }
 
-{
+{  # my class TestClassWithAttribute { has $!foo }
     my $class = EVAL RakuAST::Package.new:
         scope => 'my',
         package-declarator => 'class',
@@ -127,7 +127,7 @@ module Enclosing {
     nok $class.^lookup('foo'), 'No accessor method was generated';
 }
 
-{
+{  # my class TestClassWithAttributeAccessor { has Int $.foo }
     my $class = EVAL RakuAST::Package.new:
         scope => 'my',
         package-declarator => 'class',
@@ -154,7 +154,7 @@ module Enclosing {
     is $class.new(foo => 42).foo, 42, 'Accessor and default constructor work fine';
 }
 
-{
+{  # my class TestClassWithAttributeUsage { has Int $.bar; method test-meth() { $!bar } }
     my $class = EVAL RakuAST::Package.new:
         scope => 'my',
         package-declarator => 'class',

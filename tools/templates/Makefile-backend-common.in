@@ -73,10 +73,16 @@
     @insert_filelist(core_sources)@
 )@
 
-@bpv(RAKUDO_PRECOMPS)@ = \
-    @bsm(RAKUDO_ML)@ @bsm(RAKUDO_W)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_OPS)@ \
-    @bsm(RAKUDO_A)@ @bsm(RAKUDO_A_R)@ @bsm(RAKUDO_O)@ @bsm(RAKUDO_P)@ @bsm(RAKUDO_C)@ \
+@bpv(RAKUDO_PRECOMPS_P)@ = \
+    @bsm(RAKUDO_ML)@ @bsm(RAKUDO_W)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_OPS)@ \
+    @bsm(RAKUDO_A)@ @bsm(RAKUDO_O)@ @bsm(RAKUDO_P)@ @bsm(RAKUDO_C)@ \
     @bsm(RAKUDO_S)@ @bsm(RAKUDO_M)@
+
+@bpv(RAKUDO_PRECOMPS_R)@ = \
+    @bsm(RAKUDO_G_R)@ @bsm(RAKUDO_A_R)@
+
+@bpv(RAKUDO_PRECOMPS)@ = \
+	@bpm(RAKUDO_PRECOMPS_P)@ @bpm(RAKUDO_PRECOMPS_R)@
 
 @bpv(RAKUDO_BOOTSTRAP_PRECOMPS)@ =@for_specs( @bsm(RAKUDO_BOOTSTRAP_@ucspec@)@)@
 
@@ -227,6 +233,7 @@ gen/ast.nqp: @bsm(RAKU_AST_SOURCES)@ tools/build/raku-ast-compiler.nqp
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME))@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@)@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
+	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku)@
 	$(NOECHO)$(MKPATH) @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/vendor)@
 	$(NOECHO)$(MKPATH) @nfpq($(DESTDIR)$(RAKUDO_HOME)/site)@
@@ -236,7 +243,8 @@ gen/ast.nqp: @bsm(RAKU_AST_SOURCES)@ tools/build/raku-ast-compiler.nqp
 
 @backend_prefix@-install-main::@for_specs( @bsm(SETTING_@ucspec@)@)@ @bpm(RAKUDO_PRECOMPS)@ @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @@bsm(RAKUDO)@@ @@bsm(RAKUDO_DEBUG)@@ @backend_prefix@-install-pre
 	@echo(+++ Installing files)@
-	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
+	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS_P)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Perl6)@
+	$(NOECHO)$(CP)   @bpm(RAKUDO_PRECOMPS_R)@ @nfpq(@nop($(DESTDIR))@@bpm(LIBDIR)@/Raku)@
 	$(NOECHO)$(CP)   @bpm(RAKUDO_BOOTSTRAP_PRECOMPS)@ @nop($(DESTDIR))@@nfpq(@bpm(LIBDIR)@/Perl6/BOOTSTRAP)@
 	$(NOECHO)$(CP)   @for_specs(@bsm(SETTING_@ucspec@)@ )@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 	$(NOECHO)$(CP)   @bsm(RAKUDO)@ @bsm(RAKUDO_DEBUG)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@

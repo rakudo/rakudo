@@ -54,6 +54,16 @@ multi sub infix:<cmp>(int $a, int $b) {
     ORDER(nqp::cmp_i($a, $b))
 }
 
+multi sub infix:<cmp>(Code:D \a, Code:D \b) {
+     a.name cmp b.name
+}
+multi sub infix:<cmp>(Code:D \a, \b) {
+     a.name cmp b.Stringy
+}
+multi sub infix:<cmp>(\a, Code:D \b) {
+     a.Stringy cmp b.name
+}
+
 multi sub infix:«<=>»(Int:D \a, Int:D \b) {
     ORDER(nqp::cmp_I(nqp::decont(a), nqp::decont(b)))
 }

@@ -1,10 +1,17 @@
-use lib 'lib';
-BEGIN my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
-BEGIN my $id = CompUnit::PrecompilationId.new('1F3B9959EF798485A266FE735E772328311AD787');
-BEGIN my $dest = $*REPO.precomp-store.destination($compiler-id, $id); # not really used
-END { $*REPO.precomp-store.unlock }
+my constant $lib = $*TMPDIR.child("rakudo-lib" ~ (^2**128).pick.base(36));
+BEGIN {
+    $lib.child('NativeCall').mkdir;
+    $lib.child('NativeCall').child('Compiler').mkdir;
+    'lib'.IO.child('NativeCall.rakumod').copy: $lib.child('NativeCall.rakumod');
+    'lib'.IO.child('NativeCall').child('Types.rakumod').copy: $lib.child('NativeCall').child('Types.rakumod');
+    'lib'.IO.child('NativeCall').child('Compiler').child('GNU.rakumod').copy: $lib.child('NativeCall').child('Compiler').child('GNU.rakumod');
+    'lib'.IO.child('NativeCall').child('Compiler').child('MSVC.rakumod').copy: $lib.child('NativeCall').child('Compiler').child('MSVC.rakumod');
+}
+use lib $lib;
+
 use Test;
 use NativeCall; # precompile dependencies
+
 
 my $store = CompUnit::PrecompilationStore::File.new(
     :prefix($*TMPDIR.child("rakudo-precomp" ~ (^2**128).pick.base(36)))
@@ -12,6 +19,8 @@ my $store = CompUnit::PrecompilationStore::File.new(
 my $precompilation-repository = CompUnit::PrecompilationRepository::Default.new(:$store);
 my @checksums;
 my @units;
+my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
+my constant $id = CompUnit::PrecompilationId.new-without-check('6B7A1AECF02807F30DDAD99C02C34440CA036AF6');
 for ^2 -> $run {
     $precompilation-repository.precompile(
         'lib/NativeCall.rakumod'.IO,

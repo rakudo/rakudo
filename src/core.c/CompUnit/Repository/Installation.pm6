@@ -305,10 +305,11 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 ) for @provides-keys;
 
                 my %done;
+                my @promises;
                 for @provides-keys -> $key {
                     my $id := %provides{$key}.values.head<file>;
                     if %done{$id} {
-                        note "(Already did $id)" if $verbose;
+                        note "(Already doing $id)" if $verbose;
                         next;
                     }
 
@@ -316,16 +317,24 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     my $source-file := $repo-prefix
                       ?? $repo-prefix ~ $source.relative($.prefix)
                       !! $source;
-                    note("Precompiling $id ($key)") if $verbose;
 
-                    $precomp.precompile(
-                      $source,
-                      CompUnit::PrecompilationId.new-without-check($id),
-                      :source-name("$source-file ($key)"),
-                    );
+                    @promises.push: start {
+                        note("$*THREAD.id(): Precompiling $id ($key)")
+                          if $verbose;
+                        $precomp.precompile(
+                          $source,
+                          CompUnit::PrecompilationId.new-without-check($id),
+                          :source-name("$source-file ($key)"),
+                        );
+                        note "$*THREAD.id(): done $key" if $verbose;
+                    }
 
                     %done{$id} := 1;
                 }
+
+                note("Awaiting precompilation") if $verbose;
+                await @promises;
+                note("Done awaiting") if $verbose;
 
                 PROCESS::<$REPO> := $head;
             }

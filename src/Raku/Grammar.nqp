@@ -1162,6 +1162,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token term:sym<dotty> { <dotty> }
 
+    token term:sym<capture> {
+        '\\'
+        [
+        | '(' <args=.semiarglist> ')'
+        | <?before '$' | '@' | '%' | '&'> <.typed_worry('X::Worry::P5::Reference')> <args=.termish>
+        | <?before \d> <.typed_worry('X::Worry::P5::BackReference')> <args=.termish>
+        | <?before \S> <args=.termish>
+        | {} <.panic: "You can't backslash that">
+        ]
+    }
+
     token colonpair {
         :my $*key;
 

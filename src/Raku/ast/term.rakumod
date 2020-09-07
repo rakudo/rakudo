@@ -23,6 +23,10 @@ class RakuAST::Term::Name is RakuAST::Term is RakuAST::Lookup {
         # TODO indirects, trailing ::, etc.
         self.resolution.IMPL-LOOKUP-QAST($context)
     }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+    }
 }
 
 # The self term for getting the current invocant
@@ -63,6 +67,10 @@ class RakuAST::Term::TopicCall is RakuAST::Term is RakuAST::ImplicitLookups {
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
         $!call.IMPL-POSTFIX-QAST($context, $topic.resolution.IMPL-LOOKUP-QAST($context))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!call);
     }
 }
 
@@ -166,5 +174,35 @@ class RakuAST::Term::HyperWhatever is RakuAST::Term is RakuAST::Attaching {
         my $whatever := $!enclosing-comp-unit.singleton-hyper-whatever();
         $context.ensure-sc($whatever);
         QAST::WVal.new( :value($whatever) )
+    }
+}
+
+# A capture term (`\$foo`, `\($foo, :bar)`).
+class RakuAST::Term::Capture is RakuAST::Term {
+    has RakuAST::CaptureSource $.source;
+
+    method new(RakuAST::CaptureSource $source) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Term::Capture, '$!source', $source);
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $op := QAST::Op.new(
+            :op('callmethod'),
+            :name('from-args'),
+            QAST::WVal.new( :value(Capture) ),
+        );
+        if nqp::istype($!source, RakuAST::ArgList) {
+            $!source.IMPL-ADD-QAST-ARGS($context, $op);
+        }
+        else {
+            $op.push($!source.IMPL-TO-QAST($context));
+        }
+        $op
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!source);
     }
 }

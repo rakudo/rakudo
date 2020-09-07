@@ -1,9 +1,17 @@
+# Marker for anything that can be used as the source for a capture.
+class RakuAST::CaptureSource is RakuAST::Node {
+}
+
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression is RakuAST::Node {
 }
 
+# Everything that is termish (a term with prefixes or postfixes applied).
+class RakuAST::Termish is RakuAST::Expression is RakuAST::CaptureSource {
+}
+
 # Everything that is a kind of term does RakuAST::Term.
-class RakuAST::Term is RakuAST::Expression {
+class RakuAST::Term is RakuAST::Termish {
 }
 
 # Marker for all kinds of infixish operators.
@@ -318,7 +326,7 @@ class RakuAST::Prefix is RakuAST::Prefixish is RakuAST::Lookup {
 }
 
 # Application of a prefix operator.
-class RakuAST::ApplyPrefix is RakuAST::Expression {
+class RakuAST::ApplyPrefix is RakuAST::Termish {
     has RakuAST::Prefixish $.prefix;
     has RakuAST::Expression $.operand;
 
@@ -469,7 +477,7 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
 }
 
 # Application of an postfix operator.
-class RakuAST::ApplyPostfix is RakuAST::Expression {
+class RakuAST::ApplyPostfix is RakuAST::Termish {
     has RakuAST::Postfixish $.postfix;
     has RakuAST::Expression $.operand;
 

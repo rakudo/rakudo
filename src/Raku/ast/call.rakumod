@@ -1,5 +1,5 @@
 # An argument list.
-class RakuAST::ArgList is RakuAST::Node {
+class RakuAST::ArgList is RakuAST::CaptureSource {
     has List $!args;
 
     method new(*@args) {

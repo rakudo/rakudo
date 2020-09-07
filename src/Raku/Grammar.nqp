@@ -796,6 +796,27 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
     token prefix:sym<⚛>   { <sym>  <O(|%symbolic_unary)> }
 
+    token infix:sym<.>    { <sym> <ws>
+        <!{ $*IN_REDUCE }>
+        [<!alpha>
+            {
+                my $pre := nqp::substr(self.orig, self.from - 1, 1);
+                $<ws> ne ''
+                ?? $¢.obs('. to concatenate strings', '~')
+                !! $pre ~~ /^\s$/
+                    ?? $¢.malformed('postfix call (only basic method calls that exclusively use a dot can be detached)')
+                    !! $¢.malformed('postfix call')
+            }
+        ]?
+        <O(|%dottyinfix)>
+    }
+
+    token infix:sym<.=> { <sym> <O(|%dottyinfix)> }
+
+    token dottyopish {
+        <term=.dottyop>
+    }
+
     token infix:sym<*>    { <sym>  <O(|%multiplicative)> }
     token infix:sym<×>    { <sym>  <O(|%multiplicative)> }
     token infix:sym</>    { <sym>  <O(|%multiplicative)> }
@@ -836,20 +857,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token infix:sym<xx>    { <sym> >> <O(|%replication_xx)> }
 
     token infix:sym<~>    { <sym>  <O(|%concatenation)> }
-    token infix:sym<.>    { <sym> <ws>
-        <!{ $*IN_REDUCE }>
-        [<!alpha>
-            {
-                my $pre := nqp::substr(self.orig, self.from - 1, 1);
-                $<ws> ne ''
-                ?? $¢.obs('. to concatenate strings', '~')
-                !! $pre ~~ /^\s$/
-                    ?? $¢.malformed('postfix call (only basic method calls that exclusively use a dot can be detached)')
-                    !! $¢.malformed('postfix call')
-            }
-        ]?
-        <O(|%dottyinfix)>
-    }
     token infix:sym<∘>   { <sym>  <O(|%concatenation)> }
     token infix:sym<o>   { <sym>  <O(|%concatenation)> }
 

@@ -367,6 +367,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         then => $/[1].ast,
                         else => $/[2].ast;
                 }
+                elsif $ast && nqp::istype($ast, self.r('DottyInfixish')) {
+                    make self.r('ApplyDottyInfix').new:
+                        infix => $ast,
+                        left => $/[0].ast,
+                        right => $/[1].ast;
+                }
                 else {
                     unless $ast {
                         my $type := $<OPER><O>.made<assoc> eq 'chain'
@@ -496,6 +502,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method circumfix:sym<{ }>($/) {
         # TODO hash replacement based upon content
         make $<pblock>.ast;
+    }
+
+    method infix:sym<.>($/) {
+        make self.r('DottyInfix', 'Call').new;
+    }
+
+    method infix:sym<.=>($/) {
+        make self.r('DottyInfix', 'CallAssign').new;
     }
 
     ##

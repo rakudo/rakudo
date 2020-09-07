@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 9;
+plan 11;
 
 {  # my class TestClass { method meth-a() { 99 }; method meth-b() { self.meth-a } }
     my $class = EVAL RakuAST::Package.new:
@@ -87,3 +87,19 @@ isa-ok EVAL(RakuAST::Term::Whatever.new),
 isa-ok EVAL(RakuAST::Term::HyperWhatever.new),
     HyperWhatever,
     'HyperWhatever term works';
+
+{
+    my $var = 4;
+    is-deeply # \$var
+        EVAL(RakuAST::Term::Capture.new(RakuAST::Var::Lexical.new('$var'))),
+        \(4),
+        'Capture term can be constructed with a term and produces expected capture';
+}
+
+is-deeply # \(6, :x)
+    EVAL(RakuAST::Term::Capture.new(RakuAST::ArgList.new(
+        RakuAST::IntLiteral.new(6),
+        RakuAST::ColonPair::True.new(key => 'x')
+    ))),
+    \(6, :x),
+    'Capture term can be constructed with an arg list and produces expected capture';

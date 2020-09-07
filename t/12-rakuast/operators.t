@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 28;
+plan 31;
 
 is-deeply  # 44 + 22
         EVAL(RakuAST::ApplyInfix.new(
@@ -307,4 +307,30 @@ is-deeply  # ()
     is EVAL($ternary), 22, 'Correct outcome of ternary operator with true condition';
     $a = 0;
     is EVAL($ternary), 33, 'Correct outcome of ternary operator with false condition';
+}
+
+is-deeply  # "foo" . uc
+        EVAL(RakuAST::ApplyDottyInfix.new(
+            left => RakuAST::StrLiteral.new('foo'),
+            infix => RakuAST::DottyInfix::Call.new(),
+            right => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('uc')
+            )
+        )),
+        'FOO',
+        'Application of dotty infix `.`';
+
+{
+    my $var = 'foo';
+    is-deeply  # $var .= tc
+            EVAL(RakuAST::ApplyDottyInfix.new(
+                left => RakuAST::Var::Lexical.new('$var'),
+                infix => RakuAST::DottyInfix::CallAssign.new(),
+                right => RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier('tc')
+                )
+            )),
+            'Foo',
+            'Application of dotty infix `.=` evaluates to expected value';
+    is-deeply $var, 'Foo', 'The assignment to the variable happened correctly also';
 }

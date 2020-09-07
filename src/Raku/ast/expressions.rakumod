@@ -167,7 +167,8 @@ class RakuAST::ApplyInfix is RakuAST::Expression {
     has RakuAST::Expression $.left;
     has RakuAST::Expression $.right;
 
-    method new(:$infix!, :$left!, :$right!) {
+    method new(RakuAST::Infixish :$infix!, RakuAST::Expression :$left!,
+            RakuAST::Expression :$right!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ApplyInfix, '$!infix', $infix);
         nqp::bindattr($obj, RakuAST::ApplyInfix, '$!left', $left);
@@ -214,6 +215,77 @@ class RakuAST::ApplyListInfix is RakuAST::Expression {
         for self.IMPL-UNWRAP-LIST($!operands) {
             $visitor($_);
         }
+    }
+}
+
+# The base of all dotty infixes (`$foo .bar` or `$foo .= bar()`).
+class RakuAST::DottyInfixish is RakuAST::Node {
+    method new() { nqp::create(self) }
+}
+
+# The `.` dotty infix.
+class RakuAST::DottyInfix::Call is RakuAST::DottyInfixish {
+    method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
+            RakuAST::Postfixish $rhs-ast) {
+        $rhs-ast.IMPL-POSTFIX-QAST($context, $lhs-qast)
+    }
+}
+
+# The `.=` dotty infix.
+class RakuAST::DottyInfix::CallAssign is RakuAST::DottyInfixish {
+    method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
+            RakuAST::Postfixish $rhs-ast) {
+        # Store the target in a temporary, so we only evaluate it once.
+        my $temp := QAST::Node.unique('meta_assign');
+        my $bind-lhs := QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :decl('var'), :scope('local'), :name($temp) ),
+            $lhs-qast
+        );
+
+        # Emit the assignment.
+        # TODO case analyze these
+        QAST::Stmt.new(
+            $bind-lhs,
+            QAST::Op.new(
+                :op('assign'),
+                QAST::Var.new( :scope('local'), :name($temp) ),
+                $rhs-ast.IMPL-POSTFIX-QAST(
+                    $context,
+                    QAST::Var.new( :scope('local'), :name($temp) ),
+                )
+            )
+        )
+    }
+}
+
+# Application of an dotty infix operator. These are infixes that actually
+# parse a postfix operation on their right hand side, and thus won't fit in
+# the standard infix model.
+class RakuAST::ApplyDottyInfix is RakuAST::Expression {
+    has RakuAST::DottyInfixish $.infix;
+    has RakuAST::Expression $.left;
+    has RakuAST::Postfixish $.right;
+
+    method new(RakuAST::DottyInfixish :$infix!, RakuAST::Expression :$left!,
+            RakuAST::Postfixish :$right!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!infix', $infix);
+        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!left', $left);
+        nqp::bindattr($obj, RakuAST::ApplyInfix, '$!right', $right);
+        $obj
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!infix.IMPL-DOTTY-INFIX-QAST: $context,
+            $!left.IMPL-TO-QAST($context),
+            $!right
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!left);
+        $visitor($!infix);
+        $visitor($!right);
     }
 }
 

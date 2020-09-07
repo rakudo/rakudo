@@ -608,6 +608,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make self.r('Term', 'TopicCall').new($<dotty>.ast);
     }
 
+    method term:sym<capture>($/) {
+        make self.r('Term', 'Capture').new($<args>.ast);
+    }
+
     method colonpair($/) {
         my $key-str := $*key;
         if $key-str {

@@ -440,12 +440,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make self.r('Call', 'Term').new(args => $<arglist>.ast);
     }
 
-    method circumfix:sym<ang>($/) { make $<nibble>.ast; }
-
-    method circumfix:sym«<< >>»($/) { make $<nibble>.ast; }
-
-    method circumfix:sym<« »>($/) { make $<nibble>.ast; }
-
     method dotty:sym<.>($/) {
         make $<dottyop>.ast;
     }
@@ -500,9 +494,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method circumfix:sym<{ }>($/) {
-        # TODO hash replacement based upon content
-        make $<pblock>.ast;
+        make $<pblock>.ast.block-or-hash;
     }
+
+    method circumfix:sym<ang>($/) { make $<nibble>.ast; }
+
+    method circumfix:sym«<< >>»($/) { make $<nibble>.ast; }
+
+    method circumfix:sym<« »>($/) { make $<nibble>.ast; }
 
     method infix:sym<.>($/) {
         make self.r('DottyInfix', 'Call').new;

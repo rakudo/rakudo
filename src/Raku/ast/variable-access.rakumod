@@ -1,5 +1,6 @@
 # Marker for different variable-like things.
 class RakuAST::Var is RakuAST::Term {
+    method sigil() { '' }
 }
 
 # A typical lexical variable lookup (e.g. $foo).
@@ -11,6 +12,8 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
         nqp::bindattr_s($obj, RakuAST::Var::Lexical, '$!name', $name);
         $obj
     }
+
+    method sigil() { nqp::substr($!name, 0, 1) }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical($!name);
@@ -46,6 +49,8 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
         nqp::bindattr_s($obj, RakuAST::Var::Dynamic, '$!name', $name);
         $obj
     }
+
+    method sigil() { nqp::substr($!name, 0, 1) }
 
     method needs-resolution() { False }
 
@@ -89,6 +94,8 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
         nqp::bindattr_s($obj, RakuAST::Var::Attribute, '$!name', $name);
         $obj
     }
+
+    method sigil() { nqp::substr($!name, 0, 1) }
 
     method attach(RakuAST::Resolver $resolver) {
         my $package := $resolver.find-attach-target('package');
@@ -136,6 +143,8 @@ class RakuAST::Var::Compiler::File is RakuAST::Var::Compiler {
         $obj
     }
 
+    method sigil() { '$' }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!file;
         $context.ensure-sc($value);
@@ -157,6 +166,8 @@ class RakuAST::Var::Compiler::Line is RakuAST::Var::Compiler {
         $obj
     }
 
+    method sigil() { '$' }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!line;
         $context.ensure-sc($value);
@@ -177,6 +188,8 @@ class RakuAST::Var::Compiler::Lookup is RakuAST::Var::Compiler is RakuAST::Looku
         nqp::bindattr_s($obj, RakuAST::Var::Compiler::Lookup, '$!name', $name);
         $obj
     }
+
+    method sigil() { nqp::substr($!name, 0, 1) }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical($!name);

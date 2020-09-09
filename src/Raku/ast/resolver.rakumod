@@ -162,11 +162,23 @@ class RakuAST::Resolver {
     method resolve-lexical-in-outer(Str $name, Bool :$current-scope-only) {
         # Look through the contexts for the name.
         my $ctx := $!outer;
+        my int $seen-setting;
         while !nqp::isnull($ctx) {
+            if nqp::existskey($ctx, 'CORE-SETTING-REV') {
+                $seen-setting := 1;
+            }
             if nqp::existskey($ctx, $name) {
                 my $prim-spec := nqp::lexprimspec($ctx, $name);
                 if $prim-spec == 0 {
-                    return RakuAST::Declaration::External.new(:lexical-name($name));
+                    # Things in the setting are assumed constant.
+                    if $seen-setting {
+                        my $compile-time-value := nqp::atkey($ctx, $name);
+                        return RakuAST::Declaration::External::Constant.new(
+                            :lexical-name($name), :$compile-time-value);
+                    }
+                    else {
+                        return RakuAST::Declaration::External.new(:lexical-name($name));
+                    }
                 }
                 elsif $prim-spec == 1 {
                     return RakuAST::Declaration::External.new(:lexical-name($name), :native-type(int));

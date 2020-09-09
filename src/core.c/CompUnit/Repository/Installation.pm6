@@ -61,7 +61,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method !bin-dir       { with $.prefix.add('bin')       { once { .mkdir unless .e }; $_ } }
     method !short-dir     { with $.prefix.add('short')     { once { .mkdir unless .e }; $_ } }
 
-    method !add-short-name($name, $dist, $source?, $checksum?) {
+    method !add-short-name($name, $dist, $source?, $checksum?, $lookup-name?) {
         my $id = nqp::sha1($name);
         my $lookup = self!short-dir.add($id) andthen { .mkdir unless .e }
         $lookup.add($dist.id).spurt(
@@ -70,6 +70,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             ~   "{$dist.meta<api>  // ''}\n"
             ~   "{$source // ''}\n"
             ~   "{$checksum // ''}\n"
+            ~   "{$lookup-name // $name // ''}\n"
         );
     }
 
@@ -242,6 +243,15 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             $handle.close;
         }
 
+        # add `emulates` short-name lookups
+        for $dist.meta<emulates>.kv -> $provide-name, $emulate-name is copy {
+            my $id       = self!file-id($provide-name, $dist-id);
+            my $handle   = $dist.content($dist.meta<provides>{$provide-name});
+            my $content  = $handle.open(:bin).slurp(:close);
+            my $checksum = nqp::sha1(nqp::join("\n", nqp::split("\r\n",$content.decode('iso-8859-1'))));
+            self!add-short-name($emulate-name, $dist, $id, $checksum, $provide-name);
+        }
+
         my %meta = %($dist.meta);
         %meta<files>    = %links;    # add our new name-path => content-id mapping
         %meta<provides> = %provides; # new meta data added to provides
@@ -403,13 +413,14 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         $_ => self!read-dist($_)
                     })
                 !! $lookup.dir.map({
-                        my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
+                        my ($ver, $auth, $api, $source, $checksum, $name) = $_.slurp.split("\n");
                         $_.basename => {
-                            auth     => $auth,
-                            api      => Version.new( $api || 0 ), # Create the Version objects once
-                            ver      => Version.new( $ver || 0 ), # (used to compare, and then sort)
-                            source   => $source || Any,
-                            checksum => $checksum || Str,
+                            auth       => $auth,
+                            api        => Version.new( $api || 0 ), # Create the Version objects once
+                            ver        => Version.new( $ver || 0 ), # (used to compare, and then sort)
+                            source     => $source || Any,
+                            checksum   => $checksum || Str,
+                            name       => $name || Str,
                         }
                     })
             );
@@ -429,10 +440,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         # Sort from highest to lowest by version and api
-        my $sorted-metas := $matching-metas.sort(*.value<api>).sort(*.value<ver>).reverse;
+        my $sorted-metas := $matching-metas.sort({ .value<name> eq $spec.short-name }).sort(*.value<api>).sort(*.value<ver>).reverse;
 
         # There is nothing left to do with the subset of meta data, so initialize a lazy distribution with it
-        my $distributions := $sorted-metas.map(*.kv).map: -> ($dist-id, $meta) { self!lazy-distribution($dist-id, :$meta) }
+        my $distributions = $sorted-metas.map(*.kv).map: -> ($dist-id, $meta) { self!lazy-distribution($dist-id, :$meta) }
 
         # A different policy might wish to implement additional/alternative filtering or sorting at this point,
         # with the caveat that calling a non-lazy field will require parsing json for each matching distribution.

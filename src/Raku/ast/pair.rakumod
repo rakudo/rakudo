@@ -102,6 +102,14 @@ class RakuAST::ColonPair::True is RakuAST::ColonPair {
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $pair-type := @lookups[0].resolution.compile-time-value;
+        $pair-type.new(self.key, True)
+    }
 }
 
 # A falsey colonpair (:!foo).
@@ -128,6 +136,14 @@ class RakuAST::ColonPair::False is RakuAST::ColonPair {
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $pair-type := @lookups[0].resolution.compile-time-value;
+        $pair-type.new(self.key, True)
+    }
 }
 
 # A number colonpair (:2th).
@@ -144,6 +160,14 @@ class RakuAST::ColonPair::Number is RakuAST::ColonPair {
     method visit-children(Code $visitor) {
         $visitor($!value);
     }
+
+    method IMPL-CAN-INTERPRET() { True }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $pair-type := @lookups[0].resolution.compile-time-value;
+        $pair-type.new(self.key, $!value)
+    }
 }
 
 # A colonpair with a value (:foo(42)).
@@ -159,6 +183,14 @@ class RakuAST::ColonPair::Value is RakuAST::ColonPair {
 
     method visit-children(Code $visitor) {
         $visitor($!value);
+    }
+
+    method IMPL-CAN-INTERPRET() { $!value.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+        my $pair-type := @lookups[0].resolution.compile-time-value;
+        $pair-type.new(self.key, $!value.IMPL-INTERPRET($ctx))
     }
 }
 

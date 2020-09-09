@@ -91,6 +91,19 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         my $name := self.resolution.lexical-name;
         QAST::Var.new( :sopce('lexical'), :$name )
     }
+
+    method IMPL-CAN-INTERPRET() {
+        !self.short-circuit && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands) {
+        my $op := self.resolution.compile-time-value;
+        my @operands;
+        for self.IMPL-UNWRAP-LIST($operands) {
+            nqp::push(@operands, $_.IMPL-INTERPRET($ctx));
+        }
+        $op(|@operands)
+    }
 }
 
 # A lookup of a chaining (non-meta) infix operator.
@@ -223,6 +236,22 @@ class RakuAST::ApplyListInfix is RakuAST::Expression {
         for self.IMPL-UNWRAP-LIST($!operands) {
             $visitor($_);
         }
+    }
+
+    method IMPL-CAN-INTERPRET() {
+        if $!infix.IMPL-CAN-INTERPRET {
+            for self.IMPL-UNWRAP-LIST($!operands) {
+                return False unless $_.IMPL-CAN-INTERPRET;
+            }
+            True
+        }
+        else {
+            False
+        }
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        $!infix.IMPL-INTERPRET($ctx, $!operands)
     }
 }
 

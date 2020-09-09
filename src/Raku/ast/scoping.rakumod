@@ -331,6 +331,12 @@ class RakuAST::Declaration::External is RakuAST::Declaration {
     method default-scope() { 'my' }
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+
+    method generate-lookup() {
+        my $lookup := RakuAST::Var::Lexical.new($!lexical-name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
 }
 
 # A lexical declaration that comes with an external symbol, which has a fixed

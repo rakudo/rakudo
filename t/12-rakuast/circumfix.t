@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 4;
+plan 7;
 
 is-deeply  # 2 * (3 + 4)
     EVAL(RakuAST::ApplyInfix.new(
@@ -52,3 +52,28 @@ is-deeply  # [5 .. 9]
     )),
     [5, 6, 7, 8, 9],
     'Array composer works correctly with a single argument';
+
+is-deeply  # {}
+    EVAL(RakuAST::Circumfix::HashComposer.new),
+    hash(),
+    'Empty hash composer works correctly';
+
+is-deeply  # {a => 42}
+    EVAL(RakuAST::Circumfix::HashComposer.new(
+        RakuAST::FatArrow.new(key => 'a', value => RakuAST::IntLiteral.new(42))
+    )),
+    {a => 42},
+    'Hash composer with fatarrow works correctly';
+
+is-deeply  # {x => 11, y => 22}
+    EVAL(RakuAST::Circumfix::HashComposer.new(
+        RakuAST::ApplyListInfix.new(
+            infix => RakuAST::Infix.new(','),
+            operands => [
+                RakuAST::FatArrow.new(key => 'x', value => RakuAST::IntLiteral.new(11)),
+                RakuAST::FatArrow.new(key => 'y', value => RakuAST::IntLiteral.new(22))
+            ]
+        )
+    )),
+    {x => 11, y => 22},
+    'Hash composer with list of fat arrows works correctly';

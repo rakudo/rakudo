@@ -849,7 +849,7 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
         unless self.IMPL-DO-PRAGMA($resolver, $arglist) {
             # Not a pragma; try it as a module.
             my $comp-unit := self.IMPL-LOAD-MODULE($resolver);
-            self.IMPL-IMPORT($resolver, $comp-unit.handle);
+            self.IMPL-IMPORT($resolver, $comp-unit.handle, $arglist);
         }
     }
 
@@ -911,13 +911,33 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
         $comp-unit
     }
 
-    method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle) {
+    method IMPL-IMPORT(RakuAST::Resolver $resolver, Mu $handle, Mu $arglist) {
         my $EXPORT := $handle.export-package;
         if nqp::isconcrete($EXPORT) {
             $EXPORT := $EXPORT.FLATTENABLE_HASH();
             # TODO deal with non-default imports due to tags
-            my @to-import := ['MANDATORY', 'DEFAULT'];
-            for @to-import -> $tag {
+            my @to-import := ['MANDATORY'];
+            my @positional-imports;
+            if nqp::isconcrete($arglist) {
+                my $Pair := $resolver.resolve-lexical-constant-in-setting('Pair');
+                for $arglist -> $tag {
+                    if nqp::istype($tag, $Pair) {
+                        my str $tag-name := nqp::unbox_s($tag.key);
+                        unless nqp::existskey($EXPORT, $tag) {
+                            # TODO X::Import::NoSuchTag
+                            nqp::die('No such tag')
+                        }
+                        nqp::push(@to-import, $tag-name);
+                    }
+                    else {
+                        nqp::push(@positional-imports, $tag);
+                    }
+                }
+            }
+            else {
+                nqp::push(@to-import, 'DEFAULT');
+            }
+            for @to-import -> str $tag {
                 if nqp::existskey($EXPORT, $tag) {
                     self.IMPL-IMPORT-ONE($resolver, self.IMPL-STASH-HASH($EXPORT{$tag}));
                 }

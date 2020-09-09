@@ -51,3 +51,40 @@ class RakuAST::Circumfix::ArrayComposer is RakuAST::Circumfix is RakuAST::Lookup
         $visitor($!semilist);
     }
 }
+
+# Hash composer circumfix. In Raku syntax, blocks and hash composers are
+# distinguished based upon a number of criteria, applied after parsing the
+# thing as a block. At the AST level there are two distinct node types:
+# this, and Block (for the case it's a block). The Block node has a method
+# on it for performing this disambiguation.
+class RakuAST::Circumfix::HashComposer is RakuAST::Circumfix is RakuAST::Lookup {
+    has RakuAST::Expression $.expression;
+
+    method new(RakuAST::Expression $expression?) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Circumfix::HashComposer, '$!expression',
+            $expression // RakuAST::Expression);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical('&circumfix:<{ }>');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $name := self.resolution.lexical-name;
+        my $op := QAST::Op.new( :op('call'), :$name );
+        if $!expression {
+            $op.push($!expression.IMPL-TO-QAST($context));
+        }
+        $op
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!expression);
+    }
+}

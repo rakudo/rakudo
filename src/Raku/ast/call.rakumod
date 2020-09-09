@@ -174,6 +174,16 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
         self.IMPL-APPLY-SINK($call)
     }
+
+    method IMPL-CAN-INTERPRET() { $!name.is-identifier && self.is-resolved && self.args.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        my $resolved := self.resolution.compile-time-value;
+        my @args := self.args.IMPL-INTERPRET($ctx);
+        my @pos := @args[0];
+        my %named := @args[1];
+        return $resolved(|@pos, |%named);
+    }
 }
 
 # A call to any term (the postfix () operator).

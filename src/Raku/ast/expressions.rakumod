@@ -208,6 +208,12 @@ class RakuAST::ApplyInfix is RakuAST::Expression {
         $visitor($!infix);
         $visitor($!right);
     }
+
+    method IMPL-CAN-INTERPRET() { self.left.IMPL-CAN-INTERPRET && self.right.IMPL-CAN-INTERPRET && self.infix.IMPL-CAN-INTERPRET }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        return self.infix.IMPL-INTERPRET($ctx, nqp::list($!left, $!right));
+    }
 }
 
 # Application of an list-precednece infix operator.

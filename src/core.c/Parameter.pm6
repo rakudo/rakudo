@@ -176,9 +176,9 @@ my class Parameter { # declared in BOOTSTRAP
                 if nqp::istype($type,Str) {
                     if $type.ends-with(Q/)/) {
                         my $start = $type.index(Q/(/);
-                        my $target-type :=
-                          str-to-type($type.substr($start + 1, *-1), my $);
                         my $constraint-type :=
+                          str-to-type($type.substr($start + 1, *-1), my $);
+                        my $target-type :=
                           str-to-type($type.substr(0, $start), $flags);
                         $!type := Metamodel::CoercionHOW.new_type($target-type, $constraint-type);
                     }
@@ -321,6 +321,9 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     method type(Parameter:D: --> Mu) { $!type }
+
+    # XXX Must be marked as DEPRECATED
+    method coerce_type(Parameter:D: --> Mu) { $!type.HOW.archetypes.coercive ?? $!type.^target_type !! Mu }
 
     method nominal_type(Parameter:D --> Mu) { $!type.HOW.archetypes.nominalizable ?? $!type.^nominalize !! $!type }
 
@@ -641,11 +644,12 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
     return False unless a.WHAT =:= b.WHAT;
 
     # different nominal or coerce type
+    my \atype = nqp::getattr(a,Parameter,'$!type');
+    my \btype = nqp::getattr(b,Parameter,'$!type');
     return False
-        unless nqp::eqaddr(
-            nqp::getattr(a,Parameter,'$!type'),
-            nqp::getattr(b,Parameter,'$!type')
-        );
+        unless
+            (atype.HOW.archetypes.generic && btype.HOW.archetypes.generic)
+            || nqp::eqaddr(atype, btype);
 
     # different flags
     return False

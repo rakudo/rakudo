@@ -55,14 +55,17 @@ my class Code { # declared in BOOTSTRAP
         # A ::() that does not throw.  Also does not need to deal
         # with chunks or sigils.
         my sub soft_indirect_name_lookup($name) {
-            my @parts    = $name.split('::');
+            my @subtypes = ($name ~~ /^ (.*?) [ \( (.*) \) ]? $/).list;
+            for @subtypes -> $subtype {
+                my @parts    = $subtype.split('::');
 
-            my Mu $thing := ::.EXISTS-KEY(@parts[0]);
-            return False unless $thing;
-            $thing := ::.AT-KEY(@parts.shift);
-            for @parts {
-                return False unless $thing.WHO.EXISTS-KEY($_);
-                $thing := $thing.WHO{$_};
+                my Mu $thing := ::.EXISTS-KEY(@parts[0]);
+                return False unless $thing;
+                $thing := ::.AT-KEY(@parts.shift);
+                for @parts {
+                    return False unless $thing.WHO.EXISTS-KEY($_);
+                    $thing := $thing.WHO{$_};
+                }
             }
             True;
         }
@@ -73,35 +76,46 @@ my class Code { # declared in BOOTSTRAP
         # "?", removing type captures, subsignatures, and undeclared types
         # (e.g. types set to or parameterized by captured types.)
         my sub strip_parm (Parameter:D $parm, :$make_optional = False) {
-            my $type = $parm.type.^name;
-            my $raku = $type;
+            my $type := $parm.type;
+            my $type_coercive := $type.HOW.archetypes.coercive;
+            my @types = $type_coercive
+                            ?? ($type.^target_type.^name, $type.^constraint_type.^name)
+                            !! $type.^name;
+            my @raku_names;
+            my $raku;
             my $rest = '';
             my $sigil = $parm.sigil;
-            my $elide_agg_cont= so ($sigil eqv '@'
-                                    or $sigil eqv '%'
-                                    or $type ~~ /^^ Callable >> /);
+            for @types -> $type_name is copy {
+                my $out_name = $type_name;
+                my $elide_agg_cont = so ($sigil eqv '@'
+                                        or $sigil eqv '%'
+                                        or $type_name ~~ /^^ Callable >> /);
 
-            $raku = '' if $elide_agg_cont;
-            unless $type eq "Any" {
-                my int $FIRST = 1; # broken FIRST workaround
-                while $type ~~ / (.*?) \[ (.*) \] $$/ {
-#                   FIRST {  # seems broken in setting
-                    if $FIRST { # broken FIRST workaround
-                        $raku = $elide_agg_cont
-                          ?? ~$1
-                          !! ~$/;
-                        $FIRST = 0;
+                $out_name = '' if $elide_agg_cont;
+                unless $type_name eq "Any" {
+                    my int $FIRST = 1; # broken FIRST workaround
+                    while $type_name ~~ / (.*?) \[ (.*?) \] $$/ {
+    #                   FIRST {  # seems broken in setting
+                        if $FIRST { # broken FIRST workaround
+                            $out_name = $elide_agg_cont
+                              ?? ~$1
+                              !! ~$/;
+                            $FIRST = 0;
+                        }
+                        $type_name = ~$1;
+                        unless soft_indirect_name_lookup(~$0) {
+                            $out_name = '';
+                            last
+                        };
                     }
-                    $type = ~$1;
-                    unless soft_indirect_name_lookup(~$0) {
-                        $raku = '';
-                        last
-                    };
+                    $out_name = '' unless soft_indirect_name_lookup($type_name);
                 }
-                $raku = '' unless soft_indirect_name_lookup($type);
+                @raku_names.push: $out_name;
             }
-            $raku = $parm.coerce_type.^name ~ "($raku)"
-              unless nqp::eqaddr($parm.coerce_type,Mu);
+            $raku = @raku_names[0];
+            if $type_coercive {
+                $raku ~= "(" ~ @raku_names[1] ~ ")";
+            }
             $raku ~= $parm.modifier if $raku ne '';
 
             my $name = $parm.name;

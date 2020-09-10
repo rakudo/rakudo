@@ -114,11 +114,12 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
+        my Mu $nself := self.HOW.archetypes.nominalizable ?? self.^nominalize !! self;
         nqp::eqaddr(
-          (my $bless := nqp::findmethod(self,'bless')),
+          (my $bless := nqp::findmethod($nself,'bless')),
           nqp::findmethod(Mu,'bless')
-        ) ?? nqp::create(self).BUILDALL(Empty, %attrinit)
-          !! $bless(self,|%attrinit)
+        ) ?? nqp::create($nself).BUILDALL(Empty, %attrinit)
+          !! $bless($nself,|%attrinit)
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();

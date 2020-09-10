@@ -3701,7 +3701,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
         if $*OFTYPE {
             $of_type := $*OFTYPE.ast;
             my $archetypes := $of_type.HOW.archetypes;
-            unless $archetypes.nominal || $archetypes.nominalizable || $archetypes.generic || $archetypes.definite || $archetypes.coercive {
+            unless $archetypes.nominal
+                || $archetypes.nominalizable
+                || $archetypes.generic
+                || $archetypes.definite
+                || $archetypes.coercive {
                 $*OFTYPE.typed_sorry('X::Syntax::Variable::BadType', type => $of_type);
             }
         }
@@ -5746,7 +5750,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         elsif $type.HOW.archetypes.generic {
             %*PARAM_INFO<type> := $type;
-            %*PARAM_INFO<type_generic> := 1;
         }
         elsif $type.HOW.archetypes.nominalizable {
             # XXX The actual nominalization is likely to be done by Parameter class itself.
@@ -5760,8 +5763,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $<typename>.typed_sorry('X::Parameter::BadType', :$type);
         }
-        %*PARAM_INFO<of_type> := %*PARAM_INFO<type>;
-        %*PARAM_INFO<of_type_match> := $<typename>;
+        %*PARAM_INFO<type_generic>   := 1 if $type.HOW.archetypes.generic;
+        %*PARAM_INFO<of_type>        := %*PARAM_INFO<type>;
+        %*PARAM_INFO<of_type_match>  := $<typename>;
         %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<D>;
         %*PARAM_INFO<undefined_only> := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<U>;
     }
@@ -9108,6 +9112,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Add type checks.
             my $nomtype   := %info<type>;
             my int $is_generic := %info<type_generic>;
+            my int $is_coercive := %info<type_coercive>;
             my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
             my int $spec  := nqp::objprimspec($nomtype);
             my $decont_name;
@@ -9150,7 +9155,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     )));
 
                 # Type-check, unless it's Mu, in which case skip it.
-                if $is_generic {
+                if $is_generic && !$is_coercive {
                     my $genericname := $nomtype.HOW.name(%info<attr_package>);
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('istype_nd'),
@@ -9221,6 +9226,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             if $param_type.HOW.archetypes.generic {
                 # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
+                nqp::say("Generic param type on " ~ $param_obj.name) if nqp::getenvhash<RAKUDO_DEBUG>;
                 $decont_name_invalid := 1;
                 unless $instantiated_code {
                     # Produce current code object variable with the first generic-typed parameter encountered. Any
@@ -9234,9 +9240,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :op('getcodeobj'),
                                 QAST::Op.new(
                                     :op('ctxcode'),
-                                    QAST::Op.new(:op('ctx')))
-                            )
-                        ));
+                                    QAST::Op.new(:op('ctx'))))));
                 }
                 my $inst_param := QAST::Node.unique('__lowered_param_obj_');
                 $var.push(
@@ -9251,8 +9255,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                     :op('getattr'),
                                     QAST::Var.new(:name($instantiated_code), :scope('local')),
                                     QAST::WVal.new(:value($Code)),
-                                    QAST::SVal.new(:value('$!signature'))
-                                ),
+                                    QAST::SVal.new(:value('$!signature'))),
                                 QAST::WVal.new(:value($Sig)),
                                 QAST::SVal.new(:value('@!params'))
                             ),
@@ -9264,8 +9267,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(
                             :op('callmethod'),
                             :name('coercive'),
-                            QAST::Var.new(:name($inst_param), :scope('local'))
-                        ),
+                            QAST::Var.new(:name($inst_param), :scope('local'))),
                         QAST::Op.new(
                             :op('bind'),
                             QAST::Var.new( :name($name), :scope('local') ),
@@ -9277,25 +9279,21 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         :op('getattr'),
                                         QAST::Var.new(:name($inst_param), :scope('local')),
                                         QAST::WVal.new(:value($Param)),
-                                        QAST::SVal.new(:value('$!type'))
-                                    )
-                                ),
+                                        QAST::SVal.new(:value('$!type')))),
                                 QAST::Op.new(
                                     :op('callmethod'),
-                                    :name('!coerce'),
+                                    :name('coerce'),
                                     QAST::Op.new(
                                         :op('how'),
-                                        QAST::Var.new(:name($low_param_type), :scope('local')),
-                                    ),
+                                        QAST::Var.new(:name($low_param_type), :scope('local'))),
                                     QAST::Var.new(:name($low_param_type), :scope('local')),
-                                    QAST::Var.new(:name($name), :scope('local'))
-                                )))));
+                                    QAST::Var.new(:name($name), :scope('local')))))));
             }
-            elsif $param_obj.coercive {
+            elsif $param_type.HOW.archetypes.coercive {
                 # if $param_type.HOW.archetypes.generic {
                 #     return 0;
                 # }
-                nqp::say("Coercive param type on " ~ $param_obj.name) if nqp::getenvhash<RAKUDO_DEBUG>;
+                nqp::say("Coercive param type on " ~ $param_obj.name ~ " ") if nqp::getenvhash<RAKUDO_DEBUG>;
                 $decont_name_invalid := 1;
                 my $target_type := $param_type.HOW.target_type($param_type);
                 $*W.add_object_if_no_sc($param_type.HOW);

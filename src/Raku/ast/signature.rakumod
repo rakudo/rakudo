@@ -91,8 +91,12 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     method count() {
         my int $count := 0;
         for self.IMPL-UNWRAP-LIST($!parameters) {
-            last unless $_.is-positional;
-            $count++;
+            if $_.is-positional {
+                $count++;
+            }
+            elsif !($_.slurpy =:= RakuAST::Parameter::Slurpy) && $_.target.sigil ne '%' {
+                return nqp::box_n(nqp::inf, Num);
+            }
         }
         nqp::box_i($count, Int)
     }
@@ -113,15 +117,21 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
     has Mu $!names;
     has Bool $.invocant;
     has Bool $.optional;
+    has RakuAST::Parameter::Slurpy $.slurpy;
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
-             List :$names, Bool :$invocant, Bool :$optional) {
+            List :$names, Bool :$invocant, Bool :$optional,
+            RakuAST::Parameter::Slurpy :$slurpy) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
         nqp::bindattr($obj, RakuAST::Parameter, '$!names', self.IMPL-NAMES($names));
         nqp::bindattr($obj, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
         nqp::bindattr($obj, RakuAST::Parameter, '$!optional', $optional ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!slurpy',
+            nqp::istype($slurpy, RakuAST::Parameter::Slurpy)
+                ?? $slurpy
+                !! RakuAST::Parameter::Slurpy);
         $obj
     }
 
@@ -140,6 +150,11 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
         Nil
     }
 
+    method set-slurpy(RakuAST::Parameter::Slurpy $slurpy) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!slurpy', $slurpy);
+        Nil
+    }
+
     method set-names(List $names) {
         nqp::bindattr(self, RakuAST::Parameter, '$!names', self.IMPL-NAMES($names));
         Nil
@@ -154,8 +169,9 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
         self.IMPL-WRAP-LIST($!names)
     }
 
+    # Tests if the parameter is a simple positional parameter.
     method is-positional() {
-        $!names ?? False !! True
+        $!names || !($!slurpy =:= RakuAST::Parameter::Slurpy) ?? False !! True
     }
 
     method IMPL-NAMES(Mu $names) {
@@ -207,9 +223,23 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
     method IMPL-FLAGS() {
         my constant SIG_ELEM_INVOCANT            := 64;
         my constant SIG_ELEM_IS_OPTIONAL         := 2048;
+        my constant SIG_ELEM_ARRAY_SIGIL         := 4096;
+        my constant SIG_ELEM_HASH_SIGIL          := 8192;
+        my constant SIG_ELEM_CODE_SIGIL          := 33554432;
+        my $sigil := $!target.sigil;
         my int $flags;
         $flags := $flags + SIG_ELEM_INVOCANT if $!invocant;
         $flags := $flags + SIG_ELEM_IS_OPTIONAL if $!optional;
+        if $sigil eq '@' {
+            $flags := $flags + SIG_ELEM_ARRAY_SIGIL;
+        }
+        elsif $sigil eq '%' {
+            $flags := $flags + SIG_ELEM_HASH_SIGIL;
+        }
+        elsif $sigil eq '&' {
+            $flags := $flags + SIG_ELEM_CODE_SIGIL;
+        }
+        $flags := $flags + $!slurpy.IMPL-FLAGS($sigil);
         $flags
     }
 
@@ -226,19 +256,31 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
         # Get the parameter meta-object, since traits can change some things.
         my $param-obj := self.meta-object;
 
-        # HLL-ize and decont the parameter into a temporary.
+        # Take the parameter into a temporary local.
         my $name := QAST::Node.unique("__lowered_param");
         my $param-qast := QAST::Var.new( :decl('param'), :scope('local'), :$name );
         my $temp-qast := QAST::Var.new( :name($name), :scope('local') );
-        $param-qast.push(QAST::Op.new(
-            :op('bind'),
-            $temp-qast,
-            QAST::Op.new( :op('decont'), QAST::Op.new( :op('hllize'), $temp-qast ) )
-        ));
 
         # Deal with names.
+        my int $was-slurpy;
         if $!names {
             $param-qast.named(nqp::elems($!names) == 1 ?? $!names[0] !! $!names);
+        }
+        elsif !($!slurpy =:= RakuAST::Parameter::Slurpy) {
+            $!slurpy.IMPL-TRANSFORM-PARAM-QAST($context, $param-qast, $temp-qast,
+                $!target.sigil);
+            $was-slurpy := 1;
+        }
+
+        # HLLize before type checking unless it was a slurpy (in which
+        # case we know full well what we produced).
+        # TODO decont does not belong here
+        unless $was-slurpy {
+            $param-qast.push(QAST::Op.new(
+                :op('bind'),
+                $temp-qast,
+                QAST::Op.new( :op('decont'), QAST::Op.new( :op('hllize'), $temp-qast ) )
+            ));
         }
 
         # Do type checks.
@@ -281,6 +323,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
 # destructured). This serves primarily as a marker for the different kinds of
 # parameter target.
 class RakuAST::ParameterTarget is RakuAST::Node {
+    method sigil() { '' }
 }
 
 # A binding of a parameter into a lexical variable (with sigil).
@@ -332,4 +375,106 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
     method default-scope() { 'my' }
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+}
+
+# Marker for all kinds of slurpy behavior.
+class RakuAST::Parameter::Slurpy {
+    method IMPL-FLAGS(str $sigil) {
+        # Not slurpy, so no flags
+        0
+    }
+
+    method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
+            Mu $param-qast, Mu $temp-qast, str $sigil) {
+        # Not slurply, so nothing to do
+        $param-qast
+    }
+
+    method IMPL-QAST-LISTY-SLURP(Mu $param-qast, Mu $temp-qast, List $type, str $method) {
+        $param-qast.slurpy(1);
+        $param-qast.push(QAST::Op.new(
+            :op('bind'),
+            $temp-qast,
+            QAST::Op.new(
+                :op('callmethod'), :name($method),
+                QAST::WVal.new( :value($type) ),
+                $temp-qast
+            )
+        ));
+    }
+}
+
+# Flattening slurpy (the * quantifier).
+class RakuAST::Parameter::Slurpy::Flattened is RakuAST::Parameter::Slurpy {
+    method IMPL-FLAGS(str $sigil) {
+        my constant SIG_ELEM_SLURPY_POS   := 8;
+        my constant SIG_ELEM_SLURPY_NAMED := 16;
+        $sigil eq '@' ?? SIG_ELEM_SLURPY_POS !!
+        $sigil eq '%' ?? SIG_ELEM_SLURPY_NAMED !!
+                         0
+    }
+
+    method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
+            Mu $param-qast, Mu $temp-qast, str $sigil) {
+        if $sigil eq '@' {
+            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy-flat');
+        }
+        elsif $sigil eq '%' {
+            $param-qast.slurpy(1);
+            $param-qast.named(1);
+            $param-qast.push(QAST::Op.new(
+                :op('bind'),
+                $temp-qast,
+                QAST::Op.new(
+                    :op('p6bindattrinvres'),
+                    QAST::Op.new(
+                        :op('create'),
+                        QAST::WVal.new( :value(Hash) )
+                    ),
+                    QAST::WVal.new( :value(Map) ),
+                    QAST::SVal.new( :value('$!storage') ),
+                    $temp-qast
+                )
+            ));
+        }
+        else {
+            nqp::die("Parameter * quantifier not applicable to sigil '$sigil'");
+        }
+    }
+}
+
+# Non-flattening slurpy (the ** quantifier).
+class RakuAST::Parameter::Slurpy::Unflattened is RakuAST::Parameter::Slurpy {
+    method IMPL-FLAGS(str $sigil) {
+        my constant SIG_ELEM_SLURPY_LOL := 32;
+        $sigil eq '@' ?? SIG_ELEM_SLURPY_LOL !! 0
+    }
+
+    method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
+            Mu $param-qast, Mu $temp-qast, str $sigil) {
+        if $sigil eq '@' {
+            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy');
+        }
+        else {
+            nqp::die("Parameter ** quantifier not applicable to sigil '$sigil'");
+        }
+    }
+}
+
+# Signle argument rule slurpy (the + quantifier).
+class RakuAST::Parameter::Slurpy::SingleArgument is RakuAST::Parameter::Slurpy {
+    method IMPL-FLAGS(str $sigil) {
+        my constant SIG_ELEM_SLURPY_ONEARG := 16777216;
+        $sigil eq '@' || $sigil eq '' ?? SIG_ELEM_SLURPY_ONEARG !! 0
+    }
+
+    method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
+            Mu $param-qast, Mu $temp-qast, str $sigil) {
+        if $sigil eq '@' || $sigil eq '' {
+            self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy-onearg');
+        }
+        else {
+            nqp::die("Parameter + quantifier not applicable to sigil '$sigil'");
+        }
+    }
 }

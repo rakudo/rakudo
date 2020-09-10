@@ -1000,6 +1000,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             my str $q := ~$<quant>;
             $parameter.set-optional(1) if $q eq '?';
             $parameter.set-optional(0) if $q eq '!';
+            $parameter.set-slurpy(self.r('Parameter', 'Slurpy', 'Flattened'))
+                if $q eq '*';
+            $parameter.set-slurpy(self.r('Parameter', 'Slurpy', 'Unflattened'))
+                if $q eq '**';
+            $parameter.set-slurpy(self.r('Parameter', 'Slurpy', 'SingleArgument'))
+                if $q eq '+';
         }
         make $parameter;
     }

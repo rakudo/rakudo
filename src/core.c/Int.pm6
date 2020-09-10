@@ -33,11 +33,11 @@ my class Int does Real { # declared in BOOTSTRAP
     multi method new(Any:D \value --> Int:D) { self.new: value.Int }
     multi method new(int   \value --> Int:D) {
         # rebox the value, so we get rid of any potential mixins
-        nqp::fromI_I(nqp::decont(value), self)
+        nqp::fromI_I(nqp::decont(value), self.HOW.archetypes.nominalizable ?? self.^nominalize !! self)
     }
     multi method new(Int:D \value = 0 --> Int:D) {
         # rebox the value, so we get rid of any potential mixins
-        nqp::fromI_I(nqp::decont(value), self)
+        nqp::fromI_I(nqp::decont(value), self.HOW.archetypes.nominalizable ?? self.^nominalize !! self)
     }
 
     multi method raku(Int:D: --> Str:D) {

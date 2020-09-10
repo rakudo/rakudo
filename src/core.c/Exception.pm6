@@ -864,10 +864,10 @@ my class X::Comp::BeginTime does X::Comp {
 }
 
 my class X::Coerce is Exception {
-    has Mu:U $.target-type;
-    has Mu:U $.from-type;
+    has str $.target-type;
+    has str $.from-type;
     method message() {
-        "from " ~ $!from-type.^name ~ " into " ~ $!target-type.^name
+        "from " ~ $!from-type ~ " into " ~ $!target-type
     }
 }
 
@@ -2951,7 +2951,7 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::TypeCheck::Return.new(:$got, :$expected).throw;
   },
   'X::Coerce::Impossible',
-  -> Mu $target-type is raw, Mu $from-type is raw {
+  -> str $target-type is raw, str $from-type is raw {
       X::Coerce::Impossible.new(:$target-type, :$from-type).throw;
   },
   'X::Assignment::RO',

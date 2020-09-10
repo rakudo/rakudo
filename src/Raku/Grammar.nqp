@@ -1610,7 +1610,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     token parameter {
-        <param_var>
+        [
+        | <type_constraint>
+          [
+          | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+          | <?>
+          ]
+        | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
+        ]
     }
 
     token param_var {
@@ -1640,6 +1647,29 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                <postcircumfix>
           ]?
         ]
+    }
+
+    token named_param {
+        :my $*GOAL := ')';
+        :dba('named parameter')
+        ':'
+        [
+        | <name=.identifier> '('
+            <.ws> [ <named_param> | <param_var> ] <.ws>
+            [ ')' || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'> ]
+        | <param_var>
+        ]
+    }
+
+    token type_constraint {
+        :my $*IN_DECL := '';
+        [
+#        | <value>
+#        | [ <[-−]> :my $*NEGATE_VALUE := 1; | '+' ] $<value>=<numish>
+        | <typename>
+#        | where <.ws> <EXPR('i=')>
+        ]
+        <.ws>
     }
 
     ##

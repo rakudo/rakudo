@@ -803,7 +803,9 @@ my @allowed =
         Q{&postcircumfix:<[; ]>},
         Q{&postcircumfix:<{; }>},
         Q{&rotor},
+        Q{&sprintf},
         Q{CORE-SETTING-REV},
+        Q{Formatter},
         Q{Grammar},
         Q{PseudoStash},
     );

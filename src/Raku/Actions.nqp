@@ -990,7 +990,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method parameter($/) {
-        make $<param_var>.ast;
+        my $parameter := $<param_var> ?? $<param_var>.ast !!
+                         $<named_param> ?? $<named_param>.ast !!
+                         self.r('Parameter').new;
+        if $<type_constraint> {
+            $parameter.set-type($<type_constraint>.ast);
+        }
+        if $<quant> {
+            my str $q := ~$<quant>;
+            $parameter.set-optional(1) if $q eq '?';
+            $parameter.set-optional(0) if $q eq '!';
+        }
+        make $parameter;
     }
 
     method param_var($/) {
@@ -1004,6 +1015,33 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Build the parameter.
         make self.r('Parameter').new(|%args);
+    }
+
+    method named_param($/) {
+        my $parameter;
+        if $<name> {
+            # Explicitly specified name to attach.
+            if $<named_param> {
+                $parameter := $<named_param>.ast;
+            }
+            else {
+                $parameter := $<param_var>.ast;
+                $parameter.set-optional(1);
+            }
+            $parameter.add-name(~$<name>);
+        }
+        else {
+            # Name comes from the parameter variable.
+            $parameter := $<param_var>.ast;
+            $parameter.set-optional(1);
+            my $name-match := $<param_var><name>;
+            $parameter.add-name($name-match ?? ~$name-match !! '');
+        }
+        make $parameter;
+    }
+
+    method type_constraint($/) {
+        make $<typename>.ast;
     }
 
     ##

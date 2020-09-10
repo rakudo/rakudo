@@ -549,6 +549,13 @@ class Formatter {
 
             # at least one directive
             if @*DIRECTIVES {
+
+                # TEMPORARY
+                $ast = RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    RakuAST::StrLiteral.new($format)
+                ));
+
                 $code = @*DIRECTIVES == 1
                   ?? "check-one-arg(\@args,'@*DIRECTIVES[0]');\n"
                   !! "check-args(\@args,(@*DIRECTIVES.map( {
@@ -561,12 +568,37 @@ class Formatter {
 
             # no directives, just a string
             else {
+
+                # check-no-arg(@args); $format
+                $ast = RakuAST::StatementList.new(
+                  RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('check-no-arg'),
+                    args => RakuAST::ArgList.new(
+                      RakuAST::Var::Lexical.new('@args')
+                    )
+                  ),
+                  RakuAST::StrLiteral.new($format)
+                );
+
                 $code = "check-no-arg(\@args);\n  @parts[0]";
             }
 
+            # -> @args { $ast }
+            $ast = RakuAST::PointyBlock.new(
+              signature => RakuAST::Signature.new(
+                parameters => (
+                  RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new('@args')
+                  ),
+                )
+              ),
+              body => RakuAST::Blockoid.new($ast)
+            );
+
             $code = "-> \@args \{\n  $code\n\}";
 note $code if %*ENV<RAKUDO_FORMATTER>;
-            EVAL($code)
+#            EVAL($code)
+            EVAL($ast);
         }
         else {
             die "huh?"

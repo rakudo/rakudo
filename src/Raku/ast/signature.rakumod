@@ -82,7 +82,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     method arity() {
         my int $arity := 0;
         for self.IMPL-UNWRAP-LIST($!parameters) {
-            # TODO calculate properly here
+            last unless $_.is-positional && !$_.optional;
             $arity++;
         }
         nqp::box_i($arity, Int)
@@ -91,7 +91,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     method count() {
         my int $count := 0;
         for self.IMPL-UNWRAP-LIST($!parameters) {
-            # TODO calculate properly here
+            last unless $_.is-positional;
             $count++;
         }
         nqp::box_i($count, Int)
@@ -106,30 +106,127 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
 
 # A parameter within a signature. A parameter may result in binding or assignment
 # into a target; this is modeled by a RakuAST::ParameterTarget, which is optional.
-class RakuAST::Parameter is RakuAST::Meta {
+class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
+    has RakuAST::Type $.type;
+    has int $!default-to-any;
     has RakuAST::ParameterTarget $.target;
+    has Mu $!names;
     has Bool $.invocant;
+    has Bool $.optional;
 
-    method new(RakuAST::ParameterTarget :$target, Bool :$invocant) {
+    method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
+             List :$names, Bool :$invocant, Bool :$optional) {
         my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!names', self.IMPL-NAMES($names));
         nqp::bindattr($obj, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!optional', $optional ?? True !! False);
         $obj
     }
 
+    method set-type(RakuAST::Type $type) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!type', $type);
+        Nil
+    }
+
+    method set-invocant(Bool $invocant) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
+        Nil
+    }
+
+    method set-optional(Bool $optional) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!optional', $optional ?? True !! False);
+        Nil
+    }
+
+    method set-names(List $names) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!names', self.IMPL-NAMES($names));
+        Nil
+    }
+
+    method add-name(Str $name) {
+        nqp::push($!names, $name);
+        Nil
+    }
+
+    method names() {
+        self.IMPL-WRAP-LIST($!names)
+    }
+
+    method is-positional() {
+        $!names ?? False !! True
+    }
+
+    method IMPL-NAMES(Mu $names) {
+        my @names;
+        if $names {
+            for self.IMPL-UNWRAP-LIST($names) {
+                if nqp::isstr($_) || nqp::istype($_, Str) {
+                    @names.push($_);
+                }
+                else {
+                    nqp::die('Parameter names list must be a list of Str');
+                }
+            }
+        }
+        @names
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        # If we're on a routine, then the default nominal type will be Any.
+        my $owner := $resolver.find-attach-target('block');
+        nqp::bindattr_i(self, RakuAST::Parameter, '$!default-to-any',
+            nqp::istype($owner, RakuAST::Routine));
+    }
+
     method visit-children(Code $visitor) {
-        $visitor($!target);
+        $visitor($!type) if $!type;
+        $visitor($!target) if $!target;
     }
 
     method PRODUCE-META-OBJECT() {
         my $parameter := nqp::create(Parameter);
-        # TODO set it up
+        if $!target {
+            nqp::bindattr_s($parameter, Parameter, '$!variable_name',
+                $!target.introspection-name);
+        }
+        if $!names {
+            my $names-str-list := nqp::list_s();
+            for $!names {
+                nqp::push_s($names-str-list, $_);
+            }
+            nqp::bindattr($parameter, Parameter, '@!named_names', $names-str-list);
+        }
+        nqp::bindattr_i($parameter, Parameter, '$!flags', self.IMPL-FLAGS());
+        nqp::bindattr($parameter, Parameter, '$!nominal_type', self.IMPL-NOMINAL-TYPE());
+        # TODO further setup
         $parameter
     }
 
+    method IMPL-FLAGS() {
+        my constant SIG_ELEM_INVOCANT            := 64;
+        my constant SIG_ELEM_IS_OPTIONAL         := 2048;
+        my int $flags;
+        $flags := $flags + SIG_ELEM_INVOCANT if $!invocant;
+        $flags := $flags + SIG_ELEM_IS_OPTIONAL if $!optional;
+        $flags
+    }
+
+    method IMPL-NOMINAL-TYPE() {
+        if $!type {
+            $!type.resolution.compile-time-value
+        }
+        else {
+            $!default-to-any ?? Any !! Mu
+        }
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        # HLL-ize and decont the parameter.
-        # TODO this is a cheat, we need to handle parameters in all their diversity
+        # Get the parameter meta-object, since traits can change some things.
+        my $param-obj := self.meta-object;
+
+        # HLL-ize and decont the parameter into a temporary.
         my $name := QAST::Node.unique("__lowered_param");
         my $param-qast := QAST::Var.new( :decl('param'), :scope('local'), :$name );
         my $temp-qast := QAST::Var.new( :name($name), :scope('local') );
@@ -138,7 +235,31 @@ class RakuAST::Parameter is RakuAST::Meta {
             $temp-qast,
             QAST::Op.new( :op('decont'), QAST::Op.new( :op('hllize'), $temp-qast ) )
         ));
-        
+
+        # Deal with names.
+        if $!names {
+            $param-qast.named(nqp::elems($!names) == 1 ?? $!names[0] !! $!names);
+        }
+
+        # Do type checks.
+        # TODO really more involved than this
+        # TODO decont handling probably needs a tweak
+        my $nominal-type := nqp::getattr($param-obj, Parameter, '$!nominal_type');
+        unless $nominal-type =:= Mu {
+            $context.ensure-sc($nominal-type);
+            $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                :op('istype_nd'),
+                $temp-qast,
+                QAST::WVal.new( :value($nominal-type) )
+            )));
+        }
+
+        # If it's optional, do any default handling.
+        if $!optional {
+            # TODO default value, non-Scalar sigil, etc.
+            $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
+        }
+
         # Bind parameter into its target.
         if self.invocant {
             $param-qast.push(QAST::Op.new(
@@ -173,6 +294,10 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
     }
 
     method lexical-name() {
+        $!name
+    }
+
+    method introspection-name() {
         $!name
     }
 

@@ -74,7 +74,7 @@ plan 31;
     is-deeply $x, 100, 'Side-effects were performed as expected';
 }
 
-{  # { $x++ };        XXX not 100% sure
+{  # ({ $x++ })
     my $x = 99;
     my $result := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
@@ -104,7 +104,7 @@ plan 31;
     is-deeply $x, 100, 'Block did perform side-effects when evaluated';
 }
 
-{  # { $_ };
+{  # ({ $_ })
     my $result := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Circumfix::Parentheses.new(

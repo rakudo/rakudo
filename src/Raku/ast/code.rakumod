@@ -464,6 +464,21 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         }
     }
 
+    method generate-lookup() {
+        if self.is-lexical {
+            my $lookup := RakuAST::Var::Lexical.new(self.lexical-name);
+            $lookup.set-resolution(self);
+            $lookup
+        }
+        else {
+            nqp::die('Cannot generate lookup of a routine for scope ' ~ self.scope);
+        }
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        QAST::Var.new( :scope('lexical'), :name(self.lexical-name) )
+    }
+
     method get-boundary-sink-propagator() {
         $!body.statement-list
     }

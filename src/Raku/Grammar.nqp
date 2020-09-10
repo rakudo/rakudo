@@ -1389,7 +1389,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
-        <deflongname>?
+        <deflongname('my')>?
         [ '(' <signature> ')' ]?
         <blockoid>
         <.leave-block-scope>
@@ -1399,7 +1399,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*IN_DECL := $declarator;
         :my $*BLOCK;
         <.enter-block-scope(nqp::tclc($declarator))>
-        <deflongname>?
+        <deflongname('has')>?
         [ '(' <signature> ')' ]?
         <blockoid>
         <.leave-block-scope>
@@ -1742,7 +1742,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <name> {} [ <?before ':' <.+alpha+[\< \[ \« ]>> <!RESTRICTED> <colonpair> ]*
     }
 
-    token deflongname {
+    token deflongname($*DEFAULT-SCOPE) {
         :dba('new name to be defined')
         <name>
 #       <colonpair>*

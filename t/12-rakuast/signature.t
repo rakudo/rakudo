@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 6;
+plan 10;
 
 subtest 'Default type for block and routine' => {
     # sub ($param) { }
@@ -145,4 +145,126 @@ subtest 'Required named parameter with alias' => {
     is $sub(fst => 44), 44, 'Invoking the sub with second alias works';
     dies-ok { $sub() }, 'Invoking the sub without an argument dies';
     dies-ok { $sub(var => 99) }, 'Invoking the sub with non-named name dies';
+}
+
+subtest 'Slurpy hash parameter' => {
+    # sub (*%h) { %h }
+    my $sub := EVAL RakuAST::Sub.new(
+        signature => RakuAST::Signature.new(
+            parameters => (
+                RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new('%h'),
+                    slurpy => RakuAST::Parameter::Slurpy::Flattened
+                ),
+            )
+        ),
+        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('%h')
+            )
+        ))
+    );
+    ok $sub.signature.params[0].slurpy, 'Parameter introspects as slurpy';
+    ok $sub.signature.params[0].named, 'Parameter introspects as named';
+    is $sub.arity, 0, 'Correct arity';
+    is $sub.count, 0, 'Correct count';
+    is-deeply $sub(), {}, 'Passing no argument gets empty hash';
+    is-deeply $sub(a => 1), {a => 1},
+        'Passing one named argument has correct hash';
+    is-deeply $sub(a => 1, b => 2), {a => 1, b => 2},
+        'Passing two named arguments has correct hash';
+}
+
+subtest 'Slurpy flattening array parameter' => {
+    # sub (*@a) { @a }
+    my $sub := EVAL RakuAST::Sub.new(
+        signature => RakuAST::Signature.new(
+            parameters => (
+                RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new('@a'),
+                    slurpy => RakuAST::Parameter::Slurpy::Flattened
+                ),
+            )
+        ),
+        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('@a')
+            )
+        ))
+    );
+    ok $sub.signature.params[0].slurpy, 'Parameter introspects as slurpy';
+    nok $sub.signature.params[0].named, 'Parameter does not introspect as named';
+    is $sub.arity, 0, 'Correct arity';
+    is $sub.count, Inf, 'Correct count';
+    is-deeply $sub(), [], 'Passing no argument gets empty array';
+    is-deeply $sub(1), [1],
+        'Passing one argument has correct array';
+    is-deeply $sub(1, 2), [1, 2],
+        'Passing two arguments has correct array';
+    is-deeply $sub(1, 2, (3, 4)), [1, 2, 3, 4],
+        'Flattening happens';
+}
+
+subtest 'Slurpy non-flattening array parameter' => {
+    # sub (**@a) { @a }
+    my $sub := EVAL RakuAST::Sub.new(
+        signature => RakuAST::Signature.new(
+            parameters => (
+                RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new('@a'),
+                    slurpy => RakuAST::Parameter::Slurpy::Unflattened
+                ),
+            )
+        ),
+        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('@a')
+            )
+        ))
+    );
+    ok $sub.signature.params[0].slurpy, 'Parameter introspects as slurpy';
+    nok $sub.signature.params[0].named, 'Parameter does not introspect as named';
+    is $sub.arity, 0, 'Correct arity';
+    is $sub.count, Inf, 'Correct count';
+    is-deeply $sub(), [], 'Passing no argument gets empty array';
+    is-deeply $sub(1), [1],
+        'Passing one argument has correct array';
+    is-deeply $sub(1, 2), [1, 2],
+        'Passing two arguments has correct array';
+    is-deeply $sub(1, 2, (3, 4)), [1, 2, (3, 4)],
+        'Flattening does not happen';
+    is-deeply $sub((3, 4)), [(3, 4),],
+        'Passing a list results in one-element array with the list';
+}
+
+subtest 'Slurpy single arg rule array parameter' => {
+    # sub (+@a) { @a }
+    my $sub := EVAL RakuAST::Sub.new(
+        signature => RakuAST::Signature.new(
+            parameters => (
+                RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new('@a'),
+                    slurpy => RakuAST::Parameter::Slurpy::SingleArgument
+                ),
+            )
+        ),
+        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('@a')
+            )
+        ))
+    );
+    ok $sub.signature.params[0].slurpy, 'Parameter introspects as slurpy';
+    nok $sub.signature.params[0].named, 'Parameter does not introspect as named';
+    is $sub.arity, 0, 'Correct arity';
+    is $sub.count, Inf, 'Correct count';
+    is-deeply $sub(), [], 'Passing no argument gets empty array';
+    is-deeply $sub(1), [1],
+        'Passing one argument has correct array';
+    is-deeply $sub(1, 2), [1, 2],
+        'Passing two arguments has correct array';
+    is-deeply $sub(1, 2, (3, 4)), [1, 2, (3, 4)],
+        'Flattening does not happen';
+    is-deeply $sub((3, 4)), [3, 4],
+        'Passing a list is treated as the single argument';
 }

@@ -1613,9 +1613,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <type_constraint>
           [
+          | $<quant>=['**'|'*'|'+'] <param_var>
+          | $<quant>=['\\'|'|'] <param_var> {
+                $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+            }
           | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
           | <?>
           ]
+        | $<quant>=['**'|'*'|'+'] <param_var>
+        | $<quant>=['\\'|'|'] <param_var> {
+              $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
+          }
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         ]
     }

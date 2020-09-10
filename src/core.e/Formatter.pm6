@@ -117,7 +117,7 @@ class Formatter {
 
         method escape:sym<%>($/ --> Nil) { make '%' }
 
-        method literal($/ --> Nil) { make $/.Str.perl }
+        method literal($/ --> Nil) { make $/.Str.raku }
 
         # helper sub to check if a flag is set
         sub has_hash($/)  { "#" (elem) $<flags>.map: *.Str }
@@ -127,7 +127,7 @@ class Formatter {
         sub has_zero($/)  { "0" (elem) $<flags>.map: *.Str }
 
         # helper sub to determine the value for this directive
-        sub parameter($/ --> Str:D) {
+        sub parameter($/) {
             my Int $index = $<idx> ?? $<idx>.chop.Int - 1 !! $*NEXT-PARAMETER;
             X::Str::Sprintf::Directives::Unsupported.new(
               directive => ~$<idx>,
@@ -140,7 +140,26 @@ class Formatter {
             # record the directive
             @*DIRECTIVES[$index].push(~$_) with $<sym> // '*';
 
-            "\@args.AT-POS($index)"
+            # @args.AT-POS($index)
+            RakuAST::ApplyPostfix.new(
+              operand => RakuAST::Var::Lexical.new('@args'),
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('AT-POS'),
+                args => RakuAST::ArgList.new(
+                  RakuAST::IntLiteral.new($index)
+                )
+              )
+            ) but "\@args.AT-POS($index)"
+        }
+
+        # helper sub for creating literal integer nodes
+        sub literal-integer(Int:D $int) {
+            RakuAST::IntLiteral.new($int) but $int.Str
+        }
+
+        # helper sub for creating literal string nodes
+        sub literal-string(Str:D $str) {
+            RakuAST::StrLiteral.new($str) but $str
         }
 
         # helper sub for processing formats for integer values
@@ -157,67 +176,135 @@ class Formatter {
 # the $expr one should be the first.
 
             # set up size specification
-            my str $size = $<size>
-              ?? $<size><star>
-                ?? parameter($<size>)
-                !! ~$<size>
-              !! '';
+            my $size;
+            if $<size> -> $the-size {
+                $size = $the-size<star>
+                  ?? parameter($the-size)
+                  !! literal-integer($the-size.Int);
+            }
 
             # set up precision specification
-            my str $precision;
-            if $<precision><size> -> $size {
-                $precision = $size<star>
+            my $precision;
+            if $<precision><size> -> $the-size {
+                $precision = $the-size<star>
                   ?? parameter($size)
-                  !! (~$size) || '0';
+                  !! literal-integer($the-size.Int);
             }
             elsif $size {
                 if has_zero($/) {
                     $precision = $size;
-                    $size = '';
+                    $size = Any
                 }
                 else {
-                    $precision = '1'
+                    $precision = literal-integer(1);
                 }
             }
 
-            # set up initial expression to work on
-            my str $expr = parameter($/)
-              ~ ($base == 10 ?? '.Int.Str' !! ".Int.base($base)");
-            $expr = "$expr.lc" if $lc;
+            # parameter($/).Int
+            my $operand := parameter($/);
+            my $expr = RakuAST::ApplyPostfix.new(
+              operand => $operand,
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('Int')
+              )
+            ) but $operand ~ ".Int";
+
+            # $expr.(Str || .base($base))
+            $expr = RakuAST::ApplyPostfix.new(
+              operand => $expr,
+              postfix => $base == 10
+                ?? RakuAST::Call::Method.new(
+                     name => RakuAST::Name.from-identifier('Str')
+                   )
+                !! RakuAST::Call::Method.new(
+                     name => RakuAST::Name.from-identifier('base'),
+                     args => RakuAST::ArgList.new(literal-integer($base))
+                   )
+            ) but $expr ~ ($base == 10 ?? '.Str' !! ".base($base)");
+
+            if $lc {
+                # $expr.lc
+                $expr = RakuAST::ApplyPostfix.new(
+                  operand => $expr,
+                  postfix => RakuAST::Call::Method.new(
+                    name => RakuAST::Name.from-identifier('Str')
+                  )
+                ) but "$expr.lc";
+            }
 
             # handle any prefixes
             my int $minus;
             if has_hash($/) {
                 if $hash eq '0' {
-                    $expr  = "prefix-zero($expr)";
+                    # prefix-zero($expr)
+                    $expr = RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier('prefix-zero'),
+                      args => RakuAST::ArgList.new($expr)
+                    ) but "prefix-zero($expr)";
                     $minus = 1;
                 }
                 else {
-                    $expr  = "prefix-hash('$hash',$expr)";
+                    # prefix-hash('$hash',$expr)
+                    $expr = RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier('prefix-hash'),
+                      args => RakuAST::ArgList.new(literal-string($hash), $expr)
+                    ) but "prefix-hash('$hash',$expr)";
                     $minus = $hash.chars;
                 }
             }
             elsif $plus && has_plus($/) {
-                $expr  = "prefix-plus($expr)";
+                # prefix-plus($expr)
+                $expr = RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier('prefix-plus'),
+                  args => RakuAST::ArgList.new($expr)
+                ) but "prefix-plus($expr)";
                 $minus = 1;
             }
             elsif $space && has_space($/) {
-                $expr  = "prefix-space($expr)";
+                # prefix-space($expr)
+                $expr = RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier('prefix-space'),
+                  args => RakuAST::ArgList.new($expr)
+                ) but "prefix-space($expr)";
                 $minus = 1;
             }
 
             # expand to precision indicated
             if $precision {
-                $expr = $minus
-                  ?? "pad-zeroes-int($precision-$minus,$expr)"
-                  !! "pad-zeroes-int($precision,$expr)";
+                if $minus {
+                    # pad-zeroes-int($precision - $minus, $expr)
+                    $expr = RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier('pad-zeroes-int'),
+                      args => RakuAST::ArgList.new(
+                        RakuAST::ApplyInfix.new(
+                          left  => $precision,
+                          infix => RakuAST::Infix.new('-'),
+                          right => literal-integer($minus)
+                        ),
+                        $expr
+                      )
+                    ) but "pad-zeroes-int($precision - $minus,$expr)";
+                }
+                else {
+                    # pad-zeroes-int($precision, $expr)
+                    $expr = RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier('pad-zeroes-int'),
+                      args => RakuAST::ArgList.new($precision, $expr)
+                    ) but "pad-zeroes-int($precision,$expr)";
+                }
             }
 
             # handle justification only if we need to
             if $size {
-                $expr = has_minus($/)
-                   ?? "str-left-justified($size,$expr)"
-                   !! "str-right-justified($size,$expr)";
+                my $name := has_minus($/)
+                  ?? "str-left-justified"
+                  !! "str-right-justified";
+
+                # str-(left|right)-justified($precision, $expr)
+                $expr = RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier($name),
+                  args => RakuAST::ArgList.new($size, $expr)
+                ) but $name ~ "($size,$expr)";
             }
 
             make $expr;
@@ -550,12 +637,6 @@ class Formatter {
             # at least one directive
             if @*DIRECTIVES {
 
-                # TEMPORARY
-                $ast = RakuAST::StatementList.new(
-                  RakuAST::Statement::Expression.new(
-                    RakuAST::StrLiteral.new($format)
-                ));
-
                 $code = @*DIRECTIVES == 1
                   ?? "check-one-arg(\@args,'@*DIRECTIVES[0]');\n"
                   !! "check-args(\@args,(@*DIRECTIVES.map( {
@@ -564,10 +645,18 @@ class Formatter {
                 $code = @parts == 1
                   ?? "$code  @parts[0]"
                   !! "$code  (\n    @parts.join(",\n    ")\n  ).join";
+
+                # TEMPORARY
+                $ast = RakuAST::StatementList.new(
+                  RakuAST::Statement::Expression.new(
+                    RakuAST::StrLiteral.new($format)
+                )) but $code;
             }
 
             # no directives, just a string
             else {
+
+                $code = "check-no-arg(\@args);\n  @parts[0]";
 
                 # check-no-arg(@args); $format
                 $ast = RakuAST::StatementList.new(
@@ -578,10 +667,10 @@ class Formatter {
                     )
                   ),
                   RakuAST::StrLiteral.new($format)
-                );
-
-                $code = "check-no-arg(\@args);\n  @parts[0]";
+                ) but $code;
             }
+
+            $code = "-> \@args \{\n  $code\n\}";
 
             # -> @args { $ast }
             $ast = RakuAST::PointyBlock.new(
@@ -593,12 +682,10 @@ class Formatter {
                 )
               ),
               body => RakuAST::Blockoid.new($ast)
-            );
+            ) but $code;
 
-            $code = "-> \@args \{\n  $code\n\}";
 note $code if %*ENV<RAKUDO_FORMATTER>;
-#            EVAL($code)
-            EVAL($ast);
+            EVAL(%*ENV<RAKUDO_AST> ?? $ast !! $ast.Str);
         }
         else {
             die "huh?"

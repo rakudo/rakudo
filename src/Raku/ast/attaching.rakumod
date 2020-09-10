@@ -1,6 +1,6 @@
 # An attaching AST node is one that wants to be somehow attached to a parent
 # element, because it has a semantic relationship with it. For example, a
-# a (has-scoepd) method will want to attach to the immediately enclosing
+# a (has-scoped) method will want to attach to the immediately enclosing
 # package, while a placeholder parameter like $^a will want to attach to the
 # nearest scope that can carry a signature. When reached during resolution or
 # check time, the `attach` method is invoked with the resolver, which can be

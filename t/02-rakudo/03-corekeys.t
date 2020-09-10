@@ -789,7 +789,9 @@ my @allowed =
         Q{$=pod},
         Q{$_},
         Q{$¢},
+        Q{&sprintf},
         Q{CORE-SETTING-REV},
+        Q{Formatter},
         Q{Grammar},
         Q{PseudoStash},
     );

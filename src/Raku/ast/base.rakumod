@@ -95,7 +95,7 @@ class RakuAST::Node {
 
     # Recursively walks the tree finding nodes of the specified type that are
     # beneath this one. A node that matches the stopper type will be returned
-    # if it satisfies the specified type, but it's children shall not be
+    # if it satisfies the specified type, but its children shall not be
     # visited. The search is strict - that is to say, it starts at the children
     # of the current node, but doesn't consider the current one.
     method find-nodes(Mu $type, Code :$condition, Mu :$stopper) {

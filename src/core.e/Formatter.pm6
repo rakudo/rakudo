@@ -562,10 +562,8 @@ class Formatter {
             else {
                 $code = "$code  check-no-arg(\@args);\n  @parts[0]\n}";
             }
-note $code;
-            EVAL($code) but role is-hidden-from-backtrace {
-                method is-hidden-from-backtrace(--> True) { }
-            }
+note $code if %*ENV<RAKUDO_FORMATTER>;
+            EVAL($code)
         }
         else {
             die "huh?"
@@ -575,15 +573,21 @@ note $code;
     # actual workhorse for sprintf()
     my $format-lock := Lock.new; # allow multiple threads to create formats
     my $FORMATS := nqp::hash;    # where we keep our formats
-    method new(Str:D $format --> Callable:D) {
+    method new(Str:D $format) {
         $format-lock.protect: {
-            nqp::atkey($FORMATS,$format) // do {
-                nqp::deletekey(
-                  $FORMATS,
-                  nqp::iterkey_s(nqp::shift(nqp::iterator($FORMATS)))
-                ) if nqp::elems($FORMATS) == 100;  # XXX  should be settable
+            nqp::ifnull(
+              nqp::atkey($FORMATS,$format),
+              nqp::stmts(
+                nqp::if(
+                  nqp::iseq_i(nqp::elems($FORMATS),100),  # XXX  should be settable
+                  nqp::deletekey(
+                    $FORMATS,
+                    nqp::iterkey_s(nqp::shift(nqp::iterator($FORMATS)))
+                  )
+                ),
                 nqp::bindkey($FORMATS,$format,create-format($format))
-            }
+              )
+            )
         }
     }
 }

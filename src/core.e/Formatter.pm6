@@ -544,24 +544,27 @@ class Formatter {
 
         if Syntax.parse($format, actions => Actions) -> $parsed {
             my @parts = $parsed<statement>.map: *.made;
+            my $code;
+            my $ast;
 
             # at least one directive
-            my $code = "-> \@args \{\n";
             if @*DIRECTIVES {
                 $code = @*DIRECTIVES == 1
-                  ?? "$code  check-one-arg(\@args,'@*DIRECTIVES[0]');\n"
-                  !! "$code  check-args(\@args,(@*DIRECTIVES.map( {
+                  ?? "check-one-arg(\@args,'@*DIRECTIVES[0]');\n"
+                  !! "check-args(\@args,(@*DIRECTIVES.map( {
                          $_ ?? "'$_'" !! "''"
                      } ).join(",")));\n";
                 $code = @parts == 1
-                  ?? "$code  @parts[0]\n}"
-                  !! "$code  (\n    @parts.join(",\n    ")\n  ).join\n}";
+                  ?? "$code  @parts[0]"
+                  !! "$code  (\n    @parts.join(",\n    ")\n  ).join";
             }
 
             # no directives, just a string
             else {
-                $code = "$code  check-no-arg(\@args);\n  @parts[0]\n}";
+                $code = "check-no-arg(\@args);\n  @parts[0]";
             }
+
+            $code = "-> \@args \{\n  $code\n\}";
 note $code if %*ENV<RAKUDO_FORMATTER>;
             EVAL($code)
         }

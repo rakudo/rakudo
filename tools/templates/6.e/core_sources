@@ -8,3 +8,4 @@ src/core.e/array_multislice.pm6
 src/core.e/hash_multislice.pm6
 src/core.e/Rakudo/Internals/Sprintf.pm6
 src/core.e/Any-iterable-methods.pm6
+src/core.e/Formatter.pm6

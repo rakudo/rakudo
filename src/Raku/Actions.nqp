@@ -1120,6 +1120,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $name := $<name>.ast;
         # TODO add colonpairs
         $*BLOCK.replace-name($name);
+
+        # Register it with the resolver.
+        my $scope := $*SCOPE || $*DEFAULT-SCOPE;
+        if $scope eq 'my' {
+            $*R.declare-lexical-in-outer($*BLOCK);
+        }
+        else {
+            $*R.declare-lexical($*BLOCK);
+        }
     }
 }
 

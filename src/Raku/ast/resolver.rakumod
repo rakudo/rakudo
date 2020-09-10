@@ -438,6 +438,13 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
         $!scopes[nqp::elems($!scopes) - 1].declare-lexical($decl);
     }
 
+    # Add a lexical declaration in the outer scope relative to the current one.
+    # Used when the compiler produces the declaration, but already entered into
+    # that declaration's inner scope.
+    method declare-lexical-in-outer(RakuAST::Declaration $decl) {
+        $!scopes[nqp::elems($!scopes) - 2].declare-lexical($decl);
+    }
+
     # Resolves a lexical to its declaration. The declaration need not have a
     # compile-time value.
     method resolve-lexical(Str $name, Bool :$current-scope-only) {

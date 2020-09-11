@@ -157,9 +157,9 @@ class Formatter {
             RakuAST::IntLiteral.new($int) but $int.Str
         }
 
-        # helper sub for creating literal string nodes
-        sub literal-string(Str:D $str) {
-            RakuAST::StrLiteral.new($str) but $str
+        # helper sub for name of justification sub
+        sub justification-name($/) {
+            has_minus($/) ?? "str-left-justified" !! "str-right-justified"
         }
 
         # helper sub for processing formats for integer values
@@ -172,8 +172,8 @@ class Formatter {
         --> Nil) {
 
 # Please note that the order in which parameters are fetched, is following the
-# way that Perl 5 is doing.  From a left-to-right point of view, it feels that
-# the $expr one should be the first.
+# way that Perl is doing.  From a left-to-right point of view, it feels that
+# the $ast one should be the first.
 
             # set up size specification
             my $size;
@@ -187,7 +187,7 @@ class Formatter {
             my $precision;
             if $<precision><size> -> $the-size {
                 $precision = $the-size<star>
-                  ?? parameter($size)
+                  ?? parameter($the-size)
                   !! literal-integer($the-size.Int);
             }
             elsif $size {
@@ -201,17 +201,17 @@ class Formatter {
             }
 
             # parameter($/).Int
-            my $operand := parameter($/);
-            my $expr = RakuAST::ApplyPostfix.new(
+            my $operand = parameter($/);
+            my $ast = RakuAST::ApplyPostfix.new(
               operand => $operand,
               postfix => RakuAST::Call::Method.new(
                 name => RakuAST::Name.from-identifier('Int')
               )
             ) but $operand ~ ".Int";
 
-            # $expr.(Str || .base($base))
-            $expr = RakuAST::ApplyPostfix.new(
-              operand => $expr,
+            # $ast.(Str || .base($base))
+            $ast = RakuAST::ApplyPostfix.new(
+              operand => $ast,
               postfix => $base == 10
                 ?? RakuAST::Call::Method.new(
                      name => RakuAST::Name.from-identifier('Str')
@@ -220,60 +220,63 @@ class Formatter {
                      name => RakuAST::Name.from-identifier('base'),
                      args => RakuAST::ArgList.new(literal-integer($base))
                    )
-            ) but $expr ~ ($base == 10 ?? '.Str' !! ".base($base)");
+            ) but $ast ~ ($base == 10 ?? '.Str' !! ".base($base)");
 
             if $lc {
-                # $expr.lc
-                $expr = RakuAST::ApplyPostfix.new(
-                  operand => $expr,
+                # $ast.lc
+                $ast = RakuAST::ApplyPostfix.new(
+                  operand => $ast,
                   postfix => RakuAST::Call::Method.new(
-                    name => RakuAST::Name.from-identifier('Str')
+                    name => RakuAST::Name.from-identifier('lc')
                   )
-                ) but "$expr.lc";
+                ) but "$ast.lc";
             }
 
             # handle any prefixes
             my int $minus;
             if has_hash($/) {
                 if $hash eq '0' {
-                    # prefix-zero($expr)
-                    $expr = RakuAST::Call::Name.new(
+                    # prefix-zero($ast)
+                    $ast = RakuAST::Call::Name.new(
                       name => RakuAST::Name.from-identifier('prefix-zero'),
-                      args => RakuAST::ArgList.new($expr)
-                    ) but "prefix-zero($expr)";
+                      args => RakuAST::ArgList.new($ast)
+                    ) but "prefix-zero($ast)";
                     $minus = 1;
                 }
                 else {
-                    # prefix-hash('$hash',$expr)
-                    $expr = RakuAST::Call::Name.new(
+                    # prefix-hash('$hash',$ast)
+                    $ast = RakuAST::Call::Name.new(
                       name => RakuAST::Name.from-identifier('prefix-hash'),
-                      args => RakuAST::ArgList.new(literal-string($hash), $expr)
-                    ) but "prefix-hash('$hash',$expr)";
+                      args => RakuAST::ArgList.new(
+                        RakuAST::StrLiteral.new($hash),
+                        $ast
+                      )
+                    ) but "prefix-hash('$hash',$ast)";
                     $minus = $hash.chars;
                 }
             }
             elsif $plus && has_plus($/) {
-                # prefix-plus($expr)
-                $expr = RakuAST::Call::Name.new(
+                # prefix-plus($ast)
+                $ast = RakuAST::Call::Name.new(
                   name => RakuAST::Name.from-identifier('prefix-plus'),
-                  args => RakuAST::ArgList.new($expr)
-                ) but "prefix-plus($expr)";
+                  args => RakuAST::ArgList.new($ast)
+                ) but "prefix-plus($ast)";
                 $minus = 1;
             }
             elsif $space && has_space($/) {
-                # prefix-space($expr)
-                $expr = RakuAST::Call::Name.new(
+                # prefix-space($ast)
+                $ast = RakuAST::Call::Name.new(
                   name => RakuAST::Name.from-identifier('prefix-space'),
-                  args => RakuAST::ArgList.new($expr)
-                ) but "prefix-space($expr)";
+                  args => RakuAST::ArgList.new($ast)
+                ) but "prefix-space($ast)";
                 $minus = 1;
             }
 
             # expand to precision indicated
-            if $precision {
+            if $precision {    # perhaps $precision.Str > 1 ?
                 if $minus {
-                    # pad-zeroes-int($precision - $minus, $expr)
-                    $expr = RakuAST::Call::Name.new(
+                    # pad-zeroes-int($precision - $minus, $ast)
+                    $ast = RakuAST::Call::Name.new(
                       name => RakuAST::Name.from-identifier('pad-zeroes-int'),
                       args => RakuAST::ArgList.new(
                         RakuAST::ApplyInfix.new(
@@ -281,33 +284,31 @@ class Formatter {
                           infix => RakuAST::Infix.new('-'),
                           right => literal-integer($minus)
                         ),
-                        $expr
+                        $ast
                       )
-                    ) but "pad-zeroes-int($precision - $minus,$expr)";
+                    ) but "pad-zeroes-int($precision - $minus,$ast)";
                 }
                 else {
-                    # pad-zeroes-int($precision, $expr)
-                    $expr = RakuAST::Call::Name.new(
+                    # pad-zeroes-int($precision, $ast)
+                    $ast = RakuAST::Call::Name.new(
                       name => RakuAST::Name.from-identifier('pad-zeroes-int'),
-                      args => RakuAST::ArgList.new($precision, $expr)
-                    ) but "pad-zeroes-int($precision,$expr)";
+                      args => RakuAST::ArgList.new($precision, $ast)
+                    ) but "pad-zeroes-int($precision,$ast)";
                 }
             }
 
             # handle justification only if we need to
             if $size {
-                my $name := has_minus($/)
-                  ?? "str-left-justified"
-                  !! "str-right-justified";
+                my $name := justification-name($/);
 
-                # str-(left|right)-justified($precision, $expr)
-                $expr = RakuAST::Call::Name.new(
+                # str-(left|right)-justified($precision, $ast)
+                $ast = RakuAST::Call::Name.new(
                   name => RakuAST::Name.from-identifier($name),
-                  args => RakuAST::ArgList.new($size, $expr)
-                ) but $name ~ "($size,$expr)";
+                  args => RakuAST::ArgList.new($size, $ast)
+                ) but $name ~ "($size,$ast)";
             }
 
-            make $expr;
+            make $ast;
         }
 
         # show numeric value in binary
@@ -319,14 +320,29 @@ class Formatter {
         method directive:sym<c>($/ --> Nil) {
 
             # handle justification
-            my str $value = parameter($/) ~ ".chr";
+            my $ast = parameter($/);
+            # $ast.chr
+            $ast = RakuAST::ApplyPostfix.new(
+              operand => $ast,
+              postfix => RakuAST::Call::Method.new(
+                name => RakuAST::Name.from-identifier('chr')
+              )
+            ) but "$ast.chr";
+
             if +$<size> -> $size {
-                $value = has_minus($/)
-                  ?? "str-left-justified($size,$value)"
-                  !! "str-right-justified($size,$value)";
+                my $name := justification-name($/);
+
+                # str-(left|right)-justified($size, $ast)
+                $ast = RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier($name),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::IntLiteral.new($size),
+                    $ast
+                  )
+                ) but $name ~ "($size,$ast)";
             }
 
-            make $value;
+            make $ast;
         }
 
         # show decimal (integer) value
@@ -385,7 +401,7 @@ class Formatter {
             make $value;
         }
 
-        # show numeric value in octal using Perl 5 / Perl 6 semantics
+        # show numeric value in octal using Perl / Raku semantics
         method directive:sym<o>($/ --> Nil) {
             handle-integer-numeric($/, :base(8), :hash<0>);
         }
@@ -631,46 +647,88 @@ class Formatter {
 
         if Syntax.parse($format, actions => Actions) -> $parsed {
             my @parts = $parsed<statement>.map: *.made;
-            my $code;
             my $ast;
 
             # at least one directive
-            if @*DIRECTIVES {
+            if @*DIRECTIVES -> @directives {
+                if @directives == 1 {
 
-                $code = @*DIRECTIVES == 1
-                  ?? "check-one-arg(\@args,'@*DIRECTIVES[0]');\n"
-                  !! "check-args(\@args,(@*DIRECTIVES.map( {
-                         $_ ?? "'$_'" !! "''"
-                     } ).join(",")));\n";
-                $code = @parts == 1
-                  ?? "$code  @parts[0]"
-                  !! "$code  (\n    @parts.join(",\n    ")\n  ).join";
+                    # check-one-arg(@args, @directives[0])
+                    $ast = RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier('check-one-arg'),
+                      args => RakuAST::ArgList.new(
+                        RakuAST::Var::Lexical.new('@args'),
+                        RakuAST::StrLiteral.new(@directives[0])
+                      )
+                    ) but "check-one-arg(@args,'@directives[0]')";
+                }
+                else {
 
-                # TEMPORARY
-                $ast = RakuAST::StatementList.new(
-                  RakuAST::Statement::Expression.new(
-                    RakuAST::StrLiteral.new($format)
-                )) but $code;
+                    # infix:<,>(@directives.map( { "$_" } ))
+                    $ast = RakuAST::ApplyListInfix.new(
+                      infix    => RakuAST::Infix.new(','),
+                      operands => [@directives.map( {
+                        RakuAST::StrLiteral.new($_ || '')
+                      } )]
+                    ) but "(@directives.map( { $_ ?? "'$_'" !! "''" } ).join(","))";
+
+                    # check-args(@args, $ast)
+                    $ast = RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier('check-args'),
+                      args => RakuAST::ArgList.new(
+                        RakuAST::Var::Lexical.new('@args'),
+                        $ast
+                      )
+                    ) but "check-args(@args,$ast)";
+                }
+
+                if @parts == 1 {
+
+                    # $ast; @parts[0]
+                    $ast = RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new($ast),
+                      RakuAST::Statement::Expression.new(@parts[0])
+                    ) but "$ast;\n  @parts[0]";
+                }
+                else {
+
+                    # $ast; @parts.join
+                    $ast = RakuAST::StatementList.new(
+                      RakuAST::Statement::Expression.new($ast),
+                      RakuAST::Statement::Expression.new(
+                        RakuAST::ApplyPostfix.new(
+                          operand => RakuAST::ApplyListInfix.new(
+                            infix    => RakuAST::Infix.new(','),
+                            operands => [@parts]
+                          ),
+                          postfix => RakuAST::Call::Method.new(
+                            name => RakuAST::Name.from-identifier('join')
+                          )
+                        )
+                      )
+                    ) but "$ast;\n  (\n    @parts.join(",\n    ")\n  ).join";
+                }
             }
 
             # no directives, just a string
             else {
 
-                $code = "check-no-arg(\@args);\n  @parts[0]";
-
                 # check-no-arg(@args); $format
                 $ast = RakuAST::StatementList.new(
-                  RakuAST::Call::Name.new(
-                    name => RakuAST::Name.from-identifier('check-no-arg'),
-                    args => RakuAST::ArgList.new(
-                      RakuAST::Var::Lexical.new('@args')
+                  RakuAST::Statement::Expression.new(
+                    RakuAST::Call::Name.new(
+                      name => RakuAST::Name.from-identifier('check-no-arg'),
+                      args => RakuAST::ArgList.new(
+                        RakuAST::Var::Lexical.new('@args')
+                      )
                     )
                   ),
-                  RakuAST::StrLiteral.new($format)
-                ) but $code;
+                  RakuAST::Statement::Expression.new(
+                    RakuAST::StrLiteral.new($format)
+                  )
+                ) but "check-no-arg(\@args);\n  '$format'";
             }
 
-            $code = "-> \@args \{\n  $code\n\}";
 
             # -> @args { $ast }
             $ast = RakuAST::PointyBlock.new(
@@ -682,10 +740,12 @@ class Formatter {
                 )
               ),
               body => RakuAST::Blockoid.new($ast)
-            ) but $code;
+            ) but "-> \@args \{\n  $ast\n\}";
 
-note $code if %*ENV<RAKUDO_FORMATTER>;
-            EVAL(%*ENV<RAKUDO_AST> ?? $ast !! $ast.Str);
+note $ast.Str if %*ENV<RAKUDO_FORMATTER>;
+#my \code :=
+            EVAL(%*ENV<RAKUDO_AST> ?? $ast !! $ast.Str)
+#; say "got past EVAL"; code
         }
         else {
             die "huh?"

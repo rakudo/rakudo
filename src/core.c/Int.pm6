@@ -116,9 +116,9 @@ my class Int does Real { # declared in BOOTSTRAP
           !! Failure.new(X::OutOfRange.new(
                :what('base argument to base'),:got($base),:range<2..36>))
     }
-    method !eggify($egg --> Str:D) { self.base(2).trans("01" => $egg) }
-    multi method base(Int:D: "camel" --> Str:D) { self!eggify: "🐪🐫" }
-    multi method base(Int:D: "beer"  --> Str:D) { self!eggify: "🍺🍻" }
+    multi method base(Int:D: "beer" --> Str:D) {
+        self.base(2).trans("01" => "🍺🍻")
+    }
 
     # If self is Int, we assume mods are Ints also.  (div fails otherwise.)
     # If do-not-want, user should cast invocant to proper domain.

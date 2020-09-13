@@ -9219,12 +9219,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Handle coercion.
             my $param_type := nqp::getattr($param_obj, $Param, '$!type');
+            my $ptype_archetypes := $param_type.HOW.archetypes;
             if nqp::getenvhash<RAKUDO_DEBUG> {
-                if !$param_obj.coercive && $param_type.HOW.archetypes.coercive {
-                    nqp::say("!!! Parameter " ~ $param_obj.name ~ " doesn't have coercive flag");
+                note("!!! Parameter(", ($param_obj.name || '*unnamed*'), ") type: ", $param_type.HOW.name($param_type), ", generic? ", $param_type.HOW.archetypes.generic);
+                if !$param_obj.coercive && nqp::can($ptype_archetypes, 'coercive') && $ptype_archetypes.coercive {
+                    note("!!! Parameter " ~ $param_obj.name ~ " doesn't have coercive flag");
                 }
             }
-            if $param_type.HOW.archetypes.generic {
+            if $ptype_archetypes.generic {
                 # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
                 nqp::say("Generic param type on " ~ $param_obj.name) if nqp::getenvhash<RAKUDO_DEBUG>;
                 $decont_name_invalid := 1;
@@ -9289,7 +9291,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                     QAST::Var.new(:name($low_param_type), :scope('local')),
                                     QAST::Var.new(:name($name), :scope('local')))))));
             }
-            elsif $param_type.HOW.archetypes.coercive {
+            elsif nqp::can($ptype_archetypes, 'coercive') && $ptype_archetypes.coercive {
                 # if $param_type.HOW.archetypes.generic {
                 #     return 0;
                 # }

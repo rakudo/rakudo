@@ -357,7 +357,7 @@ class Formatter {
                   name => RakuAST::Name.from-identifier($name),
                   args => RakuAST::ArgList.new(
                     RakuAST::IntLiteral.new($size),
-                    $ast
+                    RakuAST::Statement::Expression.new($ast)
                   )
                 ) but $name ~ "($size,$ast)";
             }
@@ -372,26 +372,48 @@ class Formatter {
 
         # show floating point value, scientific notation
         method directive:sym<e>($/ --> Nil) {
+            my $ast = parameter($/);
 
-            # handle precision / plus prefixing
+            # scientify($precision,$ast)
             my int $precision = $<precision> ?? +$<precision> !! 6;
-            my str $value = "scientify($precision," ~ parameter($/) ~ ")";
+            $ast = RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier("scientify"),
+              args => RakuAST::ArgList.new(
+                RakuAST::IntLiteral.new($precision),
+                RakuAST::Statement::Expression.new($ast)
+              )
+            ) but "scientify($precision,$ast)";
 
             # handle left/right justification / zero padding
-            $value = "prefix-plus($value)" if has_plus($/);
-            if +$<size> -> $size {
-                if has_minus($/) {
-                    $value = "str-left-justified($size,$value)";
-                }
-                elsif has_zero($/) {
-                    $value = "pad-zeroes-int($size,$value)";
-                }
-                else {
-                    $value = "str-right-justified($size,$value)";
-                }
+            if has_plus($/) {
+
+                # prefix-plus($ast)
+                $ast = RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier("prefix-plus"),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Statement::Expression.new($ast)
+                  )
+                ) but "prefix-plus($ast)";
             }
 
-            make $value;
+            if $<size> && +$<size> -> $the-size {
+                my $name = has_minus($/)
+                  ?? 'str-left-justified'
+                  !! has_zero($/)
+                    ?? "pad-zeroes-int"
+                    !! "str-right-justified";
+
+                # $name($the-size,$ast)
+                $ast = RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier($name),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::IntLiteral.new($the-size),
+                    RakuAST::Statement::Expression.new($ast)
+                  )
+                ) but $name ~ "($the-size,$ast)";
+            }
+
+            make $ast;
         }
 
         # show floating point value

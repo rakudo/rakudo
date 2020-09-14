@@ -22,11 +22,6 @@ use File::Directory::Tree;
 
 my $THREADS  = 7;
 
-# These are used so that you can run tests on a faster machine.
-my $SSH      = ‘alex@localhost’; # TODO make it configurable
-my $SSH-PATH = ‘/home/alex/git/Releasable/’; # TODO make it configurable
-my $RSYNC    = “$SSH:$SSH-PATH”;
-
 my $WIKIPEDIA-NAME = %*ENV<WIKIPEDIA-NAME>; # currently not used
 my $ANTIFLAP = 3;
 
@@ -86,39 +81,34 @@ task ‘foo’, {
 }
 
 task ‘all’ => ‘clean’, { # except human-upload
-    # TODO maybe don't runout but just depend on other tasks
-    # You may need to *prepend* PATH modifications in bashrc
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake clean”;
-    run <sake human-1>;
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake nqp”;
-    run <sake human-2>;
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake rakudo”;
-    run <sake human-3>;
-    say ‘Now run ｢sake human-upload｣ to publish your changes’;
+    run <ake human-1>;
+    run <ake nqp>;
+    run <ake human-2>;
+    run <ake rakudo>;
+    run <ake human-3>;
+    say ‘Now run ｢ake human-upload｣ to publish your changes’;
     True
 }
 
 task ‘all-rakudo-only’ => ‘clean’, {
     # TODO maybe don't runout but just depend on other tasks
     # You may need to *prepend* PATH modifications in bashrc
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake clean”;
-    run <sake get-all rsync-push>; # just ｢get-all｣ and ｢rsync-push｣ instead of ｢human-1｣
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake nqp”;
-    run <sake human-2>;
-    run <ssh -t>, $SSH, “cd $SSH-PATH && sake rakudo”;
-    run <sake human-3>;
-    say ‘Now run ｢sake human-upload-rakudo-only｣ to publish your changes’;
+    run <ake get-all>; # just ｢get-all｣ instead of ｢human-1｣
+    run <ake nqp>;
+    run <ake human-2>;
+    run <ake rakudo>;
+    run <ake human-3>;
+    say ‘Now run ｢ake human-upload-rakudo-only｣ to publish your changes’;
     True
 }
 
 ########## Aggregates ##########
 
-task ‘human-1’ => <get-all nqp-bump-moar nqp-bump nqp-tag rsync-push>;
+task ‘human-1’ => <get-all nqp-bump-moar nqp-bump nqp-tag>;
 # TODO ensure human-1
 task ‘nqp’ => <nqp-build nqp-test nqp-archive nqp-extract
                nqp-post-build nqp-post-test>;
-task ‘human-2’ => <rsync-pull nqp-sign rakudo-bump-nqp rakudo-bump
-                   rsync-push>;
+task ‘human-2’ => <nqp-sign rakudo-bump-nqp rakudo-bump>;
 task ‘human-2-extra’ => <rakudo-manual-check rakudo-leap-seconds
                          rakudo-changelog rakudo-announcement
                          rakudo-release-guide rakudo-ensure-moarvm
@@ -129,7 +119,7 @@ task ‘rakudo’ => <rakudo-build rakudo-test
                   rakudo-archive rakudo-extract
                   rakudo-post-build rakudo-post-test>;
 
-task ‘human-3’ => <rsync-pull rakudo-tag rakudo-sign>;
+task ‘human-3’ => <rakudo-tag rakudo-sign>;
 task ‘human-upload’ => <wait
                         nqp-push-check rakudo-push-check
                         nqp-push       rakudo-push
@@ -142,18 +132,6 @@ task ‘human-canary-upload’ => <nqp-canary-upload rakudo-canary-upload>;
 #task ‘release’ => <nqp rakudo upload>, { … }
 
 ########## Misc ##########
-
-task ‘rsync-pull’, {
-    run <rsync --archive --fuzzy --delete
-        --compress --human-readable>, $RSYNC, ‘.’;
-    True
-}
-
-task ‘rsync-push’, {
-    run <rsync --archive --fuzzy --delete
-        --compress --human-readable>, ‘.’, $RSYNC;
-    True
-}
 
 task ‘clean’, {
     rmtree $MOAR-PATH   if $MOAR-PATH.e;
@@ -354,7 +332,7 @@ task ‘rakudo-manual-check’, { # Step ❶ (rakudo release guide)
     say ‘  + Review the RT queue’;
     say ‘  + Update the release announcement draft’;
     say ‘’;
-    say ‘Everything else will be done for you by this Sakefile’;
+    say ‘Everything else will be done for you by this Akefile’;
     # TODO more?
 }
 

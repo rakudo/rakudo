@@ -150,7 +150,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             make $<statement_control>.ast;
         }
         else {
-            nqp::die('unimpl statemnet type');
+            make self.r('Statement', 'Empty').new;
         }
     }
 

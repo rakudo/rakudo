@@ -121,6 +121,25 @@ class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
     }
 }
 
+# Any empty statement. Retained because it can have a semantic effect (for
+# example, in block vs. hash distinction with a leading `;`).
+class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookups {
+    method new() {
+        nqp::create(self)
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        @lookups[0].IMPL-TO-QAST($context)
+    }
+}
+
 # An expression statement is a statement consisting of the evaluation of an
 # expression. It may have modifiers also, and the expression may consist of a
 # single term.

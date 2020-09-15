@@ -2,16 +2,8 @@ class Perl6::SysConfig is HLL::SysConfig {
     has %!rakudo-build-config;
     has $!rakudo-home;
 
-    method new(%rakudo-build-config) {
-        my $obj := nqp::create(self);
-        $obj.BUILD(%rakudo-build-config);
-        $obj
-    }
-
-    method BUILD(%rakudo-build-config) {
-        self.build-hll-sysconfig();
-
-        %!rakudo-build-config := %rakudo-build-config;
+    method BUILD() {
+        %!rakudo-build-config := nqp::hash();
 
         # Determine Rakudo home.
         my $execname := nqp::execname();

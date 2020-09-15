@@ -454,9 +454,8 @@ sub MAIN(*@ARGS) {
     # Initialize dynops.
     nqp::p6init();
 
-    my %rakudo-build-config := nqp::hash();
-    hll-config(%rakudo-build-config);
-    nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-config));
+    nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new());
+    hll-config(nqp::gethllsym('default', 'SysConfig').rakudo-build-config);
 
     # Create and configure compiler object.
     my $comp := Perl6::Debugger.new();

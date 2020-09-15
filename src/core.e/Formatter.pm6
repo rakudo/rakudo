@@ -111,19 +111,6 @@ class Formatter {
         my $knowhow := nqp::knowhow().new_type(:repr("P6bigint"));
         my $zero    := nqp::box_i(0, $knowhow);
 
-        method statement($/ --> Nil){
-            make ($<directive> || $<escape> || $<literal>).made;
-        }
-
-        method escape:sym<%>($/ --> Nil) {
-            make RakuAST::StrLiteral.new('%') but '%'
-        }
-
-        method literal($/ --> Nil) {
-            my $string := $/.Str;
-            make RakuAST::StrLiteral.new($string) but $string.raku;
-        }
-
         # helper sub to check if a flag is set
         sub has_hash($/)  { "#" (elem) $<flags>.map: *.Str }
         sub has_minus($/) { "-" (elem) $<flags>.map: *.Str }
@@ -131,50 +118,54 @@ class Formatter {
         sub has_space($/) { " " (elem) $<flags>.map: *.Str }
         sub has_zero($/)  { "0" (elem) $<flags>.map: *.Str }
 
-        # helper sub to determine the value for this directive
-        sub parameter($/) {
-            my Int $index = $<idx> ?? $<idx>.chop.Int - 1 !! $*NEXT-PARAMETER;
-            X::Str::Sprintf::Directives::Unsupported.new(
-              directive => ~$<idx>,
-              sequence  => ~$/,
-            ).throw if $index < 0;
-
-            # set default index for next parameter
-            $*NEXT-PARAMETER = $index + 1;
-
-            # record the directive
-            @*DIRECTIVES[$index] = .Str with $<sym> // '*';
-
-            # @args.AT-POS($index)
-            RakuAST::ApplyPostfix.new(
-              operand => RakuAST::Var::Lexical.new('@args'),
-              postfix => RakuAST::Call::Method.new(
-                name => RakuAST::Name.from-identifier('AT-POS'),
-                args => RakuAST::ArgList.new(
-                  RakuAST::IntLiteral.new($index)
-                )
-              )
-            ) but "\@args.AT-POS($index)"
-        }
-
         # helper sub for creating literal integer nodes
         sub literal-integer(Int:D $int) {
             RakuAST::IntLiteral.new($int) but $int.Str
         }
 
-        # helper sub for name of justification sub
-        sub justification-name($/) {
-            has_minus($/) ?? "str-left-justified" !! "str-right-justified"
+        # helper sub for creating literal string nodes
+        sub literal-string(Str:D $string) {
+            RakuAST::StrLiteral.new($string) but $string
         }
 
         # helper sub to call a method on a given AST
-        sub ast-call-method($ast, $name) {
+        sub ast-call-method($ast, $name, *@params) {
             RakuAST::ApplyPostfix.new(
               operand => $ast,
-              postfix => RakuAST::Call::Method.new(
-                name => RakuAST::Name.from-identifier($name)
-              )
-            ) but $ast ~ ".$name"
+              postfix => @params
+                ?? RakuAST::Call::Method.new(
+                     name => RakuAST::Name.from-identifier($name)
+                   )
+                !! RakuAST::Call::Method.new(
+                     name => RakuAST::Name.from-identifier($name),
+                     args => RakuAST::ArgList.new(@params)
+                   )
+            ) but $ast ~ "." ~ $name ~ ("(@params.join(","))" if @params)
+        }
+
+        # helper sub to call a sub with the given parameters
+        sub ast-call-sub($name, *@params) {
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier($name),
+              args => RakuAST::ArgList.new(@params)
+            ) but $name ~ "(@params.join(","))";
+        }
+
+        # helper sub to call an infix operator
+        sub ast-infix($left, $infix, $right) {
+            RakuAST::ApplyInfix.new(
+              left  => $left,
+              infix => RakuAST::Infix.new($infix) but $infix,
+              right => $right
+            )
+        }
+
+        # helper sub to call a prefix operator
+        sub ast-prefix($prefix, $operand) {
+            RakuAST::ApplyPrefix.new(
+              prefix  => RakuAST::Prefix.new($prefix) but $prefix,
+              operand => $operand
+            )
         }
 
         # helper sub to get size specification
@@ -195,6 +186,28 @@ class Formatter {
               !! Nil
         }
 
+        # helper sub to determine the value for this directive
+        sub parameter($/) {
+            my Int $index = $<idx> ?? $<idx>.chop.Int - 1 !! $*NEXT-PARAMETER;
+            X::Str::Sprintf::Directives::Unsupported.new(
+              directive => ~$<idx>,
+              sequence  => ~$/,
+            ).throw if $index < 0;
+
+            # set default index for next parameter
+            $*NEXT-PARAMETER = $index + 1;
+
+            # record the directive
+            @*DIRECTIVES[$index] = .Str with $<sym> // '*';
+
+            # @args.AT-POS($index)
+            ast-call-method(
+              RakuAST::Var::Lexical.new('@args') but '@args',
+              'AT-POS',
+              literal-integer($index)
+            )
+        }
+
         # helper sub for processing formats for integer values
         sub handle-integer-numeric($/,
            Int:D :$base!,    # the number base to assume for generating string
@@ -202,7 +215,7 @@ class Formatter {
           Bool   :$plus,     # whether to prefix "+" if positive
           Bool   :$space,    # whether to prefix " " if not starting with + or -
           Bool   :$lc        # whether to lowercase resulting string
-        --> Nil) {
+        ) {
 
 # Please note that the order in which parameters are fetched, is following the
 # way that Perl is doing.  From a left-to-right point of view, it feels that
@@ -226,17 +239,9 @@ class Formatter {
             my $ast = ast-call-method(parameter($/), 'Int');
 
             # $ast.(Str || .base($base))
-            $ast = RakuAST::ApplyPostfix.new(
-              operand => $ast,
-              postfix => $base == 10
-                ?? RakuAST::Call::Method.new(
-                     name => RakuAST::Name.from-identifier('Str')
-                   )
-                !! RakuAST::Call::Method.new(
-                     name => RakuAST::Name.from-identifier('base'),
-                     args => RakuAST::ArgList.new(literal-integer($base))
-                   )
-            ) but $ast ~ ($base == 10 ?? '.Str' !! ".base($base)");
+            $ast = $base == 10
+              ?? ast-call-method($ast, 'Str')
+              !! ast-call-method($ast, 'base', literal-integer($base));
 
             # $ast.lc
             $ast = ast-call-method($ast, 'lc') if $lc;
@@ -246,158 +251,114 @@ class Formatter {
             if has_hash($/) {
                 if $hash eq '0' {
                     # prefix-zero($ast)
-                    $ast = RakuAST::Call::Name.new(
-                      name => RakuAST::Name.from-identifier('prefix-zero'),
-                      args => RakuAST::ArgList.new(
-                        RakuAST::Statement::Expression.new($ast)
-                      )
-                    ) but "prefix-zero($ast)";
+                    $ast = ast-call-sub('prefix-zero', $ast);
                     $minus = 1;
                 }
                 else {
                     # prefix-hash('$hash',$ast)
-                    $ast = RakuAST::Call::Name.new(
-                      name => RakuAST::Name.from-identifier('prefix-hash'),
-                      args => RakuAST::ArgList.new(
-                        RakuAST::StrLiteral.new($hash),
-                        RakuAST::Statement::Expression.new($ast)
-                      )
-                    ) but "prefix-hash('$hash',$ast)";
+                    $ast = ast-call-sub(
+                      'prefix-hash', literal-string($hash), $ast
+                    );
                     $minus = $hash.chars;
                 }
             }
             elsif $plus && has_plus($/) {
                 # prefix-plus($ast)
-                $ast = RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier('prefix-plus'),
-                  args => RakuAST::ArgList.new(
-                    RakuAST::Statement::Expression.new($ast)
-                  )
-                ) but "prefix-plus($ast)";
+                $ast = ast-call-sub('prefix-plus', $ast);
                 $minus = 1;
             }
             elsif $space && has_space($/) {
                 # prefix-space($ast)
-                $ast = RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier('prefix-space'),
-                  args => RakuAST::ArgList.new(
-                    RakuAST::Statement::Expression.new($ast)
-                  )
-                ) but "prefix-space($ast)";
+                $ast = ast-call-sub('prefix-space', $ast);
                 $minus = 1;
             }
 
             # expand to precision indicated
             if $precision {
-                if $minus {
-                    # pad-zeroes-int($precision - $minus, $ast)
-                    $ast = RakuAST::Call::Name.new(
-                      name => RakuAST::Name.from-identifier('pad-zeroes-int'),
-                      args => RakuAST::ArgList.new(
-                        RakuAST::ApplyInfix.new(
-                          left  => $precision,
-                          infix => RakuAST::Infix.new('-'),
-                          right => literal-integer($minus)
-                        ),
-                        RakuAST::Statement::Expression($ast)
-                      )
-                    ) but "pad-zeroes-int($precision - $minus,$ast)";
-                }
-                else {
-                    # pad-zeroes-int($precision, $ast)
-                    $ast = RakuAST::Call::Name.new(
-                      name => RakuAST::Name.from-identifier('pad-zeroes-int'),
-                      args => RakuAST::ArgList.new(
-                        $precision,
-                        RakuAST::Statement::Expression.new($ast)
-                      )
-                    ) but "pad-zeroes-int($precision,$ast)";
-                }
+                # pad-zeroes-int($precision( - $minus), $ast)
+                $ast = ast-call-sub(
+                  'pad-zeroes-int',
+                  $minus
+                    ?? ast-infix($precision, "-", literal-integer($minus))
+                    !! $precision,
+                  $ast
+                );
             }
 
             # handle justification only if we need to
             if $size {
-                my $name = has_minus($/)
-                  ?? "str-left-justified"
-                  !! "str-right-justified";
-
                 # str-(left|right)-justified($precision, $ast)
-                $ast = RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier($name),
-                  args => RakuAST::ArgList.new(
-                    $size,
-                    RakuAST::Statement::Expression.new($ast)
-                  )
-                ) but $name ~ "($size,$ast)";
+                $ast = ast-call-sub(
+                  has_minus($/)
+                    ?? "str-left-justified"
+                    !! "str-right-justified",
+                  $precision,
+                  $ast
+                );
             }
 
-            make $ast;
+            $ast
         }
 
         # helper sub for float values handling plus/minus/zero padding
         sub plus-minus-zero($/, $size, $ast is copy) {
 
             if has_plus($/) {
-
                 # prefix-plus($ast)
-                $ast = RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier("prefix-plus"),
-                  args => RakuAST::ArgList.new(
-                    RakuAST::Statement::Expression.new($ast)
-                  )
-                ) but "prefix-plus($ast)";
+                $ast = ast-call-sub('prefix-plus', $ast);
             }
 
             if $size {
-                my $name = has_minus($/)
-                  ?? 'str-left-justified'
-                  !! has_zero($/)
-                    ?? "pad-zeroes-int"
-                    !! "str-right-justified";
-
-                # $name($size,$ast)
-                $ast = RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier($name),
-                  args => RakuAST::ArgList.new(
-                    $size,
-                    RakuAST::Statement::Expression.new($ast)
-                  )
-                ) but $name ~ "($size,$ast)";
+                # justification($size, $ast)
+                $ast = ast-call-sub(
+                  has_minus($/)
+                    ?? 'str-left-justified'
+                    !! has_zero($/)
+                      ?? "pad-zeroes-int"
+                      !! "str-right-justified",
+                  $size,
+                  $ast
+                );
             }
 
             $ast
         }
 
+        method statement($/ --> Nil){
+            make ($<directive> || $<escape> || $<literal>).made;
+        }
+
+        method escape:sym<%>($/ --> Nil) {
+            make RakuAST::StrLiteral.new('%') but '%'
+        }
+
+        method literal($/ --> Nil) {
+            my $string := $/.Str;
+            make RakuAST::StrLiteral.new($string) but $string.raku;
+        }
+
         # show numeric value in binary
         method directive:sym<b>($/ --> Nil) {
-            handle-integer-numeric($/, :base(2), :hash("0$<sym>"));
+            make handle-integer-numeric($/, :base(2), :hash("0$<sym>"));
         }
 
         # show character representation of codepoint value
         method directive:sym<c>($/ --> Nil) {
 
             my $size = size($/);
-            my $ast  = parameter($/);
 
-            # $ast.chr
-            $ast = RakuAST::ApplyPostfix.new(
-              operand => $ast,
-              postfix => RakuAST::Call::Method.new(
-                name => RakuAST::Name.from-identifier('chr')
-              )
-            ) but "$ast.chr";
+            # parameter.chr
+            my $ast = ast-call-method(parameter($/), 'chr');
 
             if $size {
-                my $name = justification-name($/);
-
                 # str-(left|right)-justified($size, $ast)
-                $ast = RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier($name),
-                  args => RakuAST::ArgList.new(
-                    RakuAST::IntLiteral.new($size),
-                    RakuAST::Statement::Expression.new($ast)
-                  )
-                ) but $name ~ "($size,$ast)";
+                $ast = ast-call-sub(
+                  has_minus($/)
+                    ?? "str-left-justified"
+                    !! "str-right-justified",
+                  $size,
+                  $ast
+                );
             }
 
             make $ast;
@@ -405,7 +366,7 @@ class Formatter {
 
         # show decimal (integer) value
         method directive:sym<d>($/ --> Nil) {
-            handle-integer-numeric($/, :base(10), :plus, :space);
+            make handle-integer-numeric($/, :base(10), :plus, :space);
         }
 
         # show floating point value, scientific notation
@@ -413,16 +374,9 @@ class Formatter {
 
             my $size      = size($/);
             my $precision = precision($/) // literal-integer(6);
-            my $ast       = parameter($/);
 
             # scientify($precision,$ast)
-            $ast = RakuAST::Call::Name.new(
-              name => RakuAST::Name.from-identifier("scientify"),
-              args => RakuAST::ArgList.new(
-                $precision,
-                RakuAST::Statement::Expression.new($ast)
-              )
-            ) but "scientify($precision,$ast)";
+            my $ast = ast-call-sub('scientify', $precision, parameter($/));
 
             make plus-minus-zero($/, $size, $ast);
         }
@@ -436,23 +390,12 @@ class Formatter {
             # parameter.Numeric
             my $ast = ast-call-method(parameter($/), 'Numeric');
 
-            # $ast.round(10 ** -$the-precision)
-            $ast = RakuAST::ApplyPostfix.new(
-              operand => $ast,
-              postfix => RakuAST::Call::Method.new(
-                name => RakuAST::Name.from-identifier('round'),
-                args => RakuAST::ArgList.new(
-                  RakuAST::ApplyInfix.new(
-                    left  => RakuAST::IntLiteral.new(10),
-                    infix => RakuAST::Infix.new('**'),
-                    right => RakuAST::ApplyPrefix.new(
-                      prefix  => RakuAST::Prefix.new("-"),
-                      operand => $precision
-                    )
-                  )
-                )
-              )
-            ) but $ast ~ ".round(10 ** -$precision)";
+            # $ast.round(10 ** -$precision)
+            $ast = ast-call-method(
+              $ast,
+              'round',
+              ast-infix(literal-integer(10), '**', ast-prefix('-', $precision))
+            );
 
             # $ast.Str
             $ast = ast-call-method($ast, 'Str');
@@ -462,49 +405,34 @@ class Formatter {
 
         # show numeric value in octal using Perl / Raku semantics
         method directive:sym<o>($/ --> Nil) {
-            handle-integer-numeric($/, :base(8), :hash<0>);
+            make handle-integer-numeric($/, :base(8), :hash<0>);
         }
 
         # show string
         method directive:sym<s>($/ --> Nil) {
-            my $ast = parameter($/);
+
+            my $size      = size($/);
+            my $precision = precision($/);
 
             # $ast.Str
-            $ast = RakuAST::ApplyPostfix.new(
-              operand => $ast,
-              postfix => RakuAST::Call::Method.new(
-                name => RakuAST::Name.from-identifier('Str')
-              )
-            ) but $ast ~ ".Str";
+            my $ast = ast-call-method(parameter($/), 'Str');
 
-            # handle precision
-            if $<precision><size> -> $the-precision {
-                # $ast.substr(0,$the-precision)
-                $ast = RakuAST::ApplyPostfix.new(
-                  operand => $ast,
-                  postfix => RakuAST::Call::Method.new(
-                    name => RakuAST::Name.from-identifier('substr'),
-                    args => RakuAST::ArgList.new(
-                      RakuAST::IntLiteral.new(0),
-                      RakuAST::IntLiteral.new($the-precision.Int)
-                    )
-                  )
-                ) but $ast ~ ".substr(0,$the-precision)";
-
+            if $precision {
+                # $ast.substr(0,$-precision)
+                $ast = ast-call-method(
+                  $ast, 'substr', literal-integer(0), $precision
+                );
             }
 
-            # handle left/right justification
-            if $<size> && +$<size> -> $the-size {
-                my $name = justification-name($/);
-
+            if $size {
                 # str-(left|right)-justified($size, $ast)
-                $ast = RakuAST::Call::Name.new(
-                  name => RakuAST::Name.from-identifier($name),
-                  args => RakuAST::ArgList.new(
-                    RakuAST::IntLiteral.new($the-size),
-                    RakuAST::Statement::Expression.new($ast)
-                  )
-                ) but $name ~ "($the-size,$ast)";
+                $ast = ast-call-sub(
+                  has_minus($/)
+                    ?? "str-left-justified"
+                    !! "str-right-justified",
+                  $size,
+                  $ast
+                );
             }
 
             make $ast
@@ -513,28 +441,27 @@ class Formatter {
         # show unsigned decimal (integer) value
         method directive:sym<u>($/ --> Nil) {
 
-            # handle unsigned check
-            my str $value = "unsigned-int(" ~ parameter($/) ~ ")";
-
+            my $size = size($/);
+            my $ast  = ast-call-sub("unsigned-int", parameter($/));
+            
             # handle zero padding / left / right justification
-            if $<size> && +$<size> -> $the-size {
-                if has_minus($/) {
-                    $value = "str-left-justified($the-size,$value)";
-                }
-                elsif has_zero($/) {
-                    $value = "pad-zeroes-int($the-size,$value)";
-                }
-                else {
-                    $value = "str-right-justified($the-size,$value)";
-                }
+            if $size {
+                $ast = ast-call-sub(
+                  has_minus($/)
+                    ?? 'str-left-justified'
+                    !! has_zero($/)
+                      ?? 'pad-zeroes-int'
+                      !! 'str-right-justified',
+                  $size, $ast
+                );
             }
 
-            make $value
+            make $ast;
         }
 
         # show numeric value in hexadecimal
         method directive:sym<x>($/ --> Nil) {
-            handle-integer-numeric(
+            make handle-integer-numeric(
               $/, :base(16), :hash("0$<sym>"), :lc($<sym> eq "x")
             )
         }
@@ -712,17 +639,19 @@ class Formatter {
 
     # RUNTIME string, left justified
     sub str-left-justified(int $positions, Str:D $string --> Str:D) {
-        my int $chars = $string.chars;
-        $chars < $positions
-          ?? $string ~ " " x $positions - $chars
-          !! $string
+        $positions < 0
+          ?? str-left-justified(-$positions, $string)  # -* with negative width
+          !! (my int $chars = $string.chars) < $positions
+            ?? $string ~ " " x $positions - $chars
+            !! $string
     }
     # RUNTIME string, right justified
     sub str-right-justified(int $positions, Str:D $string --> Str:D) {
-        my int $chars = $string.chars;
-        $chars < $positions
-          ?? " " x $positions - $chars ~ $string
-          !! $string
+        $positions < 0
+          ?? str-left-justified(-$positions, $string)  # * with negative width
+          !! (my int $chars = $string.chars) < $positions
+            ?? " " x $positions - $chars ~ $string
+            !! $string
     }
 
     # Create callable for given uncached format string

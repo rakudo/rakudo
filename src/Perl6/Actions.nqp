@@ -9110,7 +9110,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Add type checks.
-            my $nomtype   := %info<type>;
+            my $param_type := %info<type>;
+            my $nomtype    := $param_type.HOW.archetypes.nominalizable
+                                ?? $param_type.HOW.nominalize($param_type)
+                                !! $param_type;
             my int $is_generic := %info<type_generic>;
             my int $is_coercive := %info<type_coercive>;
             my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
@@ -9141,7 +9144,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     )));
                 }
                 else {
-                    $var.returns($nomtype);
+                    $var.returns($param_type);
                 }
             }
             elsif !$saw_slurpy {
@@ -9156,18 +9159,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # Type-check, unless it's Mu, in which case skip it.
                 if $is_generic && !$is_coercive {
-                    my $genericname := $nomtype.HOW.name(%info<attr_package>);
+                    my $genericname := $param_type.HOW.name(%info<attr_package>);
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op('istype_nd'),
                         QAST::Var.new( :name(get_decont_name()), :scope('local') ),
                         QAST::Var.new( :name($genericname), :scope<typevar> )
                     )));
-                } elsif !($nomtype =:= $*W.find_single_symbol('Mu')) {
-                    if $nomtype.HOW.archetypes.generic {
+                } elsif !($param_type =:= $*W.find_single_symbol('Mu')) {
+                    if $param_type.HOW.archetypes.generic {
                         return 0 unless %info<is_invocant>;
                     }
                     else {
-                        if $nomtype =:= $*W.find_single_symbol('Positional') {
+                        if $param_type =:= $*W.find_single_symbol('Positional') {
                             $var.push(QAST::Op.new(
                                 :op('if'),
                                 QAST::Op.new(
@@ -9191,7 +9194,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                             :op('istype_nd'),
                             QAST::Var.new( :name(get_decont_name()), :scope('local') ),
-                            QAST::WVal.new( :value($nomtype) )
+                            QAST::WVal.new( :value($param_type) )
                         )));
                     }
                 }
@@ -9218,10 +9221,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
 
             # Handle coercion.
-            my $param_type := nqp::getattr($param_obj, $Param, '$!type');
             my $ptype_archetypes := $param_type.HOW.archetypes;
             if nqp::getenvhash<RAKUDO_DEBUG> {
                 note("!!! Parameter(", ($param_obj.name || '*unnamed*'), ") type: ", $param_type.HOW.name($param_type), ", generic? ", $param_type.HOW.archetypes.generic);
+                note("!!! nomtype: ", $nomtype.HOW.name($nomtype)) if nqp::getenvhash<RAKUDO_DEBUG>;
                 if !$param_obj.coercive && nqp::can($ptype_archetypes, 'coercive') && $ptype_archetypes.coercive {
                     note("!!! Parameter " ~ $param_obj.name ~ " doesn't have coercive flag");
                 }
@@ -9362,7 +9365,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $var.default(QAST::SVal.new( :value('') ));
                         }
                         else {
-                            $var.default(QAST::WVal.new( :value($nomtype) ));
+                            # XXX This fails for generics because a generic has to be instantiated. I don't get this
+                            # fixed because it'd take more than worth it considering the upcoming RakuAST. //vrurg
+                            $var.default(
+                                QAST::WVal.new( :value($is_coercive
+                                                        ?? $param_type.HOW.constraint_type($param_type)
+                                                        !! $nomtype)));
                         }
                     }
                 }

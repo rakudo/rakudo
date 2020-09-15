@@ -669,6 +669,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 if nqp::isconcrete($resolution) {
                     make $resolution.generate-lookup();
                 }
+                elsif $<sigil> eq '&' {
+                    # Can be resolved late-bound.
+                    make self.r('Var', 'Lexical').new($name);
+                }
                 else {
                     # TODO restore good error
                     nqp::die("Undeclared variable $name");

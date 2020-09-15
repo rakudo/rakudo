@@ -416,6 +416,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method postop($/) {
+        make $<postfix> ?? $<postfix>.ast !! $<postcircumfix>.ast;
+    }
+
     method postcircumfix:sym<[ ]>($/) {
         make self.r('Postcircumfix', 'ArrayIndex').new($<semilist>.ast);
     }

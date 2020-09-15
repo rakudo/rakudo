@@ -4,39 +4,39 @@
 
 ### Spectest requirements
 
-You need recent version of either Strawberry Perl or ActiveState Perl.
+You need a recent version of either Strawberry Perl or ActiveState Perl.
 
-If you are working with ActiveState Perl you need the Mingw gcc compiler.
+If you are working with ActiveState Perl you will need the Mingw gcc
+compiler.
 
-You need msys git installed and you need "\Program Files\Git\cmd" on your
-execution path and NOT "\Program Files\Git\bin".
+You need msys git installed and "\Program Files\Git\cmd" on your execution
+path and NOT "\Program Files\Git\bin".
 
-You need a win32 curl program.
+You will also need a win32 curl program.
 
 
 ## macOS
 
 ### Dynamic libraries
 
-If Rakudo is installed into $HOME directory (this is also the case when
-rakubrew <https://rakubrew.org/> is used) then some modules may fail to
-install due to missing dynamic libraries. This could be caused by a
-situation when the library is not provided by macOS system itself but
-installed using Homebrew or MacPorts package managers. In this case the
-library cannot be loaded by rakudo binary. This is a security precaution
-taken by modern versions of macOS. The precaution works by restricting the
-directories available for loading dynamic libraries from only to the
-system-predefined set and those where the application binary is actually
-located. For example, if "rakudo" binary is installed under "$HOME/raku/bin"
-then aside of the system-wide locations it can access libraries in
-"$HOME/raku/lib" only.
+If Rakudo is installed into the $HOME directory (this is also the case with
+rakubrew <https://rakubrew.org/>) then some modules may fail to install due
+to missing dynamic libraries. This could be caused by a situation in which
+the library is not provided by macOS system itself but installed using
+Homebrew or MacPorts package managers. In this case the library cannot be
+loaded by "rakudo" binary. This is a security precaution taken by modern
+versions of macOS. The precaution works by restricting the directories
+available for loading dynamic libraries only to the system-predefined set
+and those where the application binary is actually located. For example, if
+"rakudo" binary is installed under "$HOME/raku/bin" then aside of the
+system-wide locations it can access libraries in "$HOME/raku/lib" only.
 
 For the above stated reason, if a problem with availability of a dynamic
 library occurs then creating a symlink to the library in one of the
 following locations could help:
 
 - <rakudo binary location path>/../lib
-- $HOME/lib (should be created if doesn't exists yet)
+- $HOME/lib (should be created if doesn't exist yet)
 
 The latter is one of the allowed system locations.
 

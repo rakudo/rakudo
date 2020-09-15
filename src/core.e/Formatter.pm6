@@ -129,26 +129,34 @@ class Formatter {
         }
 
         # helper sub to call a method on a given AST
-        sub ast-call-method($ast, $name, *@params) {
+        sub ast-call-method($ast, $name, $one?, $two?) {
             RakuAST::ApplyPostfix.new(
               operand => $ast,
-              postfix => @params
+              postfix => $two
                 ?? RakuAST::Call::Method.new(
-                     name => RakuAST::Name.from-identifier($name)
-                   )
-                !! RakuAST::Call::Method.new(
                      name => RakuAST::Name.from-identifier($name),
-                     args => RakuAST::ArgList.new(@params)
+                     args => RakuAST::ArgList.new($one, $two)
                    )
-            ) but $ast ~ "." ~ $name ~ ("(@params.join(","))" if @params)
+                !! $one
+                  ?? RakuAST::Call::Method.new(
+                       name => RakuAST::Name.from-identifier($name),
+                       args => RakuAST::ArgList.new($one)
+                     )
+                  !! RakuAST::Call::Method.new(
+                       name => RakuAST::Name.from-identifier($name)
+                     )
+            ) but $ast ~ "." ~ $name ~
+                ($two ?? "($one,$two)" !! $one ?? "($one)" !! "");
         }
 
         # helper sub to call a sub with the given parameters
-        sub ast-call-sub($name, *@params) {
+        sub ast-call-sub($name, $one, $two?) {
             RakuAST::Call::Name.new(
               name => RakuAST::Name.from-identifier($name),
-              args => RakuAST::ArgList.new(@params)
-            ) but $name ~ "(@params.join(","))";
+              args => $two
+                ?? RakuAST::ArgList.new($one, $two)
+                !! RakuAST::ArgList.new($one)
+            ) but $name ~ ($two ?? "($one,$two)" !! "($one)" )
         }
 
         # helper sub to call an infix operator
@@ -292,7 +300,7 @@ class Formatter {
                   has_minus($/)
                     ?? "str-left-justified"
                     !! "str-right-justified",
-                  $precision,
+                  $size,
                   $ast
                 );
             }

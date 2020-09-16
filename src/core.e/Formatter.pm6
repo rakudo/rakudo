@@ -14,7 +14,6 @@
 # format, it is about 10x as fast as the nqp equivalent.
 #
 # TODO:
-# - optimize RUNTIME parts to use nqp::ops only (or perhaps not)
 # - generate code that uses native ops and variables where possible
 
 # problem cases that should be checked:
@@ -476,52 +475,61 @@ class Formatter {
     }
 
     # RUNTIME number of arguments checker
-    sub check-args(@args,@directives--> Nil) {
-        my int $args-used = @directives.elems;
+    sub check-args(@args, @directives--> Nil) {
+        my $args       := nqp::getattr(@args,List,'$!reified');
+        my $directives := nqp::getattr(@directives,List,'$!reified');
+          nqp::elems(nqp::getattr(@directives,List,'$!reified'));
 
         # number of args doesn't match
-        if @args.elems != $args-used {
+        if nqp::isne_i(nqp::elems($args),nqp::elems($directives)) {
             Failure.new(
               X::Str::Sprintf::Directives::Count.new(
-                args-have => @args.elems.Int,
-                args-used => $args-used,
+                args-have => nqp::elems($args),
+                args-used => nqp::elems($directives)
               )
             )
         }
 
         # check types
         else {
-            return Failure.new(
-              X::Str::Sprintf::Directives::BadType.new(
-                directive => @directives.AT-POS($_),
-                expected  => "Cool",
-                type      => @args.AT-POS($_).^name,
-                value     => @args.AT-POS($_),
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($args)),
+              nqp::unless(
+                Cool.ACCEPTS(nqp::atpos($args,$i)),
+                return Failure.new(
+                  X::Str::Sprintf::Directives::BadType.new(
+                    directive => nqp::atpos($directives,$_),
+                    expected  => "Cool",
+                    type      => nqp::atpos($args,$_).^name,
+                    value     => nqp::atpos($args,$_)
+                  )
+                )
               )
-            ) unless Cool.ACCEPTS(@args.AT-POS($_))
-              for ^$args-used;
+            );
         }
     }
 
     # RUNTIME number of arguments checker for single expected argument
     sub check-one-arg(@args, str $directive --> Nil) {
+        my $args := nqp::getattr(@args,List,'$!reified');
 
         # number of args matches, check type
-        if @args.elems == 1 {
+        if nqp::iseq_i(nqp::elems($args),1) {
             Failure.new(
               X::Str::Sprintf::Directives::BadType.new(
                 directive => $directive,
                 expected  => "Cool",
-                type      => @args.AT-POS(0).^name,
-                value     => @args.AT-POS(0),
+                type      => nqp::atpos($args,0).^name,
+                value     => nqp::atpos($args,0)
               )
-            ) unless Cool.ACCEPTS(@args.AT-POS(0))
+            ) unless Cool.ACCEPTS(nqp::atpos($args,0))
         }
         # number of args doesn't match
         else {
             Failure.new(
               X::Str::Sprintf::Directives::Count.new(
-                :args-have(@args.elems.Int), :1args-used
+                :args-have(nqp::elems($args)), :args-used(1)
               )
             )
         }
@@ -529,21 +537,21 @@ class Formatter {
 
     # RUNTIME number of arguments checker for NO expected argument
     sub check-no-arg(@args --> Nil) {
-        if @args.elems -> $elems {
+        if nqp::elems(nqp::getattr(@args,List,'$reified')) -> int $elems {
             Failure.new(
               X::Str::Sprintf::Directives::Count.new(
-                :args-have($elems.Int), :0args-used
+                :args-have($elems), :args-used(0)
               )
             )
         }
     }
 
     # RUNTIME check if value is positive integer and stringify
-    sub unsigned-int(Cool:D $arg --> Str:D) {
+    sub unsigned-int(Cool:D $arg) {
         my $value := $arg.Int;
 
         # number of args matches, check type
-        $value < 0
+        nqp::isle_I($value,0)
           ?? Failure.new(
                X::Str::Sprintf::Directives::BadType.new(
                  directive => "u",
@@ -556,74 +564,85 @@ class Formatter {
         }
 
     # RUNTIME prefix space if string not starting with "+" or "-"
-    sub prefix-space(Str:D $string --> Str:D) {
-        $string.starts-with('-') || $string.starts-with('+')
+    sub prefix-space(str $string) {
+        nqp::eqat($string,'-',0) || nqp::eqat($string,'+',0)
           ?? $string
-          !! $string.starts-with('0') && $string ne '0'
-            ?? ' ' ~ $string.substr(1)
-            !! ' ' ~ $string
+          !! nqp::eqat($string,'0',0) && nqp::isne_s($string,'0')
+            ?? nqp::concat(' ',nqp::substr($string,1))
+            !! nqp::concat(' ',$string)
     }
 
     # RUNTIME prefix 0 if string not starting with 0
-    sub prefix-zero(Str:D $string --> Str:D) {
-        $string.starts-with('0')
+    sub prefix-zero(str $string) {
+        nqp::eqat($string,'0',0)
           ?? $string
-          !! $string.starts-with('-')
-            ?? $string.substr-eq('0',1)
+          !! nqp::eqat($string,'-',0)
+            ?? nqp::eqat($string,'0',1)
               ?? $string
-              !! '-0' ~ $string.substr(1)
-            !! '0' ~ $string
+              !! nqp::concat('-0',nqp::substr($string,1))
+            !! nqp::concat('0',$string)
     }
 
     # RUNTIME prefix plus if value is not negative
-    sub prefix-plus(Str:D $string --> Str:D) {
-        $string.starts-with("-")
+    sub prefix-plus(str $string) {
+        nqp::eqat($string,'-',0)
           ?? $string
-          !! "+" ~ $string
+          !! nqp::concat("+",$string)
     }
 
     # RUNTIME prefix given hash properly, also if value negative
-    sub prefix-hash(Str:D $hash, Str:D $string --> Str:D) {
-        +$string
-          ?? $string.starts-with("-")
-            ?? '-' ~ $hash ~ $string.substr(1)
-            !! $hash ~ $string
+    sub prefix-hash(str $hash, str $string) {
+        +$string    # XXX why the + ??
+          ?? nqp::eqat($string,'-',0)
+            ?? nqp::concat('-',nqp::concat($hash,nqp::substr($string,1)))
+            !! nqp::concat($hash,$string)
           !! $string
     }
 
     # RUNTIME pad with zeroes as integer
-    sub pad-zeroes-int(int $positions, Str:D $string --> Str:D) {
-        $positions > 0
-          ?? $string.chars < $positions
-            ?? $string.starts-with('-')
-              ?? '-' ~ pad-zeroes-str($positions - 1,$string.substr(1))
-              !!       pad-zeroes-str($positions,$string)
+    sub pad-zeroes-int(int $positions, str $string) {
+        nqp::isgt_i($positions,0)
+          ?? nqp::islt_i(nqp::chars($string),$positions)
+            ?? nqp::eqat($string,'-',0)
+              ?? nqp::concat('-',pad-zeroes-str(
+                   nqp::sub_i($positions,1),nqp::substr($string,1)
+                 ))
+              !! pad-zeroes-str($positions,$string)
             !! $string
-          !! $string.ends-with('0')
-            ?? $string.chop
+          !! nqp::eqat($string,'0',nqp::sub_i(nqp::chars($string),1))
+            ?? nqp::substr($string,0,nqp::sub_i(nqp::chars($string),1))
             !! $string
     }
 
     # RUNTIME pad with zeroes after decimal point
-    sub pad-zeroes-precision(int $positions, Str:D $string --> Str:D) {
-        with $string.index(".") {
-            my int $digits = $string.chars - 1 - $_;
-            $positions > $digits
-              ?? $string ~ "0" x ($positions - $digits)
+    sub pad-zeroes-precision(int $positions, str $string) {
+        my int $index = nqp::index($string,'.');
+        if nqp::isge_i($index,0) {
+            my int $digits =  # $string.chars - 1 - $index;
+              nqp::sub_i(nqp::sub_i(nqp::chars($string),1),$index);
+
+            nqp::isgt_i($positions,$digits)
+              ?? nqp::concat(
+                   $string,
+                   nqp::x('0',nqp::sub_i($positions,$digits))
+                 )
               !! $string
         }
         else {
             $positions
-              ?? $string ~ "." ~ "0" x $positions
+              ?? nqp::concat('.',nqp::x('0',$positions))
               !! $string
         }
     }
 
     # RUNTIME pad with zeroes as string
-    sub pad-zeroes-str(int $positions, Str:D $string --> Str:D) {
-        my int $chars = $string.chars;
-        $chars < $positions
-          ?? "0" x $positions - $chars ~ $string
+    sub pad-zeroes-str(int $positions, str $string) {
+        my int $chars = nqp::chars($string);
+        nqp::islt_i(nqp::chars($string),$positions)
+          ?? nqp::concat(
+               nqp::x('0',nqp::sub_i($positions,nqp::chars($string))),
+               $string
+             )
           !! $string
     }
 
@@ -633,7 +652,7 @@ class Formatter {
 #        scientify($positions, $value.Numeric)
 #    }
 #    multi sub scientify($positions, Cool:D $value --> Str:D) {
-    sub scientify($positions, Cool:D $value is copy --> Str:D) {
+    sub scientify($positions, Cool:D $value is copy) {
         $value = $value.Numeric if $value ~~ Str;  # no multis in RakuAST yet
 
         my int $exponent = $value.abs.log(10).floor;
@@ -646,19 +665,25 @@ class Formatter {
     }
 
     # RUNTIME string, left justified
-    sub str-left-justified(int $positions, Str:D $string --> Str:D) {
-        $positions < 0
+    sub str-left-justified(int $positions, str $string) {
+        nqp::islt_i($positions,0)
           ?? str-left-justified(-$positions, $string)  # -* with negative width
-          !! (my int $chars = $string.chars) < $positions
-            ?? $string ~ " " x $positions - $chars
+          !! nqp::islt_i(nqp::chars($string),$positions)
+            ?? nqp::concat(
+                 $string,
+                 nqp::x(' ',nqp::sub_i($positions,nqp::chars($string)))
+               )
             !! $string
     }
     # RUNTIME string, right justified
-    sub str-right-justified(int $positions, Str:D $string --> Str:D) {
-        $positions < 0
+    sub str-right-justified(int $positions, str $string) {
+        nqp::islt_i($positions,0)
           ?? str-left-justified(-$positions, $string)  # * with negative width
-          !! (my int $chars = $string.chars) < $positions
-            ?? " " x $positions - $chars ~ $string
+          !! nqp::islt_i(nqp::chars($string),$positions)
+            ?? nqp::concat(
+                 nqp::x(' ',nqp::sub_i($positions,nqp::chars($string))),
+                 $string
+               )
             !! $string
     }
 
@@ -764,8 +789,8 @@ class Formatter {
               body => RakuAST::Blockoid.new($ast)
             ) but "-> \@args \{\n  $ast\n\}";
 
-note $ast.Str if %*ENV<RAKUDO_FORMATTER>;
-            EVAL(%*ENV<RAKUDO_AST> ?? $ast !! $ast.Str)
+#note $ast.Str if %*ENV<RAKUDO_FORMATTER>;
+            EVAL($ast)
         }
         else {
             die "huh?"
@@ -803,6 +828,6 @@ note $ast.Str if %*ENV<RAKUDO_FORMATTER>;
 #    Formatter.new($format)(@args)
 #}
 #multi sub sprintf(Str(Cool) $format, *@args) {
-sub sprintf(Str(Cool) $format, *@args) {   # RakuAST doesn't do multis yet
+sub zprintf(Str(Cool) $format, *@args) {   # RakuAST doesn't do multis yet
     Formatter.new($format)(@args)
 }

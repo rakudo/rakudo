@@ -789,6 +789,7 @@ class Formatter {
               body => RakuAST::Blockoid.new($ast)
             ) but "-> \@args \{\n  $ast\n\}";
 
+#note $ast.DEPARSE;
 #note $ast.Str if %*ENV<RAKUDO_FORMATTER>;
             EVAL($ast)
         }

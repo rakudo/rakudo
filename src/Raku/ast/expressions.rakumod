@@ -32,6 +32,8 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         $obj
     }
 
+    method DEPARSE() { $!operator }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-infix($!operator);
         if $resolved {
@@ -197,6 +199,10 @@ class RakuAST::ApplyInfix is RakuAST::Expression {
         $obj
     }
 
+    method DEPARSE() {
+        $!left.DEPARSE ~ ' ' ~ $!infix.DEPARSE ~ ' ' ~ $!right.DEPARSE
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-INFIX-QAST: $context,
             $!left.IMPL-TO-QAST($context),
@@ -346,6 +352,8 @@ class RakuAST::Prefix is RakuAST::Prefixish is RakuAST::Lookup {
         $obj
     }
 
+    method DEPARSE() { $!operator }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-prefix($!operator);
         if $resolved {
@@ -372,6 +380,8 @@ class RakuAST::ApplyPrefix is RakuAST::Termish {
         $obj
     }
 
+    method DEPARSE() { $!prefix.DEPARSE ~ $!operand.DEPARSE }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
     }
@@ -395,6 +405,8 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
         nqp::bindattr_s($obj, RakuAST::Postfix, '$!operator', $operator);
         $obj
     }
+
+    method DEPARSE() { $!operator }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-postfix($!operator);
@@ -523,6 +535,8 @@ class RakuAST::ApplyPostfix is RakuAST::Termish {
         $obj
     }
 
+    method DEPARSE() { $!operand.DEPARSE ~ '.' ~ $!postfix.DEPARSE }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!postfix.IMPL-POSTFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
     }
@@ -552,6 +566,10 @@ class RakuAST::Ternary is RakuAST::Expression {
         nqp::bindattr($obj, RakuAST::Ternary, '$!then', $then);
         nqp::bindattr($obj, RakuAST::Ternary, '$!else', $else);
         $obj
+    }
+
+    method DEPARSE() {
+        $!condition.DEPARSE ~ ' ?? ' ~ $!then.DEPARSE ~ ' !! ' ~ $!else.DEPARSE
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

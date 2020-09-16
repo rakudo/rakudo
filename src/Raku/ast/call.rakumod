@@ -26,6 +26,15 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
         }
     }
 
+    method DEPARSE() {
+        my @args := $!args;
+        my $parts := nqp::list_s;
+        for @args {
+            nqp::push_s($parts, $_.DEPARSE);
+        }
+        '(' ~ nqp::join(',',$parts) ~ ')'
+    }
+
     method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call) {
         # We need to remove duplicate named args, so make a first pass through to
         # collect those.
@@ -152,6 +161,8 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         $visitor($!name);
         $visitor(self.args);
     }
+
+    method DEPARSE() { $!name ~ '(' ~ self.args.DEPARSE ~ ')' }
 
     method needs-resolution() { $!name.is-identifier }
 

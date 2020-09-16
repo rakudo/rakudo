@@ -7,6 +7,8 @@ class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $obj
     }
 
+    method DEPARSE() { $!value.Str }
+
     method type {
         $!value.WHAT
     }
@@ -36,6 +38,8 @@ class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $obj
     }
 
+    method DEPARSE() { $!value.Str }
+
     method type {
         $!value.WHAT
     }
@@ -63,6 +67,8 @@ class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $obj
     }
 
+    method DEPARSE() { $!value.Str }
+
     method type {
         $!value.WHAT
     }
@@ -88,6 +94,8 @@ class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         nqp::bindattr($obj, RakuAST::VersionLiteral, '$!value', $value);
         $obj
     }
+
+    method DEPARSE() { $!value.Str }
 
     method type {
         $!value.WHAT
@@ -117,6 +125,8 @@ class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         nqp::bindattr($obj, RakuAST::StrLiteral, '$!value', $value);
         $obj
     }
+
+    method DEPARSE() { $!value.raku }
 
     method type {
         $!value.WHAT
@@ -152,6 +162,8 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
             self.IMPL-CHECK-PROCESSORS($processors));
         $obj
     }
+
+    method DEPARSE() { self.literal-value.raku }
 
     method IMPL-CHECK-PROCESSORS(Mu $processors) {
         my constant VALID := nqp::hash('words', Mu, 'quotewords', Mu, 'val', Mu, 'exec', 'Mu');

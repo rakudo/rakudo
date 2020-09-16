@@ -740,7 +740,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $package;
     }
 
-    method enter-package-scope($/) {
+    method stub-package($/) {
         # Resolve the meta-object.
         my $package-declarator := $*PKGDECL;
         my $how;
@@ -755,12 +755,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my str $scope := $*SCOPE // 'our';
         my $name-match := $*PACKAGE-NAME;
         my $name := $name-match ?? $name-match.ast !! self.r('Name');
-        my $ast := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
-        $ast.ensure-begin-performed($*R);
+        $*PACKAGE := self.r('Package').new: :$package-declarator, :$how, :$name, :$scope;
+    }
+
+    method enter-package-scope($/) {
+        # Perform BEGIN-time effects (declaring the package, applying traits,
+        # etc.)
+        $*PACKAGE.ensure-begin-performed($*R);
 
         # Let the resovler know which package we're in.
-        $*R.push-package($ast);
-        $*PACKAGE := $ast;
+        $*R.push-package($*PACKAGE);
     }
 
     method leave-package-scope($/) {
@@ -842,6 +846,34 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         $routine.replace-body($<blockoid>.ast);
         $routine.calculate-sink();
         make $routine;
+    }
+
+    method trait($/) {
+        my $trait := $<trait_mod>.ast;
+        if $*TARGET {
+            # Already have the target to apply it to.
+            $*TARGET.add-trait($trait);
+        }
+        else {
+            # Will be added to a target later, so attach to the match.
+            make $trait;
+        }
+    }
+
+    method trait_mod:sym<hides>($/) {
+        make self.r('Trait', 'Hides').new($<typename>.ast);
+    }
+
+    method trait_mod:sym<does>($/) {
+        make self.r('Trait', 'Does').new($<typename>.ast);
+    }
+
+    method trait_mod:sym<of>($/) {
+        make self.r('Trait', 'Of').new($<typename>.ast);
+    }
+
+    method trait_mod:sym<returns>($/) {
+        make self.r('Trait', 'Returns').new($<typename>.ast);
     }
 
     ##

@@ -175,7 +175,11 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         self.IMPL-APPLY-SINK($call)
     }
 
-    method IMPL-CAN-INTERPRET() { $!name.is-identifier && self.is-resolved && self.args.IMPL-CAN-INTERPRET }
+    method IMPL-CAN-INTERPRET() {
+        $!name.is-identifier && self.is-resolved &&
+            nqp::istype(self.resolution, RakuAST::CompileTimeValue) &&
+            self.args.IMPL-CAN-INTERPRET
+    }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         my $resolved := self.resolution.compile-time-value;

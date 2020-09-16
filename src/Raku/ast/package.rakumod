@@ -1,7 +1,7 @@
 class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                        is RakuAST::IMPL::ImmediateBlockUser
                        is RakuAST::Declaration is RakuAST::AttachTarget
-                       is RakuAST::BeginTime {
+                       is RakuAST::BeginTime is RakuAST::TraitTarget {
     has Str $.package-declarator;
     has Mu $.how;
     has Mu $.attribute-type;
@@ -17,7 +17,8 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     has Mu $!attached-attribute-usages;
 
     method new(Str :$package-declarator!, Mu :$how!, Mu :$attribute-type,
-               RakuAST::Name :$name, Str :$repr, RakuAST::Block :$body, str :$scope) {
+               RakuAST::Name :$name, Str :$repr, RakuAST::Block :$body,
+               str :$scope, List :$traits) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Package, '$!package-declarator', $package-declarator);
@@ -30,6 +31,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         nqp::bindattr($obj, RakuAST::Package, '$!attached-methods', []);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attributes', []);
         nqp::bindattr($obj, RakuAST::Package, '$!attached-attribute-usages', []);
+        $obj.set-traits($traits);
         $obj
     }
 
@@ -75,6 +77,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
     method is-begin-performed-before-children() { True }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        # Install the symbol.
         my str $scope := self.scope;
         my $name := $!name;
         if $name && !$name.is-empty && ($scope eq 'my' || $scope eq 'our') {
@@ -98,6 +101,9 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
                 nqp::die('multi-part package declarations NYI');
             }
         }
+
+        # Apply traits.
+        self.apply-traits($resolver, self);
     }
 
     method PRODUCE-STUBBED-META-OBJECT() {
@@ -134,8 +140,17 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         )
     }
 
+    method IMPL-CAN-INTERPRET() {
+        True
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.compile-time-value
+    }
+
     method visit-children(Code $visitor) {
         $visitor($!name);
+        self.visit-traits($visitor);
         $visitor($!body);
     }
 }

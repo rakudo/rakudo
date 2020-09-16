@@ -33,4 +33,21 @@ class RakuAST::BeginTime is RakuAST::Node {
             nqp::die('BEGIN time evaluation only supported for simple constructs so far')
         }
     }
+
+    # Called when a BEGIN-time construct wants to evaluate a resolved code
+    # with a set of arguments.
+    method IMPL-BEGIN-TIME-CALL(RakuAST::Node $callee, RakuAST::ArgList $args,
+            RakuAST::Resolver $resolver) {
+        if $callee.is-resolved && nqp::istype($callee.resolution, RakuAST::CompileTimeValue) &&
+                $args.IMPL-CAN-INTERPRET {
+            my $resolved := $callee.resolution.compile-time-value;
+            my @args := $args.IMPL-INTERPRET(RakuAST::IMPL::InterpContext.new);
+            my @pos := @args[0];
+            my %named := @args[1];
+            return $resolved(|@pos, |%named);
+        }
+        else {
+            nqp::die('BEGIN time calls only supported for simple constructs so far')
+        }
+    }
 }

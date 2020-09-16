@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 37;
+plan 40;
 
 {  # my class MyTestClass is repr<P6opaque> { }
     my $class = EVAL RakuAST::Package.new:
@@ -182,4 +182,21 @@ module Enclosing {  # our class OurEnclosedClass is repr<P6opaque> { }; OurEnclo
     nok $class.DEFINITE, 'Class with attribute with accessor usage evaluates to a type object';
     is $class.^name, 'TestClassWithAttributeUsage', 'Correct class name';
     is $class.new(bar => 99).test-meth, 99, 'Attribute access compiles correctly';
+}
+
+{
+    my role TestRole {
+        method test-meth() { 'role meth' }
+    }
+    my $class = EVAL RakuAST::Package.new:
+        scope => 'my',
+        package-declarator => 'class',
+        how => Metamodel::ClassHOW,
+        name => RakuAST::Name.from-identifier('TestRoleTarget'),
+        traits => [RakuAST::Trait::Does.new(RakuAST::Type::Simple.new(
+            RakuAST::Name.from-identifier('TestRole')
+        ))];
+    is $class.^name, 'TestRoleTarget', 'Class with does trait gets correct name';
+    ok $class ~~ TestRole, 'Class with does trait does the role';
+    is $class.test-meth, 'role meth', 'The role method can be called';
 }

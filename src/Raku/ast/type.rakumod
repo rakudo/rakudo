@@ -25,6 +25,14 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
     }
+
+    method IMPL-CAN-INTERPRET() {
+        self.is-resolved && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        self.resolution.compile-time-value
+    }
 }
 
 # A simple type name, e.g. Int, Foo::Bar, etc. that should be looked up in the

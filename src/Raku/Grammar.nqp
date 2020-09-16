@@ -1272,7 +1272,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*BLOCK;
         :my $*PACKAGE;
         <longname>? {}
-        <.enter-package-scope($<longname>)>
+        <.stub-package($<longname>)>
+        <trait($*PACKAGE)>*
+        <.enter-package-scope>
         [
         || <?[{]> <block>
         || <.panic("Unable to parse $*PKGDECL definition")>
@@ -1280,7 +1282,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.leave-package-scope>
     }
 
-    token enter-package-scope($*PACKAGE-NAME) { <?> }
+    token stub-package($*PACKAGE-NAME) { <?> }
+    token enter-package-scope() { <?> }
     token leave-package-scope { <?> }
 
     proto token scope_declarator { <...> }
@@ -1403,6 +1406,28 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ '(' <signature> ')' ]?
         <blockoid>
         <.leave-block-scope>
+    }
+
+    rule trait($*TARGET?) {
+        :my $*IN_DECL := '';
+        <trait_mod>
+    }
+
+    proto rule trait_mod { <...> }
+    rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>]
+                                  || 'return' <.panic: 'Invalid trait modifier (did you mean \'returns\'?)'> }
+
+    token bad_trait_typename {
+        || <longname> {
+                my $name := $*W.dissect_longname($<longname>);
+                $*W.throw($/, ['X', 'InvalidType'],
+                    :typename($name.name),
+                    :suggestions($*W.suggest_typename($name.name)));
+            }
+        || <.malformed: 'trait'>
     }
 
     ##

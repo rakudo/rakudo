@@ -9,6 +9,8 @@ class RakuAST::Blockoid is RakuAST::SinkPropagator {
         $obj
     }
 
+    method DEPARSE() { "\{\n" ~ $!statement-list.DEPARSE ~ '}' }
+
     method propagate-sink(Bool $is-sunk) {
         $!statement-list.propagate-sink($is-sunk, :has-block-parent(True))
     }
@@ -80,6 +82,10 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         nqp::bindattr($obj, RakuAST::Block, '$!body', $body // RakuAST::Blockoid.new);
         nqp::bindattr_i($obj, RakuAST::Block, '$!implicit-topic-mode', 1);
         $obj
+    }
+
+    method DEPARSE() {
+        '{' ~ $!body.DEPARSE ~ '}'  # XXX needs topic inspection?
     }
 
     method replace-body(RakuAST::Blockoid $new-body) {
@@ -326,6 +332,10 @@ class RakuAST::PointyBlock is RakuAST::Block {
         $obj
     }
 
+    method DEPARSE() {
+        '-> ' ~ $!signature.DEPARSE ~ "\{\n" ~ self.body.DEPARSE ~ '}'
+    }
+
     method replace-signature(RakuAST::Signature $new-signature) {
         nqp::bindattr(self, RakuAST::PointyBlock, '$!signature', $new-signature);
         Nil
@@ -360,6 +370,11 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Routine, '$!body', $body // RakuAST::Blockoid.new);
         $obj
+    }
+
+    method DEPARSE() {
+        my $sig := '(' ~ $!signature.DEPARSE ~ ") \{\n" ~ $!body.DEPARSE ~ '}';
+        $!name ?? $!name ~ $sig !! $sig
     }
 
     method replace-name(RakuAST::Name $new-name) {
@@ -496,6 +511,9 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
 # A subroutine.
 class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
+
+    method DEPARSE() { 'sub ' ~ callsame }
+
     method IMPL-META-OBJECT-TYPE() { Sub }
 
     method default-scope() {
@@ -510,6 +528,8 @@ class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
 # A method.
 class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
     method IMPL-META-OBJECT-TYPE() { Method }
+
+    method DEPARSE() { 'method ' ~ callsame }
 
     method default-scope() {
         self.name ?? 'has' !! 'anon'
@@ -543,6 +563,9 @@ class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
 
 # A submethod.
 class RakuAST::Submethod is RakuAST::Method {
+
+    method DEPARSE() { 'sub' ~ callsame }
+
     method IMPL-META-OBJECT-TYPE() { Submethod }
 }
 

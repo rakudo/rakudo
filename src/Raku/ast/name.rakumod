@@ -9,6 +9,8 @@ class RakuAST::Name is RakuAST::Node {
         $obj
     }
 
+    method DEPARSE() { self.canonicalize }
+
     method from-identifier(Str $identifier) {
         self.new(RakuAST::Name::Part::Simple.new($identifier))
     }

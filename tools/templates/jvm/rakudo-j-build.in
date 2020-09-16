@@ -1,0 +1,5 @@
+$ENV{RAKUDO_HOME} = '@sq_escape(@base_dir@/gen/build_rakudo_home)@';
+
+my $exit = system {'@java@'} ('@java@', '-Xss1m', '-Xms500m', '-Xmx3000m', '-cp', '@sq_escape(@classpath@)@', 'perl6', @ARGV);
+
+exit($exit >> 8);

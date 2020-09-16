@@ -1,0 +1,5 @@
+$ENV{RAKUDO_HOME} = '@sq_escape(@base_dir@/gen/build_rakudo_home)@';
+
+my $exit = system {'@sq_escape(@moar@)@'} ('@sq_escape(@moar@)@', '--libpath=@sq_escape(@base_dir@/blib)@', '--libpath=@sq_escape(@nqp_libdir@)@', '@sq_escape(@rakudo@)@', @ARGV);
+
+exit($exit >> 8);

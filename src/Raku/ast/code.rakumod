@@ -424,7 +424,6 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context) {
-        # TODO return handler
         my $block := QAST::Block.new(
             :blocktype('declaration_static'),
             self.IMPL-QAST-DECLS($context)
@@ -432,8 +431,42 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         $block.push($!signature.IMPL-TO-QAST($context));
         $block.arity($!signature.arity);
         $block.annotate('count', $!signature.count);
-        $block.push(self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!body.IMPL-TO-QAST($context)));
+        $block.push(self.IMPL-WRAP-RETURN-HANDLER($context,
+            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!body.IMPL-TO-QAST($context))));
         $block
+    }
+
+    method IMPL-WRAP-RETURN-HANDLER(RakuAST::IMPL::QASTContext $context, RakuAST::Node $body) {
+        my $result := $body;
+        my $routine := self.compile-time-value;
+        my $signature := nqp::getattr($routine, Code, '$!signature');
+        $context.ensure-sc($routine);
+
+        # Add return exception and decont handler if needed.
+        # TODO optimize out if provably no return call
+        my str $decont-rv-op := $context.lang-version lt 'd' && $context.is-moar
+            ?? 'p6decontrv_6c'
+            !! 'p6decontrv';
+        $result := QAST::Op.new(
+            :op<handlepayload>,
+            QAST::Op.new( :op($decont-rv-op), QAST::WVal.new( :value($routine) ), $result ),
+            'RETURN',
+            QAST::Op.new( :op<lastexpayload> )
+        );
+
+        # Add return type check if needed.
+        # TODO also infer body type
+        my $returns := nqp::ifnull($signature.returns, Mu);
+        unless $returns =:= Mu {
+            $result := QAST::Op.new(
+                :op('p6typecheckrv'),
+                $result,
+                QAST::WVal.new( :value($routine) ),
+                QAST::WVal.new( :value(Nil) )
+            );
+        }
+
+        $result
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {

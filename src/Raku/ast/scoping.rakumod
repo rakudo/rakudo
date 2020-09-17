@@ -405,14 +405,15 @@ class RakuAST::Declaration::LexicalPackage is RakuAST::Declaration is RakuAST::C
     }
 }
 
-# A constant resolved in a package. Has a compile time value, and the resolution
-# always compiles into that. The name it was looked up under is not preserved.
-class RakuAST::Declaration::PackageConstant is RakuAST::Declaration is RakuAST::CompileTimeValue {
+# A constant value that has been resolved. Has a compile time value, and the
+# resolution always compiles into that. The name it was looked up under is
+# not preserved.
+class RakuAST::Declaration::ResolvedConstant is RakuAST::Declaration is RakuAST::CompileTimeValue {
     has Mu $.compile-time-value;
 
     method new(Mu :$compile-time-value!) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Declaration::PackageConstant,
+        nqp::bindattr($obj, RakuAST::Declaration::ResolvedConstant,
             '$!compile-time-value', $compile-time-value);
         $obj
     }
@@ -428,6 +429,14 @@ class RakuAST::Declaration::PackageConstant is RakuAST::Declaration is RakuAST::
     method default-scope() { 'package' }
 
     method allowed-scopes() { self.IMPL-WRAP-LIST(['package']) }
+
+    method IMPL-CAN-INTERPRET() {
+        True
+    }
+
+    method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
+        $!compile-time-value
+    }
 }
 
 # Done by anything that is a lookup of a symbol. May or may not need resolution

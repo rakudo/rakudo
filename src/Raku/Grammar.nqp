@@ -1394,6 +1394,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.enter-block-scope(nqp::tclc($declarator))>
         <deflongname('my')>?
         [ '(' <signature> ')' ]?
+        <trait($*BLOCK)>* :!s
         <blockoid>
         <.leave-block-scope>
     }

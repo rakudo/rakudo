@@ -375,7 +375,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         $obj
     }
 
-    method DEPARSE() {
+    method IMPL-DEPARSE-ROUTINE() {
         my $sig := '(' ~ $!signature.DEPARSE ~ ") \{\n" ~ $!body.DEPARSE ~ '}';
         $!name ?? $!name ~ $sig !! $sig
     }
@@ -519,7 +519,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 # A subroutine.
 class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
 
-    method DEPARSE() { 'sub ' ~ callsame }
+    method DEPARSE() { 'sub ' ~ self.IMPL-DEPARSE-ROUTINE }
 
     method IMPL-META-OBJECT-TYPE() { Sub }
 
@@ -536,7 +536,7 @@ class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
 class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
     method IMPL-META-OBJECT-TYPE() { Method }
 
-    method DEPARSE() { 'method ' ~ callsame }
+    method DEPARSE() { 'method ' ~ self.IMPL-DEPARSE-ROUTINE }
 
     method default-scope() {
         self.name ?? 'has' !! 'anon'
@@ -571,7 +571,7 @@ class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
 # A submethod.
 class RakuAST::Submethod is RakuAST::Method {
 
-    method DEPARSE() { 'sub' ~ callsame }
+    method DEPARSE() { 'submethod' ~ self.IMPL-DEPARSE-ROUTINE }
 
     method IMPL-META-OBJECT-TYPE() { Submethod }
 }

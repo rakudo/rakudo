@@ -1,53 +1,63 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 73;
+plan 71;
 
-{
+my $ast;   # so we don't need to repeat the "my" all the time
+
+subtest 'Lexical variable lookup ($ sigil)' => {
     my $x = 42;
-    is-deeply  # $x
-            EVAL(RakuAST::Var::Lexical.new('$x')),
-            42,
-            'Lexical variable lookup ($ sigil)';
+
+    # $x
+    $ast := RakuAST::Var::Lexical.new('$x');
+    is-deeply $_, 42
+      for EVAL($ast), try EVAL($ast.DEPARSE);
 }
 
-is-deeply  # &plan
-        EVAL(RakuAST::Var::Lexical.new('&plan')),
-        &plan,
-        'Lexical variable lookup (& sigil)';
+subtest 'Lexical variable lookup (& sigil)' => {
 
-{
+    # &plan
+    $ast := RakuAST::Var::Lexical.new('&plan');
+    is-deeply $_, &plan
+      for EVAL($ast), try EVAL($ast.DEPARSE);
+}
+
+subtest 'Positional capture variable lookup works' => {
     my $/;
     "abc" ~~ /(.)(.)/;
-    is-deeply  # $0
-        EVAL(RakuAST::Var::PositionalCapture.new(0)).Str,
-        "a",
-        'Positional capture variable lookup works (1)';
-    is-deeply  # $1
-        EVAL(RakuAST::Var::PositionalCapture.new(1)).Str,
-        "b",
-        'Positional capture variable lookup works (2)';
+
+    # $0
+    $ast := RakuAST::Var::PositionalCapture.new(0);
+    is-deeply $_, "a"
+      for EVAL($ast).Str, try EVAL($ast.DEPARSE).Str;
+
+    # $1
+    $ast := RakuAST::Var::PositionalCapture.new(1);
+    is-deeply $_, "b"
+      for EVAL($ast).Str, try EVAL($ast.DEPARSE).Str;
 }
 
-{
+subtest 'Named capture variable lookup works' => {
     my $/;
     "abc" ~~ /$<x>=(.)$<y>=(.)/;
-    is-deeply  # $<y>
-        EVAL(RakuAST::Var::NamedCapture.new(
-            RakuAST::QuotedString.new(
-                segments => [RakuAST::StrLiteral.new('y')]
-            )
-        )).Str,
-        "b",
-        'Named capture variable lookup works (1)';
-    is-deeply  # $<x>
-        EVAL(RakuAST::Var::NamedCapture.new(
-            RakuAST::QuotedString.new(
-                segments => [RakuAST::StrLiteral.new('x')]
-            )
-        )).Str,
-        "a",
-        'Named capture variable lookup works (2)';
+
+    # $<y>
+    $ast := RakuAST::Var::NamedCapture.new(
+      RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new('y')]
+      )
+    );
+    is-deeply $_, "b"
+      for EVAL($ast).Str, try EVAL($ast.DEPARSE).Str;
+
+    # $<x>
+    $ast := RakuAST::Var::NamedCapture.new(
+      RakuAST::QuotedString.new(
+        segments => [RakuAST::StrLiteral.new('x')]
+      )
+    );
+    is-deeply $_, "a"
+      for EVAL($ast).Str, try EVAL($ast.DEPARSE).Str;
 }
 
 is-deeply  # my $foo = 10; $foo

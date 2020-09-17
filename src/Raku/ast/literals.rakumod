@@ -163,7 +163,7 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
         $obj
     }
 
-    method DEPARSE() { self.literal-value.raku }
+    method DEPARSE() { self.literal-value }
 
     method IMPL-CHECK-PROCESSORS(Mu $processors) {
         my constant VALID := nqp::hash('words', Mu, 'quotewords', Mu, 'val', Mu, 'exec', 'Mu');

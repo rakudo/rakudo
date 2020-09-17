@@ -3,21 +3,29 @@ use Test;
 
 plan 8;
 
-is-deeply  # 42
-    EVAL(RakuAST::IntLiteral.new(42)), 42,
-        'RakuAST::IntLiteral with constant';
-
-{
-    my $a = 100;
-    my $b = 6;
-    is-deeply  # 106
-      EVAL(RakuAST::IntLiteral.new($a + $b)), 106,
-            'RakuAST::IntLiteral with calculated value';
+subtest 'RakuAST::IntLiteral with constant' => {
+    # 42
+    my $ast := RakuAST::IntLiteral.new(42);
+    is-deeply EVAL($ast), 42;
+    is-deeply $ast.DEPARSE, "42";
 }
 
-is-deeply  # 4e2
-    EVAL(RakuAST::NumLiteral.new(4e2)), 4e2,
-        'RakuAST::NumLiteral with constant';
+subtest 'RakuAST::IntLiteral with calculated value' => {
+    my $a = 100;
+    my $b = 6;
+
+    # 106
+    my $ast := RakuAST::IntLiteral.new($a + $b);
+    is-deeply EVAL($ast), 106;
+    is-deeply $ast.DEPARSE, "106";
+}
+
+subtest 'RakuAST::NumLiteral with constant' => {
+    # 4e2
+    my $ast := RakuAST::NumLiteral.new(4e2);
+    is-deeply EVAL($ast), 4e2;
+    is-deeply $ast.DEPARSE, "400e0";
+}
 
 {
     my $a = 2e4;

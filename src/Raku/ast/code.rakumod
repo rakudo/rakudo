@@ -357,18 +357,21 @@ class RakuAST::PointyBlock is RakuAST::Block {
 # Done by all kinds of Routine.
 class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
                        is RakuAST::SinkBoundary is RakuAST::Declaration
-                       is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget {
+                       is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget
+                       is RakuAST::BeginTime is RakuAST::TraitTarget {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
     has RakuAST::Blockoid $.body;
 
-    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature, RakuAST::Blockoid :$body) {
+    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
+            List :$traits, RakuAST::Blockoid :$body) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
         nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
             // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::Routine, '$!body', $body // RakuAST::Blockoid.new);
+        $obj.set-traits($traits);
         $obj
     }
 
@@ -402,11 +405,14 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method PRODUCE-META-OBJECT() {
-        # Create meta-object and install signature.
         my $routine := nqp::create(self.IMPL-META-OBJECT-TYPE);
         my $signature := self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
         $routine
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        self.apply-traits($resolver, self)
     }
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
@@ -505,6 +511,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor($!signature);
+        self.visit-traits($visitor);
         $visitor($!body);
     }
 }

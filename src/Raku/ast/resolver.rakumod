@@ -146,7 +146,7 @@ class RakuAST::Resolver {
             }
 
             # Wrap it.
-            RakuAST::Declaration::PackageConstant.new(compile-time-value => $cur-symbol)
+            RakuAST::Declaration::ResolvedConstant.new(compile-time-value => $cur-symbol)
         }
     }
 

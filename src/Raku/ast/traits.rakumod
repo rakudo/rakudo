@@ -87,7 +87,9 @@ class RakuAST::Trait is RakuAST::ImplicitLookups {
         unless self.applied {
             self.IMPL-CHECK($resolver, False);
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
-            my $args := self.IMPL-TRAIT-ARGS($resolver, $target);
+            my $decl-target := RakuAST::Declaration::ResolvedConstant.new:
+                compile-time-value => $target.compile-time-value;
+            my $args := self.IMPL-TRAIT-ARGS($resolver, $decl-target);
             $target.IMPL-BEGIN-TIME-CALL(@lookups[0], $args, $resolver);
             self.mark-applied;
         }
@@ -106,7 +108,7 @@ class RakuAST::Trait::Hides is RakuAST::Trait {
 
     method IMPL-TRAIT-NAME() { 'hides' }
 
-    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::TraitTarget $target) {
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
         RakuAST::ArgList.new($target, $!type)
     }
 
@@ -127,7 +129,7 @@ class RakuAST::Trait::Does is RakuAST::Trait {
 
     method IMPL-TRAIT-NAME() { 'does' }
 
-    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::TraitTarget $target) {
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
         RakuAST::ArgList.new($target, $!type)
     }
 
@@ -148,7 +150,7 @@ class RakuAST::Trait::Of is RakuAST::Trait {
 
     method IMPL-TRAIT-NAME() { 'of' }
 
-    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::TraitTarget $target) {
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
         RakuAST::ArgList.new($target, $!type)
     }
 
@@ -169,7 +171,7 @@ class RakuAST::Trait::Returns is RakuAST::Trait {
 
     method IMPL-TRAIT-NAME() { 'returns' }
 
-    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::TraitTarget $target) {
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
         RakuAST::ArgList.new($target, $!type)
     }
 

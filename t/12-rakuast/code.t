@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 31;
+plan 34;
 
 {  # -> () { 101 };
     my $block := EVAL RakuAST::StatementList.new(
@@ -206,3 +206,23 @@ dies-ok
         )),
     },
     'A routine declared anonymous does not declare anything';
+
+{  # sub () returns Int { }
+    my $sub := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Sub.new(
+                traits => [RakuAST::Trait::Returns.new(
+                    RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+                )],
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::IntLiteral.new(66)
+                    )
+                ))
+            )
+        )
+    );
+    ok $sub ~~ Sub, 'A sub node with a trait evaluates to a Sub';
+    is-deeply $sub.returns, Int, 'The returns trait was applied and .returns is correct';
+    ok $sub ~~ Callable[Int], 'It also does the correct parametric Callable';
+}

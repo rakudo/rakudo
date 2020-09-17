@@ -835,6 +835,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $routine.replace-body($<blockoid>.ast);
         $routine.calculate-sink();
+        $routine.ensure-begin-performed($*R);
         make $routine;
     }
 

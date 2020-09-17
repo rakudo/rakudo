@@ -136,7 +136,7 @@ my class Capture { # declared in BOOTSTRAP
         my int $has-hash  = nqp::isconcrete(%!hash) && nqp::elems(%!hash);
         my Mu  $raku     := nqp::list_s();
         if nqp::eqaddr(self.WHAT, Capture) {
-            nqp::push_s($raku, '\(');
+            nqp::push_s($raku, '(');
             if $has-list {
                 my Mu $iter := nqp::iterator(@!list);
                 nqp::push_s($raku, nqp::unbox_s(nqp::shift($iter).raku));
@@ -147,7 +147,8 @@ my class Capture { # declared in BOOTSTRAP
                 nqp::push_s($raku,
                     nqp::unbox_s(self.Capture::hash.sort.map(*.raku).join(', ')));
             }
-            nqp::push_s($raku, ')');
+            nqp::push_s($raku,',') if nqp::elems($raku) == 2;
+            nqp::push_s($raku, ').Capture');
         } else {
             nqp::push_s($raku, nqp::concat(nqp::unbox_s(self.^name), '.new'));
             if $has-list || $has-hash {

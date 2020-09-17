@@ -3,7 +3,12 @@ use Test;
 
 plan 8;
 
-sub ast-ok(RakuAST::Node:D $ast, Mu $value, $comment = "testing for: $value.raku()") {
+# NOTE: this only works when there are no variable references
+sub ast-ok(
+  RakuAST::Node:D $ast,
+  Mu $value,
+  $comment = "testing for: $value.raku()"
+) {
     subtest $comment => {
         plan 2;
         is-deeply EVAL($ast), $value;

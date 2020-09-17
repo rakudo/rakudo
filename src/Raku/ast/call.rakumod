@@ -27,10 +27,9 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
     }
 
     method DEPARSE() {
-        my @args := $!args;
         my $parts := nqp::list_s;
-        for @args {
-            nqp::push_s($parts, $_.DEPARSE);
+        for $!args -> $arg {
+            nqp::push_s($parts, $arg.DEPARSE);
         }
         '(' ~ nqp::join(',',$parts) ~ ')'
     }

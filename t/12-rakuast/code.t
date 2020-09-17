@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 34;
+plan 38;
 
 {  # -> () { 101 };
     my $block := EVAL RakuAST::StatementList.new(
@@ -207,7 +207,7 @@ dies-ok
     },
     'A routine declared anonymous does not declare anything';
 
-{  # sub () returns Int { }
+{  # sub () returns Int { 66 }
     my $sub := EVAL RakuAST::StatementList.new(
         RakuAST::Statement::Expression.new(
             RakuAST::Sub.new(
@@ -225,4 +225,49 @@ dies-ok
     ok $sub ~~ Sub, 'A sub node with a trait evaluates to a Sub';
     is-deeply $sub.returns, Int, 'The returns trait was applied and .returns is correct';
     ok $sub ~~ Callable[Int], 'It also does the correct parametric Callable';
+}
+
+{  # sub () returns Int { $x }
+    my $sub := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Sub.new(
+                traits => [RakuAST::Trait::Returns.new(
+                    RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+                )],
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Var::Lexical.new('$x')
+                    )
+                ))
+            )
+        )
+    );
+    my $x = 42;
+    lives-ok { $sub() }, 'Return type constraint does not complain when type matches';
+    $x = 'oops';
+    dies-ok { $sub() }, 'Return type constraint has effect when type does not match';
+}
+
+{  # sub () returns Int { return $x }
+    my $sub := EVAL RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+            RakuAST::Sub.new(
+                traits => [RakuAST::Trait::Returns.new(
+                    RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+                )],
+                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                        RakuAST::Call::Name.new(
+                            name => RakuAST::Name.from-identifier('return'),
+                            args => RakuAST::ArgList.new(RakuAST::Var::Lexical.new('$x'))
+                        )
+                    )
+                ))
+            )
+        )
+    );
+    my $x = 42;
+    lives-ok { $sub() }, 'Using return with acceptable type works';
+    $x = 'oops';
+    dies-ok { $sub() }, 'Using return with unaccptable type dies';
 }

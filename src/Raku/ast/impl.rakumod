@@ -20,6 +20,10 @@ class RakuAST::IMPL::QASTContext {
     # TODO implement this properly
     method lang-version() { 'd' }
 
+    method is-moar() {
+        nqp::getcomp('Raku').backend.name eq 'moar'
+    }
+
     # Ensure that the passed object is in a serialization context.
     method ensure-sc(Mu $obj is raw) {
         if nqp::isnull(nqp::getobjsc($obj)) {

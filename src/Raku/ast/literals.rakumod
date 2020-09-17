@@ -7,7 +7,7 @@ class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $obj
     }
 
-    method DEPARSE() { $!value.Str }
+    method DEPARSE() { $!value.raku }
 
     method type {
         $!value.WHAT
@@ -38,7 +38,7 @@ class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $obj
     }
 
-    method DEPARSE() { $!value.Str }
+    method DEPARSE() { $!value.raku }
 
     method type {
         $!value.WHAT
@@ -67,7 +67,7 @@ class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $obj
     }
 
-    method DEPARSE() { $!value.Str }
+    method DEPARSE() { $!value.raku }
 
     method type {
         $!value.WHAT
@@ -95,7 +95,7 @@ class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $obj
     }
 
-    method DEPARSE() { $!value.Str }
+    method DEPARSE() { $!value.raku }
 
     method type {
         $!value.WHAT

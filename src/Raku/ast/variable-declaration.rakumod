@@ -14,6 +14,8 @@ class RakuAST::Initializer::Assign is RakuAST::Initializer {
         $obj
     }
 
+    method DEPARSE() { ' = ' ~ $!expression.DEPARSE }
+
     method visit-children(Code $visitor) {
         $visitor($!expression);
     }
@@ -32,6 +34,8 @@ class RakuAST::Initializer::Bind is RakuAST::Initializer {
         nqp::bindattr($obj, RakuAST::Initializer::Bind, '$!expression', $expression);
         $obj
     }
+
+    method DEPARSE() { ' := ' ~ $!expression.DEPARSE }
 
     method is-binding() { True }
 
@@ -61,6 +65,22 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
             $initializer // RakuAST::Initializer);
         $obj
+    }
+
+    method DEPARSE() {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts, self.scope);
+        nqp::push_s($parts, ' ');
+        if $!type {
+            nqp::push_s($parts, $!type.DEPARSE);
+            nqp::push_s($parts, ' ');
+        }
+        nqp::push_s($parts, $!name);
+        if $!initializer {
+            nqp::push_s($parts, $!initializer.DEPARSE);
+        }
+
+        nqp::join('', $parts)
     }
 
     method lexical-name() {
@@ -378,6 +398,8 @@ class RakuAST::VarDeclaration::Implicit is RakuAST::Declaration {
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         $obj
     }
+
+    method DEPARSE() { $!name }
 
     method lexical-name() {
         $!name

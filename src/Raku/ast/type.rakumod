@@ -12,6 +12,8 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
         $obj
     }
 
+    method DEPARSE() { $!name.DEPARSE }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-name-constant($!name);
         if $resolved {

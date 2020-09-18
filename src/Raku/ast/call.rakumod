@@ -230,6 +230,8 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
         $obj
     }
 
+    method DEPARSE() { $!name.DEPARSE }
+
     method visit-children(Code $visitor) {
         $visitor($!name);
         $visitor(self.args);

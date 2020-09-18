@@ -245,6 +245,8 @@ class RakuAST::LexicalScope is RakuAST::Node {
 class RakuAST::Declaration is RakuAST::Node {
     has str $!scope;
 
+    method DEPARSE() { self.scope }
+
     # Returns the default scope of this kind of declaration.
     method default-scope() {
         nqp::die('default-scope is not implemented on ' ~ self.HOW.name(self))

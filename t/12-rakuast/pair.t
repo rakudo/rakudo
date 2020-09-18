@@ -3,51 +3,66 @@ use Test;
 
 plan 6;
 
-is-deeply  # answer => 42
-        EVAL(RakuAST::FatArrow.new(
-            key => 'answer',
-            value => RakuAST::IntLiteral.new(42)
-        )),
-        (answer => 42),
-        'Fat arrow syntax forms a Pair';
+my $ast;
 
-is-deeply  # :r
-        EVAL(RakuAST::ColonPair::True.new(
-            key => 'r'
-        )),
-        (r => True),
-        'True colonpair forms a Pair with value True';
+subtest 'Fat arrow syntax forms a Pair' => {
+    # answer => 42
+    $ast := RakuAST::FatArrow.new(
+      key => 'answer',
+      value => RakuAST::IntLiteral.new(42)
+    );
 
-is-deeply  # :!r
-        EVAL(RakuAST::ColonPair::False.new(
-            key => 'r'
-        )),
-        (r => False),
-        'False colonpair forms a Pair with value False';
+    is-deeply $_, (answer => 42),
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
 
-is-deeply  # :answer(42)
-        EVAL(RakuAST::ColonPair::Number.new(
-            key => 'answer',
-            value => RakuAST::IntLiteral.new(42)
-        )),
-        (answer => 42),
-        'Number colonpair forms a Pair with the correct Int value';
+subtest 'True colonpair forms a Pair with value True' => {
+    # :r
+    $ast := RakuAST::ColonPair::True.new(key => 'r');
 
-is-deeply  # :cheese<stilton>
-        EVAL(RakuAST::ColonPair::Value.new(
-            key => 'cheese',
-            value => RakuAST::StrLiteral.new('stilton')
-        )),
-        (cheese => 'stilton'),
-        'Value colonpair forms a Pair with the correct value';
+    is-deeply $_, (r => True),
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
 
-{  # :$curry
+subtest 'False colonpair forms a Pair with value False' => {
+    # :!r
+    $ast := RakuAST::ColonPair::False.new(key => 'r');
+
+    is-deeply $_, (r => False),
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Number colonpair forms a Pair with the correct Int value' => {
+    # :answer(42)
+    $ast := RakuAST::ColonPair::Number.new(
+      key => 'answer',
+      value => RakuAST::IntLiteral.new(42)
+    );
+
+    is-deeply $_, (answer => 42)
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Value colonpair forms a Pair with the correct value' => {
+    # :cheese<stilton>
+    $ast := RakuAST::ColonPair::Value.new(
+      key => 'cheese',
+      value => RakuAST::StrLiteral.new('stilton')
+    );
+
+    is-deeply $_, (cheese => 'stilton')
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Variable colonpair forms a Pair that looks up the variable' => {
     my $curry = 'red';
-    is-deeply
-            EVAL(RakuAST::ColonPair::Variable.new(
-                key => 'curry',
-                value => RakuAST::Var::Lexical.new('$curry')
-            )),
-            (curry => 'red'),
-            'Variable colonpair forms a Pair that looks up the variable';
+
+    # :$curry
+    $ast := RakuAST::ColonPair::Variable.new(
+      key => 'curry',
+      value => RakuAST::Var::Lexical.new('$curry')
+    );
+
+    is-deeply $_, (curry => 'red')
+      for EVAL($ast), EVAL($ast.DEPARSE);
 }

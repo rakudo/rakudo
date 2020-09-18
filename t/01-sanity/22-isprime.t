@@ -3,7 +3,7 @@
 
 use nqp;
 
-for ^100000 {
+for -99999 .. 99999 {
     if nqp::isprime_I($_,20) != .is-prime {
         say "not ok 1 - $_ mismatches prime test";
         exit

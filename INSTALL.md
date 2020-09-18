@@ -159,13 +159,6 @@ If you want to run the tests in parallel, you need to install a fairly
 recent version of the Perl 5 module Test::Harness (as above, we
 recommend version 3.16 or newer).
 
-# Spectest requirements (Windows)
+# SEE ALSO
 
-You need recent version of either Strawberry Perl or ActiveState Perl.
-
-If you are working with ActiveState Perl you need the Mingw gcc compiler.
-
-You need msys git installed and you need "\Program Files\Git\cmd" on your
-execution path and NOT "\Program Files\Git\bin".
-
-You need a win32 curl program.
+- CAVEATS.md 

@@ -6,14 +6,13 @@
 
 You need a recent version of either Strawberry Perl or ActiveState Perl.
 
-If you are working with ActiveState Perl you will need the Mingw gcc
-compiler.
+You will need a compiler - Strawberry Perl ships with one. You can also
+use MSVC or Mingw gcc.
 
 You need msys git installed and "\Program Files\Git\cmd" on your execution
 path and NOT "\Program Files\Git\bin".
 
 You will also need a win32 curl program.
-
 
 ## macOS
 

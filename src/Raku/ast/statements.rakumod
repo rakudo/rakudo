@@ -128,6 +128,8 @@ class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookup
         nqp::create(self)
     }
 
+    method DEPARSE() { "" }
+
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
@@ -151,6 +153,8 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!expression', $expression);
         $obj
     }
+
+    method DEPARSE() { $!expression.DEPARSE }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!expression.IMPL-TO-QAST($context)
@@ -195,7 +199,7 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
         nqp::bindattr($obj, RakuAST::Statement::If, '$!else', $else // RakuAST::Block);
         $obj
     }
-    
+
     method elsifs() {
         self.IMPL-WRAP-LIST($!elsifs)
     }

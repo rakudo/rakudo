@@ -7,8 +7,9 @@ use Perl6::SysConfig;
 # Initialize Rakudo runtime support.
 nqp::p6init();
 
-nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new());
-hll-config(nqp::gethllsym('default', 'SysConfig').rakudo-build-config);
+my %rakudo-build-config := nqp::hash();
+hll-config(%rakudo-build-config);
+nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-config));
 
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();

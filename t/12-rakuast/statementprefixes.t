@@ -1,38 +1,50 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 43;
+plan 17;
 
-is-deeply  # do 137
-        EVAL(RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::StatementPrefix::Do.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(137)
-                    )
+my $ast;
+
+subtest 'The do statement prefix works with a statement' => {
+    # do 137
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::StatementPrefix::Do.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::IntLiteral.new(137)
+          )
+        )
+      )
+    );
+
+    is-deeply $_, 137
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'The do statement prefix works with a block' => {
+    # do { 199 }
+    my $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::StatementPrefix::Do.new(
+          RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  RakuAST::IntLiteral.new(199)
                 )
+              )
             )
-        )),
-        137,
-        'The do statement prefix works with a statement';
+          )
+        )
+      )
+    );
 
-is-deeply  # do { 199 }
-        EVAL(RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::StatementPrefix::Do.new(
-                    RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::IntLiteral.new(199)
-                        )
-                    )))
-                )
-            )
-        )),
-        199,
-        'The do statement prefix works with a block';
+    is-deeply $_, 199
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
 
-{
-    my $warned = False;
+subtest 'The quietly statement prefix works' => {
+    my $warned;
     CONTROL {
         default {
             $warned = True;
@@ -44,135 +56,188 @@ is-deeply  # do { 199 }
         "survived"
     }
 
-    is-deeply  # quietly do-warning()
-            EVAL(RakuAST::StatementList.new(
-                RakuAST::Statement::Expression.new(
-                    RakuAST::StatementPrefix::Quietly.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::Call::Name.new(
-                                name => RakuAST::Name.from-identifier('do-warning')
-                            )
-                        )
-                    )
-                )
-            )),
-            "survived",
-            'The quietly statement prefix works with a statement';
+    # quietly do-warning()
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::StatementPrefix::Quietly.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('do-warning')
+            )
+          )
+        )
+      )
+    );
+
+    $warned = False;
+    is-deeply EVAL($ast), "survived", 'with a statement';
     nok $warned, 'The warning was suppressed';
 
-    is-deeply  # quietly { do-warning() }
-            EVAL(RakuAST::StatementList.new(
+    $warned = False;
+    is-deeply EVAL($ast.DEPARSE), "survived", 'DEPARSE with a statement';
+    nok $warned, 'The warning was suppressed';
+
+    # quietly { do-warning() }
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::StatementPrefix::Quietly.new(
+          RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                    RakuAST::StatementPrefix::Quietly.new(
-                        RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::Call::Name.new(
-                                    name => RakuAST::Name.from-identifier('do-warning')
-                                )
-                            )
-                        )))
-                    )
+                  RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('do-warning')
+                  )
                 )
-            )),
-            "survived",
-            'The quietly statement prefix works with a block';
+              )
+            )
+          )
+        )
+      )
+    );
+
+    $warned = False;
+    is-deeply EVAL($ast), "survived", 'with a block';
+    nok $warned, 'The warning was suppressed';
+
+    $warned = False;
+    is-deeply EVAL($ast.DEPARSE), "survived", 'DEPARSE with a block';
     nok $warned, 'The warning was suppressed';
 }
 
-{
-    my $done = False;
+subtest 'The gather statement prefix works on a statement' => {
+    my $done;
     sub do-takes() {
         $done = True;
         take 111;
         take 222;
     }
+
     # gather do-takes()
-    my \result = EVAL(RakuAST::StatementList.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::StatementPrefix::Gather.new(
-                RakuAST::Statement::Expression.new(
-                    RakuAST::Call::Name.new(
-                        name => RakuAST::Name.from-identifier('do-takes')
-                    )
-                )
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::StatementPrefix::Gather.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('do-takes')
             )
+          )
         )
-    ));
-    isa-ok result, Seq, 'Got a Seq back from gather (expression form)';
-    nok $done, 'The gather is lazy';
-    my @elems = result;
-    is-deeply @elems, [111, 222], 'Got correct result from the gather expression';
+      )
+    );
+
+    $done = False;
+    for EVAL($ast), EVAL($ast.DEPARSE) -> \result {
+        isa-ok result, Seq, 'Got a Seq back from gather (expression form)';
+        is-deeply $done, False, 'The gather is lazy';
+        my @elems = result;
+        is-deeply $done, True, 'Gathered the takes';
+        is-deeply @elems, [111, 222], 'Got correct result from the gather expression';
+        $done = False;
+    }
 }
 
-{
-    my $done = False;
+subtest 'The gather statement prefix works on a block' => {
+    my $done;
     sub do-takes() {
         $done = True;
         take 333;
         take 444;
     }
     # gather { do-takes() }
-    my \result = EVAL(RakuAST::StatementList.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::StatementPrefix::Gather.new(
-                RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::Call::Name.new(
-                            name => RakuAST::Name.from-identifier('do-takes')
-                        )
-                    )
-                )))
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::StatementPrefix::Gather.new(
+          RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  RakuAST::Call::Name.new(
+                    name => RakuAST::Name.from-identifier('do-takes')
+                  )
+                )
+              )
             )
+          )
         )
-    ));
-    isa-ok result, Seq, 'Got a Seq back from gather (block form)';
-    nok $done, 'The gather is lazy';
-    my @elems = result;
-    is-deeply @elems, [333, 444], 'Got correct result from the gather block';
+      )
+    );
+
+    $done = False;
+    for EVAL($ast), EVAL($ast.DEPARSE) -> \result {
+        isa-ok result, Seq, 'Got a Seq back from gather (block form)';
+        is-deeply $done, False, 'The gather is lazy';
+        my @elems = result;
+        is-deeply $done, True, 'Gathered the takes';
+        is-deeply @elems, [333, 444], 'Got correct result from the gather expression';
+        $done = False;
+    }
 }
 
-{
+subtest "The race / hyper / lazy / eager statement prefixes work" => {
     my class ContextMe {
         has @.called;
-        method race() { @!called.push('race'); 'result' }
+        method race()  { @!called.push('race');  'result' }
         method hyper() { @!called.push('hyper'); 'result' }
-        method lazy() { @!called.push('lazy'); 'result' }
+        method lazy()  { @!called.push('lazy');  'result' }
         method eager() { @!called.push('eager'); 'result' }
     }
 
     for <race hyper lazy eager> -> $context {
-        my $c = ContextMe.new;
-        is-deeply  # race|hyper|lazy|eager $c
-                EVAL(RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::StatementPrefix::{tclc $context}.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::Var::Lexical.new('$c')
-                            )
-                        )
-                    )
-                )),
-                'result',
-                "The $context statement prefix works with a statement";
+        my $c;
+        my $result;
+
+        # race|hyper|lazy|eager $c
+        $ast := RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::StatementPrefix::{tclc $context}.new(
+              RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$c')
+              )
+            )
+          )
+        );
+
+        $c = ContextMe.new;
+        $result := EVAL($ast);
+        is-deeply $result, 'result', "$context works with a statement";
+        is-deeply $c.called, [$context], 'Correct context method was called';
+
+        $c = ContextMe.new;
+        $result := EVAL($ast.DEPARSE);
+        is-deeply $result, 'result', "DEPARSE $context works with a statement";
         is-deeply $c.called, [$context], 'Correct context method was called';
     }
 
     for <race hyper lazy eager> -> $context {
-        my $c = ContextMe.new;
-        is-deeply  # race|hyper|lazy|eager { $c }
-                EVAL(RakuAST::StatementList.new(
+        my $c;
+        my $result;
+
+        # race|hyper|lazy|eager { $c }
+        $ast := RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::StatementPrefix::{tclc $context}.new(
+              RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                        RakuAST::StatementPrefix::{tclc $context}.new(
-                            RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                                RakuAST::Statement::Expression.new(
-                                    RakuAST::Var::Lexical.new('$c')
-                                )
-                            )))
-                        )
+                      RakuAST::Var::Lexical.new('$c')
                     )
-                )),
-                'result',
-                "The $context statement prefix works with a block";
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        $c = ContextMe.new;
+        $result := EVAL($ast);
+        is-deeply $result, 'result', "$context works with a block";
+        is-deeply $c.called, [$context], 'Correct context method was called';
+
+        $c = ContextMe.new;
+        $result := EVAL($ast.DEPARSE);
+        is-deeply $result, 'result', "DEPARSE $context works with a block";
         is-deeply $c.called, [$context], 'Correct context method was called';
     }
 }
@@ -187,18 +252,25 @@ is-deeply  # try 99
     'try statement prefix with expression producing value results in the value';
 is-deeply $!, Nil, 'The $! variable is Nil when not exception';
 
-is-deeply  # try die "hard"
-    EVAL(RakuAST::StatementPrefix::Try.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::Call::Name.new(
-                name => RakuAST::Name.from-identifier('die'),
-                args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('hard'))
-            )
+subtest 'try statement prefix with throwing expression handles the exception' => {
+    # try die "hard"
+    $ast := RakuAST::StatementPrefix::Try.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('die'),
+          args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('hard'))
         )
-    )),
-    Nil,
-    'try statement prefix with throwing expression handles the exception';
-is $!, 'hard', '$! is populated with the exception';
+      )
+    );
+
+    $! = 42;
+    is-deeply EVAL($ast), Nil, 'AST';
+    is-deeply $!.Str, 'hard', '$! is populated with the exception';
+
+    $! = 42;
+    is-deeply EVAL($ast.DEPARSE), Nil, 'DEPARSE';
+    is-deeply $!.Str, 'hard', '$! is populated with the exception';
+}
 
 is-deeply  # try { 999 }
     EVAL(RakuAST::StatementPrefix::Try.new(
@@ -212,72 +284,113 @@ is-deeply  # try { 999 }
     'try statement prefix with block producing value results in the value';
 is-deeply $!, Nil, 'The $! variable is Nil when not exception';
 
-is-deeply  # try { die "another day" }
-    EVAL(RakuAST::StatementPrefix::Try.new(
-        RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+subtest 'try statement prefix with throwing block handles the exception' => {
+    # try { die "another day" }
+    $ast := RakuAST::StatementPrefix::Try.new(
+      RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::Call::Name.new(
-                    name => RakuAST::Name.from-identifier('die'),
-                    args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('another day'))
-                )
+              RakuAST::Call::Name.new(
+                name => RakuAST::Name.from-identifier('die'),
+                args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('another day'))
+              )
             )
-        )))
-    )),
-    Nil,
-    'try statement prefix with throwing block handles the exception';
-is $!, 'another day', '$! is populated with the exception';
+          )
+        )
+      )
+    );
 
-{  # start 111
-    my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
+    $! = 42;
+    is-deeply EVAL($ast), Nil, 'AST';
+    is-deeply $!.Str, 'another day', '$! is populated with the exception';
+
+    $! = 42;
+    is-deeply EVAL($ast.DEPARSE), Nil, 'DEPARSE';
+    is-deeply $!.Str, 'another day', '$! is populated with the exception';
+}
+
+subtest 'start statement prefix with expression evalutes to Promise' => {
+    # start 111
+    $ast := RakuAST::StatementPrefix::Start.new(
         RakuAST::Statement::Expression.new(
             RakuAST::IntLiteral.new(111)
         )
-    ));
-    isa-ok $promise, Promise, 'start statement prefix with expression evalutes to Promise';
-    is-deeply await($promise), 111, 'Correct result from Promise';
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $promise {
+        isa-ok $promise, Promise, $type;
+        is-deeply await($promise), 111, 'Correct result from Promise';
+    }
 }
 
-{  # start { 137 }
-    my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
-        RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+subtest 'start statement prefix with block evalutes to Promise' => {
+    # start { 137 }
+    $ast := RakuAST::StatementPrefix::Start.new(
+      RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::IntLiteral.new(137)
+              RakuAST::IntLiteral.new(137)
             )
-        )))
-    ));
-    isa-ok $promise, Promise, 'start statement prefix with block evalutes to Promise';
-    is-deeply await($promise), 137, 'Correct result from Promise';
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $promise {
+        isa-ok $promise, Promise, $type;
+        is-deeply await($promise), 137, 'Correct result from Promise';
+    }
 }
 
-{
-    my $/ = 42;
+subtest 'A start has a fresh $/' => {
     # start $/
-    my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$/')
-        )
-    ));
-    todo 'fresh specials nyi';
-    nok await($promise) ~~ 42, 'A start has a fresh $/';
+    $ast := RakuAST::StatementPrefix::Start.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::Var::Lexical.new('$/')
+      )
+    );
+
+    {
+        my $/ = 42;
+        todo 'fresh specials nyi';
+        nok await(EVAL($ast)) ~~ 42, 'AST: A start has a fresh $/';
+    }
+
+    {
+        my $/ = 666;
+        nok await(EVAL($ast.DEPARSE)) ~~ 666, 'DEPARSE: A start has a fresh $/';
+    }
 }
 
-{
-    my $! = 42;
+subtest 'A start has a fresh $!' => {
     # start $!
-    my $promise = EVAL(RakuAST::StatementPrefix::Start.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$!')
-        )
-    ));
-    todo 'fresh specials nyi';
-    nok await($promise) ~~ 42, 'A start has a fresh $!';
+    $ast := RakuAST::StatementPrefix::Start.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::Var::Lexical.new('$!')
+      )
+    );
+
+    {
+        my $! = 42;
+        todo 'fresh specials nyi';
+        nok await(EVAL($ast)) ~~ 42, 'AST: A start has a fresh $!';
+    }
+
+    {
+        my $! = 666;
+        nok await(EVAL($ast.DEPARSE)) ~~ 666, 'DEPARSE: A start has a fresh $!';
+    }
 }
 
-is-deeply  # BEGIN 12
-    EVAL(RakuAST::StatementPrefix::Phaser::Begin.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::IntLiteral.new(12)
-        )
-    )),
-    12,
-    'BEGIN phaser producing a literal expression works';
+subtest 'BEGIN phaser producing a literal expression works' => {
+    # BEGIN 12
+    $ast := RakuAST::StatementPrefix::Phaser::Begin.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::IntLiteral.new(12)
+      )
+    );
+    is-deeply $_, 12
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}

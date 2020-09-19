@@ -147,3 +147,6 @@ t/03-jvm/*.class
 /zef
 .DS_Store
 node_modules/*
+rakudo-m-early-build
+rakudo-js-build
+rakudo-j-build

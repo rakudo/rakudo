@@ -5,7 +5,8 @@ JAR     = jar
 NQP_PREFIX  = @nqp_prefix@
 @bpv(NQP)@       = @shquot(@j_nqp@)@
 @bpv(NQP_RR)@    = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
-@bpv(RUN_RAKUDO)@ = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@rakudo.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ perl6 --rakudo-home=@nfpq($(BASE_DIR)/gen/build_rakudo_home)@
+@bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-j-build
+@bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
 
 @bpv(DEBUG_RUNNER)@ = rakudo-debug-@backend_abbr@@bpm(RUNNER_SUFFIX)@
 
@@ -24,6 +25,7 @@ RUNTIME_JAR = rakudo-runtime.jar
 
 @bpv(CLEANUPS)@ = \
   $(RUNTIME_JAR) \
+  @bpm(RUN_RAKUDO_SCRIPT)@ \
   rakudo-eval-server \
   perl6-eval-server \
   rakudo-jdb-server \
@@ -46,6 +48,13 @@ $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	$(NOECHO)$(MKPATH) bin
 	$(NOECHO)$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
 	$(NOECHO)$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
+
+@bpm(RUN_RAKUDO_SCRIPT)@: @@nfp(@template(@backend_subdir@/rakudo-j-build.in)@)@@
+	$(NOECHO)$(RM_F) @q(@bpm(RUN_RAKUDO_SCRIPT)@)@
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/@bpm(RUN_RAKUDO_SCRIPT)@)@ --out @bpm(RUN_RAKUDO_SCRIPT)@ \
+		--set-var=base_dir=@q($(BASE_DIR))@ \
+		--set-var=java=$(JAVA) \
+		--set-var=classpath=@q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@rakudo.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@
 
 $(J_RUNNER): @@script(create-jvm-runner.pl)@@
 	@echo(+++ Setting up	$@)@

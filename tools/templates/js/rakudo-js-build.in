@@ -1,0 +1,5 @@
+$ENV{RAKUDO_HOME} = '@sq_escape(@base_dir@/gen/build_rakudo_home)@';
+
+my $exit = system {'node'} ('node', '--max-old-space-size=8192', 'rakudo.js', '--nqp-runtime', '@sq_escape(@nqp_runtime@)@', '--perl6-runtime', '@sq_escape(@perl6_runtime@)@', '--libpath', '@sq_escape(@libpath@)@', '--source-map', @ARGV);
+
+exit($exit >> 8);

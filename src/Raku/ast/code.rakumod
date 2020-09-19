@@ -84,9 +84,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         $obj
     }
 
-    method DEPARSE() {
-        '{' ~ $!body.DEPARSE ~ '}'  # XXX needs topic inspection?
-    }
+    method DEPARSE() { $!body.DEPARSE }
 
     method replace-body(RakuAST::Blockoid $new-body) {
         nqp::bindattr(self, RakuAST::Block, '$!body', $new-body);

@@ -37,6 +37,19 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         $obj
     }
 
+    method DEPARSE() {
+        my $spaces := "    ";
+
+        my $parts := nqp::list_s;
+        for $!statements -> $statement {
+            nqp::push_s($parts,$spaces);
+            nqp::push_s($parts,$statement.DEPARSE);
+            nqp::push_s($parts,";\n");
+        }
+        nqp::pop_s($parts) if nqp::elems($parts);  # lose final ;
+        nqp::join("",$parts)
+    }
+
     method statements() {
         self.IMPL-WRAP-LIST($!statements)
     }

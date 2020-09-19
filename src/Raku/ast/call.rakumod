@@ -161,7 +161,7 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         $visitor(self.args);
     }
 
-    method DEPARSE() { $!name ~ '(' ~ self.args.DEPARSE ~ ')' }
+    method DEPARSE() { $!name.DEPARSE ~ self.args.DEPARSE }
 
     method needs-resolution() { $!name.is-identifier }
 

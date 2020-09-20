@@ -32,7 +32,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         $obj
     }
 
-    method DEPARSE() { ' ' ~ $!operator ~ ' ' }
+    method DEPARSE() { $!operator }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-infix($!operator);
@@ -126,7 +126,7 @@ class RakuAST::MetaInfix::Assign is RakuAST::Infixish is RakuAST::Lookup {
         $obj
     }
 
-    method DEPARSE() { ' ' ~ $!infix.operator ~ '= ' }
+    method DEPARSE() { $!infix.operator ~ '=' }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-infix('&METAOP_ASSIGN');

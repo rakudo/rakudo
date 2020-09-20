@@ -46,7 +46,13 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
             nqp::push_s($parts,$statement.DEPARSE);
             nqp::push_s($parts,";\n");
         }
-        nqp::pop_s($parts) if nqp::elems($parts);  # lose final ;
+
+        # lose last ; ?
+        if nqp::elems($parts) {
+            nqp::pop_s($parts);
+            nqp::push_s($parts,"\n");
+        }
+
         nqp::join("",$parts)
     }
 

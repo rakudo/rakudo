@@ -14,6 +14,16 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         $obj
     }
 
+    method DEPARSE() {
+        my $parts := nqp::list_s;
+
+        for self.IMPL-UNWRAP-LIST($!parameters) {
+            nqp::push_s($parts, $_.DEPARSE);
+        }
+
+        nqp::join(', ',$parts)
+    }
+
     method attach(RakuAST::Resolver $resolver) {
         # If we're the signature for a method...
         my $owner := $resolver.find-attach-target('block');
@@ -133,6 +143,71 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
                 ?? $slurpy
                 !! RakuAST::Parameter::Slurpy);
         $obj
+    }
+
+    method DEPARSE() {
+        my $parts := nqp::list_s;
+
+        if $!type {
+            nqp::push_s($parts,$!type.DEPARSE);
+            if $!target {
+                nqp::push_s($parts,' ');
+            }
+        }
+
+        if $!target {
+            my $var := $!target.lexical-name;
+
+            # named parameter
+            if $!names {
+                my $varname := nqp::substr($var,1);  # lose the sigil
+                my int $parens;
+                my int $seen;
+
+                my @names := nqp::clone($!names);
+                while +@names {
+                    my $name := @names.pop;
+
+                    if $name eq $varname {
+                        $seen := 1;
+                    }
+                    else {
+                        nqp::push_s($parts,':');
+                        nqp::push_s($parts,$name);
+                        nqp::push_s($parts,'(');
+                        ++$parens;
+                    }
+                }
+
+                if $seen {
+                    nqp::push_s($parts,':');
+                }
+                nqp::push_s($parts,$var);
+                if $parens {
+                    nqp::push_s($parts,nqp::x(')',$parens));
+                }
+                unless $!optional {
+                    nqp::push_s($parts,'!');
+                }
+            }
+
+            # positional parameter
+            else {
+
+#                if $!slurpy.DEPARSE -> $prefix {
+#                    nqp::push_s($parts,$prefix);
+#                }
+                nqp::push_s($parts,$var);
+                if $!invocant {
+                    nqp::push_s($parts,':');
+                }
+                elsif $!optional {
+                    nqp::push_s($parts,'?');
+                }
+            }
+        }
+
+        nqp::join('',$parts)
     }
 
     method set-type(RakuAST::Type $type) {
@@ -336,6 +411,8 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
         $obj
     }
 
+    method DEPARSE() { $!name }
+
     method lexical-name() {
         $!name
     }
@@ -384,6 +461,8 @@ class RakuAST::Parameter::Slurpy {
         0
     }
 
+    method DEPARSE() { '' }
+
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil) {
         # Not slurply, so nothing to do
@@ -413,6 +492,8 @@ class RakuAST::Parameter::Slurpy::Flattened is RakuAST::Parameter::Slurpy {
         $sigil eq '%' ?? SIG_ELEM_SLURPY_NAMED !!
                          0
     }
+
+    method DEPARSE() { '*' }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil) {
@@ -450,6 +531,8 @@ class RakuAST::Parameter::Slurpy::Unflattened is RakuAST::Parameter::Slurpy {
         $sigil eq '@' ?? SIG_ELEM_SLURPY_LOL !! 0
     }
 
+    method DEPARSE() { '**' }
+
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil) {
         if $sigil eq '@' {
@@ -461,12 +544,14 @@ class RakuAST::Parameter::Slurpy::Unflattened is RakuAST::Parameter::Slurpy {
     }
 }
 
-# Signle argument rule slurpy (the + quantifier).
+# Single argument rule slurpy (the + quantifier).
 class RakuAST::Parameter::Slurpy::SingleArgument is RakuAST::Parameter::Slurpy {
     method IMPL-FLAGS(str $sigil) {
         my constant SIG_ELEM_SLURPY_ONEARG := 16777216;
         $sigil eq '@' || $sigil eq '' ?? SIG_ELEM_SLURPY_ONEARG !! 0
     }
+
+    method DEPARSE() { '+' }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil) {

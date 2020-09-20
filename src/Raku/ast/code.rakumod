@@ -330,9 +330,7 @@ class RakuAST::PointyBlock is RakuAST::Block {
         $obj
     }
 
-    method DEPARSE() {
-        '-> ' ~ $!signature.DEPARSE ~ "\{\n" ~ self.body.DEPARSE ~ '}'
-    }
+    method DEPARSE() { '-> ' ~ $!signature.DEPARSE ~ ' ' ~ self.body.DEPARSE }
 
     method replace-signature(RakuAST::Signature $new-signature) {
         nqp::bindattr(self, RakuAST::PointyBlock, '$!signature', $new-signature);
@@ -374,7 +372,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method IMPL-DEPARSE-ROUTINE() {
-        my $sig := '(' ~ $!signature.DEPARSE ~ ") \{\n" ~ $!body.DEPARSE ~ '}';
+        my $sig := '(' ~ $!signature.DEPARSE ~ ') ' ~ $!body.DEPARSE;
         $!name ?? $!name ~ $sig !! $sig
     }
 

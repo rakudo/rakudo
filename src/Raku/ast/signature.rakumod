@@ -164,10 +164,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
                 my int $parens;
                 my int $seen;
 
-                my @names := nqp::clone($!names);
-                while +@names {
-                    my $name := @names.pop;
-
+                for $!names -> $name {
                     if $name eq $varname {
                         $seen := 1;
                     }

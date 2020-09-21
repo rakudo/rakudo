@@ -191,9 +191,11 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
             # positional parameter
             else {
 
-#                if $!slurpy.DEPARSE -> $prefix {
-#                    nqp::push_s($parts,$prefix);
-#                }
+                my $prefix := $!slurpy.DEPARSE;  # XXX weird NQP bug
+                if $prefix {                     # cannot be in if
+                    nqp::push_s($parts,$prefix);
+                }
+
                 nqp::push_s($parts,$var);
                 if $!invocant {
                     nqp::push_s($parts,':');

@@ -228,8 +228,7 @@ subtest 'Slurpy hash parameter' => {
       )
     );
 
-#    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
-    for 'AST', EVAL($ast) -> $type, $sub {
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
         ok $sub.signature.params[0].slurpy,
           "$type: Parameter introspects as slurpy";
         ok $sub.signature.params[0].named,
@@ -249,94 +248,124 @@ subtest 'Slurpy hash parameter' => {
 
 subtest 'Slurpy flattening array parameter' => {
     # sub (*@a) { @a }
-    my $sub := EVAL RakuAST::Sub.new(
-        signature => RakuAST::Signature.new(
-            parameters => (
-                RakuAST::Parameter.new(
-                    target => RakuAST::ParameterTarget::Var.new('@a'),
-                    slurpy => RakuAST::Parameter::Slurpy::Flattened
-                ),
-            )
-        ),
-        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('@a')
-            )
-        ))
+    $ast := RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new('@a'),
+            slurpy => RakuAST::Parameter::Slurpy::Flattened
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('@a')
+          )
+        )
+      )
     );
-    ok $sub.signature.params[0].slurpy, 'Parameter introspects as slurpy';
-    nok $sub.signature.params[0].named, 'Parameter does not introspect as named';
-    is $sub.arity, 0, 'Correct arity';
-    is $sub.count, Inf, 'Correct count';
-    is-deeply $sub(), [], 'Passing no argument gets empty array';
-    is-deeply $sub(1), [1],
-        'Passing one argument has correct array';
-    is-deeply $sub(1, 2), [1, 2],
-        'Passing two arguments has correct array';
-    is-deeply $sub(1, 2, (3, 4)), [1, 2, 3, 4],
-        'Flattening happens';
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        ok $sub.signature.params[0].slurpy,
+          "$type: Parameter introspects as slurpy";
+        nok $sub.signature.params[0].named,
+          "$type: Parameter does not introspect as named";
+        is $sub.arity, 0,
+          "$type: Correct arity";
+        is $sub.count, Inf,
+          "$type: Correct count";
+        is-deeply $sub(), [],
+          "$type: Passing no argument gets empty array";
+        is-deeply $sub(1), [1],
+          "$type: Passing one argument has correct array";
+        is-deeply $sub(1, 2), [1, 2],
+          "$type: Passing two arguments has correct array";
+        is-deeply $sub(1, 2, (3, 4)), [1, 2, 3, 4],
+          "$type: Flattening happens";
+    }
 }
 
 subtest 'Slurpy non-flattening array parameter' => {
     # sub (**@a) { @a }
-    my $sub := EVAL RakuAST::Sub.new(
-        signature => RakuAST::Signature.new(
-            parameters => (
-                RakuAST::Parameter.new(
-                    target => RakuAST::ParameterTarget::Var.new('@a'),
-                    slurpy => RakuAST::Parameter::Slurpy::Unflattened
-                ),
-            )
-        ),
-        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('@a')
-            )
-        ))
+    $ast := RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new('@a'),
+            slurpy => RakuAST::Parameter::Slurpy::Unflattened
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('@a')
+          )
+        )
+      )
     );
-    ok $sub.signature.params[0].slurpy, 'Parameter introspects as slurpy';
-    nok $sub.signature.params[0].named, 'Parameter does not introspect as named';
-    is $sub.arity, 0, 'Correct arity';
-    is $sub.count, Inf, 'Correct count';
-    is-deeply $sub(), [], 'Passing no argument gets empty array';
-    is-deeply $sub(1), [1],
-        'Passing one argument has correct array';
-    is-deeply $sub(1, 2), [1, 2],
-        'Passing two arguments has correct array';
-    is-deeply $sub(1, 2, (3, 4)), [1, 2, (3, 4)],
-        'Flattening does not happen';
-    is-deeply $sub((3, 4)), [(3, 4),],
-        'Passing a list results in one-element array with the list';
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        ok $sub.signature.params[0].slurpy,
+          "$type: Parameter introspects as slurpy";
+        nok $sub.signature.params[0].named,
+          "$type: Parameter does not introspect as named";
+        is $sub.arity, 0,
+          "$type: Correct arity";
+        is $sub.count, Inf,
+          "$type: Correct count";
+        is-deeply $sub(), [],
+          "$type: Passing no argument gets empty array";
+        is-deeply $sub(1), [1],
+          "$type: Passing one argument has correct array";
+        is-deeply $sub(1, 2), [1, 2],
+          "$type: Passing two arguments has correct array";
+        is-deeply $sub(1, 2, (3, 4)), [1, 2, (3, 4)],
+          "$type: Flattening does not happen";
+        is-deeply $sub((3, 4)), [(3, 4),],
+          "$type: Passing a list results in one-element array with the list";
+    }
 }
 
 subtest 'Slurpy single arg rule array parameter' => {
     # sub (+@a) { @a }
-    my $sub := EVAL RakuAST::Sub.new(
-        signature => RakuAST::Signature.new(
-            parameters => (
-                RakuAST::Parameter.new(
-                    target => RakuAST::ParameterTarget::Var.new('@a'),
-                    slurpy => RakuAST::Parameter::Slurpy::SingleArgument
-                ),
-            )
-        ),
-        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('@a')
-            )
-        ))
+    $ast := RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Var.new('@a'),
+            slurpy => RakuAST::Parameter::Slurpy::SingleArgument
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('@a')
+          )
+        )
+      )
     );
-    ok $sub.signature.params[0].slurpy, 'Parameter introspects as slurpy';
-    nok $sub.signature.params[0].named, 'Parameter does not introspect as named';
-    is $sub.arity, 0, 'Correct arity';
-    is $sub.count, Inf, 'Correct count';
-    is-deeply $sub(), [], 'Passing no argument gets empty array';
-    is-deeply $sub(1), [1],
-        'Passing one argument has correct array';
-    is-deeply $sub(1, 2), [1, 2],
-        'Passing two arguments has correct array';
-    is-deeply $sub(1, 2, (3, 4)), [1, 2, (3, 4)],
-        'Flattening does not happen';
-    is-deeply $sub((3, 4)), [3, 4],
-        'Passing a list is treated as the single argument';
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        ok $sub.signature.params[0].slurpy,
+          "$type: Parameter introspects as slurpy";
+        nok $sub.signature.params[0].named,
+          "$type: Parameter does not introspect as named";
+        is $sub.arity, 0,
+          "$type: Correct arity";
+        is $sub.count, Inf,
+          "$type: Correct count";
+        is-deeply $sub(), [],
+          "$type: Passing no argument gets empty array";
+        is-deeply $sub(1), [1],
+          "$type: Passing one argument has correct array";
+        is-deeply $sub(1, 2), [1, 2],
+          "$type: Passing two arguments has correct array";
+        is-deeply $sub(1, 2, (3, 4)), [1, 2, (3, 4)],
+          "$type: Flattening does not happen";
+        is-deeply $sub((3, 4)), [3, 4],
+          "$type: Passing a list is treated as the single argument";
+    }
 }

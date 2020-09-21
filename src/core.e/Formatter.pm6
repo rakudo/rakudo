@@ -119,12 +119,12 @@ class Formatter {
 
         # helper sub for creating literal integer nodes
         sub literal-integer(Int:D $int) {
-            RakuAST::IntLiteral.new($int) but $int.Str
+            RakuAST::IntLiteral.new($int)
         }
 
         # helper sub for creating literal string nodes
         sub literal-string(Str:D $string) {
-            RakuAST::StrLiteral.new($string) but $string
+            RakuAST::StrLiteral.new($string)
         }
 
         # helper sub to call a method on a given AST
@@ -144,8 +144,7 @@ class Formatter {
                   !! RakuAST::Call::Method.new(
                        name => RakuAST::Name.from-identifier($name)
                      )
-            ) but $ast ~ "." ~ $name ~
-                ($two ?? "($one,$two)" !! $one ?? "($one)" !! "");
+            )
         }
 
         # helper sub to call a sub with the given parameters
@@ -155,14 +154,14 @@ class Formatter {
               args => $two
                 ?? RakuAST::ArgList.new($one, $two)
                 !! RakuAST::ArgList.new($one)
-            ) but $name ~ ($two ?? "($one,$two)" !! "($one)" )
+            )
         }
 
         # helper sub to call an infix operator
         sub ast-infix($left, $infix, $right) {
             RakuAST::ApplyInfix.new(
               left  => $left,
-              infix => RakuAST::Infix.new($infix) but $infix,
+              infix => RakuAST::Infix.new($infix),
               right => $right
             )
         }
@@ -170,7 +169,7 @@ class Formatter {
         # helper sub to call a prefix operator
         sub ast-prefix($prefix, $operand) {
             RakuAST::ApplyPrefix.new(
-              prefix  => RakuAST::Prefix.new($prefix) but $prefix,
+              prefix  => RakuAST::Prefix.new($prefix),
               operand => $operand
             )
         }
@@ -209,7 +208,7 @@ class Formatter {
 
             # @args.AT-POS($index)
             ast-call-method(
-              RakuAST::Var::Lexical.new('@args') but '@args',
+              RakuAST::Var::Lexical.new('@args'),
               'AT-POS',
               literal-integer($index)
             )
@@ -336,12 +335,12 @@ class Formatter {
         }
 
         method escape:sym<%>($/ --> Nil) {
-            make RakuAST::StrLiteral.new('%') but '%'
+            make RakuAST::StrLiteral.new('%');
         }
 
         method literal($/ --> Nil) {
             my $string := $/.Str;
-            make RakuAST::StrLiteral.new($string) but $string.raku;
+            make RakuAST::StrLiteral.new($string);
         }
 
         # show numeric value in binary
@@ -707,7 +706,7 @@ class Formatter {
                         RakuAST::Var::Lexical.new('@args'),
                         RakuAST::StrLiteral.new(@directives[0])
                       )
-                    ) but "check-one-arg(@args,'@directives[0]')";
+                    );
                 }
                 else {
 
@@ -717,7 +716,7 @@ class Formatter {
                       operands => [@directives.map( {
                         RakuAST::StrLiteral.new($_ || '')
                       } )]
-                    ) but "(@directives.map( { $_ ?? "'$_'" !! "''" } ).join(","))";
+                    );
 
                     # check-args(@args, $ast)
                     $ast = RakuAST::Call::Name.new(
@@ -726,7 +725,7 @@ class Formatter {
                         RakuAST::Var::Lexical.new('@args'),
                         RakuAST::Statement::Expression.new($ast)
                       )
-                    ) but "check-args(@args,$ast)";
+                    );
                 }
 
                 if @parts == 1 {
@@ -735,7 +734,7 @@ class Formatter {
                     $ast = RakuAST::StatementList.new(
                      RakuAST::Statement::Expression.new($ast),
                       RakuAST::Statement::Expression.new(@parts[0])
-                    ) but "$ast;\n  @parts[0]";
+                    );
                 }
                 else {
 
@@ -753,7 +752,7 @@ class Formatter {
                           )
                         )
                       )
-                    ) but "$ast;\n  (\n    @parts.join(",\n    ")\n  ).join";
+                    );
                 }
             }
 
@@ -773,7 +772,7 @@ class Formatter {
                   RakuAST::Statement::Expression.new(
                     RakuAST::StrLiteral.new($format)
                   )
-                ) but "check-no-arg(\@args);\n  '$format'";
+                );
             }
 
 
@@ -787,10 +786,9 @@ class Formatter {
                 )
               ),
               body => RakuAST::Blockoid.new($ast)
-            ) but "-> \@args \{\n  $ast\n\}";
+            );
 
-#note $ast.DEPARSE;
-#note $ast.Str if %*ENV<RAKUDO_FORMATTER>;
+note $ast.DEPARSE if %*ENV<RAKUDO_FORMATTER>;
             EVAL($ast)
         }
         else {

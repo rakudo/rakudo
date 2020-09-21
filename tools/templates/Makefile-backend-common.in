@@ -170,7 +170,7 @@ check_@backend_abbr@_nqp_version: @@script(check-nqp-version.pl)@@
 # Generate precompilations
 @comp(@bsm(RAKUDO_A)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Actions.nqp)@)@ @bsm(RAKUDO_P)@ @bsm(RAKUDO_OPS)@)@
 @comp(@bsm(RAKUDO_C)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Compiler.nqp)@)@ @bsm(RAKUDO_O)@)@
-@comp(@bsm(RAKUDO_S)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/SysConfig.nqp)@)@)@
+@comp(@bsm(RAKUDO_S)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/SysConfig.nqp)@)@ @nfp(gen/nqp-version)@)@
 @comp(@bsm(RAKUDO_G)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Grammar.nqp)@)@ @bsm(RAKUDO_W)@ @bsm(RAKUDO_A)@ @bsm(RAKUDO_P)@)@
 @comp(@bsm(RAKUDO_M)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/Metamodel.nqp)@)@ @bsm(RAKUDO_OPS)@)@
 @comp(@bsm(RAKUDO_ML)@: 	@use_prereqs(@nfp(@bpm(BUILD_DIR)@/ModuleLoader.nqp)@)@ @nfp(gen/nqp-version)@)@

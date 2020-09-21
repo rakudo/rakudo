@@ -32,7 +32,7 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
             nqp::push_s($parts, $arg.DEPARSE);
         }
         nqp::elems($parts)
-          ?? '(' ~ nqp::join(',',$parts) ~ ')'
+          ?? '(' ~ nqp::join(', ',$parts) ~ ')'
           !! ''
     }
 
@@ -209,6 +209,8 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
         $obj
     }
+
+    method DEPARSE() { self.args.DEPARSE }
 
     method visit-children(Code $visitor) {
         $visitor(self.args);

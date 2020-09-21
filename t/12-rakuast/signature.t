@@ -93,7 +93,7 @@ subtest 'Optional Scalar parameter defaults to type object' => {
               RakuAST::Name.from-identifier('Int')
             ),
             target => RakuAST::ParameterTarget::Var.new('$x'),
-            optional => 1,
+            optional => True,
           ),
         )
       ),
@@ -192,7 +192,7 @@ subtest 'Required named parameter with alias' => {
         given $sub.signature.params[0] {
             is-deeply .name, '$var',
               "$type: Correct variable name";
-            is-deeply .named_names, ('first','fst'),
+            is-deeply .named_names.sort, ('first','fst'),
               "$type: Correct named names";
             nok .optional,
               "$type: It is not optional";

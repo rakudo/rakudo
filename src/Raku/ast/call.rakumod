@@ -31,7 +31,9 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
         for $!args -> $arg {
             nqp::push_s($parts, $arg.DEPARSE);
         }
-        '(' ~ nqp::join(',',$parts) ~ ')'
+        nqp::elems($parts)
+          ?? '(' ~ nqp::join(',',$parts) ~ ')'
+          !! ''
     }
 
     method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call) {
@@ -230,7 +232,7 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
         $obj
     }
 
-    method DEPARSE() { $!name.DEPARSE }
+    method DEPARSE() { '.' ~ $!name.DEPARSE ~ self.args.DEPARSE }
 
     method visit-children(Code $visitor) {
         $visitor($!name);

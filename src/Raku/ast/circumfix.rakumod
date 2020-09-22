@@ -71,7 +71,11 @@ class RakuAST::Circumfix::HashComposer is RakuAST::Circumfix is RakuAST::Lookup 
         $obj
     }
 
-    method DEPARSE() { '{' ~ $!expression.DEPARSE ~ '}' }
+    method DEPARSE() {
+        $!expression
+          ?? '{' ~ $!expression.DEPARSE ~ '}'
+          !! '{}'
+    }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical('&circumfix:<{ }>');

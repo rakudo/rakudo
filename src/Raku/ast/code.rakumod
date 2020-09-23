@@ -373,7 +373,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
     method IMPL-DEPARSE-ROUTINE() {
         my $sig := '(' ~ $!signature.DEPARSE ~ ') ' ~ $!body.DEPARSE;
-        $!name ?? $!name ~ $sig !! $sig
+        $!name ?? $!name.DEPARSE ~ $sig !! $sig
     }
 
     method replace-name(RakuAST::Name $new-name) {
@@ -548,7 +548,16 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 # A subroutine.
 class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
 
-    method DEPARSE() { 'sub ' ~ self.IMPL-DEPARSE-ROUTINE }
+    method DEPARSE() {
+        my $parts := nqp::list_s;
+        if self.scope ne 'my' {
+            nqp::push_s($parts, self.scope);
+        }
+        nqp::push_s($parts,'sub');
+        nqp::push_s($parts,self.IMPL-DEPARSE-ROUTINE);
+
+        nqp::join(' ',$parts)
+    }
 
     method IMPL-META-OBJECT-TYPE() { Sub }
 

@@ -32,8 +32,6 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         $obj
     }
 
-    method DEPARSE() { $!operator }
-
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-infix($!operator);
         if $resolved {
@@ -126,8 +124,6 @@ class RakuAST::MetaInfix::Assign is RakuAST::Infixish is RakuAST::Lookup {
         $obj
     }
 
-    method DEPARSE() { $!infix.operator ~ '=' }
-
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-infix('&METAOP_ASSIGN');
         if $resolved {
@@ -201,10 +197,6 @@ class RakuAST::ApplyInfix is RakuAST::Expression {
         $obj
     }
 
-    method DEPARSE() {
-        $!left.DEPARSE ~ ' ' ~ $!infix.DEPARSE ~ ' ' ~ $!right.DEPARSE
-    }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-INFIX-QAST: $context,
             $!left.IMPL-TO-QAST($context),
@@ -235,16 +227,6 @@ class RakuAST::ApplyListInfix is RakuAST::Expression {
         nqp::bindattr($obj, RakuAST::ApplyListInfix, '$!operands',
             nqp::islist($operands) ?? self.IMPL-WRAP-LIST($operands) !! $operands);
         $obj
-    }
-
-    method DEPARSE() {
-        my $parts := nqp::list_s;
-        for self.IMPL-UNWRAP-LIST($!operands) {
-            nqp::push_s($parts,$_.DEPARSE)
-        }
-        nqp::elems($parts)
-          ?? nqp::join($!infix.operator ~ ' ',$parts)
-          !! '()'
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -286,7 +268,6 @@ class RakuAST::DottyInfixish is RakuAST::Node {
 
 # The `.` dotty infix.
 class RakuAST::DottyInfix::Call is RakuAST::DottyInfixish {
-    method DEPARSE() { '.' }
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
             RakuAST::Postfixish $rhs-ast) {
@@ -296,7 +277,6 @@ class RakuAST::DottyInfix::Call is RakuAST::DottyInfixish {
 
 # The `.=` dotty infix.
 class RakuAST::DottyInfix::CallAssign is RakuAST::DottyInfixish {
-    method DEPARSE() { '.=' }
 
     method IMPL-DOTTY-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $lhs-qast,
             RakuAST::Postfixish $rhs-ast) {
@@ -341,8 +321,6 @@ class RakuAST::ApplyDottyInfix is RakuAST::Expression {
         $obj
     }
 
-    method DEPARSE() { $!left.DEPARSE ~ $!infix.DEPARSE ~ $!right.DEPARSE }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!infix.IMPL-DOTTY-INFIX-QAST: $context,
             $!left.IMPL-TO-QAST($context),
@@ -370,8 +348,6 @@ class RakuAST::Prefix is RakuAST::Prefixish is RakuAST::Lookup {
         $obj
     }
 
-    method DEPARSE() { $!operator }
-
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-prefix($!operator);
         if $resolved {
@@ -398,8 +374,6 @@ class RakuAST::ApplyPrefix is RakuAST::Termish {
         $obj
     }
 
-    method DEPARSE() { $!prefix.DEPARSE ~ $!operand.DEPARSE }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!prefix.IMPL-PREFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
     }
@@ -423,8 +397,6 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
         nqp::bindattr_s($obj, RakuAST::Postfix, '$!operator', $operator);
         $obj
     }
-
-    method DEPARSE() { $!operator }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-postfix($!operator);
@@ -454,8 +426,6 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
         nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!index', $index);
         $obj
     }
-
-    method DEPARSE() { '[' ~ $!index.DEPARSE ~ ']' }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical(
@@ -490,8 +460,6 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
         $obj
     }
 
-    method DEPARSE() { '{' ~ $!index.DEPARSE ~ '}' }
-
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical(
             nqp::elems(self.IMPL-UNWRAP-LIST($!index.statements)) > 1
@@ -525,8 +493,6 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
         $obj
     }
 
-    method RESOLVE() { '<' ~ $!index.DEPARSE ~ '>' }
-
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical('&postcircumfix:<{ }>');
         if $resolved {
@@ -559,8 +525,6 @@ class RakuAST::ApplyPostfix is RakuAST::Termish {
         $obj
     }
 
-    method DEPARSE() { $!operand.DEPARSE ~ $!postfix.DEPARSE }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!postfix.IMPL-POSTFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
     }
@@ -590,10 +554,6 @@ class RakuAST::Ternary is RakuAST::Expression {
         nqp::bindattr($obj, RakuAST::Ternary, '$!then', $then);
         nqp::bindattr($obj, RakuAST::Ternary, '$!else', $else);
         $obj
-    }
-
-    method DEPARSE() {
-        $!condition.DEPARSE ~ ' ?? ' ~ $!then.DEPARSE ~ ' !! ' ~ $!else.DEPARSE
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

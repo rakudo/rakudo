@@ -14,16 +14,6 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         $obj
     }
 
-    method DEPARSE() {
-        my $parts := nqp::list_s;
-
-        for self.IMPL-UNWRAP-LIST($!parameters) {
-            nqp::push_s($parts, $_.DEPARSE);
-        }
-
-        nqp::join(', ',$parts)
-    }
-
     method attach(RakuAST::Resolver $resolver) {
         # If we're the signature for a method...
         my $owner := $resolver.find-attach-target('block');
@@ -143,70 +133,6 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
                 ?? $slurpy
                 !! RakuAST::Parameter::Slurpy);
         $obj
-    }
-
-    method DEPARSE() {
-        my $parts := nqp::list_s;
-
-        if $!type {
-            nqp::push_s($parts,$!type.DEPARSE);
-            if $!target {
-                nqp::push_s($parts,' ');
-            }
-        }
-
-        if $!target {
-            my $var := $!target.lexical-name;
-
-            # named parameter
-            if $!names {
-                my $varname := nqp::substr($var,1);  # lose the sigil
-                my int $parens;
-                my int $seen;
-
-                for $!names -> $name {
-                    if $name eq $varname {
-                        $seen := 1;
-                    }
-                    else {
-                        nqp::push_s($parts,':');
-                        nqp::push_s($parts,$name);
-                        nqp::push_s($parts,'(');
-                        ++$parens;
-                    }
-                }
-
-                if $seen {
-                    nqp::push_s($parts,':');
-                }
-                nqp::push_s($parts,$var);
-                if $parens {
-                    nqp::push_s($parts,nqp::x(')',$parens));
-                }
-                unless $!optional {
-                    nqp::push_s($parts,'!');
-                }
-            }
-
-            # positional parameter
-            else {
-
-                my $prefix := $!slurpy.DEPARSE;  # XXX weird NQP bug
-                if $prefix {                     # cannot be in if
-                    nqp::push_s($parts,$prefix);
-                }
-
-                nqp::push_s($parts,$var);
-                if $!invocant {
-                    nqp::push_s($parts,':');
-                }
-                elsif $!optional {
-                    nqp::push_s($parts,'?');
-                }
-            }
-        }
-
-        nqp::join('',$parts)
     }
 
     method set-type(RakuAST::Type $type) {

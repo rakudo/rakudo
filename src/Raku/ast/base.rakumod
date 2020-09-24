@@ -1,5 +1,6 @@
 # The base of all RakuAST nodes.
 class RakuAST::Node {
+
     # What type does evaluating this node produce, if known?
     method type() { Mu }
 
@@ -184,6 +185,15 @@ class RakuAST::Node {
             $dump := $dump ~ $child.dump($indent + 2);
         });
         $dump
+    }
+
+    # Hook into the Raku RakuAST::Deparse class (by default) or any other
+    # class that has been put into the hllsym hash for 'Raku'
+    method DEPARSE(*%_) {
+        my $deparser := nqp::gethllsym('Raku','DEPARSE');
+        nqp::isnull($deparser)
+          ?? nqp::die("No deparser class found")
+          !! $deparser.new(|%_).deparse(self)
     }
 
     method IMPL-SORTED-KEYS(Mu $hash) {

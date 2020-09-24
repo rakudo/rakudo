@@ -12,8 +12,6 @@ class RakuAST::Circumfix::Parentheses is RakuAST::Circumfix {
         $obj
     }
 
-    method DEPARSE() { '(' ~ $!semilist.DEPARSE ~ ')' }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!semilist.IMPL-TO-QAST($context)
     }
@@ -32,8 +30,6 @@ class RakuAST::Circumfix::ArrayComposer is RakuAST::Circumfix is RakuAST::Lookup
         nqp::bindattr($obj, RakuAST::Circumfix::ArrayComposer, '$!semilist', $semilist);
         $obj
     }
-
-    method DEPARSE() { '[' ~ $!semilist.DEPARSE ~ ']' }
 
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical('&circumfix:<[ ]>');
@@ -69,12 +65,6 @@ class RakuAST::Circumfix::HashComposer is RakuAST::Circumfix is RakuAST::Lookup 
         nqp::bindattr($obj, RakuAST::Circumfix::HashComposer, '$!expression',
             $expression // RakuAST::Expression);
         $obj
-    }
-
-    method DEPARSE() {
-        $!expression
-          ?? '{' ~ $!expression.DEPARSE ~ '}'
-          !! '{}'
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {

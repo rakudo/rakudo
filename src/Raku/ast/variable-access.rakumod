@@ -13,8 +13,6 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
         $obj
     }
 
-    method DEPARSE() { $!name }
-
     method sigil() { nqp::substr($!name, 0, 1) }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -51,8 +49,6 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
         nqp::bindattr_s($obj, RakuAST::Var::Dynamic, '$!name', $name);
         $obj
     }
-
-    method DEPARSE() { $!name }
 
     method sigil() { nqp::substr($!name, 0, 1) }
 
@@ -98,8 +94,6 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
         nqp::bindattr_s($obj, RakuAST::Var::Attribute, '$!name', $name);
         $obj
     }
-
-    method DEPARSE() { $!name }
 
     method sigil() { nqp::substr($!name, 0, 1) }
 
@@ -149,8 +143,6 @@ class RakuAST::Var::Compiler::File is RakuAST::Var::Compiler {
         $obj
     }
 
-    method DEPARSE() { '$?FILE' }
-
     method sigil() { '$' }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -174,8 +166,6 @@ class RakuAST::Var::Compiler::Line is RakuAST::Var::Compiler {
         $obj
     }
 
-    method DEPARSE() { '$?LINE' }
-
     method sigil() { '$' }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -198,8 +188,6 @@ class RakuAST::Var::Compiler::Lookup is RakuAST::Var::Compiler is RakuAST::Looku
         nqp::bindattr_s($obj, RakuAST::Var::Compiler::Lookup, '$!name', $name);
         $obj
     }
-
-    method DEPARSE() { $!name }
 
     method sigil() { nqp::substr($!name, 0, 1) }
 
@@ -225,8 +213,6 @@ class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookup
         nqp::bindattr($obj, RakuAST::Var::PositionalCapture, '$!index', $index);
         $obj
     }
-
-    method DEPARSE() { '$' ~ $!index }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -257,8 +243,6 @@ class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
         nqp::bindattr($obj, RakuAST::Var::NamedCapture, '$!index', $index);
         $obj
     }
-
-    method DEPARSE() { '$<' ~ $!index.DEPARSE ~ '>' }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([

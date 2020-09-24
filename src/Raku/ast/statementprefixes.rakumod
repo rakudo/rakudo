@@ -36,8 +36,6 @@ class RakuAST::StatementPrefix::Do is RakuAST::StatementPrefix is RakuAST::SinkP
         self.blorst.apply-sink($is-sunk);
     }
 
-    method DEPARSE() { 'do ' ~ self.blorst.DEPARSE }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-CALLISH-QAST($context)
     }
@@ -48,8 +46,6 @@ class RakuAST::StatementPrefix::Quietly is RakuAST::StatementPrefix is RakuAST::
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
     }
-
-    method DEPARSE() { 'quietly ' ~ self.blorst.DEPARSE }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
@@ -65,8 +61,6 @@ class RakuAST::StatementPrefix::Quietly is RakuAST::StatementPrefix is RakuAST::
 class RakuAST::StatementPrefix::Race is RakuAST::StatementPrefix {
     method allowed-on-for-statement() { False }
 
-    method DEPARSE() { 'race ' ~ self.blorst.DEPARSE }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
             :op('callmethod'), :name('race'),
@@ -78,8 +72,6 @@ class RakuAST::StatementPrefix::Race is RakuAST::StatementPrefix {
 # The `hyper` statement prefix.
 class RakuAST::StatementPrefix::Hyper is RakuAST::StatementPrefix {
     method allowed-on-for-statement() { False }
-
-    method DEPARSE() { 'hyper ' ~ self.blorst.DEPARSE }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
@@ -93,8 +85,6 @@ class RakuAST::StatementPrefix::Hyper is RakuAST::StatementPrefix {
 class RakuAST::StatementPrefix::Lazy is RakuAST::StatementPrefix {
     method allowed-on-for-statement() { False }
 
-    method DEPARSE() { 'lazy ' ~ self.blorst.DEPARSE }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
             :op('callmethod'), :name('lazy'),
@@ -105,8 +95,6 @@ class RakuAST::StatementPrefix::Lazy is RakuAST::StatementPrefix {
 
 # The `eager` statement prefix.
 class RakuAST::StatementPrefix::Eager is RakuAST::StatementPrefix {
-
-    method DEPARSE() { 'eager ' ~ self.blorst.DEPARSE }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
@@ -122,8 +110,6 @@ class RakuAST::StatementPrefix::Try is RakuAST::StatementPrefix is RakuAST::Sink
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink($is-sunk);
     }
-
-    method DEPARSE() { 'try ' ~ self.blorst.DEPARSE }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -212,8 +198,6 @@ class RakuAST::StatementPrefix::Gather is RakuAST::StatementPrefix::Thunky is Ra
         self.blorst.apply-sink(True);
     }
 
-    method DEPARSE() { 'gather ' ~ self.blorst.DEPARSE }
-
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new( :op('call'), :name('&GATHER'), self.IMPL-CLOSURE-QAST() )
     }
@@ -226,8 +210,6 @@ class RakuAST::StatementPrefix::Start is RakuAST::StatementPrefix::Thunky
     method propagate-sink(Bool $is-sunk) {
         self.blorst.apply-sink(False);
     }
-
-    method DEPARSE() { 'start ' ~ self.blorst.DEPARSE }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -283,8 +265,6 @@ class RakuAST::StatementPrefix::Phaser::Begin is RakuAST::StatementPrefix::Phase
                                               is RakuAST::BeginTime {
     has Mu $!produced-value;
 
-    method DEPARSE() { 'BEGIN ' ~ self.blorst.DEPARSE }
-
     # Perform BEGIN-time evaluation.
     method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
         nqp::bindattr(self, RakuAST::StatementPrefix::Phaser::Begin,
@@ -303,8 +283,6 @@ class RakuAST::StatementPrefix::Phaser::Begin is RakuAST::StatementPrefix::Phase
 class RakuAST::StatementPrefix::Phaser::End is RakuAST::StatementPrefix::Phaser::Sinky
                                             is RakuAST::StatementPrefix::Thunky
                                             is RakuAST::Attaching {
-
-    method DEPARSE() { 'END ' ~ self.blorst.DEPARSE }
 
     method attach(RakuAST::Resolver $resolver) {
         $resolver.find-attach-target('compunit').add-end-phaser(self);

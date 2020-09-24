@@ -16,8 +16,6 @@ class RakuAST::FatArrow is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST:
         $obj
     }
 
-    method DEPARSE() { $!key ~ ' => ' ~ $!value.DEPARSE }
-
     method named-arg-name() { $!key }
 
     method named-arg-value() { $!value }
@@ -56,10 +54,6 @@ class RakuAST::ColonPair is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST
 
     method named-arg-value() { self.value }
 
-    method DEPARSE() {
-        ':' ~ self.named-arg-name ~ '(' ~ self.named-arg-value.DEPARSE ~ ')'
-    }
-
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
@@ -91,8 +85,6 @@ class RakuAST::ColonPair::True is RakuAST::ColonPair {
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
         $obj
     }
-
-    method DEPARSE() { ':' ~ self.named-arg-name }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -127,8 +119,6 @@ class RakuAST::ColonPair::False is RakuAST::ColonPair {
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
         $obj
     }
-
-    method DEPARSE() { ':!' ~ self.named-arg-name }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
@@ -167,8 +157,6 @@ class RakuAST::ColonPair::Number is RakuAST::ColonPair {
         $obj
     }
 
-    method DEPARSE() { ':' ~ $!value.DEPARSE ~ self.named-arg-name }
-
     method visit-children(Code $visitor) {
         $visitor($!value);
     }
@@ -191,10 +179,6 @@ class RakuAST::ColonPair::Value is RakuAST::ColonPair {
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
         nqp::bindattr($obj, RakuAST::ColonPair::Value, '$!value', $value);
         $obj
-    }
-
-    method DEPARSE() {
-        ':' ~ self.named-arg-name ~ '(' ~ $!value.DEPARSE ~ ')'
     }
 
     method visit-children(Code $visitor) {
@@ -220,8 +204,6 @@ class RakuAST::ColonPair::Variable is RakuAST::ColonPair {
         nqp::bindattr($obj, RakuAST::ColonPair::Variable, '$!value', $value);
         $obj
     }
-
-    method DEPARSE() { ':' ~ $!value.DEPARSE }
 
     method visit-children(Code $visitor) {
         $visitor($!value);

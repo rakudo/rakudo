@@ -177,115 +177,128 @@ subtest 'Zen array slice' => {
         RakuAST::SemiList.new
       )
     );
-    is-deeply EVAL($ast), @a;
-#    is-deeply $_, @a
-#      for EVAL($ast), EVAL($ast.DEPARSE);
+    is-deeply $_, @a
+      for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
-{
+subtest 'Multi-dimensional array indexing' => {
     my @a[3;3] = <a b c>, <d e f>, <g h i>;
-    is-deeply  # @a[2;1]
-        EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Var::Lexical.new('@a'),
-            postfix => RakuAST::Postcircumfix::ArrayIndex.new(
-                RakuAST::SemiList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(2)
-                    ),
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(1)
-                    )
-                )
-            )
-        )),
-        'h',
-        'Multi-dimensional array indexing';
+
+    # @a[2;1]
+    $ast := RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('@a'),
+      postfix => RakuAST::Postcircumfix::ArrayIndex.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::IntLiteral.new(2)
+          ),
+          RakuAST::Statement::Expression.new(
+            RakuAST::IntLiteral.new(1)
+          )
+        )
+      )
+    );
+
+    is-deeply $_, 'h'
+      for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
 {
     my %h = a => 'add', s => 'subtract';
-    is-deeply  # %h{('s',)}         XXX not sure
-        EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Var::Lexical.new('%h'),
-            postfix => RakuAST::Postcircumfix::HashIndex.new(
-                RakuAST::SemiList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::StrLiteral.new('s')
-                    )
-                )
-            )
-        )),
-        'subtract',
-        'Basic single-dimension hash index';
 
-    is-deeply  # %h{}
-        EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Var::Lexical.new('%h'),
-            postfix => RakuAST::Postcircumfix::HashIndex.new(
-                RakuAST::SemiList.new()
+    subtest 'Basic single-dimension hash index' => {
+        # %h{('s',)}
+        $ast := RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Postcircumfix::HashIndex.new(
+            RakuAST::SemiList.new(
+              RakuAST::Statement::Expression.new(
+                RakuAST::StrLiteral.new('s')
+              )
             )
-        )),
-        %h,
-        'Zen hash slice';
+          )
+        );
+        is-deeply $_, 'subtract'
+          for EVAL($ast), EVAL($ast.DEPARSE);
+    }
 
-    is-deeply  # %h<s>
-        EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Var::Lexical.new('%h'),
-            postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
-                RakuAST::QuotedString.new(
-                    segments => [RakuAST::StrLiteral.new('s')],
-                    processors => ['words']
-                )
-            )
-        )),
-        'subtract',
-        'Basic literal hash index';
+    subtest 'Zen hash slice' => {
+        # %h{}
+        $ast := RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Postcircumfix::HashIndex.new(
+            RakuAST::SemiList.new()
+          )
+        );
+        is-deeply $_, %h
+          for EVAL($ast), EVAL($ast.DEPARSE);
+    }
 
-    is-deeply  # %h<s a>
-        EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Var::Lexical.new('%h'),
-            postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
-                RakuAST::QuotedString.new(
-                    segments => [RakuAST::StrLiteral.new('s a')],
-                    processors => ['words']
-                )
+    subtest 'Basic literal hash index' => {
+        # %h<s>
+        $ast := RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+            RakuAST::QuotedString.new(
+              segments => [RakuAST::StrLiteral.new('s')],
+              processors => ['words']
             )
-        )),
-        ('subtract', 'add'),
-        'Literal hash index with multiple keys';
+          )
+        );
+        is-deeply $_, 'subtract'
+          for EVAL($ast), EVAL($ast.DEPARSE);
+    }
 
-    is-deeply  # %h<>
-        EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Var::Lexical.new('%h'),
-            postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
-                RakuAST::QuotedString.new(
-                    segments => [RakuAST::StrLiteral.new('')],
-                    processors => ['words']
-                )
+    subtest 'Literal hash index with multiple keys' => {
+        # %h<s a>
+        $ast := RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+            RakuAST::QuotedString.new(
+              segments => [RakuAST::StrLiteral.new('s a')],
+              processors => ['words']
             )
-        )),
-        %h,
-        'Empty literal hash index works as zen slice';
+          )
+        );
+        is-deeply $_, ('subtract', 'add'),
+          for EVAL($ast), EVAL($ast.DEPARSE);
+    }
+
+    subtest 'Empty literal hash index works as zen slice' => {
+        # %h<>
+        $ast := RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('%h'),
+          postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
+            RakuAST::QuotedString.new(
+              segments => [RakuAST::StrLiteral.new('')],
+              processors => ['words']
+            )
+          )
+        );
+        is-deeply $_, %h
+          for EVAL($ast), EVAL($ast.DEPARSE);
+    }
 }
 
-{  # %h{'y'}{'a'}
+subtest 'Multi-dimensional hash indexing' => {
     my %h = x => { :1a, :2b }, y => { :3a, :4b };
-    is-deeply
-        EVAL(RakuAST::ApplyPostfix.new(
-            operand => RakuAST::Var::Lexical.new('%h'),
-            postfix => RakuAST::Postcircumfix::HashIndex.new(
-                RakuAST::SemiList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::StrLiteral.new('y')
-                    ),
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::StrLiteral.new('a')
-                    )
-                )
-            )
-        )),
-        (3,), # Is this actually a CORE.setting bug?
-        'Multi-dimensional hash indexing';
+
+    # %h{'y';'a'}
+    $ast := RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Var::Lexical.new('%h'),
+      postfix => RakuAST::Postcircumfix::HashIndex.new(
+        RakuAST::SemiList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::StrLiteral.new('y')
+          ),
+          RakuAST::Statement::Expression.new(
+            RakuAST::StrLiteral.new('a')
+          )
+        )
+      )
+    );
+    is-deeply $_, (3,), # Is this actually a CORE.setting bug?
+      for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
 subtest 'Application of a list infix operator on three operands' => {

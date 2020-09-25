@@ -380,7 +380,7 @@ class RakuAST::Deparse {
 
         if $ast.type -> $type {
             nqp::push_s($parts,self.deparse($type));
-            nqp::push_s($parts,' ') if self.target;
+            nqp::push_s($parts,' ') if $ast.target;
         }
 
         if $ast.target -> $target {
@@ -412,8 +412,8 @@ class RakuAST::Deparse {
 
             # positional parameter
             else {
-                if $ast.slurpy -> $prefix {
-                    nqp::push_s($parts,$prefix);
+                given $ast.slurpy -> $prefix {
+                    nqp::push_s($parts,self.deparse($prefix));
                 }
                 nqp::push_s($parts,$var);
                 if $ast.invocant {
@@ -562,9 +562,11 @@ class RakuAST::Deparse {
         my $parts := nqp::list_s;
 
         nqp::push_s($parts,$.indent-spaces);
-        if $ast.scope ne 'my' {
-            nqp::push_s($parts,$ast.scope);
-            nqp::push_s($parts,' ');
+        given $ast.scope -> $scope {
+            if $scope ne 'my' && ($ast.name || $scope ne 'anon') {
+                nqp::push_s($parts,$scope);
+                nqp::push_s($parts,' ');
+            }
         }
         nqp::push_s($parts,'sub');
         nqp::push_s($parts,self!routine($ast));

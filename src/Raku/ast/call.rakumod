@@ -26,16 +26,6 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
         }
     }
 
-    method DEPARSE() {
-        my $parts := nqp::list_s;
-        for $!args -> $arg {
-            nqp::push_s($parts, $arg.DEPARSE);
-        }
-        nqp::elems($parts)
-          ?? '(' ~ nqp::join(', ',$parts) ~ ')'
-          !! ''
-    }
-
     method IMPL-ADD-QAST-ARGS(RakuAST::IMPL::QASTContext $context, QAST::Op $call) {
         # We need to remove duplicate named args, so make a first pass through to
         # collect those.
@@ -163,8 +153,6 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         $visitor(self.args);
     }
 
-    method DEPARSE() { $!name.DEPARSE ~ self.args.DEPARSE }
-
     method needs-resolution() { $!name.is-identifier }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -210,8 +198,6 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
         $obj
     }
 
-    method DEPARSE() { self.args.DEPARSE }
-
     method visit-children(Code $visitor) {
         $visitor(self.args);
     }
@@ -233,8 +219,6 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
         $obj
     }
-
-    method DEPARSE() { '.' ~ $!name.DEPARSE ~ self.args.DEPARSE }
 
     method visit-children(Code $visitor) {
         $visitor($!name);

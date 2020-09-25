@@ -153,9 +153,9 @@ my class X::Method::NotFound is Exception {
     has $.typename;
     has Bool $.private;
     has $.addendum;
-    has $.message is built(False);
-    has @.suggestions is built(False);
-    has @.tips is built(False);
+    has @!suggestions;
+    has @!tips;
+    has $!message;
 
     # This attribute is an implementation detail. Not to be documented.
     has $.in-class-call;
@@ -166,7 +166,17 @@ my class X::Method::NotFound is Exception {
           !! "of type '$.typename'"
     }
 
-    method TWEAK() {
+    method message() { $!message // self!create-message }
+    method suggestions() {
+        self!create-message unless $!message;
+        @!suggestions
+    }
+    method tips() {
+        self!create-message unless $!message;
+        @!tips
+    }
+
+    method !create-message() {
         my @message = $.private
           ?? "No such private method '!$.method' for invocant $.of-type"
           !! "No such method '$.method' for invocant $.of-type";

@@ -589,58 +589,79 @@ subtest 'Native str assign initializer works' => {
 
 {
     my module M {
-        our $var = 66;
-        is-deeply  # our $var; $var
-            EVAL(RakuAST::StatementList.new(
-                RakuAST::Statement::Expression.new(
-                    RakuAST::VarDeclaration::Simple.new(
-                        scope => 'our',
-                        name => '$var',
-                    ),
-                ),
-                RakuAST::Statement::Expression.new(
-                    RakuAST::Var::Lexical.new('$var')
-                ),
-            )),
-            66,
-            'our-scoped variable declaration without initializer takes current value (eval mode)';
-        is-deeply $var, 66, 'Value of our-scoped package variable intact after EVAL';
+        our $var;
 
-        is-deeply  # our $x = 42; $x
-            EVAL(RakuAST::StatementList.new(
-                RakuAST::Statement::Expression.new(
-                    RakuAST::VarDeclaration::Simple.new(
-                        scope => 'our',
-                        name => '$x',
-                        initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(42))
-                    ),
-                ),
-                RakuAST::Statement::Expression.new(
-                    RakuAST::Var::Lexical.new('$x')
-                ),
-            )),
-            42,
-            'our-scoped variable declaration with initializer works (eval mode)';
+        # our $var; $var
+        $ast := RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::VarDeclaration::Simple.new(
+              scope => 'our',
+              name  => '$var',
+            ),
+          ),
+          RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$var')
+          ),
+        );
 
-        is-deeply  # our $y = 99; $y
-            EVAL(RakuAST::CompUnit.new(
-                :!eval,
-                :comp-unit-name('TEST_1'),
-                :statement-list(RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::VarDeclaration::Simple.new(
-                            scope => 'our',
-                            name => '$y',
-                            initializer => RakuAST::Initializer::Assign.new(RakuAST::IntLiteral.new(99))
-                        ),
-                    ),
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::Var::Lexical.new('$y')
-                    )
-                ))
-            )),
-            99,
-            'our-scoped variable declaration with initializer works (top-level mode)';
+        subtest 'AST: our-scoped variable declaration without initializer takes current value (eval mode)' => {
+            $var = 66;
+            is-deeply EVAL($ast), 66, 'eval AST';
+            is-deeply $var, 66, 'Value intact after eval';
+        }
+
+        subtest 'DEPARSE: our-scoped variable declaration without initializer takes current value (eval mode)' => {
+            $var = 99;
+            is-deeply EVAL($ast), 99, 'eval DEPARSE';
+            is-deeply $var, 99, 'Value intact after evaL';
+        }
+
+        # our $x = 42; $x
+        $ast := RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::VarDeclaration::Simple.new(
+              scope => 'our',
+              name => '$x',
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::IntLiteral.new(42)
+              )
+            ),
+          ),
+          RakuAST::Statement::Expression.new(
+            RakuAST::Var::Lexical.new('$x')
+          ),
+        );
+
+        subtest 'our-scoped variable declaration with initializer works (eval mode)' => {
+            is-deeply $_, 42
+              for EVAL($ast), EVAL($ast.DEPARSE);
+        }
+
+        # our $y = 99; $y
+        $ast := RakuAST::CompUnit.new(
+          :!eval,
+          :comp-unit-name('TEST_1'),
+          :statement-list(RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::VarDeclaration::Simple.new(
+                scope => 'our',
+                name => '$y',
+                initializer => RakuAST::Initializer::Assign.new(
+                  RakuAST::IntLiteral.new(99)
+                )
+              ),
+            ),
+            RakuAST::Statement::Expression.new(
+              RakuAST::Var::Lexical.new('$y')
+            )
+          ))
+        );
+
+        # There is no equivalent string representation of a compilation unit
+        # so we cannot actually test the DEPARSE of the ast, as that would
+        # interfere with other tests.
+        is-deeply EVAL($ast), 99,
+          'our-scoped variable declaration with initializer works (top-level mode)';
     }
     is-deeply $M::x, 42, 'our variable set in eval mode is installed into the current package';
     ok $M::x.VAR ~~ Scalar, 'It is a bound scalar';

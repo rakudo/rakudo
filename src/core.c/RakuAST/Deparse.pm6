@@ -74,7 +74,10 @@ class RakuAST::Deparse {
 #--------------------------------------------------------------------------------
 # Private helper methods
 
-    method !routine(RakuAST::Routine:D $ast, $parts is raw --> str) {
+    method !routine(RakuAST::Routine:D $ast --> str) {
+        my $parts := nqp::list_s;
+
+        nqp::push_s($parts,' ');
         if $ast.name -> $name {
             nqp::push_s($parts,self.deparse($name));
         }
@@ -82,7 +85,18 @@ class RakuAST::Deparse {
         nqp::push_s($parts,$.parens-open);
         nqp::push_s($parts,self.deparse($ast.signature));
         nqp::push_s($parts,$.parens-close);
+
+        if $ast.traits -> @traits {
+            for @traits -> $trait {
+                nqp::push_s($parts,' ');
+                nqp::push_s($parts,self.deparse($trait));
+            }
+        }
+
+        nqp::push_s($parts,' ');
         nqp::push_s($parts,self.deparse($ast.body));
+
+        nqp::join('',$parts)
     }
 
     method !method(RakuAST::Method:D $ast, str $type --> str) {
@@ -94,7 +108,7 @@ class RakuAST::Deparse {
             nqp::push_s($parts,' ');
         }
         nqp::push_s($parts,$type);
-        self!routine($ast, $parts);
+        nqp::push_s($parts,self!routine($ast));
 
         nqp::join('',$parts);
     }
@@ -180,7 +194,7 @@ class RakuAST::Deparse {
 
         self.indent;
         nqp::push_s($parts,self.deparse($ast.statement-list));
-        
+
         nqp::push_s($parts,self.dedent);
         nqp::push_s($parts,"}\n");
 
@@ -267,6 +281,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::ColonPair::Variable:D $ast --> str) {
         nqp::join('',nqp::list_s(':',self.deparse($ast.value)))
+    }
+
+    multi method deparse(RakuAST::CompUnit:D $ast --> str) {
+        self.deparse($ast.statement-list)
     }
 
     multi method deparse(RakuAST::Declaration:D $ast --> str) {
@@ -364,7 +382,7 @@ class RakuAST::Deparse {
             nqp::push_s($parts,self.deparse($type));
             nqp::push_s($parts,' ') if self.target;
         }
-        
+
         if $ast.target -> $target {
             my str $var = $target.lexical-name;
 
@@ -431,11 +449,16 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::PointyBlock:D $ast --> str) {
-        nqp::join('',nqp::list_s(
-          '-> ',
-          self.deparse($ast.signature),
-          self.deparse($ast.body)
-        ))
+        my $parts := nqp::list_s('-> ');
+
+        if self.deparse($ast.signature) -> $signature {
+            nqp::push_s($parts,$signature);
+            nqp::push_s($parts,' ');
+        }
+
+        nqp::push_s($parts,self.deparse($ast.body));
+
+        nqp::join('',$parts);
     }
 
     multi method deparse(RakuAST::RatLiteral:D $ast --> str) {
@@ -443,13 +466,16 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Signature:D $ast --> str) {
-        my $parts := nqp::list_s;
-        for $ast.parameters -> \parameter {
-            nqp::push_s($parts,self.deparse(parameter));
+        if $ast.parameters -> @parameters {
+            my $parts := nqp::list_s;
+            for @parameters -> $parameter {
+                nqp::push_s($parts,self.deparse($parameter));
+            }
+            nqp::join($!list-infix-comma,$parts)
         }
-        nqp::elems($parts)
-          ?? nqp::join($!list-infix-comma,$parts)
-          !! '()'   # XXX is this correct?
+        else {
+            ''
+        }
     }
 
     multi method deparse(RakuAST::Statement::Empty:D $ast --> str) {
@@ -476,7 +502,7 @@ class RakuAST::Deparse {
             nqp::pop_s($parts);
             nqp::push_s($parts,$.last-statement);
 
-            nqp::join("",$parts)
+            nqp::join('',$parts)
         }
 
         else {
@@ -541,7 +567,7 @@ class RakuAST::Deparse {
             nqp::push_s($parts,' ');
         }
         nqp::push_s($parts,'sub');
-        self!routine($ast, $parts);
+        nqp::push_s($parts,self!routine($ast));
 
         nqp::join('',$parts);
     }
@@ -559,6 +585,14 @@ class RakuAST::Deparse {
           self.deparse($ast.else)
         ))
     }
+    
+    multi method deparse(RakuAST::Trait:D $ast --> str) {
+        nqp::join('',nqp::list_s('',
+          $ast.IMPL-TRAIT-NAME,
+          ' ',
+          self.deparse($ast.type)
+        ))
+    }   
 
     multi method deparse(RakuAST::Type::Simple:D $ast --> str) {
         self.deparse($ast.name)

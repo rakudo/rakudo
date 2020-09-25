@@ -1643,6 +1643,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
           | $<quant>=['\\'|'|'] <param_var> {
                 $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
             }
+          | $<quant>=['\\'|'|'|'+'] <param_term>
           | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
           | <?>
           ]
@@ -1650,6 +1651,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | $<quant>=['\\'|'|'] <param_var> {
               $/.panic('Obsolete use of | or \\ with sigil on param ' ~ $<param_var>);
           }
+        | $<quant>=['\\'|'|'|'+'] <param_term>
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         ]
     }
@@ -1681,6 +1683,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                <postcircumfix>
           ]?
         ]
+    }
+
+    token param_term {
+        <defterm>?
     }
 
     token named_param {
@@ -1780,6 +1786,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :dba('new name to be defined')
         <name>
 #       <colonpair>*
+    }
+
+    token defterm {
+        :dba('new term to be defined')
+        <identifier>
+        # TODO colonpairs
     }
 
     token sigil { <[$@%&]> }

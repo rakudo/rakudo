@@ -498,8 +498,8 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
 
     # Check if a name is a known type.
     method is-name-type(RakuAST::Name $name) {
-        my $constant := self.resolve-name-constant($name);
-        if nqp::isconcrete($constant) {
+        my $constant := self.resolve-name($name);
+        if nqp::istype($constant, RakuAST::CompileTimeValue) {
             # Name resolves, but is it an instance or a type object?
             nqp::isconcrete($constant.compile-time-value) ?? False !! True
         }

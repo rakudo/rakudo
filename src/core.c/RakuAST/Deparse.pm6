@@ -1,7 +1,3 @@
-# This is a TEMPORARY location of the RakuAST::Deparse file to allow for
-# easier initial development of this module (allowing for testing without
-# require a full core-setting build).
-
 # This is the default class handling deparsing (aka, converting a given
 # RakuAST::Node object into Raku source code).  It allows for all sorts
 # of customization, and can be subclassed for further optimizations.
@@ -9,8 +5,6 @@
 # Apart from the .new method, which expects named parameters, each public
 # method expects an instance if a subclass of a RakuAST::Node as the first
 # positional parameter.
-
-use nqp;
 
 class RakuAST::Deparse {
     has str $.before-comma = ' ';
@@ -94,7 +88,7 @@ class RakuAST::Deparse {
     method !method(RakuAST::Method:D $ast, str $type --> str) {
         my $parts := nqp::list_s;
 
-        nqp::push_s($parts,$indent-spaces);
+        nqp::push_s($parts,$.indent-spaces);
         if $ast.scope ne 'has' {
             nqp::push_s($parts,$ast.scope);
             nqp::push_s($parts,' ');
@@ -541,7 +535,7 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Sub:D $ast --> str) {
         my $parts := nqp::list_s;
 
-        nqp::push_s($parts,$indent-spaces);
+        nqp::push_s($parts,$.indent-spaces);
         if $ast.scope ne 'my' {
             nqp::push_s($parts,$ast.scope);
             nqp::push_s($parts,' ');
@@ -617,8 +611,3 @@ class RakuAST::Deparse {
         $ast.value.raku
     }
 }
-
-#--------------------------------------------------------------------------------
-# Make sure we can access this class from the NQP bootstrap code
-
-INIT nqp::bindhllsym('Raku','DEPARSE',RakuAST::Deparse);

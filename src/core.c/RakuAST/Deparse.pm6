@@ -324,7 +324,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::MetaInfix::Assign:D $ast --> str) {
-        $ast.operator ~ '='
+        nqp::concat(self.deparse($ast.infix),'=')
     }
 
     multi method deparse(RakuAST::Method:D $ast --> str) {

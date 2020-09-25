@@ -1031,8 +1031,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method parameter($/) {
-        my $parameter := $<param_var> ?? $<param_var>.ast !!
+        my $parameter := $<param_var>   ?? $<param_var>.ast   !!
                          $<named_param> ?? $<named_param>.ast !!
+                         $<param_term>  ?? $<param_term>.ast  !!
                          self.r('Parameter').new;
         if $<type_constraint> {
             $parameter.set-type($<type_constraint>.ast);
@@ -1062,6 +1063,19 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Build the parameter.
         make self.r('Parameter').new(|%args);
+    }
+
+    method param_term($/) {
+        if $<defterm> {
+            # Create sigilless target to bind into
+            my $decl := self.r('ParameterTarget', 'Term').new($<defterm>.ast);
+            $*R.declare-lexical($decl);
+            make self.r('Parameter').new(target => $decl);
+        }
+        else {
+            # Anonymous
+            make self.r('Parameter').new();
+        }
     }
 
     method named_param($/) {
@@ -1176,6 +1190,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         else {
             $*R.declare-lexical($*BLOCK);
         }
+    }
+
+    method defterm($/) {
+        make self.r('Name').from-identifier(~$/);
     }
 }
 

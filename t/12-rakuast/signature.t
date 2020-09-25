@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 10;
+plan 11;
 
 my $ast;
 
@@ -367,5 +367,39 @@ subtest 'Slurpy single arg rule array parameter' => {
           "$type: Flattening does not happen";
         is-deeply $sub((3, 4)), [3, 4],
           "$type: Passing a list is treated as the single argument";
+    }
+}
+
+subtest 'Sigilless parameter' => {
+    # sub (Int \trm) { term }
+    $ast := RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            type => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier('Int')
+            ),
+            target => RakuAST::ParameterTarget::Term.new(RakuAST::Name.from-identifier('trm')),
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('trm'))
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        ok $sub.signature.params[0].type =:= Int,
+          "$type: Type is introspectable";
+        is $sub.signature.params[0].name, 'trm',
+          "$type: The name matches";
+        is $sub(42), 42,
+          "$type: The term can be resolved in the sub";
+        dies-ok { $sub("foo") },
+          "$type: Passing wrong type dies";
     }
 }

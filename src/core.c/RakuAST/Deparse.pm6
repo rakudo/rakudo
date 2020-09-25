@@ -384,7 +384,7 @@ class RakuAST::Deparse {
         }
 
         if $ast.target -> $target {
-            my str $var = $target.lexical-name;
+            my str $var = self.deparse($target);
 
             # named parameter
             if $ast.names -> @names {
@@ -446,6 +446,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::ParameterTarget::Var:D $ast --> str) {
         $ast.name
+    }
+
+    multi method deparse(RakuAST::ParameterTarget::Term:D $ast --> str) {
+        '\\' ~ $ast.name.canonicalize
     }
 
     multi method deparse(RakuAST::PointyBlock:D $ast --> str) {
@@ -576,6 +580,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Submethod:D $ast --> str) {
         self!method($ast, 'submethod')
+    }
+
+    multi method deparse(RakuAST::Term::Name:D $ast --> str) {
+        self.deparse($ast.name)
     }
 
     multi method deparse(RakuAST::Ternary:D $ast --> str) {

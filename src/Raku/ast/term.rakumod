@@ -11,8 +11,7 @@ class RakuAST::Term::Name is RakuAST::Term is RakuAST::Lookup {
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
-        # TODO non-constants or indirects and so forth
-        my $resolved := $resolver.resolve-name-constant($!name);
+        my $resolved := $resolver.resolve-name($!name);
         if $resolved {
             self.set-resolution($resolved);
         }

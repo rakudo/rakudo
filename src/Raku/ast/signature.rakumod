@@ -377,6 +377,53 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
     method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
 }
 
+# A binding of a parameter into a lexical term.
+class RakuAST::ParameterTarget::Term is RakuAST::ParameterTarget is RakuAST::Declaration {
+    has RakuAST::Name $.name;
+
+    method new(str $name!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!name', $name);
+        $obj
+    }
+
+    method lexical-name() {
+        $!name.canonicalize
+    }
+
+    method introspection-name() {
+        $!name.canonicalize
+    }
+
+    # Generate a lookup of this parameter, already resolved to this declaration.
+    method generate-lookup() {
+        my $lookup := RakuAST::Term::Name.new($!name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, Mu $source-qast) {
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :scope('lexical'), :name($!name.canonicalize) ),
+            $source-qast
+        )
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
+        my str $scope := 'lexical';
+        QAST::Var.new( :name($!name.canonicalize), :$scope )
+    }
+
+    method default-scope() { 'my' }
+
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+}
+
 # Marker for all kinds of slurpy behavior.
 class RakuAST::Parameter::Slurpy {
     method IMPL-FLAGS(str $sigil) {

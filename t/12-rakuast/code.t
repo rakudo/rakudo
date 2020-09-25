@@ -1,12 +1,12 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 13;
+plan 11;
 
 my $ast;
 
 subtest 'A pointy block node evaluates to a Block' => {
-    # -> () { 101 };
+    # -> () { 101 }
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         RakuAST::PointyBlock.new(
@@ -171,7 +171,7 @@ subtest 'Bare block in parentheses evaluates to Block' => {
     }
 }
 
-subtest 'Block has default $_ parameter' => {
+subtest 'Block has default parameter' => {
     # ({ $_ })
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
@@ -195,9 +195,9 @@ subtest 'Block has default $_ parameter' => {
 
     for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $result {
         is-deeply $result('xxx'), 'xxx',
-          "$type: Block has default $_ parameter";
+          "$type: Block has default $type parameter";
         lives-ok { $result() },
-          "$type: That $_ parameter is optional";
+          "$type: That $type parameter is optional";
     }
 }
 
@@ -332,47 +332,73 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
     ok $sub ~~ Callable[Int], 'It also does the correct parametric Callable';
 }
 
-{  # sub () returns Int { $x }
-    my $sub := EVAL RakuAST::StatementList.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::Sub.new(
-                traits => [RakuAST::Trait::Returns.new(
-                    RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
-                )],
-                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::Var::Lexical.new('$x')
-                    )
-                ))
+subtest 'Return type constraint' => {
+    my $x;
+
+    # sub () returns Int { $x }
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::Sub.new(
+          traits => [
+            RakuAST::Trait::Returns.new(
+              RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Int')
+              )
             )
+          ],
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
         )
+      )
     );
-    my $x = 42;
-    lives-ok { $sub() }, 'Return type constraint does not complain when type matches';
-    $x = 'oops';
-    dies-ok { $sub() }, 'Return type constraint has effect when type does not match';
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        $x = 42;
+        lives-ok { $sub() }, "$type: type matches";
+        $x = 'oops';
+        dies-ok { $sub() }, "$type: type does not match";
+    }
 }
 
-{  # sub () returns Int { return $x }
-    my $sub := EVAL RakuAST::StatementList.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::Sub.new(
-                traits => [RakuAST::Trait::Returns.new(
-                    RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
-                )],
-                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::Call::Name.new(
-                            name => RakuAST::Name.from-identifier('return'),
-                            args => RakuAST::ArgList.new(RakuAST::Var::Lexical.new('$x'))
-                        )
-                    )
-                ))
+subtest 'Using return with acceptable type works' => {
+    my $x;
+
+    # sub () returns Int { return $x }
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::Sub.new(
+          traits => [
+            RakuAST::Trait::Returns.new(
+              RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Int')
+              )
             )
+          ],
+          body => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                RakuAST::Call::Name.new(
+                  name => RakuAST::Name.from-identifier('return'),
+                  args => RakuAST::ArgList.new(
+                    RakuAST::Var::Lexical.new('$x')
+                  )
+                )
+              )
+            )
+          )
         )
+      )
     );
-    my $x = 42;
-    lives-ok { $sub() }, 'Using return with acceptable type works';
-    $x = 'oops';
-    dies-ok { $sub() }, 'Using return with unaccptable type dies';
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        $x = 42;
+        lives-ok { $sub() }, "$type: type matches";
+        $x = 'oops';
+        dies-ok { $sub() }, "$type: type does not match";
+    }
 }

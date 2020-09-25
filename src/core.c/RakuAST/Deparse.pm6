@@ -372,7 +372,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::QuotedString:D $ast --> str) {
-        $ast.literal-value
+        $ast.literal-value.join(' ')
     }
 
     multi method deparse(RakuAST::Parameter:D $ast --> str) {

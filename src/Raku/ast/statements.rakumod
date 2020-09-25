@@ -37,25 +37,6 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         $obj
     }
 
-    method DEPARSE() {
-        my $spaces := "    ";
-
-        my $parts := nqp::list_s;
-        for $!statements -> $statement {
-            nqp::push_s($parts,$spaces);
-            nqp::push_s($parts,$statement.DEPARSE);
-            nqp::push_s($parts,";\n");
-        }
-
-        # lose last ; ?
-        if nqp::elems($parts) {
-            nqp::pop_s($parts);
-            nqp::push_s($parts,"\n");
-        }
-
-        nqp::join("",$parts)
-    }
-
     method statements() {
         self.IMPL-WRAP-LIST($!statements)
     }
@@ -147,8 +128,6 @@ class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookup
         nqp::create(self)
     }
 
-    method DEPARSE() { "" }
-
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
             RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Nil'))
@@ -172,8 +151,6 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!expression', $expression);
         $obj
     }
-
-    method DEPARSE() { $!expression.DEPARSE }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!expression.IMPL-TO-QAST($context)

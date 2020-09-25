@@ -336,8 +336,6 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
         $obj
     }
 
-    method DEPARSE() { $!name }
-
     method lexical-name() {
         $!name
     }
@@ -386,8 +384,6 @@ class RakuAST::Parameter::Slurpy {
         0
     }
 
-    method DEPARSE() { '' }
-
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil) {
         # Not slurply, so nothing to do
@@ -417,8 +413,6 @@ class RakuAST::Parameter::Slurpy::Flattened is RakuAST::Parameter::Slurpy {
         $sigil eq '%' ?? SIG_ELEM_SLURPY_NAMED !!
                          0
     }
-
-    method DEPARSE() { '*' }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil) {
@@ -456,8 +450,6 @@ class RakuAST::Parameter::Slurpy::Unflattened is RakuAST::Parameter::Slurpy {
         $sigil eq '@' ?? SIG_ELEM_SLURPY_LOL !! 0
     }
 
-    method DEPARSE() { '**' }
-
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil) {
         if $sigil eq '@' {
@@ -475,8 +467,6 @@ class RakuAST::Parameter::Slurpy::SingleArgument is RakuAST::Parameter::Slurpy {
         my constant SIG_ELEM_SLURPY_ONEARG := 16777216;
         $sigil eq '@' || $sigil eq '' ?? SIG_ELEM_SLURPY_ONEARG !! 0
     }
-
-    method DEPARSE() { '+' }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
             Mu $param-qast, Mu $temp-qast, str $sigil) {

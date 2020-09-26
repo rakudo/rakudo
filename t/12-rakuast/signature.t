@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 11;
+plan 12;
 
 my $ast;
 
@@ -401,5 +401,45 @@ subtest 'Sigilless parameter' => {
           "$type: The term can be resolved in the sub";
         dies-ok { $sub("foo") },
           "$type: Passing wrong type dies";
+    }
+}
+
+subtest 'Capture parameter' => {
+    # sub (|cappy) { cappy }
+    $ast := RakuAST::Sub.new(
+      signature => RakuAST::Signature.new(
+        parameters => (
+          RakuAST::Parameter.new(
+            target => RakuAST::ParameterTarget::Term.new(RakuAST::Name.from-identifier('c')),
+            slurpy => RakuAST::Parameter::Slurpy::Capture
+          ),
+        )
+      ),
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('c'))
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        ok $sub.signature.params[0].capture,
+          "$type: Parameter introspects as a capture";
+        is $sub.arity, 0,
+          "$type: Correct arity";
+        is $sub.count, Inf,
+          "$type: Correct count";
+        is-deeply $sub(), \(),
+          "$type: Passing no argument gets empty capture";
+        is-deeply $sub(1, 2), \(1,2),
+          "$type: Passing positional arguments gets correct capture";
+        is-deeply $sub(1, 2, (3, 4)), \(1, 2, (3, 4)),
+          "$type: Flattening does not happen";
+        is-deeply $sub(:b, :!b), \(b => True, b => False),
+          "$type: Passing named arguments gets correct capture";
+        is-deeply $sub("foo", :bar<baz>), \("foo", bar => 'baz'),
+          "$type: Passing a mix of positional and named arguments gets correct capture";
     }
 }

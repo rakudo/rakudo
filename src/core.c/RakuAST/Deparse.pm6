@@ -152,10 +152,12 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ApplyPostfix:D $ast --> str) {
+        my $postfix := $ast.postfix;
+
         nqp::join('',nqp::list_s(
           self.deparse($ast.operand),
-          '.',
-          self.deparse($ast.postfix)
+          nqp::istype($postfix,RakuAST::Call) ?? '.' !! '',
+          self.deparse($postfix)
         ))
     }
 

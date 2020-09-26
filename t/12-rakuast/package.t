@@ -1,85 +1,134 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 40;
+plan 30;
 
-{  # my class MyTestClass is repr<P6opaque> { }
-    my $class = EVAL RakuAST::Package.new:
-        scope => 'my',
-        package-declarator => 'class',
-        how => Metamodel::ClassHOW,
-        name => RakuAST::Name.from-identifier('MyTestClass'),
-        repr => 'P6opaque';
-    nok $class.DEFINITE, 'Class evaluates to a type object';
-    is $class.^name, 'MyTestClass', 'Correct class name';
-    is $class.REPR, 'P6opaque', 'Correct representation';
+my $ast;
+
+subtest 'Create an empty class' => {
+    # my class MyTestClass { }
+    $ast := RakuAST::Package.new(
+      scope              => 'my',
+      package-declarator => 'class',
+      name               => RakuAST::Name.from-identifier('MyTestClass'),
+      how  => Metamodel::ClassHOW,
+      repr => 'P6opaque'
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class evaluates to a type object";
+        is $class.^name, 'MyTestClass',
+          "$type: Correct class name";
+        is $class.REPR, 'P6opaque',
+          "$type: Correct representation";
+    }
 }
 
-{  # my class TestClassWithMethods { method test-meth() { 456 } }
-    my $class = EVAL RakuAST::Package.new:
-        scope => 'my',
-        package-declarator => 'class',
-        how => Metamodel::ClassHOW,
-        name => RakuAST::Name.from-identifier('TestClassWithMethods'),
-        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+subtest 'Create a class with a method' => {
+    # my class TestClassWithMethods { method test-meth() { 456 } }
+    $ast := RakuAST::Package.new(
+      scope => 'my',
+      package-declarator => 'class',
+      name  => RakuAST::Name.from-identifier('TestClassWithMethods'),
+      how   => Metamodel::ClassHOW,
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::Method.new(
-                    name => RakuAST::Name.from-identifier('test-meth'),
-                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::IntLiteral.new(456)
-                        )
-                    ))
+              RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('test-meth'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      RakuAST::IntLiteral.new(456)
+                    )
+                  )
                 )
+              )
             )
-        )));
-    nok $class.DEFINITE, 'Class with method evluates to a type object';
-    is $class.^name, 'TestClassWithMethods', 'Correct class name';
-    ok $class.^lookup('test-meth'), 'The class has a test-meth method';
-    is $class.test-meth(), 456, 'Can call method without signature and get expected return value';
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with method evaluates to a type object";
+        is $class.^name, 'TestClassWithMethods',
+          "$type: Correct class name";
+        ok $class.^lookup('test-meth'),
+          "$type: The class has a test-meth method";
+        is $class.test-meth(), 456,
+          "$type: Can call method without signature and get expected value";
+    }
 }
 
 is-deeply EVAL(RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('Proc', 'Async'))),
     Proc::Async,
     'Can resolve a multi-part type name from the setting';
 
-{  # { my class LexicalTestClass is repr<P6opaque> { }; LexicalTestClass }
-    my $result := EVAL RakuAST::StatementList.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::Package.new(
-                scope => 'my',
-                package-declarator => 'class',
-                how => Metamodel::ClassHOW,
-                name => RakuAST::Name.from-identifier('LexicalTestClass'),
-                repr => 'P6opaque'
-            )
-        ),
-        RakuAST::Statement::Expression.new(
-            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('LexicalTestClass'))
-        ));
-    nok $result.defined, 'Got type object back from looking up package';
-    is $result.^name, 'LexicalTestClass', 'Resolved lexically to the correct class';
-    nok GLOBAL::<LexicalTestClass>:exists, 'Was not installed globally';
+subtest 'Check lexically resolving of a class' => {
+    # my class LexicalTestClass { }; LexicalTestClass
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::Package.new(
+          scope => 'my',
+          package-declarator => 'class',
+          name  => RakuAST::Name.from-identifier('LexicalTestClass'),
+          how   => Metamodel::ClassHOW,
+          repr  => 'P6opaque'
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        RakuAST::Type::Simple.new(
+          RakuAST::Name.from-identifier-parts('LexicalTestClass')
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $result {
+        nok $result.defined,
+          "$type: Got type object back from looking up package";
+        is $result.^name, 'LexicalTestClass',
+          "$type: Resolved lexically to the correct class";
+        nok GLOBAL::<LexicalTestClass>:exists,
+          "$type: Was not installed globally";
+    }
 }
 
-{  # { our class OurTestClass is repr<P6opaque> { }; OurTestClass }
-    my $result := EVAL RakuAST::StatementList.new(
-        RakuAST::Statement::Expression.new(
+subtest 'Check globally resolving of a class' => {
+    for 'AST', 'DEPARSE' -> $type {
+        my $class = "OurTestClass$type";
+
+        # class OurTestClass$type { }; OurTestClass$type
+        $ast := RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
             RakuAST::Package.new(
-                scope => 'our',
-                package-declarator => 'class',
-                how => Metamodel::ClassHOW,
-                name => RakuAST::Name.from-identifier('OurTestClass'),
-                repr => 'P6opaque'
+              scope => 'our',
+              package-declarator => 'class',
+              name  => RakuAST::Name.from-identifier($class),
+              how   => Metamodel::ClassHOW,
+              repr  => 'P6opaque'
             )
-        ),
-        RakuAST::Statement::Expression.new(
-            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('OurTestClass'))
-        ));
-    nok $result.defined, 'Got type object back from looking up our-scoped package';
-    is $result.^name, 'OurTestClass', 'Resolved to the correct class';
-    ok GLOBAL::<OurTestClass>:exists, 'Was installed globally';
-    ok GLOBAL::<OurTestClass> === $result, 'Correct thing installed';
+          ),
+          RakuAST::Statement::Expression.new(
+            RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier-parts($class)
+            )
+          )
+        );
+
+        my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($ast.DEPARSE);
+        nok $result.defined,
+          "Got type object back from looking up our-scoped package";
+        is $result.^name, $class,
+          "Resolved to the correct class";
+        ok GLOBAL::{$class}:exists,
+          "Was installed globally";
+        ok GLOBAL::{$class} === $result,
+          "Correct thing installed";
+    }
 }
 
 module Enclosing {  # our class OurEnclosedClass is repr<P6opaque> { }; OurEnclosedClass

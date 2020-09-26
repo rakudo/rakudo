@@ -102,7 +102,6 @@ class RakuAST::Deparse {
     method !method(RakuAST::Method:D $ast, str $type --> str) {
         my $parts := nqp::list_s;
 
-        nqp::push_s($parts,$.indent-spaces);
         if $ast.scope ne 'has' {
             nqp::push_s($parts,$ast.scope);
             nqp::push_s($parts,' ');
@@ -377,6 +376,29 @@ class RakuAST::Deparse {
         $ast.literal-value.join(' ')
     }
 
+    multi method deparse(RakuAST::Package:D $ast --> str) {
+        my $parts := nqp::list_s;
+
+        if $ast.scope -> $scope {
+            if $scope ne 'our' {
+                nqp::push_s($parts,$scope);
+            }
+        }
+
+        nqp::push_s($parts,$ast.package-declarator);
+        nqp::push_s($parts,self.deparse($ast.name));
+
+        if $ast.traits -> @traits {
+            for @traits -> $trait {
+                nqp::push_s($parts,self.deparse($trait));
+            }
+        }
+
+        nqp::push_s($parts,self.deparse($ast.body));
+
+        nqp::join(' ',$parts)
+    }
+
     multi method deparse(RakuAST::Parameter:D $ast --> str) {
         my $parts := nqp::list_s;
 
@@ -509,7 +531,7 @@ class RakuAST::Deparse {
                 nqp::push_s($parts,$end);
             }
 
-            nqp::pop_s($parts);
+            nqp::pop_s($parts);  # lose the last end
             nqp::push_s($parts,$.last-statement);
 
             nqp::join('',$parts)
@@ -571,7 +593,6 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Sub:D $ast --> str) {
         my $parts := nqp::list_s;
 
-        nqp::push_s($parts,$.indent-spaces);
         given $ast.scope -> $scope {
             if $scope ne 'my' && ($ast.name || $scope ne 'anon') {
                 nqp::push_s($parts,$scope);
@@ -601,14 +622,14 @@ class RakuAST::Deparse {
           self.deparse($ast.else)
         ))
     }
-    
+
     multi method deparse(RakuAST::Trait:D $ast --> str) {
         nqp::join('',nqp::list_s('',
           $ast.IMPL-TRAIT-NAME,
           ' ',
           self.deparse($ast.type)
         ))
-    }   
+    }
 
     multi method deparse(RakuAST::Type::Simple:D $ast --> str) {
         self.deparse($ast.name)

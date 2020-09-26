@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Copyright (C) 2009-2019 The Perl Foundation
+# Copyright (C) 2009-2020 The Perl Foundation
 
 use 5.10.1;
 use strict;
@@ -141,7 +141,7 @@ General Options:
     --help             Show this text
     --prefix=<path>    Install files in dir; also look for executables there
     --nqp-home=dir     Directory to install NQP files to
-    --perl6-home=dir, --rakudo-home=dir   
+    --perl6-home=dir, --rakudo-home=dir
                        Directory to install Rakudo files to
     --relocatable      Dynamically locate NQP and Perl6 home dirs instead of
                        statically compiling them in. (On AIX and OpenBSD Rakudo

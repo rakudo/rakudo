@@ -261,14 +261,15 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
         my $param-qast := QAST::Var.new( :decl('param'), :scope('local'), :$name );
         my $temp-qast := QAST::Var.new( :name($name), :scope('local') );
 
-        # Deal with names.
+        # Deal with nameds and slurpies.
         my int $was-slurpy;
+        my @prepend;
         if $!names {
             $param-qast.named(nqp::elems($!names) == 1 ?? $!names[0] !! $!names);
         }
         elsif !($!slurpy =:= RakuAST::Parameter::Slurpy) {
             $!slurpy.IMPL-TRANSFORM-PARAM-QAST($context, $param-qast, $temp-qast,
-                $!target.sigil);
+                $!target.sigil, @prepend);
             $was-slurpy := 1;
         }
 
@@ -314,7 +315,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
             $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast));
         }
 
-        $param-qast
+        @prepend ?? QAST::Stmts.new( |@prepend, $param-qast ) !! $param-qast
     }
 }
 
@@ -432,7 +433,7 @@ class RakuAST::Parameter::Slurpy {
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
         # Not slurply, so nothing to do
         $param-qast
     }
@@ -462,7 +463,7 @@ class RakuAST::Parameter::Slurpy::Flattened is RakuAST::Parameter::Slurpy {
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
         if $sigil eq '@' {
             self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy-flat');
         }
@@ -498,7 +499,7 @@ class RakuAST::Parameter::Slurpy::Unflattened is RakuAST::Parameter::Slurpy {
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
         if $sigil eq '@' {
             self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy');
         }
@@ -516,12 +517,50 @@ class RakuAST::Parameter::Slurpy::SingleArgument is RakuAST::Parameter::Slurpy {
     }
 
     method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
-            Mu $param-qast, Mu $temp-qast, str $sigil) {
+            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
         if $sigil eq '@' || $sigil eq '' {
             self.IMPL-QAST-LISTY-SLURP($param-qast, $temp-qast, Array, 'from-slurpy-onearg');
         }
         else {
             nqp::die("Parameter + quantifier not applicable to sigil '$sigil'");
         }
+    }
+}
+
+# Capture slurpy (the | quantifier).
+class RakuAST::Parameter::Slurpy::Capture is RakuAST::Parameter::Slurpy {
+    method IMPL-FLAGS(str $sigil) {
+        my constant SIG_ELEM_IS_CAPTURE := 32768;
+        SIG_ELEM_IS_CAPTURE
+    }
+
+    method IMPL-TRANSFORM-PARAM-QAST(RakuAST::IMPL::QASTContext $context,
+            Mu $param-qast, Mu $temp-qast, str $sigil, @prepend) {
+        # Sneak in a slurpy hash parameter too.
+        $param-qast.slurpy(1);
+        my $hash-param-name := $temp-qast.name ~ '_hash';
+        @prepend.push(QAST::Var.new(
+            :name($hash-param-name), :scope('local'), :decl('param'),
+            :slurpy(1), :named(1)
+        ));
+
+        # Build a capture object.
+        my $capture-wval := QAST::WVal.new( :value(Capture) );
+        $param-qast.push(QAST::Op.new(
+            :op('bind'),
+            $temp-qast,
+            QAST::Op.new(
+                :op('p6bindattrinvres'),
+                QAST::Op.new(
+                    :op('p6bindattrinvres'),
+                    QAST::Op.new( :op('create'), $capture-wval ),
+                    $capture-wval,
+                    QAST::SVal.new( :value('@!list') ),
+                    $temp-qast
+                ),
+                $capture-wval,
+                QAST::SVal.new( :value('%!hash') ),
+                QAST::Var.new( :name($hash-param-name), :scope('local') )
+            )));
     }
 }

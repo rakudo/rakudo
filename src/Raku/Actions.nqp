@@ -1048,6 +1048,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 if $q eq '**';
             $parameter.set-slurpy(self.r('Parameter', 'Slurpy', 'SingleArgument'))
                 if $q eq '+';
+            $parameter.set-slurpy(self.r('Parameter', 'Slurpy', 'Capture'))
+                if $q eq '|';
         }
         make $parameter;
     }

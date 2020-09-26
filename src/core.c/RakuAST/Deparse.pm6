@@ -384,7 +384,7 @@ class RakuAST::Deparse {
         }
 
         if $ast.target -> $target {
-            my str $var = self.deparse($target);
+            my str $var = self.deparse($target, :slurpy($ast.slurpy));
 
             # named parameter
             if $ast.names -> @names {
@@ -444,12 +444,16 @@ class RakuAST::Deparse {
         '**'
     }
 
+    multi method deparse(RakuAST::Parameter::Slurpy::Capture $ast --> str) {
+        '|'
+    }
+
     multi method deparse(RakuAST::ParameterTarget::Var:D $ast --> str) {
         $ast.name
     }
 
-    multi method deparse(RakuAST::ParameterTarget::Term:D $ast --> str) {
-        '\\' ~ $ast.name.canonicalize
+    multi method deparse(RakuAST::ParameterTarget::Term:D $ast, :$slurpy --> str) {
+        ($slurpy === RakuAST::Parameter::Slurpy ?? '\\' !! '') ~ $ast.name.canonicalize
     }
 
     multi method deparse(RakuAST::PointyBlock:D $ast --> str) {

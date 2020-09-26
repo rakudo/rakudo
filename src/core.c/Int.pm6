@@ -157,7 +157,7 @@ my class Int does Real { # declared in BOOTSTRAP
     method expmod(Int:D: Int:D \base, Int:D \mod --> Int:D) {
         nqp::expmod_I(self, nqp::decont(base), nqp::decont(mod), Int);
     }
-    method is-prime(--> Bool:D) { nqp::hllbool(nqp::isprime_I(self,100)) }
+    method is-prime(--> Bool:D) { nqp::hllbool(nqp::isprime_I(self)) }
 
     method floor(Int:D:) { self }
     method ceiling(Int:D:) { self }

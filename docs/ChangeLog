@@ -1,3 +1,45 @@
+New in 2020.09:
+  + Additions:
+    + Introducing the `Allomorph` class
+      [716cacdc][4872c3f0][39bc2bdf][1b16da19][3cd51ae4]
+    + Add `cmp` candidates for `Code` [4a34b266]
+    + Add CAVEATS.md file [df68eb29][7e11234e][a1c7497f]
+  + Build System:
+    + Fix relocatable build-time NQP-home [eab3e1cb][5a40482d][077f8f97]
+    + Fix `RUN_RAKUDO` to use the dummy Rakudo home [a56ce834]
+    + Make `Perl6::SysConfig` depend on NQPs `HLL::SysConfig` [64eb6fcb]
+  + Changes:
+    + Method names that differ only in capitalization are now suggested
+      when the method is not found
+      [b7ff282f][30c4b6e5][bb7c617a][b054f9f0][df5b3d53][3703469d][8c015584]
+    + Make `IO::Notification::Change` a value type [17f352f5][ad927871]
+  + Deprecations:
+    + The `parse-names` subroutine is now explicitly deprecated in 6.d
+      to be be removed in 6.e, use `uniparse` subroutine instead [eef7383e]
+  + Fixes:
+    + Give a hint about missing provides in a META6.json when module
+      is not found in CURFS [b2d625b9]
+    + Make `Blob.gist` work for all sizes of `Blob` [f98861ad]
+    + Prevent parser bug for multiple `[` in reduce metaop [86bac5ad]
+    + Make JVM honor `PERL6_HOME` env variable [038fbc44][c9901246]
+    + The `set`/`unset` methods on `SetHash` and the `add`/`remove` methods
+      on `BagHash` give proper error message when called on a type object [b0b4459c]
+    + Fix behavior of `Supply.head($n)` [46a72998]
+    + Improve wording on `X::MultipleTypeSmiley` error [a9371749]
+    + Fix long standing race condition in precompilation causing
+      spurious test failures [3780c1d4]
+    + Fix `--rakudo-home` Configure.pl parameter
+  + Internal:
+    + Start to use `nqp::execname` on the JVM backend [3ba803d2]
+    + Test the install instead of the build runners [f2bf446c]
+    + Add missing files to the `make clean` target for the JVM backend [58e729f6]
+    + Tweak release-related scripts [d6e27314][ccb41617][a0c12cdd]
+    + Remove use of deprecated `undefine` [e59262f6]
+  + Efficiency:
+    + Allow for more paralellism when precompiling modules, making
+      parallel compilation faster [961a6535][86425339][0500ed3a]
+    + Streamline `X::Multi::Ambiguous` listing [999680e6][b8121cec]
+
 New in 2020.08.2:
   + Fixes:
     + Fix output of `--show-config` option [1a1fe7fb][f00c4198]

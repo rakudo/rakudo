@@ -18,7 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2020-09-19   Rakudo #139 (Altai-man + Releasable)
+  2020-10-24   Rakudo #140 (Altai-man + Releasable)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -513,19 +513,20 @@ Previous releases were bundled as part of monthly Parrot releases.
   2020-03-01   2020.02.1                       (Altai-man)
   2020-05-04   Rakudo #135 "2020.05"           (Altai-man + Releasable)
   2020-05-10   2020.05.1                       (Altai-man)
-  2020-06-21   Rakudo #136                     (Altai-man + Releasable)
-  2020-07-20   Rakudo #137                     (Altai-man + Releasable)
-  2020-08-22   Rakudo #138                     (Altai-man + Releasable)
+  2020-06-21   Rakudo #136 "2020.06"           (Altai-man + Releasable)
+  2020-07-20   Rakudo #137 "2020.07"           (Altai-man + Releasable)
+  2020-08-22   Rakudo #138 "2020.08"           (Altai-man + Releasable)
   2020-08-23   2020.08.1                       (Altai-man + Releasable)
   2020-08-26   2020.08.2                       (Altai-man + Releasable)
+  2020-09-26   Rakudo #139 "2020.09"           (Altai-man + Releasable)
 
 =head1 COPYRIGHT
 
-Copyright © 2009-2019, The Perl Foundation.
+Copyright © 2009-2020, The Perl Foundation.
 
 =cut
 
-# Local Variables:
+p# Local Variables:
 # fill-column: 100
 # End:
 # vim: expandtab shiftwidth=4:

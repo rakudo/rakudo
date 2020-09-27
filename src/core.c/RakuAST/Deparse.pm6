@@ -112,6 +112,22 @@ class RakuAST::Deparse {
         nqp::join('',$parts);
     }
 
+    method !conditional($ast, str $type) {
+        nqp::join(' ',nqp::list_s(
+          $type,
+          self.deparse($ast.condition),
+          self.deparse($ast.then)
+        ))
+    }   
+    
+    method !negated-conditional($ast, str $type) {
+        nqp::join(' ',nqp::list_s(
+          $type,
+          self.deparse($ast.condition),
+          self.deparse($ast.body)
+        ))
+    }   
+
 #--------------------------------------------------------------------------------
 # Deparsing methods in alphabetical order
 
@@ -510,12 +526,45 @@ class RakuAST::Deparse {
         }
     }
 
+    multi method deparse(RakuAST::Statement::Elsif:D $ast --> str) {
+        self!conditional($ast, 'elsif');
+    }
+
     multi method deparse(RakuAST::Statement::Empty:D $ast --> str) {
         ''
     }
 
     multi method deparse(RakuAST::Statement::Expression:D $ast --> str) {
         self.deparse($ast.expression)
+    }
+
+    multi method deparse(RakuAST::Statement::If:D $ast --> str) {
+        my $parts := nqp::list_s(self!conditional($ast, $ast.IMPL-QAST-TYPE));
+
+        if $ast.elsifs -> @elsifs {
+            for @elsifs -> $elsif {
+                nqp::push_s($parts,self.deparse($elsif));
+            }
+        }
+
+        if $ast.else -> $else {
+            nqp::push_s($parts,'else ');
+            nqp::push_s($parts,self.deparse($else));
+        }
+
+        nqp::join('',$parts)
+    }
+
+    multi method deparse(RakuAST::Statement::Orwith:D $ast --> str) {
+        self!conditional($ast, 'orwith');
+    }
+
+    multi method deparse(RakuAST::Statement::Unless:D $ast --> str) {
+        self!negated-conditional($ast, 'unless');
+    }
+
+    multi method deparse(RakuAST::Statement::Without:D $ast --> str) {
+        self!negated-conditional($ast, 'without');
     }
 
     multi method deparse(RakuAST::StatementList:D $ast --> str) {

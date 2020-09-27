@@ -1,318 +1,458 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 51; # Do not change this file to done-testing
+plan 36; # Do not change this file to done-testing
 
-{
+my $ast;
+
+subtest 'Statement list evaluates to its final statement' => {
     my $x = 12;
     my $y = 99;
-    is-deeply  # ++$x; ++$y
-            EVAL(RakuAST::StatementList.new(
-                RakuAST::Statement::Expression.new(
-                    RakuAST::ApplyPrefix.new(
-                        prefix => RakuAST::Prefix.new('++'),
-                        operand => RakuAST::Var::Lexical.new('$x'))),
-                RakuAST::Statement::Expression.new(
-                    RakuAST::ApplyPrefix.new(
-                        prefix => RakuAST::Prefix.new('++'),
-                        operand => RakuAST::Var::Lexical.new('$y')))
-            )),
-            100,
-            'Statement list evaluates to its final statement';
-    is $x, 13, 'First side-effecting statement was executed';
-    is $y, 100, 'Second side-effecting statement was executed';
-}
 
-{
-    my ($a, $b, $c);
-
-    # if $a { 1 } elsif $b { 2 } elsif $c {3 } else { 4 }
-    my $test-ast := RakuAST::Statement::If.new(
-        condition => RakuAST::Var::Lexical.new('$a'),
-        then => RakuAST::Block.new(body =>
-            RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(1)
-                    )))),
-        elsifs => [
-            RakuAST::Statement::Elsif.new(
-                condition => RakuAST::Var::Lexical.new('$b'),
-                then => RakuAST::Block.new(body =>
-                    RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::IntLiteral.new(2)
-                            ))))),
-            RakuAST::Statement::Elsif.new(
-                condition => RakuAST::Var::Lexical.new('$c'),
-                then => RakuAST::Block.new(body =>
-                    RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::IntLiteral.new(3)
-                            ))))),
-        ],
-        else => RakuAST::Block.new(body =>
-            RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(4)
-                    ))))
+    # ++$x; ++$y
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('++'),
+          operand => RakuAST::Var::Lexical.new('$x')
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('++'),
+          operand => RakuAST::Var::Lexical.new('$y')
+        )
+      )
     );
 
-    $a = $b = $c = False;
-    is-deeply EVAL($test-ast), 4, 'When all conditions False, else is evaluated';
+    is-deeply EVAL($ast), 100,
+      'AST: Statement list evaluates to its final statement';
+    is $x, 13,
+      'AST: First side-effecting statement was executed';
+    is $y, 100,
+      'AST: Second side-effecting statement was executed';
 
-    $c = True;
-    is-deeply EVAL($test-ast), 3, 'Latest elsif reachable when matched';
-
-    $b = True;
-    is-deeply EVAL($test-ast), 2, 'First elsif reachable when matched';
-
-    $a = True;
-    is-deeply EVAL($test-ast), 1, 'When the main condition is true, the then block is picked';
+    is-deeply EVAL($ast.DEPARSE), 101,
+      'DEPARSE: Statement list evaluates to its final statement';
+    is $x, 14,
+      'DEPARSE: First side-effecting statement was executed';
+    is $y, 101,
+      'DEPARSE: Second side-effecting statement was executed';
 }
 
-{
+subtest 'Basic if / elsif / else structure' => {
+    my ($a, $b, $c);
+
+    # if $a { 1 }
+    # elsif $b { 2 }
+    # elsif $c { 3 }
+    # else { 4 }
+    $ast := RakuAST::Statement::If.new(
+      condition => RakuAST::Var::Lexical.new('$a'),
+      then => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      elsifs => [
+        RakuAST::Statement::Elsif.new(
+          condition => RakuAST::Var::Lexical.new('$b'),
+          then => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  RakuAST::IntLiteral.new(2)
+                )
+              )
+            )
+          )
+        ),
+        RakuAST::Statement::Elsif.new(
+          condition => RakuAST::Var::Lexical.new('$c'),
+          then => RakuAST::Block.new(
+            body => RakuAST::Blockoid.new(
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  RakuAST::IntLiteral.new(3)
+                )
+              )
+            )
+          )
+        )
+      ],
+      else => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::IntLiteral.new(4)
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        $a = $b = $c = False;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 4,
+          "$type: When all conditions False, else is evaluated";
+
+        $c = True;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 3,
+          "$type: Latest elsif reachable when matched";
+
+        $b = True;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 2,
+          "$type: First elsif reachable when matched";
+
+        $a = True;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 1,
+          "$type: When the main condition is true, the then block is picked";
+    }
+}
+
+subtest 'simple if evaluation' => {
     my $a;
 
     # if $a { 1 }
-    my $test-ast := RakuAST::Statement::If.new(
-        condition => RakuAST::Var::Lexical.new('$a'),
-        then => RakuAST::Block.new(body =>
-            RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(1)
-                    ))))
+    $ast := RakuAST::Statement::If.new(
+      condition => RakuAST::Var::Lexical.new('$a'),
+      then => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      )
     );
 
-    $a = True;
-    is-deeply EVAL($test-ast), 1, 'When simple if with no else has true condition, evaluates to branch';
+    for 'AST', 'DEPARSE' -> $type {
+        $a = True;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 1,
+          "$type: When simple if with no else has true condition";
 
-    $a = False;
-    is-deeply EVAL($test-ast), Empty, 'When simple if with no else has false condition, evaluates to Empty';
+        $a = False;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Empty,
+          "$type: When simple if with no else has false condition";
+    }
 }
 
-{
+subtest 'Basic with / orwith / else structure' => {
     my ($a, $b, $c);
 
-    # with $a -> $x { 1 } elsif -> $x { 2 } elsif -> $x { 3 } else -> $x { 4 }
-    my $test-ast := RakuAST::Statement::With.new(
-        condition => RakuAST::Var::Lexical.new('$a'),
-        then => RakuAST::PointyBlock.new(
+    # with $a -> $x { 1 }
+    # orwith -> $x { 2 }
+    # orwith -> $x { 3 }
+    # else -> $x { 4 }
+    $ast := RakuAST::Statement::With.new(
+      condition => RakuAST::Var::Lexical.new('$a'),
+      then => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$x')
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      ),
+      elsifs => [
+        RakuAST::Statement::Orwith.new(
+          condition => RakuAST::Var::Lexical.new('$b'),
+          then => RakuAST::PointyBlock.new(
             signature => RakuAST::Signature.new(
-                parameters => (
-                    RakuAST::Parameter.new(
-                        target => RakuAST::ParameterTarget::Var.new('$x')
-                    ),
-                )
+              parameters => (
+                RakuAST::Parameter.new(
+                  target => RakuAST::ParameterTarget::Var.new('$x')
+                ),
+              )
             ),
             body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(1)
-                    )))),
-        elsifs => [
-            RakuAST::Statement::Orwith.new(
-                condition => RakuAST::Var::Lexical.new('$b'),
-                then => RakuAST::PointyBlock.new(
-                    signature => RakuAST::Signature.new(
-                        parameters => (
-                            RakuAST::Parameter.new(
-                                target => RakuAST::ParameterTarget::Var.new('$x')
-                            ),
-                        )
-                    ),
-                    body => RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::IntLiteral.new(2)
-                            ))))),
-            RakuAST::Statement::Orwith.new(
-                condition => RakuAST::Var::Lexical.new('$c'),
-                then => RakuAST::PointyBlock.new(
-                    signature => RakuAST::Signature.new(
-                        parameters => (
-                            RakuAST::Parameter.new(
-                                target => RakuAST::ParameterTarget::Var.new('$x')
-                            ),
-                        )
-                    ),
-                    body => RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::IntLiteral.new(3)
-                            ))))),
-        ],
-        else => RakuAST::PointyBlock.new(
-            signature => RakuAST::Signature.new(
-                parameters => (
-                    RakuAST::Parameter.new(
-                        target => RakuAST::ParameterTarget::Var.new('$x')
-                    ),
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  RakuAST::IntLiteral.new(2)
                 )
-            ),
+              )
+            )
+          )
+        ),
+        RakuAST::Statement::Orwith.new(
+          condition => RakuAST::Var::Lexical.new('$c'),
+            then => RakuAST::PointyBlock.new(
+              signature => RakuAST::Signature.new(
+                parameters => (
+                  RakuAST::Parameter.new(
+                    target => RakuAST::ParameterTarget::Var.new('$x')
+                  ),
+                )
+              ),
             body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(4)
-                    ))))
+              RakuAST::StatementList.new(
+                RakuAST::Statement::Expression.new(
+                  RakuAST::IntLiteral.new(3)
+                )
+              )
+            )
+          )
+        )
+      ],
+      else => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$x')
+            ),
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::IntLiteral.new(4)
+            )
+          )
+        )
+      )
     );
 
-    $a = $b = $c = Nil;
-    is-deeply EVAL($test-ast), 4, 'When all conditions undefined, else is evaluated';
+    for 'AST', 'DEPARSE' -> $type {
+        $a = $b = $c = Nil;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 4,
+          "$type: When all conditions undefined, else is evaluated";
 
-    $c = False;
-    is-deeply EVAL($test-ast), 3, 'Latest orwith reachable when matched';
+        $c = False;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 3,
+          "$type: Latest orwith reachable when matched";
 
-    $b = False;
-    is-deeply EVAL($test-ast), 2, 'First orwith reachable when matched';
+        $b = False;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 2,
+          "$type: First orwith reachable when matched";
 
-    $a = False;
-    is-deeply EVAL($test-ast), 1, 'When the main condition is defined, the then block is picked';
+        $a = False;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 1,
+          "$type: When the main condition is defined, the then block is picked";
+    }
 }
 
-{
+subtest 'simple with evaluation' => {
     my $a;
 
     # with $a -> $x { 1 }
-    my $test-ast := RakuAST::Statement::With.new(
-        condition => RakuAST::Var::Lexical.new('$a'),
-        then => RakuAST::PointyBlock.new(
-            signature => RakuAST::Signature.new(
-                parameters => (
-                    RakuAST::Parameter.new(
-                        target => RakuAST::ParameterTarget::Var.new('$x')
-                    ),
-                )
+    $ast := RakuAST::Statement::With.new(
+      condition => RakuAST::Var::Lexical.new('$a'),
+      then => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$x')
             ),
-            body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::IntLiteral.new(1)
-                    ))))
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::IntLiteral.new(1)
+            )
+          )
+        )
+      )
     );
+    for 'AST', 'DEPARSE' -> $type {
+        $a = False;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 1,
+          "$type: When simple when with no else has defined condition";
 
-    $a = False;
-    is-deeply EVAL($test-ast), 1, 'When simple when with no else has defined condition, evaluates to branch';
-
-    $a = Nil;
-    is-deeply EVAL($test-ast), Empty, 'When simple with if with no else has undefined condition, evaluates to Empty';
+        $a = Nil;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Empty,
+          "$type: When simple with if with no else has undefined condition";
+    }
 }
 
-{  # with $a { $_ } else { $_ }
-    my $ast = RakuAST::Statement::With.new(
-        condition => RakuAST::Var::Lexical.new('$a'),
-        then => RakuAST::Block.new(
-            body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::Var::Lexical.new('$_')
-                    )))),
-        else => RakuAST::Block.new(
-            body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::Var::Lexical.new('$_')
-                    )))),
+subtest 'with topicalizes in the body' => {
+    # with $a { $_ } else { $_ }
+    $ast := RakuAST::Statement::With.new(
+      condition => RakuAST::Var::Lexical.new('$a'),
+      then => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::Var::Lexical.new('$_')
+            )
+          )
+        )
+      ),
+      else => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::Var::Lexical.new('$_')
+            )
+          )
+        )
+      )
     );
-    my $a = 42;
-    is-deeply EVAL($ast), 42, 'with topicalizes in the body';
-    $a = Int;
-    is-deeply EVAL($ast), Int, 'with topicalizes in the else body too';
+    for 'AST', 'DEPARSE' -> $type {
+        my $a = 42;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 42,
+          "$type: with topicalizes in the body";
+
+        $a = Int;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Int,
+          "$type: with topicalizes in the else body too";
+    }
 }
 
-{  # unless $x { ++$y }
+subtest 'simple unless with a false condition' => {
     my $x = False;
     my $y = 9;
-    is-deeply
-            EVAL(RakuAST::Statement::Unless.new(
-                condition => RakuAST::Var::Lexical.new('$x'),
-                body => RakuAST::Block.new(body =>
-                    RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::ApplyPrefix.new(
-                                    prefix => RakuAST::Prefix.new('++'),
-                                    operand => RakuAST::Var::Lexical.new('$y'))))))
-            )),
-            10,
-            'An unless block with a false condition evaluates to its body';
-    is $y, 10, 'Side-effect of the body was performed';
+
+    # unless $x { ++$y }
+    $ast := RakuAST::Statement::Unless.new(
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$y')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply EVAL($ast), 10,
+      'AST: unless block with a false condition evaluates to its body';
+    is $y, 10, 'AST: Side-effect of the body was performed';
+
+    is-deeply EVAL($ast.DEPARSE), 11,
+      'DEPARSE: unless block with a false condition evaluates to its body';
+    is $y, 11, 'DEPARSE: Side-effect of the body was performed';
 }
 
-{  # unless $x { ++$y }
+subtest 'simple unless with a false condition' => {
     my $x = True;
     my $y = 9;
-    is-deeply
-            EVAL(RakuAST::Statement::Unless.new(
-                condition => RakuAST::Var::Lexical.new('$x'),
-                body => RakuAST::Block.new(body =>
-                    RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::ApplyPrefix.new(
-                                    prefix => RakuAST::Prefix.new('++'),
-                                    operand => RakuAST::Var::Lexical.new('$y'))))))
-            )),
-            Empty,
-            'An unless block with a false condition evaluates to Empty';
-    is $y, 9, 'Side-effect of the body was not performed';
+
+    # unless $x { ++$y }
+    $ast := RakuAST::Statement::Unless.new(
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix  => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$y')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply EVAL($ast), Empty,
+      'AST: unless block with a false condition evaluates to Empty';
+    is $y, 9, 'AST: Side-effect of the body was not performed';
+
+    is-deeply EVAL($ast.DEPARSE), Empty,
+      'DEPARSE: unless block with a false condition evaluates to Empty';
+    is $y, 9, 'DEPARSE: Side-effect of the body was not performed';
 }
 
-{  # without $x { ++$y }
+subtest 'simple without with an undefined condition' => {
     my $x = Nil;
     my $y = 9;
-    is-deeply
-            EVAL(RakuAST::Statement::Without.new(
-                condition => RakuAST::Var::Lexical.new('$x'),
-                body => RakuAST::Block.new(body =>
-                    RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::ApplyPostfix.new(
-                                    postfix => RakuAST::Postfix.new('++'),
-                                    operand => RakuAST::Var::Lexical.new('$y'))))))
-            )),
-            9,
-            'A without block with an undefined object evaluates to its body';
-    is $y, 10, 'Side-effect of the body was performed';
+
+    # without $x { $y++ }
+    $ast := RakuAST::Statement::Without.new(
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPostfix.new(
+                postfix => RakuAST::Postfix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$y')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply EVAL($ast), 9,
+      'AST: without block with an undefined object evaluates to its body';
+    is $y, 10, 'AST: Side-effect of the body was performed';
+
+    is-deeply EVAL($ast.DEPARSE), 10,
+      'DEPARSE: without block with an undefined object evaluates to its body';
+    is $y, 11, 'DEPARSE: Side-effect of the body was performed';
 }
 
-{  # without $x { ++$y }
+subtest 'simple without with a defined condition' => {
     my $x = True;
     my $y = 9;
-    is-deeply
-            EVAL(RakuAST::Statement::Without.new(
-                condition => RakuAST::Var::Lexical.new('$x'),
-                body => RakuAST::Block.new(body =>
-                    RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::ApplyPrefix.new(
-                                    prefix => RakuAST::Prefix.new('++'),
-                                    operand => RakuAST::Var::Lexical.new('$y'))))))
-            )),
-            Empty,
-            'An without block with a defined object evaluates to Empty';
-    is $y, 9, 'Side-effect of the body was not performed';
+
+    # without $x { ++$y }
+    $ast := RakuAST::Statement::Without.new(
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$y')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply EVAL($ast), Empty,
+      'AST: An without block with a defined object evaluates to Empty';
+    is $y, 9, 'AST: Side-effect of the body was not performed';
+
+    is-deeply EVAL($ast.DEPARSE), Empty,
+      'DEPARSE: An without block with a defined object evaluates to Empty';
+    is $y, 9, 'DEPARSE: Side-effect of the body was not performed';
 }
 
-{  # without $x { $_ }
+subtest 'simple without with an undefined condition' => {
     my $x = Cool;
-    is-deeply
-            EVAL(RakuAST::Statement::Without.new(
-                condition => RakuAST::Var::Lexical.new('$x'),
-                body => RakuAST::Block.new(body =>
-                    RakuAST::Blockoid.new(
-                        RakuAST::StatementList.new(
-                            RakuAST::Statement::Expression.new(
-                                RakuAST::Var::Lexical.new('$_')))))
-            )),
-            Cool,
-            'Without block with no argument sets the topic';
+
+    # without $x { $_ }
+    $ast := RakuAST::Statement::Without.new(
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(body =>
+        RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::Var::Lexical.new('$_')
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $result {
+        is-deeply $result, Cool,
+          "$type: without block sets the topic";
+    }
 }
 
 {  # while $x { --$x }

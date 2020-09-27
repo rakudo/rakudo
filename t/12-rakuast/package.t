@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 30;
+plan 10;
 
 my $ast;
 
@@ -131,121 +131,202 @@ subtest 'Check globally resolving of a class' => {
     }
 }
 
-module Enclosing {  # our class OurEnclosedClass is repr<P6opaque> { }; OurEnclosedClass
-    my $result := EVAL RakuAST::StatementList.new(
-        RakuAST::Statement::Expression.new(
-            RakuAST::Package.new(
-                scope => 'our',
-                package-declarator => 'class',
-                how => Metamodel::ClassHOW,
-                name => RakuAST::Name.from-identifier('OurEnclosedClass'),
-                repr => 'P6opaque'
-            )
-        ),
-        RakuAST::Statement::Expression.new(
-            RakuAST::Type::Simple.new(RakuAST::Name.from-identifier-parts('OurEnclosedClass'))
-        ));
-    is $result.^name, 'OurEnclosedClass', 'EVAL of package AST inside a module works';
-    nok GLOBAL::<OurEnclosedClass>:exists, 'Was not installed globally';
-    ok Enclosing::<OurEnclosedClass>:exists, 'Was installed in the current package';
-    ok Enclosing::<OurEnclosedClass> === $result, 'Correct thing installed';
-}
+module Enclosing {
+    subtest 'our class inside an enclosing module' => {
+        for 'AST', 'DEPARSE' -> $type {
+            my $class = "OurEnclosedClass$type";
 
-{  # my class TestClassWithAttribute { has $!foo }
-    my $class = EVAL RakuAST::Package.new:
-        scope => 'my',
-        package-declarator => 'class',
-        how => Metamodel::ClassHOW,
-        name => RakuAST::Name.from-identifier('TestClassWithAttribute'),
-        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::VarDeclaration::Simple.new(
-                    scope => 'has',
-                    name => '$!foo',
+            # class OurEnclosedClass$type { }; OurEnclosedClass$type
+            $ast := RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                RakuAST::Package.new(
+                  scope => 'our',
+                  package-declarator => 'class',
+                  name  => RakuAST::Name.from-identifier($class),
+                  how   => Metamodel::ClassHOW,
+                  repr  => 'P6opaque'
                 )
-            )
-        )));
-    nok $class.DEFINITE, 'Class with attribute evluates to a type object';
-    is $class.^name, 'TestClassWithAttribute', 'Correct class name';
-    is $class.^attributes.elems, 1, 'Class has one attribute';
-    given $class.^attributes[0] {
-        is .name, '$!foo', 'Correct attribute name';
-        ok .type =:= Mu, 'Correct (default) type';
-        nok .has_accessor, 'Correctly claims to have no accessor';
+              ),
+              RakuAST::Statement::Expression.new(
+                RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier-parts($class)
+                )
+              )
+            );
+
+            my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($ast.DEPARSE);
+            is $result.^name, "Enclosing::$class",
+              "$type: EVAL of package AST inside a module works";
+            nok GLOBAL::{$class}:exists,
+              "$type: Was not installed globally";
+            ok Enclosing::{$class}:exists,
+              "$type: Was installed in the current package";
+            ok Enclosing::{$class} === $result,
+              "$type: Correct thing installed";
+        }
     }
-    nok $class.^lookup('foo'), 'No accessor method was generated';
 }
 
-{  # my class TestClassWithAttributeAccessor { has Int $.foo }
-    my $class = EVAL RakuAST::Package.new:
-        scope => 'my',
-        package-declarator => 'class',
-        how => Metamodel::ClassHOW,
-        name => RakuAST::Name.from-identifier('TestClassWithAttributeAccessor'),
-        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+subtest 'class with attribute' => {
+    # my class TestClassWithAttribute { has $!foo }
+    $ast := RakuAST::Package.new(
+      scope => 'my',
+      package-declarator => 'class',
+      name  => RakuAST::Name.from-identifier('TestClassWithAttribute'),
+      how   => Metamodel::ClassHOW,
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::VarDeclaration::Simple.new(
-                    scope => 'has',
-                    name => '$.foo',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
-                )
+              RakuAST::VarDeclaration::Simple.new(
+                  scope => 'has',
+                  name => '$!foo',
+              )
             )
-        )));
-    nok $class.DEFINITE, 'Class with attribute with accessor evluates to a type object';
-    is $class.^name, 'TestClassWithAttributeAccessor', 'Correct class name';
-    is $class.^attributes.elems, 1, 'Class has one attribute';
-    given $class.^attributes[0] {
-        is .name, '$!foo', 'Correct attribute name';
-        is-deeply .type, Int, 'Correct type constraint';
-        ok .has_accessor, 'Correctly claims to have an accessor';
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with attribute evluates to a type object";
+        is $class.^name, 'TestClassWithAttribute',
+          "$type: Correct class name";
+        is $class.^attributes.elems, 1,
+          "$type: Class has one attribute";
+        given $class.^attributes[0] {
+            is .name, '$!foo',
+              "$type: Correct attribute name";
+            ok .type =:= Mu,
+              "$type: Correct (default) type";
+            nok .has_accessor,
+              "$type: Correctly claims to have no accessor";
+        }
+        nok $class.^lookup('foo'),
+          "$type: No accessor method was generated";
     }
-    ok $class.^lookup('foo'), 'Seems like an accessor method was generated';
-    is $class.new(foo => 42).foo, 42, 'Accessor and default constructor work fine';
 }
 
-{  # my class TestClassWithAttributeUsage { has Int $.bar; method test-meth() { $!bar } }
-    my $class = EVAL RakuAST::Package.new:
-        scope => 'my',
-        package-declarator => 'class',
-        how => Metamodel::ClassHOW,
-        name => RakuAST::Name.from-identifier('TestClassWithAttributeUsage'),
-        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+subtest 'class with attribute and accessor' => {
+    # my class TestClassWithAttributeAccessor { has Int $.foo }
+    $ast := RakuAST::Package.new(
+      scope => 'my',
+      package-declarator => 'class',
+      name  => RakuAST::Name.from-identifier('TestClassWithAttributeAccessor'),
+      how   => Metamodel::ClassHOW,
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::VarDeclaration::Simple.new(
-                    scope => 'has',
-                    name => '$.bar',
-                    type => RakuAST::Type::Simple.new(RakuAST::Name.from-identifier('Int'))
+              RakuAST::VarDeclaration::Simple.new(
+                scope => 'has',
+                name  => '$.foo',
+                type  => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('Int')
                 )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with attribute with accessor evluates to a type object";
+        is $class.^name, 'TestClassWithAttributeAccessor',
+          "$type: Correct class name";
+        is $class.^attributes.elems, 1,
+          "$type: Class has one attribute";
+        given $class.^attributes[0] {
+            is .name, '$!foo',
+              "$type: Correct attribute name";
+            is-deeply .type, Int,
+              "$type: Correct type constraint";
+            ok .has_accessor,
+              "$type: Correctly claims to have an accessor";
+        }
+        ok $class.^lookup('foo'),
+          "$type: Seems like an accessor method was generated";
+        is $class.new(foo => 42).foo, 42,
+          "$type: Accessor and default constructor work fine";
+    }
+}
+
+subtest 'class with accessor usage' => {
+    # my class TestClassWithAttributeUsage {
+    #     has Int $.bar;
+    #     method test-meth() { $!bar }
+    # }
+    $ast := RakuAST::Package.new(
+      scope => 'my',
+      package-declarator => 'class',
+      name => RakuAST::Name.from-identifier('TestClassWithAttributeUsage'),
+      how => Metamodel::ClassHOW,
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::VarDeclaration::Simple.new(
+                scope => 'has',
+                name  => '$.bar',
+                type  => RakuAST::Type::Simple.new(
+                  RakuAST::Name.from-identifier('Int')
+                )
+              )
             ),
             RakuAST::Statement::Expression.new(
-                RakuAST::Method.new(
-                    name => RakuAST::Name.from-identifier('test-meth'),
-                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::Var::Attribute.new('$!bar')
-                        )
-                    ))
+              RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('test-meth'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      RakuAST::Var::Attribute.new('$!bar')
+                    )
+                  )
                 )
+              )
             )
-        )));
-    nok $class.DEFINITE, 'Class with attribute with accessor usage evaluates to a type object';
-    is $class.^name, 'TestClassWithAttributeUsage', 'Correct class name';
-    is $class.new(bar => 99).test-meth, 99, 'Attribute access compiles correctly';
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+        nok $class.DEFINITE,
+          "$type: Class with accessor usage evaluates to a type object";
+        is $class.^name, 'TestClassWithAttributeUsage',
+          "$type: Correct class name";
+        is $class.new(bar => 99).test-meth, 99,
+          "$type: Attribute access compiles correctly";
+    }
 }
 
-{
+subtest 'class with does trait gets correct name' => {
     my role TestRole {
         method test-meth() { 'role meth' }
     }
-    my $class = EVAL RakuAST::Package.new:
-        scope => 'my',
-        package-declarator => 'class',
-        how => Metamodel::ClassHOW,
-        name => RakuAST::Name.from-identifier('TestRoleTarget'),
-        traits => [RakuAST::Trait::Does.new(RakuAST::Type::Simple.new(
+    $ast := RakuAST::Package.new(
+      scope => 'my',
+      package-declarator => 'class',
+      name => RakuAST::Name.from-identifier('TestRoleTarget'),
+      how => Metamodel::ClassHOW,
+      traits => [
+        RakuAST::Trait::Does.new(
+          RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('TestRole')
-        ))];
-    is $class.^name, 'TestRoleTarget', 'Class with does trait gets correct name';
-    ok $class ~~ TestRole, 'Class with does trait does the role';
-    is $class.test-meth, 'role meth', 'The role method can be called';
+          )
+        )
+      ]
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+        is $class.^name, 'TestRoleTarget',
+          "$type: Class with does trait gets correct name";
+        ok $class ~~ TestRole,
+          "$type: Class with does trait does the role";
+        is $class.test-meth, 'role meth',
+          "$type: The role method can be called";
+    }
 }

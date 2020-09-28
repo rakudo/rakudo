@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 34; # Do not change this file to done-testing
+plan 31; # Do not change this file to done-testing
 
 my $ast;
 
@@ -574,113 +574,166 @@ subtest 'Repeat until loop at statement level evaluates to Nil' => {
     }
 }
 
-{  # loop (my $i = 9; $i; --$i) { ++$count }
-    my $count = 0;
-    is-deeply
-        EVAL(RakuAST::Statement::Loop.new(
-            setup => RakuAST::VarDeclaration::Simple.new(
-                name => '$i',
-                initializer => RakuAST::Initializer::Assign.new(
-                    RakuAST::IntLiteral.new(9)
-                )
-            ),
-            condition => RakuAST::Var::Lexical.new('$i'),
-            increment => RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('--'),
-                operand => RakuAST::Var::Lexical.new('$i')
-            ),
-            body => RakuAST::Block.new(body =>
-                RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::ApplyPrefix.new(
-                                prefix => RakuAST::Prefix.new('++'),
-                                operand => RakuAST::Var::Lexical.new('$count')))))))),
-        Nil,
-        'Loop block with setup and increment expression evalutes to Nil';
-    is-deeply $count, 9, 'Loop with setup/increment runs as expected';
+subtest 'Loop block with setup and increment expression' => {
+    my $count;
+
+    # loop (my $i = 9; $i; --$i) { ++$count }
+    $ast := RakuAST::Statement::Loop.new(
+      setup => RakuAST::VarDeclaration::Simple.new(
+        name => '$i',
+        initializer => RakuAST::Initializer::Assign.new(
+          RakuAST::IntLiteral.new(9)
+        )
+      ),
+      condition => RakuAST::Var::Lexical.new('$i'),
+      increment => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('--'),
+        operand => RakuAST::Var::Lexical.new('$i')
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$count')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        $count = 0;
+
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Nil,
+          "$type: loop with setup and increment evaluates to Nil";
+        is-deeply $count, 9, "$type: loop ran as expected";
+    }
 }
 
-{  # for 2 .. 7 -> $x { ++$count }
-    my $count = 0;
-    is-deeply
-        EVAL(RakuAST::Statement::For.new(
-            source => RakuAST::ApplyInfix.new(
-                left => RakuAST::IntLiteral.new(2),
-                infix => RakuAST::Infix.new('..'),
-                right => RakuAST::IntLiteral.new(7)
-            ),
-            body => RakuAST::PointyBlock.new(
-                signature => RakuAST::Signature.new(
-                    parameters => (
-                        RakuAST::Parameter.new(
-                            target => RakuAST::ParameterTarget::Var.new('$x')
-                        ),
-                    )
-                ),
-                body => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::ApplyPrefix.new(
-                                prefix => RakuAST::Prefix.new('++'),
-                                operand => RakuAST::Var::Lexical.new('$count')))))))),
-        Nil,
-        'Statement level for loop evalutes to Nil';
-    is-deeply $count, 6, 'For loop does expected number of iterations';
-}
+subtest 'Statement level for loop' => {
+    my $count;
 
-{  # for 2 .. 7 -> $x { $total = $total + $x }
-    my $total = 0;
-    EVAL(RakuAST::Statement::For.new(
-        source => RakuAST::ApplyInfix.new(
-            left => RakuAST::IntLiteral.new(2),
-            infix => RakuAST::Infix.new('..'),
-            right => RakuAST::IntLiteral.new(7)
+    # for 2 .. 7 -> $x { ++$count }
+    $ast := RakuAST::Statement::For.new(
+      source => RakuAST::ApplyInfix.new(
+        left => RakuAST::IntLiteral.new(2),
+        infix => RakuAST::Infix.new('..'),
+        right => RakuAST::IntLiteral.new(7)
+      ),
+      body => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$x')
+            ),
+          )
         ),
-        body => RakuAST::PointyBlock.new(
-            signature => RakuAST::Signature.new(
-                parameters => (
-                    RakuAST::Parameter.new(
-                        target => RakuAST::ParameterTarget::Var.new('$x')
-                    ),
-                )
-            ),
-            body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::ApplyInfix.new(
-                            left => RakuAST::Var::Lexical.new('$total'),
-                            infix => RakuAST::Infix.new('='),
-                            right => RakuAST::ApplyInfix.new(
-                                left => RakuAST::Var::Lexical.new('$total'),
-                                infix => RakuAST::Infix.new('+'),
-                                right => RakuAST::Var::Lexical.new('$x')))))))));
-    is-deeply $total, (2..7).sum, 'For loop puts correct value into explicit iteration variable';
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::Var::Lexical.new('$count')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        $count = 0;
+
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Nil,
+          "$type: for loop evaluates to Nil";
+        is-deeply $count, 6, "$type: loop ran with expected number of times";
+    }
 }
 
-{  # for 2 .. 7 { $total = $total + $_ }
-    my $total = 0;
-    is-deeply
-        EVAL(RakuAST::Statement::For.new(
-            source => RakuAST::ApplyInfix.new(
-                left => RakuAST::IntLiteral.new(2),
-                infix => RakuAST::Infix.new('..'),
-                right => RakuAST::IntLiteral.new(7)
+subtest 'for loop with explicit iteration variable' => {
+    my $total;
+
+    # for 2 .. 7 -> $x { $total = $total + $x }
+    $ast := RakuAST::Statement::For.new(
+      source => RakuAST::ApplyInfix.new(
+        left => RakuAST::IntLiteral.new(2),
+        infix => RakuAST::Infix.new('..'),
+        right => RakuAST::IntLiteral.new(7)
+      ),
+      body => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$x')
             ),
-            body => RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::ApplyInfix.new(
-                                left => RakuAST::Var::Lexical.new('$total'),
-                                infix => RakuAST::Infix.new('='),
-                                right => RakuAST::ApplyInfix.new(
-                                    left => RakuAST::Var::Lexical.new('$total'),
-                                    infix => RakuAST::Infix.new('+'),
-                                    right => RakuAST::Var::Lexical.new('$_'))))))))),
-        Nil,
-        'Statement level for loop with implicit topic evalutes to Nil';
-    is-deeply $total, (2..7).sum, 'For loop puts correct value in imlicit topic $_';
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyInfix.new(
+                left => RakuAST::Var::Lexical.new('$total'),
+                infix => RakuAST::Infix.new('='),
+                right => RakuAST::ApplyInfix.new(
+                  left => RakuAST::Var::Lexical.new('$total'),
+                  infix => RakuAST::Infix.new('+'),
+                  right => RakuAST::Var::Lexical.new('$x')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    my $sum = (2..7).sum;
+    for 'AST', 'DEPARSE' -> $type {
+        $total = 0;
+
+        $type eq 'AST' ?? EVAL($ast) !! EVAL($ast.DEPARSE);
+        is-deeply $total, $sum, "$type: correct value in iteration variable";
+    }
+}
+
+subtest 'Statement level for loop with implicit topic' => {
+    my $total = 0;
+
+    # for 2 .. 7 { $total = $total + $_ }
+    $ast := RakuAST::Statement::For.new(
+      source => RakuAST::ApplyInfix.new(
+        left => RakuAST::IntLiteral.new(2),
+        infix => RakuAST::Infix.new('..'),
+        right => RakuAST::IntLiteral.new(7)
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyInfix.new(
+                left => RakuAST::Var::Lexical.new('$total'),
+                infix => RakuAST::Infix.new('='),
+                right => RakuAST::ApplyInfix.new(
+                  left => RakuAST::Var::Lexical.new('$total'),
+                  infix => RakuAST::Infix.new('+'),
+                  right => RakuAST::Var::Lexical.new('$_')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    my $sum = (2..7).sum;
+    for 'AST', 'DEPARSE' -> $type {
+        $total = 0;
+
+        $type eq 'AST' ?? EVAL($ast) !! EVAL($ast.DEPARSE);
+        is-deeply $total, $sum, "$type: correct value in implicit topic";
+    }
 }
 
 {  # given $a -> $x { $x }

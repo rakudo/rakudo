@@ -103,3 +103,5 @@ is-deeply # \(6, :x)
     ))),
     \(6, :x),
     'Capture term can be constructed with an arg list and produces expected capture';
+
+# vim: expandtab shiftwidth=4

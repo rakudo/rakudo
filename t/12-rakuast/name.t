@@ -11,3 +11,5 @@ given RakuAST::Name.from-identifier('foo') {
     is-deeply .parts[0].name, 'foo', 'Part has expected name';
     is-deeply .DEPARSE, 'foo', 'Deparses in an expected way';
 }
+
+# vim: expandtab shiftwidth=4

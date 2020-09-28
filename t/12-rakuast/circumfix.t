@@ -99,3 +99,5 @@ subtest 'Hash composer with list of fat arrows works correctly' => {
     is-deeply $_, {x => 11, y => 22},
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
+
+# vim: expandtab shiftwidth=4

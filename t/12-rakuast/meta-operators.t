@@ -60,3 +60,5 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
     is-deeply $update, 4,
       'DEPARSE: Really did evaluate RHS';
 }
+
+# vim: expandtab shiftwidth=4

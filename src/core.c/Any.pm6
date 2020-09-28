@@ -599,21 +599,27 @@ sub dd(|c) {  # is implementation-detail
     my Mu $args := nqp::p6argvmarray();
     if nqp::elems($args) {
         while $args {
-            my $var  := nqp::shift($args);
-            my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
-            my $type := $var.WHAT.^name.split("::").tail;
-            my $what := nqp::can($var,'raku')
-              ?? $var.raku
-              !! nqp::can($var,'perl')
-                ?? $var.perl
-                !! $var.^name.starts-with('BOOT')
-                  ?? $var.^name.ends-with('Array')
-                    ?? BOOTArray($var)
-                    !! $var.^name.ends-with('Context')
-                      ?? BOOTContext($var)
-                      !! "($var.^name() without .raku or .perl method)"
-                !! "($var.^name() without .raku or .perl method)";
-            note $name ?? "$type $name = $what" !! $what;
+            my $var := nqp::shift($args);
+            if nqp::istype($var,RakuAST::Node) {
+                note $var.DEPARSE;
+            }
+            else {
+                my $name :=
+                  ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
+                my $type := $var.WHAT.^name.split("::").tail;
+                my $what := nqp::can($var,'raku')
+                  ?? $var.raku
+                  !! nqp::can($var,'perl')
+                    ?? $var.perl
+                    !! $var.^name.starts-with('BOOT')
+                      ?? $var.^name.ends-with('Array')
+                        ?? BOOTArray($var)
+                        !! $var.^name.ends-with('Context')
+                          ?? BOOTContext($var)
+                          !! "($var.^name() without .raku or .perl method)"
+                    !! "($var.^name() without .raku or .perl method)";
+                note $name ?? "$type $name = $what" !! $what;
+            }
         }
     }
     elsif c.hash -> %named {

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 36; # Do not change this file to done-testing
+plan 34; # Do not change this file to done-testing
 
 my $ast;
 
@@ -455,58 +455,123 @@ subtest 'simple without with an undefined condition' => {
     }
 }
 
-{  # while $x { --$x }
-    my $x = 5;
-    is-deeply
-        EVAL(RakuAST::Statement::Loop::While.new(
-            condition => RakuAST::Var::Lexical.new('$x'),
-            body => RakuAST::Block.new(body =>
-                RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::ApplyPrefix.new(
-                                prefix => RakuAST::Prefix.new('--'),
-                                operand => RakuAST::Var::Lexical.new('$x')))))))),
-        Nil,
-        'While loop at statement level evaluates to Nil';
-    is-deeply $x, 0, 'Loop variable was decremented to zero';
-}
+subtest 'While loop at statement level evaluates to Nil' => {
+    my $x;
 
-{  # until !$x { -- $x }
-    my $x = 5;
-    is-deeply
-        EVAL(RakuAST::Statement::Loop::Until.new(
-            condition => RakuAST::ApplyPrefix.new(
-                prefix => RakuAST::Prefix.new('!'),
+    # while $x { --$x }
+    $ast := RakuAST::Statement::Loop::While.new(
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('--'),
                 operand => RakuAST::Var::Lexical.new('$x')
-            ),
-            body => RakuAST::Block.new(body =>
-                RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::ApplyPrefix.new(
-                                prefix => RakuAST::Prefix.new('--'),
-                                operand => RakuAST::Var::Lexical.new('$x')))))))),
-        Nil,
-        'Until loop at statement level evaluates to Nil';
-    is-deeply $x, 0, 'Loop variable was decremented to zero';
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        $x = 5;
+
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Nil,
+          "$type: while loop at statement level evaluates to Nil";
+        is-deeply $x, 0, "$type: Loop variable was decremented to zero";
+    }
 }
 
-{  # repeat until $x { --$x }
-    my $x = 0;
-    is-deeply
-        EVAL(RakuAST::Statement::Loop::RepeatUntil.new(
-            condition => RakuAST::Var::Lexical.new('$x'),
-            body => RakuAST::Block.new(body =>
-                RakuAST::Blockoid.new(
-                    RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            RakuAST::ApplyPrefix.new(
-                                prefix => RakuAST::Prefix.new('--'),
-                                operand => RakuAST::Var::Lexical.new('$x')))))))),
-        Nil,
-        'Repeat while loop at statement level evaluates to Nil';
-    is-deeply $x, -1, 'Repeat while loop ran once';
+subtest 'Until loop at statement level evaluates to Nil' => {
+    my $x;
+
+    # until !$x { --$x }
+    $ast := RakuAST::Statement::Loop::Until.new(
+      condition => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('!'),
+        operand => RakuAST::Var::Lexical.new('$x')
+      ),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('--'),
+                operand => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        $x = 5;
+
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Nil,
+          "$type: until loop at statement level evaluates to Nil";
+        is-deeply $x, 0, "$type: Loop variable was decremented to zero";
+    }
+}
+
+subtest 'Repeat while loop at statement level evaluates to Nil' => {
+    my $x;
+
+    # repeat { --$x } while $x
+    $ast:= RakuAST::Statement::Loop::RepeatWhile.new(
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('--'),
+                operand => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        $x = 5;
+
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Nil,
+          "$type: repeat until loop at statement level evaluates to Nil";
+        is-deeply $x, 0, "$type: loop variable decremented to 0";
+    }
+}
+
+subtest 'Repeat until loop at statement level evaluates to Nil' => {
+    my $x;
+
+    # repeat { --$x } until $x
+    $ast:= RakuAST::Statement::Loop::RepeatUntil.new(
+      condition => RakuAST::Var::Lexical.new('$x'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('--'),
+                operand => RakuAST::Var::Lexical.new('$x')
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        $x = 0;
+
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Nil,
+          "$type: repeat until loop at statement level evaluates to Nil";
+        is-deeply $x, -1, "$type: loop ran once";
+    }
 }
 
 {  # loop (my $i = 9; $i; --$i) { ++$count }

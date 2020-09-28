@@ -135,3 +135,5 @@ is-deeply  # qx/ echo 123 /
     )),
     "123\n",
     'Using the exec processor alone gives expected result';
+
+# vim: expandtab shiftwidth=4

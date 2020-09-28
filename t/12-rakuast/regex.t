@@ -376,3 +376,5 @@ sub rx(RakuAST::Regex $body) {
         'linky',
         'Match involving quote words works';
 }
+
+# vim: expandtab shiftwidth=4

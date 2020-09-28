@@ -66,3 +66,5 @@ subtest 'Variable colonpair forms a Pair that looks up the variable' => {
     is-deeply $_, (curry => 'red')
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
+
+# vim: expandtab shiftwidth=4

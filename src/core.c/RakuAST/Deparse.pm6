@@ -32,6 +32,8 @@ class RakuAST::Deparse {
     has str $.before-list-infix = '';
     has str $.after-list-infix  = ' ';
 
+    has str $.loop-separator = '; ';
+
     has str $.pointy-sig     = '-> ';
     has str $.pointy-return  = ' --> ';
     has str $.fatarrow       = ' => ';
@@ -571,6 +573,19 @@ class RakuAST::Deparse {
 
         nqp::join('',$parts)
     }
+    
+    multi method deparse(RakuAST::Statement::Loop:D $ast --> str) {
+        nqp::join('',nqp::list_s(
+          'loop (',
+          self.deparse($ast.setup),
+          $.loop-separator,
+          self.deparse($ast.condition),
+          $.loop-separator,
+          self.deparse($ast.increment),
+          ') ',
+          self.deparse($ast.body)
+        ))
+    }   
 
     multi method deparse(RakuAST::Statement::Loop::RepeatUntil:D $ast --> str) {
         self!simple-repeat($ast, 'until')
@@ -724,6 +739,20 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Var::Compiler::File:D $ast --> str) {
         '$?FILE'
     }
+
+    multi method deparse(RakuAST::Statement::For:D $ast --> str) {
+        my $parts := nqp::list_s(
+          'for',
+          self.deparse($ast.source),
+          self.deparse($ast.body)
+        );
+
+        if $ast.mode -> str $mode {
+            nqp::unshift($parts,$mode) if $mode ne 'serial';
+        }
+        
+        nqp::join(' ',$parts)
+    }   
 
     multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> str) {
         '$?LINE'

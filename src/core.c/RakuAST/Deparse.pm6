@@ -128,6 +128,23 @@ class RakuAST::Deparse {
         ))
     }   
 
+    method !simple-loop($ast, str $type) {
+        nqp::join(' ',nqp::list_s(
+          $type,
+          self.deparse($ast.condition),
+          self.deparse($ast.body)
+        ))
+    }
+
+    method !simple-repeat($ast, str $type) {
+        nqp::join(' ',nqp::list_s(
+          'repeat',
+          self.deparse($ast.body).chomp,
+          $type,
+          self.deparse($ast.condition),
+        ))
+    }
+
 #--------------------------------------------------------------------------------
 # Deparsing methods in alphabetical order
 
@@ -553,6 +570,22 @@ class RakuAST::Deparse {
         }
 
         nqp::join('',$parts)
+    }
+
+    multi method deparse(RakuAST::Statement::Loop::RepeatUntil:D $ast --> str) {
+        self!simple-repeat($ast, 'until')
+    }
+
+    multi method deparse(RakuAST::Statement::Loop::RepeatWhile:D $ast --> str) {
+        self!simple-repeat($ast, 'while')
+    }
+
+    multi method deparse(RakuAST::Statement::Loop::Until:D $ast --> str) {
+        self!simple-loop($ast, 'until')
+    }
+
+    multi method deparse(RakuAST::Statement::Loop::While:D $ast --> str) {
+        self!simple-loop($ast, 'while')
     }
 
     multi method deparse(RakuAST::Statement::Orwith:D $ast --> str) {

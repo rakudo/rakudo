@@ -443,3 +443,5 @@ subtest 'Capture parameter' => {
           "$type: Passing a mix of positional and named arguments gets correct capture";
     }
 }
+
+# vim: expandtab shiftwidth=4

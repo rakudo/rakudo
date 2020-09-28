@@ -330,3 +330,5 @@ subtest 'class with does trait gets correct name' => {
           "$type: The role method can be called";
     }
 }
+
+# vim: expandtab shiftwidth=4

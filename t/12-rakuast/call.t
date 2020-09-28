@@ -262,3 +262,5 @@ subtest 'Can make a call that flattens into hash' => {
     is-deeply $_, 5.0, 'flattening two named arguments'
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
+
+# vim: expandtab shiftwidth=4

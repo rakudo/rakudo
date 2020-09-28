@@ -61,3 +61,5 @@ ast-ok RakuAST::VersionLiteral.new(v4.2), v4.2,
 # v6.66
 ast-ok RakuAST::VersionLiteral.new(Version.new('6.66')), v6.66,
   'RakuAST::VersionLiteral with constructed version';
+
+# vim: expandtab shiftwidth=4

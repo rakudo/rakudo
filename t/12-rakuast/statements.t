@@ -822,3 +822,5 @@ throws-like
         ))
     );
 }
+
+# vim: expandtab shiftwidth=4

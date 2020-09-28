@@ -667,3 +667,5 @@ subtest 'Native str assign initializer works' => {
     ok $M::x.VAR ~~ Scalar, 'It is a bound scalar';
     nok M.WHO<$y>:exists, 'our-scoped variable declaration in top-level comp unit does not leak out';
 }
+
+# vim: expandtab shiftwidth=4

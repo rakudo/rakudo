@@ -402,3 +402,5 @@ subtest 'Using return with acceptable type works' => {
         dies-ok { $sub() }, "$type: type does not match";
     }
 }
+
+# vim: expandtab shiftwidth=4

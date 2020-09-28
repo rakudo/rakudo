@@ -400,3 +400,5 @@ subtest 'Application of dotty infix `.=` evaluates to expected value' => {
     is-deeply EVAL($ast.DEPARSE), 'Foo';
     is-deeply $var, 'Foo';
 }
+
+# vim: expandtab shiftwidth=4

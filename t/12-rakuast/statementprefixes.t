@@ -394,3 +394,5 @@ subtest 'BEGIN phaser producing a literal expression works' => {
     is-deeply $_, 12
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
+
+# vim: expandtab shiftwidth=4

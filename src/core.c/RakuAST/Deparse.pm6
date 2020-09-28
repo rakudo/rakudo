@@ -764,3 +764,5 @@ class RakuAST::Deparse {
         $ast.value.raku
     }
 }
+
+# vim: expandtab shiftwidth=4

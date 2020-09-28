@@ -58,7 +58,7 @@ my role Real does Numeric {
     proto method exp(|) {*}
     multi method exp(Real:D: )           { self.Bridge.exp               }
     method truncate(Real:D:) {
-        self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
+        self < 0  ?? self.ceiling !! self.floor
     }
     method isNaN { Bool::False }
 

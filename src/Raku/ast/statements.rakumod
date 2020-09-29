@@ -146,7 +146,7 @@ class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookup
 class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropagator {
     has RakuAST::Expression $.expression;
 
-    method new($expression) {
+    method new(RakuAST::Expression :$expression) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!expression', $expression);
         $obj

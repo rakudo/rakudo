@@ -69,7 +69,7 @@ $lang = 'Raku' if $lang eq 'perl6';
                     $code
                 }
                 elsif nqp::istype($code, RakuAST::Expression) {
-                    RakuAST::Statement::Expression.new($code)
+                    RakuAST::Statement::Expression.new(expression => $code)
                 }
                 else {
                     die "Cannot evaluate a $code.^name() node; expected a compilation unit, " ~

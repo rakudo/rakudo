@@ -64,17 +64,17 @@ subtest 'Lexical variable declarations work' => {
     # my $foo = 10; $foo
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(name => '$foo')
+        expression => RakuAST::VarDeclaration::Simple.new(name => '$foo')
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::ApplyInfix.new(
+        expression => RakuAST::ApplyInfix.new(
           left => RakuAST::Var::Lexical.new('$foo'),
           infix => RakuAST::Infix.new('='),
           right => RakuAST::IntLiteral.new(10)
         ),
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$foo')
+        expression => RakuAST::Var::Lexical.new('$foo')
       )
     );
     is-deeply $_, 10
@@ -85,10 +85,10 @@ subtest 'Defaults of untyped container' => {
     # my $foo; $foo
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(name => '$foo')
+        expression => RakuAST::VarDeclaration::Simple.new(name => '$foo')
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$foo')
+        expression => RakuAST::Var::Lexical.new('$foo')
       )
     );
 
@@ -102,7 +102,7 @@ subtest 'Typed variable declarations work (type matches in assignment)' => {
     # my Int $foo; $foo = 99; $foo
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$foo',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('Int')
@@ -110,14 +110,14 @@ subtest 'Typed variable declarations work (type matches in assignment)' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::ApplyInfix.new(
+        expression => RakuAST::ApplyInfix.new(
           left => RakuAST::Var::Lexical.new('$foo'),
           infix => RakuAST::Infix.new('='),
           right => RakuAST::IntLiteral.new(99)
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$foo')
+        expression => RakuAST::Var::Lexical.new('$foo')
       )
     );
     is-deeply $_, 99
@@ -128,7 +128,7 @@ subtest 'Typed variable declarations work (type mismatch throws)' => {
     # my Int $foo; $foo = 1e5; $foo
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$foo',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('Int')
@@ -136,14 +136,14 @@ subtest 'Typed variable declarations work (type mismatch throws)' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::ApplyInfix.new(
+        expression => RakuAST::ApplyInfix.new(
           left => RakuAST::Var::Lexical.new('$foo'),
           infix => RakuAST::Infix.new('='),
           right => RakuAST::NumLiteral.new(1e5)
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$foo')
+        expression => RakuAST::Var::Lexical.new('$foo')
       )
     );
 
@@ -164,7 +164,7 @@ subtest 'Lexical variable declarations with assignment initializer' => {
     # my $var = 125; $var
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$var',
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::IntLiteral.new(125)
@@ -172,7 +172,7 @@ subtest 'Lexical variable declarations with assignment initializer' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$var')
+        expression => RakuAST::Var::Lexical.new('$var')
       )
     );
 
@@ -192,7 +192,7 @@ subtest 'Lexical array declarations with assignment initializer works' => {
     # my @var = 22, 33; @var
     my $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '@var',
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::ApplyListInfix.new(
@@ -206,7 +206,7 @@ subtest 'Lexical array declarations with assignment initializer works' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('@var')
+        expression => RakuAST::Var::Lexical.new('@var')
       ),
     );
     is-deeply $_, [22,33]
@@ -217,7 +217,7 @@ subtest 'Lexical variable declarations with bind initializer' => {
     # my $var := 225
     my $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$var',
           initializer => RakuAST::Initializer::Bind.new(
             RakuAST::IntLiteral.new(225)
@@ -225,7 +225,7 @@ subtest 'Lexical variable declarations with bind initializer' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$var')
+        expression => RakuAST::Var::Lexical.new('$var')
       ),
     );
 
@@ -263,7 +263,7 @@ subtest 'Dynamic variable declaration and assignment, dynamic lookup' => {
     # my $*var = 360;
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$*var',
           initializer => RakuAST::Initializer::Assign.new(
             RakuAST::IntLiteral.new(360)
@@ -271,7 +271,7 @@ subtest 'Dynamic variable declaration and assignment, dynamic lookup' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Dynamic.new('$*var')
+        expression => RakuAST::Var::Dynamic.new('$*var')
       ),
     );
 
@@ -291,10 +291,10 @@ subtest '@ sigil var is initialized to Array' => {
     # my @arr; @arr
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(name => '@arr')
+        expression => RakuAST::VarDeclaration::Simple.new(name => '@arr')
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('@arr')
+        expression => RakuAST::Var::Lexical.new('@arr')
       ),
     );
 
@@ -320,10 +320,10 @@ subtest '% sigil var is initialized to Hash' => {
     # my %hash; %hash
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(name => '%hash')
+        expression => RakuAST::VarDeclaration::Simple.new(name => '%hash')
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('%hash')
+        expression => RakuAST::Var::Lexical.new('%hash')
       ),
     );
 
@@ -349,7 +349,7 @@ subtest '@ sigil var with Int type is an Array' => {
     # my Int @arr; @arr
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '@arr',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('Int')
@@ -357,7 +357,7 @@ subtest '@ sigil var with Int type is an Array' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('@arr')
+        expression => RakuAST::Var::Lexical.new('@arr')
       ),
     );
 
@@ -383,7 +383,7 @@ subtest '% sigil var with Int type is a Hash' => {
     # my Int %hash; %hash
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '%hash',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('Int')
@@ -391,7 +391,7 @@ subtest '% sigil var with Int type is a Hash' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('%hash')
+        expression => RakuAST::Var::Lexical.new('%hash')
       )
     );
 
@@ -444,7 +444,7 @@ subtest 'int declaration creates a native int container' => {
     # my int $native-int; $native-int
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-int',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('int')
@@ -452,7 +452,7 @@ subtest 'int declaration creates a native int container' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$native-int')
+        expression => RakuAST::Var::Lexical.new('$native-int')
       )
     );
 
@@ -471,7 +471,7 @@ subtest 'num declaration creates a native num container' => {
     # my num $native-num; $native-num
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-num',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('num')
@@ -479,7 +479,7 @@ subtest 'num declaration creates a native num container' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$native-num')
+        expression => RakuAST::Var::Lexical.new('$native-num')
       )
     );
 
@@ -498,7 +498,7 @@ subtest 'str declaration creates a native str container' => {
     # my str $native-str; $native-str
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-str',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('str')
@@ -506,7 +506,7 @@ subtest 'str declaration creates a native str container' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$native-str')
+        expression => RakuAST::Var::Lexical.new('$native-str')
       )
     );
 
@@ -525,7 +525,7 @@ subtest 'Native int assign initializer works' => {
     # my int $native-int = 963; $native-int
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-int',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('int')
@@ -536,7 +536,7 @@ subtest 'Native int assign initializer works' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$native-int')
+        expression => RakuAST::Var::Lexical.new('$native-int')
       )
     );
     is-deeply $_, 963
@@ -547,7 +547,7 @@ subtest 'Native num assign initializer works' => {
     # my int $native-num = 963; $native-num
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-num',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('num')
@@ -558,7 +558,7 @@ subtest 'Native num assign initializer works' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$native-num')
+        expression => RakuAST::Var::Lexical.new('$native-num')
       )
     );
     is-deeply $_, 96e3
@@ -569,7 +569,7 @@ subtest 'Native str assign initializer works' => {
     # my int $native-str = 'nine six three'; $native-str
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::VarDeclaration::Simple.new(
+        expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-str',
           type => RakuAST::Type::Simple.new(
             RakuAST::Name.from-identifier('str')
@@ -580,7 +580,7 @@ subtest 'Native str assign initializer works' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$native-str')
+        expression => RakuAST::Var::Lexical.new('$native-str')
       )
     );
     is-deeply $_, 'nine six three'
@@ -594,13 +594,13 @@ subtest 'Native str assign initializer works' => {
         # our $var; $var
         $ast := RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::VarDeclaration::Simple.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
               scope => 'our',
               name  => '$var',
             ),
           ),
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$var')
+            expression => RakuAST::Var::Lexical.new('$var')
           ),
         );
 
@@ -619,7 +619,7 @@ subtest 'Native str assign initializer works' => {
         # our $x = 42; $x
         $ast := RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::VarDeclaration::Simple.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
               scope => 'our',
               name => '$x',
               initializer => RakuAST::Initializer::Assign.new(
@@ -628,7 +628,7 @@ subtest 'Native str assign initializer works' => {
             ),
           ),
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$x')
+            expression => RakuAST::Var::Lexical.new('$x')
           ),
         );
 
@@ -643,7 +643,7 @@ subtest 'Native str assign initializer works' => {
           :comp-unit-name('TEST_1'),
           :statement-list(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::VarDeclaration::Simple.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
                 scope => 'our',
                 name => '$y',
                 initializer => RakuAST::Initializer::Assign.new(
@@ -652,7 +652,7 @@ subtest 'Native str assign initializer works' => {
               ),
             ),
             RakuAST::Statement::Expression.new(
-              RakuAST::Var::Lexical.new('$y')
+              expression => RakuAST::Var::Lexical.new('$y')
             )
           ))
         );

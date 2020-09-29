@@ -13,7 +13,7 @@ subtest 'Parenthesized expressions compile correctly' => {
       right => RakuAST::Circumfix::Parentheses.new(
         RakuAST::SemiList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::ApplyInfix.new(
+            expression => RakuAST::ApplyInfix.new(
               left => RakuAST::IntLiteral.new(3),
               infix => RakuAST::Infix.new('+'),
               right => RakuAST::IntLiteral.new(4)

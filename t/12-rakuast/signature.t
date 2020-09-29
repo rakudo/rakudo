@@ -100,7 +100,7 @@ subtest 'Optional Scalar parameter defaults to type object' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$x')
+            expression => RakuAST::Var::Lexical.new('$x')
           )
         )
       )
@@ -134,7 +134,7 @@ subtest 'One required named parameter' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$named')
+            expression => RakuAST::Var::Lexical.new('$named')
           )
         )
       )
@@ -176,7 +176,7 @@ subtest 'Required named parameter with alias' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('$var')
+            expression => RakuAST::Var::Lexical.new('$var')
           )
         )
       )
@@ -222,7 +222,7 @@ subtest 'Slurpy hash parameter' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('%h')
+            expression => RakuAST::Var::Lexical.new('%h')
           )
         )
       )
@@ -260,7 +260,7 @@ subtest 'Slurpy flattening array parameter' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('@a')
+            expression => RakuAST::Var::Lexical.new('@a')
           )
         )
       )
@@ -300,7 +300,7 @@ subtest 'Slurpy non-flattening array parameter' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('@a')
+            expression => RakuAST::Var::Lexical.new('@a')
           )
         )
       )
@@ -342,7 +342,7 @@ subtest 'Slurpy single arg rule array parameter' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Var::Lexical.new('@a')
+            expression => RakuAST::Var::Lexical.new('@a')
           )
         )
       )
@@ -386,7 +386,7 @@ subtest 'Sigilless parameter' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('trm'))
+            expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('trm'))
           )
         )
       )
@@ -418,7 +418,7 @@ subtest 'Capture parameter' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('c'))
+            expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('c'))
           )
         )
       )

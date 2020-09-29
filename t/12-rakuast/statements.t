@@ -12,13 +12,13 @@ subtest 'Statement list evaluates to its final statement' => {
     # ++$x; ++$y
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::ApplyPrefix.new(
+        expression => RakuAST::ApplyPrefix.new(
           prefix => RakuAST::Prefix.new('++'),
           operand => RakuAST::Var::Lexical.new('$x')
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::ApplyPrefix.new(
+        expression => RakuAST::ApplyPrefix.new(
           prefix => RakuAST::Prefix.new('++'),
           operand => RakuAST::Var::Lexical.new('$y')
         )
@@ -53,7 +53,7 @@ subtest 'Basic if / elsif / else structure' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::IntLiteral.new(1)
+              expression => RakuAST::IntLiteral.new(1)
             )
           )
         )
@@ -65,7 +65,7 @@ subtest 'Basic if / elsif / else structure' => {
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                  RakuAST::IntLiteral.new(2)
+                  expression => RakuAST::IntLiteral.new(2)
                 )
               )
             )
@@ -77,7 +77,7 @@ subtest 'Basic if / elsif / else structure' => {
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                  RakuAST::IntLiteral.new(3)
+                  expression => RakuAST::IntLiteral.new(3)
                 )
               )
             )
@@ -88,7 +88,7 @@ subtest 'Basic if / elsif / else structure' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::IntLiteral.new(4)
+              expression => RakuAST::IntLiteral.new(4)
             )
           )
         )
@@ -124,7 +124,7 @@ subtest 'simple if evaluation' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::IntLiteral.new(1)
+              expression => RakuAST::IntLiteral.new(1)
             )
           )
         )
@@ -162,7 +162,7 @@ subtest 'Basic with / orwith / else structure' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::IntLiteral.new(1)
+              expression => RakuAST::IntLiteral.new(1)
             )
           )
         )
@@ -181,7 +181,7 @@ subtest 'Basic with / orwith / else structure' => {
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                  RakuAST::IntLiteral.new(2)
+                  expression => RakuAST::IntLiteral.new(2)
                 )
               )
             )
@@ -200,7 +200,7 @@ subtest 'Basic with / orwith / else structure' => {
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                  RakuAST::IntLiteral.new(3)
+                  expression => RakuAST::IntLiteral.new(3)
                 )
               )
             )
@@ -218,7 +218,7 @@ subtest 'Basic with / orwith / else structure' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::IntLiteral.new(4)
+              expression => RakuAST::IntLiteral.new(4)
             )
           )
         )
@@ -261,7 +261,7 @@ subtest 'simple with evaluation' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::IntLiteral.new(1)
+              expression => RakuAST::IntLiteral.new(1)
             )
           )
         )
@@ -286,7 +286,7 @@ subtest 'with topicalizes in the body' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Var::Lexical.new('$_')
+              expression => RakuAST::Var::Lexical.new('$_')
             )
           )
         )
@@ -295,7 +295,7 @@ subtest 'with topicalizes in the body' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Var::Lexical.new('$_')
+              expression => RakuAST::Var::Lexical.new('$_')
             )
           )
         )
@@ -323,7 +323,7 @@ subtest 'simple unless with a false condition' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix => RakuAST::Prefix.new('++'),
                 operand => RakuAST::Var::Lexical.new('$y')
               )
@@ -353,7 +353,7 @@ subtest 'simple unless with a false condition' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix  => RakuAST::Prefix.new('++'),
                 operand => RakuAST::Var::Lexical.new('$y')
               )
@@ -383,7 +383,7 @@ subtest 'simple without with an undefined condition' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPostfix.new(
+              expression => RakuAST::ApplyPostfix.new(
                 postfix => RakuAST::Postfix.new('++'),
                 operand => RakuAST::Var::Lexical.new('$y')
               )
@@ -413,7 +413,7 @@ subtest 'simple without with a defined condition' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix => RakuAST::Prefix.new('++'),
                 operand => RakuAST::Var::Lexical.new('$y')
               )
@@ -442,7 +442,7 @@ subtest 'simple without with an undefined condition' => {
         RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Var::Lexical.new('$_')
+              expression => RakuAST::Var::Lexical.new('$_')
             )
           )
         )
@@ -465,7 +465,7 @@ subtest 'While loop at statement level evaluates to Nil' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix => RakuAST::Prefix.new('--'),
                 operand => RakuAST::Var::Lexical.new('$x')
               )
@@ -497,7 +497,7 @@ subtest 'Until loop at statement level evaluates to Nil' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix => RakuAST::Prefix.new('--'),
                 operand => RakuAST::Var::Lexical.new('$x')
               )
@@ -526,7 +526,7 @@ subtest 'Repeat while loop at statement level evaluates to Nil' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix => RakuAST::Prefix.new('--'),
                 operand => RakuAST::Var::Lexical.new('$x')
               )
@@ -555,7 +555,7 @@ subtest 'Repeat until loop at statement level evaluates to Nil' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix => RakuAST::Prefix.new('--'),
                 operand => RakuAST::Var::Lexical.new('$x')
               )
@@ -594,7 +594,7 @@ subtest 'Loop block with setup and increment expression' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix => RakuAST::Prefix.new('++'),
                 operand => RakuAST::Var::Lexical.new('$count')
               )
@@ -634,7 +634,7 @@ subtest 'Statement level for loop' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyPrefix.new(
+              expression => RakuAST::ApplyPrefix.new(
                 prefix => RakuAST::Prefix.new('++'),
                 operand => RakuAST::Var::Lexical.new('$count')
               )
@@ -674,7 +674,7 @@ subtest 'for loop with explicit iteration variable' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyInfix.new(
+              expression => RakuAST::ApplyInfix.new(
                 left => RakuAST::Var::Lexical.new('$total'),
                 infix => RakuAST::Infix.new('='),
                 right => RakuAST::ApplyInfix.new(
@@ -712,7 +712,7 @@ subtest 'Statement level for loop with implicit topic' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::ApplyInfix.new(
+              expression => RakuAST::ApplyInfix.new(
                 left => RakuAST::Var::Lexical.new('$total'),
                 infix => RakuAST::Infix.new('='),
                 right => RakuAST::ApplyInfix.new(
@@ -751,7 +751,7 @@ subtest 'given with explicit signature' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Var::Lexical.new('$x')
+              expression => RakuAST::Var::Lexical.new('$x')
             )
           )
         )
@@ -777,7 +777,7 @@ subtest 'given with implicit signature' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Var::Lexical.new('$_')
+              expression => RakuAST::Var::Lexical.new('$_')
             )
           )
         )
@@ -808,7 +808,7 @@ subtest 'given with when and default' => {
                 body => RakuAST::Blockoid.new(
                    RakuAST::StatementList.new(
                      RakuAST::Statement::Expression.new(
-                       RakuAST::StrLiteral.new('two')
+                       expression => RakuAST::StrLiteral.new('two')
                     )
                   )
                 )
@@ -820,7 +820,7 @@ subtest 'given with when and default' => {
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      RakuAST::StrLiteral.new('three')
+                      expression => RakuAST::StrLiteral.new('three')
                     )
                   )
                 )
@@ -831,7 +831,7 @@ subtest 'given with when and default' => {
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      RakuAST::StrLiteral.new('another')
+                      expression => RakuAST::StrLiteral.new('another')
                     )
                   )
                 )
@@ -865,7 +865,7 @@ subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Call::Name.new(
+            expression => RakuAST::Call::Name.new(
               name => RakuAST::Name.from-identifier('die'),
               args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('oops'))
             )
@@ -879,7 +879,7 @@ subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
                       body => RakuAST::Blockoid.new(
                         RakuAST::StatementList.new(
                           RakuAST::Statement::Expression.new(
-                            RakuAST::ApplyPostfix.new(
+                            expression => RakuAST::ApplyPostfix.new(
                               operand => RakuAST::Var::Lexical.new('$handled'),
                               postfix => RakuAST::Postfix.new('++')
                             )
@@ -912,7 +912,7 @@ subtest 'Exception is rethrown if unhandled' => {
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Call::Name.new(
+            expression => RakuAST::Call::Name.new(
               name => RakuAST::Name.from-identifier('die'),
               args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('gosh'))
             )
@@ -947,7 +947,7 @@ subtest 'Exception is rethrown if unhandled' => {
         module-name => RakuAST::Name.from-identifier('Test')
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Call::Name.new(
+        expression => RakuAST::Call::Name.new(
           name => RakuAST::Name.from-identifier('ok'),
           args => RakuAST::ArgList.new(
             RakuAST::IntLiteral.new(1),

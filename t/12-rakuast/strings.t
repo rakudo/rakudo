@@ -51,7 +51,7 @@ is-deeply  # "An { $bv } block"
         RakuAST::Block.new(
             body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                    RakuAST::Var::Lexical.new('$bv')
+                    expression => RakuAST::Var::Lexical.new('$bv')
                 )
             ))
         ),

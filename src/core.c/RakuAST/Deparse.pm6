@@ -545,6 +545,18 @@ class RakuAST::Deparse {
         }
     }
 
+    multi method deparse(RakuAST::Statement::Catch:D $ast --> str) {
+        nqp::concat('CATCH ',self.deparse($ast.body))
+    }
+
+    multi method deparse(RakuAST::Statement::Control:D $ast --> str) {
+        nqp::concat('CONTROL ',self.deparse($ast.body))
+    }
+
+    multi method deparse(RakuAST::Statement::Default:D $ast --> str) {
+        nqp::concat('default ',self.deparse($ast.body))
+    }
+
     multi method deparse(RakuAST::Statement::Elsif:D $ast --> str) {
         self!conditional($ast, 'elsif');
     }
@@ -555,6 +567,14 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Statement::Expression:D $ast --> str) {
         self.deparse($ast.expression)
+    }
+
+    multi method deparse(RakuAST::Statement::Given:D $ast --> str) {
+        nqp::join(' ',nqp::list_s(
+          'given',
+          self.deparse($ast.source),
+          self.deparse($ast.body)
+        ))
     }
 
     multi method deparse(RakuAST::Statement::If:D $ast --> str) {
@@ -611,6 +631,28 @@ class RakuAST::Deparse {
         self!negated-conditional($ast, 'unless');
     }
 
+    multi method deparse(RakuAST::Statement::Use:D $ast --> str) {
+        my $parts := nqp::list_s(
+          'use ',
+          self.deparse($ast.module-name)
+        );
+
+        if $ast.argument -> $argument {
+            nqp::push_s($parts,' ');
+            nqp::push_s($parts,self.deparse($argument));
+        }
+
+        nqp::join('',$parts)
+    }
+
+    multi method deparse(RakuAST::Statement::When:D $ast --> str) {
+        nqp::join(' ',nqp::list_s(
+          'when',
+          self.deparse($ast.condition),
+          self.deparse($ast.body)
+        ))
+    }
+
     multi method deparse(RakuAST::Statement::Without:D $ast --> str) {
         self!negated-conditional($ast, 'without');
     }
@@ -622,14 +664,18 @@ class RakuAST::Deparse {
             my str $spaces = $.indent-spaces;
             my str $end    = $.end-statement;
 
+            my str $code;
+            my $dropped;
             for @statements -> $statement {
                 nqp::push_s($parts,$spaces);
-                nqp::push_s($parts,self.deparse($statement));
-                nqp::push_s($parts,$end);
+                nqp::push_s($parts,$code = self.deparse($statement));
+                nqp::push_s($parts,$end)
+                  unless $dropped = $code.ends-with("\}\n");
             }
 
-            nqp::pop_s($parts);  # lose the last end
-            nqp::push_s($parts,$.last-statement);
+            nqp::pop_s($parts) unless $dropped;  # lose the last end?
+            nqp::push_s($parts,$.last-statement)
+              unless $code.ends-with("\}\n");
 
             nqp::join('',$parts)
         }

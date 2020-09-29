@@ -9,9 +9,9 @@ subtest 'The do statement prefix works with a statement' => {
     # do 137
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::StatementPrefix::Do.new(
+        expression => RakuAST::StatementPrefix::Do.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::IntLiteral.new(137)
+            expression => RakuAST::IntLiteral.new(137)
           )
         )
       )
@@ -25,12 +25,12 @@ subtest 'The do statement prefix works with a block' => {
     # do { 199 }
     my $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::StatementPrefix::Do.new(
+        expression => RakuAST::StatementPrefix::Do.new(
           RakuAST::Block.new(
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                  RakuAST::IntLiteral.new(199)
+                  expression => RakuAST::IntLiteral.new(199)
                 )
               )
             )
@@ -59,9 +59,9 @@ subtest 'The quietly statement prefix works' => {
     # quietly do-warning()
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::StatementPrefix::Quietly.new(
+        expression => RakuAST::StatementPrefix::Quietly.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Call::Name.new(
+            expression => RakuAST::Call::Name.new(
               name => RakuAST::Name.from-identifier('do-warning')
             )
           )
@@ -80,12 +80,12 @@ subtest 'The quietly statement prefix works' => {
     # quietly { do-warning() }
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::StatementPrefix::Quietly.new(
+        expression => RakuAST::StatementPrefix::Quietly.new(
           RakuAST::Block.new(
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                  RakuAST::Call::Name.new(
+                  expression => RakuAST::Call::Name.new(
                     name => RakuAST::Name.from-identifier('do-warning')
                   )
                 )
@@ -116,9 +116,9 @@ subtest 'The gather statement prefix works on a statement' => {
     # gather do-takes()
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::StatementPrefix::Gather.new(
+        expression => RakuAST::StatementPrefix::Gather.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Call::Name.new(
+            expression => RakuAST::Call::Name.new(
               name => RakuAST::Name.from-identifier('do-takes')
             )
           )
@@ -147,12 +147,12 @@ subtest 'The gather statement prefix works on a block' => {
     # gather { do-takes() }
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::StatementPrefix::Gather.new(
+        expression => RakuAST::StatementPrefix::Gather.new(
           RakuAST::Block.new(
             body => RakuAST::Blockoid.new(
               RakuAST::StatementList.new(
                 RakuAST::Statement::Expression.new(
-                  RakuAST::Call::Name.new(
+                  expression => RakuAST::Call::Name.new(
                     name => RakuAST::Name.from-identifier('do-takes')
                   )
                 )
@@ -190,9 +190,9 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
         # race|hyper|lazy|eager $c
         $ast := RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::StatementPrefix::{tclc $context}.new(
+            expression => RakuAST::StatementPrefix::{tclc $context}.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$c')
+                expression => RakuAST::Var::Lexical.new('$c')
               )
             )
           )
@@ -216,12 +216,12 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
         # race|hyper|lazy|eager { $c }
         $ast := RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::StatementPrefix::{tclc $context}.new(
+            expression => RakuAST::StatementPrefix::{tclc $context}.new(
               RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      RakuAST::Var::Lexical.new('$c')
+                      expression => RakuAST::Var::Lexical.new('$c')
                     )
                   )
                 )
@@ -245,7 +245,7 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
 is-deeply  # try 99
     EVAL(RakuAST::StatementPrefix::Try.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::IntLiteral.new(99)
+            expression => RakuAST::IntLiteral.new(99)
         )
     )),
     99,
@@ -256,7 +256,7 @@ subtest 'try statement prefix with throwing expression handles the exception' =>
     # try die "hard"
     $ast := RakuAST::StatementPrefix::Try.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Call::Name.new(
+        expression => RakuAST::Call::Name.new(
           name => RakuAST::Name.from-identifier('die'),
           args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('hard'))
         )
@@ -276,7 +276,7 @@ is-deeply  # try { 999 }
     EVAL(RakuAST::StatementPrefix::Try.new(
         RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::IntLiteral.new(999)
+                expression => RakuAST::IntLiteral.new(999)
             )
         )))
     )),
@@ -291,7 +291,7 @@ subtest 'try statement prefix with throwing block handles the exception' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Call::Name.new(
+              expression => RakuAST::Call::Name.new(
                 name => RakuAST::Name.from-identifier('die'),
                 args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('another day'))
               )
@@ -314,7 +314,7 @@ subtest 'start statement prefix with expression evalutes to Promise' => {
     # start 111
     $ast := RakuAST::StatementPrefix::Start.new(
         RakuAST::Statement::Expression.new(
-            RakuAST::IntLiteral.new(111)
+            expression => RakuAST::IntLiteral.new(111)
         )
     );
 
@@ -331,7 +331,7 @@ subtest 'start statement prefix with block evalutes to Promise' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::IntLiteral.new(137)
+              expression => RakuAST::IntLiteral.new(137)
             )
           )
         )
@@ -348,7 +348,7 @@ subtest 'A start has a fresh $/' => {
     # start $/
     $ast := RakuAST::StatementPrefix::Start.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$/')
+        expression => RakuAST::Var::Lexical.new('$/')
       )
     );
 
@@ -368,7 +368,7 @@ subtest 'A start has a fresh $!' => {
     # start $!
     $ast := RakuAST::StatementPrefix::Start.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Var::Lexical.new('$!')
+        expression => RakuAST::Var::Lexical.new('$!')
       )
     );
 
@@ -388,7 +388,7 @@ subtest 'BEGIN phaser producing a literal expression works' => {
     # BEGIN 12
     $ast := RakuAST::StatementPrefix::Phaser::Begin.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::IntLiteral.new(12)
+        expression => RakuAST::IntLiteral.new(12)
       )
     );
     is-deeply $_, 12

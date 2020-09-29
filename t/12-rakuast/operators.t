@@ -158,7 +158,7 @@ subtest 'Basic single-dimension array index' => {
       postfix => RakuAST::Postcircumfix::ArrayIndex.new(
         RakuAST::SemiList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::IntLiteral.new(5)
+            expression => RakuAST::IntLiteral.new(5)
           )
         )
       )
@@ -190,10 +190,10 @@ subtest 'Multi-dimensional array indexing' => {
       postfix => RakuAST::Postcircumfix::ArrayIndex.new(
         RakuAST::SemiList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::IntLiteral.new(2)
+            expression => RakuAST::IntLiteral.new(2)
           ),
           RakuAST::Statement::Expression.new(
-            RakuAST::IntLiteral.new(1)
+            expression => RakuAST::IntLiteral.new(1)
           )
         )
       )
@@ -213,7 +213,7 @@ subtest 'Multi-dimensional array indexing' => {
           postfix => RakuAST::Postcircumfix::HashIndex.new(
             RakuAST::SemiList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::StrLiteral.new('s')
+                expression => RakuAST::StrLiteral.new('s')
               )
             )
           )
@@ -289,10 +289,10 @@ subtest 'Multi-dimensional hash indexing' => {
       postfix => RakuAST::Postcircumfix::HashIndex.new(
         RakuAST::SemiList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::StrLiteral.new('y')
+            expression => RakuAST::StrLiteral.new('y')
           ),
           RakuAST::Statement::Expression.new(
-            RakuAST::StrLiteral.new('a')
+            expression => RakuAST::StrLiteral.new('a')
           )
         )
       )

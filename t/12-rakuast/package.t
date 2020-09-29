@@ -36,12 +36,12 @@ subtest 'Create a class with a method' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Method.new(
+              expression => RakuAST::Method.new(
                 name => RakuAST::Name.from-identifier('test-meth'),
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      RakuAST::IntLiteral.new(456)
+                      expression => RakuAST::IntLiteral.new(456)
                     )
                   )
                 )
@@ -72,7 +72,7 @@ subtest 'Check lexically resolving of a class' => {
     # my class LexicalTestClass { }; LexicalTestClass
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Package.new(
+        expression => RakuAST::Package.new(
           scope => 'my',
           package-declarator => 'class',
           name  => RakuAST::Name.from-identifier('LexicalTestClass'),
@@ -81,7 +81,7 @@ subtest 'Check lexically resolving of a class' => {
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Type::Simple.new(
+        expression => RakuAST::Type::Simple.new(
           RakuAST::Name.from-identifier-parts('LexicalTestClass')
         )
       )
@@ -104,7 +104,7 @@ subtest 'Check globally resolving of a class' => {
         # class OurTestClass$type { }; OurTestClass$type
         $ast := RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
-            RakuAST::Package.new(
+            expression => RakuAST::Package.new(
               scope => 'our',
               package-declarator => 'class',
               name  => RakuAST::Name.from-identifier($class),
@@ -113,7 +113,7 @@ subtest 'Check globally resolving of a class' => {
             )
           ),
           RakuAST::Statement::Expression.new(
-            RakuAST::Type::Simple.new(
+            expression => RakuAST::Type::Simple.new(
               RakuAST::Name.from-identifier-parts($class)
             )
           )
@@ -139,7 +139,7 @@ module Enclosing {
             # class OurEnclosedClass$type { }; OurEnclosedClass$type
             $ast := RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::Package.new(
+                expression => RakuAST::Package.new(
                   scope => 'our',
                   package-declarator => 'class',
                   name  => RakuAST::Name.from-identifier($class),
@@ -148,7 +148,7 @@ module Enclosing {
                 )
               ),
               RakuAST::Statement::Expression.new(
-                RakuAST::Type::Simple.new(
+                expression => RakuAST::Type::Simple.new(
                   RakuAST::Name.from-identifier-parts($class)
                 )
               )
@@ -178,7 +178,7 @@ subtest 'class with attribute' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::VarDeclaration::Simple.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
                   scope => 'has',
                   name => '$!foo',
               )
@@ -219,7 +219,7 @@ subtest 'class with attribute and accessor' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::VarDeclaration::Simple.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
                 scope => 'has',
                 name  => '$.foo',
                 type  => RakuAST::Type::Simple.new(
@@ -268,7 +268,7 @@ subtest 'class with accessor usage' => {
         body => RakuAST::Blockoid.new(
           RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::VarDeclaration::Simple.new(
+              expression => RakuAST::VarDeclaration::Simple.new(
                 scope => 'has',
                 name  => '$.bar',
                 type  => RakuAST::Type::Simple.new(
@@ -277,12 +277,12 @@ subtest 'class with accessor usage' => {
               )
             ),
             RakuAST::Statement::Expression.new(
-              RakuAST::Method.new(
+              expression => RakuAST::Method.new(
                 name => RakuAST::Name.from-identifier('test-meth'),
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      RakuAST::Var::Attribute.new('$!bar')
+                      expression => RakuAST::Var::Attribute.new('$!bar')
                     )
                   )
                 )

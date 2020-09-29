@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 31; # Do not change this file to done-testing
+plan 26; # Do not change this file to done-testing
 
 my $ast;
 
@@ -736,144 +736,230 @@ subtest 'Statement level for loop with implicit topic' => {
     }
 }
 
-{  # given $a -> $x { $x }
-    my $ast = RakuAST::Statement::Given.new(
-        source => RakuAST::Var::Lexical.new('$a'),
-        body => RakuAST::PointyBlock.new(
-            signature => RakuAST::Signature.new(
-                parameters => (
-                    RakuAST::Parameter.new(
-                        target => RakuAST::ParameterTarget::Var.new('$x')
-                    ),
-                )
+subtest 'given with explicit signature' => {
+    # given $a -> $x { $x }
+    $ast := RakuAST::Statement::Given.new(
+      source => RakuAST::Var::Lexical.new('$a'),
+      body => RakuAST::PointyBlock.new(
+        signature => RakuAST::Signature.new(
+          parameters => (
+            RakuAST::Parameter.new(
+              target => RakuAST::ParameterTarget::Var.new('$x')
             ),
-            body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::Var::Lexical.new('$x')
-                    ))))
-    );
-    my $a = 'concrete';
-    is-deeply EVAL($ast), 'concrete', 'given topicalizes on the source (signature)';
-    $a = Str;
-    is-deeply EVAL($ast), Str, 'given topicalizes even an undefined source (signature)';
-}
-
-{  # given $a { $_ }
-    my $ast = RakuAST::Statement::Given.new(
-        source => RakuAST::Var::Lexical.new('$a'),
-        body => RakuAST::Block.new(
-            body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::Expression.new(
-                        RakuAST::Var::Lexical.new('$_')
-                    ))))
-    );
-    my $a = 'concrete';
-    is-deeply EVAL($ast), 'concrete', 'given topicalizes on the source (implicit $_)';
-    $a = Str;
-    is-deeply EVAL($ast), Str, 'given topicalizes even an undefined source (implicit $_)';
-}
-
-{  # given $a { when 2 { "two" } when 3 { "three" } default { "another" } }
-    my $ast = RakuAST::Statement::Given.new(
-        source => RakuAST::Var::Lexical.new('$a'),
-        body => RakuAST::Block.new(
-            body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
-                    RakuAST::Statement::When.new(
-                        condition => RakuAST::IntLiteral.new(2),
-                        body => RakuAST::Block.new(
-                            body => RakuAST::Blockoid.new(
-                                RakuAST::StatementList.new(
-                                    RakuAST::Statement::Expression.new(
-                                        RakuAST::StrLiteral.new('two')
-                    ))))),
-                    RakuAST::Statement::When.new(
-                        condition => RakuAST::IntLiteral.new(3),
-                        body => RakuAST::Block.new(
-                            body => RakuAST::Blockoid.new(
-                                RakuAST::StatementList.new(
-                                    RakuAST::Statement::Expression.new(
-                                        RakuAST::StrLiteral.new('three')
-                    ))))),
-                    RakuAST::Statement::Default.new(
-                        body => RakuAST::Block.new(
-                            body => RakuAST::Blockoid.new(
-                                RakuAST::StatementList.new(
-                                    RakuAST::Statement::Expression.new(
-                                        RakuAST::StrLiteral.new('another')
-                    )))))
-    ))));
-
-    my $a = 2;
-    is-deeply EVAL($ast), 'two', 'First when statement matching gives correct result';
-    $a = 3;
-    is-deeply EVAL($ast), 'three', 'Second when statement matching gives correct result';
-    $a = 4;
-    is-deeply EVAL($ast), 'another', 'No when statement matching gives default';
-}
-
-{  # { die "oops"; CATCH { $handled++ } }
-    my $handled = False;
-    is-deeply EVAL(RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+          )
+        ),
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::Call::Name.new(
-                    name => RakuAST::Name.from-identifier('die'),
-                    args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('oops'))
-            )),
-            RakuAST::Statement::Catch.new(body => RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                    RakuAST::Statement::Default.new(body => RakuAST::Block.new(
-                        body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
+              RakuAST::Var::Lexical.new('$x')
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        my $a = 'concrete';
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 'concrete',
+          "$type: given topicalizes on the source (signature)";
+
+        $a = Str;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Str,
+          "$type: given topicalizes even an undefined source (signature)";
+    }
+}
+
+subtest 'given with implicit signature' => {
+    # given $a { $_ }
+    $ast := RakuAST::Statement::Given.new(
+      source => RakuAST::Var::Lexical.new('$a'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              RakuAST::Var::Lexical.new('$_')
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        my $a = 'concrete';
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 'concrete',
+          "$type: given topicalizes on the source (implicit)";
+
+        $a = Str;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Str,
+          "$type: given topicalizes even an undefined source (implicit)";
+    }
+}
+
+subtest 'given with when and default' => {
+    # given $a { when 2 { "two" } when 3 { "three" } default { "another" } }
+    $ast := RakuAST::Statement::Given.new(
+      source => RakuAST::Var::Lexical.new('$a'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::When.new(
+              condition => RakuAST::IntLiteral.new(2),
+              body => RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                   RakuAST::StatementList.new(
+                     RakuAST::Statement::Expression.new(
+                       RakuAST::StrLiteral.new('two')
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::When.new(
+              condition => RakuAST::IntLiteral.new(3),
+              body => RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      RakuAST::StrLiteral.new('three')
+                    )
+                  )
+                )
+              )
+            ),
+            RakuAST::Statement::Default.new(
+              body => RakuAST::Block.new(
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      RakuAST::StrLiteral.new('another')
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        my $a = 2;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 'two',
+          "$type: first when statement matching gives correct result";
+
+        $a = 3;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 'three',
+          "$type: second when statement matching gives correct result";
+
+        $a = 4;
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), 'another',
+          "$type: no when statement giving default";
+    }
+}
+
+subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
+    my $handled;
+
+    # { die "oops"; CATCH { $handled++ } }
+    $ast := RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('die'),
+              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('oops'))
+            )
+          ),
+          RakuAST::Statement::Catch.new(
+            body => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new(
+                  RakuAST::Statement::Default.new(
+                    body => RakuAST::Block.new(
+                      body => RakuAST::Blockoid.new(
+                        RakuAST::StatementList.new(
+                          RakuAST::Statement::Expression.new(
                             RakuAST::ApplyPostfix.new(
-                                operand => RakuAST::Var::Lexical.new('$handled'),
-                                postfix => RakuAST::Postfix.new('++')
-                        )))))
-            )))))
-        )))),
-        Nil,
-        'Block with CATCH/default handles exception and evalutes to Nil';
-    ok $handled, 'The exception handler ran';
-    is $!, 'oops', '$! in the outer scope has the exception';
+                              operand => RakuAST::Var::Lexical.new('$handled'),
+                              postfix => RakuAST::Postfix.new('++')
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        $handled = 0;
+
+        is-deeply EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE), Nil,
+          "$type: block with CATCH/default handles exception, evalutes to Nil";
+        is-deeply $handled, 1, "$type: the exception handler ran once";
+        is $!, 'oops', "$type: \$! in the outer scope has the exception";
+    }
 }
 
-throws-like
-    {  # { die "gosh"; CATCH { } }
-        EVAL(RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-            RakuAST::Statement::Expression.new(
-                RakuAST::Call::Name.new(
-                    name => RakuAST::Name.from-identifier('die'),
-                    args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('gosh'))
-            )),
-            RakuAST::Statement::Catch.new(body => RakuAST::Block.new(
-                body => RakuAST::Blockoid.new(RakuAST::StatementList.new()
-            )))
-        ))));
-    },
-    X::AdHoc,
-    message => /gosh/,
-    'Exception is rethrown if unhandled';
+subtest 'Exception is rethrown if unhandled' => {
+    # { die "gosh"; CATCH { } }
+    $ast := RakuAST::Block.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            RakuAST::Call::Name.new(
+              name => RakuAST::Name.from-identifier('die'),
+              args => RakuAST::ArgList.new(RakuAST::StrLiteral.new('gosh'))
+            )
+          ),
+          RakuAST::Statement::Catch.new(
+            body => RakuAST::Block.new(
+              body => RakuAST::Blockoid.new(
+                RakuAST::StatementList.new
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', 'DEPARSE' -> $type {
+        throws-like { EVAL($type eq 'AST' ?? $ast !! $ast.DEPARSE) },
+          X::AdHoc,
+          message => /gosh/,
+          "$type: exception is rethrown if unhandled";
+    }
+}
 
 # This test calls an imported `&ok` to check the `use` works; the test plan
 # verifies that it really works.
 {
     sub ok(|) { die "Imported ok was not used" };
+
     # use Test; ok 1, "use statement works"
-    EVAL RakuAST::StatementList.new(
-        RakuAST::Statement::Use.new(
-            module-name => RakuAST::Name.from-identifier('Test')
-        ),
-        RakuAST::Statement::Expression.new(
-            RakuAST::Call::Name.new(
-                name => RakuAST::Name.from-identifier('ok'),
-                args => RakuAST::ArgList.new(
-                    RakuAST::IntLiteral.new(1),
-                    RakuAST::StrLiteral.new('use statements works')
-                )
-        ))
+    $ast := RakuAST::StatementList.new(
+      RakuAST::Statement::Use.new(
+        module-name => RakuAST::Name.from-identifier('Test')
+      ),
+      RakuAST::Statement::Expression.new(
+        RakuAST::Call::Name.new(
+          name => RakuAST::Name.from-identifier('ok'),
+          args => RakuAST::ArgList.new(
+            RakuAST::IntLiteral.new(1),
+            RakuAST::StrLiteral.new('use statements works')
+          )
+        )
+      )
     );
+
+    # EVALling produces test output
+    EVAL($ast);
+    EVAL($ast.DEPARSE);
 }
 
 # vim: expandtab shiftwidth=4

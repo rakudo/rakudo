@@ -595,7 +595,7 @@ sub dd(|c) {  # is implementation-detail
         while $args {
             my $var  := nqp::shift($args);
             if nqp::istype($var,RakuAST::Node) {
-                note $var.DEPARSE;
+                note $var.DEPARSE.chomp;
             }
             else {
                 my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;

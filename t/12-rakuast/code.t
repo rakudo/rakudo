@@ -9,14 +9,14 @@ subtest 'A pointy block node evaluates to a Block' => {
     # -> () { 101 }
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::PointyBlock.new(
+        expression => RakuAST::PointyBlock.new(
           signature => RakuAST::Signature.new(
             parameters => ()
           ),
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::IntLiteral.new(101)
+                expression => RakuAST::IntLiteral.new(101)
               )
             )
           )
@@ -44,7 +44,7 @@ subtest 'A pointy block node taking a parameter evaluates to a Block' => {
     # -> $param { $param };
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::PointyBlock.new(
+        expression => RakuAST::PointyBlock.new(
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -55,7 +55,7 @@ subtest 'A pointy block node taking a parameter evaluates to a Block' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$param')
+                expression => RakuAST::Var::Lexical.new('$param')
               )
             )
           )
@@ -87,11 +87,11 @@ subtest 'Bare block at statement level is executed' => {
     # { $x++ };
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Block.new(
+        expression => RakuAST::Block.new(
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::ApplyPostfix.new(
+                expression => RakuAST::ApplyPostfix.new(
                   operand => RakuAST::Var::Lexical.new('$x'),
                   postfix => RakuAST::Postfix.new('++')
                 )
@@ -119,14 +119,14 @@ subtest 'Bare block in parentheses evaluates to Block' => {
     # ({ $x++ })
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Circumfix::Parentheses.new(
+        expression => RakuAST::Circumfix::Parentheses.new(
           RakuAST::SemiList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Block.new(
+              expression => RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      RakuAST::ApplyPostfix.new(
+                      expression => RakuAST::ApplyPostfix.new(
                         operand => RakuAST::Var::Lexical.new('$x'),
                         postfix => RakuAST::Postfix.new('++')
                       )
@@ -175,14 +175,14 @@ subtest 'Block has default parameter' => {
     # ({ $_ })
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Circumfix::Parentheses.new(
+        expression => RakuAST::Circumfix::Parentheses.new(
           RakuAST::SemiList.new(
             RakuAST::Statement::Expression.new(
-              RakuAST::Block.new(
+              expression => RakuAST::Block.new(
                 body => RakuAST::Blockoid.new(
                   RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                      RakuAST::Var::Lexical.new('$_')
+                      expression => RakuAST::Var::Lexical.new('$_')
                     ),
                   )
                 )
@@ -205,7 +205,7 @@ subtest 'A sub node evaluates to a Sub' => {
     # sub ($param) { $param };
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Sub.new(
+        expression => RakuAST::Sub.new(
           signature => RakuAST::Signature.new(
             parameters => (
               RakuAST::Parameter.new(
@@ -216,7 +216,7 @@ subtest 'A sub node evaluates to a Sub' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$param')
+                expression => RakuAST::Var::Lexical.new('$param')
               ),
             )
           )
@@ -244,7 +244,7 @@ subtest 'Can call a named sub declaration' => {
     # sub my-sub($param) { $param }; my-sub(66)
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Sub.new(
+        expression => RakuAST::Sub.new(
           name => RakuAST::Name.from-identifier('my-sub'),
           signature => RakuAST::Signature.new(
             parameters => (
@@ -256,14 +256,14 @@ subtest 'Can call a named sub declaration' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$param')
+                expression => RakuAST::Var::Lexical.new('$param')
               ),
             )
           )
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Call::Name.new(
+        expression => RakuAST::Call::Name.new(
           name => RakuAST::Name.from-identifier('my-sub'),
           args => RakuAST::ArgList.new(
             RakuAST::IntLiteral.new(66),
@@ -280,20 +280,20 @@ subtest 'A routine declared anonymous does not declare anything' => {
     # anon sub my-sub() { 66 }; my-sub()
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Sub.new(
+        expression => RakuAST::Sub.new(
           scope => 'anon',
           name => RakuAST::Name.from-identifier('my-sub'),
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::IntLiteral.new(66)
+                expression => RakuAST::IntLiteral.new(66)
               ),
             )
           )
         )
       ),
       RakuAST::Statement::Expression.new(
-        RakuAST::Call::Name.new(
+        expression => RakuAST::Call::Name.new(
           name => RakuAST::Name.from-identifier('my-sub')
         )
       )
@@ -307,7 +307,7 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
     # sub () returns Int { 66 }
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Sub.new(
+        expression => RakuAST::Sub.new(
           traits => [
             RakuAST::Trait::Returns.new(
               RakuAST::Type::Simple.new(
@@ -318,7 +318,7 @@ subtest 'A sub node with a trait evaluates to a Sub' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::IntLiteral.new(66)
+                expression => RakuAST::IntLiteral.new(66)
               )
             )
           )
@@ -338,7 +338,7 @@ subtest 'Return type constraint' => {
     # sub () returns Int { $x }
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Sub.new(
+        expression => RakuAST::Sub.new(
           traits => [
             RakuAST::Trait::Returns.new(
               RakuAST::Type::Simple.new(
@@ -349,7 +349,7 @@ subtest 'Return type constraint' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::Var::Lexical.new('$x')
+                expression => RakuAST::Var::Lexical.new('$x')
               )
             )
           )
@@ -371,7 +371,7 @@ subtest 'Using return with acceptable type works' => {
     # sub () returns Int { return $x }
     $ast := RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
-        RakuAST::Sub.new(
+        expression => RakuAST::Sub.new(
           traits => [
             RakuAST::Trait::Returns.new(
               RakuAST::Type::Simple.new(
@@ -382,7 +382,7 @@ subtest 'Using return with acceptable type works' => {
           body => RakuAST::Blockoid.new(
             RakuAST::StatementList.new(
               RakuAST::Statement::Expression.new(
-                RakuAST::Call::Name.new(
+                expression => RakuAST::Call::Name.new(
                   name => RakuAST::Name.from-identifier('return'),
                   args => RakuAST::ArgList.new(
                     RakuAST::Var::Lexical.new('$x')

@@ -11,25 +11,27 @@ plan 11;
         name => RakuAST::Name.from-identifier('TestClass'),
         body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                RakuAST::Method.new(
+                expression => RakuAST::Method.new(
                     name => RakuAST::Name.from-identifier('meth-a'),
                     body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
                         RakuAST::Statement::Expression.new(
-                            RakuAST::IntLiteral.new(99)
+                            expression => RakuAST::IntLiteral.new(99)
                         )
                     ))
                 )
             ),
             RakuAST::Statement::Expression.new(
-                RakuAST::Method.new(
+                expression => RakuAST::Method.new(
                     name => RakuAST::Name.from-identifier('meth-b'),
                     body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(RakuAST::ApplyPostfix.new(
-                            operand => RakuAST::Term::Self.new,
-                            postfix => RakuAST::Call::Method.new(
-                                name => RakuAST::Name.from-identifier('meth-a')
+                        RakuAST::Statement::Expression.new(
+                            expression => RakuAST::ApplyPostfix.new(
+                                operand => RakuAST::Term::Self.new,
+                                postfix => RakuAST::Call::Method.new(
+                                    name => RakuAST::Name.from-identifier('meth-a')
+                                )
                             )
-                        ))
+                        )
                     ))
                 )
             )
@@ -44,7 +46,7 @@ is-deeply  # given argh { .uc }
             body => RakuAST::Blockoid.new(
                 RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                        RakuAST::Term::TopicCall.new(RakuAST::Call::Method.new(
+                        expression => RakuAST::Term::TopicCall.new(RakuAST::Call::Method.new(
                             name => RakuAST::Name.from-identifier('uc')
                         ))
                     )

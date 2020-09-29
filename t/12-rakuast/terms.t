@@ -3,107 +3,167 @@ use Test;
 
 plan 11;
 
-{  # my class TestClass { method meth-a() { 99 }; method meth-b() { self.meth-a } }
-    my $class = EVAL RakuAST::Package.new:
-        scope => 'my',
-        package-declarator => 'class',
-        how => Metamodel::ClassHOW,
-        name => RakuAST::Name.from-identifier('TestClass'),
-        body => RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+my $ast;
+
+subtest 'Method call via self' => {
+    # my class TestClass {
+    #     method meth-a() { 99 }
+    #     method meth-b() { self.meth-a }
+    # }
+    $ast := RakuAST::Package.new(
+      scope => 'my',
+      package-declarator => 'class',
+      name  => RakuAST::Name.from-identifier('TestClass'),
+      how   => Metamodel::ClassHOW,
+      body  => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                expression => RakuAST::Method.new(
-                    name => RakuAST::Name.from-identifier('meth-a'),
-                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            expression => RakuAST::IntLiteral.new(99)
-                        )
-                    ))
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('meth-a'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
+                    RakuAST::Statement::Expression.new(
+                      expression => RakuAST::IntLiteral.new(99)
+                    )
+                  ),
                 )
+              )
             ),
             RakuAST::Statement::Expression.new(
-                expression => RakuAST::Method.new(
-                    name => RakuAST::Name.from-identifier('meth-b'),
-                    body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
-                        RakuAST::Statement::Expression.new(
-                            expression => RakuAST::ApplyPostfix.new(
-                                operand => RakuAST::Term::Self.new,
-                                postfix => RakuAST::Call::Method.new(
-                                    name => RakuAST::Name.from-identifier('meth-a')
-                                )
-                            )
-                        )
-                    ))
-                )
-            )
-        )));
-    is $class.meth-b(), 99, 'Method call via self works';
-}
-
-is-deeply  # given argh { .uc }
-    EVAL(RakuAST::Statement::Given.new(
-        source => RakuAST::StrLiteral.new('argh'),
-        body => RakuAST::Block.new(
-            body => RakuAST::Blockoid.new(
-                RakuAST::StatementList.new(
+              expression => RakuAST::Method.new(
+                name => RakuAST::Name.from-identifier('meth-b'),
+                body => RakuAST::Blockoid.new(
+                  RakuAST::StatementList.new(
                     RakuAST::Statement::Expression.new(
-                        expression => RakuAST::Term::TopicCall.new(RakuAST::Call::Method.new(
-                            name => RakuAST::Name.from-identifier('uc')
-                        ))
+                      expression => RakuAST::ApplyPostfix.new(
+                        operand => RakuAST::Term::Self.new,
+                          postfix => RakuAST::Call::Method.new(
+                          name => RakuAST::Name.from-identifier('meth-a')
+                        )
+                      )
                     )
-                )))
-    )),
-    'ARGH',
-    'Topic call applies the call to $_';
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    );
 
-# now
-isa-ok EVAL(RakuAST::Term::Named.new('now')),
-    Instant,
-    'now named term can be called';
-
-# rand
-isa-ok EVAL(RakuAST::Term::Rand.new),
-    Num,
-    'rand term works';
-
-# ∅
-is-deeply EVAL(RakuAST::Term::EmptySet.new),
-    ∅,
-    'Empty set term works';
-
-# True
-is-deeply EVAL(RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True'))),
-    True,
-    'Name term works with single-part name';
-
-# Bool::True
-is-deeply EVAL(RakuAST::Term::Name.new(RakuAST::Name.from-identifier-parts('Bool', 'True'))),
-    True,
-    'Name term works with multi-part name';
-
-# Whatever
-isa-ok EVAL(RakuAST::Term::Whatever.new),
-    Whatever,
-    'Whatever term works';
-
-# HyperWhatever
-isa-ok EVAL(RakuAST::Term::HyperWhatever.new),
-    HyperWhatever,
-    'HyperWhatever term works';
-
-{
-    my $var = 4;
-    is-deeply # \$var
-        EVAL(RakuAST::Term::Capture.new(RakuAST::Var::Lexical.new('$var'))),
-        \(4),
-        'Capture term can be constructed with a term and produces expected capture';
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, Mu $class {
+        is-deeply $class.meth-b(), 99,
+          "$type: Method call via self works";
+    }
 }
 
-is-deeply # \(6, :x)
-    EVAL(RakuAST::Term::Capture.new(RakuAST::ArgList.new(
+subtest 'Topic call applies the call to $_' => {
+    # given argh { .uc }
+    $ast := RakuAST::Statement::Given.new(
+      source => RakuAST::StrLiteral.new('argh'),
+      body => RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
+            RakuAST::Statement::Expression.new(
+              expression => RakuAST::Term::TopicCall.new(
+                RakuAST::Call::Method.new(
+                  name => RakuAST::Name.from-identifier('uc')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $_, 'ARGH'
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'now named term can be called' => {
+    # now
+    $ast := RakuAST::Term::Named.new('now');
+
+    isa-ok $_, Instant
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'rand term works' => {
+    # rand
+    $ast := RakuAST::Term::Rand.new;
+
+    isa-ok $_, Num
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Empty set term works' => {
+    # ∅
+    $ast := RakuAST::Term::EmptySet.new;
+
+    is-deeply $_, ∅,
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Name term works with single-part name' => {
+    # True
+    $ast := RakuAST::Term::Name.new(
+      RakuAST::Name.from-identifier('True')
+    );
+
+    is-deeply $_, True,
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Name term works with multi-part name' => {
+    # Bool::True
+    $ast := RakuAST::Term::Name.new(
+      RakuAST::Name.from-identifier-parts('Bool', 'True')
+    );
+
+    is-deeply $_, True,
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Whatever term works' => {
+    # *
+    $ast := RakuAST::Term::Whatever.new;
+
+    isa-ok $_, Whatever,
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Hyperwhatever term works' => {
+    # **
+    $ast := RakuAST::Term::HyperWhatever.new;
+
+    isa-ok $_, HyperWhatever,
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Capture term can be constructed with a term' => {
+    my $var = 4;
+
+    # \$var
+    $ast := RakuAST::Term::Capture.new(
+      RakuAST::Var::Lexical.new('$var')
+    );
+
+    is-deeply $_, \(4)
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Capture term can be constructed with an arg list' => {
+    # \(6, :x)
+    $ast := RakuAST::Term::Capture.new(
+      RakuAST::ArgList.new(
         RakuAST::IntLiteral.new(6),
         RakuAST::ColonPair::True.new(key => 'x')
-    ))),
-    \(6, :x),
-    'Capture term can be constructed with an arg list and produces expected capture';
+      )
+    );
+
+    is-deeply $_, \(6, :x)
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
 
 # vim: expandtab shiftwidth=4

@@ -120,15 +120,15 @@ class RakuAST::Deparse {
           self.deparse($ast.condition),
           self.deparse($ast.then)
         ))
-    }   
-    
+    }
+
     method !negated-conditional($ast, str $type) {
         nqp::join(' ',nqp::list_s(
           $type,
           self.deparse($ast.condition),
           self.deparse($ast.body)
         ))
-    }   
+    }
 
     method !simple-loop($ast, str $type) {
         nqp::join(' ',nqp::list_s(
@@ -593,7 +593,7 @@ class RakuAST::Deparse {
 
         nqp::join('',$parts)
     }
-    
+
     multi method deparse(RakuAST::Statement::Loop:D $ast --> str) {
         nqp::join('',nqp::list_s(
           'loop (',
@@ -605,7 +605,7 @@ class RakuAST::Deparse {
           ') ',
           self.deparse($ast.body)
         ))
-    }   
+    }
 
     multi method deparse(RakuAST::Statement::Loop::RepeatUntil:D $ast --> str) {
         self!simple-repeat($ast, 'until')
@@ -752,8 +752,40 @@ class RakuAST::Deparse {
         self!method($ast, 'submethod')
     }
 
+    multi method deparse(RakuAST::Term::Capture:D $ast --> str) {
+        nqp::concat('\\',self.deparse($ast.source))
+    }
+
+    multi method deparse(RakuAST::Term::EmptySet:D $ast --> str) {
+        '∅'
+    }
+
+    multi method deparse(RakuAST::Term::HyperWhatever:D $ast --> str) {
+        '**'
+    }
+
     multi method deparse(RakuAST::Term::Name:D $ast --> str) {
         self.deparse($ast.name)
+    }
+
+    multi method deparse(RakuAST::Term::Named:D $ast --> str) {
+        $ast.name
+    }
+
+    multi method deparse(RakuAST::Term::Rand:D $ast --> str) {
+        'rand'
+    }
+
+    multi method deparse(RakuAST::Term::Self:D $ast --> str) {
+        'self'
+    }
+
+    multi method deparse(RakuAST::Term::TopicCall:D $ast --> str) {
+        nqp::concat('.',self.deparse($ast.call))
+    }
+
+    multi method deparse(RakuAST::Term::Whatever:D $ast --> str) {
+        '*'
     }
 
     multi method deparse(RakuAST::Ternary:D $ast --> str) {
@@ -796,9 +828,9 @@ class RakuAST::Deparse {
         if $ast.mode -> str $mode {
             nqp::unshift($parts,$mode) if $mode ne 'serial';
         }
-        
+
         nqp::join(' ',$parts)
-    }   
+    }
 
     multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> str) {
         '$?LINE'

@@ -144,7 +144,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method statement($/) {
         if $<EXPR> {
-            make self.r('Statement', 'Expression').new($<EXPR>.ast);
+            make self.r('Statement', 'Expression').new(expression => $<EXPR>.ast);
         }
         elsif $<statement_control> {
             make $<statement_control>.ast;

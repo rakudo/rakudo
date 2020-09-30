@@ -77,7 +77,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
 
 {
     sub fetch($what) {
-        once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {
+        once if !Rakudo::Internals.IS-WIN && try { qx/LC_MESSAGES=POSIX id/ } -> $id {
             if $id ~~ m/^
               [ uid "=" $<uid>=(\d+) ]
               [ "(" $<user>=(<-[ ) ]>+) ")" ]

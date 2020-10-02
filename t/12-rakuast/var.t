@@ -44,7 +44,8 @@ subtest 'Named capture variable lookup works' => {
     # $<y>
     $ast := RakuAST::Var::NamedCapture.new(
       RakuAST::QuotedString.new(
-        segments => [RakuAST::StrLiteral.new('y')]
+        segments => [RakuAST::StrLiteral.new('y')],
+        processors => ['words','val']
       )
     );
     is-deeply $_, "b"
@@ -53,7 +54,8 @@ subtest 'Named capture variable lookup works' => {
     # $<x>
     $ast := RakuAST::Var::NamedCapture.new(
       RakuAST::QuotedString.new(
-        segments => [RakuAST::StrLiteral.new('x')]
+        segments => [RakuAST::StrLiteral.new('x')],
+        processors => ['words','val']
       )
     );
     is-deeply $_, "a"

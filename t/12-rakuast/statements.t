@@ -4,13 +4,17 @@ use Test;
 plan 26; # Do not change this file to done-testing
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'Statement list evaluates to its final statement' => {
     my $x = 12;
     my $y = 99;
 
     # ++$x; ++$y
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::ApplyPrefix.new(
           prefix => RakuAST::Prefix.new('++'),
@@ -47,7 +51,7 @@ subtest 'Basic if / elsif / else structure' => {
     # elsif $b { 2 }
     # elsif $c { 3 }
     # else { 4 }
-    $ast := RakuAST::Statement::If.new(
+    ast RakuAST::Statement::If.new(
       condition => RakuAST::Var::Lexical.new('$a'),
       then => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -118,7 +122,7 @@ subtest 'simple if evaluation' => {
     my $a;
 
     # if $a { 1 }
-    $ast := RakuAST::Statement::If.new(
+    ast RakuAST::Statement::If.new(
       condition => RakuAST::Var::Lexical.new('$a'),
       then => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -149,7 +153,7 @@ subtest 'Basic with / orwith / else structure' => {
     # orwith -> $x { 2 }
     # orwith -> $x { 3 }
     # else -> $x { 4 }
-    $ast := RakuAST::Statement::With.new(
+    ast RakuAST::Statement::With.new(
       condition => RakuAST::Var::Lexical.new('$a'),
       then => RakuAST::PointyBlock.new(
         signature => RakuAST::Signature.new(
@@ -248,7 +252,7 @@ subtest 'simple with evaluation' => {
     my $a;
 
     # with $a -> $x { 1 }
-    $ast := RakuAST::Statement::With.new(
+    ast RakuAST::Statement::With.new(
       condition => RakuAST::Var::Lexical.new('$a'),
       then => RakuAST::PointyBlock.new(
         signature => RakuAST::Signature.new(
@@ -280,7 +284,7 @@ subtest 'simple with evaluation' => {
 
 subtest 'with topicalizes in the body' => {
     # with $a { $_ } else { $_ }
-    $ast := RakuAST::Statement::With.new(
+    ast RakuAST::Statement::With.new(
       condition => RakuAST::Var::Lexical.new('$a'),
       then => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -317,7 +321,7 @@ subtest 'simple unless with a false condition' => {
     my $y = 9;
 
     # unless $x { ++$y }
-    $ast := RakuAST::Statement::Unless.new(
+    ast RakuAST::Statement::Unless.new(
       condition => RakuAST::Var::Lexical.new('$x'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -347,7 +351,7 @@ subtest 'simple unless with a false condition' => {
     my $y = 9;
 
     # unless $x { ++$y }
-    $ast := RakuAST::Statement::Unless.new(
+    ast RakuAST::Statement::Unless.new(
       condition => RakuAST::Var::Lexical.new('$x'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -377,7 +381,7 @@ subtest 'simple without with an undefined condition' => {
     my $y = 9;
 
     # without $x { $y++ }
-    $ast := RakuAST::Statement::Without.new(
+    ast RakuAST::Statement::Without.new(
       condition => RakuAST::Var::Lexical.new('$x'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -407,7 +411,7 @@ subtest 'simple without with a defined condition' => {
     my $y = 9;
 
     # without $x { ++$y }
-    $ast := RakuAST::Statement::Without.new(
+    ast RakuAST::Statement::Without.new(
       condition => RakuAST::Var::Lexical.new('$x'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -436,7 +440,7 @@ subtest 'simple without with an undefined condition' => {
     my $x = Cool;
 
     # without $x { $_ }
-    $ast := RakuAST::Statement::Without.new(
+    ast RakuAST::Statement::Without.new(
       condition => RakuAST::Var::Lexical.new('$x'),
       body => RakuAST::Block.new(body =>
         RakuAST::Blockoid.new(
@@ -459,7 +463,7 @@ subtest 'While loop at statement level evaluates to Nil' => {
     my $x;
 
     # while $x { --$x }
-    $ast := RakuAST::Statement::Loop::While.new(
+    ast RakuAST::Statement::Loop::While.new(
       condition => RakuAST::Var::Lexical.new('$x'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -488,7 +492,7 @@ subtest 'Until loop at statement level evaluates to Nil' => {
     my $x;
 
     # until !$x { --$x }
-    $ast := RakuAST::Statement::Loop::Until.new(
+    ast RakuAST::Statement::Loop::Until.new(
       condition => RakuAST::ApplyPrefix.new(
         prefix => RakuAST::Prefix.new('!'),
         operand => RakuAST::Var::Lexical.new('$x')
@@ -520,7 +524,7 @@ subtest 'Repeat while loop at statement level evaluates to Nil' => {
     my $x;
 
     # repeat { --$x } while $x
-    $ast:= RakuAST::Statement::Loop::RepeatWhile.new(
+    ast RakuAST::Statement::Loop::RepeatWhile.new(
       condition => RakuAST::Var::Lexical.new('$x'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -549,7 +553,7 @@ subtest 'Repeat until loop at statement level evaluates to Nil' => {
     my $x;
 
     # repeat { --$x } until $x
-    $ast:= RakuAST::Statement::Loop::RepeatUntil.new(
+    ast RakuAST::Statement::Loop::RepeatUntil.new(
       condition => RakuAST::Var::Lexical.new('$x'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -578,7 +582,7 @@ subtest 'Loop block with setup and increment expression' => {
     my $count;
 
     # loop (my $i = 9; $i; --$i) { ++$count }
-    $ast := RakuAST::Statement::Loop.new(
+    ast RakuAST::Statement::Loop.new(
       setup => RakuAST::VarDeclaration::Simple.new(
         name => '$i',
         initializer => RakuAST::Initializer::Assign.new(
@@ -617,7 +621,7 @@ subtest 'Statement level for loop' => {
     my $count;
 
     # for 2 .. 7 -> $x { ++$count }
-    $ast := RakuAST::Statement::For.new(
+    ast RakuAST::Statement::For.new(
       source => RakuAST::ApplyInfix.new(
         left => RakuAST::IntLiteral.new(2),
         infix => RakuAST::Infix.new('..'),
@@ -657,7 +661,7 @@ subtest 'for loop with explicit iteration variable' => {
     my $total;
 
     # for 2 .. 7 -> $x { $total = $total + $x }
-    $ast := RakuAST::Statement::For.new(
+    ast RakuAST::Statement::For.new(
       source => RakuAST::ApplyInfix.new(
         left => RakuAST::IntLiteral.new(2),
         infix => RakuAST::Infix.new('..'),
@@ -702,7 +706,7 @@ subtest 'Statement level for loop with implicit topic' => {
     my $total = 0;
 
     # for 2 .. 7 { $total = $total + $_ }
-    $ast := RakuAST::Statement::For.new(
+    ast RakuAST::Statement::For.new(
       source => RakuAST::ApplyInfix.new(
         left => RakuAST::IntLiteral.new(2),
         infix => RakuAST::Infix.new('..'),
@@ -738,7 +742,7 @@ subtest 'Statement level for loop with implicit topic' => {
 
 subtest 'given with explicit signature' => {
     # given $a -> $x { $x }
-    $ast := RakuAST::Statement::Given.new(
+    ast RakuAST::Statement::Given.new(
       source => RakuAST::Var::Lexical.new('$a'),
       body => RakuAST::PointyBlock.new(
         signature => RakuAST::Signature.new(
@@ -771,7 +775,7 @@ subtest 'given with explicit signature' => {
 
 subtest 'given with implicit signature' => {
     # given $a { $_ }
-    $ast := RakuAST::Statement::Given.new(
+    ast RakuAST::Statement::Given.new(
       source => RakuAST::Var::Lexical.new('$a'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -797,7 +801,7 @@ subtest 'given with implicit signature' => {
 
 subtest 'given with when and default' => {
     # given $a { when 2 { "two" } when 3 { "three" } default { "another" } }
-    $ast := RakuAST::Statement::Given.new(
+    ast RakuAST::Statement::Given.new(
       source => RakuAST::Var::Lexical.new('$a'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -861,7 +865,7 @@ subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
     my $handled;
 
     # { die "oops"; CATCH { $handled++ } }
-    $ast := RakuAST::Block.new(
+    ast RakuAST::Block.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
@@ -908,7 +912,7 @@ subtest 'Block with CATCH/default handles exception and evalutes to Nil' => {
 
 subtest 'Exception is rethrown if unhandled' => {
     # { die "gosh"; CATCH { } }
-    $ast := RakuAST::Block.new(
+    ast RakuAST::Block.new(
       body => RakuAST::Blockoid.new(
         RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
@@ -942,7 +946,7 @@ subtest 'Exception is rethrown if unhandled' => {
     sub ok(|) { die "Imported ok was not used" };
 
     # use Test; ok 1, "use statement works"
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Use.new(
         module-name => RakuAST::Name.from-identifier('Test')
       ),

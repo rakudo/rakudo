@@ -11,8 +11,9 @@ sub ast-ok(
 ) {
     subtest $comment => {
         plan 2;
+        diag $ast.DEPARSE.chomp;
         is-deeply EVAL($ast), $value;
-        is-deeply EVAL(try $ast.DEPARSE), $value;
+        is-deeply EVAL($ast.DEPARSE), $value;
     }
 }
 

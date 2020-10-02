@@ -4,10 +4,14 @@ use Test;
 plan 11;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'A pointy block node evaluates to a Block' => {
     # -> () { 101 }
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::PointyBlock.new(
           signature => RakuAST::Signature.new(
@@ -42,7 +46,7 @@ subtest 'A pointy block node evaluates to a Block' => {
 
 subtest 'A pointy block node taking a parameter evaluates to a Block' => {
     # -> $param { $param };
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::PointyBlock.new(
           signature => RakuAST::Signature.new(
@@ -85,7 +89,7 @@ subtest 'Bare block at statement level is executed' => {
     my $x = 99;
 
     # { $x++ };
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Block.new(
           body => RakuAST::Blockoid.new(
@@ -117,7 +121,7 @@ subtest 'Bare block in parentheses evaluates to Block' => {
     my $x = 99;
 
     # ({ $x++ })
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Circumfix::Parentheses.new(
           RakuAST::SemiList.new(
@@ -173,7 +177,7 @@ subtest 'Bare block in parentheses evaluates to Block' => {
 
 subtest 'Block has default parameter' => {
     # ({ $_ })
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Circumfix::Parentheses.new(
           RakuAST::SemiList.new(
@@ -203,7 +207,7 @@ subtest 'Block has default parameter' => {
 
 subtest 'A sub node evaluates to a Sub' => {
     # sub ($param) { $param };
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
           signature => RakuAST::Signature.new(
@@ -242,7 +246,7 @@ subtest 'A sub node evaluates to a Sub' => {
 
 subtest 'Can call a named sub declaration' => {
     # sub my-sub($param) { $param }; my-sub(66)
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
           name => RakuAST::Name.from-identifier('my-sub'),
@@ -278,7 +282,7 @@ subtest 'Can call a named sub declaration' => {
 
 subtest 'A routine declared anonymous does not declare anything' => {
     # anon sub my-sub() { 66 }; my-sub()
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
           scope => 'anon',
@@ -305,7 +309,7 @@ subtest 'A routine declared anonymous does not declare anything' => {
 
 subtest 'A sub node with a trait evaluates to a Sub' => {
     # sub () returns Int { 66 }
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
           traits => [
@@ -336,7 +340,7 @@ subtest 'Return type constraint' => {
     my $x;
 
     # sub () returns Int { $x }
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
           traits => [
@@ -369,7 +373,7 @@ subtest 'Using return with acceptable type works' => {
     my $x;
 
     # sub () returns Int { return $x }
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::Sub.new(
           traits => [

@@ -4,10 +4,14 @@ use Test;
 plan 12;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'Default type for block and routine' => {
     # sub ($param) { }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -21,7 +25,7 @@ subtest 'Default type for block and routine' => {
       for EVAL($ast), EVAL($ast.DEPARSE);
 
     # -> $param { }
-    $ast := RakuAST::PointyBlock.new(
+    ast RakuAST::PointyBlock.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -36,7 +40,7 @@ subtest 'Default type for block and routine' => {
 
 subtest 'Type constraint is enforced on Scalar' => {
     # sub (Int $x) { }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -61,7 +65,7 @@ subtest 'Type constraint is enforced on Scalar' => {
 
 subtest 'Anonymous parameter still enforces type constraint' => {
     # sub (Int) { }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -85,7 +89,7 @@ subtest 'Anonymous parameter still enforces type constraint' => {
 
 subtest 'Optional Scalar parameter defaults to type object' => {
     # sub (Int $x?) { $x }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -122,7 +126,7 @@ subtest 'Optional Scalar parameter defaults to type object' => {
 
 subtest 'One required named parameter' => { 
     # sub (:$named!) { $named }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -164,7 +168,7 @@ subtest 'One required named parameter' => {
 
 subtest 'Required named parameter with alias' => { 
     # sub (:fst(:first($var))!) { $var }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -210,7 +214,7 @@ subtest 'Required named parameter with alias' => {
 
 subtest 'Slurpy hash parameter' => {
     # sub (*%h) { %h }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -248,7 +252,7 @@ subtest 'Slurpy hash parameter' => {
 
 subtest 'Slurpy flattening array parameter' => {
     # sub (*@a) { @a }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -288,7 +292,7 @@ subtest 'Slurpy flattening array parameter' => {
 
 subtest 'Slurpy non-flattening array parameter' => {
     # sub (**@a) { @a }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -330,7 +334,7 @@ subtest 'Slurpy non-flattening array parameter' => {
 
 subtest 'Slurpy single arg rule array parameter' => {
     # sub (+@a) { @a }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -372,7 +376,7 @@ subtest 'Slurpy single arg rule array parameter' => {
 
 subtest 'Sigilless parameter' => {
     # sub (Int \trm) { term }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(
@@ -406,7 +410,7 @@ subtest 'Sigilless parameter' => {
 
 subtest 'Capture parameter' => {
     # sub (|cappy) { cappy }
-    $ast := RakuAST::Sub.new(
+    ast RakuAST::Sub.new(
       signature => RakuAST::Signature.new(
         parameters => (
           RakuAST::Parameter.new(

@@ -4,12 +4,16 @@ use Test;
 plan 2;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'Assignment meta-op evaluates to expected value' => {
     my $a = 10;
 
     # $a += 3
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::Var::Lexical.new('$a'),
       infix => RakuAST::MetaInfix::Assign.new(RakuAST::Infix.new('+')),
       right => RakuAST::IntLiteral.new(3)
@@ -27,7 +31,7 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
     my $update = 2;
 
     # $test ||= $update.++
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::Var::Lexical.new('$test'),
       infix => RakuAST::MetaInfix::Assign.new(
         RakuAST::Infix.new('||')

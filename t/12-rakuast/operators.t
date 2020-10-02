@@ -241,7 +241,7 @@ subtest 'Multi-dimensional array indexing' => {
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
             RakuAST::QuotedString.new(
               segments => [RakuAST::StrLiteral.new('s')],
-              processors => ['words']
+              processors => ['words','val']
             )
           )
         );
@@ -256,7 +256,7 @@ subtest 'Multi-dimensional array indexing' => {
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
             RakuAST::QuotedString.new(
               segments => [RakuAST::StrLiteral.new('s a')],
-              processors => ['words']
+              processors => ['words','val']
             )
           )
         );
@@ -271,7 +271,7 @@ subtest 'Multi-dimensional array indexing' => {
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
             RakuAST::QuotedString.new(
               segments => [RakuAST::StrLiteral.new('')],
-              processors => ['words']
+              processors => ['words','val']
             )
           )
         );

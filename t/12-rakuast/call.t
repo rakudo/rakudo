@@ -4,13 +4,17 @@ use Test;
 plan 15;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 sub no-args() {
     444
 }
 subtest 'Can make a named call with no arguments' => {
     # no-args()
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('no-args')
     );
     is-deeply $_, 444
@@ -22,7 +26,7 @@ sub one-arg($x) {
 }
 subtest 'Can make a named call with one positional argument' => {
     # one-arg(5)
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('one-arg'),
       args => RakuAST::ArgList.new(RakuAST::IntLiteral.new(5))
     );
@@ -35,7 +39,7 @@ sub two-args($x, $y) {
 }
 subtest 'Can make a named call with two positional arguments' => {
     # two-args(5, 3)
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('two-args'),
       args => RakuAST::ArgList.new(
         RakuAST::IntLiteral.new(5),
@@ -51,7 +55,7 @@ sub two-named(:$n1, :$n2) {
 }
 subtest 'Can make a named call with two named arguments' => {
     # two-named(n1 => 200, n2 => 4)
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('two-named'),
       args => RakuAST::ArgList.new(
         RakuAST::FatArrow.new(
@@ -70,7 +74,7 @@ subtest 'Can make a named call with two named arguments' => {
 
 subtest 'Duplicated named arguments are correctly handled' => {
     # two-named(n1 => 200, n2 => 4, n1 => 400)
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('two-named'),
       args => RakuAST::ArgList.new(
         RakuAST::FatArrow.new(
@@ -94,7 +98,7 @@ subtest 'Duplicated named arguments are correctly handled' => {
 my $target = -> $a, $b { $a - $b }
 subtest 'Can make a call on a term with two positional arguments' => {
     # $target(9, 4)
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('$target'),
       postfix => RakuAST::Call::Term.new(
         args => RakuAST::ArgList.new(
@@ -113,7 +117,7 @@ class TestTarget {
 }
 subtest 'Can make a call on a method without arguments' => {
     # TestTarget.route
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier('TestTarget')
       ),
@@ -127,7 +131,7 @@ subtest 'Can make a call on a method without arguments' => {
 
 subtest 'Can make a call on a method with positional arguments' => {
     # TestTarget.subtract(14, 6)
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Type::Simple.new(
         RakuAST::Name.from-identifier('TestTarget')
       ),
@@ -145,7 +149,7 @@ subtest 'Can make a call on a method with positional arguments' => {
 
 subtest 'Method call WHAT compiles into MOP primitive' => {
     # 42.WHAT
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(42),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('WHAT')
@@ -157,7 +161,7 @@ subtest 'Method call WHAT compiles into MOP primitive' => {
 
 subtest 'Method call HOW compiles into MOP primitive' => {
     # 42.HOW
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(42),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('HOW')
@@ -169,7 +173,7 @@ subtest 'Method call HOW compiles into MOP primitive' => {
 
 subtest 'Method call WHO compiles into MOP primitive' => {
     # 42.WHO
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(42),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('WHO')
@@ -181,7 +185,7 @@ subtest 'Method call WHO compiles into MOP primitive' => {
 
 subtest 'Method call DEFINITE compiles into MOP primitive' => {
     # 42.DEFINITE
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(42),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('DEFINITE')
@@ -193,7 +197,7 @@ subtest 'Method call DEFINITE compiles into MOP primitive' => {
 
 subtest 'Method call REPR compiles into MOP primitive' => {
     # 42.REPR
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(42),
       postfix => RakuAST::Call::Method.new(
         name => RakuAST::Name.from-identifier('REPR')
@@ -206,7 +210,7 @@ subtest 'Method call REPR compiles into MOP primitive' => {
 subtest 'Can make a call that flattens into array' => {
     my @args;
     # no-args(|@args)
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('no-args'),
       args => RakuAST::ArgList.new(
         RakuAST::ApplyPrefix.new(
@@ -220,7 +224,7 @@ subtest 'Can make a call that flattens into array' => {
 
     @args = 95, 40;
     # two-args(|@args)
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('two-args'),
       args => RakuAST::ArgList.new(
         RakuAST::ApplyPrefix.new(
@@ -236,7 +240,7 @@ subtest 'Can make a call that flattens into array' => {
 subtest 'Can make a call that flattens into hash' => {
     my %args;
     # no-args(|%args)
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('no-args'),
       args => RakuAST::ArgList.new(
         RakuAST::ApplyPrefix.new(
@@ -250,7 +254,7 @@ subtest 'Can make a call that flattens into hash' => {
 
     %args<n1 n2> = 60, 12;
     # two-named(|%args)
-    $ast := RakuAST::Call::Name.new(
+    ast RakuAST::Call::Name.new(
       name => RakuAST::Name.from-identifier('two-named'),
       args => RakuAST::ArgList.new(
         RakuAST::ApplyPrefix.new(

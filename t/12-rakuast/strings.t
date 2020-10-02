@@ -4,10 +4,14 @@ use Test;
 plan 13;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'One-part quoted string with literal piece' => {
     # "hello"
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[RakuAST::StrLiteral.new('hello')]
     );
 
@@ -19,7 +23,7 @@ subtest 'Quoted string with interpolated string variable works' => {
     my $str = 'hello,';
 
     # "$str world"
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::Var::Lexical.new('$str'),
         RakuAST::StrLiteral.new(' world')
@@ -33,7 +37,7 @@ subtest 'Quoted string with interpolated integer variable' => {
     my $int = 42;
 
     # "$int is the answer"
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::Var::Lexical.new('$int'),
         RakuAST::StrLiteral.new(' is the answer')
@@ -47,7 +51,7 @@ subtest 'Quoted string consisting of only interpolated integer variable' => {
     my $int = 42;
 
     # "$int"
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::Var::Lexical.new('$int'),
       ]
@@ -60,7 +64,7 @@ subtest 'Quoted string with 3 parts works' => {
     my $int = 42;
 
     # "The answer is $int of course"
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::StrLiteral.new('The answer is '),
         RakuAST::Var::Lexical.new('$int'),
@@ -75,7 +79,7 @@ subtest 'Quoted string involving an interpolated block' => {
     my $bv = 'interpolated';
 
     # "An { $bv } block"
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::StrLiteral.new('An '),
         RakuAST::Block.new(
@@ -96,7 +100,7 @@ subtest 'Quoted string involving an interpolated block' => {
 
 subtest 'words processor splits a single literal string into words' => {
     # qqw/ foo bar 42 /
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[RakuAST::StrLiteral.new('foo bar 42')],
       :processors['words']
     );
@@ -106,8 +110,9 @@ subtest 'words processor splits a single literal string into words' => {
 
 subtest 'Words processor applied to a quoted string with interpolation' => {
     my $stuff = 'r baz';
+
     # qqw/ ba$stuff 66 /
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::StrLiteral.new('ba'),
         RakuAST::Var::Lexical.new('$stuff'),
@@ -120,19 +125,20 @@ subtest 'Words processor applied to a quoted string with interpolation' => {
 }
 
 subtest 'Using the val processor alone' => {
-    # <<42>>
-    $ast := RakuAST::QuotedString.new(
+    # qq:v/42/
+    ast RakuAST::QuotedString.new(
       :segments[RakuAST::StrLiteral.new('42')],
       :processors['val']
     );
-    is-deeply $_, <42>
+    is-deeply $_, IntStr.new(42,'42')
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
 subtest 'Using the val processor alone with interpolation' => {
     my $end = '6';
+
     # qq:v/4$end/
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::StrLiteral.new('4'),
         RakuAST::Var::Lexical.new('$end')
@@ -145,7 +151,7 @@ subtest 'Using the val processor alone with interpolation' => {
 
 subtest 'Using the words and val processor' => {
     # <foo bar 42>
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[RakuAST::StrLiteral.new('foo bar 42')],
       :processors['words', 'val']
     );
@@ -157,7 +163,7 @@ subtest 'Words processor applied to a quoted string with interpolation' => {
     my $stuff = 'r baz';
 
     # <ba$stuff 66>
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::StrLiteral.new('ba'),
         RakuAST::Var::Lexical.new('$stuff'),
@@ -171,7 +177,7 @@ subtest 'Words processor applied to a quoted string with interpolation' => {
 
 subtest 'Using the exec processor alone gives expected result' => {
     # qx/ echo 123 /
-    $ast := RakuAST::QuotedString.new(
+    ast RakuAST::QuotedString.new(
       :segments[RakuAST::StrLiteral.new('echo 123')],
       :processors['exec']
     );

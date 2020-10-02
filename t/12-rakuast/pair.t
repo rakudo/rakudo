@@ -4,10 +4,14 @@ use Test;
 plan 6;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'Fat arrow syntax forms a Pair' => {
     # answer => 42
-    $ast := RakuAST::FatArrow.new(
+    ast RakuAST::FatArrow.new(
       key => 'answer',
       value => RakuAST::IntLiteral.new(42)
     );
@@ -18,7 +22,7 @@ subtest 'Fat arrow syntax forms a Pair' => {
 
 subtest 'True colonpair forms a Pair with value True' => {
     # :r
-    $ast := RakuAST::ColonPair::True.new(key => 'r');
+    ast RakuAST::ColonPair::True.new(key => 'r');
 
     is-deeply $_, (r => True),
       for EVAL($ast), EVAL($ast.DEPARSE);
@@ -26,7 +30,7 @@ subtest 'True colonpair forms a Pair with value True' => {
 
 subtest 'False colonpair forms a Pair with value False' => {
     # :!r
-    $ast := RakuAST::ColonPair::False.new(key => 'r');
+    ast RakuAST::ColonPair::False.new(key => 'r');
 
     is-deeply $_, (r => False),
       for EVAL($ast), EVAL($ast.DEPARSE);
@@ -34,7 +38,7 @@ subtest 'False colonpair forms a Pair with value False' => {
 
 subtest 'Number colonpair forms a Pair with the correct Int value' => {
     # :answer(42)
-    $ast := RakuAST::ColonPair::Number.new(
+    ast RakuAST::ColonPair::Number.new(
       key => 'answer',
       value => RakuAST::IntLiteral.new(42)
     );
@@ -45,7 +49,7 @@ subtest 'Number colonpair forms a Pair with the correct Int value' => {
 
 subtest 'Value colonpair forms a Pair with the correct value' => {
     # :cheese<stilton>
-    $ast := RakuAST::ColonPair::Value.new(
+    ast RakuAST::ColonPair::Value.new(
       key => 'cheese',
       value => RakuAST::StrLiteral.new('stilton')
     );
@@ -58,7 +62,7 @@ subtest 'Variable colonpair forms a Pair that looks up the variable' => {
     my $curry = 'red';
 
     # :$curry
-    $ast := RakuAST::ColonPair::Variable.new(
+    ast RakuAST::ColonPair::Variable.new(
       key => 'curry',
       value => RakuAST::Var::Lexical.new('$curry')
     );

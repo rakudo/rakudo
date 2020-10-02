@@ -4,11 +4,15 @@ use Test;
 plan 23;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'Application of an infix operator on two literals' => {
 
     # 44 + 22
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(44),
       infix => RakuAST::Infix.new('+'),
       right => RakuAST::IntLiteral.new(22)
@@ -20,7 +24,7 @@ subtest 'Application of an infix operator on two literals' => {
 subtest 'The special form || operator works' => {
 
     # 22 || 44
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(22),
       infix => RakuAST::Infix.new('||'),
       right => RakuAST::IntLiteral.new(44)
@@ -29,7 +33,7 @@ subtest 'The special form || operator works' => {
       for EVAL($ast), EVAL($ast.DEPARSE);
 
     # 0 || 44
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(0),
       infix => RakuAST::Infix.new('||'),
       right => RakuAST::IntLiteral.new(44)
@@ -41,7 +45,7 @@ subtest 'The special form || operator works' => {
 subtest 'The special form or operator works' => {
 
     # 22 or 44
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(22),
       infix => RakuAST::Infix.new('or'),
       right => RakuAST::IntLiteral.new(44)
@@ -50,7 +54,7 @@ subtest 'The special form or operator works' => {
       for EVAL($ast), EVAL($ast.DEPARSE);
 
     # 0 or 44
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(0),
       infix => RakuAST::Infix.new('or'),
       right => RakuAST::IntLiteral.new(44)
@@ -62,7 +66,7 @@ subtest 'The special form or operator works' => {
 subtest 'The special form && operator works' => {
 
     # 22 && 44
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(22),
       infix => RakuAST::Infix.new('&&'),
       right => RakuAST::IntLiteral.new(44)
@@ -71,7 +75,7 @@ subtest 'The special form && operator works' => {
       for EVAL($ast), EVAL($ast.DEPARSE);
 
     # 0 && 44
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(0),
       infix => RakuAST::Infix.new('&&'),
       right => RakuAST::IntLiteral.new(44)
@@ -83,7 +87,7 @@ subtest 'The special form && operator works' => {
 subtest 'The special form and operator works' => {
 
     # 22 and 44
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(22),
       infix => RakuAST::Infix.new('and'),
       right => RakuAST::IntLiteral.new(44)
@@ -92,7 +96,7 @@ subtest 'The special form and operator works' => {
       for EVAL($ast), EVAL($ast.DEPARSE);
 
     # 0 and 44
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(0),
       infix => RakuAST::Infix.new('and'),
       right => RakuAST::IntLiteral.new(44)
@@ -104,7 +108,7 @@ subtest 'The special form and operator works' => {
 subtest 'Application of a prefix operator to a literal' => {
 
     # ?2
-    $ast := RakuAST::ApplyPrefix.new(
+    ast RakuAST::ApplyPrefix.new(
       prefix => RakuAST::Prefix.new('?'),
       operand => RakuAST::IntLiteral.new(2)
     );
@@ -112,7 +116,7 @@ subtest 'Application of a prefix operator to a literal' => {
       for EVAL($ast), EVAL($ast.DEPARSE);
 
     # ?0
-    $ast := RakuAST::ApplyPrefix.new(
+    ast RakuAST::ApplyPrefix.new(
       prefix => RakuAST::Prefix.new('?'),
       operand => RakuAST::IntLiteral.new(0)
     );
@@ -126,7 +130,7 @@ subtest 'Application of a (user-defined) postfix operator to a literal' => {
     }
 
     # 4!
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::IntLiteral.new(4),
       postfix => RakuAST::Postfix.new('!'),
     );
@@ -138,7 +142,7 @@ subtest 'Basic assignment to a Scalar container' => {
     my $a = 1;
 
     # $a = 4
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::Var::Lexical.new('$a'),
       infix => RakuAST::Infix.new('='),
       right => RakuAST::IntLiteral.new(4)
@@ -153,7 +157,7 @@ subtest 'Basic single-dimension array index' => {
     my @a = 10..20;
 
     # @a[5]
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('@a'),
       postfix => RakuAST::Postcircumfix::ArrayIndex.new(
         RakuAST::SemiList.new(
@@ -171,7 +175,7 @@ subtest 'Zen array slice' => {
     my @a = 10..20;
 
     # @a[]
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('@a'),
       postfix => RakuAST::Postcircumfix::ArrayIndex.new(
         RakuAST::SemiList.new
@@ -185,7 +189,7 @@ subtest 'Multi-dimensional array indexing' => {
     my @a[3;3] = <a b c>, <d e f>, <g h i>;
 
     # @a[2;1]
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('@a'),
       postfix => RakuAST::Postcircumfix::ArrayIndex.new(
         RakuAST::SemiList.new(
@@ -208,7 +212,7 @@ subtest 'Multi-dimensional array indexing' => {
 
     subtest 'Basic single-dimension hash index' => {
         # %h{('s',)}
-        $ast := RakuAST::ApplyPostfix.new(
+        ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::HashIndex.new(
             RakuAST::SemiList.new(
@@ -224,7 +228,7 @@ subtest 'Multi-dimensional array indexing' => {
 
     subtest 'Zen hash slice' => {
         # %h{}
-        $ast := RakuAST::ApplyPostfix.new(
+        ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::HashIndex.new(
             RakuAST::SemiList.new()
@@ -236,7 +240,7 @@ subtest 'Multi-dimensional array indexing' => {
 
     subtest 'Basic literal hash index' => {
         # %h<s>
-        $ast := RakuAST::ApplyPostfix.new(
+        ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
             RakuAST::QuotedString.new(
@@ -251,7 +255,7 @@ subtest 'Multi-dimensional array indexing' => {
 
     subtest 'Literal hash index with multiple keys' => {
         # %h<s a>
-        $ast := RakuAST::ApplyPostfix.new(
+        ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
             RakuAST::QuotedString.new(
@@ -266,7 +270,7 @@ subtest 'Multi-dimensional array indexing' => {
 
     subtest 'Empty literal hash index works as zen slice' => {
         # %h<>
-        $ast := RakuAST::ApplyPostfix.new(
+        ast RakuAST::ApplyPostfix.new(
           operand => RakuAST::Var::Lexical.new('%h'),
           postfix => RakuAST::Postcircumfix::LiteralHashIndex.new(
             RakuAST::QuotedString.new(
@@ -284,7 +288,7 @@ subtest 'Multi-dimensional hash indexing' => {
     my %h = x => { :1a, :2b }, y => { :3a, :4b };
 
     # %h{'y';'a'}
-    $ast := RakuAST::ApplyPostfix.new(
+    ast RakuAST::ApplyPostfix.new(
       operand => RakuAST::Var::Lexical.new('%h'),
       postfix => RakuAST::Postcircumfix::HashIndex.new(
         RakuAST::SemiList.new(
@@ -303,7 +307,7 @@ subtest 'Multi-dimensional hash indexing' => {
 
 subtest 'Application of a list infix operator on three operands' => {
     # (10, 11, 12)
-    $ast := RakuAST::ApplyListInfix.new(
+    ast RakuAST::ApplyListInfix.new(
       infix => RakuAST::Infix.new(','),
       operands => (
         RakuAST::IntLiteral.new(10),
@@ -317,7 +321,7 @@ subtest 'Application of a list infix operator on three operands' => {
 
 subtest 'Application of a list infix operator on no operands' => {
     # ()
-    $ast := RakuAST::ApplyListInfix.new(
+    ast RakuAST::ApplyListInfix.new(
       infix => RakuAST::Infix.new(','),
       operands => ()
     );
@@ -329,7 +333,7 @@ subtest 'Chaining operator has correct outcome' => {
     my $x = 4;
 
     # 5 > $x++ > 3
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::ApplyInfix.new(
         left => RakuAST::IntLiteral.new(5),
         infix => RakuAST::Infix::Chaining.new('>'),
@@ -352,7 +356,7 @@ subtest 'Chaining operator has correct outcome' => {
 
 subtest 'Correct outcome of ternary operator' => {
     # $a ?? 22 !! 33
-    $ast := RakuAST::Ternary.new(
+    ast RakuAST::Ternary.new(
       condition => RakuAST::Var::Lexical.new('$a'),
       then => RakuAST::IntLiteral.new(22),
       else => RakuAST::IntLiteral.new(33)
@@ -369,7 +373,7 @@ subtest 'Correct outcome of ternary operator' => {
 
 subtest 'Application of dotty infix `.`' => {
     # "foo".uc
-    $ast := RakuAST::ApplyDottyInfix.new(
+    ast RakuAST::ApplyDottyInfix.new(
       left => RakuAST::StrLiteral.new('foo'),
       infix => RakuAST::DottyInfix::Call.new(),
       right => RakuAST::Call::Method.new(
@@ -385,7 +389,7 @@ subtest 'Application of dotty infix `.=` evaluates to expected value' => {
     my $var = 'foo';
 
     # $var .= tc
-    $ast := RakuAST::ApplyDottyInfix.new(
+    ast RakuAST::ApplyDottyInfix.new(
       left => RakuAST::Var::Lexical.new('$var'),
       infix => RakuAST::DottyInfix::CallAssign.new(),
       right => RakuAST::Call::Method.new(

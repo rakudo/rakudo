@@ -4,12 +4,16 @@ use Test;
 plan 33;
 
 my $ast;   # so we don't need to repeat the "my" all the time
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'Lexical variable lookup ($ sigil)' => {
     my $x = 42;
 
     # $x
-    $ast := RakuAST::Var::Lexical.new('$x');
+    ast RakuAST::Var::Lexical.new('$x');
     is-deeply $_, 42
       for EVAL($ast), try EVAL($ast.DEPARSE);
 }
@@ -17,7 +21,7 @@ subtest 'Lexical variable lookup ($ sigil)' => {
 subtest 'Lexical variable lookup (& sigil)' => {
 
     # &plan
-    $ast := RakuAST::Var::Lexical.new('&plan');
+    ast RakuAST::Var::Lexical.new('&plan');
     is-deeply $_, &plan
       for EVAL($ast), try EVAL($ast.DEPARSE);
 }
@@ -27,12 +31,12 @@ subtest 'Positional capture variable lookup works' => {
     "abc" ~~ /(.)(.)/;
 
     # $0
-    $ast := RakuAST::Var::PositionalCapture.new(0);
+    ast RakuAST::Var::PositionalCapture.new(0);
     is-deeply $_, "a"
       for EVAL($ast).Str, try EVAL($ast.DEPARSE).Str;
 
     # $1
-    $ast := RakuAST::Var::PositionalCapture.new(1);
+    ast RakuAST::Var::PositionalCapture.new(1);
     is-deeply $_, "b"
       for EVAL($ast).Str, try EVAL($ast.DEPARSE).Str;
 }
@@ -42,7 +46,7 @@ subtest 'Named capture variable lookup works' => {
     "abc" ~~ /$<x>=(.)$<y>=(.)/;
 
     # $<y>
-    $ast := RakuAST::Var::NamedCapture.new(
+    ast RakuAST::Var::NamedCapture.new(
       RakuAST::QuotedString.new(
         segments => [RakuAST::StrLiteral.new('y')],
         processors => ['words','val']
@@ -64,7 +68,7 @@ subtest 'Named capture variable lookup works' => {
 
 subtest 'Lexical variable declarations work' => {
     # my $foo = 10; $foo
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(name => '$foo')
       ),
@@ -85,7 +89,7 @@ subtest 'Lexical variable declarations work' => {
 
 subtest 'Defaults of untyped container' => {
     # my $foo; $foo
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(name => '$foo')
       ),
@@ -102,7 +106,7 @@ subtest 'Defaults of untyped container' => {
 
 subtest 'Typed variable declarations work (type matches in assignment)' => {
     # my Int $foo; $foo = 99; $foo
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$foo',
@@ -128,7 +132,7 @@ subtest 'Typed variable declarations work (type matches in assignment)' => {
 
 subtest 'Typed variable declarations work (type mismatch throws)' => {
     # my Int $foo; $foo = 1e5; $foo
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$foo',
@@ -164,7 +168,7 @@ subtest 'Typed variable declarations work (type mismatch throws)' => {
 
 subtest 'Lexical variable declarations with assignment initializer' => {
     # my $var = 125; $var
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$var',
@@ -192,7 +196,7 @@ subtest 'Lexical variable declarations with assignment initializer' => {
 
 subtest 'Lexical array declarations with assignment initializer works' => {
     # my @var = 22, 33; @var
-    my $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '@var',
@@ -217,7 +221,7 @@ subtest 'Lexical array declarations with assignment initializer works' => {
 
 subtest 'Lexical variable declarations with bind initializer' => {
     # my $var := 225
-    my $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$var',
@@ -248,7 +252,7 @@ subtest 'Dynamic variable access' => {
     my $*dyn = 'out';
 
     # $*dyn
-    $ast := RakuAST::Var::Dynamic.new('$*dyn');
+    ast RakuAST::Var::Dynamic.new('$*dyn');
     is-deeply $_, 'out', 'access outside'
       for EVAL($ast), EVAL($ast.DEPARSE);
 
@@ -256,14 +260,14 @@ subtest 'Dynamic variable access' => {
       for with-dyn({ EVAL($ast) }), with-dyn({ EVAL($ast.DEPARSE) });
 
     # $*OUT
-    $ast := RakuAST::Var::Dynamic.new('$*OUT');
+    ast RakuAST::Var::Dynamic.new('$*OUT');
     is-deeply $_, $*OUT, 'checking $*OUT'
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
 subtest 'Dynamic variable declaration and assignment, dynamic lookup' => {
     # my $*var = 360;
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$*var',
@@ -291,7 +295,7 @@ subtest 'Dynamic variable declaration and assignment, dynamic lookup' => {
 
 subtest '@ sigil var is initialized to Array' => {
     # my @arr; @arr
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(name => '@arr')
       ),
@@ -320,7 +324,7 @@ subtest '@ sigil var is initialized to Array' => {
 
 subtest '% sigil var is initialized to Hash' => {
     # my %hash; %hash
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(name => '%hash')
       ),
@@ -349,7 +353,7 @@ subtest '% sigil var is initialized to Hash' => {
 
 subtest '@ sigil var with Int type is an Array' => {
     # my Int @arr; @arr
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '@arr',
@@ -383,7 +387,7 @@ subtest '@ sigil var with Int type is an Array' => {
 
 subtest '% sigil var with Int type is a Hash' => {
     # my Int %hash; %hash
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '%hash',
@@ -419,7 +423,7 @@ subtest 'Can access external native int var' => {
     my int $x = 42;
 
     # $x
-    $ast := RakuAST::Var::Lexical.new('$x');
+    ast RakuAST::Var::Lexical.new('$x');
     is-deeply $_, 42
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
@@ -428,7 +432,7 @@ subtest 'Can access external native num var' => {
     my num $x = 4e2;
 
     # $x
-    $ast := RakuAST::Var::Lexical.new('$x');
+    ast RakuAST::Var::Lexical.new('$x');
     is-deeply $_, 4e2
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
@@ -437,14 +441,14 @@ subtest 'Can access external native str var' => {
     my str $x = 'answer';
 
     # $x
-    $ast := RakuAST::Var::Lexical.new('$x');
+    ast RakuAST::Var::Lexical.new('$x');
     is-deeply $_, 'answer'
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
 subtest 'int declaration creates a native int container' => {
     # my int $native-int; $native-int
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-int',
@@ -471,7 +475,7 @@ subtest 'int declaration creates a native int container' => {
 
 subtest 'num declaration creates a native num container' => {
     # my num $native-num; $native-num
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-num',
@@ -498,7 +502,7 @@ subtest 'num declaration creates a native num container' => {
 
 subtest 'str declaration creates a native str container' => {
     # my str $native-str; $native-str
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-str',
@@ -525,7 +529,7 @@ subtest 'str declaration creates a native str container' => {
 
 subtest 'Native int assign initializer works' => {
     # my int $native-int = 963; $native-int
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-int',
@@ -547,7 +551,7 @@ subtest 'Native int assign initializer works' => {
 
 subtest 'Native num assign initializer works' => {
     # my int $native-num = 963; $native-num
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-num',
@@ -569,7 +573,7 @@ subtest 'Native num assign initializer works' => {
 
 subtest 'Native str assign initializer works' => {
     # my int $native-str = 'nine six three'; $native-str
-    $ast := RakuAST::StatementList.new(
+    ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::VarDeclaration::Simple.new(
           name => '$native-str',
@@ -594,7 +598,7 @@ subtest 'Native str assign initializer works' => {
         our $var;
 
         # our $var; $var
-        $ast := RakuAST::StatementList.new(
+        ast RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => 'our',
@@ -619,7 +623,7 @@ subtest 'Native str assign initializer works' => {
         }
 
         # our $x = 42; $x
-        $ast := RakuAST::StatementList.new(
+        ast RakuAST::StatementList.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::VarDeclaration::Simple.new(
               scope => 'our',
@@ -640,7 +644,7 @@ subtest 'Native str assign initializer works' => {
         }
 
         # our $y = 99; $y
-        $ast := RakuAST::CompUnit.new(
+        ast RakuAST::CompUnit.new(
           :!eval,
           :comp-unit-name('TEST_1'),
           :statement-list(RakuAST::StatementList.new(

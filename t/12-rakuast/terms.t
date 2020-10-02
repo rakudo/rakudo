@@ -4,13 +4,17 @@ use Test;
 plan 11;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'Method call via self' => {
     # my class TestClass {
     #     method meth-a() { 99 }
     #     method meth-b() { self.meth-a }
     # }
-    $ast := RakuAST::Package.new(
+    ast RakuAST::Package.new(
       scope => 'my',
       package-declarator => 'class',
       name  => RakuAST::Name.from-identifier('TestClass'),
@@ -60,7 +64,7 @@ subtest 'Method call via self' => {
 
 subtest 'Topic call applies the call to $_' => {
     # given argh { .uc }
-    $ast := RakuAST::Statement::Given.new(
+    ast RakuAST::Statement::Given.new(
       source => RakuAST::StrLiteral.new('argh'),
       body => RakuAST::Block.new(
         body => RakuAST::Blockoid.new(
@@ -83,7 +87,7 @@ subtest 'Topic call applies the call to $_' => {
 
 subtest 'now named term can be called' => {
     # now
-    $ast := RakuAST::Term::Named.new('now');
+    ast RakuAST::Term::Named.new('now');
 
     isa-ok $_, Instant
       for EVAL($ast), EVAL($ast.DEPARSE);
@@ -91,7 +95,7 @@ subtest 'now named term can be called' => {
 
 subtest 'rand term works' => {
     # rand
-    $ast := RakuAST::Term::Rand.new;
+    ast RakuAST::Term::Rand.new;
 
     isa-ok $_, Num
       for EVAL($ast), EVAL($ast.DEPARSE);
@@ -99,7 +103,7 @@ subtest 'rand term works' => {
 
 subtest 'Empty set term works' => {
     # ∅
-    $ast := RakuAST::Term::EmptySet.new;
+    ast RakuAST::Term::EmptySet.new;
 
     is-deeply $_, ∅,
       for EVAL($ast), EVAL($ast.DEPARSE);
@@ -107,7 +111,7 @@ subtest 'Empty set term works' => {
 
 subtest 'Name term works with single-part name' => {
     # True
-    $ast := RakuAST::Term::Name.new(
+    ast RakuAST::Term::Name.new(
       RakuAST::Name.from-identifier('True')
     );
 
@@ -117,7 +121,7 @@ subtest 'Name term works with single-part name' => {
 
 subtest 'Name term works with multi-part name' => {
     # Bool::True
-    $ast := RakuAST::Term::Name.new(
+    ast RakuAST::Term::Name.new(
       RakuAST::Name.from-identifier-parts('Bool', 'True')
     );
 
@@ -127,7 +131,7 @@ subtest 'Name term works with multi-part name' => {
 
 subtest 'Whatever term works' => {
     # *
-    $ast := RakuAST::Term::Whatever.new;
+    ast RakuAST::Term::Whatever.new;
 
     isa-ok $_, Whatever,
       for EVAL($ast), EVAL($ast.DEPARSE);
@@ -135,7 +139,7 @@ subtest 'Whatever term works' => {
 
 subtest 'Hyperwhatever term works' => {
     # **
-    $ast := RakuAST::Term::HyperWhatever.new;
+    ast RakuAST::Term::HyperWhatever.new;
 
     isa-ok $_, HyperWhatever,
       for EVAL($ast), EVAL($ast.DEPARSE);
@@ -145,7 +149,7 @@ subtest 'Capture term can be constructed with a term' => {
     my $var = 4;
 
     # \$var
-    $ast := RakuAST::Term::Capture.new(
+    ast RakuAST::Term::Capture.new(
       RakuAST::Var::Lexical.new('$var')
     );
 
@@ -155,7 +159,7 @@ subtest 'Capture term can be constructed with a term' => {
 
 subtest 'Capture term can be constructed with an arg list' => {
     # \(6, :x)
-    $ast := RakuAST::Term::Capture.new(
+    ast RakuAST::Term::Capture.new(
       RakuAST::ArgList.new(
         RakuAST::IntLiteral.new(6),
         RakuAST::ColonPair::True.new(key => 'x')

@@ -4,10 +4,14 @@ use Test;
 plan 7;
 
 my $ast;
+sub ast(RakuAST::Node:D $node --> Nil) {
+    $ast := $node;
+    diag $ast.DEPARSE.chomp;
+}
 
 subtest 'Parenthesized expressions compile correctly' => {
     # 2 * (3 + 4)
-    $ast := RakuAST::ApplyInfix.new(
+    ast RakuAST::ApplyInfix.new(
       left => RakuAST::IntLiteral.new(2),
       infix => RakuAST::Infix.new('*'),
       right => RakuAST::Circumfix::Parentheses.new(
@@ -28,7 +32,7 @@ subtest 'Parenthesized expressions compile correctly' => {
 
 subtest 'Multi-statement semilist compiles into a List' => {
     # (3, 4)
-    $ast := RakuAST::Circumfix::Parentheses.new(
+    ast RakuAST::Circumfix::Parentheses.new(
       RakuAST::SemiList.new(
         RakuAST::IntLiteral.new(3),
         RakuAST::IntLiteral.new(4)
@@ -40,7 +44,7 @@ subtest 'Multi-statement semilist compiles into a List' => {
 
 subtest 'Array composer produces an array' => {
     # [9, 10, 11]
-    $ast := RakuAST::Circumfix::ArrayComposer.new(
+    ast RakuAST::Circumfix::ArrayComposer.new(
       RakuAST::SemiList.new(
         RakuAST::IntLiteral.new(9),
         RakuAST::IntLiteral.new(10),
@@ -53,7 +57,7 @@ subtest 'Array composer produces an array' => {
 
 subtest 'Array composer works correctly with a single argument' => {
     # [5 .. 9]
-    $ast := RakuAST::Circumfix::ArrayComposer.new(
+    ast RakuAST::Circumfix::ArrayComposer.new(
       RakuAST::SemiList.new(
         RakuAST::ApplyInfix.new(
           left => RakuAST::IntLiteral.new(5),
@@ -68,14 +72,14 @@ subtest 'Array composer works correctly with a single argument' => {
 
 subtest 'Empty hash composer works correctly' => {
     # {}
-    $ast := RakuAST::Circumfix::HashComposer.new;
+    ast RakuAST::Circumfix::HashComposer.new;
     is-deeply $_, hash()
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
 subtest 'Hash composer with fatarrow works correctly' => {
     # {a => 42}
-    $ast := RakuAST::Circumfix::HashComposer.new(
+    ast RakuAST::Circumfix::HashComposer.new(
       RakuAST::FatArrow.new(
         key => 'a',
         value => RakuAST::IntLiteral.new(42)
@@ -87,12 +91,18 @@ subtest 'Hash composer with fatarrow works correctly' => {
 
 subtest 'Hash composer with list of fat arrows works correctly' => {
     # {x => 11, y => 22}
-    $ast := RakuAST::Circumfix::HashComposer.new(
+    ast RakuAST::Circumfix::HashComposer.new(
       RakuAST::ApplyListInfix.new(
         infix => RakuAST::Infix.new(','),
         operands => [
-          RakuAST::FatArrow.new(key => 'x', value => RakuAST::IntLiteral.new(11)),
-          RakuAST::FatArrow.new(key => 'y', value => RakuAST::IntLiteral.new(22))
+          RakuAST::FatArrow.new(
+            key => 'x', 
+            value => RakuAST::IntLiteral.new(11)
+          ),
+          RakuAST::FatArrow.new(
+            key => 'y',
+            value => RakuAST::IntLiteral.new(22)
+          )
         ]
       )
     );

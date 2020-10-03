@@ -178,6 +178,22 @@ class RakuAST::Deparse {
         nqp::join('',$parts)
     }
 
+    method !branches(RakuAST::Regex::Branching:D $ast, str $joiner --> str) {
+        my $parts := nqp::list_s;
+
+        if $ast.branches -> @branches {
+            for @branches -> $branch {
+                nqp::push_s($parts,self.deparse($branch))
+            }
+        }
+
+        nqp::join($joiner,$parts)
+    }
+
+    method !quantifier(RakuAST::Regex::Quantifier:D $ast, str $quantifier --> str) {
+        nqp::concat($quantifier,self.deparse($ast.backtrack))
+    }
+
 #--------------------------------------------------------------------------------
 # Deparsing methods in alphabetical order
 
@@ -274,16 +290,16 @@ class RakuAST::Deparse {
         nqp::join('',$parts)
     }
 
+    multi method deparse(RakuAST::Call::Method:D $ast --> str) {
+        nqp::concat(self.deparse($ast.name),self.deparse($ast.args) || '()')
+    }
+
     multi method deparse(RakuAST::Call::Name:D $ast --> str) {
-        nqp::concat(self.deparse($ast.name),self.deparse($ast.args))
+        nqp::concat(self.deparse($ast.name),self.deparse($ast.args) || '()')
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> str) {
         self.deparse($ast.args)
-    }
-
-    multi method deparse(RakuAST::Call::Method:D $ast --> str) {
-        nqp::concat(self.deparse($ast.name),self.deparse($ast.args))
     }
 
     multi method deparse(RakuAST::Circumfix::ArrayComposer:D $ast --> str) {
@@ -571,6 +587,10 @@ class RakuAST::Deparse {
         nqp::join('',$parts);
     }
 
+    multi method deparse(RakuAST::QuotedRegex:D $ast --> str) {
+        nqp::concat('/ ',nqp::concat(self.deparse($ast.body),' /'))
+    }
+
     multi method deparse(RakuAST::QuotedString:D $ast --> str) {
         my str $string = $ast.segments.map({
             nqp::istype($_,RakuAST::StrLiteral)
@@ -617,6 +637,166 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::RatLiteral:D $ast --> str) {
         $ast.value.raku
+    }
+
+    multi method deparse(RakuAST::Regex::Anchor::BeginningOfString:D $ast --> str) {
+        '^'
+    }
+
+    multi method deparse(RakuAST::Regex::Anchor::EndOfString:D $ast --> str) {
+        '$'
+    }
+
+    multi method deparse(RakuAST::Regex::Anchor::LeftWordBoundary:D $ast --> str) {
+        '<<'
+    }
+
+    multi method deparse(RakuAST::Regex::Anchor::RightWordBoundary:D $ast --> str) {
+        '>>'
+    }
+
+    multi method deparse(RakuAST::Regex::Literal:D $ast --> str) {
+        my str $literal = $ast.text;
+        nqp::iseq_i(
+          nqp::findnotcclass(
+            nqp::const::CCLASS_WORD,$literal,0,nqp::chars($literal)
+          ),
+          nqp::chars($literal)
+        ) ?? $literal                                    # just word chars
+          !! nqp::concat("'",nqp::concat($literal,"'"))  # need quoting
+    }
+
+    multi method deparse(RakuAST::Regex::Alternation:D $ast --> str) {
+        self!branches($ast, ' | ')
+    }
+
+    multi method deparse(RakuAST::Regex::Assertion::Alias:D $ast --> str) {
+        nqp::concat('<',
+          nqp::concat($ast.name,
+            nqp::concat('=',nqp::substr(self.deparse($ast.assertion),1))
+          )
+        )
+    }
+
+    multi method deparse(RakuAST::Regex::Assertion::Lookahead:D $ast --> str) {
+        nqp::concat(
+          $ast.negated ?? '<!' !! '<?',
+          nqp::substr(self.deparse($ast.assertion),1)
+        )
+    }
+
+    multi method deparse(RakuAST::Regex::Assertion::Named:D $ast --> str) {
+        nqp::concat(
+          $ast.capturing ?? '<' !! '<.',
+          nqp::concat(self.deparse($ast.name),'>')
+        )
+    }
+
+    multi method deparse(RakuAST::Regex::Assertion::Named::RegexArg:D $ast --> str) {
+        nqp::concat(
+          '<', # XXX  $ast.capturing ?? '<' !! '<.',  ???
+          nqp::concat(
+            self.deparse($ast.name),
+            nqp::concat(' ',
+              nqp::concat(self.deparse($ast.regex-arg),'>')
+            )
+          )
+        )
+    }
+
+    multi method deparse(RakuAST::Regex::Backtrack:U $ast --> str) {
+        ''
+    }
+
+    multi method deparse(RakuAST::Regex::Backtrack::Frugal:U $ast --> str) {
+        '?'
+    }
+
+    multi method deparse(RakuAST::Regex::Backtrack::Ratchet:U $ast --> str) {
+        ':'
+    }
+
+    multi method deparse(RakuAST::Regex::CapturingGroup:D $ast --> str) {
+        nqp::concat('(',nqp::concat(self.deparse($ast.regex),')'))
+    }
+
+    multi method deparse(RakuAST::Regex::CharClass::Any:D $ast --> str) {
+        '.'
+    }
+
+    multi method deparse(RakuAST::Regex::CharClass::Digit:D $ast --> str) {
+        $ast.negated ?? '\\D' !! '\\d'
+    }
+
+    multi method deparse(RakuAST::Regex::CharClass::Word:D $ast --> str) {
+        $ast.negated ?? '\\W' !! '\\w'
+    }
+
+    multi method deparse(RakuAST::Regex::Conjunction:D $ast --> str) {
+        self!branches($ast, ' && ')
+    }
+
+    multi method deparse(RakuAST::Regex::Group:D $ast --> str) {
+        nqp::concat('[',nqp::concat(self.deparse($ast.regex),']'))
+    }
+
+    multi method deparse(RakuAST::Regex::MatchFrom:D $ast --> str) {
+        '<('
+    }
+
+    multi method deparse(RakuAST::Regex::MatchTo:D $ast --> str) {
+        ')>'
+    }
+
+    multi method deparse(RakuAST::Regex::QuantifiedAtom:D $ast --> str) {
+        my $parts := nqp::list_s(
+          self.deparse($ast.atom),
+          self.deparse($ast.quantifier)
+        );
+
+        if $ast.separator -> $separator {
+            nqp::push_s($parts,$ast.trailing-separator ?? ' %% ' !! ' % ');
+            nqp::push_s($parts,self.deparse($separator));
+        }
+
+        nqp::join('',$parts)
+    }
+
+    multi method deparse(RakuAST::Regex::Quantifier::OneOrMore:D $ast --> str) {
+        self!quantifier($ast, '+')
+    }
+
+    multi method deparse(RakuAST::Regex::Quantifier::ZeroOrMore:D $ast --> str) {
+        self!quantifier($ast, '*')
+    }
+
+    multi method deparse(RakuAST::Regex::Quantifier::ZeroOrOne:D $ast --> str) {
+        self!quantifier($ast, '?')
+    }
+
+    multi method deparse(RakuAST::Regex::Quote:D $ast --> str) {
+        my str $quoted = self.deparse($ast.quoted);
+        nqp::isgt_i(nqp::chars($quoted),2)
+          ?? nqp::eqat($quoted,'"',0)
+            ?? nqp::substr($quoted,1,nqp::sub_i(nqp::chars($quoted),2))
+            !! nqp::concat('<{ ',nqp::concat($quoted, ' }>'))
+          !! ''
+    }
+
+    multi method deparse(RakuAST::Regex::Sequence:D $ast --> str) {
+        my $parts := nqp::list_s;
+
+        if $ast.terms -> @terms {
+            for @terms -> $term {
+                nqp::push_s($parts,self.deparse($term))
+            }
+        }
+
+        nqp::join(' ',$parts)
+    }
+
+    multi method deparse(RakuAST::Regex::SequentialAlternation:D $ast --> str) {
+        self!branches($ast, ' || ')
     }
 
     multi method deparse(RakuAST::Signature:D $ast --> str) {

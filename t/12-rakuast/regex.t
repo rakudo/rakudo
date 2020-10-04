@@ -557,7 +557,7 @@ subtest 'Match from and match to markers works' => {
 }
 
 subtest 'Match involving a quoted string literal works' => {
-    # / "lie" /
+    # / lie /
     ast RakuAST::Regex::Quote.new(
       RakuAST::QuotedString.new(
        :segments[RakuAST::StrLiteral.new('lie')]
@@ -571,7 +571,7 @@ subtest 'Match involving a quoted string literal works' => {
 subtest 'Match involving a quoted string with interpolation works' => {
     my $end = 've';
 
-    # / "e$end" /
+    # / e$end /
     ast RakuAST::Regex::Quote.new(
       RakuAST::QuotedString.new(
         :segments[

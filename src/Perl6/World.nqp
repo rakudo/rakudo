@@ -1649,13 +1649,13 @@ class Perl6::World is HLL::World {
 
         # If we have a multi-part name, see if we know the opening
         # chunk already. If so, use it for that part of the name.
-        my $longname := '';
+        my $longname := $package =:= $*GLOBALish ?? '' !! $package.HOW.name($package);
         if +@parts {
             try {
                 $cur_pkg := self.find_single_symbol(@parts[0], :upgrade_to_global($create_scope ne 'my'));
                 $cur_lex := 0;
                 $create_scope := 'our';
-                $longname := @parts.shift();
+                $longname := $longname ?? $longname ~ '::' ~ @parts.shift() !! @parts.shift();
             }
         }
 

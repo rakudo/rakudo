@@ -378,6 +378,22 @@ my class Junction { # declared in BOOTSTRAP
         # If we get here, wasn't actually anything to autothread.
         call(|args);
     }
+
+    method collapse(Junction:D:) {
+        if nqp::isgt_i(nqp::elems($!eigenstates),1) {
+            my \type := nqp::atpos($!eigenstates,0).WHAT;
+            my int $i = 0;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($!eigenstates)),
+              nqp::unless(
+                nqp::eqaddr(nqp::atpos($!eigenstates,$i).WHAT,type),
+                return Failure.new("Can't collapse Junction with {type.^name}")
+              )
+            );
+        }
+
+        $!eigenstates.List
+    }
 }
 
 proto sub any(|) is pure {*}

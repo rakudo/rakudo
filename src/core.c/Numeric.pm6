@@ -239,25 +239,6 @@ multi sub infix:<%>(\a, \b)    { a.Real % b.Real }
 proto sub infix:<%%>($?, $?, *%) is pure  {*}
 multi sub infix:<%%>() { Failure.new("No zero-arg meaning for infix:<%%>") }
 multi sub infix:<%%>($)         { Bool::True }
-multi sub infix:<%%>(Int:D \a, Int:D \b) {
-    nqp::if(
-      nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
-      nqp::if(
-        b,
-        !nqp::mod_I(nqp::decont(a),nqp::decont(b),Int),
-        Failure.new(
-          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-        )
-      ),
-      nqp::if(
-        nqp::isne_i(b,0),
-        nqp::hllbool(nqp::not_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)))),
-        Failure.new(
-          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-        )
-      )
-    )
-}
 multi sub infix:<%%>(\a, \b) {
     nqp::if(
       b,
@@ -269,12 +250,10 @@ multi sub infix:<%%>(\a, \b) {
 }
 
 proto sub infix:<lcm>($?, $?, *%) is pure  {*}
-multi sub infix:<lcm>(Int:D $x = 1) { $x }
 multi sub infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
 proto sub infix:<gcd>($?, $?, *%) is pure {*}
 multi sub infix:<gcd>() { Failure.new('No zero-arg meaning for infix:<gcd>') }
-multi sub infix:<gcd>(Int:D $x)    { $x }
 multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
 proto sub infix:<**>($?, $?, *%) is pure  {*}

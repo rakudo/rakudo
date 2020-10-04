@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 17;
+plan 15;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -246,15 +246,21 @@ subtest "The race / hyper / lazy / eager statement prefixes work" => {
     }
 }
 
-is-deeply  # try 99
-    EVAL(RakuAST::StatementPrefix::Try.new(
-        RakuAST::Statement::Expression.new(
-            expression => RakuAST::IntLiteral.new(99)
-        )
-    )),
-    99,
-    'try statement prefix with expression producing value results in the value';
-is-deeply $!, Nil, 'The $! variable is Nil when not exception';
+subtest 'try statement prefix with expression producing value results' => {
+    # try 99
+    ast RakuAST::StatementPrefix::Try.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::IntLiteral.new(99)
+      )
+    );
+
+    is-deeply EVAL($ast), 99, 'AST: correct result';
+    is-deeply $!, Nil, 'AST: $! is Nil when not exception';
+
+    is-deeply EVAL($ast.DEPARSE), 99, 'DEPARSE: correct result';
+    todo 'string eval does not set $!, also in master';
+    is-deeply $!, Nil, 'DEPARSE: $! is Nil when not exception';
+}
 
 subtest 'try statement prefix with throwing expression handles the exception' => {
     # try die "hard"
@@ -276,17 +282,27 @@ subtest 'try statement prefix with throwing expression handles the exception' =>
     is-deeply $!.Str, 'hard', '$! is populated with the exception';
 }
 
-is-deeply  # try { 999 }
-    EVAL(RakuAST::StatementPrefix::Try.new(
-        RakuAST::Block.new(body => RakuAST::Blockoid.new(RakuAST::StatementList.new(
+subtest 'try statement prefix with block producing value results' => {
+    # try { 999 }
+    ast RakuAST::StatementPrefix::Try.new(
+      RakuAST::Block.new(
+        body => RakuAST::Blockoid.new(
+          RakuAST::StatementList.new(
             RakuAST::Statement::Expression.new(
-                expression => RakuAST::IntLiteral.new(999)
+              expression => RakuAST::IntLiteral.new(999)
             )
-        )))
-    )),
-    999,
-    'try statement prefix with block producing value results in the value';
-is-deeply $!, Nil, 'The $! variable is Nil when not exception';
+          )
+        )
+      )
+    );
+
+    is-deeply EVAL($ast), 999, 'AST: correct result';
+    is-deeply $!, Nil, 'AST: $! is Nil when not exception';
+
+    is-deeply EVAL($ast.DEPARSE), 999, 'DEPARSE: correct result';
+    todo 'string eval does not set $!, also in master';
+    is-deeply $!, Nil, 'DEPARSE: $! is Nil when not exception';
+}
 
 subtest 'try statement prefix with throwing block handles the exception' => {
     # try { die "another day" }

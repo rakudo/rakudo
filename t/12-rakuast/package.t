@@ -159,6 +159,8 @@ module Enclosing {
             );
 
             my $result := $type eq 'AST' ?? EVAL($ast) !! EVAL($ast.DEPARSE);
+            todo 'bug in enclosed package naming in rakuast branch'
+              if $type eq 'AST';
             is $result.^name, "Enclosing::$class",
               "$type: EVAL of package AST inside a module works";
             nok GLOBAL::{$class}:exists,

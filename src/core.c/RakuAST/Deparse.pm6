@@ -22,6 +22,18 @@ class RakuAST::Deparse {
     has str $.pointy-open  = '<';
     has str $.pointy-close = '>';
 
+    has str $.double-pointy-open  = '<<';
+    has str $.double-pointy-close = '>>';
+
+    has str $.block-open  = "\{\n";
+    has str $.block-close = "\}\n";
+
+    has str $.regex-open  = '/ ';
+    has str $.regex-close = ' /';
+    has str $.regex-alternation = ' | ';
+    has str $.regex-sequential-alternation = ' || ';
+    has str $.regex-conjunction = ' && ';
+
     has str $.before-infix = ' ';
     has str $.after-infix  = ' ';
     has str $.list-infix-comma = ', ';
@@ -242,7 +254,7 @@ class RakuAST::Deparse {
         nqp::concat(
           self.deparse($ast.operand),
           nqp::concat(
-            nqp::istype($postfix,RakuAST::Call) ?? '.' !! '',
+            nqp::istype($postfix,RakuAST::Call) ?? '.' !! '',  # XXX yuck
             self.deparse($postfix)
           )
         )
@@ -274,18 +286,17 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Block:D $ast --> str) {
-        self.deparse($ast.body)    # XXX probably needs more work
+        self.deparse($ast.body)
     }
 
     multi method deparse(RakuAST::Blockoid:D $ast --> str) {
-        my $parts := nqp::list_s;
-        nqp::push_s($parts,"\{\n");
+        my $parts := nqp::list_s($.block-open);
 
         self.indent;
         nqp::push_s($parts,self.deparse($ast.statement-list));
 
         nqp::push_s($parts,self.dedent);
-        nqp::push_s($parts,'}');
+        nqp::push_s($parts,$.block-close);
 
         nqp::join('',$parts)
     }
@@ -339,13 +350,13 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ColonPair:D $ast --> str) {
-        nqp::join('',nqp::list_s(
-          ':',
-          $ast.named-arg-name,
-          '(',
-          self.deparse($ast.named-arg-value),
-          ')'
-        ))
+        nqp::concat(':',
+          nqp::concat($ast.named-arg-name,
+            nqp::concat('(',
+              nqp::concat(self.deparse($ast.named-arg-value),')')
+            )
+          )
+        )
     }
 
     multi method deparse(RakuAST::ColonPair::False:D $ast --> str) {
@@ -353,8 +364,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ColonPair::Number:D $ast --> str) {
-        nqp::concat(
-          ':',
+        nqp::concat(':',
           nqp::concat(
             self.deparse($ast.value),
             $ast.named-arg-name
@@ -367,13 +377,13 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::ColonPair::Value:D $ast --> str) {
-        nqp::join('',nqp::list_s(
-          ':',
-          $ast.named-arg-name,
-          '(',
-          self.deparse($ast.value),
-          ')'
-        ))
+        nqp::concat(':',
+          nqp::concat($ast.named-arg-name,
+            nqp::concat('(',
+              nqp::concat(self.deparse($ast.value),')')
+            )
+          )
+        )
     }
 
     multi method deparse(RakuAST::ColonPair::Variable:D $ast --> str) {
@@ -388,13 +398,9 @@ class RakuAST::Deparse {
         $ast.scope
     }
 
-    multi method deparse(RakuAST::DottyInfix::Call:D $ast --> str) {
-        '.'
-    }
+    multi method deparse(RakuAST::DottyInfix::Call:D $ast --> '.') { }
 
-    multi method deparse(RakuAST::DottyInfix::CallAssign:D $ast --> str) {
-        '.='
-    }
+    multi method deparse(RakuAST::DottyInfix::CallAssign:D $ast --> '.=') { }
 
     multi method deparse(RakuAST::FatArrow:D $ast --> str) {
         nqp::concat(
@@ -546,25 +552,15 @@ class RakuAST::Deparse {
         nqp::join('',$parts)
     }
 
-    multi method deparse(RakuAST::Parameter::Slurpy $ast --> str) {
-        ''
-    }
+    multi method deparse(RakuAST::Parameter::Slurpy $ast --> '') { }
 
-    multi method deparse(RakuAST::Parameter::Slurpy::Flattened $ast --> str) {
-        '*'
-    }
+    multi method deparse(RakuAST::Parameter::Slurpy::Flattened $ast --> '*') { }
 
-    multi method deparse(RakuAST::Parameter::Slurpy::SingleArgument $ast --> str) {
-        '+'
-    }
+    multi method deparse(RakuAST::Parameter::Slurpy::SingleArgument $ast --> '+') { }
 
-    multi method deparse(RakuAST::Parameter::Slurpy::Unflattened $ast --> str) {
-        '**'
-    }
+    multi method deparse(RakuAST::Parameter::Slurpy::Unflattened $ast --> '**') { }
 
-    multi method deparse(RakuAST::Parameter::Slurpy::Capture $ast --> str) {
-        '|'
-    }
+    multi method deparse(RakuAST::Parameter::Slurpy::Capture $ast --> '|') { }
 
     multi method deparse(RakuAST::ParameterTarget::Var:D $ast --> str) {
         $ast.name
@@ -588,14 +584,18 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::QuotedRegex:D $ast --> str) {
-        nqp::concat('/ ',nqp::concat(self.deparse($ast.body),' /'))
+        nqp::concat($.regex-open,
+          nqp::concat(self.deparse($ast.body),$.regex-close)
+        )
     }
 
     multi method deparse(RakuAST::QuotedString:D $ast --> str) {
         my str $string = $ast.segments.map({
             nqp::istype($_,RakuAST::StrLiteral)
               ?? .value.raku.substr(1,*-1)
-              !! self.deparse($_)
+              !! nqp::istype($_,RakuAST::Block)
+                ?? self.deparse($_).chomp
+                !! self.deparse($_)
             }).join;
 
         if $ast.processors -> @processors {
@@ -613,10 +613,12 @@ class RakuAST::Deparse {
             elsif @processors == 2 {
                 my str $joined = @processors.join(' ');
                 if $joined eq 'words val' {
-                    nqp::concat('<',nqp::concat($string,'>'))
+                    nqp::concat($.pointy-open,nqp::concat($string,$.pointy-close))
                 }
                 elsif $joined eq 'quotewords val' {
-                    nqp::concat('<<"',nqp::concat($string,'">>'))
+                    nqp::concat($.double-pointy-open,
+                      nqp::concat($string,$.double-pointy-close)
+                    )
                 }
                 else {
                     self!multiple-processors($string, @processors)
@@ -639,21 +641,13 @@ class RakuAST::Deparse {
         $ast.value.raku
     }
 
-    multi method deparse(RakuAST::Regex::Anchor::BeginningOfString:D $ast --> str) {
-        '^'
-    }
+    multi method deparse(RakuAST::Regex::Anchor::BeginningOfString:D $ast --> '^') { }
 
-    multi method deparse(RakuAST::Regex::Anchor::EndOfString:D $ast --> str) {
-        '$'
-    }
+    multi method deparse(RakuAST::Regex::Anchor::EndOfString:D $ast --> '$') { }
 
-    multi method deparse(RakuAST::Regex::Anchor::LeftWordBoundary:D $ast --> str) {
-        '<<'
-    }
+    multi method deparse(RakuAST::Regex::Anchor::LeftWordBoundary:D $ast --> '<<') { }
 
-    multi method deparse(RakuAST::Regex::Anchor::RightWordBoundary:D $ast --> str) {
-        '>>'
-    }
+    multi method deparse(RakuAST::Regex::Anchor::RightWordBoundary:D $ast --> '>>') { }
 
     multi method deparse(RakuAST::Regex::Literal:D $ast --> str) {
         my str $literal = $ast.text;
@@ -667,7 +661,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Alternation:D $ast --> str) {
-        self!branches($ast, ' | ')
+        self!branches($ast, $.regex-alternation)
     }
 
     multi method deparse(RakuAST::Regex::Assertion::Alias:D $ast --> str) {
@@ -694,7 +688,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Regex::Assertion::Named::RegexArg:D $ast --> str) {
         nqp::concat(
-          '<', # XXX  $ast.capturing ?? '<' !! '<.',  ???
+          '<',
           nqp::concat(
             self.deparse($ast.name),
             nqp::concat(' ',
@@ -704,25 +698,17 @@ class RakuAST::Deparse {
         )
     }
 
-    multi method deparse(RakuAST::Regex::Backtrack:U $ast --> str) {
-        ''
-    }
+    multi method deparse(RakuAST::Regex::Backtrack:U $ast --> '') { }
 
-    multi method deparse(RakuAST::Regex::Backtrack::Frugal:U $ast --> str) {
-        '?'
-    }
+    multi method deparse(RakuAST::Regex::Backtrack::Frugal:U $ast --> '?') { }
 
-    multi method deparse(RakuAST::Regex::Backtrack::Ratchet:U $ast --> str) {
-        ':'
-    }
+    multi method deparse(RakuAST::Regex::Backtrack::Ratchet:U $ast --> ':') { }
 
     multi method deparse(RakuAST::Regex::CapturingGroup:D $ast --> str) {
         nqp::concat('(',nqp::concat(self.deparse($ast.regex),')'))
     }
 
-    multi method deparse(RakuAST::Regex::CharClass::Any:D $ast --> str) {
-        '.'
-    }
+    multi method deparse(RakuAST::Regex::CharClass::Any:D $ast --> '.') { }
 
     multi method deparse(RakuAST::Regex::CharClass::Digit:D $ast --> str) {
         $ast.negated ?? '\\D' !! '\\d'
@@ -733,20 +719,19 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::Conjunction:D $ast --> str) {
-        self!branches($ast, ' && ')
+        self!branches($ast, $.regex-conjunction)
     }
 
     multi method deparse(RakuAST::Regex::Group:D $ast --> str) {
-        nqp::concat('[',nqp::concat(self.deparse($ast.regex),']'))
+        nqp::concat(
+          $.square-open,
+          nqp::concat(self.deparse($ast.regex),$.square-close)
+        )
     }
 
-    multi method deparse(RakuAST::Regex::MatchFrom:D $ast --> str) {
-        '<('
-    }
+    multi method deparse(RakuAST::Regex::MatchFrom:D $ast --> '<(') { }
 
-    multi method deparse(RakuAST::Regex::MatchTo:D $ast --> str) {
-        ')>'
-    }
+    multi method deparse(RakuAST::Regex::MatchTo:D $ast --> ')>') { }
 
     multi method deparse(RakuAST::Regex::QuantifiedAtom:D $ast --> str) {
         my $parts := nqp::list_s(
@@ -796,7 +781,7 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Regex::SequentialAlternation:D $ast --> str) {
-        self!branches($ast, ' || ')
+        self!branches($ast, $.regex-sequential-alternation)
     }
 
     multi method deparse(RakuAST::Signature:D $ast --> str) {
@@ -1023,13 +1008,9 @@ class RakuAST::Deparse {
         nqp::concat('\\',self.deparse($ast.source))
     }
 
-    multi method deparse(RakuAST::Term::EmptySet:D $ast --> str) {
-        '∅'
-    }
+    multi method deparse(RakuAST::Term::EmptySet:D $ast --> '∅') { }
 
-    multi method deparse(RakuAST::Term::HyperWhatever:D $ast --> str) {
-        '**'
-    }
+    multi method deparse(RakuAST::Term::HyperWhatever:D $ast --> '**') { }
 
     multi method deparse(RakuAST::Term::Name:D $ast --> str) {
         self.deparse($ast.name)
@@ -1039,21 +1020,15 @@ class RakuAST::Deparse {
         $ast.name
     }
 
-    multi method deparse(RakuAST::Term::Rand:D $ast --> str) {
-        'rand'
-    }
+    multi method deparse(RakuAST::Term::Rand:D $ast --> 'rand') { }
 
-    multi method deparse(RakuAST::Term::Self:D $ast --> str) {
-        'self'
-    }
+    multi method deparse(RakuAST::Term::Self:D $ast --> 'self') { }
 
     multi method deparse(RakuAST::Term::TopicCall:D $ast --> str) {
         nqp::concat('.',self.deparse($ast.call))
     }
 
-    multi method deparse(RakuAST::Term::Whatever:D $ast --> str) {
-        '*'
-    }
+    multi method deparse(RakuAST::Term::Whatever:D $ast --> '*') { }
 
     multi method deparse(RakuAST::Ternary:D $ast --> str) {
         nqp::join('',nqp::list_s(
@@ -1083,9 +1058,7 @@ class RakuAST::Deparse {
         $ast.name
     }
 
-    multi method deparse(RakuAST::Var::Compiler::File:D $ast --> str) {
-        '$?FILE'
-    }
+    multi method deparse(RakuAST::Var::Compiler::File:D $ast --> '$?FILE') { }
 
     multi method deparse(RakuAST::Statement::For:D $ast --> str) {
         my $parts := nqp::list_s(
@@ -1101,9 +1074,7 @@ class RakuAST::Deparse {
         nqp::join(' ',$parts)
     }
 
-    multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> str) {
-        '$?LINE'
-    }
+    multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> '$?LINE') { }
 
     multi method deparse(RakuAST::Var::NamedCapture:D $ast --> str) {
         nqp::concat('$',self.deparse($ast.index))

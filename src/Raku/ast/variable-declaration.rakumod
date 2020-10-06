@@ -263,6 +263,35 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             # No declaration to install
             QAST::Op.new( :op('null') )
         }
+        elsif $scope eq 'state' {
+            # Lexically scoped state variable
+            my $of := $!type ?? @lookups[0].resolution.compile-time-value !! Mu;
+            my str $sigil := self.sigil;
+            if $sigil eq '$' && nqp::objprimspec($of) {
+                nqp::die("Natively typed state variables not yet implemented");
+            }
+            elsif $!initializer && $!initializer.is-binding {
+                # Will be bound on first use, so just a declaration.
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(:op('p6stateinit')),
+                    QAST::Var.new(:scope('lexical'), :decl('var'), :name($!name))
+                )
+            }
+            else {
+                # Need to vivify the object.
+                my $container := self.meta-object;
+                $context.ensure-sc($container);
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(:op('p6stateinit')),
+                    QAST::Var.new(
+                        :scope('lexical'), :decl('statevar'), :name($!name),
+                        :value($container)
+                    )
+                )
+            }
+        }
         else {
             nqp::die("Don't know how to compile $scope scope variable");
         }

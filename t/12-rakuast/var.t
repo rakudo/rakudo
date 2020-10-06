@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 33;
+plan 35;
 
 my $ast;   # so we don't need to repeat the "my" all the time
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -66,182 +66,223 @@ subtest 'Named capture variable lookup works' => {
       for EVAL($ast).Str, try EVAL($ast.DEPARSE).Str;
 }
 
-subtest 'Lexical variable declarations work' => {
-    # my $foo = 10; $foo
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(name => '$foo')
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::ApplyInfix.new(
-          left => RakuAST::Var::Lexical.new('$foo'),
-          infix => RakuAST::Infix.new('='),
-          right => RakuAST::IntLiteral.new(10)
-        ),
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('$foo')
-      )
-    );
-    is-deeply $_, 10
-      for EVAL($ast), EVAL($ast.DEPARSE);
-}
+subtest 'variable declaration takes scope and name' => {
+    for 'my', 'state' -> $scope {
+        # my|state $foo
+        ast RakuAST::VarDeclaration::Simple.new(
+          scope => $scope,
+          name  => '$foo'
+        );
 
-subtest 'Defaults of untyped container' => {
-    # my $foo; $foo
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(name => '$foo')
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('$foo')
-      )
-    );
-
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
-        is-deeply cont, Any, "$type: default value is Any";
-        ok cont.VAR.of =:= Mu, "$type: Default constraint is Mu";
+        is $ast.scope, $scope, "did we get scope: $scope";
+        is $ast.name,  '$foo', 'did we get the right name';
     }
 }
 
-subtest 'Typed variable declarations work (type matches in assignment)' => {
-    # my Int $foo; $foo = 99; $foo
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$foo',
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
+subtest 'Lexical variable my|state declarations work' => {
+    for 'my', 'state' -> $scope {
+        # my|state $foo = 10; $foo
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              name  => '$foo'
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::Var::Lexical.new('$foo'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::IntLiteral.new(10)
+            ),
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$foo')
           )
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::ApplyInfix.new(
-          left => RakuAST::Var::Lexical.new('$foo'),
-          infix => RakuAST::Infix.new('='),
-          right => RakuAST::IntLiteral.new(99)
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('$foo')
-      )
-    );
-    is-deeply $_, 99
-      for EVAL($ast), EVAL($ast.DEPARSE);
-}
-
-subtest 'Typed variable declarations work (type mismatch throws)' => {
-    # my Int $foo; $foo = 1e5; $foo
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$foo',
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          )
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::ApplyInfix.new(
-          left => RakuAST::Var::Lexical.new('$foo'),
-          infix => RakuAST::Infix.new('='),
-          right => RakuAST::NumLiteral.new(1e5)
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('$foo')
-      )
-    );
-
-    throws-like( { EVAL($ast) },
-      X::TypeCheck::Assignment,
-      expected => Int,
-      got => 1e5
-    );
-    todo 'string EVAL produces different error';
-    throws-like( { EVAL($ast.DEPARSE) },
-      X::TypeCheck::Assignment,
-      expected => Int,
-      got => 1e5
-    );
-}
-
-subtest 'Lexical variable declarations with assignment initializer' => {
-    # my $var = 125; $var
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$var',
-          initializer => RakuAST::Initializer::Assign.new(
-            RakuAST::IntLiteral.new(125)
-          )
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('$var')
-      )
-    );
-
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \result {
-        is-deeply result, 125,
-          "$type: Lexical variable declarations with assignment initializer";
-        ok result.VAR.isa(Scalar),
-          "$type: Really was an assignment into a Scalar container";
-        nok result.VAR.dynamic,
-          "$type: Is not dynamic";
-        lives-ok { result = 42 },
-          "$type: Can update the container that was produced";
+        );
+        is-deeply $_, 10, $scope
+          for EVAL($ast), EVAL($ast.DEPARSE);
     }
 }
 
-subtest 'Lexical array declarations with assignment initializer works' => {
-    # my @var = 22, 33; @var
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(
-          name => '@var',
-          initializer => RakuAST::Initializer::Assign.new(
-            RakuAST::ApplyListInfix.new(
-              infix => RakuAST::Infix.new(','),
-              operands => (
-                RakuAST::IntLiteral.new(22),
-                RakuAST::IntLiteral.new(33)
+subtest 'Defaults of my|state untyped container' => {
+    for 'my', 'state' -> $scope {
+        # my|state $foo; $foo
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              name  => '$foo'
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$foo')
+          )
+        );
+
+        for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
+            is-deeply cont, Any, "$type: $scope default value is Any";
+            ok cont.VAR.of =:= Mu, "$type: $scope Default constraint is Mu";
+        }
+    }
+}
+
+subtest 'Typed variable my|state declaration (type matches in assignment)' => {
+    for 'my', 'state' -> $scope {
+        # my|state Int $foo; $foo = 99; $foo
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              name  => '$foo',
+              type  => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Int')
               )
             )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::Var::Lexical.new('$foo'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::IntLiteral.new(99)
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$foo')
           )
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('@var')
-      ),
-    );
-    is-deeply $_, [22,33]
-      for EVAL($ast), EVAL($ast.DEPARSE);
+        );
+        is-deeply $_, 99, $scope
+          for EVAL($ast), EVAL($ast.DEPARSE);
+    }
 }
 
-subtest 'Lexical variable declarations with bind initializer' => {
-    # my $var := 225
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(
-          name => '$var',
-          initializer => RakuAST::Initializer::Bind.new(
-            RakuAST::IntLiteral.new(225)
+subtest 'Typed variable my|state declaration (type mismatch throws)' => {
+    for 'my', 'state' -> $scope {
+        # my|state Int $foo; $foo = 1e5; $foo
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              name  => '$foo',
+              type  => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Int')
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::Var::Lexical.new('$foo'),
+              infix => RakuAST::Infix.new('='),
+              right => RakuAST::NumLiteral.new(1e5)
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$foo')
           )
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('$var')
-      ),
-    );
+        );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \result {
-        is-deeply result, 225,
-          "$type: Lexical variable declarations with bind initializer";
-        nok result.VAR.isa(Scalar),
-          "$type: Really was bound; no Scalar container";
-        dies-ok { result = 42 },
-          "$type: Cannot assign as it is not a container";
+        throws-like { EVAL($ast) },
+          X::TypeCheck::Assignment,
+          expected => Int,
+          got      => 1e5
+        ;
+        todo 'string EVAL produces different error';
+        throws-like { EVAL($ast.DEPARSE) },
+          X::TypeCheck::Assignment,
+          expected => Int,
+          got      => 1e5
+        ;
+    }
+}
+
+subtest 'Lexical variable my|state declaration with assignment initializer' => {
+    for 'my', 'state' -> $scope {
+        # my|state $var = 125; $var
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope       => $scope,
+              name        => '$var',
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::IntLiteral.new(125)
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$var')
+          )
+        );
+
+        for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \result {
+            is-deeply result, 125,
+              "$type: $scope variable declarations with assignment initializer";
+            ok result.VAR.isa(Scalar),
+              "$type: $scope was an assignment into a Scalar container";
+            nok result.VAR.dynamic,
+              "$type: $scope is not dynamic";
+            lives-ok { result = 42 },
+              "$type: $scope can update the container that was produced";
+        }
+    }
+}
+
+subtest 'Lexical my|state array declaration with assignment initializer' => {
+    for 'my', 'state' -> $scope {
+        # my|state @var = 22, 33; @var
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope       => $scope,
+              name        => '@var',
+              initializer => RakuAST::Initializer::Assign.new(
+                RakuAST::ApplyListInfix.new(
+                  infix => RakuAST::Infix.new(','),
+                  operands => (
+                    RakuAST::IntLiteral.new(22),
+                    RakuAST::IntLiteral.new(33)
+                  )
+                )
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('@var')
+          ),
+        );
+        is-deeply $_, [22,33], $scope
+          for EVAL($ast), EVAL($ast.DEPARSE);
+    }
+}
+
+subtest 'Lexical my|state variable declarations with bind initializer' => {
+    for 'my', 'state' -> $scope {
+        # my|state $var := 225
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope       => $scope,
+              name        => '$var',
+              initializer => RakuAST::Initializer::Bind.new(
+                RakuAST::IntLiteral.new(225)
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('$var')
+          ),
+        );
+
+        for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \result {
+            # bug in rakudo main branch, "state $var := 225" is Mu
+            next if $scope eq 'state' && $type eq 'DEPARSE';
+
+            is-deeply result, 225,
+              "$type: $scope variable declarations with bind initializer";
+            nok result.VAR.isa(Scalar),
+              "$type: $scope really was bound; no Scalar container";
+            dies-ok { result = 42 },
+              "$type: $scope cannot assign as it is not a container";
+        }
     }
 }
 
@@ -293,129 +334,145 @@ subtest 'Dynamic variable declaration and assignment, dynamic lookup' => {
     }
 }
 
-subtest '@ sigil var is initialized to Array' => {
-    # my @arr; @arr
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(name => '@arr')
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('@arr')
-      ),
-    );
+subtest '@ sigil my|state var is initialized to Array' => {
+    for 'my', 'state' -> $scope {
+        # my|state @arr; @arr
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              name  => '@arr'
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('@arr')
+          ),
+        );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
-        is-deeply cont.WHAT, Array,
-          "$type: @ sigil var is initialized to Array";
-        is-deeply cont.VAR.WHAT, Array,
-          "$type: @ sigil var not wrapped in Scalar";
-        ok cont.defined,
-          "$type: It is a defined Array instance";
-        is cont.elems, 0,
-          "$type: It is empty";
-        is-deeply cont[0].VAR.WHAT, Scalar,
-          "$type: Element is a Scalar";
-        is-deeply cont[0], Any,
-          "$type: Contains an Any by default";
-        ok cont[0].VAR.of =:= Mu,
-          "$type: Constraint is Mu by default";
+        for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
+            is-deeply cont.WHAT, Array,
+              "$type: $scope @ sigil var is initialized to Array";
+            is-deeply cont.VAR.WHAT, Array,
+              "$type: $scope @ sigil var not wrapped in Scalar";
+            ok cont.defined,
+              "$type: $scope it is a defined Array instance";
+            is cont.elems, 0,
+              "$type: $scope it is empty";
+            is-deeply cont[0].VAR.WHAT, Scalar,
+              "$type: $scope element is a Scalar";
+            is-deeply cont[0], Any,
+              "$type: $scope contains an Any by default";
+            ok cont[0].VAR.of =:= Mu,
+              "$type: $scope constraint is Mu by default";
+        }
     }
 }
 
-subtest '% sigil var is initialized to Hash' => {
-    # my %hash; %hash
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(name => '%hash')
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('%hash')
-      ),
-    );
+subtest '% sigil my|state var is initialized to Hash' => {
+    for 'my', 'state' -> $scope {
+        # my|state %hash; %hash
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              name  => '%hash'
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('%hash')
+          ),
+        );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
-        is-deeply cont.WHAT, Hash,
-          "$type: % sigil var is initialized to Hash";
-        is-deeply cont.VAR.WHAT, Hash,
-          "$type: % sigil var not wrapped in Scalar";
-        ok cont.defined,
-          "$type: It is a defined Hash instance";
-        is cont.elems, 0,
-          "$type: It is empty";
-        is-deeply cont<k>.VAR.WHAT, Scalar,
-          "$type: Element is a Scalar";
-        is-deeply cont<k>, Any,
-          "$type: Contains an Any by default";
-        ok cont<k>.VAR.of =:= Mu,
-          "$type: Constraint is Mu by default";
+        for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
+            is-deeply cont.WHAT, Hash,
+              "$type: $scope % sigil var is initialized to Hash";
+            is-deeply cont.VAR.WHAT, Hash,
+              "$type: $scope % sigil var not wrapped in Scalar";
+            ok cont.defined,
+              "$type: $scope it is a defined Hash instance";
+            is cont.elems, 0,
+              "$type: $scope it is empty";
+            is-deeply cont<k>.VAR.WHAT, Scalar,
+              "$type: $scope element is a Scalar";
+            is-deeply cont<k>, Any,
+              "$type: $scope contains an Any by default";
+            ok cont<k>.VAR.of =:= Mu,
+              "$type: $scope constraint is Mu by default";
+        }
     }
 }
 
-subtest '@ sigil var with Int type is an Array' => {
-    # my Int @arr; @arr
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(
-          name => '@arr',
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
+subtest '@ sigil my|state var with Int type is an Array' => {
+    for 'my', 'state' -> $scope {
+        # my|state Int @arr; @arr
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              name  => '@arr',
+              type  => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Int')
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('@arr')
+          ),
+        );
+
+        for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
+            ok cont ~~ Array,
+              "$type: $scope @ sigil var with Int type is an Array";
+            ok cont ~~ Positional[Int],
+              "$type: $scope it does Positional[Int]";
+            is-deeply cont.of, Int,
+              "$type: $scope .of gives Int";
+            is cont.elems, 0,
+              "$type: $scope it is empty";
+            is-deeply cont[0].VAR.WHAT, Scalar,
+              "$type: $scope element is a Scalar";
+            is-deeply cont[0], Int,
+              "$type: $scope contains an Int";
+            ok cont[0].VAR.of =:= Int,
+              "$type: $scope constraint is Int";
+        }
+    }
+}
+
+subtest '% sigil my|state var with Int type is a Hash' => {
+    for 'my', 'state' -> $scope {
+        # my|state Int %hash; %hash
+        ast RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Simple.new(
+              scope => $scope,
+              name  => '%hash',
+              type  => RakuAST::Type::Simple.new(
+                RakuAST::Name.from-identifier('Int')
+              )
+            )
+          ),
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Var::Lexical.new('%hash')
           )
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('@arr')
-      ),
-    );
+        );
 
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
-        ok cont ~~ Array,
-          "$type: @ sigil var with Int type is an Array";
-        ok cont ~~ Positional[Int],
-          "$type: It does Positional[Int]";
-        is-deeply cont.of, Int,
-          "$type: .of gives Int";
-        is cont.elems, 0,
-          "$type: It is empty";
-        is-deeply cont[0].VAR.WHAT, Scalar,
-          "$type: Element is a Scalar";
-        is-deeply cont[0], Int,
-          "$type: Contains an Int";
-        ok cont[0].VAR.of =:= Int,
-          "$type: Constraint is Int";
-    }
-}
-
-subtest '% sigil var with Int type is a Hash' => {
-    # my Int %hash; %hash
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::VarDeclaration::Simple.new(
-          name => '%hash',
-          type => RakuAST::Type::Simple.new(
-            RakuAST::Name.from-identifier('Int')
-          )
-        )
-      ),
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::Var::Lexical.new('%hash')
-      )
-    );
-
-    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
-        ok cont ~~ Hash,
-          "$type: % sigil var with Int type is a Hash";
-        ok cont ~~ Associative[Int],
-          "$type: It does Associative[Int]";
-        is-deeply cont.of, Int,
-          "$type: .of gives Int";
-        is cont.elems, 0,
-          "$type: It is empty";
-        is-deeply cont<k>.VAR.WHAT, Scalar,
-          "$type: Element is a Scalar";
-        is-deeply cont<k>, Int,
-          "$type: Contains an Int";
-        ok cont<k>.VAR.of =:= Int,
-          "$type: Constraint is Int";
+        for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \cont {
+            ok cont ~~ Hash,
+              "$type: $scope % sigil var with Int type is a Hash";
+            ok cont ~~ Associative[Int],
+              "$type: $scope it does Associative[Int]";
+            is-deeply cont.of, Int,
+              "$type: $scope .of gives Int";
+            is cont.elems, 0,
+              "$type: $scope it is empty";
+            is-deeply cont<k>.VAR.WHAT, Scalar,
+              "$type: $scope element is a Scalar";
+            is-deeply cont<k>, Int,
+              "$type: $scope contains an Int";
+            ok cont<k>.VAR.of =:= Int,
+              "$type: $scope constraint is Int";
+        }
     }
 }
 
@@ -672,6 +729,44 @@ subtest 'Native str assign initializer works' => {
     is-deeply $M::x, 42, 'our variable set in eval mode is installed into the current package';
     ok $M::x.VAR ~~ Scalar, 'It is a bound scalar';
     nok M.WHO<$y>:exists, 'our-scoped variable declaration in top-level comp unit does not leak out';
+}
+
+subtest 'A pointy block node with a state variable' => {
+    # -> () { state $foo = 42; $foo++ }
+    ast RakuAST::PointyBlock.new(
+      signature => RakuAST::Signature.new(
+        parameters => ()
+      ),
+      body => RakuAST::StatementList.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::Blockoid.new(
+            RakuAST::StatementList.new(
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::VarDeclaration::Simple.new(
+                  scope       => 'state',
+                  name        => '$foo',
+                  initializer => RakuAST::Initializer::Assign.new(
+                    RakuAST::IntLiteral.new(42)
+                  )
+                )
+              ),
+              RakuAST::Statement::Expression.new(
+                expression => RakuAST::ApplyPostfix.new(
+                  postfix => RakuAST::Postfix.new('++'),
+                  operand => RakuAST::Var::Lexical.new('$foo')
+                )
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $block {
+        is $block(), 42, "$type: state variable initialized";
+        todo("does not keep value in AST just yet") if $type eq 'AST';
+        is $block(), 43, "$type: state variable kept value";
+    }
 }
 
 # vim: expandtab shiftwidth=4

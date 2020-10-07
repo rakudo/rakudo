@@ -269,20 +269,17 @@ class RakuAST::Deparse {
             my $parts    := nqp::list_s;
             my str $comma = $.list-infix-comma;
 
-            nqp::push_s($parts,$.parens-open);
             for @args -> $arg {
                 nqp::push_s($parts,self.deparse($arg));
                 nqp::push_s($parts,$comma);
             }
             nqp::pop_s($parts);  # lose last comma
-            nqp::push_s($parts,$.parens-close);
 
             nqp::join('',$parts)
         }
         else {
             ''
         }
-
     }
 
     multi method deparse(RakuAST::Block:D $ast --> str) {
@@ -302,15 +299,25 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Call::Method:D $ast --> str) {
-        nqp::concat(self.deparse($ast.name),self.deparse($ast.args) || '()')
+        nqp::concat(self.deparse($ast.name),
+          nqp::concat($.parens-open,
+            nqp::concat(self.deparse($ast.args),$.parens-close)
+          )
+        )
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> str) {
-        nqp::concat(self.deparse($ast.name),self.deparse($ast.args) || '()')
+        nqp::concat(self.deparse($ast.name),
+          nqp::concat($.parens-open,
+            nqp::concat(self.deparse($ast.args),$.parens-close)
+          )
+        )
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> str) {
-        self.deparse($ast.args)
+        nqp::concat($.parens-open,
+          nqp::concat(self.deparse($ast.args),$.parens-close)
+        )
     }
 
     multi method deparse(RakuAST::Circumfix::ArrayComposer:D $ast --> str) {
@@ -1016,7 +1023,11 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Capture:D $ast --> str) {
-        nqp::concat('\\',self.deparse($ast.source))
+        nqp::concat('\\',
+          nqp::concat($.parens-open,
+            nqp::concat(self.deparse($ast.source),$.parens-close)
+          )
+        )
     }
 
     multi method deparse(RakuAST::Term::EmptySet:D $ast --> '∅') { }

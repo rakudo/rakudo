@@ -79,11 +79,11 @@ offer some methods that Raku expects.
 
 * defined
 
-  Always returns True  
+  Always returns True
 
 * Bool
 
-  Always returns True  
+  Always returns True
 
 * item
 
@@ -102,7 +102,7 @@ offer some methods that Raku expects.
 
 If the wrapped object has method of that same name you can use an :INTERNAL modifier to access it.
 
-```$obj.new(:INTERNAL, 123)``` 
+```$obj.new(:INTERNAL, 123)```
 | -------------|-------|
 
 This will call a js new method rather then doing ``new $obj(123)```

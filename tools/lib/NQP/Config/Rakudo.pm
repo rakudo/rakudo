@@ -663,7 +663,7 @@ sub gen_nqp {
     return unless defined($gen_nqp) || defined($gen_moar);
 
     {
-        my $user = $options->{'github-user'} // 'perl6';
+        my $user = $options->{'github-user'} // 'Raku';
 
         # Don't expect any specific default commit in nqp/ if the repo is
         # already checked out and we're force-rebuilding.

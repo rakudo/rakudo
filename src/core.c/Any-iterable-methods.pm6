@@ -23,7 +23,7 @@ augment class Any {
         X::Cannot::Map.new(
           what       => self.^name,
           using      => "a {iterable.^name}",
-          suggestion => 
+          suggestion =>
 "Did a * (Whatever) get absorbed by a comma, range, series, or list repetition?
 Consider using a block if any of these are necessary for your mapping code."
         ).throw;

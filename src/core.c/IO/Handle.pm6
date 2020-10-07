@@ -58,7 +58,7 @@ my class IO::Handle {
         }
     }
 #?endif
-#?if !moar    
+#?if !moar
     method do-not-close-automatically(IO::Handle:D: --> False) { }
 #?endif
 

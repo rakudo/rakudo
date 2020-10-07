@@ -139,7 +139,7 @@ my class Pair does Associative {
     multi method raku(Pair:D: :$arglist = False) {
         self.rakuseen:
           self.^name,
-          {   
+          {
               nqp::isconcrete($!key)
                 ?? nqp::istype($!key,Str)
                      && nqp::not_i($arglist)

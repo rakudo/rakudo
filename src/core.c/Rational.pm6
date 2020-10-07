@@ -300,7 +300,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                 elsif nqp::chars($s) < $digits {
                     $s = nqp::concat(nqp::x('0',$digits - nqp::chars($s)),$s);
                 }
-                
+
                 my int $i = nqp::chars($s);
                 if $trailing-zeroes {                # we want trailing zeroes
                     nqp::while(

@@ -54,7 +54,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         my $parts := nqp::split(";",%*ENV<PATH> // %*ENV<Path> // '');
         nqp::push((my $buffer := nqp::create(IterationBuffer)),".");
 
-        nqp::while( 
+        nqp::while(
           nqp::elems($parts),
           # unsure why old code removed all `"`, but keeping code same
           # https://irclog.perlgeek.de/perl6-dev/2017-05-15#i_14585448

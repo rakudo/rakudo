@@ -1,8 +1,8 @@
 my class SetHash does Setty {
 
-    method ^parameterize(Mu \base, Mu \type) { 
+    method ^parameterize(Mu \base, Mu \type) {
         Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
-    }  
+    }
 
 #--- selector methods
 

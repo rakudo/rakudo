@@ -716,7 +716,7 @@ my class IO::Path is Cool does IO {
       Str:D $trying
     --> Failure) is hidden-from-backtrace {
         Failure.new(X::IO::DoesNotExist.new(:path($!os-path),:$trying))
-    } 
+    }
 
     method e(IO::Path:D: --> Bool:D) {
         nqp::hllbool(Rakudo::Internals.FILETEST-E(self.absolute))
@@ -803,10 +803,10 @@ my class IO::Path is Cool does IO {
         if Rakudo::Internals.FILETEST-E(self.absolute) {  # sets $!os-path
             my Int $mode := Rakudo::Internals.FILETEST-MODE($!os-path);
             my str $str   = nqp::base_I($mode,8);
-            IntStr.new( 
+            IntStr.new(
               $mode,
               nqp::concat(nqp::x('0',4 - nqp::chars($str)),$str)
-            ) 
+            )
         }
         else {
             self!does-not-exist("mode")

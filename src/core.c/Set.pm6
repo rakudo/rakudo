@@ -8,7 +8,7 @@ my class Set does Setty {
     multi method WHICH (Set:D: --> ValueObjAt:D) {
         nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
     }
-    
+
     method !WHICH() {
         $!WHICH := nqp::box_s(
           nqp::concat(

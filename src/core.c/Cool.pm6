@@ -134,14 +134,14 @@ my class Cool { # declared in BOOTSTRAP
     multi method starts-with(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
         self.Str.starts-with($needle.Str, :$ignorecase, :$ignoremark)
-    }   
+    }
     multi method starts-with(Cool:D:
       Cool:D $needle, :m(:$ignoremark)! --> Bool:D) {
         self.Str.starts-with($needle.Str, :$ignoremark)
-    }   
+    }
     multi method starts-with(Cool:D: Cool:D $needle --> Bool:D) {
         self.Str.starts-with($needle.Str)
-    }   
+    }
 
     proto method ends-with(|) {*}
     multi method ends-with(Cool:D:
@@ -175,27 +175,27 @@ my class Cool { # declared in BOOTSTRAP
     multi method substr-eq(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
         self.Str.starts-with($needle.Str, :$ignorecase, :$ignoremark)
-    }   
+    }
     multi method substr-eq(Cool:D:
       Cool:D $needle, :m(:$ignoremark) --> Bool:D) {
         self.Str.starts-with($needle.Str, :$ignoremark)
-    }   
+    }
     multi method substr-eq(Cool:D: Cool:D $needle --> Bool:D) {
         self.Str.starts-with($needle.Str)
-    }   
+    }
 
     multi method substr-eq(Cool:D:
       Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {
         self.Str.substr-eq($needle.Str, $pos.Int, :$ignorecase, :$ignoremark)
-    }   
+    }
     multi method substr-eq(Cool:D:
       Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Bool:D) {
         self.Str.substr-eq($needle.Str, $pos.Int, :$ignoremark)
-    }   
+    }
     multi method substr-eq(Cool:D: Cool:D $needle, Cool:D $pos --> Bool:D) {
         self.Str.substr-eq($needle.Str, $pos.Int)
-    }   
+    }
 
     method !list-as-string($suggestion) is hidden-from-backtrace {
         warn "Calling '.{callframe(2).code.name}' on a {self.^name}, did you mean '$suggestion'?";
@@ -209,14 +209,14 @@ my class Cool { # declared in BOOTSTRAP
     multi method contains(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
         self.Str.contains: $needle.Str, :$ignorecase, :$ignoremark
-    }   
+    }
     multi method contains(Cool:D:
       Cool:D $needle, :m(:$ignoremark)! --> Bool:D) {
         self.Str.contains: $needle.Str, :$ignoremark
-    }   
+    }
     multi method contains(Cool:D: Cool:D $needle --> Bool:D) {
         self.Str.contains: $needle.Str
-    }   
+    }
     multi method contains(Cool:D: Regex:D $needle --> Bool:D) {
         self.Str.contains: $needle
     }
@@ -245,27 +245,27 @@ my class Cool { # declared in BOOTSTRAP
     multi method indices(Cool:D: Cool:D $needle,
       :i(:$ignorecase)!, :m(:$ignoremark), :$overlap) {
         self.Str.indices($needle.Str, :$ignorecase, :$ignoremark, :$overlap)
-    }   
+    }
     multi method indices(Cool:D: Cool:D $needle,
       :m(:$ignoremark)!, :$overlap) {
         self.Str.indices($needle.Str, :$ignoremark, :$overlap)
-    }   
+    }
     multi method indices(Cool:D: Cool:D $needle, :$overlap) {
         self.Str.indices($needle.Str, :$overlap)
-    }   
+    }
 
     multi method indices(Cool:D: Cool:D $needle, Cool:D $pos,
       :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
         self.Str.indices($needle.Str, $pos.Int,
           :$ignorecase, :$ignoremark, :$overlap)
-    }   
+    }
     multi method indices(Cool:D: Cool:D $needle, Cool:D $pos,
      :m(:$ignoremark)!, :$overlap) {
         self.Str.indices($needle.Str, $pos.Int, :$ignoremark, :$overlap)
-    }   
+    }
     multi method indices(Cool:D: Cool:D $needle, Cool:D $pos, :$overlap) {
         self.Str.indices($needle.Str, $pos.Int, :$overlap)
-    }   
+    }
 
     proto method index(|) {*}
     multi method index(List:D: Cool:D $needle) {  # Warn about newbie trap
@@ -295,14 +295,14 @@ my class Cool { # declared in BOOTSTRAP
       Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Int:D) {
         self.Str.index: $needle.Str, $pos.Int, :$ignorecase, :$ignoremark
-    }   
+    }
     multi method index(Cool:D:
       Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Int:D) {
         self.Str.index: $needle.Str, $pos.Int, :$ignoremark
-    }   
+    }
     multi method index(Cool:D: Cool:D $needle, Cool:D $pos --> Int:D) {
         self.Str.index: $needle.Str, $pos.Int
-    }   
+    }
 
     proto method rindex(|) {*}
     multi method rindex(List:D: Cool:D $needle) {  # Warn about newbie trap

@@ -2069,7 +2069,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     multi method split(Str:D: Regex:D $regex, $limit = Whatever;;
       :$v , :$k, :$kv, :$p, :$skip-empty --> Seq:D) {
-        
+
         Seq.new: self!ensure-split-sanity($v,$k,$kv,$p)
           ?? Rakudo::Iterator.MatchSplitMap(   # additional mapping needed
               $regex,

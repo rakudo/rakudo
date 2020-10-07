@@ -46,6 +46,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     # Convert raw command line args into positional and named args for MAIN
     sub default-args-to-capture($, @args is copy --> Capture:D) {
         my $no-named-after = nqp::isfalse(%sub-main-opts<named-anywhere>);
+        my $bundling = nqp::istrue(%sub-main-opts<bundling>);
 
         my $positional := nqp::create(IterationBuffer);
         my %named;
@@ -72,21 +73,31 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
             # named
             elsif $passed-value
-              ~~ /^ [ '--' | '-' | ':' ] ('/'?) (<-[0..9\.]> .*) $/ {  # 'hlfix
-                my str $arg = $1.Str;
+              ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {  # 'hlfix
+                my str $arg = $2.Str;
                 my $split  := nqp::split("=",$arg);
 
                 # explicit value
                 if nqp::isgt_i(nqp::elems($split),1) {
                     my str $name = nqp::shift($split);
-                    %named.push: $name => $0.chars
+                    die "Can't combine bundling with explicit arguments" if $bundling && nqp::iseq_s($0.Str, '-');
+                    %named.push: $name => $1.chars
                       ?? thevalue(nqp::join("=",$split)) but False
                       !! thevalue(nqp::join("=",$split));
                 }
 
                 # implicit value
                 else {
-                    %named.push: $arg => !($0.chars);
+                    if $bundling && nqp::iseq_s($0.Str, '-') {
+                        die "Can't combine bundling with explicit negation" if $1.chars;
+                        my @chars = nqp::split('',$arg);
+                        for @chars -> $char {
+                            %named.push: $char => True;
+                        }
+                    }
+                    else {
+                        %named.push: $arg => !($1.chars);
+                    }
                 }
             }
 

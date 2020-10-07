@@ -985,6 +985,17 @@ class RakuAST::Deparse {
         $ast.value.raku
     }
 
+    multi method deparse(RakuAST::Stub:D $ast --> str) {
+        if $ast.args -> $args {
+            nqp::concat($ast.IMPL-STUB-NAME,
+              nqp::concat(' ',self.deparse($args))
+            )
+        }
+        else {
+            $ast.IMPL-STUB-NAME
+        }
+    }
+
     multi method deparse(RakuAST::Sub:D $ast --> str) {
         my $parts := nqp::list_s;
 

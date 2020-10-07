@@ -286,3 +286,31 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
         }
     }
 }
+
+# Base role for all stubs
+class RakuAST::Stub is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
+
+    method new(RakuAST::ArgList :$args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList);
+        $obj
+    }
+}
+
+# the ... stub
+class RakuAST::Stub::Fail is RakuAST::Stub {
+    method IMPL-STUB-NAME() { '...'   }
+    method IMPL-FUNC-NAME() { 'fail' }
+}
+
+# the ??? stub
+class RakuAST::Stub::Warn is RakuAST::Stub {
+    method IMPL-STUB-NAME() { '???'   }
+    method IMPL-FUNC-NAME() { 'warn' }
+}
+
+# the !!! stub
+class RakuAST::Stub::Die is RakuAST::Stub {
+    method IMPL-STUB-NAME() { '!!!'  }
+    method IMPL-FUNC-NAME() { 'die' }
+}

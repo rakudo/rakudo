@@ -174,48 +174,46 @@ multi sub postcircumfix:<{ }>(Mu \SELF, *%other ) is raw {
 proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}
 
 multi sub postcircumfix:<{; }>(\SELF, @indices) {
-    sub MD-HASH-SLICE-ONE-POSITION(\SELF, \indices, \idx, int $dim, \target) {
+    my \target   = nqp::create(IterationBuffer);
+    my int $dims = @indices.elems;  # reifies
+    my $indices := nqp::getattr(@indices,List,'$!reified');
+
+    sub MD-HASH-SLICE-ONE-POSITION(\SELF, \idx, int $dim --> Nil) {
         my int $next-dim = $dim + 1;
-        if $next-dim < indices.elems {
-            if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
-                MD-HASH-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
-                  for idx;
-            }
-            elsif nqp::istype(idx, Str) {
+        if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
+            MD-HASH-SLICE-ONE-POSITION(SELF, $_, $dim)
+              for idx;
+        }
+        elsif $next-dim < $dims {
+            if nqp::istype(idx, Str) {
                 MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY(idx),
-                  indices, indices.AT-POS($next-dim), $next-dim, target)
+                  nqp::atpos($indices,$next-dim), $next-dim)
             }
             elsif nqp::istype(idx, Whatever) {
                 MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY($_),
-                  indices, indices.AT-POS($next-dim), $next-dim, target)
+                  nqp::atpos($indices,$next-dim), $next-dim)
                   for SELF.keys;
             }
             else  {
                 MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY(idx),
-                  indices, indices.AT-POS($next-dim), $next-dim, target)
+                  nqp::atpos($indices,$next-dim), $next-dim)
+            }
+        }
+        # $next-dim == $dims
+        elsif nqp::istype(idx, Str) {
+            nqp::push(target, SELF.AT-KEY(idx))
+        }
+        elsif nqp::istype(idx, Whatever) {
+            for SELF.keys {
+                nqp::push(target, SELF.AT-KEY($_))
             }
         }
         else {
-            if nqp::istype(idx, Iterable) && !nqp::iscont(idx) {
-                MD-HASH-SLICE-ONE-POSITION(SELF, indices, $_, $dim, target)
-                  for idx;
-            }
-            elsif nqp::istype(idx, Str) {
-                nqp::push(target, SELF.AT-KEY(idx))
-            }
-            elsif nqp::istype(idx, Whatever) {
-                for SELF.keys {
-                    nqp::push(target, SELF.AT-KEY($_))
-                }
-            }
-            else {
-                nqp::push(target, SELF.AT-KEY(idx))
-            }
+            nqp::push(target, SELF.AT-KEY(idx))
         }
     }
 
-    my \target = nqp::create(IterationBuffer);
-    MD-HASH-SLICE-ONE-POSITION(SELF, @indices, @indices.AT-POS(0), 0, target);
+    MD-HASH-SLICE-ONE-POSITION(SELF, nqp::atpos($indices,0), 0);
     target.List
 }
 

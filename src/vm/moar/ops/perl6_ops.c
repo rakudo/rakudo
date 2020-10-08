@@ -26,7 +26,7 @@ static MVMCallsiteEntry one_str_flags[] = { MVM_CALLSITE_ARG_STR };
 static MVMCallsite     one_str_callsite = { one_str_flags, 1, 1, 1, 0, 0, NULL, NULL };
 
 /* Dispatcher vivify_for callsite. */
-static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ, 
+static MVMCallsiteEntry disp_flags[] = { MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ,
                                          MVM_CALLSITE_ARG_OBJ, MVM_CALLSITE_ARG_OBJ };
 static MVMCallsite     disp_callsite = { disp_flags, 4, 4, 4, 0, 0, NULL, NULL };
 

@@ -82,15 +82,15 @@ BEGIN {
     trait_mod:<is>(&infix:<~>, :prec($concatenation));
 
     trait_mod:<is>(&infix:<&>,   :prec($junctive_and));
-    trait_mod:<is>(&infix:<(&)>, :prec($junctive_and));
-    trait_mod:<is>(&infix:<(.)>, :prec($junctive_and));
+    trait_mod:<is>(&infix:<(&)>, :prec($structural));
+    trait_mod:<is>(&infix:<(.)>, :prec($structural));
 
     trait_mod:<is>(&infix:<|>,   :prec($junctive_or));
     trait_mod:<is>(&infix:<^>,   :prec($junctive_or));
-    trait_mod:<is>(&infix:<(+)>, :prec($junctive_or));
-    trait_mod:<is>(&infix:<(|)>, :prec($junctive_or));
-    trait_mod:<is>(&infix:<(-)>, :prec($junctive_or));
-    trait_mod:<is>(&infix:<(^)>, :prec($junctive_or));
+    trait_mod:<is>(&infix:<(+)>, :prec($structural));
+    trait_mod:<is>(&infix:<(|)>, :prec($structural));
+    trait_mod:<is>(&infix:<(-)>, :prec($structural));
+    trait_mod:<is>(&infix:<(^)>, :prec($structural));
 
     trait_mod:<is>(&infix:<==>,     :prec($chaining));
     trait_mod:<is>(&infix:<!=>,     :prec($chaining));

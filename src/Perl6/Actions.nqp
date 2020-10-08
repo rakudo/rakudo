@@ -4025,18 +4025,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ));
         }
 
-        # Set name if we have one
+        # Set name.
         if $<deflongname> {
-            my $name := ~$<deflongname>.ast;
-            $block.name($name);
-
-            # Check for 'is rw' parameters if MAIN
-            if $name eq 'MAIN' {
-                for $signature.params.FLATTENABLE_LIST -> $param {
-                    $/.worry("'is rw' on parameters of 'sub MAIN' usually cannot be satisfied.\nDid you mean 'is copy'?")
-                      if $param.rw;
-                }
-            }
+            $block.name(~$<deflongname>.ast);
         }
 
         # Finish code object, associating it with the routine body.

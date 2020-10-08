@@ -9,8 +9,8 @@ You need a recent version of either Strawberry Perl or ActiveState Perl.
 You will need a compiler - Strawberry Perl ships with one. You can also
 use MSVC or Mingw gcc.
 
-You need msys git installed and "\Program Files\Git\cmd" on your execution
-path and NOT "\Program Files\Git\bin".
+You need msys git installed and `\Program Files\Git\cmd` on your execution
+path and **not** `\Program Files\Git\bin`.
 
 You will also need a win32 curl program.
 
@@ -27,8 +27,8 @@ loaded by "rakudo" binary. This is a security precaution taken by modern
 versions of macOS. The precaution works by restricting the directories
 available for loading dynamic libraries only to the system-predefined set
 and those where the application binary is actually located. For example, if
-"rakudo" binary is installed under "$HOME/raku/bin" then aside of the
-system-wide locations it can access libraries in "$HOME/raku/lib" only.
+`rakudo` binary is installed under `$HOME/raku/bin` then aside of the
+system-wide locations it can access libraries in `$HOME/raku/lib` only.
 
 For the above stated reason, if a problem with availability of a dynamic
 library occurs then creating a symlink to the library in one of the
@@ -48,4 +48,3 @@ the library and also create symlinks into one of the two locations.
 dynamic libraries to get their code invoked by legitimate binaries! Make
 sure that the .dylib file being linked does belong to a valid installed
 package and its checksum is unchanged.
-

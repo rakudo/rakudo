@@ -77,7 +77,7 @@ very basic guidelines:
 How to write [a good **and** useful commit message](https://chris.beams.io/posts/git-commit/).
 Commit messages are where you tell the what, why and how of your commit to others.
 
-The subject/title of a commit should 50 or less characters ideally. The absolute
+The subject/title of a commit should be 50 or less characters ideally. The absolute
 maximum is 72. Titles usually will tell what you did. You should almost always
 have a body except in the case of the most trivial changes. These style guidelines
 are best practices, but use your judgment. You may want to fit 100 characters
@@ -90,8 +90,9 @@ A good commit is one where months from now you be able to read
 this commit and understand what you did and why you did it.
 
 Don't make a commit that only says `Fix #130979` because when the time to do
-the release changelog comes, someone will need to look up the ticket and then usually wade through several replies on that ticket to figure out what
-the problem was and at the end I'm often unsure what the ACTUAL problem was
+the release changelog comes, someone will need to look up the ticket and then
+usually wade through several replies on that ticket to figure out what
+the problem was and at the end we're often unsure what the **actual** problem was
 that got fixed in the commit, not just the issue number.
 
 If somebody is trying to find a recent commit that affected, say, `infix:<xx>`,

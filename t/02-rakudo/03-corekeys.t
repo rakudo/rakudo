@@ -788,6 +788,7 @@ my @allowed =
         Q{$=pod},
         Q{$_},
         Q{$¢},
+        Q{&postcircumfix:<{; }>},
         Q{CORE-SETTING-REV},
         Q{Grammar},
         Q{PseudoStash},

@@ -643,18 +643,15 @@ sub gen_nqp {
 
         unless ( $force_rebuild
             || !$nqp_have
-            || $nqp_ver_ok
-            || $options->{'ignore-errors'} )
+            || $nqp_ver_ok )
         {
-            $self->note( "WARNING",
+            my $say_sub = $options->{'ignore-errors'} ? 'note' : 'sorry';
+            $self->$say_sub(
                 "$bin version $nqp_have is outdated, $nqp_want expected.\n" );
         }
 
         if ( !$force_rebuild and ( $nqp_ok or $options->{'ignore-errors'} ) ) {
             $impls->{$b}{ok} = 1;
-        }
-        elsif ( $self->opt('with-nqp') ) {
-            $self->sorry("$bin version cannot be used");
         }
         else {
             $need{$b} = 1;
@@ -665,8 +662,8 @@ sub gen_nqp {
 
     return unless defined($gen_nqp) || defined($gen_moar);
 
-    if ( defined $gen_nqp || defined $gen_moar ) {
-        my $user = $options->{'github-user'} // 'perl6';
+    {
+        my $user = $options->{'github-user'} // 'Raku';
 
         # Don't expect any specific default commit in nqp/ if the repo is
         # already checked out and we're force-rebuilding.

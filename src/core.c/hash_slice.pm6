@@ -185,31 +185,22 @@ multi sub postcircumfix:<{; }>(\SELF, @indices) {
               for idx;
         }
         elsif $next-dim < $dims {
-            if nqp::istype(idx, Str) {
-                MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY(idx),
-                  nqp::atpos($indices,$next-dim), $next-dim)
-            }
-            elsif nqp::istype(idx, Whatever) {
+            if nqp::istype(idx,Whatever) {
                 MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY($_),
                   nqp::atpos($indices,$next-dim), $next-dim)
                   for SELF.keys;
             }
             else  {
                 MD-HASH-SLICE-ONE-POSITION(SELF.AT-KEY(idx),
-                  nqp::atpos($indices,$next-dim), $next-dim)
+                  nqp::atpos($indices,$next-dim), $next-dim);
             }
         }
         # $next-dim == $dims
-        elsif nqp::istype(idx, Str) {
-            nqp::push(target, SELF.AT-KEY(idx))
-        }
-        elsif nqp::istype(idx, Whatever) {
-            for SELF.keys {
-                nqp::push(target, SELF.AT-KEY($_))
-            }
+        elsif nqp::istype(idx,Whatever) {
+            nqp::push(target, SELF.AT-KEY($_)) for SELF.keys;
         }
         else {
-            nqp::push(target, SELF.AT-KEY(idx))
+            nqp::push(target, SELF.AT-KEY(idx));
         }
     }
 

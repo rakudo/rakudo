@@ -3,7 +3,7 @@
 proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}
 multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
   :$exists, :$delete, :$k, :$kv, :$p, :$v
-) {
+) is raw {
 
     # find out what we actually got
     my str $adverbs;
@@ -184,7 +184,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
               ?? -> \SELF, \key, @other {
                      if SELF.EXISTS-KEY(key) {
                          nqp::push(target,keys-to-list(@other, key));
-                         nqp::push(target,SELF.AT-KEY(key));
+                         nqp::push(target,nqp::decont(SELF.AT-KEY(key)));
                      }
                  }
             !! nqp::iseq_s($adverbs,":p")
@@ -196,7 +196,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                  }
             !! nqp::iseq_s($adverbs,":v")
               ?? -> \SELF, \key, @ {
-                     nqp::push(target,SELF.AT-KEY(key))
+                     nqp::push(target,nqp::decont(SELF.AT-KEY(key)))
                        if SELF.EXISTS-KEY(key);
                  }
             !! return Failure.new(X::Adverb.new(

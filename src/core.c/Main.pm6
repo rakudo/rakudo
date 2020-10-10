@@ -80,7 +80,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 # explicit value
                 if nqp::isgt_i(nqp::elems($split),1) {
                     my str $name = nqp::shift($split);
-                    die "Can't combine bundling with explicit arguments" if $bundling && nqp::iseq_s($0.Str, '-');
+                    die "Can't combine bundling with explicit arguments" if $bundling && nqp::iseq_s($0.Str, '-') && $name.chars > 1;
                     %named.push: $name => $1.chars
                       ?? thevalue(nqp::join("=",$split)) but False
                       !! thevalue(nqp::join("=",$split));
@@ -89,10 +89,10 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 # implicit value
                 else {
                     if $bundling && nqp::iseq_s($0.Str, '-') {
-                        die "Can't combine bundling with explicit negation" if $1.chars;
+                        die "Can't combine bundling with explicit negation" if $1.chars && $arg.chars > 1;
                         my @chars = nqp::split('',$arg);
                         for @chars -> $char {
-                            %named.push: $char => True;
+                            %named.push: $char => !($1.chars);
                         }
                     }
                     else {

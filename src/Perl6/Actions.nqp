@@ -1538,11 +1538,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Produces a LoL from a semicolon list
     method semilist($/) {
-        if $<statement> {
+        if $<statement> -> $statements {
             my $past := QAST::Stmts.new( :node($/) );
-            if nqp::elems($<statement>) > 1 {
+            if nqp::elems($statements) > 1 {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
-                for $<statement> {
+                for $statements {
                     my $sast := $_.ast || QAST::WVal.new( :value($*W.find_single_symbol('Nil')) );
                     $l.push(wanted($sast, 'semilist'));
                 }
@@ -1550,7 +1550,20 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past.annotate('multislice', 1);
             }
             else {
-                $past.push($<statement>[0].ast || QAST::WVal.new( :value($*W.find_single_symbol('Nil')) ));
+                my $ast := $statements[0].ast;
+
+                # anything like "||foo" ?
+                if nqp::istype($ast,QAST::Op) && $ast.name eq '&prefix:<|>' {
+                    if $*W.lang-ver-before("e") {
+                        # no action for settings < "e"
+                    }
+                    elsif nqp::istype($ast[0],QAST::Op) && $ast[0].name eq '&prefix:<|>' {
+                        $ast := $ast[0][0];  # cut out the || ops
+                        $past.annotate('multislice', 1);
+                    }
+                }
+
+                $past.push($ast || QAST::WVal.new( :value($*W.find_single_symbol('Nil')) ));
             }
             make $past;
         }

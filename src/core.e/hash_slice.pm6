@@ -118,11 +118,14 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                        if nqp::push(target,SELF.EXISTS-KEY(key));
                  }
             !! nqp::iseq_s($adverbs,":exists:delete:kv")
-              ?? -> \SELF, \key, @other {
-                     if SELF.EXISTS-KEY(key) {
-                         SELF.DELETE-KEY(key);
-                         nqp::push(target,keys-to-list(@other, key));
-                         nqp::push(target,True);
+              ?? do {
+                     $return-list = 1;
+                     -> \SELF, \key, @other {
+                         if SELF.EXISTS-KEY(key) {
+                             SELF.DELETE-KEY(key);
+                             nqp::push(target,keys-to-list(@other, key));
+                             nqp::push(target,True);
+                         }
                      }
                  }
             !! nqp::iseq_s($adverbs,":exists:delete:p")
@@ -136,10 +139,13 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                      }
                  }
             !! nqp::iseq_s($adverbs,":exists:kv")
-              ?? -> \SELF, \key, @other {
-                     if SELF.EXISTS-KEY(key) {
-                         nqp::push(target,keys-to-list(@other, key));
-                         nqp::push(target,True);
+              ?? do {
+                     $return-list = 1;
+                     -> \SELF, \key, @other {
+                         if SELF.EXISTS-KEY(key) {
+                             nqp::push(target,keys-to-list(@other, key));
+                             nqp::push(target,True);
+                         }
                      }
                  }
             !! nqp::iseq_s($adverbs,":exists:p")
@@ -157,10 +163,13 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                      }
                  }
             !! nqp::iseq_s($adverbs,":delete:kv")
-              ?? -> \SELF, \key, @other {
-                     if SELF.EXISTS-KEY(key) {
-                         nqp::push(target,keys-to-list(@other, key));
-                         nqp::push(target,SELF.DELETE-KEY(key));
+              ?? do {
+                     $return-list = 1;
+                     -> \SELF, \key, @other {
+                         if SELF.EXISTS-KEY(key) {
+                             nqp::push(target,keys-to-list(@other, key));
+                             nqp::push(target,SELF.DELETE-KEY(key));
+                         }
                      }
                  }
             !! nqp::iseq_s($adverbs,":delete:p")
@@ -181,10 +190,13 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                        if SELF.EXISTS-KEY(key);
                  }
             !! nqp::iseq_s($adverbs,":kv")
-              ?? -> \SELF, \key, @other {
-                     if SELF.EXISTS-KEY(key) {
-                         nqp::push(target,keys-to-list(@other, key));
-                         nqp::push(target,nqp::decont(SELF.AT-KEY(key)));
+              ?? do {
+                     $return-list = 1;
+                     -> \SELF, \key, @other {
+                         if SELF.EXISTS-KEY(key) {
+                             nqp::push(target,keys-to-list(@other, key));
+                             nqp::push(target,nqp::decont(SELF.AT-KEY(key)));
+                         }
                      }
                  }
             !! nqp::iseq_s($adverbs,":p")

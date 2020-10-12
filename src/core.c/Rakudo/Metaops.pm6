@@ -84,7 +84,7 @@ class Rakudo::Metaops {
           nqp::atkey($mappers,$where),
           nqp::if(
             nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0)
-              || nqp::iseq_s($assoc,'left'),
+              || nqp::iseq_s($assoc,'left') || &op.prec("set"),
             -> \list {                   # generic left-assoc op
                 nqp::if(
                   nqp::iseq_i(nqp::elems(list),2),
@@ -160,13 +160,9 @@ class Rakudo::Metaops {
                   nqp::if(
                     nqp::iseq_s($assoc,"list"),
                     -> \list {               # generic list/listinfix op
-                        nqp::if(
-                          nqp::iseq_i(nqp::elems(list),2),
-                          op(nqp::atpos(list,0),nqp::atpos(list,1)),
-                          op(
-                            nqp::p6bindattrinvres(
-                              nqp::create(List),List,'$!reified',list)
-                          )
+                        op(
+                          nqp::p6bindattrinvres(
+                            nqp::create(List),List,'$!reified',list)
                         )
                     },
                     (die "Don't know how to process '$assoc' associativity")

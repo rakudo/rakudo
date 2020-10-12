@@ -167,7 +167,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::getattr(self,Map,'$!storage'),
             key
           )),
-          nqp::p6scalarfromcertaindesc($!descriptor),
+          $!descriptor.of,
           nqp::stmts(
             nqp::deletekey(
               nqp::getattr(self,Map,'$!storage'),

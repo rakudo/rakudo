@@ -167,7 +167,7 @@ my class Hash { # declared in BOOTSTRAP
             nqp::getattr(self,Map,'$!storage'),
             key
           )),
-          $!descriptor.default,
+          Nil,
           nqp::stmts(
             nqp::deletekey(
               nqp::getattr(self,Map,'$!storage'),
@@ -540,7 +540,7 @@ my class Hash { # declared in BOOTSTRAP
                 nqp::getattr(self,Map,'$!storage'),
                 (my str $WHICH = key.WHICH)
               )),
-              TValue,
+              Nil,
               nqp::stmts(
                 nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$WHICH),
                 nqp::getattr(value,Pair,'$!value')

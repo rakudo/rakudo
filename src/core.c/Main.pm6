@@ -288,11 +288,15 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     }
 
     sub find-candidates($capture) {
-        &main
-          # Get a list of candidates that match according to the dispatcher
-          .cando($capture)
-          # Sort out all that would fail due to binding
-          .grep: { !has-unexpected-named-arguments(.signature, $capture.hash) }
+        &main.^name eq 'Sub'
+          ?? &main
+               # Get a list of candidates that match according to the dispatcher
+               .cando($capture)
+               # Sort out all that would fail due to binding
+               .grep({
+                   !has-unexpected-named-arguments(.signature, $capture.hash)
+               })
+          !! die "MAIN must be a 'sub' to allow it to be called as a CLI handler"
     }
 
     # turn scalar values of nameds into 1 element arrays, return new capture

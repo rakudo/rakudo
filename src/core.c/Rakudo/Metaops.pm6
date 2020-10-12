@@ -160,9 +160,13 @@ class Rakudo::Metaops {
                   nqp::if(
                     nqp::iseq_s($assoc,"list"),
                     -> \list {               # generic list/listinfix op
-                        op(
-                          nqp::p6bindattrinvres(
-                            nqp::create(List),List,'$!reified',list)
+                        nqp::if(
+                          nqp::iseq_i(nqp::elems(list),2),
+                          op(nqp::atpos(list,0),nqp::atpos(list,1)),
+                          op(
+                            nqp::p6bindattrinvres(
+                              nqp::create(List),List,'$!reified',list)
+                          )
                         )
                     },
                     (die "Don't know how to process '$assoc' associativity")

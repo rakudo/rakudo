@@ -1554,12 +1554,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
                 # anything like "||foo" ?
                 if nqp::istype($ast,QAST::Op) && $ast.name eq '&prefix:<|>' {
-                    if $*W.lang-ver-before("e") {
-                        # no action for settings < "e"
-                    }
-                    elsif nqp::istype($ast[0],QAST::Op) && $ast[0].name eq '&prefix:<|>' {
-                        $ast := $ast[0][0];  # cut out the || ops
-                        $past.annotate('multislice', 1);
+                    if nqp::istype($ast[0],QAST::Op) && $ast[0].name eq '&prefix:<|>' {
+                        unless $*W.lang-ver-before("e") {
+                            $ast := $ast[0][0];  # cut out the || ops
+                            $past.annotate('multislice', 1);
+                        }
                     }
                 }
 

@@ -4139,21 +4139,21 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<o>   { <sym>  <O(|%concatenation)> }
 
     token infix:sym<&>   { <sym> <O(|%junctive_and, :iffy(1))> }
-    token infix:sym<(&)> { <sym> <O(|%junctive_and)> }
-    token infix:sym«∩»   { <sym> <O(|%junctive_and)> }
-    token infix:sym<(.)> { <sym> <O(|%junctive_and)> }
-    token infix:sym«⊍»   { <sym> <O(|%junctive_and)> }
+    token infix:sym<(&)> { <sym> <O(|%additive)> }
+    token infix:sym«∩»   { <sym> <O(|%additive)> }
+    token infix:sym<(.)> { <sym> <O(|%multiplicative)> }
+    token infix:sym«⊍»   { <sym> <O(|%multiplicative)> }
 
     token infix:sym<|>    { <sym> <O(|%junctive_or, :iffy(1))> }
     token infix:sym<^>    { <sym> <O(|%junctive_or, :iffy(1))> }
-    token infix:sym<(|)>  { <sym> <O(|%junctive_or)> }
-    token infix:sym«∪»    { <sym> <O(|%junctive_or)> }
-    token infix:sym<(^)>  { <sym> <O(|%junctive_or)> }
-    token infix:sym«⊖»    { <sym> <O(|%junctive_or)> }
-    token infix:sym<(+)>  { <sym> <O(|%junctive_or)> }
-    token infix:sym«⊎»    { <sym> <O(|%junctive_or)> }
-    token infix:sym<(-)>  { <sym> <O(|%junctive_or)> }
-    token infix:sym«∖»    { <sym> <O(|%junctive_or)> }
+    token infix:sym<(|)>  { <sym> <O(|%additive)> }
+    token infix:sym«∪»    { <sym> <O(|%additive)> }
+    token infix:sym<(^)>  { <sym> <O(|%additive)> }
+    token infix:sym«⊖»    { <sym> <O(|%additive)> }
+    token infix:sym<(+)>  { <sym> <O(|%additive)> }
+    token infix:sym«⊎»    { <sym> <O(|%additive)> }
+    token infix:sym<(-)>  { <sym> <O(|%additive)> }
+    token infix:sym«∖»    { <sym> <O(|%additive)> }
 
     token prefix:sym<let>  { <sym><.kok> <O(|%named_unary)> { $*W.give_cur_block_let($/) } }
     token prefix:sym<temp> { <sym><.kok> <O(|%named_unary)> { $*W.give_cur_block_temp($/) } }

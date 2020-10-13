@@ -154,6 +154,25 @@ Allows to override the NQP installation path. Defaults to C<[rakudo_executable_d
 
 =back
 
+=head1 WINDOWS PECULIARITIES
+
+=head 2 Non-console applications
+
+On Windows programs are compiled to either be I<console> applications or I<non-console>
+applications. I<Console> applications always open a console window. There is no straightforward way
+to suppress this window.
+
+Rakudo provides a separate set of executables suffixed with a C<'w'> (C<rakuw.exe>, C<rakudow.exe>,
+...) that are compiled as I<non-console> applications. These do not spawn this console window.
+
+B<WARNING> These I<non-console> applications do not have their C<STDIN>, C<STDOUT> and C<STDERR>
+attached. Trying to write to these handles will cause the application to abort.
+
+One can place the following snippet at the top of a program to have all its output be silently
+ignored instead.
+
+C<$*OUT=$*ERR=class {method print(*@args){}};>
+
 =head1 AUTHORS
 
 Written by the Rakudo contributors, see the CREDITS file.

@@ -390,6 +390,7 @@ sub configure_moar_backend {
           );
     }
     $nqp_config->{mingw_unicode} = '';
+    $nqp_config->{subsystem_windows_flag} = '';
 
     my @c_runner_libs;
     if ( $self->is_win ) {
@@ -409,6 +410,14 @@ sub configure_moar_backend {
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $nqp_config->{mingw_unicode} = '-municode';
         }
+
+        if ( $nqp_config->{'moar::ld'} eq 'link' ) {
+            $nqp_config->{subsystem_windows_flag} = '/subsystem:windows /entry:wmainCRTStartup';
+        }
+        else {
+            $nqp_config->{subsystem_windows_flag} = '--subsystem=windows --entry=wmainCRTStartup';
+        }
+
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
     }
     else {

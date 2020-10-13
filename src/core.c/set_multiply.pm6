@@ -6,7 +6,6 @@ proto sub infix:<(.)>(|) is pure {*}
 multi sub infix:<(.)>()               { bag()   }
 multi sub infix:<(.)>(Setty:D \a)     { a.Baggy }
 multi sub infix:<(.)>(Baggy:D \a)     { a       }  # also Mixy
-multi sub infix:<(.)>(Any \a)         { a.Bag   }
 
 multi sub infix:<(.)>(Setty:D \a, Setty:D \b) {
     nqp::if(
@@ -63,10 +62,15 @@ multi sub infix:<(.)>(Any \a, Any \b) {
     )
 }
 
-multi sub infix:<(.)>(**@p) {
-    my $result = @p.shift;
-    $result = $result (.) @p.shift while @p;
-    $result
+multi sub infix:<(.)>(+@p) {   # also Any
+    my $result := @p.shift;
+    if @p {
+        $result := $result (.) @p.shift while @p;
+        $result
+    }
+    else {
+        $result.Bag
+    }
 }
 
 # U+228D MULTISET MULTIPLICATION

@@ -5,7 +5,6 @@
 proto sub infix:<(^)>(|) is pure {*}
 multi sub infix:<(^)>()               { set() }
 multi sub infix:<(^)>(QuantHash:D \a) { a     } # Set/Bag/Mix
-multi sub infix:<(^)>(Any \a)         { a.Set } # also for Iterable/Map
 
 multi sub infix:<(^)>(Setty:D \a, Setty:D \b) {
     nqp::if(
@@ -225,7 +224,7 @@ multi sub infix:<(^)>(Any \a, Any \b) {
             !! a.Set (^) b.Set
 }
 
-multi sub infix:<(^)>(**@p) {
+multi sub infix:<(^)>(+@p) {   # also Any
 
     # positions / size in minmax info
     my constant COUNT   = 0;

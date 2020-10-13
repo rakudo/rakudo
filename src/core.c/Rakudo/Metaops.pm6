@@ -84,7 +84,7 @@ class Rakudo::Metaops {
           nqp::atkey($mappers,$where),
           nqp::if(
             nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0)
-              || nqp::iseq_s($assoc,'left') || &op.prec("set"),
+              || nqp::iseq_s($assoc,'left'),
             -> \list {                   # generic left-assoc op
                 nqp::if(
                   nqp::iseq_i(nqp::elems(list),2),

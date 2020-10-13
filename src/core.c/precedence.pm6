@@ -13,9 +13,7 @@ BEGIN {
     my Mu $replication_xx   := nqp::hash('prec', 's=', 'assoc', 'left', 'thunky', 't.');
     my Mu $concatenation    := nqp::hash('prec', 'r=', 'assoc', 'list');
     my Mu $junctive_and     := nqp::hash('prec', 'q=', 'assoc', 'list');
-    my Mu $set_junctive_and := nqp::hash('prec', 'q=', 'assoc', 'list', 'set', 1);
     my Mu $junctive_or      := nqp::hash('prec', 'p=', 'assoc', 'list');
-    my Mu $set_junctive_or  := nqp::hash('prec', 'p=', 'assoc', 'list', 'set', 1);
     my Mu $structural       := nqp::hash('prec', 'n=', 'assoc', 'non');
     my Mu $chaining         := nqp::hash('prec', 'm=', 'assoc', 'chain', 'iffy', 1, 'pasttype', 'chain');
     my Mu $tight_and        := nqp::hash('prec', 'l=', 'assoc', 'list', 'thunky', '.t');
@@ -84,15 +82,15 @@ BEGIN {
     trait_mod:<is>(&infix:<~>, :prec($concatenation));
 
     trait_mod:<is>(&infix:<&>,   :prec($junctive_and));
-    trait_mod:<is>(&infix:<(&)>, :prec($set_junctive_and));
-    trait_mod:<is>(&infix:<(.)>, :prec($set_junctive_and));
+    trait_mod:<is>(&infix:<(&)>, :prec($junctive_and));
+    trait_mod:<is>(&infix:<(.)>, :prec($junctive_and));
 
     trait_mod:<is>(&infix:<|>,   :prec($junctive_or));
     trait_mod:<is>(&infix:<^>,   :prec($junctive_or));
-    trait_mod:<is>(&infix:<(+)>, :prec($set_junctive_or));
-    trait_mod:<is>(&infix:<(|)>, :prec($set_junctive_or));
-    trait_mod:<is>(&infix:<(-)>, :prec($set_junctive_or));
-    trait_mod:<is>(&infix:<(^)>, :prec($set_junctive_or));
+    trait_mod:<is>(&infix:<(+)>, :prec($junctive_or));
+    trait_mod:<is>(&infix:<(|)>, :prec($junctive_or));
+    trait_mod:<is>(&infix:<(-)>, :prec($junctive_or));
+    trait_mod:<is>(&infix:<(^)>, :prec($junctive_or));
 
     trait_mod:<is>(&infix:<==>,     :prec($chaining));
     trait_mod:<is>(&infix:<!=>,     :prec($chaining));

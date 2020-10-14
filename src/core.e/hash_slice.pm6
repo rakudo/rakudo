@@ -108,7 +108,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             sub keys-to-list(@other, \key) {
                 my $list := nqp::clone(nqp::getattr(@other,List,'$!reified'));
                 nqp::push($list,key);
-                $list
+                $list.List
             }
 
             # determine the processor to be used
@@ -226,12 +226,16 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 elsif $next-dim < $dims {
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
-                        PROCESS-KEY-recursively(
-                          SELF.AT-KEY($_),
-                          nqp::atpos($indices,$next-dim),
-                          $next-dim,
-                          @keys
-                        ) for SELF.keys;  # NOTE: not reproducible!
+                        for SELF.keys {  # NOTE: not reproducible!
+                            nqp::push(nqp::getattr(@keys,List,'$!reified'),$_);
+                            PROCESS-KEY-recursively(
+                              SELF.AT-KEY($_),
+                              nqp::atpos($indices,$next-dim),
+                              $next-dim,
+                              @keys
+                            );
+                            nqp::pop(nqp::getattr(@keys,List,'$!reified'));
+                        }
                     }
                     else  {
                         nqp::push(nqp::getattr(@keys,List,'$!reified'),idx);

@@ -694,11 +694,10 @@ Consider using a block if any of these are necessary for your mapping code."
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            nqp::if(
-              nqp::isconcrete($!value-buffer),
-              nqp::setelems($!value-buffer,0),
-              ($!value-buffer := nqp::create(IterationBuffer))
-            );
+            nqp::isconcrete($!value-buffer)
+              ?? nqp::setelems($!value-buffer,0)
+              !! ($!value-buffer := nqp::create(IterationBuffer));
+
             my int $redo = 1;
             my $result;
 
@@ -1489,19 +1488,16 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method sort(|) is nodal {*}
     multi method sort() {
-        nqp::if(
-          nqp::eqaddr(
-            self.iterator.push-until-lazy(
-              my \buf := nqp::create(IterationBuffer)),
-            IterationEnd
-          ),
-          Seq.new(
-            Rakudo::Iterator.ReifiedList(
-              Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
-            )
-          ),
-          X::Cannot::Lazy.new(:action<sort>).throw
-        )
+        nqp::eqaddr(
+          self.iterator.push-until-lazy(
+            my \buf := nqp::create(IterationBuffer)),
+          IterationEnd
+        ) ?? Seq.new(
+               Rakudo::Iterator.ReifiedList(
+                 Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
+               )
+             )
+          !! X::Cannot::Lazy.new(:action<sort>).throw
     }
     multi method sort(&by) {
         nqp::stmts(
@@ -1600,13 +1596,11 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method unique() { Seq.new(Unique.new(self)) }
 
     multi method unique( :&as!, :&with! ) {
-        nqp::if(
-          nqp::eqaddr(&with,&[===]), # use optimized version
-          self.unique(:&as),
-          Seq.new(
-            Rakudo::Iterator.UniqueRepeatedAsWith(self.iterator,&as,&with,1)
-          )
-        )
+        nqp::eqaddr(&with,&[===]) # use optimized version
+          ?? self.unique(:&as)
+          !! Seq.new(
+               Rakudo::Iterator.UniqueRepeatedAsWith(self.iterator,&as,&with,1)
+             )
     }
 
     my class Unique-As does Iterator {
@@ -1650,11 +1644,9 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method unique( :&as! ) { Seq.new(Unique-As.new(self,&as)) }
 
     multi method unique( :&with! ) {
-        nqp::if(
-          nqp::eqaddr(&with,&[===]), # use optimized version
-          self.unique,
-          Seq.new(Rakudo::Iterator.UniqueRepeatedWith(self.iterator,&with,1))
-        )
+        nqp::eqaddr(&with,&[===]) # use optimized version
+          ?? self.unique
+          !! Seq.new(Rakudo::Iterator.UniqueRepeatedWith(self.iterator,&with,1))
     }
 
     proto method repeated(|) is nodal {*}
@@ -1694,13 +1686,11 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method repeated() { Seq.new(Repeated.new(self)) }
 
     multi method repeated( :&as!, :&with! ) {
-        nqp::if(
-          nqp::eqaddr(&with,&[===]), # use optimized version
-          self.repeated(:&as),
-          Seq.new(
-            Rakudo::Iterator.UniqueRepeatedAsWith(self.iterator,&as,&with,0)
-          )
-        )
+        nqp::eqaddr(&with,&[===]) # use optimized version
+          ?? self.repeated(:&as)
+          !! Seq.new(
+               Rakudo::Iterator.UniqueRepeatedAsWith(self.iterator,&as,&with,0)
+             )
     }
 
     class Repeated-As does Iterator {
@@ -1739,11 +1729,9 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method repeated( :&as! ) { Seq.new(Repeated-As.new(self,&as)) }
 
     multi method repeated( :&with! ) {
-        nqp::if(
-          nqp::eqaddr(&with,&[===]), # use optimized version
-          self.repeated,
-          Seq.new(Rakudo::Iterator.UniqueRepeatedWith(self.iterator,&with,0))
-        )
+        nqp::eqaddr(&with,&[===]) # use optimized version
+          ?? self.repeated
+          !! Seq.new(Rakudo::Iterator.UniqueRepeatedWith(self.iterator,&with,0))
     }
 
     proto method squish(|) is nodal {*}
@@ -1936,11 +1924,9 @@ Consider using a block if any of these are necessary for your mapping code."
     proto method head(|) {*}
     multi method head(Any:U: |c) { (self,).head(|c) }
     multi method head(Any:D:) is raw {
-        nqp::if(
-          nqp::eqaddr((my $pulled := self.iterator.pull-one),IterationEnd),
-          Nil,
-          $pulled
-        )
+        nqp::eqaddr((my $pulled := self.iterator.pull-one),IterationEnd)
+          ?? Nil
+          !! $pulled
     }
     multi method head(Any:D: Callable:D $w) {
         Seq.new(
@@ -1954,14 +1940,11 @@ Consider using a block if any of these are necessary for your mapping code."
     proto method tail(|) {*}
     multi method tail(Any:U: |c) { (self,).tail(|c) }
     multi method tail(Any:D:) is raw {
-        nqp::if(
-          nqp::eqaddr((my $pulled :=
-            Rakudo::Iterator.LastValue(self.iterator,'tail')),
-            IterationEnd
-          ),
-          Nil,
-          $pulled
-        )
+        nqp::eqaddr((my $pulled :=
+          Rakudo::Iterator.LastValue(self.iterator,'tail')),
+          IterationEnd
+        ) ?? Nil
+          !! $pulled
     }
     multi method tail(Any:D: $n) {
         Seq.new(
@@ -1988,11 +1971,9 @@ Consider using a block if any of these are necessary for your mapping code."
     }
     multi method skip(Whatever) { Seq.new(Rakudo::Iterator.Empty) }
     multi method skip(Callable:D $w) {
-       nqp::if(
-         nqp::isgt_i((my $tail := -($w(0).Int)),0),
-         self.tail($tail),
-         Seq.new(Rakudo::Iterator.Empty)
-       )
+       nqp::isgt_i((my $tail := -($w(0).Int)),0)
+         ?? self.tail($tail)
+         !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method skip(Int() $n) {
         my $iter := self.iterator;
@@ -2097,10 +2078,18 @@ proto sub infix:<min>(|) is pure {*}
 multi sub infix:<min>(Mu:D \a, Mu:U) { a }
 multi sub infix:<min>(Mu:U, Mu:D \b) { b }
 multi sub infix:<min>(Mu:D \a, Mu:D \b) { (a cmp b) < 0 ?? a !! b }
-multi sub infix:<min>(Int:D \a, Int:D \b) { nqp::if(nqp::islt_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b)), 0), a, b) }
-multi sub infix:<min>(int   \a, int   \b) { nqp::if(nqp::islt_i(nqp::cmp_i(a, b), 0), a, b) }
-multi sub infix:<min>(Num:D \a, Num:D \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
-multi sub infix:<min>(num   \a, num   \b) { nqp::if(nqp::islt_i(nqp::cmp_n(a, b), 0), a, b) }
+multi sub infix:<min>(Int:D \a, Int:D \b) {
+    nqp::islt_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b)), 0) ?? a !! b
+}
+multi sub infix:<min>(int   \a, int   \b) {
+    nqp::islt_i(nqp::cmp_i(a, b), 0) ?? a !! b
+}
+multi sub infix:<min>(Num:D \a, Num:D \b) {
+    nqp::islt_i(nqp::cmp_n(a, b), 0) ?? a !! b
+}
+multi sub infix:<min>(num   \a, num   \b) {
+    nqp::islt_i(nqp::cmp_n(a, b), 0) ?? a !! b
+}
 multi sub infix:<min>(+args is raw) { args.min }
 
 proto sub min(|) is pure {*}
@@ -2111,10 +2100,18 @@ proto sub infix:<max>(|) is pure {*}
 multi sub infix:<max>(Mu:D \a, Mu:U) { a }
 multi sub infix:<max>(Mu:U, Mu:D \b) { b }
 multi sub infix:<max>(Mu:D \a, Mu:D \b) { (a cmp b) > 0 ?? a !! b }
-multi sub infix:<max>(Int:D \a, Int:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b)), 0), a, b) }
-multi sub infix:<max>(int   \a, int   \b) { nqp::if(nqp::isgt_i(nqp::cmp_i(a, b), 0), a, b) }
-multi sub infix:<max>(Num:D \a, Num:D \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
-multi sub infix:<max>(num   \a, num   \b) { nqp::if(nqp::isgt_i(nqp::cmp_n(a, b), 0), a, b) }
+multi sub infix:<max>(Int:D \a, Int:D \b) {
+    nqp::isgt_i(nqp::cmp_I(nqp::decont(a), nqp::decont(b)), 0) ?? a !! b
+}
+multi sub infix:<max>(int   \a, int   \b) {
+    nqp::isgt_i(nqp::cmp_i(a, b), 0) ?? a !! b
+}
+multi sub infix:<max>(Num:D \a, Num:D \b) {
+    nqp::isgt_i(nqp::cmp_n(a, b), 0) ?? a !! b
+}
+multi sub infix:<max>(num   \a, num   \b) {
+    nqp::isgt_i(nqp::cmp_n(a, b), 0) ?? a !! b
+}
 multi sub infix:<max>(+args) { args.max }
 
 proto sub max(|) is pure {*}

@@ -27,10 +27,9 @@ my class IO::CatHandle is IO::Handle {
     method !SET-SELF (
         @handles, &!on-switch, $!chomp, $!nl-in, $encoding, $bin
     ) {
-        nqp::if(
-          $bin,
-          nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
-          $!encoding = $encoding || 'utf8');
+        $bin
+          ?? nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw
+          !! ($!encoding = $encoding || 'utf8');
 
         @handles.elems; # reify
         $!handles := nqp::getattr(@handles || [], List, '$!reified');
@@ -351,17 +350,17 @@ my class IO::CatHandle is IO::Handle {
         "{self.^name}({self.opened ?? "opened on {$.path.gist}" !! 'closed'})"
     }
     multi method Str (::?CLASS:D:) {
-        nqp::if($!active-handle, $.path.Str, '<closed IO::CatHandle>')
+        $!active-handle ?? $.path.Str !! '<closed IO::CatHandle>'
     }
     method IO (::?CLASS:D:) {
-        nqp::if($!active-handle, $!active-handle.IO, Nil)
+        $!active-handle ?? $!active-handle.IO !! Nil
     }
     method path (::?CLASS:D:) {
-        nqp::if($!active-handle, $!active-handle.path, Nil)
+        $!active-handle ?? $!active-handle.path !! Nil
     }
     method opened(::?CLASS:D: --> Bool:D) { nqp::hllbool(nqp::istrue($!active-handle)) }
     method lock(::?CLASS:D: |c) {
-        nqp::if($!active-handle, $!active-handle.lock(|c), Nil)
+        $!active-handle ?? $!active-handle.lock(|c) !! Nil
     }
     method nl-in (::?CLASS:D:) is rw {
         Proxy.new:
@@ -372,19 +371,19 @@ my class IO::CatHandle is IO::Handle {
           })
     }
     method seek(::?CLASS:D: |c) {
-        nqp::if($!active-handle, $!active-handle.seek(|c), Nil)
+        $!active-handle ?? $!active-handle.seek(|c) !! Nil
     }
     method tell(::?CLASS:D: --> Int:D) {
-        nqp::if($!active-handle, $!active-handle.tell, Nil)
+        $!active-handle ?? $!active-handle.tell !! Nil
     }
     method t (::?CLASS:D: --> Bool:D) {
-        nqp::if($!active-handle, $!active-handle.t, False)
+        $!active-handle ?? $!active-handle.t !! False
     }
     method unlock(::?CLASS:D:) {
-        nqp::if($!active-handle, $!active-handle.unlock, Nil)
+        $!active-handle ?? $!active-handle.unlock !! Nil
     }
     method native-descriptor (::?CLASS:D: --> Int:D) {
-        nqp::if($!active-handle, $!active-handle.native-descriptor, Nil)
+        $!active-handle ?? $!active-handle.native-descriptor !! Nil
     }
     method open (::?CLASS:D: --> ::?CLASS:D) {
         # The idea behind cat handle's open is to fake .open in code that

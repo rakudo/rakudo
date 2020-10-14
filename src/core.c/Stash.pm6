@@ -4,13 +4,11 @@ my class Stash { # declared in BOOTSTRAP
 
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
-        nqp::if(
-          nqp::existskey(storage,$key),
-          nqp::atkey(storage,$key),
-          nqp::p6scalarfromdesc(
-            ContainerDescriptor::BindHashPos.new(Mu, self, $key)
-          )
-        )
+        nqp::existskey(storage,$key)
+          ?? nqp::atkey(storage,$key)
+          !! nqp::p6scalarfromdesc(
+               ContainerDescriptor::BindHashPos.new(Mu, self, $key)
+             )
     }
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback!) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');

@@ -22,9 +22,11 @@ my class WalkList is List {
                     .rethrow unless $!is-quiet;
                     return Failure.new($_)
                 }
-                nqp::if(nqp::eqaddr((my $method := nqp::decont($!wl-iterator.pull-one)), IterationEnd),
-                    IterationEnd,
-                    $!invocant.$method(|$args))
+                nqp::eqaddr(
+                  (my $method := nqp::decont($!wl-iterator.pull-one)),
+                  IterationEnd
+                ) ?? IterationEnd
+                  !! $!invocant.$method(|$args)
             }
         }.new(self))
     }

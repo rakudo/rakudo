@@ -10,14 +10,12 @@ multi sub infix:<(-)>(BagHash:D \a)   { a.Bag }
 multi sub infix:<(-)>(MixHash:D \a)   { a.Mix }
 
 multi sub infix:<(-)>(Setty:D \a, Setty:D \b) {
-    nqp::if(
-      (my $araw := a.RAW-HASH) && nqp::elems($araw)
-        && (my $braw := b.RAW-HASH) && nqp::elems($braw),
-      nqp::create(a.Setty).SET-SELF(             # both have elems
-        Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
-      ),
-      a                                          # no elems in a or b
-    )
+    (my $araw := a.RAW-HASH) && nqp::elems($araw)
+      && (my $braw := b.RAW-HASH) && nqp::elems($braw)
+      ?? nqp::create(a.Setty).SET-SELF(             # both have elems
+           Rakudo::QuantHash.SUB-SET-FROM-SET($araw, $braw)
+         )
+      !! a                                          # no elems in a or b
 }
 multi sub infix:<(-)>(Setty:D \a, Map:D \b) {
     nqp::if(

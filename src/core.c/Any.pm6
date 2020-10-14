@@ -239,19 +239,15 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{pos.^name}' as an index";
     }
     multi method EXISTS-POS(Any:D: \one, \two --> Bool:D) is raw {
-        nqp::if(
-          nqp::istype((my $one := self.AT-POS(one)),Failure),
-          False,
-          $one.EXISTS-POS(two)
-        )
+        nqp::istype((my $one := self.AT-POS(one)),Failure)
+          ?? False
+          !! $one.EXISTS-POS(two)
     }
     multi method EXISTS-POS(Any:D: \one, \two,\three --> Bool:D) is raw {
-        nqp::if(
-          nqp::istype((my $one := self.AT-POS(one)),Failure)
-            || nqp::istype((my $two := $one.AT-POS(two)),Failure),
-          False,
-          $two.EXISTS-POS(three)
-        )
+        nqp::istype((my $one := self.AT-POS(one)),Failure)
+          || nqp::istype((my $two := $one.AT-POS(two)),Failure)
+          ?? False
+          !! $two.EXISTS-POS(three)
     }
     multi method EXISTS-POS(Any:D: **@indices --> Bool:D) {
         my $final    := @indices.pop;  # also reifies

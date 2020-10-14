@@ -170,7 +170,7 @@ multi sub spurt(IO() $path, \text        ) { $path.spurt(text, :enc<utf8>) }
 
 proto sub chdir(|) {*}
 multi sub chdir(|c) {
-    nqp::if(nqp::istype(($_ := $*CWD.chdir(|c)), Failure), $_, $*CWD = $_)
+    nqp::istype(($_ := $*CWD.chdir(|c)),Failure) ?? $_ !! ($*CWD = $_)
 }
 
 proto sub indir($, $, *%) {*}

@@ -241,11 +241,9 @@ my class Array { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(Array: :$shape! --> Array:D) {
-        nqp::if(
-          nqp::isconcrete($shape),
-          set-shape(self,$shape),
-          self!difficult-shape($shape)
-        )
+        nqp::isconcrete($shape)
+          ?? set-shape(self,$shape)
+          !! self!difficult-shape($shape)
     }
     multi method new(Array: --> Array:D) {
         nqp::create(self)
@@ -1071,15 +1069,13 @@ my class Array { # declared in BOOTSTRAP
         )
     }
     method !splice-size-fail(Array:D: $got,$offset) {
-        nqp::if(
-          $offset > self.elems,
-          self!splice-offset-fail($offset),
-          X::OutOfRange.new(
-            :what('Size argument to splice'),
-            :$got,
-            :range("0..^{self.elems - $offset}")
-          ).throw
-        )
+        $offset > self.elems
+          ?? self!splice-offset-fail($offset)
+          !! X::OutOfRange.new(
+               :what('Size argument to splice'),
+               :$got,
+               :range("0..^{self.elems - $offset}")
+             ).throw
     }
     #------ splice(offset,size,array) candidates
 

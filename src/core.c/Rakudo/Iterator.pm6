@@ -30,11 +30,9 @@ class Rakudo::Iterator {
             )
         }
         method new(\blob) {
-            nqp::if(
-              nqp::isgt_i(nqp::elems(blob),0),
-              nqp::create(self)!SET-SELF(blob),
-              Rakudo::Iterator.Empty    # nothing to iterate
-            )
+            nqp::isgt_i(nqp::elems(blob),0)
+              ?? nqp::create(self)!SET-SELF(blob)
+              !! Rakudo::Iterator.Empty    # nothing to iterate
         }
 
         # We can provide a generic push-all to the iterator as the
@@ -1117,11 +1115,9 @@ class Rakudo::Iterator {
         method is-lazy() { nqp::hllbool($!lazy) }
     }
     method CrossIterables(@iterables) {
-        nqp::if(
-          nqp::isgt_i(@iterables.elems,0),  # reifies
-          CrossIterables.new(@iterables),
-          Rakudo::Iterator.Empty
-        )
+        nqp::isgt_i(@iterables.elems,0)  # reifies
+          ?? CrossIterables.new(@iterables)
+          !! Rakudo::Iterator.Empty
     }
 
     # Return an iterator that will cross the given iterables and map
@@ -1390,14 +1386,12 @@ class Rakudo::Iterator {
     # Return an iterator that will cross the given iterables and operator.
     # Basically the functionality of @a Z=> @b, with &[=>] being the op.
     method CrossIterablesOp(@iterables,\op) {
-        nqp::if(
-          nqp::eqaddr(op,&infix:<,>),
-          Rakudo::Iterator.CrossIterables(@iterables),
-          Rakudo::Iterator.CrossIterablesMap(
-            @iterables,
-            Rakudo::Metaops.MapperForOp(op)
-          )
-        )
+        nqp::eqaddr(op,&infix:<,>)
+          ?? Rakudo::Iterator.CrossIterables(@iterables)
+          !! Rakudo::Iterator.CrossIterablesMap(
+               @iterables,
+               Rakudo::Metaops.MapperForOp(op)
+             )
     }
 
     # Returns an iterator that handles all properties of a C-style loop with
@@ -1783,12 +1777,10 @@ class Rakudo::Iterator {
         has $!source;
         has &!callable;
         method pull-one() is raw {
-            nqp::if(
-              nqp::eqaddr((my \got := $!source.pull-one),IterationEnd)
-                && (&!callable()||1),
-              IterationEnd,
-              got
-            )
+            nqp::eqaddr((my \got := $!source.pull-one),IterationEnd)
+              && (&!callable() || 1)
+              ?? IterationEnd
+              !! got
         }
         method sink-all(--> IterationEnd) {
             $!source.sink-all;
@@ -2120,11 +2112,9 @@ class Rakudo::Iterator {
         method new(\f,\t) { nqp::create(self)!SET-SELF(f,t) }
 
         method pull-one() {
-            nqp::if(
-              nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last),
-              $!i,
-              IterationEnd
-            )
+            nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last)
+              ?? $!i
+              !! IterationEnd
         }
         method skip-one() { nqp::isle_i(($!i = nqp::add_i($!i,1)),$!last) }
         method push-exactly(\target, int $batch-size) {
@@ -2535,11 +2525,9 @@ class Rakudo::Iterator {
     # keys of a Map / Hash.  Takes a Map / Hash as the only parameter.
     my class Mappy-keys does Rakudo::Iterator::Mappy {
         method pull-one() {
-            nqp::if(
-              $!iter,
-              nqp::iterkey_s(nqp::shift($!iter)),
-              IterationEnd
-            )
+            $!iter
+              ?? nqp::iterkey_s(nqp::shift($!iter))
+              !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             nqp::while(
@@ -2562,11 +2550,9 @@ class Rakudo::Iterator {
     # values of a Map / Hash.  Takes a Map / Hash as the only parameter.
     my class Mappy-values does Mappy {
         method pull-one() is raw {
-            nqp::if(
-              $!iter,
-              nqp::iterval(nqp::shift($!iter)),
-              IterationEnd
-            )
+            $!iter
+              ?? nqp::iterval(nqp::shift($!iter))
+              !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
@@ -3176,11 +3162,9 @@ class Rakudo::Iterator {
             )
         }
         method new(Mu \value,\times) {
-            nqp::if(
-              times > 0,
-              nqp::create(self)!SET-SELF(value,times),
-              Rakudo::Iterator.Empty
-            )
+            times > 0
+              ?? nqp::create(self)!SET-SELF(value,times)
+              !! Rakudo::Iterator.Empty
         }
         method pull-one() is raw {
             nqp::if(
@@ -3219,11 +3203,9 @@ class Rakudo::Iterator {
         method new(\iter) { nqp::create(self)!SET-SELF(iter) }
 
         method pull-one() is raw {
-            nqp::if(
-              nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd),
-              IterationEnd,
-              Pair.new(($!key = nqp::add_i($!key,1)),$pulled)
-            )
+            nqp::eqaddr((my $pulled := $!iter.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! Pair.new(($!key = nqp::add_i($!key,1)),$pulled)
         }
         method push-all(\target --> IterationEnd) {
             my $pulled;
@@ -3841,11 +3823,9 @@ class Rakudo::Iterator {
             )
         }
         method new(\iterator,\cycle,\partial) {
-            nqp::if(
-              nqp::istype(cycle,Iterable),
-              nqp::create(self)!SET-SELF(iterator,cycle,partial),
-              Rakudo::Iterator.Batch(iterator,cycle,partial)
-            )
+            nqp::istype(cycle,Iterable)
+              ?? nqp::create(self)!SET-SELF(iterator,cycle,partial)
+              !! Rakudo::Iterator.Batch(iterator,cycle,partial)
         }
         method pull-one() is raw {
           nqp::if(
@@ -4055,11 +4035,9 @@ class Rakudo::Iterator {
         method is-lazy() { nqp::hllbool($!lazy) }
     }
     method RoundrobinIterables(@iterables) {
-        nqp::if(
-          nqp::isgt_i(@iterables.elems,0),  # reifies
-          RoundrobinIterables.new(@iterables),
-          Rakudo::Iterator.Empty,
-        )
+        nqp::isgt_i(@iterables.elems,0)  # reifies
+          ?? RoundrobinIterables.new(@iterables)
+          !! Rakudo::Iterator.Empty
     }
 
     # Return an iterator from a source iterator that is supposed to
@@ -4848,11 +4826,9 @@ class Rakudo::Iterator {
         method is-lazy() { nqp::hllbool($!lazy) }
     }
     method ZipIterables(@iterables) {
-        nqp::if(
-          nqp::isgt_i(@iterables.elems,0),  # reifies
-          ZipIterables.new(@iterables),
-          Rakudo::Iterator.Empty
-        )
+        nqp::isgt_i(@iterables.elems,0)  # reifies
+          ?? ZipIterables.new(@iterables)
+          !! Rakudo::Iterator.Empty
     }
 
     # Same as ZipIterablesOp, but takes a mapper Callable instead of
@@ -4935,14 +4911,12 @@ class Rakudo::Iterator {
     # Return an iterator that will zip the given iterables and operator.
     # Basically the functionality of @a Z=> @b, with &[=>] being the op.
     method ZipIterablesOp(@iterables,\op) {
-        nqp::if(
-          nqp::eqaddr(op,&infix:<,>),
-          Rakudo::Iterator.ZipIterables(@iterables),
-          Rakudo::Iterator.ZipIterablesMap(
-            @iterables,
-            Rakudo::Metaops.MapperForOp(op)
-          )
-        )
+        nqp::eqaddr(op,&infix:<,>)
+          ?? Rakudo::Iterator.ZipIterables(@iterables)
+          !! Rakudo::Iterator.ZipIterablesMap(
+               @iterables,
+               Rakudo::Metaops.MapperForOp(op)
+             )
     }
 }
 

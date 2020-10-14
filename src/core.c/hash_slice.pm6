@@ -13,13 +13,13 @@ multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is raw) is raw {
     SELF.BIND-KEY(key, $BIND);
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$delete! ) is raw {
-    nqp::if($delete,SELF.DELETE-KEY(key),SELF.AT-KEY(key))
+    $delete ?? SELF.DELETE-KEY(key) !! SELF.AT-KEY(key)
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$delete!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'delete', $delete, %other )
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$exists! ) is raw {
-    nqp::if($exists,SELF.EXISTS-KEY(key),!SELF.EXISTS-KEY(key))
+    $exists ?? SELF.EXISTS-KEY(key) !! !SELF.EXISTS-KEY(key)
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$exists!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'exists', $exists, %other )

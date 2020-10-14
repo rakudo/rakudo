@@ -8,13 +8,11 @@ multi sub infix:<(.)>(Setty:D \a)     { a.Baggy }
 multi sub infix:<(.)>(Baggy:D \a)     { a       }  # also Mixy
 
 multi sub infix:<(.)>(Setty:D \a, Setty:D \b) {
-    nqp::if(
-      (my $elems := a.Bag.RAW-HASH) && nqp::elems($elems),
-      nqp::create(a.WHAT.Baggy).SET-SELF(
-        Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($elems,b.RAW-HASH),
-      ),
-      a.Baggy
-    )
+    (my $elems := a.Bag.RAW-HASH) && nqp::elems($elems)
+      ?? nqp::create(a.WHAT.Baggy).SET-SELF(
+           Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($elems,b.RAW-HASH),
+         )
+      !! a.Baggy
 }
 
 multi sub infix:<(.)>(Mixy:D \a, Mixy:D \b) {
@@ -35,14 +33,12 @@ multi sub infix:<(.)>(Setty:D \a, Mixy:D  \b) { infix:<(.)>(a.Mixy, b) }
 multi sub infix:<(.)>(Baggy:D \a, Mixy:D  \b) { infix:<(.)>(a.Mixy, b) }
 multi sub infix:<(.)>(Any     \a, Mixy:D  \b) { infix:<(.)>(a.Mix, b) }
 multi sub infix:<(.)>(Baggy:D \a, Baggy:D \b) {
-    nqp::if(
-      (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW(a.RAW-HASH))
-        && nqp::elems($elems),
-      nqp::create(a.WHAT).SET-SELF(
-        Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,b.RAW-HASH),
-      ),
-      a
-    )
+    (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW(a.RAW-HASH))
+      && nqp::elems($elems)
+      ?? nqp::create(a.WHAT).SET-SELF(
+           Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,b.RAW-HASH),
+         )
+      !! a
 }
 
 multi sub infix:<(.)>(Any $, Failure:D \b) { b.throw }

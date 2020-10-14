@@ -436,7 +436,7 @@ for $*IN.lines -> $line {
         }
         proto method grab(|) {*}
         multi method grab(#type#array:D: --> #type#) {
-            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+            nqp::elems(self) ?? self.GRAB_ONE !! Nil
         }
         multi method grab(#type#array:D: Callable:D $calculate --> #type#) {
             self.grab($calculate(nqp::elems(self)))
@@ -476,11 +476,11 @@ for $*IN.lines -> $line {
             }
         }
         multi method grab(#type#array:D: \count --> Seq:D) {
-            Seq.new(nqp::if(
-              nqp::elems(self),
-              GrabN.new(self,count),
-              Rakudo::Iterator.Empty
-            ))
+            Seq.new(
+              nqp::elems(self)
+                ?? GrabN.new(self,count)
+                !! Rakudo::Iterator.Empty
+            )
         }
 
         method GRAB_ONE(#type#array:D: --> #type#) is implementation-detail {

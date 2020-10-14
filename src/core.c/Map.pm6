@@ -379,18 +379,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     # Copy the contents of a Mappy thing that's not in a container.
     method !STORE_MAP_DECONT(\map --> Map:D) {
-        nqp::if(
-          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
-          self!STORE_MAP_FROM_MAP_DECONT(map),
-          self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
-        )
+        nqp::eqaddr(map.keyof,Str(Any))  # is it not an Object Hash?
+          ?? self!STORE_MAP_FROM_MAP_DECONT(map)
+          !! self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
     }
     method !STORE_MAP(\map --> Map:D) {
-        nqp::if(
-          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
-          self!STORE_MAP_FROM_MAP(map),
-          self!STORE_MAP_FROM_OBJECT_HASH(map)
-        )
+        nqp::eqaddr(map.keyof,Str(Any))  # is it not an Object Hash?
+          ?? self!STORE_MAP_FROM_MAP(map)
+          !! self!STORE_MAP_FROM_OBJECT_HASH(map)
     }
 
     # Store the contents of an iterator into the Map

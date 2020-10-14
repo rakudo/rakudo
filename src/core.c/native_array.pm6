@@ -93,7 +93,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-10-14T21:00:54+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
@@ -482,7 +482,7 @@ my class array does Iterable {
         }
         proto method grab(|) {*}
         multi method grab(strarray:D: --> str) {
-            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+            nqp::elems(self) ?? self.GRAB_ONE !! Nil
         }
         multi method grab(strarray:D: Callable:D $calculate --> str) {
             self.grab($calculate(nqp::elems(self)))
@@ -522,11 +522,11 @@ my class array does Iterable {
             }
         }
         multi method grab(strarray:D: \count --> Seq:D) {
-            Seq.new(nqp::if(
-              nqp::elems(self),
-              GrabN.new(self,count),
-              Rakudo::Iterator.Empty
-            ))
+            Seq.new(
+              nqp::elems(self)
+                ?? GrabN.new(self,count)
+                !! Rakudo::Iterator.Empty
+            )
         }
 
         method GRAB_ONE(strarray:D: --> str) is implementation-detail {
@@ -557,7 +557,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-10-14T21:00:54+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
@@ -946,7 +946,7 @@ my class array does Iterable {
         }
         proto method grab(|) {*}
         multi method grab(intarray:D: --> int) {
-            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+            nqp::elems(self) ?? self.GRAB_ONE !! Nil
         }
         multi method grab(intarray:D: Callable:D $calculate --> int) {
             self.grab($calculate(nqp::elems(self)))
@@ -986,11 +986,11 @@ my class array does Iterable {
             }
         }
         multi method grab(intarray:D: \count --> Seq:D) {
-            Seq.new(nqp::if(
-              nqp::elems(self),
-              GrabN.new(self,count),
-              Rakudo::Iterator.Empty
-            ))
+            Seq.new(
+              nqp::elems(self)
+                ?? GrabN.new(self,count)
+                !! Rakudo::Iterator.Empty
+            )
         }
 
         method GRAB_ONE(intarray:D: --> int) is implementation-detail {
@@ -1073,7 +1073,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2020-06-02T19:28:53+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-10-14T21:00:54+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
@@ -1462,7 +1462,7 @@ my class array does Iterable {
         }
         proto method grab(|) {*}
         multi method grab(numarray:D: --> num) {
-            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+            nqp::elems(self) ?? self.GRAB_ONE !! Nil
         }
         multi method grab(numarray:D: Callable:D $calculate --> num) {
             self.grab($calculate(nqp::elems(self)))
@@ -1502,11 +1502,11 @@ my class array does Iterable {
             }
         }
         multi method grab(numarray:D: \count --> Seq:D) {
-            Seq.new(nqp::if(
-              nqp::elems(self),
-              GrabN.new(self,count),
-              Rakudo::Iterator.Empty
-            ))
+            Seq.new(
+              nqp::elems(self)
+                ?? GrabN.new(self,count)
+                !! Rakudo::Iterator.Empty
+            )
         }
 
         method GRAB_ONE(numarray:D: --> num) is implementation-detail {
@@ -1605,7 +1605,7 @@ my class array does Iterable {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2020-10-14T21:05:27+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -1772,14 +1772,12 @@ my class array does Iterable {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            nqp::if(
-              EQV_DIMENSIONS(self,from),
-              NATCPY(self,from),
-              X::Assignment::ArrayShapeMismatch.new(
-                source-shape => from.shape,
-                target-shape => self.shape
-              ).throw
-            )
+            EQV_DIMENSIONS(self,from)
+              ?? NATCPY(self,from)
+              !! X::Assignment::ArrayShapeMismatch.new(
+                   source-shape => from.shape,
+                   target-shape => self.shape
+                 ).throw
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
@@ -1952,14 +1950,9 @@ my class array does Iterable {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(
-                    ($!pos = nqp::add_i($!pos,1)),
-                    nqp::elems($!list)
-                  ),
-                  nqp::atposref_i($!list,$!pos),
-                  IterationEnd
-                )
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                  ?? nqp::atposref_i($!list,$!pos)
+                  !! IterationEnd
             }
             method skip-one() {
                 nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
@@ -2009,11 +2002,9 @@ my class array does Iterable {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  Pair.new($i,nqp::atposref_i(self,$i)),
-                  IterationEnd
-                )
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  ?? Pair.new($i,nqp::atposref_i(self,$i))
+                  !! IterationEnd
             }))
         }
         multi method antipairs(::?CLASS:D: --> Seq:D) {
@@ -2127,7 +2118,7 @@ my class array does Iterable {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2020-10-14T21:05:27+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2294,14 +2285,12 @@ my class array does Iterable {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            nqp::if(
-              EQV_DIMENSIONS(self,from),
-              NATCPY(self,from),
-              X::Assignment::ArrayShapeMismatch.new(
-                source-shape => from.shape,
-                target-shape => self.shape
-              ).throw
-            )
+            EQV_DIMENSIONS(self,from)
+              ?? NATCPY(self,from)
+              !! X::Assignment::ArrayShapeMismatch.new(
+                   source-shape => from.shape,
+                   target-shape => self.shape
+                 ).throw
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
@@ -2474,14 +2463,9 @@ my class array does Iterable {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(
-                    ($!pos = nqp::add_i($!pos,1)),
-                    nqp::elems($!list)
-                  ),
-                  nqp::atposref_n($!list,$!pos),
-                  IterationEnd
-                )
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                  ?? nqp::atposref_n($!list,$!pos)
+                  !! IterationEnd
             }
             method skip-one() {
                 nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
@@ -2531,11 +2515,9 @@ my class array does Iterable {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  Pair.new($i,nqp::atposref_n(self,$i)),
-                  IterationEnd
-                )
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  ?? Pair.new($i,nqp::atposref_n(self,$i))
+                  !! IterationEnd
             }))
         }
         multi method antipairs(::?CLASS:D: --> Seq:D) {
@@ -2649,7 +2631,7 @@ my class array does Iterable {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2018-12-29T21:01:14+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2020-10-14T21:05:27+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -2816,14 +2798,12 @@ my class array does Iterable {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            nqp::if(
-              EQV_DIMENSIONS(self,from),
-              NATCPY(self,from),
-              X::Assignment::ArrayShapeMismatch.new(
-                source-shape => from.shape,
-                target-shape => self.shape
-              ).throw
-            )
+            EQV_DIMENSIONS(self,from)
+              ?? NATCPY(self,from)
+              !! X::Assignment::ArrayShapeMismatch.new(
+                   source-shape => from.shape,
+                   target-shape => self.shape
+                 ).throw
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
@@ -2996,14 +2976,9 @@ my class array does Iterable {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(
-                    ($!pos = nqp::add_i($!pos,1)),
-                    nqp::elems($!list)
-                  ),
-                  nqp::atposref_s($!list,$!pos),
-                  IterationEnd
-                )
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                  ?? nqp::atposref_s($!list,$!pos)
+                  !! IterationEnd
             }
             method skip-one() {
                 nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
@@ -3053,11 +3028,9 @@ my class array does Iterable {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  Pair.new($i,nqp::atposref_s(self,$i)),
-                  IterationEnd
-                )
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  ?? Pair.new($i,nqp::atposref_s(self,$i))
+                  !! IterationEnd
             }))
         }
         multi method antipairs(::?CLASS:D: --> Seq:D) {

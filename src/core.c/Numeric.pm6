@@ -240,13 +240,11 @@ proto sub infix:<%%>($?, $?, *%) is pure  {*}
 multi sub infix:<%%>() { Failure.new("No zero-arg meaning for infix:<%%>") }
 multi sub infix:<%%>($)         { Bool::True }
 multi sub infix:<%%>(\a, \b) {
-    nqp::if(
-      b,
-      (a.Real % b.Real == 0),
-      Failure.new(
-        X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-      )
-    )
+    b
+      ?? (a.Real % b.Real == 0)
+      !! Failure.new(
+           X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+         )
 }
 
 proto sub infix:<lcm>($?, $?, *%) is pure  {*}

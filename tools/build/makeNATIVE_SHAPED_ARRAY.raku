@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-# This script reads the native_array.pm file from STDIN, and generates the
+# This script reads the native_array.pm6 file from STDIN, and generates the
 # shapedintarray, shapednumarray and shapedstrarray roles in it, and writes
 # it to STDOUT.
 
@@ -208,14 +208,12 @@ for $*IN.lines -> $line {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            nqp::if(
-              EQV_DIMENSIONS(self,from),
-              NATCPY(self,from),
-              X::Assignment::ArrayShapeMismatch.new(
-                source-shape => from.shape,
-                target-shape => self.shape
-              ).throw
-            )
+            EQV_DIMENSIONS(self,from)
+              ?? NATCPY(self,from)
+              !! X::Assignment::ArrayShapeMismatch.new(
+                   source-shape => from.shape,
+                   target-shape => self.shape
+                 ).throw
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
@@ -388,14 +386,9 @@ for $*IN.lines -> $line {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(
-                    ($!pos = nqp::add_i($!pos,1)),
-                    nqp::elems($!list)
-                  ),
-                  nqp::atposref_#postfix#($!list,$!pos),
-                  IterationEnd
-                )
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                  ?? nqp::atposref_#postfix#($!list,$!pos)
+                  !! IterationEnd
             }
             method skip-one() {
                 nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
@@ -445,11 +438,9 @@ for $*IN.lines -> $line {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  Pair.new($i,nqp::atposref_#postfix#(self,$i)),
-                  IterationEnd
-                )
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  ?? Pair.new($i,nqp::atposref_#postfix#(self,$i))
+                  !! IterationEnd
             }))
         }
         multi method antipairs(::?CLASS:D: --> Seq:D) {

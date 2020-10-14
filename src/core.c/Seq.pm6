@@ -64,11 +64,9 @@ my class Seq is Cool does Iterable does Sequence {
     method Int()     { self.elems }
 
     method Bool(Seq:D:) {
-        nqp::if(
-          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
-          $!iter.bool-only,
-          self.cache.Bool
-        )
+        nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator)
+          ?? $!iter.bool-only
+          !! self.cache.Bool
     }
 
     multi method raku(Seq:D \SELF:) {

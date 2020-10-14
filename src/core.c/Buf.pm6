@@ -110,18 +110,14 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method AT-POS(Blob:D: int \pos) {
-        nqp::if(
-          (nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)),
-          self!fail-range(pos),
-          nqp::atpos_i(self,pos)
-        )
+        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
+          ?? self!fail-range(pos)
+          !! nqp::atpos_i(self,pos)
     }
     multi method AT-POS(Blob:D: Int:D \pos) {
-        nqp::if(
-          (nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)),
-          self!fail-range(pos),
-          nqp::atpos_i(self,pos)
-        )
+        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
+          ?? self!fail-range(pos)
+          !! nqp::atpos_i(self,pos)
     }
 
 #?if moar
@@ -404,15 +400,15 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         )
     }
     sub subbuf-length(\SELF, int $from, int $length, int $elems) {
-        nqp::if(
-          nqp::islt_i($length,0),
-          Failure.new( X::OutOfRange.new(
-            what  => 'Len element to subbuf',
-            got   => $length,
-            range => "0.." ~ $elems
-          )),
-          subbuf-end(SELF, $from, $from + $length - 1, $elems)
-        )
+        nqp::islt_i($length,0)
+          ?? Failure.new(
+               X::OutOfRange.new(
+                 what  => 'Len element to subbuf',
+                 got   => $length,
+                 range => "0.." ~ $elems
+               )
+             )
+          !! subbuf-end(SELF, $from, $from + $length - 1, $elems)
     }
 
     proto method subbuf(|) {*}

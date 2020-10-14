@@ -51,11 +51,9 @@ my class Backtrace::Frame {
     }
 
     method is-hidden(Backtrace::Frame:D:) {
-        nqp::if(
-          nqp::can($!code,"is-hidden-from-backtrace"),
-          $!code.is-hidden-from-backtrace,
-          False
-        )
+        nqp::can($!code,"is-hidden-from-backtrace")
+          ?? $!code.is-hidden-from-backtrace
+          !! False
     }
     method is-routine(Backtrace::Frame:D:) {
         nqp::hllbool(nqp::istype($!code,Routine))

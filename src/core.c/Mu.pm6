@@ -114,14 +114,11 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
-        nqp::if(
-          nqp::eqaddr(
-            (my $bless := nqp::findmethod(self,'bless')),
-            nqp::findmethod(Mu,'bless')
-          ),
-          nqp::create(self).BUILDALL(Empty, %attrinit),
-          $bless(self,|%attrinit)
-        )
+        nqp::eqaddr(
+          (my $bless := nqp::findmethod(self,'bless')),
+          nqp::findmethod(Mu,'bless')
+        ) ?? nqp::create(self).BUILDALL(Empty, %attrinit)
+          !! $bless(self,|%attrinit)
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();
@@ -659,11 +656,9 @@ my class Mu { # declared in BOOTSTRAP
         ''
     }
     multi method Str(Mu:D:) {
-        nqp::if(
-          nqp::eqaddr(self,IterationEnd),
-          "IterationEnd",
-          self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
-        )
+        nqp::eqaddr(self,IterationEnd)
+          ?? "IterationEnd"
+          !! self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
     }
 
     proto method Stringy(|) {*}

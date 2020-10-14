@@ -176,11 +176,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
 
         method is-lazy() {
-            nqp::if(
-              nqp::isconcrete($!current-iter),
-              $!current-iter.is-lazy,
-              False
-            )
+            nqp::isconcrete($!current-iter)
+              ?? $!current-iter.is-lazy
+              !! False
         }
     }
 
@@ -423,11 +421,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
     multi method fmt(List:D: Str(Cool) $format --> Str:D) {
-        nqp::if(
-          nqp::iseq_s($format,'%s'),
-          self.fmt,
-          self.fmt($format,' ')
-        )
+        nqp::iseq_s($format,'%s')
+          ?? self.fmt
+          !! self.fmt($format,' ')
     }
     multi method fmt(List:D: Str(Cool) $format, $separator --> Str:D) {
         nqp::if(
@@ -878,25 +874,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method List(List:D:) { self }
 
     multi method Slip(List:D: --> Slip:D) {
-        nqp::if(
-          nqp::isconcrete($!todo),
+        nqp::isconcrete($!todo)
           # We're not fully reified, and so have internal mutability still.
           # The safe thing to do is to take an iterator of ourself and build
           # the Slip out of that.
-          Slip.from-iterator(self.iterator),
+          ?? Slip.from-iterator(self.iterator)
           # We're fully reified - and so immutable inside and out! Just make
           # a Slip that shares our reified buffer.
-          nqp::p6bindattrinvres(nqp::create(Slip),List,'$!reified',$!reified)
-        )
+          !! nqp::p6bindattrinvres(nqp::create(Slip),List,'$!reified',$!reified)
     }
 
     multi method Array(List:D: --> Array:D) {
         # We need to populate the Array slots with Scalar containers
-        nqp::if(
-          nqp::isconcrete($!todo),
-          Array.from-iterator(self.iterator),
-          Array.from-list(self)
-        )
+        nqp::isconcrete($!todo)
+          ?? Array.from-iterator(self.iterator)
+          !! Array.from-list(self)
     }
 
     method eager(List:D: --> List:D) {
@@ -1093,14 +1085,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             nqp::create(self)!SET-SELF(list,todo)
         }
         method pull-one() is raw {
-            nqp::if(
-              ($!todo = nqp::sub_i($!todo,1)),
-              nqp::atpos(
-                $!list,
-                nqp::floor_n(nqp::rand_n($!elems))
-              ),
-              IterationEnd
-            )
+            ($!todo = nqp::sub_i($!todo,1))
+              ?? nqp::atpos($!list,nqp::floor_n(nqp::rand_n($!elems)))
+              !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             nqp::stmts(
@@ -1649,11 +1636,11 @@ multi sub infix:<xx>(&x, Int:D $n) {
     Seq.new(Rakudo::Iterator.ReifiedList($list))
 }
 multi sub infix:<xx>(Mu \x, Num:D() $n) {
-    Seq.new(nqp::if(
-      $n == Inf,
-      Rakudo::Iterator.UnendingValue(x),
-      Rakudo::Iterator.OneValueTimes(x,$n.Int)
-    ))
+    Seq.new(
+      $n == Inf
+        ?? Rakudo::Iterator.UnendingValue(x)
+        !! Rakudo::Iterator.OneValueTimes(x,$n.Int)
+    )
 }
 multi sub infix:<xx>(Mu \x, Whatever) {
     Seq.new(Rakudo::Iterator.UnendingValue(x))

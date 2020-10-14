@@ -94,14 +94,10 @@ my class SetHash does Setty {
                 nqp::hllbool(nqp::existskey(elems,$key))
             },
             STORE => -> $, $value {
-                nqp::stmts(
-                  nqp::if(
-                    $value,
-                    nqp::bindkey(elems,$key,$object),
-                    nqp::deletekey(elems,$key)
-                  ),
-                  $value.Bool
-                )
+                $value
+                  ?? nqp::bindkey(elems,$key,$object)
+                  !! nqp::deletekey(elems,$key);
+                $value.Bool
             }
           )
         )
@@ -114,14 +110,12 @@ my class SetHash does Setty {
             self
         }
         method pull-one() {
-          nqp::if(
-            $!iter,
-            Pair.new(
-              nqp::atkey($!hash,(my $key := nqp::shift($!iter))),
-              proxy($key,$!hash)
-            ),
-            IterationEnd
-          )
+            $!iter
+              ?? Pair.new(
+                   nqp::atkey($!hash,(my $key := nqp::shift($!iter))),
+                   proxy($key,$!hash)
+                 )
+              !! IterationEnd
         }
     }
     method iterator(SetHash:D:) { Iterate.new($!elems) }
@@ -169,11 +163,9 @@ my class SetHash does Setty {
             self
         }
         method pull-one() is rw {
-          nqp::if(
-            $!iter,
-            proxy(nqp::shift($!iter),$!hash),
-            IterationEnd
-          )
+            $!iter
+              ?? proxy(nqp::shift($!iter),$!hash)
+              !! IterationEnd
         }
     }
     multi method values(SetHash:D:) { Seq.new(Values.new($!elems)) }
@@ -188,11 +180,9 @@ my class SetHash does Setty {
     }
     multi method SetHash(SetHash:D:) { self }
     method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(self).SET-SELF(nqp::clone($!elems)),
-          nqp::create(self)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(self).SET-SELF(nqp::clone($!elems))
+          !! nqp::create(self)
     }
 
     multi method Setty(SetHash:U:) { SetHash }
@@ -204,15 +194,17 @@ my class SetHash does Setty {
 
 #--- interface methods
     multi method STORE(SetHash:D: *@pairs --> SetHash:D) {
-        nqp::if(
-          (my \iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
-          self.SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
-            )
-          )
-        )
+        (my \iterator := @pairs.iterator).is-lazy
+          ?? Failure.new(
+               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
+             )
+          !! self.SET-SELF(
+               Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 self.keyof
+               )
+             )
     }
     multi method STORE(SetHash:D: \objects, \bools --> SetHash:D) {
         my \iterobjs  := objects.iterator;

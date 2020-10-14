@@ -118,24 +118,28 @@ class Version {
         my \oparts       := nqp::getattr(nqp::decont($other),Version,'$!parts');
         my int $oelems    = nqp::isnull(oparts) ?? 0 !! nqp::elems(oparts);
         my int $elems     = nqp::elems($!parts);
-        my int $max-elems = nqp::if(nqp::isge_i($oelems,$elems), $oelems, $elems);
+        my int $max-elems = nqp::isge_i($oelems,$elems) ?? $oelems !! $elems;
 
         my int $i = -1;
         while nqp::islt_i(++$i,$max-elems) {
-            my $v := nqp::if(nqp::isge_i($i,$elems), Whatever, nqp::atpos($!parts,$i));
+            my $v := nqp::isge_i($i,$elems)
+              ?? Whatever
+              !! nqp::atpos($!parts,$i);
 
             # if whatever here, no more check this iteration
             unless nqp::istype($v,Whatever) {
-                my $o := nqp::if(nqp::isge_i($i,$oelems), 0, nqp::atpos(oparts,$i));
+                my $o := nqp::isge_i($i,$oelems)
+                  ?? 0
+                  !! nqp::atpos(oparts,$i);
 
                 # if whatever there, no more to check this iteration
                 unless nqp::istype($o,Whatever) {
                     return nqp::hllbool($!plus) if $o after  $v;
-                    return False               if $o before $v;
+                    return False                if $o before $v;
                 }
             }
         }
-        True;
+        True
     }
 
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }

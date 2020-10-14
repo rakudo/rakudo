@@ -41,14 +41,12 @@ my role Enumeration {
     }
 
     method pred(::?CLASS:D:) {
-        nqp::if(
-          nqp::getattr_i(self,::?CLASS,'$!index'),
-          nqp::atpos(
-            nqp::getattr(self.^enum_value_list,List,'$!reified'),
-            nqp::sub_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
-          ),
-          self
-        )
+        nqp::getattr_i(self,::?CLASS,'$!index')
+          ?? nqp::atpos(
+               nqp::getattr(self.^enum_value_list,List,'$!reified'),
+               nqp::sub_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
+             )
+          !! self
     }
     method succ(::?CLASS:D:) {
         nqp::stmts(

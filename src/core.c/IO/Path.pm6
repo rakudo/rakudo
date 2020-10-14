@@ -415,7 +415,7 @@ my class IO::Path is Cool does IO {
             nqp::unless(
                 nqp::unless(nqp::isfalse($d), $dir.d),
                 fail X::IO::Chdir.new: :$path, :os-error(
-                    nqp::if($dir.e, 'is not a directory', 'does not exist')
+                    $dir.e ?? 'is not a directory' !! 'does not exist'
                 )
             ),
             nqp::unless(

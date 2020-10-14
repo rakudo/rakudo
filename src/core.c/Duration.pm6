@@ -8,11 +8,9 @@ my class Duration is Cool does Real {
         )
     }
     multi method new(Duration: \value --> Duration:D) {
-        nqp::if(
-          nqp::istype((my \tai := value.Rat),Failure),
-          tai.throw,
-          nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
-        )
+        nqp::istype((my \tai := value.Rat),Failure)
+          ?? tai.throw
+          !! nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
     }
 
     method Bridge(Duration:D: --> Num:D) { $!tai.Num    }

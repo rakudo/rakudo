@@ -13,10 +13,9 @@ my class IO::Handle {
     has int $!out-buffer;
 
     submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
-        nqp::if(
-          $bin,
-          nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
-          $!encoding = $encoding || 'utf8')
+        $bin
+          ?? nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw
+          !! ($!encoding = $encoding || 'utf8')
     }
 
 #?if moar

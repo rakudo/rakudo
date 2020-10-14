@@ -7084,6 +7084,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 && ($push-target := $target.ann: 'fake_infix_adverb_target');
 
                 my $cpast := $<colonpair>.ast;
+                $/.typed_panic: 'X::Syntax::Adverb', what => ~$/
+                  unless try $cpast[1];
                 $cpast[2].named(compile_time_value_str($cpast[1], 'LHS of pair', $/));
                 $push-target.push(WANTED($cpast[2],'EXPR/POSTFIX'));
 

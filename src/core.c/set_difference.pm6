@@ -8,7 +8,6 @@ multi sub infix:<(-)>(QuantHash:D \a) { a     } # Set/Bag/Mix
 multi sub infix:<(-)>(SetHash:D \a)   { a.Set }
 multi sub infix:<(-)>(BagHash:D \a)   { a.Bag }
 multi sub infix:<(-)>(MixHash:D \a)   { a.Mix }
-multi sub infix:<(-)>(Any \a)         { a.Set } # also for Iterable/Map
 
 multi sub infix:<(-)>(Setty:D \a, Setty:D \b) {
     nqp::if(
@@ -92,7 +91,7 @@ multi sub infix:<(-)>(Any $, Failure:D \b) { b.throw }
 multi sub infix:<(-)>(Failure:D \a, Any $) { a.throw }
 multi sub infix:<(-)>(Any \a, Any \b) { infix:<(-)>(a.Set,b.Set) }
 
-multi sub infix:<(-)>(**@p) {
+multi sub infix:<(-)>(+@p) {   # also Any
 
     sub subtract(Mu \elems, Mu \iter, \clone, \value --> Nil) {
         nqp::stmts(

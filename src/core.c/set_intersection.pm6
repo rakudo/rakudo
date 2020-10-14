@@ -5,7 +5,6 @@
 proto sub infix:<(&)>(|) is pure {*}
 multi sub infix:<(&)>()               { set() }
 multi sub infix:<(&)>(QuantHash:D \a) { a     } # Set/Bag/Mix
-multi sub infix:<(&)>(Any \a)         { a.Set } # also for Iterable/Map
 
 multi sub infix:<(&)>(Setty:D \a, Setty:D \b) {
     nqp::if(
@@ -147,10 +146,15 @@ multi sub infix:<(&)>(Any \a, Any \b) {
       !! a.Set (&) b
 }
 
-multi sub infix:<(&)>(**@p) {
-    my $result = @p.shift;
-    $result = $result (&) @p.shift while @p;
-    $result
+multi sub infix:<(&)>(+@p) { # also Any
+    my $result := @p.shift;
+    if @p {
+        $result := $result (&) @p.shift while @p;
+        $result
+    }
+    else {
+        $result.Set
+    }
 }
 
 # U+2229 INTERSECTION

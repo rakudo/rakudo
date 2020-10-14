@@ -66,7 +66,9 @@ my class IterationBuffer {
     # For core debugging purposes only: basically warp the IterationBuffer
     # into a full-fledged List and .raku that.  We don't care that it will
     # not round-trip.
-    multi method raku(IterationBuffer:D:) { self.List.raku }
+    multi method raku(IterationBuffer:D:) {
+        self.List.raku ~ '.IterationBuffer'
+    }
 }
 
 #?if jvm

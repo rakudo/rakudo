@@ -94,7 +94,10 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                     nqp::push(target,SELF.DELETE-KEY($_)) for SELF.keys;
                 }
                 else {
-                    nqp::push(target,SELF.DELETE-KEY(idx));
+                    nqp::push(
+                      target,
+                      SELF.EXISTS-KEY(idx) ?? SELF.DELETE-KEY(idx) !! Nil
+                    );
                 }
             }
 

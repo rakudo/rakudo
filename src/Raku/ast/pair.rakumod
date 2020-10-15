@@ -142,7 +142,7 @@ class RakuAST::ColonPair::False is RakuAST::ColonPair {
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my $pair-type := @lookups[0].resolution.compile-time-value;
-        $pair-type.new(self.key, True)
+        $pair-type.new(self.key, False)
     }
 }
 

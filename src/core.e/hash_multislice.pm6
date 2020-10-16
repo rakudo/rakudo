@@ -35,7 +35,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                           SELF.AT-KEY($_),
                           nqp::atpos($indices,$next-dim),
                           $next-dim
-                        ) for SELF.keys;  # NOTE: not reproducible!
+                        ) for SELF.keys;
                     }
                     else  {
                         EXISTS-KEY-recursively(
@@ -78,7 +78,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                           SELF.AT-KEY($_),
                           nqp::atpos($indices,$next-dim),
                           $next-dim
-                        ) for SELF.keys;  # NOTE: not reproducible!
+                        ) for SELF.keys;
                     }
                     else  {
                         DELETE-KEY-recursively(
@@ -267,6 +267,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
 
     # no adverbs whatsoever
     else {
+        my int $non-deterministic;
         sub AT-KEY-recursively(\SELF, \idx, int $dim --> Nil) {
             my int $next-dim = $dim + 1;
             if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
@@ -275,10 +276,10 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             }
             elsif $next-dim < $dims {
                 if nqp::istype(idx,Whatever) {
-                    $return-list = 1;
+                    $return-list = $non-deterministic = 1;
                     AT-KEY-recursively(
                       SELF.AT-KEY($_), nqp::atpos($indices,$next-dim), $next-dim
-                    ) for SELF.keys;  # NOTE: not reproducible
+                    ) for SELF.keys;
                 }
                 else  {
                     AT-KEY-recursively(
@@ -288,7 +289,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             }
             # $next-dim == $dims, reached leaves
             elsif nqp::istype(idx,Whatever) {
-                $return-list = 1;
+                $return-list = $non-deterministic = 1;
                 nqp::push(target,SELF.AT-KEY($_)) for SELF.keys;
             }
             else {
@@ -297,6 +298,16 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
         }
 
         AT-KEY-recursively(initial-SELF, nqp::atpos($indices,0), 0);
+
+        # decont all elements if non-deterministic to disallow assignment
+        if $non-deterministic {
+            my int $i     = -1;
+            my int $elems = nqp::elems(target);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos(target,$i,nqp::decont(nqp::atpos(target,$i)))
+            );
+        }
     }
 
     $return-list

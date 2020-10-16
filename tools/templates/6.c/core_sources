@@ -71,7 +71,7 @@ src/core.c/Nil.pm6
 src/core.c/Range.pm6
 src/core.c/List.pm6
 src/core.c/array_slice.pm6
-src/core.c/multidim_slice.pm6
+src/core.c/array_multislice.pm6
 src/core.c/Slip.pm6
 src/core.c/Array.pm6
 src/core.c/ShapedArray.pm6

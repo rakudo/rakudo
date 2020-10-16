@@ -22,6 +22,7 @@ src/core.c/Any-iterable-methods.pm6
 src/core.c/SLICE.pm6
 src/core.c/Whatever.pm6
 src/core.c/hash_slice.pm6
+src/core.c/hash_multislice.pm6
 src/core.c/Scalar.pm6
 src/core.c/Code.pm6
 src/core.c/WhateverCode.pm6

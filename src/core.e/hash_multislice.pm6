@@ -16,30 +16,30 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
 
     # set up standard lexical info for recursing subs
     my \target   = nqp::create(IterationBuffer);
-    my int $dims = @indices.elems;  # reifies
+    my int $dim;
+    my int $dims = nqp::sub_i(@indices.elems,1);  # .elems reifies
     my $indices := nqp::getattr(@indices,List,'$!reified');
     my int $return-list;
 
     if $adverbs {
         if nqp::iseq_s($adverbs,":exists") {
-            sub EXISTS-KEY-recursively(\SELF, \idx, int $dim --> Nil) {
-                my int $next-dim = $dim + 1;
+            sub EXISTS-KEY-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list = 1;
-                    EXISTS-KEY-recursively(SELF, $_, $dim) for idx;
+                    EXISTS-KEY-recursively(SELF, $_) for idx;
                 }
-                elsif $next-dim < $dims {
+                elsif $dim < $dims {
+                    ++$dim;  # going deeper
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
+                        my \next-idx := nqp::atpos($indices,$dim);
                         EXISTS-KEY-recursively(
-                          SELF.AT-KEY($_),
-                          nqp::atpos($indices,$next-dim),
-                          $next-dim
+                          SELF.AT-KEY($_), next-idx
                         ) for SELF.keys;
                     }
                     else  {
                         EXISTS-KEY-recursively(
-                          SELF.AT-KEY(idx), nqp::atpos($indices,$next-dim), $next-dim
+                          SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                         );
                     }
                 }
@@ -61,30 +61,27 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 }
             }
 
-            EXISTS-KEY-recursively(initial-SELF, nqp::atpos($indices,0), 0);
+            EXISTS-KEY-recursively(initial-SELF, nqp::atpos($indices,0));
         }
 
         elsif nqp::iseq_s($adverbs,":delete") {
-            sub DELETE-KEY-recursively(\SELF, \idx, int $dim --> Nil) {
-                my int $next-dim = $dim + 1;
+            sub DELETE-KEY-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list = 1;
-                    DELETE-KEY-recursively(SELF, $_, $dim) for idx;
+                    DELETE-KEY-recursively(SELF, $_) for idx;
                 }
-                elsif $next-dim < $dims {
+                elsif $dim < $dims {
+                    ++$dim;  # going deeper
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
+                        my \next-idx := nqp::atpos($indices,$dim);
                         DELETE-KEY-recursively(
-                          SELF.AT-KEY($_),
-                          nqp::atpos($indices,$next-dim),
-                          $next-dim
+                          SELF.AT-KEY($_), next-idx
                         ) for SELF.keys;
                     }
                     else  {
                         DELETE-KEY-recursively(
-                          SELF.AT-KEY(idx),
-                          nqp::atpos($indices,$next-dim),
-                          $next-dim
+                          SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                         );
                     }
                 }
@@ -101,7 +98,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 }
             }
 
-            DELETE-KEY-recursively(initial-SELF, nqp::atpos($indices,0), 0);
+            DELETE-KEY-recursively(initial-SELF, nqp::atpos($indices,0));
         }
 
         # some other combination of adverbs
@@ -220,22 +217,20 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                  :nogo(nqp::split(':',nqp::substr($adverbs,1)))
                ));
 
-            sub PROCESS-KEY-recursively(\SELF, \idx, int $dim, @keys --> Nil) {
-                my int $next-dim = $dim + 1;
+            sub PROCESS-KEY-recursively(\SELF, \idx, @keys --> Nil) {
                 if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list = 1;
-                    PROCESS-KEY-recursively(SELF, $_, $dim, @keys) for idx;
+                    PROCESS-KEY-recursively(SELF, $_, @keys) for idx;
                 }
-                elsif $next-dim < $dims {
+                elsif $dim < $dims {
+                    ++$dim;  # going deeper
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         for SELF.keys {  # NOTE: not reproducible!
                             nqp::push(nqp::getattr(@keys,List,'$!reified'),$_);
+                            my \next-idx := nqp::atpos($indices,$dim);
                             PROCESS-KEY-recursively(
-                              SELF.AT-KEY($_),
-                              nqp::atpos($indices,$next-dim),
-                              $next-dim,
-                              @keys
+                              SELF.AT-KEY($_), next-idx, @keys
                             );
                             nqp::pop(nqp::getattr(@keys,List,'$!reified'));
                         }
@@ -243,10 +238,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                     else  {
                         nqp::push(nqp::getattr(@keys,List,'$!reified'),idx);
                         PROCESS-KEY-recursively(
-                          SELF.AT-KEY(idx),
-                          nqp::atpos($indices,$next-dim),
-                          $next-dim,
-                          @keys
+                          SELF.AT-KEY(idx), nqp::atpos($indices,$dim), @keys
                         );
                         nqp::pop(nqp::getattr(@keys,List,'$!reified'));
                     }
@@ -261,29 +253,29 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 }
             }
 
-            PROCESS-KEY-recursively(initial-SELF,nqp::atpos($indices,0),0,[]);
+            PROCESS-KEY-recursively(initial-SELF, nqp::atpos($indices,0), []);
         }
     }
 
     # no adverbs whatsoever
     else {
         my int $non-deterministic;
-        sub AT-KEY-recursively(\SELF, \idx, int $dim --> Nil) {
-            my int $next-dim = $dim + 1;
-            if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
+
+        sub AT-KEY-recursively(\SELF, \idx --> Nil) {
+            if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
                 $return-list = 1;
-                AT-KEY-recursively(SELF, $_, $dim) for idx;
+                AT-KEY-recursively(SELF, $_) for idx;
             }
-            elsif $next-dim < $dims {
+            elsif $dim < $dims {
+                $dim++;  # going deeper now
                 if nqp::istype(idx,Whatever) {
                     $return-list = $non-deterministic = 1;
-                    AT-KEY-recursively(
-                      SELF.AT-KEY($_), nqp::atpos($indices,$next-dim), $next-dim
-                    ) for SELF.keys;
+                    my \next-idx := nqp::atpos($indices,$dim);
+                    AT-KEY-recursively(SELF.AT-KEY($_), next-idx) for SELF.keys;
                 }
                 else  {
                     AT-KEY-recursively(
-                      SELF.AT-KEY(idx),nqp::atpos($indices,$next-dim),$next-dim
+                      SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                     );
                 }
             }
@@ -297,7 +289,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             }
         }
 
-        AT-KEY-recursively(initial-SELF, nqp::atpos($indices,0), 0);
+        AT-KEY-recursively(initial-SELF, nqp::atpos($indices,0));
 
         # decont all elements if non-deterministic to disallow assignment
         if $non-deterministic {

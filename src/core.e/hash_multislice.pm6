@@ -105,109 +105,109 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
         else {
 
             # helper sub to create multi-level keys
-            sub keys-to-list(@other, \key) {
-                my $list := nqp::clone(nqp::getattr(@other,List,'$!reified'));
-                nqp::push($list,key);
+            my $keys := nqp::create(IterationBuffer);  # keys encountered
+            sub keys-to-list(\key) {
+                nqp::push((my $list := nqp::clone($keys)),key);
                 $list.List
             }
 
             # determine the processor to be used
             my &process = nqp::iseq_s($adverbs,":exists:delete")
-              ?? -> \SELF, \key, @ {
+              ?? -> \SELF, \key {
                      SELF.DELETE-KEY(key)
                        if nqp::push(target,SELF.EXISTS-KEY(key));
                  }
             !! nqp::iseq_s($adverbs,":exists:delete:kv")
               ?? do {
                      $return-list = 1;
-                     -> \SELF, \key, @other {
+                     -> \SELF, \key {
                          if SELF.EXISTS-KEY(key) {
                              SELF.DELETE-KEY(key);
-                             nqp::push(target,keys-to-list(@other, key));
+                             nqp::push(target,keys-to-list(key));
                              nqp::push(target,True);
                          }
                      }
                  }
             !! nqp::iseq_s($adverbs,":exists:delete:p")
-              ?? -> \SELF, \key, @other {
+              ?? -> \SELF, \key {
                      if SELF.EXISTS-KEY(key) {
                          SELF.DELETE-KEY(key);
                          nqp::push(
                            target,
-                           Pair.new(keys-to-list(@other, key), True)
+                           Pair.new(keys-to-list(key), True)
                         );
                      }
                  }
             !! nqp::iseq_s($adverbs,":exists:kv")
               ?? do {
                      $return-list = 1;
-                     -> \SELF, \key, @other {
+                     -> \SELF, \key {
                          if SELF.EXISTS-KEY(key) {
-                             nqp::push(target,keys-to-list(@other, key));
+                             nqp::push(target,keys-to-list(key));
                              nqp::push(target,True);
                          }
                      }
                  }
             !! nqp::iseq_s($adverbs,":exists:p")
-              ?? -> \SELF, \key, @other {
+              ?? -> \SELF, \key {
                      nqp::push(
                        target,
-                       Pair.new(keys-to-list(@other, key), True)
+                       Pair.new(keys-to-list(key), True)
                      ) if SELF.EXISTS-KEY(key);
                  }
             !! nqp::iseq_s($adverbs,":delete:k")
-              ?? -> \SELF, \key, @other {
+              ?? -> \SELF, \key {
                      if SELF.EXISTS-KEY(key) {
                          SELF.DELETE-KEY(key);
-                         nqp::push(target,keys-to-list(@other, key));
+                         nqp::push(target,keys-to-list(key));
                      }
                  }
             !! nqp::iseq_s($adverbs,":delete:kv")
               ?? do {
                      $return-list = 1;
-                     -> \SELF, \key, @other {
+                     -> \SELF, \key {
                          if SELF.EXISTS-KEY(key) {
-                             nqp::push(target,keys-to-list(@other, key));
+                             nqp::push(target,keys-to-list(key));
                              nqp::push(target,SELF.DELETE-KEY(key));
                          }
                      }
                  }
             !! nqp::iseq_s($adverbs,":delete:p")
-              ?? -> \SELF, \key, @other {
+              ?? -> \SELF, \key {
                      nqp::push(
                        target,
-                       Pair.new(keys-to-list(@other, key),SELF.DELETE-KEY(key))
+                       Pair.new(keys-to-list(key), SELF.DELETE-KEY(key))
                      ) if SELF.EXISTS-KEY(key);
                  }
             !! nqp::iseq_s($adverbs,":delete:v")
-              ?? -> \SELF, \key, @ {
+              ?? -> \SELF, \key {
                      nqp::push(target,SELF.DELETE-KEY(key))
                        if SELF.EXISTS-KEY(key);
                  }
             !! nqp::iseq_s($adverbs,":k")
-              ?? -> \SELF, \key, @other {
-                     nqp::push(target,keys-to-list(@other, key))
+              ?? -> \SELF, \key {
+                     nqp::push(target,keys-to-list(key))
                        if SELF.EXISTS-KEY(key);
                  }
             !! nqp::iseq_s($adverbs,":kv")
               ?? do {
                      $return-list = 1;
-                     -> \SELF, \key, @other {
+                     -> \SELF, \key {
                          if SELF.EXISTS-KEY(key) {
-                             nqp::push(target,keys-to-list(@other, key));
+                             nqp::push(target,keys-to-list(key));
                              nqp::push(target,nqp::decont(SELF.AT-KEY(key)));
                          }
                      }
                  }
             !! nqp::iseq_s($adverbs,":p")
-              ?? -> \SELF, \key, @other {
+              ?? -> \SELF, \key {
                      nqp::push(
                        target,
-                       Pair.new(keys-to-list(@other, key),SELF.AT-KEY(key))
+                       Pair.new(keys-to-list(key), SELF.AT-KEY(key))
                      ) if SELF.EXISTS-KEY(key);
                  }
             !! nqp::iseq_s($adverbs,":v")
-              ?? -> \SELF, \key, @ {
+              ?? -> \SELF, \key {
                      nqp::push(target,nqp::decont(SELF.AT-KEY(key)))
                        if SELF.EXISTS-KEY(key);
                  }
@@ -217,43 +217,41 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                  :nogo(nqp::split(':',nqp::substr($adverbs,1)))
                ));
 
-            sub PROCESS-KEY-recursively(\SELF, \idx, @keys --> Nil) {
+            sub PROCESS-KEY-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list = 1;
-                    PROCESS-KEY-recursively(SELF, $_, @keys) for idx;
+                    PROCESS-KEY-recursively(SELF, $_) for idx;
                 }
                 elsif $dim < $dims {
                     ++$dim;  # going deeper
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
-                        for SELF.keys {  # NOTE: not reproducible!
-                            nqp::push(nqp::getattr(@keys,List,'$!reified'),$_);
+                        for SELF.keys {
                             my \next-idx := nqp::atpos($indices,$dim);
-                            PROCESS-KEY-recursively(
-                              SELF.AT-KEY($_), next-idx, @keys
-                            );
-                            nqp::pop(nqp::getattr(@keys,List,'$!reified'));
+                            nqp::push($keys,$_);
+                            PROCESS-KEY-recursively(SELF.AT-KEY($_), next-idx);
+                            nqp::pop($keys);
                         }
                     }
                     else  {
-                        nqp::push(nqp::getattr(@keys,List,'$!reified'),idx);
+                        nqp::push($keys,idx);
                         PROCESS-KEY-recursively(
-                          SELF.AT-KEY(idx), nqp::atpos($indices,$dim), @keys
+                          SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                         );
-                        nqp::pop(nqp::getattr(@keys,List,'$!reified'));
+                        nqp::pop($keys);
                     }
                 }
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
                     $return-list = 1;
-                    process(SELF,$_,@keys) for SELF.keys;
+                    process(SELF, $_) for SELF.keys;
                 }
                 else {
-                    process(SELF,idx,@keys);
+                    process(SELF, idx);
                 }
             }
 
-            PROCESS-KEY-recursively(initial-SELF, nqp::atpos($indices,0), []);
+            PROCESS-KEY-recursively( initial-SELF, nqp::atpos($indices,0));
         }
     }
 

@@ -113,7 +113,7 @@ my role Iterator {
     # on .STORE: a lazy iterator would not reify, a non-lazy would.
     method is-lazy(--> False) { }
 
-    # Whether the iterator will produce values in a deterministic (always
+    # Whether the iterator will produce values in a deterministic way (always
     # the same for a given data source).  This is True for most iterators,
     # but *not* true for iterators that typically return keys and/or values
     # from a hash.

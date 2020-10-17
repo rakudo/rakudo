@@ -112,6 +112,12 @@ my role Iterator {
     # user absolutely asks for.  This has e.g. effect on the behaviour
     # on .STORE: a lazy iterator would not reify, a non-lazy would.
     method is-lazy(--> False) { }
+
+    # Whether the iterator will produce values in a deterministic (always
+    # the same for a given data source).  This is True for most iterators,
+    # but *not* true for iterators that typically return keys and/or values
+    # from a hash.
+    method deterministic(--> True) { }
 }
 
 # The PredictiveIterator role is a refinement of the Iterator role for those

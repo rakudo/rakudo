@@ -26,16 +26,22 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             sub EXISTS-KEY-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list = 1;
-                    EXISTS-KEY-recursively(SELF, $_) for idx;
+                    my $iterator := idx.iterator;
+                    nqp::until(
+                      nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                      EXISTS-KEY-recursively(SELF, $_)
+                    );
                 }
                 elsif $dim < $dims {
                     ++$dim;  # going deeper
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         my \next-idx := nqp::atpos($indices,$dim);
-                        EXISTS-KEY-recursively(
-                          SELF.AT-KEY($_), next-idx
-                        ) for SELF.keys;
+                        my $iterator := SELF.keys.iterator;
+                        nqp::until(
+                          nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                          EXISTS-KEY-recursively(SELF.AT-KEY($_), next-idx)
+                        );
                     }
                     else  {
                         EXISTS-KEY-recursively(
@@ -46,12 +52,18 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
                     $return-list = 1;
-                    if $exists {
-                        nqp::push(target,SELF.EXISTS-KEY($_)) for SELF.keys;
-                    }
-                    else {
-                        nqp::push(target,!SELF.EXISTS-KEY($_)) for SELF.keys;
-                    }
+                    my $iterator := SELF.keys.iterator;
+                    nqp::if(
+                      $exists,
+                      nqp::until(
+                        nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                        nqp::push(target,SELF.EXISTS-KEY($_))
+                      ),
+                      nqp::until(
+                        nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                        nqp::push(target,!SELF.EXISTS-KEY($_))
+                      )
+                    );
                 }
                 elsif $exists {
                     nqp::push(target,SELF.EXISTS-KEY(idx));
@@ -68,16 +80,22 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             sub DELETE-KEY-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list = 1;
-                    DELETE-KEY-recursively(SELF, $_) for idx;
+                    my $iterator := idx.iterator;
+                    nqp::until(
+                      nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                      DELETE-KEY-recursively(SELF, $_)
+                    );
                 }
                 elsif $dim < $dims {
                     ++$dim;  # going deeper
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         my \next-idx := nqp::atpos($indices,$dim);
-                        DELETE-KEY-recursively(
-                          SELF.AT-KEY($_), next-idx
-                        ) for SELF.keys;
+                        my $iterator := SELF.keys.iterator;
+                        nqp::until(
+                          nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                          DELETE-KEY-recursively(SELF.AT-KEY($_), next-idx)
+                        );
                     }
                     else  {
                         DELETE-KEY-recursively(
@@ -88,7 +106,11 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
                     $return-list = 1;
-                    nqp::push(target,SELF.DELETE-KEY($_)) for SELF.keys;
+                    my $iterator := SELF.keys.iterator;
+                    nqp::until(
+                      nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                      nqp::push(target,SELF.DELETE-KEY($_))
+                    );
                 }
                 else {
                     nqp::push(
@@ -112,7 +134,8 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             }
 
             # determine the processor to be used
-            my &process = nqp::iseq_s($adverbs,":exists:delete")
+            my &process =
+               nqp::iseq_s($adverbs,":exists:delete")
               ?? -> \SELF, \key {
                      SELF.DELETE-KEY(key)
                        if nqp::push(target,SELF.EXISTS-KEY(key));
@@ -220,18 +243,26 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             sub PROCESS-KEY-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list = 1;
-                    PROCESS-KEY-recursively(SELF, $_) for idx;
+                    my $iterator := idx.iterator;
+                    nqp::until(
+                      nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                      PROCESS-KEY-recursively(SELF, $_)
+                    );
                 }
                 elsif $dim < $dims {
                     ++$dim;  # going deeper
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
-                        for SELF.keys {
-                            my \next-idx := nqp::atpos($indices,$dim);
-                            nqp::push($keys,$_);
-                            PROCESS-KEY-recursively(SELF.AT-KEY($_), next-idx);
-                            nqp::pop($keys);
-                        }
+                        my $iterator := SELF.keys.iterator;
+                        nqp::until(
+                          nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                          nqp::stmts(
+                            (my \next-idx := nqp::atpos($indices,$dim)),
+                            nqp::push($keys,$_),
+                            PROCESS-KEY-recursively(SELF.AT-KEY($_), next-idx),
+                            nqp::pop($keys)
+                          )
+                        );
                     }
                     else  {
                         nqp::push($keys,idx);
@@ -244,7 +275,11 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
                     $return-list = 1;
-                    process(SELF, $_) for SELF.keys;
+                    my $iterator := SELF.keys.iterator;
+                    nqp::until(
+                      nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                      process(SELF, $_)
+                    );
                 }
                 else {
                     process(SELF, idx);
@@ -262,14 +297,22 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
         sub AT-KEY-recursively(\SELF, \idx --> Nil) {
             if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
                 $return-list = 1;
-                AT-KEY-recursively(SELF, $_) for idx;
+                my $iterator := idx.iterator;
+                nqp::until(
+                  nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                  AT-KEY-recursively(SELF, $_)
+                );
             }
             elsif $dim < $dims {
                 $dim++;  # going deeper now
                 if nqp::istype(idx,Whatever) {
                     $return-list = $non-deterministic = 1;
                     my \next-idx := nqp::atpos($indices,$dim);
-                    AT-KEY-recursively(SELF.AT-KEY($_), next-idx) for SELF.keys;
+                    my $iterator := SELF.keys.iterator;
+                    nqp::until(
+                      nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                      AT-KEY-recursively(SELF.AT-KEY($_), next-idx)
+                    );
                 }
                 else  {
                     AT-KEY-recursively(
@@ -280,7 +323,11 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             # $next-dim == $dims, reached leaves
             elsif nqp::istype(idx,Whatever) {
                 $return-list = $non-deterministic = 1;
-                nqp::push(target,SELF.AT-KEY($_)) for SELF.keys;
+                my $iterator := SELF.keys.iterator;
+                nqp::until(
+                  nqp::eqaddr(($_ := $iterator.pull-one),IterationEnd),
+                  nqp::push(target,SELF.AT-KEY($_))
+                );
             }
             else {
                 nqp::push(target,SELF.AT-KEY(idx));

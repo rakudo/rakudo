@@ -7,7 +7,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
 
     # find out what we actually got
     my str $adverbs;
-    $adverbs =                      ":exists"  if $exists;
+    $adverbs = $exists ?? ":exists" !! ":!exists" if nqp::isconcrete($exists);
     $adverbs = nqp::concat($adverbs,":delete") if $delete;
     $adverbs = nqp::concat($adverbs,":k")      if $k;
     $adverbs = nqp::concat($adverbs,":kv")     if $kv;
@@ -22,7 +22,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
     my int $return-list;
 
     if $adverbs {
-        if nqp::iseq_s($adverbs,":exists") {
+        if nqp::iseq_s($adverbs,":exists") || nqp::iseq_s($adverbs,":!exists") {
             sub EXISTS-KEY-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list = 1;

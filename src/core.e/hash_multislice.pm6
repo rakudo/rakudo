@@ -1,4 +1,4 @@
-# all 6.e specific sub postcircumfix {} candidates here please
+# all 6.e specific sub postcircumfix {;} candidates here please
 
 proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}
 multi sub postcircumfix:<{; }>(\initial-SELF, @indices,

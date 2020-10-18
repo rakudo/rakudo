@@ -49,8 +49,6 @@ CONFIGURE_SOURCES = \
 	@nfp($(NQP_CONFIG_DIR)/NQP/Config.pm)@ \
 	@nfp($(NQP_CONFIG_DIR)/NQP/Macros.pm)@ 
 
-R_SETTING_SRC = @nfp(src/RESTRICTED.setting)@
-
 SPECTEST_DATA = @nfp(t/spec/spectest.data)@
 
 HARNESS_TYPE = 5

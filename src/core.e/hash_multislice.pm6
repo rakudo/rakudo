@@ -59,34 +59,30 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 elsif nqp::istype(idx,Whatever) {
                     $return-list = 1;
                     my $iterator := SELF.keys.iterator;
-                    if $exists {
-                        nqp::until(
-                          nqp::eqaddr(
-                            (my \pulled := $iterator.pull-one),
-                            IterationEnd
-                          ),
-                          nqp::push(target,SELF.EXISTS-KEY(pulled))
-                        );
-                    }
-                    else {
-                        nqp::until(
-                          nqp::eqaddr(
-                            (my \pulled := $iterator.pull-one),
-                            IterationEnd
-                          ),
-                          nqp::push(target,!SELF.EXISTS-KEY(pulled))
-                        );
-                    }
-                }
-                elsif $exists {
-                    nqp::push(target,SELF.EXISTS-KEY(idx));
+                    nqp::until(
+                      nqp::eqaddr(
+                        (my \pulled := $iterator.pull-one),
+                        IterationEnd
+                      ),
+                      nqp::push(target,SELF.EXISTS-KEY(pulled))
+                    );
                 }
                 else {
-                    nqp::push(target,!SELF.EXISTS-KEY(idx));
+                    nqp::push(target,SELF.EXISTS-KEY(idx));
                 }
             }
 
             EXISTS-KEY-recursively(initial-SELF, nqp::atpos($indices,0));
+
+            # negate results if so requested
+            unless $exists {
+                my int $i     = -1;
+                my int $elems = nqp::elems(target);
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos(target,$i,!nqp::atpos(target,$i))
+                );
+            }
         }
 
         elsif nqp::iseq_s($adverbs,":delete") {

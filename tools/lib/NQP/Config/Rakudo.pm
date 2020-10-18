@@ -652,7 +652,8 @@ sub gen_nqp {
 
         unless ( $force_rebuild
             || !$nqp_have
-            || $nqp_ver_ok )
+            || $nqp_ok
+            || defined($gen_nqp))
         {
             my $say_sub = $options->{'ignore-errors'} ? 'note' : 'sorry';
             $self->$say_sub(

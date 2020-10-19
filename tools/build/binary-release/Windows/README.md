@@ -88,6 +88,14 @@ output be silently ignored instead.
     $*OUT=$*ERR=class {method print(*@args){}};
 
 
+**WARNING** By default these _non-console_ applications will silently swallow
+everything that is printed to `STDOUT` and `STDERR`.
+
+To receive the output of the program it suffices to redirect it externally:
+
+    rakuw.exe script.raku >stdout.txt 2>stderr.txt
+
+
 Changes
 =======
 

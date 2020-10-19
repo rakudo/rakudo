@@ -54,6 +54,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                           SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                         );
                     }
+                    --$dim;  # done at this level
                 }
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
@@ -117,6 +118,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                           SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                         );
                     }
+                    --$dim;  # done at this level
                 }
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
@@ -298,6 +300,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                         );
                         nqp::pop($keys);
                     }
+                    --$dim;  # done at this level
                 }
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {

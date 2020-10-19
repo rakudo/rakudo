@@ -36,7 +36,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                     );
                 }
                 elsif $dim < $dims {
-                    ++$dim;  # going deeper
+                    ++$dim;  # going higher
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         my \next-idx := nqp::atpos($indices,$dim);
@@ -100,7 +100,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                     );
                 }
                 elsif $dim < $dims {
-                    ++$dim;  # going deeper
+                    ++$dim;  # going higher
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         my \next-idx := nqp::atpos($indices,$dim);
@@ -273,7 +273,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                     );
                 }
                 elsif $dim < $dims {
-                    ++$dim;  # going deeper
+                    ++$dim;  # going higher
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         my $iterator := SELF.keys.iterator;
@@ -337,7 +337,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 );
             }
             elsif $dim < $dims {
-                $dim++;  # going deeper now
+                $dim++;  # going higher
                 if nqp::istype(idx,Whatever) {
                     $return-list = $non-deterministic = 1;
                     my \next-idx := nqp::atpos($indices,$dim);
@@ -355,6 +355,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                       SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                     );
                 }
+                --$dim;  # done at this level
             }
             # $next-dim == $dims, reached leaves
             elsif nqp::istype(idx,Whatever) {

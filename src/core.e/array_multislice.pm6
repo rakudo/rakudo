@@ -36,7 +36,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
 
 # This candidate must be provided because binding to a multi-level
 # hash is codegenned this way.
-multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
+multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is raw) is raw {
     my int $dims = @indices.elems;   # reifies
     my $indices := nqp::getattr(@indices,List,'$!reified');
 

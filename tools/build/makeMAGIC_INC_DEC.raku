@@ -70,6 +70,47 @@ my @ranges =
   0x0AA50 .. 0x0AA59,  # cham digits
   0x0ABF0 .. 0x0ABF9,  # meetei mayek digits
   0x0FF10 .. 0x0FF19,  # fullwidth digits
+  0x1D400 .. 0x1D419,  # mathematical bold uppercase
+  0x1D41A .. 0x1D433,  # mathematical bold lowercase
+  0x1D434 .. 0x1D44D,  # mathematical italic uppercase
+  0x1D44E .. 0x1D467,  # mathematical italic lowercase
+  0x1D468 .. 0x1D481,  # mathematical bold italic uppercase
+  0x1D482 .. 0x1D49B,  # mathematical bold italic lowercase
+  0x1D49C .. 0x1D4B5,  # mathematical script uppercase
+  0x1D4B6 .. 0x1D4CF,  # mathematical script lowercase
+  0x1D4D0 .. 0x1D4E9,  # mathematical bold script uppercase
+  0x1D4EA .. 0x1D503,  # mathematical bold script lowercase
+  0x1D504 .. 0x1D51D,  # mathematical fraktur uppercase
+  0x1D51E .. 0x1D537,  # mathematical fraktur lowercase
+  0x1D538 .. 0x1D551,  # mathematical double-struck uppercase
+  0x1D552 .. 0x1D56B,  # mathematical double-struck lowercase
+  0x1D56C .. 0x1D585,  # mathematical bold fraktur uppercase
+  0x1D586 .. 0x1D59F,  # mathematical bold fraktur lowercase
+  0x1D5A0 .. 0x1D5B9,  # mathematical sans-serif uppercase
+  0x1D5BA .. 0x1D5D3,  # mathematical sans-serif lowercase
+  0x1D5D4 .. 0x1D5ED,  # mathematical sans-serif bold uppercase
+  0x1D5EE .. 0x1D607,  # mathematical sans-serif bold lowercase
+  0x1D608 .. 0x1D621,  # mathematical sans-serif italic uppercase
+  0x1D622 .. 0x1D63B,  # mathematical sans-serif italic lowercase
+  0x1D63C .. 0x1D655,  # mathematical sans-serif bold italic uppercase
+  0x1D656 .. 0x1D66F,  # mathematical sans-serif bold italic lowercase
+  0x1D670 .. 0x1D689,  # mathematical monospace uppercase
+  0x1D68A .. 0x1D6A3,  # mathematical monospace lowercase
+  0x1D6A8 .. 0x1D6C0,  # mathematical greek bold uppercase
+  0x1D6C2 .. 0x1D6DA,  # mathematical greek bold lowercase
+  0x1D6E2 .. 0x1D6FA,  # mathematical greek italic uppercase
+  0x1D6FC .. 0x1D714,  # mathematical greek italic lowercase
+  0x1D71C .. 0x1D734,  # mathematical greek bold italic uppercase
+  0x1D736 .. 0x1D74E,  # mathematical greek bold italic lowercase
+  0x1D756 .. 0x1D76E,  # mathematical greek sans-serif bold uppercase
+  0x1D770 .. 0x1D788,  # mathematical greek sans-serif bold lowercase
+  0x1D790 .. 0x1D7A8,  # mathematical greek sans-serif bold italic uppercase
+  0x1D7AA .. 0x1D7C2,  # mathematical greek sans-serif bold italic lowercase
+  0x1D7CE .. 0x1D7D7,  # mathematical bold digit
+  0x1D7D8 .. 0x1D7E1,  # mathematical double-struck digit
+  0x1D7E2 .. 0x1D7EB,  # mathematical sans-serif digit
+  0x1D7ED .. 0x1D7F5,  # mathematical sans-serif bold digit
+  0x1D7F6 .. 0x1D7FF,  # mathematical monospace digit
   0x1F37A .. 0x1F37B,  # beer mugs
   0x1F42A .. 0x1F42B,  # camels
 ;
@@ -115,6 +156,11 @@ my str $carrydigits =
    ~ "\x0ABF0"  # meetei mayek
    ~ "\x0AA50"  # cham
    ~ "\x0FF10"  # fullwidth XXX: should be treated as digit?
+   ~ "\x1D7CE"  # mathematical bold digit
+   ~ "\x1D7D8"  # mathematical double-struck digit
+   ~ "\x1D7E2"  # mathematical sans-serif digit
+   ~ "\x1D7ED"  # mathematical sans-serif bold digit
+   ~ "\x1D7F6"  # mathematical monospace digit
    ~ "\x1F37A"  # beer mugs
    ~ "\x1F42A"  # camels
 ;

@@ -448,6 +448,13 @@ my class IO::Path is Cool does IO {
     }
 
     method copy(IO::Path:D: IO() $to, :$createonly --> True) {
+        # add fix for issue #3971 where attempt to copy a dir
+        # to a file clobbers the file.
+        self.d and $to.f and fail X::IO::Copy.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error('cannot copy a directory to a file');
+
         $createonly and $to.e and fail X::IO::Copy.new:
             :from($.absolute),
             :to($to.absolute),

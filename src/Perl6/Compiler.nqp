@@ -27,7 +27,7 @@ class Perl6::Compiler is HLL::Compiler {
     method version_string() {
         "Welcome to 𝐑𝐚𝐤𝐮𝐝𝐨™ v"
           ~ self.config()<version>
-          ~ ".\nImplementing the 𝐑𝐚𝐤𝐮™ programming Language v"
+          ~ ".\nImplementing the 𝐑𝐚𝐤𝐮™ programming language v"
           ~ self.language_version()
           ~ ".\nBuilt on "
           ~ nqp::getattr(self,HLL::Compiler,'$!backend').version_string()

@@ -247,7 +247,7 @@ do {
         }
 
         method new(Mu \compiler, Mu \adverbs) {
-            say compiler.version_string;
+            say compiler.version_string(:shorten-versions);
             say '';
 
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;

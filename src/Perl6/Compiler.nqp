@@ -19,6 +19,22 @@ class Perl6::Compiler is HLL::Compiler {
         $IDHolder::ID
     }
 
+    method version() {
+        nqp::say(self.version_string);
+        nqp::exit(0);
+    }
+
+    method version_string() {
+        "Welcome to 𝐑𝐚𝐤𝐮𝐝𝐨™ v"
+          ~ self.config()<version>
+          ~ ".\nImplementing the 𝐑𝐚𝐤𝐮™ programming Language v"
+          ~ self.language_version()
+          ~ ".\nBuilt on "
+          ~ nqp::getattr(self,HLL::Compiler,'$!backend').version_string()
+          ~ "."
+    }
+
+
     method implementation()   { self.config<implementation> }
     method language_name()    { 'Raku' }
     method reset_language_version() {

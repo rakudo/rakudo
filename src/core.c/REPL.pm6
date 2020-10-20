@@ -247,6 +247,9 @@ do {
         }
 
         method new(Mu \compiler, Mu \adverbs) {
+            say compiler.version_string;
+            say '';
+
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
             $self.init(compiler, $multi-line-enabled);

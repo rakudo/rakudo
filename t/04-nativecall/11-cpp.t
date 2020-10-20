@@ -16,7 +16,7 @@ try {
     }
 }
 
-plan 22;
+plan 21;
 
 #~ shell 'dumpbin /exports 11-cpp.dll';
 #~ shell 'clang --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
@@ -49,7 +49,6 @@ sub SizeofDerived1() returns int32 is mangled is native("./11-cpp") { * }
 
 is nativesizeof(Derived1), SizeofDerived1(), 'sizeof(Derived1)';
 ok my $d1 = Derived1.new, 'can instantiate C++ class';
-ok my Derived1 $d1b .= new, 'can instantiate the same C++ class again using « .= »';
 is $d1.foo,   11,   'can read attribute foo';
 is $d1.bar,   42,   'can read attribute bar';
 is $d1.baz,   43,   'can read attribute baz';

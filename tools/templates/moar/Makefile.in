@@ -180,7 +180,10 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
             '-DSTATIC_EXEC_PATH=' . $qchar . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed )) . $qchar
             if $config{relocatable} eq 'nonreloc';
         $vars{debug_flag} = '-DMOAR_RAKUDO_RUNNER_DEBUG' if $build =~ /DEBUG/;
-        $vars{subsystem_flag} = $config{'subsystem_windows_flag'} if $build =~ 'RAKUDOW';
+        if ($build !~ /RAKUDOW|PERL6W/) {
+            $vars{subsystem_win_ld_flags} = '';
+            $vars{subsystem_win_cc_flags} = '';
+        }
         $vars{obj_file} = $obj;
         my $scope = $cfg->push_config(%vars);
         $out .= $macros->expand('@insert(Makefile-gen-c-runner)@');

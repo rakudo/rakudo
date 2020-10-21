@@ -411,14 +411,16 @@ sub configure_moar_backend {
             $nqp_config->{mingw_unicode} = '-municode';
         }
 
+        $nqp_config->{subsystem_win_cc_flags} = '-DSUBSYSTEM_WINDOWS';
         if ( $nqp_config->{'moar::ld'} eq 'link' ) {
-            $nqp_config->{subsystem_windows_flag} = '/subsystem:windows /entry:wmainCRTStartup';
+            $nqp_config->{subsystem_win_ld_flags} = '/subsystem:windows';
         }
         else {
-            $nqp_config->{subsystem_windows_flag} = '--subsystem=windows --entry=wmainCRTStartup';
+            $nqp_config->{subsystem_win_ld_flags} = '--subsystem=windows';
         }
 
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
+        push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shell32' );
     }
     else {
         $imoar->{toolchains} = [qw<gdb lldb valgrind>];

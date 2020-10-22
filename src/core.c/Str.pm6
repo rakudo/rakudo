@@ -53,6 +53,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::bindattr_s(self, Str, '$!value', nqp::unbox_s($value))
     }
 
+    method no-strands(Str:D: --> Str:D) {
+        nqp::bindattr_s(self,Str,'$!value',nqp::indexingoptimized($!value))
+    }
+
     multi method Bool(Str:D: --> Bool:D) {
         nqp::hllbool(nqp::chars($!value));
     }

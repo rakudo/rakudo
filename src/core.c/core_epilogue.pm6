@@ -61,6 +61,23 @@ BEGIN {
     }
 }
 
+# Cannot be added in the Uni class, as we don't have native arrays
+# then yet, so it must be done here as an augment.
+augment class Uni {
+    multi method new(Uni: array[uint32] \codepoints) {
+        my $uni      := nqp::create(self);
+        my int $elems = nqp::elems(codepoints);
+        my int $i = -1;
+        
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::push_i($uni,nqp::atpos_i(codepoints,$i))
+        );
+        
+        $uni
+    }
+}
+
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 
 {YOU_ARE_HERE}

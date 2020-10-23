@@ -383,7 +383,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             $block.push: QAST::Op.new(
                 :op<if>,
                 QAST::Op.new(
-                    :op<isconcrete_nd>,
+                    :op<isconcrete>,
                     QAST::Var.new(:scope<local>, :name($lowered_param_name)),
                 ),
                 QAST::Op.new(

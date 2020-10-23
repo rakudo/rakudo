@@ -53,30 +53,37 @@ for $*IN.lines -> $line {
         multi method grep(#type#array:D: #Type#:D $needle, :$k, :$kv, :$p, :$v) {
             my int $i     = -1;
             my int $elems = nqp::elems(self);
+            my $result   := nqp::create(IterationBuffer);
 
-            if $k || $kv || $p {
-                my $result := nqp::create(IterationBuffer);
+            if $k {
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
                     nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
-                    nqp::push($result,$i)
+                    nqp::push($result,nqp::clone($i))
                   )
                 );
-
-                if $kv || $p {
-                    $i     = -1;
-                    $elems = nqp::elems($result);
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::bindpos(
-                        $result,
-                        $i,nqp::if($kv,($i,$needle),Pair.new($i,$needle))
-                      )
-                    );
-                }
-
-                $result.Seq
+            }
+            elsif $kv {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+                    nqp::stmts(
+                      nqp::push($result,nqp::clone($i)),
+                      nqp::push($result,$needle)
+                    )
+                  )
+                );
+            }
+            elsif $p {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+                    nqp::push($result,Pair.new($i,$needle))
+                  )
+                );
             }
             else {
                 my int $found;
@@ -84,11 +91,11 @@ for $*IN.lines -> $line {
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::if(
                     nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
-                    $found = nqp::add_i($found,1)
+                    nqp::push($result,$needle)
                   )
                 );
-                $needle xx $found
             }
+            $result.Seq
         }
 
         multi method first(#type#array:D: #Type#:D $needle, :$k, :$kv, :$p, :$v) {

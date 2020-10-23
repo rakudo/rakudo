@@ -2,6 +2,7 @@ class CompUnit::Handle {
     has Mu $!module_ctx;
     has Mu $!unit;
 
+    proto submethod new(|) {*}
     multi submethod new() {
         nqp::create(self)
     }

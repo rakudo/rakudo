@@ -50,7 +50,7 @@ for $*IN.lines -> $line {
     # spurt the role
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
-        multi method grep(#type#array:D: #Type#:D $needle, :$k, :$kv, :$p, :$v) {
+        multi method grep(#type#array:D: #Type#:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
             my int $i     = -1;
             my int $elems = nqp::elems(self);
             my $result   := nqp::create(IterationBuffer);
@@ -117,6 +117,64 @@ for $*IN.lines -> $line {
                   !! $p
                     ?? Pair.new($i,$needle)
                     !! $needle
+        }
+
+        multi method unique(#type#array:D: --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(self);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::existskey($seen,nqp::atpos_#postfix#(self,$i)),
+                nqp::stmts(
+                  nqp::bindkey($seen,nqp::atpos_#postfix#(self,$i),1),
+                  nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,$i))
+                )
+              )
+            );
+
+            $result.Seq
+        }
+
+        multi method repeated(#type#array:D: --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(self);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,nqp::atpos_#postfix#(self,$i)),
+                nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,$i)),
+                nqp::bindkey($seen,nqp::atpos_#postfix#(self,$i),1)
+              )
+            );
+
+            $result.Seq
+        }
+
+        multi method squish(#type#array:D: --> Seq:D) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(self);
+                my #type# $last = nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_#postfix#(nqp::atpos_#postfix#(self,$i),$last),
+                    nqp::push_#postfix#($result,$last = nqp::atpos_#postfix#(self,$i))
+                  )
+                );
+                $result.Seq
+            }
+            else {
+                self.Seq
+            }
         }
 
         multi method AT-POS(#type#array:D: int $idx --> #type#) is raw {
@@ -439,6 +497,9 @@ for $*IN.lines -> $line {
         }
         method iterator(#type#array:D: --> PredictiveIterator:D) {
             Rakudo::Iterator.native_#postfix#(self)
+        }
+        method Seq(#type#array:D: --> Seq:D) {
+            Seq.new(Rakudo::Iterator.native_#postfix#(self))
         }
 
         method reverse(#type#array:D: --> #type#array:D) is nodal {

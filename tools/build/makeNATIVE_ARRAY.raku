@@ -50,6 +50,68 @@ for $*IN.lines -> $line {
     # spurt the role
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
+        multi method grep(#type#array:D: #Type#:D $needle, :$k, :$kv, :$p, :$v) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+
+            if $k || $kv || $p {
+                my $result := nqp::create(IterationBuffer);
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+                    nqp::push($result,$i)
+                  )
+                );
+
+                if $kv || $p {
+                    $i     = -1;
+                    $elems = nqp::elems($result);
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      nqp::bindpos(
+                        $result,
+                        $i,nqp::if($kv,($i,$needle),Pair.new($i,$needle))
+                      )
+                    );
+                }
+
+                $result.Seq
+            }
+            else {
+                my int $found;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+                    $found = nqp::add_i($found,1)
+                  )
+                );
+                $needle xx $found
+            }
+        }
+
+        multi method first(#type#array:D: #Type#:D $needle, :$k, :$kv, :$p, :$v) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::isne_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+              nqp::null()
+            );
+
+            nqp::iseq_i($i,nqp::elems(self))
+              ?? Nil
+              !! $k
+                ?? $i
+                !! $kv
+                  ?? ($i,$needle)
+                  !! $p
+                    ?? Pair.new($i,$needle)
+                    !! $needle
+        }
+
         multi method AT-POS(#type#array:D: int $idx --> #type#) is raw {
             nqp::islt_i($idx,0)
               ?? INDEX_OUT_OF_RANGE($idx)

@@ -61,6 +61,7 @@ BEGIN {
     }
 }
 
+#?if moar
 # Cannot be added in the Uni class, as we don't have native arrays
 # then yet, so it must be done here as an augment.
 augment class Uni {
@@ -77,6 +78,7 @@ augment class Uni {
         $uni
     }
 }
+#?endif
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 

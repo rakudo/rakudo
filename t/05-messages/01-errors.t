@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 51;
+plan 50;
 
 # https://github.com/Raku/old-issue-tracker/issues/5707
 throws-like '1++', X::Multi::NoMatch,
@@ -129,10 +129,6 @@ for <fail die throw rethrow resume> -> $meth {
 # https://github.com/Raku/old-issue-tracker/issues/3428
 {
     throws-like { my class RT122232::B {}; RT122232.new },
-        Exception,
-        message => /'cannot create' .+ «RT122232»/,
-        'trying to instantiate a non-class gives the name in the error';
-    throws-like { my subset RT122232 of Int where * > 42; RT122232.new },
         Exception,
         message => /'cannot create' .+ «RT122232»/,
         'trying to instantiate a non-class gives the name in the error';

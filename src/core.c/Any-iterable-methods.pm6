@@ -1519,6 +1519,9 @@ Consider using a block if any of these are necessary for your mapping code."
         (find-reducer-for-op(&with))(&with,1)(self)
     }
 
+    proto method slice(|) is nodal { * }
+    multi method slice(Any:D: *@indices) { self.Seq.slice(@indices) }
+
     proto method unique(|) is nodal {*}
 
     my class Unique does Iterator {

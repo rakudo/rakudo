@@ -150,23 +150,21 @@ class Perl6::Metamodel::CoercionHOW
             return $method($value)
         }
 
-        say("!!! ... try COERCE-INTO") if nqp::getenvhash<RAKUDO_DEBUG>;
-        # Next we try $value.COERCE-INTO(TargetType). This would make possible coercion into types with compound names
-        # like MyPackage::TargetType.
-        # XXX COERCE-* methods can only be of type Routine now. Does it ever makes sense for them to be of some other
-        # base class?
-        $method := $value_type.HOW.find_method($value_type, 'COERCE-INTO');
-        if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($value, $target_type) {
-            return $method($value, $target_type);
-        }
-
-        say("!!! ... try COERCE-FROM") if nqp::getenvhash<RAKUDO_DEBUG>;
-        # As the last resort we fallback to TargetType.COERCE-FROM($value). This is the worst possible variant because
+        say("!!! ... try COERCE") if nqp::getenvhash<RAKUDO_DEBUG>;
+        # As the last resort we fallback to TargetType.COERCE($value). This is the worst possible variant because
         # the best possible coercion may require access to source calss private data. Yet, this may work for many simple
         # cases like TargetType(Str), for example.
-        $method := $target_type.HOW.find_method($target_type, 'COERCE-FROM');
-        if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($target_type, $value) {
-            return $method($target_type, $value);
+        # $method := $target_type.HOW.find_method($target_type, 'COERCE');
+        my $target_how := $target_type.HOW;
+        my $target_nominal := $target_how.archetypes.nominalizable
+                                    ?? $target_how.nominalize($target_type)
+                                    !! $target_type;
+        my $submethod_table := $target_nominal.HOW.submethod_table($target_nominal);
+        if nqp::existskey($submethod_table, 'COERCE') {
+            my $method := nqp::atkey($submethod_table, 'COERCE');
+            if nqp::can($method, 'cando') && $method.cando($target_nominal, $value) {
+                return $method($target_nominal, $value);
+            }
         }
 
         say("!!! ... failed") if nqp::getenvhash<RAKUDO_DEBUG>;

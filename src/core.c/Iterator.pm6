@@ -131,4 +131,12 @@ my role PredictiveIterator does Iterator {
     method bool-only(--> Bool:D) { self.count-only.Bool }
 }
 
+# The CachedIterator role is a refinement of the PredictiveIterator role for
+# those cases where the source of the iterator is a Positional structure that
+# supports the AT-POS interface.  With such a structure, there is no need to
+# build a separate cache for the PositionalBindFailover functionality.
+my role CachedIterator does PredictiveIterator {
+    method cache(--> Positional:D) { ... }
+}
+
 # vim: expandtab shiftwidth=4

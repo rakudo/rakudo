@@ -13,12 +13,12 @@ int argvQuote(wchar_t *in, wchar_t *out) {
     ipos = 0;
     opos = 0;
 
-    if (!wcschr(in, L' ') && !wcschr(in, L'\\"') && !wcschr(in, L'\\t') && !wcschr(in, L'\\n') && !wcschr(in, L'\\v')) {
+    if (!wcschr(in, L' ') && !wcschr(in, L'"') && !wcschr(in, L'\\t') && !wcschr(in, L'\\n') && !wcschr(in, L'\\v')) {
         if (out) wcscpy(out, in);
         return wcslen(in) + 1;
     }
 
-    if (out) out[opos] = L'\\"';
+    if (out) out[opos] = L'"';
     opos++;
 
     while (in[ipos] != 0) {
@@ -35,7 +35,7 @@ int argvQuote(wchar_t *in, wchar_t *out) {
             }
             break;
         }
-        else if (in[ipos] == L'\\"') {
+        else if (in[ipos] == L'"') {
             for (c = 0; c < (bs_count * 2 + 1); c++) {
                 if (out) out[opos] = L'\\\\';
                 opos++;
@@ -55,7 +55,7 @@ int argvQuote(wchar_t *in, wchar_t *out) {
         ipos++;
     }
 
-    if (out) out[opos] = L'\\"';
+    if (out) out[opos] = L'"';
     opos++;
     if (out) out[opos] = 0;
     opos++;

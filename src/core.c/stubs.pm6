@@ -61,9 +61,10 @@ sub DYNAMIC(\name) is raw {  # is implementation-detail
 # actually appear in the setting).
 {
     my class Dummy {
-        our proto method AUTOGEN(::T $: |) {*}
+        our proto method AUTOGEN-METHOD(::T $: |) {*}
+        our proto submethod AUTOGEN-SUBMETHOD(::T $: |) {*}
     }
-    Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
+    Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN-METHOD, &Dummy::AUTOGEN-SUBMETHOD);
 }
 
 # vim: expandtab shiftwidth=4

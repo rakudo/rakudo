@@ -1,3 +1,55 @@
+New in 2020.10:
+
+  + Additions:
+    + Implement `MAIN` parameter bundling via the `%*SUB-MAIN-OPTS<bundling>`
+      option [75f92d2b][04164a0f]
+    + Generate a `rakuw.exe` executable on Windows which will not spawn
+      a console window (in contrast to the `raku.exe` executable) [0ea6902d][708d0ca6]
+    + Add 𝐑𝐚𝐤𝐮𝐝𝐨™ and 𝐑𝐚𝐤𝐮™ welcome message [80a4ada6][4e9178f8][bae905ef]
+  + Changes:
+    + Add a new implementation for multi-level Hash slicing,
+      not backward-compatible with `6.c` version and to be enabled since `6.e`
+       [551b577d][f106c231][6986ea1d][8a2d9a61][1c08e66b][1c08e66b]
+       [d08247db][94d89686][18f3808e][4b278bcb][f9b3f925][b1ec2489]
+       [d6e94aed][564faa64][93503c24][b60772fa][198f6030][ff2f2b0c]
+       [420cb1f4][c701a482][1971ba46][964f6e48][3ca1fede][54eb4314]
+       [d713e451]
+    + `False.truncate` returns `False` instead of 0 now [7192a99e]
+    + Make "is rw" on parameters of MAIN worry [d0854ffc]
+    + Change `IterationBuffer.raku` output.
+      Note that IterationBuffer.raku is a debugging tool: it does
+      *not* roundtrip, nor is it the intent that it ever will. [33bb6504]
+  + Efficiency:
+    + Adapt to simplified `nqp::isprime_I` [80bf1db1]
+    + Make `%a{a;b}` about 30% faster [a5774094]
+    + Further simplify `%h{a;b;c}` candidate [e435a087]
+    + Make `Hash.DELETE-KEY` on a non-existing key 40% faster
+      [3131ce25][fcabad44]
+    + Make making a `Uni` between 1.5x and 22x as fast [2999be32]
+    + Make `.grep/.first` on native arrays about 3.5x as fast
+      [240bc9eb][cf239477]
+    + Make `.unique/.repeated/.squish` on native arrays faster [c37ffe71]
+  + Fixes:
+    + Fix stub packages in multi part declarations only knowing
+      part of their name [51db5341]
+    + Build System: Add a check to prevent building a Rakudo with a
+      stale NQP version [4dbdcb8d][d8db03b5]
+    + Make BUILD(ALL)PLAN output a bit clearer [a26beb66]
+    + Make `$*USER` and `$*GROUP` return correct values on some non-English
+      locales [6a89d716]
+    + Fix possible race in multi-threaded precompilation [12946210]
+    + Produce a better error message for `my &MAIN = { }` [e0e24a8d]
+    + Fix issue with Z / X used with set operators [338c7439]
+    + Produce a better error message for incorrect code `infix:(&)` [4af961ed]
+    + Fix NativeCall/C++ to allow double instantiation [ecaf334c][f3ffb702]
+    + An attempt to copy a directory to a file does not remove the file
+      anymore [41a76cad]
+    + Fix a problem with multi submethods been treated as method [7cfca098]
+  + Internal:
+    + More fixes to the binary release scripts [bd029ae4][99acfa9c]
+    + Move `Int` candidates from Numeric.pm6 to Int.pm6 [bf799bae]
+    + Add `.gitattributes` file and specify file extensions [42e0434d]
+
 New in 2020.09:
   + Additions:
     + Introducing the `Allomorph` class

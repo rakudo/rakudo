@@ -290,8 +290,8 @@ multi sub move(IO() $from, IO() $to, :$createonly) {
 }
 
 proto sub symlink($, $, *%) {*}
-multi sub symlink(IO() $target, IO() $name, Bool :$literal) {
-    $target.symlink($name, :$literal)
+multi sub symlink(IO() $target, IO() $name, Bool :$absolute = True) {
+    $target.symlink($name, :$absolute)
 }
 
 proto sub link($, $, *%) {*}

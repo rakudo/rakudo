@@ -93,8 +93,135 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2020-10-14T21:00:54+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-10-23T20:56:37+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+        multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result   := nqp::create(IterationBuffer);
+
+            if $k {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_s(nqp::atpos_s(self,$i),$needle),
+                    nqp::push($result,nqp::clone($i))
+                  )
+                );
+            }
+            elsif $kv {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_s(nqp::atpos_s(self,$i),$needle),
+                    nqp::stmts(
+                      nqp::push($result,nqp::clone($i)),
+                      nqp::push($result,$needle)
+                    )
+                  )
+                );
+            }
+            elsif $p {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_s(nqp::atpos_s(self,$i),$needle),
+                    nqp::push($result,Pair.new($i,$needle))
+                  )
+                );
+            }
+            else {
+                my int $found;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_s(nqp::atpos_s(self,$i),$needle),
+                    nqp::push($result,$needle)
+                  )
+                );
+            }
+            $result.Seq
+        }
+
+        multi method first(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::isne_s(nqp::atpos_s(self,$i),$needle),
+              nqp::null()
+            );
+
+            nqp::iseq_i($i,nqp::elems(self))
+              ?? Nil
+              !! $k
+                ?? $i
+                !! $kv
+                  ?? ($i,$needle)
+                  !! $p
+                    ?? Pair.new($i,$needle)
+                    !! $needle
+        }
+
+        multi method unique(strarray:D: --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(self);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::existskey($seen,nqp::atpos_s(self,$i)),
+                nqp::stmts(
+                  nqp::bindkey($seen,nqp::atpos_s(self,$i),1),
+                  nqp::push_s($result,nqp::atpos_s(self,$i))
+                )
+              )
+            );
+
+            $result.Seq
+        }
+
+        multi method repeated(strarray:D: --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(self);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,nqp::atpos_s(self,$i)),
+                nqp::push_s($result,nqp::atpos_s(self,$i)),
+                nqp::bindkey($seen,nqp::atpos_s(self,$i),1)
+              )
+            );
+
+            $result.Seq
+        }
+
+        multi method squish(strarray:D: --> Seq:D) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(self);
+                my str $last = nqp::push_s($result,nqp::atpos_s(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_s(nqp::atpos_s(self,$i),$last),
+                    nqp::push_s($result,$last = nqp::atpos_s(self,$i))
+                  )
+                );
+                $result.Seq
+            }
+            else {
+                self.Seq
+            }
+        }
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
             nqp::islt_i($idx,0)
@@ -417,6 +544,9 @@ my class array does Iterable {
         method iterator(strarray:D: --> PredictiveIterator:D) {
             Rakudo::Iterator.native_s(self)
         }
+        method Seq(strarray:D: --> Seq:D) {
+            Seq.new(Rakudo::Iterator.native_s(self))
+        }
 
         method reverse(strarray:D: --> strarray:D) is nodal {
             nqp::stmts(
@@ -557,8 +687,135 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2020-10-14T21:00:54+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-10-23T20:56:37+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+        multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result   := nqp::create(IterationBuffer);
+
+            if $k {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_i(nqp::atpos_i(self,$i),$needle),
+                    nqp::push($result,nqp::clone($i))
+                  )
+                );
+            }
+            elsif $kv {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_i(nqp::atpos_i(self,$i),$needle),
+                    nqp::stmts(
+                      nqp::push($result,nqp::clone($i)),
+                      nqp::push($result,$needle)
+                    )
+                  )
+                );
+            }
+            elsif $p {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_i(nqp::atpos_i(self,$i),$needle),
+                    nqp::push($result,Pair.new($i,$needle))
+                  )
+                );
+            }
+            else {
+                my int $found;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_i(nqp::atpos_i(self,$i),$needle),
+                    nqp::push($result,$needle)
+                  )
+                );
+            }
+            $result.Seq
+        }
+
+        multi method first(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::isne_i(nqp::atpos_i(self,$i),$needle),
+              nqp::null()
+            );
+
+            nqp::iseq_i($i,nqp::elems(self))
+              ?? Nil
+              !! $k
+                ?? $i
+                !! $kv
+                  ?? ($i,$needle)
+                  !! $p
+                    ?? Pair.new($i,$needle)
+                    !! $needle
+        }
+
+        multi method unique(intarray:D: --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(self);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::existskey($seen,nqp::atpos_i(self,$i)),
+                nqp::stmts(
+                  nqp::bindkey($seen,nqp::atpos_i(self,$i),1),
+                  nqp::push_i($result,nqp::atpos_i(self,$i))
+                )
+              )
+            );
+
+            $result.Seq
+        }
+
+        multi method repeated(intarray:D: --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(self);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,nqp::atpos_i(self,$i)),
+                nqp::push_i($result,nqp::atpos_i(self,$i)),
+                nqp::bindkey($seen,nqp::atpos_i(self,$i),1)
+              )
+            );
+
+            $result.Seq
+        }
+
+        multi method squish(intarray:D: --> Seq:D) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(self);
+                my int $last = nqp::push_i($result,nqp::atpos_i(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_i(nqp::atpos_i(self,$i),$last),
+                    nqp::push_i($result,$last = nqp::atpos_i(self,$i))
+                  )
+                );
+                $result.Seq
+            }
+            else {
+                self.Seq
+            }
+        }
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
             nqp::islt_i($idx,0)
@@ -881,6 +1138,9 @@ my class array does Iterable {
         method iterator(intarray:D: --> PredictiveIterator:D) {
             Rakudo::Iterator.native_i(self)
         }
+        method Seq(intarray:D: --> Seq:D) {
+            Seq.new(Rakudo::Iterator.native_i(self))
+        }
 
         method reverse(intarray:D: --> intarray:D) is nodal {
             nqp::stmts(
@@ -1073,8 +1333,135 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2020-10-14T21:00:54+02:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-10-23T20:56:37+02:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+        multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result   := nqp::create(IterationBuffer);
+
+            if $k {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_n(nqp::atpos_n(self,$i),$needle),
+                    nqp::push($result,nqp::clone($i))
+                  )
+                );
+            }
+            elsif $kv {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_n(nqp::atpos_n(self,$i),$needle),
+                    nqp::stmts(
+                      nqp::push($result,nqp::clone($i)),
+                      nqp::push($result,$needle)
+                    )
+                  )
+                );
+            }
+            elsif $p {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_n(nqp::atpos_n(self,$i),$needle),
+                    nqp::push($result,Pair.new($i,$needle))
+                  )
+                );
+            }
+            else {
+                my int $found;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_n(nqp::atpos_n(self,$i),$needle),
+                    nqp::push($result,$needle)
+                  )
+                );
+            }
+            $result.Seq
+        }
+
+        multi method first(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::isne_n(nqp::atpos_n(self,$i),$needle),
+              nqp::null()
+            );
+
+            nqp::iseq_i($i,nqp::elems(self))
+              ?? Nil
+              !! $k
+                ?? $i
+                !! $kv
+                  ?? ($i,$needle)
+                  !! $p
+                    ?? Pair.new($i,$needle)
+                    !! $needle
+        }
+
+        multi method unique(numarray:D: --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(self);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::existskey($seen,nqp::atpos_n(self,$i)),
+                nqp::stmts(
+                  nqp::bindkey($seen,nqp::atpos_n(self,$i),1),
+                  nqp::push_n($result,nqp::atpos_n(self,$i))
+                )
+              )
+            );
+
+            $result.Seq
+        }
+
+        multi method repeated(numarray:D: --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(self);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,nqp::atpos_n(self,$i)),
+                nqp::push_n($result,nqp::atpos_n(self,$i)),
+                nqp::bindkey($seen,nqp::atpos_n(self,$i),1)
+              )
+            );
+
+            $result.Seq
+        }
+
+        multi method squish(numarray:D: --> Seq:D) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(self);
+                my num $last = nqp::push_n($result,nqp::atpos_n(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_n(nqp::atpos_n(self,$i),$last),
+                    nqp::push_n($result,$last = nqp::atpos_n(self,$i))
+                  )
+                );
+                $result.Seq
+            }
+            else {
+                self.Seq
+            }
+        }
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
             nqp::islt_i($idx,0)
@@ -1396,6 +1783,9 @@ my class array does Iterable {
         }
         method iterator(numarray:D: --> PredictiveIterator:D) {
             Rakudo::Iterator.native_n(self)
+        }
+        method Seq(numarray:D: --> Seq:D) {
+            Seq.new(Rakudo::Iterator.native_n(self))
         }
 
         method reverse(numarray:D: --> numarray:D) is nodal {

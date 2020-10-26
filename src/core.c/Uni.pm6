@@ -4,14 +4,21 @@ my class NFKC is repr('VMArray') is array_type(uint32) { ... }
 my class NFKD is repr('VMArray') is array_type(uint32) { ... }
 
 my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_type(uint32) {
-    method new(*@codes) {
-        my $uni := nqp::create(self);
-        my int $n = @codes.elems;
-        loop (my int $i = 0; $i < $n; $i = $i + 1) {
-            nqp::bindpos_i($uni, $i, @codes.AT-POS($i));
-        }
+
+    multi method new(Uni:) { nqp::create(self) }
+    multi method new(Uni: *@codes) {
+        @codes.elems;  # reify and test for lazy sequences
+        my $uni        := nqp::create(self);
+        my $codepoints := nqp::getattr(@codes,List,'$!reified');
+
+        nqp::while(
+          nqp::elems($codepoints),
+          nqp::push_i($uni,nqp::shift($codepoints))
+        );
+
         $uni
     }
+    # array[uint32] candidate added in core_epilogue
 
     my class UniList does PredictiveIterator {
         has $!uni;

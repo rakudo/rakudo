@@ -2,5 +2,5 @@
 	@echo(+++ Compiling	$@)@
 	$(NOECHO)$(RM_F) $@
 # Using only the pkgconfig moar includes does not work, because moar.h assumes all the specific includes below.
-	$(NOECHO@nop())@@bpm(CC)@ @moar::ccswitch@ @exec_path_define@ @static_nqp_home_define@ @static_rakudo_home_define@ @debug_flag@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@obj_file@@moar::obj@ @nfp(src/vm/moar/runner/main.c)@
-	$(NOECHO@nop())@@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ @obj_file@@moar::obj@ @moar::lddir@"@moar::libdir@" @c_runner_libs@ @moar_lib@
+	$(NOECHO@nop())@@bpm(CC)@ @moar::ccswitch@ @exec_path_define@ @static_nqp_home_define@ @static_rakudo_home_define@ @debug_flag@ @subsystem_win_cc_flags@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@obj_file@@moar::obj@ @nfp(src/vm/moar/runner/main.c)@
+	$(NOECHO@nop())@@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @subsystem_win_ld_flags@ @bpm(MINGW_UNICODE)@ @obj_file@@moar::obj@ @moar::lddir@"@moar::libdir@" @c_runner_libs@ @moar_lib@

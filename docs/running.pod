@@ -144,7 +144,7 @@ C<IO::Spec::Cygwin> inherits this from C<IO::Spec::Unix>.
 C<IO::Spec::Win32.path> will read the first defined of either C<%PATH%> or C<%Path%> as a
 semicolon-delimited list.
 
-=item C<RAKU_HOME>
+=item C<RAKUDO_HOME>
 
 Allows to override the Raku installation path. Defaults to C<[rakudo_executable_dir]/../share/perl6>.
 
@@ -153,6 +153,24 @@ Allows to override the Raku installation path. Defaults to C<[rakudo_executable_
 Allows to override the NQP installation path. Defaults to C<[rakudo_executable_dir]/../share/nqp>.
 
 =back
+
+=head1 WINDOWS PECULIARITIES
+
+=head 2 Non-console applications
+
+On Windows programs are compiled to either be I<console> applications or I<non-console>
+applications. I<Console> applications always open a console window. There is no straightforward way
+to suppress this window.
+
+Rakudo provides a separate set of executables suffixed with a C<'w'> (C<rakuw.exe>, C<rakudow.exe>,
+...) that are compiled as I<non-console> applications. These do not spawn this console window.
+
+B<WARNING> By default these I<non-console> applications will silently swallow everything that is
+printed to C<STDOUT> and C<STDERR>.
+
+To receive the output of the program it suffices to redirect it externally:
+
+C<rakuw.exe script.raku >stdout.txt 2>stderr.txt>
 
 =head1 AUTHORS
 

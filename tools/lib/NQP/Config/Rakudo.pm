@@ -390,6 +390,7 @@ sub configure_moar_backend {
           );
     }
     $nqp_config->{mingw_unicode} = '';
+    $nqp_config->{subsystem_windows_flag} = '';
 
     my @c_runner_libs;
     if ( $self->is_win ) {
@@ -409,7 +410,17 @@ sub configure_moar_backend {
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $nqp_config->{mingw_unicode} = '-municode';
         }
+
+        $nqp_config->{subsystem_win_cc_flags} = '-DSUBSYSTEM_WINDOWS';
+        if ( $nqp_config->{'moar::ld'} eq 'link' ) {
+            $nqp_config->{subsystem_win_ld_flags} = '/subsystem:windows';
+        }
+        else {
+            $nqp_config->{subsystem_win_ld_flags} = '--subsystem=windows';
+        }
+
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
+        push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shell32' );
     }
     else {
         $imoar->{toolchains} = [qw<gdb lldb valgrind>];
@@ -643,7 +654,8 @@ sub gen_nqp {
 
         unless ( $force_rebuild
             || !$nqp_have
-            || $nqp_ver_ok )
+            || $nqp_ok
+            || defined($gen_nqp))
         {
             my $say_sub = $options->{'ignore-errors'} ? 'note' : 'sorry';
             $self->$say_sub(

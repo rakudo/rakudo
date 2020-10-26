@@ -67,6 +67,35 @@ To make use of the Build Tools in Rakudo using PowerShell:
 - Execute `C:\path\to\this\folder\scripts\set-env.ps1`
 
 
+Non-console applications
+------------------------
+
+On Windows programs are compiled to either be _console_ applications or
+_non-console_ applications. _Console_ applications always open a console
+window. There is no straightforward way to suppress this window.
+
+Rakudo provides a separate set of executables suffixed with a 'w' (`rakuw.exe`,
+`rakudow.exe`, ...) that are compiled as _non-console_ applications. These do
+not spawn this console window.
+
+**WARNING** These _non-console_ applications do not have their `STDIN`,
+`STDOUT` and `STDERR` attached. Trying to write to these handles will cause the
+application to abort.
+
+One can place the following snippet at the top of a program to have all its
+output be silently ignored instead.
+
+    $*OUT=$*ERR=class {method print(*@args){}};
+
+
+**WARNING** By default these _non-console_ applications will silently swallow
+everything that is printed to `STDOUT` and `STDERR`.
+
+To receive the output of the program it suffices to redirect it externally:
+
+    rakuw.exe script.raku >stdout.txt 2>stderr.txt
+
+
 Changes
 =======
 

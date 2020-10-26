@@ -603,7 +603,7 @@ class Telemetry does Associative {
     }
 
     multi method raku(Telemetry:D: --> Str:D) {
-        self.^name ~ ".new$!samples.raku()"
+        self.^name ~ ".new$!samples.List.raku()"
     }
 
     method sampler() { $!sampler }

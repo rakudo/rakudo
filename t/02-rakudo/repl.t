@@ -7,6 +7,7 @@ plan 45;
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
+    $_ = .lines.skip(4).join("\n");
     s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
         " or use rlwrap for a line editor\n\n"//;
     s/^^ "To exit type 'exit' or $eof\n"//;

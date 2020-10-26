@@ -4,11 +4,10 @@ unit module Test;
 # Copyright (C) 2007 - 2020 The Perl Foundation.
 
 # settable from outside
-my %ENV := %*ENV;  # reduce dynamic lookups
-my int $perl6_test_times =
-  ?(%ENV<RAKU_TEST_TIME> // %ENV<PERL6_TEST_TIMES>);
+my int $raku_test_times =
+  ?(%*ENV<RAKU_TEST_TIME> // %*ENV<PERL6_TEST_TIMES>);
 my int $die_on_fail =
-  ?(%ENV<RAKU_TEST_DIE_ON_FAIL> // %ENV<PERL6_TEST_DIE_ON_FAIL>);
+  ?(%*ENV<RAKU_TEST_DIE_ON_FAIL> // %*ENV<PERL6_TEST_DIE_ON_FAIL>);
 
 # global state
 my @vars;
@@ -113,7 +112,7 @@ multi sub plan($number_of_tests) is export {
     $time_before = nqp::time_n;
     $time_after  = nqp::time_n;
     $str-message ~= "\n$indents# between two timestamps " ~ ceiling(($time_after-$time_before)*1_000_000) ~ ' microseconds'
-        if nqp::iseq_i($perl6_test_times,1);
+        if nqp::iseq_i($raku_test_times,1);
 
     $output.say: $str-message;
 
@@ -691,7 +690,7 @@ sub _is_deeply(Mu $got, Mu $expected) {
 sub die-on-fail {
     if !$todo_reason && !$subtest_level && nqp::iseq_i($die_on_fail,1) {
         _diag 'Test failed. Stopping test suite, because the '
-          ~ (%ENV<RAKU_TEST_DIE_ON_FAIL> ?? 'RAKU' !! 'PERL6')
+          ~ (%*ENV<RAKU_TEST_DIE_ON_FAIL> ?? 'RAKU' !! 'PERL6')
           ~ "_TEST_DIE_ON_FAIL\n"
           ~ 'environmental variable is set to a true value.';
         exit 255;
@@ -749,7 +748,7 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
             !! "ok $num_of_tests_run - $unescaped-prefix$desc";
 
     $tap ~= ("\n$indents# t=" ~ ceiling(($time_after - $time_before)*1_000_000))
-        if nqp::iseq_i($perl6_test_times,1);
+        if nqp::iseq_i($raku_test_times,1);
 
     $output.say: $tap;
 

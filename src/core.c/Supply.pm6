@@ -9,13 +9,11 @@ my class Tap {
         nqp::create(self)
     }
     multi method new(Tap: &on-close --> Tap:D) {
-        nqp::if(
-          nqp::eqaddr(self.WHAT,Tap),
-          nqp::p6bindattrinvres(                 # we're a real Tap, fast path
-            nqp::create(self),Tap,'&!on-close',&on-close
-          ),
-          self.bless(:&on-close)                 # subclass, use slow path
-        )
+        nqp::eqaddr(self.WHAT,Tap)
+          ?? nqp::p6bindattrinvres(              # we're a real Tap, fast path
+               nqp::create(self),Tap,'&!on-close',&on-close
+             )
+          !! self.bless(:&on-close)              # subclass, use slow path
     }
 
     method close(--> True) {
@@ -75,13 +73,11 @@ my class Supply does Awaitable {
         X::Supply::New.new.throw
     }
     multi method new(Supply: Tappable $tappable) {
-        nqp::if(
-          nqp::eqaddr(self.WHAT,Supply),
-          nqp::p6bindattrinvres(                 # we're a real Supply, fast path
-            nqp::create(self),Supply,'$!tappable',$tappable
-          ),
-          self.bless(:$tappable)                 # subclass, use slow path
-        )
+        nqp::eqaddr(self.WHAT,Supply)
+          ?? nqp::p6bindattrinvres(             # we're a real Supply, fast path
+               nqp::create(self),Supply,'$!tappable',$tappable
+             )
+          !! self.bless(:$tappable)             # subclass, use slow path
     }
     submethod BUILD(Tappable :$!tappable! --> Nil) { }  # for subclasses
 

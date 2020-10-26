@@ -89,11 +89,9 @@ my role Iterator {
     # Skip the given number of values produced before returning the next
     # pulled value.  Given 0 it is an expensive way to do .pull-one
     method skip-at-least-pull-one(int $toskip) {
-        nqp::if(
-          self.skip-at-least($toskip),
-          self.pull-one,
-          IterationEnd
-        )
+        self.skip-at-least($toskip)
+          ?? self.pull-one
+          !! IterationEnd
     }
 
     # Consumes all of the values in the iterator for their side-effects only.

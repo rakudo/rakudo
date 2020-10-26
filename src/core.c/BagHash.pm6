@@ -6,17 +6,17 @@ my class BagHash does Baggy {
 
 #--- interface methods
     multi method STORE(BagHash:D: *@pairs --> BagHash:D) {
-        nqp::if(
-          (my \iterator := @pairs.iterator).is-lazy,
-          Failure.new(
-            X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
-          ),
-          self.SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
-            )
-          )
-        )
+        (my \iterator := @pairs.iterator).is-lazy
+          ?? Failure.new(
+               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
+             )
+          !! self.SET-SELF(
+               Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 self.keyof
+               )
+             )
     }
     multi method STORE(BagHash:D: \objects, \values --> BagHash:D) {
         self.SET-SELF(
@@ -36,6 +36,7 @@ my class BagHash does Baggy {
                 nqp::istrue($!elems)
                   && nqp::existskey($!elems,(my $which := k.WHICH)),
                 nqp::getattr(nqp::atkey($!elems,$which),Pair,'$!value'),
+                # 0 because the value of the condition is returned
               )
           },
           STORE => -> $, Int() $value {
@@ -100,18 +101,15 @@ my class BagHash does Baggy {
     }
     multi method BagHash(BagHash:D:) { self }
     multi method Mix(BagHash:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(Mix).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          mix()
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(Mix).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! mix()
     }
     multi method MixHash(BagHash:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(MixHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(MixHash).SET-SELF(
+               Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! nqp::create(MixHash)
     }
 
     multi method Setty(BagHash:U:) { SetHash      }
@@ -122,11 +120,9 @@ my class BagHash does Baggy {
     multi method Mixy (BagHash:D:) { self.MixHash }
 
     method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(self).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(self)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(self).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! nqp::create(self)
     }
 
 #--- iterator methods
@@ -149,7 +145,7 @@ my class BagHash does Baggy {
                 nqp::if(
                   nqp::existskey(elems,$key),
                   nqp::getattr(nqp::atkey(elems,$key),Pair,'$!value'),
-                  0
+                  # 0 the value of existskey if the key doesn't exist
                 )
             },
             STORE => -> $, Int() $value {
@@ -194,16 +190,16 @@ my class BagHash does Baggy {
             self
         }
         method pull-one() is raw {
-            nqp::if(
-              $!iter,
-              nqp::p6bindattrinvres(
-                nqp::clone(nqp::atkey($!hash,(my $key := nqp::shift($!iter)))),
-                Pair,
-                '$!value',
-                proxy($key,$!hash)
-              ),
-              IterationEnd
-            )
+            $!iter
+              ?? nqp::p6bindattrinvres(
+                   nqp::clone(
+                     nqp::atkey($!hash,(my $key := nqp::shift($!iter)))
+                   ),
+                   Pair,
+                   '$!value',
+                   proxy($key,$!hash)
+                 )
+              !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
@@ -260,11 +256,9 @@ my class BagHash does Baggy {
             self
         }
         method pull-one() is raw {
-            nqp::if(
-              $!iter,
-              proxy(nqp::shift($!iter),$!hash),
-              IterationEnd
-            )
+            $!iter
+              ?? proxy(nqp::shift($!iter),$!hash)
+              !! IterationEnd
         }
 
         method push-all(\target --> IterationEnd) {
@@ -278,11 +272,9 @@ my class BagHash does Baggy {
 
 #---- selection methods
     multi method grab(BagHash:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          Rakudo::QuantHash.BAG-GRAB($!elems,self.total),
-          Nil
-        )
+        $!elems && nqp::elems($!elems)
+          ?? Rakudo::QuantHash.BAG-GRAB($!elems,self.total)
+          !! Nil
     }
     multi method grab(BagHash:D: Callable:D $calculate) {
         self.grab( $calculate(self.total) )

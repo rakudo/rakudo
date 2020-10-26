@@ -903,11 +903,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
         method new(\string) { nqp::create(self)!SET-SELF(string) }
         method pull-one() {
-            nqp::if(
-              nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
-              nqp::p6box_s(nqp::substr($!str,$!pos,1)), #?js: NFG
-              IterationEnd
-            )
+            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
+              ?? nqp::p6box_s(nqp::substr($!str,$!pos,1)) #?js: NFG
+              !! IterationEnd
         }
         method skip-one() {
             nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
@@ -948,20 +946,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
             self
         }
         method new(\string,\size,\limit) {
-            nqp::if(
-              string,
-              nqp::create(self)!SET-SELF(string,size,limit),
-              Rakudo::Iterator.Empty
-            )
+            string
+              ?? nqp::create(self)!SET-SELF(string,size,limit)
+              !! Rakudo::Iterator.Empty
         }
         method pull-one() {
-            nqp::if(
-              ($!todo = $!todo - 1),
-              nqp::p6box_s(
-                 nqp::substr($!str,($!pos = $!pos + $!size), $!size) #?js: NFG
-              ),
-              IterationEnd
-            )
+            ($!todo = $!todo - 1)
+              ?? nqp::p6box_s(
+                   nqp::substr($!str,($!pos = $!pos + $!size), $!size) #?js: NFG
+                 )
+              !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             my int $todo  = $!todo;
@@ -1272,11 +1266,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Match object at given position
     method !match-one(\slash, \cursor) {
-        nqp::decont(slash = nqp::if(
-          nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
-          cursor.MATCH,
-          Nil
-        ))
+        nqp::decont(
+          slash = nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
+            ?? cursor.MATCH
+            !! Nil
+        )
     }
 
     # Some object at given position
@@ -1290,11 +1284,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Create list from the appropriate Sequence given the move
     method !match-list(\slash, \cursor, \move, \post) {
-        nqp::decont(slash = nqp::if(
-          nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
-          Seq.new(POST-ITERATOR.new(cursor, move, post)).list,
-          List.new,
-        ))
+        nqp::decont(
+          slash = nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
+            ?? Seq.new(POST-ITERATOR.new(cursor, move, post)).list
+            !! List.new
+        )
     }
 
     # Handle matching of the nth match specification.
@@ -1515,12 +1509,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # quicker.  Unfortunately, we cannot cheaply do MMD on an empty slurpy
     # hash, which would make things much more simple.
     multi method match(Regex:D $pattern, :continue(:$c)!, *%_) {
-        nqp::if(
-          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
-          self!match-pattern(nqp::getlexcaller('$/'), $pattern, 'c', $c, %_),
-          self!match-one(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Match,self,:$c)))
-        )
+        nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+          ?? self!match-pattern(
+               nqp::getlexcaller('$/'), $pattern, 'c', $c, %_)
+          !! self!match-one(
+               nqp::getlexcaller('$/'),$pattern($cursor-init(Match,self,:$c)))
     }
     multi method match(Regex:D $pattern, :pos(:$p)!, *%_) {
         nqp::if(
@@ -1622,22 +1615,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
           CURSOR-GLOBAL, &POST-MATCH, $nth, %_)
     }
     multi method match(Regex:D $pattern, :$as!, *%_) {
-        nqp::if(
-          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
-          self!match-cursor(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Match,self,:0c)), 'as', $as, %_),
-          self!match-as-one(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Match,self,:0c)), $as)
-        )
+        nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+          ?? self!match-cursor(nqp::getlexcaller('$/'),
+               $pattern($cursor-init(Match,self,:0c)), 'as', $as, %_)
+          !! self!match-as-one(nqp::getlexcaller('$/'),
+               $pattern($cursor-init(Match,self,:0c)), $as)
     }
     multi method match(Regex:D $pattern, *%_) {
-        nqp::if(
-          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
-          self!match-cursor(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Match,self,:0c)), '', 0, %_),
-          self!match-one(nqp::getlexcaller('$/'),
-            $pattern($cursor-init(Match,self,:0c)))
-        )
+        nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+          ?? self!match-cursor(nqp::getlexcaller('$/'),
+               $pattern($cursor-init(Match,self,:0c)), '', 0, %_)
+          !! self!match-one(nqp::getlexcaller('$/'),
+               $pattern($cursor-init(Match,self,:0c)))
     }
 
     proto method subst-mutate(|) {
@@ -1814,11 +1803,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             method new(\string) { nqp::create(self)!SET-SELF(string) }
             method pull-one() {
-                nqp::if(
-                  nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars),
-                  nqp::p6box_i(nqp::ordat($!str,$!pos)),
-                  IterationEnd
-                )
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
+                  ?? nqp::p6box_i(nqp::ordat($!str,$!pos))
+                  !! IterationEnd
             }
         }.new(self));
     }
@@ -3638,13 +3625,13 @@ multi sub infix:<~>(@args)  { @args.join }
 multi sub infix:<~>(*@args) { @args.join }
 
 multi sub infix:<x>(Str:D $s, Bool:D $repetition --> Str:D) {
-    nqp::if($repetition, $s, '')
+    $repetition ?? $s !! ''
 }
 multi sub infix:<x>(Str:D $s, Int:D $repetition --> Str:D) {
-    nqp::if(nqp::islt_i($repetition, 1), '', nqp::x($s, $repetition))
+    nqp::islt_i($repetition,1) ?? '' !! nqp::x($s, $repetition)
 }
 multi sub infix:<x>(str $s, int $repetition --> str) {
-    nqp::if(nqp::islt_i($repetition, 1), '', nqp::x($s, $repetition))
+    nqp::islt_i($repetition,1) ?? '' !! nqp::x($s, $repetition)
 }
 
 multi sub infix:<cmp>(Str:D \a, Str:D \b --> Order:D) {

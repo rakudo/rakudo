@@ -29,11 +29,9 @@ my class Set does Setty {
 
     my class Iterate does Rakudo::Iterator::Mappy {
         method pull-one() {
-          nqp::if(
-            $!iter,
-            Pair.new(nqp::iterval(nqp::shift($!iter)),True),
-            IterationEnd
-          )
+          $!iter
+            ?? Pair.new(nqp::iterval(nqp::shift($!iter)),True)
+            !! IterationEnd
         }
     }
     method iterator(Set:D:) { Iterate.new($!elems) }
@@ -79,13 +77,11 @@ my class Set does Setty {
 #--- coercion methods
     multi method Set(Set:D:) { self }
     multi method SetHash(Set:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::p6bindattrinvres(
-            nqp::create(SetHash),SetHash,'$!elems',nqp::clone($!elems)
-          ),
-          nqp::create(SetHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::p6bindattrinvres(
+               nqp::create(SetHash),SetHash,'$!elems',nqp::clone($!elems)
+             )
+          !! nqp::create(SetHash)
     }
 
     multi method Setty(Set:U:) { Set      }

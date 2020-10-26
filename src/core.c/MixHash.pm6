@@ -9,15 +9,17 @@ my class MixHash does Mixy {
     method !total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
 
     multi method STORE(MixHash:D: *@pairs --> MixHash:D) {
-        nqp::if(
-          (my \iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
-          self.SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
-            )
-          )
-        )
+        (my \iterator := @pairs.iterator).is-lazy
+          ?? Failure.new(
+               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
+             )
+          !! self.SET-SELF(
+               Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 self.keyof
+               )
+             )
     }
     multi method STORE(MixHash:D: \objects, \values --> MixHash:D) {
         self.SET-SELF(
@@ -33,11 +35,9 @@ my class MixHash does Mixy {
         my \type := self.keyof;
         Proxy.new(
           FETCH => {
-              nqp::if(
-                $!elems && nqp::existskey($!elems,(my \which := k.WHICH)),
-                nqp::getattr(nqp::atkey($!elems,which),Pair,'$!value'),
-                0
-              )
+              $!elems && nqp::existskey($!elems,(my \which := k.WHICH))
+                ?? nqp::getattr(nqp::atkey($!elems,which),Pair,'$!value')
+                !! 0
           },
           STORE => -> $, Real() $value {
               nqp::if(
@@ -87,14 +87,12 @@ my class MixHash does Mixy {
 
 #--- coercion methods
     multi method Mix(MixHash:D: :$view) {  # :view is implementation-detail
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::p6bindattrinvres(
-            nqp::create(Mix),Mix,'$!elems',
-            nqp::if($view,$!elems,$!elems.clone)
-          ),
-          mix()
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::p6bindattrinvres(
+               nqp::create(Mix),Mix,'$!elems',
+               $view ?? $!elems !! $!elems.clone
+             )
+          !! mix()
     }
     multi method MixHash(MixHash:D:) { self }
 
@@ -106,11 +104,11 @@ my class MixHash does Mixy {
     multi method Mixy (MixHash:D:) { self         }
 
     method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(MixHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(MixHash).SET-SELF(
+               Rakudo::QuantHash.BAGGY-CLONE($!elems)
+             )
+          !! nqp::create(MixHash)
     }
 
 #--- iterator methods
@@ -129,11 +127,9 @@ my class MixHash does Mixy {
 
           Proxy.new(
             FETCH => {
-                nqp::if(
-                  nqp::existskey(elems,$key),
-                  nqp::getattr(nqp::atkey(elems,$key),Pair,'$!value'),
-                  0
-                )
+                nqp::existskey(elems,$key)
+                  ?? nqp::getattr(nqp::atkey(elems,$key),Pair,'$!value')
+                  !! 0
             },
             STORE => -> $, Real() \value {
                 nqp::if(
@@ -177,16 +173,16 @@ my class MixHash does Mixy {
             self
         }
         method pull-one() is raw {
-            nqp::if(
-              $!iter,
-              nqp::p6bindattrinvres(
-                nqp::clone(nqp::atkey($!hash,(my $key := nqp::shift($!iter)))),
-                Pair,
-                '$!value',
-                proxy($key,$!hash)
-              ),
-              IterationEnd
-            )
+            $!iter
+              ?? nqp::p6bindattrinvres(
+                   nqp::clone(
+                     nqp::atkey($!hash,(my $key := nqp::shift($!iter)))
+                   ),
+                   Pair,
+                   '$!value',
+                   proxy($key,$!hash)
+                 )
+              !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             nqp::while(  # doesn't sink
@@ -243,11 +239,9 @@ my class MixHash does Mixy {
             self
         }
         method pull-one() is raw {
-            nqp::if(
-              $!iter,
-              proxy(nqp::shift($!iter),$!hash),
-              IterationEnd
-            )
+            $!iter
+              ?? proxy(nqp::shift($!iter),$!hash)
+              !! IterationEnd
         }
 
         method push-all(\target --> IterationEnd) {

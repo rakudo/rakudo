@@ -52,13 +52,11 @@ my class Rakudo::QuantHash {
             )
         }
         method new(Mu \elems, \count) {
-            nqp::if(
-              (my $todo := Rakudo::QuantHash.TODO(count))
-                && elems
-                && nqp::elems(elems),
-              nqp::create(self)!SET-SELF(elems, $todo),
-              Rakudo::Iterator.Empty
-            )
+            (my $todo := Rakudo::QuantHash.TODO(count))
+              && elems
+              && nqp::elems(elems)
+              ?? nqp::create(self)!SET-SELF(elems, $todo)
+              !! Rakudo::Iterator.Empty
         }
     }
 
@@ -80,7 +78,7 @@ my class Rakudo::QuantHash {
     method PICK-N(Mu \elems, \count) {
         nqp::stmts(
           (my int $elems = nqp::elems(elems)),
-          (my int $count = nqp::if(count > $elems,$elems,count)),
+          (my int $count = count > $elems ?? $elems !! count),
           (my $keys := nqp::setelems(nqp::list_s,$elems)),
           (my $iter := nqp::iterator(elems)),
           (my int $i = -1),
@@ -193,7 +191,7 @@ my class Rakudo::QuantHash {
     method INTERSECT-BAGGIES(\a,\b,\type) {
         nqp::stmts(
           (my $object := nqp::create(
-            nqp::if( nqp::istype(type,Mix), a.WHAT.Mixy, a.WHAT.Baggy )
+            nqp::istype(type,Mix) ?? a.WHAT.Mixy !! a.WHAT.Baggy
           )),
           nqp::if(
             (my $araw := a.RAW-HASH) && nqp::elems($araw)
@@ -285,14 +283,12 @@ my class Rakudo::QuantHash {
 
     # bind the given value to the given IterationSet, check for given type
     method BIND-TO-TYPED-SET(\elems, Mu \value, Mu \type --> Nil) {
-        nqp::if(
-          nqp::istype(value,type),
-          nqp::bindkey(elems,value.WHICH,value),
-          X::TypeCheck::Binding.new(
-            got      => value,
-            expected => type
-          ).throw
-        )
+        nqp::istype(value,type)
+          ?? nqp::bindkey(elems,value.WHICH,value)
+          !! X::TypeCheck::Binding.new(
+               got      => value,
+               expected => type
+             ).throw
     }
 
     # add to given IterationSet with setty semantics the values of iterator
@@ -593,14 +589,12 @@ my class Rakudo::QuantHash {
     method BIND-TO-TYPED-BAG(
       \elems, Mu \which, Mu \object, Int:D \value, Mu \type
     --> Nil) {
-        nqp::if(
-          nqp::istype(object,type),
-          nqp::bindkey(elems,which,Pair.new(object,value)),
-          X::TypeCheck::Binding.new(
-            got      => object,
-            expected => type
-          ).throw
-        )
+        nqp::istype(object,type)
+          ?? nqp::bindkey(elems,which,Pair.new(object,value))
+          !! X::TypeCheck::Binding.new(
+               got      => object,
+               expected => type
+             ).throw
     }
 
     method ADD-ITERATOR-TO-BAG(\elems, Mu \iterator, Mu \type) {
@@ -1237,14 +1231,12 @@ my class Rakudo::QuantHash {
     method BIND-TO-TYPED-MIX(
       \elems, Mu \which, Mu \object, Real:D \value, Mu \type
     --> Nil) {
-        nqp::if(
-          nqp::istype(object,type),
-          nqp::bindkey(elems,which,Pair.new(object,value)),
-          X::TypeCheck::Binding.new(
-            got      => object,
-            expected => type
-          ).throw
-        )
+        nqp::istype(object,type)
+          ?? nqp::bindkey(elems,which,Pair.new(object,value))
+          !! X::TypeCheck::Binding.new(
+               got      => object,
+               expected => type
+             ).throw
     }
 
     # Add to given IterationSet with mixy semantics the values of the given

@@ -9,11 +9,10 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             nqp::stmts(
               (my $items := $batch.items),
               (my $elems := nqp::elems($items)),
-              (my &matcher := nqp::if(
-                nqp::istype($!matcher, Callable),
-                $!matcher.clone,
-                $!matcher
-              )),
+              (my &matcher := nqp::istype($!matcher, Callable)
+                ?? $!matcher.clone
+                !! $!matcher
+              ),
               (my int $from = -1),
               (my int $to   = -1),
               nqp::if(

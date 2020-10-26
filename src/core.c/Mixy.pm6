@@ -18,13 +18,11 @@ my role Mixy does Baggy  {
     }
 
     multi method roll(Mixy:D:) {
-        nqp::if(
-          (my \raw := self.RAW-HASH) && (my \total := self!total-positive),
-          nqp::getattr(
-            nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),Pair,'$!key'
-          ),
-          Nil
-        )
+        (my \raw := self.RAW-HASH) && (my \total := self!total-positive)
+          ?? nqp::getattr(
+               nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),Pair,'$!key'
+             )
+          !! Nil
     }
     multi method roll(Mixy:D: Whatever) {
         Seq.new(nqp::if(
@@ -38,11 +36,9 @@ my role Mixy does Baggy  {
         ))
     }
     multi method roll(Mixy:D: Callable:D $calculate) {
-      nqp::if(
-        (my $total := self!total-positive),
-        self.roll($calculate($total)),
-        Seq.new(Rakudo::Iterator.Empty)
-      )
+      (my $total := self!total-positive)
+        ?? self.roll($calculate($total))
+        !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method roll(Mixy:D: $count) {
         nqp::if(
@@ -73,15 +69,15 @@ my role Mixy does Baggy  {
 
 #--- object creation methods
     method new-from-pairs(Mixy:_: *@pairs --> Mixy:D) {
-        nqp::if(
-          (my \iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
-          nqp::create(self).SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
-            )
-          )
-        )
+        (my \iterator := @pairs.iterator).is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name)))
+          !! nqp::create(self).SET-SELF(
+               Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 self.keyof
+               )
+             )
     }
 
 #--- coercion methods

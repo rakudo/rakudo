@@ -62,21 +62,17 @@ multi sub infix:<(&)>(Mixy:D \a, Mixy:D \b) {
     Rakudo::QuantHash.INTERSECT-BAGGIES(a, b, Mix)
 }
 multi sub infix:<(&)>(Baggy:D \a, Any:D \b) {
-    nqp::if(
-      nqp::istype((my $bbag := b.Bag),Bag),
-      Rakudo::QuantHash.INTERSECT-BAGGIES(a, $bbag, Bag),
-      $bbag.throw
-    )
+    nqp::istype((my $bbag := b.Bag),Bag)
+      ?? Rakudo::QuantHash.INTERSECT-BAGGIES(a, $bbag, Bag)
+      !! $bbag.throw
 }
 multi sub infix:<(&)>(Any:D \a, Baggy:D \b) {
     b.Bag (&) a
 }
 multi sub infix:<(&)>(Mixy:D \a, Any:D \b) {
-    nqp::if(
-      nqp::istype((my $bmix := b.Mix),Mix),
-      Rakudo::QuantHash.INTERSECT-BAGGIES(a, $bmix, Mix),
-      $bmix.throw
-    )
+    nqp::istype((my $bmix := b.Mix),Mix)
+      ?? Rakudo::QuantHash.INTERSECT-BAGGIES(a, $bmix, Mix)
+      !! $bmix.throw
 }
 multi sub infix:<(&)>(Any:D \a, Mixy:D \b) {
     b.Mix (&) a

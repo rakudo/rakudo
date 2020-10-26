@@ -54,18 +54,14 @@ my class Mix does Mixy {
         )
     }
     method total(Mix:D: --> Real:D) {
-        nqp::if(
-          nqp::attrinited(self,Mix,'$!total'),
-          $!total,
-          $!total := Rakudo::QuantHash.MIX-TOTAL($!elems)
-        )
+        nqp::attrinited(self,Mix,'$!total')
+          ?? $!total
+          !! ($!total := Rakudo::QuantHash.MIX-TOTAL($!elems))
     }
     method !total-positive(Mix:D: --> Real:D) {
-        nqp::if(
-          nqp::attrinited(self,Mix,'$!total-positive'),
-          $!total-positive,
-          $!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems)
-        )
+        nqp::attrinited(self,Mix,'$!total-positive')
+          ?? $!total-positive
+          !! ($!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems))
     }
 
 #--- selection methods
@@ -79,11 +75,10 @@ my class Mix does Mixy {
 #--- coercion methods
     multi method Mix(Mix:D:) { self }
     multi method MixHash(Mix:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(MixHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(MixHash).SET-SELF(
+               Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! nqp::create(MixHash)
     }
 
     multi method Setty(Mix:U:) { Set }

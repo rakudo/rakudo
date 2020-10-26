@@ -407,17 +407,15 @@ my class Rakudo::Internals {
         nqp::join($final,nqp::split($original,$string))
     }
     method TRANSPOSE-ONE(Str:D $string, Str:D $original, Str:D $final) {
-        nqp::if(
-          nqp::iseq_i((my int $index = nqp::index($string, $original)), -1),
-          $string,
-          nqp::concat(
-            nqp::substr($string,0,$index),
-            nqp::concat(
-              $final,
-              nqp::substr($string,nqp::add_i($index,nqp::chars($original)))
-            )
-          )
-        )
+        nqp::iseq_i((my int $index = nqp::index($string, $original)), -1)
+          ?? $string
+          !! nqp::concat(
+               nqp::substr($string,0,$index),
+               nqp::concat(
+                 $final,
+                 nqp::substr($string,nqp::add_i($index,nqp::chars($original)))
+               )
+             )
     }
 
     my constant \SHAPE-STORAGE-ROOT := do {
@@ -703,12 +701,10 @@ implementation detail and has no serviceable parts inside"
               '?')))
     }
     method SHORT-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
-        nqp::stmts(
-          (my str $str = nqp::unbox_s(self.MAYBE-STRING: thing, :$method)),
-          nqp::if(
-            nqp::isgt_i(nqp::chars($str), 23),
-            nqp::p6box_s(nqp::concat(nqp::substr($str, 0, 20), '...')),
-            nqp::p6box_s($str)))
+        my str $str = nqp::unbox_s(self.MAYBE-STRING: thing, :$method);
+        nqp::isgt_i(nqp::chars($str),23) 
+          ?? nqp::p6box_s(nqp::concat(nqp::substr($str, 0, 20), '...'))
+          !! nqp::p6box_s($str)
     }
 
     my $IS-WIN = do {
@@ -1212,12 +1208,10 @@ implementation detail and has no serviceable parts inside"
             )
         }
         method new(\abspath,\dir,\file) {
-            nqp::if(
-              nqp::stat(abspath,nqp::const::STAT_EXISTS)
-                && nqp::stat(abspath,nqp::const::STAT_ISDIR),
-              nqp::create(self)!SET-SELF(abspath,dir,file),
-              Rakudo::Iterator.Empty
-            )
+            nqp::stat(abspath,nqp::const::STAT_EXISTS)
+              && nqp::stat(abspath,nqp::const::STAT_ISDIR)
+              ?? nqp::create(self)!SET-SELF(abspath,dir,file)
+              !! Rakudo::Iterator.Empty
         }
 
         method !next() {

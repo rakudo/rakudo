@@ -133,22 +133,20 @@ multi sub infix:<(|)>(Map:D \a, Map:D \b) {
 }
 
 multi sub infix:<(|)>(Iterable:D \a, Iterable:D \b) {
-    nqp::if(
-      (my $aiterator := a.flat.iterator).is-lazy
-        || (my $biterator := b.flat.iterator).is-lazy,
-      Failure.new(X::Cannot::Lazy.new(:action<union>,:what<set>)),
-      nqp::create(Set).SET-SELF(
-        Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-          Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-            nqp::create(Rakudo::Internals::IterationSet),
-            $aiterator,
-            Mu
-          ),
-          $biterator,
-          Mu
-        )
-      )
-    )
+    (my $aiterator := a.flat.iterator).is-lazy
+      || (my $biterator := b.flat.iterator).is-lazy
+      ?? Failure.new(X::Cannot::Lazy.new(:action<union>,:what<set>))
+      !! nqp::create(Set).SET-SELF(
+           Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+             Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+               nqp::create(Rakudo::Internals::IterationSet),
+               $aiterator,
+               Mu
+             ),
+             $biterator,
+             Mu
+           )
+         )
 }
 
 multi sub infix:<(|)>(Failure:D \a, Any $) { a.throw }

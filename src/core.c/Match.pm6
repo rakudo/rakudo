@@ -18,17 +18,15 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     # When nothing's `made`, we get an NQPMu that we'd like to replace
     # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
-    method ast()  { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
-    method made() { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
+    method ast()  { nqp::istype($!made, Mu) ?? $!made !! Nil }
+    method made() { nqp::istype($!made, Mu) ?? $!made !! Nil }
 
     method Int(--> Int:D) { self.Str.Int }
 
     method STR() is implementation-detail {
-        nqp::if(
-          nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
-          self.Str,
-          self.MATCH.Str
-        )
+        nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH)
+          ?? self.Str
+          !! self.MATCH.Str
     }
 
     method MATCH() is implementation-detail {

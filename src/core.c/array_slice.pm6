@@ -109,13 +109,13 @@ multi sub postcircumfix:<[ ]>(\SELF, int $pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, Bool() :$delete! ) is raw {
-    nqp::if($delete,SELF.DELETE-POS($pos),SELF.AT-POS($pos))
+    $delete ?? SELF.DELETE-POS($pos) !! SELF.AT-POS($pos)
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, Bool() :$delete!, *%other ) is raw {
     SLICE_ONE_LIST( SELF, $pos, 'delete', $delete, %other );
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, Bool() :$exists! ) is raw {
-    nqp::if($exists,SELF.EXISTS-POS($pos),!SELF.EXISTS-POS($pos))
+    $exists ?? SELF.EXISTS-POS($pos) !! !SELF.EXISTS-POS($pos)
 }
 multi sub postcircumfix:<[ ]>( \SELF, int $pos, Bool() :$exists!, *%other ) is raw {
     SLICE_ONE_LIST( SELF, $pos, 'exists', $exists, %other )
@@ -152,13 +152,13 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D $pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS($pos, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Bool() :$delete! ) is raw {
-    nqp::if($delete,SELF.DELETE-POS($pos),SELF.AT-POS($pos))
+    $delete ?? SELF.DELETE-POS($pos) !! SELF.AT-POS($pos)
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Bool() :$delete!, *%other ) is raw {
     SLICE_ONE_LIST( SELF, $pos, 'delete', $delete, %other )
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Bool() :$exists! ) is raw {
-    nqp::if($exists,SELF.EXISTS-POS($pos),!SELF.EXISTS-POS($pos))
+    $exists ?? SELF.EXISTS-POS($pos) !! !SELF.EXISTS-POS($pos)
 }
 multi sub postcircumfix:<[ ]>( \SELF, Int:D $pos, Bool() :$exists!, *%other ) is raw {
     SLICE_ONE_LIST( SELF, $pos, 'exists', $exists, %other )
@@ -195,13 +195,13 @@ multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is raw) is raw {
     SELF.BIND-POS(pos.Int, $BIND);
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$delete! ) is raw {
-    nqp::if($delete,SELF.DELETE-POS(pos.Int),SELF.AT-POS(pos.Int))
+    $delete ?? SELF.DELETE-POS(pos.Int) !! SELF.AT-POS(pos.Int)
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$delete!, *%other ) is raw {
     SLICE_ONE_LIST( SELF, pos.Int, 'delete', $delete, %other )
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$exists! ) is raw {
-    nqp::if($exists,SELF.EXISTS-POS(pos.Int),!SELF.EXISTS-POS(pos.Int))
+    $exists ?? SELF.EXISTS-POS(pos.Int) !! !SELF.EXISTS-POS(pos.Int)
 }
 multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$exists!, *%other ) is raw {
     SLICE_ONE_LIST( SELF, pos.Int, 'exists', $exists, %other )
@@ -338,24 +338,16 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Bool() :$v!, *%other) is r
 
 # @a[->{}]
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block ) is raw {
-    nqp::stmts(
-      (my $*INDEX = 'Effective index'),
-      nqp::if(
-        nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure),
-        $pos,
-        SELF[$pos]
-      )
-    )
+    my $*INDEX = 'Effective index';
+    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
+      ?? $pos
+      !! SELF[$pos]
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is raw {
-    nqp::stmts(
-      (my $*INDEX = 'Effective index'),
-      nqp::if(
-        nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure),
-        $pos,
-        SELF[$pos] = assignee
-      )
-    )
+    my $*INDEX = 'Effective index';
+    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
+      ?? $pos
+      !! (SELF[$pos] = assignee)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

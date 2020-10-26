@@ -57,16 +57,14 @@ my class Pair does Associative {
         $!value.ACCEPTS(nqp::getattr(nqp::decont($p),Pair,'$!value'));
     }
     multi method ACCEPTS(Pair:D: Mu $other) {
-        nqp::if(
-          nqp::can($other,(my $method := $!key.Str)),
-          ($other."$method"().Bool === $!value.Bool),
-          X::Method::NotFound.new(
-            invocant => $other,
-            method   => $method,
-            typename => $other.^name,
-            addendum => "Or did you try to smartmatch against a Pair specifically?  If so, then the key of the Pair should be a valid method name, not '$method'."
-          ).throw
-        )
+        nqp::can($other,(my $method := $!key.Str))
+          ?? ($other."$method"().Bool === $!value.Bool)
+          !! X::Method::NotFound.new(
+               invocant => $other,
+               method   => $method,
+               typename => $other.^name,
+               addendum => "Or did you try to smartmatch against a Pair specifically?  If so, then the key of the Pair should be a valid method name, not '$method'."
+             ).throw
     }
 
     method Pair() { self }

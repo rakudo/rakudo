@@ -32,11 +32,9 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         }
         method new (\uni) { nqp::create(self)!SET-SELF: uni }
         method pull-one {
-            nqp::if(
-              nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els),
-              nqp::atpos_i($!uni, $!i),
-              IterationEnd
-            )
+            nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els)
+              ?? nqp::atpos_i($!uni, $!i)
+              !! IterationEnd
         }
         method skip-one {
             nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els)

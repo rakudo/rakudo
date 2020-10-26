@@ -1053,11 +1053,9 @@ my class ThreadPoolScheduler does Scheduler {
         )
     }
     multi method cue(&code, :$in!, *%_) {
-        nqp::if(
-          nqp::isconcrete(my $delay := validate-seconds($in)),
-          (self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($delay), 0, %_)),
-          (Cancellation.new(async_handles => []))
-        )
+        nqp::isconcrete(my $delay := validate-seconds($in))
+          ?? (self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($delay), 0, %_))
+          !! Cancellation.new(async_handles => [])
     }
     multi method cue(&code, :&catch! --> Nil) {
         nqp::push(self!general-queue, wrap-catch(&code, &catch))

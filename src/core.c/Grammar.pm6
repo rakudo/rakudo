@@ -31,19 +31,19 @@ my class Grammar is Match {
 
     method subparse($orig is raw, :$rule = "TOP", :$args, :$actions) is raw {
         my $grammar := self.new(:$orig, |%_).set_actions($actions);
-        nqp::decont(nqp::getlexcaller('$/') = nqp::if(
-          $args,
-          $grammar."$rule"(|$args.Capture).MATCH,
-          $grammar."$rule"().MATCH,
-        ))
+        nqp::decont(
+          nqp::getlexcaller('$/') = $args
+            ?? $grammar."$rule"(|$args.Capture).MATCH
+            !! $grammar."$rule"().MATCH
+        )
       }
 
     method parsefile(Str(Cool) $filename, :$enc) is raw {
-        nqp::decont(nqp::getlexcaller('$/') = nqp::if(
-          nqp::elems(nqp::getattr(%_,Map,'$!storage')),
-          self.parse($filename.IO.slurp(:$enc), :$filename, |%_),
-          self.parse($filename.IO.slurp(:$enc), :$filename)
-        ))
+        nqp::decont(
+          nqp::getlexcaller('$/') = nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+            ?? self.parse($filename.IO.slurp(:$enc), :$filename, |%_)
+            !! self.parse($filename.IO.slurp(:$enc), :$filename)
+        )
     }
 }
 

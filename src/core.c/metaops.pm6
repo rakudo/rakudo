@@ -281,11 +281,9 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 }
             }.new(op,$v,$count,$i),
             Rakudo::Iterator.OneValue(
-              nqp::if(
-                $i,
-                op.(|nqp::getattr($v,List,'$!reified')),
-                op.()
-              )
+              $i
+                ?? op.(|nqp::getattr($v,List,'$!reified'))
+                !! op.()
             )
           ))
       },
@@ -326,11 +324,9 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 }
             }.new(op,$v,$i),
             Rakudo::Iterator.OneValue(
-              nqp::if(
-                $i,
-                op.(nqp::atpos(nqp::getattr($v,List,'$!reified'),0)),
-                op.()
-              )
+              $i
+                ?? op.(nqp::atpos(nqp::getattr($v,List,'$!reified'),0))
+                !! op.()
             )
           ))
       }
@@ -497,43 +493,33 @@ sub METAOP_HYPER(\op, *%opt) is implementation-detail {
 
 proto sub METAOP_HYPER_POSTFIX(|) is implementation-detail {*}
 multi sub METAOP_HYPER_POSTFIX(\op) {
-    nqp::if(
-      nqp::can(op,"nodal"),
-      (-> \obj { nodemap(op, obj) }),
-      (-> \obj { deepmap(op, obj) })
-    )
+    nqp::can(op,"nodal")
+      ?? (-> \obj { nodemap(op, obj) })
+      !! (-> \obj { deepmap(op, obj) })
 }
 
 # no indirection for subscripts and such
 proto sub METAOP_HYPER_POSTFIX_ARGS(|) is implementation-detail {*}
 multi sub METAOP_HYPER_POSTFIX_ARGS(\obj,\op) {
-    nqp::if(
-      nqp::can(op,"nodal"),
-      nodemap(op, obj),
-      deepmap(op, obj)
-    )
+    nqp::can(op,"nodal")
+      ?? nodemap(op, obj)
+      !! deepmap(op, obj)
 }
 multi sub METAOP_HYPER_POSTFIX_ARGS(\obj, @args, \op) {
-    nqp::if(
-      nqp::can(op,"nodal"),
-      nodemap( -> \o { op.(o,@args) }, obj ),
-      deepmap( -> \o { op.(o,@args) }, obj )
-    )
+    nqp::can(op,"nodal")
+      ?? nodemap( -> \o { op.(o,@args) }, obj )
+      !! deepmap( -> \o { op.(o,@args) }, obj )
 }
 multi sub METAOP_HYPER_POSTFIX_ARGS(\obj, \args, \op) {
-    nqp::if(
-      nqp::can(op,"nodal"),
-      nodemap( -> \o { op.(o,|args) }, obj ),
-      deepmap( -> \o { op.(o,|args) }, obj )
-    )
+    nqp::can(op,"nodal")
+      ?? nodemap( -> \o { op.(o,|args) }, obj )
+      !! deepmap( -> \o { op.(o,|args) }, obj )
 }
 
 sub METAOP_HYPER_PREFIX(\op) is implementation-detail {
-    nqp::if(
-      nqp::can(op,"nodal"),      # rarely true for prefixes
-      (-> \obj { nodemap(op, obj) }),
-      (-> \obj { deepmap(op, obj) })
-    )
+    nqp::can(op,"nodal")      # rarely true for prefixes
+      ?? (-> \obj { nodemap(op, obj) })
+      !! (-> \obj { deepmap(op, obj) })
 }
 
 sub METAOP_HYPER_CALL(\list, |args) is implementation-detail {

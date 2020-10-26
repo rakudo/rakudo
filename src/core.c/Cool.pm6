@@ -402,20 +402,16 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     multi method Real() {
-        nqp::if(
-            nqp::istype((my $numeric := self.Numeric), Failure),
-            $numeric,
-            $numeric.Real
-        )
+        nqp::istype((my $numeric := self.Numeric),Failure)
+          ?? $numeric
+          !! $numeric.Real
     }
 
     proto method Int(|) {*}
     multi method Int()  {
-        nqp::if(
-            nqp::istype((my $numeric := self.Numeric), Failure),
-            $numeric,
-            $numeric.Int
-        )
+        nqp::istype((my $numeric := self.Numeric),Failure)
+          ?? $numeric
+          !! $numeric.Int
     }
 
     proto method UInt(|) {*}
@@ -432,35 +428,27 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method Num()  {
-        nqp::if(
-            nqp::istype((my $numeric := self.Numeric), Failure),
-            $numeric,
-            $numeric.Num
-        )
+        nqp::istype((my $numeric := self.Numeric),Failure)
+          ?? $numeric
+          !! $numeric.Num
     }
 
     method Rat()  {
-        nqp::if(
-            nqp::istype((my $numeric := self.Numeric), Failure),
-            $numeric,
-            $numeric.Rat
-        )
+        nqp::istype((my $numeric := self.Numeric),Failure)
+          ?? $numeric
+          !! $numeric.Rat
     }
 
     method FatRat()  {
-        nqp::if(
-            nqp::istype((my $numeric := self.Numeric), Failure),
-            $numeric,
-            $numeric.FatRat
-        )
+        nqp::istype((my $numeric := self.Numeric),Failure)
+          ?? $numeric
+          !! $numeric.FatRat
     }
 
     method Complex()  {
-        nqp::if(
-            nqp::istype((my $numeric := self.Numeric), Failure),
-            $numeric,
-            $numeric.Complex
-        )
+        nqp::istype((my $numeric := self.Numeric),Failure)
+          ?? $numeric
+          !! $numeric.Complex
     }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
@@ -551,12 +539,11 @@ multi sub sprintf(Cool:D $format, *@args) {
     }
     Rakudo::Internals.initialize-sprintf-handler;
     nqp::p6box_s(
-      nqp::sprintf(nqp::unbox_s($format.Stringy),
-        nqp::if(
-          @args.elems,
-          nqp::clone(nqp::getattr(@args,List,'$!reified')),
-          nqp::create(IterationBuffer)
-        )
+      nqp::sprintf(
+        nqp::unbox_s($format.Stringy),
+        @args.elems
+          ?? nqp::clone(nqp::getattr(@args,List,'$!reified'))
+          !! nqp::create(IterationBuffer)
       )
     )
 }

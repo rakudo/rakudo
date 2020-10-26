@@ -5,11 +5,9 @@ my class WhateverCode is Code {
     multi method POSITIONS(WhateverCode:D $self: \list) {
       my \signature := nqp::getattr($self,Code,'$!signature');
       my \count := nqp::getattr(signature,Signature,'$!count');
-      nqp::if(
-        nqp::iseq_i(count,1),
-        $self(nqp::if(nqp::isconcrete(list),list.elems,0)),
-        $self(|(nqp::if(nqp::isconcrete(list),list.elems,0) xx count))
-      )
+      nqp::iseq_i(count,1)
+        ?? $self(  nqp::if(nqp::isconcrete(list),list.elems,0))
+        !! $self(|(nqp::if(nqp::isconcrete(list),list.elems,0) xx count))
     }
 
     multi method ACCEPTS(WhateverCode:D: \value) is raw {

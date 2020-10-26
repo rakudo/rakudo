@@ -596,6 +596,13 @@ sub dd(|c) {  # is implementation-detail
         context.^name ~ '(' ~ nqp::substr(nqp::hllize($hash).raku.chop,1) ~ ')'
     }
 
+    # handler for BOOTThread
+    sub BOOTThread(Mu \thread) {
+        "VM thread object for thread #{
+            nqp::threadid(thread)
+        } with { nqp::threadlockcount(thread) } locks"
+    }
+
     my Mu $args := nqp::p6argvmarray();
     if nqp::elems($args) {
         while $args {
@@ -611,7 +618,9 @@ sub dd(|c) {  # is implementation-detail
                     ?? BOOTArray($var)
                     !! $var.^name.ends-with('Context')
                       ?? BOOTContext($var)
-                      !! "($var.^name() without .raku or .perl method)"
+                      !! $var.^name.ends-with('Thread')
+                        ?? BOOTThread($var)
+                        !! "($var.^name() without .raku or .perl method)"
                 !! "($var.^name() without .raku or .perl method)";
             note $name ?? "$type $name = $what" !! $what;
         }

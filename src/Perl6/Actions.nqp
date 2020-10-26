@@ -1552,13 +1552,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
             else {
                 my $ast := $statements[0].ast;
 
-                # anything like "||foo" ?
-                if nqp::istype($ast,QAST::Op) && $ast.name eq '&prefix:<|>' {
-                    if nqp::istype($ast[0],QAST::Op) && $ast[0].name eq '&prefix:<|>' {
-                        unless $*W.lang-ver-before("e") {
-                            $ast := $ast[0][0];  # cut out the || ops
-                            $past.annotate('multislice', 1);
-                        }
+                # an op and 6e or higher?
+                if nqp::istype($ast,QAST::Op) && !$*W.lang-ver-before("e") {
+                    sub is-pipe-pipe($ast) {
+                        nqp::istype($ast,QAST::Op)
+                          && $ast.name eq '&prefix:<|>'
+                          && nqp::istype($ast[0],QAST::Op)
+                          && $ast[0].name eq '&prefix:<|>'
+                    }
+
+                    if is-pipe-pipe($ast) {
+                        $ast := $ast[0][0];  # cut out the || ops
+                        $past.annotate('multislice', 1);
+                    }
+                    elsif $ast.name eq '&infix:<,>' && is-pipe-pipe($ast[0]) {
+                        $ast[0] := $ast[0][0][0];  # cut out the || ops
+                        $past.annotate('multislice', 1);
                     }
                 }
 

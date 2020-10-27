@@ -70,8 +70,28 @@ multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is raw {
            )
          ) = ASSIGN)
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is raw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw;
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND! is raw) is raw {
+    if nqp::iscont(key) {
+        SELF.BIND-KEY(key, $BIND);
+    }
+    else {
+        my $result := nqp::create(IterationBuffer);
+        my $keys   := key.iterator;
+        my $binds  := $BIND.iterator;
+        nqp::until(
+          nqp::eqaddr((my $bind := $binds.pull-one),IterationEnd)
+            || nqp::eqaddr((my $key := $keys.pull-one),IterationEnd),
+          nqp::push($result, SELF.BIND-KEY($key, $bind))
+        );
+
+        # fill up if ran out of values to bind?
+        nqp::until(
+          nqp::eqaddr(($key := $keys.pull-one),IterationEnd),
+          nqp::push($result,SELF.ASSIGN-KEY($key,Nil))
+        ) if nqp::eqaddr($bind,IterationEnd);
+
+        $result.List
+    }
 }
 multi sub postcircumfix:<{ }>(\SELF,Iterable \key, Bool() :$delete!,*%other) is raw {
     nqp::iscont(key)

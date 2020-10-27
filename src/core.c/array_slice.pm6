@@ -302,8 +302,28 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
         };
     }
 }
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND!) is raw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw;
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
+    if nqp::iscont(pos) {
+        SELF.BIND-POS(pos, $BIND);
+    }
+    else {
+        my $result := nqp::create(IterationBuffer);
+        my $posses := pos.iterator;
+        my $binds  := $BIND.iterator;
+        nqp::until(
+          nqp::eqaddr((my $bind := $binds.pull-one),IterationEnd)
+            || nqp::eqaddr((my $pos := $posses.pull-one),IterationEnd),
+          nqp::push($result, SELF.BIND-POS($pos, $bind))
+        );
+
+        # fill up if ran out of values to bind?
+        nqp::until(
+          nqp::eqaddr(($pos := $posses.pull-one),IterationEnd),
+          nqp::push($result,SELF.ASSIGN-POS($pos,Nil))
+        ) if nqp::eqaddr($bind,IterationEnd);
+
+        $result.List
+    }
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,Bool() :$delete!,*%other) is raw {
     nqp::iscont(pos)

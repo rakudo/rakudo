@@ -496,8 +496,8 @@ my class IO::Path is Cool does IO {
         }}
     }
 
-    method symlink(IO::Path:D: IO() $name --> True) {
-        nqp::symlink($.absolute, nqp::unbox_s($name.absolute));
+    method symlink(IO::Path:D: IO() $name, Bool :$absolute = True --> True) {
+        nqp::symlink($absolute ?? $.absolute !! ~self , nqp::unbox_s($name.absolute));
         CATCH { default {
             fail X::IO::Symlink.new:
                 :target($!os-path), :name($name.absolute), :os-error(.Str);

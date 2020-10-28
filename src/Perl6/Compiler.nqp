@@ -28,6 +28,8 @@ class Perl6::Compiler is HLL::Compiler {
         my $config-version  := self.config()<version>;
         my $backend-version := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
 
+        my $raku;
+        my $rakudo;
         if $shorten-versions {
             my $index := nqp::index($config-version,"-");
             $config-version := nqp::substr($config-version,0,$index)
@@ -36,11 +38,22 @@ class Perl6::Compiler is HLL::Compiler {
             $index := nqp::index($backend-version,"-");
             $backend-version := nqp::substr($backend-version,0,$index)
               unless $index == -1;
+
+            $raku   := "𝐑𝐚𝐤𝐮™";
+            $rakudo := "𝐑𝐚𝐤𝐮𝐝𝐨™";
+        }
+        else {
+            $raku   := "Raku(tm)";
+            $rakudo := "Rakudo(tm)";
         }
 
-        "Welcome to 𝐑𝐚𝐤𝐮𝐝𝐨™ v"
+        "Welcome to "
+          ~ $rakudo
+          ~ " v"
           ~ $config-version
-          ~ ".\nImplementing the 𝐑𝐚𝐤𝐮™ programming language v"
+          ~ ".\nImplementing the "
+          ~ $raku
+          ~ " programming language v"
           ~ self.language_version()
           ~ ".\nBuilt on "
           ~ $backend-version

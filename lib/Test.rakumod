@@ -8,6 +8,8 @@ my int $raku_test_times =
   ?(%*ENV<RAKU_TEST_TIME> // %*ENV<PERL6_TEST_TIMES>);
 my int $die_on_fail =
   ?(%*ENV<RAKU_TEST_DIE_ON_FAIL> // %*ENV<PERL6_TEST_DIE_ON_FAIL>);
+my int $diag_line_on_fail =
+  %*ENV<RAKU_TEST_DIAG_LINE_ON_FAIL> // 1;
 
 # global state
 my @vars;
@@ -761,9 +763,11 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
             $caller = callframe($level++);
         }
 
-        _diag $desc
+        if nqp::iseq_i($diag_line_on_fail,1) {
+          _diag $desc
           ?? "Failed test '$desc'\nat $caller.file() line $caller.line()"
           !! "Failed test at $caller.file() line $caller.line()";
+        }
     }
 
     # must clear this between tests

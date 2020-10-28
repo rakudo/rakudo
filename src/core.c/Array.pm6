@@ -678,10 +678,10 @@ my class Array { # declared in BOOTSTRAP
                   ),
                   $value                                   # value, if any
                 ),
-                self.default                               # outlander
+                Nil                                        # outlander
               ),
             ),
-            self.default                                 # no elements
+            Nil                                          # no elements
           )
         )
     }

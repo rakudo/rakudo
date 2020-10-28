@@ -67,53 +67,127 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is raw) is raw {
 # This candidate provides all of the multi-level array access, as well
 # as providing the slow-path for assignment of a multi-level array.
 multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
+
+    # find out what we actually got
+    my str $adverbs;
+    if nqp::getattr(%_,Map,'$!storage') -> $nameds is raw {
+        $adverbs = nqp::atkey($nameds,'exists')
+          ?? ":exists"
+          !! ":!exists"
+          if nqp::existskey($nameds,'exists');
+
+        $adverbs =
+               nqp::concat($adverbs,":delete") if nqp::atkey($nameds,'delete');
+        $adverbs = nqp::concat($adverbs,":k" ) if nqp::atkey($nameds,'k');
+        $adverbs = nqp::concat($adverbs,":kv") if nqp::atkey($nameds,'kv');
+        $adverbs = nqp::concat($adverbs,":p" ) if nqp::atkey($nameds,'p');
+        $adverbs = nqp::concat($adverbs,":v" ) if nqp::atkey($nameds,'v');
+    }
+
     my int $topdim = @indices.elems;  # .elems reifies
     my $indices   := nqp::getattr(@indices,List,'$!reified');
-    my $nameds    := nqp::getattr(%_,Map,'$!storage');
-
     my int $i;
     nqp::while(
       nqp::islt_i($i,$topdim) && nqp::istype(nqp::atpos($indices,$i),Int),
       $i = nqp::add_i($i,1)
     );
-    my int $all-indices-are-Int = nqp::iseq_i($i,$topdim);
 
-    # Map $topdim to the highest index number, so that it can be easier used
-    # in recursion checks.
-    --$topdim;
+    # potential fast paths
+    if nqp::iseq_i($i,$topdim) {    # all indices are Ints
+        if $adverbs {
+            if nqp::iseq_i($adverbs,":delete") {
+                return nqp::iseq_i($topdim,1)
+                  ?? initial-SELF.EXISTS-POS(
+                       nqp::atpos($indices,0),
+                       nqp::atpos($indices,1)
+                     ) ?? nqp::decont(
+                            initial-SELF.DELETE-POS(
+                              nqp::atpos($indices,0),
+                              nqp::atpos($indices,1)
+                            )
+                          )
+                       !! Nil
+                  !! nqp::iseq_i($topdim,2)
+                    ?? initial-SELF.EXISTS-POS(
+                         nqp::atpos($indices,0),
+                         nqp::atpos($indices,1),
+                         nqp::atpos($indices,2)
+                       ) ?? nqp::decont(
+                              initial-SELF.DELETE-POS(
+                                nqp::atpos($indices,0),
+                                nqp::atpos($indices,1),
+                                nqp::atpos($indices,2)
+                              )
+                            )
+                         !! Nil
+                    !! initial-SELF.EXISTS-POS(|@indices)
+                      ?? nqp::decont(
+                           initial-SELF.DELETE-POS(|@indices)
+                         )
+                      !! Nil
+            }
 
-    # Delete "none" named argumement, as it is used to fool dispatch into
-    # this candidate only and has no further meaning.
-    nqp::deletekey($nameds,"none");
+            elsif nqp::iseq_s($adverbs,":exists") {
+                return nqp::iseq_i($topdim,1)
+                  ?? initial-SELF.EXISTS-POS(
+                       nqp::atpos($indices,0),
+                       nqp::atpos($indices,1)
+                     )
+                  !! nqp::iseq_i($topdim,2)
+                    ?? initial-SELF.EXISTS-POS(
+                         nqp::atpos($indices,0),
+                         nqp::atpos($indices,1),
+                         nqp::atpos($indices,2)
+                       )
+                    !! initial-SELF.EXISTS-POS(|@indices)
+            }
 
-    if $nameds {
-
-        # find out what we actually got
-        my str $adverbs;
-        $adverbs = (my $exists := nqp::atkey($nameds,'exists'))
-          ?? ":exists"
-          !! ":!exists"
-          if nqp::existskey($nameds,'exists');
-
-        $adverbs = nqp::concat($adverbs,":delete")
-          if nqp::atkey($nameds,'delete');
-        $adverbs = nqp::concat($adverbs,":k")  if nqp::atkey($nameds,'k');
-        $adverbs = nqp::concat($adverbs,":kv") if nqp::atkey($nameds,'kv');
-        $adverbs = nqp::concat($adverbs,":p")  if nqp::atkey($nameds,'p');
-        $adverbs = nqp::concat($adverbs,":v")  if nqp::atkey($nameds,'v');
-
-        # set up standard lexical info for recursing subs
-        my \target = nqp::create(IterationBuffer);
-        my int $dim;
-        my int $return-list;
-
-        my sub post-process-recursive-result() is raw {
-            $return-list
-              ?? target.List
-              !! nqp::elems(target) ?? nqp::atpos(target,0) !! Nil
+            elsif nqp::iseq_s($adverbs,":!exists") {
+                return !nqp::iseq_i($topdim,1)
+                  ?? initial-SELF.EXISTS-POS(
+                       nqp::atpos($indices,0),
+                       nqp::atpos($indices,1)
+                     )
+                  !! nqp::iseq_i($topdim,2)
+                    ?? initial-SELF.EXISTS-POS(
+                         nqp::atpos($indices,0),
+                         nqp::atpos($indices,1),
+                         nqp::atpos($indices,2)
+                       )
+                    !! initial-SELF.EXISTS-POS(|@indices)
+            }
         }
 
+        # fast path without adverbs
+        else {
+            return nqp::iseq_i($topdim,1)
+              ?? initial-SELF.AT-POS(
+                   nqp::atpos($indices,0),
+                   nqp::atpos($indices,1)
+                 )
+              !! nqp::iseq_i($topdim,2)
+                ?? initial-SELF.AT-POS(
+                     nqp::atpos($indices,0),
+                     nqp::atpos($indices,1),
+                     nqp::atpos($indices,2)
+                   )
+                !! initial-SELF.AT-POS(|@indices)
+        }
+    }
+
+    # Did not fast path.  Map $topdim to the highest index number, so that
+    # it can be easier used in recursion checks.
+    --$topdim;
+
+    # set up standard lexical info for recursing subs
+    my \target = nqp::create(IterationBuffer);
+    my int $dim;
+    my int $return-list;
+
+    if $adverbs {
         if nqp::iseq_s($adverbs,":exists") || nqp::iseq_s($adverbs,":!exists") {
+            my $wantnot := nqp::iseq_s($adverbs,":!exists").Bool;
+
             my sub EXISTS-POS-recursively(\SELF, \idx --> Nil) {
                 if nqp::istype(idx, Iterable) && nqp::not_i(nqp::iscont(idx)) {
                     $return-list  = 1;
@@ -138,15 +212,13 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                           EXISTS-POS-recursively(SELF.AT-POS($i), next-idx)
                         );
                     }
-                    elsif nqp::istype(idx,Callable) {
-                        EXISTS-POS-recursively(
-                          SELF.AT-POS((idx.(SELF.elems)).Int),
-                          nqp::atpos($indices,$dim)
-                        );
-                    }
                     else  {
                         EXISTS-POS-recursively(
-                          SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
+                          SELF.AT-POS(nqp::istype(idx,Callable)
+                            ?? (idx.(SELF.elems)).Int
+                            !! idx.Int
+                          ),
+                          nqp::atpos($indices,$dim)
                         );
                     }
                     --$dim;  # done at this level
@@ -158,35 +230,21 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     my int $elems = SELF.elems;
                     nqp::while(
                       nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::push(target,SELF.EXISTS-POS($i))
-                    );
-                }
-                elsif nqp::istype(idx,Callable) {
-                    nqp::push(
-                      target,
-                      SELF.EXISTS-POS((idx.(SELF.elems)).Int)
+                      nqp::push(target,$wantnot ?^ SELF.EXISTS-POS($i))
                     );
                 }
                 else {
-                    nqp::push(target,SELF.EXISTS-POS(idx.Int));
+                    nqp::push(
+                      target,
+                      $wantnot ?^ SELF.EXISTS-POS(nqp::istype(idx,Callable)
+                        ?? (idx.(SELF.elems)).Int
+                        !! idx.Int
+                      )
+                    );
                 }
             }
 
-            $all-indices-are-Int
-              ?? nqp::iseq_i($topdim,1)
-                ?? initial-SELF.EXISTS-POS(
-                     nqp::atpos($indices,0),
-                     nqp::atpos($indices,1)
-                   ) == $exists
-                !! nqp::iseq_i($topdim,2)
-                  ?? initial-SELF.EXISTS-POS(
-                       nqp::atpos($indices,0),
-                       nqp::atpos($indices,1),
-                       nqp::atpos($indices,2)
-                     ) == $exists
-                  !! initial-SELF.EXISTS-POS(|@indices) == $exists
-              !! EXISTS-POS-recursively(initial-SELF,nqp::atpos($indices,0))
-                  // post-process-recursive-result
+            EXISTS-POS-recursively(initial-SELF,nqp::atpos($indices,0));
         }
 
         elsif nqp::iseq_s($adverbs,":delete") {
@@ -234,7 +292,12 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     my int $elems = SELF.elems;
                     nqp::while(
                       nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::push(target,SELF.DELETE-POS($i))
+                      nqp::push(
+                        target,
+                        SELF.EXISTS-POS($i)
+                          ?? nqp::decont(SELF.DELETE-POS($i))
+                          !! Nil
+                      )
                     );
                 }
                 else {
@@ -243,26 +306,14 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                       !! idx.Int;
                     nqp::push(
                       target,
-                      SELF.EXISTS-POS($index) ?? SELF.DELETE-POS($index) !! Nil
+                      SELF.EXISTS-POS($index)
+                        ?? nqp::decont(SELF.DELETE-POS($index))
+                        !! Nil
                     );
                 }
             }
 
-            $all-indices-are-Int
-              ?? nqp::iseq_i($topdim,1)
-                ?? initial-SELF.DELETE-POS(
-                     nqp::atpos($indices,0),
-                     nqp::atpos($indices,1)
-                   )
-                !! nqp::iseq_i($topdim,2)
-                  ?? initial-SELF.DELETE-POS(
-                       nqp::atpos($indices,0),
-                       nqp::atpos($indices,1),
-                       nqp::atpos($indices,2)
-                     )
-                  !! initial-SELF.DELETE-POS(|@indices)
-              !! DELETE-POS-recursively(initial-SELF,nqp::atpos($indices,0))
-                   // post-process-recursive-result
+            DELETE-POS-recursively(initial-SELF,nqp::atpos($indices,0));
         }
 
         # some other combination of adverbs
@@ -270,7 +321,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
 
             # helper sub to create multi-level keys
             my $keys := nqp::create(IterationBuffer);  # keys encountered
-            sub keys-to-list($index) {
+            sub keys-to-list($index) is raw {
                 nqp::push((my $list := nqp::clone($keys)),$index);
                 $list.List
             }
@@ -333,7 +384,10 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                      -> \SELF, \key {
                          if SELF.EXISTS-POS(key) {
                              nqp::push(target,keys-to-list(key));
-                             nqp::push(target,SELF.DELETE-POS(key));
+                             nqp::push(
+                               target,
+                               nqp::decont(SELF.DELETE-POS(key))
+                             );
                          }
                      }
                  }
@@ -341,12 +395,15 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
               ?? -> \SELF, \key {
                      nqp::push(
                        target,
-                       Pair.new(keys-to-list(key), SELF.DELETE-POS(key))
+                       Pair.new(
+                         keys-to-list(key),
+                         nqp::decont(SELF.DELETE-POS(key))
+                       )
                      ) if SELF.EXISTS-POS(key);
                  }
             !! nqp::iseq_s($adverbs,":delete:v")
               ?? -> \SELF, \key {
-                     nqp::push(target,SELF.DELETE-POS(key))
+                     nqp::push(target,nqp::decont(SELF.DELETE-POS(key)))
                        if SELF.EXISTS-POS(key);
                  }
             !! nqp::iseq_s($adverbs,":k")
@@ -368,7 +425,10 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
               ?? -> \SELF, \key {
                      nqp::push(
                        target,
-                       Pair.new(keys-to-list(key), SELF.AT-POS(key))
+                       Pair.new(
+                         keys-to-list(key),
+                         nqp::decont(SELF.AT-POS(key))
+                       )
                      ) if SELF.EXISTS-POS(key);
                  }
             !! nqp::iseq_s($adverbs,":v")
@@ -450,98 +510,76 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
             }
 
             PROCESS-POS-recursively(initial-SELF, nqp::atpos($indices,0));
-            post-process-recursive-result
         }
     }
 
     # no adverbs whatsoever
     else {
-        my sub AT-POS-slow() is raw {
-
-            # set up standard lexical info for recursing subs
-            my \target := nqp::create(IterationBuffer);
-            my int $dim;
-            my int $return-list;
-
-            my sub AT-POS-recursively(\SELF, \idx --> Nil) {
-                if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
-                    $return-list = 1;
-                    my $iterator := idx.iterator;
-                    nqp::until(
-                      nqp::eqaddr(
-                        (my \pulled := $iterator.pull-one),
-                        IterationEnd
-                      ),
-                      AT-POS-recursively(SELF, pulled)
-                    );
-                }
-                elsif nqp::islt_i($dim,$topdim) {
-                    ++$dim;  # going higher
-                    if nqp::istype(idx,Whatever) {
-                        $return-list  = 1;
-                        my \next-idx := nqp::atpos($indices,$dim);
-                        my int $i     = -1;
-                        my int $elems = SELF.elems;
-                        nqp::while(
-                          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                          AT-POS-recursively(SELF.AT-POS($i), next-idx)
-                        );
-                    }
-                    elsif nqp::istype(idx,Callable) {
-                        AT-POS-recursively(
-                          SELF.AT-POS((idx.(SELF.elems)).Int),
-                          nqp::atpos($indices,$dim)
-                        );
-                    }
-                    else  {
-                        AT-POS-recursively(
-                          SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
-                        );
-                    }
-                    --$dim;  # done at this level
-                }
-                # $next-dim == $topdim, reached leaves
-                elsif nqp::istype(idx,Whatever) {
+        my sub AT-POS-recursively(\SELF, \idx --> Nil) {
+            if nqp::istype(idx,Iterable) && nqp::not_i(nqp::iscont(idx)) {
+                $return-list = 1;
+                my $iterator := idx.iterator;
+                nqp::until(
+                  nqp::eqaddr(
+                    (my \pulled := $iterator.pull-one),
+                    IterationEnd
+                  ),
+                  AT-POS-recursively(SELF, pulled)
+                );
+            }
+            elsif nqp::islt_i($dim,$topdim) {
+                ++$dim;  # going higher
+                if nqp::istype(idx,Whatever) {
                     $return-list  = 1;
+                    my \next-idx := nqp::atpos($indices,$dim);
                     my int $i     = -1;
                     my int $elems = SELF.elems;
                     nqp::while(
                       nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                      nqp::push(target,SELF.AT-POS($i))
+                      AT-POS-recursively(SELF.AT-POS($i), next-idx)
                     );
                 }
-                else {
-                    nqp::push(
-                      target,
-                      SELF.AT-POS(nqp::istype(idx,Callable)
-                        ?? (idx.(SELF.elems)).Int
-                        !! idx.Int
-                      )
+                elsif nqp::istype(idx,Callable) {
+                    AT-POS-recursively(
+                      SELF.AT-POS((idx.(SELF.elems)).Int),
+                      nqp::atpos($indices,$dim)
                     );
                 }
+                else  {
+                    AT-POS-recursively(
+                      SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
+                    );
+                }
+                --$dim;  # done at this level
             }
-
-            AT-POS-recursively(initial-SELF, nqp::atpos($indices,0));
-            $return-list
-              ?? target.List
-              !! nqp::elems(target) ?? nqp::atpos(target,0) !! Nil
+            # $next-dim == $topdim, reached leaves
+            elsif nqp::istype(idx,Whatever) {
+                $return-list  = 1;
+                my int $i     = -1;
+                my int $elems = SELF.elems;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::push(target,SELF.AT-POS($i))
+                );
+            }
+            else {
+                nqp::push(
+                  target,
+                  SELF.AT-POS(nqp::istype(idx,Callable)
+                    ?? (idx.(SELF.elems)).Int
+                    !! idx.Int
+                  )
+                );
+            }
         }
 
-        $all-indices-are-Int
-          ?? nqp::iseq_i($topdim,1)
-            ?? initial-SELF.AT-POS(
-                 nqp::atpos($indices,0),
-                 nqp::atpos($indices,1)
-               )
-            !! nqp::iseq_i($topdim,2)
-              ?? initial-SELF.AT-POS(
-                   nqp::atpos($indices,0),
-                   nqp::atpos($indices,1),
-                   nqp::atpos($indices,2)
-                 )
-              !! initial-SELF.AT-POS(|@indices)
-          !! AT-POS-slow()
+        AT-POS-recursively(initial-SELF, nqp::atpos($indices,0));
     }
+
+    # post-process recursive result
+    $return-list
+      ?? target.List
+      !! nqp::elems(target) ?? nqp::atpos(target,0) !! Nil
 }
 
 # vim: expandtab shiftwidth=4

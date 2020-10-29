@@ -21,11 +21,11 @@ my class Mu { # declared in BOOTSTRAP
     multi method ACCEPTS(Mu:U: Mu \topic) {
         nqp::hllbool(nqp::istype(topic, self))
     }
-    multi method ACCEPTS(Mu:D: Mu \topic) {
-        nqp::hllbool(nqp::eqaddr(nqp::decont(topic), nqp::if(
-          nqp::defined(topic),
-          self,
-          self.WHAT)))
+    multi method ACCEPTS(Mu:D: Mu:U \topic) {
+        nqp::hllbool(nqp::eqaddr(nqp::decont(topic), self.WHAT))
+    }
+    multi method ACCEPTS(Mu:D: Mu:D \topic) {
+        nqp::hllbool(nqp::eqaddr(nqp::decont(topic), self))
     }
     # Typically, junctions shouldn't be typechecked literally. There are
     # exceptions though, such as Junction in particular, so this probably

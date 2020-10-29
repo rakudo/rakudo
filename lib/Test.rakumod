@@ -755,15 +755,24 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
     unless $cond {
         my $caller;
         # sub proclaim is not called directly, so 2 is minimum level
-        my int $level = 2;
+        my int $level = 1;
 
-        repeat while $?FILE.ends-with($caller.file) {
-            $caller = callframe($level++);
-        }
+        repeat {
+            $caller = callframe(++$level);
+        } while $?FILE.ends-with($caller.file);
 
+        # initial level for reporting
+        my $tester = $caller;
+
+        repeat {
+            $tester = callframe($level)  # the next one should be reported
+              if ($caller = callframe($level++)).code.?is-unit-tester;
+        } until $caller.file.ends-with('.nqp');
+
+        # the final place we want to report from
         _diag $desc
-          ?? "Failed test '$desc'\nat $caller.file() line $caller.line()"
-          !! "Failed test at $caller.file() line $caller.line()";
+          ?? "Failed test '$desc'\nat $tester.file() line $tester.line()"
+          !! "Failed test at $tester.file() line $tester.line()";
     }
 
     # must clear this between tests

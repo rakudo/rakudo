@@ -156,7 +156,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
         highexpect => (
             'rw raw hidden-from-backtrace hidden-from-USAGE pure default',
             'DEPRECATED inlinable nodal prec equiv tighter looser assoc',
-            'leading_docs trailing_docs',
+            'leading_docs trailing_docs unit-tester',
             ('',"or did you forget to 'use NativeCall'?"
               if $subtype eq 'native').Slip
           ),
@@ -406,6 +406,12 @@ multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
     $r.^mixin( role is-hidden-from-USAGE {
         method is-hidden-from-USAGE(--> True) { }
     }) if $hidden-from-USAGE;
+}
+
+multi sub trait_mod:<is>(Routine:D $r, :$unit-tester!) {
+    $r.^mixin( role is-unit-tester {
+        method is-unit-tester(--> True) { }
+    }) if $unit-tester;
 }
 
 multi sub trait_mod:<is>(Routine:D $r, :$pure!) {

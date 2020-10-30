@@ -9,13 +9,13 @@ augment class Version {
 
     constant $v  = do {
         my $version := nqp::create(Version);
-        nqp::bindattr(  $version,Version,'$!parts', nqp::list(*));
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list());
         nqp::bindattr_s($version,Version,'$!string',"");
         $version
     }
     constant $vw = do {
         my $version := nqp::create(Version);
-        nqp::bindattr(  $version,Version,'$!parts',   nqp::list);
+        nqp::bindattr(  $version,Version,'$!parts',   nqp::list(*));
         nqp::bindattr_i($version,Version,'$!plus',   -1);
         nqp::bindattr_i($version,Version,'$!whatever',1);
         nqp::bindattr_s($version,Version,'$!string', "*");
@@ -37,6 +37,12 @@ augment class Version {
         my $version := nqp::create(Version);
         nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"d"));
         nqp::bindattr_s($version,Version,'$!string',"6.d");
+        $version
+    }
+    constant $v6e = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"e","PREVIEW"));
+        nqp::bindattr_s($version,Version,'$!string',"6.e.PREVIEW");
         $version
     }
     constant $vplus = do {
@@ -124,20 +130,24 @@ augment class Version {
 
     multi method new(Version: Str() $s) {
         nqp::if(
-          nqp::iseq_s($s,'6'),
-          $v6,
+          nqp::iseq_s($s,'6.d'),
+          $v6d,
           nqp::if(
             nqp::iseq_s($s,'6.c'),
             $v6c,
             nqp::if(
-              nqp::iseq_s($s,'6.d'),
-              $v6d,
-              nqp::unless(
-                self!SLOW-NEW($s),
-                nqp::if(
-                  nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
-                  $vplus,
-                  self.new
+              nqp::iseq_s($s,'6'),
+              $v6,
+              nqp::if(
+                nqp::iseq_s($s,'6.e.PREVIEW'),
+                $v6e,
+                nqp::unless(
+                  self!SLOW-NEW($s),
+                  nqp::if(
+                    nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
+                    $vplus,
+                    self.new
+                  )
                 )
               )
             )

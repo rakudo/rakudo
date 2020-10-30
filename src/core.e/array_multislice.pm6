@@ -68,6 +68,13 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is raw) is raw {
 # as providing the slow-path for assignment of a multi-level array.
 multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
 
+    # helper sub to ensure non-assignability
+    sub non-assignable(\result) is raw {
+        nqp::istype(result,Array)
+          ?? result.List
+          !! nqp::decont(result)
+    }
+
     # find out what we actually got
     my str $adverbs;
     if nqp::getattr(%_,Map,'$!storage') -> $nameds is raw {
@@ -95,35 +102,29 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
     # potential fast paths
     if nqp::iseq_i($i,$topdim) {    # all indices are Ints
         if $adverbs {
-            if nqp::iseq_i($adverbs,":delete") {
+            if nqp::iseq_s($adverbs,":delete") {
                 return nqp::iseq_i($topdim,1)
                   ?? initial-SELF.EXISTS-POS(
                        nqp::atpos($indices,0),
                        nqp::atpos($indices,1)
-                     ) ?? nqp::decont(
-                            initial-SELF.DELETE-POS(
-                              nqp::atpos($indices,0),
-                              nqp::atpos($indices,1)
-                            )
-                          )
+                     ) ?? non-assignable(initial-SELF.DELETE-POS(
+                            nqp::atpos($indices,0),
+                            nqp::atpos($indices,1)
+                          ))
                        !! Nil
                   !! nqp::iseq_i($topdim,2)
                     ?? initial-SELF.EXISTS-POS(
                          nqp::atpos($indices,0),
                          nqp::atpos($indices,1),
                          nqp::atpos($indices,2)
-                       ) ?? nqp::decont(
-                              initial-SELF.DELETE-POS(
-                                nqp::atpos($indices,0),
-                                nqp::atpos($indices,1),
-                                nqp::atpos($indices,2)
-                              )
-                            )
+                       ) ?? non-assignable(initial-SELF.DELETE-POS(
+                              nqp::atpos($indices,0),
+                              nqp::atpos($indices,1),
+                              nqp::atpos($indices,2)
+                            ))
                          !! Nil
                     !! initial-SELF.EXISTS-POS(|@indices)
-                      ?? nqp::decont(
-                           initial-SELF.DELETE-POS(|@indices)
-                         )
+                      ?? non-assignable(initial-SELF.DELETE-POS(|@indices))
                       !! Nil
             }
 
@@ -143,7 +144,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
             }
 
             elsif nqp::iseq_s($adverbs,":!exists") {
-                return !nqp::iseq_i($topdim,1)
+                return not nqp::iseq_i($topdim,1)
                   ?? initial-SELF.EXISTS-POS(
                        nqp::atpos($indices,0),
                        nqp::atpos($indices,1)
@@ -160,7 +161,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
 
         # fast path without adverbs
         else {
-            return nqp::iseq_i($topdim,1)
+            return-rw nqp::iseq_i($topdim,1)
               ?? initial-SELF.AT-POS(
                    nqp::atpos($indices,0),
                    nqp::atpos($indices,1)
@@ -185,6 +186,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
     my int $return-list;
 
     if $adverbs {
+
         if nqp::iseq_s($adverbs,":exists") || nqp::iseq_s($adverbs,":!exists") {
             my $wantnot := nqp::iseq_s($adverbs,":!exists").Bool;
 
@@ -272,15 +274,13 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                           DELETE-POS-recursively(SELF.AT-POS($i), next-idx)
                         );
                     }
-                    elsif nqp::istype(idx,Callable) {
-                        DELETE-POS-recursively(
-                          SELF.AT-POS((idx.(SELF.elems)).Int),
-                          nqp::atpos($indices,$dim)
-                        );
-                    }
                     else  {
                         DELETE-POS-recursively(
-                          SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
+                          SELF.AT-POS(nqp::istype(idx,Callable)
+                            ?? (idx.(SELF.elems)).Int
+                            !! idx.Int
+                          ),
+                          nqp::atpos($indices,$dim)
                         );
                     }
                     --$dim;  # done at this level
@@ -295,7 +295,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                       nqp::push(
                         target,
                         SELF.EXISTS-POS($i)
-                          ?? nqp::decont(SELF.DELETE-POS($i))
+                          ?? non-assignable(SELF.DELETE-POS($i))
                           !! Nil
                       )
                     );
@@ -307,7 +307,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                     nqp::push(
                       target,
                       SELF.EXISTS-POS($index)
-                        ?? nqp::decont(SELF.DELETE-POS($index))
+                        ?? non-assignable(SELF.DELETE-POS($index))
                         !! Nil
                     );
                 }
@@ -386,7 +386,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                              nqp::push(target,keys-to-list(key));
                              nqp::push(
                                target,
-                               nqp::decont(SELF.DELETE-POS(key))
+                               non-assignable(SELF.DELETE-POS(key))
                              );
                          }
                      }
@@ -397,13 +397,13 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                        target,
                        Pair.new(
                          keys-to-list(key),
-                         nqp::decont(SELF.DELETE-POS(key))
+                         non-assignable(SELF.DELETE-POS(key))
                        )
                      ) if SELF.EXISTS-POS(key);
                  }
             !! nqp::iseq_s($adverbs,":delete:v")
               ?? -> \SELF, \key {
-                     nqp::push(target,nqp::decont(SELF.DELETE-POS(key)))
+                     nqp::push(target,non-assignable(SELF.DELETE-POS(key)))
                        if SELF.EXISTS-POS(key);
                  }
             !! nqp::iseq_s($adverbs,":k")
@@ -417,7 +417,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                      -> \SELF, \key {
                          if SELF.EXISTS-POS(key) {
                              nqp::push(target,keys-to-list(key));
-                             nqp::push(target,nqp::decont(SELF.AT-POS(key)));
+                             nqp::push(target,non-assignable(SELF.AT-POS(key)));
                          }
                      }
                  }
@@ -427,13 +427,13 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                        target,
                        Pair.new(
                          keys-to-list(key),
-                         nqp::decont(SELF.AT-POS(key))
+                         non-assignable(SELF.AT-POS(key))
                        )
                      ) if SELF.EXISTS-POS(key);
                  }
             !! nqp::iseq_s($adverbs,":v")
               ?? -> \SELF, \key {
-                     nqp::push(target,nqp::decont(SELF.AT-POS(key)))
+                     nqp::push(target,non-assignable(SELF.AT-POS(key)))
                        if SELF.EXISTS-POS(key);
                  }
             !! return Failure.new(X::Adverb.new(
@@ -539,15 +539,13 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                       AT-POS-recursively(SELF.AT-POS($i), next-idx)
                     );
                 }
-                elsif nqp::istype(idx,Callable) {
-                    AT-POS-recursively(
-                      SELF.AT-POS((idx.(SELF.elems)).Int),
-                      nqp::atpos($indices,$dim)
-                    );
-                }
                 else  {
                     AT-POS-recursively(
-                      SELF.AT-POS(idx.Int), nqp::atpos($indices,$dim)
+                      SELF.AT-POS(nqp::istype(idx,Callable)
+                        ?? (idx.(SELF.elems)).Int
+                        !! idx.Int
+                      ),
+                      nqp::atpos($indices,$dim)
                     );
                 }
                 --$dim;  # done at this level

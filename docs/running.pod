@@ -156,7 +156,7 @@ Allows to override the NQP installation path. Defaults to C<[rakudo_executable_d
 
 =head1 WINDOWS PECULIARITIES
 
-=head 2 Non-console applications
+=head2 Non-console applications
 
 On Windows programs are compiled to either be I<console> applications or I<non-console>
 applications. I<Console> applications always open a console window. There is no straightforward way
@@ -170,7 +170,7 @@ printed to C<STDOUT> and C<STDERR>.
 
 To receive the output of the program it suffices to redirect it externally:
 
-C<rakuw.exe script.raku >stdout.txt 2>stderr.txt>
+C«rakuw.exe script.raku >stdout.txt 2>stderr.txt»
 
 =head1 AUTHORS
 

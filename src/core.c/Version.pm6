@@ -3,6 +3,49 @@ class Version {
     has int $!plus;
     has int $!whatever;
     has str $!string;
+}
+
+augment class Version {
+
+    constant $v  = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(*));
+        nqp::bindattr_s($version,Version,'$!string',"");
+        $version
+    }
+    constant $vw = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts',   nqp::list);
+        nqp::bindattr_i($version,Version,'$!plus',   -1);
+        nqp::bindattr_i($version,Version,'$!whatever',1);
+        nqp::bindattr_s($version,Version,'$!string', "*");
+        $version
+    }
+    constant $v6  = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6));
+        nqp::bindattr_s($version,Version,'$!string',"6");
+        $version
+    }
+    constant $v6c = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"c"));
+        nqp::bindattr_s($version,Version,'$!string',"6.c");
+        $version
+    }
+    constant $v6d = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"d"));
+        nqp::bindattr_s($version,Version,'$!string',"6.d");
+        $version
+    }
+    constant $vplus = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list);
+        nqp::bindattr_i($version,Version,'$!plus',  1);
+        nqp::bindattr_s($version,Version,'$!string',"");
+        $version
+    }
 
     method !SET-SELF(\parts,\plus,\whatever,\string) {
         $!parts := nqp::getattr(parts,List,'$!reified');
@@ -12,14 +55,8 @@ class Version {
         self
     }
 
-    multi method new(Version:) {
-        # "v" highlander
-        INIT nqp::create(Version)!SET-SELF(nqp::list,0,0,"")      # should be once
-    }
-    multi method new(Version: Whatever) {
-        # "v*" highlander
-        INIT nqp::create(Version)!SET-SELF(nqp::list(*),-1,1,"*") # should be once
-    }
+    multi method new(Version:) { $v }
+    multi method new(Version: Whatever) { $vw }
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0, Int() $whatever = 0) {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$whatever,$string)
     }
@@ -84,21 +121,28 @@ class Version {
               nqp::create(self)!SET-SELF($parts, $plus, $whatever,
                 nqp::concat(nqp::join('.', $strings), $plus ?? '+' !! '')))))
     }
-    # highlander cache
-    my $v6; my $v6c; my $vplus;
+
     multi method new(Version: Str() $s) {
         nqp::if(
-          nqp::iseq_s($s, '6'), # highlanderize most common
-          ($v6 //= nqp::create(Version)!SET-SELF(nqp::list(6),0,0,"6")),
+          nqp::iseq_s($s,'6'),
+          $v6,
           nqp::if(
-            nqp::iseq_s($s, '6.c'),
-            ($v6c //= nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,0,"6.c")),
-            nqp::unless(
-              self!SLOW-NEW($s),
-              nqp::if(
-                nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
-                ($vplus //= nqp::create(Version)!SET-SELF(nqp::list,1,0,"")),
-                self.new))))
+            nqp::iseq_s($s,'6.c'),
+            $v6c,
+            nqp::if(
+              nqp::iseq_s($s,'6.d'),
+              $v6d,
+              nqp::unless(
+                self!SLOW-NEW($s),
+                nqp::if(
+                  nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
+                  $vplus,
+                  self.new
+                )
+              )
+            )
+          )
+        )
     }
 
     multi method Str(Version:D:)  { $!string }

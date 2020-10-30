@@ -64,6 +64,12 @@ our sub todo_output is rw {
     $todo_output
 }
 
+multi sub trait_mod:<is>(Routine:D $r, :$test-assertion!) is export {
+    $r.^mixin( role is-test-assertion {
+        method is-test-assertion(--> True) { }
+    }) if $test-assertion;
+}
+
 proto sub plan ($?, Cool :$skip-all) {*}
 
 my class X::SubtestsSkipped is Exception {}
@@ -766,7 +772,7 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
 
         repeat {
             $tester = callframe($level)  # the next one should be reported
-              if ($caller = callframe($level++)).code.?is-unit-tester;
+              if ($caller = callframe($level++)).code.?is-test-assertion;
         } until $caller.file.ends-with('.nqp');
 
         # the final place we want to report from

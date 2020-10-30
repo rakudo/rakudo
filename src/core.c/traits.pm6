@@ -408,12 +408,6 @@ multi sub trait_mod:<is>(Routine:D $r, :$hidden-from-USAGE!) {
     }) if $hidden-from-USAGE;
 }
 
-multi sub trait_mod:<is>(Routine:D $r, :$unit-tester!) {
-    $r.^mixin( role is-unit-tester {
-        method is-unit-tester(--> True) { }
-    }) if $unit-tester;
-}
-
 multi sub trait_mod:<is>(Routine:D $r, :$pure!) {
     $r.^mixin( role is-pure {
         method is-pure (--> True) { }

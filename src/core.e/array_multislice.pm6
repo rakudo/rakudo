@@ -103,7 +103,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
     if nqp::iseq_i($i,$topdim) {    # all indices are Ints
         if $adverbs {
             if nqp::iseq_s($adverbs,":delete") {
-                return nqp::iseq_i($topdim,1)
+                return nqp::iseq_i($topdim,2)
                   ?? initial-SELF.EXISTS-POS(
                        nqp::atpos($indices,0),
                        nqp::atpos($indices,1)
@@ -112,7 +112,7 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
                             nqp::atpos($indices,1)
                           ))
                        !! Nil
-                  !! nqp::iseq_i($topdim,2)
+                  !! nqp::iseq_i($topdim,3)
                     ?? initial-SELF.EXISTS-POS(
                          nqp::atpos($indices,0),
                          nqp::atpos($indices,1),
@@ -129,12 +129,12 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
             }
 
             elsif nqp::iseq_s($adverbs,":exists") {
-                return nqp::iseq_i($topdim,1)
+                return nqp::iseq_i($topdim,2)
                   ?? initial-SELF.EXISTS-POS(
                        nqp::atpos($indices,0),
                        nqp::atpos($indices,1)
                      )
-                  !! nqp::iseq_i($topdim,2)
+                  !! nqp::iseq_i($topdim,3)
                     ?? initial-SELF.EXISTS-POS(
                          nqp::atpos($indices,0),
                          nqp::atpos($indices,1),
@@ -144,12 +144,12 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
             }
 
             elsif nqp::iseq_s($adverbs,":!exists") {
-                return not nqp::iseq_i($topdim,1)
+                return not nqp::iseq_i($topdim,2)
                   ?? initial-SELF.EXISTS-POS(
                        nqp::atpos($indices,0),
                        nqp::atpos($indices,1)
                      )
-                  !! nqp::iseq_i($topdim,2)
+                  !! nqp::iseq_i($topdim,3)
                     ?? initial-SELF.EXISTS-POS(
                          nqp::atpos($indices,0),
                          nqp::atpos($indices,1),
@@ -161,12 +161,12 @@ multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {
 
         # fast path without adverbs
         else {
-            return-rw nqp::iseq_i($topdim,1)
+            return-rw nqp::iseq_i($topdim,2)
               ?? initial-SELF.AT-POS(
                    nqp::atpos($indices,0),
                    nqp::atpos($indices,1)
                  )
-              !! nqp::iseq_i($topdim,2)
+              !! nqp::iseq_i($topdim,3)
                 ?? initial-SELF.AT-POS(
                      nqp::atpos($indices,0),
                      nqp::atpos($indices,1),

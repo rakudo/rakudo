@@ -156,7 +156,7 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
         highexpect => (
             'rw raw hidden-from-backtrace hidden-from-USAGE pure default',
             'DEPRECATED inlinable nodal prec equiv tighter looser assoc',
-            'leading_docs trailing_docs unit-tester',
+            'leading_docs trailing_docs
             ('',"or did you forget to 'use NativeCall'?"
               if $subtype eq 'native').Slip
           ),

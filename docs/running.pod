@@ -40,44 +40,59 @@ Note that only boolean single-letter options may be bundled.
 
 The supported values for C<--target> are:
 
- Target     Backend  Description
- ======     =======  ===========
- parse      all      a representation of the parse tree
- ast        all      an abstract syntax tree (before optimizations)
- optimize   all      an abstract syntax tree (after optimizations)
+  Target     Backend  Description
+  ======     =======  ===========
+  parse      all      a representation of the parse tree
+  ast        all      an abstract syntax tree (before optimizations)
+  optimize   all      an abstract syntax tree (after optimizations)
 
- mbc        MoarVM   MoarVM byte code
- jar        JVM      JVM archive
+  mbc        MoarVM   MoarVM byte code
+  jar        JVM      JVM archive
 
-For C<--profile-filename>, specifying a name ending in C<.json> will write a raw JSON profile dump.
-The default if this is omitted is C<profile-I<[timestamp]>.html>.
+For C<--profile-filename>, specifying a name ending in C<.json> will write a raw
+JSON profile dump. The default if this is omitted is C<profile-I<[timestamp]>.html>.
 
 =head1 ENVIRONMENT VARIABLES
 
-Rakudo's behavior can be tweaked by a (growing) number of environment variables; this section
-attempts to document all those currently in use.
+Rakudo's behavior can be tweaked by a (growing) number of environment variables;
+this section attempts to document all those currently in use. They are
+interpreter specific in all cases, except where some use conventional names
+such as C<PATH>.
 
-=head2 Module Loading
+The underlying virtual machine is also sensitive to a series of environment
+variables; they are listed L<in this wiki
+page|https://github.com/rakudo/rakudo/wiki/dev-env-vars#moarvm>.
 
-=over
+=head2 Module loading
 
 =item C<RAKUDOLIB>, C<RAKULIB> (I<Str>; F<src/core/Inc.pm>)
 
-Appends a comma-delimited list of paths to C<@INC>. C<RAKUDOLIB> is evaluated first.
+C<RAKUDOLIB> and C<RAKULIB> append a comma-delimited list of paths to the
+search list for modules. C<RAKUDOLIB> is evaluated first. B<NOTE:> These env
+vars were added in the Rakudo compiler in version 2020.05. The deprecated older
+env var C<PERL6LIB> is still available.
 
 =item C<RAKUDO_MODULE_DEBUG> (I<Bool>; F<src/Perl6/ModuleLoader.nqp>)
 
-Causes the module loader to print debugging information to standard error.
+If true, causes the module loader to print debugging information to standard
+error.
 
-=back
+=head2 Error message verbosity and strictness
 
-=head2 Error Message Verbosity and Strictness
+=item C<RAKU_EXCEPTIONS_HANDLER>
 
-=over
+If present, the C<print_exception> routine
+will use a class of that name to process the exception for output. Rakudo
+currently ships with C<Exceptions::JSON> (invoked by setting this variable to
+C<JSON>), to override the default output. B<NOTE:> This env var was added in
+version 6.e.  Early implementation has been available in Rakudo compiler
+as of version 2019.12, and before that it was available as
+C<PERL6_EXCEPTIONS_HANDLER>.
 
 =item C<RAKUDO_NO_DEPRECATIONS> (I<Bool>; F<src/core.c/Deprecations.pm6>)
 
-If true, suppresses deprecation warnings triggered by the C<is DEPRECATED> trait.
+If true, suppresses deprecation warnings triggered by the C<is DEPRECATED>
+trait.
 
 =item C<RAKUDO_DEPRECATIONS_FATAL> (I<Bool>; F<src/core.c/Deprecations.pm6>)
 
@@ -85,92 +100,124 @@ If true, deprecation warnings become thrown exceptions.
 
 =item C<RAKUDO_VERBOSE_STACKFRAME> (I<UInt>; F<src/core.c/Backtrace.pm6>)
 
-Displays source code in stack frames surrounded by the specified number of lines of context.
+Displays source code in stack frames surrounded by the specified number of
+lines of context; for instance C<RAKUDO_VERBOSE_STACKFRAME = 1> will use one
+context line.
 
 =item C<RAKUDO_BACKTRACE_SETTING> (I<Bool>; F<src/core.c/Backtrace.pm6>)
 
-Controls whether .setting files are included in backtraces.
+Controls whether C<.setting> files are included in backtraces.
 
-=back
-
-=head2 Affecting Precompilation
-
-=over
+=head2 Affecting precompilation
 
 =item C<RAKUDO_PREFIX> (I<Str>; F<src/core.c/CompUnit/RepositoryRegistry.pm6>)
 
-When this is set, Rakudo will look for the standard repositories (perl, vendor, site) in the
-specified directory. This is intended as an escape hatch for build-time bootstrapping issues,
-where Rakudo may be built as an unprivileged user without write access to the runtime paths
-in NQP's config.
+When this is set, Rakudo will look for the standard repositories (perl, vendor,
+site) in the specified directory. This is intended as an escape hatch for
+build-time bootstrapping issues, where Rakudo may be built as an unprivileged
+user without write access to the runtime paths in NQP's config.
 
 =item C<RAKUDO_PRECOMP_DIST> (F<src/core.c/CompUnit/PrecompilationRepository.pm6>)
-
 =item C<RAKUDO_PRECOMP_LOADING> (F<src/core.c/CompUnit/PrecompilationRepository.pm6>)
-
 =item C<RAKUDO_PRECOMP_WITH> (F<src/core.c/CompUnit/PrecompilationRepository.pm6>)
 
-These are internal variables for passing serialized state to precompilation jobs in child processes.
-Please do not set them manually.
+These are internal variables for passing serialized state to precompilation jobs
+in child processes. Please do not set them manually.
 
-=back
+=item C<RAKUDO_LOG_PRECOMP>
+
+If set to 1, diagnostic information about the precompilation process is
+emitted.
+
+=head2 Line editor
+
+=item C<RAKUDO_LINE_EDITOR>
+
+This specifies the preferred line editor to use; valid values are C<Readline>,
+C<Linenoise>, and none. A value of none is useful if you want to avoid the
+recommendation message upon REPL startup.
+
+=item C<RAKUDO_DISABLE_MULTILINE>
+
+If set to 1, will disable multiline input for the REPL.
+
+=item C<RAKUDO_HIST>
+
+This specifies the location of the history file used by the
+line editor; the default is C<~/.raku/rakudo-history>.
+Before Rakudo version 2020.02 the default was
+C<~/.perl6/rakudo-history>.
 
 =head2 Other
 
-=over
+=item C<RAKUDO_DEFAULT_READ_ELEMS>
+
+This specifies the default number of characters to read on an
+L«C<IO::Handle>|/type/IO::Handle» by setting the
+L«C<$*DEFAULT-READ-ELEMS>|/language/variables#$*DEFAULT-READ-ELEMS» dynamic
+variable.
 
 =item C<RAKUDO_ERROR_COLOR> (I<Bool>; F<src/core.c/Exception.pm6>)
 
-Controls whether to emit ANSI codes for error highlighting. Defaults to true if unset, except on
-Win32.
+Controls whether to emit ANSI codes for error highlighting. Defaults to true
+if unset, except on Windows.
 
 =item C<RAKUDO_MAX_THREADS> (I<UInt>; F<src/core.c/ThreadPoolScheduler.pm6>)
 
-Override the default maximum number of threads used by a thread pool.
+Indicates the maximum number of threads used by default when creating a
+C<ThreadPoolScheduler>. Defaults to 64.
 
 =item C<TMPDIR>, C<TEMP>, C<TMP> (I<Str>; F<src/core.c/IO/Spec/>)
 
-The C<IO::Spec::Unix.tmpdir> method will return C<$TMPDIR> if it points to a directory with full
-access permissions for the current user, with a fallback default of C<'/tmp'>.
+The C<IO::Spec::Unix.tmpdir> method will return C<$TMPDIR> if it points to a
+directory with full access permissions for the current user, with a fallback
+default of C<'/tmp'>.
 
-C<IO::Spec::Cygwin> and C<IO::Spec::Win32> use more Win32-appropriate lists which also include the
-C<%TEMP%> and C<%TMP%> environment variables.
+C<IO::Spec::Cygwin> and C<IO::Spec::Win32> use more Windows-appropriate lists
+which also include the C<%TEMP%> and C<%TMP%> environment variables.
 
 =item C<PATH>, C<Path> (I<Str>; F<src/core.c/IO/Spec/>)
 
-The C<IO::Spec::Unix.path> method splits C<$PATH> as a shell would; i.e. as a colon-separated list.
-C<IO::Spec::Cygwin> inherits this from C<IO::Spec::Unix>.
+The C<IO::Spec::Unix.path> method splits C<$PATH> as a
+shell would; i.e. as a colon-separated list. C<IO::Spec::Cygwin> inherits this
+from C<IO::Spec::Unix>. C<IO::Spec::Win32.path> will read the first defined of
+either C<%PATH%> or C<%Path%> as a semicolon-delimited list.
 
-C<IO::Spec::Win32.path> will read the first defined of either C<%PATH%> or C<%Path%> as a
-semicolon-delimited list.
+=item C<RAKUDO_SNAPPER>
+
+Indicates the period in which the telemetry snapper will take a snapshot.
+Defaults to .1 for 10 snapshots per second.
 
 =item C<RAKUDO_HOME>
 
-Allows to override the Raku installation path. Defaults to C<[rakudo_executable_dir]/../share/perl6>.
+Allows to override the Raku installation path. Defaults to
+C<[rakudo_executable_dir]/../share/perl6> in relocatable builds and the
+absolute path to that folder in non-relocatable builds.
 
 =item C<NQP_HOME>
 
-Allows to override the NQP installation path. Defaults to C<[rakudo_executable_dir]/../share/nqp>.
-
-=back
+Allows to override the NQP installation path. Defaults to
+C<[rakudo_executable_dir]/../share/nqp> in relocatable builds and the absolute
+path to that folder in non-relocatable builds.
 
 =head1 WINDOWS PECULIARITIES
 
 =head2 Non-console applications
 
-On Windows programs are compiled to either be I<console> applications or I<non-console>
-applications. I<Console> applications always open a console window. There is no straightforward way
-to suppress this window.
+On Windows programs are compiled to either be I<console> applications or
+I<non-console> applications. I<Console> applications always open a console
+window. There is no straightforward way to suppress this window.
 
-Rakudo provides a separate set of executables suffixed with a C<'w'> (C<rakuw.exe>, C<rakudow.exe>,
-...) that are compiled as I<non-console> applications. These do not spawn this console window.
+Rakudo provides a separate set of executables suffixed with a C<'w'>
+(C<rakuw.exe>, C<rakudow.exe>, ...) that are compiled as I<non-console>
+applications. These do not spawn this console window.
 
-B<WARNING> By default these I<non-console> applications will silently swallow everything that is
-printed to C<STDOUT> and C<STDERR>.
+B<WARNING> By default these I<non-console> applications will silently swallow
+everything that is printed to C<STDOUT> and C<STDERR>.
 
 To receive the output of the program it suffices to redirect it externally:
 
-C«rakuw.exe script.raku >stdout.txt 2>stderr.txt»
+  rakuw.exe script.raku >stdout.txt 2>stderr.txt
 
 =head1 AUTHORS
 
@@ -178,3 +225,5 @@ Written by the Rakudo contributors, see the CREDITS file.
 
 This manual page was written by Reini Urban, Moritz Lenz and the Rakudo
 contributors.
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

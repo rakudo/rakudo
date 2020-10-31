@@ -49,15 +49,18 @@ my class Parameter { # declared in BOOTSTRAP
                                          +| $SIG_ELEM_IS_COPY
                                          +| $SIG_ELEM_IS_RAW;
 
-    my constant $sigils2bit = do {
-        nqp::hash(
-          Q/@/, $SIG_ELEM_ARRAY_SIGIL,
-          Q/%/, $SIG_ELEM_HASH_SIGIL,
-          Q/&/, $SIG_ELEM_CODE_SIGIL,
-          Q/\/, $SIG_ELEM_IS_RAW,
-          Q/|/, $SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_IS_RAW,
-        )
-    }
+#?if moar
+    my constant $sigils2bit = nqp::hash(
+#?endif
+#?if !moar
+    my $sigils2bit := nqp::hash(
+#?endif
+      Q/@/, $SIG_ELEM_ARRAY_SIGIL,
+      Q/%/, $SIG_ELEM_HASH_SIGIL,
+      Q/&/, $SIG_ELEM_CODE_SIGIL,
+      Q/\/, $SIG_ELEM_IS_RAW,
+      Q/|/, $SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_IS_RAW,
+    );
     sub set-sigil-bits(str $sigil, \flags --> Nil) {
         if nqp::atkey($sigils2bit,$sigil) -> $bit {
             flags +|= $bit

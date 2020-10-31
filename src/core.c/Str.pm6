@@ -815,31 +815,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # Special case escape values for rakufication
-    my $escapes := nqp::hash(
-      "\0",   '\0',
-      '$',    '\$',
-      '@',    '\@',
-      '%',    '\%',
-      '&',    '\&',
-      '{',    '\{',
-      "\b",   '\b',
-      "\x0A", '\n',
-      "\r",   '\r',
-      "\t",   '\t',
-      '"',    '\"',
-      '\\',   '\\\\',
-    );
+    my constant $escapes = do {
+        my $list := nqp::list;
+        nqp::bindpos($list,nqp::ord("\0"),  '\0');
+        nqp::bindpos($list,nqp::ord('$'),   '\$');
+        nqp::bindpos($list,nqp::ord('@'),   '\@');
+        nqp::bindpos($list,nqp::ord('%'),   '\%');
+        nqp::bindpos($list,nqp::ord('&'),   '\&');
+        nqp::bindpos($list,nqp::ord('{'),   '\{');
+        nqp::bindpos($list,nqp::ord("\b"),  '\b');
+        nqp::bindpos($list,nqp::ord("\x0A"),'\n');
+        nqp::bindpos($list,nqp::ord("\r"),  '\r');
+        nqp::bindpos($list,nqp::ord("\t"),  '\t');
+        nqp::bindpos($list,nqp::ord('"'),   '\"');
+        nqp::bindpos($list,nqp::ord('\\'),  '\\\\');
+        $list
+    }
 
-    # Helper method to create hex representation of char at given index
-    method !hexify-at(int $i) is pure {
+    # Helper method to create hex representation of char
+    method !hexify(str $char) is pure {
         nqp::concat(
           '\x[',
           nqp::concat(
 #?if !jvm
-            nqp::substr(self,$i,1).NFC.map( *.base(16) ).join(','),
+            $char.NFC.map( *.base(16) ).join(','),
 #?endif
 #?if jvm
-            nqp::p6box_i(nqp::ordat(self,$i)).base(16),
+            nqp::p6box_i(nqp::ord($char)).base(16),
 #?endif
             ']'
           )
@@ -851,40 +853,55 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # under concatenation closure, which ruins round-tripping. Also handle
     # the \r\n grapheme correctly.
     method !rakufy() {
-        my int $i = -1;
         my $rakufied := nqp::list_s('"');              # array add chars to
+        my int $chars = nqp::chars(self);
 
-        while ++$i < nqp::chars(self) {                # check all chars
+        my int $i = -1;
+        my str $char;
+        my int $ord;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$chars), # check all chars
+          nqp::stmts(
+            ($char = nqp::substr(self,$i,1)),
+            ($ord  = nqp::ord($char)),
             nqp::push_s(
               $rakufied,
 #?if !jvm
-              nqp::isge_i(nqp::ordat(self,$i),768)     # different from "0" ??
-                && nqp::isgt_i(
-                     nqp::atpos(
-                       nqp::radix_I(10,                # failure -> value 0
-                         nqp::getuniprop_str(
-                           nqp::ordat(self,$i),
-                           nqp::unipropcode('Canonical_Combining_Class')
+              nqp::if(
+                nqp::isge_i($ord,768)                  # different from "0" ??
+                  && nqp::isgt_i(
+                       nqp::atpos(
+                         nqp::radix_I(10,              # failure -> value 0
+                           nqp::getuniprop_str(
+                             $ord,
+                             nqp::unipropcode('Canonical_Combining_Class')
+                           ),
+                           0,0,Int
                          ),
-                         0,0,Int
+                         0
                        ),
                        0
                      ),
-                     0
-                   )
-                ?? self!hexify-at($i)                  # escape since > 0
-                !!
+                self!hexify($char),                    # escape since > 0
 #?endif
-                   nqp::ifnull(
-                     nqp::atkey($escapes,nqp::substr(self,$i,1)),
-                     nqp::eqat(self,"\r\n",$i)         # not a known escape
-                       ?? '\r\n'                       # it's the common LF
-                       !! nqp::iscclass(nqp::const::CCLASS_PRINTING,self,$i)
-                         ?? nqp::substr(self,$i,1)     # it's a printable
-                         !! self!hexify-at($i)         # need to escape
-                   )
+                nqp::ifnull(
+                  nqp::atpos($escapes,$ord),
+                  nqp::if(                             # not a known escape(
+                    nqp::iseq_s($char,"\r\n"),
+                    '\r\n',                            # it's the common LF
+                    nqp::if(
+                      nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0),
+                      $char,                           # it's a printable
+                      self!hexify($char)               # need to escape
+                    )
+                  )
+                )
+              )
+#?if !jvm
             )
-        }
+#?endif
+          )
+        );
         nqp::push_s($rakufied,'"');
         nqp::join('',$rakufied)
     }

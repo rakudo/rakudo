@@ -1948,17 +1948,13 @@ my class array does Iterable {
 
     role shapedarray does Rakudo::Internals::ShapedArrayCommon {
         method shape() {
-            nqp::stmts(
-              (my $idims := nqp::dimensions(self)),
-              (my int $dims = nqp::elems($idims)),
-              (my $odims  := nqp::setelems(nqp::create(IterationBuffer),$dims)),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$dims),
-                nqp::bindpos($odims,$i,nqp::atpos_i($idims,$i))
-              ),
-              $odims.List
-            )
+            my $idims := nqp::dimensions(self);
+            my $odims := nqp::create(IterationBuffer);
+            nqp::while(
+              nqp::elems($idims),
+              nqp::push($odims,nqp::shift_i($idims))
+            );
+            $odims.List
         }
 
         multi method EXISTS-POS(::?CLASS:D: **@indices) {

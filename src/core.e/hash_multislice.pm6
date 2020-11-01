@@ -1,6 +1,12 @@
 # all 6.e specific sub postcircumfix {;} candidates here please
 
 proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}
+
+# handle the case of %h{|| "a"}
+multi sub postcircumfix:<{; }>(\initial-SELF, \value, *%_) is raw {
+    postcircumfix:<{; }>(initial-SELF, value.List, |%_)
+}
+
 multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
   :$exists, :$delete, :$k, :$kv, :$p, :$v
 ) is raw {

@@ -64,6 +64,11 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND! is raw) is raw {
       !! X::Bind::Slice.new(type => SELF.WHAT).throw
 }
 
+# handle the case of @a[|| 0]
+multi sub postcircumfix:<[; ]>(\initial-SELF, \value, *%_) is raw {
+    postcircumfix:<[; ]>(initial-SELF, value.List, |%_)
+}
+
 # This candidate provides all of the multi-level array access, as well
 # as providing the slow-path for assignment of a multi-level array.
 multi sub postcircumfix:<[; ]>(\initial-SELF, @indices, *%_) is raw {

@@ -771,8 +771,9 @@ sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
         my $tester = $caller;
 
         repeat {
+            my \code := ($caller = callframe($level++)).code;
             $tester = callframe($level)  # the next one should be reported
-              if ($caller = callframe($level++)).code.?is-test-assertion;
+              if nqp::can(code,'is-test-assertion');  # must use nqp
         } until $caller.file.ends-with('.nqp');
 
         # the final place we want to report from

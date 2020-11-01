@@ -1,6 +1,6 @@
 # this is actually part of the Array class
 
-    my role ShapedArray does Rakudo::Internals::ShapedArrayCommon {
+    role ShapedArray does Rakudo::Internals::ShapedArrayCommon {
         has $.shape;
 
         # Handle dimensions > 3 or more indices than dimensions.

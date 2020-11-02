@@ -87,7 +87,8 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
           '10.12', 'Sierra',
           '10.13', 'High Sierra',
           '10.14', 'Mojave',
-          '10.15', 'Catalina'
+          '10.15', 'Catalina',
+          '11.0',  'Big Sur'
         );
 
         if nqp::atkey($names,$version.split(".").head(2).join(".")) -> $nick {

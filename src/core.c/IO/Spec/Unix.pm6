@@ -205,10 +205,7 @@ my class IO::Spec::Unix is IO::Spec {
             nqp::if(@parts, '/', ''),
         )
     }
-    method splitdir(Cool:D $path) {
-        nqp::p6bindattrinvres((), List, '$!reified', nqp::split('/', $path.Str))
-        || ('',)
-    }
+    method splitdir( $path ) { $path.split( '/' )  }
     method catfile( |c )     { self.catdir(|c) }
 
     method abs2rel( $path is copy, $base is copy = $*CWD ) {

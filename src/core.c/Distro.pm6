@@ -67,7 +67,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
         $auth    := 'Apple Inc.'; # presumably
 
 #?if moar
-        my constant $names := nqp::hash(
+        my constant $names = nqp::hash(
 #?endif
 #?if !moar
         my $names := nqp::hash(

@@ -63,7 +63,7 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
         CATCH { die "$_\nError: Line: $line\n\@array: @array.raku()" }
     }
     my Bool:D $has-tested = False;
-    for %LOSES{$file-name}{$uniprop}.keys -> $pvalue {
+    for %LOSES{$file-name}{$uniprop}.keys.sort -> $pvalue {
         $has-tested = True;
         %expected-loses{$file-name}{$uniprop}{$pvalue} = 0 if %expected-loses{$file-name}{$uniprop}:!exists or %expected-loses{$file-name}{$uniprop}{$pvalue}:!exists;
         todo "Expecting %expected-loses{$file-name}{$uniprop}{$pvalue} failures from $uniprop=$pvalue", 1
@@ -71,7 +71,7 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
         ok %LOSES{$file-name}{$uniprop}{$pvalue} < %expected-loses{$file-name}{$uniprop}{$pvalue},
         format-test-text($uniprop, $file-name, %WINS{$file-name}{$uniprop}{$pvalue}, %LOSES{$file-name}{$uniprop}{$pvalue}, $pvalue, %expected-loses{$file-name}{$uniprop}{$pvalue});
     }
-    for %expected-loses{$file-name}{$uniprop}.keys -> $pvalue {
+    for %expected-loses{$file-name}{$uniprop}.keys.sort -> $pvalue {
         next if %LOSES{$file-name}{$uniprop}{$pvalue}:exists;
         $has-tested = True;
         %LOSES{$file-name}{$uniprop}{$pvalue} = 0 if %LOSES{$file-name}{$uniprop}{$pvalue}:!exists;

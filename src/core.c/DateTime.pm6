@@ -7,7 +7,7 @@ my class DateTime does Dateish {
       # $dt.utc.local.utc is equivalent to $dt.utc. Otherwise,
       # DST-induced ambiguity could ruin our day.
 
-    my int $last-hour-seen;
+    my int $last-dst = -1;  # never matches initially
     my int $TZ-was-set-explicitly;
     my int $TZ-offset;
     sub get-local-timezone-offset() {
@@ -17,13 +17,12 @@ my class DateTime does Dateish {
 
         # not set explicitly
         else {
-            my int $utc  = nqp::time_i;
-            my int $hour = nqp::div_i($utc,3600);
+            my int $utc = nqp::time_i;
+            my $lt     := nqp::decodelocaltime($utc);
 
             # first time, or possible DST change
-            if nqp::isne_i($hour,$last-hour-seen) {
-                my $lt := nqp::decodelocaltime($utc);
-                $last-hour-seen = $hour;
+            if nqp::isne_i(nqp::atpos_i($lt,8),$last-dst) {
+                $last-dst = nqp::atpos_i($lt,8);
 
                 # algorithm from Claus Tøndering
                 my int $a = (14 - nqp::atpos_i($lt,4)) div 12;

@@ -285,7 +285,12 @@ my class Rakudo::Internals {
     }
     # Fast mapping for identicals
     ### If updating encodings here, also update src/core.c/Encoding/Registry.pm6
+#?if moar
+    my constant $encodings = nqp::hash(
+#?endif
+#?if !moar
     my $encodings := nqp::hash(
+#?endif
       # utf8
       'utf8',            'utf8',
       'utf-8',           'utf8',
@@ -1102,7 +1107,15 @@ implementation detail and has no serviceable parts inside"
           !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
     }
 
-    my $clean-parts-nul := nqp::hash( '..', 1, '.', 1, '', 1);
+#?if moar
+    my constant $clean-parts-nul = nqp::hash(
+#?endif
+#?if !moar
+    my $clean-parts-nul := nqp::hash(
+#?endif
+      '..', 1, '.', 1, '', 1
+    );
+
     method MAKE-CLEAN-PARTS(Str:D \abspath) {
         my str $abspath = nqp::unbox_s(abspath);
         my $parts := nqp::split('/',$abspath);

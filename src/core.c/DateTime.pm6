@@ -254,8 +254,11 @@ my class DateTime does Dateish {
         ).in-timezone($timezone)
     }
     multi method new(DateTime:
-      Numeric:D $epoch, :$timezone = 0, :&formatter, *%_
+      Numeric:D $epoch is copy, :$timezone = 0, :&formatter, *%_
     --> DateTime:D) {
+
+        # allow for timezone offset
+        $epoch = $epoch + $timezone;
 
         # Interpret $time as a POSIX time.
         my $second := $epoch % 60;
@@ -281,20 +284,19 @@ my class DateTime does Dateish {
         my Int $month := $m + 3 - 12 * nqp::div_I($m, 10, Int);
         my Int $year  := $b * 100 + $d - 4800 + nqp::div_I($m, 10, Int);
 
-        my $dt := nqp::eqaddr(self.WHAT,DateTime)
+        nqp::eqaddr(self.WHAT,DateTime)
           ?? ( nqp::elems(nqp::getattr(%_,Map,'$!storage'))
             ?? die "Unexpected named parameter{"s" if %_ > 1} "
                  ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
                  ~ "trying to use the named parameter form of .new() but "
                  ~ "accidentally passed one named parameter as a positional?"
             !! nqp::create(self)!SET-SELF(
-                 $year,$month,$day,$hour,$minute,$second,0,&formatter)
+                 $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
              )
           !! self.bless(
                :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:timezone(0),:&formatter,|%_
+               :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
              )!SET-DAYCOUNT;
-        $timezone ?? $dt.in-timezone($timezone) !! $dt
     }
     multi method new(DateTime:
       Str:D $datetime, :$timezone is copy, :&formatter, *%_
@@ -505,25 +507,28 @@ my class DateTime does Dateish {
     method whole-second(DateTime:D: --> Int:D) { $!second.Int }
 
     method in-timezone(DateTime:D: Int(Cool) $timezone --> DateTime:D) {
-        return self if $timezone == $!timezone;
+        if $timezone == $!timezone {
+            self
+        }
+        else {
+            my int $old-offset = self.offset;
+            my int $new-offset = $timezone;
+            my %parts;
+            # Is the logic for handling leap seconds right?
+            # I don't know, but it passes the tests!
+            my $a = ($!second >= 60 ?? 59 !! $!second)
+                + $new-offset - $old-offset;
+            %parts<second> = $!second >= 60 ?? $!second !! $a % 60;
+            my Int $b = $!minute + floor($a) div 60;
+            %parts<minute> = $b % 60;
+            my Int $c = $!hour + $b div 60;
+            %parts<hour> = $c % 24;
 
-        my int $old-offset = self.offset;
-        my int $new-offset = $timezone;
-        my %parts;
-        # Is the logic for handling leap seconds right?
-        # I don't know, but it passes the tests!
-        my $a = ($!second >= 60 ?? 59 !! $!second)
-            + $new-offset - $old-offset;
-        %parts<second> = $!second >= 60 ?? $!second !! $a % 60;
-        my Int $b = $!minute + floor($a) div 60;
-        %parts<minute> = $b % 60;
-        my Int $c = $!hour + $b div 60;
-        %parts<hour> = $c % 24;
-
-        # Let Dateish handle any further rollover.
-        self!ymd-from-daycount(self.daycount + $c div 24,
-          %parts<year>,%parts<month>,%parts<day>) if $c div 24;
-        self!clone-without-validating: :$timezone, |%parts;
+            # Let Dateish handle any further rollover.
+            self!ymd-from-daycount(self.daycount + $c div 24,
+              %parts<year>,%parts<month>,%parts<day>) if $c div 24;
+            self!clone-without-validating: :$timezone, |%parts;
+        }
     }
 
     method utc(  DateTime:D: --> DateTime:D) {

@@ -508,7 +508,7 @@ my class DateTime does Dateish {
         return self if $timezone == $!timezone;
 
         my int $old-offset = self.offset;
-        my int $new-offset = $timezone.Int;
+        my int $new-offset = $timezone;
         my %parts;
         # Is the logic for handling leap seconds right?
         # I don't know, but it passes the tests!

@@ -54,45 +54,16 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         my &coercer = &val;
         if %sub-main-opts<coerce-allomorphs-to>:exists {
             my $type := %sub-main-opts<coerce-allomorphs-to><>;
-            if $type =:= Numeric {
+            if   $type =:= Numeric
+              || $type =:= Int
+              || $type =:= Rat
+              || $type =:= Num
+              || $type =:= Complex
+              || $type =:= Str {
+                my $method := $type.^name;
                 &coercer = -> \value {
                     (my \result := val(value)) ~~ Allomorph
-                      ?? result.Numeric
-                      !! result
-                }
-            }
-            elsif $type =:= Int {
-                &coercer = -> \value {
-                    (my \result := val(value)) ~~ Allomorph
-                      ?? result.Int
-                      !! result
-                }
-            }
-            elsif $type =:= Rat {
-                &coercer = -> \value {
-                    (my \result := val(value)) ~~ Allomorph
-                      ?? result.Rat
-                      !! result
-                }
-            }
-            elsif $type =:= Num {
-                &coercer = -> \value {
-                    (my \result := val(value)) ~~ Allomorph
-                      ?? result.Num
-                      !! result
-                }
-            }
-            elsif $type =:= Complex {
-                &coercer = -> \value {
-                    (my \result := val(value)) ~~ Allomorph
-                      ?? result.Complex
-                      !! result
-                }
-            }
-            elsif $type =:= Str {
-                &coercer = -> \value {
-                    (my \result := val(value)) ~~ Allomorph
-                      ?? result.Str
+                      ?? result."$method"()
                       !! result
                 }
             }

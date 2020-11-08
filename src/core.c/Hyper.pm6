@@ -45,10 +45,10 @@ class Hyper {
             !! self!pair-mu(left,right)
           !! nqp::istype(right,Pair)
             ?? self!mu-pair(left,right)
-            !! nqp::eqaddr(left.keyof,Str(Any))
-              && nqp::eqaddr(right.keyof,Str(Any))
-              ?? self!str-associatives(left,right)
-              !! self!obj-associatives(left,right)
+            !! nqp::istype(left,ObjectHash)
+              || nqp::istype(right,ObjectHash)
+              ?? self!obj-associatives(left,right)
+              !! self!str-associatives(left,right)
     }
 
     # %x >>op<< ...

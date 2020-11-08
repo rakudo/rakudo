@@ -350,15 +350,7 @@ my class Rakudo::QuantHash {
             (my $iter :=
               nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
-              nqp::eqaddr(map.keyof,Str(Any)),
-              nqp::while(                        # normal Map
-                $iter,
-                nqp::if(
-                  nqp::iterval(nqp::shift($iter)),
-                  nqp::bindkey(
-                    elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
-                )
-              ),
+              nqp::istype(map,ObjectHash),
               nqp::while(                        # object hash
                 $iter,
                 nqp::if(
@@ -372,6 +364,14 @@ my class Rakudo::QuantHash {
                     nqp::iterkey_s($iter),
                     nqp::getattr(nqp::iterval($iter),Pair,'$!key')
                   )
+                )
+              ),
+              nqp::while(                        # normal Map
+                $iter,
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter)),
+                  nqp::bindkey(
+                    elems,nqp::iterkey_s($iter).WHICH,nqp::iterkey_s($iter))
                 )
               )
             )
@@ -412,19 +412,19 @@ my class Rakudo::QuantHash {
             (my $iter :=
               nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
-              nqp::eqaddr(map.keyof,Str(Any)),
-              nqp::while(                     # normal Map
-                $iter && nqp::elems($elems),
-                nqp::if(
-                  nqp::iterval(nqp::shift($iter)),
-                  nqp::deletekey($elems,nqp::iterkey_s($iter).WHICH)
-                )
-              ),
+              nqp::istype(map,ObjectHash),
               nqp::while(                     # object hash
                 $iter && nqp::elems($elems),
                 nqp::if(
                   nqp::getattr(nqp::iterval(nqp::shift($iter)),Pair,'$!value'),
                   nqp::deletekey($elems,nqp::iterkey_s($iter))
+                )
+              ),
+              nqp::while(                     # normal Map
+                $iter && nqp::elems($elems),
+                nqp::if(
+                  nqp::iterval(nqp::shift($iter)),
+                  nqp::deletekey($elems,nqp::iterkey_s($iter).WHICH)
                 )
               )
             )
@@ -649,45 +649,12 @@ my class Rakudo::QuantHash {
             (my $iter :=
               nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
-              nqp::eqaddr(map.keyof,Str(Any)),
-              nqp::while(              # ordinary Map
-                $iter,
-                nqp::if(
-                  nqp::istype(
-                    (my $value := nqp::iterval(nqp::shift($iter)).Int),
-                    Int
-                  ),
-                  nqp::if(             # a valid Int
-                    $value > 0,
-                    nqp::if(           # and a positive one at that
-                      nqp::existskey(
-                        elems,
-                        (my $which := nqp::iterkey_s($iter).WHICH)
-                      ),
-                      nqp::stmts(      # seen before, add value
-                        (my $pair := nqp::atkey(elems,$which)),
-                        nqp::bindattr(
-                          $pair,
-                          Pair,
-                          '$!value',
-                          nqp::getattr($pair,Pair,'$!value') + $value
-                        )
-                      ),
-                      nqp::bindkey(    # new, create new Pair
-                        elems,
-                        $which,
-                        Pair.new(nqp::iterkey_s($iter),$value)
-                      )
-                    )
-                  ),
-                  $value.throw         # huh?  let the world know
-                )
-              ),
+              nqp::istype(map,ObjectHash),
               nqp::while(              # object hash
                 $iter,
                 nqp::if(
                   nqp::istype(
-                    ($value := nqp::getattr(
+                    (my $value := nqp::getattr(
                       nqp::iterval(nqp::shift($iter)),Pair,'$!value'
                     ).Int),
                     Int
@@ -697,7 +664,7 @@ my class Rakudo::QuantHash {
                     nqp::if(           # and a positive one at that
                       nqp::existskey(elems,nqp::iterkey_s($iter)),
                       nqp::stmts(      # seen before, add value
-                        ($pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                        (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
                         nqp::bindattr(
                           $pair,
                           Pair,
@@ -719,6 +686,39 @@ my class Rakudo::QuantHash {
                   ),
                   $value.throw         # huh?  let the world know
                 )
+              ),
+              nqp::while(              # ordinary Map
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::iterval(nqp::shift($iter)).Int),
+                    Int
+                  ),
+                  nqp::if(             # a valid Int
+                    $value > 0,
+                    nqp::if(           # and a positive one at that
+                      nqp::existskey(
+                        elems,
+                        (my $which := nqp::iterkey_s($iter).WHICH)
+                      ),
+                      nqp::stmts(      # seen before, add value
+                        ($pair := nqp::atkey(elems,$which)),
+                        nqp::bindattr(
+                          $pair,
+                          Pair,
+                          '$!value',
+                          nqp::getattr($pair,Pair,'$!value') + $value
+                        )
+                      ),
+                      nqp::bindkey(    # new, create new Pair
+                        elems,
+                        $which,
+                        Pair.new(nqp::iterkey_s($iter),$value)
+                      )
+                    )
+                  ),
+                  $value.throw         # huh?  let the world know
+                )
               )
             )
           ),
@@ -732,40 +732,18 @@ my class Rakudo::QuantHash {
           (my $iter :=
             nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
           nqp::if(                   # something to coerce
-            nqp::eqaddr(map.keyof,Str(Any)),
-            nqp::stmts(              # ordinary Map
-              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-              nqp::while(
-                $iter,
-                nqp::if(
-                  nqp::istype(
-                    (my $value := nqp::iterval(nqp::shift($iter)).Int),
-                    Int
-                  ),
-                  nqp::if(           # a valid Int
-                    $value > 0,
-                    nqp::bindkey(    # and a positive one at that
-                      $elems,
-                      nqp::iterkey_s($iter).WHICH,
-                      Pair.new(nqp::iterkey_s($iter),$value)
-                    )
-                  ),
-                  $value.throw       # huh?  let the world know
-                )
-              ),
-              $elems
-            ),
+            nqp::istype(map,ObjectHash),
             nqp::stmts(              # object hash
               # once object hashes have IterationSets inside them, we can
               # make this an nqp::clone for more performance, which would
               # pre-populate the IterationSet with the right keys off the
               # bat.
-              ($elems := nqp::create(Rakudo::Internals::IterationSet)),
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
               nqp::while(
                 $iter,
                 nqp::if(
                   nqp::istype(
-                    ($value := nqp::getattr(
+                    (my $value := nqp::getattr(
                       nqp::iterval(nqp::shift($iter)),Pair,'$!value'
                     ).Int),
                     Int
@@ -781,6 +759,28 @@ my class Rakudo::QuantHash {
                         '$!value',
                         $value
                       )
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
+              ),
+              $elems
+            ),
+            nqp::stmts(              # ordinary Map
+              ($elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::iterval(nqp::shift($iter)).Int),
+                    Int
+                  ),
+                  nqp::if(           # a valid Int
+                    $value > 0,
+                    nqp::bindkey(    # and a positive one at that
+                      $elems,
+                      nqp::iterkey_s($iter).WHICH,
+                      Pair.new(nqp::iterkey_s($iter),$value)
                     )
                   ),
                   $value.throw       # huh?  let the world know
@@ -1149,45 +1149,12 @@ my class Rakudo::QuantHash {
             (my $iter :=
               nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
-              nqp::eqaddr(map.keyof,Str(Any)),
-              nqp::while(              # normal Map
-                $iter,
-                nqp::if(
-                  nqp::istype(
-                    (my $value := nqp::iterval(nqp::shift($iter)).Real),
-                    Real
-                  ),
-                  nqp::if(             # a valid Real
-                    $value,
-                    nqp::if(           # and not 0
-                      nqp::existskey(
-                        elems,
-                        (my $which := nqp::iterkey_s($iter).WHICH)
-                      ),
-                      nqp::if(         # seen before: add value, remove if sum 0
-                        ($value := nqp::getattr(
-                          (my $pair := nqp::atkey(elems,$which)),
-                          Pair,
-                          '$!value'
-                        ) + $value),
-                        nqp::bindattr($pair,Pair,'$!value',$value), # okidoki
-                        nqp::deletekey(elems,$which)                # alas, bye
-                      ),
-                      nqp::bindkey(    # new, create new Pair
-                        elems,
-                        $which,
-                        Pair.new(nqp::iterkey_s($iter),$value)
-                      )
-                    )
-                  ),
-                  $value.throw         # huh?  let the world know
-                )
-              ),
+              nqp::istype(map,ObjectHash),
               nqp::while(              # object hash
                 $iter,
                 nqp::if(
                   nqp::istype(
-                    ($value := nqp::getattr(
+                    (my $value := nqp::getattr(
                       nqp::iterval(nqp::shift($iter)),Pair,'$!value'
                     ).Real),
                     Real
@@ -1198,7 +1165,7 @@ my class Rakudo::QuantHash {
                       nqp::existskey(elems,nqp::iterkey_s($iter)),
                       nqp::if(         # seen before: add value, remove if sum 0
                         ($value := nqp::getattr(
-                          ($pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
+                          (my $pair := nqp::atkey(elems,nqp::iterkey_s($iter))),
                           Pair,
                           '$!value'
                         ) + $value),
@@ -1214,6 +1181,39 @@ my class Rakudo::QuantHash {
                           '$!value',
                           nqp::getattr(nqp::iterval($iter),Pair,'$!value')
                         )
+                      )
+                    )
+                  ),
+                  $value.throw         # huh?  let the world know
+                )
+              ),
+              nqp::while(              # normal Map
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::iterval(nqp::shift($iter)).Real),
+                    Real
+                  ),
+                  nqp::if(             # a valid Real
+                    $value,
+                    nqp::if(           # and not 0
+                      nqp::existskey(
+                        elems,
+                        (my $which := nqp::iterkey_s($iter).WHICH)
+                      ),
+                      nqp::if(         # seen before: add value, remove if sum 0
+                        ($value := nqp::getattr(
+                          ($pair := nqp::atkey(elems,$which)),
+                          Pair,
+                          '$!value'
+                        ) + $value),
+                        nqp::bindattr($pair,Pair,'$!value',$value), # okidoki
+                        nqp::deletekey(elems,$which)                # alas, bye
+                      ),
+                      nqp::bindkey(    # new, create new Pair
+                        elems,
+                        $which,
+                        Pair.new(nqp::iterkey_s($iter),$value)
                       )
                     )
                   ),
@@ -1381,40 +1381,18 @@ my class Rakudo::QuantHash {
           (my $iter :=
             nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
           nqp::if(                   # something to coerce
-            nqp::eqaddr(map.keyof,Str(Any)),
-            nqp::stmts(              # ordinary Map
-              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
-              nqp::while(
-                $iter,
-                nqp::if(
-                  nqp::istype(
-                    (my $value := nqp::iterval(nqp::shift($iter)).Real),
-                    Real
-                  ),
-                  nqp::if(           # a valid Real
-                    $value,
-                    nqp::bindkey(    # and not 0
-                      $elems,
-                      nqp::iterkey_s($iter).WHICH,
-                      Pair.new(nqp::iterkey_s($iter),$value)
-                    )
-                  ),
-                  $value.throw       # huh?  let the world know
-                )
-              ),
-              $elems
-            ),
+            nqp::istype(map,ObjectHash),
             nqp::stmts(              # object hash
               # once object hashes have IterationSets inside them, we can
               # make this an nqp::clone for more performance, which would
               # pre-populate the IterationSet with the right keys off the
               # bat.
-              ($elems := nqp::create(Rakudo::Internals::IterationSet)),
+              (my $elems := nqp::create(Rakudo::Internals::IterationSet)),
               nqp::while(
                 $iter,
                 nqp::if(
                   nqp::istype(
-                    ($value := nqp::getattr(
+                    (my $value := nqp::getattr(
                       nqp::iterval(nqp::shift($iter)),Pair,'$!value'
                     ).Real),
                     Real
@@ -1430,6 +1408,28 @@ my class Rakudo::QuantHash {
                         '$!value',
                         $value
                       )
+                    )
+                  ),
+                  $value.throw       # huh?  let the world know
+                )
+              ),
+              $elems
+            ),
+            nqp::stmts(              # ordinary Map
+              ($elems := nqp::create(Rakudo::Internals::IterationSet)),
+              nqp::while(
+                $iter,
+                nqp::if(
+                  nqp::istype(
+                    ($value := nqp::iterval(nqp::shift($iter)).Real),
+                    Real
+                  ),
+                  nqp::if(           # a valid Real
+                    $value,
+                    nqp::bindkey(    # and not 0
+                      $elems,
+                      nqp::iterkey_s($iter).WHICH,
+                      Pair.new(nqp::iterkey_s($iter),$value)
                     )
                   ),
                   $value.throw       # huh?  let the world know

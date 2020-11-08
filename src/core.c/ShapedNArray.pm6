@@ -12,7 +12,7 @@
     }
     multi sub set-shape(\base, List:D \shape) is raw {
         my int $dims = shape.elems;  # reifies
-        my $reified := nqp::getattr(shape,List,'$!reified');
+        my $reified := nqp::getattr(nqp::decont(shape),List,'$!reified');
 
         # just a list with Whatever, so no shape
         if nqp::iseq_i($dims,1)

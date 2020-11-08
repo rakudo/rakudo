@@ -209,7 +209,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     # introspection
-    method keyof() { Str(Any) }  # overridden by TypedHash
+    method keyof() { Str(Any) }  # overridden by TypedHash/ObjectHash
 
     method of(Hash:D:)      { $!descriptor.of }
     method name(Hash:D:)    { $!descriptor.name }
@@ -455,7 +455,7 @@ my class Hash { # declared in BOOTSTRAP
             })
         }
     }
-    my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
+    my role ObjectHash[::TValue, ::TKey] does Associative[TValue] {
 
         # make sure we get the right descriptor
         multi method new(::?CLASS:) {
@@ -742,24 +742,39 @@ my class Hash { # declared in BOOTSTRAP
         method Map() { self.pairs.Map }
     }
 
-    method ^parameterize(Mu:U \hash, Mu \t, |c) {
-        if nqp::isconcrete(t) {
-            "Can not parameterize {hash.^name} with {t.raku}"
+    method ^parameterize(Mu:U \hash, Mu \of, Mu \keyof = Str(Any)) {
+
+        # fast path
+        if nqp::eqaddr(of,Mu) && nqp::eqaddr(keyof,Str(Any)) {
+            hash
         }
-        elsif c.elems == 0 {
-            my $what := hash.^mixin(TypedHash[t]);
-            # needs to be done in COMPOSE phaser when that works
-            $what.^set_name("{hash.^name}[{t.^name}]");
+
+        # error checking
+        elsif nqp::isconcrete(of) {
+            "Can not parameterize {hash.^name} with {of.raku}"
+        }
+
+        # only constraint on type
+        elsif nqp::eqaddr(keyof,Str(Any)) {
+            my $what := hash.^mixin(TypedHash[of]);
+             # needs to be done in COMPOSE phaser when that works
+            $what.^set_name:
+              hash.^name ~ '[' ~ of.^name ~ ']';
             $what
         }
-        elsif c.elems == 1 {
-            my $what := hash.^mixin(TypedHash[t, c[0].WHAT]);
-            # needs to be done in COMPOSE phaser when that works
-            $what.^set_name("{hash.^name}[{t.^name},{c[0].^name}]");
-            $what
+
+        # error checking
+        elsif nqp::isconcrete(keyof) {
+            "Can not parameterize {hash.^name} with {keyof.raku}"
         }
+
+        # a true object hash
         else {
-            "Can only type-constrain Hash with [ValueType] or [ValueType,KeyType]"
+            my $what := hash.^mixin(ObjectHash[of, keyof]);
+            # needs to be done in COMPOSE phaser when that works
+            $what.^set_name:
+              hash.^name ~ '[' ~ of.^name ~ ',' ~ keyof.^name ~ ']';
+            $what
         }
     }
 }

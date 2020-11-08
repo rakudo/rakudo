@@ -5,6 +5,15 @@ my class X::Subscript::Negative { ... };
 my class X::NotEnoughDimensions { ... };
 my class X::Assignment::ArrayShapeMismatch { ... };
 
+# These roles need stubbing for some reason, otherwise they will cause
+# "Object does not exist in serialization context" error when trying to
+# create something inside the Array class, like the Array::Agnostic role
+# does, which happened after ee089234fc and 532b5423f0.
+our role Array::ShapedArray  { ... }
+our role Array::Shaped1Array { ... }
+our role Array::Shaped2Array { ... }
+our role Array::Shaped3Array { ... }
+
 # stub what we need now
 my class array is repr('VMArray') { ... };
 

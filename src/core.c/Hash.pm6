@@ -209,7 +209,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     # introspection
-    method keyof() { Str(Any) }  # overridden by TypedHash/ObjectHash
+    method keyof() { Str(Any) }  # overridden by Hash::Object
 
     method of(Hash:D:)      { $!descriptor.of }
     method name(Hash:D:)    { $!descriptor.name }
@@ -425,7 +425,7 @@ my class Hash { # declared in BOOTSTRAP
 
         # only constraint on type
         elsif nqp::eqaddr(keyof,Str(Any)) {
-            my $what := hash.^mixin(TypedHash[of]);
+            my $what := hash.^mixin(Hash::Typed[of]);
              # needs to be done in COMPOSE phaser when that works
             $what.^set_name:
               hash.^name ~ '[' ~ of.^name ~ ']';
@@ -439,7 +439,7 @@ my class Hash { # declared in BOOTSTRAP
 
         # a true object hash
         else {
-            my $what := hash.^mixin(ObjectHash[of, keyof]);
+            my $what := hash.^mixin(Hash::Object[of, keyof]);
             # needs to be done in COMPOSE phaser when that works
             $what.^set_name:
               hash.^name ~ '[' ~ of.^name ~ ',' ~ keyof.^name ~ ']';

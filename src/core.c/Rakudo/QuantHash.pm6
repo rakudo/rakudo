@@ -350,7 +350,7 @@ my class Rakudo::QuantHash {
             (my $iter :=
               nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
-              nqp::istype(map,ObjectHash),
+              nqp::istype(map,Hash::Object),
               nqp::while(                        # object hash
                 $iter,
                 nqp::if(
@@ -412,7 +412,7 @@ my class Rakudo::QuantHash {
             (my $iter :=
               nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
-              nqp::istype(map,ObjectHash),
+              nqp::istype(map,Hash::Object),
               nqp::while(                     # object hash
                 $iter && nqp::elems($elems),
                 nqp::if(
@@ -649,7 +649,7 @@ my class Rakudo::QuantHash {
             (my $iter :=
               nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
-              nqp::istype(map,ObjectHash),
+              nqp::istype(map,Hash::Object),
               nqp::while(              # object hash
                 $iter,
                 nqp::if(
@@ -732,7 +732,7 @@ my class Rakudo::QuantHash {
           (my $iter :=
             nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
           nqp::if(                   # something to coerce
-            nqp::istype(map,ObjectHash),
+            nqp::istype(map,Hash::Object),
             nqp::stmts(              # object hash
               # once object hashes have IterationSets inside them, we can
               # make this an nqp::clone for more performance, which would
@@ -1149,7 +1149,7 @@ my class Rakudo::QuantHash {
             (my $iter :=
               nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
             nqp::if(
-              nqp::istype(map,ObjectHash),
+              nqp::istype(map,Hash::Object),
               nqp::while(              # object hash
                 $iter,
                 nqp::if(
@@ -1381,7 +1381,7 @@ my class Rakudo::QuantHash {
           (my $iter :=
             nqp::iterator(nqp::getattr(nqp::decont(map),Map,'$!storage'))),
           nqp::if(                   # something to coerce
-            nqp::istype(map,ObjectHash),
+            nqp::istype(map,Hash::Object),
             nqp::stmts(              # object hash
               # once object hashes have IterationSets inside them, we can
               # make this an nqp::clone for more performance, which would

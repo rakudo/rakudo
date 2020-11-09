@@ -12,7 +12,7 @@ multi sub infix:<(elem)>(Str:D \a, Map:D \b --> Bool:D) {
         nqp::istrue(
             nqp::elems(my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage'))
               && nqp::if(
-                   nqp::istype(b,ObjectHash),
+                   nqp::istype(b,Hash::Object),
                    nqp::getattr(                                # object hash
                      nqp::ifnull(
                        nqp::atkey(storage,a.WHICH),
@@ -32,7 +32,7 @@ multi sub infix:<(elem)>(Any \a, Map:D \b --> Bool:D) {
         nqp::istrue(
             nqp::elems(                                       # haz a haystack
               my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage')
-            ) && nqp::istype(b,ObjectHash)
+            ) && nqp::istype(b,Hash::Object)
               && nqp::getattr(
                    nqp::ifnull(
                      nqp::atkey(storage,a.WHICH),             # exists

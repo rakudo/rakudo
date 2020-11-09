@@ -34,8 +34,8 @@ my role Associative { ... }
 my role Callable { ... }
 my role Iterable { ... }
 my role PositionalBindFailover { ... }
-my role TypedHash { ... }
-my role ObjectHash { ... }
+my role Hash::Typed { ... }
+my role Hash::Object { ... }
 
 # Make Iterable available for the code-gen.
 BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);

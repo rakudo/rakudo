@@ -171,7 +171,7 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
           nqp::iterator(nqp::getattr(nqp::decont(b),Map,'$!storage'))),
         nqp::stmts(
           nqp::if(                                # both have elems
-            nqp::istype(b,ObjectHash),
+            nqp::istype(b,Hash::Object),
             nqp::while(                           # object hash
               iter,
               nqp::if(

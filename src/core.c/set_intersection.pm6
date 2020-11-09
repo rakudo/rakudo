@@ -80,7 +80,7 @@ multi sub infix:<(&)>(Any:D \a, Mixy:D \b) {
 
 multi sub infix:<(&)>(Map:D \a, Map:D \b) {
     nqp::if(
-      nqp::istype(a,ObjectHash) || nqp::istype(b,ObjectHash),
+      nqp::istype(a,Hash::Object) || nqp::istype(b,Hash::Object),
       (a.Set (&) b.Set),                     # either is object hash, coerce!
       nqp::if(                               # both ordinary Str hashes
         nqp::elems(

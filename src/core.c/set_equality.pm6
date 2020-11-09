@@ -68,7 +68,7 @@ multi sub infix:<<(==)>>(Map:D \a, Map:D \b --> Bool:D) {
         ),
         (return False),               # different number of elements
         nqp::if(                      # same size
-          nqp::istype(a,ObjectHash) || nqp::istype(b,ObjectHash),
+          nqp::istype(a,Hash::Object) || nqp::istype(b,Hash::Object),
           (return a.Set (==) b.Set),  # either is objectHash, so coerce
           nqp::stmts(                 # both are normal Maps
             (my \iter := nqp::iterator(araw)),
@@ -101,7 +101,7 @@ multi sub infix:<<(==)>>(Iterable:D \a, Map:D \b --> Bool:D) {
     my $key;
     my $seen := nqp::hash;
     nqp::if(
-      nqp::istype(b,ObjectHash),
+      nqp::istype(b,Hash::Object),
       nqp::until(                         # object hash
         nqp::eqaddr((my \object := iterator.pull-one),IterationEnd),
         nqp::if(

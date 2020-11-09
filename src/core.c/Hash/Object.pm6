@@ -1,4 +1,4 @@
-my role ObjectHash[::TValue, ::TKey] does Associative[TValue] {
+my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
 
     # make sure we get the right descriptor
     multi method new(::?CLASS:) {

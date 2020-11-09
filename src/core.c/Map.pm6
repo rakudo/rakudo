@@ -379,12 +379,12 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     # Copy the contents of a Mappy thing that's not in a container.
     method !STORE_MAP_DECONT(\map --> Map:D) {
-        nqp::istype(map,ObjectHash)
+        nqp::istype(map,Hash::Object)
           ?? self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
           !! self!STORE_MAP_FROM_MAP_DECONT(map)
     }
     method !STORE_MAP(\map --> Map:D) {
-        nqp::istype(map,ObjectHash)
+        nqp::istype(map,Hash::Object)
           ?? self!STORE_MAP_FROM_OBJECT_HASH(map)
           !! self!STORE_MAP_FROM_MAP(map)
     }
@@ -458,7 +458,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     proto method STORE(Map:D: |) {*}
     multi method STORE(Map:D: Map:D \map, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
         nqp::if(
-          nqp::istype(map,ObjectHash),
+          nqp::istype(map,Hash::Object),
           self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map),
           nqp::if(
             nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
@@ -473,7 +473,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
     multi method STORE(Map:D: Map:D \map, :INITIALIZE($)! --> Map:D) {
         nqp::if(
-          nqp::istype(map,ObjectHash),
+          nqp::istype(map,Hash::Object),
           self!STORE_MAP_FROM_OBJECT_HASH(map),
           nqp::if(
             nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),

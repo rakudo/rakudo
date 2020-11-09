@@ -1,4 +1,4 @@
-my role TypedHash[::TValue] does Associative[TValue] {
+my role Hash::Typed[::TValue] does Associative[TValue] {
 
     # make sure we get the right descriptor
     multi method new(::?CLASS:) {

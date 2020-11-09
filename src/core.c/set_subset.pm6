@@ -91,7 +91,7 @@ multi sub infix:<<(<=)>>(Map:D \a, Map:D \b --> Bool:D) {
       nqp::if(                    # A and B are different
         nqp::elems(my \araw := nqp::getattr(nqp::decont(a),Map,'$!storage')),
         nqp::if(                  # something in A
-          nqp::istype(a,ObjectHash) || nqp::istype(b,ObjectHash),
+          nqp::istype(a,Hash::Object) || nqp::istype(b,Hash::Object),
           (a.Set (<=) b.Set),     # either is objectHash, so coerce
           nqp::if(                # both are normal Maps
             (my \iter := nqp::iterator(araw))
@@ -132,7 +132,7 @@ multi sub infix:<<(<=)>>(Iterable:D \a, Map:D \b --> Bool:D) {
     my \iterator := a.iterator;
     my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage');
 
-    if nqp::istype(b,ObjectHash) {
+    if nqp::istype(b,Hash::Object) {
         nqp::until(
           nqp::eqaddr((my \object := iterator.pull-one),IterationEnd),
           nqp::unless(

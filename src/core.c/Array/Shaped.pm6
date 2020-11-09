@@ -1,4 +1,6 @@
+# for our tantrums
 my class X::Assignment::ArrayShapeMismatch { ... };
+my class X::NotEnoughDimensions { ... };
 
 # stub what we need now
 my class array is repr('VMArray') { ... };

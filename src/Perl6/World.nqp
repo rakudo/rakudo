@@ -2256,9 +2256,6 @@ class Perl6::World is HLL::World {
             $flags := $flags + $SIG_ELEM_TYPE_GENERIC;
         }
         if %param_info<type_coercive> {
-            if nqp::getenvhash<RAKUDO_DEBUG> {
-                nqp::say("??? ... adding " ~ $SIG_ELEM_IS_COERCIVE ~ " (is coercive) flag, name: " ~ (%param_info<variable_name> // '*WTF?*'));
-            }
             $flags := $flags + $SIG_ELEM_IS_COERCIVE;
         }
         if %param_info<default_is_literal> {
@@ -2281,9 +2278,6 @@ class Perl6::World is HLL::World {
         }
         nqp::bindattr($parameter, $par_type, '$!type', %param_info<type>);
         nqp::bindattr_i($parameter, $par_type, '$!flags', $flags);
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            nqp::say("??? ... flags " ~ nqp::sprintf('%08x', [$flags // -1]));
-        }
         if %param_info<named_names> {
             nqp::bindattr($parameter, $par_type, '@!named_names', %param_info<named_names>);
         }
@@ -2366,16 +2360,9 @@ class Perl6::World is HLL::World {
         my @param_objs;
         my %seen_names;
         for @params {
-            if nqp::getenvhash<RAKUDO_DEBUG> {
-                nqp::say("??? Param " ~ ($_<variable_name> // '*unnamed*'));
-            }
             # Set default nominal type, if we lack one.
             unless nqp::existskey($_, 'type') {
                 $_<type> := $default_type;
-            }
-
-            if nqp::getenvhash<RAKUDO_DEBUG> {
-                nqp::say("??? ... type " ~ $_<type>.HOW.name($_<type>) ~ ", coercive: " ~ ($_<type_coercive> ?? "YES" !! "NO"));
             }
 
             # Default to rw if needed.

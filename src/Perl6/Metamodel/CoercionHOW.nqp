@@ -179,7 +179,8 @@ class Perl6::Metamodel::CoercionHOW
                 # then this is gonna result in an exception one way or another.
                 my $exception;
                 try {
-                    $coerced_value := $method($obj, $value);
+                    my $*COERCION-TYPE := $obj; # Provide context information to the method 'new'
+                    $coerced_value := $method($!nominal_target, $value);
                     CATCH {
                         my $exception_obj := nqp::getpayload($!);
 

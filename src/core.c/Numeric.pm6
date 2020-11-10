@@ -5,7 +5,8 @@ my role Numeric {
     multi method Numeric(Numeric:D:) { self }
     multi method Numeric(Numeric:U:) {
         self.Mu::Numeric; # issue a warning
-        self.new
+        # We need to be specific about coercions to make `Numeric() == 0` working as specced.
+        (self.HOW.archetypes.coercive ?? self.^nominalize !! self).new
     }
 
     multi method ACCEPTS(Numeric:D: Any:D \a) {

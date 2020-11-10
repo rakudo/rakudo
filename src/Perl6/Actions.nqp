@@ -18,7 +18,7 @@ my int $?BITS := nqp::isgt_i(nqp::add_i(2147483648, 1), 0) ?? 64 !! 32;
 sub block_closure($code, :$regex) {
     my $clone := QAST::Op.new( :op('callmethod'), :name('clone'), $code );
     if $regex {
-        if $*W.lang-ver-before('d') {
+        if $*W.lang-rev-before('d') {
             my $marker := $*W.find_symbol(['Rakudo', 'Internals', 'RegexBoolification6cMarker']);
             $clone.push(QAST::WVal.new( :value($marker), :named('topic') ));
         }
@@ -1362,7 +1362,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
               QAST::WVal.new(:value($main<value>)),
               $mainline             # run the mainline and get its result
             );
-            unless $*W.lang-ver-before('d') {
+            unless $*W.lang-rev-before('d') {
                 $mainline.push(
                   QAST::WVal.new( # $*IN as $*ARGSFILES
                     value => $*W.find_symbol(['Bool','True'], :setting-only),
@@ -1553,7 +1553,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $ast := $statements[0].ast;
 
                 # an op and 6e or higher?
-                if nqp::istype($ast,QAST::Op) && !$*W.lang-ver-before("e") {
+                if nqp::istype($ast,QAST::Op) && !$*W.lang-rev-before("e") {
                     sub is-pipe-pipe($ast) {
                         nqp::istype($ast,QAST::Op)
                           && $ast.name eq '&prefix:<|>'
@@ -2546,7 +2546,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::WVal.new( :value($*W.find_single_symbol('Promise')) ),
             $<blorst>.ast
         );
-        unless $*W.lang-ver-before('d') {
+        unless $*W.lang-rev-before('d') {
             $qast.push(QAST::WVal.new(
                 :value($*W.find_symbol(['Bool', 'True'])),
                 :named('report-broken-if-sunk')
@@ -2902,7 +2902,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     method contextualizer($/) {
         my $past := $<coercee>.ast;
-        my $has_magic := $*W.lang-ver-before('d') && $<coercee> eq '';
+        my $has_magic := $*W.lang-rev-before('d') && $<coercee> eq '';
 
         if $has_magic && $<sigil> eq '$' { # for '$()'
             my $result_var := $past.unique('sm_result');
@@ -3969,7 +3969,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method routine_declarator:sym<submethod>($/) { make $<method_def>.ast; }
 
     sub decontrv_op() {
-        $*W.lang-ver-before('d') && nqp::getcomp('Raku').backend.name eq 'moar'
+        $*W.lang-rev-before('d') && nqp::getcomp('Raku').backend.name eq 'moar'
             ?? 'p6decontrv_6c'
             !! 'p6decontrv'
     }
@@ -5259,7 +5259,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         if $sigil eq '%' {
             nqp::defined($*OFTYPE) && $W.throw: $/, 'X::ParametricConstant';
-            $W.lang-ver-before('d')
+            $W.lang-rev-before('d')
               ?? check-type($W.find_symbol: ['Associative'])
               !! check-type-maybe-coerce('Map', $W.find_symbol: ['Associative'])
         }

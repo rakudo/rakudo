@@ -4588,7 +4588,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             self.typed_panic(
                 'X::Syntax::Extension::Category', :$category
             ) if nqp::iseq_s($subname, "$category:<$opname>")
-              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*W.lang-ver-before('d');
+              || nqp::iseq_s($subname, "$category:sym<$opname>") && $*W.lang-rev-before('d');
 
             self.typed_panic(
                 'X::Syntax::Reserved', :reserved(':sym<> colonpair')

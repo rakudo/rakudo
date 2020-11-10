@@ -522,9 +522,9 @@ class Perl6::World is HLL::World {
         @!CHECKs := [];
     }
 
-    method lang-ver-before(str $want) {
+    method lang-rev-before(str $want) {
         nqp::chars($want) == 1 || nqp::die(
-          'Version to $*W.lang-ver-before'
+          'Version to $*W.lang-rev-before'
             ~ " must be 1 char long ('c', 'd', etc). Got `$want`.");
         nqp::cmp_s(
           nqp::substr(nqp::getcomp('Raku').language_version, 2, 1),
@@ -1787,7 +1787,7 @@ class Perl6::World is HLL::World {
             elsif $prim == 2 {
                 $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
-                    $*W.lang-ver-before('d')
+                    $*W.lang-rev-before('d')
                       ?? QAST::Op.new(:op<nan>)
                       !! QAST::NVal.new(:value(0e0))
                 );
@@ -2053,21 +2053,21 @@ class Perl6::World is HLL::World {
     method maybe-definite-how-base($v) {
         # returns the value itself, unless it's a DefiniteHOW, in which case,
         # it returns its base type. Behaviour available in 6.d and later only.
-        ! $*W.lang-ver-before('d') && nqp::eqaddr($v.HOW,
-            $*W.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
+        ! self.lang-rev-before('d') && nqp::eqaddr($v.HOW,
+            self.find_symbol: ['Metamodel','DefiniteHOW'], :setting-only
         ) ?? $v.HOW.base_type: $v !! $v
     }
 
     method maybe-nominalize($v) {
         # If type does LanguageRevision then check what language it was created with. Otherwise base decision on the
         # current compiler.
-        if nqp::istype($v.HOW, $*W.find_symbol: ['Metamodel', 'LanguageRevision'])
-            ?? $v.HOW.lang-rev-before($v, 'e')
-            !! $*W.lang-ver-before('e')
-        {
-            return self.maybe-definite-how-base($v);
-        }
-        $v.HOW.archetypes.nominalizable ?? $v.HOW.nominalize($v) !! $v
+        my $v-how := $v.HOW;
+        !$v-how.archetypes.coercive
+        && (nqp::can($v-how, 'lang-rev-before') ?? $v-how.lang-rev-before($v, 'e') !! self.lang-rev-before('e'))
+            ?? self.maybe-definite-how-base($v)
+            !! ($v.HOW.archetypes.nominalizable
+                ?? $v.HOW.nominalize($v)
+                !! $v)
     }
 
     # Installs one of the magical lexicals ($_, $/ and $!). Uses a cache to
@@ -2092,7 +2092,7 @@ class Perl6::World is HLL::World {
                 'default_value',   $WHAT,
                 'scalar_value',    $WHAT,
             );
-            my $dynamic := $*W.lang-ver-before('d') || $name ne '$_';
+            my $dynamic := $*W.lang-rev-before('d') || $name ne '$_';
             my $desc := self.create_container_descriptor($Mu, $name, $WHAT, $dynamic);
 
             my $cont := self.build_container_and_add_to_sc(%info, $desc);

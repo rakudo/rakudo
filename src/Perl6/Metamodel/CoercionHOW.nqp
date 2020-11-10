@@ -98,9 +98,6 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method find_method($coercion_type, $name, *%c) {
-        if nqp::getenvhash<RAKUDO_DEBUG> {
-            say("&&& find_method on ", $coercion_type.HOW.name($coercion_type), " for ", $name);
-        }
         my $target_type := $coercion_type.HOW.target_type($coercion_type);
         $target_type.HOW.find_method($target_type, $name, |%c)
     }
@@ -119,31 +116,24 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method type_check($coercion_type, $checkee) {
-        say("??? type_check(", $coercion_type.HOW.name($coercion_type), " vs. ", $checkee.HOW.name($checkee), ")") if nqp::getenvhash<RAKUDO_DEBUG>;
         if $coercion_type =:= $checkee {
-            say("??? types are full match") if nqp::getenvhash<RAKUDO_DEBUG>;
             return 1;
         }
         my $target_type := $coercion_type.HOW.target_type($coercion_type);
         my $rc := $target_type.HOW.type_check($target_type, $checkee);
-        say("??? checks? ", $rc) if nqp::getenvhash<RAKUDO_DEBUG>;
         $rc
     }
 
     method accepts_type($coercion_type, $checkee) {
-        say("??? accepts_type(", $coercion_type.HOW.name($coercion_type), " vs. ", $checkee.HOW.name($checkee), ")") if nqp::getenvhash<RAKUDO_DEBUG>;
         my $target_type := $coercion_type.HOW.target_type($coercion_type);
         my $constraint_type := $coercion_type.HOW.constraint_type($coercion_type);
         my $rc := nqp::istype($checkee, $target_type) || nqp::istype($checkee, $constraint_type);
-        say("??? accepts? ", $rc) if nqp::getenvhash<RAKUDO_DEBUG>;
         $rc
     }
 
     # Coercion protocol method.
     method coerce($obj, $value) {
-        say("!!! coerce ", $value.HOW.name($value), " into ", $!target_type.HOW.name($!target_type)) if nqp::getenvhash<RAKUDO_DEBUG>;
         if nqp::istype($value, $!target_type) {
-            say("!!! ... coerce isn't needed") if nqp::getenvhash<RAKUDO_DEBUG>;
             return $value
         }
 
@@ -152,7 +142,6 @@ class Perl6::Metamodel::CoercionHOW
         my $coercion_method;
         my $method;
 
-        say("!!! ... try target type method first") if nqp::getenvhash<RAKUDO_DEBUG>;
         # First we try $value.TargetType() approach
         $coercion_method := $!nominal_target.HOW.name($!nominal_target);
         $method := nqp::tryfindmethod($value_type, $coercion_method);
@@ -162,9 +151,7 @@ class Perl6::Metamodel::CoercionHOW
 
         # Then try TargetType.COERCE($value).
         if nqp::isnull($coerced_value) {
-            say("!!! ... try COERCE") if nqp::getenvhash<RAKUDO_DEBUG>;
             $method := nqp::tryfindmethod($!nominal_target, $coercion_method := 'COERCE');
-            say("!!! ... got: ", $method.HOW.name($method)) if nqp::getenvhash<RAKUDO_DEBUG>;
             if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($!nominal_target, $value) {
                 $coerced_value := $method($!nominal_target, $value);
             }
@@ -195,9 +182,6 @@ class Perl6::Metamodel::CoercionHOW
             }
         }
 
-        say("!!! ... ... coerced into ", nqp::what(nqp::decont($coerced_value)).HOW.name(nqp::what(nqp::decont($coerced_value))), "; subtype of ",
-            $!target_type.HOW.name($!target_type), "? ", nqp::istype(nqp::decont($coerced_value), $!target_type)
-        ) if nqp::getenvhash<RAKUDO_DEBUG>;
         my $coerced_decont := nqp::decont($coerced_value);
         # Fail for either no coercion method found or wrong type returned, except for Failure kind of return which we
         # must bypass as it carries some useful information about another error.
@@ -205,7 +189,6 @@ class Perl6::Metamodel::CoercionHOW
             || !(nqp::istype($coerced_decont, $!target_type)
                 || nqp::istype($coerced_decont, nqp::gethllsym('Raku', 'Failure')))
         {
-            say("!!! ... failed") if nqp::getenvhash<RAKUDO_DEBUG>;
             my %ex := nqp::gethllsym('Raku', 'P6EX');
             my $target_type_name := $!target_type.HOW.name($!target_type);
             my $value_type_name := $value_type.HOW.name($value_type);

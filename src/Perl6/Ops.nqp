@@ -202,26 +202,6 @@ _register_op_with_nqp( 'p6getlexclient', -> $qast {
                 QAST::Var.new( :name($setting-only), :scope<local>, :decl<var> ),
                 (nqp::atpos($qast, 1) || QAST::IVal.new( :value(0) ))
             ),
-            # QAST::Op.new(
-            #     :op<if>,
-            #     QAST::Op.new(:op<atkey>, QAST::Op.new(:op<getenvhash>), QAST::SVal.new(:value<RAKUDO_DEBUG>)),
-            #     QAST::Op.new(
-            #         :op<say>,
-            #         QAST::Op.new(
-            #             :op<concat>,
-            #             QAST::SVal.new( value => "p6getlexclient: "),
-            #             QAST::Op.new(
-            #                 :op<concat>,
-            #                 $qast[0],
-            #                 QAST::Op.new(
-            #                     :op<concat>,
-            #                     QAST::SVal.new(:value<, >),
-            #                     $setting-only-var
-            #                 )
-            #             )
-            #         )
-            #     ),
-            # ),
             QAST::Op.new(
                 :op<if>,
                 QAST::Op.new(

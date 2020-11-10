@@ -32,13 +32,18 @@ my role Enumeration {
 
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }
 
-    proto method CALL-ME(|) {*}
-    multi method CALL-ME(|) {
+    method !FROM-VALUE(|) {
         my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);
         nqp::istype($x, ::?CLASS)
             ?? $x
             !! self.^enum_from_value($x)
     }
+
+    proto method CALL-ME(|) {*}
+    multi method CALL-ME(|c) { self!FROM-VALUE(|c) }
+
+    proto method COERCE(|) {*}
+    multi method COERCE(|c) { self!FROM-VALUE(|c) }
 
     method pred(::?CLASS:D:) {
         nqp::getattr_i(self,::?CLASS,'$!index')

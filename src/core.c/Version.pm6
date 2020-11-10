@@ -155,7 +155,7 @@ augment class Version {
         )
     }
 
-    multi method Str(Version:D:)  { $!string }
+    multi method Str(Version:D:)  { nqp::hllize($!string) }
     multi method gist(Version:D:) { nqp::concat("v",$!string) }
     multi method raku(Version:D:) {
         if nqp::chars($!string) {

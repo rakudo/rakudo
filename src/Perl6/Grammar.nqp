@@ -864,7 +864,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
           # we parse out the numeral, since we could have "6d"
           :my $version := nqp::radix(10,$<version><vnum>[0],0,0)[0];
           [
-          ||  <?{ $version == 6 }> { $*W.load-lang-ver: $<version>, $comp }
+          ||  <?{ $version == 6 || $version == 2015 || $version == 2018 || $version == 2021 }> { $*W.load-lang-ver: $<version>, $comp }
           ||  { $/.typed_panic: 'X::Language::Unsupported',
                   version => ~$<version> }
           ]

@@ -584,6 +584,27 @@ class Perl6::World is HLL::World {
         $*STRICT := 1 if $*begin_compunit;
 
         my str $version := ~$ver-match;
+        if $version eq 'v6.c' || $version eq 'v2015' {
+            $*CAN_LOWER_TOPIC := 0;
+            $!setting_name := 'CORE.c';
+            $comp.set_language_version: '6.c';
+            return;
+        }
+        elsif $version eq 'v6.d' || $version eq 'v6' || $version eq 'v2018' {
+            $!setting_name := 'CORE.d';
+            $comp.set_language_version: '6.d';
+            return;
+        }
+        elsif $version eq 'v6.e.PREVIEW' || $version eq 'v2021.PREVIEW' {
+            $!setting_name := 'CORE.e';
+            $comp.set_language_version: '6.e';
+            return;
+        }
+        elsif $version eq 'v2021' {
+            $ver-match.typed_panic: 'X::Language::ModRequired',
+              :$version, modifier => 'PREVIEW';
+        }
+
         my @vparts := nqp::split('.', $version);
         my $vWhatever := nqp::isge_i(nqp::index($version, '*'), 0);
         my $vPlus := nqp::isge_i(nqp::index($version, '+'), 0);

@@ -296,7 +296,6 @@ my class Binder {
                 # can happen in (::T, T) where we didn't learn about the type until
                 # during the signature bind).
                 if $flags +& $SIG_ELEM_TYPE_GENERIC {
-                    nqp::say("Instantiating " ~ $param_type.HOW.name($param_type) ~ " on " ~ $param.gist) if nqp::getenvhash<RAKUDO_DEBUG>;
                     $param_type := $param_type.HOW.instantiate_generic($param_type, $lexpad);
                 }
 

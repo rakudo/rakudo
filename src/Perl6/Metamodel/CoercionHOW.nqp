@@ -40,8 +40,6 @@ class Perl6::Metamodel::CoercionHOW
             return $coercion_type;
         }
         self.set_language_version($coercion_type, :force);
-        my $tt := $coercion_type.HOW.target_type($coercion_type);
-        my $ct := $coercion_type.HOW.constraint_type($coercion_type);
         nqp::settypecheckmode($coercion_type, 2);
         $!composed := 1;
         $coercion_type
@@ -86,7 +84,7 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method instantiate_generic($coercion_type, $type_env) {
-        return self unless self.archetypes.generic;
+        return $coercion_type unless $!archetypes.generic;
         my $ins_target :=
             $!target_type.HOW.archetypes.generic
                 ?? $!target_type.HOW.instantiate_generic($!target_type, $type_env)

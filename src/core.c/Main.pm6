@@ -288,7 +288,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     }
 
     sub find-candidates($capture) {
-        &main.^name eq 'Sub'
+        nqp::can(&main,'cando')
           ?? &main
                # Get a list of candidates that match according to the dispatcher
                .cando($capture)

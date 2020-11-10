@@ -877,13 +877,14 @@ my class X::Coerce is Exception {
     has str $.target-type;
     has str $.from-type;
     method message() {
-        "from " ~ $!from-type ~ " into " ~ $!target-type
+        "from '" ~ $!from-type ~ "' into '" ~ $!target-type ~ "'"
     }
 }
 
 my class X::Coerce::Impossible is X::Coerce {
+    has Str:D $.hint is required;
     method message() {
-        "Impossible coercion " ~ callsame
+        "Impossible coercion " ~ callsame() ~ ": " ~ $!hint
     }
 }
 
@@ -2970,8 +2971,8 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
       X::TypeCheck::Return.new(:$got, :$expected).throw;
   },
   'X::Coerce::Impossible',
-  -> str $target-type is raw, str $from-type is raw {
-      X::Coerce::Impossible.new(:$target-type, :$from-type).throw;
+  -> str $target-type is raw, str $from-type is raw, str $hint is raw {
+      X::Coerce::Impossible.new(:$target-type, :$from-type, :$hint).throw;
   },
   'X::Assignment::RO',
   -> $value is raw = "value" {

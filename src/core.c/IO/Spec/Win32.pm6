@@ -66,7 +66,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         $buffer.Seq
     }
 
-    method is-absolute ($path) {
+    method is-absolute ( Str() $path) {
         nqp::hllbool(
           nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
           || nqp::iseq_i($_, 47)                   # /^ ｢/｣ /

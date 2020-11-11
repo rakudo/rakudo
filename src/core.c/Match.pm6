@@ -29,6 +29,8 @@ my class Match is Capture is Cool does NQPMatchRole {
 
     method Int(--> Int:D) { self.Str.Int }
 
+    method Str { nqp::p6box_s(self.NQPMatchRole::Str) }
+
     method STR() is implementation-detail {
         nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH)
           ?? self.Str

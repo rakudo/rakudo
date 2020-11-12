@@ -37,7 +37,7 @@ my class Instant is Cool does Real {
         my ($posix,$flag) = self.to-posix;
         'Instant.from-posix(' ~ $posix.raku ~ ($flag ?? ',True)' !! ')')
     }
-    method Bridge(Instant:D:          ) { $!tai.Bridge }
+    method Bridge(Instant:   --> Num:D) { self.defined ?? $!tai.Bridge !! self.Real::Bridge }
     method Num   (Instant:D: --> Num:D) { $!tai.Num    }
     method Rat   (Instant:D: --> Rat:D) { $!tai        }
     method Int   (Instant:D: --> Int:D) { $!tai.Int    }

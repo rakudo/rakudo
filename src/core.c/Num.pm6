@@ -22,7 +22,7 @@ my class Num does Real { # declared in BOOTSTRAP
     multi method Bool(Num:D:) { nqp::hllbool(nqp::isne_n(self,0e0)) }
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
     method Num() { self }
-    method Bridge(Num:D:) { self }
+    method Bridge(Num:) { self.defined ?? self !! self.Real::Bridge }
     method Range(Num:U:) { Range.new(-Inf,Inf) }
 
     method Int(Num:D:) {

@@ -2758,6 +2758,11 @@ my class X::Numeric::Underflow is Exception {
     method message() { "Numeric underflow" }
 }
 
+my class X::Numeric::Uninitialized is Exception {
+    has Numeric $.type;
+    method message() { "Use of uninitialized value of type " ~ $!type.^name ~ " in numeric context" }
+}
+
 my class X::Numeric::Confused is Exception {
     has $.num;
     has $.base;

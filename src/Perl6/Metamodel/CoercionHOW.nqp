@@ -206,7 +206,7 @@ class Perl6::Metamodel::CoercionHOW
                 %ex<X::Coerce::Impossible>($target_type_name, $value_type_name, $hint)
             }
             nqp::die("Impossible coercion from " ~ $value_type.HOW.name($value_type_name)
-                        ~ " into " ~ $target_type_name) ~ ": " ~ $hint;
+                        ~ " into " ~ $target_type_name ~ ": " ~ $hint);
         }
 
         $coerced_value

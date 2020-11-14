@@ -2,6 +2,25 @@
 
 ## Windows
 
+### Rakudo build environment
+
+To build Rakudo on Windows you'll need Visual Studio.
+
+Select "Developer Command Prompt for VS" from the "Visual Studio" folder
+in the Start menu. At the prompt like
+
+```
+C:\Program Files (x86)\Microsoft Visual Studio\2019\Community>
+```
+
+enter `VC\Auxiliary\Build\vcvars64.bat` which should output:
+
+```
+[vcvarsall.bat] Environment initialized for: 'x64'
+```
+
+Now you're set to [build Rakudo](README.md#building-and-installing-rakudo).
+
 ### Spectest requirements
 
 You need a recent version of either Strawberry Perl or ActiveState Perl.

@@ -45,21 +45,11 @@ for $*IN.lines -> $line {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
     multi sub postcircumfix:<[ ]>(
-      array::shaped1#type#array \SELF, int \pos
-    ) is raw {
-        nqp::atposref_#postfix#(SELF,pos)
-    }
-    multi sub postcircumfix:<[ ]>(
       array::shaped1#type#array \SELF, Int:D \pos
     ) is raw {
         nqp::atposref_#postfix#(SELF,pos)
     }
 
-    multi sub postcircumfix:<[ ]>(
-      array::shaped1#type#array \SELF, int \pos, #Type#:D \assignee
-    ) is raw {
-        nqp::atposref_#postfix#(SELF,pos)
-    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1#type#array \SELF, Int:D \pos, #Type#:D \assignee
     ) is raw {

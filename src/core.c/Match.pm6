@@ -1,3 +1,13 @@
+my class X::MakeWithInvalidMatch is Exception {
+    has Mu:_ $.match is built(:bind) is required;
+
+    method message(::?CLASS:D: --> Str:D) {
+        "&make called with an invalid match in lexical variable \$\/ ({
+            Rakudo::Internals.SHORT-STRING: $!match, :method<raku>
+        }).{' Is there any in scope?' if $!match =:= Nil}"
+    }
+}
+
 my class Match is Capture is Cool does NQPMatchRole {
 # from NQPMatchRole
 #    has int $!from;  # start position of match
@@ -322,10 +332,11 @@ multi sub infix:<eqv>(Match:D \a, Match:D \b) {
     );
 }
 
-
 sub make(Mu \made) {
-    nqp::bindattr(nqp::decont(nqp::getlexcaller('$/')),Match,'$!made',made)
+    nqp::if(
+      nqp::istype((my Mu:_ $match := nqp::decont(nqp::getlexcaller('$/'))),NQPMatchRole),
+      nqp::bindattr($match,Match,'$!made',made),
+      X::MakeWithInvalidMatch.new(:$match).throw)
 }
-
 
 # vim: expandtab shiftwidth=4

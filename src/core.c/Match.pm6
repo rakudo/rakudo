@@ -4,7 +4,7 @@ my class X::MakeWithInvalidMatch is Exception {
     method message(::?CLASS:D: --> Str:D) {
         "&make called with an invalid match in lexical variable \$\/ ({
             Rakudo::Internals.SHORT-STRING: $!match, :method<raku>
-        }).{' Is there any in scope?' if $!match =:= Nil}"
+        })."
     }
 }
 

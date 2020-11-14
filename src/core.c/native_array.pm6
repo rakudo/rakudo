@@ -1,4 +1,5 @@
-my class X::MustBeParametric  { ... }
+my class X::Delete { ... }
+my class X::MustBeParametric { ... }
 my class X::TooManyDimensions { ... }
 my class X::TypeCheck::Assignment { ... }
 
@@ -1947,6 +1948,13 @@ my class array does Iterable {
     }
 
     role shapedarray does Rakudo::Internals::ShapedArrayCommon {
+        method BIND-POS(|) {
+            X::Bind.new(target => 'a natively typed shaped array').throw
+        }
+        method DELETE-POS(|) {
+            X::Delete.new(target => 'a natively typed shaped array').throw
+        }
+
         method shape() {
             my $idims := nqp::dimensions(self);
             my $odims := nqp::create(IterationBuffer);
@@ -3593,10 +3601,10 @@ my class array does Iterable {
     }
 
     method BIND-POS(|) {
-        die "Cannot bind to a natively typed array";
+        X::Bind.new(target => 'a natively typed array').throw
     }
     method DELETE-POS(|) {
-        die "Cannot delete from a natively typed array";
+        X::Delete.new(target => 'a natively typed array').throw
     }
 
     proto method ASSIGN-POS(|) {*} # Hide candidates from Any

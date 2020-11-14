@@ -1434,6 +1434,15 @@ my class X::Adverb is Exception {
     method nogo       { @!nogo.sort }
 }
 
+my class X::Delete is Exception {
+    has $.target;
+    method message() {
+        $.target.defined
+            ?? "Cannot delete from $.target"
+            !! 'Cannot delete from this left-hand side'
+    }
+}
+
 my class X::Bind is Exception {
     has $.target;
     method message() {

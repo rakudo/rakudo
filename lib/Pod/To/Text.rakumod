@@ -93,6 +93,9 @@ sub declarator2text($pod) {
         when Sub {
             'sub ' ~ $_.name ~ signature2text($_.signature.params, $_.returns)
         }
+        when Attribute {
+            'attribute ' ~ $_.gist
+        }
         when .HOW ~~ Metamodel::EnumHOW {
             "enum $_.raku() { signature2text $_.enums.pairs } \n"
         }

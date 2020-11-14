@@ -772,7 +772,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
          )
         )
     }
-    multi method Numeric(Str:D: --> Numeric:D) {
+    multi method Numeric(Str:D: Bool :$fail-or-nil --> Numeric:D) {
 #?if !jvm
         # check for any combining characters
         nqp::isne_i(nqp::chars(self),nqp::codes(self))
@@ -800,7 +800,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                  self,0,nqp::chars(self)
                ) == nqp::chars(self)
               ?? 0                                # just spaces
-              !! val(self, :val-or-fail)          # take the slow route
+              !! val(self, :val-or-fail, :$fail-or-nil)          # take the slow route
     }
 
     multi method gist(Str:D:) { self }

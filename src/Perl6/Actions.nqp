@@ -2339,16 +2339,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 die("Unknown QAST::Want type " ~ $sm_exp[2].HOW.name($sm_exp[2]));
             }
 
+            # Coercion method to call on the given value
+            my $method_call :=
+                QAST::Op.new( :op('callmethod'), :name($method),
+                  QAST::Var.new( :name('$_'), :scope('lexical') ) );
+
+            # We don't need/want `val()` to `fail()` if `Numeric()` ends up calling it
+            # and it doesn't succeed, that creates an expensive Backtrace that we just
+            # end up throwing away
+            if $method eq 'Numeric' {
+                my $fail-or-nil := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
+                $fail-or-nil.named('fail-or-nil');
+                $method_call.push($fail-or-nil);
+            }
+
             # Make sure we're not comparing against a type object, since those could
-            # coerce to the value
+            # coerce to the value, so gen the equivalent of
+            # `isconcrete($_) && iseq_*(<literal>, $_."$method")`
             my $is_eq :=
                 QAST::Op.new( :op('if'),
                   QAST::Op.new( :op('isconcrete' ),
                     QAST::Var.new( :name('$_'), :scope('lexical') ) ),
                   QAST::Op.new( :op("iseq_$op_type" ),
                     $sm_exp[2],
-                    WANTED(QAST::Op.new( :op('callmethod'), :name($method),
-                             QAST::Var.new( :name('$_'), :scope('lexical') ) ),'when') ) );
+                    WANTED($method_call,'when') ) );
 
             # Needed so we can `handle` the code below
             fatalize($is_eq);

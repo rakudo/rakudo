@@ -3714,15 +3714,25 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of shaped1strarray ------------------------
-#- Generated on 2020-11-14T13:44:21+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-11-14T13:22:35+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, int \pos
+    ) is raw {
+        nqp::atposref_s(SELF,pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1strarray \SELF, Int:D \pos
     ) is raw {
         nqp::atposref_s(SELF,pos)
     }
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, int \pos, Str:D \assignee
+    ) is raw {
+        nqp::atposref_s(SELF,pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1strarray \SELF, Int:D \pos, Str:D \assignee
     ) is raw {
@@ -3757,15 +3767,25 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 #- end of postcircumfix candidates of shaped1strarray --------------------------
 
 #- start of postcircumfix candidates of shaped1intarray ------------------------
-#- Generated on 2020-11-14T13:44:21+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-11-14T13:22:35+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, int \pos
+    ) is raw {
+        nqp::atposref_i(SELF,pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1intarray \SELF, Int:D \pos
     ) is raw {
         nqp::atposref_i(SELF,pos)
     }
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, int \pos, Int:D \assignee
+    ) is raw {
+        nqp::atposref_i(SELF,pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1intarray \SELF, Int:D \pos, Int:D \assignee
     ) is raw {
@@ -3800,15 +3820,25 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 #- end of postcircumfix candidates of shaped1intarray --------------------------
 
 #- start of postcircumfix candidates of shaped1numarray ------------------------
-#- Generated on 2020-11-14T13:44:21+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-11-14T13:22:35+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, int \pos
+    ) is raw {
+        nqp::atposref_n(SELF,pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1numarray \SELF, Int:D \pos
     ) is raw {
         nqp::atposref_n(SELF,pos)
     }
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, int \pos, Num:D \assignee
+    ) is raw {
+        nqp::atposref_n(SELF,pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1numarray \SELF, Int:D \pos, Num:D \assignee
     ) is raw {

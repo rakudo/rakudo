@@ -1,4 +1,5 @@
 my class Complex { ... }
+my class X::Numeric::Uninitialized { ... }
 
 my role Real does Numeric {
     method Rat(Real:D: Real $epsilon = 1.0e-6) { self.Bridge.Rat($epsilon) }
@@ -125,7 +126,13 @@ my role Real does Numeric {
         self.Mu::Real; # issue a warning;
         self.new
     }
-    method Bridge(Real:D:) { self.Num }
+    method Bridge(Real: --> Num:D) {
+        self.defined
+            ?? self.Num
+            !! (self.HOW.archetypes.coercive
+                ?? self.Mu::Numeric.Num
+                !! X::Numeric::Uninitialized.new(:type(self)).throw)
+    }
     method Int(Real:D:) { self.Bridge.Int }
     method Num(Real:D:) { self.Bridge.Num }
     multi method Str(Real:D:) { self.Bridge.Str }

@@ -13,7 +13,7 @@ my class Duration is Cool does Real {
           !! nqp::p6bindattrinvres(nqp::create(Duration),Duration,'$!tai',tai)
     }
 
-    method Bridge(Duration:D: --> Num:D) { $!tai.Num    }
+    method Bridge(Duration:   --> Num:D) { self.defined ?? $!tai.Num !! self.Real::Bridge }
     method Num   (Duration:D: --> Num:D) { $!tai.Num    }
     method Rat   (Duration:D: --> Rat:D) { $!tai        }
     method narrow(Duration:D:          ) { $!tai.narrow }

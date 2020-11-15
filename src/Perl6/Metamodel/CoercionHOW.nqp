@@ -202,11 +202,13 @@ class Perl6::Metamodel::CoercionHOW
                             ~ (nqp::defined($coerced_decont) ?? "an instance of" !! "a type object")
                             ~ " " ~ $coerced_name;
             }
-            if %ex {
+            unless nqp::isnull(%ex) {
                 %ex<X::Coerce::Impossible>($target_type_name, $value_type_name, $hint)
             }
-            nqp::die("Impossible coercion from " ~ $value_type.HOW.name($value_type_name)
-                        ~ " into " ~ $target_type_name ~ ": " ~ $hint);
+            nqp::die("Impossible coercion from "
+                        ~ $value_type_name
+                        ~ " into " ~ $target_type_name
+                        ~ ": " ~ $hint);
         }
 
         $coerced_value

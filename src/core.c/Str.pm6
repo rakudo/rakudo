@@ -62,6 +62,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method Stringy(Str:D:) { self }
     multi method DUMP(Str:D: --> Str:D) { self.raku }
 
+    proto method COERCE(|) {*}
+    multi method COERCE(Mu \s) {
+        self.new(:value(nqp::p6box_s(s)))
+    }
+
     method Int(Str:D: --> Int:D) {
         nqp::istype((my $n := self.Numeric),Int) || nqp::istype($n,Failure)
           ?? $n

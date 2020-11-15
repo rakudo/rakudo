@@ -673,6 +673,9 @@ my class IO::Path is Cool does IO {
     }
 
     proto method spurt(|) {*}
+    multi method spurt(IO::Path:D: --> Bool:D) {
+        self.open(:w).close
+    }
     multi method spurt(IO::Path:D: Blob:D \data, :$append! --> Bool:D) {
         spurt-blob(self.absolute, $append ?? 'wa' !! 'w', data)
     }

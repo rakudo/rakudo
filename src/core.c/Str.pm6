@@ -884,11 +884,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                      ),
                 self!hexify($char),                    # escape since > 0
 #?endif
-                nqp::ifnull(
-                  nqp::atpos($escapes,$ord),
-                  nqp::if(                             # not a known escape(
-                    nqp::iseq_s($char,"\r\n"),
-                    '\r\n',                            # it's the common LF
+                nqp::if(
+                  nqp::iseq_s($char,"\r\n"), # <-- this is a synthetic codepoint
+                  '\r\n',                              # it's the common LF
+                  nqp::ifnull(                         # not a common LF
+                    nqp::atpos($escapes,$ord),
                     nqp::if(
                       nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0),
                       $char,                           # it's a printable

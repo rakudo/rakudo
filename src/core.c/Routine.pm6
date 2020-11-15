@@ -57,24 +57,24 @@ my class Routine { # declared in BOOTSTRAP
     }
 
     multi method raku(Routine:D:) {
-        my $perl = ( self.^name ~~ m/^\w+/ ).lc;
+        my $raku = ( self.^name ~~ m/^\w+/ ).lc;
         if self.is_dispatcher {
-            $perl = "proto $perl";
+            $raku = "proto $raku";
         }
         elsif self.multi {
-            $perl = "multi $perl";
+            $raku = "multi $raku";
         }
         if self.name() -> $n {
-            $perl ~= " $n";
+            $raku ~= " $n";
         }
         my $sig := self.signature.raku;
-        $perl ~= " $sig.substr(1)" unless $sig eq ':()';
-        $perl ~= self.onlystar
+        $raku ~= " $sig.substr(1)" unless $sig eq ':()';
+        $raku ~= self.onlystar
           ?? ' {*}'
           !! self.yada
             ?? ' { ... }'
             !! ' { #`(' ~ self.WHICH ~ ') ... }';
-        $perl
+        $raku
     }
 
     method soft( --> Nil ) { }

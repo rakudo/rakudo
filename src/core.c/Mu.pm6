@@ -782,7 +782,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
     multi method gist(Mu:D:) { self.raku }
 
-    method rakuseen(Mu:D \SELF: $id, $perl, *%named) {
+    method rakuseen(Mu:D \SELF: $id, $raku, *%named) {
         my $sigil = nqp::iseq_s($id, 'Array') ?? '@'
             !! nqp::iseq_s($id, 'Hash') ?? '%' !! '\\';
         if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*rakuseen'))) {
@@ -794,7 +794,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             else {
                 nqp::bindkey(sems,$WHICH,1);
-                my $result := $perl(|%named);
+                my $result := $raku(|%named);
                 my int $value = nqp::atkey(sems,$WHICH);
                 nqp::deletekey(sems,$WHICH);
                 $value == 2
@@ -806,7 +806,7 @@ my class Mu { # declared in BOOTSTRAP
         }
         else {
             my $*rakuseen := nqp::hash("TOP",1);
-            SELF.rakuseen($id,$perl,|%named)
+            SELF.rakuseen($id,$raku,|%named)
         }
     }
 

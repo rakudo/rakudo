@@ -74,35 +74,35 @@ my class Code { # declared in BOOTSTRAP
         # (e.g. types set to or parameterized by captured types.)
         my sub strip_parm (Parameter:D $parm, :$make_optional = False) {
             my $type = $parm.type.^name;
-            my $perl = $type;
+            my $raku = $type;
             my $rest = '';
             my $sigil = $parm.sigil;
             my $elide_agg_cont= so ($sigil eqv '@'
                                     or $sigil eqv '%'
                                     or $type ~~ /^^ Callable >> /);
 
-            $perl = '' if $elide_agg_cont;
+            $raku = '' if $elide_agg_cont;
             unless $type eq "Any" {
                 my int $FIRST = 1; # broken FIRST workaround
                 while $type ~~ / (.*?) \[ (.*) \] $$/ {
 #                   FIRST {  # seems broken in setting
                     if $FIRST { # broken FIRST workaround
-                        $perl = $elide_agg_cont
+                        $raku = $elide_agg_cont
                           ?? ~$1
                           !! ~$/;
                         $FIRST = 0;
                     }
                     $type = ~$1;
                     unless soft_indirect_name_lookup(~$0) {
-                        $perl = '';
+                        $raku = '';
                         last
                     };
                 }
-                $perl = '' unless soft_indirect_name_lookup($type);
+                $raku = '' unless soft_indirect_name_lookup($type);
             }
-            $perl = $parm.coerce_type.^name ~ "($perl)"
+            $raku = $parm.coerce_type.^name ~ "($raku)"
               unless nqp::eqaddr($parm.coerce_type,Mu);
-            $perl ~= $parm.modifier if $perl ne '';
+            $raku ~= $parm.modifier if $raku ne '';
 
             my $name = $parm.name;
             if !$name and $parm.raw {
@@ -131,9 +131,9 @@ my class Code { # declared in BOOTSTRAP
                 $rest ~= ' is raw' unless $name.starts-with('\\');
             }
             if $name or $rest {
-                $perl ~= ($perl ?? ' ' !! '') ~ $name;
+                $raku ~= ($raku ?? ' ' !! '') ~ $name;
             }
-            $perl ~ $rest;
+            $raku ~ $rest;
         }
 
         # If we have only one parameter and it is a capture with a
@@ -256,7 +256,7 @@ my class Code { # declared in BOOTSTRAP
 
         # Normal Nameds.
         # I noted this:
-        # perl6 -e 'sub a (*%A, :$a?, *%B) { %A.say; %B.say }; a(:a(1));'
+        # raku -e 'sub a (*%A, :$a?, *%B) { %A.say; %B.say }; a(:a(1));'
         # {:a(1)}<>
         # {}<>
         # I am going to treat that as a feature and preserve the behavior.

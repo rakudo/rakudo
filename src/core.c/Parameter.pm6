@@ -539,8 +539,8 @@ my class Parameter { # declared in BOOTSTRAP
     }
 
     multi method raku(Parameter:D: Mu:U :$elide-type = Any --> Str:D) {
-        my $perl = '';
-        $perl ~= "::$_ " for @.type_captures;
+        my $raku = '';
+        $raku ~= "::$_ " for @.type_captures;
 
         my $modifier = $.modifier;
         my $type     = $!nominal_type.^name;
@@ -550,11 +550,11 @@ my class Parameter { # declared in BOOTSTRAP
             $!flags +& $SIG_ELEM_HASH_SIGIL or
             $!flags +& $SIG_ELEM_CODE_SIGIL {
             $type ~~ / .*? \[ <( .* )> \] $$/;
-            $perl ~= $/ ~ $modifier if $/;
+            $raku ~= $/ ~ $modifier if $/;
         }
         elsif $modifier or
                 !nqp::eqaddr($!nominal_type, nqp::decont($elide-type)) {
-            $perl ~= $type ~ $modifier;
+            $raku ~= $type ~ $modifier;
         }
 
         my $prefix     = $.prefix;
@@ -618,9 +618,9 @@ my class Parameter { # declared in BOOTSTRAP
         }
 
         $name = "$prefix$name$.suffix";
-        $perl ~= ($perl ?? ' ' !! '') ~ $name if $name;
-        $perl ~= $rest if $rest;
-        $perl
+        $raku ~= ($raku ?? ' ' !! '') ~ $name if $name;
+        $raku ~= $rest if $rest;
+        $raku
     }
 
     method sub_signature(Parameter:D: --> Signature:_) {

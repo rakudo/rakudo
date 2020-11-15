@@ -72,16 +72,16 @@ my class Seq is Cool does Iterable does Sequence {
     multi method raku(Seq:D \SELF:) {
         # If we don't have an iterator, someone grabbed it already;
         # Check for cached $!list; if that's missing too, we're consumed
-        my $perl;
+        my $raku;
         if not $!iter.DEFINITE and not $!list.DEFINITE {
             # cannot call .cache on a Seq that's already been iterated,
             # so we need to produce a string that, when EVAL'd, reproduces
             # an already iterated Seq.
             # compare https://github.com/Raku/old-issue-tracker/issues/5124
-            $perl = self.^name ~ '.new()';
+            $raku = self.^name ~ '.new()';
         }
-        else { $perl = self.cache.raku ~ '.Seq' }
-        nqp::iscont(SELF) ?? '$(' ~ $perl ~ ')' !! $perl
+        else { $raku = self.cache.raku ~ '.Seq' }
+        nqp::iscont(SELF) ?? '$(' ~ $raku ~ ')' !! $raku
     }
 
     method join(Seq:D: $separator = '' --> Str:D) {

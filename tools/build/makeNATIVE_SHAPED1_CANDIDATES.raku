@@ -92,6 +92,12 @@ for $*IN.lines -> $line {
           !! nqp::atposref_#postfix#(nqp::decont(SELF),pos)
     }
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1#type#array \SELF, Whatever
+    ) {
+        nqp::decont(SELF)
+    }
+
 SOURCE
 
     # we're done for this role

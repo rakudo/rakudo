@@ -171,21 +171,7 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
           nqp::iterator(nqp::getattr(nqp::decont(b),Map,'$!storage'))),
         nqp::stmts(
           nqp::if(                                # both have elems
-            nqp::eqaddr(b.keyof,Str(Any)),
-            nqp::while(                           # ordinary hash
-              iter,
-              nqp::if(
-                nqp::iterval(nqp::shift(iter)),
-                nqp::if(                          # should be checked
-                  nqp::existskey(
-                    elems,
-                    (my \which := nqp::iterkey_s(iter).WHICH)
-                  ),
-                  nqp::deletekey(elems,which),    # remove existing
-                  nqp::bindkey(elems,which,nqp::iterkey_s(iter)) # add new
-                )
-              )
-            ),
+            nqp::istype(b,Hash::Object),
             nqp::while(                           # object hash
               iter,
               nqp::if(
@@ -198,6 +184,20 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
                     nqp::iterkey_s(iter),
                     nqp::getattr(nqp::iterval(iter),Pair,'$!key')
                   )
+                )
+              )
+            ),
+            nqp::while(                           # ordinary hash
+              iter,
+              nqp::if(
+                nqp::iterval(nqp::shift(iter)),
+                nqp::if(                          # should be checked
+                  nqp::existskey(
+                    elems,
+                    (my \which := nqp::iterkey_s(iter).WHICH)
+                  ),
+                  nqp::deletekey(elems,which),    # remove existing
+                  nqp::bindkey(elems,which,nqp::iterkey_s(iter)) # add new
                 )
               )
             )

@@ -61,15 +61,16 @@ multi sub infix:<<(==)>>(Baggy:D \a, Any     \b --> Bool:D) { a (==) b.Bag }
 multi sub infix:<<(==)>>(Map:D \a, Map:D \b --> Bool:D) {
     nqp::unless(
       nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-      nqp::if(                    # A and B are different
+      nqp::if(                        # A and B are different
         nqp::isne_i(
           nqp::elems(my \araw := nqp::getattr(nqp::decont(a),Map,'$!storage')),
           nqp::elems(my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage'))
         ),
-        (return False),           # different number of elements
-        nqp::if(                  # same size
-          nqp::eqaddr(a.keyof,Str(Any)) && nqp::eqaddr(b.keyof,Str(Any)),
-          nqp::stmts(             # both are normal Maps
+        (return False),               # different number of elements
+        nqp::if(                      # same size
+          nqp::istype(a,Hash::Object) || nqp::istype(b,Hash::Object),
+          (return a.Set (==) b.Set),  # either is objectHash, so coerce
+          nqp::stmts(                 # both are normal Maps
             (my \iter := nqp::iterator(araw)),
             nqp::while(
               iter,
@@ -78,11 +79,10 @@ multi sub infix:<<(==)>>(Map:D \a, Map:D \b --> Bool:D) {
                   nqp::istrue(nqp::iterval(nqp::shift(iter))),
                   nqp::istrue(nqp::atkey(braw,nqp::iterkey_s(iter)))
                 ),
-                (return False)    # elem in A hasn't got same validity in B
+                (return False)        # elem in A hasn't got same validity in B
               )
             )
-          ),
-          return a.Set (==) b.Set # either is objectHash, so coerce
+          )
         )
       )
     );
@@ -101,15 +101,7 @@ multi sub infix:<<(==)>>(Iterable:D \a, Map:D \b --> Bool:D) {
     my $key;
     my $seen := nqp::hash;
     nqp::if(
-      nqp::eqaddr(b.keyof,Str(Any)),
-      nqp::until(                         # normal Map
-        nqp::eqaddr(($key := iterator.pull-one),IterationEnd),
-        nqp::if(
-          nqp::istrue(nqp::atkey(braw,$key)),
-          nqp::bindkey($seen,$key,1),
-          (return False)                  # not seen or not true
-        )
-      ),
+      nqp::istype(b,Hash::Object),
       nqp::until(                         # object hash
         nqp::eqaddr((my \object := iterator.pull-one),IterationEnd),
         nqp::if(
@@ -124,6 +116,14 @@ multi sub infix:<<(==)>>(Iterable:D \a, Map:D \b --> Bool:D) {
               '$!value'
             )
           ),
+          nqp::bindkey($seen,$key,1),
+          (return False)                  # not seen or not true
+        )
+      ),
+      nqp::until(                         # normal Map
+        nqp::eqaddr(($key := iterator.pull-one),IterationEnd),
+        nqp::if(
+          nqp::istrue(nqp::atkey(braw,$key)),
           nqp::bindkey($seen,$key,1),
           (return False)                  # not seen or not true
         )

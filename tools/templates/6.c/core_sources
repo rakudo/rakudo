@@ -84,6 +84,8 @@ src/core.c/array_operators.pm6
 src/core.c/native_array.pm6
 src/core.c/Pair.pm6
 src/core.c/Map.pm6
+src/core.c/Hash/Typed.pm6
+src/core.c/Hash/Object.pm6
 src/core.c/Hash.pm6
 src/core.c/Stash.pm6
 src/core.c/Label.pm6

@@ -91,7 +91,8 @@ multi sub infix:<<(<=)>>(Map:D \a, Map:D \b --> Bool:D) {
       nqp::if(                    # A and B are different
         nqp::elems(my \araw := nqp::getattr(nqp::decont(a),Map,'$!storage')),
         nqp::if(                  # something in A
-          nqp::eqaddr(a.keyof,Str(Any)) && nqp::eqaddr(b.keyof,Str(Any)),
+          nqp::istype(a,Hash::Object) || nqp::istype(b,Hash::Object),
+          (a.Set (<=) b.Set),     # either is objectHash, so coerce
           nqp::if(                # both are normal Maps
             (my \iter := nqp::iterator(araw))
               && nqp::elems(
@@ -120,8 +121,7 @@ multi sub infix:<<(<=)>>(Map:D \a, Map:D \b --> Bool:D) {
               ),
               True                # no valid elems in A
             )
-          ),
-          a.Set (<=) b.Set      # either is objectHash, so coerce
+          )
         ),
         True                      # nothing in A
       )
@@ -132,18 +132,7 @@ multi sub infix:<<(<=)>>(Iterable:D \a, Map:D \b --> Bool:D) {
     my \iterator := a.iterator;
     my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage');
 
-    if nqp::eqaddr(b.keyof,Str(Any)) {
-        nqp::until(
-          nqp::eqaddr((my \string := iterator.pull-one),IterationEnd),
-          nqp::unless(
-            nqp::existskey(braw,my str $key = string.Str)
-              && nqp::istrue(nqp::atkey(braw,$key)),
-            (return False)
-          )
-        );
-        True
-    }
-    else {
+    if nqp::istype(b,Hash::Object) {
         nqp::until(
           nqp::eqaddr((my \object := iterator.pull-one),IterationEnd),
           nqp::unless(
@@ -154,8 +143,18 @@ multi sub infix:<<(<=)>>(Iterable:D \a, Map:D \b --> Bool:D) {
             (return False)
           )
         );
-        True
     }
+    else {
+        nqp::until(
+          nqp::eqaddr((my \string := iterator.pull-one),IterationEnd),
+          nqp::unless(
+            nqp::existskey(braw,my str $key = string.Str)
+              && nqp::istrue(nqp::atkey(braw,$key)),
+            (return False)
+          )
+        );
+    }
+    True
 }
 
 multi sub infix:<<(<=)>>(Any \a, Mixy:D  \b --> Bool:D) { a.Mix (<=) b     }

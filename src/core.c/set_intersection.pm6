@@ -80,7 +80,8 @@ multi sub infix:<(&)>(Any:D \a, Mixy:D \b) {
 
 multi sub infix:<(&)>(Map:D \a, Map:D \b) {
     nqp::if(
-      nqp::eqaddr(a.keyof,Str(Any)) && nqp::eqaddr(b.keyof,Str(Any)),
+      nqp::istype(a,Hash::Object) || nqp::istype(b,Hash::Object),
+      (a.Set (&) b.Set),                     # either is object hash, coerce!
       nqp::if(                               # both ordinary Str hashes
         nqp::elems(
           my \araw := nqp::getattr(nqp::decont(a),Map,'$!storage')
@@ -114,8 +115,7 @@ multi sub infix:<(&)>(Map:D \a, Map:D \b) {
           nqp::create(Set).SET-SELF($elems)
         ),
         set()                                # one/neither has elems
-      ),
-      (a.Set (&) b.Set)                      # object hash(es), coerce!
+      )
     )
 }
 

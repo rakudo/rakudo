@@ -379,7 +379,7 @@ public final class Binder {
         boolean didHLLTransform = false;
         SixModelObject paramType = param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
         SixModelObject ContextRef = null;
-        SixModelObject HOW = paramType.st.HOW;
+        SixModelObject HOW = null;
         if (flag == CallSiteDescriptor.ARG_OBJ && !(is_rw && desiredNative != 0)) {
             /* We need to work on the decontainerized value. */
             decontValue = Ops.decont(arg_o, tc);
@@ -396,6 +396,7 @@ public final class Binder {
                  * can happen in (::T, T) where we didn't learn about the type until
                  * during the signature bind.) */
                 if ((paramFlags & SIG_ELEM_TYPE_GENERIC) != 0) {
+                    HOW = paramType.st.HOW;
                     SixModelObject ig = Ops.findmethod(HOW,
                         "instantiate_generic", tc);
                     ContextRef = tc.gc.ContextRef;
@@ -512,6 +513,7 @@ public final class Binder {
                 return BIND_RESULT_FAIL;
             }
 
+            HOW = paramType.st.HOW;
             SixModelObject coerceMeth = Ops.findmethod(HOW, "coerce", tc);
             Ops.invokeDirect(tc, coerceMeth, genIns, new Object[] { HOW, paramType, arg_o });
             arg_o = Ops.result_o(tc.curFrame);

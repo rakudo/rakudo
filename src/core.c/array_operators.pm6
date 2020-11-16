@@ -51,7 +51,7 @@ multi sub shift(@a) is raw { @a.shift }
 
 proto sub push($, |) {*}
 multi sub push(\a,  \b) { a.push:   b }
-multi sub push(\a, *@b) { a.push: |@b }
+multi sub push(\a, **@b) { a.push: |@b }
 
 proto sub append($, |) {*}
 multi sub append(\a,  \b) { a.append:  b }
@@ -59,7 +59,7 @@ multi sub append(\a, **@b) { a.append: @b }
 
 proto sub unshift($, |) {*}
 multi sub unshift(\a,  \b) { a.unshift:   b }
-multi sub unshift(\a, *@b) { a.unshift: |@b }
+multi sub unshift(\a, **@b) { a.unshift: |@b }
 
 proto sub prepend($, |) {*}
 multi sub prepend(\a,  \b) { a.prepend:  b }

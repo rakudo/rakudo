@@ -1,4 +1,5 @@
-my class X::MustBeParametric  { ... }
+my class X::Delete { ... }
+my class X::MustBeParametric { ... }
 my class X::TooManyDimensions { ... }
 my class X::TypeCheck::Assignment { ... }
 
@@ -1947,6 +1948,13 @@ my class array does Iterable {
     }
 
     role shapedarray does Rakudo::Internals::ShapedArrayCommon {
+        method BIND-POS(|) {
+            X::Bind.new(target => 'a natively typed shaped array').throw
+        }
+        method DELETE-POS(|) {
+            X::Delete.new(target => 'a natively typed shaped array').throw
+        }
+
         method shape() {
             my $idims := nqp::dimensions(self);
             my $odims := nqp::create(IterationBuffer);
@@ -3593,10 +3601,10 @@ my class array does Iterable {
     }
 
     method BIND-POS(|) {
-        die "Cannot bind to a natively typed array";
+        X::Bind.new(target => 'a natively typed array').throw
     }
     method DELETE-POS(|) {
-        die "Cannot delete from a natively typed array";
+        X::Delete.new(target => 'a natively typed array').throw
     }
 
     proto method ASSIGN-POS(|) {*} # Hide candidates from Any
@@ -3704,5 +3712,188 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
       )
     )
 }
+
+#- start of postcircumfix candidates of shaped1strarray ------------------------
+#- Generated on 2020-11-15T18:12:53+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, int \pos
+    ) is raw {
+        nqp::atposref_s(nqp::decont(SELF),pos)
+    }
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, Int:D \pos
+    ) is raw {
+        nqp::atposref_s(nqp::decont(SELF),pos)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, int \pos, Str:D \assignee
+    ) is raw {
+        nqp::atposref_s(nqp::decont(SELF),pos)
+    }
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, Int:D \pos, Str:D \assignee
+    ) is raw {
+        nqp::bindpos_s(nqp::decont(SELF),pos,assignee)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, Int:D \pos, :$BIND!
+    ) {
+        X::Bind.new(target => 'a shaped native str array').throw
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, Int:D \pos, :$exists!
+    ) {
+        nqp::hllbool(
+          $exists
+            ?? nqp::isge_i(pos,0)
+                 && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
+            !! nqp::islt_i(pos,0)
+                 || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        )
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, Int:D \pos, :$delete!
+    ) {
+        $delete
+          ?? X::Delete.new(target => 'a shaped native str array').throw
+          !! nqp::atposref_s(nqp::decont(SELF),pos)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, Whatever
+    ) {
+        nqp::decont(SELF)
+    }
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of postcircumfix candidates of shaped1strarray --------------------------
+
+#- start of postcircumfix candidates of shaped1intarray ------------------------
+#- Generated on 2020-11-15T18:12:53+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, int \pos
+    ) is raw {
+        nqp::atposref_i(nqp::decont(SELF),pos)
+    }
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, Int:D \pos
+    ) is raw {
+        nqp::atposref_i(nqp::decont(SELF),pos)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, int \pos, Int:D \assignee
+    ) is raw {
+        nqp::atposref_i(nqp::decont(SELF),pos)
+    }
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, Int:D \pos, Int:D \assignee
+    ) is raw {
+        nqp::bindpos_i(nqp::decont(SELF),pos,assignee)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, Int:D \pos, :$BIND!
+    ) {
+        X::Bind.new(target => 'a shaped native int array').throw
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, Int:D \pos, :$exists!
+    ) {
+        nqp::hllbool(
+          $exists
+            ?? nqp::isge_i(pos,0)
+                 && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
+            !! nqp::islt_i(pos,0)
+                 || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        )
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, Int:D \pos, :$delete!
+    ) {
+        $delete
+          ?? X::Delete.new(target => 'a shaped native int array').throw
+          !! nqp::atposref_i(nqp::decont(SELF),pos)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, Whatever
+    ) {
+        nqp::decont(SELF)
+    }
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of postcircumfix candidates of shaped1intarray --------------------------
+
+#- start of postcircumfix candidates of shaped1numarray ------------------------
+#- Generated on 2020-11-15T18:12:53+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, int \pos
+    ) is raw {
+        nqp::atposref_n(nqp::decont(SELF),pos)
+    }
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, Int:D \pos
+    ) is raw {
+        nqp::atposref_n(nqp::decont(SELF),pos)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, int \pos, Num:D \assignee
+    ) is raw {
+        nqp::atposref_n(nqp::decont(SELF),pos)
+    }
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, Int:D \pos, Num:D \assignee
+    ) is raw {
+        nqp::bindpos_n(nqp::decont(SELF),pos,assignee)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, Int:D \pos, :$BIND!
+    ) {
+        X::Bind.new(target => 'a shaped native num array').throw
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, Int:D \pos, :$exists!
+    ) {
+        nqp::hllbool(
+          $exists
+            ?? nqp::isge_i(pos,0)
+                 && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
+            !! nqp::islt_i(pos,0)
+                 || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        )
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, Int:D \pos, :$delete!
+    ) {
+        $delete
+          ?? X::Delete.new(target => 'a shaped native num array').throw
+          !! nqp::atposref_n(nqp::decont(SELF),pos)
+    }
+
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, Whatever
+    ) {
+        nqp::decont(SELF)
+    }
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of postcircumfix candidates of shaped1numarray --------------------------
 
 # vim: expandtab shiftwidth=4

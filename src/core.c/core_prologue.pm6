@@ -40,6 +40,7 @@ my role Hash::Object { ... }
 # Make Iterable available for the code-gen.
 BEGIN nqp::bindhllsym('Raku', 'Iterable', Iterable);
 nqp::bindhllsym('Raku', 'Iterable', Iterable);
+nqp::bindhllsym('Raku', 'Failure', Failure);
 
 BEGIN {
     # Ensure routines with traits using mixins applied to them typecheck as Callable.

@@ -20,6 +20,12 @@ my class X::Does::TypeObject is Exception {
 }
 
 proto sub infix:<does>(Mu, |) {*}
+multi sub infix:<does>(Int:D, |) {
+    die "Cannot use 'does' operator on an Int, did you mean 'but'?";
+}
+multi sub infix:<does>(Str:D, |) {
+    die "Cannot use 'does' operator on a Str, did you mean 'but'?";
+}
 multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is raw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!

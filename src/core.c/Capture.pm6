@@ -116,7 +116,7 @@ my class Capture { # declared in BOOTSTRAP
                 nqp::push_s($str, nqp::unbox_s((nqp::p6box_s(nqp::iterkey_s($kv)) => nqp::iterval($kv).Str).Str));
             }
         }
-        nqp::join(' ', $str)
+        nqp::p6box_s(nqp::join(' ', $str))
     }
 
     multi method gist(Capture:D:) { self.Capture::raku }
@@ -158,7 +158,7 @@ my class Capture { # declared in BOOTSTRAP
                 nqp::push_s($raku, ')');
             }
         }
-        nqp::join('', $raku)
+        nqp::p6box_s(nqp::join('', $raku))
     }
 
     multi method Bool(Capture:D:) {

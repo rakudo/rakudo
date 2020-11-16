@@ -3,6 +3,7 @@
 class Perl6::Metamodel::Configuration {
     my $stash_type := nqp::null();
     my $stash_attr_type := nqp::null();
+
     method set_stash_type($type, $attr_type) {
         $stash_type := $type;
         $stash_attr_type := $attr_type;

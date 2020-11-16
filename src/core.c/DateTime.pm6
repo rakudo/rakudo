@@ -531,12 +531,8 @@ my class DateTime does Dateish {
         }
     }
 
-    method utc(  DateTime:D: --> DateTime:D) {
-        self.in-timezone(0)
-    }
-    method local(DateTime:D: --> DateTime:D) {
-        self.in-timezone(get-local-timezone-offset)
-    }
+    method utc(  DateTime:D: --> DateTime:D) { self.in-timezone(0)    }
+    method local(DateTime:D: --> DateTime:D) { self.in-timezone($*TZ) }
 
     proto method Date() {*}
     multi method Date(DateTime:D: --> Date:D) { Date.new($!year,$!month,$!day) }

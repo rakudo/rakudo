@@ -117,7 +117,7 @@ my class IO::Socket::INET does IO::Socket {
     method !initialize() {
         my $PIO := nqp::socket($!listening ?? 10 !! 0);
 
-        # Quoting perl5's SIO::INET:
+        # Quoting perl's SIO::INET:
         # If Listen is defined then a listen socket is created, else if the socket type,
         # which is derived from the protocol, is SOCK_STREAM then connect() is called.
         if $!listening || $!localhost || $!localport {

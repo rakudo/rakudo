@@ -275,10 +275,10 @@ my class Junction { # declared in BOOTSTRAP
     multi method raku(Junction:D:) {
         my int $elems = nqp::elems($!eigenstates);
         my int $i     = -1;
-        my $perls    := nqp::setelems(nqp::list_s,$elems);
-        nqp::bindpos_s($perls,$i,nqp::atpos($!eigenstates,$i).raku)
+        my $rakus    := nqp::setelems(nqp::list_s,$elems);
+        nqp::bindpos_s($rakus,$i,nqp::atpos($!eigenstates,$i).raku)
           while nqp::islt_i(++$i,$elems);
-        $!type ~ '(' ~ nqp::join(', ',$perls) ~ ')'
+        $!type ~ '(' ~ nqp::join(', ',$rakus) ~ ')'
     }
 
     method CALL-ME(|c) {

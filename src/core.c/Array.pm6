@@ -2,20 +2,6 @@
 my class X::TypeCheck { ... };
 my class X::TypeCheck::Splice { ... }
 my class X::Subscript::Negative { ... };
-my class X::NotEnoughDimensions { ... };
-my class X::Assignment::ArrayShapeMismatch { ... };
-
-# These roles need stubbing for some reason, otherwise they will cause
-# "Object does not exist in serialization context" error when trying to
-# create something inside the Array class, like the Array::Agnostic role
-# does, which happened after ee089234fc and 532b5423f0.
-our role Array::ShapedArray  { ... }
-our role Array::Shaped1Array { ... }
-our role Array::Shaped2Array { ... }
-our role Array::Shaped3Array { ... }
-
-# stub what we need now
-my class array is repr('VMArray') { ... };
 
 # An Array is a List that ensures every item added to it is in a Scalar
 # container. It also supports push, pop, shift, unshift, splice, BIND-POS,
@@ -240,7 +226,7 @@ my class Array { # declared in BOOTSTRAP
     method !difficult-shape(\shape --> Array:D) {
         nqp::if(
           Metamodel::EnumHOW.ACCEPTS(shape.HOW),
-          set-shape(self,shape.^elems),
+          self.set-shape(shape.^elems),
           nqp::stmts(
             warn("Ignoring [{ shape.^name }] as shape specification, did you mean 'my { shape.^name } @foo' ?"),
             nqp::create(self)
@@ -251,7 +237,7 @@ my class Array { # declared in BOOTSTRAP
     proto method new(|) {*}
     multi method new(Array: :$shape! --> Array:D) {
         nqp::isconcrete($shape)
-          ?? set-shape(self,$shape)
+          ?? self.set-shape($shape)
           !! self!difficult-shape($shape)
     }
     multi method new(Array: --> Array:D) {
@@ -260,7 +246,7 @@ my class Array { # declared in BOOTSTRAP
     multi method new(Array: \values, :$shape! --> Array:D) {
         nqp::if(
           nqp::isconcrete($shape),
-          set-shape(self,$shape),
+          self.set-shape($shape),
           self!difficult-shape($shape)
         ).STORE(values)
     }
@@ -270,7 +256,7 @@ my class Array { # declared in BOOTSTRAP
     multi method new(Array: **@values is raw, :$shape! --> Array:D) {
         nqp::if(
           nqp::isconcrete($shape),
-          set-shape(self,$shape),
+          self.set-shape($shape),
           self!difficult-shape($shape)
         ).STORE(@values)
     }
@@ -1390,6 +1376,62 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method WHICH(Array:D: --> ObjAt:D) { self.Mu::WHICH }
 
-#=============== class Array is closed in src/core.c/TypedArray.pm6 ============
+    my constant \dim2role =
+      nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
+
+    proto method  set-shape(|) is implementation-detail {*}
+    multi method set-shape(Whatever) is raw {
+        nqp::create(self.WHAT)
+    }
+    multi method set-shape(\shape) is raw {
+        self.set-shape(shape.List)
+    }
+    multi method set-shape(List:D \shape) is raw {
+        my int $dims = shape.elems;  # reifies
+        my $reified := nqp::getattr(nqp::decont(shape),List,'$!reified');
+
+        # just a list with Whatever, so no shape
+        if nqp::iseq_i($dims,1)
+          && nqp::istype(nqp::atpos($reified,0),Whatever) {
+            nqp::create(self.WHAT)
+        }
+
+        # we haz dimensions
+        elsif nqp::isgt_i($dims,0) {
+            my $what := self.WHAT.^mixin(
+              nqp::atpos(dim2role,nqp::isle_i($dims,3) && $dims)
+            );
+            $what.^set_name(self.^name)           # correct name if needed
+              if nqp::isne_s($what.^name,self.^name);
+
+            my $array := nqp::p6bindattrinvres(
+              nqp::create($what),List,'$!reified',
+              Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,nqp::knowhow,Mu)
+            );
+            nqp::p6bindattrinvres($array,$what,'$!shape',nqp::decont(shape))
+        }
+
+        # flatland
+        else {
+            X::NotEnoughDimensions.new(
+              operation         => 'create',
+              got-dimensions    => 0,
+              needed-dimensions => '',
+            ).throw
+        }
+    }
+
+    method ^parameterize(Mu:U \arr, Mu \of) {
+        if nqp::isconcrete(of) {
+            die "Can not parameterize {arr.^name} with {of.raku}"
+        }
+        else {
+            my $what := arr.^mixin(Array::Typed[of]);
+            # needs to be done in COMPOSE phaser when that works
+            $what.^set_name("{arr.^name}[{of.^name}]");
+            $what
+        }
+    }
+}
 
 # vim: expandtab shiftwidth=4

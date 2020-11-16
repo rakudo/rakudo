@@ -106,6 +106,11 @@ class Perl6::Metamodel::DefiniteHOW
         $base_type.HOW.find_method($base_type, $name)
     }
 
+    method find_method_qualified($definite_type, $qtype, $name) {
+        my $base_type := self.base_type($definite_type);
+        $base_type.HOW.find_method_qualified($base_type, $qtype, $name)
+    }
+
     # Do check when we're on LHS of smartmatch (e.g. Even ~~ Int).
     method type_check($definite_type, $checkee) {
         my $base_type := self.base_type($definite_type);

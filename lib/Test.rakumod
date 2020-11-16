@@ -482,7 +482,9 @@ multi sub isa-ok(
     Mu $var, Mu $type, $desc = "The object is-a '$type.raku()'"
 ) is export {
     $time_after = nqp::time_n;
-    my $ok = proclaim($var.isa($type), $desc)
+    my $ok = ($type ~~ Str:D
+                ?? proclaim($var.isa($type), $desc)
+                !! proclaim(nqp::istype($var, $type.WHAT), $desc))
         or _diag('Actual type: ' ~ $var.^name);
     $time_before = nqp::time_n;
     $ok or ($die_on_fail and die-on-fail) or $ok;

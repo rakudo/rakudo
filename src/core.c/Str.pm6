@@ -62,6 +62,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method Stringy(Str:D:) { self }
     multi method DUMP(Str:D: --> Str:D) { self.raku }
 
+    proto method COERCE(|) {*}
+    multi method COERCE(Mu \s) {
+        self.new(:value(nqp::p6box_s(s)))
+    }
+
     method Int(Str:D: --> Int:D) {
         nqp::istype((my $n := self.Numeric),Int) || nqp::istype($n,Failure)
           ?? $n
@@ -884,11 +889,11 @@ my class Str does Stringy { # declared in BOOTSTRAP
                      ),
                 self!hexify($char),                    # escape since > 0
 #?endif
-                nqp::ifnull(
-                  nqp::atpos($escapes,$ord),
-                  nqp::if(                             # not a known escape(
-                    nqp::iseq_s($char,"\r\n"),
-                    '\r\n',                            # it's the common LF
+                nqp::if(
+                  nqp::iseq_s($char,"\r\n"), # <-- this is a synthetic codepoint
+                  '\r\n',                              # it's the common LF
+                  nqp::ifnull(                         # not a common LF
+                    nqp::atpos($escapes,$ord),
                     nqp::if(
                       nqp::iscclass(nqp::const::CCLASS_PRINTING,$char,0),
                       $char,                           # it's a printable

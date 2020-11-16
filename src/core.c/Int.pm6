@@ -80,8 +80,10 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::abs_I(self, Int)
     }
 
-    method Bridge(Int:D: --> Num:D) {
-        nqp::p6box_n(nqp::tonum_I(self));
+    method Bridge(Int: --> Num:D) {
+        self.defined
+            ?? nqp::p6box_n(nqp::tonum_I(self))
+            !! self.Real::Bridge
     }
 
     method chr(Int:D: --> Str:D) {

@@ -60,9 +60,16 @@ multi sub take-rw(\value) {
     value
 }
 multi sub take-rw(|) {
-    my Mu $ex := nqp::newexception();
-    nqp::setpayload($ex,my \out := nqp::p6bindattrinvres(
-      nqp::create(List),List,'$!reified',nqp::p6argvmarray)
+    nqp::setpayload(
+      (my Mu $ex := nqp::newexception),
+      (my \out :=
+        nqp::isgt_i(nqp::elems(my $positionals := nqp::p6argvmarray),1)
+          ?? nqp::p6bindattrinvres(
+               nqp::create(List),List,'$!reified',$positionals)
+          !! nqp::elems($positionals)
+            ?? nqp::shift($positionals)
+            !! Nil
+      )
     );
     nqp::setextype($ex,nqp::const::CONTROL_TAKE);
     nqp::throw($ex);
@@ -79,9 +86,16 @@ multi sub take(\value) {
     out
 }
 multi sub take(|) {
-    my Mu $ex := nqp::newexception();
-    nqp::setpayload($ex,my \out := nqp::p6bindattrinvres(
-      nqp::create(List),List,'$!reified',nqp::p6argvmarray)
+    nqp::setpayload(
+      (my Mu $ex := nqp::newexception),
+      (my \out := nqp::p6recont_ro(
+        nqp::isgt_i(nqp::elems(my $positionals := nqp::p6argvmarray),1)
+          ?? nqp::p6bindattrinvres(
+               nqp::create(List),List,'$!reified',$positionals)
+          !! nqp::elems($positionals)
+            ?? nqp::shift($positionals)
+            !! Nil
+      ))
     );
     nqp::setextype($ex,nqp::const::CONTROL_TAKE);
     nqp::throw($ex);

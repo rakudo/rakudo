@@ -9,6 +9,7 @@
 #  include <sys/stat.h>
 #  include <process.h>
 #  include <shlwapi.h>
+#  include <io.h>
 #  if defined(_MSC_VER)
 #    define strtoll _strtoi64
 #  endif

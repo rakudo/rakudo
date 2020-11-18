@@ -501,8 +501,12 @@ public final class Binder {
             bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
 
         /* Do a coercion, if one is needed. */
-        SixModelObject coerciveMeth = Ops.findmethod(param.st.WHAT, "coercive", tc);
-        Ops.invokeDirect(tc, coerciveMeth, Ops.invocantCallSite, new Object[] { param });
+        HOW = paramType.st.HOW;
+        SixModelObject archetypesMeth = Ops.findmethod(HOW, "archetypes", tc);
+        Ops.invokeDirect(tc, archetypesMeth, Ops.invocantCallSite, new Object[] { HOW });
+        SixModelObject Archetypes = Ops.result_o(tc.curFrame);
+        SixModelObject coerciveMeth = Ops.findmethod(Archetypes, "coercive", tc);
+        Ops.invokeDirect(tc, coerciveMeth, Ops.invocantCallSite, new Object[] { Archetypes });
         if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 1) {
             /* Coercing natives not possible - nothing to call a method on. */
             if (flag != CallSiteDescriptor.ARG_OBJ) {
@@ -513,7 +517,6 @@ public final class Binder {
                 return BIND_RESULT_FAIL;
             }
 
-            HOW = paramType.st.HOW;
             SixModelObject coerceMeth = Ops.findmethod(HOW, "coerce", tc);
             Ops.invokeDirect(tc, coerceMeth, genIns, new Object[] { HOW, paramType, arg_o });
             arg_o = Ops.result_o(tc.curFrame);

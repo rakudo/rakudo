@@ -58,7 +58,7 @@ for $*IN.lines -> $line {
     multi sub postcircumfix:<[ ]>(
       array::shaped1#type#array \SELF, int \pos, #Type#:D \assignee
     ) is raw {
-        nqp::atposref_#postfix#(nqp::decont(SELF),pos)
+        nqp::bindpos_#postfix#(nqp::decont(SELF),pos,assignee)
     }
     multi sub postcircumfix:<[ ]>(
       array::shaped1#type#array \SELF, Int:D \pos, #Type#:D \assignee

@@ -416,7 +416,7 @@ sub configure_moar_backend {
             $nqp_config->{subsystem_win_ld_flags} = '/subsystem:windows';
         }
         else {
-            $nqp_config->{subsystem_win_ld_flags} = '--subsystem=windows';
+            $nqp_config->{subsystem_win_ld_flags} = '-mwindows';
         }
 
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );

@@ -9,6 +9,7 @@
 #  include <sys/stat.h>
 #  include <process.h>
 #  include <shlwapi.h>
+#  include <io.h>
 #  if defined(_MSC_VER)
 #    define strtoll _strtoi64
 #  endif
@@ -201,7 +202,7 @@ int set_std_handle_to_nul(FILE *file, int fd, BOOL read, int std_handle_type) {
 #endif
 
 #if defined(_WIN32) && defined(SUBSYSTEM_WINDOWS)
-int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR lpCmdLine, INT nCmdShow) {
+int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, INT nCmdShow) {
     int argc;
     LPWSTR *wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
     char **argv = MVM_UnicodeToUTF8_argv(argc, wargv);

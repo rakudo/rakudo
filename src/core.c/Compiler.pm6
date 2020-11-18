@@ -19,7 +19,7 @@ class Compiler does Systemic {
         nqp::bind($!auth,'The Perl Foundation');
 
         # looks like: 2018.01-50-g8afd791c1
-        nqp::bind($!version,Version.new(nqp::atkey($compiler,'version')))
+        nqp::bind($!version,Version.new(nqp::p6box_s(nqp::atkey($compiler,'version'))))
           unless $!version;
     }
 

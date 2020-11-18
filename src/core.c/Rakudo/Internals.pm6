@@ -707,7 +707,7 @@ implementation detail and has no serviceable parts inside"
     }
     method SHORT-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
         my str $str = nqp::unbox_s(self.MAYBE-STRING: thing, :$method);
-        nqp::isgt_i(nqp::chars($str),23) 
+        nqp::isgt_i(nqp::chars($str),23)
           ?? nqp::p6box_s(nqp::concat(nqp::substr($str, 0, 20), '...'))
           !! nqp::p6box_s($str)
     }

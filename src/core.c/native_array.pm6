@@ -3727,7 +3727,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of shaped1strarray ------------------------
-#- Generated on 2020-11-18T18:33:31+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-11-19T17:32:29+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     multi sub postcircumfix:<[ ]>(
@@ -3759,6 +3759,17 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
     }
 
     multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, int \pos, :$exists!
+    ) {
+        nqp::hllbool(
+          $exists
+            ?? nqp::isge_i(pos,0)
+                 && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
+            !! nqp::islt_i(pos,0)
+                 || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        )
+    }
+    multi sub postcircumfix:<[ ]>(
       array::shaped1strarray \SELF, Int:D \pos, :$exists!
     ) {
         nqp::hllbool(
@@ -3770,6 +3781,13 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
         )
     }
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1strarray \SELF, int \pos, :$delete!
+    ) {
+        $delete
+          ?? X::Delete.new(target => 'a shaped native str array').throw
+          !! nqp::atposref_s(nqp::decont(SELF),pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1strarray \SELF, Int:D \pos, :$delete!
     ) {
@@ -3788,7 +3806,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 #- end of postcircumfix candidates of shaped1strarray --------------------------
 
 #- start of postcircumfix candidates of shaped1intarray ------------------------
-#- Generated on 2020-11-18T18:33:31+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-11-19T17:32:29+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     multi sub postcircumfix:<[ ]>(
@@ -3820,6 +3838,17 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
     }
 
     multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, int \pos, :$exists!
+    ) {
+        nqp::hllbool(
+          $exists
+            ?? nqp::isge_i(pos,0)
+                 && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
+            !! nqp::islt_i(pos,0)
+                 || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        )
+    }
+    multi sub postcircumfix:<[ ]>(
       array::shaped1intarray \SELF, Int:D \pos, :$exists!
     ) {
         nqp::hllbool(
@@ -3831,6 +3860,13 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
         )
     }
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1intarray \SELF, int \pos, :$delete!
+    ) {
+        $delete
+          ?? X::Delete.new(target => 'a shaped native int array').throw
+          !! nqp::atposref_i(nqp::decont(SELF),pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1intarray \SELF, Int:D \pos, :$delete!
     ) {
@@ -3849,7 +3885,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 #- end of postcircumfix candidates of shaped1intarray --------------------------
 
 #- start of postcircumfix candidates of shaped1numarray ------------------------
-#- Generated on 2020-11-18T18:33:31+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-11-19T17:32:29+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     multi sub postcircumfix:<[ ]>(
@@ -3881,6 +3917,17 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
     }
 
     multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, int \pos, :$exists!
+    ) {
+        nqp::hllbool(
+          $exists
+            ?? nqp::isge_i(pos,0)
+                 && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
+            !! nqp::islt_i(pos,0)
+                 || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        )
+    }
+    multi sub postcircumfix:<[ ]>(
       array::shaped1numarray \SELF, Int:D \pos, :$exists!
     ) {
         nqp::hllbool(
@@ -3892,6 +3939,13 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
         )
     }
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1numarray \SELF, int \pos, :$delete!
+    ) {
+        $delete
+          ?? X::Delete.new(target => 'a shaped native num array').throw
+          !! nqp::atposref_n(nqp::decont(SELF),pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1numarray \SELF, Int:D \pos, :$delete!
     ) {

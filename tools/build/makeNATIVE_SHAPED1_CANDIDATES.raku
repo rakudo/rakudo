@@ -73,6 +73,17 @@ for $*IN.lines -> $line {
     }
 
     multi sub postcircumfix:<[ ]>(
+      array::shaped1#type#array \SELF, int \pos, :$exists!
+    ) {
+        nqp::hllbool(
+          $exists
+            ?? nqp::isge_i(pos,0)
+                 && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
+            !! nqp::islt_i(pos,0)
+                 || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        )
+    }
+    multi sub postcircumfix:<[ ]>(
       array::shaped1#type#array \SELF, Int:D \pos, :$exists!
     ) {
         nqp::hllbool(
@@ -84,6 +95,13 @@ for $*IN.lines -> $line {
         )
     }
 
+    multi sub postcircumfix:<[ ]>(
+      array::shaped1#type#array \SELF, int \pos, :$delete!
+    ) {
+        $delete
+          ?? X::Delete.new(target => 'a shaped native #type# array').throw
+          !! nqp::atposref_#postfix#(nqp::decont(SELF),pos)
+    }
     multi sub postcircumfix:<[ ]>(
       array::shaped1#type#array \SELF, Int:D \pos, :$delete!
     ) {

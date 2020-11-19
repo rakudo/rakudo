@@ -202,8 +202,19 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $c.HOW.auth($c)
     }
 
+    method language-revision($obj) {
+        my $c := self.'!get_default_candidate'($obj);
+        nqp::unless(nqp::isnull($c),
+                    $c.HOW.language-revision($c),
+                    nqp::null())
+    }
+
     method !get_default_candidate($obj) {
-        self.'!get_nonsignatured_candidate'($obj) || @!candidates[0]
+        nqp::ifnull(self.'!get_nonsignatured_candidate'($obj),
+                    nqp::if(
+                        +@!candidates,
+                        @!candidates[0],
+                        nqp::null()))
     }
 
     method !get_nonsignatured_candidate($obj) {

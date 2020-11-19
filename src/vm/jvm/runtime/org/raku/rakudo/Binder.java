@@ -505,22 +505,24 @@ public final class Binder {
         SixModelObject archetypesMeth = Ops.findmethod(HOW, "archetypes", tc);
         Ops.invokeDirect(tc, archetypesMeth, Ops.invocantCallSite, new Object[] { HOW });
         SixModelObject Archetypes = Ops.result_o(tc.curFrame);
-        SixModelObject coerciveMeth = Ops.findmethod(Archetypes, "coercive", tc);
-        Ops.invokeDirect(tc, coerciveMeth, Ops.invocantCallSite, new Object[] { Archetypes });
-        if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 1) {
-            /* Coercing natives not possible - nothing to call a method on. */
-            if (flag != CallSiteDescriptor.ARG_OBJ) {
-                if (error != null)
-                    error[0] = String.format(
-                        "Unable to coerce natively typed parameter '%s'",
-                        varName);
-                return BIND_RESULT_FAIL;
-            }
+        SixModelObject coerciveMeth = Ops.findmethodNonFatal(Archetypes, "coercive", tc);
+        if (coerciveMeth != null) {
+            Ops.invokeDirect(tc, coerciveMeth, Ops.invocantCallSite, new Object[] { Archetypes });
+            if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 1) {
+                /* Coercing natives not possible - nothing to call a method on. */
+                if (flag != CallSiteDescriptor.ARG_OBJ) {
+                    if (error != null)
+                        error[0] = String.format(
+                            "Unable to coerce natively typed parameter '%s'",
+                            varName);
+                    return BIND_RESULT_FAIL;
+                }
 
-            SixModelObject coerceMeth = Ops.findmethod(HOW, "coerce", tc);
-            Ops.invokeDirect(tc, coerceMeth, genIns, new Object[] { HOW, paramType, arg_o });
-            arg_o = Ops.result_o(tc.curFrame);
-            decontValue = Ops.decont(arg_o, tc);
+                SixModelObject coerceMeth = Ops.findmethod(HOW, "coerce", tc);
+                Ops.invokeDirect(tc, coerceMeth, genIns, new Object[] { HOW, paramType, arg_o });
+                arg_o = Ops.result_o(tc.curFrame);
+                decontValue = Ops.decont(arg_o, tc);
+            }
         }
 
         /* If it's not got attributive binding, we'll go about binding it into the

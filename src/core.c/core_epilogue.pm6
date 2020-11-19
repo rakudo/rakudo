@@ -1,5 +1,5 @@
-# Re-parent meta-objects so they appear to be under Any.
 BEGIN {
+    # Re-parent meta-objects so they appear to be under Any.
     Perl6::Metamodel::ClassHOW.HOW.reparent(Perl6::Metamodel::ClassHOW, Any);
     Perl6::Metamodel::ConcreteRoleHOW.HOW.reparent(Perl6::Metamodel::ConcreteRoleHOW, Any);
     Perl6::Metamodel::CurriedRoleHOW.HOW.reparent(Perl6::Metamodel::CurriedRoleHOW, Any);
@@ -69,12 +69,12 @@ augment class Uni {
         my $uni      := nqp::create(self);
         my int $elems = nqp::elems(codepoints);
         my int $i = -1;
-        
+
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
           nqp::push_i($uni,nqp::atpos_i(codepoints,$i))
         );
-        
+
         $uni
     }
 }

@@ -22,9 +22,9 @@ my class array does Iterable {
         nqp::isnull(nqp::typeparameterized(self))
           ?? X::MustBeParametric.new(:type(self)).throw
           !! nqp::isconcrete($shape)
-            ?? self!shaped($shape)
+            ?? self.set-shape($shape)
             !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
-              ?? self!shaped($shape.^elems)
+              ?? self.set-shape($shape.^elems)
               !! nqp::create(self)
     }
 
@@ -3574,30 +3574,43 @@ my class array does Iterable {
       nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray)
     );
 
-    method !shaped(\shape) {
-        nqp::if(
-          (my int $dims = shape.elems),   # reifies
-          nqp::stmts(
+    proto method set-shape(|) is implementation-detail {*}
+    multi method set-shape(Whatever) is raw {
+        nqp::create(self.WHAT)
+    }
+    multi method set-shape(\shape) is raw {
+        self.set-shape(shape.List)
+    }
+    multi method set-shape(List:D \shape) is raw {
+        my int $dims = shape.elems;  # reifies
+        my $reified := nqp::getattr(nqp::decont(shape),List,'$!reified');
+
+        # just a list with Whatever, so no shape
+        if nqp::iseq_i($dims,1)
+          && nqp::istype(nqp::atpos($reified,0),Whatever) {
+            nqp::create(self.WHAT)
+        }
+        elsif $dims {
             # Calculate new meta-object (probably hitting caches in most cases).
-            (my \shaped-type = self.WHAT.^mixin(
+            my \shaped-type = self.WHAT.^mixin(
               nqp::atpos(
                 nqp::atpos(typedim2role,nqp::objprimspec(my \T = self.of)),
                 nqp::isle_i($dims,3) && $dims
               )
-            )),
-            nqp::if(   # set name if needed
-              nqp::isne_s(shaped-type.^name,self.WHAT.^name),
-              shaped-type.^set_name(self.WHAT.^name)
-            ),
+            );
+            shaped-type.^set_name(self.WHAT.^name)        # set name if needed
+              if nqp::isne_s(shaped-type.^name,self.WHAT.^name);
+
             # Allocate array storage for this shape, based on calculated type.
             Rakudo::Internals.SHAPED-ARRAY-STORAGE(shape,shaped-type.HOW,T)
-          ),
-          X::NotEnoughDimensions.new(
-            operation         => 'create',
-            got-dimensions    => $dims,
-            needed-dimensions => '',
-          ).throw
-        )
+        }
+        else {
+            X::NotEnoughDimensions.new(
+              operation         => 'create',
+              got-dimensions    => $dims,
+              needed-dimensions => '',
+            ).throw
+        }
     }
 
     method BIND-POS(|) {

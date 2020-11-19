@@ -1379,7 +1379,7 @@ my class Array { # declared in BOOTSTRAP
     my constant \dim2role =
       nqp::list(Array::Shaped,Array::Shaped1,Array::Shaped2,Array::Shaped3);
 
-    proto method  set-shape(|) is implementation-detail {*}
+    proto method set-shape(|) is implementation-detail {*}
     multi method set-shape(Whatever) is raw {
         nqp::create(self.WHAT)
     }
@@ -1397,7 +1397,7 @@ my class Array { # declared in BOOTSTRAP
         }
 
         # we haz dimensions
-        elsif nqp::isgt_i($dims,0) {
+        elsif $dims {
             my $what := self.WHAT.^mixin(
               nqp::atpos(dim2role,nqp::isle_i($dims,3) && $dims)
             );

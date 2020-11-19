@@ -81,6 +81,9 @@ class Perl6::Compiler is HLL::Compiler {
             $!language_version := %*COMPILING<%?OPTIONS><language_version> || self.config<language-version>
         }
     }
+    method language_revision() {
+        nqp::substr(self.language_version,2,1)
+    }
     method language_modifier() {
         $!language_modifier
     }

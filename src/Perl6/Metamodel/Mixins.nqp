@@ -67,7 +67,14 @@ role Perl6::Metamodel::Mixins {
             nqp::join(',', @role_names) ~ '}';
 
         my @role_shortnames;
-        for @roles { my $cur := $_; @role_shortnames.push(~$_.HOW.shortname($_)); }
+        my $lang_rev := nqp::getcomp('Raku').language_revision;
+        for @roles {
+            my $cur := $_;
+            @role_shortnames.push(~$_.HOW.shortname($_));
+            my $role_lrev := $_.HOW.language-revision($_)
+                if nqp::can($_.HOW, 'language-revision');
+            $lang_rev := $role_lrev if $role_lrev && nqp::islt_s($lang_rev, $role_lrev);
+        }
         my $new_shortname := $obj.HOW.shortname($obj) ~ '+{' ~
             nqp::join(',', @role_shortnames) ~ '}';
 
@@ -75,6 +82,7 @@ role Perl6::Metamodel::Mixins {
         # all the roles we're mixing it.
         my $new_type := self.new_type(:name($new_name), :repr($obj.REPR), :is_mixin);
         $new_type.HOW.set_is_mixin($new_type);
+        $new_type.HOW.set_language_revision($new_type, $lang_rev);
         $new_type.HOW.add_parent($new_type, $obj.WHAT);
         for @roles {
             $new_type.HOW.add_role($new_type, $_);

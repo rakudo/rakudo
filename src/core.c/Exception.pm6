@@ -2951,6 +2951,16 @@ my class X::PhaserExceptions is Exception {
     }
 }
 
+my class X::Language::IncompatRevisions is Exception {
+    has Mu $.type-a is built(:bind) is required;
+    has Mu $.type-b is built(:bind) is required;
+    method message() {
+        "Type object "
+        ~ $!type-a.^name ~ " of " ~ $!type-a.^language-version
+        ~ " is not compatible with "
+        ~ $!type-b.^name ~ " of " ~ $!type-b.^language-version
+    }
+}
 
 #?if !moar
 nqp::bindcurhllsym('P6EX', nqp::hash(
@@ -3280,5 +3290,8 @@ my class Exceptions::JSON {
         False  # done processing
     }
 }
+
+# Provide means of accessing any X:: exception to the Metamodel.
+Metamodel::Configuration.set_X_package(X);
 
 # vim: expandtab shiftwidth=4

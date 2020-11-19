@@ -693,9 +693,10 @@ class Perl6::World is HLL::World {
                 $!setting_revision := nqp::substr($!setting_name, 5, 1);
                 # Compile core with default language version unless the core revision is higher. I.e. when 6.d is the
                 # default only core.e will be compiled with 6.e compiler.
-                nqp::getcomp('Raku').set_language_version( nqp::isgt_s($!setting_revision, $default_revision)
-                                                            ?? $!setting_revision
-                                                            !! $default_revision );
+                my $lang_ver := '6.' ~ (nqp::isgt_s($!setting_revision, $default_revision)
+                                            ?? $!setting_revision
+                                            !! $default_revision);
+                nqp::getcomp('Raku').set_language_version($lang_ver);
             }
             $*UNIT.annotate('IN_DECL', 'mainline');
         }

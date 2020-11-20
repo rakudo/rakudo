@@ -137,6 +137,13 @@ class Perl6::Metamodel::CoercionHOW
             return $value
         }
 
+        # Support nested coercions
+        if nqp::can($!constraint_type.HOW.archetypes, 'coercive')
+            && $!constraint_type.HOW.archetypes.coercive
+        {
+            $value := $!constraint_type.HOW.coerce($!constraint_type, $value);
+        }
+
         my $hint;
         my $coerced_value := nqp::null();
         my $value_type := nqp::what($value);

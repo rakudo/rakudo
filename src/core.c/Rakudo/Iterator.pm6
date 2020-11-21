@@ -77,7 +77,7 @@ class Rakudo::Iterator {
         method new(\hash) { nqp::create(self)!SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method deterministic(--> False) { }
     }
 
     # Generic role for iterating over a Map / Hash that has pairs
@@ -142,7 +142,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method deterministic(--> False) { }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
 

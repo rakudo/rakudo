@@ -24,12 +24,15 @@ multi sub cas($target is rw, \expected, \value) {
 }
 multi sub cas($target is rw, &code) {
     my $current := nqp::atomicload($target);
-    loop {
-        my $updated := code($current);
-        my $seen := nqp::cas($target, $current, $updated);
-        return $updated if nqp::eqaddr($seen, $current);
-        $current := $seen;
-    }
+    nqp::until(
+      nqp::stmts(
+        (my $updated := code($current)),
+        (my $seen := nqp::cas($target, $current, $updated)),
+        nqp::eqaddr($seen, $current)
+      ),
+      $current := $seen
+    );
+    $updated
 }
 
 #== Native integer atomics only available on MoarVM ==============================

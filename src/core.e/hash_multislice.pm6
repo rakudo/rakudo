@@ -345,9 +345,10 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             elsif $dim < $dims {
                 $dim++;  # going higher
                 if nqp::istype(idx,Whatever) {
-                    $return-list = $non-deterministic = 1;
+                    $return-list = 1;
                     my \next-idx := nqp::atpos($indices,$dim);
                     my $iterator := SELF.keys.iterator;
+                    $non-deterministic = 1 unless $iterator.deterministic;
                     nqp::until(
                       nqp::eqaddr(
                         (my \pulled := $iterator.pull-one),
@@ -365,8 +366,9 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
             }
             # $next-dim == $dims, reached leaves
             elsif nqp::istype(idx,Whatever) {
-                $return-list = $non-deterministic = 1;
+                $return-list = 1;
                 my $iterator := SELF.keys.iterator;
+                $non-deterministic = 1 unless $iterator.deterministic;
                 nqp::until(
                   nqp::eqaddr((my \pulled := $iterator.pull-one),IterationEnd),
                   nqp::push(target,SELF.AT-KEY(pulled))

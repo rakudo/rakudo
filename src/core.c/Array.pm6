@@ -1331,6 +1331,7 @@ my class Array { # declared in BOOTSTRAP
               IterationEnd
             )
         }
+        method deterministic(--> False) { }
     }
     multi method grab(Array:D: \count --> Seq:D) {
         Seq.new(

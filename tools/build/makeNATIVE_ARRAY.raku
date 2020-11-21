@@ -604,6 +604,7 @@ for $*IN.lines -> $line {
                   IterationEnd
                 )
             }
+            method deterministic(--> False) { }
         }
         multi method grab(#type#array:D: \count --> Seq:D) {
             Seq.new(

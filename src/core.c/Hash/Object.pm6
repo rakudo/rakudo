@@ -238,6 +238,7 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
             )
         }
         method is-lazy() { $!count == Inf }
+        method deterministic(--> False) { }
     }
     multi method roll(::?CLASS:D: $count) {
         Seq.new(

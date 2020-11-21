@@ -596,6 +596,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
         method is-lazy() { $!count == Inf }
+        method deterministic(--> False) { }
     }
     multi method roll(Map:D: $count) {
         Seq.new(

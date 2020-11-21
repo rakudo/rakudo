@@ -1034,6 +1034,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               ($!elems  = $elems)
             )
         }
+        method deterministic(--> False) { }
     }
     multi method pick(List:D: $number is copy) {
         fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
@@ -1103,6 +1104,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               ($!todo = $todo)
             )
         }
+        method deterministic(--> False) { }
     }
     multi method roll(List:D: \number) {
         number == Inf

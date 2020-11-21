@@ -94,7 +94,7 @@ my class array does Iterable {
 
     my role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2020-11-19T15:14:01+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-11-21T17:31:31+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -651,6 +651,7 @@ my class array does Iterable {
                   IterationEnd
                 )
             }
+            method deterministic(--> False) { }
         }
         multi method grab(strarray:D: \count --> Seq:D) {
             Seq.new(
@@ -688,7 +689,7 @@ my class array does Iterable {
 
     my role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2020-11-19T15:14:01+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-11-21T17:31:31+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1245,6 +1246,7 @@ my class array does Iterable {
                   IterationEnd
                 )
             }
+            method deterministic(--> False) { }
         }
         multi method grab(intarray:D: \count --> Seq:D) {
             Seq.new(
@@ -1334,7 +1336,7 @@ my class array does Iterable {
 
     my role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2020-11-19T15:14:01+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2020-11-21T17:31:31+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1891,6 +1893,7 @@ my class array does Iterable {
                   IterationEnd
                 )
             }
+            method deterministic(--> False) { }
         }
         multi method grab(numarray:D: \count --> Seq:D) {
             Seq.new(

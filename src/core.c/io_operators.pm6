@@ -130,12 +130,15 @@ multi sub slurp(IO() $path, :$bin!) { $path.slurp(:$bin) }
 multi sub slurp(IO() $path, :$enc ) { $path.slurp(:$enc) }
 multi sub slurp(IO() $path        ) { $path.slurp(:enc<utf8>) }
 
-proto sub spurt($, $, |) {*}
+proto sub spurt($, |) {*}
 # Don't do anything special for the IO::Handle, as using spurt() as a sub
 # when you've gone through the trouble of creating an IO::Handle, is not
 # so likely, as you would probably just call the .spurt method on the handle.
 multi sub spurt(IO::Handle:D $fh, $data, *%_) is default {
     $fh.spurt($data, |%_)
+}
+multi sub spurt(IO() $path) {
+    $path.spurt
 }
 multi sub spurt(IO() $path, Blob:D \data, :$append!) {
     $path.spurt(data, :$append)

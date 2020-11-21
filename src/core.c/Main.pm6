@@ -51,10 +51,31 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
         my $positional := nqp::create(IterationBuffer);
         my %named;
 
+        my &coercer = &val;
+        if %sub-main-opts<coerce-allomorphs-to>:exists {
+            my $type := %sub-main-opts<coerce-allomorphs-to><>;
+            if   $type =:= Numeric
+              || $type =:= Int
+              || $type =:= Rat
+              || $type =:= Num
+              || $type =:= Complex
+              || $type =:= Str {
+                my $method := $type.^name;
+                &coercer = -> \value {
+                    (my \result := val(value)) ~~ Allomorph
+                      ?? result."$method"()
+                      !! result
+                }
+            }
+            else {
+                die "Unsupported allomorph coercion: { $type.raku }";
+            }
+        }
+
         sub thevalue(\a) {
             ((my \type := ::(a)) andthen Metamodel::EnumHOW.ACCEPTS(type.HOW))
               ?? type
-              !! val(a)
+              !! coercer(a)
         }
 
         while @args {

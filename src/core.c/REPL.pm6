@@ -358,29 +358,44 @@ do {
                     next;
                 }
 
-                if $*MAIN_CTX {
-                    $!save_ctx := $*MAIN_CTX;
-                }
-
-                reset;
-
-                # Print the result if:
-                # - there wasn't some other output
-                # - the result is an *unhandled* Failure
-                # - print an exception if one had occured
+                # Handle problems
                 if $exception.DEFINITE {
                     self.repl-print($exception);
                 }
-                elsif $initial_out_position == $*OUT.tell
-                    or nqp::istype($output, Failure) and not $output.handled {
+                elsif nqp::istype($output, Failure) and not $output.handled {
                     self.repl-print($output);
                 }
 
+                # If there was no explicit output (and no error seen yet),
+                # then assume something was being set up (such as a multi
+                # candidate) which would need to be included in any
+                # subsequent input.  Basically treat this as an incomplete
+                # input so that it will be part of the next line entered.
+                # But only do this *if* printing the output was succesful!
+                # If the output was e.g. a lazy Seq that blows up the moment
+                # it gets stringified, then we treat it as an error by
+                # falling through after all.
+                elsif $initial_out_position == $*OUT.tell {
+                    if self.repl-print($output) {
+                        $code ~= ";";  # make sure statement is finished
+                        next;
+                    }
+                }
+
+                # Start with clean slate otherwise
+                if $*MAIN_CTX {
+                    $!save_ctx := $*MAIN_CTX;
+                }
+                reset;
+
                 # Why doesn't the catch-default in repl-eval catch all?
+                # Because the return value can be something lazy that blows
+                # up on stringification.  But that should be handled by
+                # the CATCH in repl-print.  So this CATCH is really only
+                # a fallback for the case that something goes awry in here.
                 CATCH {
                     default { say $_; reset }
                 }
-
             }
 
             self.teardown;
@@ -402,15 +417,19 @@ do {
               and $value.WHERE == $!control-not-allowed.WHERE
         }
 
-        method repl-print(Mu $value --> Nil) {
+        method repl-print(Mu $value --> Bool:D) {
             my $method := %*ENV<RAKU_REPL_OUTPUT_METHOD> // "gist";
             nqp::can($value,$method)
               and say $value."$method"()
               or say "(low-level object `$value.^name()`)";
 
             CATCH {
-                default { say ."$method"() }
+                default {
+                    say ."$method"();
+                    return False;
+                }
             }
+            True
         }
 
         method history-file(--> Str:D) {

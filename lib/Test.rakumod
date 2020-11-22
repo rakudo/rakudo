@@ -5,7 +5,7 @@ unit module Test;
 
 # settable from outside
 my int $raku_test_times =
-  ?(%*ENV<RAKU_TEST_TIME> // %*ENV<PERL6_TEST_TIMES>);
+  ?(%*ENV<RAKU_TEST_TIMES> // %*ENV<PERL6_TEST_TIMES>);
 my int $die_on_fail =
   ?(%*ENV<RAKU_TEST_DIE_ON_FAIL> // %*ENV<PERL6_TEST_DIE_ON_FAIL>);
 

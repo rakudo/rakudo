@@ -92,28 +92,27 @@ multi sub infix:<(-)>(Any \a, Any \b) { infix:<(-)>(a.Set,b.Set) }
 multi sub infix:<(-)>(+@p) {   # also Any
 
     sub subtract(Mu \elems, Mu \iter, \clone, \value --> Nil) {
-        nqp::stmts(
-          (my $pair := nqp::ifnull(
-            nqp::atkey(elems, nqp::iterkey_s(iter)),
-            nqp::bindkey(
-              elems,
-              nqp::iterkey_s(iter),
-              nqp::if(
-                clone,
-                nqp::p6bindattrinvres(
-                  nqp::clone(nqp::iterval(iter)),
-                  Pair,
-                  '$!value',
-                  0
-                ),
-                Pair.new(nqp::iterval(iter),0)
-              )
+        my $pair := nqp::ifnull(
+          nqp::atkey(elems, nqp::iterkey_s(iter)),
+          nqp::bindkey(
+            elems,
+            nqp::iterkey_s(iter),
+            nqp::if(
+              clone,
+              nqp::p6bindattrinvres(
+                nqp::clone(nqp::iterval(iter)),
+                Pair,
+                '$!value',
+                0
+              ),
+              Pair.new(nqp::iterval(iter),0)
             )
-          )),
-          nqp::bindattr($pair,Pair,'$!value',
-            nqp::getattr($pair,Pair,'$!value') - value
           )
-        )
+        );
+
+        nqp::bindattr($pair,Pair,'$!value',
+          nqp::getattr($pair,Pair,'$!value') - value
+        );
     }
 
     nqp::if(

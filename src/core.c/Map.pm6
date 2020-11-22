@@ -49,27 +49,25 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method Str(Map:D: --> Str:D) { self.sort.join("\n") }
 
     method IterationBuffer(--> IterationBuffer:D) {
-        nqp::stmts(
-          (my \buffer := nqp::create(IterationBuffer)),
-          nqp::if(
-            nqp::elems($!storage),
-            nqp::stmts(
-              (my \iterator := nqp::iterator($!storage)),
-              nqp::setelems(buffer,nqp::elems($!storage)),
-              (my int $i = -1),
-              nqp::while(
-                iterator,
-                nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
-                  Pair.new(
-                    nqp::iterkey_s(nqp::shift(iterator)),
-                    nqp::iterval(iterator)
-                  )
+        my \buffer := nqp::create(IterationBuffer);
+        nqp::if(
+          nqp::elems($!storage),
+          nqp::stmts(
+            (my \iterator := nqp::iterator($!storage)),
+            nqp::setelems(buffer,nqp::elems($!storage)),
+            (my int $i = -1),
+            nqp::while(
+              iterator,
+              nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
+                Pair.new(
+                  nqp::iterkey_s(nqp::shift(iterator)),
+                  nqp::iterval(iterator)
                 )
               )
             )
-          ),
-          buffer
-        )
+          )
+        );
+        buffer
     }
 
     method List(--> List:D) { self.IterationBuffer.List }
@@ -391,68 +389,64 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     # Store the contents of an iterator into the Map
     method !STORE_MAP_FROM_ITERATOR_DECONT(\iter --> Map:D) is raw {
-        nqp::stmts(
-            nqp::until(
-              nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
-              nqp::if(
-                nqp::istype($x,Pair),
-                nqp::bindkey(
-                  $!storage,
-                  nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
-                  nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
-                ),
-                nqp::if(
-                  (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
-                  self!STORE_MAP_DECONT($x),
-                  nqp::if(
-                    nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
-                    nqp::if(
-                      nqp::istype($x,Failure),
-                      $x.throw,
-                      X::Hash::Store::OddNumber.new(
-                        found => self.elems * 2 + 1,
-                        last  => $x
-                      ).throw
-                    ),
-                    nqp::bindkey($!storage,$x.Str,nqp::decont($y))
-                  )
-                )
-              )
+        nqp::until(
+          nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype($x,Pair),
+            nqp::bindkey(
+              $!storage,
+              nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
+              nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
             ),
-            self
-        )
+            nqp::if(
+              (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+              self!STORE_MAP_DECONT($x),
+              nqp::if(
+                nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::istype($x,Failure),
+                  $x.throw,
+                  X::Hash::Store::OddNumber.new(
+                    found => self.elems * 2 + 1,
+                    last  => $x
+                  ).throw
+                ),
+                nqp::bindkey($!storage,$x.Str,nqp::decont($y))
+              )
+            )
+          )
+        );
+        self
     }
     method !STORE_MAP_FROM_ITERATOR(\iter --> Map:D) is raw {
-        nqp::stmts(
-            nqp::until(
-              nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
-              nqp::if(
-                nqp::istype($x,Pair),
-                nqp::bindkey(
-                  $!storage,
-                  nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
-                  nqp::getattr(nqp::decont($x),Pair,'$!value')
-                ),
-                nqp::if(
-                  (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
-                  self!STORE_MAP($x),
-                  nqp::if(
-                    nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
-                    nqp::if(
-                      nqp::istype($x,Failure),
-                      $x.throw,
-                      X::Hash::Store::OddNumber.new(
-                        found => self.elems * 2 + 1,
-                        last  => $x
-                      ).throw
-                    ),
-                    nqp::bindkey($!storage,$x.Str,$y)
-                  )
-                )
-              )
+        nqp::until(
+          nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype($x,Pair),
+            nqp::bindkey(
+              $!storage,
+              nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
+              nqp::getattr(nqp::decont($x),Pair,'$!value')
             ),
-            self
-        )
+            nqp::if(
+              (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+              self!STORE_MAP($x),
+              nqp::if(
+                nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::istype($x,Failure),
+                  $x.throw,
+                  X::Hash::Store::OddNumber.new(
+                    found => self.elems * 2 + 1,
+                    last  => $x
+                  ).throw
+                ),
+                nqp::bindkey($!storage,$x.Str,$y)
+              )
+            )
+          )
+        );
+        self
     }
 
     proto method STORE(Map:D: |) {*}
@@ -557,20 +551,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         has $!count;
 
         method !SET-SELF(\hash,\count) {
-            nqp::stmts(
-              ($!storage := nqp::getattr(hash,Map,'$!storage')),
-              ($!count = count),
-              (my int $i = nqp::elems($!storage)),
-              (my \iter := nqp::iterator($!storage)),
-              ($!keys := nqp::setelems(nqp::list_s,$i)),
-              ($!pairs := nqp::setelems(nqp::list,$i)),
-              nqp::while(
-                nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-                nqp::bindpos_s($!keys,$i,
-                  nqp::iterkey_s(nqp::shift(iter)))
-              ),
-              self
-            )
+            $!storage := nqp::getattr(hash,Map,'$!storage');
+            $!count = count;
+            my int $i = nqp::elems($!storage);
+            my \iter := nqp::iterator($!storage);
+            $!keys := nqp::setelems(nqp::list_s,$i);
+            $!pairs := nqp::setelems(nqp::list,$i);
+
+            nqp::while(
+              nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+              nqp::bindpos_s($!keys,$i,
+                nqp::iterkey_s(nqp::shift(iter)))
+            );
+            self
         }
         method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
         method pull-one() {

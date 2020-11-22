@@ -121,48 +121,48 @@ my class MixHash does Mixy {
         # logic is therefore basically the same as in AT-KEY,
         # except for tests for allocated storage and .WHICH
         # processing.
-        nqp::stmts(
-          # save for possible object recreation
-          (my $pair := nqp::atkey(elems,$key)),
 
-          Proxy.new(
-            FETCH => {
-                nqp::existskey(elems,$key)
-                  ?? nqp::getattr(nqp::atkey(elems,$key),Pair,'$!value')
-                  !! 0
-            },
-            STORE => -> $, Real() \value {
+        # save for possible object recreation
+        my $pair := nqp::atkey(elems,$key);
+
+        Proxy.new(
+          FETCH => {
+              nqp::existskey(elems,$key)
+                ?? nqp::getattr(nqp::atkey(elems,$key),Pair,'$!value')
+                !! 0
+          },
+          STORE => -> $, Real() \value {
+              nqp::if(
+                # https://github.com/Raku/old-issue-tracker/issues/5567
+                nqp::istype(value,Failure),
+                value.throw,
                 nqp::if(
-                  nqp::istype(value,Failure),  # https://github.com/Raku/old-issue-tracker/issues/5567
-                  value.throw,
-                  nqp::if(
-                    nqp::existskey(elems,$key),
-                    nqp::if(                    # existing element
-                      value == 0,
-                      nqp::stmts(               # goodbye!
-                        nqp::deletekey(elems,$key),
-                        0
-                      ),
-                      nqp::bindattr(            # value ok
-                        nqp::atkey(elems,$key),
-                        Pair,
-                        '$!value',
-                        nqp::decont(value)
-                      )
+                  nqp::existskey(elems,$key),
+                  nqp::if(                    # existing element
+                    value == 0,
+                    nqp::stmts(               # goodbye!
+                      nqp::deletekey(elems,$key),
+                      0
                     ),
-                    nqp::unless(                # where did it go?
-                      value == 0,
-                      nqp::bindattr(
-                        nqp::bindkey(elems,$key,$pair),
-                        Pair,
-                        '$!value',
-                        nqp::decont(value)
-                      )
+                    nqp::bindattr(            # value ok
+                      nqp::atkey(elems,$key),
+                      Pair,
+                      '$!value',
+                      nqp::decont(value)
+                    )
+                  ),
+                  nqp::unless(                # where did it go?
+                    value == 0,
+                    nqp::bindattr(
+                      nqp::bindkey(elems,$key,$pair),
+                      Pair,
+                      '$!value',
+                      nqp::decont(value)
                     )
                   )
                 )
-            }
-          )
+              )
+          }
         )
     }
 

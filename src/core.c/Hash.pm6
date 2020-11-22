@@ -59,15 +59,13 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
     method !STORE_MAP(\map --> Nil) {
-        nqp::stmts(
-          (my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'))),
-          nqp::while(
-            $iter,
-            self.STORE_AT_KEY(
-              nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
-            )
+        my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'));
+        nqp::while(
+          $iter,
+          self.STORE_AT_KEY(
+            nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
           )
-        )
+        );
     }
 
     proto method STORE(|) {*}

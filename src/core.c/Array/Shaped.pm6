@@ -12,75 +12,72 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     # If dimensions <= 3, then custom AT-POS should have caught
     # correct number of indices already.
     multi method AT-POS(::?CLASS:D: **@indices) is raw {
-        nqp::stmts(
-          (my \reified := nqp::getattr(self,List,'$!reified')),
-          nqp::if(
-            nqp::islt_i(
-              @indices.elems,                    # reifies
-              (my int $numdims = nqp::numdimensions(reified))
+        my \reified := nqp::getattr(self,List,'$!reified');
+        nqp::if(
+          nqp::islt_i(
+            @indices.elems,                    # reifies
+            (my int $numdims = nqp::numdimensions(reified))
+          ),
+          X::NYI.new(
+            feature => "Partially dimensioned views of shaped arrays").throw,
+          nqp::stmts(
+            (my \indices := nqp::getattr(@indices,List,'$!reified')),
+            (my \idxs := nqp::list_i),
+            nqp::while(                        # native index list
+              nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+              nqp::push_i(idxs,nqp::shift(indices))
             ),
-            X::NYI.new(
-              feature => "Partially dimensioned views of shaped arrays").throw,
-            nqp::stmts(
-              (my \indices := nqp::getattr(@indices,List,'$!reified')),
-              (my \idxs := nqp::list_i),
-              nqp::while(                        # native index list
-                nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
-                nqp::push_i(idxs,nqp::shift(indices))
-              ),
-              (my \element := nqp::ifnull(
-                nqp::atposnd(reified,idxs),      # found it
-                nqp::p6scalarfromdesc(
-                  ContainerDescriptor::BindArrayPosND.new(
-                    nqp::getattr(self, Array, '$!descriptor'),
-                    reified, idxs
-                  )
+            (my \element := nqp::ifnull(
+              nqp::atposnd(reified,idxs),      # found it
+              nqp::p6scalarfromdesc(
+                ContainerDescriptor::BindArrayPosND.new(
+                  nqp::getattr(self, Array, '$!descriptor'),
+                  reified, idxs
                 )
-              )),
-              nqp::if(
-                nqp::elems(indices),
-                element.AT-POS(|@indices),       # index further
-                element                          # we're done!
               )
+            )),
+            nqp::if(
+              nqp::elems(indices),
+              element.AT-POS(|@indices),       # index further
+              element                          # we're done!
             )
           )
         )
     }
 
     multi method ASSIGN-POS(::?CLASS:D: **@indices-value) {
-        nqp::stmts(
-          (my \value   := @indices-value.pop),   # reifies
-          (my \indices := nqp::getattr(@indices-value,List,'$!reified')),
-          (my \reified := nqp::getattr(self,List,'$!reified')),
-          nqp::if(
-            nqp::isge_i(
-              (my int $numind  = nqp::elems(indices)),
-              (my int $numdims = nqp::numdimensions(reified))
+        my \value   := @indices-value.pop;   # reifies
+        my \indices := nqp::getattr(@indices-value,List,'$!reified');
+        my \reified := nqp::getattr(self,List,'$!reified');
+
+        nqp::if(
+          nqp::isge_i(
+            (my int $numind  = nqp::elems(indices)),
+            (my int $numdims = nqp::numdimensions(reified))
+          ),
+          nqp::stmts(                          # more than enough indices
+            (my \idxs := nqp::list_i),
+            nqp::while(                        # native index list
+              nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+              nqp::push_i(idxs,nqp::shift(indices))
             ),
-            nqp::stmts(                          # more than enough indices
-              (my \idxs := nqp::list_i),
-              nqp::while(                        # native index list
-                nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
-                nqp::push_i(idxs,nqp::shift(indices))
-              ),
-              (my \element := nqp::ifnull(
-                nqp::atposnd(reified,idxs),      # found it!
-                nqp::bindposnd(reified,idxs,     # create new scalar
-                  nqp::p6scalarfromdesc(
-                    nqp::getattr(self,Array,'$!descriptor')))
-              )),
-              nqp::if(
-                nqp::elems(indices),
-                element.AT-POS(|@indices-value), # go deeper
-                element                          # this is it
-              ) = value                         # and assign
-            ),
-            X::NotEnoughDimensions.new(          # too few indices
-              operation         => 'assign to',
-              got-dimensions    => $numind,
-              needed-dimensions => $numdims
-            ).throw
-          )
+            (my \element := nqp::ifnull(
+              nqp::atposnd(reified,idxs),      # found it!
+              nqp::bindposnd(reified,idxs,     # create new scalar
+                nqp::p6scalarfromdesc(
+                  nqp::getattr(self,Array,'$!descriptor')))
+            )),
+            nqp::if(
+              nqp::elems(indices),
+              element.AT-POS(|@indices-value), # go deeper
+              element                          # this is it
+            ) = value                         # and assign
+          ),
+          X::NotEnoughDimensions.new(          # too few indices
+            operation         => 'assign to',
+            got-dimensions    => $numind,
+            needed-dimensions => $numdims
+          ).throw
         )
     }
 
@@ -142,42 +139,41 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     }
 
     multi method DELETE-POS(::?CLASS:D: **@indices) {
-        nqp::stmts(
-          (my int $numind = @indices.elems),     # reifies
-          (my \indices := nqp::getattr(@indices,List,'$!reified')),
-          (my \reified := nqp::getattr(self,List,'$!reified')),
-          (my int $i = -1),
-          nqp::if(
-            nqp::isge_i(
-              $numind,
-              (my int $numdims = nqp::numdimensions(reified)),
+        my int $numind = @indices.elems;     # reifies
+        my \indices := nqp::getattr(@indices,List,'$!reified');
+        my \reified := nqp::getattr(self,List,'$!reified');
+        my int $i = -1;
+
+        nqp::if(
+          nqp::isge_i(
+            $numind,
+            (my int $numdims = nqp::numdimensions(reified)),
+          ),
+          nqp::stmts(                          # same or more indices
+            (my \idxs := nqp::list_i),
+            nqp::while(
+              nqp::islt_i(                     # still indices left
+                ($i = nqp::add_i($i,1)),$numind),
+              nqp::push_i(idxs,nqp::shift(indices)),
             ),
-            nqp::stmts(                          # same or more indices
-              (my \idxs := nqp::list_i),
-              nqp::while(
-                nqp::islt_i(                     # still indices left
-                  ($i = nqp::add_i($i,1)),$numind),
-                nqp::push_i(idxs,nqp::shift(indices)),
-              ),
+            nqp::if(
+              nqp::isnull(my \value := nqp::atposnd(reified,idxs)),
+              Nil,                             # nothing here
               nqp::if(
-                nqp::isnull(my \value := nqp::atposnd(reified,idxs)),
-                Nil,                             # nothing here
-                nqp::if(
-                  nqp::elems(indices),
-                  value.DELETE-POS(|@indices),   # delete at deeper level
-                  nqp::stmts(                    # found it, nullify here
-                    nqp::bindposnd(reified,idxs,nqp::null),
-                    value
-                  )
+                nqp::elems(indices),
+                value.DELETE-POS(|@indices),   # delete at deeper level
+                nqp::stmts(                    # found it, nullify here
+                  nqp::bindposnd(reified,idxs,nqp::null),
+                  value
                 )
               )
-            ),
-            X::NotEnoughDimensions.new(          # fewer inds than dims
-              operation         => 'delete from',
-              got-dimensions    => $numind,
-              needed-dimensions => $numdims
-            ).throw
-          )
+            )
+          ),
+          X::NotEnoughDimensions.new(          # fewer inds than dims
+            operation         => 'delete from',
+            got-dimensions    => $numind,
+            needed-dimensions => $numdims
+          ).throw
         )
     }
 
@@ -193,36 +189,35 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     }
 
     multi method BIND-POS(::?CLASS:D: **@indices) is raw {
-        nqp::stmts(
-          (my \value   := nqp::decont(@indices.pop)), # reifies
-          (my \indices := nqp::getattr(@indices,List,'$!reified')),
-          (my \reified := nqp::getattr(self,List,'$!reified')),
-          (my int $i = -1),
-          nqp::if(
-            nqp::isge_i(
-              (my int $numind  = nqp::elems(indices)),
-              (my int $numdims = nqp::numdimensions(reified)),
+        my \value   := nqp::decont(@indices.pop); # reifies
+        my \indices := nqp::getattr(@indices,List,'$!reified');
+        my \reified := nqp::getattr(self,List,'$!reified');
+        my int $i = -1;
+
+        nqp::if(
+          nqp::isge_i(
+            (my int $numind  = nqp::elems(indices)),
+            (my int $numdims = nqp::numdimensions(reified)),
+          ),
+          nqp::stmts(                               # same or more indices
+            (my \idxs := nqp::list_i),
+            nqp::while(
+              nqp::islt_i(                          # still indices left
+                ($i = nqp::add_i($i,1)),$numind),
+              nqp::push_i(idxs,nqp::shift(indices))
             ),
-            nqp::stmts(                               # same or more indices
-              (my \idxs := nqp::list_i),
-              nqp::while(
-                nqp::islt_i(                          # still indices left
-                  ($i = nqp::add_i($i,1)),$numind),
-                nqp::push_i(idxs,nqp::shift(indices))
-              ),
-              nqp::if(
-                nqp::elems(indices),
-                nqp::atposnd(reified,idxs)            # bind at deeper level
-                  .BIND-POS(|@indices,value),
-                nqp::bindposnd(reified,idxs,value)    # found it, bind here
-              )
-            ),
-            X::NotEnoughDimensions.new(               # fewer inds than dims
-              operation         => 'bind to',
-              got-dimensions    => $numind,
-              needed-dimensions => $numdims
-            ).throw
-          )
+            nqp::if(
+              nqp::elems(indices),
+              nqp::atposnd(reified,idxs)            # bind at deeper level
+                .BIND-POS(|@indices,value),
+              nqp::bindposnd(reified,idxs,value)    # found it, bind here
+            )
+          ),
+          X::NotEnoughDimensions.new(               # fewer inds than dims
+            operation         => 'bind to',
+            got-dimensions    => $numind,
+            needed-dimensions => $numdims
+          ).throw
         )
     }
 
@@ -230,11 +225,9 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         has $!from;
         has $!desc;
         method !INIT(Mu \to, Mu \from) {
-            nqp::stmts(
-              ($!from := nqp::getattr(from,List,'$!reified')),
-              ($!desc := nqp::getattr(from,Array,'$!descriptor')),
-              self!SET-SELF(to)
-            )
+            $!from := nqp::getattr(from,List,'$!reified');
+            $!desc := nqp::getattr(from,Array,'$!descriptor');
+            self!SET-SELF(to)
         }
         method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
         method result(--> Nil) {
@@ -250,10 +243,8 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     my class IntCopy does Rakudo::Iterator::ShapeLeaf {
         has $!from;
         method !INIT(Mu \to, Mu \from) {
-            nqp::stmts(
-              ($!from := from),
-              self!SET-SELF(to)
-            )
+            $!from := from;
+            self!SET-SELF(to)
         }
         method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
         method result(--> Nil) {
@@ -268,10 +259,8 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     my class NumCopy does Rakudo::Iterator::ShapeLeaf {
         has $!from;
         method !INIT(Mu \to, Mu \from) {
-            nqp::stmts(
-              ($!from := from),
-              self!SET-SELF(to)
-            )
+            $!from := from;
+            self!SET-SELF(to)
         }
         method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
         method result(--> Nil) {
@@ -328,15 +317,13 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         has $!iterators;
         has $!desc;
         method !INIT(\to,\from) {
-            nqp::stmts(
-              self!SET-SELF(to),
-              ($!desc := nqp::getattr(to,Array,'$!descriptor')),
-              ($!iterators := nqp::setelems(
+            self!SET-SELF(to);
+            $!desc := nqp::getattr(to,Array,'$!descriptor');
+            $!iterators := nqp::setelems(
                 nqp::list(from.iterator),
                 nqp::add_i($!maxdim,1)
-              )),
-              self
-            )
+            );
+            self
         }
         method new(\to,\from) { nqp::create(self)!INIT(to,from) }
         method done(--> Nil) {
@@ -348,45 +335,45 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
             )
         }
         method process(--> Nil) {
-            nqp::stmts(
-              (my int $i = $!level),
-              nqp::while(
-                nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
-                nqp::if(
-                  nqp::eqaddr((my $item :=      # exhausted ?
-                    nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
-                    IterationEnd
-                  ),
-                  nqp::bindpos($!iterators,$i,  # add an empty one
-                    Rakudo::Iterator.Empty),
-                  nqp::if(                      # is it an iterator?
-                    nqp::istype($item,Iterable) && nqp::isconcrete($item),
-                    nqp::bindpos($!iterators,$i,$item.iterator),
-                    X::Assignment::ToShaped.new(shape => self.dims).throw
-                  )
+            my int $i = $!level;
+            nqp::while(
+              nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+              nqp::if(
+                nqp::eqaddr((my $item :=      # exhausted ?
+                  nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
+                  IterationEnd
+                ),
+                nqp::bindpos($!iterators,$i,  # add an empty one
+                  Rakudo::Iterator.Empty),
+                nqp::if(                      # is it an iterator?
+                  nqp::istype($item,Iterable) && nqp::isconcrete($item),
+                  nqp::bindpos($!iterators,$i,$item.iterator),
+                  X::Assignment::ToShaped.new(shape => self.dims).throw
                 )
-              ),
-              (my $iter := nqp::atpos($!iterators,$!maxdim)),
-              nqp::until(                       # loop over highest dim
-                nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd)
-                  || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
-                nqp::stmts(
-                  (nqp::ifnull(                 # containerize if needed
-                    nqp::atposnd($!list,$!indices),
-                    nqp::bindposnd($!list,$!indices,
-                      nqp::p6scalarfromdesc($!desc))
-                  ) = $pulled),
-                  nqp::bindpos_i($!indices,$!maxdim,  # increment index
-                    nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
-                )
-              ),
-              nqp::unless(
-                nqp::eqaddr($pulled,IterationEnd) # if not exhausted
-                  || nqp::isle_i(                 # and index too high
-                       nqp::atpos_i($!indices,$!maxdim),$!maxind)
-                  || $iter.is-lazy,               # and not lazy
-                nqp::atposnd($!list,$!indices)    # error
               )
+            );
+
+            my $iter := nqp::atpos($!iterators,$!maxdim);
+            nqp::until(                       # loop over highest dim
+              nqp::eqaddr((my $pulled := $iter.pull-one),IterationEnd)
+                || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
+              nqp::stmts(
+                (nqp::ifnull(                 # containerize if needed
+                  nqp::atposnd($!list,$!indices),
+                  nqp::bindposnd($!list,$!indices,
+                    nqp::p6scalarfromdesc($!desc))
+                ) = $pulled),
+                nqp::bindpos_i($!indices,$!maxdim,  # increment index
+                  nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
+              )
+            );
+
+            nqp::unless(
+              nqp::eqaddr($pulled,IterationEnd) # if not exhausted
+                || nqp::isle_i(                 # and index too high
+                     nqp::atpos_i($!indices,$!maxdim),$!maxind)
+                || $iter.is-lazy,               # and not lazy
+              nqp::atposnd($!list,$!indices)    # error
             )
         }
     }
@@ -400,11 +387,9 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
         has Mu $!iterator;
         has Mu $!desc;
         method !INIT(\list,\iterator) {
-            nqp::stmts(
-              ($!iterator := iterator),
-              ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-              self!SET-SELF(list)
-            )
+            $!iterator := iterator;
+            $!desc := nqp::getattr(list,Array,'$!descriptor');
+            self!SET-SELF(list)
         }
         method new(\list,\iter) { nqp::create(self)!INIT(list,iter) }
         method result(--> Nil) {
@@ -456,10 +441,8 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     my class Pairs does Rakudo::Iterator::ShapeLeaf {
         has Mu $!desc;
         method !INIT(\list) {
-            nqp::stmts(
-              ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-              self!SET-SELF(list)
-            )
+            $!desc := nqp::getattr(list,Array,'$!descriptor');
+            self!SET-SELF(list)
         }
         method new(Mu \list) { nqp::create(self)!INIT(list) }
         method result() {
@@ -505,10 +488,8 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     my class Iterate does Rakudo::Iterator::ShapeLeaf {
         has Mu $!desc;
         method !INIT(\list) {
-            nqp::stmts(
-              ($!desc := nqp::getattr(list,Array,'$!descriptor')),
-              self!SET-SELF(list)
-            )
+            $!desc := nqp::getattr(list,Array,'$!descriptor');
+            self!SET-SELF(list)
         }
         method new(Mu \list) { nqp::create(self)!INIT(list) }
         method result() is raw {

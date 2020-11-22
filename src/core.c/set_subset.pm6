@@ -8,28 +8,26 @@
 
 proto sub infix:<<(<=)>>($, $, *% --> Bool:D) is pure {*}
 multi sub infix:<<(<=)>>(Setty:D \a, Setty:D \b --> Bool:D) {
-    nqp::stmts(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-        nqp::if(
-          (my \araw := a.RAW-HASH) && nqp::elems(araw),
-          nqp::if(                # number of elems in B *always* >= A
-            (my \braw := b.RAW-HASH)
-              && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
-              && (my \iter := nqp::iterator(araw)),
-            nqp::while(           # number of elems in B >= A
-              iter,
-              nqp::unless(
-                nqp::existskey(braw,nqp::iterkey_s(nqp::shift(iter))),
-                return False      # elem in A doesn't exist in B
-              )
-            ),
-            return False          # number of elems in B smaller than A
-          )
+    nqp::unless(
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+      nqp::if(
+        (my \araw := a.RAW-HASH) && nqp::elems(araw),
+        nqp::if(                # number of elems in B *always* >= A
+          (my \braw := b.RAW-HASH)
+            && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
+            && (my \iter := nqp::iterator(araw)),
+          nqp::while(           # number of elems in B >= A
+            iter,
+            nqp::unless(
+              nqp::existskey(braw,nqp::iterkey_s(nqp::shift(iter))),
+              return False      # elem in A doesn't exist in B
+            )
+          ),
+          return False          # number of elems in B smaller than A
         )
-      ),
-      True
-    )
+      )
+    );
+    True
 }
 multi sub infix:<<(<=)>>(Setty:D \a, Mixy:D  \b --> Bool:D) { a.Mix (<=) b }
 multi sub infix:<<(<=)>>(Setty:D \a, Baggy:D \b --> Bool:D) { a.Bag (<=) b }
@@ -48,38 +46,36 @@ multi sub infix:<<(<=)>>(Baggy:D \a, Mixy:D \b --> Bool:D) {
     Rakudo::QuantHash.MIX-IS-SUBSET(a, b)
 }
 multi sub infix:<<(<=)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
-    nqp::stmts(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-        nqp::if(
-          (my \araw := a.RAW-HASH) && nqp::elems(araw),
-          nqp::if(                # number of elems in B *always* >= A
-            (my \braw := b.RAW-HASH)
-              && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
-              && (my \iter := nqp::iterator(araw)),
-            nqp::while(           # number of elems in B >= A
-              iter,
-              nqp::unless(
-                nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!value')
-                  <=              # value in A should be less or equal than B
-                nqp::getattr(
-                  nqp::ifnull(
-                    nqp::atkey(braw,nqp::iterkey_s(iter)),
-                    BEGIN       # provide virtual value 0
-                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
-                  ),
-                  Pair,
-                  '$!value'
+    nqp::unless(
+      nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+      nqp::if(
+        (my \araw := a.RAW-HASH) && nqp::elems(araw),
+        nqp::if(                # number of elems in B *always* >= A
+          (my \braw := b.RAW-HASH)
+            && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
+            && (my \iter := nqp::iterator(araw)),
+          nqp::while(           # number of elems in B >= A
+            iter,
+            nqp::unless(
+              nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!value')
+                <=              # value in A should be less or equal than B
+              nqp::getattr(
+                nqp::ifnull(
+                  nqp::atkey(braw,nqp::iterkey_s(iter)),
+                  BEGIN       # provide virtual value 0
+                    nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
                 ),
-                return False
-              )
-            ),
-            return False          # number of elems in B smaller than A
-          )
+                Pair,
+                '$!value'
+              ),
+              return False
+            )
+          ),
+          return False          # number of elems in B smaller than A
         )
-      ),
-      True
-    )
+      )
+    );
+    True
 }
 multi sub infix:<<(<=)>>(Baggy:D \a, Setty:D \b --> Bool:D) { a (<=) b.Bag }
 multi sub infix:<<(<=)>>(Baggy:D \a, Any     \b --> Bool:D) { a (<=) b.Bag }

@@ -3,13 +3,11 @@ my role QuantHash does Associative {
     method keyof() { Mu }
 
     method SET-SELF(QuantHash:D: \elems) is implementation-detail {
-        nqp::stmts(
-          nqp::if(
-            nqp::elems(elems),
-            nqp::bindattr(self,::?CLASS,'$!elems',elems)
-          ),
-          self
-        )
+        nqp::if(
+          nqp::elems(elems),
+          nqp::bindattr(self,::?CLASS,'$!elems',elems)
+        );
+        self
     }
 
     # provide a proto for QuantHashes from here

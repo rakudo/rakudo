@@ -238,36 +238,33 @@ multi sub infix:<(^)>(+@p) {   # also Any
 
     # handle key that has been seen before for given value
     sub handle-existing(Mu \elems, Mu \iter, \value --> Nil) {
-        nqp::stmts(
-          (my \minmax := nqp::getattr(
-            nqp::atkey(elems,nqp::iterkey_s(iter)),Pair,'$!value')
+        my \minmax := nqp::getattr(
+          nqp::atkey(elems,nqp::iterkey_s(iter)),Pair,'$!value'
+        );
+        nqp::bindpos(minmax,COUNT,nqp::add_i(nqp::atpos(minmax,COUNT),1));
+
+        nqp::if(
+          value > nqp::atpos(minmax,HIGHEST),
+          nqp::stmts(
+            nqp::bindpos(minmax,LOWEST,nqp::atpos(minmax,HIGHEST)),
+            nqp::bindpos(minmax,HIGHEST,value)
           ),
-          nqp::bindpos(minmax,COUNT,nqp::add_i(nqp::atpos(minmax,COUNT),1)),
           nqp::if(
-            value > nqp::atpos(minmax,HIGHEST),
-            nqp::stmts(
-              nqp::bindpos(minmax,LOWEST,nqp::atpos(minmax,HIGHEST)),
-              nqp::bindpos(minmax,HIGHEST,value)
-            ),
-            nqp::if(
-              nqp::not_i(nqp::defined(nqp::atpos(minmax,LOWEST)))
-                || value > nqp::atpos(minmax,LOWEST),
-              nqp::bindpos(minmax,LOWEST,value)
-            )
+            nqp::not_i(nqp::defined(nqp::atpos(minmax,LOWEST)))
+              || value > nqp::atpos(minmax,LOWEST),
+            nqp::bindpos(minmax,LOWEST,value)
           )
-        )
+        );
     }
 
     # handle key that has not yet been seen
     sub handle-new(Mu \elems, Mu \iter, \pair, \value) {
-        nqp::stmts(
-          (my \minmax := nqp::clone($init-minmax)),
-          nqp::bindpos(minmax,HIGHEST,value),
-          nqp::bindkey(
-            elems,
-            nqp::iterkey_s(iter),
-            nqp::p6bindattrinvres(pair,Pair,'$!value',minmax)
-          )
+        my \minmax := nqp::clone($init-minmax);
+        nqp::bindpos(minmax,HIGHEST,value);
+        nqp::bindkey(
+          elems,
+          nqp::iterkey_s(iter),
+          nqp::p6bindattrinvres(pair,Pair,'$!value',minmax)
         )
     }
 

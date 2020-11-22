@@ -121,18 +121,17 @@ class Kernel does Systemic {
         unless $!signals-setup {
             $!signals-setup-lock.protect: {
                 unless $!signals-setup {
-                    nqp::stmts(
-                      ( my \arr = nqp::list(Nil) ),
-                      ( my int $els = nqp::add_i(Signal.enums.values.max, 1) ),
-                      ( my int $i   = 1  ),
-                      nqp::while(
-                        nqp::islt_i($i, $els),
-                        nqp::bindpos(arr, $i, Signal($i) // Nil),
-                        $i = nqp::add_i($i, 1),
-                      ),
-                      @!signals       = |arr,
-                      $!signals-setup = True,
-                    )
+                    my \arr = nqp::list(Nil);
+                    my int $els = nqp::add_i(Signal.enums.values.max, 1);
+                    my int $i   = 1;
+
+                    nqp::while(
+                      nqp::islt_i($i, $els),
+                      nqp::bindpos(arr, $i, Signal($i) // Nil),
+                      $i = nqp::add_i($i, 1),
+                    );
+                    @!signals       = |arr,
+                    $!signals-setup = True,
                 }
             }
         }
@@ -147,13 +146,14 @@ class Kernel does Systemic {
         unless $!signals-by-Str-setup {
             $!signals-setup-lock.protect: {
                 unless $!signals-by-Str-setup {
-                    nqp::stmts(
-                      (my int $els = @.signals.elems),
-                      (my int $i = -1),
-                      nqp::while(
-                        nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
-                        ($_ := @!signals.AT-POS($i)).defined
-                          && %!signals-by-Str.ASSIGN-KEY(.Str, nqp::decont($i))));
+                    my int $els = @.signals.elems;
+                    my int $i = -1;
+
+                    nqp::while(
+                      nqp::isgt_i($els, $i = nqp::add_i($i, 1)),
+                      ($_ := @!signals.AT-POS($i)).defined
+                        && %!signals-by-Str.ASSIGN-KEY(.Str, nqp::decont($i))
+                    );
                     $!signals-by-Str-setup := True;
                 }
             }

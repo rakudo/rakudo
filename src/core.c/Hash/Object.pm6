@@ -83,32 +83,30 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
     }
 
     method FLATTENABLE_HASH() {
-        nqp::stmts(
-          (my $flattened := nqp::hash),
-          nqp::if(
-            (my $iter := nqp::iterator(nqp::getattr(self,Map,'$!storage'))),
-            nqp::while(
-              $iter,
-              nqp::bindkey(
-                $flattened,
-                nqp::if(
-                  nqp::istype(
-                    (my $key := nqp::getattr(
-                      nqp::iterval(nqp::shift($iter)),
-                      Pair,
-                      '$!key'
-                    )),
-                    Str,
-                  ),
-                  $key,
-                  $key.Str
+        my $flattened := nqp::hash;
+        nqp::if(
+          (my $iter := nqp::iterator(nqp::getattr(self,Map,'$!storage'))),
+          nqp::while(
+            $iter,
+            nqp::bindkey(
+              $flattened,
+              nqp::if(
+                nqp::istype(
+                  (my $key := nqp::getattr(
+                    nqp::iterval(nqp::shift($iter)),
+                    Pair,
+                    '$!key'
+                  )),
+                  Str,
                 ),
-                nqp::getattr(nqp::iterval($iter),Pair,'$!value')
-              )
+                $key,
+                $key.Str
+              ),
+              nqp::getattr(nqp::iterval($iter),Pair,'$!value')
             )
-          ),
-          $flattened
-        )
+          )
+        );
+        $flattened
     }
 
     method IterationBuffer() {
@@ -208,17 +206,15 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
         has $!count;
 
         method !SET-SELF(\hash,\count) {
-            nqp::stmts(
-              ($!storage := nqp::getattr(hash,Map,'$!storage')),
-              ($!count = count),
-              (my $iter := nqp::iterator($!storage)),
-              ($!keys := nqp::list_s),
-              nqp::while(
-                $iter,
-                nqp::push_s($!keys,nqp::iterkey_s(nqp::shift($iter)))
-              ),
-              self
-            )
+            $!storage := nqp::getattr(hash,Map,'$!storage');
+            $!count = count;
+            my $iter := nqp::iterator($!storage);
+            $!keys := nqp::list_s;
+            nqp::while(
+              $iter,
+              nqp::push_s($!keys,nqp::iterkey_s(nqp::shift($iter)))
+            );
+            self
         }
         method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
         method pull-one() {

@@ -916,12 +916,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has int $!chars;
         has int $!pos;
         method !SET-SELF(\string) {
-            nqp::stmts(
-              ($!str   = nqp::unbox_s(string)),
-              ($!chars = nqp::chars($!str)), #?js: NFG
-              ($!pos = -1),
-              self
-            )
+            $!str   = nqp::unbox_s(string);
+            $!chars = nqp::chars($!str);  #?js: NFG
+            $!pos   = -1;
+            self
         }
         method new(\string) { nqp::create(self)!SET-SELF(string) }
         method pull-one() {
@@ -933,16 +931,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
             nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
         }
         method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              (my str $str = $!str),      # locals are faster
-              (my int $pos = $!pos),
-              (my int $chars = $!chars),
-              nqp::while(
-                nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
-                target.push(nqp::substr($str,$pos,1)) #?js: NFG
-              ),
-              ($!pos = $pos)
-            )
+            my str $str   = $!str;      # locals are faster
+            my int $pos   = $!pos;
+            my int $chars = $!chars;
+            nqp::while(
+              nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
+              target.push(nqp::substr($str,$pos,1)) #?js: NFG
+            );
+            $!pos = $pos;
         }
         method count-only(--> Int:D) {
             nqp::p6box_i($!chars - $!pos - nqp::islt_i($!pos,$!chars))
@@ -1175,18 +1171,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Look for named parameters, do not remove from hash
     sub fetch-all-of(\opts, @names, \store --> Nil) {
-        nqp::stmts(
-          (my int $elems = @names.elems),   # reifies
-          (my $list := nqp::getattr(@names,List,'$!reified')),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::if(
-              nqp::existskey(opts,nqp::unbox_s(nqp::atpos($list,$i))),
-              (store = nqp::atkey(opts,nqp::unbox_s(nqp::atpos($list,$i)))),
-            )
+        my int $elems = @names.elems;   # reifies
+        my $list     := nqp::getattr(@names,List,'$!reified');
+        my int $i     = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::if(
+            nqp::existskey(opts,nqp::unbox_s(nqp::atpos($list,$i))),
+            (store = nqp::atkey(opts,nqp::unbox_s(nqp::atpos($list,$i)))),
           )
-        )
+        );
     }
 
     sub die-before-first($got) {
@@ -1202,28 +1196,29 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Generic fallback for matching with a pattern
     method !match-pattern(Mu \slash, $pattern, str $name, $value, \opts) {
-        nqp::stmts(
-          (my $opts := nqp::getattr(opts,Map,'$!storage')),
-          nqp::bindkey($opts,$name,$value),
-          fetch-short-long($opts, "p", "pos", my $p),
-          fetch-short-long($opts, "c", "continue", my $c),
-          nqp::unless(nqp::defined($c), $c = 0),
+        my $opts := nqp::getattr(opts,Map,'$!storage');
+        nqp::bindkey($opts,$name,$value);
+        fetch-short-long($opts, "p", "pos", my $p);
+        fetch-short-long($opts, "c", "continue", my $c);
+        nqp::unless(
+          nqp::defined($c),
+          $c = 0
+        );
+        nqp::if(
+          nqp::elems($opts),
           nqp::if(
-            nqp::elems($opts),
-            nqp::if(
-              nqp::defined($p),
-              self!match-cursor(slash,
-                $pattern($cursor-init(Match,self,:$p)), '', 0, $opts),
-              self!match-cursor(slash,
-                $pattern($cursor-init(Match,self,:$c)), '', 0, $opts)
-            ),
-            nqp::if(
-              nqp::defined($p),
-              self!match-one(slash,
-                $pattern($cursor-init(Match,self,:$p))),
-              self!match-one(slash,
-                $pattern($cursor-init(Match,self,:$c)))
-            )
+            nqp::defined($p),
+            self!match-cursor(slash,
+              $pattern($cursor-init(Match,self,:$p)), '', 0, $opts),
+            self!match-cursor(slash,
+              $pattern($cursor-init(Match,self,:$c)), '', 0, $opts)
+          ),
+          nqp::if(
+            nqp::defined($p),
+            self!match-one(slash,
+              $pattern($cursor-init(Match,self,:$p))),
+            self!match-one(slash,
+              $pattern($cursor-init(Match,self,:$c)))
           )
         )
     }
@@ -1235,53 +1230,58 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # the value as extra parameters, and add it back in the hash with
     # named parameters.
     method !match-cursor(Mu \slash, \cursor, str $name, $value, \opts) {
-        nqp::stmts(
-          (my $opts := nqp::getattr(opts,Map,'$!storage')),
+        my $opts := nqp::getattr(opts,Map,'$!storage');
+        nqp::if(
+          nqp::chars($name),
+          nqp::bindkey($opts,$name,$value)
+        );
+        fetch-short-long($opts, "ex", "exhaustive", my $ex);
+        fetch-short-long($opts, "ov", "overlap",    my $ov);
+        my \move := nqp::if(
+          $ex,
+          CURSOR-EXHAUSTIVE,
           nqp::if(
-            nqp::chars($name),
-            nqp::bindkey($opts,$name,$value)
-          ),
-          fetch-short-long($opts, "ex", "exhaustive", my $ex),
-          fetch-short-long($opts, "ov", "overlap",    my $ov),
-          (my \move := nqp::if($ex, CURSOR-EXHAUSTIVE,
-            nqp::if($ov, CURSOR-OVERLAP, CURSOR-GLOBAL))),
+            $ov,
+            CURSOR-OVERLAP,
+            CURSOR-GLOBAL
+          )
+        );
 
-          fetch-short-long($opts, "as", "as", my $as),
-          (my \post := nqp::if(nqp::istype($as,Str), &POST-STR, &POST-MATCH)),
+        fetch-short-long($opts, "as", "as", my $as);
+        my \post := nqp::if(nqp::istype($as,Str), &POST-STR, &POST-MATCH);
 
-          fetch-short-long($opts, "g", "global", my $g),
-          nqp::if(
-            nqp::elems($opts),
-            nqp::stmts(
-              fetch-short-long($opts, "x", "x", my $x),
-              fetch-all-of($opts, <st nd rd th nth>, my $nth),
+        fetch-short-long($opts, "g", "global", my $g);
+        nqp::if(
+          nqp::elems($opts),
+          nqp::stmts(
+            fetch-short-long($opts, "x", "x", my $x),
+            fetch-all-of($opts, <st nd rd th nth>, my $nth),
+            nqp::if(
+              nqp::defined($nth),
               nqp::if(
-                nqp::defined($nth),
-                nqp::if(
-                  nqp::defined($x),                             # :nth && :x
-                  self!match-x(slash,
-                    self!match-nth(slash, cursor,
-                      move, post, $nth, nqp::hash).iterator, $x),
+                nqp::defined($x),                             # :nth && :x
+                self!match-x(slash,
                   self!match-nth(slash, cursor,
-                    move, post, $nth, nqp::hash)  # nth
-                ),
-                nqp::if(
-                  nqp::defined($x),
-                  self!match-x(slash,                           # :x
-                    POST-ITERATOR.new(cursor, move, post), $x),
-                  nqp::if(                                      # only :ex|ov|g
-                    $ex || $ov || $g,
-                    self!match-list(slash, cursor, move, post),
-                    self!match-one(slash, cursor)
-                  )
+                    move, post, $nth, nqp::hash).iterator, $x),
+                self!match-nth(slash, cursor,
+                  move, post, $nth, nqp::hash)  # nth
+              ),
+              nqp::if(
+                nqp::defined($x),
+                self!match-x(slash,                           # :x
+                  POST-ITERATOR.new(cursor, move, post), $x),
+                nqp::if(                                      # only :ex|ov|g
+                  $ex || $ov || $g,
+                  self!match-list(slash, cursor, move, post),
+                  self!match-one(slash, cursor)
                 )
               )
-            ),
-            nqp::if(                                            # only :ex|ov|g
-              $ex || $ov || $g,
-              self!match-list(slash, cursor, move, post),
-              self!match-one(slash, cursor)
             )
+          ),
+          nqp::if(                                            # only :ex|ov|g
+            $ex || $ov || $g,
+            self!match-list(slash, cursor, move, post),
+            self!match-one(slash, cursor)
           )
         )
     }
@@ -2412,35 +2412,34 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         # remove elements we don't want
         if nqp::isgt_i($limit,0) {
-            nqp::stmts(
-              (my int $limited = 1),   # split one less than entries returned
-              (my int $elems = nqp::elems($positions)),
-              (my int $pos),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                  && nqp::islt_i($limited,$limit),
-                nqp::if(
-                  nqp::isge_i(   # not hidden by other needle
-                    nqp::atpos_i(nqp::atpos($positions,$i),0),
-                    $pos
-                  ),
-                  nqp::stmts(
-                    ($limited = nqp::add_i($limited,1)),
-                    ($pos = nqp::add_i(
-                      nqp::atpos_i(nqp::atpos($positions,$i),0),
-                      nqp::atpos_i($needle-chars,
-                        nqp::atpos_i(nqp::atpos($positions,$i),1))
-                    ))
-                  )
-                )
-              ),
+            my int $limited = 1;   # split one less than entries returned
+            my int $elems = nqp::elems($positions);
+            my int $pos;
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::islt_i($limited,$limit),
               nqp::if(
-                nqp::islt_i($i,$elems),
-                nqp::splice($positions,$empty,
-                  $i,nqp::sub_i(nqp::elems($positions),$i))
+                nqp::isge_i(   # not hidden by other needle
+                  nqp::atpos_i(nqp::atpos($positions,$i),0),
+                  $pos
+                ),
+                nqp::stmts(
+                  ($limited = nqp::add_i($limited,1)),
+                  ($pos = nqp::add_i(
+                    nqp::atpos_i(nqp::atpos($positions,$i),0),
+                    nqp::atpos_i($needle-chars,
+                      nqp::atpos_i(nqp::atpos($positions,$i),1))
+                  ))
+                )
               )
-            )
+            );
+
+            nqp::if(
+              nqp::islt_i($i,$elems),
+              nqp::splice($positions,$empty,
+                $i,nqp::sub_i(nqp::elems($positions),$i))
+            );
         }
 
         # create the final result
@@ -2448,70 +2447,66 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my int $pos = 0;
         my $result := nqp::create(IterationBuffer);
         if $any {
-            nqp::stmts(
-              (my int $i = -1),
-              (my int $elems = nqp::elems($positions)),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::if(
-                  nqp::isge_i( # not hidden by other needle
-                    (my int $from = nqp::atpos_i(
-                      (my $pair := nqp::atpos($positions,$i)),0)
-                    ),
-                    $pos
+            my int $i = -1;
+            my int $elems = nqp::elems($positions);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::isge_i( # not hidden by other needle
+                  (my int $from = nqp::atpos_i(
+                    (my $pair := nqp::atpos($positions,$i)),0)
                   ),
-                  nqp::stmts(
-                    (my int $needle-index = nqp::atpos_i($pair,1)),
-                    nqp::unless(
-                      $skip && nqp::iseq_i($from,$pos),
-                      nqp::push($result,
-                        nqp::substr($str,$pos,nqp::sub_i($from,$pos)))
-                    ),
-                    nqp::if($k || $kv,
-                      nqp::push($result,nqp::clone($needle-index))
-                    ),
-                    nqp::if($v || $kv,
-                      nqp::push($result,nqp::atpos_s($needles,$needle-index))
-                    ),
-                    nqp::if($p,
-                      nqp::push($result,Pair.new(
-                        $needle-index,nqp::atpos_s($needles,$needle-index)))
-                    ),
-                    ($pos = nqp::add_i(
-                      $from,
-                      nqp::atpos_i($needle-chars,$needle-index)
-                    ))
-                  )
+                  $pos
+                ),
+                nqp::stmts(
+                  (my int $needle-index = nqp::atpos_i($pair,1)),
+                  nqp::unless(
+                    $skip && nqp::iseq_i($from,$pos),
+                    nqp::push($result,
+                      nqp::substr($str,$pos,nqp::sub_i($from,$pos)))
+                  ),
+                  nqp::if($k || $kv,
+                    nqp::push($result,nqp::clone($needle-index))
+                  ),
+                  nqp::if($v || $kv,
+                    nqp::push($result,nqp::atpos_s($needles,$needle-index))
+                  ),
+                  nqp::if($p,
+                    nqp::push($result,Pair.new(
+                      $needle-index,nqp::atpos_s($needles,$needle-index)))
+                  ),
+                  ($pos = nqp::add_i(
+                    $from,
+                    nqp::atpos_i($needle-chars,$needle-index)
+                  ))
                 )
               )
-            )
+            );
         }
         else {
-            nqp::stmts(
-              (my int $i = -1),
-              (my int $elems = nqp::elems($positions)),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::if(
-                  nqp::isge_i( # not hidden by other needle
-                    (my int $from = nqp::atpos_i(
-                      (my $pair := nqp::atpos($positions,$i)),0)
-                    ),
-                    $pos
+            my int $i = -1;
+            my int $elems = nqp::elems($positions);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::isge_i( # not hidden by other needle
+                  (my int $from = nqp::atpos_i(
+                    (my $pair := nqp::atpos($positions,$i)),0)
                   ),
-                  nqp::stmts(
-                    nqp::unless(
-                      $skip && nqp::iseq_i($from,$pos),
-                      nqp::push($result,
-                        nqp::substr($str,$pos,nqp::sub_i($from,$pos))),
-                    ),
-                    ($pos = nqp::add_i($from,
-                      nqp::atpos_i($needle-chars,nqp::atpos_i($pair,1))
-                    ))
-                  )
+                  $pos
+                ),
+                nqp::stmts(
+                  nqp::unless(
+                    $skip && nqp::iseq_i($from,$pos),
+                    nqp::push($result,
+                      nqp::substr($str,$pos,nqp::sub_i($from,$pos))),
+                  ),
+                  ($pos = nqp::add_i($from,
+                    nqp::atpos_i($needle-chars,nqp::atpos_i($pair,1))
+                  ))
                 )
               )
-            )
+            );
         }
         nqp::push($result,nqp::substr($str,$pos))
           unless $skip && nqp::iseq_i($pos,nqp::chars($str));
@@ -3217,18 +3212,16 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # use multi-needle split with in-place mapping
             else {
-                nqp::stmts(
-                  (my $iterator := self.split($needles,:k).iterator),
-                  (my $strings := nqp::list_s($iterator.pull-one)),
-                  nqp::until(
-                    nqp::eqaddr((my $i := $iterator.pull-one),IterationEnd),
-                    nqp::stmts(
-                      nqp::push_s($strings,nqp::atpos($pins,$i)),
-                      nqp::push_s($strings,$iterator.pull-one)
-                    )
-                  ),
-                  nqp::join("",$strings)
-                )
+                my $iterator := self.split($needles,:k).iterator;
+                my $strings := nqp::list_s($iterator.pull-one);
+                nqp::until(
+                  nqp::eqaddr((my $i := $iterator.pull-one),IterationEnd),
+                  nqp::stmts(
+                    nqp::push_s($strings,nqp::atpos($pins,$i)),
+                    nqp::push_s($strings,$iterator.pull-one)
+                  )
+                );
+                nqp::join("",$strings)
             }
         }
 

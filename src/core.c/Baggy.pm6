@@ -229,31 +229,29 @@ my role Baggy does QuantHash {
     }
 
     method !HASHIFY(\type) {
-        nqp::stmts(
-          (my \hash := Hash.^parameterize(type,Any).new),
-          (my \descriptor := nqp::getattr(hash,Hash,'$!descriptor')),
-          nqp::if(
-            $!elems && nqp::elems($!elems),
-            nqp::stmts(
-              (my \storage := nqp::clone($!elems)),
-              (my \iter := nqp::iterator(storage)),
-              nqp::while(
-                iter,
-                nqp::bindkey(
-                  storage,
-                  nqp::iterkey_s(nqp::shift(iter)),
-                  nqp::p6bindattrinvres(
-                    nqp::clone(nqp::iterval(iter)),Pair,'$!value',
-                    (nqp::p6scalarfromdesc(descriptor) =
-                      nqp::getattr(nqp::iterval(iter),Pair,'$!value'))
-                  )
+        my \hash := Hash.^parameterize(type,Any).new;
+        my \descriptor := nqp::getattr(hash,Hash,'$!descriptor');
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::stmts(
+            (my \storage := nqp::clone($!elems)),
+            (my \iter := nqp::iterator(storage)),
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::iterkey_s(nqp::shift(iter)),
+                nqp::p6bindattrinvres(
+                  nqp::clone(nqp::iterval(iter)),Pair,'$!value',
+                  (nqp::p6scalarfromdesc(descriptor) =
+                    nqp::getattr(nqp::iterval(iter),Pair,'$!value'))
                 )
-              ),
-              nqp::bindattr(hash,Map,'$!storage',storage)
-            )
-          ),
-          hash
-        )
+              )
+            ),
+            nqp::bindattr(hash,Map,'$!storage',storage)
+          )
+        );
+        hash
     }
     multi method hash(Baggy:D: --> Hash:D) { self!HASHIFY(UInt) }
     multi method Hash(Baggy:D: --> Hash:D) { self!HASHIFY(Any) }
@@ -410,47 +408,45 @@ my role Baggy does QuantHash {
         # the weight of the picked object and the total number of draws
         # still possible.
         method BAG-PICK() {
-            nqp::stmts(
-              (my Int $rand := $!total.rand.Int),
-              (my Int $seen := 0),
-              (my \iter := nqp::iterator($!weights)),
-              nqp::while(
-                iter && nqp::isle_I(
-                  ($seen := nqp::add_I(
-                    $seen,
-                    nqp::iterval(nqp::shift(iter)),
-                    Int
-                  )),
-                  $rand
-                ),
-                nqp::null
+            my Int $rand := $!total.rand.Int;
+            my Int $seen := 0;
+            my \iter := nqp::iterator($!weights);
+            nqp::while(
+              iter && nqp::isle_I(
+                ($seen := nqp::add_I(
+                  $seen,
+                  nqp::iterval(nqp::shift(iter)),
+                  Int
+                )),
+                $rand
               ),
-              nqp::bindkey(                # iter now contains picked one
-                $!weights,
-                nqp::iterkey_s(iter),
-                nqp::sub_I(nqp::iterval(iter),1,Int)
-              ),
-              ($!total := nqp::sub_I($!total,1,Int)),
-              nqp::iterkey_s(iter)
-            )
+              nqp::null
+            );
+
+            nqp::bindkey(                # iter now contains picked one
+              $!weights,
+              nqp::iterkey_s(iter),
+              nqp::sub_I(nqp::iterval(iter),1,Int)
+            );
+            $!total := nqp::sub_I($!total,1,Int);
+
+            nqp::iterkey_s(iter)
         }
 
         method !SET-SELF(\raw, \todo, \total) {
-            nqp::stmts(
-              ($!weights := nqp::clone($!raw := raw)),
-              (my \iter := nqp::iterator($!weights)),
-              nqp::while(
-                iter,
-                nqp::bindkey(
-                  $!weights,
-                  nqp::iterkey_s(nqp::shift(iter)),
-                  nqp::getattr(nqp::iterval(iter),Pair,'$!value')
-                )
-              ),
-              ($!todo := todo > total ?? total !! todo),
-              ($!total := total),
-              self
-            )
+            $!weights := nqp::clone($!raw := raw);
+            my \iter := nqp::iterator($!weights);
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                $!weights,
+                nqp::iterkey_s(nqp::shift(iter)),
+                nqp::getattr(nqp::iterval(iter),Pair,'$!value')
+              )
+            );
+            $!todo := todo > total ?? total !! todo;
+            $!total := total;
+            self
         }
         method new(\raw, \todo, \total) {
             nqp::create(self)!SET-SELF(raw, todo, total)

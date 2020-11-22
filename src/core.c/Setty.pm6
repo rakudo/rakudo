@@ -75,30 +75,29 @@ my role Setty does QuantHash {
     }
 
     method !HASHIFY(\type) {
-        nqp::stmts(
-          (my \hash := Hash.^parameterize(type,Any).new),
-          (my \descriptor := nqp::getattr(hash,Hash,'$!descriptor')),
-          nqp::if(
-            $!elems && nqp::elems($!elems),
-            nqp::stmts(
-              (my \storage := nqp::clone($!elems)),
-              (my \iter := nqp::iterator(storage)),
-              nqp::while(
-                iter,
-                nqp::bindkey(
-                  storage,
-                  nqp::iterkey_s(nqp::shift(iter)),
-                  Pair.new(
-                    nqp::iterval(iter),
-                    (nqp::p6scalarfromdesc(descriptor) = True)
-                  )
+        my \hash := Hash.^parameterize(type,Any).new;
+        my \descriptor := nqp::getattr(hash,Hash,'$!descriptor');
+
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::stmts(
+            (my \storage := nqp::clone($!elems)),
+            (my \iter := nqp::iterator(storage)),
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::iterkey_s(nqp::shift(iter)),
+                Pair.new(
+                  nqp::iterval(iter),
+                  (nqp::p6scalarfromdesc(descriptor) = True)
                 )
-              ),
-              nqp::bindattr(hash,Map,'$!storage',storage)
-            )
-          ),
-          hash
-        )
+              )
+            ),
+            nqp::bindattr(hash,Map,'$!storage',storage)
+          )
+        );
+        hash
     }
     multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
     multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }

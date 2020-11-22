@@ -55,115 +55,115 @@ sub MD-ARRAY-SLICE(\SELF, @indices) is raw is implementation-detail {
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices) is raw {
-    nqp::stmts(
-      (my \indices := nqp::getattr(@indices,List,'$!reified')),
-      (my int $elems = nqp::elems(indices)),
-      (my int $i = -1),
-      (my \idxs := nqp::list_i),
-      nqp::while(
-        nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+    my \indices := nqp::getattr(@indices,List,'$!reified');
+    my int $elems = nqp::elems(indices);
+    my int $i = -1;
+    my \idxs := nqp::list_i;
+
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+      nqp::if(
+        nqp::istype((my \index := nqp::atpos(indices,$i)),Int),
+        nqp::push_i(idxs,index),               # it's an Int, use that
         nqp::if(
-          nqp::istype((my \index := nqp::atpos(indices,$i)),Int),
-          nqp::push_i(idxs,index),               # it's an Int, use that
+          nqp::istype(index,Numeric),
+          nqp::push_i(idxs,index.Int),         # can be safely coerced to Int
           nqp::if(
-            nqp::istype(index,Numeric),
-            nqp::push_i(idxs,index.Int),         # can be safely coerced to Int
+            nqp::istype(index,Str),
             nqp::if(
-              nqp::istype(index,Str),
-              nqp::if(
-                nqp::istype((my \coerced := index.Int),Failure),
-                coerced.throw,                   # alas, not numeric, bye!
-                nqp::push_i(idxs,coerced)        # could be coerced to Int
-              ),
-              (return-rw MD-ARRAY-SLICE(SELF,@indices)) # alas, slow path needed
-            )
+              nqp::istype((my \coerced := index.Int),Failure),
+              coerced.throw,                   # alas, not numeric, bye!
+              nqp::push_i(idxs,coerced)        # could be coerced to Int
+            ),
+            (return-rw MD-ARRAY-SLICE(SELF,@indices)) # alas, slow path needed
           )
         )
+      )
+    );
+
+    nqp::if(                                   # we have all Ints
+      nqp::iseq_i($elems,2),
+      SELF.AT-POS(                             # fast pathing [n;n]
+        nqp::atpos_i(idxs,0),
+        nqp::atpos_i(idxs,1)
       ),
-      nqp::if(                                   # we have all Ints
-        nqp::iseq_i($elems,2),
-        SELF.AT-POS(                             # fast pathing [n;n]
+      nqp::if(
+        nqp::iseq_i($elems,3),
+        SELF.AT-POS(                           # fast pathing [n;n;n]
           nqp::atpos_i(idxs,0),
-          nqp::atpos_i(idxs,1)
+          nqp::atpos_i(idxs,1),
+          nqp::atpos_i(idxs,2)
         ),
-        nqp::if(
-          nqp::iseq_i($elems,3),
-          SELF.AT-POS(                           # fast pathing [n;n;n]
-            nqp::atpos_i(idxs,0),
-            nqp::atpos_i(idxs,1),
-            nqp::atpos_i(idxs,2)
-          ),
-          SELF.AT-POS(|@indices)                 # alas >3 dims, slow path
-        )
+        SELF.AT-POS(|@indices)                 # alas >3 dims, slow path
       )
     )
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, Mu \assignee) is raw {
-    nqp::stmts(
-      (my int $elems = @indices.elems),   # reifies
-      (my \indices := nqp::getattr(@indices,List,'$!reified')),
-      (my int $i = -1),
-      nqp::while(
-        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-          && nqp::istype(nqp::atpos(indices,$i),Int),
-        nqp::null
-      ),
+    my int $elems = @indices.elems;   # reifies
+    my \indices := nqp::getattr(@indices,List,'$!reified');
+    my int $i = -1;
+
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+        && nqp::istype(nqp::atpos(indices,$i),Int),
+      nqp::null
+    );
+
+    nqp::if(
+      nqp::islt_i($i,$elems),
+      (MD-ARRAY-SLICE(SELF,@indices) = assignee),
       nqp::if(
-        nqp::islt_i($i,$elems),
-        (MD-ARRAY-SLICE(SELF,@indices) = assignee),
+        nqp::iseq_i($elems,2),
+        SELF.ASSIGN-POS(
+          nqp::atpos(indices,0),
+          nqp::atpos(indices,1),
+          assignee
+        ),
         nqp::if(
-          nqp::iseq_i($elems,2),
+          nqp::iseq_i($elems,3),
           SELF.ASSIGN-POS(
             nqp::atpos(indices,0),
             nqp::atpos(indices,1),
+            nqp::atpos(indices,2),
             assignee
           ),
-          nqp::if(
-            nqp::iseq_i($elems,3),
-            SELF.ASSIGN-POS(
-              nqp::atpos(indices,0),
-              nqp::atpos(indices,1),
-              nqp::atpos(indices,2),
-              assignee
-            ),
-            SELF.ASSIGN-POS(|@indices,assignee)
-          )
+          SELF.ASSIGN-POS(|@indices,assignee)
         )
       )
     )
 }
 
 multi sub postcircumfix:<[; ]>(\SELF, @indices, :$BIND!) is raw {
-    nqp::stmts(
-      (my int $elems = @indices.elems),   # reifies
-      (my \indices := nqp::getattr(@indices,List,'$!reified')),
-      (my int $i = -1),
-      nqp::while(
-        nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-          && nqp::istype(nqp::atpos(indices,$i),Int),
-        nqp::null
-      ),
+    my int $elems = @indices.elems;   # reifies
+    my \indices := nqp::getattr(@indices,List,'$!reified');
+    my int $i = -1;
+
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+        && nqp::istype(nqp::atpos(indices,$i),Int),
+      nqp::null
+    );
+
+    nqp::if(
+      nqp::islt_i($i,$elems),
+      X::Bind::Slice.new(type => SELF.WHAT).throw,
       nqp::if(
-        nqp::islt_i($i,$elems),
-        X::Bind::Slice.new(type => SELF.WHAT).throw,
+        nqp::iseq_i($elems,2),
+        SELF.BIND-POS(
+          nqp::atpos(indices,0),
+          nqp::atpos(indices,1),
+          $BIND
+        ),
         nqp::if(
-          nqp::iseq_i($elems,2),
+          nqp::iseq_i($elems,3),
           SELF.BIND-POS(
             nqp::atpos(indices,0),
             nqp::atpos(indices,1),
+            nqp::atpos(indices,2),
             $BIND
           ),
-          nqp::if(
-            nqp::iseq_i($elems,3),
-            SELF.BIND-POS(
-              nqp::atpos(indices,0),
-              nqp::atpos(indices,1),
-              nqp::atpos(indices,2),
-              $BIND
-            ),
-            SELF.BIND-POS(|@indices, $BIND)
-          )
+          SELF.BIND-POS(|@indices, $BIND)
         )
       )
     )

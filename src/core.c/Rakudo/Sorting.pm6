@@ -2,12 +2,10 @@ my class Rakudo::Sorting {
 
     # Return new IterationBuffer with the two given values
     sub IB2(Mu \one,Mu \two --> IterationBuffer) {
-        nqp::stmts(
-          (my $buf := nqp::create(IterationBuffer)),
-          nqp::bindpos($buf,0,one),
-          nqp::bindpos($buf,1,two),
-          $buf
-        )
+        my $buf := nqp::create(IterationBuffer);
+        nqp::bindpos($buf,0,one);
+        nqp::bindpos($buf,1,two);
+        $buf
     }
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation

@@ -39,10 +39,12 @@ my class Block { # declared in BOOTSTRAP
     }
 
     method fire_phasers(Str $name --> Nil) {
-        nqp::stmts(
-          (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
-          nqp::while($iter,nqp::shift($iter)(),:nohandler)
-        )
+        my $iter := nqp::iterator(nqp::atkey($!phasers,$name));
+        nqp::while(
+          $iter,
+          nqp::shift($iter)(),
+          :nohandler
+        );
     }
 
     method has-phasers() { nqp::hllbool(nqp::attrinited(self,Block,'$!phasers')) }

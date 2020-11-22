@@ -38,132 +38,126 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         has $!reification-target;
 
         method reify-at-least(int $elems) {
-            nqp::stmts(
-              nqp::if(
-                (nqp::isconcrete($!current-iter)
-                  && nqp::eqaddr(
-                       $!current-iter.push-at-least(
-                         $!reification-target,
-                         nqp::sub_i($elems,nqp::elems($!reified))
-                       ),
-                       IterationEnd
-                     )),
-                $!current-iter := Iterator
-              ),
+            nqp::if(
+              (nqp::isconcrete($!current-iter)
+                && nqp::eqaddr(
+                     $!current-iter.push-at-least(
+                       $!reification-target,
+                       nqp::sub_i($elems,nqp::elems($!reified))
+                     ),
+                     IterationEnd
+                   )),
+              $!current-iter := Iterator
+            );
 
-              # there is a future
-              nqp::if(
-                nqp::isconcrete($!future),
+            # there is a future
+            nqp::if(
+              nqp::isconcrete($!future),
 
-                # still need and can get something from the future
-                nqp::stmts(
-                  nqp::while(
-                    (nqp::islt_i(nqp::elems($!reified),$elems)
-                      && nqp::elems($!future)),
-                    nqp::if(
-                      (nqp::istype((my $current := nqp::shift($!future)),Slip)
-                        && nqp::isconcrete($current)),
-                      nqp::stmts(
-                        (my $iter := $current.iterator),
-                        nqp::unless(
-                          nqp::eqaddr(
-                            $iter.push-at-least(
-                              $!reification-target,
-                              nqp::sub_i($elems,nqp::elems($!reified))
-                            ),
-                            IterationEnd
+              # still need and can get something from the future
+              nqp::stmts(
+                nqp::while(
+                  (nqp::islt_i(nqp::elems($!reified),$elems)
+                    && nqp::elems($!future)),
+                  nqp::if(
+                    (nqp::istype((my $current := nqp::shift($!future)),Slip)
+                      && nqp::isconcrete($current)),
+                    nqp::stmts(
+                      (my $iter := $current.iterator),
+                      nqp::unless(
+                        nqp::eqaddr(
+                          $iter.push-at-least(
+                            $!reification-target,
+                            nqp::sub_i($elems,nqp::elems($!reified))
                           ),
-                          # The iterator produced enough values to fill the need,
-                          # but did not reach its end. We save it for next time.
-                          # We know we'll exit the loop, since the < $elems check
-                          # must be False (unless the iterator broke contract).
-                          ($!current-iter := $iter)
-                        )
-                      ),
-                      $!reification-target.push($current)
-                    )
-                  ),
-
-                  # that was the future
-                  nqp::unless(
-                    nqp::elems($!future),
-                    ($!future := Mu)
+                          IterationEnd
+                        ),
+                        # The iterator produced enough values to fill the need,
+                        # but did not reach its end. We save it for next time.
+                        # We know we'll exit the loop, since the < $elems check
+                        # must be False (unless the iterator broke contract).
+                        ($!current-iter := $iter)
+                      )
+                    ),
+                    $!reification-target.push($current)
                   )
-                )
-              ),
+                ),
 
-              nqp::elems($!reified)
-            )
+                # that was the future
+                nqp::unless(
+                  nqp::elems($!future),
+                  ($!future := Mu)
+                )
+              )
+            );
+            nqp::elems($!reified)
         }
 
         method reify-until-lazy() {
-            nqp::stmts(
-              nqp::if(
-                (nqp::isconcrete($!current-iter)
-                  && nqp::eqaddr(
-                       $!current-iter.push-until-lazy($!reification-target),
-                       IterationEnd
-                     )
-                ),
-                $!current-iter := Iterator
+            nqp::if(
+              (nqp::isconcrete($!current-iter)
+                && nqp::eqaddr(
+                     $!current-iter.push-until-lazy($!reification-target),
+                     IterationEnd
+                   )
               ),
+              $!current-iter := Iterator
+            );
 
-              nqp::if(
-                nqp::isconcrete($!future)
-                  && nqp::not_i(nqp::isconcrete($!current-iter)),
-                nqp::stmts(
-                  nqp::while(
-                    nqp::elems($!future),
-                    nqp::if(
-                      (nqp::istype((my $current := nqp::shift($!future)),Slip)
-                        && nqp::isconcrete($current)),
-                      nqp::unless(
-                        nqp::eqaddr(
-                          (my $iter := $current.iterator).push-until-lazy(
-                            $!reification-target),
-                          IterationEnd
-                        ),
-                        nqp::stmts(
-                          ($!current-iter := $iter),
-                          last
-                        )
+            nqp::if(
+              nqp::isconcrete($!future)
+                && nqp::not_i(nqp::isconcrete($!current-iter)),
+              nqp::stmts(
+                nqp::while(
+                  nqp::elems($!future),
+                  nqp::if(
+                    (nqp::istype((my $current := nqp::shift($!future)),Slip)
+                      && nqp::isconcrete($current)),
+                    nqp::unless(
+                      nqp::eqaddr(
+                        (my $iter := $current.iterator).push-until-lazy(
+                          $!reification-target),
+                        IterationEnd
                       ),
-                      $!reification-target.push($current)
-                    )
-                  ),
-                  nqp::unless(
-                    nqp::elems($!future),
-                    $!future := Mu
+                      nqp::stmts(
+                        ($!current-iter := $iter),
+                        last
+                      )
+                    ),
+                    $!reification-target.push($current)
                   )
+                ),
+                nqp::unless(
+                  nqp::elems($!future),
+                  $!future := Mu
                 )
-              ),
-              nqp::elems($!reified)
-            )
+              )
+            );
+            nqp::elems($!reified)
         }
 
         method reify-all() {
-            nqp::stmts(
-              nqp::if(
-                nqp::isconcrete($!current-iter),
-                nqp::stmts(
-                  $!current-iter.push-all($!reification-target),
-                  $!current-iter := Iterator
-                )
-              ),
-              nqp::if(
-                nqp::isconcrete($!future),
-                nqp::stmts(
-                  nqp::while(
-                    nqp::elems($!future),
-                    nqp::if(
-                      (nqp::istype((my $current := nqp::shift($!future)),Slip)
-                        && nqp::isconcrete($current)),
-                      $current.iterator.push-all($!reification-target),
-                      $!reification-target.push($current)
-                    )
-                  ),
-                  ($!future := Mu)
-                )
+            nqp::if(
+              nqp::isconcrete($!current-iter),
+              nqp::stmts(
+                $!current-iter.push-all($!reification-target),
+                $!current-iter := Iterator
+              )
+            );
+
+            nqp::if(
+              nqp::isconcrete($!future),
+              nqp::stmts(
+                nqp::while(
+                  nqp::elems($!future),
+                  nqp::if(
+                    (nqp::istype((my $current := nqp::shift($!future)),Slip)
+                      && nqp::isconcrete($current)),
+                    $current.iterator.push-all($!reification-target),
+                    $!reification-target.push($current)
+                  )
+                ),
+                ($!future := Mu)
               ),
               nqp::elems($!reified)
             )
@@ -183,18 +177,17 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method from-iterator(List:U: Iterator $iter --> List:D) {
-        nqp::stmts(
-          (my \buffer := nqp::create(IterationBuffer)),
-          nqp::bindattr(
-            (my \result := nqp::create(self)),List,'$!reified',buffer),
-          nqp::bindattr(
-            (my \todo := nqp::create(Reifier)),Reifier,'$!reified',buffer),
-          nqp::bindattr(todo,Reifier,'$!current-iter',$iter),
-          # since Array has its own from-iterator, we don't need to
-          # call reification-target, because it is the same as buffer
-          nqp::bindattr(todo,Reifier,'$!reification-target',buffer),
-          nqp::p6bindattrinvres(result,List,'$!todo',todo)
-        )
+        my \buffer := nqp::create(IterationBuffer);
+        nqp::bindattr(
+          (my \result := nqp::create(self)),List,'$!reified',buffer);
+        nqp::bindattr(
+          (my \todo := nqp::create(Reifier)),Reifier,'$!reified',buffer);
+        nqp::bindattr(todo,Reifier,'$!current-iter',$iter);
+
+        # since Array has its own from-iterator, we don't need to
+        # call reification-target, because it is the same as buffer
+        nqp::bindattr(todo,Reifier,'$!reification-target',buffer);
+        nqp::p6bindattrinvres(result,List,'$!todo',todo)
     }
 
     method from-slurpy(|) {

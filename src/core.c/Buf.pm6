@@ -342,36 +342,38 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     );
 
     multi method gist(Blob:D:) {
-        nqp::stmts(
-          (my int $todo    = nqp::elems(self) min nqp::div_i(200,nqp::div_i(T.^nativesize,4) || 1)),
-          (my int $i       = -1),
-          (my     $chunks := nqp::list_s),
-          nqp::while(
-            nqp::islt_i($i = nqp::add_i($i,1),$todo),
-            nqp::stmts(
-              (my int $elem   = nqp::atpos_i(self,$i)),
-              (my     $chunk := nqp::list_s),
-              (my int $size   = nqp::div_i(T.^nativesize,4) || 1),
-              nqp::while(
-                nqp::isgt_i($size,0),
-                nqp::stmts(
-                  nqp::unshift_s(
-                    $chunk,
-                    nqp::atpos_s($char,nqp::bitand_i($elem,0xF))
-                  ),
-                  ($elem = nqp::bitshiftr_i($elem,4)),
-                  ($size = nqp::sub_i($size,1))
-                )
-              ),
-              nqp::push_s($chunks,nqp::join('',$chunk))
-            )
-          ),
-          nqp::if(
-            nqp::isgt_i(nqp::elems(self),$todo),
-            nqp::push_s($chunks,"...")
-          ),
-          nqp::join('',nqp::list_s(self.^name,':0x<',nqp::join(" ",$chunks),'>'))
-        )
+        my int $todo =
+          nqp::elems(self) min nqp::div_i(200,nqp::div_i(T.^nativesize,4) || 1);
+        my int $i   = -1;
+        my $chunks := nqp::list_s;
+
+        nqp::while(
+          nqp::islt_i($i = nqp::add_i($i,1),$todo),
+          nqp::stmts(
+            (my int $elem   = nqp::atpos_i(self,$i)),
+            (my     $chunk := nqp::list_s),
+            (my int $size   = nqp::div_i(T.^nativesize,4) || 1),
+            nqp::while(
+              nqp::isgt_i($size,0),
+              nqp::stmts(
+                nqp::unshift_s(
+                  $chunk,
+                  nqp::atpos_s($char,nqp::bitand_i($elem,0xF))
+                ),
+                ($elem = nqp::bitshiftr_i($elem,4)),
+                ($size = nqp::sub_i($size,1))
+              )
+            ),
+            nqp::push_s($chunks,nqp::join('',$chunk))
+          )
+        );
+
+        nqp::if(
+          nqp::isgt_i(nqp::elems(self),$todo),
+          nqp::push_s($chunks,"...")
+        );
+
+        nqp::join('',nqp::list_s(self.^name,':0x<',nqp::join(" ",$chunks),'>'))
     }
     multi method raku(Blob:D:) {
         self.^name ~ '.new(' ~ self.join(',') ~ ')';

@@ -136,50 +136,50 @@ my class BagHash does Baggy {
         # logic is therefore basically the same as in AT-KEY,
         # except for tests for allocated storage and .WHICH
         # processing.
-        nqp::stmts(
-          # save object for potential recreation
-          (my $pair := nqp::atkey(elems,$key)),
 
-          Proxy.new(
-            FETCH => {
+        # save object for potential recreation
+        my $pair := nqp::atkey(elems,$key);
+
+        Proxy.new(
+          FETCH => {
+              nqp::if(
+                nqp::existskey(elems,$key),
+                nqp::getattr(nqp::atkey(elems,$key),Pair,'$!value'),
+                # 0 the value of existskey if the key doesn't exist
+              )
+          },
+          STORE => -> $, Int() $value {
+              nqp::if(
+                # https://github.com/Raku/old-issue-tracker/issues/5567
+                nqp::istype($value,Failure),
+                $value.throw,
                 nqp::if(
                   nqp::existskey(elems,$key),
-                  nqp::getattr(nqp::atkey(elems,$key),Pair,'$!value'),
-                  # 0 the value of existskey if the key doesn't exist
-                )
-            },
-            STORE => -> $, Int() $value {
-                nqp::if(
-                  nqp::istype($value,Failure),  # https://github.com/Raku/old-issue-tracker/issues/5567
-                  $value.throw,
-                  nqp::if(
-                    nqp::existskey(elems,$key),
-                    nqp::if(                    # existing element
-                      nqp::isgt_i($value,0),
-                      nqp::bindattr(            # value ok
-                        nqp::atkey(elems,$key),
-                        Pair,
-                        '$!value',
-                        nqp::decont($value)
-                      ),
-                      nqp::stmts(               # goodbye!
-                        nqp::deletekey(elems,$key),
-                        0
-                      )
+                  nqp::if(                    # existing element
+                    nqp::isgt_i($value,0),
+                    nqp::bindattr(            # value ok
+                      nqp::atkey(elems,$key),
+                      Pair,
+                      '$!value',
+                      nqp::decont($value)
                     ),
-                    nqp::if(                    # where did it go?
-                      nqp::isgt_i($value,0),
-                      nqp::bindattr(
-                        nqp::bindkey(elems,$key,$pair),
-                        Pair,
-                        '$!value',
-                        nqp::decont($value)
-                      )
+                    nqp::stmts(               # goodbye!
+                      nqp::deletekey(elems,$key),
+                      0
+                    )
+                  ),
+                  nqp::if(                    # where did it go?
+                    nqp::isgt_i($value,0),
+                    nqp::bindattr(
+                      nqp::bindkey(elems,$key,$pair),
+                      Pair,
+                      '$!value',
+                      nqp::decont($value)
                     )
                   )
                 )
-            }
-          )
+              )
+          }
         )
     }
 

@@ -96,22 +96,21 @@ my class Regex { # declared in BOOTSTRAP
     }
 
     method !Bool6c() {
-        nqp::stmts(
-          (my $ctx := nqp::ctx),
-          nqp::until(
-            nqp::isnull($ctx := nqp::ctxcallerskipthunks($ctx))
-              || nqp::isconcrete(
-                   my $underscore := nqp::getlexrelcaller($ctx,'$_')
-            ),
-            nqp::null
+        my $ctx := nqp::ctx;
+        nqp::until(
+          nqp::isnull($ctx := nqp::ctxcallerskipthunks($ctx))
+            || nqp::isconcrete(
+                 my $underscore := nqp::getlexrelcaller($ctx,'$_')
           ),
-          nqp::if(
-            nqp::isnull($ctx),
-            False,
-            nqp::stmts(
-              (my $slash := nqp::getlexrelcaller($ctx,'$/')),
-              ($slash = $underscore.match(self)).Bool
-            )
+          nqp::null
+        );
+
+        nqp::if(
+          nqp::isnull($ctx),
+          False,
+          nqp::stmts(
+            (my $slash := nqp::getlexrelcaller($ctx,'$/')),
+            ($slash = $underscore.match(self)).Bool
           )
         )
     }

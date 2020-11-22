@@ -40,16 +40,14 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
             nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els)
         }
         method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              (my     $uni := $!uni), # lexicals faster than attrs
-              (my int $els  = $!els),
-              (my int $i    = $!i),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i, 1)), $els),
-                target.push: nqp::atpos_i($uni, $i)
-              ),
-              ($!i = $i)
-            )
+            my     $uni := $!uni; # lexicals faster than attrs
+            my int $els  = $!els;
+            my int $i    = $!i;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i, 1)), $els),
+              target.push: nqp::atpos_i($uni, $i)
+            );
+            $!i = $i;
         }
         method count-only(--> Int:D) {
             nqp::p6box_i($!els - $!i - nqp::islt_i($!i,$!els))

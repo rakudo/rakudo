@@ -38,25 +38,28 @@
         }
 
         method pull-one() is raw {
-            nqp::stmts(
-              (my $got := nqp::shift($!queue)),
+            my $got := nqp::shift($!queue);
+            nqp::if(
+              nqp::eqaddr($got,ConcQueue),
               nqp::if(
-                nqp::eqaddr($got,ConcQueue),
-                nqp::if(
-                  nqp::isconcrete($!exception),
-                  $!exception.rethrow,
-                  IterationEnd),
-                $got))
+                nqp::isconcrete($!exception),
+                $!exception.rethrow,
+                IterationEnd
+              ),
+              $got
+            )
         }
 
         method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              nqp::until(
-                nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue),
-                target.push($got)),
-              nqp::if(
-                nqp::isconcrete($!exception),
-                $!exception.rethrow))
+            nqp::until(
+              nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue),
+              target.push($got)
+            );
+
+            nqp::if(
+              nqp::isconcrete($!exception),
+              $!exception.rethrow
+            );
         }
 
         # method is-lazy(--> Bool:D) { ... }

@@ -513,19 +513,18 @@ do {
     }
 
     sub print_control(|) {
-        nqp::stmts(
-          (my Mu $ex := nqp::atpos(nqp::p6argvmarray(),0)),
-          (my int $type = nqp::getextype($ex)),
-          (my $backtrace = Backtrace.new(nqp::backtrace($ex))),
-          nqp::if(
-            nqp::iseq_i($type,nqp::const::CONTROL_WARN),
-            nqp::stmts(
-              (my Mu $err := $*ERR),
-              (my str $msg = nqp::getmessage($ex)),
-              $err.say(nqp::if(nqp::chars($msg),$msg,"Warning")),
-              $err.print($backtrace.first-none-setting-line),
-              nqp::resume($ex)
-            )
+        my Mu $ex := nqp::atpos(nqp::p6argvmarray(),0);
+        my int $type = nqp::getextype($ex);
+        my $backtrace = Backtrace.new(nqp::backtrace($ex));
+
+        nqp::if(
+          nqp::iseq_i($type,nqp::const::CONTROL_WARN),
+          nqp::stmts(
+            (my Mu $err := $*ERR),
+            (my str $msg = nqp::getmessage($ex)),
+            $err.say(nqp::if(nqp::chars($msg),$msg,"Warning")),
+            $err.print($backtrace.first-none-setting-line),
+            nqp::resume($ex)
           )
         );
 
@@ -2428,15 +2427,16 @@ my class X::TypeCheck is Exception {
     method got()      { $!got }
     method expected() { $!expected }
     method gotn() {
-        nqp::stmts(
-          (my Str:D $raku := Rakudo::Internals.SHORT-STRING: $!got, :method<raku>),
+        my Str:D $raku := Rakudo::Internals.SHORT-STRING: $!got, :method<raku>;
+        nqp::if(
+          nqp::eqaddr($!got.WHAT, $!expected.WHAT),
+          $raku,
           nqp::if(
-            nqp::eqaddr($!got.WHAT, $!expected.WHAT),
-            $raku,
-            nqp::if(
-              nqp::can($!got.HOW, 'name'),
-              "$!got.^name() ($raku)",
-              $raku)))
+            nqp::can($!got.HOW, 'name'),
+            "$!got.^name() ($raku)",
+            $raku
+          )
+        )
     }
     method expectedn() {
         nqp::if(

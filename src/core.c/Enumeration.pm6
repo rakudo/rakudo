@@ -54,19 +54,17 @@ my role Enumeration {
           !! self
     }
     method succ(::?CLASS:D:) {
-        nqp::stmts(
-          (my $values := nqp::getattr(self.^enum_value_list,List,'$!reified')),
-          nqp::if(
-            nqp::islt_i(
-              nqp::getattr_i(self,::?CLASS,'$!index'),
-              nqp::sub_i(nqp::elems($values),1),
-            ),
-            nqp::atpos(
-               $values,
-               nqp::add_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
-            ),
-            self
-          )
+        my $values := nqp::getattr(self.^enum_value_list,List,'$!reified');
+        nqp::if(
+          nqp::islt_i(
+            nqp::getattr_i(self,::?CLASS,'$!index'),
+            nqp::sub_i(nqp::elems($values),1),
+          ),
+          nqp::atpos(
+            $values,
+            nqp::add_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
+          ),
+          self
         )
     }
 }

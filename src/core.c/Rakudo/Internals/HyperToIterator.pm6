@@ -24,28 +24,28 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
     }
 
     method consume-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
-        nqp::stmts(
-          nqp::bindpos(                          # store the batch at its place
-            $!waiting,
-            nqp::sub_i($batch.sequence-number,$!offset),
-            $batch
-          ),
-          nqp::until(                            # feed valid batches in order
-            nqp::isnull(nqp::atpos($!waiting,0)),
-            nqp::stmts(
-              $!batches.send(nqp::shift($!waiting)),
-              ($!offset = nqp::add_i($!offset,1))
-            )
-          ),
-          nqp::if(                               # set flag we've seen last one
-            $batch.last,
-            ($!seen-last = 1)
-          ),
-          nqp::if(                               # close channel if we're done
-            $!seen-last && nqp::not_i(nqp::elems($!waiting)),
-            $!batches.close
+        nqp::bindpos(                          # store the batch at its place
+          $!waiting,
+          nqp::sub_i($batch.sequence-number,$!offset),
+          $batch
+        );
+
+        nqp::until(                            # feed valid batches in order
+          nqp::isnull(nqp::atpos($!waiting,0)),
+          nqp::stmts(
+            $!batches.send(nqp::shift($!waiting)),
+            ($!offset = nqp::add_i($!offset,1))
           )
-        )
+        );
+
+        nqp::if(                               # set flag we've seen last one
+          $batch.last,
+          ($!seen-last = 1)
+        );
+        nqp::if(                               # close channel if we're done
+          $!seen-last && nqp::not_i(nqp::elems($!waiting)),
+          $!batches.close
+        );
     }
 
     method consume-error(Exception $e --> Nil) {

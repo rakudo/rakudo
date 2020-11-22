@@ -169,22 +169,20 @@ my class Rakudo::Internals {
     }
 
     method createENV() {
-        nqp::stmts(
-          (my $hash := nqp::hash),
-          (my $iter := nqp::iterator(nqp::getenvhash)),
-          nqp::while(
-            $iter,
-            nqp::bindkey(
-              $hash,
-              nqp::iterkey_s(nqp::shift($iter)),
-              nqp::assign(
-                nqp::p6scalarfromdesc(nqp::null),
-                val(nqp::box_s(nqp::iterval($iter),Str))
-              )
+        my $hash := nqp::hash;
+        my $iter := nqp::iterator(nqp::getenvhash);
+        nqp::while(
+          $iter,
+          nqp::bindkey(
+            $hash,
+            nqp::iterkey_s(nqp::shift($iter)),
+            nqp::assign(
+              nqp::p6scalarfromdesc(nqp::null),
+              val(nqp::box_s(nqp::iterval($iter),Str))
             )
-          ),
-          $hash
-        )
+          )
+        );
+        $hash
     }
 
     # Helper method for prefix:<let>/prefix:<temp>, which really do the same
@@ -192,44 +190,44 @@ my class Rakudo::Internals {
     # which to save data, the container to be inspected, and the type of op
     # for any error messaging.
     method TEMP-LET(\restore, \cont, str $localizer) is raw {
-        nqp::stmts(
-          (my int $i = nqp::elems(restore)),
-          nqp::while(
-            nqp::isgt_i($i,0),
-            nqp::if(
-              nqp::eqaddr(nqp::atpos(restore,($i = nqp::sub_i($i,2))),cont),
-              (return-rw cont)
-            )
-          ),
+        my int $i = nqp::elems(restore);
+
+        nqp::while(
+          nqp::isgt_i($i,0),
           nqp::if(
-            nqp::istype(cont,Failure),
-            cont.exception.throw,
-            nqp::stmts(
-              nqp::push(restore,cont),
+            nqp::eqaddr(nqp::atpos(restore,($i = nqp::sub_i($i,2))),cont),
+            (return-rw cont)
+          )
+        );
+
+        nqp::if(
+          nqp::istype(cont,Failure),
+          cont.exception.throw,
+          nqp::stmts(
+            nqp::push(restore,cont),
+            nqp::if(
+              nqp::iscont(cont),
+              nqp::push(restore,nqp::decont(cont)),
               nqp::if(
-                nqp::iscont(cont),
-                nqp::push(restore,nqp::decont(cont)),
+                nqp::istype(cont,Array),
+                nqp::push(restore,cont.clone),
                 nqp::if(
-                  nqp::istype(cont,Array),
-                  nqp::push(restore,cont.clone),
-                  nqp::if(
-                    nqp::istype(cont,Hash),
-                    nqp::push(restore,
-                      nqp::p6bindattrinvres(
-                        Hash.^parameterize(Mu,Mu).new,
-                        Hash, '$!descriptor',
-                        nqp::getattr(cont, Hash, '$!descriptor')).STORE: cont),
-                    nqp::stmts(
-                      nqp::pop(restore),  # lose the erroneously pushed value
-                      X::Localizer::NoContainer.new(:$localizer).throw
-                    )
+                  nqp::istype(cont,Hash),
+                  nqp::push(restore,
+                    nqp::p6bindattrinvres(
+                      Hash.^parameterize(Mu,Mu).new,
+                      Hash, '$!descriptor',
+                      nqp::getattr(cont, Hash, '$!descriptor')).STORE: cont),
+                  nqp::stmts(
+                    nqp::pop(restore),  # lose the erroneously pushed value
+                    X::Localizer::NoContainer.new(:$localizer).throw
                   )
                 )
               )
             )
-          ),
-          cont
-        )
+          )
+        );
+        cont
     }
 
     # fast whitespace trim: str to trim, str to store trimmed str
@@ -439,44 +437,44 @@ my class Rakudo::Internals {
     }
 
     method SHAPED-ARRAY-STORAGE(\spec, Mu \meta-obj, Mu \type) {
-        nqp::stmts(
-          (my $types := nqp::list(meta-obj)),  # meta + type of each dimension
-          (my $dims  := nqp::list_i),          # elems per dimension
-          nqp::if(
-            nqp::istype(spec,List),
-            nqp::stmts(                        # potentially more than 1 dim
-              (my $spec  := nqp::getattr(nqp::decont(spec),List,'$!reified')),
-              (my int $elems = nqp::elems($spec)),
-              (my int $i     = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+        my $types := nqp::list(meta-obj);  # meta + type of each dimension
+        my $dims  := nqp::list_i;          # elems per dimension
+
+        nqp::if(
+          nqp::istype(spec,List),
+          nqp::stmts(                        # potentially more than 1 dim
+            (my $spec  := nqp::getattr(nqp::decont(spec),List,'$!reified')),
+            (my int $elems = nqp::elems($spec)),
+            (my int $i     = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
+                X::NYI.new(feature => 'Jagged array shapes').throw,
                 nqp::if(
-                  nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
-                  X::NYI.new(feature => 'Jagged array shapes').throw,
+                  nqp::istype(($dim := nqp::decont($dim.Int)),Failure),
+                  $dim.throw,
                   nqp::if(
-                    nqp::istype(($dim := nqp::decont($dim.Int)),Failure),
-                    $dim.throw,
-                    nqp::if(
-                      nqp::isbig_I($dim) || nqp::isle_i($dim,0),
-                      X::IllegalDimensionInShape.new(:$dim).throw,
-                      nqp::stmts(
-                        nqp::push($types,type),
-                        nqp::push_i($dims,$dim)
-                      )
+                    nqp::isbig_I($dim) || nqp::isle_i($dim,0),
+                    X::IllegalDimensionInShape.new(:$dim).throw,
+                    nqp::stmts(
+                      nqp::push($types,type),
+                      nqp::push_i($dims,$dim)
                     )
                   )
                 )
               )
-            ),
-            nqp::stmts(                        # only 1 dim
-              nqp::push($types,type),
-              nqp::push_i($dims,spec.Int)
             )
           ),
-          nqp::setdimensions(
-            nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$types)),
-            $dims
+          nqp::stmts(                        # only 1 dim
+            nqp::push($types,type),
+            nqp::push_i($dims,spec.Int)
           )
+        );
+
+        nqp::setdimensions(
+          nqp::create(nqp::parameterizetype(SHAPE-STORAGE-ROOT,$types)),
+          $dims
         )
     }
 
@@ -695,15 +693,16 @@ implementation detail and has no serviceable parts inside"
     }
 
     method MAYBE-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
-        nqp::stmts(
-          (my Mu \decont = nqp::decont(thing)),
+        my Mu \decont = nqp::decont(thing);
+        nqp::if(
+          nqp::can(decont, nqp::decont_s($method)),
+          decont."$method"(),
           nqp::if(
-            nqp::can(decont, nqp::decont_s($method)),
-            decont."$method"(),
-            nqp::if(
-              nqp::can(decont.HOW, 'name'),
-              decont.^name,
-              '?')))
+            nqp::can(decont.HOW, 'name'),
+            decont.^name,
+            '?'
+          )
+        )
     }
     method SHORT-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
         my str $str = nqp::unbox_s(self.MAYBE-STRING: thing, :$method);
@@ -916,20 +915,20 @@ implementation detail and has no serviceable parts inside"
     }
 
     method tai-from-posix(\posix, int $prefer-leap-second) {
-        nqp::stmts(
-          (my int $p = posix.floor),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-              && nqp::isgt_i($p,nqp::atpos_i($posixes,$i)),
-            nqp::null
-          ),
-          posix + nqp::add_i(
-            nqp::add_i($initial-offset,$i),
-            nqp::islt_i($i,$elems)
-              && nqp::not_i($prefer-leap-second)
-              && nqp::iseq_i($p,nqp::atpos_i($posixes,$i))
-          )
+        my int $p = posix.floor;
+        my int $i = -1;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+            && nqp::isgt_i($p,nqp::atpos_i($posixes,$i)),
+          nqp::null
+        );
+
+        posix + nqp::add_i(
+          nqp::add_i($initial-offset,$i),
+          nqp::islt_i($i,$elems)
+            && nqp::not_i($prefer-leap-second)
+            && nqp::iseq_i($p,nqp::atpos_i($posixes,$i))
         )
     }
 
@@ -982,21 +981,21 @@ implementation detail and has no serviceable parts inside"
 
     method REGISTER-DYNAMIC(Str:D \name, &code, Str $version = '6.c' --> Nil) {
 #nqp::say('Registering ' ~ name);
-        nqp::stmts(
-          (my str $with = nqp::concat($version, nqp::concat("\0", name))),
-          nqp::if(
-            nqp::existskey(
-              nqp::unless($initializers,$initializers := nqp::hash),
-              $with
-            ),
-            (die "Already have initializer for '{name}' ('$version')"),
-            nqp::bindkey($initializers,$with,&code)
+        my str $with = nqp::concat($version, nqp::concat("\0", name));
+
+        nqp::if(
+          nqp::existskey(
+            nqp::unless($initializers,$initializers := nqp::hash),
+            $with
           ),
-          nqp::unless(                                 # first come, first kept
-            nqp::existskey($initializers,nqp::unbox_s(name)),
-            nqp::bindkey($initializers,nqp::unbox_s(name),&code)
-          )
-        )
+          (die "Already have initializer for '{name}' ('$version')"),
+          nqp::bindkey($initializers,$with,&code)
+        );
+
+        nqp::unless(                                 # first come, first kept
+          nqp::existskey($initializers,nqp::unbox_s(name)),
+          nqp::bindkey($initializers,nqp::unbox_s(name),&code)
+        );
     }
     method INITIALIZE-DYNAMIC(str \name) is raw {
 #nqp::say('Initializing ' ~ name);
@@ -1193,15 +1192,13 @@ implementation detail and has no serviceable parts inside"
         has $!todo;
         has $!seen;
         method !SET-SELF(\abspath,$!dir,$!file) {
-            nqp::stmts(
-              ($!abspath = abspath),
-              ($!handle := nqp::opendir($!abspath)),
-              ($!dir-sep = $*SPEC.dir-sep),
-              ($!todo   := nqp::list_s),
-              ($!seen   := nqp::hash($!abspath,1)),
-              ($!abspath = nqp::concat($!abspath,$!dir-sep)),
-              self
-            )
+            $!abspath = abspath;
+            $!handle := nqp::opendir($!abspath);
+            $!dir-sep = $*SPEC.dir-sep;
+            $!todo   := nqp::list_s;
+            $!seen   := nqp::hash($!abspath,1);
+            $!abspath = nqp::concat($!abspath,$!dir-sep);
+            self
         }
         method new(\abspath,\dir,\file) {
             nqp::stat(abspath,nqp::const::STAT_EXISTS)
@@ -1604,16 +1601,17 @@ implementation detail and has no serviceable parts inside"
     }
 
     method INFIX_COMMA_SLIP_HELPER(\reified, \future) {
-        nqp::stmts(
-          (my $list :=
-            nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',reified)),
-          nqp::bindattr($list,List,'$!todo',
-            my $todo:= nqp::create(List::Reifier)),
-          nqp::bindattr($todo,List::Reifier,'$!reified',reified),
-          nqp::bindattr($todo,List::Reifier,'$!future',nqp::getattr(future,List,'$!reified')),
-          nqp::bindattr($todo,List::Reifier,'$!reification-target',reified),
-          $list
-        )
+        my $list :=
+          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',reified);
+        nqp::bindattr($list,List,'$!todo',
+          my $todo:= nqp::create(List::Reifier)
+        );
+        nqp::bindattr($todo,List::Reifier,'$!reified',reified);
+        nqp::bindattr($todo,List::Reifier,'$!future',
+          nqp::getattr(future,List,'$!reified')
+        );
+        nqp::bindattr($todo,List::Reifier,'$!reification-target',reified);
+        $list
     }
 
     my $METAOP_ASSIGN := nqp::null;  # lazy storage for core METAOP_ASSIGN ops

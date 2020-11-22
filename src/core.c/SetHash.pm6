@@ -85,21 +85,20 @@ my class SetHash does Setty {
         # logic is therefore basically the same as in AT-KEY,
         # except for tests for allocated storage and .WHICH
         # processing.
-        nqp::stmts(
-          # save object for potential recreation
-          (my $object := nqp::atkey(elems,$key)),
 
-          Proxy.new(
-            FETCH => {
-                nqp::hllbool(nqp::existskey(elems,$key))
-            },
-            STORE => -> $, $value {
-                $value
-                  ?? nqp::bindkey(elems,$key,$object)
-                  !! nqp::deletekey(elems,$key);
-                $value.Bool
-            }
-          )
+        # save object for potential recreation
+        my $object := nqp::atkey(elems,$key);
+
+        Proxy.new(
+          FETCH => {
+              nqp::hllbool(nqp::existskey(elems,$key))
+          },
+          STORE => -> $, $value {
+              $value
+                ?? nqp::bindkey(elems,$key,$object)
+                !! nqp::deletekey(elems,$key);
+              $value.Bool
+          }
         )
     }
 

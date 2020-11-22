@@ -103,30 +103,29 @@ my role Array::Shaped1 does Array::Shaped {
 
     proto method STORE(::?CLASS:D: |) {*}
     multi method STORE(::?CLASS:D: ::?CLASS:D \from-array) {
-        nqp::stmts(
-          (my \to   := nqp::getattr(self,List,'$!reified')),
-          (my \from := nqp::getattr(from-array,List,'$!reified')),
-          nqp::if(
-            nqp::iseq_i(
-              (my int $elems = nqp::elems(to)),nqp::elems(from)),
-            nqp::stmts(
-              (my \desc := nqp::getattr(self,Array,'$!descriptor')),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                # always create a new container in case the from list
-                # contains containers already existing in the to list
-                # e.g. after having done a .reverse or .rotate
-                nqp::bindpos(to,$i,nqp::p6scalarfromdesc(desc)) =
-                  nqp::atpos(from,$i)
-              ),
-              self
+        my \to   := nqp::getattr(self,List,'$!reified');
+        my \from := nqp::getattr(from-array,List,'$!reified');
+
+        nqp::if(
+          nqp::iseq_i(
+            (my int $elems = nqp::elems(to)),nqp::elems(from)),
+          nqp::stmts(
+            (my \desc := nqp::getattr(self,Array,'$!descriptor')),
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              # always create a new container in case the from list
+              # contains containers already existing in the to list
+              # e.g. after having done a .reverse or .rotate
+              nqp::bindpos(to,$i,nqp::p6scalarfromdesc(desc)) =
+                nqp::atpos(from,$i)
             ),
-            X::Assignment::ArrayShapeMismatch.new(
-              source-shape => from-array.shape,
-              target-shape => self.shape
-            ).throw
-          )
+            self
+          ),
+          X::Assignment::ArrayShapeMismatch.new(
+            source-shape => from-array.shape,
+            target-shape => self.shape
+          ).throw
         )
     }
     multi method STORE(::?CLASS:D: Iterable:D \in, :$INITIALIZE) {
@@ -177,12 +176,10 @@ my role Array::Shaped1 does Array::Shaped {
         has Mu $!desc;
         has int $!pos;
         method !SET-SELF(Mu \list) {
-            nqp::stmts(
-              ($!reified := nqp::getattr(list,List,'$!reified')),
-              ($!desc    := nqp::getattr(list,Array,'$!descriptor')),
-              ($!pos = -1),
-              self
-            )
+            $!reified := nqp::getattr(list,List,'$!reified');
+            $!desc    := nqp::getattr(list,Array,'$!descriptor');
+            $!pos = -1;
+            self
         }
         method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
         method pull-one() is raw {
@@ -203,21 +200,20 @@ my role Array::Shaped1 does Array::Shaped {
             nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!reified))
         }
         method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              (my int $elems = nqp::elems($!reified)),
-              (my int $i = $!pos),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                target.push(
-                  nqp::ifnull(
-                    nqp::atpos($!reified,$i),
-                    nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
-                      $!desc, $!reified, $i))
-                  )
+            my int $elems = nqp::elems($!reified);
+            my int $i = $!pos;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              target.push(
+                nqp::ifnull(
+                  nqp::atpos($!reified,$i),
+                  nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
+                    $!desc, $!reified, $i))
                 )
-              ),
-              ($!pos = $i)  # mark as done
-            )
+              )
+            );
+            $!pos = $i;  # mark as done
         }
         method count-only(--> Int:D) {
             nqp::p6box_i(

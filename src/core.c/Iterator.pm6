@@ -26,18 +26,18 @@ my role Iterator {
     # occur; you must be sure this is desired. Returns the number of things
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly(\target, int $n) {
-        nqp::stmts(
-          (my int $todo = nqp::add_i($n,1)),
-          nqp::until(  # doesn't sink
-            nqp::not_i($todo = nqp::sub_i($todo,1))
-              || nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-            target.push($pulled) # don't .sink $pulled here, it can be a Seq
-          ),
-          nqp::if(
-            nqp::eqaddr($pulled,IterationEnd),
-            IterationEnd,
-            $n
-          )
+        my int $todo = nqp::add_i($n,1);
+
+        nqp::until(  # doesn't sink
+          nqp::not_i($todo = nqp::sub_i($todo,1))
+            || nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+          target.push($pulled) # don't .sink $pulled here, it can be a Seq
+        );
+
+        nqp::if(
+          nqp::eqaddr($pulled,IterationEnd),
+          IterationEnd,
+          $n
         )
     }
 
@@ -76,14 +76,12 @@ my role Iterator {
     # Skip the given number of values.  Return true if succesful in
     # skipping that many values.
     method skip-at-least(int $toskip) {
-        nqp::stmts(
-          (my int $left = $toskip),
-          nqp::while(
-            nqp::isge_i(($left = nqp::sub_i($left,1)),0) && self.skip-one,
-            nqp::null
-          ),
-          nqp::islt_i($left,0)
-        )
+        my int $left = $toskip;
+        nqp::while(
+          nqp::isge_i(($left = nqp::sub_i($left,1)),0) && self.skip-one,
+          nqp::null
+        );
+        nqp::islt_i($left,0)
     }
 
     # Skip the given number of values produced before returning the next

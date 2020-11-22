@@ -201,8 +201,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
         nqp::eqaddr(op,&infix:<+>)
         ?? &sum
         !! sub (+values) {
-            nqp::stmts(
-              (my $iter := values.iterator),
+              my $iter := values.iterator;
               nqp::if(
                 nqp::eqaddr((my $result := $iter.pull-one),IterationEnd),
                 op.(),                         # identity
@@ -223,8 +222,7 @@ multi sub METAOP_REDUCE_LEFT(\op) {
                   )
                 )
               )
-            )
-        }
+           }
     }
 }
 
@@ -246,13 +244,11 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 has int $!count;
                 has int $!i;
                 method !SET-SELF(\op,\list,\count,\index) {
-                    nqp::stmts(
-                      ($!op := op),
-                      ($!reified := nqp::getattr(list,List,'$!reified')),
-                      ($!count = count),
-                      ($!i = index),
-                      self
-                    )
+                    $!op := op;
+                    $!reified := nqp::getattr(list,List,'$!reified');
+                    $!count = count;
+                    $!i = index;
+                    self
                 }
                 method new(\op,\list,\count,\index) {
                     nqp::create(self)!SET-SELF(op,list,count,index)
@@ -300,12 +296,10 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 has $!result;
                 has int $!i;
                 method !SET-SELF(\op,\list,\count) {
-                    nqp::stmts(
-                      ($!op := op),
-                      ($!reified := nqp::getattr(list,List,'$!reified')),
-                      ($!i = count),
-                      self
-                    )
+                    $!op := op;
+                    $!reified := nqp::getattr(list,List,'$!reified');
+                    $!i = count;
+                    self
                 }
                 method new(\op,\li,\co) { nqp::create(self)!SET-SELF(op,li,co) }
                 method pull-one() is raw {

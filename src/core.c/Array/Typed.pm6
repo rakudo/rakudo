@@ -45,12 +45,10 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     }
 
     sub set-descriptor(\list) is raw {
-        nqp::stmts(
-          nqp::bindattr(list,Array,'$!descriptor',
-            ContainerDescriptor.new(:of(TValue), :default(TValue))
-          ),
-          list
-        )
+        nqp::bindattr(list,Array,'$!descriptor',
+          ContainerDescriptor.new(:of(TValue), :default(TValue))
+        );
+        list
     }
 
     # must have a proto here to hide the candidates in Array

@@ -377,7 +377,13 @@ do {
                 # falling through after all.
                 elsif $initial_out_position == $*OUT.tell {
                     if self.repl-print($output) {
-                        $code ~= ";";  # make sure statement is finished
+
+                        # Split on statements, but get rid of any trailing
+                        # semi-colons first.
+                        my @stmts = $code.subst(/ [';' \s*]* $/).split(";");
+                        # provide sink context next time for the most recent
+                        @stmts.push: "(@stmts.pop()).sink;";
+                        $code = @stmts.join(";");
                         next;
                     }
                 }

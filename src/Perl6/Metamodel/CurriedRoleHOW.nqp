@@ -71,6 +71,7 @@ class Perl6::Metamodel::CurriedRoleHOW
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),
             :named_args(%named_args), :name($name));
         my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
+        $meta.set_name($type, $name);
 
         nqp::settypecheckmode($type, 2);
     }

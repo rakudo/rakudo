@@ -423,6 +423,7 @@ my class Rakudo::Internals {
 
     my constant \SHAPE-STORAGE-ROOT := do {
         my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
+        nqp::setdebugtypename($root, 'MultiDimArray root');
         nqp::setparameterizer($root, -> $, $key {
             my $dims := $key.elems.pred;
             my $type := $key.AT-POS(1);

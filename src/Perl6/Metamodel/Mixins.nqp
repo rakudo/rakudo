@@ -5,6 +5,7 @@ my class MixinCacheHOW {
         nqp::setparameterizer($type, sub ($type, @roles) {
             $class_type.HOW.generate_mixin($class_type, @roles);
         });
+        nqp::setdebugtypename($type, $class_type.HOW.name($class_type) ~ ' mixin cache');
         $type
     }
 }
@@ -33,6 +34,7 @@ role Perl6::Metamodel::Mixins {
             ++$i;
         }
         my $mixin_type := nqp::parameterizetype($!mixin_cache, @roles);
+        nqp::setdebugtypename($mixin_type, $mixin_type.HOW.name($mixin_type) ~ ' mixin');
 
         # Ensure there's a mixin attribute, if we need it.
         if $need-mixin-attribute {

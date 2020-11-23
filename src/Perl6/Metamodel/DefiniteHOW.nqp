@@ -131,7 +131,7 @@ class Perl6::Metamodel::DefiniteHOW
 
 BEGIN {
     my $root := nqp::newtype(Perl6::Metamodel::DefiniteHOW, 'Uninstantiable');
-    nqp::settypehll($root, 'Raku');
+    nqp::setdebugtypename(nqp::settypehll($root, 'Raku'), 'DefiniteHOW root');
 
     nqp::setparameterizer($root, sub ($type, $params) {
         # Re-use same HOW.

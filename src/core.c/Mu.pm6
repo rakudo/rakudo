@@ -657,7 +657,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method Str(Mu:D:) {
         nqp::eqaddr(self,IterationEnd)
           ?? "IterationEnd"
-          !! self.^name ~ '<' ~ nqp::base_I(nqp::objectid(self),16) ~ '>'
+          !! self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
     }
 
     proto method Stringy(|) {*}

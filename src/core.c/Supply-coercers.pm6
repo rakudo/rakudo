@@ -38,16 +38,11 @@
         }
 
         method pull-one() is raw {
-            my $got := nqp::shift($!queue);
-            nqp::if(
-              nqp::eqaddr($got,ConcQueue),
-              nqp::if(
-                nqp::isconcrete($!exception),
-                $!exception.rethrow,
-                IterationEnd
-              ),
-              $got
-            )
+            nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue)
+              ?? nqp::isconcrete($!exception)
+                ?? $!exception.rethrow
+                !! IterationEnd
+              !! $got
         }
 
         method push-all(\target --> IterationEnd) {
@@ -56,10 +51,8 @@
               target.push($got)
             );
 
-            nqp::if(
-              nqp::isconcrete($!exception),
-              $!exception.rethrow
-            );
+            $!exception.rethrow
+              if nqp::isconcrete($!exception);
         }
 
         # method is-lazy(--> Bool:D) { ... }

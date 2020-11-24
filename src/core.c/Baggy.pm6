@@ -25,18 +25,16 @@ my role Baggy does QuantHash {
     }
 
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
-        nqp::if(
-          $!elems,
-          nqp::getattr(
-            nqp::ifnull(
-              nqp::atkey($!elems,k.WHICH),
-              BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
-            ),
-            Pair,
-            '$!value'
-          ),
-          0
-        )
+        $!elems
+          ?? nqp::getattr(
+               nqp::ifnull(
+                 nqp::atkey($!elems,k.WHICH),
+                 BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
+               ),
+               Pair,
+               '$!value'
+             )
+          !! 0
     }
     multi method DELETE-KEY(Baggy:D: \k) {
         nqp::if(
@@ -512,17 +510,17 @@ my role Baggy does QuantHash {
           !! Nil
     }
     multi method roll(Baggy:D: Whatever) {
-        Seq.new(nqp::if(
-          $!elems && (my \total := self.total),
-          Rakudo::Iterator.Callable( {
-              nqp::getattr(
-                nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)),
-                Pair,
-                '$!key'
-              )
-          }, True ),
-          Rakudo::Iterator.Empty
-        ))
+        Seq.new(
+          $!elems && (my \total := self.total)
+            ?? Rakudo::Iterator.Callable( {
+                 nqp::getattr(
+                   nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)),
+                   Pair,
+                   '$!key'
+                 )
+               }, True)
+            !! Rakudo::Iterator.Empty
+        )
     }
     multi method roll(Baggy:D: Callable:D $calculate) {
         (my \total := self.total)
@@ -530,29 +528,25 @@ my role Baggy does QuantHash {
           !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method roll(Baggy:D: \count) {
-        nqp::if(
-          count == Inf,
-          self.roll(*),                         # let Whatever handle it
-          Seq.new(nqp::if(                      # something else as count
-            (my $todo = count.Int) < 1,         # also handles NaN
-            Rakudo::Iterator.Empty,             # nothing to do
-            nqp::if(
-              $!elems && (my \total := self.total) && ++$todo,
-              Rakudo::Iterator.Callable( {      # need to do a number of times
-                  nqp::if(
-                    --$todo,
-                    nqp::getattr(
-                      nqp::iterval(Rakudo::QuantHash.BAG-ROLL($!elems,total)),
-                      Pair,
-                      '$!key'
-                    ),
-                    IterationEnd
-                  )
-              }),
-              Rakudo::Iterator.Empty            # nothing to roll for
-            )
-          ))
-        )
+        count == Inf
+          ?? self.roll(*)                         # let Whatever handle it
+          !! Seq.new(                             # something else as count
+               (my $todo = count.Int) < 1         # also handles NaN
+                 ?? Rakudo::Iterator.Empty        # nothing to do
+                 !! $!elems && (my \total := self.total) && ++$todo
+                   ?? Rakudo::Iterator.Callable({ # need to do a number of times
+                          --$todo
+                          ?? nqp::getattr(
+                               nqp::iterval(
+                                 Rakudo::QuantHash.BAG-ROLL($!elems,total)
+                               ),
+                               Pair,
+                              '$!key'
+                             )
+                          !! IterationEnd
+                      })
+                   !! Rakudo::Iterator.Empty      # nothing to roll for
+             )
     }
 
 #--- classification method
@@ -664,15 +658,11 @@ my role Baggy does QuantHash {
     multi method SetHash(Baggy:D:) { SETIFY($!elems,SetHash) }
 
     sub MIXIFY(\raw, \type) {
-        nqp::if(
-          raw && nqp::elems(raw),
-          nqp::create(type).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE(raw)),
-          nqp::if(
-            nqp::istype(type,Mix),
-            mix(),
-            nqp::create(MixHash)
-          )
-        )
+        raw && nqp::elems(raw)
+          ?? nqp::create(type).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE(raw))
+          !! nqp::istype(type,Mix)
+            ?? mix()
+            !! nqp::create(MixHash)
     }
 
     multi method Mix(Baggy:D:)     { MIXIFY($!elems, Mix)     }

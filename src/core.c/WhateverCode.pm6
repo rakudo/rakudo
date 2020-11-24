@@ -6,8 +6,8 @@ my class WhateverCode is Code {
       my \signature := nqp::getattr($self,Code,'$!signature');
       my \count := nqp::getattr(signature,Signature,'$!count');
       nqp::iseq_i(count,1)
-        ?? $self(  nqp::if(nqp::isconcrete(list),list.elems,0))
-        !! $self(|(nqp::if(nqp::isconcrete(list),list.elems,0) xx count))
+        ?? $self(   nqp::isconcrete(list) && list.elems)
+        !! $self(|((nqp::isconcrete(list) && list.elems) xx count))
     }
 
     multi method ACCEPTS(WhateverCode:D: \value) is raw {

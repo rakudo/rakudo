@@ -509,20 +509,14 @@ my class Range is Cool does Iterable does Positional {
           !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method roll(Range:D:) {
-        nqp::if(
-          $!is-int,
-          nqp::if(
-            (my \elems :=
-              $!max - $!excludes-max - $!min - $!excludes-min + 1) > 0,
-            $!min + $!excludes-min + nqp::rand_I(elems,Int),
-            Nil
-          ),
-          nqp::if(
-            self.elems,
-            self.list.roll,
-            Nil
-          )
-        )
+        $!is-int
+          ?? (my \elems :=
+               $!max - $!excludes-max - $!min - $!excludes-min + 1) > 0
+            ?? $!min + $!excludes-min + nqp::rand_I(elems,Int)
+            !! Nil
+          !! self.elems
+            ?? self.list.roll
+            !! Nil
     }
     multi method roll(Int(Cool) $todo) {
         (my \elems := self.elems)

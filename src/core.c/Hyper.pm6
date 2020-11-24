@@ -235,26 +235,22 @@ class Hyper {
     # :x >>op<< :y
     method !pair-pair(\left, \right) {
 #    multi method infix(Pair:D \left, Pair:D \right) {
-        nqp::if(
-          nqp::getattr(left,Pair,'$!key').WHICH
-            eq nqp::getattr(right,Pair,'$!key').WHICH,
-          nqp::p6bindattrinvres(
-            nqp::clone(left),Pair,'$!value',self.infix(
-              nqp::getattr(left, Pair,'$!value'),
-              nqp::getattr(right,Pair,'$!value')
-            )
-          ),
-          Nil
-        )
+        nqp::getattr(left,Pair,'$!key').WHICH
+          eq nqp::getattr(right,Pair,'$!key').WHICH
+          ?? nqp::p6bindattrinvres(
+               nqp::clone(left),Pair,'$!value',self.infix(
+                 nqp::getattr(left, Pair,'$!value'),
+                 nqp::getattr(right,Pair,'$!value')
+               )
+             )
+          !! Nil
     }
 
     # using an infix on a one element list in a meta op
     multi method infix(\object) {
-        nqp::if(
-          nqp::can($!operator,"nodal"),
-          nodemap($!operator,object),
-          deepmap($!operator,object)
-        )
+        nqp::can($!operator,"nodal")
+          ?? nodemap($!operator,object)
+          !! deepmap($!operator,object)
     }
 
 #--- Private helper methods ----------------------------------------------------

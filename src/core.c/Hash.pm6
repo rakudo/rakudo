@@ -399,14 +399,14 @@ my class Hash { # declared in BOOTSTRAP
     method !_push_construct(Mu $key, Mu \value --> Nil) {
         nqp::istype((my \current := self.AT-KEY($key)),Array)
           ?? current.push(value)
-          !! (current = nqp::if(self.EXISTS-KEY($key),[current,value],value))
+          !! (current = self.EXISTS-KEY($key) ?? [current,value] !! value)
     }
 
     # append values into a hash slot, constructing an array if necessary
     method !_append_construct(Mu $key, Mu \value --> Nil) {
         nqp::istype((my \current := self.AT-KEY($key)),Array)
           ?? current.append(|value)
-          !! (current = nqp::if(self.EXISTS-KEY($key),[|current,|value],value))
+          !! (current = self.EXISTS-KEY($key) ?? [|current,|value] !! value)
     }
 
     method ^parameterize(Mu:U \hash, Mu \of, Mu \keyof = Str(Any)) {

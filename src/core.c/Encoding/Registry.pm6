@@ -40,11 +40,9 @@ my class Encoding::Registry {
 
     method register(Encoding $enc --> Nil) {
         $lock.protect: {
-            nqp::if(
-              nqp::existskey($lookup,(my str $key = $enc.name.fc)),
-              X::Encoding::AlreadyRegistered.new(name => $enc.name).throw,
-              nqp::bindkey($lookup,$key,$enc)
-            );
+            nqp::existskey($lookup,(my str $key = $enc.name.fc))
+              ?? X::Encoding::AlreadyRegistered.new(name => $enc.name).throw
+              !! nqp::bindkey($lookup,$key,$enc);
             my $names := nqp::getattr($enc.alternative-names,List,'$!reified');
             my int $elems = nqp::elems($names);
             my int $i = -1;

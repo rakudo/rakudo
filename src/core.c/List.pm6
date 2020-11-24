@@ -475,25 +475,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     multi method AT-POS(List:D: int $pos) is raw {
-        nqp::if(
-          nqp::isge_i($pos,0) && nqp::isconcrete($!reified),
-          nqp::ifnull(
-            nqp::atpos($!reified,$pos),
-            self!AT_POS_SLOW($pos)
-          ),
-          self!AT_POS_SLOW($pos)
-        )
+        nqp::isge_i($pos,0) && nqp::isconcrete($!reified)
+          ?? nqp::ifnull(
+               nqp::atpos($!reified,$pos),
+               self!AT_POS_SLOW($pos)
+             )
+          !! self!AT_POS_SLOW($pos)
     }
     # because this is a very hot path, we copied the code from the int candidate
     multi method AT-POS(List:D: Int:D $pos) is raw {
-        nqp::if(
-          nqp::isge_i($pos,0) && nqp::isconcrete($!reified),
-          nqp::ifnull(
-            nqp::atpos($!reified,$pos),
-            self!AT_POS_SLOW($pos)
-          ),
-          self!AT_POS_SLOW($pos)
-        )
+        nqp::isge_i($pos,0) && nqp::isconcrete($!reified)
+          ?? nqp::ifnull(
+               nqp::atpos($!reified,$pos),
+               self!AT_POS_SLOW($pos)
+             )
+          !! self!AT_POS_SLOW($pos)
     }
 
     method !AT_POS_SLOW(\pos) is raw {
@@ -651,15 +647,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
     }
     method iterator(List:D: --> Iterator:D) {
-        nqp::if(
-          nqp::isconcrete($!todo),
-          Todo.new(self),    # something to iterate over in the future
-          nqp::if(           # everything we need is already there
-            nqp::isconcrete($!reified),
-            Rakudo::Iterator.ReifiedList(self),
-            Rakudo::Iterator.Empty
-          )
-        )
+        nqp::isconcrete($!todo)
+          ?? Todo.new(self)               # something to iterate in the future
+          !! nqp::isconcrete($!reified)   # everything we need is already there
+            ?? Rakudo::Iterator.ReifiedList(self)
+            !! Rakudo::Iterator.Empty
     }
 
     multi method ACCEPTS(List:D: Iterable:U --> True) { }
@@ -1128,33 +1120,28 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     proto method combinations(|) is nodal {*}
     multi method combinations(--> Seq:D) {
-        nqp::stmts(
-          (my int $elems = self.elems),           # reifies
-          (my int $i = -1),
-          Seq.new(
-            Rakudo::Iterator.SequentialIterators(
-              Rakudo::Iterator.Callable( {
-                  nqp::if(
-                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                    Rakudo::Iterator.ListIndexes( # basically .combinations($i)
-                      self,
-                      Rakudo::Iterator.Combinations($elems, $i, 1)
-                    ),
-                    nqp::if(
-                      nqp::iseq_i($i,$elems),
-                      Rakudo::Iterator.OneValue(  # last one is self
-                        nqp::p6bindattrinvres(    # but must be a (new) List
-                          nqp::create(List),      # so transplant innards
-                          List,
-                          '$!reified',
-                          nqp::getattr(self,List,'$!reified')
-                        )
-                      ),
-                      IterationEnd
-                    )
-                  )
-              } )
-            )
+        my int $elems = self.elems;           # reifies
+        my int $i = -1;
+
+        Seq.new(
+          Rakudo::Iterator.SequentialIterators(
+            Rakudo::Iterator.Callable( {
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  ?? Rakudo::Iterator.ListIndexes( #  .combinations($i)
+                       self,
+                       Rakudo::Iterator.Combinations($elems, $i, 1)
+                     )
+                  !! nqp::iseq_i($i,$elems)
+                    ?? Rakudo::Iterator.OneValue(  # last one is self
+                         nqp::p6bindattrinvres(    # but must be a (new) List
+                           nqp::create(List),      # so transplant innards
+                           List,
+                           '$!reified',
+                           nqp::getattr(self,List,'$!reified')
+                         )
+                       )
+                    !! IterationEnd
+            } )
           )
         )
     }
@@ -1423,15 +1410,11 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
     multi method tail(List:D:) is raw {
-        nqp::if(
-          nqp::isconcrete($!todo),
-          self.Any::tail,
-          nqp::if(
-            nqp::isconcrete($!reified) && nqp::elems($!reified),
-            nqp::atpos($!reified,nqp::sub_i(nqp::elems($!reified),1)),
-            Nil
-          )
-        )
+        nqp::isconcrete($!todo)
+          ?? self.Any::tail
+          !! nqp::isconcrete($!reified) && nqp::elems($!reified)
+            ?? nqp::atpos($!reified,nqp::sub_i(nqp::elems($!reified),1))
+            !! Nil
     }
     multi method tail(List:D: $n --> Seq:D) {
         nqp::if(

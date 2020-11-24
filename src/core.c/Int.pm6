@@ -373,22 +373,17 @@ multi sub infix:<div>(int $a, int $b --> int) {
 }
 
 multi sub infix:<%>(Int:D \a, Int:D \b --> Int:D) {
-    nqp::if(
-      nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
-      nqp::if(
-        b,
-        nqp::mod_I(nqp::decont(a),nqp::decont(b),Int),
-        Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
-      ),
-      nqp::if(
-        nqp::isne_i(b,0),
-        nqp::mod_i(    # quick fix https://github.com/Raku/old-issue-tracker/issues/4999
-          nqp::add_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)),b),
-          nqp::decont(b)
-        ),
-        Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
-      )
-    )
+    nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b))
+      ?? b
+        ?? nqp::mod_I(nqp::decont(a),nqp::decont(b),Int)
+        !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
+      !! nqp::isne_i(b,0)
+        # quick fix https://github.com/Raku/old-issue-tracker/issues/4999
+        ?? nqp::mod_i(
+             nqp::add_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)),b),
+             nqp::decont(b)
+           )
+        !! Failure.new(X::Numeric::DivideByZero.new(:using<%>, :numerator(a)))
 }
 multi sub infix:<%>(int $a, int $b --> int) {
     # relies on opcode or hardware to detect division by 0
@@ -396,23 +391,17 @@ multi sub infix:<%>(int $a, int $b --> int) {
 }
 
 multi sub infix:<%%>(Int:D \a, Int:D \b) {
-    nqp::if(
-      nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
-      nqp::if(
-        b,
-        !nqp::mod_I(nqp::decont(a),nqp::decont(b),Int),
-        Failure.new(
-          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-        )
-      ),
-      nqp::if(
-        nqp::isne_i(b,0),
-        nqp::hllbool(nqp::not_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)))),
-        Failure.new(
-          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-        )
-      )
-    )
+    nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b))
+      ?? b
+        ?? !nqp::mod_I(nqp::decont(a),nqp::decont(b),Int)
+        !! Failure.new(
+             X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+           )
+      !! nqp::isne_i(b,0)
+        ?? nqp::hllbool(nqp::not_i(nqp::mod_i(nqp::decont(a),nqp::decont(b))))
+        !! Failure.new(
+             X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+           )
 }
 multi sub infix:<%%>(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::iseq_i(nqp::mod_i($a, $b), 0))

@@ -3,10 +3,8 @@ my role QuantHash does Associative {
     method keyof() { Mu }
 
     method SET-SELF(QuantHash:D: \elems) is implementation-detail {
-        nqp::if(
-          nqp::elems(elems),
-          nqp::bindattr(self,::?CLASS,'$!elems',elems)
-        );
+        nqp::bindattr(self,::?CLASS,'$!elems',elems)
+          if nqp::elems(elems);
         self
     }
 

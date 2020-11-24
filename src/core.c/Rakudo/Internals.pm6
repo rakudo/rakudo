@@ -695,15 +695,11 @@ implementation detail and has no serviceable parts inside"
 
     method MAYBE-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
         my Mu \decont = nqp::decont(thing);
-        nqp::if(
-          nqp::can(decont, nqp::decont_s($method)),
-          decont."$method"(),
-          nqp::if(
-            nqp::can(decont.HOW, 'name'),
-            decont.^name,
-            '?'
-          )
-        )
+        nqp::can(decont, nqp::decont_s($method))
+          ?? decont."$method"()
+          !! nqp::can(decont.HOW, 'name')
+            ?? decont.^name
+            !! '?'
     }
     method SHORT-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
         my str $str = nqp::unbox_s(self.MAYBE-STRING: thing, :$method);

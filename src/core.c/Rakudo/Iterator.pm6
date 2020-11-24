@@ -485,11 +485,9 @@ class Rakudo::Iterator {
             )
         }
         method new(\iterator,\n) {
-            nqp::if(
-              nqp::isle_i(n,0),
-              iterator,                        # we wants it all
-              nqp::create(self)!SET-SELF(iterator,n)
-            )
+            nqp::isle_i(n,0)
+              ?? iterator                      # we wants it all
+              !! nqp::create(self)!SET-SELF(iterator,n)
         }
         method pull-one() is raw {
             nqp::if(
@@ -522,11 +520,9 @@ class Rakudo::Iterator {
         method new(\iter) { nqp::create(self)!SET-SELF(iter) }
 
         method pull-one() is raw {
-            nqp::if(
-              nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd),
-              IterationEnd,
-              Pair.new(pulled,+($!key = nqp::add_i($!key,1)))
-            )
+            nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! Pair.new(pulled,+($!key = nqp::add_i($!key,1)))
         }
         method push-all(\target --> IterationEnd) {
             my int $key = -1;
@@ -549,11 +545,9 @@ class Rakudo::Iterator {
         method new(\asso,\iter) { nqp::create(self)!SET-SELF(asso,iter) }
 
         method pull-one() is raw {
-            nqp::if(
-              nqp::eqaddr((my \key := $!iterator.pull-one),IterationEnd),
-              IterationEnd,
-              $!associative.AT-KEY(key)
-            )
+            nqp::eqaddr((my \key := $!iterator.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! $!associative.AT-KEY(key)
         }
         method push-all(\target --> IterationEnd) {
             my \iterator    := $!iterator;
@@ -677,11 +671,9 @@ class Rakudo::Iterator {
             self
         }
         method new(\code,\times) {
-            nqp::if(
-              times > 0,
-              nqp::create(self)!SET-SELF(code,times),
-              Rakudo::Iterator.Empty
-            )
+            times > 0
+              ?? nqp::create(self)!SET-SELF(code,times)
+              !! Rakudo::Iterator.Empty
         }
         method pull-one() {
             nqp::if(
@@ -1360,21 +1352,15 @@ class Rakudo::Iterator {
         method is-lazy() { nqp::hllbool($!lazy) }
     }
     method CrossIterablesMap(@iterables,&mapper) {
-        nqp::if(
-          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
-
+        nqp::isgt_i((my int $n = @iterables.elems),1)  # reifies
           # actually need to do some crossing (probably)
-          CrossIterablesMap.new(@iterables,&mapper),
-
+          ?? CrossIterablesMap.new(@iterables,&mapper)
           # simpler cases
-          nqp::if(
-            nqp::iseq_i($n,0),
+          !! nqp::iseq_i($n,0)
             # nothing to cross, so return an empty list
-            Rakudo::Iterator.Empty,
+            ?? Rakudo::Iterator.Empty
             # only 1 list to cross, which is the list itself
-            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
-          )
-        )
+            !! nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
     }
 
     # Return an iterator that will cross the given iterables and operator.
@@ -1417,11 +1403,9 @@ class Rakudo::Iterator {
                 $result
             }
             else {
-                nqp::if(
-                  $!seen-first,
-                  &!afterwards(),
-                  ($!seen-first = 1)
-                );
+                $!seen-first
+                  ?? &!afterwards()
+                  !! ($!seen-first = 1);
 
                 nqp::if(
                   &!cond(),
@@ -1788,19 +1772,16 @@ class Rakudo::Iterator {
         # but currently (2017-04) assigning to `int $!n` attribute from SET-SELF
         # signature complains about immutable ints if done in a role, and
         # private methods **in roles** are slow, so we duplicated stuff here
-        nqp::if(
-          nqp::isge_i(n, 0),
+
+        nqp::isge_i(n,0)
           # only want N pull's
-          FirstNThenSinkAllN.new(source,n,&callable),
-          nqp::if(
-            # want it all
-            &callable,
+          ?? FirstNThenSinkAllN.new(source,n,&callable)
+          # want it all
+          !! &callable
             # want it all with callable
-            FirstNThenSinkAllCallable.new(source,&callable),
+            ?? FirstNThenSinkAllCallable.new(source,&callable)
             # want it all without callable
-            source
-          )
-        )
+            !! source
     }
 
     # Return an iterator that flattens all embedded Iterables into a single
@@ -2075,11 +2056,8 @@ class Rakudo::Iterator {
               )
             );
             $!wanted = nqp::sub_i($!wanted,$i);
-            nqp::if(
-              nqp::eqaddr($value,IterationEnd),
-              IterationEnd,
-              $n
-            )
+
+            nqp::eqaddr($value,IterationEnd) ?? IterationEnd !! $n
         }
     }
     method Gather(&block) { Gather.new(&block) }
@@ -2094,11 +2072,7 @@ class Rakudo::Iterator {
 
         method !SET-SELF(int $i, $last) {
             $!i    = nqp::sub_i($i,1);
-            $!last = nqp::if(
-              ($!is-lazy := $last == Inf),
-              int.Range.max,
-              $last
-            );
+            $!last = ($!is-lazy := $last == Inf) ?? int.Range.max !! $last;
             self
         }
         method new(\f,\t) { nqp::create(self)!SET-SELF(f,t) }
@@ -2121,11 +2095,7 @@ class Rakudo::Iterator {
             );
 
             $!i = $i;                # make sure pull-one ends
-            nqp::if(
-              nqp::isgt_i($i,$last),
-              IterationEnd,
-              $batch-size
-            )
+            nqp::isgt_i($i,$last) ?? IterationEnd !! $batch-size
         }
         method push-all(\target --> IterationEnd) {
             my int $i    = $!i;      # lexicals are faster than attrs
@@ -2233,17 +2203,11 @@ class Rakudo::Iterator {
         method new(\iter) { nqp::create(self)!SET-SELF(iter) }
 
         method pull-one() is raw {
-            nqp::if(
-              ($!on-key = nqp::not_i($!on-key)),
-              nqp::if(
-                nqp::eqaddr(
-                  ($!pulled := $!iter.pull-one),IterationEnd
-                ),
-                IterationEnd,
-                nqp::p6box_i(($!key = nqp::add_i($!key,1))),
-              ),
-              $!pulled,
-            )
+            ($!on-key = nqp::not_i($!on-key))
+              ?? nqp::eqaddr(($!pulled := $!iter.pull-one),IterationEnd)
+                ?? IterationEnd
+                !! nqp::p6box_i(($!key = nqp::add_i($!key,1)))
+              !! $!pulled
         }
         method push-all(\target --> IterationEnd) {
             my int $key = -1;
@@ -3289,20 +3253,16 @@ class Rakudo::Iterator {
         method count-only(--> Int:D) { nqp::isgt_i($!todo,0) && $!todo }
     }
     method Permutations($n, int $b) {
-        nqp::if(
-          $n > nqp::if(nqp::iseq_i($?BITS,32),13,20),  # must be HLL comparison
-          (die "Cowardly refusing to permutate more than {
-              $?BITS == 32 ?? 13 !! 20
-          } elements, tried $n"),
-          nqp::if(
-            $n < 1,                                    # must be HLL comparison
-            Rakudo::Iterator.OneValue(
-              nqp::create(nqp::if($b,IterationBuffer,List))
-            ),
-            # See:  L<https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order>
-            Permutations.new($n,$b)
-          )
-        )
+        $n > nqp::if(nqp::iseq_i($?BITS,32),13,20)  # must be HLL comparison
+          ?? die "Cowardly refusing to permutate more than {
+                 $?BITS == 32 ?? 13 !! 20
+             } elements, tried $n"
+          !! $n < 1                                 # must be HLL comparison
+            ?? Rakudo::Iterator.OneValue(
+                 nqp::create(nqp::if($b,IterationBuffer,List))
+              )
+            # See: https://en.wikipedia.org/wiki/Permutation#Generation_in_lexicographic_order
+            !! Permutations.new($n,$b)
     }
 
     # Return an iterator for an Array that has been completely reified
@@ -3349,11 +3309,8 @@ class Rakudo::Iterator {
             );
 
             $!i = $i;                # make sure pull-one ends
-            nqp::if(
-              nqp::isge_i($i,$elems),
-              IterationEnd,
-              $batch-size
-            )
+
+            nqp::isge_i($i,$elems) ?? IterationEnd !! $batch-size
         }
 
         method push-all(\target --> IterationEnd) {
@@ -3436,11 +3393,8 @@ class Rakudo::Iterator {
             );
 
             $!i = $i;                # make sure pull-one ends
-            nqp::if(
-              nqp::isge_i($i,$elems),
-              IterationEnd,
-              $batch-size
-            )
+
+            nqp::isge_i($i,$elems) ?? IterationEnd !! $batch-size
         }
         method push-all(\target --> IterationEnd) {
             my int $elems = nqp::elems($!reified);
@@ -4215,15 +4169,11 @@ class Rakudo::Iterator {
             $!on = nqp::istrue(on);
             $!done := nqp::null;
 
-            nqp::if(
-              nqp::eqaddr((my $next := conds.pull-one),IterationEnd),
-              nqp::if(
-                $!on,
-                ($!current := nqp::null),
-                ($!done := IterationEnd)
-              ),
-              ($!current := $next)
-            );
+            nqp::eqaddr((my $next := conds.pull-one),IterationEnd)
+              ?? $!on
+                ?? ($!current := nqp::null)
+                !! ($!done := IterationEnd)
+              !! ($!current := $next);
             self
         }
         method new(\iter, \conds, \on) {
@@ -4867,15 +4817,11 @@ class Rakudo::Iterator {
         method is-lazy() { nqp::hllbool($!lazy) }
     }
     method ZipIterablesMap(@iterables,&mapper) {
-        nqp::if(
-          nqp::isgt_i((my int $n = @iterables.elems),1),  # reifies
-          ZipIterablesMap.new(@iterables,&mapper),
-          nqp::if(
-            nqp::iseq_i($n,0),
-            Rakudo::Iterator.Empty,
-            nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
-          )
-        )
+        nqp::isgt_i((my int $n = @iterables.elems),1)  # reifies
+          ?? ZipIterablesMap.new(@iterables,&mapper)
+          !! nqp::iseq_i($n,0)
+            ?? Rakudo::Iterator.Empty
+            !! nqp::atpos(nqp::getattr(@iterables,List,'$!reified'),0).iterator
     }
 
     # Return an iterator that will zip the given iterables and operator.

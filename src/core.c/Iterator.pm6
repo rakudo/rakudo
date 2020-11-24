@@ -34,11 +34,7 @@ my role Iterator {
           target.push($pulled) # don't .sink $pulled here, it can be a Seq
         );
 
-        nqp::if(
-          nqp::eqaddr($pulled,IterationEnd),
-          IterationEnd,
-          $n
-        )
+        nqp::eqaddr($pulled,IterationEnd) ?? IterationEnd !! $n
     }
 
     # Has the iteration push at least a certain number of values into the

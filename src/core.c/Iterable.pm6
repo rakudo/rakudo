@@ -61,61 +61,43 @@ my role Iterable {
     }
 
     sub MIXIFY(\iterable, \type) {
-        nqp::if(
-          (my \iterator := iterable.flat.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::if(
-            nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-            )),
-            nqp::create(type).SET-SELF(elems),
-            nqp::if(
-              nqp::eqaddr(type,Mix),
-              mix(),
-              nqp::create(type)
-            )
-          )
-        )
+        (my \iterator := iterable.flat.iterator).is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name)))
+          !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
+             ))
+            ?? nqp::create(type).SET-SELF(elems)
+            !! nqp::eqaddr(type,Mix)
+              ?? mix()
+              !! nqp::create(type)
     }
     multi method Mix(Iterable:D:)     { MIXIFY(self, Mix)     }
     multi method MixHash(Iterable:D:) { MIXIFY(self, MixHash) }
 
     sub BAGGIFY(\iterable, \type) {
-        nqp::if(
-          (my \iterator := iterable.flat.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::if(
-            nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-            )),
-            nqp::create(type).SET-SELF(elems),
-            nqp::if(
-              nqp::eqaddr(type,Bag),
-              bag(),
-              nqp::create(type)
-            )
-          )
-        )
+        (my \iterator := iterable.flat.iterator).is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name)))
+          !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
+             ))
+            ?? nqp::create(type).SET-SELF(elems)
+            !! nqp::eqaddr(type,Bag)
+              ?? bag()
+              !! nqp::create(type)
     }
     multi method Bag(Iterable:D:)     { BAGGIFY(self, Bag)     }
     multi method BagHash(Iterable:D:) { BAGGIFY(self, BagHash) }
 
     sub SETIFY(\iterable, \type) {
-        nqp::if(
-          (my \iterator := iterable.flat.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::if(
-            nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-            )),
-            nqp::create(type).SET-SELF($elems),
-            nqp::if(
-              nqp::eqaddr(type,Set),
-              set(),
-              nqp::create(type)
-            )
-          )
-        )
+        (my \iterator := iterable.flat.iterator).is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name)))
+          !! nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
+             ))
+            ?? nqp::create(type).SET-SELF($elems)
+            !! nqp::eqaddr(type,Set)
+              ?? set()
+              !! nqp::create(type)
     }
     multi method Set(Iterable:D:)     { SETIFY(self,Set)     }
     multi method SetHash(Iterable:D:) { SETIFY(self,SetHash) }

@@ -31,15 +31,11 @@ my class Seq is Cool does Iterable does Sequence {
     }
 
     multi method is-lazy(Seq:D:) {
-        nqp::if(
-          nqp::isconcrete($!iter),
-          $!iter.is-lazy,
-          nqp::if(
-            nqp::isconcrete($!list),
-            $!list.is-lazy,
-            X::Seq::Consumed.new.throw
-          )
-        )
+        nqp::isconcrete($!iter)
+          ?? $!iter.is-lazy
+          !! nqp::isconcrete($!list)
+            ?? $!list.is-lazy
+            !! X::Seq::Consumed.new.throw
     }
 
     multi method Seq(Seq:D:)   { self }
@@ -49,15 +45,11 @@ my class Seq is Cool does Iterable does Sequence {
     }
 
     method elems() {
-        nqp::if(
-          self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => '.elems')),
-          nqp::if(
-            nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
-            $!iter.count-only,
-            self.cache.elems
-          )
-        )
+        self.is-lazy
+          ?? Failure.new(X::Cannot::Lazy.new(action => '.elems'))
+          !! nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator)
+            ?? $!iter.count-only
+            !! self.cache.elems
     }
 
     method Numeric() { self.elems }

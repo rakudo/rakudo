@@ -368,10 +368,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           )
         );
 
-        nqp::if(
-          nqp::isgt_i(nqp::elems(self),$todo),
-          nqp::push_s($chunks,"...")
-        );
+        nqp::push_s($chunks,"...")
+         if nqp::isgt_i(nqp::elems(self),$todo);
 
         nqp::join('',nqp::list_s(self.^name,':0x<',nqp::join(" ",$chunks),'>'))
     }

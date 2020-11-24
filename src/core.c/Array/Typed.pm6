@@ -2,43 +2,37 @@ my role Array::Typed[::TValue] does Positional[TValue] {
 
     proto method new(|) {*}
     multi method new(:$shape!) {
-        set-descriptor(nqp::if(
-          nqp::defined($shape),
-          self.set-shape($shape),
-          nqp::if(
-            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
-            self.set-shape($shape.^elems),
-            nqp::create(self)
-          )
-        ))
+        set-descriptor(
+          nqp::defined($shape)
+            ?? self.set-shape($shape)
+            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
+              ?? self.set-shape($shape.^elems)
+              !! nqp::create(self)
+        )
     }
     multi method new() {
         set-descriptor(nqp::create(self))
     }
     multi method new(\values, :$shape!) {
-        set-descriptor(nqp::if(
-          nqp::defined($shape),
-          self.set-shape($shape),
-          nqp::if(
-            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
-            self.set-shape($shape.^elems),
-            nqp::create(self)
-          )
-        )).STORE(values)
+        set-descriptor(
+          nqp::defined($shape)
+            ?? self.set-shape($shape)
+            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
+              ?? self.set-shape($shape.^elems)
+              !! nqp::create(self)
+        ).STORE(values)
     }
     multi method new(\values) {
         set-descriptor(nqp::create(self)).STORE(values)
     }
     multi method new(**@values is raw, :$shape!) {
-        set-descriptor(nqp::if(
-          nqp::defined($shape),
-          self.set-shape($shape),
-          nqp::if(
-            Metamodel::EnumHOW.ACCEPTS($shape.HOW),
-            self.set-shape($shape.^elems),
-            nqp::create(self)
-          )
-        )).STORE(@values)
+        set-descriptor(
+          nqp::defined($shape)
+            ?? self.set-shape($shape)
+            !! Metamodel::EnumHOW.ACCEPTS($shape.HOW)
+              ?? self.set-shape($shape.^elems)
+              !! nqp::create(self)
+        ).STORE(@values)
     }
     multi method new(**@values is raw) {
         set-descriptor(nqp::create(self)).STORE(@values)

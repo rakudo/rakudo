@@ -2428,24 +2428,18 @@ my class X::TypeCheck is Exception {
     method expected() { $!expected }
     method gotn() {
         my Str:D $raku := Rakudo::Internals.SHORT-STRING: $!got, :method<raku>;
-        nqp::if(
-          nqp::eqaddr($!got.WHAT, $!expected.WHAT),
-          $raku,
-          nqp::if(
-            nqp::can($!got.HOW, 'name'),
-            "$!got.^name() ($raku)",
-            $raku
-          )
-        )
+        nqp::eqaddr($!got.WHAT, $!expected.WHAT)
+          ?? $raku
+          !! nqp::can($!got.HOW, 'name')
+            ?? "$!got.^name() ($raku)"
+            !! $raku
     }
     method expectedn() {
-        nqp::if(
-          nqp::eqaddr($!got.WHAT, $!expected.WHAT),
-          Rakudo::Internals.MAYBE-STRING($!expected, :method<raku>),
-          nqp::if(
-            nqp::can($!expected.HOW, 'name'),
-            $!expected.^name,
-            '?'))
+        nqp::eqaddr($!got.WHAT, $!expected.WHAT)
+          ?? Rakudo::Internals.MAYBE-STRING($!expected, :method<raku>)
+          !! nqp::can($!expected.HOW, 'name')
+            ?? $!expected.^name
+            !! '?'
     }
     method priors() {
         nqp::isconcrete($!got) && nqp::istype($!got, Failure)

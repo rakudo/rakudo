@@ -23,16 +23,10 @@ my class Slip { # is List
     }
     multi method List(Slip:D: --> List:D) {
         my $list := nqp::create(List);
-        nqp::if(
-          nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-          nqp::bindattr($list,List,'$!todo',
-            nqp::getattr(self,List,'$!todo'))
-        );
-        nqp::if(
-          nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-          nqp::bindattr($list,List,'$!reified',
-            nqp::getattr(self,List,'$!reified'))
-        );
+        nqp::bindattr($list,List,'$!todo',nqp::getattr(self,List,'$!todo'))
+          if nqp::isconcrete(nqp::getattr(self,List,'$!todo'));
+        nqp::bindattr($list,List,'$!reified',nqp::getattr(self,List,'$!reified'))
+          if nqp::isconcrete(nqp::getattr(self,List,'$!reified'));
         $list
     }
 }

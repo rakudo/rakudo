@@ -147,7 +147,8 @@ my class IO::Path is Cool does IO {
     }
     multi method extension(IO::Path:D:
       Str $subst,
-      Int :$parts = 1, Str :$joiner = nqp::if(nqp::chars($subst), '.', '')
+      Int :$parts = 1,
+      Str :$joiner = nqp::chars($subst) ?? '.' !! ''
     ) {
       self.new: :dirname(self.dirname), :volume(self.volume),
        :$!SPEC, :$!CWD, basename => EXTENSION-SUBST
@@ -163,7 +164,8 @@ my class IO::Path is Cool does IO {
     }
     multi method extension(
       Str $subst,
-      Range :$parts, Str :$joiner = nqp::if(nqp::chars($subst), '.', '')
+      Range :$parts,
+      Str :$joiner = nqp::chars($subst) ?? '.' !! ''
     ) {
       my ($min, $max) := Rakudo::Internals.RANGE-AS-ints:
         $parts, "Can only use numeric, non-NaN Ranges as :parts";

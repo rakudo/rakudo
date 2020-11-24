@@ -38,14 +38,10 @@ my class Rakudo::Internals::HyperToIterator does Rakudo::Internals::HyperJoiner 
           )
         );
 
-        nqp::if(                               # set flag we've seen last one
-          $batch.last,
-          ($!seen-last = 1)
-        );
-        nqp::if(                               # close channel if we're done
-          $!seen-last && nqp::not_i(nqp::elems($!waiting)),
-          $!batches.close
-        );
+        $!seen-last = 1                        # set flag we've seen last one
+          if $batch.last;
+        $!batches.close                        # close channel if we're done
+          if $!seen-last && nqp::not_i(nqp::elems($!waiting));
     }
 
     method consume-error(Exception $e --> Nil) {

@@ -112,7 +112,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method is-prime(--> Bool:D) {
-        nqp::if($!denominator == 1,$!numerator.is-prime)
+        $!denominator == 1 && $!numerator.is-prime
     }
 
     multi method Str(::?CLASS:D: --> Str:D) {

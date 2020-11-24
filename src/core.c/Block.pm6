@@ -82,14 +82,15 @@ my class Block { # declared in BOOTSTRAP
     # helper method for array slicing
     multi method POSITIONS(Block:D: Failure:D \failure) { failure }
     multi method POSITIONS(Block:D $self: Any:D \list) {
-      nqp::if(
-        (nqp::istype(
-          (my \n := nqp::getattr(
-            nqp::getattr($self,Code,'$!signature'),Signature,'$!count')
-          ),Num) && nqp::isnanorinf(n)) || nqp::iseq_i(nqp::unbox_i(n),1),
-        $self(nqp::if(nqp::isconcrete(list),list.elems,0)),
-        $self(|(nqp::if(nqp::isconcrete(list),list.elems,0) xx n))
-      )
+      (nqp::istype(
+         (my \n := nqp::getattr(
+           nqp::getattr($self,Code,'$!signature'),Signature,'$!count')
+         ),
+         Num
+       ) && nqp::isnanorinf(n)
+      ) || nqp::iseq_i(nqp::unbox_i(n),1)
+        ?? $self(nqp::isconcrete(list) && list.elems)
+        !! $self(|(nqp::isconcrete(list) && list.elems) xx n)
     }
 }
 

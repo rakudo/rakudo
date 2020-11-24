@@ -177,35 +177,23 @@ my class Attribute { # declared in BOOTSTRAP
     }
 
     method get_value(Mu $obj) is raw {
-        nqp::if(
-          (my int $t = nqp::objprimspec($!type)),
-          nqp::if(
-            nqp::iseq_i($t,1),
-            nqp::getattr_i(nqp::decont($obj),$!package,$!name),
-            nqp::if(
-              nqp::iseq_i($t,2),
-              nqp::getattr_n(nqp::decont($obj),$!package,$!name),
-              nqp::getattr_s(nqp::decont($obj),$!package,$!name)  # assume 3
-            )
-          ),
-          nqp::getattr(nqp::decont($obj),$!package,$!name)
-        )
+        (my int $t = nqp::objprimspec($!type))
+          ?? nqp::iseq_i($t,1)
+            ?? nqp::getattr_i(nqp::decont($obj),$!package,$!name)
+            !! nqp::iseq_i($t,2)
+              ?? nqp::getattr_n(nqp::decont($obj),$!package,$!name)
+              !! nqp::getattr_s(nqp::decont($obj),$!package,$!name) # assume t=3
+          !! nqp::getattr(nqp::decont($obj),$!package,$!name)
     }
 
     method set_value(Mu $obj, Mu \value) is raw {
-        nqp::if(
-          (my int $t = nqp::objprimspec($!type)),
-          nqp::if(
-            nqp::iseq_i($t,1),
-            nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value),
-            nqp::if(
-              nqp::iseq_i($t,2),
-              nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value),
-              nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value)
-            )
-          ),
-          nqp::bindattr(nqp::decont($obj),$!package,$!name,value)
-        )
+        (my int $t = nqp::objprimspec($!type))
+          ?? nqp::iseq_i($t,1)
+            ?? nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value)
+            !! nqp::iseq_i($t,2)
+              ?? nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value)
+              !! nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value) # t=3
+          !! nqp::bindattr(nqp::decont($obj),$!package,$!name,value)
     }
 
     method container() is raw { nqp::ifnull($!auto_viv_container,Nil) }

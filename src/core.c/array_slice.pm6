@@ -15,11 +15,9 @@ multi sub POSITIONS(
   \SELF,
   \pos,
   Callable :$eagerize = -> \idx {
-      nqp::if(
-        nqp::istype(idx,Whatever),
-        nqp::if(nqp::isconcrete(SELF),SELF.elems,0),
-        SELF.EXISTS-POS(idx)
-      )
+      nqp::istype(idx,Whatever)
+        ?? nqp::isconcrete(SELF) && SELF.elems  # 0 if not concrete
+        !! SELF.EXISTS-POS(idx)
   }
 ) {
     my class IndicesReificationTarget {
@@ -374,75 +372,51 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$delete!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure),
-      $pos,
-      nqp::if(
-        nqp::istype($pos,Int),
-        SLICE_ONE_LIST(  SELF,  $pos, 'delete', $delete, %other ),
-        SLICE_MORE_LIST( SELF, @$pos, 'delete', $delete, %other )
-      )
-    )
+    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
+      ?? $pos
+      !! nqp::istype($pos,Int)
+        ?? SLICE_ONE_LIST( SELF,  $pos, 'delete', $delete, %other)
+        !! SLICE_MORE_LIST(SELF, @$pos, 'delete', $delete, %other)
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$exists!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure),
-      $pos,
-      nqp::if(
-        nqp::istype($pos,Int),
-        SLICE_ONE_LIST(  SELF,  $pos, 'exists', $exists, %other ),
-        SLICE_MORE_LIST( SELF, @$pos, 'exists', $exists, %other )
-      )
-    )
+    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
+      ?? $pos
+      !! nqp::istype($pos,Int)
+        ?? SLICE_ONE_LIST( SELF,  $pos, 'exists', $exists, %other)
+        !! SLICE_MORE_LIST(SELF, @$pos, 'exists', $exists, %other)
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$kv!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure),
-     $pos,
-      nqp::if(
-        nqp::istype($pos,Int),
-        SLICE_ONE_LIST(  SELF,  $pos, 'kv', $kv, %other ),
-        SLICE_MORE_LIST( SELF, @$pos, 'kv', $kv, %other )
-      )
-    )
+    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
+     ?? $pos
+     !! nqp::istype($pos,Int)
+       ?? SLICE_ONE_LIST( SELF,  $pos, 'kv', $kv, %other)
+       !! SLICE_MORE_LIST(SELF, @$pos, 'kv', $kv, %other)
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$p!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure),
-      $pos,
-      nqp::if(
-        nqp::istype($pos,Int),
-        SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other ),
-        SLICE_MORE_LIST( SELF, @$pos, 'p', $p, %other )
-      )
-    )
+    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
+      ?? $pos
+      !! nqp::istype($pos,Int)
+        ?? SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other )
+        !! SLICE_MORE_LIST( SELF, @$pos, 'p', $p, %other )
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$k!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure),
-      $pos,
-      nqp::if(
-        nqp::istype($pos,Int),
-        SLICE_ONE_LIST(  SELF,  $pos, 'k', $k, %other ),
-        SLICE_MORE_LIST( SELF, @$pos, 'k', $k, %other )
-      )
-    )
+    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
+      ?? $pos
+      !! nqp::istype($pos,Int)
+        ?? SLICE_ONE_LIST( SELF,  $pos, 'k', $k, %other)
+        !! SLICE_MORE_LIST(SELF, @$pos, 'k', $k, %other)
 }
 multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$v!,*%other) is raw {
     my $*INDEX = 'Effective index';
-    nqp::if(
-      nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure),
-      $pos,
-      nqp::if(
-        nqp::istype($pos,Int),
-        SLICE_ONE_LIST(  SELF,  $pos, 'v', $v, %other ),
-        SLICE_MORE_LIST( SELF, @$pos, 'v', $v, %other )
-      )
-    )
+    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
+      ?? $pos
+      !! nqp::istype($pos,Int)
+        ?? SLICE_ONE_LIST( SELF,  $pos, 'v', $v, %other)
+        !! SLICE_MORE_LIST(SELF, @$pos, 'v', $v, %other)
 }
 
 # @a[*]

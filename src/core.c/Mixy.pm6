@@ -25,15 +25,17 @@ my role Mixy does Baggy  {
           !! Nil
     }
     multi method roll(Mixy:D: Whatever) {
-        Seq.new(nqp::if(
-          (my \raw := self.RAW-HASH) && (my \total := self!total-positive),
-          Rakudo::Iterator.Callable( {
-              nqp::getattr(
-                nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),Pair,'$!key'
-              )
-          }, True ),
-          Rakudo::Iterator.Empty
-        ))
+        Seq.new(
+          (my \raw := self.RAW-HASH) && (my \total := self!total-positive)
+            ?? Rakudo::Iterator.Callable( {
+                   nqp::getattr(
+                    nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),
+                    Pair,
+                    '$!key'
+                   )
+               }, True )
+            !! Rakudo::Iterator.Empty
+        )
     }
     multi method roll(Mixy:D: Callable:D $calculate) {
       (my $total := self!total-positive)
@@ -41,30 +43,27 @@ my role Mixy does Baggy  {
         !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method roll(Mixy:D: $count) {
-        nqp::if(
-          $count == Inf,
-          self.roll(*),                         # let Whatever handle it
-          Seq.new(nqp::if(                      # something else as count
-            (my $todo = $count.Int) < 1, # also handles NaN
-            Rakudo::Iterator.Empty,             # nothing to do
-            nqp::if(
-              (my \raw := self.RAW-HASH) && (my \total := self!total-positive)
-                && ++$todo,
-              Rakudo::Iterator.Callable( {      # need to do a number of times
-                  nqp::if(
-                    --$todo,
-                    nqp::getattr(
-                      nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),
-                      Pair,
-                      '$!key'
-                    ),
-                    IterationEnd
-                  )
-              }),
-              Rakudo::Iterator.Empty            # nothing to roll for
-            )
-          ))
-        )
+        $count == Inf
+          ?? self.roll(*)                        # let Whatever handle it
+          !! Seq.new(                            # something else as count
+               (my $todo = $count.Int) < 1       # also handles NaN
+               ?? Rakudo::Iterator.Empty         # nothing to do
+               !! (my \raw := self.RAW-HASH)
+                    && (my \total := self!total-positive)
+                    && ++$todo
+                 ?? Rakudo::Iterator.Callable( { # need to do a number of times
+                        --$todo
+                          ?? nqp::getattr(
+                               nqp::iterval(
+                                 Rakudo::QuantHash.MIX-ROLL(raw,total)
+                               ),
+                               Pair,
+                              '$!key'
+                             )
+                          !! IterationEnd
+                    } )
+                 !! Rakudo::Iterator.Empty       # nothing to roll for
+             )
     }
 
 #--- object creation methods

@@ -172,18 +172,14 @@ my class Array { # declared in BOOTSTRAP
         method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
     }
     method iterator(Array:D: --> Iterator:D) {
-        nqp::if(
-          nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-          Todo.new(self),                      # something to iterate over
-          nqp::if(
-            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-            Rakudo::Iterator.ReifiedArray(     # everything is already there
-              self,
-              nqp::getattr(self,Array,'$!descriptor')
-            ),
-            Rakudo::Iterator.Empty             # nothing now or in the future
-          )
-        )
+        nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
+          ?? Todo.new(self)                      # something to iterate over
+          !! nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
+            ?? Rakudo::Iterator.ReifiedArray(    # everything is already there
+                 self,
+                 nqp::getattr(self,Array,'$!descriptor')
+               )
+            !! Rakudo::Iterator.Empty            # nothing now or in the future
     }
     method from-iterator(Array:U: Iterator $iter --> Array:D) {
         nqp::if(
@@ -250,20 +246,18 @@ my class Array { # declared in BOOTSTRAP
         nqp::create(self)
     }
     multi method new(Array: \values, :$shape! --> Array:D) {
-        nqp::if(
-          nqp::isconcrete($shape),
-          self.set-shape($shape),
-          self!difficult-shape($shape)
+        (nqp::isconcrete($shape)
+          ?? self.set-shape($shape)
+          !! self!difficult-shape($shape)
         ).STORE(values)
     }
     multi method new(Array: \values --> Array:D) {
         nqp::create(self).STORE(values)
     }
     multi method new(Array: **@values is raw, :$shape! --> Array:D) {
-        nqp::if(
-          nqp::isconcrete($shape),
-          self.set-shape($shape),
-          self!difficult-shape($shape)
+        (nqp::isconcrete($shape)
+          ?? self.set-shape($shape)
+          !! self!difficult-shape($shape)
         ).STORE(@values)
     }
     multi method new(Array: **@values is raw --> Array:D) {
@@ -341,30 +335,26 @@ my class Array { # declared in BOOTSTRAP
         }
         BEGIN Slip-With-Descriptor.^set_name("Slip");
 
-        nqp::if(
-          nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-          # We're not fully reified, and so have internal mutability still.
-          # The safe thing to do is to take an iterator of ourself and build
-          # the Slip out of that.
-          Slip.from-iterator(self.iterator),
-          # We're fully reified.  Make a Slip that shares our reified buffer
-          # but that will fill in default values for nulls.
-          nqp::if(
-            nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-            nqp::p6bindattrinvres(
-              nqp::p6bindattrinvres(
-                nqp::create(Slip-With-Descriptor),
-                Slip-With-Descriptor,
-                '$!descriptor',
-                $!descriptor
-              ),
-              List,
-              '$!reified',
-              nqp::clone(nqp::getattr(self,List,'$!reified'))
-            ),
-            nqp::create(Slip)
-          )
-        )
+        nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
+             # We're not fully reified, and so have internal mutability still.
+             # The safe thing to do is to take an iterator of ourself and build
+             # the Slip out of that.
+          ?? Slip.from-iterator(self.iterator)
+             # We're fully reified.  Make a Slip that shares our reified buffer
+             # but that will fill in default values for nulls.
+          !! nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
+            ?? nqp::p6bindattrinvres(
+                 nqp::p6bindattrinvres(
+                   nqp::create(Slip-With-Descriptor),
+                   Slip-With-Descriptor,
+                   '$!descriptor',
+                   $!descriptor
+                 ),
+                 List,
+                 '$!reified',
+                 nqp::clone(nqp::getattr(self,List,'$!reified'))
+               )
+            !! nqp::create(Slip)
     }
 
     method FLATTENABLE_LIST() is implementation-detail {
@@ -847,33 +837,25 @@ my class Array { # declared in BOOTSTRAP
     }
 
     method pop(Array:D:) is nodal {
-        nqp::if(
-          self.is-lazy,
-          self!lazy('pop from'),
-          nqp::if(
-            nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
-              && nqp::elems(nqp::getattr(self,List,'$!reified')),
-            nqp::pop(nqp::getattr(self,List,'$!reified')),
-            self!empty('pop')
-          )
-        )
+        self.is-lazy
+          ?? self!lazy('pop from')
+          !! nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
+               && nqp::elems(nqp::getattr(self,List,'$!reified'))
+            ?? nqp::pop(nqp::getattr(self,List,'$!reified'))
+            !! self!empty('pop')
     }
 
     method shift(Array:D:) is nodal {
-        nqp::if(
-          nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
-            && nqp::elems(nqp::getattr(self,List,'$!reified')),
-          nqp::ifnull(  # handle holes
-            nqp::shift(nqp::getattr(self,List,'$!reified')),
-            Nil
-          ),
-          nqp::if(
-            nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
-              && nqp::getattr(self,List,'$!todo').reify-at-least(1),
-            nqp::shift(nqp::getattr(self,List,'$!reified')),
-            self!empty('shift')
-          )
-        )
+        nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
+          && nqp::elems(nqp::getattr(self,List,'$!reified'))
+          ?? nqp::ifnull(  # handle holes
+               nqp::shift(nqp::getattr(self,List,'$!reified')),
+               Nil
+             )
+          !! nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
+               && nqp::getattr(self,List,'$!todo').reify-at-least(1)
+            ?? nqp::shift(nqp::getattr(self,List,'$!reified'))
+            !! self!empty('shift')
     }
 
     my $empty := nqp::create(IterationBuffer); # splicing in without values
@@ -1272,15 +1254,11 @@ my class Array { # declared in BOOTSTRAP
 
     proto method grab(|) {*}
     multi method grab(Array:D:) {
-        nqp::if(
-          self.is-lazy,
-          X::Cannot::Lazy.new(:action('.grab from')).throw,  # can't make a List
-          nqp::if(
-            self.elems,                      # reifies
-            self.GRAB_ONE,
-            Nil
-          )
-        )
+        self.is-lazy
+          ?? X::Cannot::Lazy.new(:action('.grab from')).throw  # can't make List
+          !! self.elems  # reifies
+            ?? self.GRAB_ONE
+            !! Nil
     }
     multi method grab(Array:D: Callable:D $calculate) {
         self.grab($calculate(self.elems))

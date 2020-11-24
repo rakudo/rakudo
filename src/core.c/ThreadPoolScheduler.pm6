@@ -1040,17 +1040,14 @@ my class ThreadPoolScheduler does Scheduler {
         )
     }
     multi method cue(&code, :$at!, *%_) {
-        nqp::if(
-          nqp::isconcrete($at)
-            && nqp::isconcrete(
-                 nqp::atkey(nqp::getattr(%_,Map,'$!storage'),"in")),
-          die("Cannot specify :at and :in at the same time"),
-          nqp::if(
-            nqp::isconcrete(my $time := validate-seconds($at)),
-            (self!CUE_DELAY_TIMES(&code, to-millis-allow-zero($time - now), 0, %_)),
-            (Cancellation.new(async_handles => []))
-          )
-        )
+        nqp::isconcrete($at)
+          && nqp::isconcrete(nqp::atkey(nqp::getattr(%_,Map,'$!storage'),"in"))
+          ?? die("Cannot specify :at and :in at the same time")
+          !! nqp::isconcrete(my $time := validate-seconds($at))
+            ?? self!CUE_DELAY_TIMES(
+                 &code, to-millis-allow-zero($time - now), 0, %_
+               )
+            !! Cancellation.new(async_handles => [])
     }
     multi method cue(&code, :$in!, *%_) {
         nqp::isconcrete(my $delay := validate-seconds($in))

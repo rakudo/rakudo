@@ -1088,10 +1088,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             )
         }
         method skip-one() is raw {
-            nqp::if(
-              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
-              ($!cursor := $!move($!cursor)),
-            )
+            $!cursor := $!move($!cursor)
+              if nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0)
         }
         method push-all(\target --> IterationEnd) {
             nqp::while(
@@ -1126,10 +1124,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             )
         }
         method skip-one() is raw {
-            nqp::if(
-              nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0),
-              ($!cursor := $!move($!cursor)),
-            )
+            $!cursor := $!move($!cursor)
+              if nqp::isge_i(nqp::getattr_i($!cursor,Match,'$!pos'),0)
         }
         method push-all(\target --> IterationEnd) {
             nqp::while(
@@ -1231,24 +1227,17 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # named parameters.
     method !match-cursor(Mu \slash, \cursor, str $name, $value, \opts) {
         my $opts := nqp::getattr(opts,Map,'$!storage');
-        nqp::if(
-          nqp::chars($name),
-          nqp::bindkey($opts,$name,$value)
-        );
+        nqp::bindkey($opts,$name,$value) if nqp::chars($name);
         fetch-short-long($opts, "ex", "exhaustive", my $ex);
         fetch-short-long($opts, "ov", "overlap",    my $ov);
-        my \move := nqp::if(
-          $ex,
-          CURSOR-EXHAUSTIVE,
-          nqp::if(
-            $ov,
-            CURSOR-OVERLAP,
-            CURSOR-GLOBAL
-          )
-        );
+        my \move := $ex
+          ?? CURSOR-EXHAUSTIVE
+          !! $ov
+            ?? CURSOR-OVERLAP
+            !! CURSOR-GLOBAL;
 
         fetch-short-long($opts, "as", "as", my $as);
-        my \post := nqp::if(nqp::istype($as,Str), &POST-STR, &POST-MATCH);
+        my \post := nqp::istype($as,Str) ?? &POST-STR !! &POST-MATCH;
 
         fetch-short-long($opts, "g", "global", my $g);
         nqp::if(
@@ -2410,7 +2399,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           '$!reified'
         ) if nqp::isgt_i($fired,1);
 
-        # remove elements we don't want
+        # remove elements we do not want
         if nqp::isgt_i($limit,0) {
             my int $limited = 1;   # split one less than entries returned
             my int $elems = nqp::elems($positions);
@@ -2435,11 +2424,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               )
             );
 
-            nqp::if(
-              nqp::islt_i($i,$elems),
-              nqp::splice($positions,$empty,
-                $i,nqp::sub_i(nqp::elems($positions),$i))
-            );
+            nqp::splice(
+              $positions,$empty,$i,nqp::sub_i(nqp::elems($positions),$i)
+            ) if nqp::islt_i($i,$elems);
         }
 
         # create the final result
@@ -3411,16 +3398,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.substr($from, want(nqp::sub_i(nqp::chars(self),$from)).Int)
     }
     multi method substr(Str:D: Range:D \start --> Str:D) {
-        nqp::if(
-          nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
-            || nqp::isgt_i($from,nqp::chars($!value)), #?js: NFG
-          self!SUBSTR-START-OOR($from),
-          nqp::if(
-            start.max == Inf,
-            nqp::substr($!value,$from), #?js: NFG
-            nqp::substr($!value,$from,(start.max - start.excludes-max - $from + 1).Int) #?js: NFG
-          )
-        )
+        nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
+          || nqp::isgt_i($from,nqp::chars($!value)) #?js: NFG
+          ?? self!SUBSTR-START-OOR($from)
+          !! start.max == Inf
+            ?? nqp::substr($!value,$from) #?js: NFG
+            !! nqp::substr($!value,$from,
+                 (start.max - start.excludes-max - $from + 1).Int) #?js: NFG
     }
     multi method substr(Str:D: Regex:D, $) {
         die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314

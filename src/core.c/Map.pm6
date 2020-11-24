@@ -73,16 +73,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     method List(--> List:D) { self.IterationBuffer.List }
 
     multi method head(Map:D:) {
-        nqp::if(
-          nqp::elems($!storage),
-          Pair.new(
-            nqp::iterkey_s(
-              nqp::shift(my \iterator := nqp::iterator($!storage))
-            ),
-            nqp::iterval(iterator)
-          ),
-          Nil
-        )
+        nqp::elems($!storage)
+          ?? Pair.new(
+               nqp::iterkey_s(
+                 nqp::shift(my \iterator := nqp::iterator($!storage))
+               ),
+               nqp::iterval(iterator)
+             )
+          !! Nil
     }
 
     # Produce a native str array with all the keys

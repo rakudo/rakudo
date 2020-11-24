@@ -105,19 +105,13 @@ my class Rakudo::QuantHash {
 
     # Return number of items to be done if > 0, or 0 if < 1, or throw if NaN
     method TODO(\count) is raw {
-        nqp::if(
-          count < 1,
-          0,
-          nqp::if(
-            count == Inf,
-            count,
-            nqp::if(
-              nqp::istype((my $todo := count.Int),Failure),
-              $todo.throw,
-              $todo
-            )
-          )
-        )
+        count < 1
+          ?? 0
+          !! count == Inf
+            ?? count
+            !! nqp::istype((my $todo := count.Int),Failure)
+              ?? $todo.throw
+              !! $todo
     }
 
     # Return an nqp::list_s of all keys of a QuantHash

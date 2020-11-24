@@ -809,11 +809,9 @@ Consider using a block if any of these are necessary for your mapping code."
               ($!index = nqp::add_i($!index,1))
             );
 
-            nqp::if(
-              nqp::eqaddr($_,IterationEnd),
-              IterationEnd,
-              nqp::p6box_i($!index = nqp::add_i($!index,1))
-            )
+            nqp::eqaddr($_,IterationEnd)
+              ?? IterationEnd
+              !! nqp::p6box_i($!index = nqp::add_i($!index,1))
         }
         method push-all(\target --> IterationEnd) {
             my $iter := $!iter;  # lexicals faster than attrs
@@ -910,11 +908,9 @@ Consider using a block if any of these are necessary for your mapping code."
               ($!index = nqp::add_i($!index,1))
             );
 
-            nqp::if(
-              nqp::eqaddr($_,IterationEnd),
-              IterationEnd,
-              Pair.new(($!index = nqp::add_i($!index,1)),$_)
-            )
+            nqp::eqaddr($_,IterationEnd)
+              ?? IterationEnd
+              !! Pair.new(($!index = nqp::add_i($!index,1)),$_)
         }
         method push-all(\target --> IterationEnd) {
             my $iter := $!iter;   # lexicals are faster than attrs
@@ -1184,11 +1180,9 @@ Consider using a block if any of these are necessary for your mapping code."
               ($index = nqp::add_i($index,1))
             );
 
-            nqp::if(
-              nqp::eqaddr($_,IterationEnd),
-              Nil,
-              self!first-result($index,$_,'first',%a)
-            )
+            nqp::eqaddr($_,IterationEnd)
+              ?? Nil
+              !! self!first-result($index,$_,'first',%a)
         }
     }
     multi method first(Mu $test, :$end, *%a) is raw {
@@ -1215,11 +1209,9 @@ Consider using a block if any of these are necessary for your mapping code."
           ($index = nqp::add_i($index,1))
         );
 
-        nqp::if(
-          nqp::eqaddr($_,IterationEnd),
-          Nil,
-          self!first-result($index,$_,'first',%a)
-        )
+        nqp::eqaddr($_,IterationEnd)
+          ?? Nil
+          !! self!first-result($index,$_,'first',%a)
     }
     method !first-accepts-end(Mu $test,%a) is raw {
         my $elems = self.elems;
@@ -1274,11 +1266,7 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::if(
-          nqp::defined($min),
-          $min,
-          Inf
-        )
+        nqp::defined($min) ?? $min !! Inf
     }
     multi method min(&by) {
         my $cmp := nqp::if(
@@ -1297,11 +1285,7 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::if(
-          nqp::defined($min),
-          $min,
-          Inf
-        )
+        nqp::defined($min) ?? $min !! Inf
     }
 
     proto method max (|) is nodal {*}
@@ -1317,11 +1301,7 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::if(
-          nqp::defined($max),
-          $max,
-          -Inf
-        )
+        nqp::defined($max) ??  $max !! -Inf
     }
     multi method max(&by) {
         my $cmp := nqp::if(
@@ -1341,11 +1321,7 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::if(
-          nqp::defined($max),
-          $max,
-          -Inf
-        )
+        nqp::defined($max) ?? $max !! -Inf
     }
 
     method !minmax-range-init(\value,\mi,\exmi,\ma,\exma --> Nil) {
@@ -1432,11 +1408,9 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::if(
-          nqp::defined($min),
-          Range.new($min,$max,:$excludes-min,:$excludes-max),
-          Range.new(Inf,-Inf)
-        )
+        nqp::defined($min)
+          ?? Range.new($min,$max,:$excludes-min,:$excludes-max)
+          !! Range.new(Inf,-Inf)
     }
     multi method minmax(&by) {
         nqp::if(
@@ -1483,11 +1457,9 @@ Consider using a block if any of these are necessary for your mapping code."
           )
         );
 
-        nqp::if(
-          nqp::defined($min),
-          Range.new($min,$max,:$excludes-min,:$excludes-max),
-          Range.new(Inf,-Inf)
-        )
+        nqp::defined($min)
+          ?? Range.new($min,$max,:$excludes-min,:$excludes-max)
+          !! Range.new(Inf,-Inf)
     }
 
     proto method sort(|) is nodal {*}
@@ -1515,15 +1487,11 @@ Consider using a block if any of these are necessary for your mapping code."
 
         Seq.new(
           Rakudo::Iterator.ReifiedList(
-            nqp::if(
-              nqp::eqaddr(&by,&infix:<cmp>),
-              Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List),
-              nqp::if(
-                &by.count < 2,
-                Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(  buf.List,&by),
-                Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(buf.List,&by)
-              )
-            )
+            nqp::eqaddr(&by,&infix:<cmp>)
+              ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST(buf.List)
+              !! &by.count < 2
+                ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(  buf.List,&by)
+                !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH(buf.List,&by)
           )
         )
     }
@@ -1532,15 +1500,11 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method collate() { self.sort(&[coll]) }
 
     sub find-reducer-for-op(&op) {
-        nqp::if(
-          nqp::iseq_s(&op.prec("prec"),"f="),
-          &METAOP_REDUCE_LISTINFIX,
-          nqp::if(
-            nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0),
-            &METAOP_REDUCE_LEFT,
-            ::(nqp::concat('&METAOP_REDUCE_',nqp::uc($assoc)))
-          )
-        )
+        nqp::iseq_s(&op.prec("prec"),"f=")
+          ?? &METAOP_REDUCE_LISTINFIX
+          !! nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0)
+            ?? &METAOP_REDUCE_LEFT
+            !! ::(nqp::concat('&METAOP_REDUCE_',nqp::uc($assoc)))
     }
 
     proto method reduce(|) is nodal {*}
@@ -1910,9 +1874,10 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method toggle(|) {*}
     multi method toggle(Any:D: Callable:D \condition, :$off!) {
-        Seq.new( $off
-          ?? Rakudo::Iterator.Until(self.iterator, condition)
-          !! Rakudo::Iterator.While(self.iterator, condition)
+        Seq.new(
+          $off
+            ?? Rakudo::Iterator.Until(self.iterator, condition)
+            !! Rakudo::Iterator.While(self.iterator, condition)
         )
     }
     multi method toggle(Any:D: Callable:D \condition) {

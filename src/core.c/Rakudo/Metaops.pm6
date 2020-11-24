@@ -15,7 +15,7 @@
 class Rakudo::Metaops {
 
     my $mappers := nqp::hash(
-      nqp::tostr_I(&infix:<+>.WHERE),      # optimized version for &[+]
+      nqp::base_I(&infix:<+>.WHERE,16),      # optimized version for &[+]
       -> \list {
           nqp::if(
             nqp::iseq_i(nqp::elems(list),2),
@@ -34,7 +34,7 @@ class Rakudo::Metaops {
             )
           )
       },
-      nqp::tostr_I(&infix:<~>.WHERE),      # optimized version for &[~]
+      nqp::base_I(&infix:<~>.WHERE,16),      # optimized version for &[~]
       -> \list {
           nqp::if(
             nqp::iseq_i(nqp::elems(list),2),
@@ -53,7 +53,7 @@ class Rakudo::Metaops {
             )
           )
       },
-      nqp::tostr_I(&infix:<< => >>.WHERE), # optimized version for &[=>]
+      nqp::base_I(&infix:<< => >>.WHERE,16), # optimized version for &[=>]
       -> \list {
           nqp::if(
             nqp::iseq_i(nqp::elems(list),2),
@@ -72,7 +72,7 @@ class Rakudo::Metaops {
             )
           )
       },
-      nqp::tostr_I(&infix:<,>.WHERE),      # optimized version for &[,]
+      nqp::base_I(&infix:<,>.WHERE,16),      # optimized version for &[,]
       -> \list {
           nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',list)
       }
@@ -80,7 +80,7 @@ class Rakudo::Metaops {
 
     method MapperForOp(&op) is raw {
         nqp::if(
-          nqp::existskey($mappers,(my str $where = nqp::tostr_I(&op.WHERE))),
+          nqp::existskey($mappers,(my str $where = nqp::base_I(&op.WHERE,16))),
           nqp::atkey($mappers,$where),
           nqp::if(
             nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0)

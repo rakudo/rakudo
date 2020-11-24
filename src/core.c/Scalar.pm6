@@ -9,7 +9,7 @@ my class Scalar { # declared in BOOTSTRAP
         nqp::box_s(
           nqp::concat(
             'Scalar|',
-            nqp::tostr_I(nqp::objectid($!descriptor))
+            nqp::base_I(nqp::objectid($!descriptor),16)
           ),
           ValueObjAt
         )

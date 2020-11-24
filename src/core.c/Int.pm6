@@ -20,7 +20,7 @@ my class Int does Real { # declared in BOOTSTRAP
               'Int|',
               nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            nqp::tostr_I(self)
+            nqp::base_I(self,16)
           ),
           ValueObjAt
         )

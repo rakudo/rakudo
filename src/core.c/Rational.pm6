@@ -13,8 +13,8 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
               nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
             nqp::concat(
-              nqp::tostr_I($!numerator),
-              nqp::concat('/', nqp::tostr_I($!denominator))
+              nqp::base_I($!numerator,16),
+              nqp::concat('/', nqp::base_I($!denominator,16))
             )
           ),
           ValueObjAt

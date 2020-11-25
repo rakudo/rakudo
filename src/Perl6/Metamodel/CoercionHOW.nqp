@@ -217,13 +217,16 @@ class Perl6::Metamodel::CoercionHOW
                                 ~ " " ~ $coerced_name;
                 }
             }
-            unless nqp::isnull(%ex) {
-                %ex<X::Coerce::Impossible>($target_type_name, $value_type_name, $hint)
-            }
-            nqp::die("Impossible coercion from "
-                        ~ $value_type_name
-                        ~ " into " ~ $target_type_name
-                        ~ ": " ~ $hint);
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Coerce::Impossible',
+                "Impossible coercion from "
+                    ~ $value_type_name
+                    ~ " into " ~ $target_type_name
+                    ~ ": " ~ $hint,
+                :target-type($!target_type),
+                :from-type($value_type),
+                :$hint
+            )
         }
 
         $coerced_value

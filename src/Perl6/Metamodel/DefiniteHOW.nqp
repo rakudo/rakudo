@@ -1,6 +1,7 @@
 class Perl6::Metamodel::DefiniteHOW
     #~ does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
+    does Perl6::Metamodel::Nominalizable
 
     #~ does Perl6::Metamodel::MethodDelegation
     #~ does Perl6::Metamodel::TypePretense
@@ -127,6 +128,10 @@ class Perl6::Metamodel::DefiniteHOW
             "Raku"
         )
     }
+
+    # Methods needed by Perl6::Metamodel::Nominalizable
+    method nominalizable_kind() { 'definite' }
+    method !wrappee($obj) { self.base_type($obj) }
 }
 
 BEGIN {

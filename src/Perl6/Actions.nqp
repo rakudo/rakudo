@@ -9021,13 +9021,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             :op('getattr'),
                             QAST::Op.new( # Get signature object
                                 :op('getattr'),
-                                QAST::Op.new(
-                                    :op('getcodeobj'),
-                                    QAST::Op.new(
-                                        :op('ctxcode'),
-                                        QAST::Op.new(:op('ctx'))
-                                    )
-                                ),
+                                QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
                                 QAST::WVal.new(:value($Code)),
                                 QAST::SVal.new(:value('$!signature'))
                             ),
@@ -9299,11 +9293,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new(:name($low_param_type_how), :scope('local'), :decl('var')),
                         QAST::Op.new(
                             :op('how'),
-                            QAST::Var.new(:name($low_param_type), :scope('local'))
-                        )
-                    )
-                );
-                # If parameter type is still a generic then it's likely to be a type capture we should try to resolve.
+                            QAST::Var.new(:name($low_param_type), :scope('local')))));
+                # If parameter type is still a generic then we expect it to be a type capture. Try to resolve it.
                 $var.push(
                     QAST::Op.new(
                         :op('if'),
@@ -9313,10 +9304,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Op.new(
                                 :op('callmethod'),
                                 :name('archetypes'),
-                                QAST::Var.new(:name($low_param_type_how), :scope('local'))
-                            )
-                        ),
-                        # TODO It should be ok to replace curlexpad with custom-made hash of collected earlier typecaptures
+                                QAST::Var.new(:name($low_param_type_how), :scope('local')))),
                         QAST::Stmts.new(
                             QAST::Op.new(
                                 :op('bind'),
@@ -9326,20 +9314,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                     :name('instantiate_generic'),
                                     QAST::Var.new(:name($low_param_type_how), :scope('local')),
                                     QAST::Var.new(:name($low_param_type), :scope('local')),
-                                    QAST::Op.new(:op('curlexpad'))
-                                )
-                            ),
+                                    QAST::Op.new(:op('curlexpad')))),
                             QAST::Op.new(
                                 :op('bind'),
                                 QAST::Var.new(:name($low_param_type_how), :scope('local')),
                                 QAST::Op.new(
                                     :op('how'),
-                                    QAST::Var.new(:name($low_param_type), :scope('local'))
-                                )
-                            )
-                        )
-                    )
-                );
+                                    QAST::Var.new(:name($low_param_type), :scope('local')))))));
                 $var.push(
                     QAST::Op.new(
                         :op('if'),
@@ -9393,8 +9374,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :name('coerce'),
                                 QAST::WVal.new(:value($param_type.HOW)),
                                 QAST::WVal.new(:value($param_type)),
-                                QAST::Var.new( :name($name), :scope('local') ))))
-                );
+                                QAST::Var.new( :name($name), :scope('local') )))));
             }
 
             # If it's optional, do any default handling.
@@ -9410,8 +9390,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             :op('call'),
                             QAST::Op.new(
                                 :op('p6capturelex'),
-                                QAST::Op.new( :op('callmethod'), :name('clone'), $wval )
-                            )));
+                                QAST::Op.new( :op('callmethod'), :name('clone'), $wval ))));
                     }
                 }
                 else {

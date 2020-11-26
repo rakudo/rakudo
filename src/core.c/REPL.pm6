@@ -315,9 +315,11 @@ do {
             }
 
             my $prompt;
+            my @before;
             my $code;
             sub reset(--> Nil) {
-                $code = '';
+                @before = ();
+                $code   = '';
                 $prompt = self.interactive_prompt;
             }
             reset;
@@ -342,7 +344,7 @@ do {
                 my $*MAIN_CTX;
 
                 my $output is default(Nil) = self.repl-eval(
-                    $code,
+                    @before.join ~ $code,
                     my $exception,
                     :outer_ctx($!save_ctx),
                     |%adverbs);
@@ -377,7 +379,8 @@ do {
                 # falling through after all.
                 elsif $initial_out_position == $*OUT.tell {
                     if self.repl-print($output) {
-                        $code ~= ";";  # make sure statement is finished
+                        @before.push: '$ = ' ~ $code.chomp ~ ";\n";
+                        $code = '';
                         next;
                     }
                 }

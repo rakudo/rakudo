@@ -382,21 +382,23 @@
         supply {
             my int $max = $elems >= 0 ?? $elems !! 0;
             my $batched := nqp::list;
-            my $last_time;
             sub flush(--> Nil) {
                 emit($batched);
                 $batched := nqp::list;
             }
             sub final-flush(--> Nil) {
-                flush if nqp::elems($batched);
+                emit($batched) if nqp::elems($batched);
             }
 
             if $seconds {
-                $last_time = time div $seconds;
+                my int $msecs = ($seconds * 1000).Int;
+                my int $last_time =
+                  nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
 
                 if $elems > 0 { # and $seconds
                     whenever self -> \val {
-                        my $this_time = time div $seconds;
+                        my int $this_time =
+                          nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
                         if $this_time != $last_time {
                             flush if nqp::elems($batched);
                             $last_time = $this_time;
@@ -411,7 +413,8 @@
                 }
                 else {
                     whenever self -> \val {
-                        my $this_time = time div $seconds;
+                        my int $this_time =
+                          nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
                         if $this_time != $last_time {
                             flush if nqp::elems($batched);
                             $last_time = $this_time;

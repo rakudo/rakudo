@@ -9235,9 +9235,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Var.new(:name($instantiated_code), :scope('local'), :decl('var')),
                             QAST::Op.new(
                                 :op('getcodeobj'),
-                                QAST::Op.new(
-                                    :op('ctxcode'),
-                                    QAST::Op.new(:op('ctx'))))));
+                                QAST::Op.new(:op('curcode')))));
                 }
                 my $inst_param := QAST::Node.unique('__lowered_param_obj_');
                 $var.push(

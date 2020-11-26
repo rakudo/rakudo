@@ -378,7 +378,9 @@
         }
     }
 
-    method batch(Supply:D: Int(Cool) :$elems = 0, :$seconds) {
+    method batch(Supply:D:
+      Int(Cool) :$elems = 0, :$seconds, :$emit-on-empty, :$emit-once-on-empty
+    --> Supply:D) {
         supply {
             my int $max = $elems >= 0 ?? $elems !! 0;
             my $batched := nqp::list;
@@ -391,36 +393,76 @@
             }
 
             if $seconds {
-                my int $msecs = ($seconds * 1000).Int;
-                my int $last_time =
-                  nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
+                if $emit-on-empty || $emit-once-on-empty {
+                    my $timer = Supply.interval($seconds);
 
-                if $elems > 0 { # and $seconds
-                    whenever self -> \val {
-                        my int $this_time =
-                          nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
-                        if $this_time != $last_time {
-                            flush if nqp::elems($batched);
-                            $last_time = $this_time;
-                            nqp::push($batched,val);
+                    if $emit-on-empty {
+                        whenever $timer -> \tick {
+                            flush
                         }
-                        else {
+                        whenever self -> \val {
                             nqp::push($batched,val);
                             flush if nqp::iseq_i(nqp::elems($batched),$max);
+                            LAST { final-flush; }
                         }
-                        LAST { final-flush; }
                     }
-                }
-                else {
-                    whenever self -> \val {
-                        my int $this_time =
-                          nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
-                        if $this_time != $last_time {
-                            flush if nqp::elems($batched);
-                            $last_time = $this_time;
+
+                    else  { # $emit-once-on-empty
+                        my int $not-empty;
+                        whenever $timer -> \tick {
+                            if nqp::elems($batched) {
+                                $not-empty = 1;
+                                flush;
+                            }
+                            elsif $not-empty {
+                                $not-empty = 0;
+                                emit($batched);
+                            }
                         }
-                        nqp::push($batched,val);
-                        LAST { final-flush; }
+                        whenever self -> \val {
+                            nqp::push($batched,val);
+                            if nqp::iseq_i(nqp::elems($batched),$max) {
+                                flush;
+                                $not-empty = 1;
+                            }
+                            LAST { final-flush; }
+                        }
+                    }
+
+                }
+
+                else {   # no emit-on-empty
+                    my int $msecs = ($seconds * 1000).Int;
+                    my int $last_time =
+                      nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
+
+                    if $max > 0 { # and $seconds
+                        whenever self -> \val {
+                            my int $this_time =
+                              nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
+                            if $this_time != $last_time {
+                                flush if nqp::elems($batched);
+                                $last_time = $this_time;
+                                nqp::push($batched,val);
+                            }
+                            else {
+                                nqp::push($batched,val);
+                                flush if nqp::iseq_i(nqp::elems($batched),$max);
+                            }
+                            LAST { final-flush; }
+                        }
+                    }
+                    else {            # no max and $seconds
+                        whenever self -> \val {
+                            my int $this_time =
+                              nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
+                            if $this_time != $last_time {
+                                flush if nqp::elems($batched);
+                                $last_time = $this_time;
+                            }
+                            nqp::push($batched,val);
+                            LAST { final-flush; }
+                        }
                     }
                 }
             }

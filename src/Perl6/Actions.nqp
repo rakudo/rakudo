@@ -9184,7 +9184,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     )));
 
                 # Type-check, unless it's Mu, in which case skip it.
-                if !($is_generic || ($param_type =:= $*W.find_single_symbol('Mu'))) {
+                if $is_generic && !$is_coercive {
+                    my $genericname := $param_type.HOW.name(%info<attr_package>);
+                    $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                        :op('istype_nd'),
+                        QAST::Var.new( :name(get_decont_name()), :scope('local') ),
+                        QAST::Var.new( :name($genericname), :scope<typevar> )
+                    )));
+                } elsif !($param_type =:= $*W.find_single_symbol('Mu')) {
                     if $param_type.HOW.archetypes.generic {
                         return 0 unless %info<is_invocant>;
                     }
@@ -9294,33 +9301,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(
                             :op('how'),
                             QAST::Var.new(:name($low_param_type), :scope('local')))));
-                # If parameter type is still a generic then we expect it to be a type capture. Try to resolve it.
-                $var.push(
-                    QAST::Op.new(
-                        :op('if'),
-                        QAST::Op.new(
-                            :op('callmethod'),
-                            :name('generic'),
-                            QAST::Op.new(
-                                :op('callmethod'),
-                                :name('archetypes'),
-                                QAST::Var.new(:name($low_param_type_how), :scope('local')))),
-                        QAST::Stmts.new(
-                            QAST::Op.new(
-                                :op('bind'),
-                                QAST::Var.new(:name($low_param_type), :scope('local')),
-                                QAST::Op.new(
-                                    :op('callmethod'),
-                                    :name('instantiate_generic'),
-                                    QAST::Var.new(:name($low_param_type_how), :scope('local')),
-                                    QAST::Var.new(:name($low_param_type), :scope('local')),
-                                    QAST::Op.new(:op('curlexpad')))),
-                            QAST::Op.new(
-                                :op('bind'),
-                                QAST::Var.new(:name($low_param_type_how), :scope('local')),
-                                QAST::Op.new(
-                                    :op('how'),
-                                    QAST::Var.new(:name($low_param_type), :scope('local')))))));
                 $var.push(
                     QAST::Op.new(
                         :op('if'),
@@ -9343,14 +9323,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                     :name('coerce'),
                                     QAST::Var.new(:name($low_param_type_how), :scope('local')),
                                     QAST::Var.new(:name($low_param_type), :scope('local')),
-                                    QAST::Var.new(:name($name), :scope('local'))))))
-                    );
-                $var.push(
-                    QAST::ParamTypeCheck.new(
-                        QAST::Op.new(
-                            :op('istype'),
-                            QAST::Var.new(:name($name), :scope('local')),
-                            QAST::Var.new(:name($low_param_type), :scope('local')))));
+                                    QAST::Var.new(:name($name), :scope('local')))))));
             }
             elsif nqp::can($ptype_archetypes, 'coercive') && $ptype_archetypes.coercive {
                 $decont_name_invalid := 1;

@@ -9314,7 +9314,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                     :name('coerce'),
                                     QAST::Op.new(
                                         :op('how'),
-                                        QAST::Var.new(:name($low_param_type), :scope('local')))
+                                        QAST::Var.new(:name($low_param_type), :scope('local'))),
                                     QAST::Var.new(:name($low_param_type), :scope('local')),
                                     QAST::Var.new(:name($name), :scope('local')))))));
             }

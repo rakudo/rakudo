@@ -370,10 +370,9 @@ my class Binder {
         my $type_caps := nqp::getattr($param, Parameter, '@!type_captures');
         unless nqp::isnull($type_caps) {
             my int $num_type_caps := nqp::elems($type_caps);
-            my int $i := 0;
-            while $i < $num_type_caps {
+            my int $i := -1;
+            while ++$i < $num_type_caps {
                 nqp::bindkey($lexpad, nqp::atpos_s($type_caps, $i), $oval.WHAT);
-                ++$i;
             }
         }
 
@@ -480,8 +479,8 @@ my class Binder {
         my $post_cons := nqp::getattr($param, Parameter, '@!post_constraints');
         unless nqp::isnull($post_cons) {
             my int $n := nqp::elems($post_cons);
-            my int $i := 0;
-            while $i < $n {
+            my int $i := -1;
+            while ++$i < $n {
                 # Check we meet the constraint.
                 my $cons_type := nqp::atpos($post_cons, $i);
                 if nqp::istype($cons_type, Code) {
@@ -517,7 +516,6 @@ my class Binder {
                     }
                     return $BIND_RESULT_FAIL;
                 }
-                ++$i;
             }
         }
 
@@ -657,7 +655,7 @@ my class Binder {
             my $param := nqp::atpos(@params, $i);
             my int $flags := nqp::getattr_i($param, Parameter, '$!flags');
             my str $var_name := nqp::getattr_s($param, Parameter, '$!variable_name');
-            $i := $i + 1;
+            ++$i;
 
             # Is it looking for us to bind a capture here?
             my int $bind_fail;
@@ -824,16 +822,15 @@ my class Binder {
                 my $value := nqp::null();
                 if $named_args {
                     my int $num_names := nqp::elems($named_names);
-                    my int $j := 0;
+                    my int $j := -1;
                     my str $cur_name;
-                    while $j < $num_names {
+                    while ++$j < $num_names {
                         $cur_name := nqp::atpos_s($named_names, $j);
                         $value := nqp::atkey($named_args, $cur_name);
                         unless nqp::isnull($value) {
                             nqp::deletekey($named_args, $cur_name);
                             $j := $num_names;
                         }
-                        ++$j;
                     }
                 }
 
@@ -910,9 +907,9 @@ my class Binder {
             if $bind_res == $BIND_RESULT_JUNCTION {
                 my @pos_args;
                 my int $num_pos_args := nqp::captureposelems($capture);
-                my int $k := 0;
+                my int $k := -1;
                 my int $got_prim;
-                while $k < $num_pos_args {
+                while ++$k < $num_pos_args {
                     $got_prim := nqp::captureposprimspec($capture, $k);
                     if $got_prim == 0 {
                         nqp::push(@pos_args, nqp::captureposarg($capture, $k));
@@ -926,7 +923,6 @@ my class Binder {
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
-                    ++$k;
                 }
                 my %named_args := nqp::capturenamedshash($capture);
                 return Junction.AUTOTHREAD($caller,
@@ -993,10 +989,9 @@ my class Binder {
         # Walk through the signature and consider the parameters.
         my int $num_pos_args := nqp::elems($args);
         my int $cur_pos_arg  := 0;
-        my int $i            := 0;
-        while $i < $num_params {
+        my int $i            := -1;
+        while ++$i < $num_params {
             my $param := @params[$i];
-            ++$i;
 
             # If the parameter is anything other than a boring old
             # positional parameter, we won't analyze it and will bail out,
@@ -2122,43 +2117,39 @@ BEGIN {
                 my %pclone := nqp::clone($phasers);
                 if $next {
                     my @nexts := nqp::clone($phasers<NEXT>);
-                    my int $i := 0;
-                    while $i < nqp::elems(@nexts) {
+                    my int $i := -1;
+                    while ++$i < nqp::elems(@nexts) {
                         @nexts[$i] := @nexts[$i].clone();
-                        ++$i;
                     }
                     %pclone<NEXT> := @nexts;
                 }
                 if $last {
                     my @lasts := nqp::clone($phasers<LAST>);
-                    my int $i := 0;
-                    while $i < nqp::elems(@lasts) {
+                    my int $i := -1;
+                    while ++$i < nqp::elems(@lasts) {
                         nqp::captureinnerlex(nqp::getattr(
                             (@lasts[$i] := @lasts[$i].clone()),
                             Code, '$!do'));
-                        ++$i;
                     }
                     %pclone<LAST> := @lasts;
                 }
                 if $quit {
                     my @quits := nqp::clone($phasers<QUIT>);
-                    my int $i := 0;
-                    while $i < nqp::elems(@quits) {
+                    my int $i := -1;
+                    while ++$i < nqp::elems(@quits) {
                         nqp::captureinnerlex(nqp::getattr(
                             (@quits[$i] := @quits[$i].clone()),
                             Code, '$!do'));
-                        ++$i;
                     }
                     %pclone<QUIT> := @quits;
                 }
                 if $close {
                     my @closes := nqp::clone($phasers<CLOSE>);
-                    my int $i := 0;
-                    while $i < nqp::elems(@closes) {
+                    my int $i := -1;
+                    while ++$i < nqp::elems(@closes) {
                         nqp::captureinnerlex(nqp::getattr(
                             (@closes[$i] := @closes[$i].clone()),
                             Code, '$!do'));
-                        ++$i;
                     }
                     %pclone<CLOSE> := @closes;
                 }
@@ -2173,34 +2164,30 @@ BEGIN {
             if nqp::isconcrete($phasers) {
                 my @next := nqp::atkey($phasers, 'NEXT');
                 if nqp::islist(@next) {
-                    my int $i := 0;
-                    while $i < nqp::elems(@next) {
+                    my int $i := -1;
+                    while ++$i < nqp::elems(@next) {
                         nqp::p6capturelexwhere(@next[$i]);
-                        ++$i;
                     }
                 }
                 my @last := nqp::atkey($phasers, 'LAST');
                 if nqp::islist(@last) {
-                    my int $i := 0;
-                    while $i < nqp::elems(@last) {
+                    my int $i := -1;
+                    while ++$i < nqp::elems(@last) {
                         nqp::p6capturelexwhere(@last[$i]);
-                        ++$i;
                     }
                 }
                 my @quit := nqp::atkey($phasers, 'QUIT');
                 if nqp::islist(@quit) {
-                    my int $i := 0;
-                    while $i < nqp::elems(@quit) {
+                    my int $i := -1;
+                    while ++$i < nqp::elems(@quit) {
                         nqp::p6capturelexwhere(@quit[$i]);
-                        ++$i;
                     }
                 }
                 my @close := nqp::atkey($phasers, 'CLOSE');
                 if nqp::islist(@close) {
-                    my int $i := 0;
-                    while $i < nqp::elems(@close) {
+                    my int $i := -1;
+                    while ++$i < nqp::elems(@close) {
                         nqp::p6capturelexwhere(@close[$i]);
-                        ++$i;
                     }
                 }
             }
@@ -2324,10 +2311,10 @@ BEGIN {
                 }
 
                 # Analyse each parameter in the two candidates.
-                my int $i := 0;
                 my int $narrower := 0;
                 my int $tied := 0;
-                while $i < $types_to_check {
+                my int $i := -1;
+                while ++$i < $types_to_check {
                     my $type_obj_a := %a<types>[$i];
                     my $type_obj_b := %b<types>[$i];
                     if nqp::eqaddr($type_obj_a, $type_obj_b) {
@@ -2367,7 +2354,6 @@ BEGIN {
                             }
                         }
                     }
-                    ++$i;
                 }
 
                 # If one is narrower than the other from current analysis, we're done.
@@ -2551,12 +2537,12 @@ BEGIN {
 
             # Now analyze type narrowness of the candidates relative to each
             # other and create the edges.
-            my int $i := 0;
             my int $j;
             my int $n := nqp::elems(@graph);
-            while $i < $n {
-                $j := 0;
-                while $j < $n {
+            my int $i := -1;
+            while ++$i < $n {
+                $j := -1;
+                while ++$j < $n {
                     unless $i == $j {
                         if is_narrower(@graph[$i]<info>, @graph[$j]<info>) {
                             @graph[$i]<edges>[@graph[$i]<edges_out>] := @graph[$j];
@@ -2564,9 +2550,7 @@ BEGIN {
                             ++@graph[$j]<edges_in>;
                         }
                     }
-                    ++$j;
                 }
-                ++$i;
             }
 
             # Perform the topological sort.
@@ -2577,15 +2561,14 @@ BEGIN {
 
                 # Find any nodes that have no incoming edges and add them to
                 # results.
-                $i := 0;
-                while $i < $n {
+                $i := -1;
+                while ++$i < $n {
                     if @graph[$i]<edges_in> == 0 {
                         # Add to results.
                         nqp::push(@result, @graph[$i]<info>);
                         --$candidates_to_sort;
                         @graph[$i]<edges_in> := $EDGE_REMOVAL_TODO;
                     }
-                    ++$i;
                 }
                 if $rem_results == nqp::elems(@result) {
                     nqp::die("Circularity detected in multi sub types" ~ ($self.name ?? " for &" ~ $self.name !! ''));
@@ -2593,17 +2576,15 @@ BEGIN {
 
                 # Now we need to decrement edges in counts for things that had
                 # edges from candidates we added here.
-                $i := 0;
-                while $i < $n {
+                $i := -1;
+                while ++$i < $n {
                     if @graph[$i]<edges_in> == $EDGE_REMOVAL_TODO {
-                        $j := 0;
-                        while $j < @graph[$i]<edges_out> {
+                        $j := -1;
+                        while ++$j < @graph[$i]<edges_out> {
                             --@graph[$i]<edges>[$j]<edges_in>;
-                            ++$j;
                         }
                         @graph[$i]<edges_in> := $EDGE_REMOVED;
                     }
-                    ++$i;
                 }
 
                 # This is end of a tied group, so leave a gap.
@@ -2676,8 +2657,8 @@ BEGIN {
                         $type_mismatch := 0;
                         $rwness_mismatch := 0;
 
-                        $i := 0;
-                        while $i < $type_check_count && !$type_mismatch && !$rwness_mismatch {
+                        $i := -1;
+                        while ++$i < $type_check_count && !$type_mismatch && !$rwness_mismatch {
                             my $type_obj       := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                             my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                             my int $got_prim   := nqp::captureposprimspec($capture, $i);
@@ -2746,7 +2727,6 @@ BEGIN {
                                     }
                                 }
                             }
-                            ++$i;
                         }
 
                         unless $type_mismatch || $rwness_mismatch {
@@ -2762,8 +2742,8 @@ BEGIN {
                     if nqp::elems(@possibles) {
                         my $new_possibles;
                         my %info;
-                        $i := 0;
-                        while $i < nqp::elems(@possibles) {
+                        $i := -1;
+                        while ++$i < nqp::elems(@possibles) {
                             %info := nqp::atpos(@possibles, $i);
 
                             # First, if there's a required named parameter and it was
@@ -2819,7 +2799,6 @@ BEGIN {
                             else {
                                 $new_possibles := [nqp::atpos(@possibles, $i)];
                             }
-                            ++$i;
                         }
 
                         # If we have an updated list of possibles, use this
@@ -2925,15 +2904,14 @@ BEGIN {
             my $junctional_res;
             if nqp::elems(@possibles) == 0 {
                 my int $has_junc_args := 0;
-                $i := 0;
-                while $i < $num_args {
+                $i := -1;
+                while ++$i < $num_args {
                     if !nqp::captureposprimspec($capture, $i) {
                         my $arg := nqp::captureposarg($capture, $i);
                         if nqp::istype($arg, Junction) && nqp::isconcrete($arg) {
                             $has_junc_args := 1;
                         }
                     }
-                    ++$i;
                 }
                 if $has_junc_args {
                     $junctional_res := -> *@pos, *%named {
@@ -3067,8 +3045,8 @@ BEGIN {
                     !! nqp::atkey($cur_candidate, 'num_types');
                 $type_mismatch := 0;
                 $type_match_possible := 1;
-                $i := 0;
-                while $i < $type_check_count {
+                $i := -1;
+                while ++$i < $type_check_count {
                     my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $got_prim   := nqp::atpos(@flags, $i) +& 0xF;
                     if $type_flags +& $TYPE_NATIVE_MASK {
@@ -3134,7 +3112,6 @@ BEGIN {
                             $used_defcon := 1;
                         }
                     }
-                    ++$i;
                 }
                 if $type_match_possible {
                     $type_possible := 1;
@@ -3354,11 +3331,10 @@ BEGIN {
             my int $n := nqp::elems(@!pos-capture-counts);
             if $n > 0 {
                 my $result := nqp::list();
-                my int $i := 0;
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
                     nqp::bindpos($result, $i, nqp::list())
                         if nqp::atpos_i(@!pos-capture-counts, $i) >= 2;
-                    $i++;
                 }
                 $result
             }
@@ -3373,14 +3349,13 @@ BEGIN {
             my int $n := nqp::elems(@!named-capture-counts);
             if $n > 0 {
                 my $result := nqp::hash();
-                my int $i := 0;
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
                     if nqp::atpos_i(@!named-capture-counts, $i) >= 2 {
                         nqp::bindkey($result,
                             nqp::atpos_s(@!named-capture-names, $i),
                             nqp::list());
                     }
-                    $i++;
                 }
                 $result
             }
@@ -3882,9 +3857,9 @@ nqp::sethllconfig('Raku', nqp::hash(
             if $bind_res == 2 {
                 my @pos_args;
                 my int $num_pos_args := nqp::captureposelems($capture);
-                my int $k := 0;
                 my int $got_prim;
-                while $k < $num_pos_args {
+                my int $k := -1;
+                while ++$k < $num_pos_args {
                     $got_prim := nqp::captureposprimspec($capture, $k);
                     if $got_prim == 0 {
                         nqp::push(@pos_args, nqp::captureposarg($capture, $k));
@@ -3898,7 +3873,6 @@ nqp::sethllconfig('Raku', nqp::hash(
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
-                    ++$k;
                 }
                 my %named_args := nqp::capturenamedshash($capture);
                 Junction.AUTOTHREAD($caller,

@@ -54,7 +54,10 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method set_of($obj, $refinee) {
-        my $archetypes := $!refinee.HOW.archetypes;
+        my $archetypes := $refinee.HOW.archetypes;
+        if $archetypes.generic {
+            nqp::die("Use of a generic as 'of' type of a subset is not implemented yet")
+        }
         unless $archetypes.nominal || $archetypes.nominalizable {
             nqp::die("The 'of' type of a subset must either be a valid nominal " ~
                 "type or a type that can provide one");

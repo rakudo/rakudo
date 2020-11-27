@@ -6712,7 +6712,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $semis := $<semilist><statement>;
             my $numsemis := nqp::elems($semis);
 
-            my $i := -1;
+            my int $i := -1;
             while ++$i < $numsemis {
                 my $EXPR := $semis[$i]<EXPR>;
                 if nqp::defined($EXPR) {
@@ -6726,7 +6726,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $past.push(QAST::Op.new( :op('call'), :name('&infix:<,>'), :node($/)));
             }
 
-            my $semi := -1;
+            my int $semi := -1;
             while ++$semi < $numsemis {
                 my $EXPR := @EXPR[$semi];
                 if $EXPR<colonpair> { # might start with a colonpair

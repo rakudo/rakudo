@@ -4,7 +4,7 @@ role Perl6::Metamodel::Finalization {
     method setup_finalization($obj) {
         my @mro   := self.mro($obj);
         my int $i := -1;
-        my $ocount := nqp::elems(@mro);
+        my int $ocount := nqp::elems(@mro);
         my @destroyers;
         while ++$i < $ocount {
             my $class   := @mro[$i];
@@ -18,8 +18,8 @@ role Perl6::Metamodel::Finalization {
                 && nqp::can($classHOW, 'roles')
             {
                 my @ins_roles := $classHOW.ins_roles($class, :with-submethods-only);
-                my $j := -1;
-                my $rcount := nqp::elems(@ins_roles);
+                my int $j := -1;
+                my int $rcount := nqp::elems(@ins_roles);
                 while ++$j < $rcount {
                     my $r := @ins_roles[$j];
                     my $submeth := nqp::atkey(@ins_roles[$j].HOW.submethod_table(@ins_roles[$j]), 'DESTROY');

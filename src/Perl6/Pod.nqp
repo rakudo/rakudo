@@ -284,9 +284,9 @@ class Perl6::Pod {
         }
 
         for $<pod_content> {
-            my $array := $_.ast;
-            my $elems := $array.elems;
-            my $i     := -1;
+            my $array     := $_.ast;
+            my int $elems := $array.elems;
+            my int $i     := -1;
             while ++$i < $elems {
                 @children.push($array.AT-POS($i));
             }
@@ -1215,11 +1215,11 @@ class Perl6::Pod {
         #   header and multi-line content.
         #
         # Tricky, isn't it? Let's try to handle it sanely.
-        my $sepnum        := 0;
-        my $firstsepindex := 0;
-        my $differentseps := 0;
         my $firstsep;
-        my $i := -1;
+        my int $sepnum        := 0;
+        my int $firstsepindex := 0;
+        my int $differentseps := 0;
+        my int $i := -1;
         while ++$i < +@rows {
             unless nqp::islist(@rows[$i]) {
                 $sepnum := $sepnum + 1;
@@ -1267,7 +1267,7 @@ class Perl6::Pod {
             else {
                 # multi-line header, one-lined rows
                 my @hlines := [];
-                my $i := -1;
+                my int $i := -1;
                 while ++$i < $firstsepindex {
                     @hlines.push(@rows.shift);
                 }
@@ -1278,7 +1278,7 @@ class Perl6::Pod {
         }
         else {
             my @hlines := [];
-            my $i := -1;
+            my int $i := -1;
             if $differentseps {
                 while ++$i < $firstsepindex {
                     @hlines.push(@rows.shift);
@@ -1376,12 +1376,12 @@ class Perl6::Pod {
         sub normalize_vis_col_sep_rows(@Rows) {
             # leading and trailing column separators are handled and warned about
             my @rows     := @Rows;
-            my $nlp      := 0; # number of leading pipes
-            my $ntp      := 0; # number of trailing pipes
-            my $nr       := 0; # number of data rows
-            my $leading  := 0;
-            my $trailing := 0;
-            my $i        := -1;
+            my int $nlp      := 0; # number of leading pipes
+            my int $ntp      := 0; # number of trailing pipes
+            my int $nr       := 0; # number of data rows
+            my int $leading  := 0;
+            my int $trailing := 0;
+            my int $i        := -1;
             while ++$i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
                     ++$nr;
@@ -1414,7 +1414,7 @@ class Perl6::Pod {
 
         sub remove_border_pipes(@Rows, $leading, $trailing) {
             my @rows :=  @Rows;
-            my $i := -1; # BUG: nqp did NOT warn about missing $i
+            my int $i := -1; # BUG: nqp did NOT warn about missing $i
             while ++$i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
                     if $leading || $trailing {
@@ -1451,7 +1451,7 @@ class Perl6::Pod {
                 }
             }
 
-            my $i := -1;
+            my int $i := -1;
             while ++$i < +@rows {
                 unless @rows[$i] ~~ /^\s*$/ {
                     if $w != -1 {
@@ -1468,7 +1468,7 @@ class Perl6::Pod {
             # split the vis col sep rows between cells
             # note we don't merge multiple rows yet
             my @res;
-            my $i := 0;
+            my int $i := 0;
             for @rows -> $row {
                 if $row ~~ $is_row_sep {
                     @res.push($row);
@@ -1504,7 +1504,7 @@ class Perl6::Pod {
 
         sub merge_rows(@rows) {
             my @result := @rows[0];
-            my $i := 1;
+            my int $i := 1;
             while $i < +@rows {
                 my $j := -1;
                 while ++$j < +@rows[$i] {
@@ -1531,11 +1531,11 @@ class Perl6::Pod {
             #         unset - maybe
 
             # collect cell delimiters per row
-            my $i := -1;
+            my int $i := -1;
             while ++$i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
                     my @line := nqp::split('', @rows[$i]);
-                    my $j := -1;
+                    my int $j := -1;
                     while ++$j < +@line {
                         unless @suspects[$j] {
                             if @line[$j] ne ' ' {

@@ -143,7 +143,7 @@ role Perl6::Metamodel::C3MRO {
         }
 
         # Otherwise, remove what was accepted from the merge lists.
-        my $i := -1;
+        my int $i := -1;
         while ++$i < nqp::elems(@merge_list) {
             my @new_list;
             for @merge_list[$i] {

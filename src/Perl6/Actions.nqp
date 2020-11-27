@@ -9275,8 +9275,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $decont_name_invalid := 1;
                 my $inst_param := QAST::Node.unique('__lowered_param_obj_');
                 my $low_param_type := QAST::Node.unique('__lowered_param_type');
-                my $low_param_type_how := QAST::Node.unique('__lowered_param_type_how');
-                my $param_type_name := $param_type.HOW.name($param_type); # QAST::Node.unique('__lowered_param_type_name');
                 $var.push( # Fetch instantiated Parameter object
                     QAST::Op.new(
                         :op('bind'),
@@ -9294,13 +9292,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         QAST::Var.new(:name($inst_param), :scope('local')),
                                         QAST::WVal.new(:value($Param)),
                                         QAST::SVal.new(:value('$!type')))));
-                $var.push( # Get parameter type HOW for it's used more than once
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new(:name($low_param_type_how), :scope('local'), :decl('var')),
-                        QAST::Op.new(
-                            :op('how'),
-                            QAST::Var.new(:name($low_param_type), :scope('local')))));
                 $var.push(
                     QAST::Op.new(
                         :op('if'),
@@ -9321,7 +9312,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 QAST::Op.new(
                                     :op('callmethod'),
                                     :name('coerce'),
-                                    QAST::Var.new(:name($low_param_type_how), :scope('local')),
+                                    QAST::Op.new(
+                                        :op('how'),
+                                        QAST::Var.new(:name($low_param_type), :scope('local')))
                                     QAST::Var.new(:name($low_param_type), :scope('local')),
                                     QAST::Var.new(:name($name), :scope('local')))))));
             }

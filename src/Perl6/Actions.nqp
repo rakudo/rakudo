@@ -34,30 +34,38 @@ sub block_closure($code, :$regex) {
 }
 
 sub wantall($ast, $by) {
-    my int $i := 0;
     my int $e := $ast ?? nqp::elems(@($ast)) !! 0;
-    while $i < $e { $ast[$i] := wanted($ast[$i], $by ~ ' wa'); $i := $i + 1 }
+    my int $i := -1;
+    while ++$i < $e {
+        $ast[$i] := wanted($ast[$i], $by ~ ' wa');
+    }
     Nil;
 }
 
 sub WANTALL($ast, $by) {
-    my int $i := 0;
     my int $e := $ast ?? nqp::elems(@($ast)) !! 0;
-    while $i < $e { $ast[$i] := WANTED($ast[$i], $by ~ ' WA'); $i := $i + 1 }
+    my int $i := -1;
+    while ++$i < $e {
+        $ast[$i] := WANTED($ast[$i], $by ~ ' WA');
+    }
     Nil;
 }
 
 sub unwantall($ast, $by) {
-    my int $i := 0;
     my int $e := $ast ?? nqp::elems(@($ast)) !! 0;
-    while $i < $e { $ast[$i] := unwanted($ast[$i], $by ~ ' ua'); $i := $i + 1 }
+    my int $i := -1;
+    while ++$i < $e {
+        $ast[$i] := unwanted($ast[$i], $by ~ ' ua');
+    }
     Nil;
 }
 
 sub UNWANTALL($ast, $by) {
-    my int $i := 0;
     my int $e := $ast ?? nqp::elems(@($ast)) !! 0;
-    while $i < $e { $ast[$i] := UNWANTED($ast[$i], $by ~ ' ua'); $i := $i + 1 }
+    my int $i := -1;
+    while ++$i < $e {
+        $ast[$i] := UNWANTED($ast[$i], $by ~ ' ua');
+    }
     Nil;
 }
 
@@ -82,10 +90,9 @@ sub wanted($ast,$by) {
 
     if nqp::istype($ast,QAST::Stmt) || nqp::istype($ast,QAST::Stmts) {
         my $resultchild := $ast.resultchild // $e;
-        my int $i := 0;
-        while $i <= $e {
+        my int $i := -1;
+        while ++$i <= $e {
             $ast[$i] := $i == $resultchild ?? wanted($ast[$i], $byby) !! unwanted($ast[$i], $byby);
-            ++$i;
         }
         $ast.wanted(1);
     }
@@ -284,10 +291,9 @@ sub unwanted($ast, $by) {
     if nqp::istype($ast,QAST::Stmt) || nqp::istype($ast,QAST::Stmts) {
         # Unwant all kids, not just last one, so we recurse into blocks and such,
         # don't just rely on the optimizer to default to void.
-        my int $i := 0;
-        while $i <= $e {
+        my int $i := -1;
+        while ++$i <= $e {
             $ast[$i] := unwanted($ast[$i], $byby);
-            ++$i;
         }
         $ast.sunk(1);
         $ast.push(QAST::WVal.new( :value($*W.find_single_symbol('True')) ))
@@ -1022,12 +1028,11 @@ role STDActions {
         my int $indent := -$actualchars;
 
         my int $tabstop := $*W.find_single_symbol('$?TABSTOP');
-        my int $checkidx := 0;
-        while $checkidx < $actualchars {
+        my int $checkidx := -1;
+        while ++$checkidx < $actualchars {
             if nqp::eqat($ws, "\t", $checkidx) {
                 $indent := $indent - ($tabstop - 1);
             }
-            $checkidx := $checkidx + 1;
         }
 
         my $docast := $doc.MATCH.ast;
@@ -4294,10 +4299,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         return 0 unless @params;
         my $Param  := $*W.find_single_symbol('Parameter', :setting-only);
         my @p_objs := nqp::getattr($sig, $*W.find_single_symbol('Signature', :setting-only), '@!params');
-        my int $i  := 0;
-        my int $n  := nqp::elems(@params);
         my %arg_placeholders;
-        while $i < $n {
+        my int $n  := nqp::elems(@params);
+        my int $i  := -1;
+        while ++$i < $n {
             my %info := @params[$i];
             return 0 unless nqp::objprimspec(%info<type>); # non-native
             return 0 if %info<optional> || %info<post_constraints> ||  %info<bind_attr> ||
@@ -4307,7 +4312,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             return 0 if $flags +& $SIG_ELEM_IS_COPY;
             %arg_placeholders{%info<variable_name>} :=
                 QAST::InlinePlaceholder.new( :position($i) );
-            $i++;
         }
 
         # Ensure nothing extra is declared and there are no inner blocks.
@@ -4359,11 +4363,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             elsif nqp::istype($node, QAST::Op) {
                 if nqp::getcomp('QAST').operations.is_inlinable('Raku', $node.op) {
                     my $replacement := $node.shallow_clone();
-                    my int $i := 0;
                     my int $n := nqp::elems($node);
-                    while $i < $n {
+                    my int $i := -1;
+                    while ++$i < $n {
                         $replacement[$i] := node_walker($node[$i]);
-                        $i := $i + 1;
                     }
                     return clear_node($replacement);
                 }
@@ -4392,11 +4395,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # visited.
             elsif nqp::istype($node, QAST::Stmt) || nqp::istype($node, QAST::Stmts) {
                 my $replacement := $node.shallow_clone();
-                my int $i := 0;
                 my int $n := nqp::elems($node);
-                while $i < $n {
+                my int $i := -1;
+                while ++$i < $n {
                     $replacement[$i] := node_walker($node[$i]);
-                    $i := $i + 1;
                 }
                 return clear_node($replacement);
             }
@@ -4760,9 +4762,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $BLOCK := $*CURPAD;
 
         # Remove special variables; no need for them in onlystar.
-        my int $i := 0;
         my int $n := +@($BLOCK[0]);
-        while $i < $n {
+        my int $i := -1;
+        while ++$i < $n {
             my $consider := $BLOCK[0][$i];
             if nqp::istype($consider, QAST::Var) {
                 my $name := $consider.name;
@@ -4770,7 +4772,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $BLOCK[0][$i] := QAST::Op.new( :op('null') );
                 }
             }
-            $i++;
         }
 
         # Add dispatching code.
@@ -6944,8 +6945,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
     our sub migrate_blocks($from, $to, $predicate?) {
         my @decls := @($from[0]);
         my int $n := nqp::elems(@decls);
-        my int $i := 0;
-        while $i < $n {
+        my int $i := -1;
+        while ++$i < $n {
             my $decl := @decls[$i];
             if nqp::istype($decl, QAST::Block) {
                 if !$predicate || $predicate($decl) {
@@ -6964,7 +6965,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $to[0].push($decl);
                 @decls[$i] := QAST::Op.new( :op('null') );
             }
-            $i++;
         }
     }
 
@@ -7627,8 +7627,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 if nqp::istype($argast,QAST::Op) && $argast.op eq 'call' && $argast.name eq '&infix:<,>' {
 #                    note("thunky $type bingo:\n" ~ $argast.dump);
                     my int $ae := nqp::elems($argast);
-                    my int $a := 0;
-                    while $a < $ae {
+                    my int $a := -1;
+                    while ++$a < $ae {
                         my $elem := WANTED($argast[$a],'thunkity/comma');
                         if $type eq 'T' {  # thunk maybe (for xx)
                             unless $elem.has_compile_time_value {
@@ -7644,7 +7644,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $elem := block_closure(make_thunk_ref($elem, $/));
                         }
                         $argast[$a] := $elem;
-                        ++$a;
                     }
                 }
             }
@@ -10314,9 +10313,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
     sub remove_block($from, $block, :$ignore-not-found) {
         # Remove the QAST::Block $block from $from[0]; die if not found.
         my @decls := $from[0].list;
-        my int $i := 0;
         my int $n := nqp::elems(@decls);
-        while $i < $n {
+        my int $i := -1;
+        while ++$i < $n {
             my $consider := @decls[$i];
             if $consider =:= $block {
                 @decls[$i] := QAST::Op.new( :op('null') );
@@ -10328,7 +10327,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     return 1;
                 }
             }
-            $i++;
         }
         nqp::die('Internal error: failed to remove block')
             unless $ignore-not-found;

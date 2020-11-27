@@ -670,14 +670,13 @@ my class BlockVarOptimizer {
         # If we found things to eliminate, do so.
         if %kill {
             my @setups := @($block[0]);
-            my int $i  := 0;
             my int $n  := nqp::elems(@setups);
-            while $i < $n {
+            my int $i  := -1;
+            while ++$i < $n {
                 my $consider := @setups[$i];
                 if nqp::istype($consider, QAST::Var) && nqp::existskey(%kill, $consider.name) {
                     @setups[$i] := $NULL;
                 }
-                $i++;
             }
         }
     }
@@ -2796,14 +2795,13 @@ class Perl6::Optimizer {
 
     method report_inevitable_dispatch_failure($op, @types, @flags, $obj, :$protoguilt) {
         my @arg_names;
-        my int $i := 0;
-        while $i < +@types {
+        my int $i := -1;
+        while ++$i < +@types {
             @arg_names.push(
                 @flags[$i] == 1 ?? 'int' !!
                 @flags[$i] == 2 ?? 'num' !!
                 @flags[$i] == 3 ?? 'str' !!
                 @types[$i].HOW.name(@types[$i]));
-            $i := $i + 1;
         }
 
         my %opts := nqp::hash();

@@ -285,12 +285,10 @@ class Perl6::Pod {
 
         for $<pod_content> {
             my $array := $_.ast;
-            my $i     := 0;
             my $elems := $array.elems;
-
-            while $i < $elems {
+            my $i     := -1;
+            while ++$i < $elems {
                 @children.push($array.AT-POS($i));
-                ++$i;
             }
         }
 
@@ -1221,8 +1219,8 @@ class Perl6::Pod {
         my $firstsepindex := 0;
         my $differentseps := 0;
         my $firstsep;
-        my $i := 0;
-        while $i < +@rows {
+        my $i := -1;
+        while ++$i < +@rows {
             unless nqp::islist(@rows[$i]) {
                 $sepnum := $sepnum + 1;
                 unless $firstsepindex {
@@ -1250,7 +1248,6 @@ class Perl6::Pod {
                     }
                 }
             }
-            ++$i;
         }
 
         my $headers := [];
@@ -1269,11 +1266,10 @@ class Perl6::Pod {
             }
             else {
                 # multi-line header, one-lined rows
-                my $i := 0;
                 my @hlines := [];
-                while $i < $firstsepindex {
+                my $i := -1;
+                while ++$i < $firstsepindex {
                     @hlines.push(@rows.shift);
-                    ++$i;
                 }
                 $headers := merge_rows(@hlines);
                 @rows.shift; # remove the row separator
@@ -1282,11 +1278,10 @@ class Perl6::Pod {
         }
         else {
             my @hlines := [];
-            my $i := 0;
+            my $i := -1;
             if $differentseps {
-                while $i < $firstsepindex {
+                while ++$i < $firstsepindex {
                     @hlines.push(@rows.shift);
-                    ++$i;
                 }
                 @rows.shift; # remove the row separator
                 $headers := merge_rows(@hlines);
@@ -1294,8 +1289,8 @@ class Perl6::Pod {
             # let's go through the rows and merge the multi-line ones
             my @newrows := [];
             my @tmp  := [];
-            $i       := 0;
-            while $i < +@rows {
+            $i       := -1;
+            while ++$i < +@rows {
                 if nqp::islist(@rows[$i]) {
                     @tmp.push(@rows[$i]);
                 }
@@ -1303,7 +1298,6 @@ class Perl6::Pod {
                     @newrows.push(merge_rows(@tmp));
                     @tmp := [];
                 }
-                ++$i;
             }
             if +@tmp > 0 {
                 @newrows.push(merge_rows(@tmp));
@@ -1387,8 +1381,8 @@ class Perl6::Pod {
             my $nr       := 0; # number of data rows
             my $leading  := 0;
             my $trailing := 0;
-            my $i        := 0;
-            while $i < +@rows {
+            my $i        := -1;
+            while ++$i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
                     ++$nr;
                     @rows[$i] := normalize_row_cells(@rows[$i]);
@@ -1406,7 +1400,6 @@ class Perl6::Pod {
                     }
                     say("DEBUG: i $i, nlp $nlp, ntp $ntp, nr $nr") if $debug;
                 }
-                ++$i;
             }
             ++$leading if $nlp == $nr;
             ++$trailing if $ntp == $nr;
@@ -1421,8 +1414,8 @@ class Perl6::Pod {
 
         sub remove_border_pipes(@Rows, $leading, $trailing) {
             my @rows :=  @Rows;
-            my $i := 0; # BUG: nqp did NOT warn about missing $i
-            while $i < +@rows {
+            my $i := -1; # BUG: nqp did NOT warn about missing $i
+            while ++$i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
                     if $leading || $trailing {
                         say("DEBUG BEFORE rm border: '@rows[$i]'") if $debug;
@@ -1439,7 +1432,6 @@ class Perl6::Pod {
                         say("DEBUG AFTER rm border: '@rows[$i]'") if $debug;
                     }
                 }
-                ++$i;
             }
             return @rows;
         }
@@ -1459,14 +1451,13 @@ class Perl6::Pod {
                 }
             }
 
-            my $i := 0;
-            while $i < +@rows {
+            my $i := -1;
+            while ++$i < +@rows {
                 unless @rows[$i] ~~ /^\s*$/ {
                     if $w != -1 {
                         @rows[$i] := nqp::substr(@rows[$i], $w);
                     }
                 }
-                ++$i;
             }
             return @rows;
         }
@@ -1515,14 +1506,13 @@ class Perl6::Pod {
             my @result := @rows[0];
             my $i := 1;
             while $i < +@rows {
-                my $j := 0;
-                while $j < +@rows[$i] {
+                my $j := -1;
+                while ++$j < +@rows[$i] {
                     if @rows[$i][$j] {
                         @result[$j] := normalize_text(
                             ~@result[$j] ~ ' ' ~ ~@rows[$i][$j]
                         );
                     }
-                    ++$j;
                 }
                 ++$i;
             }
@@ -1541,32 +1531,29 @@ class Perl6::Pod {
             #         unset - maybe
 
             # collect cell delimiters per row
-            my $i := 0;
-            while $i < +@rows {
+            my $i := -1;
+            while ++$i < +@rows {
                 unless @rows[$i] ~~ $is_row_sep {
                     my @line := nqp::split('', @rows[$i]);
-                    my $j := 0;
-                    while $j < +@line {
+                    my $j := -1;
+                    while ++$j < +@line {
                         unless @suspects[$j] {
                             if @line[$j] ne ' ' {
                                 @suspects[$j] := 1;
                             }
                         }
-                        ++$j;
                     }
                 }
-                ++$i;
             }
 
             # now let's skip the single spaces by marking them impossible
-            $i := 0;
-            while $i < +@suspects {
+            $i := -1;
+            while ++$i < +@suspects {
                 unless @suspects[$i] {
                     if @suspects[$i-1] && @suspects[$i+1] {
                         @suspects[$i] := 1;
                     }
                 }
-                ++$i;
             }
 
             # now we're doing some magic which will
@@ -1575,11 +1562,11 @@ class Perl6::Pod {
             # we get [0, 13, 16, 30, 34, 0] (last 0 as a guard)
 
             my $wasone := 1;
-            $i := 0;
             my @ranges := [];
             @ranges.push(0);
 
-            while $i < +@suspects {
+            $i := -1;
+            while ++$i < +@suspects {
                 if !$wasone && @suspects[$i] == 1 {
                     @ranges.push($i);
                     $wasone := 1;
@@ -1588,7 +1575,6 @@ class Perl6::Pod {
                     @ranges.push($i);
                     $wasone := 0;
                 }
-                ++$i;
             }
             @ranges.push(0); # guard
 

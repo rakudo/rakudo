@@ -2460,9 +2460,9 @@ class Perl6::World is HLL::World {
         my $p_type    := self.find_single_symbol('Parameter', :setting-only);
         my int $arity := 0;
         my int $count := 0;
-        my int $i     := 0;
         my int $n     := nqp::elems(@parameters);
-        while $i < $n {
+        my int $i     := -1;
+        while ++$i < $n {
             my $param := @parameters[$i];
             my int $flags := nqp::getattr_i($param, $p_type, '$!flags');
             if $flags +& ($SIG_ELEM_IS_CAPTURE +| $SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG) {
@@ -2473,7 +2473,6 @@ class Perl6::World is HLL::World {
                 $count++;
                 $arity++ unless $flags +& $SIG_ELEM_IS_OPTIONAL;
             }
-            $i++;
         }
         nqp::bindattr_i($signature, $sig_type, '$!arity', $arity);
         if $count == -1 {
@@ -2933,10 +2932,10 @@ class Perl6::World is HLL::World {
         # parametric role outer chain work out. Also set up their static
         # lexpads, if they have any.
         my @coderefs := $comp.backend.compunit_coderefs($precomp);
-        my int $num_subs := nqp::elems(@coderefs);
-        my int $i := 0;
         my $result;
-        while $i < $num_subs {
+        my int $num_subs := nqp::elems(@coderefs);
+        my int $i := -1;
+        while ++$i < $num_subs {
             my $subid := nqp::getcodecuid(@coderefs[$i]);
             my %sub_id_to_code_object := self.context().sub_id_to_code_object();
             if nqp::existskey(%sub_id_to_code_object, $subid) {
@@ -2966,7 +2965,6 @@ class Perl6::World is HLL::World {
             if $subid eq $past.cuid {
                 $result := @coderefs[$i];
             }
-            $i := $i + 1;
         }
 
         # Flag block as dynamically compiled.
@@ -5645,13 +5643,12 @@ class Perl6::World is HLL::World {
         }
         else {
             my $new := '';
-            my int $i := 0;
             my int $e := nqp::chars($v);
-            while $i < $e {
+            my int $i := -1;
+            while ++$i < $e {
                 my $ch := nqp::substr($v,$i,1);
                 $new := $new ~ '\\' if $ch eq '<' || $ch eq '>';
                 $new := $new ~ $ch;
-                ++$i;
             }
             ':' ~ $k ~ '<' ~ $new ~ '>';
         }

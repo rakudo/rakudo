@@ -27,11 +27,10 @@ role Perl6::Metamodel::Mixins {
 
     method mixin($obj, *@roles, :$need-mixin-attribute) {
         # Lookup mixin, generating it if needed.
-        my int $i := 0;
         my int $n := nqp::elems(@roles);
-        while $i < $n {
+        my int $i := -1;
+        while ++$i < $n {
             @roles[$i] := nqp::decont(@roles[$i]);
-            ++$i;
         }
         my $mixin_type := nqp::parameterizetype($!mixin_cache, @roles);
         nqp::setdebugtypename($mixin_type, $mixin_type.HOW.name($mixin_type) ~ ' mixin');

@@ -34,6 +34,8 @@ popd
 # Prepare the package
 cp -r tools/build/binary-release/Linux/* install
 cp LICENSE install
-mv install rakudo-$VERSION
-tar -zcv --owner=0 --group=0 --numeric-owner -f ../rakudo-linux.tar.gz rakudo-$VERSION
+
+FILE_NAME=rakudo-moar-$VERSION-$REVISION-linux-x86_64-gcc
+mv install $FILE_NAME
+tar -zcv --owner=0 --group=0 --numeric-owner -f ../rakudo-linux.tar.gz $FILE_NAME
 

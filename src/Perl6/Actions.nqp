@@ -2261,7 +2261,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $lexical_stub := QAST::SVal.new(:value($component)) unless $lexical_stub;
                     my $stub := $*W.pkg_create_mo($/, $/.how('package'), :name($component));
                     $*W.pkg_compose($/, $stub);
+                    nqp::scwbdisable();
                     $current{$component} := $stub;
+                    nqp::scwbenable();
                     $current := nqp::who($stub);
                 }
             }
@@ -5019,6 +5021,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $term := nqp::substr($term,1,nqp::chars($term) - 2);
             $<term>.worry("No values supplied to enum (does $term need to be declared constant?)") if $term ~~ /\w/;
         }
+        my $first := 1;
         for @values {
             # If it's a pair, take that as the value; also find
             # key.
@@ -5076,6 +5079,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 );
             }
 
+if $first {
+        # create a type object even for empty enums
+        make_type_obj($*W.find_single_symbol('Int')) unless $has_base_type;
+
+        $*W.install_package($/, @name_parts,
+            ($*SCOPE || 'our'), 'enum', $package, $block, $type_obj);
+        $first := 0;
+}
+
             # Create and install value.
             my $val_obj := $*W.create_enum_value($type_obj, $cur_key, $cur_value, $index := $index + 1);
             $cur_key    := nqp::unbox_s($cur_key);
@@ -5111,12 +5123,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
 
-
-        # create a type object even for empty enums
+        if $first {
         make_type_obj($*W.find_single_symbol('Int')) unless $has_base_type;
 
         $*W.install_package($/, @name_parts,
             ($*SCOPE || 'our'), 'enum', $package, $block, $type_obj);
+        }
 
         # Compose the added enum values.
         $type_obj.HOW.compose_values($type_obj);

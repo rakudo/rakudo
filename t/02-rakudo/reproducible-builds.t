@@ -12,21 +12,25 @@ use lib $lib;
 use Test;
 use NativeCall; # precompile dependencies
 
-
-my $store = CompUnit::PrecompilationStore::File.new(
-    :prefix($*TMPDIR.child("rakudo-precomp" ~ (^2**128).pick.base(36)))
-);
+my $prefix = $*TMPDIR.child("rakudo-precomp" ~ (^2**128).pick.base(36));
+my $store = CompUnit::PrecompilationStore::File.new(:prefix($prefix.IO));
 my $precompilation-repository = CompUnit::PrecompilationRepository::Default.new(:$store);
 my @checksums;
 my @units;
 my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
 my constant $id = CompUnit::PrecompilationId.new-without-check('6B7A1AECF02807F30DDAD99C02C34440CA036AF6');
 for ^2 -> $run {
-    $precompilation-repository.precompile(
-        'lib/NativeCall.rakumod'.IO,
-        $id,
-        :force,
-    );
+    run $*EXECUTABLE, '-Ilib', '-e', qq:to/END/;
+        my \$store = CompUnit::PrecompilationStore::File.new(
+            :prefix('$prefix'.IO)
+        );
+        my \$precompilation-repository = CompUnit::PrecompilationRepository::Default.new(:\$store);
+        \$precompilation-repository.precompile(
+            'lib/NativeCall.rakumod'.IO,
+            '$id',
+            :force,
+        );
+    END
     @units.push: my $unit = $store.load-unit($compiler-id, $id);
     @checksums.push: $unit.checksum;
     $unit.bytecode; # read in bytecode

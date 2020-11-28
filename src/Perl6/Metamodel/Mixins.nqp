@@ -8,6 +8,9 @@ my class MixinCacheHOW {
         nqp::setdebugtypename($type, $class_type.HOW.name($class_type) ~ ' mixin cache');
         $type
     }
+    method name($type) {
+        'MixinCache'
+    }
 }
 
 role Perl6::Metamodel::Mixins {

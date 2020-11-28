@@ -21,6 +21,7 @@ BEGIN {
 BEGIN {
     # Create pun at compile time as buf8 is used extensively in file I/O and module loading
     buf8.elems;
+    blob8.elems;
 
     # Mark all subs that are implementation details, as implementation detail.
     # In any other code, this would have been done as a trait on the actual

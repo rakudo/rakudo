@@ -20,7 +20,7 @@ my class Stash { # declared in BOOTSTRAP
             nqp::if(
               nqp::existskey(GLOBAL.WHO,$key),
               nqp::atkey(GLOBAL.WHO,$key),
-              Failure.new("Could not find symbol '$key' in '{self}'")
+              Failure.new("Could not find symbol '$key' in '{self}' " ~ nqp::objectid(self) ~ ' ' ~ nqp::objectid(storage))
             ),
             nqp::p6scalarfromdesc(
               ContainerDescriptor::BindHashPos.new(Mu, self, $key)

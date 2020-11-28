@@ -520,6 +520,8 @@ class Perl6::World is HLL::World {
     # List of CHECK blocks to run.
     has @!CHECKs;
 
+    has $!package-symbols;
+
     method BUILD(*%adv) {
         %!code_object_fixup_list := {};
         $!record_precompilation_dependencies := 1;
@@ -527,6 +529,7 @@ class Perl6::World is HLL::World {
         $!setting_loaded := 0;
         $!in_unit_parse := 0;
         @!CHECKs := [];
+        $!package-symbols := $*PACKAGE-SYMBOLS;
     }
 
     method lang-rev-before(str $want) {
@@ -714,7 +717,8 @@ class Perl6::World is HLL::World {
 
     method comp_unit_stage1 ($/) {
         unless $!have_outer {
-            self.load_setting($/, $!setting_name);
+            my $ctx := self.load_setting($/, $!setting_name);
+            self.record_sc_dependency($ctx);
         }
         $/.unitstart();
 
@@ -968,6 +972,7 @@ class Perl6::World is HLL::World {
             # being compiled unless being loaded as another core dependency.
             my $setting := %*COMPILING<%?OPTIONS><outer_ctx> :=
                             Perl6::ModuleLoader.load_setting($setting_name);
+            self.record_sc_dependency($setting);
 
             # Add a fixup and deserialization task also.
             my $fixup := QAST::Stmt.new(
@@ -1488,6 +1493,17 @@ class Perl6::World is HLL::World {
         return $module;
     }
 
+    method record_sc_dependency($comp_unit) {
+        my $allowed_sc_deps := $*ALLOWED_SC_DEPS;
+        if nqp::defined($allowed_sc_deps) {
+            my $cu := nqp::getattr($comp_unit, $comp_unit.WHAT, "comp_unit");
+            my $sc := nqp::getattr($cu, $cu.WHAT, "sc");
+            nqp::scwbdisable();
+            nqp::push($allowed_sc_deps, $sc);
+            nqp::scwbenable();
+        }
+    }
+
     # Loads a module immediately, and also makes sure we load it
     # during the deserialization.
     method load_module($/, $module_name, %opts, $cur_GLOBALish) {
@@ -1503,11 +1519,32 @@ class Perl6::World is HLL::World {
             :api-matcher(%opts<api> // $true),
             :version-matcher(%opts<ver> // $true),
         );
+        #note("Spec: " ~ nqp::objectid($spec) ~ " for " ~ nqp::scgethandle(self.context.sc) ~ " " ~ nqp::scgetdesc(self.context.sc));
         self.add_object_if_no_sc($spec);
         my $registry := self.find_symbol(['CompUnit', 'RepositoryRegistry'], :setting-only);
         my $comp_unit := $registry.head.need($spec);
+        self.record_sc_dependency($comp_unit.unit);
         my $globalish := $comp_unit.handle.globalish-package;
-        nqp::gethllsym('Raku','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
+        my $*TARGET-GLOBAL := $cur_GLOBALish;
+        #if nqp::existskey($globalish, 'packages-to-register') {
+        if (%opts<from> // 'Perl6') eq 'Perl6' {
+            #note("Calling register_package_symbols");
+            my $package_how := self.resolve_mo($/, 'package');
+            nqp::gethllsym('Raku', 'ModuleLoader').register_package_symbols($package_how, $globalish<packages-to-register>, $cur_GLOBALish);
+#            self.add_fixup_task(:deserialize_ast(
+#                QAST::Op.new(
+#                    :op<callmethod>,
+#                    :name<register_package_symbols>,
+#                    QAST::WVal.new(:value(Perl6::ModuleLoader)),
+#                    QAST::WVal.new(:value($package_how)),
+#                    QAST::WVal.new(:value($globalish<packages-to-register>)),
+#                    QAST::WVal.new(:value($cur_GLOBALish)),
+#                )
+#            ));
+        }
+        else {
+            nqp::gethllsym('Raku','ModuleLoader').merge_globals_lexically(self, $cur_GLOBALish, $globalish);
+        }
 
         CATCH {
             self.rethrow($/, $_);
@@ -1631,6 +1668,7 @@ class Perl6::World is HLL::World {
     # Installs something package-y in the right place, creating the nested
     # packages as needed.
     method install_package($/, @name_orig, $scope, $pkgdecl, $package, $outer, $symbol) {
+        note("install_package(" ~ nqp::join("::", @name_orig) ~ ", $scope, $pkgdecl, " ~ $package.HOW.name($package) ~ ", ...") if self.RAKUDO_MODULE_DEBUG;
         if $scope eq 'anon' || +@name_orig == 0 { return 1 }
         my @parts := nqp::clone(@name_orig);
         my $name  := @parts.pop();
@@ -1660,30 +1698,38 @@ class Perl6::World is HLL::World {
         # chunk already. If so, use it for that part of the name.
         my $longname := $package =:= $*GLOBALish ?? '' !! $package.HOW.name($package);
         if +@parts {
+            #note("Got a multi-part name with " ~ nqp::elems(@parts) ~ " prefix parts");
             try {
                 $cur_pkg := self.find_single_symbol(@parts[0], :upgrade_to_global($create_scope ne 'my'));
+                note("Knowing the opening chunk! " ~ $cur_pkg.HOW.name($cur_pkg)) if self.RAKUDO_MODULE_DEBUG;
                 $cur_lex := 0;
                 $create_scope := 'our';
-                $longname := $longname ?? $longname ~ '::' ~ @parts.shift() !! @parts.shift();
+                @parts.shift;
+                $longname := $cur_pkg.HOW.name($cur_pkg); # returns broken behaviour for multi-part names with existing prefixes
+                #$longname := $longname ?? $longname ~ '::' ~ @parts.shift() !! @parts.shift();
             }
         }
 
         # Chase down the name, creating stub packages as needed.
+        my $orig_create_scope := $create_scope;
         while +@parts {
             my $part := @parts.shift;
             $longname := $longname ?? $longname ~ '::' ~ $part !! $part;
+            note("Using longname $longname for stub package") if self.RAKUDO_MODULE_DEBUG;
             if nqp::existskey($cur_pkg.WHO, $part) {
                 $cur_pkg := ($cur_pkg.WHO){$part};
+                note("$part exists, is " ~ $cur_pkg.HOW.name($cur_pkg) ~ ' and is a ' ~ $cur_pkg.HOW.HOW.name($cur_pkg.HOW)) if self.RAKUDO_MODULE_DEBUG;
             }
             else {
                 my $new_pkg := self.pkg_create_mo($/, self.resolve_mo($/, 'package'),
                     :name($longname));
                 self.pkg_compose($/, $new_pkg);
                 if $create_scope eq 'my' || $cur_lex {
+                    note("installing $part lexically") if self.RAKUDO_MODULE_DEBUG;
                     self.install_lexical_symbol($cur_lex, $part, $new_pkg);
                 }
                 if $create_scope eq 'our' {
-                    self.install_package_symbol_unchecked($cur_pkg, $part, $new_pkg);
+                    self.install_package_symbol_unchecked($cur_pkg, $part, $new_pkg, $orig_create_scope);
                 }
                 $cur_pkg := $new_pkg;
                 $create_scope := 'our';
@@ -1699,10 +1745,13 @@ class Perl6::World is HLL::World {
             self.install_lexical_symbol($cur_lex, $name, $symbol);
         }
         if $create_scope eq 'our' {
-            if nqp::existskey($cur_pkg.WHO, $name) {
+            if nqp::existskey($cur_pkg.WHO, $name) && (!self.is_precompilation_mode || self.is_from_dependency($cur_pkg.WHO)) {
+                note("Stealing WHO for $name") if self.RAKUDO_MODULE_DEBUG;
+                #note(self.is_precompilation_mode);
+                #note(self.is_from_dependency($cur_pkg.WHO));
                 self.steal_WHO($symbol, ($cur_pkg.WHO){$name});
             }
-            self.install_package_symbol_unchecked($cur_pkg, $name, $symbol);
+            self.install_package_symbol_unchecked($cur_pkg, $name, $symbol, $orig_create_scope);
         }
 
         1;
@@ -2154,19 +2203,22 @@ class Perl6::World is HLL::World {
         self.context().is_lexical_marked_ro($name)
     }
 
-    method is_from_dependency($sc-desc) {
+    method is_from_dependency($obj) {
+        my $sc := nqp::getobjsc($obj);
+        return 1 if nqp::isnull($sc);
+        my $sc-desc := nqp::scgetdesc($sc);
         if $sc-desc eq nqp::scgetdesc(self.sc) {
-            note("repossessing into same sc!");
+            #note("repossessing into same sc!");
             return 1;
         }
         if %*COMPILING && %*COMPILING<dependencies> {
             my @dependencies := %*COMPILING<dependencies>.FLATTENABLE_LIST;
             for @dependencies {
-                note("repossessing a dependency!");
+                #note("repossessing a dependency!");
                 return 1 if $_.source-name eq $sc-desc;
             }
         }
-        return 1 if $sc-desc eq 'gen/moar/CORE.c.setting' || $sc-desc eq 'gen/moar/CORE.d.setting' || $sc-desc eq 'gen/moar/CORE.e.setting' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6c.nqp' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6d.nqp' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6e.nqp';
+        #return 1 if $sc-desc eq 'gen/moar/CORE.c.setting' || $sc-desc eq 'gen/moar/CORE.d.setting' || $sc-desc eq 'gen/moar/CORE.e.setting' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6c.nqp' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6d.nqp' || $sc-desc eq 'gen/moar/BOOTSTRAP/v6e.nqp';
         return 0;
     }
 
@@ -2177,17 +2229,121 @@ class Perl6::World is HLL::World {
         }
         self.install_package_symbol_unchecked($package, $name, $obj);
     }
-    method install_package_symbol_unchecked($package, $name, $obj) {
+    method install_package_symbol_unchecked($package, $name, $obj, $scope = 'our') {
+        note("install_package_symbol_unchecked(" ~ $package.HOW.name($package) ~ ", $name, " ~ $obj.HOW.name($obj) ~ ", $scope)") if self.RAKUDO_MODULE_DEBUG;
+        #nqp::die("gotcha") if $package.HOW.name($package) eq 'Shell' && $name eq 'PowerShell' && $obj.HOW.HOW.name($obj.HOW) eq 'Perl6::Metamodel::PackageHOW' && self.RAKUDO_MODULE_DEBUG;
         my $existing-sc := nqp::getobjsc($package.WHO);
-        my $repossess := $existing-sc ?? self.is_from_dependency(nqp::scgetdesc($existing-sc)) !! 1;
-        note("Installing package symbol $name into " ~ $package.HOW.name($package));
-        note("Repossessing anyway as it's about the compiling package, otherwise: " ~ $repossess) if $package =:= $*PACKAGE;
-        $repossess := 1 if $package =:= $*PACKAGE;
+        #my $repossess := $existing-sc ?? self.is_from_dependency(nqp::scgetdesc($existing-sc)) !! 1;
+        my $repossess := 0; # $existing-sc ?? 0 !! 1;
+        #my $repossess := Perl6::ModuleLoader.allowed_sc_dep($package) || self.is_from_dependency($package);
+        #note("Installing package symbol $name into " ~ $package.HOW.name($package));
+        #note("Repossessing anyway as it's about the compiling package, otherwise: " ~ $repossess) if $package =:= $*PACKAGE;
+        if nqp::defined($!package-symbols) {
+            #note("Registering $name in " ~ nqp::objectid($package) ~ ' ' ~ nqp::objectid($package.WHO));
+            nqp::push($!package-symbols, $package.WHO);
+            nqp::push($!package-symbols, $name);
+        }
+        #$repossess := 1 if $package =:= $*PACKAGE;
         $repossess := 1 if $*COMPILING_CORE_SETTING;
-        note("Not repossessing $name into " ~ $package.HOW.name($package) ~ " " ~ nqp::scgetdesc($existing-sc)) unless $repossess;
-        nqp::scwbdisable() unless $repossess;
-        ($package.WHO){$name} := $obj;
-        nqp::scwbenable() unless $repossess;
+        my $package_name := $package.HOW.name($package);
+        my $i := nqp::index($package_name, '::');
+        my $first := $i == -1 ?? $package_name !! nqp::substr($package_name, 0, $i);
+        if $repossess || $scope ne 'our' || $first eq 'EXPORT' || $first eq 'EXPORTHOW' {
+            note("    Repossessing $name into " ~ $package.HOW.name($package) ~ " " ~ $package.HOW.HOW.name($package.HOW) ~ " " ~ (nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc))) if self.RAKUDO_MODULE_DEBUG;
+            ($package.WHO){$name} := $obj;
+        }
+        else {
+            note("    Not repossessing $name " ~ $obj.HOW.name($obj) ~ " " ~ $obj.HOW.HOW.name($obj.HOW) ~ " into " ~ $package.HOW.name($package) ~ " " ~ $package.HOW.HOW.name($package.HOW) ~ " " ~ (nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc))) if self.RAKUDO_MODULE_DEBUG;
+            nqp::scwbdisable() unless $package =:= $*PACKAGE;
+            ($package.WHO){$name} := $obj;
+            nqp::scwbenable() unless $package =:= $*PACKAGE;
+
+            #self.add_fixup_task(:deserialize_ast(
+            #    QAST::Op.new(
+            #        :op<callmethod>,
+            #        :name<install_package_symbol>,
+            #        QAST::WVal.new(:value(Perl6::ModuleLoader)),
+            unless $obj.HOW.HOW.name($obj.HOW) eq 'Perl6::Metamodel::PackageHOW' { # no need to serialize pure stubs - we can create them on-demand
+                note("    registering object") if self.RAKUDO_MODULE_DEBUG;
+                my $who := nqp::who($*GLOBALish);
+                $who<packages-to-register> := nqp::list unless nqp::existskey($who, 'packages-to-register');
+                nqp::push($who<packages-to-register>, nqp::list(
+                    $package.HOW.name($package),
+                    $name,
+                    $obj,
+                    $*GLOBALish,
+                ));
+            }
+            #));
+
+#            my $package_name := $package.HOW.name($package);
+#
+            #my @name_parts := nqp::split('::', $obj.HOW.name($obj));
+#            my @name_parts := nqp::split('::', $package_name);
+#            unless nqp::elems(@name_parts) {
+#                return;
+#            }
+#            #nqp::pop(@name_parts) if nqp::elems(@name_parts) > 1;
+#            my $first := nqp::shift(@name_parts);
+#            my $bind-key;
+#            if $package_name eq 'GLOBAL' {
+#                $bind-key := QAST::Op.new(:op<bindkey>, QAST::Op.new(:op<who>, QAST::WVal.new(:value($*GLOBALish))), QAST::SVal.new(:value($name)), QAST::WVal.new(:value($obj)))
+##                $bind-key := QAST::Op.new(
+##                    :op<bindkey>,
+##                            QAST::Op.new(
+##                                :op<who>,
+##                                QAST::Op.new(
+##                                    :op<ifnull>,
+##                                    QAST::Op.new(
+##                                        :op<getlexdyn>,
+##                                        QAST::SVal.new(:value<$*TARGET-GLOBAL>)
+##                                    ),
+##                                    QAST::WVal.new(:value($*GLOBALish))
+##                                ),
+##                            ),
+##                    QAST::SVal.new(:value($name)),
+##                    QAST::WVal.new(:value($obj))
+##                )
+#            }
+#            else {
+#                my $cur_package := QAST::Op.new(:op<who>,
+#                    QAST::Op.new(:op<ifnull>,
+#                        QAST::Op.new(:op<getlexrel>, QAST::Op.new(:op<ctx>), QAST::SVal.new(:value($first))),
+#                        QAST::Op.new(:op<atkey>, QAST::Op.new(:op<who>, QAST::WVal.new(:value($*GLOBALish))), QAST::SVal.new(:value($first))),
+##                        QAST::Op.new(
+##                            :op<atkey>,
+##                            QAST::Op.new(
+##                                :op<who>,
+##                                QAST::Op.new(
+##                                    :op<ifnull>,
+##                                    QAST::Op.new(
+##                                        :op<getlexdyn>,
+##                                        QAST::SVal.new(:value<$*TARGET-GLOBAL>)
+##                                    ),
+##                                    QAST::WVal.new(:value($*GLOBALish))
+##                                ),
+##                            ),
+##                            QAST::SVal.new(:value($first))
+##                        ),
+#                    ),
+#                );
+#
+#                for @name_parts {
+#                    $cur_package := QAST::Op.new(:op<who>, QAST::Op.new(:op<callmethod>, :name<package_at_key>, $cur_package, QAST::SVal.new(:value($_))));
+#                }
+#                $bind-key :=
+#                    nqp::elems(@name_parts)
+#                        ?? QAST::Op.new(:op<callmethod>, :name<BIND-KEY>, $cur_package, QAST::SVal.new(:value($name)), QAST::WVal.new(:value($obj)))
+#                        !! QAST::Op.new(:op<bindkey>, $cur_package, QAST::SVal.new(:value($name)), QAST::WVal.new(:value($obj)))
+#            }
+#            self.add_fixup_task(:deserialize_ast(
+#                QAST::Stmts.new(
+#                    QAST::Op.new(:op<scwbdisable>),
+#                    $bind-key,
+#                    QAST::Op.new(:op<scwbenable>),
+#                )
+#            ));
+        }
         1;
     }
 
@@ -4947,6 +5103,7 @@ class Perl6::World is HLL::World {
     method find_single_symbol_in_setting($name) {
         my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
         my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+        self.record_sc_dependency($ctx);
 
         while $ctx {
             my $pad := nqp::ctxlexpad($ctx);
@@ -4977,6 +5134,7 @@ class Perl6::World is HLL::World {
 
         $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
         my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+        self.record_sc_dependency($ctx);
 
         my str $fullname := nqp::join("::", @name);
         my $components := +@name;

@@ -14,7 +14,7 @@ class CompUnit::Repository::AbsolutePath does CompUnit::Repository {
 
             # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
             my $precompiled =
-              $file.Str.ends-with(Rakudo::Internals.PRECOMP-EXT);
+              $file.Str.ends-with(Rakudo::Internals::Precompilation.PRECOMP-EXT);
 
             if $file.f {
                 return %!loaded{$file} = CompUnit.new(

@@ -3292,6 +3292,21 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
     }
 }
 
+my class X::AlreadyPrecompiling is Exception {
+    has $.source-name;
+    method message() {
+        "Requested nested precompilation"
+    }
+}
+
+my class X::CircularModuleLoading is Exception {
+    has $.source-name;
+    has $.path;
+    method message() {
+        "Circular module loading detected trying to precompile $!path"
+    }
+}
+
 my class Exceptions::JSON {
     method process($ex) {
         $*ERR.print: Rakudo::Internals::JSON.to-json($ex);

@@ -42,12 +42,15 @@ class CompUnit::Repository::FileSystem
 
     method id() {
         $!id //= do with self!distribution -> $distribution {
-            my $parts :=
+            nqp::scwbdisable();
+            my @parts =
                 grep { .defined }, (.id with self.next-repo), slip # slip next repo id into hash parts to be hashed together
                 map  { nqp::sha1($_) },
                 map  { $distribution.content($_).open(:enc<iso-8859-1>).slurp(:close) },
                 $distribution.meta<provides>.values.unique.sort;
-            nqp::sha1($parts.join(''));
+            my $id := nqp::sha1(@parts.join(''));
+            nqp::scwbenable();
+            $id
         }
     }
 
@@ -108,7 +111,7 @@ class CompUnit::Repository::FileSystem
         unless $file.is-absolute {
 
             # We have a $file when we hit: require "PATH" or use/require Foo:file<PATH>;
-            my $precompiled = $file.Str.ends-with(Rakudo::Internals.PRECOMP-EXT);
+            my $precompiled = $file.Str.ends-with(Rakudo::Internals::Precompilation.PRECOMP-EXT);
             my $path = $!prefix.add($file);
 
             if $path.f {

@@ -2,6 +2,8 @@
 # that schedulers must do, as well as a way to factor out some common "sugar"
 # and infrastructure.
 
+class Rakudo::Internals::Precompilation { ... }
+
 my class X::Scheduler::CueInNaNSeconds is Exception {
     method message(--> Str) {
         'Cannot pass NaN as a number of seconds to Scheduler.cue'
@@ -19,7 +21,7 @@ my role Scheduler {
         else {
             # No default handler, so terminate the application.
             note "Unhandled exception in code scheduled on thread " ~ $*THREAD.id;
-            if Rakudo::Internals.LL-EXCEPTION {
+            if Rakudo::Internals::Precompilation.LL-EXCEPTION {
                 note $exception.message;
                 note $exception.backtrace.full;
             }

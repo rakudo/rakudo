@@ -334,6 +334,11 @@ sub REQUIRE_IMPORT(
         $GLOBALish,
     ) if $stubname;
     # Merge GLOBAL from compunit.
+    nqp::gethllsym('Raku', 'ModuleLoader').register_package_symbols(
+        Perl6::Metamodel::PackageHOW,
+        $GLOBALish<packages-to-register>,
+        $block<%REQUIRE_SYMBOLS>,
+    );
     nqp::gethllsym('Raku','ModuleLoader').merge_globals(
         $block<%REQUIRE_SYMBOLS>,
         $GLOBALish,

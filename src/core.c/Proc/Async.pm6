@@ -1,5 +1,3 @@
-my class Proc::Async { ... }
-
 my role X::Proc::Async is Exception {
     has Proc::Async $.proc;
 }

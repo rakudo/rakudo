@@ -259,6 +259,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $repo-prefix = self!repo-prefix;
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($dist, :repo(self), :$dist-id);
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
+            my $*CURI-INSTALLING = 1;
             my %done;
 
             my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
@@ -267,8 +268,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 $precomp.store.delete($compiler-id, $id);
             }
 
-            for %provides.sort {
-                my $id = $_.value.values[0]<file>;
+            my @provides = %provides.sort;
+            while @provides {
+                my $provides = @provides.shift;
+                my $id = $provides.value.values[0]<file>;
                 my $source = $sources-dir.add($id);
                 my $source-file = $repo-prefix ?? $repo-prefix ~ $source.relative($.prefix) !! $source;
 
@@ -276,16 +279,24 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                     note "(Already did $id)" if $verbose;
                     next;
                 }
-                note("Precompiling $id ($_.key())") if $verbose;
+                note("Precompiling $id ($provides.key())") if $verbose;
                 my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku','GLOBAL'),Mu);
                 nqp::bindhllsym('Raku', 'GLOBAL', Metamodel::PackageHOW.new_type(:name<GLOBAL>));
-                $precomp.precompile(
-                    $source,
-                    CompUnit::PrecompilationId.new-without-check($id),
-                    :source-name("$source-file ($_.key())"),
-                );
+                {
+                    CATCH {
+                        when X::AlreadyPrecompiling {
+                            #note "Aborting precompilation of $provides.key() for $_.source-name()";
+                            @provides.push: $provides;
+                        }
+                    }
+                    $precomp.precompile(
+                        $source,
+                        CompUnit::PrecompilationId.new-without-check($id),
+                        :source-name("$source-file ($provides.key())"),
+                    );
+                    %done{$id} = 1;
+                }
                 nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
-                %done{$id} = 1;
             }
             PROCESS::<$REPO> := $head;
         }

@@ -41,11 +41,19 @@ class CompUnit::PrecompilationRepository::Default
     my $compiler-id :=
       CompUnit::PrecompilationId.new-without-check(Compiler.id);
 
-    my $lle        := Rakudo::Internals.LL-EXCEPTION;
-    my $profile    := Rakudo::Internals.PROFILE;
-    my $optimize   := Rakudo::Internals.OPTIMIZE;
-    my $stagestats := Rakudo::Internals.STAGESTATS;
-    my $target     := "--target=" ~ Rakudo::Internals.PRECOMP-TARGET;
+    my $stagestats := Rakudo::Internals::Precompilation.STAGESTATS;
+
+    method !add-dependency($dependency) {
+        #note "add-dependency $dependency";
+        my $compiling := %*COMPILING;
+        if $compiling and $compiling<dependencies>:exists { # precompiling in-process
+            $compiling<dependencies>.push: $dependency;
+        }
+        else { # precompiling in an external process
+            say $dependency.serialize;
+            $*OUT.flush;
+        }
+    }
 
     method try-load(
       CompUnit::PrecompilationDependency::File:D $dependency,
@@ -65,10 +73,13 @@ class CompUnit::PrecompilationRepository::Default
             my \precomped := nqp::atkey($loaded,$id.Str);
             if precomped {
                 if $World and $World.record_precompilation_dependencies {
-                    my $unit := self!load-file(@precomp-stores, $id);
-                    $dependency.checksum = $unit.checksum;
-                    %*COMPILING<dependencies>.append: $unit.dependencies;
-                    %*COMPILING<dependencies>.push: $dependency;
+                    my $compiling := %*COMPILING;
+                    if $compiling and $compiling<dependencies>:exists {
+                        my $unit := self!load-file(@precomp-stores, $id);
+                        $dependency.checksum = $unit.checksum;
+                        $compiling<dependencies>.append: $unit.dependencies;
+                        $compiling<dependencies>.push: $dependency;
+                    }
                 }
                 return precomped;
             }
@@ -86,10 +97,10 @@ class CompUnit::PrecompilationRepository::Default
             if $handle {
                 $dependency.checksum = $checksum;
                 #$*ADD-DEPENDENCY($dependency);
-                %*COMPILING<dependencies>.push: $dependency;
+                self!add-dependency($dependency);
             }
             else {
-                nqp::exit(0);
+                X::Pragma::CannotPrecomp.new.throw;
             }
         }
 
@@ -232,7 +243,7 @@ Need to re-check dependencies.")
         if $World && $World.record_precompilation_dependencies {
             for $precomp-unit.dependencies -> $dependency {
                 #$*ADD-DEPENDENCY($dependency);
-                %*COMPILING<dependencies>.push: $dependency;
+                self!add-dependency($dependency);
             }
         }
 
@@ -352,7 +363,7 @@ Need to re-check dependencies.")
         my $rpl := nqp::atkey($env,'RAKUDO_PRECOMP_LOADING');
         if $rpl {
             my @modules := Rakudo::Internals::JSON.from-json: $rpl;
-            die "Circular module loading detected trying to precompile $path"
+            X::CircularModuleLoading.new(:$path).throw
               if $path.Str (elem) @modules;
         }
 
@@ -381,7 +392,7 @@ Need to re-check dependencies.")
 
         my @*PRECOMP-WITH = $REPO.repo-chain.map(*.path-spec).join(',');
         my @precomp-loading = @*PRECOMP-LOADING // ();
-        die "Circular module loading detected trying to precompile $path"
+        X::CircularModuleLoading.new(:$path).throw
             if @precomp-loading and $path.Str ∈ @precomp-loading;
         @precomp-loading.push: $path.Str;
 
@@ -405,7 +416,7 @@ Need to re-check dependencies.")
 
             my @*PRECOMP-LOADING = @precomp-loading;
 
-            Rakudo::Internals.compile-file(:$path, :output($bc), :$source-name);
+            Rakudo::Internals::Precompilation.compile-file(:$path, :output($bc), :$source-name);
         }
 
         $!RMD("Precompiled $path into $bc") if $!RMD;

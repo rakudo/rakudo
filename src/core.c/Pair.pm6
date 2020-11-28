@@ -34,6 +34,7 @@ my class Pair does Associative {
     method !WHICH() {
         $!WHICH := nqp::if(
           nqp::iscont($!value)
+            || nqp::not_i(nqp::can($!value, 'WHICH'))
             || nqp::not_i(nqp::istype((my $VALUE := $!value.WHICH),ValueObjAt)),
           self.Mu::WHICH,
           nqp::box_s(
@@ -98,8 +99,8 @@ my class Pair does Associative {
     multi method gist(Pair:D:) {
         self.gistseen('Pair', {
             nqp::istype($!key, Pair)
-              ?? '(' ~ $!key.gist ~ ') => ' ~ $!value.gist
-              !! $!key.gist ~ ' => ' ~ $!value.gist;
+              ?? '(' ~ $!key.gist ~ ') => ' ~ (nqp::can($!value, 'gist') ?? $!value.gist !! $!value.HOW.name($!value))
+              !! $!key.gist ~ ' => ' ~ (nqp::can($!value, 'gist') ?? $!value.gist !! $!value.HOW.name($!value));
         })
     }
 

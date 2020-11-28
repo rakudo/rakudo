@@ -106,18 +106,377 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
     }
     sub is_from_dependency($sc-desc) {
         if $*W && $sc-desc eq nqp::scgetdesc($*W.sc) {
-            note("repossessing into same sc!");
+            note("repossessing into same sc!") if $DEBUG;
             return 1;
         }
         if %*COMPILING && %*COMPILING<dependencies> {
             my @dependencies := %*COMPILING<dependencies>.FLATTENABLE_LIST;
             for @dependencies {
-                note("repossessing a dependency!");
+                note("repossessing a dependency! $sc-desc") if $DEBUG && $_.source-name eq $sc-desc;
                 return 1 if $_.source-name eq $sc-desc;
             }
         }
         return 0;
     }
+    method allowed_sc_dep($value) {
+        my $allowed_sc_deps := $*ALLOWED_SC_DEPS;
+        if nqp::defined($allowed_sc_deps) && $*W.is_precompilation_mode {
+            my $allowed := 0;
+            my $sc := nqp::getobjsc($value);
+            if nqp::defined($sc) {
+                for $allowed_sc_deps {
+                    if $sc =:= $_ {
+                        return 1;
+                    }
+                }
+                note("    allowed: $allowed " ~ nqp::scgetdesc($sc)) if $DEBUG;
+                return 0 unless $allowed; # transitive dependencies are an issue that is_from_dependency just handles better
+            }
+        }
+        return 1;
+    }
+
+    method create_stub_package($globalish, $package_how, $name, $longname) {
+        note("Creating stub package $longname") if $DEBUG;
+        my $pkg := $package_how.new_type(:name($longname));
+        $pkg.HOW.compose($pkg);
+        nqp::bindkey(nqp::ishash($globalish) ?? $globalish !! nqp::who($globalish), $name, $pkg);
+        $pkg
+    }
+
+    method register_package_symbols($package_how, @symbols, $globalish) {
+        if nqp::defined(@symbols) {
+            $globalish := $globalish.FLATTENABLE_HASH if nqp::can($globalish, 'FLATTENABLE_HASH');
+            @symbols := @symbols.FLATTENABLE_LIST unless nqp::islist(@symbols);
+            for @symbols {
+                self.install_package_symbol($_[0], $_[1], $_[2], $_[3], $package_how, $globalish);
+            }
+        }
+    }
+    method debug_helper($who) {
+        nqp::sin_n(1.0);
+    }
+
+    method reinstall_package_symbol($root, $package_name, $name, $obj, $package_how) {
+        note("Perl6::ModuleLoader.reinstall_package_symbol(" ~ $root.HOW.name($root) ~ ", $package_name, $name, " ~ $obj.HOW.name($obj) ~ " (" ~ $obj.HOW.HOW.name($obj.HOW) ~ ")) ") if $DEBUG;
+        my @name_parts := nqp::split('::', $package_name);
+        my $longname := nqp::shift(@name_parts); # already got root
+        my $cur_package := $root;
+        for @name_parts {
+            $longname := $longname ~ '::' ~ $_;
+            my $who := nqp::who($cur_package);
+            my $repossess := nqp::isnull(nqp::getobjsc($who)) || self.allowed_sc_dep($who);
+            #my $repossess := nqp::isnull(nqp::getobjsc($who));
+            nqp::scwbdisable() unless $repossess; # avoid repossession of existing stashes
+            $cur_package := nqp::ishash($who)
+                ?? nqp::ifnull(nqp::atkey($who, $_), self.create_stub_package($cur_package, $package_how, $_, $longname))
+                !! $who.package_at_key($_);
+            nqp::scwbenable() unless $repossess;
+        }
+
+        my $who := nqp::who($cur_package);
+        #note($cur_package.HOW.name($cur_package));
+        #nqp::hllizefor($who, 'Raku').keys.note;
+        #nqp::hllizefor(stash_hash($who), 'Raku').keys.note;
+        if nqp::existskey(stash_hash($who), $name) {
+            my $existing := stash_hash($who){$name};
+            nqp::hllizefor($existing, 'Raku').note;
+            if nqp::decont($existing) =:= $obj {
+                note("     $name " ~ $existing.HOW.name($existing) ~ " already there") if $DEBUG;
+                return;
+            }
+            note("    already exists! " ~ $existing.HOW.name($existing) ~ ' ' ~ $existing.HOW.HOW.name($existing.HOW)) if $DEBUG;
+            if is_stub($obj.HOW) {
+                note("    not installing stub over existing symbol") if $DEBUG;
+                return;
+            }
+            if is_stub($existing.HOW) {
+                note("    salvaging items from existing symbol") if $DEBUG;
+                my $existing_who := nqp::who($existing);
+                for $existing_who.keys.FLATTENABLE_LIST {
+                    $who.BIND-KEY($_, $existing_who.AT-KEY($_)) unless $who.EXISTS-KEY($_);
+                }
+            }
+        }
+
+        #my $repossess := nqp::isnull(nqp::getobjsc($who)) || is_from_dependency(nqp::scgetdesc(nqp::getobjsc($who)));
+        my $repossess := nqp::isnull(nqp::getobjsc($who)) || self.allowed_sc_dep($who);
+        #my $repossess := nqp::isnull(nqp::getobjsc($who));
+        nqp::scwbdisable unless $repossess; # avoid repossession of existing stashes
+
+        if nqp::ishash($who) {
+            note("   installing $name (" ~ $obj.HOW.HOW.name($obj.HOW) ~ ") into BOOTHash " ~ $cur_package.HOW.HOW.name($cur_package.HOW) ~ ' ' ~ (nqp::getobjsc($cur_package) ?? nqp::scgetdesc(nqp::getobjsc($cur_package)) !! '')) if $DEBUG;
+            $who{$name} := $obj;
+        }
+        else {
+            note("   installing $name (" ~ $obj.HOW.HOW.name($obj.HOW) ~ ") into " ~ $cur_package.HOW.name($cur_package) ~ ' who ' ~ $who.Str ~ ' ' ~ $cur_package.HOW.HOW.name($cur_package.HOW) ~ ' ' ~ (nqp::getobjsc($cur_package) ?? nqp::scgetdesc(nqp::getobjsc($cur_package)) !! '')) if $DEBUG;
+            $who.BIND-KEY($name, $obj);
+        }
+
+        nqp::scwbenable unless $repossess;
+    }
+
+    method install_package_symbol($package_name, $name, $obj, $globalish, $package_how, $target) {
+        note("Perl6::ModuleLoader.install_package_symbol($package_name, $name, " ~ $obj.HOW.name($obj) ~ " (" ~ $obj.HOW.HOW.name($obj.HOW) ~ ")) " ~ (nqp::isnull(nqp::getlexdyn('$*TARGET-GLOBAL')) ?? ' globally ' !! 'directly')) if $DEBUG;
+
+        note('    ' ~ $target.HOW.name($target)) if $DEBUG;
+
+        if $package_name eq 'GLOBAL' {
+            if nqp::ishash($target) {
+                if nqp::existskey($target, $name) {
+                    my $existing := $target{$name};
+                    if nqp::decont($existing) =:= $obj {
+                        note("     already there") if $DEBUG;
+                        return;
+                    }
+                }
+                else {
+                    $target{$name} := $obj;
+                    note("    added pseudo lexical to hash") if $DEBUG;
+                }
+            }
+            else {
+                if nqp::existskey($target.symtable, $name) {
+                    my $existing := $target.symtable{$name}<value>;
+                    if nqp::decont($existing) =:= $obj {
+                        note("     already there") if $DEBUG;
+                        return;
+                    }
+                    if is_stub($obj.HOW) {
+                        note("    not installing stub over existing symbol") if $DEBUG;
+                        return;
+                    }
+                    if is_stub($existing.HOW) {
+                        note("    salvaging items from existing symbol " ~  $existing.HOW.name($existing) ~ " " ~ $existing.HOW.HOW.name($existing.HOW)) if $DEBUG;
+                        my $existing_who := nqp::who($existing);
+                        my $who := nqp::who($obj);
+                        for $existing_who.keys.FLATTENABLE_LIST {
+                            $who.BIND-KEY($_, $existing_who.AT-KEY($_)) unless $who.EXISTS-KEY($_);
+                        }
+                        $target.symbol($name, :scope('lexical'), :value($obj));
+                        for $target[0].list {
+                            if nqp::istype($_, QAST::Var) && $_.name eq $name {
+                                note("setting QAST::Var $name") if $DEBUG;
+                                $_.value($obj);
+                            }
+                        }
+                    }
+                }
+                else {
+                    my $exists := 0;
+                    my $existing;
+                    try {
+                        $existing := $*W.find_single_symbol($name);
+                        unless $existing =:= NQPMu {
+                            $exists := 1;
+                            note("    outer") if $DEBUG;
+                        }
+                    }
+                    if $exists {
+                        note("    already exists in outer scope") if $DEBUG;
+                    }
+                    else {
+                        $target.symbol($name, :scope('lexical'), :value($obj));
+                        $target[0].push(QAST::Var.new(
+                            :scope('lexical'), :name($name), :decl('static'), :value($obj)
+                        ));
+                        $*W.add_object_if_no_sc($obj);
+                        note("    created lexical $name") if $DEBUG;
+                    }
+                }
+            }
+        }
+        else {
+            my @name_parts := nqp::split('::', $package_name);
+            unless nqp::elems(@name_parts) {
+                return;
+            }
+            my $first := nqp::shift(@name_parts);
+
+            my $cur_package := nqp::ishash($target) ?? $target{$first} !! $target.symtable{$first};
+            #note($cur_package.HOW.name($cur_package));
+            my $outer := 0;
+            if nqp::isnull($cur_package) || $cur_package =:= NQPMu {
+                try {
+                    #note("find_single_symbol");
+                    $cur_package := $*W.find_single_symbol($first);
+                    #note($cur_package.HOW.name($cur_package));
+                    unless $cur_package =:= NQPMu {
+                        #nqp::hllizefor($cur_package, "Raku").note;
+                        $outer := 1;
+                        note("    found outer symbol $first containing " ~ nqp::hllizefor(nqp::who($cur_package), 'Raku').keys.gist) if $DEBUG;
+                    }
+                }
+            }
+            else {
+                note("found an existing symbol $first at " ~ nqp::objectid($cur_package<value>) ~ " containing " ~ nqp::objectid(nqp::who($cur_package<value>)) ~ ' ' ~ nqp::hllizefor(nqp::who($cur_package<value>), 'Raku').keys.gist) if $DEBUG;
+                if is_stub($cur_package<value>.HOW) { # replace existing stub with a new one so we avoid needless dependencies
+                    my $pkg := $package_how.new_type(:name($first));
+                    $pkg.HOW.compose($pkg);
+                    my $who := nqp::who($pkg);
+                    my $existing_who := nqp::who($cur_package<value>);
+                    for $existing_who.keys.FLATTENABLE_LIST {
+                        $who.BIND-KEY($_, $existing_who.AT-KEY($_)) unless $who.EXISTS-KEY($_);
+                    }
+                    $cur_package<value> := $pkg;
+                }
+                $cur_package := $cur_package<value>;
+            }
+
+            if nqp::isnull($cur_package) || $cur_package =:= NQPMu {
+                $cur_package := nqp::ifnull(
+                    nqp::atkey(nqp::ishash($target) ?? $target !! nqp::who($target), $first),
+                    self.create_stub_package($target, $package_how, $first, $first)
+                );
+                note("created: " ~ $cur_package.HOW.name($cur_package)) if $DEBUG;
+
+                unless nqp::ishash($target) {
+                    $target.symbol($first, :scope('lexical'), :value($cur_package));
+                    $target[0].push(QAST::Var.new(
+                        :scope('lexical'), :name($first), :decl('static'), :value($cur_package)
+                    ));
+                    $*W.add_object_if_no_sc($cur_package);
+                }
+            }
+
+            my $root := $cur_package;
+            my $longname := $cur_package.HOW.name($cur_package);
+
+            for @name_parts {
+                $longname := $longname ~ '::' ~ $_;
+                my $who := nqp::who($cur_package);
+                my $repossess := nqp::isnull(nqp::getobjsc($who)) || is_from_dependency(nqp::scgetdesc(nqp::getobjsc($who)));
+                #$repossess := 0;
+                nqp::scwbdisable() unless $repossess; # avoid repossession of existing stashes
+                $cur_package := nqp::ishash($who)
+                    ?? nqp::ifnull(nqp::atkey($who, $_), self.create_stub_package($cur_package, $package_how, $_, $longname))
+                    !! $who.package_at_key($_);
+                nqp::scwbenable() unless $repossess;
+            }
+            my $who := nqp::who($cur_package);
+            my $repossess := nqp::isnull(nqp::getobjsc($who)) || is_from_dependency(nqp::scgetdesc(nqp::getobjsc($who)));
+            #$repossess := 0;
+            note("who is a " ~ $who.HOW.name($who));
+            my $install := 1;
+            if nqp::existskey(stash_hash($who), $name) {
+                my $existing := stash_hash($who){$name};
+                if nqp::decont($existing) =:= $obj || nqp::decont($existing) =:= nqp::decont($obj) {
+                    note("     already there") if $DEBUG;
+                    $install := 0;
+                }
+                elsif is_stub($obj.HOW) {
+                    note("    not installing stub over existing symbol") if $DEBUG;
+                    return;
+                }
+                elsif is_stub($existing.HOW) {
+                    note("    salvaging items from existing symbol") if $DEBUG;
+                    my $existing_who := nqp::who($existing);
+                    for $existing_who.keys.FLATTENABLE_LIST {
+                        $who.BIND-KEY($_, $existing_who.AT-KEY($_)) unless $who.EXISTS-KEY($_);
+                    }
+                }
+                elsif $existing =:= $obj {
+                    $install := 0;
+                    note("not decontend") if $DEBUG;
+                }
+                elsif $existing =:= nqp::decont($obj) {
+                    $install := 0;
+                    note("deconted obj") if $DEBUG;
+                }
+                elsif nqp::eqat($name, '&', 0) {
+                    note("    sub already exists - latest wins: " ~ $existing.HOW.name($existing) ~ ' ' ~ $existing.HOW.HOW.name($existing.HOW)) if $DEBUG;
+                }
+                else  {
+                    note("    $name already exists in $package_name! " ~ $existing.HOW.name($existing) ~ ' ' ~ $existing.HOW.HOW.name($existing.HOW));
+                }
+            }
+
+            if nqp::ishash($who) {
+                note("   installing $name (" ~ $obj.HOW.HOW.name($obj.HOW) ~ ") into BOOTHash " ~ $cur_package.HOW.HOW.name($cur_package.HOW) ~ ' ' ~ (nqp::getobjsc($cur_package) ?? nqp::scgetdesc(nqp::getobjsc($cur_package)) !! '')) if $DEBUG;
+                nqp::scwbdisable unless $repossess; # avoid repossession of existing stashes
+                $who{$name} := $obj if $install;
+                nqp::scwbenable unless $repossess;
+                my $world := $*W;
+                if $world {
+                    $world.add_object_if_no_sc($root);
+                    $world.add_object_if_no_sc($obj);
+                    $world.add_fixup_task(:deserialize_ast(
+                        QAST::Stmts.new(
+#                            QAST::Op.new(
+#                                :op<callmethod>,
+#                                :name<note>,
+#                                QAST::Op.new(
+#                                    :op<hllize>,
+#                                    QAST::SVal.new(:value(
+#                                        "$name (" ~ $obj.HOW.HOW.name($obj.HOW) ~ ") -> " ~ $cur_package.HOW.name($cur_package)
+#                                    ))
+#                                )
+#                            ),
+                            QAST::Op.new(
+                                :op<callmethod>,
+                                :name<reinstall_package_symbol>,
+                                QAST::Op.new(:op<gethllsym>, QAST::SVal.new(:value<Raku>), QAST::SVal.new(:value<ModuleLoader>)),
+                                QAST::WVal.new(:value($root)),
+                                QAST::SVal.new(:value($package_name)),
+                                QAST::SVal.new(:value($name)),
+                                QAST::WVal.new(:value($obj)),
+                                QAST::WVal.new(:value($package_how)),
+                            ),
+                        )
+                    ));
+                }
+            }
+            else {
+                note("   installing $name (" ~ $obj.HOW.HOW.name($obj.HOW) ~ ") into " ~ $who.Str ~ ' ' ~ $cur_package.HOW.HOW.name($cur_package.HOW) ~ ' ' ~ (nqp::getobjsc($cur_package) ?? nqp::scgetdesc(nqp::getobjsc($cur_package)) !! '')) if $DEBUG;
+
+                nqp::scwbdisable unless $repossess; # avoid repossession of existing stashes
+                $who.BIND-KEY($name, $obj) if $install;
+                nqp::scwbenable unless $repossess;
+                my $world := $*W;
+                if $world {
+                    if $name eq '&SSLv2_client_method' {
+                        self.debug_helper($obj);
+                    }
+                    note("    who SC: " ~ nqp::scgetdesc(nqp::getobjsc($who))) if $DEBUG && nqp::getobjsc($who);
+                    note("    obj SC: " ~ nqp::scgetdesc(nqp::getobjsc($obj))) if $DEBUG && nqp::getobjsc($obj);
+                    $world.add_object_if_no_sc($root);
+                    $world.add_object_if_no_sc($obj);
+                    $world.add_fixup_task(:deserialize_ast(
+                        QAST::Stmts.new(
+#                            QAST::Op.new(
+#                                :op<callmethod>,
+#                                :name<note>,
+#                                QAST::Op.new(
+#                                    :op<hllize>,
+#                                    QAST::SVal.new(:value(
+#                                        "$name (" ~ $obj.HOW.HOW.name($obj.HOW) ~ ") -> Stash " ~ $cur_package.HOW.name($cur_package)
+#                                    ))
+#                                )
+#                            ),
+                            QAST::Op.new(
+                                :op<callmethod>,
+                                :name<reinstall_package_symbol>,
+                                QAST::Op.new(:op<gethllsym>, QAST::SVal.new(:value<Raku>), QAST::SVal.new(:value<ModuleLoader>)),
+                                QAST::WVal.new(:value($root)),
+                                QAST::SVal.new(:value($package_name)),
+                                QAST::SVal.new(:value($name)),
+                                QAST::WVal.new(:value($obj)),
+                                QAST::WVal.new(:value($package_how)),
+                            ),
+                        )
+                    ));
+                }
+            }
+            nqp::scwbdisable;
+            if nqp::defined($*PACKAGE-SYMBOLS) {
+                note("    Registering $name in " ~ nqp::objectid($who)) if $DEBUG;
+                nqp::push($*PACKAGE-SYMBOLS, $who);
+                nqp::push($*PACKAGE-SYMBOLS, $name);
+            }
+            nqp::scwbenable;
+        }
+    }
+
     method merge_globals($target, $source) {
         # Start off merging top-level symbols. Easy when there's no
         # overlap. Otherwise, we need to recurse.
@@ -126,23 +485,51 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             %known_symbols{$_.key} := 1;
         }
         my %source := stash_hash($source);
+        note("merge_globals "
+            ~ (nqp::can($source, 'Str') ?? $source.Str !! '') ~ " " ~ nqp::objectid($source) ~ " " ~ nqp::objectid(%source) ~ " -> "
+            ~ (nqp::can($target, 'Str') ?? $target.Str !! '') ~ ' ' ~ nqp::objectid($target)) if $DEBUG;
+        #nqp::hllizefor(%known_symbols, "Raku").keys.Str.note if $DEBUG;
+        #nqp::hllizefor(%source, "Raku").keys.Str.note if $DEBUG;
         for sorted_keys(%source) -> $sym {
-            note("merge_globals $sym -> " ~ (nqp::ishash($target) ?? nqp::objectid($target) !! $target.Str));
-            dump_scs();
+            next if $sym eq 'packages-to-register';
+            note("  $sym -> " ~ (nqp::can($target, 'Str') ?? $target.Str !! '') ~ ' ' ~ nqp::objectid($target) ~ ' decont ' ~ nqp::objectid(nqp::decont($target))) if $DEBUG;
+            #dump_scs();
             my $value := %source{$sym};
+
+            my $allowed_sc_deps := $*ALLOWED_SC_DEPS;
+            if nqp::defined($allowed_sc_deps) && $*W.is_precompilation_mode {
+                my $allowed := 0;
+                my $sc := nqp::getobjsc($value);
+                if nqp::defined($sc) {
+                for $allowed_sc_deps {
+                    if $sc =:= $_ {
+                        $allowed := 1;
+                        last;
+                    }
+                }
+                #note("    allowed: $allowed " ~ nqp::scgetdesc($sc));
+                last unless $allowed || is_from_dependency(nqp::scgetdesc($sc)); # transitive dependencies are an issue that is_from_dependency just handles better
+                }
+            }
+
             if !%known_symbols{$sym} {
-                note("    merged");
+                #note("    merged");
+                if nqp::defined($*PACKAGE-SYMBOLS) {
+                    #note("    Registering $sym in " ~ nqp::objectid($target));
+                    nqp::push($*PACKAGE-SYMBOLS, $target);
+                    nqp::push($*PACKAGE-SYMBOLS, $sym);
+                }
                 ($target){$sym} := $value;
             }
             elsif nqp::decont(($target){$sym}) =:= nqp::decont($value) { # Stash entries are containerized
-                note("    already there");
+                #note("    already there");
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
                 my $source_is_stub := is_stub($value.HOW);
                 my $target_is_stub := is_stub(($target){$sym}.HOW);
-                note("    source is stub " ~ $source.name) if $source_is_stub;
-                note("    target is stub " ~ $target.name) if $target_is_stub;
+                #note("    source is stub " ~ $source.name) if $source_is_stub;
+                #note("    target is stub " ~ $target.name) if $target_is_stub;
                 my $existing-sc := nqp::getobjsc(($target){$sym}.WHO);
                 my $existing-sc-desc := nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc);
                 my $repossess := is_from_dependency($existing-sc-desc);
@@ -150,7 +537,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
                     my $value-sc := nqp::getobjsc($value.WHO);
-                    note("existing sc: " ~ (nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc)) ~ ", value sc: " ~ (nqp::isnull($value-sc) ?? "<null>" !! nqp::scgetdesc($value-sc)));
+                    #note("existing sc: " ~ (nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc)) ~ ", value sc: " ~ (nqp::isnull($value-sc) ?? "<null>" !! nqp::scgetdesc($value-sc)));
                     #my $repossess := $existing-sc-desc eq '/home/nine/rakudo/lib/NativeCall.rakumod (NativeCall)';
                     #my $repossess := $*W && nqp::scgetdesc($*W.sc) eq '/home/nine/rakudo/lib/NativeCall.rakumod (NativeCall)';
                     nqp::scwbdisable() unless $repossess;
@@ -178,11 +565,13 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 elsif nqp::eqat($sym, '&', 0) {
                     # "Latest wins" semantics for functions
                     #note("    is a function");
+                    #note("$sym in merge_globals");
                     ($target){$sym} := $value;
                 }
                 else {
-                    #nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                     #note("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    #self.merge_globals(($target){$sym}.WHO, $value.WHO);
                 }
             }
         }
@@ -193,7 +582,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             while 1 {
                 my $sc := nqp::popcompsc;
                 nqp::unshift(@scs, $sc);
-                note("    * " ~ nqp::scgetdesc($sc));
+                #note("    * " ~ nqp::scgetdesc($sc));
             }
             CATCH { }
         }
@@ -209,16 +598,21 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
             %known_symbols{$_.key} := $_.value<value>;
         }
         my %source := stash_hash($source);
+        note("merge_globals_lexically "
+            ~ (nqp::can($source, 'Str') ?? $source.Str !! '') ~ " " ~ nqp::objectid($source) ~ " " ~ nqp::objectid(%source) ~ " -> "
+            ~ (nqp::can($target, 'Str') ?? $target.Str !! '') ~ ' ' ~ nqp::objectid($target)) if $DEBUG;
+        #nqp::hllizefor(%known_symbols, "Raku").keys.Str.note if $DEBUG;
+        #nqp::hllizefor(%source, "Raku").keys.Str.note if $DEBUG;
         for sorted_keys(%source) -> $sym {
-            note("merge_globals_lexically $sym -> " ~ (nqp::ishash($target) ?? nqp::objectid($target) !! $target.name));
-            dump_scs();
+            note("  $sym -> " ~ (nqp::ishash($target) ?? nqp::objectid($target) !! $target.name ~ ' ' ~ nqp::objectid($target))) if $DEBUG;
+            #dump_scs();
             my $value := %source{$sym};
             my $outer := 0;
             if !nqp::existskey(%known_symbols, $sym) {
                 try {
                     %known_symbols{$sym} := $world.find_single_symbol($sym);
                     $outer := 1;
-                    note("    outer");
+                    note("    outer") if $DEBUG;
                 }
             }
             if !nqp::existskey(%known_symbols, $sym) {
@@ -227,10 +621,10 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     :scope('lexical'), :name($sym), :decl('static'), :value($value)
                 ));
                 $world.add_object_if_no_sc($value);
-                note("    created lexical");
+                note("    created lexical") if $DEBUG;
             }
             elsif nqp::decont(%known_symbols{$sym}) =:= nqp::decont($value) { # Stash entries are containerized
-                note("    already there");
+                note("    already there") if $DEBUG;
                 # No problemo; a symbol can't conflict with itself.
             }
             else {
@@ -240,15 +634,15 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 my $existing-sc := nqp::getobjsc($existing.WHO);
                 my $existing-sc-desc := nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc);
                 my $repossess := is_from_dependency($existing-sc-desc);
-                note("    source is stub " ~ $source.name) if $source_is_stub;
-                note("    target is stub " ~ $target.name) if $target_is_stub;
+                note("    source is stub " ~ $source.name) if $DEBUG && $source_is_stub;
+                note("    target is stub " ~ $target.name) if $DEBUG && $target_is_stub;
                 if $source_is_stub && $target_is_stub {
                     # Both stubs. We can safely merge the symbols from
                     # the source into the target that's importing them.
                     my $value-sc := nqp::getobjsc($value.WHO);
-                    note("existing sc: " ~ (nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc)) ~ ", value sc: " ~ (nqp::isnull($value-sc) ?? "<null>" !! nqp::scgetdesc($value-sc)));
+                    #note("existing sc: " ~ (nqp::isnull($existing-sc) ?? "<null>" !! nqp::scgetdesc($existing-sc)) ~ ", value sc: " ~ (nqp::isnull($value-sc) ?? "<null>" !! nqp::scgetdesc($value-sc)));
                     #my $repossess := $*W && nqp::scgetdesc($*W.sc) eq '/home/nine/rakudo/lib/NativeCall.rakumod (NativeCall)';
-                    #note("repossessing!") if $repossess;
+                    note("repossessing!") if $DEBUG && $repossess;
                     nqp::scwbdisable() unless $repossess;
                     #nqp::neverrepossess($existing.WHO);
                     self.merge_globals($existing.WHO, $value.WHO);
@@ -258,6 +652,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     # The target has a real package, but the source is a
                     # stub. Also fine to merge source symbols into target.
                     nqp::scwbdisable() unless $repossess;
+                    note("    merge source stub into target") if $DEBUG;
                     self.merge_globals($existing.WHO, $value.WHO);
                     nqp::scwbenable() unless $repossess;
                 }
@@ -266,11 +661,13 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     # one in the module. So we merge the other way around
                     # and install that as the result.
                     nqp::scwbdisable() unless $repossess;
+                    note("    merge target into source!") if $DEBUG;
                     self.merge_globals($value.WHO, $existing.WHO);
                     nqp::scwbenable() unless $repossess;
                     $target.symbol($sym, :scope('lexical'), :value($value));
                 }
                 elsif nqp::eqat($sym, '&', 0) {
+                    #note("$sym in merge_globals_lexically");
                     # "Latest wins" semantics for functions
                     $target.symbol($sym, :scope('lexical'), :value($value));
                 }
@@ -279,7 +676,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                     $target.symbol($sym, :scope('lexical'), :value($value));
                 }
                 else {
-                    #nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
+                    nqp::die("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                     #note("P6M Merging GLOBAL symbols failed: duplicate definition of symbol $sym");
                 }
             }
@@ -329,6 +726,7 @@ class Perl6::ModuleLoader does Perl6::ModuleLoaderVMConfig {
                 unless nqp::defined($*MAIN_CTX) {
                     nqp::die("Unable to load setting $setting_name; maybe it is missing a YOU_ARE_HERE?");
                 }
+                #note("MAIN_CTX: " ~ nqp::scgetdesc(nqp::getobjsc(nqp::ctxcode($*MAIN_CTX))));
                 nqp::forceouterctx(nqp::ctxcode($*MAIN_CTX), $prev_setting) if nqp::defined($prev_setting);
                 %settings_loaded{$setting_name} := $*MAIN_CTX;
                 DEBUG("Settings $setting_name loaded") if $DEBUG;

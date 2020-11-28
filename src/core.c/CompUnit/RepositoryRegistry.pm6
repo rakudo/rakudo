@@ -78,11 +78,14 @@ class CompUnit::RepositoryRegistry {
             $raw-specs := nqp::clone(@*PRECOMP-WITH.FLATTENABLE_LIST);
             $precomp-specs := 1;
         }
+        elsif $precomp-specs := nqp::ifnull(nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH'),False) {
+            $raw-specs := nqp::split(',',$precomp-specs);
+        }
 
         # normal start up
         else {
             $raw-specs := nqp::list();
-            for Rakudo::Internals.INCLUDE -> $specs {
+            for Rakudo::Internals::Precompilation.INCLUDE -> $specs {
                nqp::push($raw-specs,$_)
                  for parse-include-specS($specs);
             }

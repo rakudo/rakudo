@@ -18,11 +18,11 @@ multi sub atomic-assign($target is rw, \value) {
 }
 
 #-- atomic compare and swap
-proto sub cas($, $, $?, *%) {*}
-multi sub cas($target is rw, \expected, \value) {
+proto sub cas(Mu $, Mu $, Mu $?, *%) {*}
+multi sub cas(Mu $target is rw, Mu \expected, Mu \value) {
     nqp::cas($target, expected, value)
 }
-multi sub cas($target is rw, &code) {
+multi sub cas(Mu $target is rw, &code) {
     my $current := nqp::atomicload($target);
     nqp::until(
       nqp::stmts(

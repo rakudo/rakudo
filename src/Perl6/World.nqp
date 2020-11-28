@@ -3382,33 +3382,67 @@ class Perl6::World is HLL::World {
         has $!X-Attribute-Required;
 
         # Parameters we always need
-        my $pself := QAST::Var.new(:decl<param>, :scope<local>, :name<self>);
-        my $pauto := QAST::Var.new(:decl<param>, :scope<local>, :name<@auto>);
-        my $pinit := QAST::Var.new(:decl<param>, :scope<local>, :name<%init>);
-        my $p_    := QAST::Var.new(:decl<param>, :scope<local>, :name('_'),
-          :slurpy, :named);
+        has $!pself;
+        has $!pauto;
+        has $!pinit;
+        has $!p_;
 
         # Declarations we always need
-        my $dinit   := QAST::Var.new(:decl<var>, :scope<local>, :name<init>);
-        my $dreturn := QAST::Var.new(:decl<var>, :scope<local>, :name<return>);
+        has $!dinit;
+        has $!dreturn;
 
         # References to variables we always need
-        my $self     := QAST::Var.new( :scope<local>, :name<self> );
-        my $init     := QAST::Var.new( :scope<local>, :name<init> );
-        my $hllinit  := QAST::Var.new( :scope<local>, :name<%init> );
-        my $return   := QAST::Var.new( :scope<local>, :name<return> );
+        has $!self;
+        has $!init;
+        has $!hllinit;
+        has $!return;
 
         # String values we always need
-        my $storage := QAST::SVal.new( :value<$!storage> );
+        has $!storage;
 
         # signature configuration hashes
-        my %sig_empty := nqp::hash('parameters', []);  # :()
-        my %sig_init := nqp::hash(
-          'parameters', [
-            nqp::hash('variable_name','@auto'),
-            nqp::hash('variable_name','%init')
-          ]
-        );
+        has %!sig_empty;
+        has %!sig_init;
+
+        method BUILD(:$w, :$acc_sig_cache, :$acc_sig_cache_type, :$empty_buildplan_method, :$Block, :$DefiniteHOW, :$Failure, :$List, :$Map, :$X-Attribute-Required) {
+            $!w                      := $w;
+            $!acc_sig_cache          := $acc_sig_cache;
+            $!empty_buildplan_method := $empty_buildplan_method;
+            $!Block                  := $Block;
+            $!DefiniteHOW            := $DefiniteHOW;
+            $!Failure                := $Failure;
+            $!List                   := $List;
+            $!Map                    := $Map;
+            $!X-Attribute-Required   := $X-Attribute-Required;
+
+            $!pself := QAST::Var.new(:decl<param>, :scope<local>, :name<self>);
+            $!pauto := QAST::Var.new(:decl<param>, :scope<local>, :name<@auto>);
+            $!pinit := QAST::Var.new(:decl<param>, :scope<local>, :name<%init>);
+            $!p_    := QAST::Var.new(:decl<param>, :scope<local>, :name('_'),
+              :slurpy, :named);
+
+            # Declarations we always need
+            $!dinit   := QAST::Var.new(:decl<var>, :scope<local>, :name<init>);
+            $!dreturn := QAST::Var.new(:decl<var>, :scope<local>, :name<return>);
+
+            # References to variables we always need
+            $!self     := QAST::Var.new( :scope<local>, :name<self> );
+            $!init     := QAST::Var.new( :scope<local>, :name<init> );
+            $!hllinit  := QAST::Var.new( :scope<local>, :name<%init> );
+            $!return   := QAST::Var.new( :scope<local>, :name<return> );
+
+            # String values we always need
+            $!storage := QAST::SVal.new( :value<$!storage> );
+
+            # signature configuration hashes
+            %!sig_empty := nqp::hash('parameters', []);  # :()
+            %!sig_init := nqp::hash(
+              'parameters', [
+                nqp::hash('variable_name','@auto'),
+                nqp::hash('variable_name','%init')
+              ]
+            );
+        }
 
         # Generate an accessor method with the given method name, package,
         # attribute name, type of attribute and rw flag.  Returns a code
@@ -3426,7 +3460,7 @@ class Perl6::World is HLL::World {
               :scope($native && $rw ?? 'attributeref' !! 'attribute'),
               :name($attr_name),
               :returns($type),
-              QAST::Op.new( :op<decont>, $self ),
+              QAST::Op.new( :op<decont>, $!self ),
               QAST::WVal.new( :value($package_type) )
             );
 
@@ -3439,7 +3473,7 @@ class Perl6::World is HLL::World {
             my $block := QAST::Block.new(
               :name($meth_name),
               :blocktype('declaration_static'),
-              QAST::Stmts.new( $pself, $p_, :node(nqp::decont($/)) ),
+              QAST::Stmts.new( $!pself, $!p_, :node(nqp::decont($/)) ),
               $accessor
             );
 
@@ -3459,7 +3493,7 @@ class Perl6::World is HLL::World {
             # First time, create new signature and mark it cached
             else {
                 $sig := $!w.create_signature_and_params(
-                  NQPMu, %sig_empty, $block, 'Any', :method, :$invocant_type);
+                  NQPMu, %!sig_empty, $block, 'Any', :method, :$invocant_type);
                 $!acc_sig_cache      := $sig;
                 $!acc_sig_cache_type := $invocant_type;
             }
@@ -3509,7 +3543,7 @@ class Perl6::World is HLL::World {
                 my $stmts := QAST::Stmts.new(:node(nqp::decont($/)));
 
                 my $declarations :=
-                  QAST::Stmts.new($pself, $pauto, $pinit, $dinit);
+                  QAST::Stmts.new($!pself, $!pauto, $!pinit, $!dinit);
 
                 # The block of the method
                 my $block := QAST::Block.new(
@@ -3534,15 +3568,15 @@ class Perl6::World is HLL::World {
 #                );
 #                $stmts.push(
 #                  QAST::Op.new( :op<say>,
-#                    QAST::Op.new( :op<callmethod>, :name<perl>, $hllinit )
+#                    QAST::Op.new( :op<callmethod>, :name<perl>, $!hllinit )
 #                  )
 #                );
 
 # my $init := nqp::getattr(%init,Map,'$!storage')
                 $stmts.push(QAST::Op.new( :op<bind>,
-                  $init,
+                  $!init,
                   QAST::Op.new( :op<getattr>,
-                    $hllinit, QAST::WVal.new( :value($!Map) ), $storage
+                    $!hllinit, QAST::WVal.new( :value($!Map) ), $!storage
                   )
                 ));
 
@@ -3572,17 +3606,17 @@ class Perl6::World is HLL::World {
 
 # nqp::getattr(self,Foo,'$!a')
                             my $getattr := QAST::Op.new( :op<getattr>,
-                              $self, $class, $attr
+                              $!self, $class, $attr
                             );
 
 # nqp::unless(
-#   nqp::isnull(my \tmp = nqp::atkey($init,'a')),
+#   nqp::isnull(my \tmp = nqp::atkey($!init,'a')),
                             my $tmp := QAST::Node.unique('buildall_tmp_');
                             my $if := QAST::Op.new( :op<unless>,
                               QAST::Op.new( :op<isnull>,
                                 QAST::Op.new( :op<bind>,
                                   QAST::Var.new( :name($tmp), :scope<local>, :decl<var> ),
-                                  QAST::Op.new( :op<atkey>, $init, $key )
+                                  QAST::Op.new( :op<atkey>, $!init, $key )
                                 )
                               )
                             );
@@ -3616,7 +3650,7 @@ class Perl6::World is HLL::World {
                                 }
                                 $if.push(
                                   QAST::Op.new(
-                                    :op('bindattr'),$self,$class,$attr,$arg)
+                                    :op('bindattr'),$!self,$class,$attr,$arg)
                                 );
                             }
 
@@ -3638,7 +3672,7 @@ class Perl6::World is HLL::World {
                             if $code == 11 || $code == 12 {
                                 $if.push(
                                   QAST::Op.new(:op<bindattr>,
-                                    $self, $class, $attr,
+                                    $!self, $class, $attr,
                                     QAST::Op.new(
                                       :op($code == 11 ?? 'list' !! 'hash')
                                     )
@@ -3664,12 +3698,12 @@ class Perl6::World is HLL::World {
                                   QAST::Op.new(:op<bind>,
                                     QAST::Var.new(:decl<var>, :name($tmp), :scope<local>),
                                     QAST::Op.new(:op<atkey>,
-                                      $init, QAST::SVal.new( :value(nqp::atpos($task,3)))
+                                      $!init, QAST::SVal.new( :value(nqp::atpos($task,3)))
                                     )
                                   )
                                 ),
                                 QAST::Op.new(:op('bindattr' ~ @psp[$code]),
-                                  $self, $class, $attr,
+                                  $!self, $class, $attr,
                                   QAST::Op.new(:op<decont>, QAST::Var.new(:name($tmp), :scope<local>))
                                 )
                               )
@@ -3683,13 +3717,13 @@ class Perl6::World is HLL::World {
 #   nqp::attrinited(self,Foo,'$!a'),
                             my $unless := QAST::Op.new( :op<unless>,
                                 QAST::Op.new( :op<attrinited>,
-                                  $self, $class, $attr
+                                  $!self, $class, $attr
                                 )
                             );
 
 # nqp::getattr(self,Foo,'$!a')
                             my $getattr := QAST::Op.new( :op<getattr>,
-                              $self, $class, $attr
+                              $!self, $class, $attr
                             );
 
                             my $initializer := nqp::istype(
@@ -3697,7 +3731,7 @@ class Perl6::World is HLL::World {
 # $code(self,nqp::getattr(self,Foo,'$!a'))
                             ) ?? QAST::Op.new( :op<call>,
                                    QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                   $self, $getattr
+                                   $!self, $getattr
                                  )
 # $value
                               !! QAST::WVal.new(:value(nqp::atpos($task,3)));
@@ -3728,7 +3762,7 @@ class Perl6::World is HLL::World {
                                 $unless.push(
                                   QAST::Op.new(
                                     :op('bindattr'),
-                                    $self, $class, $attr,
+                                    $!self, $class, $attr,
                                     $initializer
                                   )
                                 )
@@ -3764,7 +3798,7 @@ class Perl6::World is HLL::World {
 # ),
                             my $getattr := QAST::Op.new(
                               :op('getattr' ~ @psp[$code - 4]),
-                              $self, $class, $attr
+                              $!self, $class, $attr
                             );
                             $stmts.push(
                               QAST::Op.new( :op<if>,
@@ -3773,12 +3807,12 @@ class Perl6::World is HLL::World {
                                   @psd[$code - 4],
                                 ),
                                 QAST::Op.new( :op('bindattr' ~ @psp[$code - 4]),
-                                  $self, $class, $attr,
+                                  $!self, $class, $attr,
                                   nqp::if(
                                     nqp::istype(nqp::atpos($task,3),$!Block),
                                     QAST::Op.new( :op<call>,
                                       QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                      $self,
+                                      $!self,
                                       $getattr
                                     ),
                                     nqp::if(
@@ -3802,18 +3836,18 @@ class Perl6::World is HLL::World {
 #     $initializer(self,nqp::getattr_s(self,Foo,'$!a')))
 # ),
                             my $getattr := QAST::Op.new( :op<getattr_s>,
-                              $self, $class, $attr
+                              $!self, $class, $attr
                             );
                             $stmts.push(
                               QAST::Op.new( :op<if>,
                                 QAST::Op.new( :op<isnull_s>, $getattr),
                                 QAST::Op.new( :op<bindattr_s>,
-                                  $self, $class, $attr,
+                                  $!self, $class, $attr,
                                   nqp::if(
                                     nqp::istype(nqp::atpos($task,3),$!Block),
                                     QAST::Op.new( :op<call>,
                                       QAST::WVal.new(:value(nqp::atpos($task,3))),
-                                      $self,
+                                      $!self,
                                       $getattr
                                     ),
                                     QAST::SVal.new(:value(nqp::atpos($task,3)))
@@ -3835,7 +3869,7 @@ class Perl6::World is HLL::World {
                             $stmts.push(
                               QAST::Op.new( :op<unless>,
                                 QAST::Op.new( :op<attrinited>,
-                                  $self, $class, $attr
+                                  $!self, $class, $attr
                                 ),
                                 QAST::Op.new( :op<callmethod>, :name<throw>,
                                   QAST::Op.new( :op<callmethod>, :name<new>,
@@ -3857,7 +3891,7 @@ class Perl6::World is HLL::World {
 # nqp::bindattr(self,Foo,'$!a',$initializer())
                             $stmts.push(
                               QAST::Op.new( :op<bindattr>,
-                                $self, $class, $attr,
+                                $!self, $class, $attr,
                                 QAST::Op.new( :op<call>,
                                   QAST::WVal.new(:value(nqp::atpos($task,3)))
                                 )
@@ -3871,7 +3905,7 @@ class Perl6::World is HLL::World {
                         elsif $code == 10 {
 # nqp::getattr(self,Foo,'$!a')
                             $stmts.push(
-                              QAST::Op.new(:op<getattr>, $self, $class, $attr)
+                              QAST::Op.new(:op<getattr>, $!self, $class, $attr)
                             );
                         }
 
@@ -3887,31 +3921,31 @@ class Perl6::World is HLL::World {
                         unless $needs_wrapping {
 
 # (my $return),
-                            $declarations.push($dreturn);
+                            $declarations.push($!dreturn);
                             $needs_wrapping := 1
                         }
 
 # nqp::if(
 #   nqp::istype(
-#     ($return := nqp::if(
+#     ($!return := nqp::if(
 #       nqp::elems($init),
 #       $task(self,|%init),
 #       $task(self)
 #     )),
 #     Failure
 #   ),
-#   return $return
+#   return $!return
 # ),
                         $stmts.push(
                           QAST::Op.new( :op<if>,
                             QAST::Op.new( :op<istype>,
                               QAST::Op.new( :op<bind>,
-                                $return,
+                                $!return,
                                 QAST::Op.new( :op<if>,
-                                  QAST::Op.new( :op<elems>, $init ),
+                                  QAST::Op.new( :op<elems>, $!init ),
                                   QAST::Op.new( :op<call>,
                                     QAST::WVal.new( :value($task) ),
-                                    $self,
+                                    $!self,
                                     QAST::Var.new(
                                       :scope<local>,
                                       :name<init>,  # use nqp::hash directly
@@ -3921,7 +3955,7 @@ class Perl6::World is HLL::World {
                                   ),
                                   QAST::Op.new( :op<call>,
                                     QAST::WVal.new( :value($task) ),
-                                    $self,
+                                    $!self,
                                   )
                                 )
                               ),
@@ -3940,7 +3974,7 @@ class Perl6::World is HLL::World {
                 }
 
                 # Finally, add the return value
-                $stmts.push($self);
+                $stmts.push($!self);
 
                 # Need to wrap an exception handler around
                 if $needs_wrapping {
@@ -3956,7 +3990,7 @@ class Perl6::World is HLL::World {
 
 # :(Foo:D: %init)
                 my $sig := $!w.create_signature_and_params(
-                  NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
+                  NQPMu, %!sig_init, $block, 'Any', :method, :$invocant_type
                 );
 
                 # Create the code object, hide it from backtraces and return it
@@ -3977,8 +4011,8 @@ class Perl6::World is HLL::World {
 # submethod :: (Any:D:) { self }
                 my $block := QAST::Block.new(
                   :name<BUILDALL>, :blocktype<declaration_static>,
-                  QAST::Stmts.new($pself, $pauto, $pinit),
-                  $self
+                  QAST::Stmts.new($!pself, $!pauto, $!pinit),
+                  $!self
                 );
 
                 # Register the block in its SC
@@ -3988,7 +4022,7 @@ class Perl6::World is HLL::World {
                   $!DefiniteHOW, $!w.find_single_symbol('Any', :setting-only), 1);
 
                 my $sig := $!w.create_signature_and_params(
-                  NQPMu, %sig_init, $block, 'Any', :method, :$invocant_type
+                  NQPMu, %!sig_init, $block, 'Any', :method, :$invocant_type
                 );
 
                 # Create the code object, save and return it

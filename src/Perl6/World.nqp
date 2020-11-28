@@ -229,6 +229,8 @@ class Perl6::World is HLL::World {
         # Cache of container info and descriptor for magicals.
         has %!magical_cds;
 
+        has @!herestub_queue;
+
         method BUILD(:$handle, :$description) {
             @!PADS := [];
             @!PADS_AND_THUNKS := [];
@@ -241,6 +243,7 @@ class Perl6::World is HLL::World {
             %!const_cache := {};
             @!cleanup_tasks := [];
             %!magical_cds := {};
+            @!herestub_queue := [];
         }
 
         method blocks() {
@@ -479,6 +482,10 @@ class Perl6::World is HLL::World {
             $!the_hyper_whatever := $hyper_whatever
         }
 
+
+        method herestub_queue() {
+            @!herestub_queue
+        }
     }
 
     method context_class() {
@@ -5727,6 +5734,10 @@ class Perl6::World is HLL::World {
 
     method quote_lang_cache() {
         %!quote_lang_cache
+    }
+
+    method herestub_queue() {
+        self.context.herestub_queue
     }
 }
 

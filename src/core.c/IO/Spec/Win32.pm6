@@ -24,7 +24,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     method rootdir {  ｢\｣  }
     method splitdir(Cool:D $path) {
         nqp::p6bindattrinvres(
-          (), List, '$!reified',
+          nqp::create(List), List, '$!reified',
           nqp::split('/', nqp::join('/', nqp::split(｢\｣, $path.Str))))
         || ('',)
     }

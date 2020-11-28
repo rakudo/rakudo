@@ -10,7 +10,7 @@ my class IO::CatHandle is IO::Handle {
     multi method raku(::?CLASS:D:) {
         my @handles =
             ($!active-handle if $!active-handle),
-            |nqp::p6bindattrinvres((), List, '$!reified', $!handles);
+            |nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!handles);
 
         my $parts = join ', ',
             (@handles.List.raku if @handles),

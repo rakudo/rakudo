@@ -8994,6 +8994,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     my $SIG_ELEM_IS_RW       := 256;
     my $SIG_ELEM_IS_RAW      := 1024;
     my $SIG_ELEM_IS_OPTIONAL := 2048;
+    my $SIG_ELEM_IS_COERCIVE := 67108864;
     my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s'];
     sub lower_signature($block, $sig, @params) {
         my @result;
@@ -9303,9 +9304,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Op.new(
                             :op('if'),
                             QAST::Op.new(
-                                :op('callmethod'),
-                                :name('coercive'),
-                                QAST::Var.new(:name($inst_param), :scope('local'))),
+                                :op('bitand_i'),
+                                QAST::Op.new(
+                                    :op('getattr'),
+                                    QAST::Var.new(:name($inst_param), :scope('local')),
+                                    QAST::WVal.new(:value($Param)),
+                                    QAST::SVal.new(:value('$!flags'))
+                                ),
+                                QAST::IVal.new(:value($SIG_ELEM_IS_COERCIVE))
+                            ),
                             QAST::Op.new(
                                 :op('bind'),
                                 QAST::Var.new(:name($name), :scope('local')),

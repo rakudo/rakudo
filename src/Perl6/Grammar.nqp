@@ -149,8 +149,6 @@ role STD {
         }
     }
 
-    my @herestub_queue;
-
     my class Herestub {
         has $!delim;
         has $!orignode;
@@ -168,6 +166,7 @@ role STD {
 
     method heredoc () {
         my $actions := self.actions;
+        my @herestub_queue := $*W.herestub_queue;
         if @herestub_queue {
             my $here := self.'!cursor_start_cur'();
             $here.'!cursor_pos'(self.pos);
@@ -208,12 +207,11 @@ role STD {
     }
 
     token cheat_heredoc {
-        <?{ +@herestub_queue }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
+        <?{ nqp::elems($*W.herestub_queue) }> \h* <[ ; } ]> \h* <?before \n | '#'> <.ws> <?MARKER('endstmt')>
     }
 
     method queue_heredoc($delim, $grammar) {
-        nqp::ifnull(@herestub_queue, @herestub_queue := []);
-        nqp::push(@herestub_queue, Herestub.new(:$delim, :$grammar, :orignode(self)));
+        nqp::push($*W.herestub_queue, Herestub.new(:$delim, :$grammar, :orignode(self)));
         return self;
     }
     method fail-terminator ($/, $start, $stop, $line?) {

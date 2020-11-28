@@ -34,7 +34,7 @@ my class Stash { # declared in BOOTSTRAP
         nqp::ifnull(
           nqp::atkey(storage,$key),
           nqp::stmts(
-            (my $pkg := Metamodel::PackageHOW.new_type(:name($key))),
+            (my $pkg := Metamodel::PackageHOW.new_type(:name("{$!longname}::$key"))),
             $pkg.^compose,
             nqp::bindkey(storage,$key,$pkg)
           )

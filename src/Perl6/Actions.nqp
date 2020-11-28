@@ -8993,12 +8993,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     my $SIG_ELEM_IS_RW       := 256;
     my $SIG_ELEM_IS_RAW      := 1024;
     my $SIG_ELEM_IS_OPTIONAL := 2048;
+    my $SIG_ELEM_IS_COERCIVE := 67108864;
     my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s'];
     sub lower_signature($block, $sig, @params) {
         my @result;
         my $clear_topic_bind;
         my $saw_slurpy;
-        my $instantiated_code;
         my $Code     := $*W.find_single_symbol('Code', :setting-only);
         my $Sig      := $*W.find_single_symbol('Signature', :setting-only);
         my $Param    := $*W.find_single_symbol('Parameter', :setting-only);
@@ -9007,6 +9007,33 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @p_objs := nqp::getattr($sig, $Sig, '@!params');
         my int $i  := 0;
         my int $n  := nqp::elems(@params);
+        # @!params attribute of the code object. Should only be used when handling of generics is needed.
+        my $ins_params;
+
+        sub signature_params($var) {
+            unless $ins_params {
+                $ins_params := QAST::Node.unique('__lowered_parameters_');
+                $var.push(
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new(:name($ins_params), :scope('local'), :decl('var')),
+                        QAST::Op.new( # Get @!params on the signature
+                            :op('getattr'),
+                            QAST::Op.new( # Get signature object
+                                :op('getattr'),
+                                QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                                QAST::WVal.new(:value($Code)),
+                                QAST::SVal.new(:value('$!signature'))
+                            ),
+                            QAST::WVal.new(:value($Sig)),
+                            QAST::SVal.new(:value('@!params'))
+                        )
+                    )
+                );
+            }
+            QAST::Var.new(:name($ins_params), :scope('local'))
+        }
+
         while $i < $n {
             # Some things need the full binder to do.
             my %info      := @params[$i];
@@ -9110,11 +9137,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Add type checks.
             my $param_type := %info<type>;
-            my $nomtype    := $param_type.HOW.archetypes.nominalizable
-                                ?? $param_type.HOW.nominalize($param_type)
-                                !! $param_type;
             my int $is_generic := %info<type_generic>;
             my int $is_coercive := %info<type_coercive>;
+            my $nomtype    := !$is_generic && $param_type.HOW.archetypes.nominalizable
+                                ?? $param_type.HOW.nominalize($param_type)
+                                !! $param_type;
             my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
             my int $spec  := nqp::objprimspec($nomtype);
             my $decont_name;
@@ -9135,7 +9162,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
                 return $decont_name;
             }
-            if $spec && !%info<type_generic> {
+            if !$is_generic && $spec {
                 if $is_rw {
                     $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                         :op(@iscont_ops[$spec]),
@@ -9219,53 +9246,44 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 }
             }
 
+            # If there are type captures involved - most commonly $?CLASS and
+            # ::?CLASS - we emit a piece of code for each target that gets the
+            # WHAT of the given value and binds it.
+            #
+            # In theory, we could bind a local with the result of the WHAT
+            # operation, but I'm not convinced it's sufficiently expensive.
+            if %info<type_captures> {
+                my $iter := nqp::iterator(%info<type_captures>);
+                while $iter {
+                    $var.push( QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new( :name(nqp::shift($iter)), :scope<lexical> ),
+                        get_decont_name()
+                            ?? QAST::Op.new( :op<what_nd>, QAST::Var.new( :name(get_decont_name()), :scope<local> ) )
+                            !! QAST::Op.new( :op<what>, QAST::Var.new( :name($name), :scope<local> ) )
+                        )
+                    );
+                }
+            }
+
             # Handle coercion.
+            # For a generic we can't know beforehand if it's going to be a coercive or any other nominalizable. Thus
+            # we have to fetch the instantiated parameter object and do run-time processing.
             my $ptype_archetypes := $param_type.HOW.archetypes;
             if $ptype_archetypes.generic {
                 # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
                 $decont_name_invalid := 1;
-                unless $instantiated_code {
-                    # Produce current code object variable with the first generic-typed parameter encountered. Any
-                    # next generic paramter would re-use the variable sparing a few CPU cycles per call.
-                    $instantiated_code := QAST::Node.unique('__lowered_code_obj_');
-                    $var.push(
-                        QAST::Op.new(
-                            :op('bind'),
-                            QAST::Var.new(:name($instantiated_code), :scope('local'), :decl('var')),
-                            QAST::Op.new(
-                                :op('getcodeobj'),
-                                QAST::Op.new(:op('curcode')))));
-                }
                 my $inst_param := QAST::Node.unique('__lowered_param_obj_');
-                $var.push(
+                my $low_param_type := QAST::Node.unique('__lowered_param_type');
+                $var.push( # Fetch instantiated Parameter object
                     QAST::Op.new(
                         :op('bind'),
                         QAST::Var.new( :name($inst_param), :scope('local'), :decl('var') ),
                         QAST::Op.new(
                             :op('atpos'),
-                            QAST::Op.new(
-                                :op('getattr'),
-                                QAST::Op.new(
-                                    :op('getattr'),
-                                    QAST::Var.new(:name($instantiated_code), :scope('local')),
-                                    QAST::WVal.new(:value($Code)),
-                                    QAST::SVal.new(:value('$!signature'))),
-                                QAST::WVal.new(:value($Sig)),
-                                QAST::SVal.new(:value('@!params'))
-                            ),
+                            signature_params($var),
                             QAST::IVal.new(:value($i)))));
-                my $low_param_type := QAST::Node.unique('__lowered_param_type_');
-                $var.push(
-                    QAST::Op.new(
-                        :op('if'),
-                        QAST::Op.new(
-                            :op('callmethod'),
-                            :name('coercive'),
-                            QAST::Var.new(:name($inst_param), :scope('local'))),
-                        QAST::Op.new(
-                            :op('bind'),
-                            QAST::Var.new( :name($name), :scope('local') ),
-                            QAST::Stmts.new(
+                $var.push( # Get actual parameter type
                                 QAST::Op.new(
                                     :op('bind'),
                                     QAST::Var.new(:name($low_param_type), :scope('local'), :decl('var')),
@@ -9273,7 +9291,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                         :op('getattr'),
                                         QAST::Var.new(:name($inst_param), :scope('local')),
                                         QAST::WVal.new(:value($Param)),
-                                        QAST::SVal.new(:value('$!type')))),
+                                        QAST::SVal.new(:value('$!type')))));
+                $var.push(
+                    QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype'),
+                            QAST::Var.new(:name($name), :scope('local')),
+                            QAST::Var.new(:name($low_param_type), :scope('local'))
+                        ),
+                        QAST::Op.new(
+                            :op('if'),
+                            QAST::Op.new(
+                                :op('bitand_i'),
+                                QAST::Op.new(
+                                    :op('getattr'),
+                                    QAST::Var.new(:name($inst_param), :scope('local')),
+                                    QAST::WVal.new(:value($Param)),
+                                    QAST::SVal.new(:value('$!flags'))
+                                ),
+                                QAST::IVal.new(:value($SIG_ELEM_IS_COERCIVE))
+                            ),
+                            QAST::Op.new(
+                                :op('bind'),
+                                QAST::Var.new(:name($name), :scope('local')),
                                 QAST::Op.new(
                                     :op('callmethod'),
                                     :name('coerce'),
@@ -9285,26 +9326,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             elsif nqp::can($ptype_archetypes, 'coercive') && $ptype_archetypes.coercive {
                 $decont_name_invalid := 1;
-                my $target_type := $param_type.HOW.target_type($param_type);
+                my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
+                my $target_type := $coercion_type.HOW.target_type($coercion_type);
                 $*W.add_object_if_no_sc($param_type.HOW);
                 $*W.add_object_if_no_sc($target_type);
-                $var.push(QAST::Op.new(
-                    :op('unless'),
+                $var.push(
                     QAST::Op.new(
-                        :op('istype'),
-                        QAST::Var.new( :name($name), :scope('local') ),
-                        QAST::WVal.new( :value($target_type) )
-                    ),
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($name), :scope('local') ),
+                        :op('unless'),
                         QAST::Op.new(
-                            :op('callmethod'),
-                            :name('coerce'),
-                            QAST::WVal.new(:value($param_type.HOW)),
-                            QAST::WVal.new(:value($param_type)),
-                            QAST::Var.new( :name($name), :scope('local') ))))
-                );
+                            :op('istype'),
+                            QAST::Var.new( :name($name), :scope('local') ),
+                            QAST::WVal.new( :value($target_type) )
+                        ),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($name), :scope('local') ),
+                            QAST::Op.new(
+                                :op('callmethod'),
+                                :name('coerce'),
+                                QAST::WVal.new(:value($param_type.HOW)),
+                                QAST::WVal.new(:value($param_type)),
+                                QAST::Var.new( :name($name), :scope('local') )))));
             }
 
             # If it's optional, do any default handling.
@@ -9320,8 +9362,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             :op('call'),
                             QAST::Op.new(
                                 :op('p6capturelex'),
-                                QAST::Op.new( :op('callmethod'), :name('clone'), $wval )
-                            )));
+                                QAST::Op.new( :op('callmethod'), :name('clone'), $wval ))));
                     }
                 }
                 else {
@@ -9358,26 +9399,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                                         !! $nomtype)));
                         }
                     }
-                }
-            }
-
-            # If there are type captures involved - most commonly $?CLASS and
-            # ::?CLASS - we emit a piece of code for each target that gets the
-            # WHAT of the given value and binds it.
-            #
-            # In theory, we could bind a local with the result of the WHAT
-            # operation, but I'm not convinced it's sufficiently expensive.
-            if %info<type_captures> {
-                my $iter := nqp::iterator(%info<type_captures>);
-                while $iter {
-                    $var.push( QAST::Op.new(
-                        :op<bind>,
-                        QAST::Var.new( :name(nqp::shift($iter)), :scope<lexical> ),
-                        get_decont_name()
-                            ?? QAST::Op.new( :op<what_nd>, QAST::Var.new( :name(get_decont_name()), :scope<local> ) )
-                            !! QAST::Op.new( :op<what>, QAST::Var.new( :name($name), :scope<local> ) )
-                        )
-                    );
                 }
             }
 
@@ -9475,7 +9496,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $wrap := nqp::istype($nomtype, $Iterable) || nqp::istype($Iterable, $nomtype);
                         }
                         else {
-                            my $coerce_nom := $param_type.HOW.nominal_target($param_type);
+                            my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
+                            my $coerce_nom := $coercion_type.HOW.nominal_target($coercion_type);
                             $wrap := nqp::istype($coerce_nom, $Iterable) || nqp::istype($Iterable, $coerce_nom);
                         }
                     }

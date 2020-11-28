@@ -5,6 +5,7 @@
 # avoiding a meta-object instance per coercion type created.
 class Perl6::Metamodel::CoercionHOW
     does Perl6::Metamodel::LanguageRevision
+    does Perl6::Metamodel::Nominalizable
 {
     has $!composed;
     has $!target_type;
@@ -12,14 +13,14 @@ class Perl6::Metamodel::CoercionHOW
     has $!constraint_type;
     has $!archetypes;
 
-    my $archetypes_g := Perl6::Metamodel::Archetypes.new(:coercive, :nominalizable, :generic);
-    my $archetypes_ng := Perl6::Metamodel::Archetypes.new(:coercive, :nominalizable);
 
     method archetypes() {
         unless nqp::isconcrete($!archetypes) {
-            $!archetypes := $!target_type.HOW.archetypes.generic || $!constraint_type.HOW.archetypes.generic
-                            ?? $archetypes_g
-                            !! $archetypes_ng;
+            my $generic := $!target_type.HOW.archetypes.generic || $!constraint_type.HOW.archetypes.generic;
+            $!archetypes := Perl6::Metamodel::Archetypes.new(
+                :coercive, :nominalizable, :$generic,
+                definite => $!target_type.HOW.archetypes.definite,
+            );
         }
         $!archetypes
     }
@@ -217,17 +218,24 @@ class Perl6::Metamodel::CoercionHOW
                                 ~ " " ~ $coerced_name;
                 }
             }
-            unless nqp::isnull(%ex) {
-                %ex<X::Coerce::Impossible>($target_type_name, $value_type_name, $hint)
-            }
-            nqp::die("Impossible coercion from "
-                        ~ $value_type_name
-                        ~ " into " ~ $target_type_name
-                        ~ ": " ~ $hint);
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Coerce::Impossible',
+                "Impossible coercion from "
+                    ~ $value_type_name
+                    ~ " into " ~ $target_type_name
+                    ~ ": " ~ $hint,
+                :target-type($!target_type),
+                :from-type($value_type),
+                :$hint
+            )
         }
 
         $coerced_value
     }
+
+    # Methods needed by Perl6::Metamodel::Nominalizable
+    method nominalizable_kind() { 'coercion' }
+    method !wrappee($obj) { $!target_type }
 }
 BEGIN {
     my $root := nqp::newtype(Perl6::Metamodel::CoercionHOW.new, 'Uninstantiable');

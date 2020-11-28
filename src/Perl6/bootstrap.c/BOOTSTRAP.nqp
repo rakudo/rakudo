@@ -386,7 +386,8 @@ my class Binder {
                 return $BIND_RESULT_FAIL;
             }
 
-            $oval := $param_type.HOW.coerce($param_type, $oval);
+            my $coercion_type := $param_type.HOW.wrappee($param_type, :coercion);
+            $oval := $coercion_type.HOW.coerce($coercion_type, $oval);
         }
 
         # If it's not got attributive binding, we'll go about binding it into the
@@ -1628,7 +1629,8 @@ BEGIN {
                 my $type := $desc.of;
                 if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
                     if $type.HOW.archetypes.coercive {
-                        nqp::bindattr($cont, Scalar, '$!value', $type.HOW.coerce($type, $val));
+                        my $coercion_type := $type.HOW.wrappee($type, :coercion);
+                        nqp::bindattr($cont, Scalar, '$!value', $coercion_type.HOW.coerce($coercion_type, $val));
                     }
                     else {
                         nqp::bindattr($cont, Scalar, '$!value', $val);
@@ -2462,7 +2464,8 @@ BEGIN {
                         my $ptype :=
                             nqp::getattr($param, Parameter, '$!type');
                         if $ptype.HOW.archetypes.coercive {
-                            $ptype := $ptype.HOW.constraint_type($ptype);
+                            my $coercion_type := $ptype.HOW.wrappee($ptype, :coercion);
+                            $ptype := $coercion_type.HOW.constraint_type($coercion_type);
                         }
                         %info<types>[$significant_param] := $ptype;
                     }

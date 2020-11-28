@@ -873,15 +873,15 @@ my class X::Comp::BeginTime does X::Comp {
 }
 
 my class X::Coerce is Exception {
-    has str $.target-type;
-    has str $.from-type;
+    has Mu $.target-type is built(:bind);
+    has Mu $.from-type is built(:bind);
     method message() {
-        "from '" ~ $!from-type ~ "' into '" ~ $!target-type ~ "'"
+        "from '" ~ $!from-type.^name ~ "' into '" ~ $!target-type.^name ~ "'"
     }
 }
 
 my class X::Coerce::Impossible is X::Coerce {
-    has Str:D $.hint is required;
+    has $.hint is required;
     method message() {
         "Impossible coercion " ~ callsame() ~ ": " ~ $!hint
     }
@@ -2956,6 +2956,24 @@ my class X::Language::IncompatRevisions is Exception {
     }
 }
 
+my role X::Nominalizable is Exception {
+    has Mu $.nominalizable is built(:bind) is required;
+}
+
+my class X::Nominalizable::NoWrappee does X::Nominalizable {
+    has %.kinds is required where *.elems; # This would be the named parameters passed to Metamodel::Nominalizable::wrappee method
+    method message() {
+        my $kinds = %!kinds.keys.join(", or ");
+        "Can't find requested wrappee of " ~ $kinds ~ " on " ~ $.nominalizable.^name
+    }
+}
+
+my class X::Nominalizable::NoKind does X::Nominalizable {
+    method message {
+        $.nominalizable.HOW.^name ~ " does not declare 'nominalizable_kind' method"
+    }
+}
+
 #?if !moar
 nqp::bindcurhllsym('P6EX', nqp::hash(
 #?endif
@@ -2978,10 +2996,6 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::TypeCheck::Return',
   -> Mu $got is raw, Mu $expected is raw {
       X::TypeCheck::Return.new(:$got, :$expected).throw;
-  },
-  'X::Coerce::Impossible',
-  -> str $target-type is raw, str $from-type is raw, str $hint is raw {
-      X::Coerce::Impossible.new(:$target-type, :$from-type, :$hint).throw;
   },
   'X::Assignment::RO',
   -> $value is raw = "value" {

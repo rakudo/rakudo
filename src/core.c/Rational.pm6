@@ -65,7 +65,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     method nude() { $!numerator, $!denominator }
 
-    method Num(--> Num:D) {
+    method Num(Rational:D: --> Num:D) {
         nqp::p6box_n(nqp::div_In($!numerator,$!denominator))
     }
 

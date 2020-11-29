@@ -4128,7 +4128,7 @@ class Perl6::World is HLL::World {
     # Creates a subset type meta-object/type object pair.
     method create_subset($how, $refinee, $refinement, :$name) {
         # Create the meta-object and add to root objects.
-        my %args := hash(:refinee($refinee), :refinement($refinement));
+        my %args := hash(:$refinee, :$refinement);
         if nqp::defined($name) { %args<name> := $name; }
         my $mo := $how.new_type(|%args);
         self.add_object_if_no_sc($mo);

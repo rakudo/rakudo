@@ -5141,8 +5141,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If we have a refinement, make sure it's thunked if needed. If none,
         # just always true.
-        my $refinement := make_where_block($<EXPR>, $<EXPR> ?? $<EXPR>.ast !!
-            QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) ));
+        my $refinement := $<EXPR> ?? make_where_block($<EXPR>, $<EXPR>.ast) !! nqp::null();
 
         # Create the meta-object.
         my $subset;

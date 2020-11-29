@@ -20,7 +20,6 @@ class Perl6::Metamodel::SubsetHOW
         unless nqp::isconcrete($!archetypes) {
             my $refinee_archetypes := $!refinee.HOW.archetypes;
             my $generic := $refinee_archetypes.generic
-                            || $!refinement.HOW.archetypes.generic
                             || (nqp::defined($!refinement)
                                 && nqp::can($!refinement, 'is_generic')
                                 && $!refinement.is_generic);
@@ -45,7 +44,7 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method new_type(:$name = '<anon>', :$refinee!, :$refinement!) {
-        my $metasubset := self.new(:refinee($refinee), :refinement($refinement));
+        my $metasubset := self.new(:$refinee, :$refinement);
         my $type := nqp::settypehll(nqp::newtype($metasubset, 'Uninstantiable'), 'Raku');
         $metasubset.set_name($type, $name);
         $metasubset.set_language_version($metasubset, :force);
@@ -79,7 +78,7 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method refinement($obj) {
-        $!refinement
+        nqp::hllize($!refinement)
     }
 
     method isa($obj, $type) {
@@ -95,9 +94,6 @@ class Perl6::Metamodel::SubsetHOW
             if nqp::can($!refinement, 'is_generic') && $!refinement.is_generic {
                 $ins_refinement := $!refinement.instantiate_generic($type_env);
             }
-        }
-        elsif nqp::can($!refinement.HOW, 'instantiate_generic') {
-            $ins_refinement := $!refinement.HOW.instantiate_generic($!refinement, $type_env)
         }
         self.new_type(:name(self.name($obj)), :refinee($ins_refinee), :refinement($ins_refinement))
     }
@@ -128,9 +124,11 @@ class Perl6::Metamodel::SubsetHOW
     method accepts_type($obj, $checkee) {
         nqp::hllboolfor(
             nqp::istype($checkee, $!refinee) &&
-            nqp::istrue($!refinement.ACCEPTS($checkee)),
-            "Raku"
-        )
+            (nqp::isnull($!refinement)
+             || ($!refinee.HOW.archetypes.coercive
+                    ?? nqp::istrue($!refinement.ACCEPTS($!refinee.HOW.coerce($!refinee, $checkee)))
+                    !! nqp::istrue($!refinement.ACCEPTS($checkee)))),
+            "Raku")
     }
 
     # Methods needed by Perl6::Metamodel::Nominalizable

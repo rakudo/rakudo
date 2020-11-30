@@ -654,7 +654,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty
     }
 
-    multi method ACCEPTS(List:D: Iterable:U --> True) { }
+    multi method ACCEPTS(List:D: Iterable:U --> False) { }
     multi method ACCEPTS(List:D: Iterable:D $topic --> Bool:D) {
         CATCH { default { return False } } # .elems on lazies throws
         return True if nqp::eqaddr(self, nqp::decont($topic));

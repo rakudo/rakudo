@@ -328,6 +328,7 @@ do {
                 my $newcode = self.repl-read(~$prompt);
 
                 my $initial_out_position = $*OUT.tell;
+                my $initial_err_position = $*ERR.tell;
 
                 # An undef $newcode implies ^D or similar
                 if !$newcode.defined {
@@ -377,7 +378,8 @@ do {
                 # If the output was e.g. a lazy Seq that blows up the moment
                 # it gets stringified, then we treat it as an error by
                 # falling through after all.
-                elsif $initial_out_position == $*OUT.tell {
+                elsif $initial_out_position == $*OUT.tell
+                  && $initial_err_position == $*ERR.tell {
                     if self.repl-print($output) {
                         @before.push: '$ = ' ~ $code.chomp ~ ";\n";
                         $code = '';

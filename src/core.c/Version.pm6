@@ -236,8 +236,8 @@ multi sub infix:<cmp>(Version:D \a, Version:D \b) {
       nqp::eqaddr(nqp::decont(a),nqp::decont(b)), # we're us
       Same,
       nqp::stmts(
-        (my \ia := nqp::iterator(nqp::getattr(nqp::decont(a),Version,'$!parts'))),
-        (my \ib := nqp::iterator(nqp::getattr(nqp::decont(b),Version,'$!parts'))),
+        (my \ia := nqp::clone(nqp::getattr(nqp::decont(a),Version,'$!parts'))),
+        (my \ib := nqp::clone(nqp::getattr(nqp::decont(b),Version,'$!parts'))),
         (my ($ret, $a-part, $b-part)),
         nqp::while(
           ia, # check from left

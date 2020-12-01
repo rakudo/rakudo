@@ -27,22 +27,24 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
-    method fire_if_phasers(Str $name --> Nil) {
-        nqp::if(
-          nqp::attrinited(self,Block,'$!phasers')
-            && nqp::existskey($!phasers,$name),
-          nqp::stmts(
-            (my $iter := nqp::iterator(nqp::atkey($!phasers,$name))),
-            nqp::while($iter,nqp::shift($iter)(),:nohandler)
-          )
-        )
+    method fire_if_phasers(str $name --> Nil) {
+        if nqp::attrinited(self,Block,'$!phasers')
+          && nqp::atkey($!phasers,$name) -> \phasers {
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(phasers)),
+              nqp::atpos(phasers,$i)(),
+              :nohandler
+            );
+        }
     }
 
-    method fire_phasers(Str $name --> Nil) {
-        my $iter := nqp::iterator(nqp::atkey($!phasers,$name));
+    method fire_phasers(str $name --> Nil) {
+        my \phasers := nqp::atkey($!phasers,$name);
+        my int $i    = -1;
         nqp::while(
-          $iter,
-          nqp::shift($iter)(),
+          nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(phasers)),
+          nqp::atpos(phasers,$i)(),
           :nohandler
         );
     }

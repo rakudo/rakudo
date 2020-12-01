@@ -2314,11 +2314,84 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $pblock := $xblock.shift;
         check_smartmatch($<xblock>,$sm_exp);
 
-        # Handle the smart-match.
-        my $match_past := QAST::Op.new( :op('callmethod'), :name('ACCEPTS'),
-            $sm_exp,
-            WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when')
-        );
+        # Handle the smartmatch, but try to gen some more optimized code first.
+        my $match_past;
+
+        # Fast path for types, e.g., `when Int { ... }`
+        if nqp::istype($sm_exp, QAST::WVal) && !nqp::isconcrete($sm_exp.value) {
+            $match_past :=
+                QAST::Op.new( :op('istype'),
+                  WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when'),
+                  $sm_exp );
+        }
+        # Fast path for things like literals, e.g., `when 5 { ... }`
+        elsif nqp::istype($sm_exp, QAST::Want) {
+            my $op_type;
+            my $method;
+            if nqp::istype($sm_exp[2], QAST::IVal) {
+                $op_type := 'i';
+                $method  := 'Numeric';
+            }
+            elsif nqp::istype($sm_exp[2], QAST::SVal) {
+                $op_type := 's';
+                $method  := 'Stringy';
+            }
+            elsif nqp::istype($sm_exp[2], QAST::NVal) {
+                $op_type := 'n';
+                $method  := 'Numeric';
+            }
+            else {
+                die("Unknown QAST::Want type " ~ $sm_exp[2].HOW.name($sm_exp[2]));
+            }
+
+            # Coercion method to call on the given value
+            my $method_call :=
+                QAST::Op.new( :op('callmethod'), :name($method),
+                  QAST::Var.new( :name('$_'), :scope('lexical') ) );
+
+            # We don't need/want `val()` to `fail()` if `Numeric()` ends up calling it
+            # and it doesn't succeed, that creates an expensive Backtrace that we just
+            # end up throwing away
+            if $method eq 'Numeric' {
+                my $fail-or-nil := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
+                $fail-or-nil.named('fail-or-nil');
+                $method_call.push($fail-or-nil);
+            }
+
+            # Make sure we're not comparing against a type object, since those could
+            # coerce to the value, so gen the equivalent of
+            # `isconcrete($_) && iseq_*(<literal>, $_."$method")`
+            my $is_eq :=
+                QAST::Op.new( :op('if'),
+                  QAST::Op.new( :op('isconcrete' ),
+                    QAST::Var.new( :name('$_'), :scope('lexical') ) ),
+                  QAST::Op.new( :op("iseq_$op_type" ),
+                    $sm_exp[2],
+                    WANTED($method_call,'when') ) );
+
+            # Needed so we can `handle` the code below
+            fatalize($is_eq);
+
+            # This is the equivalent of sticking a `try` before the genned `iseq_*`, which is
+            # needed because otherwise it'll die with an error when the `$_` is a different type.
+            $match_past :=
+                QAST::Op.new( :op('handle'),
+
+                  # Success path evaluates to the block.
+                  $is_eq,
+
+                  # On failure, just evaluate to False
+                  'CATCH',
+
+                  QAST::WVal.new( :value( $*W.find_single_symbol('False') ) ) );
+        }
+        # The fallback path that does a full smartmatch
+        else {
+            $match_past :=
+              QAST::Op.new( :op('callmethod'), :name('ACCEPTS'),
+                $sm_exp,
+                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when') );
+        }
 
         # Use the smartmatch result as the condition for running the block,
         # and ensure continue/succeed handlers are in place and that a

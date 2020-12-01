@@ -628,7 +628,7 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
         # Create default signature, receiving invocant only.
         my $signature := nqp::create(Signature);
         my $parameter := nqp::create(Parameter);
-        nqp::bindattr($parameter, Parameter, '$!nominal_type', Mu);
+        nqp::bindattr($parameter, Parameter, '$!type', Mu);
         nqp::bindattr($signature, Signature, '@!params', nqp::list($parameter));
 
         # Create Regex object.

@@ -568,11 +568,11 @@ sub dd(|c) {  # is implementation-detail
 
     # handler for BOOTxxxArrays
     sub BOOTArray(Mu \array) {
-        my \buffer   := nqp::create(IterationBuffer);
-        my \iterator := nqp::iterator(array);
+        my \buffer := nqp::create(IterationBuffer);
+        my \clone  := nqp::clone(array);
         nqp::while(
-          iterator,
-          nqp::push(buffer,nqp::shift(iterator))
+          clone,
+          nqp::push(buffer,nqp::shift(clone))
         );
         array.^name ~ buffer.List.raku
     }

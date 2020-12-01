@@ -19,9 +19,9 @@ my class Capture { # declared in BOOTSTRAP
         my Mu $WHICH := nqp::list_s(nqp::eqaddr(self.WHAT,Capture) ?? 'Capture' !! nqp::unbox_s(self.^name));
         if nqp::isconcrete(@!list) && nqp::elems(@!list) {
             nqp::push_s($WHICH, '|');
-            my Mu $iter := nqp::iterator(@!list);
-            while $iter {
-                my Mu \value = nqp::shift($iter);
+            my Mu $list := nqp::clone(@!list);
+            while $list {
+                my Mu \value = nqp::shift($list);
                 nqp::push_s($WHICH, '(');
                 nqp::push_s($WHICH, nqp::unbox_s(value.VAR.WHICH));
                 nqp::push_s($WHICH, ')');

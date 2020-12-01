@@ -215,7 +215,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
             nqp::bindattr($parameter, Parameter, '@!named_names', $names-str-list);
         }
         nqp::bindattr_i($parameter, Parameter, '$!flags', self.IMPL-FLAGS());
-        nqp::bindattr($parameter, Parameter, '$!nominal_type', self.IMPL-NOMINAL-TYPE());
+        nqp::bindattr($parameter, Parameter, '$!type', self.IMPL-NOMINAL-TYPE());
         # TODO further setup
         $parameter
     }
@@ -287,7 +287,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
         # Do type checks.
         # TODO really more involved than this
         # TODO decont handling probably needs a tweak
-        my $nominal-type := nqp::getattr($param-obj, Parameter, '$!nominal_type');
+        my $nominal-type := nqp::getattr($param-obj, Parameter, '$!type');
         unless $nominal-type =:= Mu {
             $context.ensure-sc($nominal-type);
             $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(

@@ -338,7 +338,7 @@ sub emit-mop-utils() {
         my $first := 1;
         for @parameters -> $type, $name, $named, $optional {
             my $param := nqp::create(Parameter);
-            nqp::bindattr($param, Parameter, '$!nominal_type', $type);
+            nqp::bindattr($param, Parameter, '$!type', $type);
             nqp::bindattr_s($param, Parameter, '$!variable_name', $name);
             my int $flags := 128; # Multi-invocant
             $flags := $flags + 64 if $first; # Invocant

@@ -3031,9 +3031,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
             # triage substitutions left to do
             my $todo := nqp::list;
-            my $iter := nqp::iterator($!substitutions);
-            while $iter {
-                my $this := nqp::shift($iter);
+            my int $i = -1;
+            while ++$i < nqp::elems($!substitutions) {
+                my $this := nqp::atpos($!substitutions,$i);
                 my $key  := $this.key;
                 if nqp::istype($key,Regex) {
                     if $!source.match($key, :continue($!index)) -> \m {

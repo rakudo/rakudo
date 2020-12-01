@@ -100,24 +100,21 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # Pairs.
     my class Iterate-keys does Iterator {
         has $!map;
-        has $!iter;
-        method new(Mu \map, Mu \keys) {
-            nqp::p6bindattrinvres(
-              nqp::p6bindattrinvres(
-                nqp::create(self),
-                self,
-                '$!map',nqp::getattr(map,Map,'$!storage')
-              ),
-              self,
-              '$!iter',
-              nqp::iterator(keys)
-            )
+        has $!keys;
+        has int $!i;
+
+        method !SET-SELF(Mu \map, Mu \keys) {
+            $!map  := map;
+            $!keys := keys;
+            $!i     = -1;
+            self
         }
+        method new(Mu \map, Mu \keys) { nqp::create(self)!SET-SELF(map,keys) }
         method pull-one() {
             nqp::if(
-              $!iter,
+              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!keys)),
               nqp::stmts(
-                (my \key := nqp::shift($!iter)),
+                (my \key := nqp::atpos_s($!keys,$!i)),
                 Pair.new(key,nqp::atkey($!map,key))
               ),
               IterationEnd
@@ -125,14 +122,16 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }
         method push-all($target --> IterationEnd) {
             my \map  := $!map;
-            my \iter := $!iter;
+            my \keys := $!keys;
+            my int $i = $!i;
             nqp::while(
-              iter,
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(keys)),
               nqp::stmts(
-                (my \key := nqp::shift(iter)),
+                (my \key := nqp::atpos_s(keys,$i)),
                 $target.push(Pair.new(key,nqp::atkey(map,key)))
               )
-            )
+            );
+            $!i = $i;
         }
     }
 

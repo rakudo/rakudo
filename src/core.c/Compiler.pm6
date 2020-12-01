@@ -72,9 +72,9 @@ class Compiler does Systemic {
         }
         else {
             my %config;
-            my $iter := nqp::iterator($items);
-            while $iter {
-                my ($main,$key,$value) = nqp::shift($iter).split(<:: =>);
+            my $clone := nqp::clone($items);
+            while $clone {
+                my ($main,$key,$value) = nqp::shift($clone).split(<:: =>);
                 %config.AT-KEY($main).AT-KEY($key) = $value
             }
 

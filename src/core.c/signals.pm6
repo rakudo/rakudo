@@ -1,16 +1,18 @@
 my role Signal::Signally {
     multi method CALL-ME(Int() $signum) { $signum ?? (nextsame) !! self }
 }
-my enum Signal does Signal::Signally ( |do {
-        my $res  := nqp::list;
-        my $iter := nqp::iterator(nqp::getsignals);
-        nqp::push(
-          $res,
-          Pair.new(nqp::shift($iter), nqp::abs_i(nqp::shift($iter)))
-        ) while $iter;
-        $res
-    }
-);
+my enum Signal does Signal::Signally ( BEGIN |do {
+    my $res     := nqp::list;
+    my $signals := nqp::clone(nqp::getsignals);
+    nqp::while(
+      nqp::elems($signals),
+      nqp::push(
+        $res,
+        Pair.new(nqp::shift($signals), nqp::abs_i(nqp::shift($signals)))
+      )
+    );
+    $res
+});
 
 proto sub signal(|) {*}
 multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {

@@ -64,6 +64,7 @@ cp -Force -r "tools\build\binary-release\Windows\*" install
 cp LICENSE install
 
 echo "========= Preparing archive"
-mv install rakudo-$Env:VERSION
-Compress-Archive -Path rakudo-$Env:VERSION -DestinationPath ..\rakudo-win.zip
+$FILE_NAME = "rakudo-moar-${Env:VERSION}-${Env:REVISION}-win-x86_64-msvc"
+mv install $FILE_NAME
+Compress-Archive -Path $FILE_NAME -DestinationPath ..\rakudo-win.zip
 

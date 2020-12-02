@@ -129,7 +129,7 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
-    role is-DEPRECATED { has $.DEPRECATED }
+    my role is-DEPRECATED { has $.DEPRECATED }
     $attr does is-DEPRECATED($new);
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
@@ -175,6 +175,8 @@ multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
+    my role is-DEPRECATED { has $.DEPRECATED }
+    $r does is-DEPRECATED($new);
     $r.add_phaser( 'ENTER', -> { Rakudo::Deprecations.DEPRECATED($new) } );
 }
 multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {

@@ -272,23 +272,15 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             }
             elsif $!initializer && $!initializer.is-binding {
                 # Will be bound on first use, so just a declaration.
-                QAST::Op.new(
-                    :op('if'),
-                    QAST::Op.new(:op('p6stateinit')),
-                    QAST::Var.new(:scope('lexical'), :decl('var'), :name($!name))
-                )
+                QAST::Var.new(:scope('lexical'), :decl('var'), :name($!name))
             }
             else {
                 # Need to vivify the object.
                 my $container := self.meta-object;
                 $context.ensure-sc($container);
-                QAST::Op.new(
-                    :op('if'),
-                    QAST::Op.new(:op('p6stateinit')),
-                    QAST::Var.new(
-                        :scope('lexical'), :decl('statevar'), :name($!name),
-                        :value($container)
-                    )
+                QAST::Var.new(
+                    :scope('lexical'), :decl('statevar'), :name($!name),
+                    :value($container)
                 )
             }
         }
@@ -332,29 +324,41 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                 # Reference type value.
                 if $!initializer {
                     my $init-qast := $!initializer.IMPL-TO-QAST($context);
+                    my $perform-init-qast;
                     if $!initializer.is-binding {
                         # TODO type checking of source
                         my $source := $sigil eq '@' || $sigil eq '%'
                             ?? QAST::Op.new( :op('decont'), $init-qast)
                             !! $init-qast;
-                        QAST::Op.new( :op('bind'), $var-access, $source )
+                        $perform-init-qast := QAST::Op.new( :op('bind'), $var-access, $source );
                     }
                     else {
                         # Assignment. Case-analyze by sigil.
                         if $sigil eq '@' || $sigil eq '%' {
                             # Call STORE method, passing :INITIALIZE to indicate it's
                             # the initialization for immutable types.
-                            QAST::Op.new(
+                            $perform-init-qast := QAST::Op.new(
                                 :op('callmethod'), :name('STORE'),
                                 $var-access,
                                 $init-qast,
                                 QAST::WVal.new( :named('INITIALIZE'), :value(True) )
-                            )
+                            );
                         }
                         else {
                             # Scalar assignment.
-                            QAST::Op.new( :op('p6assign'), $var-access, $init-qast )
+                            $perform-init-qast := QAST::Op.new(
+                                :op('p6assign'), $var-access, $init-qast );
                         }
+                    }
+                    if $scope eq 'state' {
+                        QAST::Op.new(
+                            :op('if'),
+                            QAST::Op.new( :op('p6stateinit') ),
+                            $perform-init-qast
+                        )
+                    }
+                    else {
+                        $perform-init-qast
                     }
                 }
                 else {

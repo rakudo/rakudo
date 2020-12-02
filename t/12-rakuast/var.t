@@ -273,8 +273,8 @@ subtest 'Lexical my|state variable declarations with bind initializer' => {
         );
 
         for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \result {
-            # bug in rakudo main branch, "state $var := 225" is Mu
-            next if $scope eq 'state' && $type eq 'DEPARSE';
+            # state var limitation: binding (like "state $var := 225") not supported
+            next if $scope eq 'state';
 
             is-deeply result, 225,
               "$type: $scope variable declarations with bind initializer";
@@ -764,7 +764,6 @@ subtest 'A pointy block node with a state variable' => {
 
     for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $block {
         is $block(), 42, "$type: state variable initialized";
-        todo("does not keep value in AST just yet") if $type eq 'AST';
         is $block(), 43, "$type: state variable kept value";
     }
 }

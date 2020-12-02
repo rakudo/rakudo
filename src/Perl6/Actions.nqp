@@ -5720,6 +5720,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub dissect_type_into_parameter($/, $type) {
+        my $archetypes := $type.HOW.archetypes;
         if nqp::isconcrete($type) {
             if nqp::istype($type, $*W.find_single_symbol('Bool')) {
                 my $val := $type.gist;
@@ -5738,20 +5739,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             %*PARAM_INFO<post_constraints>.push($type);
         }
-        elsif $type.HOW.archetypes.nominal {
+        elsif $archetypes.nominal || $archetypes.coercive {
             %*PARAM_INFO<type> := $type;
         }
-        elsif $type.HOW.archetypes.coercive {
-            %*PARAM_INFO<type> := $type;
-            %*PARAM_INFO<type_coercive> := 1;
-        }
-        elsif $type.HOW.archetypes.definite {
+        elsif $archetypes.definite && nqp::eqaddr($type.HOW.wrappee($type, :definite), $type) {
             dissect_type_into_parameter($/, $type.HOW.base_type($type));
         }
         elsif $type.HOW.archetypes.generic {
             %*PARAM_INFO<type> := $type;
         }
-        elsif $type.HOW.archetypes.nominalizable {
+        elsif $archetypes.nominalizable {
             # XXX The actual nominalization is likely to be done by Parameter class itself.
             my $nom := $type.HOW.nominalize($type);
             %*PARAM_INFO<type> := $nom;
@@ -5763,7 +5760,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         else {
             $<typename>.typed_sorry('X::Parameter::BadType', :$type);
         }
-        %*PARAM_INFO<type_generic>   := 1 if $type.HOW.archetypes.generic;
+        %*PARAM_INFO<type_generic>   := 1 if $archetypes.generic;
         %*PARAM_INFO<of_type>        := %*PARAM_INFO<type>;
         %*PARAM_INFO<of_type_match>  := $<typename>;
         %*PARAM_INFO<defined_only>   := 1 if $<typename><colonpairs> && $<typename><colonpairs>.ast<D>;
@@ -9137,7 +9134,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Add type checks.
             my $param_type := %info<type>;
             my int $is_generic := %info<type_generic>;
-            my int $is_coercive := %info<type_coercive>;
+            my int $is_coercive := $param_type.HOW.archetypes.coercive;
             my $nomtype    := !$is_generic && $param_type.HOW.archetypes.nominalizable
                                 ?? $param_type.HOW.nominalize($param_type)
                                 !! $param_type;

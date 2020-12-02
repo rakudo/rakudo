@@ -425,12 +425,21 @@ my class Rakudo::Internals {
         my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
         nqp::setdebugtypename($root, 'MultiDimArray root');
         nqp::setparameterizer($root, -> $, $key {
+            # We "steal" the meta-object for the multi-dim storage.
             my $dims := $key.elems.pred;
+            my $meta := $key.AT-POS(0);
             my $type := $key.AT-POS(1);
-            my $dim_type := nqp::newtype($key.AT-POS(0), 'MultiDimArray');
+            my $dim_type := nqp::newtype($meta, 'MultiDimArray');
             nqp::composetype($dim_type, nqp::hash('array',
                 nqp::hash('dimensions', $dims, 'type', $type)));
             nqp::settypehll($dim_type, 'Raku');
+            # Make sure the debug name and various caches are propagated
+            # for native arrays (where this type is exposed to userspace).
+            if nqp::objprimspec($type) {
+                nqp::setdebugtypename($dim_type, $meta.name($dim_type));
+                $meta.publish_method_cache($dim_type);
+                $meta.publish_type_cache($dim_type);
+            }
             $dim_type
         });
         nqp::settypehll($root, 'Raku');

@@ -379,7 +379,8 @@ do {
                 # it gets stringified, then we treat it as an error by
                 # falling through after all.
                 elsif $initial_out_position == $*OUT.tell
-                  && $initial_err_position == $*ERR.tell {
+                  && $initial_err_position == $*ERR.tell
+                  && nqp::not_i(nqp::istype($output,Proc)) {
                     if self.repl-print($output) {
                         @before.push: '$ = ' ~ $code.chomp ~ ";\n";
                         $code = '';

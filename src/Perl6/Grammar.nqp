@@ -940,6 +940,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
 
+    token semicolon() {
+        ";"
+    }
+
     token statement($*LABEL = '') {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
@@ -972,14 +976,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                     }
                 }
             ]?
-        | <?[;]>
+        | <?semicolon>
         | <?stopper>
         | {} <.panic: "Bogus statement">
         ]
     }
 
     token eat_terminator {
-        || ';'
+        || <.semicolon>
         || <?MARKED('endstmt')> <.ws>
         || <?before ')' | ']' | '}' >
         || $
@@ -1182,7 +1186,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <sym><.kok> {}
         [ <?before 'my'? '$'\w+\s+'(' >
             <.typed_panic: 'X::Syntax::P5'> ]?
-        [ <?before '(' <.EXPR>? ';' <.EXPR>? ';' <.EXPR>? ')' >
+        [ <?before '(' <.EXPR>? <.semicolon> <.EXPR>? <.semicolon> <.EXPR>? ')' >
             <.obs('C-style "for (;;)" loop', '"loop (;;)"')> ]?
         <xblock($PBLOCK_REQUIRED_TOPIC)>
     }
@@ -1210,9 +1214,9 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         [
           :my $exprs := 0;
           '('
-          [     <e1=.EXPR>? {$exprs := 1 if $<e1>}
-          [ ';' <e2=.EXPR>? {$exprs := 2}
-          [ ';' <e3=.EXPR>? {$exprs := 3}
+          [              <e1=.EXPR>? {$exprs := 1 if $<e1>}
+          [ <.semicolon> <e2=.EXPR>? {$exprs := 2}
+          [ <.semicolon> <e3=.EXPR>? {$exprs := 3}
           ]? ]? ]? # succeed anyway, this will leave us with a nice cursor
           [
           || <?{ $exprs == 3 }> ')'
@@ -1222,7 +1226,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 <.malformed("loop spec (expected 3 semicolon-separated expressions)")>
              || <.malformed("loop spec (expected 3 semicolon-separated expressions but got {$exprs})")>
              ]
-          || <?before ‘;’>
+          || <?before <.semicolon>>
              <.malformed('loop spec (expected 3 semicolon-separated expressions but got more)')>
           || <.malformed('loop spec')>
           ]
@@ -2193,7 +2197,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
                 <blockoid>
                 ]
 
-            || ';'
+            || <.semicolon>
                 [
                 || <?{ $*begin_compunit }>
                     {
@@ -2456,7 +2460,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <trait>* :!s
         { $*IN_DECL := ''; }
         [
-        || ';'
+        || <.semicolon>
             {
                 if $<deflongname> ne 'MAIN' {
                     $/.typed_panic("X::UnitScope::Invalid", what => "sub",
@@ -3253,7 +3257,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token semiarglist {
-        <arglist>+ % ';'
+        <arglist>+ % <.semicolon>
         <.ws>
     }
 

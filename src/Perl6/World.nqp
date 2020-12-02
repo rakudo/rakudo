@@ -2203,6 +2203,7 @@ class Perl6::World is HLL::World {
         my $par_type  := self.find_single_symbol('Parameter', :setting-only);
         my $parameter := nqp::create($par_type);
         self.add_object_if_no_sc($parameter);
+        my $paramerter_type := %param_info<type>;
 
         # Calculate flags.
         my int $flags := 0;
@@ -2263,7 +2264,7 @@ class Perl6::World is HLL::World {
         if %param_info<type_generic> {
             $flags := $flags + $SIG_ELEM_TYPE_GENERIC;
         }
-        if %param_info<type_coercive> {
+        if $paramerter_type.HOW.archetypes.coercive {
             $flags := $flags + $SIG_ELEM_IS_COERCIVE;
         }
         if %param_info<default_is_literal> {

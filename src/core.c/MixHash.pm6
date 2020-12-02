@@ -166,64 +166,72 @@ my class MixHash does Mixy {
         )
     }
 
-    my class Iterate does Rakudo::Iterator::Mappy {
+    my class Iterate does Iterator {
+        has $!elems;
+        has $!keys;
         method !SET-SELF(\elems) {
-            nqp::bind($!hash,elems);
-            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            $!elems := elems;
+            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
             self
         }
+        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
         method pull-one() is raw {
-            $!iter
+            nqp::elems($!keys)
               ?? nqp::p6bindattrinvres(
                    nqp::clone(
-                     nqp::atkey($!hash,(my $key := nqp::shift($!iter)))
+                     nqp::atkey($!elems,(my $key := nqp::shift_s($!keys)))
                    ),
                    Pair,
                    '$!value',
-                   proxy($key,$!hash)
+                   proxy($key,$!elems)
                  )
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
+            my $elems := $!elems;
+            my $keys  := $!keys;
             nqp::while(  # doesn't sink
-              $!iter,
-              target.push(nqp::atkey($!hash,nqp::shift($!iter)))
+              nqp::elems($keys),
+              target.push(nqp::atkey($elems,nqp::shift_s($keys)))
             )
         }
     }
     multi method iterator(MixHash:D:) { Iterate.new($!elems) }  # also .pairs
 
-    my class KV does Rakudo::Iterator::Mappy-kv-from-pairs {
+    my class KV does Iterator {
+        has $!elems;
+        has $!keys;
+        has str $!on;
         method !SET-SELF(Mu \elems) {
-            nqp::bind($!hash,elems);
-            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            $!elems := elems;
+            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
             self
         }
+        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
         method pull-one() is raw {
             nqp::if(
               $!on,
               nqp::stmts(
-                (my $proxy := proxy($!on,$!hash)),
+                (my $proxy := proxy($!on,$!elems)),
                 ($!on = ""),
                 $proxy
               ),
               nqp::if(
-                $!iter,
+                nqp::elems($!keys),
                 nqp::getattr(
-                  nqp::atkey($!hash,($!on= nqp::shift($!iter))),Pair,'$!key'
+                  nqp::atkey($!elems,($!on = nqp::shift_s($!keys))),Pair,'$!key'
                 ),
                 IterationEnd
               )
             )
         }
-        method skip-one() {  # the one provided by the role interferes
-            nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
-        }
         method push-all(\target --> IterationEnd) {
+            my $elems := $!elems;
+            my $keys  := $!keys;
             nqp::while(
-              $!iter,
+              nqp::elems($keys),
               nqp::stmts(  # doesn't sink
-                (my $pair := nqp::atkey($!hash,nqp::shift($!iter))),
+                (my $pair := nqp::atkey($elems,nqp::shift_s($keys))),
                 target.push(nqp::getattr($pair,Pair,'$!key')),
                 target.push(nqp::getattr($pair,Pair,'$!value'))
               )
@@ -232,22 +240,26 @@ my class MixHash does Mixy {
     }
     multi method kv(MixHash:D:) { Seq.new(KV.new($!elems)) }
 
-    my class Values does Rakudo::Iterator::Mappy {
+    my class Values does Iterator {
+        has $!elems;
+        has $!keys;
         method !SET-SELF(\elems) {
-            nqp::bind($!hash,elems);
-            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
+            $!elems := elems;
+            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
             self
         }
+        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
         method pull-one() is raw {
-            $!iter
-              ?? proxy(nqp::shift($!iter),$!hash)
+            nqp::elems($!keys)
+              ?? proxy(nqp::shift_s($!keys),$!elems)
               !! IterationEnd
         }
-
         method push-all(\target --> IterationEnd) {
+            my $elems := $!elems;
+            my $keys  := $!keys;
             nqp::while(  # doesn't sink
-              $!iter,
-              target.push(proxy(nqp::shift($!iter),$!hash))
+              nqp::elems($keys),
+              target.push(proxy(nqp::shift_s($keys),$elems))
             )
         }
     }

@@ -1655,18 +1655,18 @@ implementation detail and has no serviceable parts inside"
     }
 
     # Return a nqp list iterator from an IterationSet
-    proto method ITERATIONSET2LISTITER(|) {*}
-    multi method ITERATIONSET2LISTITER(IterationSet:U) {
-        nqp::iterator(nqp::list_s)
+    proto method IterationSet2keys(|) {*}
+    multi method IterationSet2keys(IterationSet:U) {
+        nqp::list_s
     }
-    multi method ITERATIONSET2LISTITER(IterationSet:D \iterationset) {
+    multi method IterationSet2keys(IterationSet:D \iterationset) {
         my $iter := nqp::iterator(iterationset);
         my $keys := nqp::list_s;
         nqp::while(
           $iter,
           nqp::push_s($keys,nqp::iterkey_s(nqp::shift($iter)))
         );
-        nqp::iterator($keys)
+        $keys
     }
 
     # Return an Inline::Perl5 interpreter if possible

@@ -92,7 +92,7 @@ my class array does Iterable {
         )
     }
 
-    my role strarray[::T] does Positional[T] is array_type(T) {
+    role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
 #- Generated on 2020-11-21T17:31:31+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -687,7 +687,7 @@ my class array does Iterable {
         }
     }
 
-    my role intarray[::T] does Positional[T] is array_type(T) {
+    role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
 #- Generated on 2020-11-21T17:31:31+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
@@ -1334,7 +1334,7 @@ my class array does Iterable {
         }
     }
 
-    my role numarray[::T] does Positional[T] is array_type(T) {
+    role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
 #- Generated on 2020-11-21T17:31:31+01:00 by tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE

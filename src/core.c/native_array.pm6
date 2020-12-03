@@ -3730,7 +3730,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of shaped1strarray ------------------------
-#- Generated on 2020-12-03T16:41:03+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T18:41:33+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3752,28 +3752,42 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos, :$exists!
+  array::shaped1strarray \SELF, Int:D $pos, :$exists!, *%_
 ) {
-    nqp::hllbool(
-      $exists
-        ?? nqp::isge_i($pos,0)
-             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i($pos,0)
-             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
-    )
+    my int $state =
+      nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
+    my $value := nqp::hllbool($exists ?? $state !! nqp::not_i($state));
+
+    $state
+      ?? nqp::elems(my $adverbs := nqp::getattr(%_,Map,'$!storage'))
+        ?? nqp::atkey($adverbs,'kv')
+          ?? ($pos,$value)
+          !! nqp::atkey($adverbs,'p')
+            ?? Pair.new($pos,$value)
+            !! Failure.new(
+                 X::Adverb.new(
+                   what   => "slice",
+                   source => "native shaped1 str array",
+                   nogo   => ('exists', |%_.keys).sort
+                 )
+               )
+        !! $value
+      !! $value
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D \pos, :$delete!
+  array::shaped1strarray \SELF, Int:D $pos, :$delete!, *%_
 ) {
     $delete
       ?? X::Delete.new(target => 'a shaped native str array').throw
-      !! nqp::atposref_s(nqp::decont(SELF),pos)
+      !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+        ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
+        !! nqp::atposref_s(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Int:D $pos, :$kv!
---> Bool:D) is raw {
+) is raw {
     $kv
       ?? nqp::list($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
       !! nqp::atposref_s(nqp::decont(SELF),$pos)
@@ -3781,7 +3795,7 @@ multi sub postcircumfix:<[ ]>(
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Int:D $pos, :$p!
---> Bool:D) is raw {
+) is raw {
     $p
       ?? Pair.new($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
       !! nqp::atposref_s(nqp::decont(SELF),$pos)
@@ -3789,13 +3803,13 @@ multi sub postcircumfix:<[ ]>(
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Int:D $pos, :$k!
---> Bool:D) is raw {
+) is raw {
     $k ?? $pos !! nqp::atposref_s(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Int:D $pos, :$v!
---> Bool:D) is raw {
+) is raw {
     $v
       ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
         ?? nqp::list(nqp::atpos_s(nqp::decont(SELF),$pos))
@@ -3813,7 +3827,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of shaped1strarray --------------------------
 
 #- start of postcircumfix candidates of shaped1intarray ------------------------
-#- Generated on 2020-12-03T16:41:03+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T18:41:33+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3835,28 +3849,42 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos, :$exists!
+  array::shaped1intarray \SELF, Int:D $pos, :$exists!, *%_
 ) {
-    nqp::hllbool(
-      $exists
-        ?? nqp::isge_i($pos,0)
-             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i($pos,0)
-             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
-    )
+    my int $state =
+      nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
+    my $value := nqp::hllbool($exists ?? $state !! nqp::not_i($state));
+
+    $state
+      ?? nqp::elems(my $adverbs := nqp::getattr(%_,Map,'$!storage'))
+        ?? nqp::atkey($adverbs,'kv')
+          ?? ($pos,$value)
+          !! nqp::atkey($adverbs,'p')
+            ?? Pair.new($pos,$value)
+            !! Failure.new(
+                 X::Adverb.new(
+                   what   => "slice",
+                   source => "native shaped1 int array",
+                   nogo   => ('exists', |%_.keys).sort
+                 )
+               )
+        !! $value
+      !! $value
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D \pos, :$delete!
+  array::shaped1intarray \SELF, Int:D $pos, :$delete!, *%_
 ) {
     $delete
       ?? X::Delete.new(target => 'a shaped native int array').throw
-      !! nqp::atposref_i(nqp::decont(SELF),pos)
+      !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+        ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
+        !! nqp::atposref_i(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Int:D $pos, :$kv!
---> Bool:D) is raw {
+) is raw {
     $kv
       ?? nqp::list($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
       !! nqp::atposref_i(nqp::decont(SELF),$pos)
@@ -3864,7 +3892,7 @@ multi sub postcircumfix:<[ ]>(
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Int:D $pos, :$p!
---> Bool:D) is raw {
+) is raw {
     $p
       ?? Pair.new($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
       !! nqp::atposref_i(nqp::decont(SELF),$pos)
@@ -3872,13 +3900,13 @@ multi sub postcircumfix:<[ ]>(
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Int:D $pos, :$k!
---> Bool:D) is raw {
+) is raw {
     $k ?? $pos !! nqp::atposref_i(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Int:D $pos, :$v!
---> Bool:D) is raw {
+) is raw {
     $v
       ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
         ?? nqp::list(nqp::atpos_i(nqp::decont(SELF),$pos))
@@ -3896,7 +3924,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of shaped1intarray --------------------------
 
 #- start of postcircumfix candidates of shaped1numarray ------------------------
-#- Generated on 2020-12-03T16:41:03+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T18:41:33+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3918,28 +3946,42 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos, :$exists!
+  array::shaped1numarray \SELF, Int:D $pos, :$exists!, *%_
 ) {
-    nqp::hllbool(
-      $exists
-        ?? nqp::isge_i($pos,0)
-             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i($pos,0)
-             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
-    )
+    my int $state =
+      nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
+    my $value := nqp::hllbool($exists ?? $state !! nqp::not_i($state));
+
+    $state
+      ?? nqp::elems(my $adverbs := nqp::getattr(%_,Map,'$!storage'))
+        ?? nqp::atkey($adverbs,'kv')
+          ?? ($pos,$value)
+          !! nqp::atkey($adverbs,'p')
+            ?? Pair.new($pos,$value)
+            !! Failure.new(
+                 X::Adverb.new(
+                   what   => "slice",
+                   source => "native shaped1 num array",
+                   nogo   => ('exists', |%_.keys).sort
+                 )
+               )
+        !! $value
+      !! $value
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D \pos, :$delete!
+  array::shaped1numarray \SELF, Int:D $pos, :$delete!, *%_
 ) {
     $delete
       ?? X::Delete.new(target => 'a shaped native num array').throw
-      !! nqp::atposref_n(nqp::decont(SELF),pos)
+      !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+        ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
+        !! nqp::atposref_n(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1numarray \SELF, Int:D $pos, :$kv!
---> Bool:D) is raw {
+) is raw {
     $kv
       ?? nqp::list($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
       !! nqp::atposref_n(nqp::decont(SELF),$pos)
@@ -3947,7 +3989,7 @@ multi sub postcircumfix:<[ ]>(
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1numarray \SELF, Int:D $pos, :$p!
---> Bool:D) is raw {
+) is raw {
     $p
       ?? Pair.new($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
       !! nqp::atposref_n(nqp::decont(SELF),$pos)
@@ -3955,13 +3997,13 @@ multi sub postcircumfix:<[ ]>(
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1numarray \SELF, Int:D $pos, :$k!
---> Bool:D) is raw {
+) is raw {
     $k ?? $pos !! nqp::atposref_n(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
   array::shaped1numarray \SELF, Int:D $pos, :$v!
---> Bool:D) is raw {
+) is raw {
     $v
       ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
         ?? nqp::list(nqp::atpos_n(nqp::decont(SELF),$pos))

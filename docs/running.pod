@@ -1,3 +1,10 @@
+# This pod file is used in Debian to generate C<raku> man page when
+# building C<rakudo> package. At that stage only Perl5 C<pod2man>
+# program is available. So this file must follow Perl5's pod syntax.
+#
+# See https://github.com/rakudo/rakudo/pull/4080#issuecomment-736682853
+# for more information.
+
 =head1 NAME
 
 raku - Rakudo Raku Compiler

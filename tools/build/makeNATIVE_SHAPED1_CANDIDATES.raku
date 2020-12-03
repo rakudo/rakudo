@@ -52,21 +52,11 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, int $pos
-) is raw {
-    nqp::atposref_#postfix#(nqp::decont(SELF),$pos)
-}
-multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Int:D $pos
 ) is raw {
     nqp::atposref_#postfix#(nqp::decont(SELF),$pos)
 }
 
-multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, int $pos, #Type#:D \assignee
-) is raw {
-    nqp::bindpos_#postfix#(nqp::decont(SELF),$pos,assignee)
-}
 multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Int:D $pos, #Type#:D \assignee
 ) is raw {
@@ -80,17 +70,6 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, int $pos, :$exists!
-) {
-    nqp::hllbool(
-      $exists
-        ?? nqp::isge_i($pos,0)
-             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i($pos,0)
-             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
-    )
-}
-multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Int:D $pos, :$exists!
 ) {
     nqp::hllbool(
@@ -103,13 +82,6 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, int \pos, :$delete!
-) {
-    $delete
-      ?? X::Delete.new(target => 'a shaped native #type# array').throw
-      !! nqp::atposref_#postfix#(nqp::decont(SELF),pos)
-}
-multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Int:D \pos, :$delete!
 ) {
     $delete
@@ -117,13 +89,6 @@ multi sub postcircumfix:<[ ]>(
       !! nqp::atposref_#postfix#(nqp::decont(SELF),pos)
 }
 
-multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, int $pos, :$kv!
---> Bool:D) is raw {
-    $kv
-      ?? nqp::list($pos,nqp::atpos_#postfix#(nqp::decont(SELF),$pos))
-      !! nqp::atposref_#postfix#(nqp::decont(SELF),$pos)
-}
 multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Int:D $pos, :$kv!
 --> Bool:D) is raw {
@@ -133,13 +98,6 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, int $pos, :$p!
---> Bool:D) is raw {
-    $p
-      ?? Pair.new($pos,nqp::atpos_#postfix#(nqp::decont(SELF),$pos))
-      !! nqp::atposref_#postfix#(nqp::decont(SELF),$pos)
-}
-multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Int:D $pos, :$p!
 --> Bool:D) is raw {
     $p
@@ -148,25 +106,11 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, int $pos, :$k!
---> Bool:D) is raw {
-    $k ?? $pos !! nqp::atposref_#postfix#(nqp::decont(SELF),$pos)
-}
-multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Int:D $pos, :$k!
 --> Bool:D) is raw {
     $k ?? $pos !! nqp::atposref_#postfix#(nqp::decont(SELF),$pos)
 }
 
-multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, int $pos, :$v!
---> Bool:D) is raw {
-    $v
-      ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
-        ?? nqp::list(nqp::atpos_#postfix#(nqp::decont(SELF),$pos))
-        !! ()
-      !! nqp::atpos_#postfix#(nqp::decont(SELF),$pos)
-}
 multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Int:D $pos, :$v!
 --> Bool:D) is raw {

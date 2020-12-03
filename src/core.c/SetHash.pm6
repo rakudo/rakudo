@@ -103,14 +103,9 @@ my class SetHash does Setty {
     }
 
     my class Iterate does Iterator {
-        has $!elems;
-        has $!keys;
-        method !SET-SELF(\elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         method pull-one() {
             nqp::elems($!keys)
               ?? Pair.new(
@@ -120,18 +115,13 @@ my class SetHash does Setty {
               !! IterationEnd
         }
     }
-    method iterator(SetHash:D:) { Iterate.new($!elems) }
+    method iterator(SetHash:D:) { Iterate.new(:$!elems) }
 
     my class KV does Iterator {
-        has $!elems;
-        has $!keys;
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         has str $!on;
-        method !SET-SELF(Mu \elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
         method pull-one() is raw {
             nqp::if(
               $!on,
@@ -159,17 +149,12 @@ my class SetHash does Setty {
             );
         }
     }
-    multi method kv(SetHash:D:) { Seq.new(KV.new($!elems)) }
+    multi method kv(SetHash:D:) { Seq.new(KV.new(:$!elems)) }
 
     my class Values does Iterator {
-        has $!elems;
-        has $!keys;
-        method !SET-SELF(\elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         method pull-one() is rw {
             nqp::elems($!keys)
               ?? proxy(nqp::shift_s($!keys),$!elems)
@@ -184,7 +169,7 @@ my class SetHash does Setty {
             );
         }
     }
-    multi method values(SetHash:D:) { Seq.new(Values.new($!elems)) }
+    multi method values(SetHash:D:) { Seq.new(Values.new(:$!elems)) }
 
 #--- coercion methods
     multi method Set(SetHash:D: :$view) {  # :view is implementation-detail

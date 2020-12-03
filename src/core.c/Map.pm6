@@ -99,17 +99,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # Iterator over a native string array holding the keys and producing
     # Pairs.
     my class Iterate-keys does Iterator {
-        has $!map;
-        has $!keys;
-        has int $!i;
-
-        method !SET-SELF(Mu \map, Mu \keys) {
-            $!map  := map;
-            $!keys := keys;
-            $!i     = -1;
-            self
-        }
-        method new(Mu \map, Mu \keys) { nqp::create(self)!SET-SELF(map,keys) }
+        has $!map  is built(:bind);
+        has $!keys is built(:bind);
+        has int $!i = -1;
         method pull-one() {
             nqp::if(
               nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!keys)),
@@ -137,7 +129,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method sort(Map:D: --> Seq:D) {
         Seq.new(
-          Iterate-keys.new(self,Rakudo::Sorting.MERGESORT-str(self!keys-as-str))
+          Iterate-keys.new(
+            map  => self,
+            keys => Rakudo::Sorting.MERGESORT-str(self!keys-as-str)
+          )
         )
     }
 

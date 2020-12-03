@@ -167,14 +167,9 @@ my class MixHash does Mixy {
     }
 
     my class Iterate does Iterator {
-        has $!elems;
-        has $!keys;
-        method !SET-SELF(\elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         method pull-one() is raw {
             nqp::elems($!keys)
               ?? nqp::p6bindattrinvres(
@@ -196,18 +191,13 @@ my class MixHash does Mixy {
             )
         }
     }
-    multi method iterator(MixHash:D:) { Iterate.new($!elems) }  # also .pairs
+    multi method iterator(MixHash:D:) { Iterate.new(:$!elems) }  # also .pairs
 
     my class KV does Iterator {
-        has $!elems;
-        has $!keys;
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         has str $!on;
-        method !SET-SELF(Mu \elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
         method pull-one() is raw {
             nqp::if(
               $!on,
@@ -238,17 +228,12 @@ my class MixHash does Mixy {
             )
         }
     }
-    multi method kv(MixHash:D:) { Seq.new(KV.new($!elems)) }
+    multi method kv(MixHash:D:) { Seq.new(KV.new(:$!elems)) }
 
     my class Values does Iterator {
-        has $!elems;
-        has $!keys;
-        method !SET-SELF(\elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         method pull-one() is raw {
             nqp::elems($!keys)
               ?? proxy(nqp::shift_s($!keys),$!elems)
@@ -263,7 +248,7 @@ my class MixHash does Mixy {
             )
         }
     }
-    multi method values(MixHash:D:) { Seq.new(Values.new($!elems)) }
+    multi method values(MixHash:D:) { Seq.new(Values.new(:$!elems)) }
 }
 
 # vim: expandtab shiftwidth=4

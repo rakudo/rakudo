@@ -313,22 +313,13 @@ my class IO::Handle {
     }
 
     my class Words does Iterator {
-        has $!handle;
-        has $!close;
-        has str $!str;
+        has $!handle is built(:bind);
+        has $!close  is built(:bind);
+        has str $!str= ""; # https://github.com/Raku/old-issue-tracker/issues/4690;
+        has int $!searching = 1;
         has int $!pos;
-        has int $!searching;
 
-        method !SET-SELF(\handle, $!close) {
-            $!handle   := handle;
-            $!searching = 1;
-            $!str       = ""; # https://github.com/Raku/old-issue-tracker/issues/4690
-            self!next-chunk;
-            self
-        }
-        method new(\handle, \close) {
-            nqp::create(self)!SET-SELF(handle, close);
-        }
+        method TWEAK() { self!next-chunk }
         method !next-chunk() {
             my int $chars = nqp::chars($!str);
             $!str = $!pos < $chars ?? nqp::substr($!str,$!pos) !! "";
@@ -402,7 +393,7 @@ my class IO::Handle {
     }
     multi method words(IO::Handle:D: :$close) {
         $!decoder
-          ?? Seq.new(Words.new(self,$close))
+          ?? Seq.new(Words.new(:handle(self), :$close))
           !! X::IO::BinaryMode.new(:trying<words>).throw
     }
 

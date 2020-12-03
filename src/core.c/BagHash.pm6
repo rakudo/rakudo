@@ -180,14 +180,9 @@ my class BagHash does Baggy {
     }
 
     my class Iterate does Iterator {
-        has $!elems;
-        has $!keys;
-        method !SET-SELF(\elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         method pull-one() is raw {
             nqp::elems($!keys)
               ?? nqp::p6bindattrinvres(
@@ -209,18 +204,13 @@ my class BagHash does Baggy {
             )
         }
     }
-    multi method iterator(BagHash:D:) { Iterate.new($!elems) }  # also .pairs
+    multi method iterator(BagHash:D:) { Iterate.new(:$!elems) }  # also .pairs
 
     my class KV does Iterator {
-        has $!elems;
-        has $!keys;
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         has str $!on;
-        method !SET-SELF(Mu \elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
         method pull-one() is raw {
             nqp::if(
               $!on,
@@ -238,9 +228,6 @@ my class BagHash does Baggy {
               )
             )
         }
-        method skip-one() {  # the one provided by the role interferes
-            nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
-        }
         method push-all(\target --> IterationEnd) {
             my $elems := $!elems;
             my $keys  := $!keys;
@@ -254,17 +241,12 @@ my class BagHash does Baggy {
             )
         }
     }
-    multi method kv(BagHash:D:) { Seq.new(KV.new($!elems)) }
+    multi method kv(BagHash:D:) { Seq.new(KV.new(:$!elems)) }
 
     my class Values does Iterator {
-        has $!elems;
-        has $!keys;
-        method !SET-SELF(\elems) {
-            $!elems := elems;
-            $!keys  := Rakudo::Internals.IterationSet2keys(elems);
-            self
-        }
-        method new(\elems) { nqp::create(self)!SET-SELF(elems) }
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         method pull-one() is raw {
             nqp::elems($!keys)
               ?? proxy(nqp::shift_s($!keys),$!elems)
@@ -279,7 +261,7 @@ my class BagHash does Baggy {
             );
         }
     }
-    multi method values(BagHash:D:) { Seq.new(Values.new($!elems)) }
+    multi method values(BagHash:D:) { Seq.new(Values.new(:$!elems)) }
 
 #---- selection methods
     multi method grab(BagHash:D:) {

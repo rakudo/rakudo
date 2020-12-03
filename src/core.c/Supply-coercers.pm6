@@ -20,10 +20,7 @@
         has $!queue;
         has $!exception;
 
-        method new($supply) {
-            nqp::create(self)!SET-SELF($supply)
-        }
-        method !SET-SELF($supply) {
+        method TWEAK(:$supply) {
             $!queue     := nqp::create(ConcQueue);
             $!exception := Nil;
             $supply.tap: {
@@ -59,7 +56,7 @@
     }
 
     multi method iterator(Supply:D:) {
-        SupplyIterator.new: self
+        SupplyIterator.new: supply => self
     }
     multi method list(Supply:D:) {
         List.from-iterator: self.iterator

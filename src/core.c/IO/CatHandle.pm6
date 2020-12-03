@@ -95,11 +95,8 @@ my class IO::CatHandle is IO::Handle {
     }
 
     my class Handles does Iterator {
-        has $!cat;
+        has $!cat is built(:bind);
         has $!gave-active;
-
-        method !SET-SELF(\cat) { $!cat := cat; self }
-        method new(\cat) { nqp::create(self)!SET-SELF: cat }
 
         method pull-one {
             nqp::if(
@@ -115,7 +112,9 @@ my class IO::CatHandle is IO::Handle {
                 ?? $ah !! IterationEnd))
         }
     }
-    method handles(IO::Handle:D: --> Seq:D) { Seq.new(Handles.new(self)) }
+    method handles(IO::Handle:D: --> Seq:D) {
+        Seq.new(Handles.new(cat => self))
+    }
 
     method chomp (::?CLASS:D:) is rw {
         Proxy.new:

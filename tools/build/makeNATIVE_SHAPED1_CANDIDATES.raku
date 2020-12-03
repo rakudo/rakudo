@@ -136,6 +136,15 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::shaped1#type#array \SELF, Callable:D $pos
+) is raw {
+    nqp::atposref_#postfix#(
+      nqp::decont(SELF),
+      $pos(nqp::elems(nqp::decont(SELF)))
+    )
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);

@@ -3730,7 +3730,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of shaped1strarray ------------------------
-#- Generated on 2020-12-03T19:57:04+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T20:04:13+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3818,6 +3818,15 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, Callable:D $pos
+) is raw {
+    nqp::atposref_s(
+      nqp::decont(SELF),
+      $pos(nqp::elems(nqp::decont(SELF)))
+    )
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
@@ -3852,7 +3861,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of shaped1strarray --------------------------
 
 #- start of postcircumfix candidates of shaped1intarray ------------------------
-#- Generated on 2020-12-03T19:57:04+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T20:04:13+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3940,6 +3949,15 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, Callable:D $pos
+) is raw {
+    nqp::atposref_i(
+      nqp::decont(SELF),
+      $pos(nqp::elems(nqp::decont(SELF)))
+    )
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
@@ -3974,7 +3992,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of shaped1intarray --------------------------
 
 #- start of postcircumfix candidates of shaped1numarray ------------------------
-#- Generated on 2020-12-03T19:57:04+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T20:04:13+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4059,6 +4077,15 @@ multi sub postcircumfix:<[ ]>(
         ?? nqp::list(nqp::atpos_n(nqp::decont(SELF),$pos))
         !! ()
       !! nqp::atpos_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, Callable:D $pos
+) is raw {
+    nqp::atposref_n(
+      nqp::decont(SELF),
+      $pos(nqp::elems(nqp::decont(SELF)))
+    )
 }
 
 multi sub postcircumfix:<[ ]>(

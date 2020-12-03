@@ -3730,57 +3730,57 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of shaped1strarray ------------------------
-#- Generated on 2020-12-03T13:23:57+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T14:16:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, int \pos
+  array::shaped1strarray \SELF, int $pos
 ) is raw {
-    nqp::atposref_s(nqp::decont(SELF),pos)
+    nqp::atposref_s(nqp::decont(SELF),$pos)
 }
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D \pos
+  array::shaped1strarray \SELF, Int:D $pos
 ) is raw {
-    nqp::atposref_s(nqp::decont(SELF),pos)
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, int \pos, Str:D \assignee
-) is raw {
-    nqp::bindpos_s(nqp::decont(SELF),pos,assignee)
-}
-multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D \pos, Str:D \assignee
-) is raw {
-    nqp::bindpos_s(nqp::decont(SELF),pos,assignee)
+    nqp::atposref_s(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D \pos, :$BIND!
+  array::shaped1strarray \SELF, int $pos, Str:D \assignee
+) is raw {
+    nqp::bindpos_s(nqp::decont(SELF),$pos,assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, Int:D $pos, Str:D \assignee
+) is raw {
+    nqp::bindpos_s(nqp::decont(SELF),$pos,assignee)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray, Any:D, :$BIND!
 ) {
     X::Bind.new(target => 'a shaped native str array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, int \pos, :$exists!
+  array::shaped1strarray \SELF, int $pos, :$exists!
 ) {
     nqp::hllbool(
       $exists
-        ?? nqp::isge_i(pos,0)
-             && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i(pos,0)
-             || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::isge_i($pos,0)
+             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        !! nqp::islt_i($pos,0)
+             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
     )
 }
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D \pos, :$exists!
+  array::shaped1strarray \SELF, Int:D $pos, :$exists!
 ) {
     nqp::hllbool(
       $exists
-        ?? nqp::isge_i(pos,0)
-             && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i(pos,0)
-             || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::isge_i($pos,0)
+             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        !! nqp::islt_i($pos,0)
+             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
     )
 }
 
@@ -3800,6 +3800,66 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, int $pos, :$kv!
+--> Bool:D) is raw {
+    $kv
+      ?? nqp::list($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
+      !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, Int:D $pos, :$kv!
+--> Bool:D) is raw {
+    $kv
+      ?? nqp::list($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
+      !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, int $pos, :$p!
+--> Bool:D) is raw {
+    $p
+      ?? Pair.new($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
+      !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, Int:D $pos, :$p!
+--> Bool:D) is raw {
+    $p
+      ?? Pair.new($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
+      !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, int $pos, :$k!
+--> Bool:D) is raw {
+    $k ?? $pos !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, Int:D $pos, :$k!
+--> Bool:D) is raw {
+    $k ?? $pos !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, int $pos, :$v!
+--> Bool:D) is raw {
+    $v
+      ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::list(nqp::atpos_s(nqp::decont(SELF),$pos))
+        !! ()
+      !! nqp::atpos_s(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray \SELF, Int:D $pos, :$v!
+--> Bool:D) is raw {
+    $v
+      ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::list(nqp::atpos_s(nqp::decont(SELF),$pos))
+        !! ()
+      !! nqp::atpos_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Whatever
 ) {
     nqp::decont(SELF)
@@ -3809,57 +3869,57 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of shaped1strarray --------------------------
 
 #- start of postcircumfix candidates of shaped1intarray ------------------------
-#- Generated on 2020-12-03T13:23:57+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T14:16:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, int \pos
+  array::shaped1intarray \SELF, int $pos
 ) is raw {
-    nqp::atposref_i(nqp::decont(SELF),pos)
+    nqp::atposref_i(nqp::decont(SELF),$pos)
 }
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D \pos
+  array::shaped1intarray \SELF, Int:D $pos
 ) is raw {
-    nqp::atposref_i(nqp::decont(SELF),pos)
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, int \pos, Int:D \assignee
-) is raw {
-    nqp::bindpos_i(nqp::decont(SELF),pos,assignee)
-}
-multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D \pos, Int:D \assignee
-) is raw {
-    nqp::bindpos_i(nqp::decont(SELF),pos,assignee)
+    nqp::atposref_i(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D \pos, :$BIND!
+  array::shaped1intarray \SELF, int $pos, Int:D \assignee
+) is raw {
+    nqp::bindpos_i(nqp::decont(SELF),$pos,assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, Int:D $pos, Int:D \assignee
+) is raw {
+    nqp::bindpos_i(nqp::decont(SELF),$pos,assignee)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray, Any:D, :$BIND!
 ) {
     X::Bind.new(target => 'a shaped native int array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, int \pos, :$exists!
+  array::shaped1intarray \SELF, int $pos, :$exists!
 ) {
     nqp::hllbool(
       $exists
-        ?? nqp::isge_i(pos,0)
-             && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i(pos,0)
-             || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::isge_i($pos,0)
+             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        !! nqp::islt_i($pos,0)
+             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
     )
 }
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D \pos, :$exists!
+  array::shaped1intarray \SELF, Int:D $pos, :$exists!
 ) {
     nqp::hllbool(
       $exists
-        ?? nqp::isge_i(pos,0)
-             && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i(pos,0)
-             || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::isge_i($pos,0)
+             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        !! nqp::islt_i($pos,0)
+             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
     )
 }
 
@@ -3879,6 +3939,66 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, int $pos, :$kv!
+--> Bool:D) is raw {
+    $kv
+      ?? nqp::list($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
+      !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, Int:D $pos, :$kv!
+--> Bool:D) is raw {
+    $kv
+      ?? nqp::list($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
+      !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, int $pos, :$p!
+--> Bool:D) is raw {
+    $p
+      ?? Pair.new($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
+      !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, Int:D $pos, :$p!
+--> Bool:D) is raw {
+    $p
+      ?? Pair.new($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
+      !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, int $pos, :$k!
+--> Bool:D) is raw {
+    $k ?? $pos !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, Int:D $pos, :$k!
+--> Bool:D) is raw {
+    $k ?? $pos !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, int $pos, :$v!
+--> Bool:D) is raw {
+    $v
+      ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::list(nqp::atpos_i(nqp::decont(SELF),$pos))
+        !! ()
+      !! nqp::atpos_i(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray \SELF, Int:D $pos, :$v!
+--> Bool:D) is raw {
+    $v
+      ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::list(nqp::atpos_i(nqp::decont(SELF),$pos))
+        !! ()
+      !! nqp::atpos_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Whatever
 ) {
     nqp::decont(SELF)
@@ -3888,57 +4008,57 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of shaped1intarray --------------------------
 
 #- start of postcircumfix candidates of shaped1numarray ------------------------
-#- Generated on 2020-12-03T13:23:57+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-03T14:16:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, int \pos
+  array::shaped1numarray \SELF, int $pos
 ) is raw {
-    nqp::atposref_n(nqp::decont(SELF),pos)
+    nqp::atposref_n(nqp::decont(SELF),$pos)
 }
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D \pos
+  array::shaped1numarray \SELF, Int:D $pos
 ) is raw {
-    nqp::atposref_n(nqp::decont(SELF),pos)
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, int \pos, Num:D \assignee
-) is raw {
-    nqp::bindpos_n(nqp::decont(SELF),pos,assignee)
-}
-multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D \pos, Num:D \assignee
-) is raw {
-    nqp::bindpos_n(nqp::decont(SELF),pos,assignee)
+    nqp::atposref_n(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D \pos, :$BIND!
+  array::shaped1numarray \SELF, int $pos, Num:D \assignee
+) is raw {
+    nqp::bindpos_n(nqp::decont(SELF),$pos,assignee)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, Int:D $pos, Num:D \assignee
+) is raw {
+    nqp::bindpos_n(nqp::decont(SELF),$pos,assignee)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray, Any:D, :$BIND!
 ) {
     X::Bind.new(target => 'a shaped native num array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, int \pos, :$exists!
+  array::shaped1numarray \SELF, int $pos, :$exists!
 ) {
     nqp::hllbool(
       $exists
-        ?? nqp::isge_i(pos,0)
-             && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i(pos,0)
-             || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::isge_i($pos,0)
+             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        !! nqp::islt_i($pos,0)
+             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
     )
 }
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D \pos, :$exists!
+  array::shaped1numarray \SELF, Int:D $pos, :$exists!
 ) {
     nqp::hllbool(
       $exists
-        ?? nqp::isge_i(pos,0)
-             && nqp::islt_i(pos,nqp::elems(nqp::decont(SELF)))
-        !! nqp::islt_i(pos,0)
-             || nqp::isge_i(pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::isge_i($pos,0)
+             && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        !! nqp::islt_i($pos,0)
+             || nqp::isge_i($pos,nqp::elems(nqp::decont(SELF)))
     )
 }
 
@@ -3955,6 +4075,66 @@ multi sub postcircumfix:<[ ]>(
     $delete
       ?? X::Delete.new(target => 'a shaped native num array').throw
       !! nqp::atposref_n(nqp::decont(SELF),pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, int $pos, :$kv!
+--> Bool:D) is raw {
+    $kv
+      ?? nqp::list($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
+      !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, Int:D $pos, :$kv!
+--> Bool:D) is raw {
+    $kv
+      ?? nqp::list($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
+      !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, int $pos, :$p!
+--> Bool:D) is raw {
+    $p
+      ?? Pair.new($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
+      !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, Int:D $pos, :$p!
+--> Bool:D) is raw {
+    $p
+      ?? Pair.new($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
+      !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, int $pos, :$k!
+--> Bool:D) is raw {
+    $k ?? $pos !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, Int:D $pos, :$k!
+--> Bool:D) is raw {
+    $k ?? $pos !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, int $pos, :$v!
+--> Bool:D) is raw {
+    $v
+      ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::list(nqp::atpos_n(nqp::decont(SELF),$pos))
+        !! ()
+      !! nqp::atpos_n(nqp::decont(SELF),$pos)
+}
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray \SELF, Int:D $pos, :$v!
+--> Bool:D) is raw {
+    $v
+      ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+        ?? nqp::list(nqp::atpos_n(nqp::decont(SELF),$pos))
+        !! ()
+      !! nqp::atpos_n(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(

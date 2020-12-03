@@ -136,6 +136,31 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::shaped1#type#array \SELF, Iterable:D $pos
+) is raw {
+    my $self     := nqp::decont(SELF);
+    my $buffer   := IterationBuffer.new;
+    my $iterator := $pos.iterator;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::push(
+        $buffer,
+        nqp::atpos_#postfix#(
+          $self,
+          nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )
+        )
+      )
+    );
+
+    $buffer.List
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Whatever
 ) {
     nqp::decont(SELF)

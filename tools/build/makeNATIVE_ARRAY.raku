@@ -1,9 +1,10 @@
 #!/usr/bin/env raku
 
-# This script reads the native_array.pm6 file from STDIN, and generates the
-# intarray, numarray and strarray roles in it, and writes it to STDOUT.
+# This script reads the native_array.pm6 file, and generates the intarray,
+# numarray and strarray roles in it, and writes it back to the file.
 
-use v6;
+# always use highest version of Raku
+use v6.*;
 
 my $generator = $*PROGRAM-NAME;
 my $generated = DateTime.now.gist.subst(/\.\d+/,'');
@@ -12,8 +13,14 @@ my $idpos     = $start.chars;
 my $idchars   = 3;
 my $end       = '#- end of generated part of ';
 
+# slurp the whole file and set up writing to it
+my $filename = "src/core.c/native_array.pm6";
+my @lines = $filename.IO.lines;
+$*OUT = $filename.IO.open(:w);
+
 # for all the lines in the source that don't need special handling
-for $*IN.lines -> $line {
+while @lines {
+    my $line := @lines.shift;
 
     # nothing to do yet
     unless $line.starts-with($start) {
@@ -35,8 +42,8 @@ for $*IN.lines -> $line {
     say "#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE";
 
     # skip the old version of the code
-    for $*IN.lines -> $line {
-        last if $line.starts-with($end);
+    while @lines {
+        last if @lines.shift.starts-with($end);
     }
 
     # set up template values
@@ -630,5 +637,8 @@ SOURCE
     say "#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE";
     say $end ~ $type ~ "array role -------------------------------------";
 }
+
+# close the file properly
+$*OUT.close;
 
 # vim: expandtab sw=4

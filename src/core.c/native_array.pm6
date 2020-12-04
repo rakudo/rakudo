@@ -3730,7 +3730,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2020-12-04T14:30:24+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-04T19:09:30+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3842,11 +3842,19 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Iterable:D $pos is rw
+) is raw {
+    nqp::islt_i((my int $got = $pos.Int),0)
+      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+      !! nqp::atposref_s(nqp::decont(SELF),$got)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::strarray \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
-    my $buffer   := IterationBuffer.new;
     my $iterator := $pos.iterator;
+    my str @result;
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -3860,11 +3868,11 @@ multi sub postcircumfix:<[ ]>(
           0
         ),
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push($buffer,nqp::atpos_s($self,$got))
+        nqp::push_s(@result,nqp::atpos_s($self,$got))
       )
     );
 
-    $buffer.List
+    @result
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -3877,7 +3885,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2020-12-04T14:30:24+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-04T19:09:30+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3989,11 +3997,19 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Iterable:D $pos is rw
+) is raw {
+    nqp::islt_i((my int $got = $pos.Int),0)
+      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+      !! nqp::atposref_n(nqp::decont(SELF),$got)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::numarray \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
-    my $buffer   := IterationBuffer.new;
     my $iterator := $pos.iterator;
+    my num @result;
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -4007,11 +4023,11 @@ multi sub postcircumfix:<[ ]>(
           0
         ),
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push($buffer,nqp::atpos_n($self,$got))
+        nqp::push_n(@result,nqp::atpos_n($self,$got))
       )
     );
 
-    $buffer.List
+    @result
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4024,7 +4040,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2020-12-04T14:30:24+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-04T19:09:30+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4136,11 +4152,19 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Iterable:D $pos is rw
+) is raw {
+    nqp::islt_i((my int $got = $pos.Int),0)
+      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+      !! nqp::atposref_i(nqp::decont(SELF),$got)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::intarray \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
-    my $buffer   := IterationBuffer.new;
     my $iterator := $pos.iterator;
+    my int @result;
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -4154,11 +4178,11 @@ multi sub postcircumfix:<[ ]>(
           0
         ),
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push($buffer,nqp::atpos_i($self,$got))
+        nqp::push_i(@result,nqp::atpos_i($self,$got))
       )
     );
 
-    $buffer.List
+    @result
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4171,7 +4195,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
-#- Generated on 2020-12-04T14:42:38+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-04T19:06:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4243,6 +4267,12 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Iterable:D $pos is rw
+) is default is raw {
+    nqp::atposref_s(nqp::decont(SELF),$pos.Int)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Callable:D $pos
 ) is default is raw {
     nqp::atposref_s(
@@ -4255,13 +4285,13 @@ multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Iterable:D $pos
 ) is default is raw {
     my $self     := nqp::decont(SELF);
-    my $buffer   := IterationBuffer.new;
     my $iterator := $pos.iterator;
+    my str @result;
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-      nqp::push(
-        $buffer,
+      nqp::push_s(
+        @result,
         nqp::atpos_s(
           $self,
           nqp::if(
@@ -4273,14 +4303,14 @@ multi sub postcircumfix:<[ ]>(
       )
     );
 
-    $buffer.List
+    @result
 }
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of strarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of intarray -----------------------
-#- Generated on 2020-12-04T14:42:38+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-04T19:06:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4352,6 +4382,12 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Iterable:D $pos is rw
+) is default is raw {
+    nqp::atposref_i(nqp::decont(SELF),$pos.Int)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Callable:D $pos
 ) is default is raw {
     nqp::atposref_i(
@@ -4364,13 +4400,13 @@ multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Iterable:D $pos
 ) is default is raw {
     my $self     := nqp::decont(SELF);
-    my $buffer   := IterationBuffer.new;
     my $iterator := $pos.iterator;
+    my int @result;
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-      nqp::push(
-        $buffer,
+      nqp::push_i(
+        @result,
         nqp::atpos_i(
           $self,
           nqp::if(
@@ -4382,14 +4418,14 @@ multi sub postcircumfix:<[ ]>(
       )
     );
 
-    $buffer.List
+    @result
 }
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
-#- Generated on 2020-12-04T14:42:38+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-04T19:06:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4461,6 +4497,12 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Iterable:D $pos is rw
+) is default is raw {
+    nqp::atposref_n(nqp::decont(SELF),$pos.Int)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1numarray \SELF, Callable:D $pos
 ) is default is raw {
     nqp::atposref_n(
@@ -4473,13 +4515,13 @@ multi sub postcircumfix:<[ ]>(
   array::shaped1numarray \SELF, Iterable:D $pos
 ) is default is raw {
     my $self     := nqp::decont(SELF);
-    my $buffer   := IterationBuffer.new;
     my $iterator := $pos.iterator;
+    my num @result;
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-      nqp::push(
-        $buffer,
+      nqp::push_n(
+        @result,
         nqp::atpos_n(
           $self,
           nqp::if(
@@ -4491,7 +4533,7 @@ multi sub postcircumfix:<[ ]>(
       )
     );
 
-    $buffer.List
+    @result
 }
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE

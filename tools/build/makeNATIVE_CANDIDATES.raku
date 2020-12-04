@@ -160,11 +160,19 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::#type#array \SELF, Iterable:D $pos is rw
+) is raw {
+    nqp::islt_i((my int $got = $pos.Int),0)
+      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+      !! nqp::atposref_#postfix#(nqp::decont(SELF),$got)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::#type#array \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
-    my $buffer   := IterationBuffer.new;
     my $iterator := $pos.iterator;
+    my #type# @result;
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -178,11 +186,11 @@ multi sub postcircumfix:<[ ]>(
           0
         ),
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push($buffer,nqp::atpos_#postfix#($self,$got))
+        nqp::push_#postfix#(@result,nqp::atpos_#postfix#($self,$got))
       )
     );
 
-    $buffer.List
+    @result
 }
 
 multi sub postcircumfix:<[ ]>(

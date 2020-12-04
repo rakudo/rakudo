@@ -120,6 +120,12 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::#type#array \SELF, Iterable:D $pos is rw
+) is default is raw {
+    nqp::atposref_#postfix#(nqp::decont(SELF),$pos.Int)
+}
+
+multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Callable:D $pos
 ) is default is raw {
     nqp::atposref_#postfix#(
@@ -132,13 +138,13 @@ multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array \SELF, Iterable:D $pos
 ) is default is raw {
     my $self     := nqp::decont(SELF);
-    my $buffer   := IterationBuffer.new;
     my $iterator := $pos.iterator;
+    my #type# @result;
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
-      nqp::push(
-        $buffer,
+      nqp::push_#postfix#(
+        @result,
         nqp::atpos_#postfix#(
           $self,
           nqp::if(
@@ -150,7 +156,7 @@ multi sub postcircumfix:<[ ]>(
       )
     );
 
-    $buffer.List
+    @result
 }
 
 SOURCE

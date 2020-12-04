@@ -52,7 +52,7 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Int:D $pos
+  array::#type#array:D \SELF, Int:D $pos
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -60,7 +60,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Int:D $pos, #Type#:D \assignee
+  array::#type#array:D \SELF, Int:D $pos, #Type#:D \assignee
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -68,13 +68,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array, Int:D, :$BIND!
+  array::#type#array:D, Int:D, :$BIND!
 ) {
     X::Bind.new(target => 'a native #type# array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Int:D $pos, :$exists!, *%_
+  array::#type#array:D \SELF, Int:D $pos, :$exists!, *%_
 ) {
     my int $state =
       nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
@@ -98,7 +98,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Int:D $pos, :$delete!, *%_
+  array::#type#array:D \SELF, Int:D $pos, :$delete!, *%_
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -110,7 +110,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Int:D $pos, :$kv!
+  array::#type#array:D \SELF, Int:D $pos, :$kv!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -120,7 +120,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Int:D $pos, :$p!
+  array::#type#array:D \SELF, Int:D $pos, :$p!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -130,7 +130,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Int:D $pos, :$k!
+  array::#type#array:D \SELF, Int:D $pos, :$k!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -140,7 +140,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Int:D $pos, :$v!
+  array::#type#array:D \SELF, Int:D $pos, :$v!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -152,7 +152,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Callable:D $pos
+  array::#type#array:D \SELF, Callable:D $pos
 ) is raw {
     nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
       ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
@@ -160,7 +160,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Iterable:D $pos is rw
+  array::#type#array:D \SELF, Iterable:D $pos is rw
 ) is raw {
     nqp::islt_i((my int $got = $pos.Int),0)
       ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
@@ -168,7 +168,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Iterable:D $pos
+  array::#type#array:D \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
@@ -194,7 +194,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Whatever
+  array::#type#array:D \SELF, Whatever
 ) {
     nqp::decont(SELF)
 }

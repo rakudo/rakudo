@@ -3730,11 +3730,11 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2020-12-04T19:09:30+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-04T21:05:04+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Int:D $pos
+  array::strarray:D \SELF, Int:D $pos
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3742,7 +3742,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Int:D $pos, Str:D \assignee
+  array::strarray:D \SELF, Int:D $pos, Str:D \assignee
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3750,13 +3750,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray, Int:D, :$BIND!
+  array::strarray:D, Int:D, :$BIND!
 ) {
     X::Bind.new(target => 'a native str array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Int:D $pos, :$exists!, *%_
+  array::strarray:D \SELF, Int:D $pos, :$exists!, *%_
 ) {
     my int $state =
       nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
@@ -3780,7 +3780,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Int:D $pos, :$delete!, *%_
+  array::strarray:D \SELF, Int:D $pos, :$delete!, *%_
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3792,7 +3792,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Int:D $pos, :$kv!
+  array::strarray:D \SELF, Int:D $pos, :$kv!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3802,7 +3802,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Int:D $pos, :$p!
+  array::strarray:D \SELF, Int:D $pos, :$p!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3812,7 +3812,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Int:D $pos, :$k!
+  array::strarray:D \SELF, Int:D $pos, :$k!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3822,7 +3822,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Int:D $pos, :$v!
+  array::strarray:D \SELF, Int:D $pos, :$v!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3834,7 +3834,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Callable:D $pos
+  array::strarray:D \SELF, Callable:D $pos
 ) is raw {
     nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
       ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
@@ -3842,7 +3842,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Iterable:D $pos is rw
+  array::strarray:D \SELF, Iterable:D $pos is rw
 ) is raw {
     nqp::islt_i((my int $got = $pos.Int),0)
       ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
@@ -3850,7 +3850,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Iterable:D $pos
+  array::strarray:D \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
@@ -3876,7 +3876,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Whatever
+  array::strarray:D \SELF, Whatever
 ) {
     nqp::decont(SELF)
 }
@@ -3885,11 +3885,11 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2020-12-04T19:09:30+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-04T21:05:04+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Int:D $pos
+  array::numarray:D \SELF, Int:D $pos
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3897,7 +3897,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Int:D $pos, Num:D \assignee
+  array::numarray:D \SELF, Int:D $pos, Num:D \assignee
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3905,13 +3905,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray, Int:D, :$BIND!
+  array::numarray:D, Int:D, :$BIND!
 ) {
     X::Bind.new(target => 'a native num array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Int:D $pos, :$exists!, *%_
+  array::numarray:D \SELF, Int:D $pos, :$exists!, *%_
 ) {
     my int $state =
       nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
@@ -3935,7 +3935,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Int:D $pos, :$delete!, *%_
+  array::numarray:D \SELF, Int:D $pos, :$delete!, *%_
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3947,7 +3947,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Int:D $pos, :$kv!
+  array::numarray:D \SELF, Int:D $pos, :$kv!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3957,7 +3957,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Int:D $pos, :$p!
+  array::numarray:D \SELF, Int:D $pos, :$p!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3967,7 +3967,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Int:D $pos, :$k!
+  array::numarray:D \SELF, Int:D $pos, :$k!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3977,7 +3977,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Int:D $pos, :$v!
+  array::numarray:D \SELF, Int:D $pos, :$v!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -3989,7 +3989,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Callable:D $pos
+  array::numarray:D \SELF, Callable:D $pos
 ) is raw {
     nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
       ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
@@ -3997,7 +3997,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Iterable:D $pos is rw
+  array::numarray:D \SELF, Iterable:D $pos is rw
 ) is raw {
     nqp::islt_i((my int $got = $pos.Int),0)
       ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
@@ -4005,7 +4005,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Iterable:D $pos
+  array::numarray:D \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
@@ -4031,7 +4031,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Whatever
+  array::numarray:D \SELF, Whatever
 ) {
     nqp::decont(SELF)
 }
@@ -4040,11 +4040,11 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2020-12-04T19:09:30+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-04T21:05:04+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Int:D $pos
+  array::intarray:D \SELF, Int:D $pos
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -4052,7 +4052,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Int:D $pos, Int:D \assignee
+  array::intarray:D \SELF, Int:D $pos, Int:D \assignee
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -4060,13 +4060,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray, Int:D, :$BIND!
+  array::intarray:D, Int:D, :$BIND!
 ) {
     X::Bind.new(target => 'a native int array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Int:D $pos, :$exists!, *%_
+  array::intarray:D \SELF, Int:D $pos, :$exists!, *%_
 ) {
     my int $state =
       nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
@@ -4090,7 +4090,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Int:D $pos, :$delete!, *%_
+  array::intarray:D \SELF, Int:D $pos, :$delete!, *%_
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -4102,7 +4102,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Int:D $pos, :$kv!
+  array::intarray:D \SELF, Int:D $pos, :$kv!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -4112,7 +4112,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Int:D $pos, :$p!
+  array::intarray:D \SELF, Int:D $pos, :$p!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -4122,7 +4122,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Int:D $pos, :$k!
+  array::intarray:D \SELF, Int:D $pos, :$k!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -4132,7 +4132,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Int:D $pos, :$v!
+  array::intarray:D \SELF, Int:D $pos, :$v!
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
@@ -4144,7 +4144,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Callable:D $pos
+  array::intarray:D \SELF, Callable:D $pos
 ) is raw {
     nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
       ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
@@ -4152,7 +4152,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Iterable:D $pos is rw
+  array::intarray:D \SELF, Iterable:D $pos is rw
 ) is raw {
     nqp::islt_i((my int $got = $pos.Int),0)
       ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
@@ -4160,7 +4160,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Iterable:D $pos
+  array::intarray:D \SELF, Iterable:D $pos
 ) is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
@@ -4186,7 +4186,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Whatever
+  array::intarray:D \SELF, Whatever
 ) {
     nqp::decont(SELF)
 }
@@ -4195,23 +4195,23 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
-#- Generated on 2020-12-04T19:06:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-04T21:06:14+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos
+  array::shaped1strarray:D \SELF, Int:D $pos
 ) is default is raw {
     nqp::atposref_s(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos, Str:D \assignee
+  array::shaped1strarray:D \SELF, Int:D $pos, Str:D \assignee
 ) is default is raw {
     nqp::bindpos_s(nqp::decont(SELF),$pos,assignee)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos, :$exists!, *%_
+  array::shaped1strarray:D \SELF, Int:D $pos, :$exists!, *%_
 ) is default {
     my int $state =
       nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
@@ -4235,7 +4235,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos, :$kv!
+  array::shaped1strarray:D \SELF, Int:D $pos, :$kv!
 ) is default is raw {
     $kv
       ?? nqp::list($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
@@ -4243,7 +4243,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos, :$p!
+  array::shaped1strarray:D \SELF, Int:D $pos, :$p!
 ) is default is raw {
     $p
       ?? Pair.new($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
@@ -4251,13 +4251,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos, :$k!
+  array::shaped1strarray:D \SELF, Int:D $pos, :$k!
 ) is default is raw {
     $k ?? $pos !! nqp::atposref_s(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos, :$v!
+  array::shaped1strarray:D \SELF, Int:D $pos, :$v!
 ) is default is raw {
     $v
       ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
@@ -4267,13 +4267,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::strarray \SELF, Iterable:D $pos is rw
+  array::shaped1strarray:D \SELF, Iterable:D $pos is rw
 ) is default is raw {
     nqp::atposref_s(nqp::decont(SELF),$pos.Int)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Callable:D $pos
+  array::shaped1strarray:D \SELF, Callable:D $pos
 ) is default is raw {
     nqp::atposref_s(
       nqp::decont(SELF),
@@ -4282,7 +4282,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Iterable:D $pos
+  array::shaped1strarray:D \SELF, Iterable:D $pos
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
@@ -4310,23 +4310,23 @@ multi sub postcircumfix:<[ ]>(
 #- end of shaped1 postcircumfix candidates of strarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of intarray -----------------------
-#- Generated on 2020-12-04T19:06:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-04T21:06:14+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos
+  array::shaped1intarray:D \SELF, Int:D $pos
 ) is default is raw {
     nqp::atposref_i(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos, Int:D \assignee
+  array::shaped1intarray:D \SELF, Int:D $pos, Int:D \assignee
 ) is default is raw {
     nqp::bindpos_i(nqp::decont(SELF),$pos,assignee)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos, :$exists!, *%_
+  array::shaped1intarray:D \SELF, Int:D $pos, :$exists!, *%_
 ) is default {
     my int $state =
       nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
@@ -4350,7 +4350,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos, :$kv!
+  array::shaped1intarray:D \SELF, Int:D $pos, :$kv!
 ) is default is raw {
     $kv
       ?? nqp::list($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
@@ -4358,7 +4358,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos, :$p!
+  array::shaped1intarray:D \SELF, Int:D $pos, :$p!
 ) is default is raw {
     $p
       ?? Pair.new($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
@@ -4366,13 +4366,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos, :$k!
+  array::shaped1intarray:D \SELF, Int:D $pos, :$k!
 ) is default is raw {
     $k ?? $pos !! nqp::atposref_i(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos, :$v!
+  array::shaped1intarray:D \SELF, Int:D $pos, :$v!
 ) is default is raw {
     $v
       ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
@@ -4382,13 +4382,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::intarray \SELF, Iterable:D $pos is rw
+  array::shaped1intarray:D \SELF, Iterable:D $pos is rw
 ) is default is raw {
     nqp::atposref_i(nqp::decont(SELF),$pos.Int)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Callable:D $pos
+  array::shaped1intarray:D \SELF, Callable:D $pos
 ) is default is raw {
     nqp::atposref_i(
       nqp::decont(SELF),
@@ -4397,7 +4397,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Iterable:D $pos
+  array::shaped1intarray:D \SELF, Iterable:D $pos
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
@@ -4425,23 +4425,23 @@ multi sub postcircumfix:<[ ]>(
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
-#- Generated on 2020-12-04T19:06:45+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-04T21:06:14+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos
+  array::shaped1numarray:D \SELF, Int:D $pos
 ) is default is raw {
     nqp::atposref_n(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos, Num:D \assignee
+  array::shaped1numarray:D \SELF, Int:D $pos, Num:D \assignee
 ) is default is raw {
     nqp::bindpos_n(nqp::decont(SELF),$pos,assignee)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos, :$exists!, *%_
+  array::shaped1numarray:D \SELF, Int:D $pos, :$exists!, *%_
 ) is default {
     my int $state =
       nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
@@ -4465,7 +4465,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos, :$kv!
+  array::shaped1numarray:D \SELF, Int:D $pos, :$kv!
 ) is default is raw {
     $kv
       ?? nqp::list($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
@@ -4473,7 +4473,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos, :$p!
+  array::shaped1numarray:D \SELF, Int:D $pos, :$p!
 ) is default is raw {
     $p
       ?? Pair.new($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
@@ -4481,13 +4481,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos, :$k!
+  array::shaped1numarray:D \SELF, Int:D $pos, :$k!
 ) is default is raw {
     $k ?? $pos !! nqp::atposref_n(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos, :$v!
+  array::shaped1numarray:D \SELF, Int:D $pos, :$v!
 ) is default is raw {
     $v
       ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
@@ -4497,13 +4497,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::numarray \SELF, Iterable:D $pos is rw
+  array::shaped1numarray:D \SELF, Iterable:D $pos is rw
 ) is default is raw {
     nqp::atposref_n(nqp::decont(SELF),$pos.Int)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Callable:D $pos
+  array::shaped1numarray:D \SELF, Callable:D $pos
 ) is default is raw {
     nqp::atposref_n(
       nqp::decont(SELF),
@@ -4512,7 +4512,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Iterable:D $pos
+  array::shaped1numarray:D \SELF, Iterable:D $pos
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;

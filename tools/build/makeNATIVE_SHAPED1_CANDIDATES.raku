@@ -52,19 +52,19 @@ while @lines {
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Int:D $pos
+  array::shaped1#type#array:D \SELF, Int:D $pos
 ) is default is raw {
     nqp::atposref_#postfix#(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Int:D $pos, #Type#:D \assignee
+  array::shaped1#type#array:D \SELF, Int:D $pos, #Type#:D \assignee
 ) is default is raw {
     nqp::bindpos_#postfix#(nqp::decont(SELF),$pos,assignee)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Int:D $pos, :$exists!, *%_
+  array::shaped1#type#array:D \SELF, Int:D $pos, :$exists!, *%_
 ) is default {
     my int $state =
       nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
@@ -88,7 +88,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Int:D $pos, :$kv!
+  array::shaped1#type#array:D \SELF, Int:D $pos, :$kv!
 ) is default is raw {
     $kv
       ?? nqp::list($pos,nqp::atpos_#postfix#(nqp::decont(SELF),$pos))
@@ -96,7 +96,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Int:D $pos, :$p!
+  array::shaped1#type#array:D \SELF, Int:D $pos, :$p!
 ) is default is raw {
     $p
       ?? Pair.new($pos,nqp::atpos_#postfix#(nqp::decont(SELF),$pos))
@@ -104,13 +104,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Int:D $pos, :$k!
+  array::shaped1#type#array:D \SELF, Int:D $pos, :$k!
 ) is default is raw {
     $k ?? $pos !! nqp::atposref_#postfix#(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Int:D $pos, :$v!
+  array::shaped1#type#array:D \SELF, Int:D $pos, :$v!
 ) is default is raw {
     $v
       ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
@@ -120,13 +120,13 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::#type#array \SELF, Iterable:D $pos is rw
+  array::shaped1#type#array:D \SELF, Iterable:D $pos is rw
 ) is default is raw {
     nqp::atposref_#postfix#(nqp::decont(SELF),$pos.Int)
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Callable:D $pos
+  array::shaped1#type#array:D \SELF, Callable:D $pos
 ) is default is raw {
     nqp::atposref_#postfix#(
       nqp::decont(SELF),
@@ -135,7 +135,7 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
-  array::shaped1#type#array \SELF, Iterable:D $pos
+  array::shaped1#type#array:D \SELF, Iterable:D $pos
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;

@@ -3729,8 +3729,449 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
     )
 }
 
-#- start of shaped1 postcircumfix candidates of strarray ------------------------
-#- Generated on 2020-12-04T13:24:32+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- start of postcircumfix candidates of strarray -------------------------------
+#- Generated on 2020-12-04T14:30:24+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Int:D $pos
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Int:D $pos, Str:D \assignee
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! nqp::bindpos_s(nqp::decont(SELF),$pos,assignee)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray, Int:D, :$BIND!
+) {
+    X::Bind.new(target => 'a native str array').throw
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Int:D $pos, :$exists!, *%_
+) {
+    my int $state =
+      nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
+    my $value := nqp::hllbool($exists ?? $state !! nqp::not_i($state));
+
+    $state
+      ?? nqp::elems(my $adverbs := nqp::getattr(%_,Map,'$!storage'))
+        ?? nqp::atkey($adverbs,'kv')
+          ?? ($pos,$value)
+          !! nqp::atkey($adverbs,'p')
+            ?? Pair.new($pos,$value)
+            !! Failure.new(
+                 X::Adverb.new(
+                   what   => "slice",
+                   source => "a native str array",
+                   nogo   => ('exists', |%_.keys).sort
+                 )
+               )
+        !! $value
+      !! $value
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Int:D $pos, :$delete!, *%_
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $delete
+        ?? X::Delete.new(target => 'a native str array').throw
+        !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+          ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
+          !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Int:D $pos, :$kv!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $kv
+        ?? nqp::list($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
+        !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Int:D $pos, :$p!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $p
+        ?? Pair.new($pos,nqp::atpos_s(nqp::decont(SELF),$pos))
+        !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Int:D $pos, :$k!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $k
+        ?? $pos
+        !! nqp::atposref_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Int:D $pos, :$v!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $v
+        ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+          ?? nqp::list(nqp::atpos_s(nqp::decont(SELF),$pos))
+          !! ()
+        !! nqp::atpos_s(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Callable:D $pos
+) is raw {
+    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
+      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+      !! nqp::atposref_s(nqp::decont(SELF),$got)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Iterable:D $pos
+) is raw {
+    my $self     := nqp::decont(SELF);
+    my $buffer   := IterationBuffer.new;
+    my $iterator := $pos.iterator;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::if(
+        nqp::islt_i(
+          (my int $got = nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )),
+          0
+        ),
+        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+        nqp::push($buffer,nqp::atpos_s($self,$got))
+      )
+    );
+
+    $buffer.List
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray \SELF, Whatever
+) {
+    nqp::decont(SELF)
+}
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of postcircumfix candidates of strarray ---------------------------------
+
+#- start of postcircumfix candidates of numarray -------------------------------
+#- Generated on 2020-12-04T14:30:24+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Int:D $pos
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Int:D $pos, Num:D \assignee
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! nqp::bindpos_n(nqp::decont(SELF),$pos,assignee)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray, Int:D, :$BIND!
+) {
+    X::Bind.new(target => 'a native num array').throw
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Int:D $pos, :$exists!, *%_
+) {
+    my int $state =
+      nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
+    my $value := nqp::hllbool($exists ?? $state !! nqp::not_i($state));
+
+    $state
+      ?? nqp::elems(my $adverbs := nqp::getattr(%_,Map,'$!storage'))
+        ?? nqp::atkey($adverbs,'kv')
+          ?? ($pos,$value)
+          !! nqp::atkey($adverbs,'p')
+            ?? Pair.new($pos,$value)
+            !! Failure.new(
+                 X::Adverb.new(
+                   what   => "slice",
+                   source => "a native num array",
+                   nogo   => ('exists', |%_.keys).sort
+                 )
+               )
+        !! $value
+      !! $value
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Int:D $pos, :$delete!, *%_
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $delete
+        ?? X::Delete.new(target => 'a native num array').throw
+        !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+          ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
+          !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Int:D $pos, :$kv!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $kv
+        ?? nqp::list($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
+        !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Int:D $pos, :$p!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $p
+        ?? Pair.new($pos,nqp::atpos_n(nqp::decont(SELF),$pos))
+        !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Int:D $pos, :$k!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $k
+        ?? $pos
+        !! nqp::atposref_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Int:D $pos, :$v!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $v
+        ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+          ?? nqp::list(nqp::atpos_n(nqp::decont(SELF),$pos))
+          !! ()
+        !! nqp::atpos_n(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Callable:D $pos
+) is raw {
+    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
+      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+      !! nqp::atposref_n(nqp::decont(SELF),$got)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Iterable:D $pos
+) is raw {
+    my $self     := nqp::decont(SELF);
+    my $buffer   := IterationBuffer.new;
+    my $iterator := $pos.iterator;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::if(
+        nqp::islt_i(
+          (my int $got = nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )),
+          0
+        ),
+        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+        nqp::push($buffer,nqp::atpos_n($self,$got))
+      )
+    );
+
+    $buffer.List
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray \SELF, Whatever
+) {
+    nqp::decont(SELF)
+}
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of postcircumfix candidates of numarray ---------------------------------
+
+#- start of postcircumfix candidates of intarray -------------------------------
+#- Generated on 2020-12-04T14:30:24+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Int:D $pos
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Int:D $pos, Int:D \assignee
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! nqp::bindpos_i(nqp::decont(SELF),$pos,assignee)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray, Int:D, :$BIND!
+) {
+    X::Bind.new(target => 'a native int array').throw
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Int:D $pos, :$exists!, *%_
+) {
+    my int $state =
+      nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
+    my $value := nqp::hllbool($exists ?? $state !! nqp::not_i($state));
+
+    $state
+      ?? nqp::elems(my $adverbs := nqp::getattr(%_,Map,'$!storage'))
+        ?? nqp::atkey($adverbs,'kv')
+          ?? ($pos,$value)
+          !! nqp::atkey($adverbs,'p')
+            ?? Pair.new($pos,$value)
+            !! Failure.new(
+                 X::Adverb.new(
+                   what   => "slice",
+                   source => "a native int array",
+                   nogo   => ('exists', |%_.keys).sort
+                 )
+               )
+        !! $value
+      !! $value
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Int:D $pos, :$delete!, *%_
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $delete
+        ?? X::Delete.new(target => 'a native int array').throw
+        !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+          ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
+          !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Int:D $pos, :$kv!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $kv
+        ?? nqp::list($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
+        !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Int:D $pos, :$p!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $p
+        ?? Pair.new($pos,nqp::atpos_i(nqp::decont(SELF),$pos))
+        !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Int:D $pos, :$k!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $k
+        ?? $pos
+        !! nqp::atposref_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Int:D $pos, :$v!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $v
+        ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+          ?? nqp::list(nqp::atpos_i(nqp::decont(SELF),$pos))
+          !! ()
+        !! nqp::atpos_i(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Callable:D $pos
+) is raw {
+    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
+      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+      !! nqp::atposref_i(nqp::decont(SELF),$got)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Iterable:D $pos
+) is raw {
+    my $self     := nqp::decont(SELF);
+    my $buffer   := IterationBuffer.new;
+    my $iterator := $pos.iterator;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::if(
+        nqp::islt_i(
+          (my int $got = nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )),
+          0
+        ),
+        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+        nqp::push($buffer,nqp::atpos_i($self,$got))
+      )
+    );
+
+    $buffer.List
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray \SELF, Whatever
+) {
+    nqp::decont(SELF)
+}
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of postcircumfix candidates of intarray ---------------------------------
+
+#- start of shaped1 postcircumfix candidates of strarray -----------------------
+#- Generated on 2020-12-04T14:42:38+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3743,12 +4184,6 @@ multi sub postcircumfix:<[ ]>(
   array::shaped1strarray \SELF, Int:D $pos, Str:D \assignee
 ) is default is raw {
     nqp::bindpos_s(nqp::decont(SELF),$pos,assignee)
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray, Any:D, :$BIND!
-) is default {
-    X::Bind.new(target => 'a shaped native str array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -3773,16 +4208,6 @@ multi sub postcircumfix:<[ ]>(
                )
         !! $value
       !! $value
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Int:D $pos, :$delete!, *%_
-) is default is raw {
-    $delete
-      ?? X::Delete.new(target => 'a shaped native str array').throw
-      !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
-        ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
-        !! nqp::atposref_s(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -3851,17 +4276,11 @@ multi sub postcircumfix:<[ ]>(
     $buffer.List
 }
 
-multi sub postcircumfix:<[ ]>(
-  array::shaped1strarray \SELF, Whatever
-) is default {
-    nqp::decont(SELF)
-}
-
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of shaped1 postcircumfix candidates of strarray --------------------------
+#- end of shaped1 postcircumfix candidates of strarray -------------------------
 
-#- start of shaped1 postcircumfix candidates of intarray ------------------------
-#- Generated on 2020-12-04T13:24:32+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- start of shaped1 postcircumfix candidates of intarray -----------------------
+#- Generated on 2020-12-04T14:42:38+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3874,12 +4293,6 @@ multi sub postcircumfix:<[ ]>(
   array::shaped1intarray \SELF, Int:D $pos, Int:D \assignee
 ) is default is raw {
     nqp::bindpos_i(nqp::decont(SELF),$pos,assignee)
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray, Any:D, :$BIND!
-) is default {
-    X::Bind.new(target => 'a shaped native int array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -3904,16 +4317,6 @@ multi sub postcircumfix:<[ ]>(
                )
         !! $value
       !! $value
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Int:D $pos, :$delete!, *%_
-) is default is raw {
-    $delete
-      ?? X::Delete.new(target => 'a shaped native int array').throw
-      !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
-        ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
-        !! nqp::atposref_i(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -3982,17 +4385,11 @@ multi sub postcircumfix:<[ ]>(
     $buffer.List
 }
 
-multi sub postcircumfix:<[ ]>(
-  array::shaped1intarray \SELF, Whatever
-) is default {
-    nqp::decont(SELF)
-}
-
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of shaped1 postcircumfix candidates of intarray --------------------------
+#- end of shaped1 postcircumfix candidates of intarray -------------------------
 
-#- start of shaped1 postcircumfix candidates of numarray ------------------------
-#- Generated on 2020-12-04T13:24:32+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- start of shaped1 postcircumfix candidates of numarray -----------------------
+#- Generated on 2020-12-04T14:42:38+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4005,12 +4402,6 @@ multi sub postcircumfix:<[ ]>(
   array::shaped1numarray \SELF, Int:D $pos, Num:D \assignee
 ) is default is raw {
     nqp::bindpos_n(nqp::decont(SELF),$pos,assignee)
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray, Any:D, :$BIND!
-) is default {
-    X::Bind.new(target => 'a shaped native num array').throw
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4035,16 +4426,6 @@ multi sub postcircumfix:<[ ]>(
                )
         !! $value
       !! $value
-}
-
-multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Int:D $pos, :$delete!, *%_
-) is default is raw {
-    $delete
-      ?? X::Delete.new(target => 'a shaped native num array').throw
-      !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
-        ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
-        !! nqp::atposref_n(nqp::decont(SELF),$pos)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4113,13 +4494,7 @@ multi sub postcircumfix:<[ ]>(
     $buffer.List
 }
 
-multi sub postcircumfix:<[ ]>(
-  array::shaped1numarray \SELF, Whatever
-) is default {
-    nqp::decont(SELF)
-}
-
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
-#- end of shaped1 postcircumfix candidates of numarray --------------------------
+#- end of shaped1 postcircumfix candidates of numarray -------------------------
 
 # vim: expandtab shiftwidth=4

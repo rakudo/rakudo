@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 37;
+plan 47;
 
 # https://github.com/Raku/old-issue-tracker/issues/6613
 
@@ -139,13 +139,23 @@ throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
     'sprintf %d directive with one directive and no corresponding argument throws';
 
 { # https://github.com/perl6/roast/commit/20fe657466
-    my int @arr;
-    throws-like { @arr[0] := my $a }, Exception,
-        :message('Cannot bind to a natively typed array'),
-        'error message when binding to natively typed array';
-    throws-like { @arr[0]:delete   }, Exception,
-        :message('Cannot delete from a natively typed array'),
-        'error message when :deleting from natively typed array';
+    for int, "int", num, "num", str, "str" -> \type, $name {
+        my @array := array[type].new;
+        throws-like { @array[0] := my $a }, Exception,
+            :message("Cannot bind to a native $name array"),
+            "error message when binding to native $name array";
+        throws-like { @array[0]:delete   }, Exception,
+            :message("Cannot delete from a native $name array"),
+            "error message when :deleting from native $name array";
+
+        my @shaped := array[type].new(:shape(42));
+        throws-like { @shaped[0] := my $a }, Exception,
+            :message("Cannot bind to a native $name array"),
+            "error message when binding to native $name array";
+        throws-like { @shaped[0]:delete   }, Exception,
+            :message("Cannot delete from a native $name array"),
+            "error message when :deleting from shaped native $name array";
+    }
 }
 
 # https://github.com/rakudo/rakudo/issues/1346

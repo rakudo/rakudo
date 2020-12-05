@@ -318,7 +318,6 @@ do {
             my @before;
             my $code;
             sub reset(--> Nil) {
-                @before = ();
                 $code   = '';
                 $prompt = self.interactive_prompt;
             }
@@ -386,6 +385,13 @@ do {
                         $code = '';
                         next;
                     }
+                }
+
+                # No errors seen, and explicit output done, so assume that
+                # the "before" code is now solidified so we don't need to
+                # recompile that again and again.
+                else {
+                    @before = ();
                 }
 
                 # Start with clean slate otherwise

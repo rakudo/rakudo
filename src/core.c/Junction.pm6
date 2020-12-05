@@ -5,6 +5,8 @@ my class Junction { # declared in BOOTSTRAP
     # Both of these are also accessed directly inside optimizer when
     # optimizing param typechecks with where clauses
 
+    method type(--> Str:D) { $!type }
+
     method !SET-SELF(str $type,\values) {
         if nqp::iseq_s($type,"any")
           || nqp::iseq_s($type,"all")

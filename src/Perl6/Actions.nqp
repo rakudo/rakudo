@@ -2329,15 +2329,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $op_type;
             my $method;
             if nqp::istype($sm_exp[2], QAST::IVal) {
-                $op_type := 'i';
+                $op_type := '==';
                 $method  := 'Numeric';
             }
             elsif nqp::istype($sm_exp[2], QAST::SVal) {
-                $op_type := 's';
+                $op_type := 'eq';
                 $method  := 'Stringy';
             }
             elsif nqp::istype($sm_exp[2], QAST::NVal) {
-                $op_type := 'n';
+                $op_type := '==';
                 $method  := 'Numeric';
             }
             else {
@@ -2360,12 +2360,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Make sure we're not comparing against a type object, since those could
             # coerce to the value, so gen the equivalent of
-            # `isconcrete($_) && iseq_*(<literal>, $_."$method")`
+            # `isconcrete($_) && <literal> ==|eq $_."$method"`
             my $is_eq :=
                 QAST::Op.new( :op('if'),
                   QAST::Op.new( :op('isconcrete' ),
                     QAST::Var.new( :name('$_'), :scope('lexical') ) ),
-                  QAST::Op.new( :op("iseq_$op_type" ),
+                  QAST::Op.new( :op('call'), :name("&infix:<$op_type>"),
                     $sm_exp[2],
                     WANTED($method_call,'when') ) );
 

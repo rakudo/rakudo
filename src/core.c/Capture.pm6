@@ -20,12 +20,15 @@ my class Capture { # declared in BOOTSTRAP
         if nqp::isconcrete(@!list) && nqp::elems(@!list) {
             nqp::push_s($WHICH, '|');
             my Mu $list := nqp::clone(@!list);
-            while $list {
-                my Mu \value = nqp::shift($list);
-                nqp::push_s($WHICH, '(');
-                nqp::push_s($WHICH, nqp::unbox_s(value.VAR.WHICH));
-                nqp::push_s($WHICH, ')');
-            }
+            nqp::while(
+              nqp::elems($list),
+              nqp::stmts(
+                (my Mu \value = nqp::shift($list)),
+                nqp::push_s($WHICH, '('),
+                nqp::push_s($WHICH, nqp::unbox_s(value.VAR.WHICH)),
+                nqp::push_s($WHICH, ')')
+              )
+            );
         }
         if nqp::isconcrete(%!hash) && nqp::elems(%!hash) {
             nqp::push_s($WHICH, '|');

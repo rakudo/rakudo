@@ -9464,7 +9464,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             # fixed because it'd take more than worth it considering the upcoming RakuAST. //vrurg
                             $var.default(
                                 QAST::WVal.new( :value($is_coercive
-                                                        ?? $param_type.HOW.constraint_type($param_type)
+                                                        ?? $param_type.HOW.target_type($param_type)
                                                         !! $nomtype)));
                         }
                     }

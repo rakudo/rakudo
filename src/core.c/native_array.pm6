@@ -3730,7 +3730,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2020-12-04T21:05:04+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-06T17:43:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3852,12 +3852,12 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Iterable:D $pos
 ) is raw {
-    my $self     := nqp::decont(SELF);
-    my $iterator := $pos.iterator;
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
     my str @result;
 
     nqp::until(
-      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::islt_i(
           (my int $got = nqp::if(
@@ -3876,6 +3876,36 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::strarray:D \SELF, Iterable:D $pos, array::strarray:D $values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my str @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::islt_i(
+          (my int $got = nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )),
+          0
+        ),
+        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+        nqp::push_s(
+          @result,
+          nqp::bindpos_s($self,$got,nqp::atpos_s($values,++$i))
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Whatever
 ) {
     nqp::decont(SELF)
@@ -3885,7 +3915,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2020-12-04T21:05:04+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-06T17:43:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4007,12 +4037,12 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Iterable:D $pos
 ) is raw {
-    my $self     := nqp::decont(SELF);
-    my $iterator := $pos.iterator;
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
     my num @result;
 
     nqp::until(
-      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::islt_i(
           (my int $got = nqp::if(
@@ -4031,6 +4061,36 @@ multi sub postcircumfix:<[ ]>(
 }
 
 multi sub postcircumfix:<[ ]>(
+  array::numarray:D \SELF, Iterable:D $pos, array::numarray:D $values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my num @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::islt_i(
+          (my int $got = nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )),
+          0
+        ),
+        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+        nqp::push_n(
+          @result,
+          nqp::bindpos_n($self,$got,nqp::atpos_n($values,++$i))
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Whatever
 ) {
     nqp::decont(SELF)
@@ -4040,7 +4100,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2020-12-04T21:05:04+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-06T17:43:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4162,12 +4222,12 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Iterable:D $pos
 ) is raw {
-    my $self     := nqp::decont(SELF);
-    my $iterator := $pos.iterator;
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
     my int @result;
 
     nqp::until(
-      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::islt_i(
           (my int $got = nqp::if(
@@ -4179,6 +4239,36 @@ multi sub postcircumfix:<[ ]>(
         ),
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
         nqp::push_i(@result,nqp::atpos_i($self,$got))
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray:D \SELF, Iterable:D $pos, array::intarray:D $values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my int @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::islt_i(
+          (my int $got = nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )),
+          0
+        ),
+        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+        nqp::push_i(
+          @result,
+          nqp::bindpos_i($self,$got,nqp::atpos_i($values,++$i))
+        )
       )
     );
 

@@ -170,12 +170,12 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::#type#array:D \SELF, Iterable:D $pos
 ) is raw {
-    my $self     := nqp::decont(SELF);
-    my $iterator := $pos.iterator;
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
     my #type# @result;
 
     nqp::until(
-      nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
         nqp::islt_i(
           (my int $got = nqp::if(
@@ -187,6 +187,36 @@ multi sub postcircumfix:<[ ]>(
         ),
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
         nqp::push_#postfix#(@result,nqp::atpos_#postfix#($self,$got))
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::#type#array:D \SELF, Iterable:D $pos, array::#type#array:D $values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my #type# @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::islt_i(
+          (my int $got = nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          )),
+          0
+        ),
+        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+        nqp::push_#postfix#(
+          @result,
+          nqp::bindpos_#postfix#($self,$got,nqp::atpos_#postfix#($values,++$i))
+        )
       )
     );
 

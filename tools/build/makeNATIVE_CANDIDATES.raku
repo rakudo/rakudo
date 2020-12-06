@@ -51,6 +51,7 @@ while @lines {
     # spurt the candidates
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
+#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::#type#array:D \SELF, Int:D $pos
 ) is raw {
@@ -228,6 +229,7 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
+#?endif
 
 SOURCE
 

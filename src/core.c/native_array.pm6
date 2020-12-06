@@ -3730,9 +3730,10 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2020-12-06T17:43:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-06T23:42:03+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Int:D $pos
 ) is raw {
@@ -3910,14 +3911,16 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
+#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2020-12-06T17:43:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-06T23:42:03+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Int:D $pos
 ) is raw {
@@ -4095,14 +4098,16 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
+#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2020-12-06T17:43:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-06T23:42:03+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Int:D $pos
 ) is raw {
@@ -4280,14 +4285,16 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
+#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
-#- Generated on 2020-12-04T21:06:14+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-06T23:42:08+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1strarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4395,14 +4402,16 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
+#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of strarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of intarray -----------------------
-#- Generated on 2020-12-04T21:06:14+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-06T23:42:08+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1intarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4510,14 +4519,16 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
+#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
-#- Generated on 2020-12-04T21:06:14+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-06T23:42:08+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
+#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1numarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4625,6 +4636,7 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
+#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of numarray -------------------------

@@ -51,6 +51,7 @@ while @lines {
     # spurt the candidates
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
+#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array:D \SELF, Int:D $pos
 ) is default is raw {
@@ -158,6 +159,7 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
+#?endif
 
 SOURCE
 

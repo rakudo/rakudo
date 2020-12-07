@@ -216,7 +216,11 @@ multi sub postcircumfix:<[ ]>(
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
         nqp::push_#postfix#(
           @result,
-          nqp::bindpos_#postfix#($self,$got,nqp::atpos_#postfix#($values,++$i))
+          nqp::bindpos_#postfix#(
+            $self,
+            $got,
+            nqp::atpos_#postfix#($values,$i = nqp::add_i($i,1))
+          )
         )
       )
     );

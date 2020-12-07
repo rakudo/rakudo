@@ -3730,7 +3730,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2020-12-06T23:42:03+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -3898,7 +3898,11 @@ multi sub postcircumfix:<[ ]>(
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
         nqp::push_s(
           @result,
-          nqp::bindpos_s($self,$got,nqp::atpos_s($values,++$i))
+          nqp::bindpos_s(
+            $self,
+            $got,
+            nqp::atpos_s($values,$i = nqp::add_i($i,1))
+          )
         )
       )
     );
@@ -3917,7 +3921,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2020-12-06T23:42:03+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4085,7 +4089,11 @@ multi sub postcircumfix:<[ ]>(
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
         nqp::push_n(
           @result,
-          nqp::bindpos_n($self,$got,nqp::atpos_n($values,++$i))
+          nqp::bindpos_n(
+            $self,
+            $got,
+            nqp::atpos_n($values,$i = nqp::add_i($i,1))
+          )
         )
       )
     );
@@ -4104,7 +4112,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2020-12-06T23:42:03+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4272,7 +4280,11 @@ multi sub postcircumfix:<[ ]>(
         X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
         nqp::push_i(
           @result,
-          nqp::bindpos_i($self,$got,nqp::atpos_i($values,++$i))
+          nqp::bindpos_i(
+            $self,
+            $got,
+            nqp::atpos_i($values,$i = nqp::add_i($i,1))
+          )
         )
       )
     );

@@ -159,6 +159,33 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1#type#array:D \SELF, Iterable:D $pos, array::#type#array:D $values
+) is default is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my #type# @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::push_#postfix#(
+        @result,
+        nqp::bindpos_#postfix#(
+          $self,
+          nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          ),
+          nqp::atpos_#postfix#($values,$i = nqp::add_i($i,1))
+        )
+      )
+    );
+
+    @result
+}
 #?endif
 
 SOURCE

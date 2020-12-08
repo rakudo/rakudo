@@ -4303,7 +4303,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
-#- Generated on 2020-12-06T23:42:08+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4414,13 +4414,40 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1strarray:D \SELF, Iterable:D $pos, array::strarray:D $values
+) is default is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my str @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::push_s(
+        @result,
+        nqp::bindpos_s(
+          $self,
+          nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          ),
+          nqp::atpos_s($values,$i = nqp::add_i($i,1))
+        )
+      )
+    );
+
+    @result
+}
 #?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of strarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of intarray -----------------------
-#- Generated on 2020-12-06T23:42:08+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4531,13 +4558,40 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1intarray:D \SELF, Iterable:D $pos, array::intarray:D $values
+) is default is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my int @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::push_i(
+        @result,
+        nqp::bindpos_i(
+          $self,
+          nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          ),
+          nqp::atpos_i($values,$i = nqp::add_i($i,1))
+        )
+      )
+    );
+
+    @result
+}
 #?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
-#- Generated on 2020-12-06T23:42:08+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4642,6 +4696,33 @@ multi sub postcircumfix:<[ ]>(
             $pulled(nqp::elems($self)),
             $pulled.Int
           )
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::shaped1numarray:D \SELF, Iterable:D $pos, array::numarray:D $values
+) is default is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my num @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::push_n(
+        @result,
+        nqp::bindpos_n(
+          $self,
+          nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled(nqp::elems($self)),
+            $pulled.Int
+          ),
+          nqp::atpos_n($values,$i = nqp::add_i($i,1))
         )
       )
     );

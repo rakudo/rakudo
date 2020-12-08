@@ -279,6 +279,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    rule sequence {
+        :dba('sequence of statements')
+        ''
+        [
+        | <?before <.[)\]}]> >
+        | [<statement><.eat_terminator> ]*
+        ]
+    }
+
     token statement($*LABEL = '') {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
@@ -1237,8 +1246,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
         | <sigil> $<index>=[\d+]
         | <sigil> <?[<]> <postcircumfix>
+        | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <contextualizer>
         ]
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
+    }
+
+    token contextualizer {
+        :dba('contextualizer')
+        [ <?{ $*IN_DECL }> <.panic: "Cannot declare a contextualizer"> ]?
+        [
+        | <sigil> '(' ~ ')'    <coercee=sequence>
+        | <sigil> <?[ \[ \{ ]> <coercee=circumfix>
+        ]
     }
 
     ##

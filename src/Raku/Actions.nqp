@@ -142,6 +142,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $list;
     }
 
+    method sequence($/) {
+        my $sequence := self.r('StatementSequence').new();
+        for $<statement> {
+            $sequence.push($_.ast);
+        }
+        make $sequence;
+    }
+
     method statement($/) {
         if $<EXPR> {
             make self.r('Statement', 'Expression').new(expression => $<EXPR>.ast);
@@ -665,6 +673,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<postcircumfix> {
             make self.r('Var', 'NamedCapture').new($<postcircumfix>.ast.index);
         }
+        elsif $<contextualizer> {
+            make $<contextualizer>.ast;
+        }
         else {
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
             my str $name := $<sigil> ~ $twigil ~ $<desigilname>;
@@ -720,6 +731,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method current_line($/) {
         HLL::Compiler.lineof($/.orig,$/.from,:cache(1));
+    }
+
+    method contextualizer($/) {
+        my str $sigil := ~$<sigil>;
+        my str $node-type := $sigil eq '@' ?? 'List' !!
+                             $sigil eq '%' ?? 'Hash' !!
+                                              'Item';
+        make self.r('Contextualizer', $node-type).new($<coercee>.ast);
     }
 
     ##

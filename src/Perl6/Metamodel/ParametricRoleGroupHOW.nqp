@@ -17,6 +17,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::BoolificationProtocol
+    does Perl6::Metamodel::InvocationProtocol
 {
     has @!candidates;
     has $!selector;
@@ -52,6 +53,8 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         nqp::setparameterizer($type_obj, sub ($type, @packed) {
             $type.HOW.'!produce_parameterization'($type, @packed);
         });
+
+        $meta.compose_invocation($type_obj);
 
         $type_obj
     }

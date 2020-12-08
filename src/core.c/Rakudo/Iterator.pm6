@@ -4143,6 +4143,45 @@ class Rakudo::Iterator {
     }
     method SuccFromTo(\i,\exclude,\e) { SuccFromTo.new(i,exclude,e) }
 
+    # Returns an iterator that takes a source iterator and a value, and
+    # produces a lazy iterator that will first produce the values of the
+    # given iterator, and then starts producing the given value indefinitely.
+    my class TailWith {
+        has $!iterator;
+        has $!tail;
+        method !SET-SELF(\iterator, \tail) {
+            $!iterator := iterator;
+            $!tail     := tail;
+            self
+        }
+        method new(\iter, \tail) { nqp::create(self)!SET-SELF(iter, tail) }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isnull($!iterator),
+              $!tail,
+              nqp::if(
+                nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd),
+                nqp::stmts(
+                  ($!iterator := nqp::null),
+                  $!tail
+                ),
+                pulled
+              )
+            )
+        }
+        method lazy(--> True) { }
+
+        # Destructive test to see whether the original iterator was
+        # exhausted.  Will act as a skip-one otherwise.  Returns 1 for
+        # exhausted, and 0 for not exhausted yet.
+        method exhausted() {
+            self.pull-one unless nqp::isnull($!iterator);
+            nqp::isnull($!iterator)
+        }
+    }
+    method TailWith(\iter, \tail) { TailWith.new(iter, tail) }
+
     # Returns an iterator that takes a source iterator, an iterator producing
     # Callable blocks producing trueish/falsish values, and a flag indicating
     # the initial state.  Iteration begins with taking the next Callable from

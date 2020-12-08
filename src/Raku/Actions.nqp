@@ -456,6 +456,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make $<dottyop>.ast;
     }
 
+    method dotty:sym<.^>($/) {
+        make $<dottyop>.ast;
+    }
+
     method dottyop($/) {
         if $<methodop> {
             make $<methodop>.ast;
@@ -471,7 +475,22 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method methodop($/) {
         my $args := $<args> ?? $<args>.ast !! self.r('ArgList').new();
         if $<longname> {
-            make self.r('Call', 'Method').new(:name($<longname>.ast), :$args);
+            if $*special {
+                my $longname := $<longname>.ast;
+                unless $longname.is-identifier {
+                    $/.dotty-non-ident($*special);
+                }
+                my $name := $longname.canonicalize;
+                if $*special eq '.^' {
+                    make self.r('Call', 'MetaMethod').new(:$name, :$args);
+                }
+                else {
+                    nqp::die("Missing compilation of $*special");
+                }
+            }
+            else {
+                make self.r('Call', 'Method').new(:name($<longname>.ast), :$args);
+            }
         }
         elsif $<quote> {
             make self.r('Call', 'QuotedMethod').new(:name($<quote>.ast), :$args);

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 17;
+plan 18;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -240,6 +240,16 @@ subtest 'Can make a quoted call on a method with positional arguments' => {
       )
     );
     is-deeply $_, 8
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Can make a meta-method call' => {
+    # 42.^name
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::IntLiteral.new(42),
+      postfix => RakuAST::Call::MetaMethod.new(name => 'name')
+    );
+    is-deeply $_, 'Int'
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
 

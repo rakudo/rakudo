@@ -741,17 +741,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <O(|%methodcall)>
     }
 
-    token dottyop {
+    token dotty:sym<.^> {
+        <sym> <dottyop('.^')>
+        <O(|%methodcall)>
+    }
+
+    token dottyop($special?) {
         :dba('dotty method or postfix')
         <.unsp>?
         [
-        | <methodop>
+        | <methodop($special)>
 #        | <colonpair>
         | <!alpha> <postop> $<O> = {$<postop><O>} $<sym> = {$<postop><sym>}
+          <.dotty-non-ident($special)>
         ]
     }
 
-    token methodop {
+    token methodop($*special) {
         [
         | <longname> {
                 if $<longname> eq '::' { self.malformed("class-qualified postfix call") }
@@ -761,6 +767,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
             <quote>
             [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
+          <.dotty-non-ident($*special)>
         ] <.unsp>?
         :dba('method arguments')
         [
@@ -771,6 +778,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             || <!{ $*QSIGIL }> <?>
             || <?{ $*QSIGIL }> <?[.]> <?>
         ] <.unsp>?
+    }
+
+    token dotty-non-ident($special) {
+        | <!{ $special }>
+        | <.panic("Cannot use $special on a non-identifier method call")>
     }
 
     token postfix:sym<i>  { <sym> >> <O(|%methodcall)> }

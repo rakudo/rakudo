@@ -316,6 +316,28 @@ class RakuAST::Call::QuotedMethod is RakuAST::Call::Methodish {
     }
 }
 
+# A call to a meta-method.
+class RakuAST::Call::MetaMethod is RakuAST::Call::Methodish {
+    has str $.name;
+
+    method new(str :$name!, RakuAST::ArgList :$args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Call::MetaMethod, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor(self.args);
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        my $call := QAST::Op.new( :op('p6callmethodhow'), :name($!name), $invocant-qast );
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        self.IMPL-APPLY-SINK($call)
+    }
+}
+
 # Base role for all stubs
 class RakuAST::Stub is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
 

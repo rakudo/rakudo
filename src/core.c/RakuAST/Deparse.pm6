@@ -314,6 +314,15 @@ class RakuAST::Deparse {
         )
     }
 
+    multi method deparse(RakuAST::Call::MetaMethod:D $ast --> str) {
+        nqp::concat(
+          nqp::concat('^', $ast.name),
+          nqp::concat($.parens-open,
+            nqp::concat(self.deparse($ast.args),$.parens-close)
+          )
+        )
+    }
+
     multi method deparse(RakuAST::Call::Name:D $ast --> str) {
         nqp::concat(self.deparse($ast.name),
           nqp::concat($.parens-open,

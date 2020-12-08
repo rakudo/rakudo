@@ -3605,7 +3605,7 @@ BEGIN {
             }
             else {
                 my $self_name := $self.HOW.name($self);
-                if !nqp::isconcrete($self) {
+                if !nqp::isconcrete($self) && +@pos {
                     my $val;
                     if +@pos == 1 {
                         $val := @pos[0];

@@ -209,8 +209,13 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
     }
 }
 
-# A call to a method.
-class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
+# The base of all method call like things.
+class RakuAST::Call::Methodish is RakuAST::Call is RakuAST::Postfixish {
+}
+
+# A call to a method identified by a name. Some names (like WHAT and HOW) are
+# compiled into primitive operations rather than really being method calls.
+class RakuAST::Call::Method is RakuAST::Call::Methodish {
     has RakuAST::Name $.name;
 
     method new(RakuAST::Name :$name!, RakuAST::ArgList :$args) {
@@ -284,6 +289,30 @@ class RakuAST::Call::Method is RakuAST::Call is RakuAST::Postfixish {
             my %named := @args[1];
             $invocant."$name"(|@pos, |%named)
         }
+    }
+}
+
+# A call to a method with a quoted name.
+class RakuAST::Call::QuotedMethod is RakuAST::Call::Methodish {
+    has RakuAST::QuotedString $.name;
+
+    method new(RakuAST::QuotedString :$name!, RakuAST::ArgList :$args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Call::QuotedMethod, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList.new);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+        $visitor(self.args);
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+        my $name-qast := QAST::Op.new( :op<unbox_s>, $!name.IMPL-TO-QAST($context) );
+        my $call := QAST::Op.new( :op('callmethod'), $invocant-qast, $name-qast );
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        self.IMPL-APPLY-SINK($call)
     }
 }
 

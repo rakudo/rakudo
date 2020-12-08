@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 15;
+plan 17;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -204,6 +204,42 @@ subtest 'Method call REPR compiles into MOP primitive' => {
       )
     );
     is-deeply $_, 'P6opaque'
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Can make a quoted call on a method without arguments' => {
+    # TestTarget."route"()
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::QuotedMethod.new(
+        name => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('route')]
+        )
+      )
+    );
+    is-deeply $_, 66
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'Can make a quoted call on a method with positional arguments' => {
+    # TestTarget."subtract"(14, 6)
+    ast RakuAST::ApplyPostfix.new(
+      operand => RakuAST::Type::Simple.new(
+        RakuAST::Name.from-identifier('TestTarget')
+      ),
+      postfix => RakuAST::Call::QuotedMethod.new(
+        name => RakuAST::QuotedString.new(
+          :segments[RakuAST::StrLiteral.new('subtract')]
+        ),
+        args => RakuAST::ArgList.new(
+          RakuAST::IntLiteral.new(14),
+          RakuAST::IntLiteral.new(6),
+        )
+      )
+    );
+    is-deeply $_, 8
       for EVAL($ast), EVAL($ast.DEPARSE);
 }
 

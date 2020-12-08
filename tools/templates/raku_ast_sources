@@ -7,6 +7,7 @@ src/Raku/ast/attaching.rakumod
 src/Raku/ast/begintime.rakumod
 src/Raku/ast/traits.rakumod
 src/Raku/ast/statements.rakumod
+src/Raku/ast/statement-mods.rakumod
 src/Raku/ast/expressions.rakumod
 src/Raku/ast/circumfix.rakumod
 src/Raku/ast/pair.rakumod

@@ -152,7 +152,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method statement($/) {
         if $<EXPR> {
-            make self.r('Statement', 'Expression').new(expression => $<EXPR>.ast);
+            my $statement := self.r('Statement', 'Expression').new(expression => $<EXPR>.ast);
+            if $<statement_mod_cond> {
+                $statement.replace-condition-modifier($<statement_mod_cond>.ast);
+            }
+            if $<statement_mod_loop> {
+                $statement.replace-loop-modifier($<statement_mod_loop>.ast);
+            }
+            make $statement;
         }
         elsif $<statement_control> {
             make $<statement_control>.ast;
@@ -282,6 +289,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             !! self.r('Statement', 'Use').new(module-name => $<module_name>.ast);
         $ast.ensure-begin-performed($*R);
         make $ast;
+    }
+
+    ##
+    ## Statement modifiers
+    ##
+
+    method modifier_expr($/) {
+        make $<EXPR>.ast;
+    }
+
+    method statement_mod_cond:sym<if>($/) {
+        make self.r('StatementModifier', 'Condition', 'If').new($<modifier_expr>.ast);
+    }
+    method statement_mod_cond:sym<unless>($/) {
+        make self.r('StatementModifier', 'Condition', 'Unless').new($<modifier_expr>.ast);
+    }
+
+    method statement_mod_loop:sym<while>($/) {
+        make self.r('StatementModifier', 'Loop', 'While').new($<modifier_expr>.ast);
+    }
+    method statement_mod_loop:sym<until>($/) {
+        make self.r('StatementModifier', 'Loop', 'Until').new($<modifier_expr>.ast);
     }
 
     ##

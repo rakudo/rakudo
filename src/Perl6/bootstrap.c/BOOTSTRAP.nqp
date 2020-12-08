@@ -3626,7 +3626,8 @@ BEGIN {
                     Perl6::Metamodel::Configuration.throw_or_die(
                         'X::Method::NotFound',
                         "No such method 'CALL-ME' for invocant of type '$self_name'",
-                        :invocant($self), :method<CALL-ME>, :typename($self.HOW.name($self))
+                        :invocant($self), :method(nqp::hllizefor('CALL-ME', "Raku")),
+                        :typename(nqp::hllizefor($self_name, "Raku"))
                     );
                 }
             }

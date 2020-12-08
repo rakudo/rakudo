@@ -473,6 +473,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<longname> {
             make self.r('Call', 'Method').new(:name($<longname>.ast), :$args);
         }
+        elsif $<quote> {
+            make self.r('Call', 'QuotedMethod').new(:name($<quote>.ast), :$args);
+        }
         else {
             nqp::die('NYI kind of methodop');
         }

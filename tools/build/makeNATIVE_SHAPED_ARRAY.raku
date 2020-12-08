@@ -13,6 +13,7 @@ my $start     = '#- start of generated part of shaped';
 my $idpos     = $start.chars;
 my $idchars   = 3;
 my $end       = '#- end of generated part of shaped';
+my %null = str => '""', int => "0", num => "0e0";
 
 # slurp the whole file and set up writing to it
 my $filename = "src/core.c/native_array.pm6";
@@ -46,6 +47,7 @@ while @lines {
       postfix => $type.substr(0,1),
       type    => $type,
       Type    => $type.tclc,
+      null    => %null{$type},
     ;
 
     # spurt the roles
@@ -358,27 +360,19 @@ while @lines {
             )
         }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            nqp::stmts(
-              (my \iter := in.iterator),
-              (my int $elems = nqp::elems(self)),
-              (my int $i = -1),
-              nqp::until(
-                nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
-                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_#postfix#(self,$i,pulled)
-              ),
-              nqp::unless(
-                nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos_#postfix#(list,$i) # too many values on non-lazy it
-              ),
-              self
-            )
+            my \iter := Rakudo::Iterator.TailWith(in.iterator,#null#);
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::bindpos_#postfix#(self,$i,iter.pull-one)
+            );
+            # too many values? then throw by just accessing out of range
+            nqp::atpos_i(list,$i) unless iter.exhausted;
+            self
         }
         multi method STORE(::?CLASS:D: #Type#:D \item) {
-            nqp::stmts(
-              nqp::bindpos_#postfix#(self,0,item),
-              self
-            )
+            nqp::bindpos_#postfix#(self,0,item);
+            self
         }
 
         my class Iterate-#type# does PredictiveIterator {

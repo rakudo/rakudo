@@ -2002,7 +2002,7 @@ my class array does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2020-12-03T13:15:45+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2020-12-08T18:47:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2312,27 +2312,19 @@ my class array does Iterable does Positional {
             )
         }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            nqp::stmts(
-              (my \iter := in.iterator),
-              (my int $elems = nqp::elems(self)),
-              (my int $i = -1),
-              nqp::until(
-                nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
-                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_i(self,$i,pulled)
-              ),
-              nqp::unless(
-                nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos_i(list,$i) # too many values on non-lazy it
-              ),
-              self
-            )
+            my \iter := Rakudo::Iterator.TailWith(in.iterator,0);
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::bindpos_i(self,$i,iter.pull-one)
+            );
+            # too many values? then throw by just accessing out of range
+            nqp::atpos_i(list,$i) unless iter.exhausted;
+            self
         }
         multi method STORE(::?CLASS:D: Int:D \item) {
-            nqp::stmts(
-              nqp::bindpos_i(self,0,item),
-              self
-            )
+            nqp::bindpos_i(self,0,item);
+            self
         }
 
         my class Iterate-int does PredictiveIterator {
@@ -2515,7 +2507,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2020-12-03T13:15:45+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2020-12-08T18:47:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2825,27 +2817,19 @@ my class array does Iterable does Positional {
             )
         }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            nqp::stmts(
-              (my \iter := in.iterator),
-              (my int $elems = nqp::elems(self)),
-              (my int $i = -1),
-              nqp::until(
-                nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
-                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_n(self,$i,pulled)
-              ),
-              nqp::unless(
-                nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos_n(list,$i) # too many values on non-lazy it
-              ),
-              self
-            )
+            my \iter := Rakudo::Iterator.TailWith(in.iterator,0e0);
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::bindpos_n(self,$i,iter.pull-one)
+            );
+            # too many values? then throw by just accessing out of range
+            nqp::atpos_i(list,$i) unless iter.exhausted;
+            self
         }
         multi method STORE(::?CLASS:D: Num:D \item) {
-            nqp::stmts(
-              nqp::bindpos_n(self,0,item),
-              self
-            )
+            nqp::bindpos_n(self,0,item);
+            self
         }
 
         my class Iterate-num does PredictiveIterator {
@@ -3028,7 +3012,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2020-12-03T13:15:45+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2020-12-08T18:47:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -3338,27 +3322,19 @@ my class array does Iterable does Positional {
             )
         }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            nqp::stmts(
-              (my \iter := in.iterator),
-              (my int $elems = nqp::elems(self)),
-              (my int $i = -1),
-              nqp::until(
-                nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
-                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_s(self,$i,pulled)
-              ),
-              nqp::unless(
-                nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos_s(list,$i) # too many values on non-lazy it
-              ),
-              self
-            )
+            my \iter := Rakudo::Iterator.TailWith(in.iterator,"");
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::bindpos_s(self,$i,iter.pull-one)
+            );
+            # too many values? then throw by just accessing out of range
+            nqp::atpos_i(list,$i) unless iter.exhausted;
+            self
         }
         multi method STORE(::?CLASS:D: Str:D \item) {
-            nqp::stmts(
-              nqp::bindpos_s(self,0,item),
-              self
-            )
+            nqp::bindpos_s(self,0,item);
+            self
         }
 
         my class Iterate-str does PredictiveIterator {

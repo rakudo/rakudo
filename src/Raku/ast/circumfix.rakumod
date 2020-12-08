@@ -1,5 +1,5 @@
 # Marker for all kinds of circumfix.
-class RakuAST::Circumfix is RakuAST::Term {
+class RakuAST::Circumfix is RakuAST::Term is RakuAST::Contextualizable {
 }
 
 # Grouping parentheses circumfix.

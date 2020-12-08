@@ -301,7 +301,20 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         #| <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
         | <statement_control>
-        | <EXPR>
+        | <EXPR> :dba('statement end')
+            [
+            || <?MARKED('endstmt')>
+            || :dba('statement modifier') <.ws> <statement_mod_cond> <statement_mod_loop>?
+            || :dba('statement modifier loop') <.ws> <statement_mod_loop>
+                {
+                    my $sp := $<EXPR><statement_prefix>;
+                    if $sp && $sp<sym> eq 'do' {
+                        my $s := $<statement_mod_loop><sym>;
+                        $/.obs("do..." ~ $s, "repeat...while or repeat...until")
+                          unless $*LANG.pragma('p5isms');
+                    }
+                }
+            ]?
         | <?[;]>
         #| <?stopper>
         | {} <.panic: "Bogus statement">
@@ -499,6 +512,26 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
         <.ws>
     }
+
+    ##
+    ## Statement modifiers
+    ##
+
+    method nomodexpr($k) {
+        self.'!clear_highwater'();
+        self.typed_panic( 'X::Syntax::Confused', reason => "Missing expression for '$k' statement modifier" );
+        self
+    }
+
+    token modifier_expr($k) { <EXPR> || <.nomodexpr($k)> }
+
+    proto rule statement_mod_cond { <...> }
+    rule statement_mod_cond:sym<if>     { <sym><.kok> <modifier_expr('if')> }
+    rule statement_mod_cond:sym<unless> { <sym><.kok> <modifier_expr('unless')> }
+
+    proto rule statement_mod_loop { <...> }
+    rule statement_mod_loop:sym<while> { <sym><.kok> <modifier_expr('while')> }
+    rule statement_mod_loop:sym<until> { <sym><.kok> <modifier_expr('until')> }
 
     ##
     ## Statement prefixes

@@ -183,15 +183,38 @@ class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookup
 # single term.
 class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropagator {
     has RakuAST::Expression $.expression;
+    has RakuAST::StatementModifier::Condition $.condition-modifier;
+    has RakuAST::StatementModifier::Loop $.loop-modifier;
 
-    method new(RakuAST::Expression :$expression) {
+    method new(RakuAST::Expression :$expression!,
+               RakuAST::StatementModifier::Condition :$condition-modifier,
+               RakuAST::StatementModifier::Loop :$loop-modifier) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!expression', $expression);
+        nqp::bindattr($obj, RakuAST::Statement::Expression, '$!condition-modifier',
+            $condition-modifier // RakuAST::StatementModifier::Condition);
+        nqp::bindattr($obj, RakuAST::Statement::Expression, '$!loop-modifier',
+            $loop-modifier // RakuAST::StatementModifier::Loop);
         $obj
     }
 
+    method replace-condition-modifier(RakuAST::StatementModifier::Condition $condition-modifier) {
+        nqp::bindattr(self, RakuAST::Statement::Expression, '$!condition-modifier',
+            $condition-modifier);
+        Nil
+    }
+
+    method replace-loop-modifier(RakuAST::StatementModifier::Loop $loop-modifier) {
+        nqp::bindattr(self, RakuAST::Statement::Expression, '$!loop-modifier',
+            $loop-modifier);
+        Nil
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!expression.IMPL-TO-QAST($context)
+        my $qast := $!expression.IMPL-TO-QAST($context);
+        $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier;
+        $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast) if $!loop-modifier;
+        $qast
     }
 
     method propagate-sink(Bool $is-sunk) {
@@ -200,9 +223,13 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
 
     method visit-children(Code $visitor) {
         $visitor($!expression);
+        $visitor($!condition-modifier) if $!condition-modifier;
+        $visitor($!loop-modifier) if $!loop-modifier;
     }
 
-    method IMPL-CAN-INTERPRET() { $!expression.IMPL-CAN-INTERPRET }
+    method IMPL-CAN-INTERPRET() {
+        !$!condition-modifier && !$!loop-modifier && $!expression.IMPL-CAN-INTERPRET
+    }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx) {
         $!expression.IMPL-INTERPRET($ctx)

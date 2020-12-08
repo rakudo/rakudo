@@ -757,10 +757,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
                 if $<longname> eq '::' { self.malformed("class-qualified postfix call") }
           }
 #        | <?[$@&]> <variable>
-#        | <?['"]>
-#            [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
-#            <quote>
-#            [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
+        | <?['"]>
+            [ <!{$*QSIGIL}> || <!before '"' <.-["]>*? [\s|$] > ] # dwim on "$foo."
+            <quote>
+            [ <?before '(' | '.(' | '\\'> || <.panic: "Quoted method name requires parenthesized arguments. If you meant to concatenate two strings, use '~'."> ]
         ] <.unsp>?
         :dba('method arguments')
         [

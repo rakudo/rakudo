@@ -3,6 +3,9 @@
 class RakuAST::Blorst is RakuAST::Node {
 }
 
+# Something that can be the target of a contextualizer.
+class RakuAST::Contextualizable is RakuAST::Node {}
+
 # Everything that can appear at statement level does RakuAST::Statement.
 class RakuAST::Statement is RakuAST::Blorst {
     method IMPL-WRAP-WHEN-OR-DEFAULT(RakuAST::IMPL::QASTContext $context, Mu $qast) {
@@ -117,6 +120,41 @@ class RakuAST::SemiList is RakuAST::StatementList is RakuAST::ImplicitLookups {
                 $list.push($_.IMPL-TO-QAST($context));
             }
             $list
+        }
+    }
+}
+
+# A statement sequence is a semicolon-separated list of statements, used as
+# the target for a contextualizer. Like a normal statement list, it puts all
+# but its last statement in sink context and evaluates to the value of the
+# final statement. However, if empty it evaluates instead to an empty list.
+class RakuAST::StatementSequence is RakuAST::StatementList is RakuAST::ImplicitLookups
+                                 is RakuAST::Contextualizable {
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Var::Lexical.new('&infix:<,>'),
+        ])
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my @statements := nqp::getattr(self, RakuAST::StatementList, '$!statements');
+        my int $n := nqp::elems(@statements);
+        if $n == 1 {
+            nqp::atpos(@statements, 0).IMPL-TO-QAST($context)
+        }
+        elsif $n == 0 {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            QAST::Op.new(
+                :op('call'),
+                :name(@lookups[0].resolution.lexical-name)
+            )
+        }
+        else {
+            my $stmts := QAST::Stmts.new;
+            for @statements {
+                $stmts.push($_.IMPL-TO-QAST($context));
+            }
+            $stmts
         }
     }
 }

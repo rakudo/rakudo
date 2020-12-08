@@ -1052,6 +1052,13 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Term::Whatever:D $ast --> '*') { }
 
+    multi method deparse(RakuAST::Contextualizer $contextualizer --> str) {
+        $contextualizer.sigil ~ do given $contextualizer.target {
+            when RakuAST::StatementSequence { $!parens-open ~ self.deparse($_) ~ $!parens-close }
+            default { self.deparse($_) }
+        }
+    }
+
     multi method deparse(RakuAST::Ternary:D $ast --> str) {
         nqp::join('',nqp::list_s(
           self.deparse($ast.condition),

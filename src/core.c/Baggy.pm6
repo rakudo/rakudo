@@ -487,7 +487,7 @@ my role Baggy does QuantHash {
             )
         }
         method count-only(--> Int:D) { $!todo }
-        method sink-all() { $!todo := 0 }
+        method sink-all(--> IterationEnd) { $!todo := 0 }
 
     }
     multi method pick(Baggy:D: \count) {

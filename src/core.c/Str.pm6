@@ -943,6 +943,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method count-only(--> Int:D) {
             nqp::p6box_i($!chars - $!pos - nqp::islt_i($!pos,$!chars))
         }
+        method sink-all(--> IterationEnd) { $!pos = $!chars }
     }
     multi method comb(Str:D: --> Seq:D) { Seq.new(CombAll.new(self)) }
 
@@ -993,6 +994,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method count-only(--> Int:D) {
             nqp::p6box_i($!todo - nqp::isgt_i($!todo,0))
         }
+        method sink-all(--> IterationEnd) { $!pos = $!chars }
     }
 
     multi method comb(Str:D: Int:D $size, $limit = * --> Seq:D) {
@@ -1899,6 +1901,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method bool-only(--> Bool:D) {
             nqp::hllbool(nqp::islt_i($!pos,$!chars))
         }
+        method sink-all(--> IterationEnd) { }
     }
 
     my class LinesKeepNL is Lines {
@@ -2813,6 +2816,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         method bool-only(--> Bool:D) {
             nqp::hllbool(nqp::islt_i($!pos,$!chars))
         }
+        method sink-all(--> IterationEnd) { }
     }
     multi method words(Str:D: --> Seq:D) { Seq.new(Words.new(self)) }
 

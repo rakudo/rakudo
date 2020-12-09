@@ -196,7 +196,7 @@ my class Range is Cool does Iterable does Positional {
         method count-only(--> Int:D) {
             nqp::p6box_i($!i - $!n + nqp::isgt_i($!n,$!i))
         }
-        method sink-all(--> IterationEnd)   { $!i = $!n }
+        method sink-all(--> IterationEnd) { $!i = $!n }
     }
     my class InfReverse does Iterator {
         method new()      { nqp::create(self) }

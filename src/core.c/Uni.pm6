@@ -52,6 +52,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         method count-only(--> Int:D) {
             nqp::p6box_i($!els - $!i - nqp::islt_i($!i,$!els))
         }
+        method sink-all(--> IterationEnd) { $!i = $!els }
     }
     method list(Uni:D:) { Seq.new(UniList.new(self)) }
 

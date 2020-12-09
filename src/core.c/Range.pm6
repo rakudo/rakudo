@@ -21,7 +21,7 @@ my class Range is Cool does Iterable does Positional {
     multi method is-lazy(Range:D:) { self.infinite }
 
     multi method contains(Range:D: \needle) {
-        warn "Applying '.contains' to a Range will look at its .Str representation.  Did you mean 'Range (elem) needle'?".naive-word-wrapper;
+        warn "Applying '.contains' to a Range will look at its .Str representation.  Did you mean 'needle (elem) Range'?".naive-word-wrapper;
         self.Str.contains(needle)
     }
 

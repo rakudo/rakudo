@@ -93,8 +93,8 @@ my role Iterator {
     # sink context that should not be used that way, or to process things in
     # a more efficient way when we know we don't need the results.
     method sink-all(--> IterationEnd) {
-        nqp::until(
-          nqp::eqaddr(self.pull-one,IterationEnd),
+        nqp::while(
+          self.skip-one,
           nqp::null
         )
     }

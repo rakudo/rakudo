@@ -3619,7 +3619,11 @@ BEGIN {
                         "Cannot coerce to $self_name with named arguments",
                         :target-type($self.WHAT), :from-type($val.WHAT), :hint("named arguments passed")
                     ) if +%named;
-                    my $coercion_type := Perl6::Metamodel::CoercionHOW.new_type($self.WHAT, $val.WHAT);
+                    my $coercion_type := Perl6::Metamodel::CoercionHOW.new_type(
+                        ($self.HOW.is_pun($self)
+                            ?? $self.HOW.pun_source($self)
+                            !! $self.WHAT),
+                        $val.WHAT);
                     nqp::hllizefor($coercion_type.HOW.coerce($coercion_type, $val), "Raku");
                 }
                 else {

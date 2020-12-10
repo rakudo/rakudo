@@ -4144,8 +4144,9 @@ class Rakudo::Iterator {
     method SuccFromTo(\i,\exclude,\e) { SuccFromTo.new(i,exclude,e) }
 
     # Returns an iterator that takes a source iterator and a value, and
-    # produces a lazy iterator that will first produce the values of the
-    # given iterator, and then starts producing the given value indefinitely.
+    # produces a lazy iterator that will first produce decontainerized
+    # values of the given iterator, and then starts producing the given
+    # value indefinitely.
     my class TailWith {
         has $!iterator;
         has $!tail;
@@ -4156,7 +4157,7 @@ class Rakudo::Iterator {
         }
         method new(\iter, \tail) { nqp::create(self)!SET-SELF(iter, tail) }
 
-        method pull-one() is raw {
+        method pull-one() {
             nqp::if(
               nqp::isnull($!iterator),
               $!tail,

@@ -188,74 +188,49 @@ multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is raw {
       ?? SELF.AT-POS(pos.Int)
       !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
-    # MMD is not behaving itself so we do this by hand.
-    if nqp::iscont(pos) {
-        return SELF[pos.Int] = val;
-    }
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, Mu \val ) is raw {
 
-    # Prep an iterator that will assign Nils past end of rval
-    my \rvlist :=
-        do if  nqp::iscont(val)
-            or not nqp::istype(val, Iterator)
-               and not nqp::istype(val, Iterable) {
-            (nqp::decont(val),).Slip
-        }
-        elsif nqp::istype(val, Iterable) {
-            val.map({ nqp::decont($_) }).Slip
-        }, (Nil xx Inf).Slip;
+    # Set up iterators for positions and values
+    my $pos-iter := nqp::iscont(positions)
+      ?? Rakudo::Iterator.OneValue(positions.Int)
+      !! positions.iterator;
+    my $val-iter := Rakudo::Iterator.TailWith(
+      nqp::iscont(val)
+        ?? Rakudo::Iterator.OneValue(nqp::decont(val))
+        !! val.iterator,
+      Nil
+    );
 
-    if nqp::istype(SELF, Positional) {
-        # For Positionals, preserve established/expected evaluation order.
-        my $list   := List.new;
-        my $target := nqp::getattr($list,List,'$!reified');
+    # Temporary holding area for containers and values
+    my $containers := nqp::create(IterationBuffer);
+    my $values     := nqp::create(IterationBuffer);
 
-        # We try to reify indices eagerly first, in case doing so
-        # manipulates SELF.  If pos is lazy or contains Whatevers/closures,
-        # the SELF may start to reify as well.
-        my \indices := POSITIONS(SELF, pos);
-        indices.iterator.sink-all;
+    # Make sure we handle lazy positions and Callables if we can
+    my $elems := SELF.elems;
+    $pos-iter := $pos-iter.is-lazy
+      ?? Rakudo::Iterator.PosWithinRange($pos-iter, $elems)
+      !! Rakudo::Iterator.PosWithCallables($pos-iter, $elems)
+      unless nqp::istype($elems,Failure);
 
-        # Extract the values/containers which will be assigned to, in case
-        # reifying the rhs does crazy things like splicing SELF.
-        my int $p = -1;
-        nqp::bindpos($target,++$p,SELF[$_]) for indices;
+    # Set up containers and values to be put into them, to allow
+    # referring to SELF in different order (aka @a[1,0] = @a[0,1])
+    nqp::until(
+      nqp::eqaddr((my \pos := $pos-iter.pull-one),IterationEnd),
+      nqp::stmts(
+        nqp::push($containers,SELF.AT-POS(pos)),
+        nqp::push($values,$val-iter.pull-one)
+      )
+    );
 
-        rvlist.EXISTS-POS($p);
-        my \rviter := rvlist.iterator;
-        $p = -1;
-        my $elems = nqp::elems($target);
-        nqp::atpos($target,$p) = rviter.pull-one
-          while nqp::islt_i(++$p,$elems);
-        $list
-    }
-    else { # The assumption for now is this must be Iterable
-        # Lazy list assignment.  This is somewhat experimental and
-        # semantics may change.
-        my $target := SELF.iterator;
-        my sub eagerize ($idx) {
-            once $target := $target.cache.iterator;
-            $idx ~~ Whatever ?? $target.elems !! $target.EXISTS-POS($idx);
-        }
-        my @poslist := POSITIONS(SELF, pos, :eagerize(&eagerize)).eager;
-        my %keep;
-        # TODO: we could also use a quanthash and count occurences of an
-        # index to let things go to GC sooner.
-        %keep{@poslist} = ();
-        my $max = -1;
-        my \rviter := rvlist.iterator;
-        @poslist.map: -> $p {
-            my $lv;
-            for $max ^.. $p -> $i {
-                $max = $i;
-                my $lv := $target.pull-one;
-                %keep{$i} := $lv
-                  if %keep{$i}:exists and !($lv =:= IterationEnd);
-            }
-            $lv := %keep{$p};
-            $lv = rviter.pull-one;
-        };
-    }
+    # Do the actual assignments until there's nothing to assign
+    # to anymore.
+    my int $i = -1;
+    nqp::while(
+      nqp::elems($values),
+      nqp::atpos($containers,$i = nqp::add_i($i,1)) = nqp::shift($values)
+    );
+
+    $containers.List
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
     my $result := nqp::create(IterationBuffer);

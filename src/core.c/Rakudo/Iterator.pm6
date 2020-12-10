@@ -3265,6 +3265,70 @@ class Rakudo::Iterator {
             !! Permutations.new($n,$b)
     }
 
+    # Return an iterator for a given iterator that produces positions for
+    # Positional indexing, the number of elements in the Positional.  The
+    # iterator will produce positions until the given iterator is exhausted.
+    # Also takes care of Callables being produced by the given iterator.
+    class PosWithCallables {
+        has $!iterator;
+        has $!elems;
+        
+        method !SET-SELF(\iterator, \elems) {
+            $!iterator := iterator;
+            $!elems    := elems;
+            self
+        }
+        method new(\iter, \elems) { nqp::create(self)!SET-SELF(iter, elems) }
+
+        method pull-one() {
+            nqp::eqaddr((my $pos := $!iterator.pull-one),IterationEnd)
+              ?? IterationEnd
+              !! nqp::istype($pos,Callable)
+                ?? $pos($!elems)
+                !! $pos
+        }
+        method is-lazy(--> Bool:D) { $!iterator.is-lazy }
+    }
+    method PosWithCallables(\iter, \elems) { PosWithCallables.new(iter, elems) }
+
+    # Return an iterator for a given iterator that produces positions for
+    # Positional indexing, the number of elements in the Positional.  The
+    # iterator will produce positions until either the given iterator is
+    # exhausted, or a position is produced that is greater or equal to the
+    # number of elements in the Positional.  Also takes care of Callables
+    # being produced by the given iterator.
+    class PosWithinRange {
+        has $!iterator;
+        has $!elems;
+        
+        method !SET-SELF(\iterator, \elems) {
+            $!iterator := iterator;
+            $!elems    := elems;
+            self
+        }
+        method new(\iter, \elems) { nqp::create(self)!SET-SELF(iter, elems) }
+        
+        method pull-one() {
+            nqp::if(
+              nqp::eqaddr((my $pos := $!iterator.pull-one),IterationEnd),
+              IterationEnd,
+              nqp::stmts(
+                nqp::if(
+                  nqp::istype($pos,Callable),
+                  $pos := $pos($!elems)
+                ),
+                nqp::if(
+                  $pos >= $!elems,
+                  IterationEnd,
+                  $pos
+                )
+              )
+            )
+        }
+        method is-lazy(--> Bool:D) { $!iterator.is-lazy }
+    }
+    method PosWithinRange(\iter, \elems) { PosWithinRange.new(iter, elems) }
+
     # Return an iterator for an Array that has been completely reified
     # already.  Returns a assignable container for elements don't exist
     # before the end of the reified array.

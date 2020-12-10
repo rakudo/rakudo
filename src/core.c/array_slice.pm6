@@ -258,27 +258,17 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
     }
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
-    if nqp::iscont(pos) {
-        SELF.BIND-POS(pos, $BIND);
-    }
-    else {
-        my $result := nqp::create(IterationBuffer);
-        my $posses := pos.iterator;
-        my $binds  := $BIND.iterator;
-        nqp::until(
-          nqp::eqaddr((my $bind := $binds.pull-one),IterationEnd)
-            || nqp::eqaddr((my $pos := $posses.pull-one),IterationEnd),
-          nqp::push($result, SELF.BIND-POS($pos, $bind))
-        );
+    my $result := nqp::create(IterationBuffer);
+    my $posses := nqp::iscont(pos)
+      ?? Rakudo::Iterator.OneValue(pos.Int)
+      !! pos.iterator;
+    my $binds  := Rakudo::Iterator.TailWith($BIND.iterator,Nil);
+    nqp::until(
+      nqp::eqaddr((my $pos := $posses.pull-one),IterationEnd),
+      nqp::push($result, SELF.BIND-POS($pos, $binds.pull-one))
+    );
 
-        # fill up if ran out of values to bind?
-        nqp::until(
-          nqp::eqaddr(($pos := $posses.pull-one),IterationEnd),
-          nqp::push($result,SELF.ASSIGN-POS($pos,Nil))
-        ) if nqp::eqaddr($bind,IterationEnd);
-
-        $result.List
-    }
+    $result.List
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,Bool() :$delete!,*%other) is raw {
     nqp::iscont(pos)

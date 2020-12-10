@@ -3619,8 +3619,9 @@ BEGIN {
                         "Cannot coerce to $self_name with named arguments",
                         :target-type($self.WHAT), :from-type($val.WHAT), :hint("named arguments passed")
                     ) if +%named;
+                    my $how := $self.HOW;
                     my $coercion_type := Perl6::Metamodel::CoercionHOW.new_type(
-                        ($self.HOW.is_pun($self)
+                        (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($self)
                             ?? $self.HOW.pun_source($self)
                             !! $self.WHAT),
                         $val.WHAT);

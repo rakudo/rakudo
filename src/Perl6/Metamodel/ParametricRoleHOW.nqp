@@ -14,6 +14,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::ArrayType
+    does Perl6::Metamodel::InvocationProtocol
 {
     has $!composed;
     has $!body_block;
@@ -88,6 +89,7 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         @!role_typecheck_list := @rtl;
+        self.compose_invocation($obj);
         $!composed := 1;
         $obj
     }

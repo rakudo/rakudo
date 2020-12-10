@@ -3604,27 +3604,35 @@ BEGIN {
                 $self.CALL-ME(|@pos, |%named)
             }
             else {
-                if !nqp::isconcrete($self) {
-                    my $coercer_name := $self.HOW.name($self);
-                    nqp::die("Cannot coerce to $coercer_name with named arguments")
-                      if +%named;
+                my $self_name := $self.HOW.name($self);
+                if !nqp::isconcrete($self) && +@pos {
+                    my $val;
                     if +@pos == 1 {
-                        nqp::hllizefor(@pos[0]."$coercer_name"(), 'Raku')
+                        $val := @pos[0];
                     }
                     else {
-                        my $list := nqp::create(List);
-                        nqp::bindattr($list, List, '$!reified', @pos);
-                        nqp::hllizefor($list."$coercer_name"(), 'Raku')
+                        $val := nqp::create(List);
+                        nqp::bindattr($val, List, '$!reified', @pos);
                     }
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::Coerce::Impossible',
+                        "Cannot coerce to $self_name with named arguments",
+                        :target-type($self.WHAT), :from-type($val.WHAT), :hint("named arguments passed")
+                    ) if +%named;
+                    my $coercion_type := Perl6::Metamodel::CoercionHOW.new_type(
+                        ($self.HOW.is_pun($self)
+                            ?? $self.HOW.pun_source($self)
+                            !! $self.WHAT),
+                        $val.WHAT);
+                    nqp::hllizefor($coercion_type.HOW.coerce($coercion_type, $val), "Raku");
                 }
                 else {
-                    my %ex := nqp::gethllsym('Raku', 'P6EX');
-                    if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Method::NotFound') {
-                        nqp::die("No such method 'CALL-ME' for invocant of type '" ~ $self.HOW.name($self) ~ "'");
-                    }
-                    else {
-                        nqp::atkey(%ex, 'X::Method::NotFound')($self, 'CALL-ME', $self.HOW.name($self))
-                    }
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::Method::NotFound',
+                        "No such method 'CALL-ME' for invocant of type '$self_name'",
+                        :invocant($self), :method(nqp::hllizefor('CALL-ME', "Raku")),
+                        :typename(nqp::hllizefor($self_name, "Raku"))
+                    );
                 }
             }
         });
@@ -3992,6 +4000,14 @@ Perl6::Metamodel::PackageHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
+
+# Make roles handle invocations.
+my $role_invoke_handler := nqp::getstaticcode(sub ($self, *@pos, *%named) {
+    $self.HOW.pun($self)(|@pos, |%named)
+});
+Perl6::Metamodel::ParametricRoleGroupHOW.set_default_invoke_handler($role_invoke_handler);
+Perl6::Metamodel::ParametricRoleHOW.set_default_invoke_handler($role_invoke_handler);
+Perl6::Metamodel::CurriedRoleHOW.set_default_invoke_handler($role_invoke_handler);
 
 # Let ClassHOW and EnumHOW know about the invocation handler.
 Perl6::Metamodel::ClassHOW.set_default_invoke_handler(

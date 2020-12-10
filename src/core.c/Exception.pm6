@@ -313,10 +313,11 @@ my class X::Method::InvalidQualifier is Exception {
 
 my class X::Role::Parametric::NoSuchCandidate is Exception {
     has Mu $.role;
+    has $.hint;
     method message {
         "No appropriate parametric role variant available for '"
-        ~ $.role.^name
-        ~ "'";
+        ~ $.role.^name ~ "'"
+        ~ ($.hint ?? ":\n" ~ (~$.hint).indent(4) !! "")
     }
 }
 
@@ -3024,10 +3025,6 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::Role::Initialization',
   -> $role is raw {
       X::Role::Initialization.new(:$role).throw
-  },
-  'X::Role::Parametric::NoSuchCandidate',
-  -> Mu $role is raw {
-      X::Role::Parametric::NoSuchCandidate.new(:$role).throw;
   },
   'X::Inheritance::NotComposed',
   -> $child-name is raw, $parent-name is raw {

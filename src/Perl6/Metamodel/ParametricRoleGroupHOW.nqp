@@ -108,14 +108,18 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             $selected_body := try_select(|@pos_args, |%named_args);
             CATCH { $error := $! }
         }
+
         if $error {
-            my %ex := nqp::gethllsym('Raku', 'P6EX');
-            if nqp::existskey(%ex, 'X::Role::Parametric::NoSuchCandidate') {
-                %ex{'X::Role::Parametric::NoSuchCandidate'}($obj);
-            }
-            nqp::die("Could not find an appropriate parametric role variant for '" ~
-                self.name($obj) ~ "' using the arguments supplied.\n" ~
-                $error);
+            my $payload := nqp::getpayload($error);
+            my $hint := nqp::getmessage($error) || (nqp::defined($payload) ?? $payload.message !! "");
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Role::Parametric::NoSuchCandidate',
+                "Could not find an appropriate parametric role variant for '"
+                    ~ $obj.HOW.name($obj) ~ "' using the arguments supplied:\n    "
+                    ~ $hint
+                    ,
+                :role($obj), :$hint
+            );
         }
 
         # Locate the role that has that body block.

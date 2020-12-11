@@ -30,6 +30,7 @@ class Perl6::Metamodel::ClassHOW
     has @!role_typecheck_list;
     has @!fallbacks;
     has $!composed;
+    has $!is_pun;
     has $!pun_source; # If class is coming from a pun then this is the source role
 
     my $archetypes := Perl6::Metamodel::Archetypes.new(
@@ -312,6 +313,15 @@ class Perl6::Metamodel::ClassHOW
 
     method set_pun_source($obj, $role) {
         $!pun_source := nqp::decont($role);
+        $!is_pun := 1;
+    }
+
+    method is_pun($obj) {
+        $!is_pun
+    }
+
+    method pun_source($obj) {
+        $!pun_source
     }
 }
 

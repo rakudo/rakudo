@@ -17,6 +17,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::BoolificationProtocol
+    does Perl6::Metamodel::InvocationProtocol
 {
     has @!candidates;
     has $!selector;
@@ -52,6 +53,8 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         nqp::setparameterizer($type_obj, sub ($type, @packed) {
             $type.HOW.'!produce_parameterization'($type, @packed);
         });
+
+        $meta.compose_invocation($type_obj);
 
         $type_obj
     }
@@ -105,14 +108,18 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             $selected_body := try_select(|@pos_args, |%named_args);
             CATCH { $error := $! }
         }
+
         if $error {
-            my %ex := nqp::gethllsym('Raku', 'P6EX');
-            if nqp::existskey(%ex, 'X::Role::Parametric::NoSuchCandidate') {
-                %ex{'X::Role::Parametric::NoSuchCandidate'}($obj);
-            }
-            nqp::die("Could not find an appropriate parametric role variant for '" ~
-                self.name($obj) ~ "' using the arguments supplied.\n" ~
-                $error);
+            my $payload := nqp::getpayload($error);
+            my $hint := nqp::getmessage($error) || (nqp::defined($payload) ?? $payload.message !! "");
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Role::Parametric::NoSuchCandidate',
+                "Could not find an appropriate parametric role variant for '"
+                    ~ $obj.HOW.name($obj) ~ "' using the arguments supplied:\n    "
+                    ~ $hint
+                    ,
+                :role($obj), :$hint
+            );
         }
 
         # Locate the role that has that body block.

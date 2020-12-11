@@ -157,28 +157,32 @@ class Perl6::Metamodel::CoercionHOW
             $coercion_method := $!nominal_target.HOW.name($!nominal_target);
             $method := nqp::tryfindmethod($value_type, $coercion_method);
             if nqp::defined($method) {
-                $coerced_value := $method($value)
+                $coerced_value := $method($value);
             }
+
+            my $nominal_target := $!nominal_target.HOW.archetypes.composable
+                                    ?? $!nominal_target.HOW.pun($!nominal_target)
+                                    !! $!nominal_target;
 
             # Then try TargetType.COERCE($value).
             if nqp::isnull($coerced_value) {
-                $method := nqp::tryfindmethod($!nominal_target, $coercion_method := 'COERCE');
-                if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($!nominal_target, $value) {
-                    $coerced_value := $method($!nominal_target, $value);
+                $method := nqp::tryfindmethod($nominal_target, $coercion_method := 'COERCE');
+                if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($nominal_target, $value) {
+                    $coerced_value := $method($nominal_target, $value);
                 }
             }
 
             # And eventually fall back to new. Note that it is invoked on the coercion type invokee to let the method know
             # it's context.
             if nqp::isnull($coerced_value) {
-                $method := nqp::tryfindmethod($!nominal_target, $coercion_method := 'new');
-                if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($!nominal_target, $value) {
+                $method := nqp::tryfindmethod($nominal_target, $coercion_method := 'new');
+                if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($nominal_target, $value) {
                     # There should be no signifacnt performance penalty on this path because if method call ever throws
                     # then this is gonna result in an exception one way or another.
                     my $exception;
                     try {
                         my $*COERCION-TYPE := $obj; # Provide context information to the method 'new'
-                        $coerced_value := $method($!nominal_target, $value);
+                        $coerced_value := $method($nominal_target, $value);
                         CATCH {
                             my $exception_obj := nqp::getpayload($!);
 

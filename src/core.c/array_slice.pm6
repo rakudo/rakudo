@@ -188,62 +188,84 @@ multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is raw {
       ?? SELF.AT-POS(pos.Int)
       !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
 }
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, Mu \val ) is raw {
+multi sub postcircumfix:<[ ]>(
+  \SELF, Iterable:D \positions, Mu \values
+) is raw {
+    # MMD is not behaving itself so we do this by hand.
+    if nqp::iscont(positions) {
+        SELF.ASSIGN-POS(positions.Int, values);
+    }
+    else {
 
-    # Set up iterators for positions and values
-    my $pos-iter := nqp::iscont(positions)
-      ?? Rakudo::Iterator.OneValue(positions.Int)
-      !! positions.iterator;
-    my $val-iter := Rakudo::Iterator.TailWith(
-      nqp::iscont(val)
-        ?? Rakudo::Iterator.OneValue(nqp::decont(val))
-        !! val.iterator,
-      Nil
-    );
+        # Set up iterators for positions and values
+        my $pos-iter := positions.iterator;
+        my $val-iter := Rakudo::Iterator.TailWith(
+          nqp::iscont(values)
+            ?? Rakudo::Iterator.OneValue(nqp::decont(values))
+            !! values.iterator,
+          Nil
+        );
 
-    # Temporary holding area for containers and values
-    my $containers := nqp::create(IterationBuffer);
-    my $values     := nqp::create(IterationBuffer);
+        # Temporary holding area for containers and values
+        my $containers := nqp::create(IterationBuffer);
+        my $values     := nqp::create(IterationBuffer);
 
-    # Make sure we handle lazy positions and Callables if we can
-    my $elems := SELF.elems;
-    $pos-iter := $pos-iter.is-lazy
-      ?? Rakudo::Iterator.PosWithinRange($pos-iter, $elems)
-      !! Rakudo::Iterator.PosWithCallables($pos-iter, $elems)
-      unless nqp::istype($elems,Failure);
+        # Make sure we handle lazy positions and Callables if we can
+        my $elems := SELF.elems;
+        $pos-iter := $pos-iter.is-lazy
+          ?? Rakudo::Iterator.PosWithinRange($pos-iter, $elems)
+          !! Rakudo::Iterator.PosWithCallables($pos-iter, $elems)
+          unless nqp::istype($elems,Failure);
 
-    # Set up containers and values to be put into them, to allow
-    # referring to SELF in different order (aka @a[1,0] = @a[0,1])
-    nqp::until(
-      nqp::eqaddr((my \pos := $pos-iter.pull-one),IterationEnd),
-      nqp::stmts(
-        nqp::push($containers,SELF.AT-POS(pos)),
-        nqp::push($values,$val-iter.pull-one)
-      )
-    );
+        # Set up containers and values to be put into them, to allow
+        # referring to SELF in different order (aka @a[1,0] = @a[0,1])
+        nqp::until(
+          nqp::eqaddr((my \pos := $pos-iter.pull-one),IterationEnd),
+          nqp::stmts(
+            nqp::push($containers,SELF.AT-POS(pos)),
+            nqp::push($values,$val-iter.pull-one)
+          )
+        );
 
-    # Do the actual assignments until there's nothing to assign
-    # to anymore.
-    my int $i = -1;
-    nqp::while(
-      nqp::elems($values),
-      nqp::atpos($containers,$i = nqp::add_i($i,1)) = nqp::shift($values)
-    );
+        # Do the actual assignments until there's nothing to assign anymore
+        my int $i = -1;
+        nqp::while(
+          nqp::elems($values),
+          nqp::atpos($containers,$i = nqp::add_i($i,1)) = nqp::shift($values)
+        );
 
-    $containers.List
+        $containers.List
+    }
 }
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
-    my $result := nqp::create(IterationBuffer);
-    my $posses := nqp::iscont(pos)
-      ?? Rakudo::Iterator.OneValue(pos.Int)
-      !! pos.iterator;
-    my $binds  := Rakudo::Iterator.TailWith($BIND.iterator,Nil);
-    nqp::until(
-      nqp::eqaddr((my $pos := $posses.pull-one),IterationEnd),
-      nqp::push($result, SELF.BIND-POS($pos, $binds.pull-one))
-    );
+multi sub postcircumfix:<[ ]>(
+  \SELF, Iterable:D \positions, :$BIND! is raw
+) is raw {
+    # MMD is not behaving itself so we do this by hand.
+    if nqp::iscont(positions) {
+        SELF.BIND-POS(positions.Int, $BIND)
+    }
+    else {
 
-    $result.List
+        # Set up iterators for positions and values
+        my $pos-iter := positions.iterator;
+        my $val-iter := Rakudo::Iterator.TailWith($BIND.iterator, Nil);
+
+        # Make sure we handle lazy positions and Callables if we can
+        my $elems := SELF.elems;
+        $pos-iter := $pos-iter.is-lazy
+          ?? Rakudo::Iterator.PosWithinRange($pos-iter, $elems)
+          !! Rakudo::Iterator.PosWithCallables($pos-iter, $elems)
+          unless nqp::istype($elems,Failure);
+
+        # Do the actual binding until there are no positions anymore
+        my $values := nqp::create(IterationBuffer);
+        nqp::until(
+          nqp::eqaddr((my \pos := $pos-iter.pull-one),IterationEnd),
+          nqp::push($values, SELF.BIND-POS(pos, $val-iter.pull-one))
+        );
+
+        $values.List
+    }
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,Bool() :$delete!,*%other) is raw {
     nqp::iscont(pos)

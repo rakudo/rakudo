@@ -3272,7 +3272,7 @@ class Rakudo::Iterator {
     class PosWithCallables {
         has $!iterator;
         has $!elems;
-        
+
         method !SET-SELF(\iterator, \elems) {
             $!iterator := iterator;
             $!elems    := elems;
@@ -3300,14 +3300,14 @@ class Rakudo::Iterator {
     class PosWithinRange {
         has $!iterator;
         has $!elems;
-        
+
         method !SET-SELF(\iterator, \elems) {
             $!iterator := iterator;
             $!elems    := elems;
             self
         }
         method new(\iter, \elems) { nqp::create(self)!SET-SELF(iter, elems) }
-        
+
         method pull-one() {
             nqp::if(
               nqp::eqaddr((my $pos := $!iterator.pull-one),IterationEnd),

@@ -1322,7 +1322,11 @@ my class Array { # declared in BOOTSTRAP
         nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
     }
     method of() {
-        nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
+        nqp::isconcrete(self)
+          ?? nqp::isnull($!descriptor)
+            ?? Mu
+            !! $!descriptor.of
+          !! Mu
     }
     method default() {
         nqp::isnull($!descriptor) ?? Any !! $!descriptor.default

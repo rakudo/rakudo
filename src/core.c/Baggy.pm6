@@ -12,7 +12,7 @@ my role Baggy does QuantHash {
 # Immutables aspects of Bag/Mix, need to live to Bag/Mix respectively.
 
 #--- interface methods
-    method of() { UInt }
+    method of(--> UInt) { }
 
     multi method ACCEPTS(Baggy:U: \other --> Bool:D) {
         other.^does(self)

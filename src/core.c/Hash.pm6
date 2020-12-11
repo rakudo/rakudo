@@ -209,7 +209,7 @@ my class Hash { # declared in BOOTSTRAP
     # introspection
     method keyof() { Str(Any) }  # overridden by Hash::Object
 
-    method of(Hash:D:)      { $!descriptor.of }
+    method of()      { nqp::isconcrete(self) ?? $!descriptor.of !! Mu }
     method name(Hash:D:)    { $!descriptor.name }
     method default(Hash:D:) { $!descriptor.default }
     method dynamic(Hash:D:) { nqp::hllbool($!descriptor.dynamic) }

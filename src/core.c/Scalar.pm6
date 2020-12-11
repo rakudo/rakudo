@@ -19,8 +19,11 @@ my class Scalar { # declared in BOOTSTRAP
         nqp::isnull($d) ?? Nil !! $d.name()
     }
     method of() {
-        my $d := $!descriptor;
-        nqp::isnull($d) ?? Mu !! $d.of;
+        nqp::isconcrete(self)
+          ?? nqp::isnull($!descriptor)
+            ?? Mu
+            !! $!descriptor.of
+          !! Mu
     }
     method default() {
         my $d := $!descriptor;

@@ -4,7 +4,11 @@ my class Block { # declared in BOOTSTRAP
     #     has Mu $!phasers;
     #     has Mu $!why;
 
-    method of(Block:D:)      { nqp::getattr(self,Code,'$!signature').returns }
+    method of() { 
+        nqp::isconcrete(self)
+          ?? nqp::getattr(self,Code,'$!signature').returns
+          !! Mu
+    }
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
     method add_phaser(Str:D \name, &block --> Nil) {

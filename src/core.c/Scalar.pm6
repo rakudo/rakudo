@@ -18,13 +18,13 @@ my class Scalar { # declared in BOOTSTRAP
         my $d := $!descriptor;
         nqp::isnull($d) ?? Nil !! $d.name()
     }
-    method of() {
-        nqp::isconcrete(self)
-          ?? nqp::isnull($!descriptor)
-            ?? Mu
-            !! $!descriptor.of
-          !! Mu
+
+    proto method of() {*}
+    multi method of(Scalar:U: --> Mu) { }
+    multi method of(Scalar:D:) {
+        nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
     }
+
     method default() {
         my $d := $!descriptor;
         nqp::isnull($d) ?? Any !! $d.default;

@@ -40,9 +40,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method Bool(Map:D: --> Bool:D) {
         nqp::hllbool(nqp::elems($!storage));
     }
-    method elems(Map:D: --> Int:D) {
-        nqp::p6box_i(nqp::elems($!storage));
-    }
+    method elems(Map:D:) { nqp::elems($!storage) }
     multi method Int(Map:D:     --> Int:D) { self.elems }
     multi method Numeric(Map:D: --> Int:D) { self.elems }
 

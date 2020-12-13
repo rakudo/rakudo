@@ -53,7 +53,7 @@ my role Setty does QuantHash {
         Seq.new(Rakudo::Iterator.Mappy-values($!elems))
     }
 
-    method elems(Setty:D: --> Int:D) {
+    method elems(Setty:D:) {
         nqp::istrue($!elems) && nqp::elems($!elems)
     }
     method total(Setty:D: --> Int:D) {

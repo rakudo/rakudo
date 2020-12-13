@@ -511,7 +511,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
     method eager() { self }
 
     method sum() is nodal { self.Any::sum }
-    multi method elems(::?CLASS:D: --> Int:D) {
+    multi method elems(::?CLASS:D:) {
         nqp::elems(nqp::getattr(self,List,'$!reified'))
     }
 

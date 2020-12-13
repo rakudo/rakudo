@@ -456,7 +456,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    multi method elems(List:D: --> Int:D) is nodal {
+    multi method elems(List:D:) {
         nqp::if(
           nqp::isconcrete($!todo),
           nqp::stmts(

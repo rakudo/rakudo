@@ -219,7 +219,7 @@ my role Baggy does QuantHash {
     }
 
 #--- introspection methods
-    multi method elems(Baggy:D: --> Int:D) {
+    multi method elems(Baggy:D:) {
         nqp::istrue($!elems) && nqp::elems($!elems)
     }
     multi method Bool(Baggy:D: --> Bool:D) {

@@ -140,7 +140,7 @@ my class Parameter { # declared in BOOTSTRAP
                 $name  = $name.substr(1);
                 $sigil = $name.substr(0,1);
 
-                if %_.EXISTS-KEY('type') {
+                if %args.EXISTS-KEY('type') {
                     die "Slurpy named parameters with type constraints are not supported|"
                 }
 

@@ -218,6 +218,8 @@ public final class Binder {
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
     private static final CallSiteDescriptor genIns = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor targetType = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor ACCEPTS_o = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor ACCEPTS_i = new CallSiteDescriptor(
@@ -812,7 +814,22 @@ public final class Binder {
                     case SIG_ELEM_NATIVE_STR_VALUE:
                         return createBox(tc, gcx, null, CallSiteDescriptor.ARG_STR);
                     default:
-                        return param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
+                        /* Do a coercion, if one is needed. */
+                        SixModelObject paramType = param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
+                        SixModelObject HOW = paramType.st.HOW;
+                        SixModelObject archetypesMeth = Ops.findmethod(HOW, "archetypes", tc);
+                        Ops.invokeDirect(tc, archetypesMeth, Ops.invocantCallSite, new Object[] { HOW });
+                        SixModelObject Archetypes = Ops.result_o(tc.curFrame);
+                        SixModelObject coerciveMeth = Ops.findmethodNonFatal(Archetypes, "coercive", tc);
+                        if (coerciveMeth != null) {
+                            Ops.invokeDirect(tc, coerciveMeth, Ops.invocantCallSite, new Object[] { Archetypes });
+                            if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 1) {
+                                SixModelObject targetTypeMeth = Ops.findmethod(HOW, "target_type", tc);
+                                Ops.invokeDirect(tc, targetTypeMeth, targetType, new Object[] { HOW, paramType });
+                                return Ops.result_o(tc.curFrame);
+                            }
+                        }
+                        return paramType;
                 }
             }
         }

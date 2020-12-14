@@ -188,6 +188,7 @@ multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is raw {
       ?? SELF.AT-POS(pos.Int)
       !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
 }
+
 multi sub postcircumfix:<[ ]>(
   \SELF, Iterable:D \positions, Mu \values
 ) is raw {
@@ -206,7 +207,21 @@ multi sub postcircumfix:<[ ]>(
           Nil
         );
 
-        # Temporary holding area for containers and values
+        # Temporary holding area for containers and values.  In the fast
+        # path, the $containers buffer will contain the needed result.
+        # However, if one the the positions was in fact a List, then the
+        # result will differ from what we put in the $containers buffer.
+        # When a List is encountered, the $result buffer will be initialized
+        # with whatever was in $containers so far, and then the two will
+        # start to differ.  In the end, either the $result buffer is returned
+        # (if there is one) or the $containers buffer.
+        #
+        # Note that all of these buffers are completely agnostic about where
+        # they are from: $result and $containers just contain containers that
+        # match elements in the Positional that is SELF, and $values just
+        # contains values to be put into the containers when all has been
+        # figured out.
+        my $result     := nqp::null;
         my $containers := nqp::create(IterationBuffer);
         my $values     := nqp::create(IterationBuffer);
 
@@ -217,13 +232,136 @@ multi sub postcircumfix:<[ ]>(
           !! Rakudo::Iterator.PosWithCallables($pos-iter, $elems)
           unless nqp::istype($elems,Failure);
 
+        # Handle Whatever in the generated positions
+        my sub handle-whatever() {
+            my int $i    = -1;
+            my int $todo = $elems;
+            nqp::if(
+              nqp::isnull($result),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$todo),
+                nqp::push($containers,SELF.AT-POS($i)),
+                nqp::push($values,$val-iter.pull-one)
+              ),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$todo),
+                nqp::push($result,nqp::push($containers,SELF.AT-POS($i))),
+                nqp::push($values,$val-iter.pull-one)
+              )
+            );
+        }
+
+        # Handle iterator in the generated positions
+        my sub handle-iterator(\iterator) {
+            my $pos;
+            nqp::if(
+              nqp::isnull($result),
+              nqp::until(               # no embedded List seen yet
+                nqp::eqaddr(($pos := iterator.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::istype($pos,Int),
+                  nqp::stmts(
+                    nqp::if(
+                      nqp::isnull($result),
+                      nqp::push($containers,SELF.AT-POS($pos)),
+                      nqp::push(
+                        $result,
+                        nqp::push($containers,SELF.AT-POS($pos))
+                      )
+                    ),
+                    nqp::push($values,$val-iter.pull-one)
+                  ),
+                  handle-nonInt($pos)   # may change nullness of $result
+                )
+              ),
+              nqp::until(               # already seen an embedded List
+                nqp::eqaddr(($pos := iterator.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::istype($pos,Int),
+                  nqp::stmts(
+                    nqp::push(
+                      $result,
+                      nqp::push($containers,SELF.AT-POS($pos))
+                    ),
+                    nqp::push($values,$val-iter.pull-one)
+                  ),
+                  handle-nonInt($pos)
+                )
+              )
+            );
+        }
+
+        # Handle List in the generated positions
+        my sub handle-list(\list) {
+            my $iterator := list.iterator;
+            my $buffer   := nqp::create(IterationBuffer);
+
+            # Set up alternate result handling
+            $result := nqp::clone($containers) if nqp::isnull($result);
+            nqp::push($containers,nqp::push($result,my $));
+            nqp::push($values,$buffer.List);
+
+            nqp::until(
+              nqp::eqaddr((my \pos := $iterator.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(pos,Int),
+                nqp::stmts(
+                  nqp::push(
+                    $containers,
+                    nqp::push($buffer,SELF.AT-POS(pos))
+                  ),
+                  nqp::push($values,$val-iter.pull-one)
+                ),
+                handle-nonInt(pos)
+              )
+            );
+        }
+
+        # Handle anything non-integer in the generated positions
+        my sub handle-nonInt(\pos) {
+            nqp::if(
+              nqp::istype(pos,List),
+              handle-list(pos),
+              nqp::if(
+                nqp::istype(pos,Iterable),
+                handle-iterator(pos.iterator),
+                nqp::if(
+                  nqp::istype(pos,Whatever),
+                  handle-whatever,
+                  nqp::stmts(
+                    nqp::if(
+                      nqp::isnull($result),
+                      nqp::push($containers,SELF.AT-POS(pos.Int)),
+                      nqp::push(
+                        $result,
+                        nqp::push($containers,SELF.AT-POS(pos.Int))
+                      )
+                    ),
+                    nqp::push($values,$val-iter.pull-one)
+                  )
+                )
+              )
+            );
+        }
+
         # Set up containers and values to be put into them, to allow
         # referring to SELF in different order (aka @a[1,0] = @a[0,1])
         nqp::until(
           nqp::eqaddr((my \pos := $pos-iter.pull-one),IterationEnd),
-          nqp::stmts(
-            nqp::push($containers,SELF.AT-POS(pos)),
-            nqp::push($values,$val-iter.pull-one)
+          nqp::if(
+            nqp::istype(pos,Int),
+            nqp::stmts(
+              nqp::if(
+                nqp::isnull($result),
+                nqp::push($containers,SELF.AT-POS(pos)),
+                nqp::push(
+                  $result,
+                  nqp::push($containers,SELF.AT-POS(pos))
+                )
+              ),
+              nqp::push($values,$val-iter.pull-one)
+            ),
+            handle-nonInt(pos)   # may change nullness of $result
           )
         );
 
@@ -234,7 +372,7 @@ multi sub postcircumfix:<[ ]>(
           nqp::atpos($containers,$i = nqp::add_i($i,1)) = nqp::shift($values)
         );
 
-        $containers.List
+        nqp::ifnull($result,$containers).List
     }
 }
 multi sub postcircumfix:<[ ]>(

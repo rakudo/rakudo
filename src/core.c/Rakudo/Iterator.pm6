@@ -3269,6 +3269,7 @@ class Rakudo::Iterator {
     # Positional indexing, the number of elements in the Positional.  The
     # iterator will produce positions until the given iterator is exhausted.
     # Also takes care of Callables being produced by the given iterator.
+    # Any non-numeric position will be returned as is.
     class PosWithCallables {
         has $!iterator;
         has $!elems;
@@ -3296,7 +3297,8 @@ class Rakudo::Iterator {
     # iterator will produce positions until either the given iterator is
     # exhausted, or a position is produced that is greater or equal to the
     # number of elements in the Positional.  Also takes care of Callables
-    # being produced by the given iterator.
+    # being produced by the given iterator.  Anything non-numeric position
+    # will be returned as is.
     class PosWithinRange {
         has $!iterator;
         has $!elems;
@@ -3318,7 +3320,7 @@ class Rakudo::Iterator {
                   $pos := $pos($!elems)
                 ),
                 nqp::if(
-                  $pos >= $!elems,
+                  nqp::istype($pos,Numeric) && $pos >= $!elems,
                   IterationEnd,
                   $pos
                 )

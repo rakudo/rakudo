@@ -236,18 +236,17 @@ multi sub postcircumfix:<[ ]>(
         my sub handle-whatever() {
             my int $i    = -1;
             my int $todo = $elems;
-            nqp::if(
-              nqp::isnull($result),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$todo),
-                nqp::push($containers,SELF.AT-POS($i)),
-                nqp::push($values,$val-iter.pull-one)
-              ),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$todo),
-                nqp::push($result,nqp::push($containers,SELF.AT-POS($i))),
-                nqp::push($values,$val-iter.pull-one)
-              )
+            my $buffer  := nqp::create(IterationBuffer);
+
+            # Set up alternate result handling
+            $result := nqp::clone($containers) if nqp::isnull($result);
+            nqp::push($containers,nqp::push($result,my $));
+            nqp::push($values,$buffer.List);
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$todo),
+              nqp::push($containers,nqp::push($buffer,SELF.AT-POS($i))),
+              nqp::push($values,$val-iter.pull-one)
             );
         }
 

@@ -1,6 +1,15 @@
+# This pod file is used in Debian to generate C<raku> man page when
+# building C<rakudo> package. At that stage only Perl5 C<pod2man>
+# program is available. So this file must follow Perl5's pod syntax.
+#
+# See https://github.com/rakudo/rakudo/pull/4080#issuecomment-736682853
+# for more information.
+
 =head1 NAME
 
 raku - Rakudo Raku Compiler
+
+=encoding UTF-8
 
 =head1 SYNOPSIS
 
@@ -65,6 +74,8 @@ page|https://github.com/rakudo/rakudo/wiki/dev-env-vars#moarvm>.
 
 =head2 Module loading
 
+=over
+
 =item C<RAKUDOLIB>, C<RAKULIB> (I<Str>; F<src/core/Inc.pm>)
 
 C<RAKUDOLIB> and C<RAKULIB> append a comma-delimited list of paths to the
@@ -77,7 +88,11 @@ env var C<PERL6LIB> is still available.
 If true, causes the module loader to print debugging information to standard
 error.
 
+=back
+
 =head2 Error message verbosity and strictness
+
+=over
 
 =item C<RAKU_EXCEPTIONS_HANDLER>
 
@@ -108,7 +123,11 @@ context line.
 
 Controls whether C<.setting> files are included in backtraces.
 
+=back
+
 =head2 Affecting precompilation
+
+=over
 
 =item C<RAKUDO_PREFIX> (I<Str>; F<src/core.c/CompUnit/RepositoryRegistry.pm6>)
 
@@ -129,7 +148,11 @@ in child processes. Please do not set them manually.
 If set to 1, diagnostic information about the precompilation process is
 emitted.
 
+=back
+
 =head2 Line editor
+
+=over
 
 =item C<RAKUDO_LINE_EDITOR>
 
@@ -148,7 +171,11 @@ line editor; the default is C<~/.raku/rakudo-history>.
 Before Rakudo version 2020.02 the default was
 C<~/.perl6/rakudo-history>.
 
+=back
+
 =head2 Other
+
+=over
 
 =item C<RAKUDO_DEFAULT_READ_ELEMS>
 
@@ -199,6 +226,8 @@ absolute path to that folder in non-relocatable builds.
 Allows to override the NQP installation path. Defaults to
 C<[rakudo_executable_dir]/../share/nqp> in relocatable builds and the absolute
 path to that folder in non-relocatable builds.
+
+=back
 
 =head1 WINDOWS PECULIARITIES
 

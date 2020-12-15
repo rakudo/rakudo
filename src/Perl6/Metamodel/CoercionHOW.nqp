@@ -7,7 +7,6 @@ class Perl6::Metamodel::CoercionHOW
     does Perl6::Metamodel::LanguageRevision
     does Perl6::Metamodel::Nominalizable
 {
-    has $!composed;
     has $!target_type;
     has $!nominal_target;
     has $!constraint_type;
@@ -33,16 +32,6 @@ class Perl6::Metamodel::CoercionHOW
         my $coercion_type := nqp::parameterizetype((Perl6::Metamodel::CoercionHOW.WHO)<root>,
             [$target, $constraint]);
         nqp::setdebugtypename($coercion_type, $coercion_type.HOW.name($coercion_type));
-        $coercion_type
-    }
-
-    method compose($coercion_type) {
-        if $!composed {
-            return $coercion_type;
-        }
-        self.set_language_version($coercion_type, :force);
-        nqp::settypecheckmode($coercion_type, 2);
-        $!composed := 1;
         $coercion_type
     }
 
@@ -78,10 +67,9 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method nominalize($coercion_type) {
-        my $target_type := $coercion_type.HOW.target_type($coercion_type);
-        $target_type.HOW.archetypes.nominalizable
-            ?? $target_type.HOW.nominalize($target_type)
-            !! $target_type
+        $!target_type.HOW.archetypes.nominalizable
+            ?? $!target_type.HOW.nominalize($!target_type)
+            !! $!target_type
     }
 
     method instantiate_generic($coercion_type, $type_env) {
@@ -99,13 +87,11 @@ class Perl6::Metamodel::CoercionHOW
     }
 
     method find_method($coercion_type, $name, *%c) {
-        my $target_type := $coercion_type.HOW.target_type($coercion_type);
-        $target_type.HOW.find_method($target_type, $name, |%c)
+        $!target_type.HOW.find_method($!target_type, $name, |%c)
     }
 
     method find_method_qualified($coercion_type, $qtype, $name) {
-        my $target_type := $coercion_type.HOW.target_type($coercion_type);
-        $target_type.HOW.find_method_qualified($target_type, $qtype, $name)
+        $!target_type.HOW.find_method_qualified($!target_type, $qtype, $name)
     }
 
     method isa($obj, $type) {
@@ -120,15 +106,12 @@ class Perl6::Metamodel::CoercionHOW
         if $coercion_type =:= $checkee {
             return 1;
         }
-        my $target_type := $coercion_type.HOW.target_type($coercion_type);
-        my $rc := $target_type.HOW.type_check($target_type, $checkee);
+        my $rc := $!target_type.HOW.type_check($!target_type, $checkee);
         $rc
     }
 
     method accepts_type($coercion_type, $checkee) {
-        my $target_type := $coercion_type.HOW.target_type($coercion_type);
-        my $constraint_type := $coercion_type.HOW.constraint_type($coercion_type);
-        my $rc := nqp::istype($checkee, $target_type) || nqp::istype($checkee, $constraint_type);
+        my $rc := nqp::istype($checkee, $!target_type) || nqp::istype($checkee, $!constraint_type);
         $rc
     }
 
@@ -249,7 +232,10 @@ BEGIN {
         my $metaclass := $type.HOW.new();
         $metaclass.set_target_type($params[0]);
         $metaclass.set_constraint_type($params[1]);
-        nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'Raku');
+        my $coercion_type := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'Raku');
+        $metaclass.set_language_version($coercion_type, :force);
+        nqp::settypecheckmode($coercion_type, 2);
+        $coercion_type
     });
     (Perl6::Metamodel::CoercionHOW.WHO)<root> := $root;
 }

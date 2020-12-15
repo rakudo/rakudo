@@ -82,8 +82,7 @@ class Perl6::Metamodel::CoercionHOW
             $!constraint_type.HOW.archetypes.generic
                 ?? $!constraint_type.HOW.instantiate_generic($!constraint_type, $type_env)
                 !! $!constraint_type;
-        my $ins := self.new_type($ins_target, $ins_constraint);
-        $ins.HOW.compose($ins)
+        self.new_type($ins_target, $ins_constraint);
     }
 
     method find_method($coercion_type, $name, *%c) {
@@ -155,8 +154,7 @@ class Perl6::Metamodel::CoercionHOW
                 }
             }
 
-            # And eventually fall back to new. Note that it is invoked on the coercion type invokee to let the method know
-            # it's context.
+            # And eventually fall back to new.
             if nqp::isnull($coerced_value) {
                 $method := nqp::tryfindmethod($nominal_target, $coercion_method := 'new');
                 if nqp::defined($method) && nqp::can($method, 'cando') && $method.cando($nominal_target, $value) {

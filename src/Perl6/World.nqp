@@ -4169,7 +4169,7 @@ class Perl6::World is HLL::World {
         self.ex-handle($/, {
             my $type := $/.how('coercion').new_type($target, $constraint);
             if nqp::isnull(nqp::getobjsc($type)) { self.add_object_if_no_sc($type); }
-            $type.HOW.compose($type)
+            $type
         })
     }
 

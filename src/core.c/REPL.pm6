@@ -368,6 +368,12 @@ do {
                     self.repl-print($output);
                 }
 
+                # Handle "use" statements
+                elsif $code.starts-with('use ') {
+                    self.repl-print(Nil);
+                    @before = ();
+                }
+
                 # If there was no explicit output (and no error seen yet),
                 # then assume something was being set up (such as a multi
                 # candidate) which would need to be included in any

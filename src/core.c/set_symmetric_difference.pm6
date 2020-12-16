@@ -335,14 +335,14 @@ multi sub infix:<(^)>(+@p) {   # also Any
                     handle-existing(             # seen this element before
                       elems,
                       $iter,
-                      nqp::istrue(nqp::iterval($iter))
+                      1
                     ),
                     handle-new(                  # new element
                       elems,
                       $iter,
                       nqp::p6bindattrinvres(
                         nqp::create(Pair),Pair,'$!key',nqp::iterval($iter)),
-                      nqp::istrue(nqp::iterval($iter))
+                      1
                     )
                   )
                 )

@@ -51,10 +51,10 @@ subtest 'subsets get named in typecheck errors' => {
 subtest 'like/unlike failures give useful diagnostics' => {
     plan 2;
     is-run ｢use Test; plan 1; like 42, /43/｣,
-        :1exitcode, :out(*), :err{.contains: 'expected a match with'},
+        :1exitcode, :compiler-args[<-I lib>], :out(*), :err{.contains: 'expected a match with'},
     '`like` says it wanted a match, not just "expected"';
     is-run ｢use Test; plan 1; unlike 42, /42/｣,
-        :1exitcode, :out(*), :err{.contains: 'expected no match with'},
+        :1exitcode, :compiler-args[<-I lib>], :out(*), :err{.contains: 'expected no match with'},
     '`unlike` says it wanted no match, not just "expected"';
 }
 

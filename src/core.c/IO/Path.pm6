@@ -382,14 +382,6 @@ my class IO::Path is Cool does IO {
     }
 
     proto method chdir(|) {*}
-    multi method chdir(IO::Path:D: Str() $path, :$test!) {
-        Rakudo::Deprecations.DEPRECATED(
-            :what<:$test argument>,
-            'individual named parameters (e.g. :r, :w, :x)',
-            "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
-        );
-        self.chdir: $path, |$test.words.map(* => True).Hash;
-    }
     multi method chdir(IO::Path:D: IO $path, |c) {
         self.chdir: $path.absolute, |c
     }

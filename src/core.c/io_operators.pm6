@@ -177,14 +177,6 @@ multi sub chdir(|c) {
 }
 
 proto sub indir($, $, *%) {*}
-multi sub indir(IO() $path, &what, :$test!) {
-    Rakudo::Deprecations.DEPRECATED(
-        :what<:$test argument>,
-        'individual named parameters (e.g. :r, :w, :x)',
-        "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
-    );
-    indir $path, &what, |$test.words.map(* => True).Hash;
-}
 multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     {   # NOTE: we need this extra block so that the IO() coercer doesn't
         # use our (empty at the time) $*CWD when making the IO::Path object

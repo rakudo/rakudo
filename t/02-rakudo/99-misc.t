@@ -137,7 +137,7 @@ subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
 
 group-of 2 => 'collation experiment' => {
     is-run ｢$*COLLATION.set: :primary; print 'pass'｣,
-        :out<pass>, '$*COLLECTION.set no longer requires experimental pragma';
+        :out<pass>, '$*COLLATION.set no longer requires experimental pragma';
     is-run ｢
         use experimental :collation;
         $*COLLATION.set: :primary;

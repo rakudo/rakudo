@@ -3222,10 +3222,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    method parse-names(Str:D: --> Str:D) {
-        Rakudo::Deprecations.DEPRECATED('uniparse');
-        self.uniparse
-    }
     method uniparse(Str:D: --> Str:D) {
         my     \names := nqp::split(',', self);
         my int $elems  = nqp::elems(names);
@@ -3845,11 +3841,6 @@ multi sub infix:<eqv>(Str:D \a, Str:D \b --> Bool:D) {
 
 proto sub samemark($, $, *%) {*}
 multi sub samemark($s, $pat --> Str:D) { $s.samemark($pat) }
-
-sub parse-names(Str:D \names) {
-    Rakudo::Deprecations.DEPRECATED('uniparse');
-    names.uniparse
-}
 
 proto sub uniparse($, *%) {*}
 multi sub uniparse(Str:D \names --> Str:D) { names.uniparse }

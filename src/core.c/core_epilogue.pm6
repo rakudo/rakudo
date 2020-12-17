@@ -80,6 +80,41 @@ augment class Uni {
 }
 #?endif
 
+# Subs that are DEPRECATED are moved here so that the "is DEPRECATED" trait
+# can be applied without bootstrapping issues.
+
+sub parse-names(Str:D \names) is DEPRECATED('uniparse') {
+    names.uniparse
+}
+
+sub to-json(|c)
+  is implementation-detail
+  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.raku.org/')
+{
+    Rakudo::Internals::JSON.to-json(|c);
+}
+
+sub from-json($text)
+  is implementation-detail
+  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.raku.org/')
+{
+    Rakudo::Internals::JSON.from-json($text);
+}
+
+proto sub gethostname(*%) is implementation-detail {*}
+multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
+    $*KERNEL.hostname
+}
+
+# Methods that are DEPRECATED are moved here and augmented into the classes
+# they belong to without bootstrapping issues.
+
+augment class Str {
+    method parse-names(Str:D: --> Str:D) is DEPRECATED('uniparse') {
+        self.uniparse
+    }
+}
+
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 
 {YOU_ARE_HERE}

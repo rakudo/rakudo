@@ -43,7 +43,7 @@ class Perl6::Metamodel::Configuration {
     method set_X_package($X) {
         $X_package := $X;
     }
-    method throw_or_die($exception, $die_message, *@pos, *%named) {
+    method find_exception($exception) {
         my $ex_type := nqp::null();
         unless nqp::isnull($X_package) {
             my @parts := nqp::split('::', $exception);
@@ -68,6 +68,10 @@ class Perl6::Metamodel::Configuration {
                 }
             }
         }
+        $ex_type
+    }
+    method throw_or_die($exception, $die_message, *@pos, *%named) {
+        my $ex_type := self.find_exception($exception);
         if nqp::isnull($ex_type) {
             nqp::die($die_message)
         }

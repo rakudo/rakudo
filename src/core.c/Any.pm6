@@ -568,13 +568,34 @@ sub dd(|c) {  # is implementation-detail
 
     # handler for BOOTxxxArrays
     sub BOOTArray(Mu \array) {
-        my \buffer := nqp::create(IterationBuffer);
-        my \clone  := nqp::clone(array);
-        nqp::while(
-          clone,
-          nqp::push(buffer,nqp::shift(clone))
-        );
-        array.^name ~ buffer.List.raku
+        my \buffer  := nqp::create(IterationBuffer);
+        my \clone   := nqp::clone(array);
+        my str $name = array.^name;
+        if $name eq 'BOOTIntArray' {
+            nqp::while(
+              clone,
+              nqp::push(buffer,nqp::shift_i(clone))
+            );
+        }
+        elsif $name eq 'BOOTStrArray' {
+            nqp::while(
+              clone,
+              nqp::push(buffer,nqp::shift_s(clone))
+            );
+        }
+        elsif $name eq 'BOOTNumArray' {
+            nqp::while(
+              clone,
+              nqp::push(buffer,nqp::shift_n(clone))
+            );
+        }
+        else {
+            nqp::while(
+              clone,
+              nqp::push(buffer,nqp::shift(clone))
+            );
+        }
+        $name ~ buffer.List.raku
     }
 
     # handler for BOOTContext

@@ -28,20 +28,20 @@ our class Pointer                               is repr('CPointer') {
         nqp::box_i(nqp::unbox_i(nqp::decont($addr)), ::?CLASS)
     }
 
-    method Numeric(::?CLASS:D:) { self.Int }
-    method Int(::?CLASS:D:) {
+    method Numeric(Pointer:D:) { self.Int }
+    method Int(Pointer:D:) {
         nqp::p6box_i(nqp::unbox_i(self))
     }
 
     proto method Bool() {*}
-    multi method Bool(::?CLASS:U: --> False) { }
-    multi method Bool(::?CLASS:D:) { so self.Int }
+    multi method Bool(Pointer:U: --> False) { }
+    multi method Bool(Pointer:D:) { so self.Int }
 
 
-    method deref(::?CLASS:D \ptr:) { self ?? nativecast(void, ptr) !! fail("Can't dereference a Null Pointer") }
+    method deref(Pointer:D \ptr:) { self ?? nativecast(void, ptr) !! fail("Can't dereference a Null Pointer") }
 
-    multi method gist(::?CLASS:U:) { '(' ~ self.^name ~ ')' }
-    multi method gist(::?CLASS:D:) {
+    multi method gist(Pointer:U:) { '(' ~ self.^name ~ ')' }
+    multi method gist(Pointer:D:) {
         if self.Int -> $addr {
             self.^name ~ '<' ~ $addr.fmt('%#x') ~ '>'
         }
@@ -50,12 +50,12 @@ our class Pointer                               is repr('CPointer') {
         }
     }
 
-    multi method raku(::?CLASS:U:) { self.^name }
-    multi method raku(::?CLASS:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
+    multi method raku(Pointer:U:) { self.^name }
+    multi method raku(Pointer:D:) { self.^name ~ '.new(' ~ self.Int ~ ')' }
 
     my role TypedPointer[::TValue] {
         method of() { TValue }
-        method deref(::?CLASS:D \ptr:) { self ?? nativecast(TValue, ptr) !! fail("Can't dereference a Null Pointer"); }
+        method deref(Pointer:D \ptr:) { self ?? nativecast(TValue, ptr) !! fail("Can't dereference a Null Pointer"); }
         method add(Int $off) returns Pointer {
             die "Can't do arithmetic with a void pointer"
                 if TValue.isa(void);
@@ -93,31 +93,31 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     method AT-POS(::?CLASS:D: $pos) { die "CArray cannot be used without a type" }
 
     my role IntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
-        multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
+        multi method AT-POS(CArray:D \arr: $pos) is raw {
             nqp::atposref_i(nqp::decont(arr), $pos);
         }
-        multi method AT-POS(::?CLASS:D \arr: int $pos) is raw {
+        multi method AT-POS(CArray:D \arr: int $pos) is raw {
             nqp::atposref_i(nqp::decont(arr), $pos);
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, int $assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, $assignee);
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, int $assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: Int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Int $assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: Int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_i($assignee));
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Int $assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
         }
 
-        multi method allocate(::?CLASS:U \type: int $elems) {
+        multi method allocate(CArray:U \type: int $elems) {
             my $arr := nqp::create(type);
             nqp::bindpos_i($arr, $elems - 1, 0);
             $arr;
         }
-        multi method allocate(::?CLASS:U \type: Int:D $elems) {
+        multi method allocate(CArray:U \type: Int:D $elems) {
             my $arr := nqp::create(type);
             nqp::bindpos_i($arr, $elems - 1, 0);
             $arr;
@@ -125,31 +125,31 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     my role NumTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
-        multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
+        multi method AT-POS(CArray:D \arr: $pos) is raw {
             nqp::atposref_n(nqp::decont(arr), $pos);
         }
-        multi method AT-POS(::?CLASS:D \arr: int $pos) is raw {
+        multi method AT-POS(CArray:D \arr: int $pos) is raw {
             nqp::atposref_n(nqp::decont(arr), $pos);
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, num $assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, $assignee);
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, num $assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: Int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Num $assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: Int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_n($assignee));
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Num $assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
         }
 
-        multi method allocate(::?CLASS:U \type: int $elems) {
+        multi method allocate(CArray:U \type: int $elems) {
             my $arr := nqp::create(type);
             nqp::bindpos_n($arr, $elems - 1, 0e0);
             $arr;
         }
-        multi method allocate(::?CLASS:U \type: Int:D $elems) {
+        multi method allocate(CArray:U \type: Int:D $elems) {
             my $arr := nqp::create(type);
             nqp::bindpos_n($arr, $elems - 1, 0e0);
             $arr;
@@ -157,7 +157,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     }
 
     my role TypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
-        multi method AT-POS(::?CLASS:D \arr: $pos) is rw {
+        multi method AT-POS(CArray:D \arr: $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), nqp::unbox_i($pos.Int))
@@ -167,7 +167,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
                     self
                 }
         }
-        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(CArray:D \arr: int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), $pos)
@@ -177,20 +177,20 @@ our class CArray is repr('CArray') is array_type(Pointer) {
                     self
                 }
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, \assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), $pos, nqp::decont(assignee));
         }
-        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, \assignee) {
+        multi method ASSIGN-POS(CArray:D \arr: Int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));
         }
 
-        multi method allocate(::?CLASS:U: int $elems) {
+        multi method allocate(CArray:U: int $elems) {
             my $arr  := nqp::create(self);
             my $type := ::?CLASS.^array_type;
             nqp::bindpos($arr, $_, nqp::create($type)) for ^$elems;
             $arr;
         }
-        multi method allocate(::?CLASS:U: Int:D $elems) {
+        multi method allocate(CArray:U: Int:D $elems) {
             my $arr  := nqp::create(self);
             my $type := ::?CLASS.^array_type;
             nqp::bindpos($arr, $_, nqp::create($type)) for ^$elems;

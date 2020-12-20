@@ -142,7 +142,7 @@ group-of 2 => 'collation experiment' => {
         use experimental :collation;
         $*COLLATION.set: :primary;
         print 'pass'
-    ｣, :out<pass>, 'we can still use the pragma (to support old code)';
+    ｣, :out<pass>, :compiler-args[<-I lib>], 'we can still use the pragma (to support old code)';
 }
 
 subtest 'Distribution::Resource can be stringified', {

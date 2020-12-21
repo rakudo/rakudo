@@ -22,6 +22,8 @@ my class Attribute { # declared in BOOTSTRAP
 
     method compose(Mu $package, :$compiler_services) {
         return if $!composed;
+        my $dcpkg := nqp::decont($package);
+        nqp::bindattr(self, Attribute, '$!package', $dcpkg);
         # Generate accessor method, if we're meant to have one.
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);
@@ -31,7 +33,6 @@ my class Attribute { # declared in BOOTSTRAP
                     || (nqp::can($package.HOW, 'has_multi_candidate')
                         && $package.^has_multi_candidate($meth_name))
             {
-                my $dcpkg := nqp::decont($package);
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
 

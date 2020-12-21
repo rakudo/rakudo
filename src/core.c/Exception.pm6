@@ -2773,10 +2773,10 @@ my class X::Numeric::Confused is Exception {
 }
 
 my class X::Enum::NoValue is Exception {
-    has Mu $.enum is required;
+    has Mu $.type is required;
     has $.value is required;
     method message {
-        "No value '" ~ $!value ~ "' found in enum " ~ $!enum.^name
+        "No value '" ~ $!value ~ "' found in enum " ~ $!type.^name
     }
 }
 

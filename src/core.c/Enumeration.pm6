@@ -1,3 +1,4 @@
+my class X::Enum::NoValue {...};
 # Method that we have on enumeration types.
 my role Enumeration {
     has $.key;
@@ -32,18 +33,31 @@ my role Enumeration {
 
     multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }
 
-    method !FROM-VALUE(|) {
-        my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);
-        nqp::istype($x, ::?CLASS)
-            ?? $x
-            !! self.^enum_from_value($x)
+    method !FROM-VALUE(Mu \val) {
+        my $res := Nil;
+        my $dcval := nqp::decont(val);
+        # If value is a mixin of enum try to pull out the mixed in value first
+        if $dcval.^is_mixin {
+            my $attr_name := '$!' ~ self.^name;
+            if $dcval.^has_attribute($attr_name) {
+                my $mixin_value := nqp::getattr($dcval, $dcval.WHAT, $attr_name);
+                return $mixin_value if nqp::istype($mixin_value, ::?CLASS);
+            }
+        }
+        if nqp::istype($dcval, ::?CLASS) {
+            $res := $dcval;
+        }
+        elsif nqp::isconcrete($dcval) {
+            $res := self.^enum_from_value($dcval);
+        }
+        $res // Failure.new(X::Enum::NoValue.new(:type(self.WHAT), :value($dcval)))
     }
 
-    proto method CALL-ME(|) {*}
-    multi method CALL-ME(|c) { self!FROM-VALUE(|c) }
+    proto method CALL-ME(Mu) {*}
+    multi method CALL-ME(Mu \val) { self!FROM-VALUE(val) }
 
-    proto method COERCE(|) {*}
-    multi method COERCE(|c) { self!FROM-VALUE(|c) }
+    proto method COERCE(Mu) {*}
+    multi method COERCE(Mu \val) { self!FROM-VALUE(val) }
 
     method pred(::?CLASS:D:) {
         nqp::getattr_i(self,::?CLASS,'$!index')

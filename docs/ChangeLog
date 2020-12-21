@@ -11,7 +11,7 @@ New in 2020.12:
     + Add a new candidate to `spurt` routine and method.
      It does not have an argument taking content to write,
      making it similar to the `touch` utility [f2ea0a65]
-    + Add `:emit-on-empty` and `:emit-once-on-empty` methods to `Suppy.batch` method [cb8eb68a]
+    + Add `:emit-on-empty` and `:emit-once-on-empty` methods to `Supply.batch` method [cb8eb68a]
     + Add `:emit-timed` to `Supply.batch` method [492651ea]
     + Make `is DEPRECATED` trait introspectable on `Routine` instances [0d1c8a8e]
   + Changes:

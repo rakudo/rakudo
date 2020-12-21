@@ -9445,7 +9445,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :op<create>,
                                 QAST::WVal.new(
                                     value => nqp::istype($nomtype, $*W.find_single_symbol($role)) && nqp::can($nomtype.HOW, 'role_arguments')
-                                               ?? $*W.parameterize_type_with_args($/, $*W.find_single_symbol($base-type), $nomtype.HOW.role_arguments($nomtype), nqp::hash)
+                                               ?? $*W.parameterize_type_with_args(NQPMu, $*W.find_single_symbol($base-type), $nomtype.HOW.role_arguments($nomtype), nqp::hash)
                                                !! $*W.find_single_symbol($base-type)
                             )));
                     }

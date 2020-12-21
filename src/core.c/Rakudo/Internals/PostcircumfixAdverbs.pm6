@@ -503,6 +503,69 @@ augment class Rakudo::Internals {
 
     method LAZY-ACCESS-SLICE-DISPATCH-CLASS(int $index) {
         nqp::atpos($lazy-access-slice-dispatch,$index)
+=======
+        unless nqp::isnull($value := nqp::atkey($nameds,'exists')) {
+            $bitmap = $value ?? SLICE_EXISTS !! SLICE_NOT_EXISTS;
+            nqp::deletekey($nameds,'exists');
+        }
+
+        unless nqp::isnull($value := nqp::atkey($nameds,'delete')) {
+            $bitmap = nqp::bitor_i($bitmap,SLICE_DELETE) if $value;
+            nqp::deletekey($nameds,'delete');
+        }
+
+        unless nqp::isnull($value := nqp::atkey($nameds,'kv')) {
+            $bitmap = nqp::bitor_i($bitmap,$value ?? SLICE_KV !! SLICE_NOT_KV);
+            nqp::deletekey($nameds,'kv');
+        }
+
+        unless nqp::isnull($value := nqp::atkey($nameds,'p')) {
+            $bitmap = nqp::bitor_i($bitmap,$value ?? SLICE_P !! SLICE_NOT_P);
+            nqp::deletekey($nameds,'p');
+        }
+
+        unless nqp::isnull($value := nqp::atkey($nameds,'k')) {
+            $bitmap = nqp::bitor_i($bitmap,$value ?? SLICE_K !! SLICE_NOT_K);
+            nqp::deletekey($nameds,'k');
+        }
+
+        unless nqp::isnull($value := nqp::atkey($nameds,'v')) {
+            $bitmap = nqp::bitor_i($bitmap,SLICE_V) if $value;
+            nqp::deletekey($nameds,'v');
+        }
+
+        # Perform the actual lookup
+        my int $index = @pc-adverb-mapper[$bitmap];
+
+        # Unexpected adverbs
+        if nqp::elems($nameds) {
+            X::Adverb.new(
+              unexpected => %adverbs.keys.sort.list,
+              nogo       => @pc-constant-name.map( -> \constant, \adverb {
+                  adverb if nqp::bitand_i(constant,$bitmap);
+              } ).list
+            )
+        }
+
+        # All adverbes accounted for and we have a dispatch index
+        elsif $index {
+            $index
+        }
+
+        # Did not find a dispatch index, but had valid adverbs
+        elsif $bitmap {
+            X::Adverb.new(
+              nogo => @pc-constant-name.map( -> \constant, \adverb {
+                  adverb if nqp::bitand_i(constant,$bitmap)
+              } ).list
+            )
+        }
+
+        # Had valid adverbs, but no special handling required
+        else {
+            0
+        }
+>>>>>>> Re-imagine @a[Iterable]:adverbs
     }
 }
 

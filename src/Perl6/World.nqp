@@ -2881,46 +2881,11 @@ class Perl6::World is HLL::World {
     # We need to do this for BEGIN but also for things that get called in
     # the compilation process, like user defined traits.
     method compile_in_context($past, $code_type) {
-        # Ensure that we have the appropriate op libs loaded and correct
-        # HLL.
+        # Wrapper block without arguments
         my $wrapper := QAST::Block.new(QAST::Stmts.new(), $past);
-
-        # Create outer lexical contexts with all symbols visible. Maybe
-        # we can be a bit smarter here some day. But for now we just make a
-        # single frame and copy all the visible things into it.
-        $wrapper.annotate('DYN_COMP_WRAPPER', 1);
-        my %seen;
         my $mu        := try { self.find_single_symbol('Mu', :setting-only) };
-        my $cur_block := $past;
-        while $cur_block {
-            my %symbols := $cur_block.symtable();
-            for sorted_keys(%symbols) -> str $name {
-                # For now, EVALed code run during precomp will not get the
-                # outer lexical context's symbols as those may contain or
-                # reference unserializable objects leading to compilation
-                # failures. Needs a smarter approach as noted above.
-                if !%seen{$name} && ($name eq '$_' || !self.is_nested()) {
-                    # Add symbol.
-                    my %sym   := %symbols{$name};
-                    my $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
-                        ?? self.force_value(%sym, $name, 0)
-                        !! $mu;
-                    if nqp::isnull(nqp::getobjsc($value)) {
-                        $value := self.try_add_to_sc($value, $mu);
-                    }
-                    $wrapper[0].push(QAST::Var.new(
-                        :name($name), :scope('lexical'),
-                        :decl(%sym<state> ?? 'statevar' !! 'static'), :$value
-                    ));
-                    $wrapper.symbol($name, :scope('lexical'));
 
-                }
-                %seen{$name} := 1;
-            }
-            $cur_block := $cur_block.ann('outer');
-        }
-
-        # Compile it, set wrapper's static lexpad, then invoke the wrapper,
+        # Compile it, set its static lexpad, then invoke the code,
         # which fixes up the lexicals.
         my $compunit := QAST::CompUnit.new(
             :hll('Raku'),
@@ -2929,8 +2894,33 @@ class Perl6::World is HLL::World {
             $wrapper
         );
         my $comp := nqp::getcomp('Raku');
+        my $*USE_LEXICAL_FALLBACK := 1;
         my $precomp := $comp.compile($compunit, :from<optimize>, :compunit_ok(1),
              :lineposcache($*LINEPOSCACHE));
+
+        # Set the fallback lexical resolver on the comp unit to make symbols
+        # of unfinished frames accessible.
+        nqp::bindattr($precomp, $precomp.WHAT, 'lexical_resolver', -> $null, $name {
+            my $cur_block := $past;
+            my $value;
+            my int $have_value := 0;
+            while !$have_value && $cur_block {
+                my %symbols := $cur_block.symtable();
+                if nqp::existskey(%symbols, $name) {
+                    my %sym   := %symbols{$name};
+                    $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
+                        ?? self.force_value(%sym, $name, 0)
+                        !! $mu;
+                    $have_value := 1;
+                }
+                $cur_block := $cur_block.ann('outer');
+            }
+            unless $have_value {
+                nqp::die("No lexical found with name '$name' in resolver");
+            }
+            $value
+        });
+
         my $mainline := $comp.backend.compunit_mainline($precomp);
         $mainline();
 

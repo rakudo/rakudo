@@ -234,4 +234,5 @@ src/core.c/REPL.pm6
 @if(backend==js
 src/core.c/WrappedJSObject.pm6)@
 src/core.c/Rakudo/Metaops.pm6
+src/core.c/Rakudo/Internals/PostcircumfixAdverbs.pm6
 src/core.c/core_epilogue.pm6

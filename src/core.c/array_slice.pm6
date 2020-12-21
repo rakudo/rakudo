@@ -183,10 +183,513 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$v!, *%other ) is raw 
 }
 
 # @a[@i]
-multi sub postcircumfix:<[ ]>( \SELF, Iterable:D \pos ) is raw {
-    nqp::iscont(pos)
-      ?? SELF.AT-POS(pos.Int)
-      !! POSITIONS(SELF, pos).map({ SELF[$_] }).eager.list;
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
+    # MMD is not behaving itself so we do this by hand.
+    return postcircumfix:<[ ]>(SELF, positions.Int, |%_) 
+      if nqp::iscont(positions);
+
+    my $result  := nqp::create(IterationBuffer);
+    my $elems   := nqp::null;
+    my int $done;
+
+    # Helper sub for deleting elements, making sure that the total number
+    # of elements is fixed from *before* the first deletion, so that relative
+    # positions such as *-1 will continue to refer to the same position,
+    # even if the last element of an array was removed (which shortens the
+    # array).
+    sub delete(\pos) {
+        $elems := SELF.elems if nqp::isnull($elems);
+        SELF.DELETE-POS(pos)
+    }
+
+    # Get the dispatch index
+    my int $index;
+    if nqp::getattr(%_,Map,'$!storage') {
+        if nqp::istype(
+             (my $lookup := Rakudo::Internals.ADVERBS_TO_DISPATCH_INDEX(%_)),
+             X::Adverb
+           ) {
+            $lookup.what   = "slice";
+            $lookup.source = try { SELF.VAR.name } // SELF.^name;
+            return Failure.new($lookup);
+        }
+
+        # Good to go!
+        $index = $lookup;
+    }
+
+    my &accept := do if $index {
+
+        # Handlers for lazy positions and adverbs
+        if positions.is-lazy {
+               nqp::iseq_i($index,1) || nqp::iseq_i($index,2)
+              ?? -> \pos {    # lazy, :kv | :!kv
+                     if SELF.EXISTS-POS(pos) {
+                         nqp::push($result,pos);
+                         nqp::push($result,SELF.AT-POS(pos));
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,3) || nqp::iseq_i($index,4)
+              ?? -> \pos {    # lazy, :p | :!p
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,Pair.new(pos,SELF.AT-POS(pos)))
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,5) || nqp::iseq_i($index,6)
+              ?? -> \pos {    # lazy, :k | :!k
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,pos)
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,7)
+              ?? -> \pos {    # lazy, :v
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,SELF.AT-POS(pos))
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,8)
+              ?? -> \pos {    # lazy, :exists
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,True)
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,9) || nqp::iseq_i($index,10)
+              ?? -> \pos {    # lazy, :exists:kv | :exists:!kv
+                     if SELF.EXISTS-POS(pos) {
+                         nqp::push($result,pos);
+                         nqp::push($result,True);
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,11) || nqp::iseq_i($index,12)
+              ?? -> \pos {    # lazy, :exists:p | :exists:!p
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,Pair.new(pos,True))
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,13)
+              ?? -> \pos {    # lazy, :exists:delete
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,True);
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,14) || nqp::iseq_i($index,15)
+              ?? -> \pos {    # lazy, :exists:delete:kv | :exists:delete:!kv
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,pos);
+                         nqp::push($result,True);
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,16) || nqp::iseq_i($index,17)
+              ?? -> \pos {    # lazy, :exists:delete:p | :exists:delete:!p
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,Pair.new(pos,True));
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,18)
+              ?? -> \pos {    # lazy, :!exists
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,False)
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,19) || nqp::iseq_i($index,20)
+              ?? -> \pos {    # lazy, :!exists:kv | :!exists:!kv
+                     if SELF.EXISTS-POS(pos) {
+                         nqp::push($result,pos);
+                         nqp::push($result,False);
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,21) || nqp::iseq_i($index,22)
+              ?? -> \pos {    # lazy, :!exists:p | !exists:!p
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,Pair.new(pos,False))
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,23)
+              ?? -> \pos {    # lazy, :!exists:delete
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,False);
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,24) || nqp::iseq_i($index,25)
+              ?? -> \pos {    # lazy, :!exists:delete:kv | :!exists:delete:!kv
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,pos);
+                         nqp::push($result,False);
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,26) || nqp::iseq_i($index,27)
+              ?? -> \pos {    # lazy, :!exists:delete:p | :!exists:delete:!p
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,Pair.new(pos,False));
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,28)
+              ?? -> \pos {    # lazy, :delete
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,delete(pos))
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,29) || nqp::iseq_i($index,30)
+              ?? -> \pos {    # lazy, :delete:kv | :delete:!kv
+                     if SELF.EXISTS-POS(pos) {
+                         nqp::push($result,pos);
+                         nqp::push($result,delete(pos));
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+            !! nqp::iseq_i($index,31) || nqp::iseq_i($index,32)
+              ?? -> \pos {    # lazy, :delete:p | :delete:!p
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,Pair.new(pos,delete(pos)))
+                       !! ($done = 1);
+                 }
+            !! nqp::iseq_i($index,33) || nqp::iseq_i($index,34)
+              ?? -> \pos {    # lazy, :delete:k | :delete:!k
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,pos);
+                     }
+                     else {
+                         $done = 1;
+                     }
+                 }
+              !! -> \pos {    # lazy, :delete:v
+                     SELF.EXISTS-POS(pos)
+                       ?? nqp::push($result,delete(pos))
+                       !! ($done = 1);
+                 }
+        }
+
+        # Handlers for non-lazy positions and adverbs
+        else {
+               nqp::iseq_i($index,1)
+              ?? -> \pos {    # :kv
+                     if SELF.EXISTS-POS(pos) {
+                         nqp::push($result,pos);
+                         nqp::push($result,SELF.AT-POS(pos));
+                     }
+                 }
+            !! nqp::iseq_i($index,2)
+              ?? -> \pos {    # :!kv
+                     nqp::push($result,pos);
+                     nqp::push($result,SELF.AT-POS(pos));
+                 }
+            !! nqp::iseq_i($index,3)
+              ?? -> \pos {    # :p
+                     nqp::push($result,Pair.new(pos,SELF.AT-POS(pos)))
+                       if SELF.EXISTS-POS(pos);
+                 }
+            !! nqp::iseq_i($index,4)
+              ?? -> \pos {    # :!p
+                     nqp::push($result,Pair.new(pos,SELF.AT-POS(pos)));
+                 }
+            !! nqp::iseq_i($index,5)
+              ?? -> \pos {    # :k
+                     nqp::push($result,pos) if SELF.EXISTS-POS(pos);
+                 }
+            !! nqp::iseq_i($index,6)
+              ?? -> \pos {    # :!k
+                     nqp::push($result,pos);
+                 }
+            !! nqp::iseq_i($index,7)
+              ?? -> \pos {    # :v
+                    nqp::push($result,SELF.AT-POS(pos)) if SELF.EXISTS-POS(pos);
+                }
+            !! nqp::iseq_i($index,8)
+              ?? -> \pos {    # :exists
+                     nqp::push($result,SELF.EXISTS-POS(pos));
+                 }
+            !! nqp::iseq_i($index,9)
+              ?? -> \pos {    # :exists:kv
+                     if SELF.EXISTS-POS(pos) {
+                         nqp::push($result,pos);
+                         nqp::push($result,True);
+                     }
+                 }
+            !! nqp::iseq_i($index,10)
+              ?? -> \pos {    # :exists:!kv
+                     nqp::push($result,pos);
+                     nqp::push($result,SELF.EXISTS-POS(pos));
+                 }
+            !! nqp::iseq_i($index,11)
+              ?? -> \pos {    # :exists:p
+                     nqp::push($result,Pair.new(pos,True))
+                       if SELF.EXISTS-POS(pos);
+                 }
+            !! nqp::iseq_i($index,12)
+              ?? -> \pos {    # :exists:!p
+                     nqp::push($result,Pair.new(pos,SELF.EXISTS-POS(pos)));
+                 }
+            !! nqp::iseq_i($index,13)
+              ?? -> \pos {    # :exists:delete
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,True);
+                     }
+                     else {
+                         nqp::push($result,False);
+                     }
+                 }
+            !! nqp::iseq_i($index,14)
+              ?? -> \pos {    # :exists:delete:kv
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,pos);
+                         nqp::push($result,True);
+                     }
+                 }
+            !! nqp::iseq_i($index,15)
+              ?? -> \pos {    # :exists:delete:!kv
+                     nqp::push($result,pos);
+                     delete(pos)
+                       if nqp::push($result,SELF.EXISTS-POS(pos));
+                 }
+            !! nqp::iseq_i($index,16)
+              ?? -> \pos {    # :exists:delete:p
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,Pair.new(pos,True));
+                     }
+                 }
+            !! nqp::iseq_i($index,17)
+              ?? -> \pos {    # :exists:delete:!p
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,Pair.new(pos,True));
+                     }
+                     else {
+                         nqp::push($result,Pair.new(pos,False));
+                     }
+                 }
+            !! nqp::iseq_i($index,18)
+              ?? -> \pos {    # :!exists
+                    nqp::push($result,!SELF.EXISTS-POS(pos));
+                }
+            !! nqp::iseq_i($index,19)
+              ?? -> \pos {    # :!exists:kv
+                     if SELF.EXISTS-POS(pos) {
+                         nqp::push($result,pos);
+                         nqp::push($result,False);
+                     }
+                 }
+            !! nqp::iseq_i($index,20)
+              ?? -> \pos {    # :!exists:!kv
+                     nqp::push($result,pos);
+                     nqp::push($result,!SELF.EXISTS-POS(pos));
+                 }
+            !! nqp::iseq_i($index,21)
+              ?? -> \pos {    # :!exists:p
+                     nqp::push($result,Pair.new(pos,False))
+                       if SELF.EXISTS-POS(pos);
+                 }
+            !! nqp::iseq_i($index,22)
+              ?? -> \pos {    # :!exists:!p
+                     nqp::push($result,Pair.new(pos,!SELF.EXISTS-POS(pos)));
+                 }
+            !! nqp::iseq_i($index,23)
+              ?? -> \pos {    # :!exists:delete
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,False);
+                     }
+                     else {
+                         nqp::push($result,True);
+                     }
+                 }
+            !! nqp::iseq_i($index,24)
+              ?? -> \pos {    # :!exists:delete:kv
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,pos);
+                         nqp::push($result,False);
+                     }
+                 }
+            !! nqp::iseq_i($index,25)
+              ?? -> \pos {    # :!exists:delete:!kv
+                     nqp::push($result,pos);
+                     delete(pos) if nqp::push($result,!SELF.EXISTS-POS(pos));
+                 }
+            !! nqp::iseq_i($index,26)
+              ?? -> \pos {    # :!exists:delete:p
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,Pair.new(pos,False));
+                     }
+                 }
+            !! nqp::iseq_i($index,27)
+              ?? -> \pos {    # :!exists:delete:!p
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,Pair.new(pos,False));
+                     }
+                     else {
+                         nqp::push($result,Pair.new(pos,True));
+                     }
+                 }
+            !! nqp::iseq_i($index,28)
+              ?? -> \pos {    # :delete
+                     nqp::push($result,delete(pos));
+                 }
+            !! nqp::iseq_i($index,29)
+              ?? -> \pos {    # :delete:kv
+                     if SELF.EXISTS-POS(pos) {
+                         nqp::push($result,pos);
+                         nqp::push($result,delete(pos));
+                     }
+                 }
+            !! nqp::iseq_i($index,30)
+              ?? -> \pos {    # :delete:!kv
+                     nqp::push($result,pos);
+                     nqp::push($result,delete(pos));
+                 }
+            !! nqp::iseq_i($index,31)
+              ?? -> \pos {    # :delete:p
+                     nqp::push($result,Pair.new(pos,delete(pos)))
+                       if SELF.EXISTS-POS(pos);
+                 }
+            !! nqp::iseq_i($index,32)
+              ?? -> \pos {    # :delete:!p
+                     nqp::push($result,Pair.new(pos,delete(pos)));
+                 }
+            !! nqp::iseq_i($index,33)
+              ?? -> \pos {    # :delete:k
+                     if SELF.EXISTS-POS(pos) {
+                         delete(pos);
+                         nqp::push($result,pos);
+                     }
+                 }
+            !! nqp::iseq_i($index,34)
+              ?? -> \pos {    # :delete:!k
+                     delete(pos) if SELF.EXISTS-POS(pos);
+                     nqp::push($result,pos);
+                 }
+              !! -> \pos {    # :delete:v
+                     nqp::push($result,delete(pos))
+                       if SELF.EXISTS-POS(pos);
+                 }
+        }
+    }
+
+    # Handler for lazy positions and no adverbs
+    elsif positions.is-lazy {
+        -> \pos {    # lazy, no actionable adverbs
+            SELF.EXISTS-POS(pos)
+              ?? nqp::push($result,SELF.AT-POS(pos))
+              !! ($done = 1);
+        }
+    }
+
+    # Handler for non-lazy positions and no adverbs
+    else {
+        -> \pos {    # no actionable adverbs
+            nqp::push($result,SELF.AT-POS(pos))
+        }
+    }
+
+    # Get the iterator after the laziness has been determined
+    my $pos-iter := positions.iterator;
+
+    # Handle iterator in the generated positions: this will add a List
+    # with the elements pointed to by the iterator to the result.  Because
+    # these positions can also be non-Int, some trickery needs to be
+    # done to allow this being called recursively.
+    my sub handle-iterator(\iterator) {
+
+        # basically push the current result on a stack
+        my int $mark = nqp::elems($result);
+
+        nqp::until(
+          $done || nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype(pos,Int),
+            accept(pos),
+            handle-nonInt(pos)
+          )
+        );
+
+        # Take what was added and push it as a List
+        if nqp::sub_i(nqp::elems($result),$mark) -> int $added {
+            my $buffer;
+            if $mark {
+                $buffer := nqp::slice($result,$mark,$added);
+                nqp::setelems($result,$mark);
+            }
+            else {
+                $buffer := $result;
+                $result := nqp::create(IterationBuffer);
+            }
+            nqp::push($result,$buffer.List);
+        }
+    }
+
+    # Handle anything non-integer in the generated positions
+    my sub handle-nonInt(\pos) {
+        nqp::istype(pos,Iterable)
+          ?? nqp::iscont(pos)
+            ?? accept(pos.Int)
+            !! handle-iterator(pos.iterator)
+          !! nqp::istype(pos,Callable)
+            ?? nqp::istype(
+                 (my $real := (pos)(
+                   nqp::ifnull($elems,$elems := SELF.elems)
+                 )),
+                 Int
+               )
+              ?? accept($real)
+              !! handle-nonInt($real)
+            !! nqp::istype(pos,Whatever)
+              ?? handle-iterator(
+                   (^nqp::ifnull($elems,$elems := SELF.elems)).iterator
+                 )
+              !! accept(pos.Int)
+    }
+
+    # Do the actual building of the result
+    nqp::until(
+      $done || nqp::eqaddr((my \pos := $pos-iter.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(pos,Int),
+        accept(pos),
+        handle-nonInt(pos)
+      )
+    );
+
+    $result.List
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
     # MMD is not behaving itself so we do this by hand.
@@ -269,36 +772,6 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
     );
 
     $result.List
-}
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,Bool() :$delete!,*%other) is raw {
-    nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, 'delete', $delete, %other )
-        !! SLICE_MORE_LIST(SELF,POSITIONS(SELF,pos),'delete',$delete,%other)
-}
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos,Bool() :$exists!,*%other) is raw {
-    nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, 'exists', $exists, %other )
-        !! SLICE_MORE_LIST(SELF,POSITIONS(SELF,pos),'exists',$exists,%other)
-}
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Bool() :$kv!, *%other) is raw {
-    nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, 'kv', $kv, %other )
-        !! SLICE_MORE_LIST(SELF,POSITIONS(SELF,pos),'kv',$kv,%other)
-}
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Bool() :$p!, *%other) is raw {
-    nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, 'p', $p, %other )
-        !! SLICE_MORE_LIST(SELF,POSITIONS(SELF,pos),'p',$p,%other)
-}
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Bool() :$k!, *%other) is raw {
-    nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, 'k', $k, %other )
-        !! SLICE_MORE_LIST(SELF,POSITIONS(SELF,pos),'k',$k,%other)
-}
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Bool() :$v!, *%other) is raw {
-    nqp::iscont(pos)
-        ?? SLICE_ONE_LIST( SELF, pos.Int, 'v', $v, %other )
-        !! SLICE_MORE_LIST(SELF,POSITIONS(SELF,pos),'v',$v,%other)
 }
 
 # @a[->{}]

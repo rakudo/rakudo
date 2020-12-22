@@ -11,7 +11,7 @@ set -o pipefail
 
 echo "========= Starting build"
 
-echo "========= Updating CentOS 6"
+echo "========= Updating CentOS 7"
 sudo yum -y update
 sudo yum clean all
 

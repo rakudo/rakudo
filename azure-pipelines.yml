@@ -231,7 +231,7 @@ stages:
       pool:
         vmImage: 'ubuntu-18.04'
       container:
-        image: centos:6
+        image: centos:7
         options: "--name raku-build-container -v /usr/bin/docker:/tmp/docker:ro"
       workspace:
         clean: all

@@ -215,6 +215,11 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
                     nqp::null())
     }
 
+    method is-implementation-detail($obj) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.is-implementation-detail($c)
+    }
+
     method !get_default_candidate($obj) {
         nqp::ifnull(self.'!get_nonsignatured_candidate'($obj),
                     nqp::if(

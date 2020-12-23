@@ -1,5 +1,5 @@
 #- start of generated part of array slice access -------------------------------
-#- Generated on 2020-12-24T07:19:05+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
+#- Generated on 2020-12-31T13:16:37+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
@@ -39,15 +39,14 @@ my class Array::Slice::Access::none {
         );
 
         # Take what was added and push it as a List
-        if nqp::isgt_i(nqp::elems($!result),$mark) {
+        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
             my $buffer;
             if $mark {
-                $buffer :=
-                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
+                $buffer := nqp::slice($!result,$mark,$added);
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer  := $!result;
+                $buffer := $!result;
                 $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
@@ -134,15 +133,14 @@ my class Array::Slice::Access::lazy-none {
         );
 
         # Take what was added and push it as a List
-        if nqp::isgt_i(nqp::elems($!result),$mark) {
+        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
             my $buffer;
             if $mark {
-                $buffer :=
-                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
+                $buffer := nqp::slice($!result,$mark,$added);
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer  := $!result;
+                $buffer := $!result;
                 $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);

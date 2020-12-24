@@ -93,9 +93,144 @@ augment class Rakudo::Internals {
         @map
     }
 
+    # Take a set of adverbs in a hash, and a name and value of an
+    # additional named parameter and return either a positive
+    # dispatch table index value if it was a valid combination of
+    # adverbs, or an X::Adverb exception object with the "unexpected"
+    # and "nogo" fields set.
+    method ADVERBS_AND_NAMED_TO_DISPATCH_INDEX(
+      %adverbs,
+      str $name,
+      \extra
+    ) {
+        my $nameds := nqp::getattr(%adverbs,Map,'$!storage');
+
+        my int $bitmap;
+        my $value;
+
+        # Initialize bitmap with additional named mapping, assuming it
+        # is one of <exists delete kv p k v>.
+        nqp::if(
+          nqp::iseq_s($name,'exists'),
+          ($bitmap = nqp::if(extra,SLICE_EXISTS,SLICE_NOT_EXISTS)),
+          nqp::if(
+            nqp::iseq_s($name,'delete'),
+            nqp::if(extra,$bitmap = SLICE_DELETE),
+            nqp::if(
+              nqp::iseq_s($name,'kv'),
+              ($bitmap = nqp::if(extra,SLICE_KV,SLICE_NOT_KV)),
+              nqp::if(
+                nqp::iseq_s($name,'p'),
+                ($bitmap = nqp::if(extra,SLICE_P,SLICE_NOT_P)),
+                nqp::if(
+                  nqp::iseq_s($name,'k'),
+                  ($bitmap = nqp::if(extra,SLICE_K,SLICE_NOT_K)),
+                  nqp::if(extra,$bitmap = SLICE_V)
+                )
+              )
+            )
+          )
+        );
+
+        # Check all the other valid adverbs
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'exists')),
+          nqp::stmts(
+            ($bitmap = nqp::bitor_i(
+              $bitmap,
+              nqp::if($value,SLICE_EXISTS,SLICE_NOT_EXISTS)
+            )),
+            nqp::deletekey($nameds,'exists')
+          )
+        );
+
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'delete')),
+          nqp::stmts(
+            nqp::if(
+              $value,
+              ($bitmap = nqp::bitor_i($bitmap,SLICE_DELETE))
+            ),
+            nqp::deletekey($nameds,'delete')
+          )
+        );
+
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'kv')),
+          nqp::stmts(
+            ($bitmap = nqp::bitor_i($bitmap,nqp::if(
+              $value,
+              SLICE_KV,
+              SLICE_NOT_KV
+            ))),
+            nqp::deletekey($nameds,'kv')
+          )
+        );
+
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'p')),
+          nqp::stmts(
+            ($bitmap = nqp::bitor_i($bitmap,nqp::if(
+              $value,
+              SLICE_P,
+              SLICE_NOT_P
+            ))),
+            nqp::deletekey($nameds,'p')
+          )
+        );
+
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'k')),
+          nqp::stmts(
+            ($bitmap = nqp::bitor_i($bitmap,nqp::if(
+              $value,
+              SLICE_K,
+              SLICE_NOT_K
+            ))),
+            nqp::deletekey($nameds,'k')
+          )
+        );
+
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'v')),
+          nqp::stmts(
+            nqp::if(
+              $value,
+              ($bitmap = nqp::bitor_i($bitmap,SLICE_V))
+            ),
+            nqp::deletekey($nameds,'v')
+          )
+        );
+
+        # Perform the actual lookup and handling
+        my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
+        nqp::if(
+          nqp::elems($nameds),
+          X::Adverb.new(     # Unexpected adverbs
+            unexpected => %adverbs.keys.sort.list,
+            nogo       => @pc-constant-name.map( -> \constant, \adverb {
+                adverb if nqp::bitand_i(constant,$bitmap);
+            } ).list
+          ),
+          nqp::if(
+            $index,
+            $index,           # All adverbs accounted for have a dispatch index
+            nqp::if(
+              $bitmap,
+              X::Adverb.new(  # Did not find a dispatch index, had valid adverbs
+                nogo => @pc-constant-name.map( -> \constant, \adverb {
+                    adverb if nqp::bitand_i(constant,$bitmap)
+                } ).list
+              ),
+              0               # Had valid adverbs, no special handling required
+            )
+          )
+        )
+    }
+
     # Take a set of adverbs in a hash, and return either a positive
     # dispatch table index value if it was a valid combination of
-    # adverbs, or a X::Adverb exception object with the "unexpected"
+    # adverbs, or an X::Adverb exception object with the "unexpected"
     # and "nogo" fields set.
     method ADVERBS_TO_DISPATCH_INDEX(%adverbs) {
         my $nameds := nqp::getattr(%adverbs,Map,'$!storage');

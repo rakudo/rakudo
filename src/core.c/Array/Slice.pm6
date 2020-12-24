@@ -1,5 +1,5 @@
 #- start of generated part of array slice access -------------------------------
-#- Generated on 2020-12-23T19:29:15+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
+#- Generated on 2020-12-24T06:13:51+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs

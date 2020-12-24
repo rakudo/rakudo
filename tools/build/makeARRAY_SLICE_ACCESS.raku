@@ -25,24 +25,6 @@ my $filename = "src/core.c/Array/Slice.pm6";
 my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 
-# these classes are dups of their non-lazy counterparts
-my @lazy-dups = <
-  not-kv
-  not-p
-  not-k
-  exists-not-kv
-  exists-not-p
-  exists-delete-not-kv
-  exists-delete-not-p
-  not-exists-not-kv
-  not-exists-not-p
-  not-exists-delete-not-kv
-  not-exists-delete-not-p
-  delete-not-kv
-  delete-not-p
-  delete-not-k
->;
-
 # for all the lines in the source that don't need special handling
 while @lines {
     my $line := @lines.shift;
@@ -523,7 +505,7 @@ CODE
         for False, True -> $lazy {
 
             # don't need to do duped classes, handled in dispatch table indexing
-            next if $lazy && $class (elem) @lazy-dups;
+            next if $lazy && $lazy-code.starts-with("same as");
 
             # set up template values
             my %mapper =

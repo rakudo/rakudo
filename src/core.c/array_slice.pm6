@@ -185,36 +185,28 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$v!, *%other ) is raw 
 # @a[@i]
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
     # MMD is not behaving itself so we do this by hand.
-    if nqp::iscont(positions) {
-        postcircumfix:<[ ]>(SELF, positions.Int, |%_)
-    }
+    return postcircumfix:<[ ]>(SELF, positions.Int, |%_)
+      if nqp::iscont(positions);
 
-    # Do actual iteration
-    else {
-
-        # Get the dispatch index
-        my int $index;
-        if nqp::getattr(%_,Map,'$!storage') {
-            if nqp::istype(
-                 (my $lookup :=
-                   Rakudo::Internals.ADVERBS_TO_DISPATCH_INDEX(%_)),
-                 X::Adverb
-               ) {
-                $lookup.what   = "slice";
-                $lookup.source = try { SELF.VAR.name } // SELF.^name;
-                return Failure.new($lookup);
-            }
-
-            # Good to go!
-            $index = $lookup;
+    # Get the dispatch index
+    my int $index;
+    if nqp::getattr(%_,Map,'$!storage') {
+        my $lookup := Rakudo::Internals.ADVERBS_TO_DISPATCH_INDEX(%_);
+        if nqp::istype($lookup,X::Adverb) {
+            $lookup.what   = "slice";
+            $lookup.source = try { SELF.VAR.name } // SELF.^name;
+            return Failure.new($lookup);
         }
 
-        # Do the correct processing for given dispatch index
-        (positions.is-lazy
-          ?? Rakudo::Internals.LAZY-ACCESS-DISPATCH-CLASS($index)
-          !! Rakudo::Internals.ACCESS-DISPATCH-CLASS($index)
-        ).new(SELF).slice(positions.iterator)
+        # Good to go!
+        $index = $lookup;
     }
+
+    # Do the correct processing for given dispatch index
+    (positions.is-lazy
+      ?? Rakudo::Internals.LAZY-ACCESS-DISPATCH-CLASS($index)
+      !! Rakudo::Internals.ACCESS-DISPATCH-CLASS($index)
+    ).new(SELF).slice(positions.iterator)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
     # MMD is not behaving itself so we do this by hand.

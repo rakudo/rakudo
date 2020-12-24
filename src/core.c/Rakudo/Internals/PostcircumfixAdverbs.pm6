@@ -104,38 +104,74 @@ augment class Rakudo::Internals {
         my $value;
 
         # Check all the valid adverbs
-        unless nqp::isnull($value := nqp::atkey($nameds,'exists')) {
-            $bitmap = $value ?? SLICE_EXISTS !! SLICE_NOT_EXISTS;
-            nqp::deletekey($nameds,'exists');
-        }
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'exists')),
+          nqp::stmts(
+            ($bitmap = nqp::if($value,SLICE_EXISTS,SLICE_NOT_EXISTS)),
+            nqp::deletekey($nameds,'exists')
+          )
+        );
 
-        unless nqp::isnull($value := nqp::atkey($nameds,'delete')) {
-            $bitmap = nqp::bitor_i($bitmap,SLICE_DELETE) if $value;
-            nqp::deletekey($nameds,'delete');
-        }
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'delete')),
+          nqp::stmts(
+            nqp::if(
+              $value,
+              ($bitmap = nqp::bitor_i($bitmap,SLICE_DELETE))
+            ),
+            nqp::deletekey($nameds,'delete')
+          )
+        );
 
-        unless nqp::isnull($value := nqp::atkey($nameds,'kv')) {
-            $bitmap = nqp::bitor_i($bitmap,$value ?? SLICE_KV !! SLICE_NOT_KV);
-            nqp::deletekey($nameds,'kv');
-        }
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'kv')),
+          nqp::stmts(
+            ($bitmap = nqp::bitor_i($bitmap,nqp::if(
+              $value,
+              SLICE_KV,
+              SLICE_NOT_KV
+            ))),
+            nqp::deletekey($nameds,'kv')
+          )
+        );
 
-        unless nqp::isnull($value := nqp::atkey($nameds,'p')) {
-            $bitmap = nqp::bitor_i($bitmap,$value ?? SLICE_P !! SLICE_NOT_P);
-            nqp::deletekey($nameds,'p');
-        }
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'p')),
+          nqp::stmts(
+            ($bitmap = nqp::bitor_i($bitmap,nqp::if(
+              $value,
+              SLICE_P,
+              SLICE_NOT_P
+            ))),
+            nqp::deletekey($nameds,'p')
+          )
+        );
 
-        unless nqp::isnull($value := nqp::atkey($nameds,'k')) {
-            $bitmap = nqp::bitor_i($bitmap,$value ?? SLICE_K !! SLICE_NOT_K);
-            nqp::deletekey($nameds,'k');
-        }
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'k')),
+          nqp::stmts(
+            ($bitmap = nqp::bitor_i($bitmap,nqp::if(
+              $value,
+              SLICE_K,
+              SLICE_NOT_K
+            ))),
+            nqp::deletekey($nameds,'k')
+          )
+        );
 
-        unless nqp::isnull($value := nqp::atkey($nameds,'v')) {
-            $bitmap = nqp::bitor_i($bitmap,SLICE_V) if $value;
-            nqp::deletekey($nameds,'v');
-        }
+        nqp::unless(
+          nqp::isnull($value := nqp::atkey($nameds,'v')),
+          nqp::stmts(
+            nqp::if(
+              $value,
+              ($bitmap = nqp::bitor_i($bitmap,SLICE_V))
+            ),
+            nqp::deletekey($nameds,'v')
+          )
+        );
 
         # Perform the actual lookup
-        my int $index = @pc-adverb-mapper[$bitmap];
+        my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
 
         # Unexpected adverbs
         if nqp::elems($nameds) {

@@ -170,37 +170,30 @@ augment class Rakudo::Internals {
           )
         );
 
-        # Perform the actual lookup
+        # Perform the actual lookup and handling
         my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
-
-        # Unexpected adverbs
-        if nqp::elems($nameds) {
-            X::Adverb.new(
-              unexpected => %adverbs.keys.sort.list,
-              nogo       => @pc-constant-name.map( -> \constant, \adverb {
-                  adverb if nqp::bitand_i(constant,$bitmap);
-              } ).list
+        nqp::if(
+          nqp::elems($nameds),
+          X::Adverb.new(     # Unexpected adverbs
+            unexpected => %adverbs.keys.sort.list,
+            nogo       => @pc-constant-name.map( -> \constant, \adverb {
+                adverb if nqp::bitand_i(constant,$bitmap);
+            } ).list
+          ),
+          nqp::if(
+            $index,
+            $index,           # All adverbs accounted for have a dispatch index
+            nqp::if(
+              $bitmap,
+              X::Adverb.new(  # Did not find a dispatch index, had valid adverbs
+                nogo => @pc-constant-name.map( -> \constant, \adverb {
+                    adverb if nqp::bitand_i(constant,$bitmap)
+                } ).list
+              ),
+              0               # Had valid adverbs, no special handling required
             )
-        }
-
-        # All adverbes accounted for and we have a dispatch index
-        elsif $index {
-            $index
-        }
-
-        # Did not find a dispatch index, but had valid adverbs
-        elsif $bitmap {
-            X::Adverb.new(
-              nogo => @pc-constant-name.map( -> \constant, \adverb {
-                  adverb if nqp::bitand_i(constant,$bitmap)
-              } ).list
-            )
-        }
-
-        # Had valid adverbs, but no special handling required
-        else {
-            0
-        }
+          )
+        )
     }
 
     my constant $access-dispatch = nqp::list(

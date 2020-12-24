@@ -306,16 +306,6 @@ my class Any { # declared in BOOTSTRAP
         Rakudo::Internals.WALK-AT-POS(self,@indices).AT-POS($final)
     }
 
-    proto method ZEN-POS(|) {*}
-    multi method ZEN-POS(*%unexpected) {
-        %unexpected
-          ?? Failure.new(X::Adverb.new(
-               :what('[] slice'),
-               :source(try { self.VAR.name } // self.WHAT.raku),
-               :unexpected(%unexpected.keys)))
-          !! self
-    }
-
     proto method ZEN-KEY(|) {*}
     multi method ZEN-KEY(*%unexpected) {
         %unexpected

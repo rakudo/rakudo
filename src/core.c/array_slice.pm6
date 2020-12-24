@@ -396,29 +396,28 @@ multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is raw {
 }
 
 # @a[]
+multi sub postcircumfix:<[ ]>(\SELF, *%_) is raw {
+
+    # There are adverbs to check
+    if nqp::getattr(%_,Map,'$!storage') {
+        my $lookup := Rakudo::Internals.ADVERBS_TO_DISPATCH_INDEX(%_);
+        if nqp::istype($lookup,X::Adverb) {
+            $lookup.what   = "zen slice";
+            $lookup.source = try { SELF.VAR.name } // SELF.^name;
+            return Failure.new($lookup);
+        }
+        Rakudo::Internals.ACCESS-DISPATCH-CLASS(
+          $lookup
+        ).new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))
+    }
+
+    # Just the thing, please
+    else {
+        SELF<>
+    }
+}
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;
-}
-multi sub postcircumfix:<[ ]>(\SELF, Bool() :$delete!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, 'delete', $delete, %other );
-}
-multi sub postcircumfix:<[ ]>(\SELF, Bool() :$exists!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, 'exists', $exists, %other );
-}
-multi sub postcircumfix:<[ ]>(\SELF, Bool() :$kv!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, 'kv', $kv, %other );
-}
-multi sub postcircumfix:<[ ]>(\SELF, Bool() :$p!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, 'p', $p, %other );
-}
-multi sub postcircumfix:<[ ]>(\SELF, Bool() :$k!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, 'k', $k, %other );
-}
-multi sub postcircumfix:<[ ]>(\SELF, Bool() :$v!, *%other) is raw {
-    SLICE_MORE_LIST( SELF, ^SELF.elems, 'v', $v, %other )
-}
-multi sub postcircumfix:<[ ]>(\SELF, *%other) is raw {
-    SELF.ZEN-POS(|%other);
 }
 
 # vim: expandtab shiftwidth=4

@@ -1,5 +1,5 @@
 #- start of generated part of array slice access -------------------------------
-#- Generated on 2020-12-24T06:13:51+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
+#- Generated on 2020-12-24T07:19:05+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
@@ -3991,7 +3991,7 @@ my class Array::Slice::Access::not-exists-delete-not-kv {
     method !accept(\pos --> Nil) {
         nqp::push($!result,pos);
         self!delete(pos)
-          if nqp::push($!result,!$!iterable.EXISTS-POS(pos));
+          unless nqp::push($!result,!$!iterable.EXISTS-POS(pos));
     }
 
     method !SET-SELF(\iterable) {

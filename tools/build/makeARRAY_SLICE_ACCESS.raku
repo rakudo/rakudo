@@ -371,7 +371,7 @@ CODE
       Q:to/CODE/,
         nqp::push($!result,pos);
         self!delete(pos)
-          if nqp::push($!result,!$!iterable.EXISTS-POS(pos));
+          unless nqp::push($!result,!$!iterable.EXISTS-POS(pos));
 CODE
       "same as lazy :!exists:delete:kv",
 

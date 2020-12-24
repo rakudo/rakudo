@@ -212,7 +212,15 @@ my class Symbols {
                 return 1;
             }
         }
-        0
+        my $resolver := nqp::getlexicalresolver;
+        my $found := 0;
+        if nqp::defined($resolver) {
+            try {
+                my $value := $resolver(nqp::null, $name);
+                $found := 1;
+            }
+        }
+        $found;
     }
 
     # Forces a value to be made available.

@@ -378,7 +378,14 @@ class Perl6::World is HLL::World {
                              $*W.find_symbol(['Rakudo', 'Internals', 'LoweredAwayLexical'])));
                 }
             }
-            0;
+            my $resolver := nqp::getlexicalresolver;
+            if nqp::defined($resolver) {
+                my $value := $resolver(nqp::null, $name);
+                !nqp::isnull($value)
+            }
+            else {
+                0
+            }
         }
 
         # Checks if the symbol is really an alias to an attribute.
@@ -674,6 +681,39 @@ class Perl6::World is HLL::World {
         }
     }
 
+    my %NOSYMS := nqp::hash();
+    role DynamicallyCompiledResolver {
+        method symbol(str $name, *%attrs) {
+            nqp::bindattr(self, QAST::Block, '%!symbol', nqp::hash) if nqp::isnull(nqp::getattr(self, QAST::Block, '%!symbol'));
+            if nqp::isconcrete(%attrs) && nqp::elems(%attrs) {
+                my %syms := nqp::getattr(self, QAST::Block, '%!symbol'){$name};
+                if nqp::ishash(%syms) && nqp::elems(%syms) {
+                    for %attrs {
+                        %syms{$_.key} := $_.value;
+                    }
+                }
+                else {
+                    nqp::getattr(self, QAST::Block, '%!symbol'){$name} := %syms := %attrs;
+                }
+                %syms
+            }
+            else {
+                my $sym := nqp::atkey(nqp::getattr(self, QAST::Block, '%!symbol'), $name);
+                if nqp::isnull($sym) {
+                    my $resolver := nqp::getlexicalresolver;
+                    my $value := $resolver(nqp::null, $name);
+                    if nqp::isnull($value) {
+                        $sym := %NOSYMS;
+                    }
+                    else {
+                        $sym := nqp::hash('scope', 'lexical', 'value', $value);
+                    }
+                }
+                $sym
+            }
+        }
+    }
+
     method comp_unit_stage0($/) {
 
         # Create unit outer (where we assemble any lexicals accumulated
@@ -717,6 +757,7 @@ class Perl6::World is HLL::World {
             self.load_setting($/, $!setting_name);
         }
         $/.unitstart();
+        $*UNIT_OUTER.HOW.mixin($*UNIT_OUTER, DynamicallyCompiledResolver) if nqp::getlexicalresolver;
 
         $!setting_loaded := 1;
 
@@ -2900,28 +2941,33 @@ class Perl6::World is HLL::World {
 
         # Set the fallback lexical resolver on the comp unit to make symbols
         # of unfinished frames accessible.
-        nqp::bindattr($precomp, $precomp.WHAT, 'lexical_resolver', -> $null, $name {
+        nqp::bindattr($precomp, $precomp.WHAT, 'lexical_resolver', -> $bind_value, $name {
             my $cur_block := $past;
-            my $value;
-            my int $have_value := 0;
-            while !$have_value && $cur_block {
+            my $value := nqp::null;
+            while nqp::isnull($value) && $cur_block {
                 my %symbols := $cur_block.symtable();
                 if nqp::existskey(%symbols, $name) {
                     my %sym   := %symbols{$name};
-                    $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
-                        ?? self.force_value(%sym, $name, 0)
-                        !! $mu;
-                    $have_value := 1;
+                    if nqp::isnull($bind_value) {
+                        $value := nqp::existskey(%sym, 'value') || nqp::existskey(%sym, 'lazy_value_from')
+                            ?? self.force_value(%sym, $name, 0)
+                            !! $mu;
+                    }
+                    else {
+                        $value := %sym<value> := $bind_value;
+                    }
                 }
                 $cur_block := $cur_block.ann('outer');
-            }
-            unless $have_value {
-                nqp::die("No lexical found with name '$name' in resolver");
             }
             $value
         });
 
         my $mainline := $comp.backend.compunit_mainline($precomp);
+        my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
+        if $setting_name {
+            my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
+            nqp::forceouterctx($mainline, $ctx) if $ctx;
+        }
         $mainline();
 
         # Fix up Code object associations (including nested blocks).

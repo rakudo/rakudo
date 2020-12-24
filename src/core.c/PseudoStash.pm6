@@ -230,9 +230,17 @@ my class PseudoStash is Map {
                 $stash);
         },
         'OUR', -> $cur {
-            nqp::getlexrel(
-                nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
-                '$?PACKAGE')
+            nqp::ifnull(
+                nqp::getlexrel(
+                    nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
+                    '$?PACKAGE'
+                ),
+                nqp::if(
+                    (my $resolver := nqp::getlexicalresolver),
+                    $resolver(nqp::null, '$?PACKAGE'),
+                    nqp::null,
+                )
+            )
         }
     );
 

@@ -251,15 +251,26 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
             && $REQUIRE_SYMBOLS.EXISTS-KEY($first),
           $REQUIRE_SYMBOLS.AT-KEY($first),
           nqp::if(
-            $root.EXISTS-KEY($first),
-            $root.AT-KEY($first),
+            (my $resolver := nqp::getlexicalresolver)
+              && nqp::defined($REQUIRE_SYMBOLS := $resolver(nqp::null, '%REQUIRE_SYMBOLS'))
+              && $REQUIRE_SYMBOLS.EXISTS-KEY($first),
+            $REQUIRE_SYMBOLS.AT-KEY($first),
             nqp::if(
-              GLOBAL::.EXISTS-KEY($first),
-              GLOBAL::.AT-KEY($first),
+              $root.EXISTS-KEY($first),
+              $root.AT-KEY($first),
               nqp::if(
-                nqp::iseq_s($first,'GLOBAL'),
-                GLOBAL,
-                X::NoSuchSymbol.new(symbol => $name).fail
+                $resolver
+                  && !nqp::isnull(my $value := $resolver(nqp::null, $first)),
+                $value, #FIXME get rid of the duplicate call
+                nqp::if(
+                  GLOBAL::.EXISTS-KEY($first),
+                  GLOBAL::.AT-KEY($first),
+                  nqp::if(
+                    nqp::iseq_s($first,'GLOBAL'),
+                    GLOBAL,
+                    X::NoSuchSymbol.new(symbol => $name).fail
+                  )
+                )
               )
             )
           )
@@ -285,7 +296,9 @@ sub REQUIRE_IMPORT(
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;
     my @missing;
+    my $resolver := nqp::getlexicalresolver;
     my $block := CALLER::.EXISTS-KEY('%REQUIRE_SYMBOLS')
+            || ($resolver and !nqp::isnull($resolver(nqp::null, '%REQUIRE_SYMBOLS')))
         ?? CALLER::MY::
         !! CALLER::OUTER::;
     my $merge-globals-target := $block;
@@ -319,12 +332,20 @@ sub REQUIRE_IMPORT(
         $targetWHO.merge-symbols($sourceWHO);
     }
     # Set the runtime values for compile time stub symbols
-    for @syms {
-        unless $DEFAULT.EXISTS-KEY($_) {
-            @missing.push: $_;
+    for @syms -> $sym {
+        unless $DEFAULT.EXISTS-KEY($sym) {
+            @missing.push: $sym;
             next;
         }
-        $block{$_} := $DEFAULT{$_};
+        {
+            $block{$sym} := $DEFAULT{$sym};
+            CATCH {
+                my $resolver := nqp::getlexicalresolver;
+                when $resolver && $_.^isa(X::AdHoc) && $_.message.contains('does not exist in this frame') {
+                    $resolver($DEFAULT{$sym}, $sym);
+                }
+            }
+        }
     }
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
@@ -335,7 +356,11 @@ sub REQUIRE_IMPORT(
     ) if $stubname;
     # Merge GLOBAL from compunit.
     nqp::gethllsym('Raku','ModuleLoader').merge_globals(
-        $block<%REQUIRE_SYMBOLS>,
+        $block<%REQUIRE_SYMBOLS> // (
+            $resolver
+                ?? $resolver(nqp::null, '%REQUIRE_SYMBOLS')
+                !! die "Couldn't find %REQUIRE_SYMBOLS"
+        ),
         $GLOBALish,
     );
 }

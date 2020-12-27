@@ -97,6 +97,9 @@ multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is raw {
 }
 
 # @a[Int 1]
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos) is raw {
+    SELF.AT-POS(pos)
+}
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, Mu \assignee) is raw {
     SELF.ASSIGN-POS(pos, assignee);
 }

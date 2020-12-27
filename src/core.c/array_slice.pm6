@@ -367,8 +367,9 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$v!,*%other) is ra
 }
 
 # @a[*]
-multi sub postcircumfix:<[ ]>( \SELF, Whatever:D ) is raw {
-    SELF[^SELF.elems];
+multi sub postcircumfix:<[ ]>(\SELF, Whatever:D) is raw {
+    SELF.iterator.push-all(my $buffer := nqp::create(IterationBuffer));
+    $buffer.List
 }
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is raw {
     SELF[^SELF.elems] = assignee;

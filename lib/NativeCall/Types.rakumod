@@ -96,20 +96,14 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
             nqp::atposref_i(nqp::decont(arr), $pos);
         }
-        multi method AT-POS(::?CLASS:D \arr: int $pos) is raw {
+        multi method AT-POS(::?CLASS:D \arr: Int $pos) is raw {
             nqp::atposref_i(nqp::decont(arr), $pos);
-        }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, int $assignee) {
-            nqp::bindpos_i(nqp::decont(arr), $pos, $assignee);
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Int $assignee) {
             nqp::bindpos_i(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_i($assignee));
-        }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Int $assignee) {
-            nqp::bindpos_i(nqp::decont(arr), $pos, nqp::unbox_i($assignee));
         }
 
         multi method allocate(::?CLASS:U \type: int $elems) {
@@ -128,20 +122,14 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
             nqp::atposref_n(nqp::decont(arr), $pos);
         }
-        multi method AT-POS(::?CLASS:D \arr: int $pos) is raw {
+        multi method AT-POS(::?CLASS:D \arr: Int $pos) is raw {
             nqp::atposref_n(nqp::decont(arr), $pos);
-        }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, num $assignee) {
-            nqp::bindpos_n(nqp::decont(arr), $pos, $assignee);
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Num $assignee) {
             nqp::bindpos_n(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_n($assignee));
-        }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, Num $assignee) {
-            nqp::bindpos_n(nqp::decont(arr), $pos, nqp::unbox_n($assignee));
         }
 
         multi method allocate(::?CLASS:U \type: int $elems) {
@@ -167,7 +155,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
                     self
                 }
         }
-        multi method AT-POS(::?CLASS:D \arr: int $pos) is rw {
+        multi method AT-POS(::?CLASS:D \arr: Int $pos) is rw {
             Proxy.new:
                 FETCH => method () {
                     nqp::atpos(nqp::decont(arr), $pos)
@@ -176,9 +164,6 @@ our class CArray is repr('CArray') is array_type(Pointer) {
                     nqp::bindpos(nqp::decont(arr), $pos, nqp::decont($v));
                     self
                 }
-        }
-        multi method ASSIGN-POS(::?CLASS:D \arr: int $pos, \assignee) {
-            nqp::bindpos(nqp::decont(arr), $pos, nqp::decont(assignee));
         }
         multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, \assignee) {
             nqp::bindpos(nqp::decont(arr), nqp::unbox_i($pos), nqp::decont(assignee));

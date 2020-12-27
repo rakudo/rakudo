@@ -474,15 +474,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    multi method AT-POS(List:D: int $pos) is raw {
-        nqp::isge_i($pos,0) && nqp::isconcrete($!reified)
-          ?? nqp::ifnull(
-               nqp::atpos($!reified,$pos),
-               self!AT_POS_SLOW($pos)
-             )
-          !! self!AT_POS_SLOW($pos)
-    }
-    # because this is a very hot path, we copied the code from the int candidate
     multi method AT-POS(List:D: Int:D $pos) is raw {
         nqp::isge_i($pos,0) && nqp::isconcrete($!reified)
           ?? nqp::ifnull(
@@ -523,25 +514,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         X::Bind.new.throw
     }
 
-    multi method EXISTS-POS(List:D: int $pos) {
-        nqp::hllbool(
-          nqp::if(
-            nqp::isge_i($pos,0),
-            nqp::if(
-              nqp::isconcrete($!reified)
-                && nqp::islt_i($pos,nqp::elems($!reified)),
-              nqp::existspos($!reified,$pos),
-              nqp::if(
-                nqp::isconcrete($!todo),
-                nqp::stmts(
-                  $!todo.reify-at-least(nqp::add_i($pos,1)),
-                  nqp::existspos($!reified,$pos)
-                )
-              )
-            )
-          )
-        )
-    }
     multi method EXISTS-POS(List:D: Int:D $pos --> Bool:D) {
         nqp::hllbool(
           nqp::if(

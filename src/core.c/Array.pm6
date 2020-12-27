@@ -438,14 +438,6 @@ my class Array { # declared in BOOTSTRAP
 
     method shape(Array: --> List:D) { (*,) }  # should probably be Array:D:
 
-    multi method AT-POS(Array:D: int $pos) is raw {
-        my $reified := nqp::getattr(self, List, '$!reified');
-        my $result := nqp::bitand_i(nqp::isge_i($pos, 0), nqp::isconcrete($reified))
-            ?? nqp::atpos($reified, $pos)
-            !! nqp::null;
-        nqp::ifnull($result, self!AT_POS_SLOW($pos))
-    }
-    # because this is a very hot path, we copied the code from the int candidate
     multi method AT-POS(Array:D: Int:D $pos) is raw {
         my $reified := nqp::getattr(self, List, '$!reified');
         my $result := nqp::bitand_i(nqp::isge_i($pos, 0), nqp::isconcrete($reified))
@@ -496,23 +488,6 @@ my class Array { # declared in BOOTSTRAP
         $scalar
     }
 
-    multi method ASSIGN-POS(Array:D: int $pos, Mu \assignee) is raw {
-        my \reified := nqp::getattr(self,List,'$!reified');
-        my \assignee_decont := nqp::decont(assignee);
-        nqp::isge_i($pos, 0) && nqp::isconcrete(reified) &&
-                  nqp::not_i(nqp::isconcrete(nqp::getattr(self,List,'$!todo')))
-            ?? nqp::stmts(
-                 (nqp::p6assign(
-                   nqp::ifnull(
-                     nqp::atpos(reified, $pos),
-                     nqp::bindpos(reified, $pos,
-                       nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!descriptor', $!descriptor))),
-                   assignee_decont)),
-                 assignee_decont)
-            !! self!ASSIGN_POS_SLOW_PATH($pos, assignee_decont)
-    }
-
-    # because this is a very hot path, we copied the code from the int candidate
     multi method ASSIGN-POS(Array:D: Int:D $pos, Mu \assignee) is raw {
         my \assignee_decont := nqp::decont(assignee);
         nqp::bitand_i(
@@ -587,28 +562,6 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    multi method BIND-POS(Array:D: int $pos, Mu \bindval) is raw {
-        nqp::if(
-          nqp::islt_i($pos,0),
-          self!INDEX_OOR($pos),
-          nqp::stmts(
-            nqp::if(
-              nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-              nqp::if(
-                nqp::isge_i(
-                  $pos,
-                  nqp::elems(nqp::getattr(self,List,'$!reified'))
-                ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-                nqp::getattr(self,List,'$!todo').reify-at-least(
-                  nqp::add_i($pos,1))
-              ),
-              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
-            ),
-            nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,bindval)
-          )
-        )
-    }
-    # because this is a very hot path, we copied the code from the int candidate
     multi method BIND-POS(Array:D: Int:D $pos, Mu \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
@@ -631,7 +584,7 @@ my class Array { # declared in BOOTSTRAP
         )
     }
 
-    multi method DELETE-POS(Array:D: int $pos) is raw {
+    multi method DELETE-POS(Array:D: Int:D $pos) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
           self!INDEX_OOR($pos),
@@ -671,9 +624,6 @@ my class Array { # declared in BOOTSTRAP
             self.default                                 # no elements
           )
         )
-    }
-    multi method DELETE-POS(Array:D: Int:D $pos) is raw {
-        self.DELETE-POS(nqp::unbox_i($pos))
     }
 
     method !INDEX_OOR($pos) {

@@ -220,9 +220,6 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{$pos.^name}' as an index";
     }
 
-    multi method EXISTS-POS(Any:D: int \pos --> Bool:D) {
-        nqp::hllbool(nqp::iseq_i(pos,0));
-    }
     multi method EXISTS-POS(Any:D: Int:D \pos --> Bool:D) {
         pos == 0;
     }
@@ -269,9 +266,6 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method AT-POS(|) is nodal {*}
-    multi method AT-POS(Any:U \SELF: int \pos) is raw {
-        nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
-    }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
         nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
     }
@@ -284,12 +278,6 @@ my class Any { # declared in BOOTSTRAP
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
-    multi method AT-POS(Any:D: int \pos) is raw {
-        pos
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'), :got(pos), :range<0..0>))
-          !! self
-    }
     multi method AT-POS(Any:D: Int:D \pos) is raw {
         pos
           ?? Failure.new(X::OutOfRange.new(
@@ -343,9 +331,6 @@ my class Any { # declared in BOOTSTRAP
        SELF.AT-POS(pos) = assignee;                     # defer < 0 check
     }
 
-    multi method ASSIGN-POS(Any:D \SELF: int \pos, Mu \assignee) is raw {
-        SELF.AT-POS(pos) = assignee;                    # defer < 0 check
-    }
     multi method ASSIGN-POS(Any:D \SELF: Int:D \pos, Mu \assignee) is raw {
         SELF.AT-POS(pos) = assignee;                    # defer < 0 check
     }

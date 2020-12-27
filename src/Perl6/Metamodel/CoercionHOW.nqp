@@ -189,7 +189,6 @@ class Perl6::Metamodel::CoercionHOW
             || !(nqp::istype($coerced_decont, $!target_type)
                 || nqp::istype($coerced_decont, nqp::gethllsym('Raku', 'Failure')))
         {
-            my %ex := nqp::gethllsym('Raku', 'P6EX');
             my $target_type_name := $!target_type.HOW.name($!target_type);
             my $value_type_name := $value_type.HOW.name($value_type);
             unless $hint {

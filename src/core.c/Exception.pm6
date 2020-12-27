@@ -2772,6 +2772,14 @@ my class X::Numeric::Confused is Exception {
     }
 }
 
+my class X::Enum::NoValue is Exception {
+    has Mu $.type is required;
+    has $.value is required;
+    method message {
+        "No value '" ~ $!value ~ "' found in enum " ~ $!type.^name
+    }
+}
+
 my class X::PseudoPackage::InDeclaration does X::Comp {
     has $.pseudo-package;
     has $.action;

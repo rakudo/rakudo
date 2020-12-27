@@ -91,10 +91,12 @@ multi sub POSITIONS(
 
 proto sub postcircumfix:<[ ]>($, |) is nodal {*}
 
-multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) is raw {
+multi sub postcircumfix:<[ ]>( \SELF, Any:U $type, |c ) {
     die "Unable to call postcircumfix {try SELF.VAR.name}[ $type.gist() ] with a type object\n"
       ~ "Indexing requires a defined object";
 }
+
+multi sub postcircumfix:<[ ]>(Failure:D \SELF, Any:D \pos, *%_) { SELF }
 
 # @a[Int 1]
 multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos) is raw {
@@ -312,11 +314,15 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
 }
 
 # @a[->{}]
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block ) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, &code) is raw {
     my $*INDEX := 'Effective index';
-    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
-      ?? $pos
-      !! SELF[$pos]
+    nqp::istype((my \elems := SELF.elems),Failure)
+      ?? elems
+      !! (my \count := &code.count) == 1
+        ?? nqp::istype((my \pos := code(elems)),Int)
+          ?? SELF.AT-POS(pos)
+          !! SELF[pos]
+        !! SELF[code(|(elems xx count))]
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is raw {
     my $*INDEX := 'Effective index';

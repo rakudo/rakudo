@@ -4,6 +4,49 @@
 
 augment class Rakudo::Internals {
 
+    my constant $access-element-dispatch = nqp::list(
+      Array::Element::Access::none,
+      Array::Element::Access::kv,
+      Array::Element::Access::not-kv,
+      Array::Element::Access::p,
+      Array::Element::Access::not-p,
+      Array::Element::Access::k,
+      Array::Element::Access::not-k,
+      Array::Element::Access::v,
+      Array::Element::Access::exists,
+      Array::Element::Access::exists-kv,
+      Array::Element::Access::exists-not-kv,
+      Array::Element::Access::exists-p,
+      Array::Element::Access::exists-not-p,
+      Array::Element::Access::exists-delete,
+      Array::Element::Access::exists-delete-kv,
+      Array::Element::Access::exists-delete-not-kv,
+      Array::Element::Access::exists-delete-p,
+      Array::Element::Access::exists-delete-not-p,
+      Array::Element::Access::not-exists,
+      Array::Element::Access::not-exists-kv,
+      Array::Element::Access::not-exists-not-kv,
+      Array::Element::Access::not-exists-p,
+      Array::Element::Access::not-exists-not-p,
+      Array::Element::Access::not-exists-delete,
+      Array::Element::Access::not-exists-delete-kv,
+      Array::Element::Access::not-exists-delete-not-kv,
+      Array::Element::Access::not-exists-delete-p,
+      Array::Element::Access::not-exists-delete-not-p,
+      Array::Element::Access::delete,
+      Array::Element::Access::delete-kv,
+      Array::Element::Access::delete-not-kv,
+      Array::Element::Access::delete-p,
+      Array::Element::Access::delete-not-p,
+      Array::Element::Access::delete-k,
+      Array::Element::Access::delete-not-k,
+      Array::Element::Access::delete-v
+    );
+
+    method ACCESS-ELEMENT-DISPATCH-CLASS(int $index) {
+        nqp::atpos($access-element-dispatch,$index)
+    }
+
     # Constants to allow mapping of valid slice adverb combinations to
     # a value that can be used in lookup table to get a dispatch table
     # lookup value.
@@ -331,7 +374,7 @@ augment class Rakudo::Internals {
         )
     }
 
-    my constant $access-dispatch = nqp::list(
+    my constant $access-slice-dispatch = nqp::list(
       Array::Slice::Access::none,
       Array::Slice::Access::kv,
       Array::Slice::Access::not-kv,
@@ -370,11 +413,11 @@ augment class Rakudo::Internals {
       Array::Slice::Access::delete-v
     );
 
-    method ACCESS-DISPATCH-CLASS(int $index) {
-        nqp::atpos($access-dispatch,$index)
+    method ACCESS-SLICE-DISPATCH-CLASS(int $index) {
+        nqp::atpos($access-slice-dispatch,$index)
     }
 
-    my constant $lazy-access-dispatch = nqp::list(
+    my constant $lazy-access-slice-dispatch = nqp::list(
       Array::Slice::Access::lazy-none,
       Array::Slice::Access::lazy-kv,
       Array::Slice::Access::lazy-kv,                   # same
@@ -413,8 +456,8 @@ augment class Rakudo::Internals {
       Array::Slice::Access::lazy-delete-v
     );
 
-    method LAZY-ACCESS-DISPATCH-CLASS(int $index) {
-        nqp::atpos($lazy-access-dispatch,$index)
+    method LAZY-ACCESS-SLICE-DISPATCH-CLASS(int $index) {
+        nqp::atpos($lazy-access-slice-dispatch,$index)
     }
 }
 

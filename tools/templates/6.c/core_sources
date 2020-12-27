@@ -71,6 +71,7 @@ src/core.c/RaceSeq.pm6
 src/core.c/Nil.pm6
 src/core.c/Range.pm6
 src/core.c/List.pm6
+src/core.c/Array/Element.pm6
 src/core.c/Array/Slice.pm6
 src/core.c/array_slice.pm6
 src/core.c/array_multislice.pm6

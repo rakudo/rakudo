@@ -150,46 +150,56 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$v!, *%_) is raw {
 }
 
 # @a[$x]
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos ) is raw {
-    SELF.AT-POS(pos.Int);
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos) is raw {
+    SELF.AT-POS(pos.Int)
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Mu \assignee ) is raw {
-    SELF.ASSIGN-POS(pos.Int, assignee);
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu \assignee) is raw {
+    SELF.ASSIGN-POS(pos.Int, assignee)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, Mu :$BIND! is raw) is raw {
-    SELF.BIND-POS(pos.Int, $BIND);
+    SELF.BIND-POS(pos.Int, $BIND)
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$delete! ) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$delete!) is raw {
     $delete ?? SELF.DELETE-POS(pos.Int) !! SELF.AT-POS(pos.Int)
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$delete!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, 'delete', $delete, %other )
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$delete!, *%_) is raw {
+    Array::Element.access-any(SELF, pos, %_, 'delete', $delete)
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$exists! ) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$exists!) is raw {
     $exists ?? SELF.EXISTS-POS(pos.Int) !! !SELF.EXISTS-POS(pos.Int)
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$exists!, *%other ) is raw {
-    SLICE_ONE_LIST( SELF, pos.Int, 'exists', $exists, %other )
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$exists!, *%_) is raw {
+    Array::Element.access-any(SELF, pos, %_, 'exists', $exists)
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$kv!, *%other ) is raw {
-    $kv && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$kv!) is raw {
+    $kv
       ?? (SELF.EXISTS-POS(pos.Int) ?? (pos, SELF.AT-POS(pos.Int)) !! ())
-      !! SLICE_ONE_LIST( SELF, pos.Int, 'kv', $kv, %other );
+      !! (pos, SELF.AT-POS(pos.Int))
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$p!, *%other ) is raw {
-    $p && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$kv!, *%_) is raw {
+    Array::Element.access-any(SELF, pos, %_, 'kv', $kv)
+}
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$p!) is raw {
+    $p
       ?? (SELF.EXISTS-POS(pos.Int) ?? Pair.new(pos, SELF.AT-POS(pos.Int)) !! ())
-      !! SLICE_ONE_LIST( SELF, pos.Int, 'p', $p, %other );
+      !! Pair.new(pos, SELF.AT-POS(pos.Int))
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$k!, *%other ) is raw {
-    $k && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
-      ?? (SELF.EXISTS-POS(pos.Int) ?? pos !! ())
-      !! SLICE_ONE_LIST( SELF, pos.Int, 'k', $k, %other );
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$p!, *%_) is raw {
+    Array::Element.access-any(SELF, pos, %_, 'p', $p)
 }
-multi sub postcircumfix:<[ ]>( \SELF, Any:D \pos, Bool() :$v!, *%other ) is raw {
-    $v && nqp::not_i(nqp::elems(nqp::getattr(%other,Map,'$!storage')))
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$k!) is raw {
+    $k ?? (SELF.EXISTS-POS(pos.Int) ?? pos !! ()) !! pos
+}
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$k!, *%_) is raw {
+    Array::Element.access-any(SELF, pos, %_, 'k', $k)
+}
+multi sub postcircumfix:<[ ]>(\SELF, Any:D \pos, :$v!) is raw {
+    $v
       ?? (SELF.EXISTS-POS(pos.Int) ?? nqp::decont(SELF.AT-POS(pos.Int)) !! ())
-      !! SLICE_ONE_LIST( SELF, pos.Int, 'v', $v, %other );
+      !! SELF.AT-POS(pos.Int)
+}
+multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$v!, *%_) is raw {
+    Array::Element.access-any(SELF, pos, %_, 'v', $v)
 }
 
 # @a[@i]

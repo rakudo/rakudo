@@ -4,6 +4,7 @@
 
 augment class Rakudo::Internals {
 
+    # Dispatch table for single element access in Int index
     my constant $access-element-dispatch = nqp::list(
       Array::Element::Access::none,
       Array::Element::Access::kv,
@@ -45,6 +46,50 @@ augment class Rakudo::Internals {
 
     method ACCESS-ELEMENT-DISPATCH-CLASS(int $index) {
         nqp::atpos($access-element-dispatch,$index)
+    }
+
+    # Dispatch table for single element access in Any index
+    my constant $access-element-dispatch-any = nqp::list(
+      Array::Element::Access::none-any,
+      Array::Element::Access::kv-any,
+      Array::Element::Access::not-kv-any,
+      Array::Element::Access::p-any,
+      Array::Element::Access::not-p-any,
+      Array::Element::Access::k-any,
+      Array::Element::Access::not-k-any,
+      Array::Element::Access::v-any,
+      Array::Element::Access::exists-any,
+      Array::Element::Access::exists-kv-any,
+      Array::Element::Access::exists-not-kv-any,
+      Array::Element::Access::exists-p-any,
+      Array::Element::Access::exists-not-p-any,
+      Array::Element::Access::exists-delete-any,
+      Array::Element::Access::exists-delete-kv-any,
+      Array::Element::Access::exists-delete-not-kv-any,
+      Array::Element::Access::exists-delete-p-any,
+      Array::Element::Access::exists-delete-not-p-any,
+      Array::Element::Access::not-exists-any,
+      Array::Element::Access::not-exists-kv-any,
+      Array::Element::Access::not-exists-not-kv-any,
+      Array::Element::Access::not-exists-p-any,
+      Array::Element::Access::not-exists-not-p-any,
+      Array::Element::Access::not-exists-delete-any,
+      Array::Element::Access::not-exists-delete-kv-any,
+      Array::Element::Access::not-exists-delete-not-kv-any,
+      Array::Element::Access::not-exists-delete-p-any,
+      Array::Element::Access::not-exists-delete-not-p-any,
+      Array::Element::Access::delete-any,
+      Array::Element::Access::delete-kv-any,
+      Array::Element::Access::delete-not-kv-any,
+      Array::Element::Access::delete-p-any,
+      Array::Element::Access::delete-not-p-any,
+      Array::Element::Access::delete-k-any,
+      Array::Element::Access::delete-not-k-any,
+      Array::Element::Access::delete-v-any
+    );
+
+    method ACCESS-ELEMENT-ANY-DISPATCH-CLASS(int $index) {
+        nqp::atpos($access-element-dispatch-any,$index)
     }
 
     # Constants to allow mapping of valid slice adverb combinations to

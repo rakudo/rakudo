@@ -544,11 +544,11 @@ augment class Rakudo::Internals {
       Array::Slice::Access::delete-v
     );
 
-    method ACCESS-DISPATCH-CLASS(int $index) {
-        nqp::atpos($access-dispatch,$index)
+    method ACCESS-SLICE-DISPATCH-CLASS(int $index) {
+        nqp::atpos($access-slice-dispatch,$index)
     }
 
-    my constant $lazy-access-dispatch = nqp::list(
+    my constant $lazy-access-slice-dispatch = nqp::list(
       Array::Slice::Access::lazy-none,
       Array::Slice::Access::lazy-kv,
       Array::Slice::Access::lazy-kv,                   # same
@@ -587,8 +587,8 @@ augment class Rakudo::Internals {
       Array::Slice::Access::lazy-delete-v
     );
 
-    method LAZY-ACCESS-DISPATCH-CLASS(int $index) {
-        nqp::atpos($lazy-access-dispatch,$index)
+    method LAZY-ACCESS-SLICE-DISPATCH-CLASS(int $index) {
+        nqp::atpos($lazy-access-slice-dispatch,$index)
     }
 }
 

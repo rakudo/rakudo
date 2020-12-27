@@ -415,7 +415,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, *%_) is raw {
     }
 
     # Do the correct processing for given dispatch index
-    Rakudo::Internals.ACCESS-DISPATCH-CLASS($index)
+    Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS($index)
       .new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))
 }
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is raw {

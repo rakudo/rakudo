@@ -383,13 +383,7 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$v!,*%other) is ra
 }
 
 # @a[*]
-multi sub postcircumfix:<[ ]>(\SELF, Whatever:D) is raw {
-    SELF.iterator.push-all(my $buffer := nqp::create(IterationBuffer));
-    $buffer.List
-}
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, *%_) is raw {
-    # Get the dispatch index
-    my int $index;
     if nqp::getattr(%_,Map,'$!storage') {
         my $lookup := Rakudo::Internals.ADVERBS_TO_DISPATCH_INDEX(%_);
         if nqp::istype($lookup,X::Adverb) {
@@ -397,14 +391,13 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, *%_) is raw {
             $lookup.source = try { SELF.VAR.name } // SELF.^name;
             return Failure.new($lookup);
         }
-
-        # Good to go!
-        $index = $lookup;
+        return Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS($lookup)
+          .new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))
     }
-
-    # Do the correct processing for given dispatch index
-    Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS($index)
-      .new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))
+    
+    # fast path
+    SELF.iterator.push-all(my $buffer := nqp::create(IterationBuffer));
+    $buffer.List
 }
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is raw {
     SELF[^SELF.elems] = assignee;

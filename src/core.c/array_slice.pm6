@@ -314,21 +314,17 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
 }
 
 # @a[->{}]
-multi sub postcircumfix:<[ ]>(\SELF, &code) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block) is raw {
     my $*INDEX := 'Effective index';
-    nqp::istype((my \elems := SELF.elems),Failure)
-      ?? elems
-      !! (my \count := &code.count) == 1
-        ?? nqp::istype((my \pos := code(elems)),Int)
-          ?? SELF.AT-POS(pos)
-          !! SELF[pos]
-        !! SELF[code(|(elems xx count))]
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? SELF.AT-POS(pos)
+      !! SELF[pos]
 }
-multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee ) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee) is raw {
     my $*INDEX := 'Effective index';
-    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
-      ?? $pos
-      !! (SELF[$pos] = assignee)
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? SELF.ASSIGN-POS(pos,assignee)
+      !! (SELF[pos] = assignee)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;

@@ -11,7 +11,7 @@ class Raku does Systemic {
     method VMnames { <moar jvm js> }
 
     method DISTROnames { <macosx linux freebsd mswin32 openbsd dragonfly netbsd browser> }
-    method KERNELnames { <darwin linux freebsd openbsd netbsd  dragonfly win32 browser>  }
+    method KERNELnames { <darwin linux freebsd openbsd netbsd dragonfly sunos win32 browser>  }
 
     my $version-cache      := nqp::hash;
     my $version-cache-lock := Lock.new;

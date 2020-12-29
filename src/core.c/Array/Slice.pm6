@@ -1,5 +1,5 @@
 #- start of generated part of array slice access -------------------------------
-#- Generated on 2020-12-31T13:26:07+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
+#- Generated on 2020-12-31T13:26:29+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
@@ -48,7 +48,7 @@ my class Array::Slice::Access::none {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -143,7 +143,7 @@ my class Array::Slice::Access::lazy-none {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -238,7 +238,7 @@ my class Array::Slice::Access::kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -337,7 +337,7 @@ my class Array::Slice::Access::lazy-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -430,7 +430,7 @@ my class Array::Slice::Access::not-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -523,7 +523,7 @@ my class Array::Slice::Access::p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -618,7 +618,7 @@ my class Array::Slice::Access::lazy-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -710,7 +710,7 @@ my class Array::Slice::Access::not-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -802,7 +802,7 @@ my class Array::Slice::Access::k {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -897,7 +897,7 @@ my class Array::Slice::Access::lazy-k {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -989,7 +989,7 @@ my class Array::Slice::Access::not-k {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1082,7 +1082,7 @@ my class Array::Slice::Access::v {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1177,7 +1177,7 @@ my class Array::Slice::Access::lazy-v {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1269,7 +1269,7 @@ my class Array::Slice::Access::exists {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1364,7 +1364,7 @@ my class Array::Slice::Access::lazy-exists {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1459,7 +1459,7 @@ my class Array::Slice::Access::exists-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1558,7 +1558,7 @@ my class Array::Slice::Access::lazy-exists-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1651,7 +1651,7 @@ my class Array::Slice::Access::exists-not-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1744,7 +1744,7 @@ my class Array::Slice::Access::exists-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1839,7 +1839,7 @@ my class Array::Slice::Access::lazy-exists-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1931,7 +1931,7 @@ my class Array::Slice::Access::exists-not-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2039,7 +2039,7 @@ my class Array::Slice::Access::exists-delete {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2148,7 +2148,7 @@ my class Array::Slice::Access::lazy-exists-delete {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2254,7 +2254,7 @@ my class Array::Slice::Access::exists-delete-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2364,7 +2364,7 @@ my class Array::Slice::Access::lazy-exists-delete-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2468,7 +2468,7 @@ my class Array::Slice::Access::exists-delete-not-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2573,7 +2573,7 @@ my class Array::Slice::Access::exists-delete-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2682,7 +2682,7 @@ my class Array::Slice::Access::lazy-exists-delete-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2790,7 +2790,7 @@ my class Array::Slice::Access::exists-delete-not-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2882,7 +2882,7 @@ my class Array::Slice::Access::not-exists {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2977,7 +2977,7 @@ my class Array::Slice::Access::lazy-not-exists {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3072,7 +3072,7 @@ my class Array::Slice::Access::not-exists-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3171,7 +3171,7 @@ my class Array::Slice::Access::lazy-not-exists-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3264,7 +3264,7 @@ my class Array::Slice::Access::not-exists-not-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3357,7 +3357,7 @@ my class Array::Slice::Access::not-exists-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3452,7 +3452,7 @@ my class Array::Slice::Access::lazy-not-exists-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3544,7 +3544,7 @@ my class Array::Slice::Access::not-exists-not-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3652,7 +3652,7 @@ my class Array::Slice::Access::not-exists-delete {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3761,7 +3761,7 @@ my class Array::Slice::Access::lazy-not-exists-delete {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3867,7 +3867,7 @@ my class Array::Slice::Access::not-exists-delete-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3977,7 +3977,7 @@ my class Array::Slice::Access::lazy-not-exists-delete-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4081,7 +4081,7 @@ my class Array::Slice::Access::not-exists-delete-not-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4186,7 +4186,7 @@ my class Array::Slice::Access::not-exists-delete-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4295,7 +4295,7 @@ my class Array::Slice::Access::lazy-not-exists-delete-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4403,7 +4403,7 @@ my class Array::Slice::Access::not-exists-delete-not-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4505,7 +4505,7 @@ my class Array::Slice::Access::delete {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4610,7 +4610,7 @@ my class Array::Slice::Access::lazy-delete {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4715,7 +4715,7 @@ my class Array::Slice::Access::delete-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4824,7 +4824,7 @@ my class Array::Slice::Access::lazy-delete-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4927,7 +4927,7 @@ my class Array::Slice::Access::delete-not-kv {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5030,7 +5030,7 @@ my class Array::Slice::Access::delete-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5135,7 +5135,7 @@ my class Array::Slice::Access::lazy-delete-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5237,7 +5237,7 @@ my class Array::Slice::Access::delete-not-p {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5342,7 +5342,7 @@ my class Array::Slice::Access::delete-k {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5451,7 +5451,7 @@ my class Array::Slice::Access::lazy-delete-k {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5554,7 +5554,7 @@ my class Array::Slice::Access::delete-not-k {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5657,7 +5657,7 @@ my class Array::Slice::Access::delete-v {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5762,7 +5762,7 @@ my class Array::Slice::Access::lazy-delete-v {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }

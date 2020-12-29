@@ -579,7 +579,7 @@ my class Array::Slice::Access::#class# {
             }
             else {
                 $buffer  := $!result;
-                $!result := nqp::create(IterationBuffer);e
+                $!result := nqp::create(IterationBuffer);
             }
             nqp::push($!result,$buffer.List);
         }

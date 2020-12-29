@@ -36,9 +36,7 @@ BEGIN {
       &DYNAMIC,
       &RETURN-LIST,
       &SLICE_MORE_HASH,
-      &SLICE_MORE_LIST,
       &SLICE_ONE_HASH,
-      &SLICE_ONE_LIST,
       &THROW,
       &THROW-NIL,
 

@@ -1,5 +1,5 @@
 #- start of generated part of array slice access -------------------------------
-#- Generated on 2020-12-31T13:18:53+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
+#- Generated on 2020-12-31T13:26:07+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
@@ -39,15 +39,16 @@ my class Array::Slice::Access::none {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -133,15 +134,16 @@ my class Array::Slice::Access::lazy-none {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -227,15 +229,16 @@ my class Array::Slice::Access::kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -325,15 +328,16 @@ my class Array::Slice::Access::lazy-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -417,15 +421,16 @@ my class Array::Slice::Access::not-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -509,15 +514,16 @@ my class Array::Slice::Access::p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -603,15 +609,16 @@ my class Array::Slice::Access::lazy-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -694,15 +701,16 @@ my class Array::Slice::Access::not-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -785,15 +793,16 @@ my class Array::Slice::Access::k {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -879,15 +888,16 @@ my class Array::Slice::Access::lazy-k {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -970,15 +980,16 @@ my class Array::Slice::Access::not-k {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1062,15 +1073,16 @@ my class Array::Slice::Access::v {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1156,15 +1168,16 @@ my class Array::Slice::Access::lazy-v {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1247,15 +1260,16 @@ my class Array::Slice::Access::exists {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1341,15 +1355,16 @@ my class Array::Slice::Access::lazy-exists {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1435,15 +1450,16 @@ my class Array::Slice::Access::exists-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1533,15 +1549,16 @@ my class Array::Slice::Access::lazy-exists-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1625,15 +1642,16 @@ my class Array::Slice::Access::exists-not-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1717,15 +1735,16 @@ my class Array::Slice::Access::exists-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1811,15 +1830,16 @@ my class Array::Slice::Access::lazy-exists-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -1902,15 +1922,16 @@ my class Array::Slice::Access::exists-not-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2009,15 +2030,16 @@ my class Array::Slice::Access::exists-delete {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2117,15 +2139,16 @@ my class Array::Slice::Access::lazy-exists-delete {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2222,15 +2245,16 @@ my class Array::Slice::Access::exists-delete-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2331,15 +2355,16 @@ my class Array::Slice::Access::lazy-exists-delete-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2434,15 +2459,16 @@ my class Array::Slice::Access::exists-delete-not-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2538,15 +2564,16 @@ my class Array::Slice::Access::exists-delete-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2646,15 +2673,16 @@ my class Array::Slice::Access::lazy-exists-delete-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2753,15 +2781,16 @@ my class Array::Slice::Access::exists-delete-not-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2844,15 +2873,16 @@ my class Array::Slice::Access::not-exists {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -2938,15 +2968,16 @@ my class Array::Slice::Access::lazy-not-exists {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3032,15 +3063,16 @@ my class Array::Slice::Access::not-exists-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3130,15 +3162,16 @@ my class Array::Slice::Access::lazy-not-exists-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3222,15 +3255,16 @@ my class Array::Slice::Access::not-exists-not-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3314,15 +3348,16 @@ my class Array::Slice::Access::not-exists-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3408,15 +3443,16 @@ my class Array::Slice::Access::lazy-not-exists-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3499,15 +3535,16 @@ my class Array::Slice::Access::not-exists-not-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3606,15 +3643,16 @@ my class Array::Slice::Access::not-exists-delete {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3714,15 +3752,16 @@ my class Array::Slice::Access::lazy-not-exists-delete {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3819,15 +3858,16 @@ my class Array::Slice::Access::not-exists-delete-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -3928,15 +3968,16 @@ my class Array::Slice::Access::lazy-not-exists-delete-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4031,15 +4072,16 @@ my class Array::Slice::Access::not-exists-delete-not-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4135,15 +4177,16 @@ my class Array::Slice::Access::not-exists-delete-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4243,15 +4286,16 @@ my class Array::Slice::Access::lazy-not-exists-delete-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4350,15 +4394,16 @@ my class Array::Slice::Access::not-exists-delete-not-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4451,15 +4496,16 @@ my class Array::Slice::Access::delete {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4555,15 +4601,16 @@ my class Array::Slice::Access::lazy-delete {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4659,15 +4706,16 @@ my class Array::Slice::Access::delete-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4767,15 +4815,16 @@ my class Array::Slice::Access::lazy-delete-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4869,15 +4918,16 @@ my class Array::Slice::Access::delete-not-kv {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -4971,15 +5021,16 @@ my class Array::Slice::Access::delete-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5075,15 +5126,16 @@ my class Array::Slice::Access::lazy-delete-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5176,15 +5228,16 @@ my class Array::Slice::Access::delete-not-p {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5280,15 +5333,16 @@ my class Array::Slice::Access::delete-k {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5388,15 +5442,16 @@ my class Array::Slice::Access::lazy-delete-k {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5490,15 +5545,16 @@ my class Array::Slice::Access::delete-not-k {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5592,15 +5648,16 @@ my class Array::Slice::Access::delete-v {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }
@@ -5696,15 +5753,16 @@ my class Array::Slice::Access::lazy-delete-v {
         );
 
         # Take what was added and push it as a List
-        if nqp::sub_i(nqp::elems($!result),$mark) -> int $added {
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
             my $buffer;
             if $mark {
-                $buffer := nqp::slice($!result,$mark,$added);
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
                 nqp::setelems($!result,$mark);
             }
             else {
-                $buffer := $!result;
-                $!result := nqp::create(IterationBuffer);
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);e
             }
             nqp::push($!result,$buffer.List);
         }

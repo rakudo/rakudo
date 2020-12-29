@@ -160,10 +160,6 @@ class Perl6::Metamodel::ConcreteRoleHOW
             nqp::null()
         }
     }
-
-    method is-implementation-detail($obj) {
-        @!roles[0].is-implementation-detail($obj)
-    }
 }
 
 # vim: expandtab sw=4

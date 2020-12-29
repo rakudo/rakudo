@@ -329,53 +329,95 @@ multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, Mu \assignee) is raw {
 multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$BIND!) is raw {
     X::Bind::Slice.new(type => SELF.WHAT).throw;
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$delete!,*%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$delete!) is raw {
     my $*INDEX := 'Effective index';
-    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
-      ?? $pos
-      !! nqp::istype($pos,Int)
-        ?? SLICE_ONE_LIST( SELF,  $pos, 'delete', $delete, %other)
-        !! SLICE_MORE_LIST(SELF, @$pos, 'delete', $delete, %other)
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? $delete
+        ?? SELF.DELETE-POS(pos)
+        !! SELF.AT-POS(pos)
+      !! $delete
+        ?? (SELF[pos]:delete)
+        !! SELF[pos]
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$exists!,*%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$delete!, *%_) is raw {
     my $*INDEX := 'Effective index';
-    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
-      ?? $pos
-      !! nqp::istype($pos,Int)
-        ?? SLICE_ONE_LIST( SELF,  $pos, 'exists', $exists, %other)
-        !! SLICE_MORE_LIST(SELF, @$pos, 'exists', $exists, %other)
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? Array::Element.access-any(SELF, pos, %_, 'delete', $delete)
+      !! postcircumfix:<[ ]>(SELF, pos, :$delete, |%_)
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$kv!,*%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$exists!) is raw {
     my $*INDEX := 'Effective index';
-    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
-     ?? $pos
-     !! nqp::istype($pos,Int)
-       ?? SLICE_ONE_LIST( SELF,  $pos, 'kv', $kv, %other)
-       !! SLICE_MORE_LIST(SELF, @$pos, 'kv', $kv, %other)
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? $exists
+        ?? SELF.EXISTS-POS(pos)
+        !! !SELF.EXISTS-POS(pos)
+      !! (SELF[pos]:$exists)
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$p!,*%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Callable:D $block, :$exists!, *%_) is raw {
     my $*INDEX := 'Effective index';
-    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
-      ?? $pos
-      !! nqp::istype($pos,Int)
-        ?? SLICE_ONE_LIST(  SELF,  $pos, 'p', $p, %other )
-        !! SLICE_MORE_LIST( SELF, @$pos, 'p', $p, %other )
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? Array::Element.access-any(SELF, pos, %_, 'exists', $exists)
+      !! postcircumfix:<[ ]>(SELF, pos, :$exists, |%_)
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$k!,*%other) is raw {
-    my $*INDEX := 'Effective index';
-    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
-      ?? $pos
-      !! nqp::istype($pos,Int)
-        ?? SLICE_ONE_LIST( SELF,  $pos, 'k', $k, %other)
-        !! SLICE_MORE_LIST(SELF, @$pos, 'k', $k, %other)
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$kv!) is raw {
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? $kv
+        ?? SELF.EXISTS-POS(pos)
+          ?? (pos,SELF.AT-POS(pos))
+          !! ()
+        !! (pos,SELF.AT-POS(pos))
+      !! (SELF[pos]:$kv)
 }
-multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block,Bool() :$v!,*%other) is raw {
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$kv!, *%_) is raw {
     my $*INDEX := 'Effective index';
-    nqp::istype((my $pos := $block.POSITIONS(SELF)),Failure)
-      ?? $pos
-      !! nqp::istype($pos,Int)
-        ?? SLICE_ONE_LIST( SELF,  $pos, 'v', $v, %other)
-        !! SLICE_MORE_LIST(SELF, @$pos, 'v', $v, %other)
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? Array::Element.access-any(SELF, pos, %_, 'kv', $kv)
+      !! postcircumfix:<[ ]>(SELF, pos, :$kv, |%_)
+}
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$p!) is raw {
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? $p
+        ?? SELF.EXISTS-POS(pos)
+          ?? Pair.new(pos,SELF.AT-POS(pos))
+          !! ()
+        !! Pair.new(pos,SELF.AT-POS(pos))
+      !! (SELF[pos]:$p)
+}
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$p!, *%_) is raw {
+    my $*INDEX := 'Effective index';
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? Array::Element.access-any(SELF, pos, %_, 'p', $p)
+      !! postcircumfix:<[ ]>(SELF, pos, :$p, |%_)
+}
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$k!) is raw {
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? $k
+        ?? SELF.EXISTS-POS(pos)
+          ?? pos
+          !! ()
+        !! pos
+      !! (SELF[pos]:$k)
+}
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$k!, *%_) is raw {
+    my $*INDEX := 'Effective index';
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? Array::Element.access-any(SELF, pos, %_, 'k', $k)
+      !! postcircumfix:<[ ]>(SELF, pos, :$k, |%_)
+}
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$v!) is raw {
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? $v
+        ?? SELF.EXISTS-POS(pos)
+          ?? SELF.AT-POS(pos)
+          !! ()
+        !! SELF.AT-POS(pos)
+      !! (SELF[pos]:$v)
+}
+multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$v!, *%_) is raw {
+    my $*INDEX := 'Effective index';
+    nqp::istype((my \pos := $block.POSITIONS(SELF)),Int)
+      ?? Array::Element.access-any(SELF, pos, %_, 'v', $v)
+      !! postcircumfix:<[ ]>(SELF, pos, :$v, |%_)
 }
 
 # @a[*]

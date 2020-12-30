@@ -9,7 +9,7 @@ role Perl6::Metamodel::Documenting {
         $!why := $why;
     }
 
-    method is-implementation-detail($type) { 0 }
+    method is-implementation-detail($type) { nqp::hllboolfor(0,'Raku') }
 }
 
 # vim: expandtab sw=4

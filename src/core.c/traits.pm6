@@ -82,7 +82,7 @@ multi sub trait_mod:<is>(Mu:U $type, Mu:U $parent, Hash) {
 }
 multi sub trait_mod:<is>(Mu:U $type, :$implementation-detail!) {
     my role is-implementation-detail {
-        method is-implementation-detail(Mu --> 1) { }
+        method is-implementation-detail(Mu --> True) { }
     }
     $type.HOW.^mixin(is-implementation-detail)
       if $implementation-detail;

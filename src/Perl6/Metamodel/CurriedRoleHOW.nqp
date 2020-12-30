@@ -247,6 +247,10 @@ class Perl6::Metamodel::CurriedRoleHOW
     method shortname($curried_role) {
         $curried_role.HOW.name($curried_role);
     }
+
+    method is-implementation-detail($obj) {
+        $!curried_role.is-implementation-detail($obj)
+    }
 }
 
 # vim: expandtab sw=4

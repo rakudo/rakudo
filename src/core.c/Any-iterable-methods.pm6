@@ -1520,7 +1520,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
 
     proto method slice(|) is nodal { * }
-    multi method slice(Any:D: *@indices) { self.Seq.slice(@indices) }
+    multi method slice(Any:D: *@indices --> Seq:D) { self.Seq.slice(@indices) }
 
     proto method unique(|) is nodal {*}
 

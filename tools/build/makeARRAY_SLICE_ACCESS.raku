@@ -1,8 +1,8 @@
 #!/usr/bin/env raku
 
 # This script reads the Array/Slice.pm6 file, and generates the
-# necessary classes for inclusion in the postcircumfix:<[ ]> table for
-# accessing array slices, and writes it back to the file.
+# necessary classes for inclusion in the postcircumfix:<[ ]> table
+# for accessing array slices, and writes it back to the file.
 #
 # NOTE: the usefulness of this script is limited: once the 50x
 # performance penalty on calling a private method of a consuming
@@ -549,6 +549,9 @@ my class Array::Slice::Access::#class# {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 #delete#
     # Handle iterator in the generated positions: this will add a List
@@ -592,20 +595,12 @@ my class Array::Slice::Access::#class# {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }

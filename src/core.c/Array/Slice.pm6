@@ -1,5 +1,5 @@
 #- start of generated part of array slice access -------------------------------
-#- Generated on 2020-12-31T13:26:29+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
+#- Generated on 2020-12-31T13:26:40+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
@@ -17,6 +17,9 @@ my class Array::Slice::Access::none {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -61,20 +64,12 @@ my class Array::Slice::Access::none {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -113,6 +108,9 @@ my class Array::Slice::Access::lazy-none {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -156,20 +154,12 @@ my class Array::Slice::Access::lazy-none {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -207,6 +197,9 @@ my class Array::Slice::Access::kv {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -251,20 +244,12 @@ my class Array::Slice::Access::kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -307,6 +292,9 @@ my class Array::Slice::Access::lazy-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -350,20 +338,12 @@ my class Array::Slice::Access::lazy-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -400,6 +380,9 @@ my class Array::Slice::Access::not-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -443,20 +426,12 @@ my class Array::Slice::Access::not-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -493,6 +468,9 @@ my class Array::Slice::Access::p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -536,20 +514,12 @@ my class Array::Slice::Access::p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -588,6 +558,9 @@ my class Array::Slice::Access::lazy-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -631,20 +604,12 @@ my class Array::Slice::Access::lazy-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -680,6 +645,9 @@ my class Array::Slice::Access::not-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -723,20 +691,12 @@ my class Array::Slice::Access::not-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -772,6 +732,9 @@ my class Array::Slice::Access::k {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -815,20 +778,12 @@ my class Array::Slice::Access::k {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -867,6 +822,9 @@ my class Array::Slice::Access::lazy-k {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -910,20 +868,12 @@ my class Array::Slice::Access::lazy-k {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -958,6 +908,9 @@ my class Array::Slice::Access::not-k {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -1002,20 +955,12 @@ my class Array::Slice::Access::not-k {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1052,6 +997,9 @@ my class Array::Slice::Access::v {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -1095,20 +1043,12 @@ my class Array::Slice::Access::v {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1147,6 +1087,9 @@ my class Array::Slice::Access::lazy-v {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -1190,20 +1133,12 @@ my class Array::Slice::Access::lazy-v {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1238,6 +1173,9 @@ my class Array::Slice::Access::exists {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -1282,20 +1220,12 @@ my class Array::Slice::Access::exists {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1334,6 +1264,9 @@ my class Array::Slice::Access::lazy-exists {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -1377,20 +1310,12 @@ my class Array::Slice::Access::lazy-exists {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1428,6 +1353,9 @@ my class Array::Slice::Access::exists-kv {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -1472,20 +1400,12 @@ my class Array::Slice::Access::exists-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1528,6 +1448,9 @@ my class Array::Slice::Access::lazy-exists-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -1571,20 +1494,12 @@ my class Array::Slice::Access::lazy-exists-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1621,6 +1536,9 @@ my class Array::Slice::Access::exists-not-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -1664,20 +1582,12 @@ my class Array::Slice::Access::exists-not-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1714,6 +1624,9 @@ my class Array::Slice::Access::exists-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -1757,20 +1670,12 @@ my class Array::Slice::Access::exists-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1809,6 +1714,9 @@ my class Array::Slice::Access::lazy-exists-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -1852,20 +1760,12 @@ my class Array::Slice::Access::lazy-exists-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1900,6 +1800,9 @@ my class Array::Slice::Access::exists-not-p {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -1944,20 +1847,12 @@ my class Array::Slice::Access::exists-not-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -1998,6 +1893,9 @@ my class Array::Slice::Access::exists-delete {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -2052,20 +1950,12 @@ my class Array::Slice::Access::exists-delete {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2108,6 +1998,9 @@ my class Array::Slice::Access::lazy-exists-delete {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -2161,20 +2054,12 @@ my class Array::Slice::Access::lazy-exists-delete {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2213,6 +2098,9 @@ my class Array::Slice::Access::exists-delete-kv {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -2267,20 +2155,12 @@ my class Array::Slice::Access::exists-delete-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2324,6 +2204,9 @@ my class Array::Slice::Access::lazy-exists-delete-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -2377,20 +2260,12 @@ my class Array::Slice::Access::lazy-exists-delete-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2427,6 +2302,9 @@ my class Array::Slice::Access::exists-delete-not-kv {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -2481,20 +2359,12 @@ my class Array::Slice::Access::exists-delete-not-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2533,6 +2403,9 @@ my class Array::Slice::Access::exists-delete-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -2586,20 +2459,12 @@ my class Array::Slice::Access::exists-delete-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2642,6 +2507,9 @@ my class Array::Slice::Access::lazy-exists-delete-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -2695,20 +2563,12 @@ my class Array::Slice::Access::lazy-exists-delete-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2750,6 +2610,9 @@ my class Array::Slice::Access::exists-delete-not-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -2803,20 +2666,12 @@ my class Array::Slice::Access::exists-delete-not-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2851,6 +2706,9 @@ my class Array::Slice::Access::not-exists {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -2895,20 +2753,12 @@ my class Array::Slice::Access::not-exists {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -2947,6 +2797,9 @@ my class Array::Slice::Access::lazy-not-exists {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -2990,20 +2843,12 @@ my class Array::Slice::Access::lazy-not-exists {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3041,6 +2886,9 @@ my class Array::Slice::Access::not-exists-kv {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -3085,20 +2933,12 @@ my class Array::Slice::Access::not-exists-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3141,6 +2981,9 @@ my class Array::Slice::Access::lazy-not-exists-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -3184,20 +3027,12 @@ my class Array::Slice::Access::lazy-not-exists-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3234,6 +3069,9 @@ my class Array::Slice::Access::not-exists-not-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -3277,20 +3115,12 @@ my class Array::Slice::Access::not-exists-not-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3327,6 +3157,9 @@ my class Array::Slice::Access::not-exists-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -3370,20 +3203,12 @@ my class Array::Slice::Access::not-exists-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3422,6 +3247,9 @@ my class Array::Slice::Access::lazy-not-exists-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Handle iterator in the generated positions: this will add a List
@@ -3465,20 +3293,12 @@ my class Array::Slice::Access::lazy-not-exists-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3513,6 +3333,9 @@ my class Array::Slice::Access::not-exists-not-p {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -3557,20 +3380,12 @@ my class Array::Slice::Access::not-exists-not-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3611,6 +3426,9 @@ my class Array::Slice::Access::not-exists-delete {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -3665,20 +3483,12 @@ my class Array::Slice::Access::not-exists-delete {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3721,6 +3531,9 @@ my class Array::Slice::Access::lazy-not-exists-delete {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -3774,20 +3587,12 @@ my class Array::Slice::Access::lazy-not-exists-delete {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3826,6 +3631,9 @@ my class Array::Slice::Access::not-exists-delete-kv {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -3880,20 +3688,12 @@ my class Array::Slice::Access::not-exists-delete-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -3937,6 +3737,9 @@ my class Array::Slice::Access::lazy-not-exists-delete-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -3990,20 +3793,12 @@ my class Array::Slice::Access::lazy-not-exists-delete-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4040,6 +3835,9 @@ my class Array::Slice::Access::not-exists-delete-not-kv {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -4094,20 +3892,12 @@ my class Array::Slice::Access::not-exists-delete-not-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4146,6 +3936,9 @@ my class Array::Slice::Access::not-exists-delete-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -4199,20 +3992,12 @@ my class Array::Slice::Access::not-exists-delete-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4255,6 +4040,9 @@ my class Array::Slice::Access::lazy-not-exists-delete-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -4308,20 +4096,12 @@ my class Array::Slice::Access::lazy-not-exists-delete-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4363,6 +4143,9 @@ my class Array::Slice::Access::not-exists-delete-not-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -4416,20 +4199,12 @@ my class Array::Slice::Access::not-exists-delete-not-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4465,6 +4240,9 @@ my class Array::Slice::Access::delete {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -4518,20 +4296,12 @@ my class Array::Slice::Access::delete {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4570,6 +4340,9 @@ my class Array::Slice::Access::lazy-delete {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -4623,20 +4396,12 @@ my class Array::Slice::Access::lazy-delete {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4674,6 +4439,9 @@ my class Array::Slice::Access::delete-kv {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -4728,20 +4496,12 @@ my class Array::Slice::Access::delete-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4784,6 +4544,9 @@ my class Array::Slice::Access::lazy-delete-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -4837,20 +4600,12 @@ my class Array::Slice::Access::lazy-delete-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4887,6 +4642,9 @@ my class Array::Slice::Access::delete-not-kv {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -4940,20 +4698,12 @@ my class Array::Slice::Access::delete-not-kv {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -4990,6 +4740,9 @@ my class Array::Slice::Access::delete-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -5043,20 +4796,12 @@ my class Array::Slice::Access::delete-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -5095,6 +4840,9 @@ my class Array::Slice::Access::lazy-delete-p {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -5148,20 +4896,12 @@ my class Array::Slice::Access::lazy-delete-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -5196,6 +4936,9 @@ my class Array::Slice::Access::delete-not-p {
         $!elems    := nqp::null;
         $!iterable := iterable;
         self
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
     }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
@@ -5250,20 +4993,12 @@ my class Array::Slice::Access::delete-not-p {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -5302,6 +5037,9 @@ my class Array::Slice::Access::delete-k {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -5355,20 +5093,12 @@ my class Array::Slice::Access::delete-k {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -5411,6 +5141,9 @@ my class Array::Slice::Access::lazy-delete-k {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -5464,20 +5197,12 @@ my class Array::Slice::Access::lazy-delete-k {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -5514,6 +5239,9 @@ my class Array::Slice::Access::delete-not-k {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -5567,20 +5295,12 @@ my class Array::Slice::Access::delete-not-k {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -5617,6 +5337,9 @@ my class Array::Slice::Access::delete-v {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -5670,20 +5393,12 @@ my class Array::Slice::Access::delete-v {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }
@@ -5722,6 +5437,9 @@ my class Array::Slice::Access::lazy-delete-v {
         $!iterable := iterable;
         self
     }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
     method new(\iterable) { nqp::create(self)!SET-SELF(iterable) }
 
     # Helper method for deleting elements, making sure that the total number
@@ -5775,20 +5493,12 @@ my class Array::Slice::Access::lazy-delete-v {
             ?? self!accept(pos.Int)
             !! self!handle-iterator(pos.iterator)
           !! nqp::istype(pos,Callable)
-            ?? nqp::istype(
-                 (my $real := (pos)(
-                   nqp::ifnull($!elems,$!elems := $!iterable.elems)
-                 )),
-                 Int
-               )
+            ?? nqp::istype((my $real := (pos)(self!elems)),Int)
               ?? self!accept($real)
               !! self!handle-nonInt($real)
             !! nqp::istype(pos,Whatever)
               ?? self!handle-iterator(
-                   (^nqp::ifnull(
-                       $!elems,
-                       $!elems := $!iterable.elems
-                     )).iterator
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
                  )
               !! self!accept(pos.Int)
     }

@@ -326,17 +326,19 @@ my class Proc::Async {
         # So it's not easily possible to do the quoting ourselves.
         # So the $!win-quote-args argument is ignored on JVM and we
         # just let Java do its magic.
-        my @quoted-args := @!args;
+        my @quoted-args := $!path, |@!args;
 #?endif
 #?if !jvm
         my @quoted-args;
         if Rakudo::Internals.IS-WIN {
-            @quoted-args.append($!win-verbatim-args
-                ?? @!args.join(' ')
-                !! self!win-quote-CommandLineToArgvW(@!args));
+            @quoted-args.append(
+                self!win-quote-CommandLineToArgvW($!path),
+                $!win-verbatim-args
+                    ?? @!args.join(' ')
+                    !! self!win-quote-CommandLineToArgvW(@!args));
         }
         else {
-            @quoted-args := @!args;
+            @quoted-args := $!path, |@!args;
         }
 #?endif
 
@@ -393,7 +395,7 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'stderr_fd', $!stderr-fd) if $!stderr-fd.DEFINITE;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue(:hint-affinity),
-            CLONE-LIST-DECONTAINERIZED($!path,@quoted-args),
+            CLONE-LIST-DECONTAINERIZED($!path, @quoted-args),
             $cwd.Str,
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,

@@ -131,6 +131,20 @@ my class Seq is Cool does Iterable does Sequence {
         )
     }
 
+    multi method slice(Seq:D: Iterable:D \iterable --> Seq:D) {
+        Seq.new(
+          Rakudo::Iterator.MonotonicIndexes(
+            self.iterator,
+            iterable.iterator,
+            0,
+            -> $index, $next {
+                die "Provided index $index, which is lower than $next";
+            }
+          )
+        )
+    }
+    multi method slice(Seq:D: *@indices --> Seq:D) { self.slice(@indices) }
+
     method sink(--> Nil) {
         nqp::if(
           nqp::isconcrete($!iter),

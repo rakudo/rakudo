@@ -190,11 +190,11 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     proto method sec(|) {*}
     multi method sec(Num:D: ) {
-        nqp::p6box_n(nqp::sec_n(nqp::unbox_n(self)));
+        nqp::p6box_n(nqp::div_n(1e0, nqp::cos_n(nqp::unbox_n(self))));
     }
     proto method asec(|) {*}
     multi method asec(Num:D: ) {
-        nqp::p6box_n(nqp::asec_n(nqp::unbox_n(self)));
+        nqp::p6box_n(nqp::acos_n(nqp::div_n(1e0, nqp::unbox_n(self))));
     }
     method cosec(Num:D:) {
         nqp::p6box_n(nqp::div_n(1e0, nqp::sin_n(nqp::unbox_n(self))));
@@ -242,7 +242,7 @@ my class Num does Real { # declared in BOOTSTRAP
     }
     proto method sech(|) {*}
     multi method sech(Num:D: ) {
-        nqp::p6box_n(nqp::sech_n(nqp::unbox_n(self)));
+        nqp::p6box_n(nqp::div_n(1e0, nqp::cosh_n(nqp::unbox_n(self))));
     }
     proto method asech(|) {*}
     multi method asech(Num:D: ) {
@@ -562,10 +562,10 @@ multi sub atan(num $x --> num) {
     nqp::atan_n($x);
 }
 multi sub sec(num $x --> num) {
-    nqp::sec_n($x);
+    nqp::div_n(1e0, nqp::cos_n($x));
 }
 multi sub asec(num $x --> num) {
-    nqp::asec_n($x);
+    nqp::acos_n(nqp::div_n(1e0, $x));
 }
 
 multi sub cotan(num $x --> num) {
@@ -612,7 +612,7 @@ multi sub atanh(num $x --> num) {
     $x == 1e0 ?? Inf !! log((1e0 + $x) / (1e0 - $x)) / 2e0;
 }
 multi sub sech(num $x --> num) {
-    nqp::sech_n($x);
+    1e0 / cosh($x)
 }
 multi sub asech(num $x --> num) {
     acosh(1e0 / $x);

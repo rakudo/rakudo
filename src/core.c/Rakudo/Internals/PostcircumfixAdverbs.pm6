@@ -99,7 +99,7 @@ augment class Rakudo::Internals {
     my constant SLICE_DELETE     = 0x0001;  # :delete
     my constant SLICE_EXISTS     = 0x0002;  # :exists
     my constant SLICE_NOT_EXISTS = 0x0004;  # :!exists
-    my constant SLICE_KV         = 0x0008;  # :k
+    my constant SLICE_KV         = 0x0008;  # :kv
     my constant SLICE_NOT_KV     = 0x0010;  # :!kv
     my constant SLICE_P          = 0x0020;  # :p
     my constant SLICE_NOT_P      = 0x0040;  # :!p

@@ -230,74 +230,18 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
       !! Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS($index)
     ).new(SELF).slice(positions.iterator)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, Mu \val ) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, Mu \values) is raw {
     # MMD is not behaving itself so we do this by hand.
-    if nqp::iscont(pos) {
-        return SELF[pos.Int] = val;
-    }
+    return postcircumfix:<[ ]>(SELF, positions.Int, values)
+      if nqp::iscont(positions);
 
-    # Prep an iterator that will assign Nils past end of rval
-    my \rvlist :=
-        do if  nqp::iscont(val)
-            or not nqp::istype(val, Iterator)
-               and not nqp::istype(val, Iterable) {
-            (nqp::decont(val),).Slip
-        }
-        elsif nqp::istype(val, Iterable) {
-            val.map({ nqp::decont($_) }).Slip
-        }, (Nil xx Inf).Slip;
-
-    if nqp::istype(SELF, Positional) {
-        # For Positionals, preserve established/expected evaluation order.
-        my $list   := List.new;
-        my $target := nqp::getattr($list,List,'$!reified');
-
-        # We try to reify indices eagerly first, in case doing so
-        # manipulates SELF.  If pos is lazy or contains Whatevers/closures,
-        # the SELF may start to reify as well.
-        my \indices := POSITIONS(SELF, pos);
-        indices.iterator.sink-all;
-
-        # Extract the values/containers which will be assigned to, in case
-        # reifying the rhs does crazy things like splicing SELF.
-        my int $p = -1;
-        nqp::bindpos($target,++$p,SELF[$_]) for indices;
-
-        rvlist.EXISTS-POS($p);
-        my \rviter := rvlist.iterator;
-        $p = -1;
-        my $elems = nqp::elems($target);
-        nqp::atpos($target,$p) = rviter.pull-one
-          while nqp::islt_i(++$p,$elems);
-        $list
-    }
-    else { # The assumption for now is this must be Iterable
-        # Lazy list assignment.  This is somewhat experimental and
-        # semantics may change.
-        my $target := SELF.iterator;
-        my sub eagerize ($idx) {
-            once $target := $target.cache.iterator;
-            $idx ~~ Whatever ?? $target.elems !! $target.EXISTS-POS($idx);
-        }
-        my @poslist := POSITIONS(SELF, pos, :eagerize(&eagerize)).eager;
-        my %keep;
-        # TODO: we could also use a quanthash and count occurences of an
-        # index to let things go to GC sooner.
-        %keep{@poslist} = ();
-        my $max = -1;
-        my \rviter := rvlist.iterator;
-        @poslist.map: -> $p {
-            my $lv;
-            for $max ^.. $p -> $i {
-                $max = $i;
-                my $lv := $target.pull-one;
-                %keep{$i} := $lv
-                  if %keep{$i}:exists and !($lv =:= IterationEnd);
-            }
-            $lv := %keep{$p};
-            $lv = rviter.pull-one;
-        };
-    }
+    my \iterator := positions.iterator;
+    (iterator.is-lazy
+      ?? Array::Slice::Assign::lazy-none
+      !! Array::Slice::Assign::none
+    ).new(
+      SELF, Rakudo::Iterator.TailWith(values.iterator, Nil)
+    ).assign-slice(iterator)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
     my $result := nqp::create(IterationBuffer);

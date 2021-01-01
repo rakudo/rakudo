@@ -5746,4 +5746,200 @@ my class Array::Slice::Assign::lazy-none {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of array slice assignment -----------------------------
 
+#- start of generated part of array slice binding ------------------------------
+#- Generated on 2021-01-01T23:04:52+01:00 by ./tools/build/makeARRAY_SLICE_BIND.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+# no actionable adverbs
+my class Array::Slice::Bind::none {
+    has $!result;   # IterationBuffer with result
+    has $!iterable; # Iterable to assign to
+    has $!elems;    # Number of elements in iterable
+    has $!values;   # Iterator producing values to assign
+
+    method !accept(\pos --> Nil) {
+        nqp::push($!result,$!iterable.BIND-POS(pos,$!values.pull-one));
+    }
+
+    method !SET-SELF(\iterable, \values) {
+        $!result   := nqp::create(IterationBuffer);
+        $!iterable := iterable;
+        $!elems    := nqp::null;
+        $!values   := values;
+        self
+    }
+    method new(\iterable, \values) {
+        nqp::create(self)!SET-SELF(iterable, values)
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
+
+    # Handle iterator in the generated positions: this will add a List
+    # with the elements pointed to by the iterator to the result.  Because
+    # these positions can also be non-Int, some trickery needs to be
+    # done to allow this being called recursively.
+    method !handle-iterator(\iterator) {
+
+        # basically push the current result on a stack
+        my int $mark = nqp::elems($!result);
+
+        nqp::until(
+          nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype(pos,Int),
+            self!accept(pos),
+            self!handle-nonInt(pos)
+          )
+        );
+
+        # Take what was added and push it as a List
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
+
+            # Set up alternate result handling
+            my $buffer;
+            if $mark {
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
+                nqp::setelems($!result,$mark);
+            }
+            else {
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);
+            }
+            nqp::push($!result,$buffer.List);
+        }
+    }
+
+    # Handle anything non-integer in the generated positions
+    method !handle-nonInt(\pos) {
+        nqp::istype(pos,Iterable)
+          ?? nqp::iscont(pos)
+            ?? self!accept(pos.Int)
+            !! self!handle-iterator(pos.iterator)
+          !! nqp::istype(pos,Callable)
+            ?? nqp::istype((my \real := (pos)(self!elems)),Int)
+              ?? self!accept(real)
+              !! self!handle-nonInt(real)
+            !! nqp::istype(pos,Whatever)
+              ?? self!handle-iterator(
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
+                 )
+              !! self!accept(pos.Int)
+    }
+
+    # The actual building of the result
+    method bind-slice(\iterator) {
+        nqp::until(
+          nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype(pos,Int),
+            self!accept(pos),
+            self!handle-nonInt(pos)
+          )
+        );
+
+        $!result.List
+    }
+}
+
+# lazy, no actionable adverbs
+my class Array::Slice::Bind::lazy-none {
+    has $!result;   # IterationBuffer with result
+    has $!iterable; # Iterable to assign to
+    has $!elems;    # Number of elements in iterable
+    has $!values;   # Iterator producing values to assign
+    has int $!done;
+
+    method !accept(\pos --> Nil) {
+        $!iterable.EXISTS-POS(pos)
+          ?? nqp::push($!result,$!iterable.BIND-POS(pos,$!values.pull-one))
+          !! ($!done = 1);
+    }
+
+    method !SET-SELF(\iterable, \values) {
+        $!result   := nqp::create(IterationBuffer);
+        $!iterable := iterable;
+        $!elems    := nqp::null;
+        $!values   := values;
+        self
+    }
+    method new(\iterable, \values) {
+        nqp::create(self)!SET-SELF(iterable, values)
+    }
+    method !elems() {
+        nqp::ifnull($!elems,$!elems := $!iterable.elems)
+    }
+
+    # Handle iterator in the generated positions: this will add a List
+    # with the elements pointed to by the iterator to the result.  Because
+    # these positions can also be non-Int, some trickery needs to be
+    # done to allow this being called recursively.
+    method !handle-iterator(\iterator) {
+
+        # basically push the current result on a stack
+        my int $mark = nqp::elems($!result);
+
+        nqp::until(
+          $!done || nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype(pos,Int),
+            self!accept(pos),
+            self!handle-nonInt(pos)
+          )
+        );
+
+        # Take what was added and push it as a List
+        if nqp::isgt_i(nqp::elems($!result),$mark) {
+
+            # Set up alternate result handling
+            my $buffer;
+            if $mark {
+                $buffer :=
+                  nqp::slice($!result,$mark,nqp::sub_i(nqp::elems($!result),1));
+                nqp::setelems($!result,$mark);
+            }
+            else {
+                $buffer  := $!result;
+                $!result := nqp::create(IterationBuffer);
+            }
+            nqp::push($!result,$buffer.List);
+        }
+    }
+
+    # Handle anything non-integer in the generated positions
+    method !handle-nonInt(\pos) {
+        nqp::istype(pos,Iterable)
+          ?? nqp::iscont(pos)
+            ?? self!accept(pos.Int)
+            !! self!handle-iterator(pos.iterator)
+          !! nqp::istype(pos,Callable)
+            ?? nqp::istype((my \real := (pos)(self!elems)),Int)
+              ?? self!accept(real)
+              !! self!handle-nonInt(real)
+            !! nqp::istype(pos,Whatever)
+              ?? self!handle-iterator(
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
+                 )
+              !! self!accept(pos.Int)
+    }
+
+    # The actual building of the result
+    method bind-slice(\iterator) {
+        nqp::until(
+          $!done || nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype(pos,Int),
+            self!accept(pos),
+            self!handle-nonInt(pos)
+          )
+        );
+
+        $!result.List
+    }
+}
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of array slice binding --------------------------------
+
 # vim: expandtab shiftwidth=4

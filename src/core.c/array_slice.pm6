@@ -230,7 +230,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
       !! Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS($index)
     ).new(SELF).slice(positions.iterator)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, Mu \values) is raw {
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, \values) is raw {
     # MMD is not behaving itself so we do this by hand.
     return postcircumfix:<[ ]>(SELF, positions.Int, values)
       if nqp::iscont(positions);
@@ -243,18 +243,18 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, Mu \values) is raw {
       SELF, Rakudo::Iterator.TailWith(values.iterator, Nil)
     ).assign-slice(iterator)
 }
-multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \pos, :$BIND! is raw) is raw {
-    my $result := nqp::create(IterationBuffer);
-    my $posses := nqp::iscont(pos)
-      ?? Rakudo::Iterator.OneValue(pos.Int)
-      !! pos.iterator;
-    my $binds  := Rakudo::Iterator.TailWith($BIND.iterator,Nil);
-    nqp::until(
-      nqp::eqaddr((my $pos := $posses.pull-one),IterationEnd),
-      nqp::push($result, SELF.BIND-POS($pos, $binds.pull-one))
-    );
+multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, :$BIND! is raw) is raw {
+    # MMD is not behaving itself so we do this by hand.
+    return postcircumfix:<[ ]>(SELF, positions.Int, :$BIND)
+      if nqp::iscont(positions);
 
-    $result.List
+    my \iterator := positions.iterator;
+    (iterator.is-lazy
+      ?? Array::Slice::Bind::lazy-none
+      !! Array::Slice::Bind::none
+    ).new(
+      SELF, Rakudo::Iterator.TailWith($BIND.iterator, Nil)
+    ).bind-slice(iterator)
 }
 
 # @a[->{}]

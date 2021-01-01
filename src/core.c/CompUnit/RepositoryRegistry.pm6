@@ -314,7 +314,7 @@ class CompUnit::RepositoryRegistry {
             exit 1;
         }
 
-        my $meta = @metas.sort(*.<ver>).reverse.head;
+        my $meta = @metas.sort(*.<ver>).sort(*.<api>).reverse.head;
         my $bin  = $meta<source>;
         require "$bin";
     }

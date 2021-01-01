@@ -429,7 +429,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         # Sort from highest to lowest by version and api
-        my $sorted-metas := $matching-metas.sort(*.value<api>).sort(*.value<ver>).reverse;
+        my $sorted-metas := $matching-metas.sort(*.value<ver>).sort(*.value<api>).reverse;
 
         # There is nothing left to do with the subset of meta data, so initialize a lazy distribution with it
         my $distributions := $sorted-metas.map(*.kv).map: -> ($dist-id, $meta) { self!lazy-distribution($dist-id, :$meta) }

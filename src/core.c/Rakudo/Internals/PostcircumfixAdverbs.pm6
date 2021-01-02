@@ -134,7 +134,7 @@ augment class Rakudo::Internals {
         my uint16 @map;
 #?endif
 #?if !moar
-        my int @map;
+        my @map;
 #?endif
         
         # add the simple access version, e.g. with :!delete or :!v
@@ -296,7 +296,12 @@ augment class Rakudo::Internals {
         );
 
         # Perform the actual lookup and handling
+#?if moar
         my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
+#?endif
+#?if !moar
+        my int $index = nqp::atpos(@pc-adverb-mapper,$bitmap);
+#?endif
         nqp::if(
           nqp::elems($nameds),
           X::Adverb.new(     # Unexpected adverbs
@@ -399,7 +404,12 @@ augment class Rakudo::Internals {
         );
 
         # Perform the actual lookup and handling
+#?if moar
         my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
+#?endif
+#?if !moar
+        my int $index = nqp::atpos(@pc-adverb-mapper,$bitmap);
+#?endif
         nqp::if(
           nqp::elems($nameds),
           X::Adverb.new(     # Unexpected adverbs

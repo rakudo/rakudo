@@ -60,7 +60,6 @@ my %allowed = (
     Q{&METAOP_TEST_ASSIGN:<||>},
     Q{&METAOP_ZIP},
     Q{&ORDER},
-    Q{&POSITIONS},
     Q{&QX},
     Q{&REACT},
     Q{&REACT-ONE-WHENEVER},

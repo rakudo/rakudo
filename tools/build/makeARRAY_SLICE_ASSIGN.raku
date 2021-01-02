@@ -96,7 +96,7 @@ CODE
             say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
 # #comment#
-my class Array::Slice::Assign::#class# {
+my class Array::Slice::Assign::#class# is implementation-detail {
     has $!result;   # IterationBuffer with result
     has $!lhs;      # IterationBuffer with containers
     has $!rhs;      # IterationBuffer with values

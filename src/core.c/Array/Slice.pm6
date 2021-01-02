@@ -1,9 +1,9 @@
 #- start of generated part of array slice access -------------------------------
-#- Generated on 2020-12-31T13:26:40+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
+#- Generated on 2021-01-02T13:01:37+01:00 by ./tools/build/makeARRAY_SLICE_ACCESS.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
-my class Array::Slice::Access::none {
+my class Array::Slice::Access::none is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -90,7 +90,7 @@ my class Array::Slice::Access::none {
 }
 
 # lazy, no actionable adverbs
-my class Array::Slice::Access::lazy-none {
+my class Array::Slice::Access::lazy-none is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -180,7 +180,7 @@ my class Array::Slice::Access::lazy-none {
 }
 
 # :kv
-my class Array::Slice::Access::kv {
+my class Array::Slice::Access::kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -270,7 +270,7 @@ my class Array::Slice::Access::kv {
 }
 
 # lazy, :kv
-my class Array::Slice::Access::lazy-kv {
+my class Array::Slice::Access::lazy-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -364,7 +364,7 @@ my class Array::Slice::Access::lazy-kv {
 }
 
 # :!kv
-my class Array::Slice::Access::not-kv {
+my class Array::Slice::Access::not-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -452,7 +452,7 @@ my class Array::Slice::Access::not-kv {
 }
 
 # :p
-my class Array::Slice::Access::p {
+my class Array::Slice::Access::p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -540,7 +540,7 @@ my class Array::Slice::Access::p {
 }
 
 # lazy, :p
-my class Array::Slice::Access::lazy-p {
+my class Array::Slice::Access::lazy-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -630,7 +630,7 @@ my class Array::Slice::Access::lazy-p {
 }
 
 # :!p
-my class Array::Slice::Access::not-p {
+my class Array::Slice::Access::not-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -717,7 +717,7 @@ my class Array::Slice::Access::not-p {
 }
 
 # :k
-my class Array::Slice::Access::k {
+my class Array::Slice::Access::k is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -804,7 +804,7 @@ my class Array::Slice::Access::k {
 }
 
 # lazy, :k
-my class Array::Slice::Access::lazy-k {
+my class Array::Slice::Access::lazy-k is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -894,7 +894,7 @@ my class Array::Slice::Access::lazy-k {
 }
 
 # :!k
-my class Array::Slice::Access::not-k {
+my class Array::Slice::Access::not-k is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -981,7 +981,7 @@ my class Array::Slice::Access::not-k {
 }
 
 # :v
-my class Array::Slice::Access::v {
+my class Array::Slice::Access::v is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1069,7 +1069,7 @@ my class Array::Slice::Access::v {
 }
 
 # lazy, :v
-my class Array::Slice::Access::lazy-v {
+my class Array::Slice::Access::lazy-v is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1159,7 +1159,7 @@ my class Array::Slice::Access::lazy-v {
 }
 
 # :exists
-my class Array::Slice::Access::exists {
+my class Array::Slice::Access::exists is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1246,7 +1246,7 @@ my class Array::Slice::Access::exists {
 }
 
 # lazy, :exists
-my class Array::Slice::Access::lazy-exists {
+my class Array::Slice::Access::lazy-exists is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1336,7 +1336,7 @@ my class Array::Slice::Access::lazy-exists {
 }
 
 # :exists:kv
-my class Array::Slice::Access::exists-kv {
+my class Array::Slice::Access::exists-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1426,7 +1426,7 @@ my class Array::Slice::Access::exists-kv {
 }
 
 # lazy, :exists:kv
-my class Array::Slice::Access::lazy-exists-kv {
+my class Array::Slice::Access::lazy-exists-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1520,7 +1520,7 @@ my class Array::Slice::Access::lazy-exists-kv {
 }
 
 # :exists:!kv
-my class Array::Slice::Access::exists-not-kv {
+my class Array::Slice::Access::exists-not-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1608,7 +1608,7 @@ my class Array::Slice::Access::exists-not-kv {
 }
 
 # :exists:p
-my class Array::Slice::Access::exists-p {
+my class Array::Slice::Access::exists-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1696,7 +1696,7 @@ my class Array::Slice::Access::exists-p {
 }
 
 # lazy, :exists:p
-my class Array::Slice::Access::lazy-exists-p {
+my class Array::Slice::Access::lazy-exists-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1786,7 +1786,7 @@ my class Array::Slice::Access::lazy-exists-p {
 }
 
 # :exists:!p
-my class Array::Slice::Access::exists-not-p {
+my class Array::Slice::Access::exists-not-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1873,7 +1873,7 @@ my class Array::Slice::Access::exists-not-p {
 }
 
 # :exists:delete
-my class Array::Slice::Access::exists-delete {
+my class Array::Slice::Access::exists-delete is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -1976,7 +1976,7 @@ my class Array::Slice::Access::exists-delete {
 }
 
 # lazy, :exists:delete
-my class Array::Slice::Access::lazy-exists-delete {
+my class Array::Slice::Access::lazy-exists-delete is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2080,7 +2080,7 @@ my class Array::Slice::Access::lazy-exists-delete {
 }
 
 # :exists:delete:kv
-my class Array::Slice::Access::exists-delete-kv {
+my class Array::Slice::Access::exists-delete-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2181,7 +2181,7 @@ my class Array::Slice::Access::exists-delete-kv {
 }
 
 # lazy, :exists:delete:kv
-my class Array::Slice::Access::lazy-exists-delete-kv {
+my class Array::Slice::Access::lazy-exists-delete-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2286,7 +2286,7 @@ my class Array::Slice::Access::lazy-exists-delete-kv {
 }
 
 # :exists:delete:!kv
-my class Array::Slice::Access::exists-delete-not-kv {
+my class Array::Slice::Access::exists-delete-not-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2385,7 +2385,7 @@ my class Array::Slice::Access::exists-delete-not-kv {
 }
 
 # :exists:delete:p
-my class Array::Slice::Access::exists-delete-p {
+my class Array::Slice::Access::exists-delete-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2485,7 +2485,7 @@ my class Array::Slice::Access::exists-delete-p {
 }
 
 # lazy, :exists:delete:p
-my class Array::Slice::Access::lazy-exists-delete-p {
+my class Array::Slice::Access::lazy-exists-delete-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2589,7 +2589,7 @@ my class Array::Slice::Access::lazy-exists-delete-p {
 }
 
 # :exists:delete:!p
-my class Array::Slice::Access::exists-delete-not-p {
+my class Array::Slice::Access::exists-delete-not-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2692,7 +2692,7 @@ my class Array::Slice::Access::exists-delete-not-p {
 }
 
 # :!exists
-my class Array::Slice::Access::not-exists {
+my class Array::Slice::Access::not-exists is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2779,7 +2779,7 @@ my class Array::Slice::Access::not-exists {
 }
 
 # lazy, :!exists
-my class Array::Slice::Access::lazy-not-exists {
+my class Array::Slice::Access::lazy-not-exists is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2869,7 +2869,7 @@ my class Array::Slice::Access::lazy-not-exists {
 }
 
 # :!exists:kv
-my class Array::Slice::Access::not-exists-kv {
+my class Array::Slice::Access::not-exists-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -2959,7 +2959,7 @@ my class Array::Slice::Access::not-exists-kv {
 }
 
 # lazy, :!exists:kv
-my class Array::Slice::Access::lazy-not-exists-kv {
+my class Array::Slice::Access::lazy-not-exists-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3053,7 +3053,7 @@ my class Array::Slice::Access::lazy-not-exists-kv {
 }
 
 # :!exists:!kv
-my class Array::Slice::Access::not-exists-not-kv {
+my class Array::Slice::Access::not-exists-not-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3141,7 +3141,7 @@ my class Array::Slice::Access::not-exists-not-kv {
 }
 
 # :!exists:p
-my class Array::Slice::Access::not-exists-p {
+my class Array::Slice::Access::not-exists-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3229,7 +3229,7 @@ my class Array::Slice::Access::not-exists-p {
 }
 
 # lazy, :!exists:p
-my class Array::Slice::Access::lazy-not-exists-p {
+my class Array::Slice::Access::lazy-not-exists-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3319,7 +3319,7 @@ my class Array::Slice::Access::lazy-not-exists-p {
 }
 
 # :!exists:!p
-my class Array::Slice::Access::not-exists-not-p {
+my class Array::Slice::Access::not-exists-not-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3406,7 +3406,7 @@ my class Array::Slice::Access::not-exists-not-p {
 }
 
 # :!exists:delete
-my class Array::Slice::Access::not-exists-delete {
+my class Array::Slice::Access::not-exists-delete is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3509,7 +3509,7 @@ my class Array::Slice::Access::not-exists-delete {
 }
 
 # lazy, :!exists:delete
-my class Array::Slice::Access::lazy-not-exists-delete {
+my class Array::Slice::Access::lazy-not-exists-delete is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3613,7 +3613,7 @@ my class Array::Slice::Access::lazy-not-exists-delete {
 }
 
 # :!exists:delete:kv
-my class Array::Slice::Access::not-exists-delete-kv {
+my class Array::Slice::Access::not-exists-delete-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3714,7 +3714,7 @@ my class Array::Slice::Access::not-exists-delete-kv {
 }
 
 # lazy, :!exists:delete:kv
-my class Array::Slice::Access::lazy-not-exists-delete-kv {
+my class Array::Slice::Access::lazy-not-exists-delete-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3819,7 +3819,7 @@ my class Array::Slice::Access::lazy-not-exists-delete-kv {
 }
 
 # :!exists:delete:!kv
-my class Array::Slice::Access::not-exists-delete-not-kv {
+my class Array::Slice::Access::not-exists-delete-not-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -3918,7 +3918,7 @@ my class Array::Slice::Access::not-exists-delete-not-kv {
 }
 
 # :!exists:delete:p
-my class Array::Slice::Access::not-exists-delete-p {
+my class Array::Slice::Access::not-exists-delete-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4018,7 +4018,7 @@ my class Array::Slice::Access::not-exists-delete-p {
 }
 
 # lazy, :!exists:delete:p
-my class Array::Slice::Access::lazy-not-exists-delete-p {
+my class Array::Slice::Access::lazy-not-exists-delete-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4122,7 +4122,7 @@ my class Array::Slice::Access::lazy-not-exists-delete-p {
 }
 
 # :!exists:delete:!p
-my class Array::Slice::Access::not-exists-delete-not-p {
+my class Array::Slice::Access::not-exists-delete-not-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4225,7 +4225,7 @@ my class Array::Slice::Access::not-exists-delete-not-p {
 }
 
 # :delete
-my class Array::Slice::Access::delete {
+my class Array::Slice::Access::delete is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4322,7 +4322,7 @@ my class Array::Slice::Access::delete {
 }
 
 # lazy, :delete
-my class Array::Slice::Access::lazy-delete {
+my class Array::Slice::Access::lazy-delete is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4422,7 +4422,7 @@ my class Array::Slice::Access::lazy-delete {
 }
 
 # :delete:kv
-my class Array::Slice::Access::delete-kv {
+my class Array::Slice::Access::delete-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4522,7 +4522,7 @@ my class Array::Slice::Access::delete-kv {
 }
 
 # lazy, :delete:kv
-my class Array::Slice::Access::lazy-delete-kv {
+my class Array::Slice::Access::lazy-delete-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4626,7 +4626,7 @@ my class Array::Slice::Access::lazy-delete-kv {
 }
 
 # :delete:kv
-my class Array::Slice::Access::delete-not-kv {
+my class Array::Slice::Access::delete-not-kv is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4724,7 +4724,7 @@ my class Array::Slice::Access::delete-not-kv {
 }
 
 # :delete:p
-my class Array::Slice::Access::delete-p {
+my class Array::Slice::Access::delete-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4822,7 +4822,7 @@ my class Array::Slice::Access::delete-p {
 }
 
 # lazy, :delete:p
-my class Array::Slice::Access::lazy-delete-p {
+my class Array::Slice::Access::lazy-delete-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -4922,7 +4922,7 @@ my class Array::Slice::Access::lazy-delete-p {
 }
 
 # :delete:!p
-my class Array::Slice::Access::delete-not-p {
+my class Array::Slice::Access::delete-not-p is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -5019,7 +5019,7 @@ my class Array::Slice::Access::delete-not-p {
 }
 
 # :delete:k
-my class Array::Slice::Access::delete-k {
+my class Array::Slice::Access::delete-k is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -5119,7 +5119,7 @@ my class Array::Slice::Access::delete-k {
 }
 
 # lazy, :delete:k
-my class Array::Slice::Access::lazy-delete-k {
+my class Array::Slice::Access::lazy-delete-k is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -5223,7 +5223,7 @@ my class Array::Slice::Access::lazy-delete-k {
 }
 
 # :delete:!k
-my class Array::Slice::Access::delete-not-k {
+my class Array::Slice::Access::delete-not-k is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -5321,7 +5321,7 @@ my class Array::Slice::Access::delete-not-k {
 }
 
 # :delete:v
-my class Array::Slice::Access::delete-v {
+my class Array::Slice::Access::delete-v is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -5419,7 +5419,7 @@ my class Array::Slice::Access::delete-v {
 }
 
 # lazy, :delete:v
-my class Array::Slice::Access::lazy-delete-v {
+my class Array::Slice::Access::lazy-delete-v is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;
@@ -5522,11 +5522,11 @@ my class Array::Slice::Access::lazy-delete-v {
 #- end of generated part of array slice access ---------------------------------
 
 #- start of generated part of array slice assignment ---------------------------
-#- Generated on 2021-01-01T19:40:44+01:00 by ./tools/build/makeARRAY_SLICE_ASSIGN.raku
+#- Generated on 2021-01-02T13:09:01+01:00 by ./tools/build/makeARRAY_SLICE_ASSIGN.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
-my class Array::Slice::Assign::none {
+my class Array::Slice::Assign::none is implementation-detail {
     has $!result;   # IterationBuffer with result
     has $!lhs;      # IterationBuffer with containers
     has $!rhs;      # IterationBuffer with values
@@ -5624,7 +5624,7 @@ my class Array::Slice::Assign::none {
         my $rhs := $!rhs;
         nqp::while(
           nqp::elems($lhs),
-          nqp::shift($lhs) = nqp::shift($rhs)
+          nqp::assign(nqp::shift($lhs),nqp::shift($rhs))
         );
 
         $!result.List
@@ -5632,7 +5632,7 @@ my class Array::Slice::Assign::none {
 }
 
 # lazy, no actionable adverbs
-my class Array::Slice::Assign::lazy-none {
+my class Array::Slice::Assign::lazy-none is implementation-detail {
     has $!result;   # IterationBuffer with result
     has $!lhs;      # IterationBuffer with containers
     has $!rhs;      # IterationBuffer with values
@@ -5747,11 +5747,11 @@ my class Array::Slice::Assign::lazy-none {
 #- end of generated part of array slice assignment -----------------------------
 
 #- start of generated part of array slice binding ------------------------------
-#- Generated on 2021-01-01T23:04:52+01:00 by ./tools/build/makeARRAY_SLICE_BIND.raku
+#- Generated on 2021-01-02T13:09:24+01:00 by ./tools/build/makeARRAY_SLICE_BIND.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 # no actionable adverbs
-my class Array::Slice::Bind::none {
+my class Array::Slice::Bind::none is implementation-detail {
     has $!result;   # IterationBuffer with result
     has $!iterable; # Iterable to assign to
     has $!elems;    # Number of elements in iterable
@@ -5844,7 +5844,7 @@ my class Array::Slice::Bind::none {
 }
 
 # lazy, no actionable adverbs
-my class Array::Slice::Bind::lazy-none {
+my class Array::Slice::Bind::lazy-none is implementation-detail {
     has $!result;   # IterationBuffer with result
     has $!iterable; # Iterable to assign to
     has $!elems;    # Number of elements in iterable

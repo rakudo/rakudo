@@ -91,7 +91,7 @@ CODE
             say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
 # #comment#
-my class Array::Slice::Bind::#class# {
+my class Array::Slice::Bind::#class# is implementation-detail {
     has $!result;   # IterationBuffer with result
     has $!iterable; # Iterable to assign to
     has $!elems;    # Number of elements in iterable

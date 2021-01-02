@@ -534,7 +534,7 @@ CODE
             say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
 # #comment#
-my class Array::Slice::Access::#class# {
+my class Array::Slice::Access::#class# is implementation-detail {
     has $!result;
     has $!elems;
     has $!iterable;

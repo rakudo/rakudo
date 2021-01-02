@@ -130,7 +130,12 @@ augment class Rakudo::Internals {
     # initialized here.
     my constant @pc-adverb-mapper = do {
         my int $i = -1;
+#?if moar
         my uint16 @map;
+#?endif
+#?if !moar
+        my int @map;
+#?endif
         
         # add the simple access version, e.g. with :!delete or :!v
         @map[SLICE_NO_ADVERBS]                               = ++$i;

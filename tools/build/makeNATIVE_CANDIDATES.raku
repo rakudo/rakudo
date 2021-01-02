@@ -155,9 +155,11 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::#type#array:D \SELF, Callable:D $pos
 ) is raw {
-    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
-      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
-      !! nqp::atposref_#postfix#(nqp::decont(SELF),$got)
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_#postfix#(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
 }
 
 multi sub postcircumfix:<[ ]>(

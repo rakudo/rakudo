@@ -3706,7 +3706,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-02T18:39:56+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -3813,9 +3813,11 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Callable:D $pos
 ) is raw {
-    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
-      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
-      !! nqp::atposref_s(nqp::decont(SELF),$got)
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_s(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -3897,7 +3899,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-02T18:39:56+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4004,9 +4006,11 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Callable:D $pos
 ) is raw {
-    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
-      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
-      !! nqp::atposref_n(nqp::decont(SELF),$got)
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_n(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4088,7 +4092,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-02T18:39:56+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4195,9 +4199,11 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Callable:D $pos
 ) is raw {
-    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
-      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
-      !! nqp::atposref_i(nqp::decont(SELF),$got)
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_i(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
 }
 
 multi sub postcircumfix:<[ ]>(

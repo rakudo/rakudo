@@ -46,6 +46,7 @@ while @lines {
       postfix => $type.substr(0,1),
       type    => $type,
       Type    => $type.tclc,
+      nil     => ($type eq "int" ?? "0" !! $type eq "num" ?? "0e0" !! "''")
     ;
 
     # spurt the candidates
@@ -225,6 +226,44 @@ multi sub postcircumfix:<[ ]>(
             $self,
             $got,
             nqp::atpos_#postfix#($values,$i = nqp::add_i($i,1))
+          )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native #type# array slice".naive-word-wrapper)
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::#type#array:D \SELF, Iterable:D $pos, \values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my $values  := Rakudo::Iterator.TailWith(values.iterator,#nil#);
+    my #type# @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled.POSITIONS($self),
+            $pulled
+          )),
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_#postfix#(
+          @result,
+          nqp::bindpos_#postfix#(
+            $self,
+            $got,
+            $values.pull-one.#Type#
           )
         ),
         nqp::if(

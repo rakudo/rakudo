@@ -3706,7 +3706,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2021-01-04T16:00:50+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-04T17:09:22+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -3850,7 +3850,7 @@ multi sub postcircumfix:<[ ]>(
         nqp::if(
           nqp::istype($got,Int),
           X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native str array")
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native str array".naive-word-wrapper)
         )
       )
     );
@@ -3869,15 +3869,14 @@ multi sub postcircumfix:<[ ]>(
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          Int
+        ) && nqp::isge_i($got,0),
         nqp::push_s(
           @result,
           nqp::bindpos_s(
@@ -3885,6 +3884,11 @@ multi sub postcircumfix:<[ ]>(
             $got,
             nqp::atpos_s($values,$i = nqp::add_i($i,1))
           )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native str array slice".naive-word-wrapper)
         )
       )
     );
@@ -3903,7 +3907,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2021-01-04T16:00:50+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-04T17:09:22+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4047,7 +4051,7 @@ multi sub postcircumfix:<[ ]>(
         nqp::if(
           nqp::istype($got,Int),
           X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native num array")
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native num array".naive-word-wrapper)
         )
       )
     );
@@ -4066,15 +4070,14 @@ multi sub postcircumfix:<[ ]>(
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          Int
+        ) && nqp::isge_i($got,0),
         nqp::push_n(
           @result,
           nqp::bindpos_n(
@@ -4082,6 +4085,11 @@ multi sub postcircumfix:<[ ]>(
             $got,
             nqp::atpos_n($values,$i = nqp::add_i($i,1))
           )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native num array slice".naive-word-wrapper)
         )
       )
     );
@@ -4100,7 +4108,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2021-01-04T16:00:50+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-04T17:09:22+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4244,7 +4252,7 @@ multi sub postcircumfix:<[ ]>(
         nqp::if(
           nqp::istype($got,Int),
           X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native int array")
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native int array".naive-word-wrapper)
         )
       )
     );
@@ -4263,15 +4271,14 @@ multi sub postcircumfix:<[ ]>(
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          Int
+        ) && nqp::isge_i($got,0),
         nqp::push_i(
           @result,
           nqp::bindpos_i(
@@ -4279,6 +4286,11 @@ multi sub postcircumfix:<[ ]>(
             $got,
             nqp::atpos_i($values,$i = nqp::add_i($i,1))
           )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native int array slice".naive-word-wrapper)
         )
       )
     );

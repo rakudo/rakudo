@@ -192,7 +192,7 @@ multi sub postcircumfix:<[ ]>(
         nqp::if(
           nqp::istype($got,Int),
           X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native #type# array")
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native #type# array".naive-word-wrapper)
         )
       )
     );
@@ -211,15 +211,14 @@ multi sub postcircumfix:<[ ]>(
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          Int
+        ) && nqp::isge_i($got,0),
         nqp::push_#postfix#(
           @result,
           nqp::bindpos_#postfix#(
@@ -227,6 +226,11 @@ multi sub postcircumfix:<[ ]>(
             $got,
             nqp::atpos_#postfix#($values,$i = nqp::add_i($i,1))
           )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native #type# array slice".naive-word-wrapper)
         )
       )
     );

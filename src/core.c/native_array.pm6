@@ -3706,7 +3706,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2021-01-02T18:39:56+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-04T16:00:50+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -3838,16 +3838,20 @@ multi sub postcircumfix:<[ ]>(
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push_s(@result,nqp::atpos_s($self,$got))
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_s(@result,nqp::atpos_s($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native str array")
+        )
       )
     );
 
@@ -3899,7 +3903,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2021-01-02T18:39:56+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-04T16:00:50+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4031,16 +4035,20 @@ multi sub postcircumfix:<[ ]>(
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push_n(@result,nqp::atpos_n($self,$got))
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_n(@result,nqp::atpos_n($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native num array")
+        )
       )
     );
 
@@ -4092,7 +4100,7 @@ multi sub postcircumfix:<[ ]>(
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2021-01-02T18:39:56+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-01-04T16:00:50+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 #?if !jvm
@@ -4224,16 +4232,20 @@ multi sub postcircumfix:<[ ]>(
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push_i(@result,nqp::atpos_i($self,$got))
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_i(@result,nqp::atpos_i($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native int array")
+        )
       )
     );
 

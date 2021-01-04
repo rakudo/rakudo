@@ -180,16 +180,20 @@ multi sub postcircumfix:<[ ]>(
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push_#postfix#(@result,nqp::atpos_#postfix#($self,$got))
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_#postfix#(@result,nqp::atpos_#postfix#($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native #type# array")
+        )
       )
     );
 

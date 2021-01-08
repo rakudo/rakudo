@@ -541,7 +541,11 @@ class Rakudo::Iterator {
     my class AssociativeIterableKeys does Iterator {
         has $!associative;
         has $!iterator;
-        method !SET-SELF($!associative,$!iterator) { self }
+        method !SET-SELF(\associative, \iterator) {
+            $!associative := associative;
+            $!iterator    := iterator;
+            self
+        }
         method new(\asso,\iter) { nqp::create(self)!SET-SELF(asso,iter) }
 
         method pull-one() is raw {
@@ -1860,8 +1864,11 @@ class Rakudo::Iterator {
         has int $!offset;
         has &!out;
         has $!cache;
-        method !SET-SELF($!source,$!indexes,\offset,&!out) {
-            $!cache := nqp::setelems(nqp::list,$!offset = offset);
+        method !SET-SELF(\source, \indexes, \offset, \out) {
+            $!source  := source;
+            $!indexes := indexes,
+            $!cache   := nqp::setelems(nqp::list,$!offset = offset);
+            &!out     := out;
             self
         }
         method new(\s,\i,\o,\out) { nqp::create(self)!SET-SELF(s,i,o,out) }
@@ -2821,8 +2828,11 @@ class Rakudo::Iterator {
         has $!indexes;    # iterator providing index values
         has int $!next;   # virtual index of next source value
         has &!out;        # callable for out of sequence values
-        method !SET-SELF($!source,$!indexes,\offset,&!out) {
-            $!next = offset;
+        method !SET-SELF(\source, \indexes, \offset, \out) {
+            $!source  := source;
+            $!indexes := indexes;
+            $!next     = offset;
+            &!out     := out;
             self
         }
         method new(\s,\i,\o,\out) { nqp::create(self)!SET-SELF(s,i,o,out) }

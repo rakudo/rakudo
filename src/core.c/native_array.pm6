@@ -3700,7 +3700,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
             )
           )
         ),
-        POSITIONS(SELF, range).map({ SELF[$_] }).eager.list
+        postcircumfix:<[ ]>(SELF, range.list)
       )
     )
 }

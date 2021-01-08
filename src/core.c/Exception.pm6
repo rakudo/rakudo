@@ -1428,8 +1428,8 @@ my class X::Method::Private::Unqualified does X::Comp {
 }
 
 my class X::Adverb is Exception {
-    has $.what;
-    has $.source;
+    has $.what   is rw;
+    has $.source is rw;
     has @.unexpected;
     has @.nogo;
     method message {

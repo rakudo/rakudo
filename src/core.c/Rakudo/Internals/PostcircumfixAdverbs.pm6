@@ -300,7 +300,7 @@ augment class Rakudo::Internals {
         my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
 #?endif
 #?if !moar
-        my int $index = @pc-adverb-mapper[$bitmap];
+        my $index = @pc-adverb-mapper[$bitmap];
 #?endif
         nqp::if(
           nqp::elems($nameds),
@@ -408,7 +408,7 @@ augment class Rakudo::Internals {
         my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
 #?endif
 #?if !moar
-        my int $index = @pc-adverb-mapper[$bitmap];
+        my $index = @pc-adverb-mapper[$bitmap];
 #?endif
         nqp::if(
           nqp::elems($nameds),

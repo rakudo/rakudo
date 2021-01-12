@@ -1,7 +1,7 @@
 my role Setty does QuantHash {
     has Rakudo::Internals::IterationSet $!elems; # key.WHICH => key
 
-    method of() { Bool }
+    method of(--> Bool) { }
 
     # private method to create Set from iterator, check for laziness
     method !create-from-iterator(\type, \iterator --> Setty:D) {

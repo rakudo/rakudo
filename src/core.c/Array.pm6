@@ -1271,9 +1271,13 @@ my class Array { # declared in BOOTSTRAP
     method name() {
         nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
     }
-    method of() {
+
+    proto method of() {*}
+    multi method of(Array:U: --> Mu) { }
+    multi method of(Array:D:) {
         nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
     }
+
     method default() {
         nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
     }

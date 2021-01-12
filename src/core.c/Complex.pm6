@@ -456,7 +456,46 @@ multi sub infix:<**>(Num(Real) \a, Complex:D \b --> Complex:D) {
         !! (b * a.log).exp
 }
 multi sub infix:<**>(Complex:D \a, Num(Real) \b --> Complex:D) {
-    b == 0e0 ?? Complex.new(1e0, 0e0) !! (b * a.log).exp
+    b.isNaN || b == Inf || b == -Inf
+      ?? Complex.new(NaN, NaN)
+      !! (my $ib := b.Int) == b
+        ?? a ** $ib
+        !! (my $fb2 := b - $ib * 2) == 1e0
+          ?? a ** $ib * a.sqrt
+          !! $fb2 == -1e0
+            ?? a ** $ib / a.sqrt
+            !! (b * a.log).exp
+}
+multi sub infix:<**>(Complex:D \a, Int:D \b --> Complex:D) {
+    my $r := Complex.new(1e0, 0e0);
+    nqp::if(
+      b == 0,
+      $r,
+      nqp::if(
+        a == $r || b == 1,
+        a,
+        nqp::stmts(
+          (my $u := b.abs),
+          (my $t := a),
+          nqp::while(
+            $u  > 0,
+            nqp::stmts(
+              nqp::if(
+                $u +& 1 == 1,
+                $r := $r * $t
+              ),
+              ($u := $u +> 1),
+              ($t := $t * $t)
+            )
+          ),
+          nqp::if(
+            b < 0,
+            1e0 / $r,
+            $r
+          )
+        )
+      )
+    )
 }
 
 multi sub infix:<==>(Complex:D \a, Complex:D \b --> Bool:D) { a.re == b.re && a.im == b.im }

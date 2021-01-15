@@ -395,7 +395,8 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'stderr_fd', $!stderr-fd) if $!stderr-fd.DEFINITE;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue(:hint-affinity),
-            CLONE-LIST-DECONTAINERIZED($!path, @quoted-args),
+            $!path.Str,
+            CLONE-LIST-DECONTAINERIZED(@quoted-args),
             $cwd.Str,
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,

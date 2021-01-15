@@ -438,6 +438,13 @@ my class Hash { # declared in BOOTSTRAP
             "Can not parameterize {hash.^name} with {keyof.raku}"
         }
 
+        # no support for native types yet
+        elsif nqp::objprimspec(keyof) {
+            'Parameterization of hashes with native '
+              ~ keyof.raku
+              ~ ' not yet implemented. Sorry.'
+        }
+
         # a true object hash
         else {
             my $what := hash.^mixin(Hash::Object[of, keyof]);

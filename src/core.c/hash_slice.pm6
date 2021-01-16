@@ -63,12 +63,21 @@ multi sub postcircumfix:<{ }>(\SELF, Iterable \keys, Mu \values) is raw {
     return SELF.ASSIGN-KEY(keys, values) if nqp::iscont(keys);
 
     my $result := nqp::create(IterationBuffer);
+    my $todo   := nqp::create(IterationBuffer);
     my $keys   := keys.iterator;
     my $values := Rakudo::Iterator.TailWith(values.iterator, Nil);
 
     nqp::until(
       nqp::eqaddr((my \key := $keys.pull-one),IterationEnd),
-      nqp::push($result,SELF.ASSIGN-KEY(key,$values.pull-one))
+      nqp::stmts(
+        nqp::push($todo,key),
+        nqp::push($todo,$values.pull-one)
+      )
+    );
+
+    nqp::while(
+      nqp::elems($todo),
+      nqp::push($result,SELF.ASSIGN-KEY(nqp::shift($todo),nqp::shift($todo)))
     );
 
     $result.List

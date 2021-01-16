@@ -59,16 +59,19 @@ multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is raw {
              )
            )
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is raw {
-    nqp::iscont(key)
-      ?? SELF.ASSIGN-KEY(key, ASSIGN)
-      !! (nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-           nqp::stmts(
-             Rakudo::Iterator.AssociativeIterableKeys(SELF //= {},key)
-               .push-all(my \buffer := nqp::create(IterationBuffer)),
-             buffer
-           )
-         ) = ASSIGN)
+multi sub postcircumfix:<{ }>(\SELF, Iterable \keys, Mu \values) is raw {
+    return SELF.ASSIGN-KEY(keys, values) if nqp::iscont(keys);
+
+    my $result := nqp::create(IterationBuffer);
+    my $keys   := keys.iterator;
+    my $values := Rakudo::Iterator.TailWith(values.iterator, Nil);
+
+    nqp::until(
+      nqp::eqaddr((my \key := $keys.pull-one),IterationEnd),
+      nqp::push($result,SELF.ASSIGN-KEY(key,$values.pull-one))
+    );
+
+    $result.List
 }
 multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND! is raw) is raw {
     if nqp::iscont(key) {

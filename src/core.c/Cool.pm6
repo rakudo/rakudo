@@ -737,10 +737,6 @@ multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
 
 proto sub unimatch($, |) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
-# This multi below can be removed when MoarVM bug #448 is fixed
-multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname) {
-    uniprop($code, $propname) eq $pvalname;
-}
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
     my $prop := nqp::unipropcode($propname);
     nqp::hllbool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));

@@ -9,9 +9,15 @@ my class ThreadPoolScheduler does Scheduler {
     # specifically wrt GH #1202.
     PROCESS::<$PID> := nqp::p6box_i(my int $pid = nqp::getpid);
 
-    # Scheduler debug, controlled by an environment variable.
-    my int $scheduler-debug = so %*ENV<RAKUDO_SCHEDULER_DEBUG>;
-    my int $scheduler-debug-status = so %*ENV<RAKUDO_SCHEDULER_DEBUG_STATUS>;
+    # Scheduler defaults controlled by environment variables
+    my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
+    my int $scheduler-debug;
+    $scheduler-debug = 1
+      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG');
+    my int $scheduler-debug-status;
+    $scheduler-debug-status = 1
+      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG_STATUS');
+
     sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {
             note "[SCHEDULER $pid] $message";
@@ -796,7 +802,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     submethod BUILD(
         Int :$!initial_threads = 0,
-        Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 64).Int
+        Int :$!max_threads = nqp::ifnull(nqp::atkey($ENV,'RAKUDO_MAX_THREADS'),64)
         --> Nil
     ) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"

@@ -31,6 +31,10 @@ my class Lock is repr('ReentrantMutex') { ... }
 my class Lock::Async { ... }
 
 sub DYNAMIC(\name) is raw {  # is implementation-detail
+# Please leave this code here to be enable only for tracing calls to
+# dynamic variables in the setting and during setting compilation.
+#my $frame := callframe(1);
+#nqp::say(name ~ ": " ~ $frame.file ~ "(" ~ $frame.line ~ ")");
     nqp::ifnull(
       nqp::getlexdyn(name),
       nqp::stmts(

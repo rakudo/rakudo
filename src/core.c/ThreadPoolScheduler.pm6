@@ -7,18 +7,13 @@ my class ThreadPoolScheduler does Scheduler {
     # Initialize $*PID here, as we need it for the debug message
     # anyway *and* it appears to have a positive effect on stability
     # specifically wrt GH #1202.
-    PROCESS::<$PID> := nqp::p6box_i(my $pid := nqp::getpid);
+    PROCESS::<$PID> := nqp::p6box_i(my int $pid = nqp::getpid);
 
     # Scheduler debug, controlled by an environment variable.
     my int $scheduler-debug = so %*ENV<RAKUDO_SCHEDULER_DEBUG>;
     my int $scheduler-debug-status = so %*ENV<RAKUDO_SCHEDULER_DEBUG_STATUS>;
     sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {
-            note "[SCHEDULER $pid] $message";
-        }
-    }
-    sub scheduler-debug-status($message --> Nil) {
-        if $scheduler-debug-status {
             note "[SCHEDULER $pid] $message";
         }
     }
@@ -669,7 +664,7 @@ my class ThreadPoolScheduler does Scheduler {
                     $smooth-per-core-util += $per-core-util;
                     @last-utils.push($per-core-util);
 #?endif
-                    scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
+                    note "[SCHEDULER $pid] Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 
                     # exhausted the system allotment of low level threads

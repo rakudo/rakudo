@@ -758,41 +758,78 @@ implementation detail and has no serviceable parts inside"
 #?endif
 
     # easy access to compile options
-    my Mu $compiling-options :=
-      nqp::ifnull(nqp::atkey(%*COMPILING,'%?OPTIONS'),nqp::hash);
+    my Mu $compiling-options := nqp::ifnull(  # cannot be lazy
+      nqp::atkey(nqp::getlexdyn('%*COMPILING'),'%?OPTIONS'),
+      nqp::hash
+    );
+    my $LL-EXCEPTION := my $PROFILE := my $OPTIMIZE :=
+      my $STAGESTATS := my $INCLUDE := nqp::null;
 
     # running with --ll-exception
-    my $LL-EXCEPTION := nqp::existskey($compiling-options, 'll-exception')
-      ?? '--ll-exception'
-      !! Empty;
-    method LL-EXCEPTION() { $LL-EXCEPTION }
+    method LL-EXCEPTION() {
+        nqp::ifnull(
+          $LL-EXCEPTION,
+          $LL-EXCEPTION := nqp::if(
+            nqp::existskey($compiling-options,'ll-exception'),
+            '--ll-exception',
+            Empty
+          )
+        )
+    }
 
     # running with --profile
-    my $PROFILE := nqp::existskey($compiling-options, 'profile')
-      ?? '--profile'
-      !! Empty;
-    method PROFILE() { $PROFILE }
+    method PROFILE() {
+        nqp::ifnull(
+          $PROFILE,
+          $PROFILE := nqp::if(
+            nqp::existskey($compiling-options,'profile'),
+            '--profile',
+            Empty
+          )
+        )
+    }
 
     # running with --optimize=X
-    my $OPTIMIZE := nqp::existskey($compiling-options, 'optimize')
-      ?? '--optimize=' ~ nqp::atkey($compiling-options, 'optimize')
-      !! Empty;
-    method OPTIMIZE() { $OPTIMIZE }
+    method OPTIMIZE() {
+        nqp::ifnull(
+          $OPTIMIZE,
+          $OPTIMIZE := nqp::if(
+            nqp::existskey($compiling-options,'optimize'),
+            nqp::concat('--optimize=',nqp::atkey($compiling-options,'optimize')),
+            Empty
+          )
+        )
+    }
 
     # running with --stagestats
-    my $STAGESTATS := nqp::existskey($compiling-options, 'stagestats')
-      ?? '--stagestats'
-      !! Empty;
-    method STAGESTATS() { $STAGESTATS }
+    method STAGESTATS() {
+        nqp::ifnull(
+          $STAGESTATS,
+          $STAGESTATS := nqp::if(
+            nqp::existskey($compiling-options,'stagestats'),
+            '--stagestats',
+            Empty
+          )
+        )
+    }
 
     # whatever specified with -I
-    my $INCLUDE := nqp::existskey($compiling-options,'I')
-      ?? do {
-             my $I := nqp::atkey($compiling-options,'I');
-             nqp::islist($I) ?? $I !! nqp::list($I)
-         }
-      !! nqp::list;
-    method INCLUDE() { $INCLUDE }
+    method INCLUDE() {
+        nqp::ifnull(
+          $INCLUDE,
+          $INCLUDE := nqp::p6bindattrinvres(
+            nqp::create(List),List,'$!reified',
+            nqp::if(
+              nqp::existskey($compiling-options,'I'),
+              nqp::stmts(
+                (my $I := nqp::atkey($compiling-options,'I')),
+                nqp::if(nqp::islist($I),$I,nqp::list($I))
+              ),
+              nqp::list
+            )
+          )
+        )
+    }
 
 #?if moar
     method PRECOMP-EXT(--> "moarvm") { }

@@ -38,12 +38,7 @@ class CompUnit::PrecompilationRepository::Default
 
     my $compiler-id :=
       CompUnit::PrecompilationId.new-without-check(Compiler.id);
-
-    my $lle        := Rakudo::Internals.LL-EXCEPTION;
-    my $profile    := Rakudo::Internals.PROFILE;
-    my $optimize   := Rakudo::Internals.OPTIMIZE;
-    my $stagestats := Rakudo::Internals.STAGESTATS;
-    my $target     := "--target=" ~ Rakudo::Internals.PRECOMP-TARGET;
+    my constant $target := "--target=" ~ Rakudo::Internals.PRECOMP-TARGET;
 
     method try-load(
       CompUnit::PrecompilationDependency::File:D $dependency,
@@ -311,7 +306,7 @@ Need to re-check dependencies.")
             ~ ($bap ?? ' by another process' !! '')
         ) if $!RMD;
 
-        if $stagestats {
+        if Rakudo::Internals.STAGESTATS {
             my $err := $*ERR;
             $err.print("\n    load    $path.relative()\n");
             $err.flush;
@@ -387,13 +382,19 @@ Need to re-check dependencies.")
               '[' ~ Rakudo::Internals::JSON.to-json($path.Str) ~ ']');
         }
 
+        my $stagestats   := Rakudo::Internals.STAGESTATS;
         my $distribution := $*DISTRIBUTION;
         nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',
           $distribution ?? $distribution.serialize !! '{}');
 
         my $bc := "$io.bc".IO;
-        $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
-          if $!RMD;
+        $!RMD("Precompiling $path into $bc ({
+          Rakudo::Internals.LL-EXCEPTION
+        } {
+          Rakudo::Internals.PROFILE
+        } {
+          Rakudo::Internals.OPTIMIZE
+        } $stagestats)") if $!RMD;
 
         my $raku := $*EXECUTABLE.absolute
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
@@ -419,11 +420,11 @@ Need to re-check dependencies.")
         my $err := nqp::list_s;
         my $status;
         react {
-            my $proc = Proc::Async.new(
+            my $proc := Proc::Async.new(
                 $raku,
-                $lle,
-                $profile,
-                $optimize,
+                Rakudo::Internals.LL-EXCEPTION,
+                Rakudo::Internals.PROFILE,
+                Rakudo::Internals.OPTIMIZE,
                 $target,
                 $stagestats,
                 "--output=$bc",

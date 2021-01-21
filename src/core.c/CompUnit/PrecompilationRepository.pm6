@@ -361,9 +361,6 @@ Need to re-check dependencies.")
             return self!already-precompiled($path,$source-name,$io,0)
         }
 
-        # Local copy for us to tweak
-        $env := nqp::clone($env);
-
         my $REPO := $*REPO;
         nqp::bindkey($env,'RAKUDO_PRECOMP_WITH',
           $REPO.repo-chain.map(*.path-spec).join(',')

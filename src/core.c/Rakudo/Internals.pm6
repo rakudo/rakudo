@@ -837,7 +837,7 @@ implementation detail and has no serviceable parts inside"
           $E,
           $E := nqp::if(
             nqp::existskey($compiling-options,'e'),
-            "-e'" ~ nqp::atkey($compiling-options,'e') ~ "'",
+            ('-e', nqp::atkey($compiling-options,'e')),
             Empty
           )
         )

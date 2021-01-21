@@ -38,7 +38,6 @@ class CompUnit::PrecompilationRepository::Default
 
     my $compiler-id :=
       CompUnit::PrecompilationId.new-without-check(Compiler.id);
-    my constant $target := "--target=" ~ Rakudo::Internals.PRECOMP-TARGET;
 
     method try-load(
       CompUnit::PrecompilationDependency::File:D $dependency,
@@ -425,7 +424,7 @@ Need to re-check dependencies.")
                 Rakudo::Internals.LL-EXCEPTION,
                 Rakudo::Internals.PROFILE,
                 Rakudo::Internals.OPTIMIZE,
-                $target,
+                Rakudo::Internals.TARGET,
                 $stagestats,
                 "--output=$bc",
                 "--source-name=$source-name",

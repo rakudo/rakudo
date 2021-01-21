@@ -843,6 +843,7 @@ implementation detail and has no serviceable parts inside"
     method PRECOMP-EXT(   --> "js") { }
     method PRECOMP-TARGET(--> "js") { }
 #?endif
+    method TARGET() { "--target=" ~ Rakudo::Internals.PRECOMP-TARGET }
 
 # Keep track of the differences between TAI and UTC for internal use.
 # The "BEGIN" and "END" comments are for tools/add-leap-second.raku.

@@ -763,7 +763,7 @@ implementation detail and has no serviceable parts inside"
       nqp::hash
     );
     my $LL-EXCEPTION := my $PROFILE := my $OPTIMIZE :=
-      my $STAGESTATS := my $INCLUDE := nqp::null;
+      my $STAGESTATS := my $INCLUDE := my $E := nqp::null;
 
     # running with --ll-exception
     method LL-EXCEPTION() {
@@ -827,6 +827,18 @@ implementation detail and has no serviceable parts inside"
               ),
               nqp::list
             )
+          )
+        )
+    }
+
+    # whatever what was specified with -e (if anything)
+    method E() {
+        nqp::ifnull(
+          $E,
+          $E := nqp::if(
+            nqp::existskey($compiling-options,'e'),
+            "-e'" ~ nqp::atkey($compiling-options,'e') ~ "'",
+            Empty
           )
         )
     }

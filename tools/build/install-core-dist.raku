@@ -18,8 +18,10 @@ my %provides =
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
 ;
 
-%provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod"
-  if Compiler.backend eq 'moar';
+if Compiler.backend eq 'moar' {
+    %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod";
+    %provides<MoarVM::SIL>      = "lib/MoarVM/SIL.rakumod";
+}
 
 my $prefix := @*ARGS[0];
 my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(

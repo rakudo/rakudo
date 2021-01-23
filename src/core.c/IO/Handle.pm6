@@ -1,6 +1,3 @@
-my class IO::Path { ... }
-my class Proc { ... }
-
 my class IO::Handle {
     has $.path;
     has $!PIO;

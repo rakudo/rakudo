@@ -4,6 +4,8 @@ my class IO::Handle { ... }
 my class IO::Path { ... }
 my class Rakudo::Metaops { ... }
 my class List::Reifier { ... }
+my class Proc { ... }
+my class Proc::Async { ... }
 
 my class X::Assignment::ToShaped { ... }
 my class X::Cannot::Lazy { ... }
@@ -831,14 +833,14 @@ implementation detail and has no serviceable parts inside"
         )
     }
 
-    # whatever what was specified with -e (if anything)
-    method E() {
+    # the program to execute, either a script or -e, code
+    method PROGRAM() {
         nqp::ifnull(
           $E,
           $E := nqp::if(
             nqp::existskey($compiling-options,'e'),
             ('-e', nqp::atkey($compiling-options,'e')),
-            Empty
+            $*PROGRAM-NAME
           )
         )
     }
@@ -1750,6 +1752,31 @@ implementation detail and has no serviceable parts inside"
 
     my %vm-sigs;
     method VM-SIGNALS() { %vm-sigs ?? %vm-sigs !! %vm-sigs = nqp::getsignals }
+
+    # Re-run current process with a given environment variable and value,
+    # given as a named variable, e.g. .RERUN-WITH(MVM_SPESH_INLINE_LOG => 1).
+    # If that environment variable is *not* set, it will run the current
+    # executor with the originally given parameters *and* the environment
+    # variable set and return the associated Proc::Async object.  Once the
+    # process is done, it will do an exit with the status result of the
+    # child process.  If that environment variable is set, it will return
+    # Nil (and do nothing), allowing that process to run its normal course.
+    method RERUN-WITH() {
+        my str $name = nqp::iterkey_s(
+          nqp::shift(nqp::iterator(nqp::getattr(%_,Map,'$!storage')))
+        );
+        return Nil if %*ENV.EXISTS-KEY($name);
+
+        %*ENV{$name} := %_{$name};
+        Proc::Async.new(
+          $*EXECUTABLE.absolute,
+          Rakudo::Internals.LL-EXCEPTION,
+          Rakudo::Internals.PROFILE,
+          Rakudo::Internals.INCLUDE.map({ ("-I", $_).Slip }),
+          Rakudo::Internals.PROGRAM,
+          |@*ARGS
+        )
+    }
 }
 
 # expose the number of bits a native int has

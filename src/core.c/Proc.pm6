@@ -1,6 +1,5 @@
 # Proc is a wrapper around Proc::Async, providing a synchronous API atop of
 # the asynchronous API.
-my class Proc::Async { ... }
 my class Proc {
     has IO::Pipe $.in;
     has IO::Pipe $.out;

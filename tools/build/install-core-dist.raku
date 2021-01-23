@@ -21,6 +21,7 @@ my %provides =
 if Compiler.backend eq 'moar' {
     %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod";
     %provides<MoarVM::SIL>      = "lib/MoarVM/SIL.rakumod";
+    %provides<SIL>              = "lib/SIL.rakumod";
 }
 
 my $prefix := @*ARGS[0];

@@ -24,13 +24,13 @@ class BB {
     has Int() $.id   is built(:bind);
     has Int() $.size is built(:bind);
 
-    method name() {
+    method description() {
         $!name ?? "$!name BB($!id)" !! "BB($!id)"
     }
 
     method gist() { self.Str }
     method Str() {
-        $!size ?? "$.name.chop(), $!size bytes)" !! $.name
+        $!size ?? "$.description.chop(), $!size bytes)" !! $.description
     }
     method WHICH(--> ValueObjAt:D) {
         ValueObjAt.new("BB|$!id")
@@ -93,11 +93,11 @@ class MoarVM::SIL {
     }
 
     method inlined-by-name($name) {
-        $!inlineds.keys.grep: *.name eq $name
+        $!inlineds.keys.grep: *.inlinee.name eq $name
     }
 
     method not-inlined-by-name($name) {
-        $!not-inlineds.keys.grep: *.name eq $name
+        $!not-inlineds.keys.grep: *.frame.name eq $name
     }
 
     method gist() { self.report }

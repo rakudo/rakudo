@@ -72,6 +72,7 @@ class MoarVM::SIL {
         @lines.push: "Spesh Inline Log Report of Process #$*PID ({
             now.DateTime.truncated-to('second')
         })";
+        @lines.push: "Executing: " ~ Rakudo::Internals.PROGRAM;
         @lines.push: "";
 
         @lines.push: "Successful inlines";

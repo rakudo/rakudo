@@ -1,9 +1,8 @@
 use Test;
 use MoarVM::SIL;
 
+# running the tests after the code has run
 if SIL() -> $SIL {
-    LEAVE $SIL.exit;
-
     my @names =
       'AT-POS', 'ASSIGN-POS', 'ASSIGN_POS_SLOW_PATH', 'postcircumfix:<[ ]>'
     ;
@@ -15,14 +14,17 @@ if SIL() -> $SIL {
     }
 }
 
-my $i = 3;
-for ^100000 {
-    my @a; @a[$i] = 42;
-}
+# running the code
+else {
+    my $i = 3;
+    for ^100000 {
+        my @a; @a[$i] = 42;
+    }
 
-my @b = ^10;
-for ^100000 {
-    my $b = @b[$i];
+    my @b = ^10;
+    for ^100000 {
+        my $b = @b[$i];
+    }
 }
 
 # vim: expandtab shiftwidth=4

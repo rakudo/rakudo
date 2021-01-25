@@ -4,8 +4,8 @@ use MoarVM::SIL;
 # running the tests after the code has run
 if SIL() -> $SIL {
     my @names =
-      'infix:<+>', 'infix:<->', 'infix:<*>', 'infix:</>',
-      'CREATE_RATIONAL_FROM_INTS',
+      'infix:<==>', 'infix:<!=>', 'infix:«>»', 'infix:«>=»',
+      'infix:«<»',  'infix:«<=»', 'infix:«<=>»',
     ;
 
     plan +@names;
@@ -21,10 +21,13 @@ else {
     my $b = 666;
     for ^100000 {
         my $c;
-        $c := $a + $b;
-        $c := $a - $b;
-        $c := $a * $b;
-        $c := $a / $b;
+        $c := $a == $b;
+        $c := $a != $b;
+        $c := $a > $b;
+        $c := $a >= $b;
+        $c := $a < $b;
+        $c := $a <= $b;
+        $c := $a <=> $b;
     }
 }
 

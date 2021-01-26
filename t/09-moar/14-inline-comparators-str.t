@@ -19,7 +19,7 @@ if SIL() -> $SIL {
 else {
     my $a = "foo";
     my $b = "bar";
-    for ^100000 {
+    for ^1000000 {
         my $c;
         $c := $a eq $b;
         $c := $a ne $b;

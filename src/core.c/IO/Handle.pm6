@@ -222,6 +222,12 @@ my class IO::Handle {
         );
     }
 
+    method !no-decoder-exception(:$trying) {
+        nqp::if(nqp::isnull($!PIO),
+          X::IO::ClosedHandle,
+          X::IO::BinaryMode).new(:$trying).throw;
+    }
+
     method close(IO::Handle:D: --> True) {
         nqp::if(
           nqp::defined($!PIO),
@@ -256,7 +262,7 @@ my class IO::Handle {
     method get(IO::Handle:D:) {
         $!decoder
           ?? $!decoder.consume-line-chars(:$!chomp) // self!get-line-slow-path()
-          !! X::IO::BinaryMode.new(:trying<get>).throw
+          !! self!no-decoder-exception(:trying<get>)
     }
 
     method !get-line-slow-path() {
@@ -282,19 +288,19 @@ my class IO::Handle {
     method getc(IO::Handle:D:) {
         $!decoder
           ?? $!decoder.consume-exactly-chars(1) || (self!readchars-slow-path(1) || Nil)
-          !! X::IO::BinaryMode.new(:trying<getc>).throw
+          !! self!no-decoder-exception(:trying<getc>)
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type
     method comb (IO::Handle:D: :$close, |c) {
         $!decoder
           ?? self.slurp(:$close).comb( |c )
-          !! X::IO::BinaryMode.new(:trying<comb>).throw
+          !! self!no-decoder-exception(:trying<comb>)
     }
     method split(IO::Handle:D: :$close, |c) {
         $!decoder
           ?? self.slurp(:$close).split( |c )
-          !! X::IO::BinaryMode.new(:trying<split>).throw
+          !! self!no-decoder-exception(:trying<split>)
     }
 
     proto method words (|) {*}
@@ -306,7 +312,7 @@ my class IO::Handle {
               ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
                   self.words.iterator, $limit.Int, {SELF.close}))
               !! self.words.head($limit.Int)
-          !! X::IO::BinaryMode.new(:trying<words>).throw
+          !! self!no-decoder-exception(:trying<words>)
     }
 
     my class Words does Iterator {
@@ -391,7 +397,7 @@ my class IO::Handle {
     multi method words(IO::Handle:D: :$close) {
         $!decoder
           ?? Seq.new(Words.new(:handle(self), :$close))
-          !! X::IO::BinaryMode.new(:trying<words>).throw
+          !! self!no-decoder-exception(:trying<words>)
     }
 
     my class GetLineFast does Iterator {
@@ -492,7 +498,7 @@ my class IO::Handle {
           ?? nqp::eqaddr(self.WHAT,IO::Handle)
             ?? GetLineFast.new(self,$close)   # exact type, can shortcircuit
             !! GetLineSlow.new(self,$close)   # can *NOT* shortcircuit .get
-          !! X::IO::BinaryMode.new(:trying<lines>).throw
+          !! self!no-decoder-exception(:trying<lines>)
     }
 
     proto method lines (|) {*}
@@ -532,7 +538,7 @@ my class IO::Handle {
     method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
         $!decoder
           ?? $!decoder.consume-exactly-chars($chars) // self!readchars-slow-path($chars)
-          !! X::IO::BinaryMode.new(:trying<readchars>).throw
+          !! self!no-decoder-exception(:trying<readchars>)
     }
 
     method !readchars-slow-path($chars) {
@@ -655,15 +661,15 @@ my class IO::Handle {
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(x))
-          !! X::IO::BinaryMode.new(:trying<print>).throw
+          !! self!no-decoder-exception(:trying<print>)
     }
     multi method print(IO::Handle:D: \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(x.Str))
-          !! X::IO::BinaryMode.new(:trying<print>).throw
+          !! self!no-decoder-exception(:trying<print>)
     }
     multi method print(IO::Handle:D: | --> True) {
-        X::IO::BinaryMode.new(:trying<print>).throw unless $!decoder;
+        self!no-decoder-exception(:trying<print>) unless $!decoder;
 
         my Mu $args := nqp::p6argvmarray;
         nqp::shift($args);
@@ -677,15 +683,15 @@ my class IO::Handle {
     multi method put(IO::Handle:D: --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars($!nl-out))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
+          !! self!no-decoder-exception(:trying<say>)
     }
     multi method put(IO::Handle:D: \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.Str, $!nl-out)))
-          !! X::IO::BinaryMode.new(:trying<put>).throw
+          !! self!no-decoder-exception(:trying<put>)
     }
     multi method put(IO::Handle:D: | --> True) {
-        X::IO::BinaryMode.new(:trying<say>).throw unless $!decoder;
+        self!no-decoder-exception(:trying<say>) unless $!decoder;
 
         my Mu $args := nqp::p6argvmarray;
         nqp::shift($args);
@@ -697,15 +703,15 @@ my class IO::Handle {
     multi method say(IO::Handle:D: --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars($!nl-out))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
+          !! self!no-decoder-exception(:trying<say>)
     }
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.gist,$!nl-out)))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
+          !! self!no-decoder-exception(:trying<say>)
     }
     multi method say(IO::Handle:D: | --> True) {
-        X::IO::BinaryMode.new(:trying<say>).throw unless $!decoder;
+        self!no-decoder-exception(:trying<say>) unless $!decoder;
 
         my Mu $args := nqp::p6argvmarray;
         nqp::shift($args);
@@ -722,7 +728,7 @@ my class IO::Handle {
     method print-nl(IO::Handle:D: --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars($!nl-out))
-          !! X::IO::BinaryMode.new(:trying<print-nl>).throw
+          !! self!no-decoder-exception(:trying<print-nl>)
     }
 
     proto method slurp-rest(|) {*}
@@ -743,7 +749,7 @@ my class IO::Handle {
         # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
         # Testing of it in roast master has been removed and only kept in 6.c
         # If you're changing this code for whatever reason, test with 6.c-errata
-        $!decoder or X::IO::BinaryMode.new(:trying<slurp-rest>).throw;
+        $!decoder or self!no-decoder-exception(:trying<slurp-rest>);
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
         self!slurp-all-chars()
@@ -819,7 +825,7 @@ my class IO::Handle {
 
     method flush(IO::Handle:D: --> True) {
         CATCH { default { fail X::IO::Flush.new: :os-error(.Str) } }
-        nqp::defined($!PIO) or die 'File handle not open, so cannot flush';
+        nqp::defined($!PIO) or die X::IO::ClosedHandle.new(:trying<flush>);
         nqp::flushfh($!PIO);
     }
 
@@ -890,7 +896,7 @@ my class IO::Handle {
     method native-descriptor(IO::Handle:D:) {
         nqp::defined($!PIO)
           ?? nqp::filenofh($!PIO)
-          !! X::AdHoc.new( payload => 'File handle not open, so cannot get native descriptor' ).throw
+          !! X::IO::ClosedHandle.new(:trying<native-descriptor>).throw
     }
 }
 

@@ -64,7 +64,7 @@ throws-like {
         .bind-stdout: IO::Handle.new;
         .start;
     }
-}, Exception, :message{.contains: 'handle not open'},
+}, Exception, :message{.contains: 'closed handle'},
   'trying to bind Proc::Async to unopened handle gives useful error';
 
 # https://github.com/Raku/old-issue-tracker/issues/6580

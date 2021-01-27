@@ -746,6 +746,11 @@ my class X::IO::BinaryMode does X::IO {
     method message { "Cannot do '$.trying' on a handle in binary mode" }
 }
 
+my class X::IO::Closed does X::IO {
+    has $.trying;
+    method message { "Cannot do '$.trying' on a closed handle" }
+}
+
 my role X::Comp is Exception {
     has $.filename;
     has $.pos;

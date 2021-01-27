@@ -298,15 +298,14 @@ my class Array { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
     multi method STORE(Array:D: QuantHash:D \qh --> Array:D) {
-        qh.iterator.push-all(
-          ArrayReificationTarget.new(
-            (my \buffer = nqp::create(IterationBuffer)),
-            nqp::decont($!descriptor)
-          )
-        );
+        my \buffer = nqp::create(IterationBuffer);
+        nqp::iscont(qh)
+          ?? nqp::push(buffer,nqp::p6scalarwithvalue($!descriptor,qh))
+          !! qh.iterator.push-all(
+               ArrayReificationTarget.new(buffer,nqp::decont($!descriptor))
+             );
         nqp::bindattr(self,List,'$!todo',Mu);  # exhausted
-        nqp::bindattr(self,List,'$!reified',buffer);
-        self
+        nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
     multi method STORE(Array:D: Mu \item --> Array:D) {
         nqp::push(

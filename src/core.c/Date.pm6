@@ -222,44 +222,18 @@ my class Date does Dateish {
           |self!truncate-ymd(self!VALID-UNIT($unit)));
     }
 
-    method earlier(*%unit --> Date:D) {
-        my $units := nqp::getattr(%unit,Map,'$!storage');
-        nqp::elems($units) == 1
-          ?? self!move(
-               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
-               nqp::neg_i(nqp::atkey($units,$u))
-             )
-          !! self!move-die(nqp::elems($units))
-    }
-    method later(*%unit --> Date:D) {
-        my $units := nqp::getattr(%unit,Map,'$!storage');
-        nqp::elems($units) == 1
-          ?? self!move(
-               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
-               nqp::atkey($units,$u)
-             )
-          !! self!move-die(nqp::elems($units))
-    }
-
-    # die for improper number of units when moving a Date
-    method !move-die(int $elems) {
-        die $elems
-          ?? "More than one time unit supplied"
-          !! die "No time unit supplied";
-    }
-
-    # helper method for moving a Date
-    method !move(str $unit, int $amount) {
+    # workhorse method for moving a Date
+    method move-by-unit(str $unit, int $amount) is implementation-detail {
         if nqp::atkey($valid-units,$unit) -> int $multiplier {
             self!move-days(nqp::mul_i($multiplier,$amount));
         }
         elsif nqp::eqat($unit,'month',0) {
-            my int $month = $!month + $amount;
+            my int $month = nqp::add_i($!month,$amount);
             my int $year;
-            if $month < 1 || $month > 12 {
-                $year  = $!year + nqp::div_i(nqp::sub_i($month,1),12);
+            if nqp::bitor_i(nqp::islt_i($month,1),nqp::isgt_i($month,12)) {
+                $year  = nqp::add_i($!year,nqp::div_i(nqp::sub_i($month,1),12));
                 $month = nqp::add_i(nqp::mod_i(nqp::sub_i($month,1),12),1);
-                $month = nqp::add_i($month,12) if $month < 1;
+                $month = nqp::add_i($month,12) if nqp::islt_i($month,1);
             }
             else {
                 $year = $!year;
@@ -275,13 +249,13 @@ my class Date does Dateish {
             $new
         }
         else { # year
-            my int $year = $!year + $amount;
+            my int $year = nqp::add_i($!year,$amount);
 
             my $new := nqp::clone(self);
             nqp::bindattr_i($new,Date,'$!year',$year);
             nqp::bindattr_i($new,Date,'$!day',
-              self!clip-day($year,$!month,$!day))
-              if $!day > 28;
+              self!clip-day($year,$!month,$!day)
+            ) if nqp::isgt_i($!day,28);
             nqp::bindattr_i($new,Date,'$!daycount',0);
             $new
         }

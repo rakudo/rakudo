@@ -177,7 +177,31 @@ my role Dateish {
         nqp::join($sep,$parts)
     }
 
-    method earlier(*%unit) { self.later(:earlier, |%unit) }
+    method earlier(*%unit --> Dateish:D) {
+        my $units := nqp::getattr(%unit,Map,'$!storage');
+        nqp::iseq_i(nqp::elems($units),1)
+          ?? self.move-by-unit(
+               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
+               -nqp::atkey($units,$u)  # must be HLL negation
+             )
+          !! self!move-die(nqp::elems($units))
+    }
+    method later(*%unit --> Dateish:D) {
+        my $units := nqp::getattr(%unit,Map,'$!storage');
+        nqp::iseq_i(nqp::elems($units),1)
+          ?? self.move-by-unit(
+               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
+               nqp::atkey($units,$u)
+             )
+          !! self!move-die(nqp::elems($units))
+    }
+
+    # die for improper number of units when moving a Dateish
+    method !move-die(int $elems) {
+        die $elems
+          ?? "More than one time unit supplied"
+          !! die "No time unit supplied";
+    }
 
     method !truncate-ymd(Cool:D $unit, %parts? is copy) {
         if $unit eq 'week' | 'weeks' {

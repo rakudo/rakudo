@@ -481,20 +481,56 @@ my class DateTime does Dateish {
         }
     }
 
-    method truncated-to(DateTime:D: Cool $unit --> DateTime:D) {
-        my %parts;
-        given self!VALID-UNIT($unit) {
-            %parts<second> = self.whole-second;
-            when 'second' | 'seconds' {}
-            %parts<second> = 0;
-            when 'minute' | 'minutes' {}
-            %parts<minute> = 0;
-            when 'hour'   | 'hours'   {}
-            %parts<hour> = 0;
-            when 'day'    | 'days'    {}
-            %parts = self!truncate-ymd($unit, %parts);
-        }
-        self!clone-without-validating(|%parts);
+    method truncated-to(DateTime:D: str $unit --> DateTime:D) {
+        my $truncated := nqp::clone(self);
+        my $what      := self.WHAT;
+        nqp::if(
+          nqp::eqat($unit,'second',0),
+          nqp::bindattr($truncated,$what,'$!second',$!second.Int),
+          nqp::stmts(
+            nqp::bindattr($truncated,$what,'$!second',0),
+            nqp::unless(
+              nqp::eqat($unit,'minute',0),
+              nqp::stmts(
+                nqp::bindattr_i($truncated,$what,'$!minute',0),
+                nqp::unless(
+                  nqp::eqat($unit,'hour',0),
+                  nqp::stmts(
+                    nqp::bindattr_i($truncated,$what,'$!hour',0),
+                    nqp::unless(
+                      nqp::eqat($unit,'day',0),
+                      nqp::stmts(
+                        nqp::bindattr_i($truncated,$what,'$!daycount',0),
+                        nqp::if(
+                          nqp::eqat($unit,'week',0),
+                          ($truncated := $truncated.move-by-unit(
+                            'day',
+                            nqp::sub_i(1,$truncated.day-of-week)
+                          )),
+                          nqp::stmts(
+                            nqp::bindattr_i($truncated,$what,'$!day',1),
+                            nqp::unless(
+                              nqp::eqat($unit,'month',0),
+                              nqp::stmts(
+                                nqp::bindattr_i($truncated,$what,'$!month',1),
+                                nqp::unless(
+                                  nqp::eqat($unit,'year',0),
+                                  die "Cannot truncate {self.^name} object to '$unit'"
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        $truncated
     }
     method whole-second(DateTime:D: --> Int:D) { $!second.Int }
 

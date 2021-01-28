@@ -195,7 +195,7 @@ my role Dateish {
         nqp::while(
           nqp::bitand_i(
             nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::istype((my $pair := nqp::atpos($reified,$i)),Pair)
+            nqp::istype((my $pair := nqp::decont(nqp::atpos($reified,$i))),Pair)
           ),
           $dateish := $dateish.move-by-unit(
             nqp::getattr($pair,Pair,'$!key'),
@@ -226,7 +226,7 @@ my role Dateish {
         nqp::while(
           nqp::bitand_i(
             nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::istype((my $pair := nqp::atpos($reified,$i)),Pair)
+            nqp::istype((my $pair := nqp::decont(nqp::atpos($reified,$i))),Pair)
           ),
           $dateish := $dateish.move-by-unit(
             nqp::getattr($pair,Pair,'$!key'),

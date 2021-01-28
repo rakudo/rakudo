@@ -217,9 +217,32 @@ my class Date does Dateish {
         )
     }
 
-    method truncated-to(Cool $unit --> Date:D) {
-        self!clone-without-validating(
-          |self!truncate-ymd(self!VALID-UNIT($unit)));
+    method truncated-to(Date:D: str $unit --> Date:D) {
+        my $truncated := nqp::clone(self);
+        my $what      := self.WHAT;
+        nqp::bindattr_i($truncated,$what,'$!daycount',0);
+        nqp::if(
+          nqp::eqat($unit,'week',0),
+          ($truncated := $truncated.move-by-unit(
+            'day',
+            nqp::sub_i(1,$truncated.day-of-week)
+          )),
+          nqp::stmts(
+            nqp::bindattr_i($truncated,$what,'$!day',1),
+            nqp::unless(
+              nqp::eqat($unit,'month',0),
+              nqp::stmts(
+                nqp::bindattr_i($truncated,$what,'$!month',1),
+                nqp::unless(
+                  nqp::eqat($unit,'year',0),
+                  die "Cannot truncate {self.^name} object to '$unit'"
+                )
+              )
+            )
+          )
+        );
+
+        $truncated
     }
 
     # workhorse method for moving a Date

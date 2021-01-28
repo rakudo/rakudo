@@ -202,22 +202,6 @@ my role Dateish {
           ?? "More than one time unit supplied"
           !! die "No time unit supplied";
     }
-
-    method !truncate-ymd(Cool:D $unit, %parts? is copy) {
-        if $unit eq 'week' | 'weeks' {
-            my $new-dc = self.daycount - self.day-of-week + 1;
-            self!ymd-from-daycount($new-dc,
-              %parts<year>,%parts<month>,%parts<day>);
-        }
-        elsif $unit eq 'day' | 'days' {
-            # no-op
-        }
-        else { # $unit eq 'month' | 'months' | 'year' | 'years'
-            %parts<day>   = 1;
-            %parts<month> = 1 if $unit eq 'year' | 'years';
-        }
-        %parts;
-    }
 }
 
 # =begin pod

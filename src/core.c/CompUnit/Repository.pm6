@@ -41,9 +41,6 @@ role CompUnit::Repository {
     method id(--> Str:D)
         { ... }
 
-    # Let the name default to the ID
-    method name() { self.id }
-
     method precomp-store(--> CompUnit::PrecompilationStore)
         { CompUnit::PrecompilationStore }
 

@@ -164,9 +164,9 @@ my class Proc {
           if nqp::istype($!exitcode,Nil);
     }
 
-    method spawn(*@args where .so, :$cwd = $*CWD, :$env, :$win-verbatim-args = False --> Bool:D) {
+    method spawn(*@args where .so, :$cwd = $*CWD, :$env, :$arg0, :$win-verbatim-args = False --> Bool:D) {
         @!command := @args.List;
-        self!spawn-internal(@args, $cwd, $env, :$win-verbatim-args)
+        self!spawn-internal(@args, $cwd, $env, :$arg0, :$win-verbatim-args)
     }
 
     method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D) {
@@ -177,9 +177,9 @@ my class Proc {
         self!spawn-internal(@args, $cwd, $env, :win-verbatim-args)
     }
 
-    method !spawn-internal(@args, $cwd, $env, :$win-verbatim-args --> Bool:D) {
+    method !spawn-internal(@args, $cwd, $env, :$arg0, :$win-verbatim-args --> Bool:D) {
         my %ENV := $env ?? $env.hash !! %*ENV;
-        $!proc := Proc::Async.new(|@args, :$!w, :$win-verbatim-args);
+        $!proc := Proc::Async.new(|@args, :$!w, :$arg0, :$win-verbatim-args);
         .() for @!pre-spawn;
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         my $is-spawned := do {
@@ -239,9 +239,9 @@ my class Proc {
 proto sub run(|) {*}
 multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env, :$win-verbatim-args = False) {
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env, :$arg0, :$win-verbatim-args = False) {
     my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    $proc.spawn(@args, :$cwd, :$env, :$win-verbatim-args);
+    $proc.spawn(@args, :$cwd, :$env, :$arg0, :$win-verbatim-args);
     $proc
 }
 

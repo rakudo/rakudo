@@ -802,7 +802,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     submethod BUILD(
         Int :$!initial_threads = 0,
-        Int :$!max_threads = nqp::ifnull(nqp::atkey($ENV,'RAKUDO_MAX_THREADS'),64)
+        Int :$!max_threads = nqp::ifnull(nqp::atkey($ENV,'RAKUDO_MAX_THREADS'),64).Int
         --> Nil
     ) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"

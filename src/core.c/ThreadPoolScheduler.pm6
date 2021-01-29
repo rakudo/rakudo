@@ -10,7 +10,7 @@ my class ThreadPoolScheduler does Scheduler {
     PROCESS::<$PID> := nqp::p6box_i(my int $pid = nqp::getpid);
 
     # Scheduler defaults controlled by environment variables
-    my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
+    my $ENV := %*ENV;
     my int $scheduler-debug;
     $scheduler-debug = 1
       if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG');

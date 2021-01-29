@@ -173,13 +173,14 @@ my class DateTime does Dateish {
             %extra,
     --> DateTime:D) {
         self!oor("Month",$month,"1..12")
-          unless 1 <= $month <= 12;
-        self!oor("Day",$day,"1..{self!DAYS-IN-MONTH($year,$month)}")
-          unless 1 <= $day <= self!DAYS-IN-MONTH($year,$month);
+          if nqp::islt_I($month,1) || nqp::isgt_I($month,12);
+        my $DIM := self!DAYS-IN-MONTH($year,$month);
+        self!oor("Day",$day,"1..$DIM")
+          if nqp::islt_I($day,1) || nqp::isgt_I($day,$DIM);
         self!oor("Hour",$hour,"0..23")
-          unless 0 <= $hour <= 23;
+          if nqp::islt_I($hour,0) || nqp::isgt_I($hour,23);
         self!oor("Minute",$minute,"0..59")
-          unless 0 <= $minute <= 59;
+          if nqp::islt_I($minute,0) || nqp::isgt_I($minute,59);
         (^61).in-range($second,'Second'); # some weird semantics need this
 
         my $dt := nqp::eqaddr(self.WHAT,DateTime)

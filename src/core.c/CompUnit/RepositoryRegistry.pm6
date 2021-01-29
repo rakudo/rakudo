@@ -253,12 +253,9 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-    method repository-for-name(Str:D \name) {
+    method repository-for-name(str $name) {
         $*REPO; # initialize if not yet done
-        my str $name = nqp::unbox_s(name);
-        nqp::existskey($custom-lib,$name)
-          ?? nqp::atkey($custom-lib,$name)
-          !! Nil
+        nqp::ifnull(nqp::atkey($custom-lib,$name),Nil)
     }
 
     method register-name($name, CompUnit::Repository $repo) {

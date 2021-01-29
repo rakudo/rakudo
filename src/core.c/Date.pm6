@@ -18,12 +18,6 @@ my class Date does Dateish {
       'years',  0,
     );
 
-    method !VALID-UNIT($unit) {
-        nqp::existskey($valid-units,$unit)
-          ?? $unit
-          !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-    }
-
     # fast object creation with sanity check on month/day
     method !SET-SELF(\year,\month,\day,\formatter --> Date:D) {
         self!oor("Month",month,"1..12")

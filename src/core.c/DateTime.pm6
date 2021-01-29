@@ -140,12 +140,6 @@ my class DateTime does Dateish {
       'years',   1,
     );
 
-    method !VALID-UNIT($unit) {
-        nqp::existskey($valid-units,$unit)
-          ?? $unit
-          !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-    }
-
     method !SET-SELF(
         int \year,
         int \month,

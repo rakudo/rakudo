@@ -59,7 +59,7 @@ role CompUnit::Repository {
 }
 
 multi sub postcircumfix:<{ }>(CompUnit::Repository:D \repo, Str() $key) {
-    repo.repo-chain.first(quietly *.?name eq $key)
+    repo.repo-chain.first({ quietly (.?name // .id) eq $key })
 }
 
 # vim: expandtab shiftwidth=4

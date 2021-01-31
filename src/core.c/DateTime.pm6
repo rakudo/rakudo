@@ -173,14 +173,34 @@ my class DateTime does Dateish {
             %extra,
     --> DateTime:D) {
         self!oor("Month",$month,"1..12")
+#?if jvm
+          if nqp::islt_I($month.Int,1) || nqp::isgt_I($month.Int,12);
+#?endif
+#?if !jvm
           if nqp::islt_I($month,1) || nqp::isgt_I($month,12);
+#?endif
         my $DIM := self!DAYS-IN-MONTH($year,$month);
         self!oor("Day",$day,"1..$DIM")
+#?if jvm
+          if nqp::islt_I($day.Int,1) || nqp::isgt_I($day.Int,$DIM);
+#?endif
+#?if !jvm
           if nqp::islt_I($day,1) || nqp::isgt_I($day,$DIM);
+#?endif
         self!oor("Hour",$hour,"0..23")
+#?if jvm
+          if nqp::islt_I($hour.Int,0) || nqp::isgt_I($hour.Int,23);
+#?endif
+#?if !jvm
           if nqp::islt_I($hour,0) || nqp::isgt_I($hour,23);
+#?endif
         self!oor("Minute",$minute,"0..59")
+#?if jvm
+          if nqp::islt_I($minute.Int,0) || nqp::isgt_I($minute.Int,59);
+#?endif
+#?if !jvm
           if nqp::islt_I($minute,0) || nqp::isgt_I($minute,59);
+#?endif
         (^61).in-range($second,'Second'); # some weird semantics need this
 
         my $dt := nqp::eqaddr(self.WHAT,DateTime)

@@ -177,7 +177,8 @@ my role Dateish {
         nqp::join($sep,$parts)
     }
 
-    method earlier(*%unit --> Dateish:D) {
+    proto method earlier(|) {*}
+    multi method earlier(Dateish:D: *%unit --> Dateish:D) {
         my $units := nqp::getattr(%unit,Map,'$!storage');
         nqp::iseq_i(nqp::elems($units),1)
           ?? self.move-by-unit(
@@ -186,7 +187,29 @@ my role Dateish {
              )
           !! self!move-die(nqp::elems($units))
     }
-    method later(*%unit --> Dateish:D) {
+    multi method earlier(Dateish:D: @pairs) {
+        my $dateish  := self;
+        my int $elems = @pairs.elems;   # reifies
+        my $reified  := nqp::getattr(@pairs,List,'$!reified');
+        my int $i     = -1;
+        nqp::while(
+          nqp::bitand_i(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::istype((my $pair := nqp::decont(nqp::atpos($reified,$i))),Pair)
+          ),
+          $dateish := $dateish.move-by-unit(
+            nqp::getattr($pair,Pair,'$!key'),
+            -nqp::getattr($pair,Pair,'$!value')  # must be HLL negation
+          )
+        );
+
+        nqp::islt_i($i,$elems)
+          ?? (die "Can not use a {$pair.raku} as a time unit")
+          !! $dateish
+    }
+
+    proto method later(|) {*}
+    multi method later(Dateish:D: *%unit --> Dateish:D) {
         my $units := nqp::getattr(%unit,Map,'$!storage');
         nqp::iseq_i(nqp::elems($units),1)
           ?? self.move-by-unit(
@@ -195,11 +218,31 @@ my role Dateish {
              )
           !! self!move-die(nqp::elems($units))
     }
+    multi method later(Dateish:D: @pairs) {
+        my $dateish  := self;
+        my int $elems = @pairs.elems;   # reifies
+        my $reified  := nqp::getattr(@pairs,List,'$!reified');
+        my int $i     = -1;
+        nqp::while(
+          nqp::bitand_i(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::istype((my $pair := nqp::decont(nqp::atpos($reified,$i))),Pair)
+          ),
+          $dateish := $dateish.move-by-unit(
+            nqp::getattr($pair,Pair,'$!key'),
+            nqp::getattr($pair,Pair,'$!value')
+          )
+        );
+
+        nqp::islt_i($i,$elems)
+          ?? (die "Can not use a {$pair.raku} as a time unit")
+          !! $dateish
+    }
 
     # die for improper number of units when moving a Dateish
     method !move-die(int $elems) {
         die $elems
-          ?? "More than one time unit supplied"
+          ?? "More than one time unit supplied. Please provide these as a List of Pairs to indicate order of application if this is intended.".naive-word-wrapper
           !! die "No time unit supplied";
     }
 }

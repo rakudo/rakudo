@@ -102,6 +102,26 @@ my role Setty does QuantHash {
     multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
     multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
 
+    method Map {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::stmts(
+            (my \storage := nqp::hash),
+            (my \iter := nqp::iterator($!elems)),
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::iterval(nqp::shift(iter)).Str,
+                True
+              )
+            ),
+            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',storage)
+          ),
+          nqp::create(Map)
+        )
+    }
+
     multi method ACCEPTS(Setty:U: \other --> Bool:D) {
         other.^does(self)
     }

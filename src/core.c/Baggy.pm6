@@ -668,6 +668,26 @@ my role Baggy does QuantHash {
     multi method Mix(Baggy:D:)     { MIXIFY($!elems, Mix)     }
     multi method MixHash(Baggy:D:) { MIXIFY($!elems, MixHash) }
 
+    method Map {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::stmts(
+            (my \storage := nqp::hash),
+            (my \iter := nqp::iterator($!elems)),
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!key').Str,
+                nqp::getattr(nqp::iterval(iter),Pair,'$!value')
+              )
+            ),
+            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',storage)
+          ),
+          nqp::create(Map)
+        )
+    }
+
     method RAW-HASH() is raw is implementation-detail { $!elems }
 }
 

@@ -45,6 +45,7 @@ my role QuantHash does Associative {
 
     method hash() { ... }
     method Hash() { ... }
+    method Map()  { ... }
 }
 
 # vim: expandtab shiftwidth=4

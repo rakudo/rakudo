@@ -725,7 +725,11 @@ sub stringify(Mu $obj is raw --> Str:D) {
 }
 
 # Take $cond as Mu so we don't thread with Junctions:
-sub proclaim(Bool(Mu) $cond, $desc is copy, $unescaped-prefix = '') {
+sub proclaim(
+  Bool(Mu) $cond,
+  $desc is copy,
+  $unescaped-prefix = ''
+) is hidden-from-backtrace {
     _init_io() unless $output;
     # exclude the time spent in proclaim from the test time
     $num_of_tests_run = $num_of_tests_run + 1;

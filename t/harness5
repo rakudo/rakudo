@@ -29,6 +29,7 @@ GetOptions(
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
     'precompile'        => \my $precompile,
+    'evalserver'        => \my $evalserver,
     'jvm'               => \my $jvm,
     'js'                => \my $js,
     'moar'              => \my $moar,
@@ -135,7 +136,7 @@ if ($archive) {
     if $ENV{SMOLDER_SUBMITTER};
 }
 
-if ($jvm) {
+if ($jvm && $evalserver) {
     unlink("TESTTOKEN");
     $ENV{HARNESS_PERL} = "$^X .${slash}eval-client.pl TESTTOKEN run";
 
@@ -148,7 +149,7 @@ if ($jvm) {
 if (eval "require $tap_harness_class;") {
     my $run_with_perl = $precompile ? [$ENV{HARNESS_PERL}, 't/precompileandrun'] : [$ENV{HARNESS_PERL}];
     my %harness_options = (
-        exec        => $jvm ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : $run_with_perl,
+        exec        => $jvm && $evalserver ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : $run_with_perl,
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs,
         ignore_exit => 1,
@@ -264,6 +265,7 @@ Options:
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
     --slow - spread tests marked "slow" equally over the run (default on non-Win)
+    --evalserver - use EvalServer. Only has effect for JVM backend
     --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM/JS backend
     --no-merge - pass STDERR from the tests through to the terminal's STDERR
     --precompile - precompile tests before running them

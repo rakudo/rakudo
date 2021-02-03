@@ -30,11 +30,11 @@ GetOptions(
     'archive=s'         => \my $archive,
     'precompile'        => \my $precompile,
     'jvm'               => \my $jvm,
-    'js'               => \my $js,
+    'js'                => \my $js,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
     'slow'              => \(my $slow = !$win),
-    'no-merge'             => \my $no_merge,
+    'no-merge'          => \my $no_merge,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
@@ -258,13 +258,13 @@ Options:
     --help / -h - display the help message.
     --tests-from-file=[filename] - get the tests from the filename.
     --fudge - fudge (?)
-    --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 1
+    --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 6
     --quick - do not run tests marked as long-running
     --stress - run tests marked as stress tests
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
     --slow - spread tests marked "slow" equally over the run (default on non-Win)
-    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM backend
+    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM/JS backend
     --no-merge - pass STDERR from the tests through to the terminal's STDERR
     --precompile - precompile tests before running them
 

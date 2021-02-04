@@ -105,6 +105,8 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(RUN_CLEAN_TARGET_FILES)@ = @nfp(@base_dir@/@bpm(RUNNER)@)@ @script(clean-target-files.raku)@ $(VERBOSE)
 
+@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/09-moar)@
+
 @include(Makefile-backend-common)@
 
 @bpm(RAKUDO_OPS_DLL)@: @bpm(RAKUDO_OPS_DLL_SRC)@

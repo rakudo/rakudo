@@ -1,0 +1,8 @@
+t/01-sanity
+t/02-rakudo
+t/04-nativecall
+t/05-messages
+t/06-telemetry
+t/07-pod-to-text
+t/08-performance
+t/10-qast

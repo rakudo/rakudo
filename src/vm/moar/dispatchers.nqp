@@ -483,6 +483,58 @@
     });
 }
 
+# A standard method call of the form $obj.meth($arg); also used for the
+# indirect form $obj."$name"($arg). It receives the decontainerized invocant,
+# the method name, and the the args (starting with the invocant including any
+# container).
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $capture {
+    # Try to resolve the method call.
+    # TODO Assorted optimizations are possible here later on to speed up some
+    # kinds of dispatch, including:
+    # * Using the dispatcher to directly rewrite args and invoke FALLBACK if
+    #   needed
+    # * Rewriting the args to use a formed role pun, thus caching the lookup
+    #   of the pun and an extra level of call
+    # * Handling some forms of delegation via the dispatcher mechanism
+    my $obj := nqp::captureposarg($capture, 0);
+    my str $name := nqp::captureposarg_s($capture, 1);
+    my $meth := $obj.HOW.find_method($obj, $name);
+
+    # Report an error if there is no such method.
+    unless nqp::isconcrete($meth) {
+        my $class := nqp::getlexcaller('$?CLASS');
+        if nqp::gethllsym('Raku', 'P6EX') -> %ex {
+            if $name eq 'STORE' {
+                if nqp::atkey(%ex,'X::Assignment::RO') -> $thrower {
+                    $thrower($obj);
+                }
+            }
+            elsif nqp::atkey(%ex,'X::Method::NotFound') -> $thrower {
+                $thrower($obj, $name, $obj.HOW.name($obj), :in-class-call(nqp::eqaddr(nqp::what($obj), $class)));
+            }
+        }
+        else {
+            nqp::die("Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'");
+        }
+    }
+
+    # Establish a guard on the invocant type and method name (however the name
+    # may well be a literal, in which case this is free).
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1));
+
+    # Drop the decontainerized invocant, add the resolved method, and delegate
+    # to the resolved method dispatcher.
+    my $capture_simplified := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+        $capture, 0);
+    my $capture_delegate := nqp::dispatch('boot-syscall',
+        'dispatcher-insert-arg-literal-obj', $capture_simplified, 0, $meth);
+    nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+        'raku-meth-call-resolved', $capture_delegate);
+});
+
 # Qualified method call dispatcher. This is used for calls of the form
 # $foo.Some::ClassOrRole::bar($arg). It receives the decontainerized
 # invocant, the method name, the type qualifier, and then the args

@@ -6541,9 +6541,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
         }
         elsif $op eq 'dispatch' {
+            # We generally want to send unboxed string values in for dispatch
+            # arguments (although leave normal ones alone); we can't really
+            # know which are which, but if we're writing out an `nqp::op`
+            # just assume that they should all be unboxed; most situations
+            # will see the dispatch op generated anyway.
             my int $i := 0;
             my int $n := nqp::elems($past.list);
-            while $i < $n && $i < 2 {
+            while $i < $n {
                 if nqp::istype($past[$i], QAST::Want) && $past[$i][1] eq 'Ss' {
                     $past[$i] := $past[$i][2];
                 }

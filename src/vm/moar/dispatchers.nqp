@@ -465,15 +465,22 @@
         my $coerce_method := $to_coerce.HOW.find_method($to_coerce, $to_name);
         if nqp::isconcrete($coerce_method) {
             # Delegate to the resolved method call dispatcher. We need to drop
-            # the arg of the coercion type, then insert two args: the resolved
-            # callee and the name.
+            # the arg of the coercion type, then insert three args:
+            # 1. The method we resolved to.
+            # 2. The type object of the coercion type (used in deferral)
+            # 3. The name of the method (used in deferral)
+            my $without_coerce_type := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                    $capture, 1);
             my $meth_capture := nqp::dispatch('boot-syscall',
                 'dispatcher-insert-arg-literal-obj',
                 nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-str',
-                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1),
+                    'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall',
+                        'dispatcher-insert-arg-literal-str',
+                        $without_coerce_type,
                         0, $to_name),
-                    0, $coerce_method);
+                    0, nqp::what(to_coerce)),
+                0, $coerce_method);
             nqp::dispatch('boot-syscall', 'dispatcher-delegate',
                     'raku-meth-call-resolved', $meth_capture);
         }
@@ -525,12 +532,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
     nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
         nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1));
 
-    # Drop the decontainerized invocant, add the resolved method, and delegate
-    # to the resolved method dispatcher.
-    my $capture_simplified := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-        $capture, 0);
+    # Add the resolved method and delegate to the resolved method dispatcher.
     my $capture_delegate := nqp::dispatch('boot-syscall',
-        'dispatcher-insert-arg-literal-obj', $capture_simplified, 0, $meth);
+        'dispatcher-insert-arg-literal-obj', $capture, 0, $meth);
     nqp::dispatch('boot-syscall', 'dispatcher-delegate',
         'raku-meth-call-resolved', $capture_delegate);
 });
@@ -578,14 +582,20 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-qualified',
         }
     }
 
-    # If it's resolved, drop the invocant and type arguments targetted at
-    # resolution, and then insert the resolved method as a constant.
+    # If it's resolved, then:
+    # 1. Drop the invocant and type arguments targetted at this resolution
+    # 2. Insert the type we resolved the method against before those, for
+    #    deferral (the name is retained ahead of this)
+    # 3. Finally, prepend the resolved method, and delegate to the resolved
+    #    method dispatcher.
     if nqp::isconcrete($meth) {
-        my $capture_simplified := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+        my $with_name_and_args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
             nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2),
             0);
+        my $with_resolution_start := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj', $with_name_and_args, 0, $type);
         my $capture_delegate := nqp::dispatch('boot-syscall',
-            'dispatcher-insert-arg-literal-obj', $capture_simplified, 0, $meth);
+            'dispatcher-insert-arg-literal-obj', $with_resolution_start, 0, $meth);
         nqp::dispatch('boot-syscall', 'dispatcher-delegate',
                 'raku-meth-call-resolved', $capture_delegate);
     }
@@ -614,11 +624,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-me-maybe', 
     my str $name := nqp::captureposarg_s($capture, 1);
     my $meth := $invocant.HOW.find_method($invocant, $name);
     if nqp::isconcrete($meth) {
-        # Found it. Drop decont'd invocant, put in resolved method.
+        # Found it. Put in resolved method and leave the rest to the resolved
+        # method call dispatcher.
         my $capture_delegate := nqp::dispatch('boot-syscall',
-            'dispatcher-insert-arg-literal-obj',
-            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-            0, $meth);
+            'dispatcher-insert-arg-literal-obj', $capture, 0, $meth);
         nqp::dispatch('boot-syscall', 'dispatcher-delegate',
                 'raku-meth-call-resolved', $capture_delegate);
     }
@@ -663,21 +672,22 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-private', -> $ca
 });
 
 # Resolved method call dispatcher. This is used to call a method, once we have
-# already resolved it to a callee. Its first arg is the callee, the second is
-# the method name (used in a continued dispatch), and the rest are the args to
+# already resolved it to a callee. Its first arg is the callee, the second and
+# third are the type and name (used in deferral), and the rest are the args to
 # the method.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved', -> $capture {
     # TODO Set dispatch state for resumption
 
-    # Drop the name, and delegate to multi-dispatch or just invoke if it's
-    # single dispatch.
-    my $without_name := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1);
-    my $method := nqp::captureposarg($capture, 0);
+    # Drop the dispatch start type and name, and delegate to multi-dispatch or
+    # just invoke if it's single dispatch.
+    my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1), 1);
+    my $method := nqp::captureposarg($delegate_capture, 0);
     if nqp::istype($method, Routine) && $method.is_dispatcher {
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $without_name);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $delegate_capture);
     }
     else {
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $without_name);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
     }
 });
 

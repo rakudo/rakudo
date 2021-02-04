@@ -275,6 +275,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 
     method !setup() {
         $setup-lock.protect: {
+            nqp::neverrepossess(self);
             return if nqp::unbox_i($!call);
 
             # Make sure that C++ methods are treated as mangled (unless set otherwise)
@@ -516,6 +517,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     method create-optimized-call() {
         unless $!optimized-body {
             $setup-lock.protect: {
+                nqp::neverrepossess(self);
                 unless nqp::defined(nqp::getobjsc(self)) {
                     if $*W {
                         $*W.add_object(self);
@@ -548,6 +550,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                     $*W.add_object($?CLASS);
                     $*UNIT.push($optimized-body);
                     $*UNIT.push($jit-optimized-body);
+                    $fixups.push(QAST::Op.new(:op<neverrepossess>, QAST::WVal.new(:value(self))));
                     $fixups.push($*W.set_attribute(self, $?CLASS, '$!optimized-body',
                         QAST::BVal.new( :value($optimized-body) )));
                     $fixups.push($*W.set_attribute(self, $?CLASS, '$!jit-optimized-body',

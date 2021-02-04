@@ -986,7 +986,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
         # and delegate to boot-code.
         # TODO probably boot-code, not boot-code-constant
         if nqp::isconcrete($code) {
-            my $do := nqp::getattr($code, Code, '$!do');
             my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                 $code_arg, Code, '$!do');
             my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
@@ -997,6 +996,23 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
         }
 
         # Invoking non-concrete code object is an error.
+        else {
+            nqp::die('Cannot invoke a ' ~ $code.HOW.name($code) ~ ' type object');
+        }
+    }
+
+    # If it's NQP code (ideally we want a more flexible cross-language solution
+    # here) then unrap it also.
+    elsif nqp::istype($code, NQPRoutine) {
+        if nqp::isconcrete($code) {
+            my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $code_arg, NQPRoutine, '$!do');
+            my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                0, $do_attr);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                $delegate_capture);
+        }
         else {
             nqp::die('Cannot invoke a ' ~ $code.HOW.name($code) ~ ' type object');
         }

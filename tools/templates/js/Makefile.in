@@ -22,6 +22,8 @@
 	@echo(!!! Installing the js backend is not yet implemented.)@
 	$(NOECHO)exit 1
 
+@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/11-js)@
+
 @include(Makefile-backend-common)@
 
 # files we create

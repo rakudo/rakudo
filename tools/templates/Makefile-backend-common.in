@@ -126,7 +126,7 @@
 @backend_prefix@-stresstest: @backend_prefix@-stresstest@bpm(HARNESS_TYPE)@
 
 @backend_prefix@-coretest5: @backend_prefix@-all
-	@bpm(HARNESS5)@ @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
+	@bpm(HARNESS5)@ $(COMMON_TEST_DIRS) @bsm(SPECIFIC_TEST_DIRS)@
 
 # Run the spectests that we know work.
 @backend_prefix@-spectest5: @backend_prefix@-testable $(SPECTEST_DATA)

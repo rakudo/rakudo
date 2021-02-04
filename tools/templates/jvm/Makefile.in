@@ -41,6 +41,8 @@ RUNTIME_JAR = rakudo-runtime.jar
 
 @bpv(HARNESS_TYPE)@ = 5
 
+@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/03-jvm)@
+
 @include(Makefile-backend-common)@
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)

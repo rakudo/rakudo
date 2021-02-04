@@ -149,12 +149,22 @@ sub callsame() is raw {
             nqp::p6argsfordispatcher($dispatcher))
 }
 
+sub new-disp-callsame() is raw {
+    $/ := nqp::getlexcaller('$/');
+    nqp::dispatch('boot-resume-caller')
+}
+
 sub nextsame() is raw {
     $/ := nqp::getlexcaller('$/');
     my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
     nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
         ?? Nil
         !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher)))
+}
+
+sub new-disp-nextsame() is raw {
+    $/ := nqp::getlexcaller('$/');
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::dispatch('boot-resume-caller'))
 }
 
 sub lastcall(--> True) {

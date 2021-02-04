@@ -6540,6 +6540,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $i := $i + 2;
             }
         }
+        elsif $op eq 'dispatch' {
+            my int $i := 0;
+            my int $n := nqp::elems($past.list);
+            while $i < $n && $i < 2 {
+                if nqp::istype($past[$i], QAST::Want) && $past[$i][1] eq 'Ss' {
+                    $past[$i] := $past[$i][2];
+                }
+                $i++;
+            }
+        }
         $past.node($/);
         nqp::getcomp('QAST').operations.attach_result_type('Raku', $past);
         make $past;

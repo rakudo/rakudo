@@ -715,9 +715,16 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
         }
     },
-    # Resumption. The capture's first two arguments are the that we initially
-    # did a method dispatch against and the method name respectively.
+    # Resumption. The capture itself has a first argument indicating the kind
+    # of resumption operation we're doing. The resume init capture's first two
+    # arguments are the type that we initially did a method dispatch against
+    # and the method name respectively.
     -> $capture {
+        # Guard on the kind of resume we're doing, and get that flag.
+        my $track_kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_kind);
+        my int $kind := nqp::captureposarg_i($capture, 0);
+
         # Work out the next method to call, if any. This depends on if we have
         # an existing dispatch state (that is, a method deferral is already in
         # progress).
@@ -785,21 +792,34 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
 
         # If we found a next method...
         if nqp::isconcrete($next_method) {
-            # Invoke it. We drop the first two arguments (which are only there
-            # for resumption), add the code object to invoke, and then leave it
-            # to the invoke dispatcher.
-            my $just_args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
-                0);
-            my $delegate_capture := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg-literal-obj', $just_args, 0, $next_method);
-            if nqp::istype($next_method, Routine) && $next_method.is_dispatcher {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi',
-                        $delegate_capture);
+            # Check the kind of deferral requested.
+            if $kind == 0 {
+                # Call with same (that is, original) arguments. Invoke with those.
+                # We drop the first two arguments (which are only there for the
+                # resumption), add the code object to invoke, and then leave it
+                # to the invoke dispatcher.
+                my $just_args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
+                    0);
+                my $delegate_capture := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj', $just_args, 0, $next_method);
+                if nqp::istype($next_method, Routine) && $next_method.is_dispatcher {
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi',
+                            $delegate_capture);
+                }
+                else {
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+                            $delegate_capture);
+                }
+            }
+            elsif $kind == 3 {
+                # We just want method itself, not to invoke it.
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $capture, 0, $next_method));
             }
             else {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
-                        $delegate_capture);
+                nqp::die('Unimplemented resumption kind in method dispatch');
             }
         }
         else {

@@ -151,7 +151,7 @@ sub callsame() is raw {
 
 sub new-disp-callsame() is raw {
     $/ := nqp::getlexcaller('$/');
-    nqp::dispatch('boot-resume-caller')
+    nqp::dispatch('boot-resume-caller', 0)
 }
 
 sub nextsame() is raw {
@@ -164,16 +164,24 @@ sub nextsame() is raw {
 
 sub new-disp-nextsame() is raw {
     $/ := nqp::getlexcaller('$/');
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::dispatch('boot-resume-caller'))
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::dispatch('boot-resume-caller', 0))
 }
 
 sub lastcall(--> True) {
     nqp::p6finddispatcher('lastcall').last();
 }
 
+sub new-disp-lastcall(--> True) {
+    nqp::dispatch('boot-resume-caller', 2)
+}
+
 sub nextcallee() {
     my Mu $dispatcher := nqp::p6finddispatcher('nextcallee');
     $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
+}
+
+sub new-disp-nextcallee() {
+    nqp::dispatch('boot-resume-caller', 3)
 }
 
 sub samewith(|c) {

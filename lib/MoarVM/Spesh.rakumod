@@ -6,14 +6,8 @@
 # zero or more action sections.
 #
 # Method "bails" provides a Bag of the names of the ops that caused a bail.
-#
-# When used as a script, it will accept the name of a spesh file and output
-# a list of all of the opcodes that caused a bail, ordered by number of bails.
-#
-#   $ MVM_SPESH_LOG=spesh raku yourcode
-#   $ raku lib/Spesh.rakumod spesh
 
-class Spesh {
+class MoarVM::Spesh {
     has @.parts;
     has $!bails;
     has $!time;
@@ -209,7 +203,7 @@ class Spesh {
     my constant start-Certainty      = "Certain specialization of";
     my constant start-Specialization = "Specialization of";
 
-    method new($filename --> Spesh:D) {
+    method new($filename --> MoarVM::Spesh:D) {
         my $handle = $filename.IO.open or die "Could not read $filename: $!";
 
         my $status = Received;
@@ -363,19 +357,29 @@ class Spesh {
 
         self.bless(:@parts)
     }
-}
 
-sub MAIN($filename where *.IO.e) {
-    note "Parsing '$filename'";
-    my $spesh = Spesh.new($filename);
-    note "Finding bailed ops";
-    my $bails = $spesh.bails;
+    method report() {
+        my @bails = self.bails.sort: -*.value;
 
-    note "Done";
-    say "Found $bails.elems() different ops getting bailed:";
-    printf("%4d: %s\n", .value, .key) for $bails.sort( *.value );
+        my str @lines;
 
-    say $spesh.cuids[1]>>.file-line.Bag;
+        @lines.push: "Spesh Log Report of Process #$*PID ({
+            now.DateTime.truncated-to('second')
+        })";
+        @lines.push: "Executing: " ~ Rakudo::Internals.PROGRAM;
+#        @lines.push: "Ran for { self.time / 1000000 } seconds";
+        @lines.push: "";
+
+        @lines.push: "@bails.elems() ops got bailed";
+        @lines.push: "-" x 80;
+        @lines.push: sprintf("%4d: %s", .value, .key) for @bails;
+        @lines.push: "-" x 80;
+
+#        @lines.push: .raku for self.cuids>>.text;
+#        @lines.push: "-" x 80;
+
+        @lines.join("\n");
+    }
 }
 
 # vim: expandtab shiftwidth=4

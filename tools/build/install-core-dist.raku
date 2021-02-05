@@ -20,6 +20,9 @@ my %provides =
 
 if Compiler.backend eq 'moar' {
     %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod";
+    %provides<MoarVM::Spesh>    = "lib/MoarVM/Spesh.rakumod";
+    %provides<MoarVM::SL>       = "lib/MoarVM/SL.rakumod";
+    %provides<SL>               = "lib/SL.rakumod";
     %provides<MoarVM::SIL>      = "lib/MoarVM/SIL.rakumod";
     %provides<SIL>              = "lib/SIL.rakumod";
 }

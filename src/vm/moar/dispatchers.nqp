@@ -731,7 +731,11 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
         my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
         my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
         my $next_method;
-        if nqp::isnull($state) {
+        if $kind == 2 {
+            # It's lastcall; just update the state to Exhausted.
+            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
+        }
+        elsif nqp::isnull($state) {
             # No state, so just starting the resumption. Guard on the
             # invocant type and name.
             my $track_start_type := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $init, 0);
@@ -788,6 +792,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
 
             # Set next method, which we shall defer to.
             $next_method := $state.code;
+        }
+        else {
+            # Dispatch already exhausted; guard on that and fall through to returning
+            # Nil.
+            my $track_state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_state);
         }
 
         # If we found a next method...

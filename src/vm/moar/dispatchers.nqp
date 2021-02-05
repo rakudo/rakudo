@@ -803,8 +803,11 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
             }
         }
         else {
-            # No method, so evaluate to Nil.
-            nqp::die('nyi nil');
+            # No method, so evaluate to Nil (boot-constant disregards all but
+            # the first argument).
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    $capture, 0, Nil));
         }
     });
 

@@ -671,25 +671,142 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-private', -> $ca
     }
 });
 
+# A linked list is used to model the state of a dispatch that is deferring
+# through a set of methods, multi candidates, or wrappers. The Exhausted class
+# is used as a sentinel for the end of the chain. The current state of the
+# dispatch points into the linked list at the appropriate point; the chain
+# itself is immutable, and shared over (runtime) dispatches.
+my class DeferralChain {
+    has $!code;
+    has $!next;
+    method new($code, $next) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, DeferralChain, '$!code', $code);
+        nqp::bindattr($obj, DeferralChain, '$!next', $next);
+        $obj
+    }
+    method code() { $!code }
+    method next() { $!next }
+};
+my class Exhausted {};
+
 # Resolved method call dispatcher. This is used to call a method, once we have
 # already resolved it to a callee. Its first arg is the callee, the second and
 # third are the type and name (used in deferral), and the rest are the args to
 # the method.
-nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved', -> $capture {
-    # TODO Set dispatch state for resumption
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
+    # Initial dispatch
+    -> $capture {
+        # Save dispatch state for resumption. We don't need the method that will
+        # be called now, so drop it.
+        my $resume-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+            $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $resume-capture);
 
-    # Drop the dispatch start type and name, and delegate to multi-dispatch or
-    # just invoke if it's single dispatch.
-    my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1), 1);
-    my $method := nqp::captureposarg($delegate_capture, 0);
-    if nqp::istype($method, Routine) && $method.is_dispatcher {
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $delegate_capture);
-    }
-    else {
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
-    }
-});
+        # Drop the dispatch start type and name, and delegate to multi-dispatch or
+        # just invoke if it's single dispatch.
+        my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1), 1);
+        my $method := nqp::captureposarg($delegate_capture, 0);
+        if nqp::istype($method, Routine) && $method.is_dispatcher {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $delegate_capture);
+        }
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
+        }
+    },
+    # Resumption. The capture's first two arguments are the that we initially
+    # did a method dispatch against and the method name respectively.
+    -> $capture {
+        # Work out the next method to call, if any. This depends on if we have
+        # an existing dispatch state (that is, a method deferral is already in
+        # progress).
+        my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
+        my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
+        my $next_method;
+        if nqp::isnull($state) {
+            # No state, so just starting the resumption. Guard on the
+            # invocant type and name.
+            my $track_start_type := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $init, 0);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_start_type);
+            my $track_name := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $init, 1);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_name);
+
+            # Also guard on there being no dispatch state.
+            my $track_state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_state);
+
+            # Build up the list of methods to defer through.
+            my $start_type := nqp::captureposarg($init, 0);
+            my str $name := nqp::captureposarg_s($init, 1);
+            my @mro := nqp::can($start_type.HOW, 'mro_unhidden')
+                ?? $start_type.HOW.mro_unhidden($start_type)
+                !! $start_type.HOW.mro($start_type);
+            my @methods;
+            for @mro {
+                my %mt := nqp::hllize($_.HOW.method_table($_));
+                if nqp::existskey(%mt, $name) {
+                    @methods.push(%mt{$name});
+                }
+            }
+
+            # If there's nothing to defer to, we'll evaluate to Nil (just don't set
+            # the next method, and it happens below).
+            if nqp::elems(@methods) >= 2 {
+                # We can defer. Populate next method.
+                @methods.shift; # Discard the first one, which we initially called
+                $next_method := @methods.shift; # The immediate next one
+
+                # Build chain of further methods and set it as the state.
+                my $chain := Exhausted;
+                while @methods {
+                    $chain := DeferralChain.new(@methods.pop, $chain);
+                }
+                nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', $chain);
+            }
+        }
+        elsif !nqp::istype($state, Exhausted) {
+            # Already working through a chain of method deferrals. Obtain
+            # the tracking object for the dispatch state, and guard against
+            # the next code object to run.
+            my $track_state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
+            my $track_method := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track_state, DeferralChain, '$!code');
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_method);
+
+            # Update dispatch state to point to next method.
+            my $track_next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track_state, DeferralChain, '$!next');
+            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track_next);
+
+            # Set next method, which we shall defer to.
+            $next_method := $state.code;
+        }
+
+        # If we found a next method...
+        if nqp::isconcrete($next_method) {
+            # Invoke it. We drop the first two arguments (which are only there
+            # for resumption), add the code object to invoke, and then leave it
+            # to the invoke dispatcher.
+            my $just_args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
+                0);
+            my $delegate_capture := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $just_args, 0, $next_method);
+            if nqp::istype($next_method, Routine) && $next_method.is_dispatcher {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi',
+                        $delegate_capture);
+            }
+            else {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+                        $delegate_capture);
+            }
+        }
+        else {
+            # No method, so evaluate to Nil.
+            nqp::die('nyi nil');
+        }
+    });
 
 # Multi-dispatch dispatcher, used for both multi sub and multi method dispatch.
 # There are a number of cases that we need to deal with here.

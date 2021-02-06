@@ -11,7 +11,9 @@ class MoarVM::Spesh {
     has @.parts;
     has $!bails;
     has $!time;
-    has @!cuids;
+    has %!cuids;
+    has %!files;
+    has %!names;
 
     method bails() {
         $!bails //= [(+)] @.parts>>.bails;
@@ -19,14 +21,45 @@ class MoarVM::Spesh {
     method time() {
         $!time //= @.parts>>.time.sum;
     }
-    method cuids() {
-        @!cuids ?? @!cuids !! do {
-            for @.parts -> $part {
-                @!cuids[.cuid].push( $_ ) for $part.statistics;
-                @!cuids[.cuid].push( $_ ) for $part.actions;
+
+    method !process-parts(--> Nil) {
+        for @.parts -> $part {
+            for $part.statistics {
+                %!cuids{.cuid}.push: $_;
+                %!names{.name}.push: .cuid;
             }
-            @!cuids
+            for $part.actions {
+                %!cuids{.cuid}.push: $_;
+                %!names{.name}.push: .cuid;
+            }
         }
+        for %!names.kv -> $name, @cuids {
+            %!names{$name} := @cuids.unique.sort.List;
+        }
+    }
+
+    method cuids() {
+        self!process-parts unless %!cuids;
+        %!cuids
+    }
+
+    method files() {
+        unless %!files {
+            self!process-parts;
+            for %!cuids.values -> @stuff {
+                given @stuff.head {
+                    my $file-line = .file-line.subst(/^ 'SETTING::' /);
+                    my ($file,$line) = $file-line.split(":");
+                    %!files{$file}{$line} = .cuid;
+                }
+            }
+        }
+        %!files
+    }
+
+    method names() {
+        self!process-parts unless %!names;
+        %!names
     }
 
     role Bails {
@@ -47,16 +80,32 @@ class MoarVM::Spesh {
         }
     }
 
-    role Cuid-File-Line {
-        method cuid(--> Int:D) {
+    role Cuid-File-Line-Name {
+        has $!cuid;
+        has $!file-line;
+        has $!name;
+
+        method !cfn() {
             $.text.match(
-              /:r <after 'cuid: ' > \d+ /
-            ).Int
+              / (<[ \w < > - ]>*) "' (cuid: " (\d+) ", file: " (<-[ ) ]>+)/
+            ).map: *.Str;
+            ($!name, $!cuid, $!file-line) = ~$0, +$1, ~$2
+        }
+
+        method cuid(--> Int:D) {
+            $!cuid // self!cfn[1]
         }
         method file-line(--> Str:D) {
-            $.text.match(
-              /:r <after 'file: ' > <-[ ) ]>+ <before ')' > /
-            ).Str
+            $!cuid // self!cfn[2]
+        }
+        method file(--> Str:D) {
+            self.file-line.subst(/ ^ 'SETTING::'/).split(":").head
+        }
+        method line(--> Str:D) {
+            self.file-line.subst(/ ^ 'SETTING::'/).split(":").tail
+        }
+        method name(--> Str:D) {
+            $!name // self!cfn[0]
         }
     }
 
@@ -74,14 +123,9 @@ class MoarVM::Spesh {
         }
     }
 
-    my class Statistics does Time does Cuid-File-Line {
+    my class Statistics does Time does Cuid-File-Line-Name {
         has $.text;
 
-        method name(--> Str:D) {
-            $.text.match(
-              /:r <after "Latest statistics for '" > <-[']>* <before "'" > /
-            ).Str
-        }
         method total-hits(--> Int:D) {
             $.text.match(
               /:r <after "Total hits: " > \d+ /
@@ -103,37 +147,19 @@ class MoarVM::Spesh {
     }
 
     class Gathering { }  # just used for status
-    class Observation does Bails does Time does Cuid-File-Line {
+    class Observation does Bails does Time does Cuid-File-Line-Name {
         has $.text;
-
-        method name(--> Str:D) {
-            $.text.match(
-              /:r <after "Observed type specialization of '" > <-[']>* <before "'" > /
-            ).Str
-        }
     }
 
-    class GuardTree does Bails does Time does Cuid-File-Line {
+    class GuardTree does Bails does Time does Cuid-File-Line-Name {
         has $.text;
-
-        method name(--> Str:D) {
-            $.text.match(
-              /:r <after "Latest guard tree for '" > <-[']>* <before "'" > /
-            ).Str
-        }
     }
 
-    class Certainty does Bails does Time does Cuid-File-Line {
+    class Certainty does Bails does Time does Cuid-File-Line-Name {
         has $.text;
-
-        method name(--> Str:D) {
-            $.text.match(
-              /:r <after "Certain specialization of '" > <-[']>* <before "'" > /
-            ).Str
-        }
     }
 
-    class Specialization does Bails does Time does Cuid-File-Line {
+    class Specialization does Bails does Time does Cuid-File-Line-Name {
         has $.text;
 
         method time(--> Int:D) {
@@ -158,11 +184,6 @@ class MoarVM::Spesh {
             $.text.match(
               /:r <after 'Bytecode size: ' > \d+ <before ' byte' > /
             ).Int
-        }
-        method name(--> Str:D) {
-            $.text.match(
-              /:r <after "Spesh of '" > <-[']>* <before "' " > /
-            ).Str
         }
     }
 

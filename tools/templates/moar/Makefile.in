@@ -199,7 +199,7 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 @backend_prefix@-test6   : @backend_prefix@-coretest6
 
 @backend_prefix@-coretest6: @backend_prefix@-all
-	@bpm(HARNESS6)@ @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
+	@bpm(HARNESS6)@ $(COMMON_TEST_DIRS) @bsm(SPECIFIC_TEST_DIRS)@
 
 # Run the spectests that we know work.
 @backend_prefix@-spectest6: @backend_prefix@-testable $(SPECTEST_DATA)

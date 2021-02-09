@@ -66,17 +66,26 @@ class MoarVM::Spesh {
         has $!bails;
 
         method bails(--> Bag:D) {
-            $!bails //= $.text
-              .comb( /:r bail ':' <-[ \n ]>* / )
-              .map( *.words.tail )
-              .map( { .starts-with( "(ins=" ) ?? .substr(5,*-1) !! $_ } )
+            $!bails //= @.text
+              .map( {
+                  if .contains('bail:') {
+                      .starts-with( "(ins=" ) ?? .substr(5,*-1) !! $_
+                        given .words.tail
+                  }
+              } )
               .Bag
         }
     }
 
     role Time {
         method time(--> Int:D) {
-            $.text.match( / <after " "> \d+ <before us " "> /, :g ).sum // 0
+            @.text
+              .grep( {
+                  if .contains('us ') {
+                      +.match( / \d+ <before 'us '> / )
+                  }
+              } )
+              .sum // 0
         }
     }
 
@@ -86,10 +95,12 @@ class MoarVM::Spesh {
         has Str $!name;
 
         method !cfn() {
-            $.text.match(
+            return ($!name, $!cuid, $!file-line) = ~$0, +$1, ~$2
+              if .contains("' (cuid: ") && .match:
               / (<[ \w < > - ]>*) "' (cuid: " (\d+) ", file: " (<-[ ) ]>+)/
-            ).map: *.Str;
-            ($!name, $!cuid, $!file-line) = ~$0, +$1, ~$2
+              for @.text;
+
+            ($!name, $!cuid, $!file-line) = "", 0, ""
         }
 
         method cuid(--> Int:D) {
@@ -110,80 +121,107 @@ class MoarVM::Spesh {
     }
 
     my class Received does Time {
-        has $.text;
+        has @.text;
     }
 
     my class Updated does Time {
-        has $.text;
+        has @.text;
 
         method frames(--> Int:D) {
-            $.text.match(
+            @.text.match(
               /:r \d+ <before " frames" > /
             ).Int
         }
     }
 
     my class Statistics does Time does Cuid-File-Line-Name {
-        has $.text;
+        has @.text;
 
         method total-hits(--> Int:D) {
-            $.text.match(
-              /:r <after "Total hits: " > \d+ /
-            ).Int
+            return .substr(11).Int
+              if .starts-with('Total hits: ')
+              for @.text;
+
+            0
         }
     }
 
     my class Planning does Time {
-        has $.text;
+        has @.text;
 
         method specializations(--> Int:D) {
-            $.text.match(
-              /:r \d+ <before " specialization(s)" > /
-            ).Int
+            return .words.head.Int
+              if .contains(' specialization(s) ')
+              for @.text;
+
+            0
         }
         method time(--> Int:D) {
-            $.text.match( /:r <after "planned in "> \d+ <before "us)"> /).Int
+            return .match( /:r <after '(planned in '> \d+ /).Int
+              if .contains('(planned in ')
+              for @.text;
+
+            0
         }
     }
 
     class Gathering { }  # just used for status
     class Observation does Bails does Time does Cuid-File-Line-Name {
-        has $.text;
+        has @.text;
     }
 
     class GuardTree does Bails does Time does Cuid-File-Line-Name {
-        has $.text;
+        has @.text;
     }
 
     class Certainty does Bails does Time does Cuid-File-Line-Name {
-        has $.text;
+        has @.text;
     }
 
     class Specialization does Bails does Time does Cuid-File-Line-Name {
-        has $.text;
+        has @.text;
 
         method time(--> Int:D) {
-            $.text.match(
-              /:r <after 'Specialization took ' > \d+ <before 'us' > /
-            ).Int
+            return .match(/:r <after 'Specialization took '> \d+ /).Int
+              if .starts-with('Specialization took ')
+              for @.text;
+
+            0
+        }
+        method total-time(--> Int:D) {
+            return .match(/:r <after '(total '> \d+ /).Int
+              if .contains('(total ')
+              for @.text;
+
+            0
         }
         method jitted(--> Bool:D) {
-            $.text.contains('JIT was successful')
+            return True
+              if .starts-with('JIT was successful')
+              for @.text;
+
+            False
         }
         method compilation-time(--> Int:D) {
-            $.text.match(
-              /:r <after 'compilation took ' > \d+ <before 'us' > /
-            ).Int
+            return .match(/:r <after 'compilation took ' > \d+ /).Int
+              if .starts-with('JIT was successful')
+              for @.text;
+
+            0
         }
         method frame-size(--> Int:D) {
-            $.text.match(
-              /:r <after 'Frame size: ' > \d+ <before ' byte' > /
-            ).Int
+            return .match(/:r <after 'Frame size: '> \d+ /).Int
+              if .starts-with('Frame size: ')
+              for @.text;
+
+            0
         }
         method bytecode-size(--> Int:D) {
-            $.text.match(
-              /:r <after 'Bytecode size: ' > \d+ <before ' byte' > /
-            ).Int
+            return .match(/:r <after 'Bytecode size: '> \d+ /).Int
+              if .contains('Bytecode size: ')
+              for @.text;
+
+            0
         }
     }
 
@@ -239,13 +277,9 @@ class MoarVM::Spesh {
         my $type;
         my @text;
 
-        sub finish() {
-            @actions.push(
-              $type.new(text => @text.join("\n"))
-            );
-        }
+        sub finish(--> Nil) { @actions.push: $type.new(:@text) }
 
-        sub next($next, $line) {
+        sub next($next, $line--> Nil) {
             @text   = $line;
             $status = Gathering;
             $type   = $next;

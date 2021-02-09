@@ -126,12 +126,14 @@ class MoarVM::Spesh {
 
     my class Updated does Time {
         has @.text;
+        has Int $!frames;
 
-        method frames(--> Int:D) {
-            @.text.match(
-              /:r \d+ <before " frames" > /
-            ).Int
+        method !frames(--> Int:D) {
+            return .match(/:r \d+ <before ' frames'> /).Int
+              if .contains(' frames')
+              for @!text;
         }
+        method frames(--> Int:D) { $!frames //= self!frames }
     }
 
     my class Statistics does Time does Cuid-File-Line-Name {
@@ -179,49 +181,64 @@ class MoarVM::Spesh {
     }
 
     class Specialization does Bails does Time does Cuid-File-Line-Name {
-        has @.text;
+        has Str  @.text;
+        has Int  $!time;
+        has Int  $!total-time;
+        has Int  $!compilation-time;
+        has Int  $!frame-size;
+        has Int  $!bytecode-size;
+        has Bool $!jitted;
 
-        method time(--> Int:D) {
+        method !time(--> Int:D) {
             return .match(/:r <after 'Specialization took '> \d+ /).Int
               if .starts-with('Specialization took ')
-              for @.text;
-
+              for @!text;
             0
         }
-        method total-time(--> Int:D) {
+        method time(--> Int:D) { $!time //= self!time }
+
+        method !total-time(--> Int:D) {
             return .match(/:r <after '(total '> \d+ /).Int
               if .contains('(total ')
               for @.text;
-
             0
         }
-        method jitted(--> Bool:D) {
+        method total-time(--> Int:D) { $!total-time //= self!total-time }
+
+        method !jitted(--> Bool:D) {
             return True
               if .starts-with('JIT was successful')
               for @.text;
-
             False
         }
-        method compilation-time(--> Int:D) {
+        method jitted(--> Bool:D) { $!jitted //= self!jitted }
+
+        method !compilation-time(--> Int:D) {
             return .match(/:r <after 'compilation took ' > \d+ /).Int
               if .starts-with('JIT was successful')
               for @.text;
-
             0
         }
-        method frame-size(--> Int:D) {
+        method compilation-time(--> Int:D) {
+            $!compilation-time //= self!compilation-time
+        }
+
+        method !frame-size(--> Int:D) {
             return .match(/:r <after 'Frame size: '> \d+ /).Int
               if .starts-with('Frame size: ')
               for @.text;
-
             0
         }
-        method bytecode-size(--> Int:D) {
+        method frame-size(--> Int:D) { $!frame-size //= self!frame-size }
+
+        method !bytecode-size(--> Int:D) {
             return .match(/:r <after 'Bytecode size: '> \d+ /).Int
               if .contains('Bytecode size: ')
               for @.text;
-
             0
+        }
+        method bytecode-size(--> Int:D) {
+            $!bytecode-size //= self!bytecode-size
         }
     }
 
@@ -425,7 +442,7 @@ class MoarVM::Spesh {
 #        @lines.push: "Ran for { self.time / 1000000 } seconds";
         @lines.push: "";
 
-        @lines.push: "@bails.elems() ops got bailed";
+        @lines.push: "@bails.elems() ops prevented JITting of code";
         @lines.push: "-" x 80;
         @lines.push: sprintf("%4d: %s", .value, .key) for @bails;
         @lines.push: "-" x 80;

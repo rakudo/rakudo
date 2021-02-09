@@ -81,9 +81,9 @@ class MoarVM::Spesh {
     }
 
     role Cuid-File-Line-Name {
-        has $!cuid;
-        has $!file-line;
-        has $!name;
+        has Int $!cuid;
+        has Str $!file-line;
+        has Str $!name;
 
         method !cfn() {
             $.text.match(
@@ -96,13 +96,13 @@ class MoarVM::Spesh {
             $!cuid // self!cfn[1]
         }
         method file-line(--> Str:D) {
-            $!cuid // self!cfn[2]
+            $!file-line // self!cfn[2]
         }
         method file(--> Str:D) {
             self.file-line.subst(/ ^ 'SETTING::'/).split(":").head
         }
-        method line(--> Str:D) {
-            self.file-line.subst(/ ^ 'SETTING::'/).split(":").tail
+        method line(--> Int:D) {
+            +self.file-line.subst(/ ^ 'SETTING::'/).split(":").tail
         }
         method name(--> Str:D) {
             $!name // self!cfn[0]

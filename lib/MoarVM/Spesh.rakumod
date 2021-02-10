@@ -95,7 +95,8 @@ class MoarVM::Spesh {
         has Str $!name;
 
         method !cfn() {
-            return ($!name, $!cuid, $!file-line) = ~$0, +$1, ~$2
+            return ($!name, $!cuid, $!file-line) =
+              ~$0, +$1, $2.Str.subst(/ ^ 'SETTING::'/)
               if .contains("' (cuid: ") && .match:
               / (<[ \w < > - ]>*) "' (cuid: " (\d+) ", file: " (<-[ ) ]>+)/
               for @.text;
@@ -110,10 +111,10 @@ class MoarVM::Spesh {
             $!file-line // self!cfn[2]
         }
         method file(--> Str:D) {
-            self.file-line.subst(/ ^ 'SETTING::'/).split(":").head
+            self.file-line.split(":").head
         }
         method line(--> Int:D) {
-            +self.file-line.subst(/ ^ 'SETTING::'/).split(":").tail
+            +self.file-line.split(":").tail
         }
         method name(--> Str:D) {
             $!name // self!cfn[0]
@@ -215,7 +216,7 @@ class MoarVM::Spesh {
 
         method !compilation-time(--> Int:D) {
             return .match(/:r <after 'compilation took ' > \d+ /).Int
-              if .starts-with('JIT was successful')
+              if .starts-with('JIT was ')
               for @.text;
             0
         }
@@ -430,11 +431,15 @@ class MoarVM::Spesh {
         self.bless(:@parts)
     }
 
-    method report() {
-        my @bails = self.bails.sort: -*.value;
+    method actions()         { self.parts.map: *.actions.Slip       }
+    method observations()    { self.actions.grep: Observation    }
+    method guardtrees()      { self.actions.grep: GuardTree      }
+    method certainties()     { self.actions.grep: Certainty      }
+    method specializations() { self.actions.grep: Specialization }
+
+    method report($head = 5) {
 
         my str @lines;
-
         @lines.push: "Spesh Log Report of Process #$*PID ({
             now.DateTime.truncated-to('second')
         })";
@@ -442,9 +447,35 @@ class MoarVM::Spesh {
 #        @lines.push: "Ran for { self.time / 1000000 } seconds";
         @lines.push: "";
 
-        @lines.push: "@bails.elems() ops prevented JITting of code";
+        sub add-specializations(@specializations, $not = "") {
+            @lines.push: "S{
+                "lowest $head s" if @specializations > $head;
+            }pecializations that did$not get JITted (times in us)";
+            @lines.push: "-" x 80;
+            @lines.push: 'specia | compil |  total | file:line (name)';
+            @lines.push: "-------|--------|--------|" ~ "-" x 54;
+            @lines.push: sprintf( '%6d | %6d | %6d | %s',
+              .time, .compilation-time, .total-time,
+              "{.file-line}{ " ({.name})" if .name }"
+            ) for @specializations.head($head);
+            @lines.push: "-" x 80;
+            @lines.push: "";
+        }
+
+        my @specializations = self.specializations;
+        add-specializations
+          @specializations.grep(!*.jitted).sort(-*.compilation-time),
+          " *NOT*";
+
+        add-specializations
+          @specializations.grep(*.jitted).sort(-*.compilation-time);
+
+        my @bails = self.bails.sort: -*.value;
+        @lines.push: @bails > $head
+          ?? "$head most occuring ops that prevented JITting of code"
+          !! "Ops that prevented JITting of code";
         @lines.push: "-" x 80;
-        @lines.push: sprintf("%4d: %s", .value, .key) for @bails;
+        @lines.push: sprintf("%4d: %s", .value, .key) for @bails.head($head);
         @lines.push: "-" x 80;
 
 #        @lines.push: .raku for self.cuids>>.text;

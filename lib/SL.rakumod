@@ -12,8 +12,8 @@
 use MoarVM::SL;
 
 if SL() -> $SL {
-    LEAVE $SL.exit;
-    say "\n$SL.report()";
+    say "\n$SL.report(%*ENV<SL_REPORT> // 5)";
+    $SL.exit;
 }
 
 # vim: expandtab shiftwidth=4

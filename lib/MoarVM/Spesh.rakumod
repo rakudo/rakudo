@@ -448,6 +448,8 @@ class MoarVM::Spesh {
         @lines.push: "";
 
         sub add-specializations(@specializations, $not = "") {
+            return if !@specializations;
+
             @lines.push: "S{
                 "lowest $head s" if @specializations > $head;
             }pecializations that did$not get JITted (times in us)";
@@ -470,13 +472,15 @@ class MoarVM::Spesh {
         add-specializations
           @specializations.grep(*.jitted).sort(-*.compilation-time);
 
-        my @bails = self.bails.sort: -*.value;
-        @lines.push: @bails > $head
-          ?? "$head most occuring ops that prevented JITting of code"
-          !! "Ops that prevented JITting of code";
-        @lines.push: "-" x 80;
-        @lines.push: sprintf("%4d: %s", .value, .key) for @bails.head($head);
-        @lines.push: "-" x 80;
+        if self.bails.sort: -*.value -> @bails {
+            @lines.push: @bails > $head
+              ?? "$head most occuring ops that prevented JITting of code"
+              !! "Ops that prevented JITting of code";
+            @lines.push: "-" x 80;
+            @lines.push: sprintf("%4d: %s", .value, .key)
+              for @bails.head($head);
+            @lines.push: "-" x 80;
+        }
 
 #        @lines.push: .raku for self.cuids>>.text;
 #        @lines.push: "-" x 80;

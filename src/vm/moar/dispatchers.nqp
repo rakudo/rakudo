@@ -1343,9 +1343,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped',
             }
         }
         else {
-            # Nowhere to defer to, so give back Nil.
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                    $capture, 0, Nil));
+            # This dispatcher is exhausted. However, there may be another one
+            # we can try (for example, in a wrapped method). Only do this if
+            # it's not lastcall. Failing that, give back Nil.
+            if $kind == 2 || !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $capture, 0, Nil));
+            }
         }
     });

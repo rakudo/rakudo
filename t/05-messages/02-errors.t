@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 47;
+plan 48;
 
 # https://github.com/Raku/old-issue-tracker/issues/6613
 
@@ -169,22 +169,44 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
     }
 
     group-of 3 => 'named params' => {
-        uhas ｢UInt :$x!｣,          '<UInt>', 'mentions subset name';
-        uhas ｢Int :$x! where 42｣,  '<Int where { ... }>',
+        uhas ｢UInt :$x!｣,          'UInt', 'mentions subset name';
+        uhas ｢Int :$x! where 42｣,  'Int where { ... }',
             'Type + where clauses shown sanely';
-        uhas ｢UInt :$x! where 42｣, '<UInt where { ... }>',
+        uhas ｢UInt :$x! where 42｣, 'UInt where { ... }',
             'subset + where clauses shown sanely';
     }
     group-of 3 => 'anon positional params' => {
         uhas ｢UInt $｣,          '<UInt>', 'mentions subset name';
-        uhas ｢Int $ where 42｣,  '<Int where { ... }>',
+        uhas ｢Int $ where 42｣,  'Int where { ... }',
             'where clauses shown sanely';
-        uhas ｢UInt $ where 42｣, '<UInt where { ... }>',
+        uhas ｢UInt $ where 42｣, 'UInt where { ... }',
             'subset + where clauses shown sanely';
     }
 
     uhas ｢$don't｣, ｢<don't>｣,
         'variable name does not get special quote treatment';
+}
+
+subtest ':bundling and negation/explicit arguments' => {
+    plan 6;
+
+    my $allows-bundling = q:to/EOF/;
+        my %*SUB-MAIN-OPTS = :bundling;
+        sub MAIN($pos, :$a, :$b, :$c) {}
+    EOF
+
+    is-run $allows-bundling, :err{.contains: 'combine bundling'}, :exitcode(1), :args<-abc=foo bar>,
+        'cannot combine bundling with explicit arguments';
+    is-run $allows-bundling, :err{.contains: 'combine bundling'}, :exitcode(1), :args<-abc='' bar>,
+        'cannot combine bundling with explicit arguments, even the empty string';
+    is-run $allows-bundling, :err{.contains: 'combine bundling'}, :exitcode(1), :args<-abc= bar>,
+        'cannot combine bundling with explicit arguments, even a nil argument';
+    is-run $allows-bundling, :exitcode(0), :args<-a=foo bar>,
+        'can pass explicit argument to a single option, even with bundling enabled';
+    is-run $allows-bundling, :err{.contains: 'combine bundling'}, :exitcode(1), :args<-/abc bar>,
+        'cannot combine bundling with negation';
+    is-run $allows-bundling, :exitcode(0), :args<-/a bar>,
+        'can negate single option, even with bundling enabled';
 }
 
 # https://github.com/Raku/old-issue-tracker/issues/5282

@@ -1,6 +1,5 @@
 # TODO:
 # * Command-line parsing
-#   * Allow both = and space before argument of double-dash args
 #   * Comma-separated list values
 #   * Allow exact Raku forms, quoted away from shell
 # * Fix remaining XXXX
@@ -44,7 +43,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
     }
 
     # Convert raw command line args into positional and named args for MAIN
-    sub default-args-to-capture($, @args is copy --> Capture:D) {
+    sub default-args-to-capture(&main, @args is copy --> Capture:D) {
         my $no-named-after = nqp::isfalse(%sub-main-opts<named-anywhere>);
         my $bundling = nqp::istrue(%sub-main-opts<bundling>);
 
@@ -78,6 +77,11 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
               !! coercer(a)
         }
 
+        my @script-options = &main.candidates.map(*.signature.params).flat.map( {
+            when .named && .type !~~ Bool { |.named_names } # Bools indicate flags, not options
+            default                       { Empty }
+        });
+
         while @args {
             my str $passed-value = @args.shift;
 
@@ -98,7 +102,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 my str $arg = $2.Str;
                 my $split  := nqp::split("=",$arg);
 
-                # explicit value
+                # explicit value (i.e., option) using =
                 if nqp::isgt_i(nqp::elems($split),1) {
                     my str $name = nqp::shift($split);
                     die "Can't combine bundling with explicit arguments" if $bundling && nqp::iseq_s($0.Str, '-') && $name.chars > 1;
@@ -107,7 +111,12 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                       !! thevalue(nqp::join("=",$split));
                 }
 
-                # implicit value
+                # explicit value (option) using whitespace
+                elsif $arg ∈ @script-options && !@args[0].starts-with('-'|':') {
+                    %named.push: $arg => @args.shift
+                }
+
+                # implicit value (flag)
                 else {
                     if $bundling && nqp::iseq_s($0.Str, '-') {
                         die "Can't combine bundling with explicit negation" if $1.chars && $arg.chars > 1;

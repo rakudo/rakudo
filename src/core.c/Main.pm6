@@ -113,7 +113,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
                 # explicit value (option) using whitespace
                 elsif $arg ∈ @script-options && !@args[0].starts-with('-'|':') {
-                    %named.push: $arg => @args.shift
+                    %named.push: $arg => thevalue(@args.shift)
                 }
 
                 # implicit value (flag)

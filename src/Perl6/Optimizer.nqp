@@ -2337,8 +2337,11 @@ class Perl6::Optimizer {
       elsif self.op_eq_core($metaop, '&METAOP_REVERSE') {
         return NQPMu unless nqp::istype($metaop[0], QAST::Var)
           && nqp::elems($op) == 3;
-        return QAST::Op.new(:op<call>, :name($metaop[0].name),
-                $op[2], $op[1]).annotate_self: 'METAOP_opt_result', 1;
+        my $opt_result := QAST::Op.new(:op<call>, :name($metaop[0].name),
+          $op[2], $op[1]).annotate_self: 'METAOP_opt_result', 1;
+        if $op.named { $opt_result.named($op.named) }
+        if $op.flat { $opt_result.flat($op.flat) }
+        return self.visit_op: $opt_result;
       }
       NQPMu
     }

@@ -495,12 +495,15 @@
 # primary purpose is to deal with multi dispatch vs. single dispatch and then
 # delegate on to the appropriate dispatcher.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
-    # Guard on the type and, if it's a routine, whether it is a dispatcher.
+    # Guard on the type and, if it's a routine, on the dispatchees. (We assume
+    # that the set of dispatchees shall not change, even over closure clones -
+    # this may not always be a good assumption - and so we guard on that. If
+    # it's not a dispatcher, we'll be guarding on a literal type object.)
     my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
     nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_callee);
     my $callee := nqp::captureposarg($capture, 0);
     if nqp::istype_nd($callee, Routine) {
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness',
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
             nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                 $track_callee, Routine, '@!dispatchees'));
         nqp::dispatch('boot-syscall', 'dispatcher-delegate',
@@ -864,6 +867,49 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
     });
 
 # Multi-dispatch dispatcher, used for both multi sub and multi method dispatch.
+# Assumes that we have already guarded on a literal code object (methods) or
+# ensured consistency of routine (subs where closure cloning may take place).
+# This does not do the heart of the dispatch itself, but rather determines if
+# we have a simple or complex proto, and thus whether we need to invoke the
+# proto at all. In the case of a complex proto, we use dispatch resumption to
+# continue with the dispatch.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
+    # Initial dispatch, only setting up resumption if we need to invoke the
+    # proto.
+    -> $capture {
+        my $callee := nqp::captureposarg($capture, 0);
+        my int $onlystar := nqp::getattr_i($callee, Routine, '$!onlystar');
+        if $onlystar {
+            # Don't need to invoke the proto itself, so just get on with the
+            # candidate dispatch.
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-core', $capture);
+        }
+        else {
+            # Set resume init args and run the proto.
+            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $capture);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture);
+        }
+    },
+    # Resumption means that we have reached the {*} in the proto and so now
+    # should go ahead and do the dispatch. Make sure we only do this if we
+    # are signalled to that it's a resume for an onlystar.
+    -> $capture {
+        my $track_kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_kind);
+        my int $kind := nqp::captureposarg_i($capture, 0);
+        if $kind == 5 {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-core',
+                nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args'));
+        }
+        elsif !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    $capture, 0, Nil));
+        }
+    });
+
+# The core of multi dispatch. Once we are here, either there was a simple
+# proto that we don't need to inovke, or we already did invoke the proto.
 # There are a number of cases that we need to deal with here.
 # 1. Everything about the dispatch is possible to express with guards, so we
 #    need do no more than add guards as needed and then delegate to raku-invoke
@@ -1146,7 +1192,7 @@ sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
     }
     0
 }
-nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi', -> $capture {
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core', -> $capture {
     # Obtain the candidate list, producing it if it doesn't already exist.
     my $target := nqp::captureposarg($capture, 0);
     my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
@@ -1170,24 +1216,17 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi', -> $capture {
 
     # See what we're left with after filtering. In the best case, it's only one
     # result.
-    my int $onlystar := nqp::getattr_i($target, Routine, '$!onlystar');
     if nqp::elems(@filtered_candidates) == 2 &&
             nqp::atpos_i($filtered_check_requirements, 0) == $REQUIRE_CHECK_NONE {
         # Simple case where we have a single group with a single filtered
         # candidate, which was chosen based on guardable properties and has
-        # no late-bound checks to do.
-        if $onlystar {
-            # Add this resolved target to the argument capture and delegate to
-            # raku-invoke to run it.
-            my $capture_delegate := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
-                @filtered_candidates[0]<sub>);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
-                $capture_delegate);
-        }
-        else {
-            nqp::die('non-onlystar case of multi dispatch NYI in new dispatcher');
-        }
+        # no late-bound checks to do. Add this resolved target to the argument
+        # capture and delegate to raku-invoke to run it.
+        my $capture_delegate := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
+            @filtered_candidates[0]<sub>);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+            $capture_delegate);
     }
     else {
         # We need to perform disambiguation per-dispatch, but we hopefully have

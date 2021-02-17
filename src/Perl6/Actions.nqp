@@ -5,6 +5,9 @@ use Perl6::Ops;
 use QRegex;
 use QAST;
 
+# XXX Remove this one we have completed migration to the new dispatcher
+my int $NEW_DISP := nqp::getenvhash()<RAKUDO_NEW_DISP> ?? 1 !! 0;
+
 my $wantwant := Mu;
 
 # block types
@@ -4098,7 +4101,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # If it's a proto but not an onlystar, need some variables for the
         # {*} implementation to use.
-        if $*MULTINESS eq 'proto' && !$<onlystar> {
+        if !$NEW_DISP && $*MULTINESS eq 'proto' && !$<onlystar> {
             $block[0].push(QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical'), :decl('var') ),
@@ -4831,27 +4834,35 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Add dispatching code.
-        $BLOCK.push(QAST::Op.new(
-            :op('invokewithcapture'),
-            QAST::Op.new(
-                :op('ifnull'),
+        if $NEW_DISP {
+            $BLOCK.push(QAST::Op.new(
+                :op('dispatch'),
+                QAST::SVal.new( :value('boot-resume') ),
+                QAST::IVal.new( :value(5) )));
+        }
+        else {
+            $BLOCK.push(QAST::Op.new(
+                :op('invokewithcapture'),
                 QAST::Op.new(
-                    :op('multicachefind'),
-                    QAST::Var.new(
-                        :name('$!dispatch_cache'), :scope('attribute'),
-                        QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                        QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
+                    :op('ifnull'),
+                    QAST::Op.new(
+                        :op('multicachefind'),
+                        QAST::Var.new(
+                            :name('$!dispatch_cache'), :scope('attribute'),
+                            QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                            QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
+                        ),
+                        QAST::Op.new( :op('usecapture') )
                     ),
-                    QAST::Op.new( :op('usecapture') )
+                    QAST::Op.new(
+                        :op('callmethod'), :name('find_best_dispatchee'),
+                        QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                        QAST::Op.new( :op('savecapture') )
+                    )
                 ),
-                QAST::Op.new(
-                    :op('callmethod'), :name('find_best_dispatchee'),
-                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                    QAST::Op.new( :op('savecapture') )
-                )
-            ),
-            QAST::Op.new( :op('usecapture') )
-        ));
+                QAST::Op.new( :op('usecapture') )
+            ));
+        }
         $BLOCK.node($/);
         $BLOCK.is_thunk(1);
         make $BLOCK;
@@ -6578,35 +6589,43 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method term:sym<onlystar>($/) {
-        my $dc_name := QAST::Node.unique('dispatch_cap');
-        my $stmts := QAST::Stmts.new(
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name($dc_name), :scope('local'), :decl('var') ),
-                QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical') )
-            ),
-            QAST::Op.new(
-                :op('invokewithcapture'),
+        if $NEW_DISP {
+            make QAST::Op.new(
+                :op('dispatch'),
+                QAST::SVal.new( :value('boot-resume') ),
+                QAST::IVal.new( :value(5) ));
+        }
+        else {
+            my $dc_name := QAST::Node.unique('dispatch_cap');
+            my $stmts := QAST::Stmts.new(
                 QAST::Op.new(
-                    :op('ifnull'),
-                    QAST::Op.new(
-                        :op('multicachefind'),
-                        QAST::Var.new(
-                            :name('$!dispatch_cache'), :scope('attribute'),
-                            QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                            QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
-                        ),
-                        QAST::Var.new( :name($dc_name), :scope('local') )
-                    ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('find_best_dispatchee'),
-                        QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                        QAST::Var.new( :name($dc_name), :scope('local') )
-                    )
+                    :op('bind'),
+                    QAST::Var.new( :name($dc_name), :scope('local'), :decl('var') ),
+                    QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical') )
                 ),
-                QAST::Var.new( :name($dc_name), :scope('local') )
-            ));
-        make QAST::Op.new( :op('locallifetime'), $stmts, $dc_name );
+                QAST::Op.new(
+                    :op('invokewithcapture'),
+                    QAST::Op.new(
+                        :op('ifnull'),
+                        QAST::Op.new(
+                            :op('multicachefind'),
+                            QAST::Var.new(
+                                :name('$!dispatch_cache'), :scope('attribute'),
+                                QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
+                                QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
+                            ),
+                            QAST::Var.new( :name($dc_name), :scope('local') )
+                        ),
+                        QAST::Op.new(
+                            :op('callmethod'), :name('find_best_dispatchee'),
+                            QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
+                            QAST::Var.new( :name($dc_name), :scope('local') )
+                        )
+                    ),
+                    QAST::Var.new( :name($dc_name), :scope('local') )
+                ));
+            make QAST::Op.new( :op('locallifetime'), $stmts, $dc_name );
+        }
     }
 
     method args($/) {

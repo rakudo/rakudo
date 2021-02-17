@@ -1598,16 +1598,14 @@ implementation detail and has no serviceable parts inside"
 
         method pull-one() is raw {
             my int $redo = 1;
-            my $value;
-            my $result;
-            if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
-                $result
-            }
-            elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
-                $value
-            }
-            else {
-                nqp::while(
+            nqp::if(
+              $!slipping && nqp::not_i(nqp::eqaddr((my $result := self.slip-one),IterationEnd)),
+              $result,
+              nqp::if(
+                nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
+                $value,
+                nqp::stmts(
+                  nqp::while(
                     $redo,
                     nqp::stmts(
                         $redo = 0,
@@ -1641,9 +1639,12 @@ implementation detail and has no serviceable parts inside"
                                     !! ($redo = 1)),
                             'REDO', $redo = 1,
                             'LAST', ($result := IterationEnd))),
-                    :nohandler);
-                $result
-            }
+                    :nohandler
+                  ),
+                  $result
+                )
+              )
+            )
         }
     }
     multi method coremap(\op, \obj, Bool :$deep) {

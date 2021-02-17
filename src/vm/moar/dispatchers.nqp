@@ -490,6 +490,28 @@
     });
 }
 
+# A standard call (such as `func($arg)`, `$obj($arg)`, etc.) It receives the
+# decontainerized callee as the first argument, followed by the arguments. Its
+# primary purpose is to deal with multi dispatch vs. single dispatch and then
+# delegate on to the appropriate dispatcher.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
+    # Guard on the type and, if it's a routine, whether it is a dispatcher.
+    my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_callee);
+    my $callee := nqp::captureposarg($capture, 0);
+    if nqp::istype_nd($callee, Routine) {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness',
+            nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track_callee, Routine, '@!dispatchees'));
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+            $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
+    }
+    else {
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture);
+    }
+
+});
+
 # A standard method call of the form $obj.meth($arg); also used for the
 # indirect form $obj."$name"($arg). It receives the decontainerized invocant,
 # the method name, and the the args (starting with the invocant including any

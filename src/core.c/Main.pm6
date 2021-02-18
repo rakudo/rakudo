@@ -77,11 +77,19 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
               !! coercer(a)
         }
 
-        my @script-options = &main.candidates.map(*.signature.params).flat.map( {
-            when .named && .type !~~ Bool { |.named_names } # Bools indicate flags, not options
-            default                       { Empty }
-        });
-
+        my %options-with-req-arg = Hash.new;
+        my %short-opts = Hash.new;
+        for &main.candidates {
+            for .signature.params -> $param {
+                if !$param.named { next }
+                for $param.named_names -> str $name {
+                    if nqp::iseq_i(nqp::chars($name), 1) { %short-opts.push($name => True) }
+                    my int $accepts-true = $param.type.ACCEPTS: True;
+                    for $param.constraint_list { $accepts-true++ if .ACCEPTS: True}
+                    if !$accepts-true { %options-with-req-arg.push($name => True) }
+                }
+            }
+        }
         while @args {
             my str $passed-value = @args.shift;
 
@@ -91,49 +99,61 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 last;
             }
 
-            # no longer accepting nameds
-            elsif $no-named-after && nqp::isgt_i(nqp::elems($positional),0) {
+            if ($no-named-after && nqp::isgt_i(nqp::elems($positional),0)) {
                 nqp::push($positional, thevalue($passed-value));
+                nqp::push($positional, thevalue($_)) for @args;
+                last;
             }
 
-            # named
-            elsif $passed-value
-              ~~ /^ ( '--' | '-' | ':' ) ('/'?) (<-[0..9\.]> .*) $/ {  # 'hlfix
-                my str $arg = $2.Str;
-                my $split  := nqp::split("=",$arg);
-
-                # explicit value (i.e., option) using =
-                if nqp::isgt_i(nqp::elems($split),1) {
-                    my str $name = nqp::shift($split);
-                    die "Can't combine bundling with explicit arguments" if $bundling && nqp::iseq_s($0.Str, '-') && $name.chars > 1;
-                    %named.push: $name => $1.chars
-                      ?? thevalue(nqp::join("=",$split)) but False
-                      !! thevalue(nqp::join("=",$split));
+            my str $optstring;
+            my int $negated   = 0;
+            my int $short-opt = 0;
+            # long option
+            if nqp::eqat($passed-value, '--', 0) {
+                if nqp::eqat($passed-value, '/', 2) {
+                    $optstring = nqp::substr($passed-value, 3);
+                    $negated = 1;
                 }
-
-                # explicit value (option) using whitespace
-                elsif $arg ∈ @script-options && !@args[0].starts-with('-'|':') {
-                    %named.push: $arg => thevalue(@args.shift)
-                }
-
-                # implicit value (flag)
-                else {
-                    if $bundling && nqp::iseq_s($0.Str, '-') {
-                        die "Can't combine bundling with explicit negation" if $1.chars && $arg.chars > 1;
-                        my @chars = nqp::split('',$arg);
-                        for @chars -> $char {
-                            %named.push: $char => !($1.chars);
-                        }
-                    }
-                    else {
-                        %named.push: $arg => !($1.chars);
-                    }
-                }
+                else { $optstring = nqp::substr($passed-value, 2) }
             }
-
+            # short option
+            elsif nqp::eqat($passed-value, '-', 0) || nqp::eqat($passed-value, ':', 0) {
+                $short-opt = 1;
+                if nqp::eqat($passed-value, '/', 1) {
+                    $optstring = nqp::substr($passed-value, 2);
+                    $negated = 1;
+                }
+                else { $optstring = nqp::substr($passed-value, 1) }
+            }
             # positional
             else {
                 nqp::push($positional, thevalue($passed-value));
+                next;
+            }
+
+            my $split  := nqp::split("=",$optstring);
+            $optstring = nqp::shift($split);
+            my str $arg = nqp::join('=', $split);
+            if nqp::existskey(%options-with-req-arg, $optstring) {
+                if !$arg { $arg = @args.shift // '' }
+                %named.push: $optstring => ($negated ?? thevalue($arg) but False !! thevalue($arg));
+            }
+
+            elsif $short-opt && $bundling {
+                my int $cursor = 1;
+                my str $short-opt = nqp::substr($optstring, 0, 1);
+                my str $next      = nqp::substr($optstring, 0, 1);
+                # TODO: simplify?
+                while ($next && nqp::existskey(%short-opts, $next)) {
+                    %named.push: $short-opt => True;
+                    $short-opt = nqp::substr($optstring, $cursor++, 1);
+                    $next      = nqp::substr($optstring, $cursor,   1);
+                }
+            }
+            else {
+
+                if !nqp::elems($split) { %named.push: $optstring => ($negated ?? False !! True) }
+                else { %named.push: $optstring => $negated ?? thevalue $arg but False !! thevalue $arg }
             }
         }
         Capture.new( list => $positional.List, hash => %named )
@@ -247,9 +267,11 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
 
                         }
                         elsif $type !=== Bool {
-                            $argument ~= "=<{
-                                $constraints || $type.^name
-                            }>";
+
+                            my int $accepts-true = $param.type.ACCEPTS: True;
+                            for $param.constraint_list { $accepts-true++ if .ACCEPTS: True}
+                            $argument ~= ($accepts-true ?? "[={$constraints || $type.^name}]"
+                                                        !! "=<{$constraints || $type.^name}>");
                             if Metamodel::EnumHOW.ACCEPTS($type.HOW) {
                                 my $options = $type.^enum_values.keys.sort.Str;
                                 $argument ~= $options.chars > 50
@@ -278,7 +300,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     $argument  = "[$argument]"     if $param.optional;
                     if $total-constraints
                     && $literals-as-constraint == $total-constraints {
-                        $argument .= trans(["'"] => [q|'"'"'|])
+                        $argument .= trans(["'"] => [q|'"'"'|]) # "hlfix
                             if $argument.contains("'");
                         $argument  = "'$argument'"
                             if $argument.contains(' ' | '"');

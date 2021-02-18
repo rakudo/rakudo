@@ -11,10 +11,6 @@ my class Seq is Cool does Iterable does Sequence {
     multi method new(Seq: Iterator:D $iter) {
         nqp::p6bindattrinvres(nqp::create(self),Seq,'$!iter',nqp::decont($iter))
     }
-    # Special handling for CachedIterators, setting the cache up immediately
-    multi method new(Seq: CachedIterator:D $iter) {
-        nqp::p6bindattrinvres(nqp::create(self),Seq,'$!list',$iter.cache)
-    }
     # This candidate exists purely for being able to EVAL a .raku
     # representation of a Seq of which the iterator has already been taken,
     multi method new(Seq:) { nqp::create(self) }

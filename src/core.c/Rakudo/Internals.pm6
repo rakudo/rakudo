@@ -1653,7 +1653,7 @@ implementation detail and has no serviceable parts inside"
           !! obj.list;
 
         my \result := CoreMap.new(op, iterable.iterator, $deep);
-        my \type := nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
+        my \type := nqp::istype(obj, List) ?? obj !! List; # keep subtypes of List
         my \buffer := nqp::create(IterationBuffer);
         result.push-all(buffer);
         my \retval := type.new;

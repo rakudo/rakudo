@@ -162,11 +162,6 @@ my class Any { # declared in BOOTSTRAP
     method permutations(|c) is nodal { self.list.permutations(|c) }
     method join($separator = '') is nodal { self.list.join($separator) }
 
-    # XXX GLR should move these
-    method nodemap(&block) is nodal { nodemap(&block, self) }
-    method duckmap(&block) is nodal { duckmap(&block, self) }
-    method deepmap(&block) is nodal { deepmap(&block, self) }
-
     # XXX GLR Do we need tree post-GLR?
     proto method tree(|) is nodal {*}
     multi method tree(Any:U:) { self }

@@ -763,6 +763,6 @@ my @expected = (
     Q{𝑒},
 );
 
-has-symbols CORE::, @expected, "Symbols in 6.d CORE::";
+has-symbols CORE::, @expected, "Symbols in 6.e CORE::";
 
 # vim: expandtab shiftwidth=4

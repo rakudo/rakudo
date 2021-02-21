@@ -12,8 +12,8 @@
 use MoarVM::SIL;
 
 if SIL() -> $SIL {
-    LEAVE $SIL.exit;
     say "\n$SIL.report()";
+    $SIL.exit;
 }
 
 # vim: expandtab shiftwidth=4

@@ -187,7 +187,10 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
         'variable name does not get special quote treatment';
 }
 
-subtest ':bundling and negation/explicit arguments' => {
+if $*DISTRO.is-win {
+    skip ｢is-run() routine doesn't quite work right on Windows｣;
+}
+else { subtest ':bundling and negation/explicit arguments'=> {
     plan 6;
 
     my $allows-bundling = q:to/EOF/;
@@ -207,7 +210,8 @@ subtest ':bundling and negation/explicit arguments' => {
         'cannot combine bundling with negation';
     is-run $allows-bundling, :exitcode(0), :args<-/a bar>,
         'can negate single option, even with bundling enabled';
-}
+}}
+
 
 # https://github.com/Raku/old-issue-tracker/issues/5282
 {

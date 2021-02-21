@@ -1,6 +1,8 @@
 use Test;
 use MoarVM::SIL;
 
+%*ENV<MVM_SPESH_BLOCKING> = 1;
+
 # running the tests after the code has run
 if SIL() -> $SIL {
     my @names =
@@ -17,12 +19,12 @@ if SIL() -> $SIL {
 # running the code
 else {
     my $key = "foo";
-    for ^1000000 {
+    for ^750 {
         my %a; %a{$key} = 42;
     }
 
     my %b = foo => 42, bar => 666;
-    for ^1000000 {
+    for ^750 {
         my $b = %b{$key};
     }
 }

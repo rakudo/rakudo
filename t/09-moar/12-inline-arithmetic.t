@@ -21,7 +21,7 @@ if SIL() -> $SIL {
 else {
     my $a = 42;
     my $b = 666;
-    for ^500 {
+    for ^1000 {
         my $c;
         $c := $a + $b;
         $c := $a - $b;

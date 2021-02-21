@@ -19,12 +19,12 @@ if SIL() -> $SIL {
 # running the code
 else {
     my $key = "foo";
-    for ^750 {
+    for ^1000 {
         my %a; %a{$key} = 42;
     }
 
     my %b = foo => 42, bar => 666;
-    for ^750 {
+    for ^1000 {
         my $b = %b{$key};
     }
 }

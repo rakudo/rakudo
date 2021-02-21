@@ -19,12 +19,12 @@ if SIL() -> $SIL {
 # running the code
 else {
     my $i = 3;
-    for ^750 {
+    for ^1000 {
         my @a; @a[$i] = 42;
     }
 
     my @b = ^10;
-    for ^750 {
+    for ^1000 {
         my $b = @b[$i];
     }
 }

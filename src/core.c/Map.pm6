@@ -198,9 +198,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
     }
-    method iterator(Map:D: --> Iterator:D) { Iterate.new(self) }
 
-    method list(Map:D: --> List:D) { self.List }
+    multi method iterator(Map:D: --> Iterator:D) { Iterate.new(self) }
+    multi method list(Map:D: --> List:D) { self.List }
 
     multi method pairs(Map:D: --> Seq:D) {
         Seq.new(self.iterator)

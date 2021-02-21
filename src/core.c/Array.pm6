@@ -171,7 +171,7 @@ my class Array { # declared in BOOTSTRAP
 
         method is-lazy() { $!todo.DEFINITE && $!todo.is-lazy }
     }
-    method iterator(Array:D: --> Iterator:D) {
+    multi method iterator(Array:D: --> Iterator:D) {
         nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
           ?? Todo.new(self)                      # something to iterate over
           !! nqp::isconcrete(nqp::getattr(self,List,'$!reified'))

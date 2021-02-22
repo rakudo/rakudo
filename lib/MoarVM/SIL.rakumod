@@ -23,6 +23,17 @@ class BB {
     has Str() $.name is built(:bind);
     has Int() $.id   is built(:bind);
     has Int() $.size is built(:bind);
+    has Bool  $.specialized is built(False);
+
+    method TWEAK() {
+        if $!name.starts-with('unspecialized') {
+            $!name        := $!name.substr(13);
+            $!specialized := False;
+        }
+        else {
+            $!specialized := True;
+        }
+    }
 
     method description() {
         $!name ?? "$!name BB($!id)" !! "BB($!id)"

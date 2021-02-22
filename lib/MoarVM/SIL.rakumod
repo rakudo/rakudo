@@ -24,10 +24,13 @@ class BB {
     has Int() $.id   is built(:bind);
     has Int() $.size is built(:bind);
     has Bool  $.specialized is built(False);
+    
+    my constant $prefix = 'unspeciaized ';
+    my constant $offset = $prefix.chars;
 
     method TWEAK() {
-        if $!name.starts-with('unspecialized') {
-            $!name        := $!name.substr(13);
+        if $!name.starts-with($prefix) {
+            $!name        := $!name.substr($offset);
             $!specialized := False;
         }
         else {

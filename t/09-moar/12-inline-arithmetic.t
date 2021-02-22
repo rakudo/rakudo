@@ -22,11 +22,16 @@ else {
     my $a = 42;
     my $b = 666;
     for ^1000 {
-        my $c;
-        $c := $a + $b;
-        $c := $a - $b;
-        $c := $a * $b;
-        $c := $a / $b;
+        my $c := $a + $b;
+    }
+    for ^1000 {
+        my $c := $a - $b;
+    }
+    for ^1000 {
+        my $c := $a * $b;
+    }
+    for ^1000 {
+        my $c := $a / $b;
     }
 }
 

@@ -22,14 +22,25 @@ else {
     my $a = "foo";
     my $b = "bar";
     for ^1000 {
-        my $c;
-        $c := $a eq $b;
-        $c := $a ne $b;
-        $c := $a gt $b;
-        $c := $a ge $b;
-        $c := $a lt $b;
-        $c := $a le $b;
-        $c := $a leg $b;
+        my $c := $a eq $b;
+    }
+    for ^1000 {
+        my $c := $a ne $b;
+    }
+    for ^1000 {
+        my $c := $a gt $b;
+    }
+    for ^1000 {
+        my $c := $a ge $b;
+    }
+    for ^1000 {
+        my $c := $a lt $b;
+    }
+    for ^1000 {
+        my $c := $a le $b;
+    }
+    for ^1000 {
+        my $c := $a leg $b;
     }
 }
 

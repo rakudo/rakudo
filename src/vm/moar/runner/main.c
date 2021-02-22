@@ -494,6 +494,9 @@ int main(int argc, char *argv[]) {
     free(exec_dir_path_temp);
 #ifndef STATIC_RAKUDO_HOME
     free(rakudo_home);
+#else
+    if (getenv("PERL6_HOME") || getenv("RAKUDO_HOME"))
+        free(rakudo_home);
 #endif
 #ifndef STATIC_NQP_HOME
     free(nqp_home);

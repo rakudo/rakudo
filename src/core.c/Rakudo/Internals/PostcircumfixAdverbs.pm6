@@ -476,49 +476,6 @@ augment class Rakudo::Internals {
     method ACCESS-SLICE-DISPATCH-CLASS(int $index) {
         nqp::atpos($access-slice-dispatch,$index)
     }
-
-    my constant $lazy-access-slice-dispatch = nqp::list(
-      Array::Slice::Access::lazy-none,
-      Array::Slice::Access::lazy-kv,
-      Array::Slice::Access::lazy-kv,                   # same
-      Array::Slice::Access::lazy-p,
-      Array::Slice::Access::lazy-p,                    # same
-      Array::Slice::Access::lazy-k,
-      Array::Slice::Access::lazy-k,                    # same
-      Array::Slice::Access::lazy-v,
-      Array::Slice::Access::lazy-exists,
-      Array::Slice::Access::lazy-exists-kv,
-      Array::Slice::Access::lazy-exists-kv,            # same
-      Array::Slice::Access::lazy-exists-p,
-      Array::Slice::Access::lazy-exists-p,             # same
-      Array::Slice::Access::lazy-exists-delete,
-      Array::Slice::Access::lazy-exists-delete-kv,
-      Array::Slice::Access::lazy-exists-delete-kv,     # same
-      Array::Slice::Access::lazy-exists-delete-p,
-      Array::Slice::Access::lazy-exists-delete-p,      # same
-      Array::Slice::Access::lazy-not-exists,
-      Array::Slice::Access::lazy-not-exists-kv,
-      Array::Slice::Access::lazy-not-exists-kv,        # same
-      Array::Slice::Access::lazy-not-exists-p,
-      Array::Slice::Access::lazy-not-exists-p,         # same
-      Array::Slice::Access::lazy-not-exists-delete,
-      Array::Slice::Access::lazy-not-exists-delete-kv,
-      Array::Slice::Access::lazy-not-exists-delete-kv, # same
-      Array::Slice::Access::lazy-not-exists-delete-p,
-      Array::Slice::Access::lazy-not-exists-delete-p,  # same
-      Array::Slice::Access::lazy-delete,
-      Array::Slice::Access::lazy-delete-kv,
-      Array::Slice::Access::lazy-delete-kv,            # same
-      Array::Slice::Access::lazy-delete-p,
-      Array::Slice::Access::lazy-delete-p,             # same
-      Array::Slice::Access::lazy-delete-k,
-      Array::Slice::Access::lazy-delete-k,             # same
-      Array::Slice::Access::lazy-delete-v
-    );
-
-    method LAZY-ACCESS-SLICE-DISPATCH-CLASS(int $index) {
-        nqp::atpos($lazy-access-slice-dispatch,$index)
-    }
 }
 
 # vim: expandtab shiftwidth=4

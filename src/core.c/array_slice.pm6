@@ -136,9 +136,8 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
     }
 
     # Do the correct processing for given dispatch index
-    (positions.is-lazy
-      ?? Rakudo::Internals.LAZY-ACCESS-SLICE-DISPATCH-CLASS($index)
-      !! Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS($index)
+    Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS(
+      $index
     ).new(SELF).slice(positions.iterator)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, \values) is raw {

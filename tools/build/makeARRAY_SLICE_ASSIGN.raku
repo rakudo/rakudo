@@ -25,6 +25,11 @@ my $filename = "src/core.c/Array/Slice.pm6";
 my @lines = $filename.IO.lines;
 $*OUT = $filename.IO.open(:w);
 
+# hash of lazy code seen, to avoid duplications in !accept-lazy method sources
+my %lazycode-seen;
+my constant $prefix = 'same as lazy ';
+my constant $offset = $prefix.chars;
+
 # for all the lines in the source that don't need special handling
 while @lines {
     my $line := @lines.shift;
@@ -62,22 +67,25 @@ CODE
         }
 CODE
 
-    ) -> $comment, $class, $code, $lazy-code {
+    ) -> $comment, $class, $code, $lazycode {
 
-        for False, True -> $lazy {
 
-            # don't need to do duped classes, handled in dispatch table indexing
-            next if $lazy && $lazy-code.starts-with("same as");
+        # make sure we have the right lazy code
+        if $lazycode.starts-with($prefix) {
+            $lazycode = %lazycode-seen{$lazycode.substr($offset)};
+        }
+        else {
+            %lazycode-seen{$comment} = $lazycode;
+        }
 
-            # set up template values
-            my %mapper =
-              comment   => ($lazy ?? "lazy, $comment" !! $comment),
-              class     => ($lazy ?? "lazy-$class" !! $class),
-              accept    => ($lazy ?? $lazy-code !! $code).chomp,
-              done      => ($lazy ?? '$!done || ' !! ''),
-              attribute => ($lazy ?? "    has int \$!done;\n" !! ""),
-              delete    => ($comment.contains('delete')
-                ?? Q:to/CODE/
+        # set up template values
+        my %mapper =
+          comment  => $comment,
+          class    => $class,
+          code     => $code.chomp,
+          lazycode => $lazycode.chomp,
+          delete    => ($comment.contains('delete')
+            ?? Q:to/CODE/
 
     # Helper method for deleting elements, making sure that the total number
     # of elements is fixed from *before* the first deletion, so that relative
@@ -103,9 +111,13 @@ my class Array::Slice::Assign::#class# is implementation-detail {
     has $!iterable; # Iterable to assign to
     has $!elems;    # Number of elements in iterable
     has $!values;   # Iterator producing values to assign
-#attribute#
+    has int $!done; # flag to indicate we're done
+
     method !accept(\pos --> Nil) {
-#accept#
+#code#
+    }
+    method !accept-lazy(\pos --> Nil) {
+#lazycode#
     }
 
     method !SET-SELF(\iterable, \values) {
@@ -133,14 +145,30 @@ my class Array::Slice::Assign::#class# is implementation-detail {
         # basically push the current result on a stack
         my int $mark = nqp::elems($!result);
 
-        nqp::until(
-          #done#nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
-          nqp::if(
-            nqp::istype(pos,Int),
-            self!accept(pos),
-            self!handle-nonInt(pos)
-          )
-        );
+        # Lazy iterators should halt as soon as a non-existing element is seen
+        if iterator.is-lazy {
+            nqp::until(
+              $!done
+                || nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(pos,Int),
+                self!accept-lazy(pos),
+                self!handle-nonInt-lazy(pos)
+              )
+            );
+        }
+
+        # Fast path for non-lazy iterators
+        else {
+            nqp::until(
+              nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(pos,Int),
+                self!accept(pos),
+                self!handle-nonInt(pos)
+              )
+            );
+        }
 
         # Take what was added and push it as a List
         if nqp::isgt_i(nqp::elems($!result),$mark) {
@@ -160,7 +188,7 @@ my class Array::Slice::Assign::#class# is implementation-detail {
         }
     }
 
-    # Handle anything non-integer in the generated positions
+    # Handle anything non-integer in the generated positions eagerly
     method !handle-nonInt(\pos) {
         nqp::istype(pos,Iterable)
           ?? nqp::iscont(pos)
@@ -177,16 +205,47 @@ my class Array::Slice::Assign::#class# is implementation-detail {
               !! self!accept(pos.Int)
     }
 
+    # Handle anything non-integer in the generated positions lazily
+    method !handle-nonInt-lazy(\pos) {
+        nqp::istype(pos,Iterable)
+          ?? nqp::iscont(pos)
+            ?? self!accept-lazy(pos.Int)
+            !! self!handle-iterator(pos.iterator)
+          !! nqp::istype(pos,Callable)
+            ?? nqp::istype((my \real := (pos)(self!elems)),Int)
+              ?? self!accept-lazy(real)
+              !! self!handle-nonInt-lazy(real)
+            !! nqp::istype(pos,Whatever)
+              ?? self!handle-iterator(
+                   Rakudo::Iterator.IntRange(0,nqp::sub_i(self!elems,1))
+                 )
+              !! self!accept-lazy(pos.Int)
+    }
+
     # The actual building of the result
     method assign-slice(\iterator) {
-        nqp::until(
-          #done#nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
-          nqp::if(
-            nqp::istype(pos,Int),
-            self!accept(pos),
-            self!handle-nonInt(pos)
-          )
-        );
+
+        if iterator.is-lazy {
+            nqp::until(
+              $!done
+                || nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(pos,Int),
+                self!accept-lazy(pos),
+                self!handle-nonInt-lazy(pos)
+              )
+            );
+        }
+        else {
+            nqp::until(
+              nqp::eqaddr((my \pos := iterator.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(pos,Int),
+                self!accept(pos),
+                self!handle-nonInt(pos)
+              )
+            );
+        }
 
         # Do the actual assignments until there's nothing to assign anymore
         my $lhs := $!lhs;
@@ -200,7 +259,6 @@ my class Array::Slice::Assign::#class# is implementation-detail {
     }
 }
 SOURCE
-        }
     }
 
     # we're done for this combination of adverbs

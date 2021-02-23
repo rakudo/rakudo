@@ -145,13 +145,9 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, \values) is raw {
     return postcircumfix:<[ ]>(SELF, positions.Int, values)
       if nqp::iscont(positions);
 
-    my \iterator := positions.iterator;
-    (iterator.is-lazy
-      ?? Array::Slice::Assign::lazy-none
-      !! Array::Slice::Assign::none
-    ).new(
+    Array::Slice::Assign::none.new(
       SELF, Rakudo::Iterator.TailWith(values.iterator, Nil)
-    ).assign-slice(iterator)
+    ).assign-slice(positions.iterator)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, :$BIND! is raw) is raw {
     # MMD is not behaving itself so we do this by hand.

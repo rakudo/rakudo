@@ -67,8 +67,7 @@ CODE
         }
 CODE
 
-    ) -> $comment, $class, $code, $lazycode {
-
+    ) -> $comment, $class, $code, $lazycode is copy {
 
         # make sure we have the right lazy code
         if $lazycode.starts-with($prefix) {

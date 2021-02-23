@@ -142,25 +142,19 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, \values) is raw {
     # MMD is not behaving itself so we do this by hand.
-    return postcircumfix:<[ ]>(SELF, positions.Int, values)
-      if nqp::iscont(positions);
-
-    Array::Slice::Assign::none.new(
-      SELF, Rakudo::Iterator.TailWith(values.iterator, Nil)
-    ).assign-slice(positions.iterator)
+    nqp::iscont(positions)
+      ?? postcircumfix:<[ ]>(SELF, positions.Int, values)
+      !! Array::Slice::Assign::none.new(
+           SELF, Rakudo::Iterator.TailWith(values.iterator, Nil)
+         ).assign-slice(positions.iterator)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, :$BIND! is raw) is raw {
     # MMD is not behaving itself so we do this by hand.
-    return postcircumfix:<[ ]>(SELF, positions.Int, :$BIND)
-      if nqp::iscont(positions);
-
-    my \iterator := positions.iterator;
-    (iterator.is-lazy
-      ?? Array::Slice::Bind::lazy-none
-      !! Array::Slice::Bind::none
-    ).new(
-      SELF, Rakudo::Iterator.TailWith($BIND.iterator, Nil)
-    ).bind-slice(iterator)
+    nqp::iscont(positions)
+      ?? postcircumfix:<[ ]>(SELF, positions.Int, :$BIND)
+      !! Array::Slice::Bind::none.new(
+           SELF, Rakudo::Iterator.TailWith($BIND.iterator, Nil)
+         ).bind-slice(positions.iterator)
 }
 
 # @a[->{}]

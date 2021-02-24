@@ -18,6 +18,8 @@ my role stop[$stop] {
 }
 
 role Raku::Common {
+    ## Quote parsing
+
     token opener {
         <[
         \x0028 \x003C \x005B \x007B \x00AB \x0F3A \x0F3C \x169B \x2018 \x201A \x201B
@@ -177,6 +179,61 @@ role Raku::Common {
     token RESTRICTED {
         [ <?{ $*RESTRICTED }> [ $ || <.security($*RESTRICTED)> ] ]?
         <!>
+    }
+
+    ## Error handling
+
+    method security($payload) {
+        self.typed_panic('X::SecurityPolicy::Eval', :$payload);
+    }
+    method malformed($what) {
+        self.typed_panic('X::Syntax::Malformed', :$what);
+    }
+    method missing($what) {
+        self.typed_panic('X::Syntax::Missing', :$what);
+    }
+    method missing_block($borg, $has_mystery) {
+        my $marked := self.MARKED('ws');
+        my $pos := $marked ?? $marked.from !! self.pos;
+
+        if $borg<block> {
+            self.'!clear_highwater'();
+            self.'!cursor_pos'($borg<block>.pos);
+            self.typed_sorry('X::Syntax::BlockGobbled', what => ($borg<name> // ''));
+            self.'!cursor_pos'($pos);
+            self.missing("block (apparently claimed by " ~ ($borg<name> ?? "'" ~ $borg<name> ~ "'" !! "expression") ~ ")");
+        } elsif $pos > 0 && nqp::eqat(self.orig(), '}', $pos - 1) {
+            self.missing("block (whitespace needed before curlies taken as a hash subscript?)");
+        } elsif $has_mystery {
+            self.missing("block (taken by some undeclared routine?)");
+        } else {
+            self.missing("block");
+        }
+    }
+    method NYI($feature) {
+        self.typed_panic('X::Comp::NYI', :$feature)
+    }
+
+    method panic(*@args) {
+        self.typed_panic('X::Comp::AdHoc', payload => nqp::join('', @args))
+    }
+    method sorry(*@args) {
+        self.typed_sorry('X::Comp::AdHoc', payload => nqp::join('', @args))
+    }
+    method worry(*@args) {
+        self.typed_worry('X::Comp::AdHoc', payload => nqp::join('', @args))
+    }
+
+    method typed_panic($type_str, *%opts) {
+        # TODO exception, format error, etc.
+        nqp::findmethod(HLL::Grammar, 'panic')(self, $type_str);
+    }
+    method typed_sorry($type_str, *%opts) {
+        # TODO collect these up to limit
+        self.typed_panic($type_str, |%opts)
+    }
+    method typed_worry($type_str, *%opts) {
+        # TODO collect these
     }
 }
 

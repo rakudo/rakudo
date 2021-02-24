@@ -1,3 +1,13 @@
+New in 2021.02.1:
+
+  + Fixes:
+    + Fix a regression of the 2021.02 release where a lazy iterable usage could suddenly
+      lead to a hang [5eeddd37][6d164158][7d6e4322]
+    + Fix calling `list` and `iterator` methods on `Map` and `Array` type objects [6b83135a]
+    + Fix a minor memory leak in Rakudo runner [18735ae9]
+  + Internal:
+    + Remove newly introduced, but unreliable inlining tests [a5ca53a8]
+
 New in 2021.02:
 
   + Additions:

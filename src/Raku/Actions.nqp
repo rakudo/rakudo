@@ -792,6 +792,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         make self.r('Contextualizer', $node-type).new($<coercee>.ast);
     }
 
+    method term:sym<reduce>($/) {
+        my $infix := $<op>.ast // self.r('Infix').new($<op><OPER><sym>);
+        make self.r('Term', 'Reduce').new(:$infix, :args($<args>.ast),
+            :triangle(?$<triangle>));
+    }
+
     ##
     ## Declarations
     ##

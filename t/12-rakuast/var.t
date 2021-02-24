@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 35;
+plan 36;
 
 my $ast;   # so we don't need to repeat the "my" all the time
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -283,6 +283,34 @@ subtest 'Lexical my|state variable declarations with bind initializer' => {
             dies-ok { result = 42 },
               "$type: $scope cannot assign as it is not a container";
         }
+    }
+}
+
+subtest 'Anonymous state variable declaration' => {
+    # -> { ++state $ }
+    ast RakuAST::PointyBlock.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::VarDeclaration::Anonymous.new(:sigil('$'), :scope('state'))
+              ),
+              infix => RakuAST::Infix.new('+'),
+              right => RakuAST::ApplyPrefix.new(
+                prefix => RakuAST::Prefix.new('++'),
+                operand => RakuAST::VarDeclaration::Anonymous.new(:sigil('$'), :scope('state'))
+              )
+            )
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, &result {
+        is-deeply result() ~ result() ~ result(), '246',
+            "$type: anonymous state variables works are are distinct";
     }
 }
 

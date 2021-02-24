@@ -1150,7 +1150,9 @@ class RakuAST::Deparse {
             nqp::push_s($parts,' ');
         }
 
-        nqp::push_s($parts,$ast.name);
+        nqp::push_s($parts,nqp::istype($ast, RakuAST::VarDeclaration::Anonymous)
+            ?? $ast.sigil
+            !! $ast.name);
         if $ast.initializer -> $initializer {
             nqp::push_s($parts,self.deparse($initializer));
         }

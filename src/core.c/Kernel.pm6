@@ -130,8 +130,8 @@ class Kernel does Systemic {
                       nqp::bindpos(arr, $i, Signal($i) // Nil),
                       $i = nqp::add_i($i, 1),
                     );
-                    @!signals       = |arr,
-                    $!signals-setup = True,
+                    @!signals       = |arr;
+                    $!signals-setup = True;
                 }
             }
         }

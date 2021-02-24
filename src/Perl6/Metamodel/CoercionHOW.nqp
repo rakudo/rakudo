@@ -105,13 +105,11 @@ class Perl6::Metamodel::CoercionHOW
         if $coercion_type =:= $checkee {
             return 1;
         }
-        my $rc := $!target_type.HOW.type_check($!target_type, $checkee);
-        $rc
+        $!target_type.HOW.type_check($!target_type, $checkee);
     }
 
     method accepts_type($coercion_type, $checkee) {
-        my $rc := nqp::istype($checkee, $!target_type) || nqp::istype($checkee, $!constraint_type);
-        $rc
+        nqp::istype($checkee, $!target_type) || nqp::istype($checkee, $!constraint_type);
     }
 
     # Coercion protocol method.

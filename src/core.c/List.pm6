@@ -717,6 +717,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         iterable.iterator.push-all(buffer);
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
+    multi method STORE(List:D: Mu \item, :INITIALIZE($)! --> List:D) {
+        self.STORE((item,), :INITIALIZE);
+    }
 
     multi method STORE(List:D: Iterable:D \iterable --> List:D) {
         # First pass -- scan lhs containers and pick out scalar versus list

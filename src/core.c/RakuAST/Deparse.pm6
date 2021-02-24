@@ -1047,6 +1047,11 @@ class RakuAST::Deparse {
         )
     }
 
+    multi method deparse(RakuAST::Term::Reduce:D $ast --> str) {
+        ($ast.triangle ?? '[\\' !! '[') ~ self.deparse($ast.infix) ~ ']' ~
+            $.parens-open ~ self.deparse($ast.args) ~ $.parens-close
+    }
+
     multi method deparse(RakuAST::Term::EmptySet:D $ast --> '∅') { }
 
     multi method deparse(RakuAST::Term::HyperWhatever:D $ast --> '**') { }

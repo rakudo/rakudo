@@ -21,7 +21,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     # other then *8 not supported yet
     my int $bpe = try {
 #?if jvm
-        # https://irclog.perlgeek.de/perl6-dev/2017-01-20#i_13961377
+        # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-01-20#l202
         CATCH { default { Nil } }
 #?endif
         (T.^nativesize / 8).Int

@@ -591,7 +591,7 @@ multi sub eval-lives-ok(Str $code, $reason = '') is export {
 # tests as well. So... for the foreseeable future we decided to leave it
 # as is. If a user really wants to ensure Seq comparison, there's always
 # `cmp-ok` with `eqv` op.
-# https://irclog.perlgeek.de/perl6-dev/2017-05-04#i_14532363
+# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-04#l100
 ######################################################################
 multi sub is-deeply(Seq:D $got, Seq:D $expected, $reason = '') is export {
     is-deeply $got.cache, $expected.cache, $reason;

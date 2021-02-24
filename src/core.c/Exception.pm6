@@ -2149,7 +2149,7 @@ my class X::Package::Stubbed does X::Comp {
 
     # The unnamed named param is here so this candidate, rather than
     # the one from X::Comp is used. (is it a bug that this is needed?
-    # No idea: https://irclog.perlgeek.de/perl6-dev/2017-09-14#i_15164569 )
+    # No idea: https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-09-14#l405
     multi method gist(::?CLASS:D: :$) {
         $.message;
     }

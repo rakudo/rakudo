@@ -728,9 +728,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             make $<contextualizer>.ast;
         }
         else {
+            my str $sigil := ~$<sigil>;
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
-            my str $name := $<sigil> ~ $twigil ~ $<desigilname>;
-            if $twigil eq '' {
+            my str $name := $sigil ~ $twigil ~ $<desigilname>;
+            if $name eq $sigil {
+                # Generate an anonymous state variable.
+                make self.r('VarDeclaration', 'Anonymous').new(:$sigil, :scope('state'));
+            }
+            elsif $twigil eq '' {
                 my $resolution := $*R.resolve-lexical($name);
                 if nqp::isconcrete($resolution) {
                     make $resolution.generate-lookup();
@@ -882,16 +887,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method variable_declarator($/) {
         my str $scope := $*SCOPE;
         my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
-        my str $name := $<sigil> ~ ($<twigil> || '') ~ $<desigilname>;
         my $initializer := $<initializer>
             ?? $<initializer>.ast
             !! self.r('Initializer');
-        my $decl := self.r('VarDeclaration', 'Simple').new:
-            :$scope, :$type, :$name, :$initializer;
-        if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
-            $*R.declare-lexical($decl);
+        if $<desigilname> {
+            my str $name := $<sigil> ~ ($<twigil> || '') ~ $<desigilname>;
+            my $decl := self.r('VarDeclaration', 'Simple').new:
+                :$scope, :$type, :$name, :$initializer;
+            if $scope eq 'my' || $scope eq 'state' || $scope eq 'our' {
+                $*R.declare-lexical($decl);
+            }
+            make $decl;
         }
-        make $decl;
+        else {
+            if $scope ne 'my' && $scope ne 'state' {
+                $/.panic("Cannot declare an anonymous {$scope}-scoped variable");
+            }
+            if $<twigil> {
+                $/.panic("Cannot declare an anonymous variable with a twigil");
+            }
+            make self.r('VarDeclaration', 'Anonymous').new:
+                :$scope, :$type, :sigil(~$<sigil>), :$initializer;
+        }
     }
 
     method routine_declarator:sym<sub>($/) {

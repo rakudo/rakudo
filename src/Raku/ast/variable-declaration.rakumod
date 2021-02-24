@@ -49,12 +49,16 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
                                       is RakuAST::Meta is RakuAST::Attaching {
     has RakuAST::Type $.type;
     has str $.name;
+    has str $!storage-name;
     has RakuAST::Initializer $.initializer;
     has RakuAST::Package $!attribute-package;
 
     method new(str :$name!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
                str :$scope) {
         my $obj := nqp::create(self);
+        if nqp::chars($name) < 2 {
+            nqp::die('Cannot use RakuAST::VarDeclaration::Simple to declare an anonymous varialbe; use RakuAST::VarDeclaration::Anonymous');
+        }
         nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name', $name);
         nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
         nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
@@ -398,6 +402,48 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         else {
             nqp::die("Cannot compile lookup of scope $scope")
         }
+    }
+}
+
+# An anonymous variable declaration, such as `my $ = 42`
+class RakuAST::VarDeclaration::Anonymous is RakuAST::VarDeclaration::Simple {
+    has str $.sigil;
+
+    method new(str :$sigil!, RakuAST::Type :$type, RakuAST::Initializer :$initializer,
+               str :$scope) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Simple, '$!name',
+            self.IMPL-GENERATE-NAME());
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Anonymous, '$!sigil', $sigil);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!type', $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Simple, '$!initializer',
+            $initializer // RakuAST::Initializer);
+        $obj
+    }
+
+    method IMPL-GENERATE-NAME() {
+        QAST::Node.unique('ANON_VAR')
+    }
+
+    method sigil() {
+        $!sigil
+    }
+
+    method twigil() {
+        ''
+    }
+
+    method desigilname() {
+        ''
+    }
+
+    method generate-lookup() {
+        nqp::die('Cannot generate lookup of an anonymous variable');
+    }
+
+    method allowed-scopes() {
+        self.IMPL-WRAP-LIST(['my', 'state'])
     }
 }
 

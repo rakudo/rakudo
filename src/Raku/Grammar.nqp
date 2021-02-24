@@ -1349,6 +1349,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <sigil> $<index>=[\d+]
         | <sigil> <?[<]> <postcircumfix>
         | <?before <.sigil> <.?[ ( [ { ]>> <!RESTRICTED> <contextualizer>
+        | {} <sigil> <!{ $*QSIGIL }> <?MARKER('baresigil')>   # try last, to allow sublanguages to redefine sigils (like & in regex)
         ]
         { $*LEFTSIGIL := nqp::substr(self.orig(), self.from, 1) unless $*LEFTSIGIL }
     }
@@ -1480,9 +1481,9 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token variable_declarator {
         :my $*IN_DECL := 'variable';
         [
-        | <sigil> <twigil>? <desigilname>
+        | <sigil> <twigil>? <desigilname>?
         | $<sigil>=['$'] $<desigilname>=[<[/_!¢]>]
-        # TODO error cases for when yoiu declare something you're not allowed to
+        # TODO error cases for when you declare something you're not allowed to
         ]
         {
             $*IN_DECL := '';

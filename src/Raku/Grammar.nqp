@@ -1305,6 +1305,33 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    regex term:sym<reduce> {
+        :my $*IN_REDUCE := 1;
+        :my $op;
+        <?before '['\S+']'>
+        <!before '['+ <.[ - + ? ~ ^ ]> <.[ \w $ @ ]> >  # disallow accidental prefix before termish thing
+
+        '['
+        [
+        || <op=.infixish('red')> <?[\]]>
+        || $<triangle>=[\\]<op=.infixish('tri')> <?[\]]>
+        || <!>
+        ]
+        ']'
+        { $op := $<op>; }
+
+        <.can_meta($op, "reduce with")>
+
+        [
+        || <!{ $op<OPER><O>.made<diffy> }>
+        || <?{ $op<OPER><O>.made<assoc> eq 'chain' }>
+        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "reduce with", operator => ~$op<OPER><sym>, dba => ~$op<OPER><O>.made<dba>, reason => 'diffy and not chaining' }
+        ]
+
+        { $*IN_REDUCE := 0 }
+        <args>
+    }
+
     ##
     ## Declarations
     ##

@@ -87,6 +87,12 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
         }
     }
 
+    method IMPL-IS-ONE-POS-ARG() {
+        nqp::elems($!args) == 1 &&
+            !nqp::istype($!args[0], RakuAST::NamedArg) &&
+            !self.IMPL-IS-FLATTENING($!args[0])
+    }
+
     method IMPL-IS-FLATTENING(RakuAST::Node $arg) {
         nqp::istype($arg, RakuAST::ApplyPrefix) &&
             nqp::istype($arg.prefix, RakuAST::Prefix) &&

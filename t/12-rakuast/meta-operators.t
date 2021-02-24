@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 2;
+plan 4;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -63,6 +63,35 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
       'DEPARSE: no short-circuit || evaluates to RHS when LHS false';
     is-deeply $update, 4,
       'DEPARSE: Really did evaluate RHS';
+}
+
+subtest 'Reduce meta-op on left associative operator' => {
+    # [+] 1, 2, 3
+    ast RakuAST::Term::Reduce.new(
+        infix => RakuAST::Infix.new('+'),
+        args => RakuAST::ArgList.new(
+            RakuAST::IntLiteral.new(1),
+            RakuAST::IntLiteral.new(2),
+            RakuAST::IntLiteral.new(3))
+    );
+
+    is-deeply EVAL($ast), 6, 'AST: evaluates to expected value';
+    is-deeply EVAL($ast.DEPARSE), 6, 'DEPARSE: evaluates to expected value';
+}
+
+subtest 'Triangle reduce meta-op on left associative operator' => {
+    # [\+] 1, 2, 3
+    ast RakuAST::Term::Reduce.new(
+        infix => RakuAST::Infix.new('+'),
+        args => RakuAST::ArgList.new(
+            RakuAST::IntLiteral.new(1),
+            RakuAST::IntLiteral.new(2),
+            RakuAST::IntLiteral.new(3)),
+        triangle => True
+    );
+
+    is-deeply EVAL($ast), (1, 3, 6), 'AST: evaluates to expected value';
+    is-deeply EVAL($ast.DEPARSE), (1, 3, 6), 'DEPARSE: evaluates to expected value';
 }
 
 # vim: expandtab shiftwidth=4

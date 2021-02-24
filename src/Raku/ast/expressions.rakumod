@@ -89,7 +89,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := self.resolution.lexical-name;
-        QAST::Var.new( :sopce('lexical'), :$name )
+        QAST::Var.new( :scope('lexical'), :$name )
     }
 
     method IMPL-CAN-INTERPRET() {

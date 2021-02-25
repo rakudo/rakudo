@@ -249,6 +249,35 @@ class RakuAST::Resolver {
             ':' ~ $k ~ '<' ~ $new ~ '>';
         }
     }
+
+    # Check if an identifier is a known type.
+    method is-identifier-type(Str $identifier) {
+        # Can optimize this later to avoid the throwaway name creation
+        self.is-name-type(RakuAST::Name.from-identifier($identifier))
+    }
+
+    # Check if a name is a known type.
+    method is-name-type(RakuAST::Name $name) {
+        my $constant := self.resolve-name($name);
+        if nqp::istype($constant, RakuAST::CompileTimeValue) {
+            # Name resolves, but is it an instance or a type object?
+            nqp::isconcrete($constant.compile-time-value) ?? False !! True
+        }
+        else {
+            # Name doesn't resolve to a constant at all, so can't be a type.
+            False
+        }
+    }
+
+    # Check if an identifier is known (declared) at all.
+    method is-identifier-known(Str $identifier) {
+        nqp::isconcrete(self.resolve-lexical($identifier)) ?? True !! False
+    }
+
+    # Check if a name is known (declared) at all.
+    method is-name-known(RakuAST::Name $name) {
+        nqp::isconcrete(self.resolve-name($name)) ?? True !! False
+    }
 }
 
 # The EVAL resolver is used when we are given an AST as a whole, and visit it
@@ -488,35 +517,6 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
 
         # Fall back to looking in outer scopes.
         self.resolve-lexical-constant-in-outer($name);
-    }
-
-    # Check if an identifier is a known type.
-    method is-identifier-type(Str $identifier) {
-        # Can optimize this later to avoid the throwaway name creation
-        self.is-name-type(RakuAST::Name.from-identifier($identifier))
-    }
-
-    # Check if a name is a known type.
-    method is-name-type(RakuAST::Name $name) {
-        my $constant := self.resolve-name($name);
-        if nqp::istype($constant, RakuAST::CompileTimeValue) {
-            # Name resolves, but is it an instance or a type object?
-            nqp::isconcrete($constant.compile-time-value) ?? False !! True
-        }
-        else {
-            # Name doesn't resolve to a constant at all, so can't be a type.
-            False
-        }
-    }
-
-    # Check if an identifier is known (declared) at all.
-    method is-identifier-known(Str $identifier) {
-        nqp::isconcrete(self.resolve-lexical($identifier)) ?? True !! False
-    }
-
-    # Check if a name is known (declared) at all.
-    method is-name-known(RakuAST::Name $name) {
-        nqp::isconcrete(self.resolve-name($name)) ?? True !! False
     }
 }
 

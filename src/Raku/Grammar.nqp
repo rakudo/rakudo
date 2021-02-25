@@ -1564,6 +1564,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     }
 
     proto rule trait_mod { <...> }
+    rule trait_mod:sym<is> {
+        <sym> [ <longname><circumfix>? || <.panic: 'Invalid name'> ]
+        {
+            if $<circumfix> && nqp::eqat(self.orig, '{', $<longname>.to) {
+                $*BORG<block> := $<circumfix>;
+                $*BORG<name> := 'is ' ~ $<longname>;
+            }
+        }
+    }
     rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }

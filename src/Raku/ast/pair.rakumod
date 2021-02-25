@@ -88,13 +88,12 @@ class RakuAST::ColonPair::True is RakuAST::ColonPair {
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
-            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('True')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair'))
         ])
     }
 
     method value() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[1]
+        RakuAST::Declaration::ResolvedConstant.new(compile-time-value => True)
     }
 
     method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -122,13 +121,12 @@ class RakuAST::ColonPair::False is RakuAST::ColonPair {
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair')),
-            RakuAST::Term::Name.new(RakuAST::Name.from-identifier('False')),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Pair'))
         ])
     }
 
     method value() {
-        self.IMPL-UNWRAP-LIST(self.get-implicit-lookups())[1]
+        RakuAST::Declaration::ResolvedConstant.new(compile-time-value => False),
     }
     
     method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {

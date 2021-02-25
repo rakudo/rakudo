@@ -420,6 +420,10 @@ class RakuAST::Declaration::ResolvedConstant is RakuAST::Declaration is RakuAST:
 
     method type() { $!compile-time-value.WHAT }
 
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-LOOKUP-QAST($context)
+    }
+
     method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
         my $value := $!compile-time-value;
         $context.ensure-sc($value);

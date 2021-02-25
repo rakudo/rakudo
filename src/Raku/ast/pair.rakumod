@@ -48,7 +48,7 @@ class RakuAST::FatArrow is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST:
 class RakuAST::ColonPair is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST::NamedArg {
     has Str $.key;
     
-    method value() { nqp::die(self.HOW.name(self) ~ ' does not implement key') }
+    method value() { nqp::die(self.HOW.name(self) ~ ' does not implement value') }
 
     method named-arg-name() { $!key }
 

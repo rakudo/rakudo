@@ -64,7 +64,7 @@ class RakuAST::Trait is RakuAST::ImplicitLookups {
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
         self.IMPL-WRAP-LIST([
-            RakuAST::Var::Lexical.new('&trait_mod:<' ~ self.IMPL-TRAIT-NAME() ~ '>')
+            RakuAST::Var::Lexical::Constant.new('&trait_mod:<' ~ self.IMPL-TRAIT-NAME() ~ '>')
         ])
     }
 
@@ -93,6 +93,53 @@ class RakuAST::Trait is RakuAST::ImplicitLookups {
             $target.IMPL-BEGIN-TIME-CALL(@lookups[0], $args, $resolver);
             self.mark-applied;
         }
+    }
+}
+
+# The is trait.
+class RakuAST::Trait::Is is RakuAST::Trait is RakuAST::BeginTime {
+    has RakuAST::Name $.name;
+    has RakuAST::Circumfix $.argument;
+    has RakuAST::Term::Name $!resolved-name;
+
+    method new(RakuAST::Name :$name!, RakuAST::Circumfix :$argument) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Trait::Is, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Trait::Is, '$!argument',
+            $argument // RakuAST::Circumfix);
+        $obj
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        # See if the name resolves as a type and commit to that.
+        my $resolution := $resolver.resolve-name-constant($!name);
+        if nqp::istype($resolution, RakuAST::CompileTimeValue) &&
+                !nqp::isconcrete($resolution.compile-time-value) {
+            my $resolved-name := RakuAST::Type::Simple.new($!name);
+            $resolved-name.set-resolution($resolution);
+            nqp::bindattr(self, RakuAST::Trait::Is, '$!resolved-name',
+                $resolved-name);
+        }
+        Nil
+    }
+
+    method IMPL-TRAIT-NAME() { 'is' }
+
+    method IMPL-TRAIT-ARGS(RakuAST::Resolver $resolver, RakuAST::Node $target) {
+        my @args := [$target];
+        if $!resolved-name {
+            @args.push($!resolved-name);
+        }
+        else {
+            @args.push(RakuAST::ColonPair::True.new(:key($!name.canonicalize())));
+        }
+        @args.push($!argument) if $!argument;
+        RakuAST::ArgList.new(|@args)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!name);
+        $visitor($!argument);
     }
 }
 

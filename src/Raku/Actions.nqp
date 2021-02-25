@@ -954,6 +954,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method trait_mod:sym<is>($/) {
+        my $ast-type := self.r('Trait', 'Is');
+        my $trait := $<circumfix>
+            ?? $ast-type.new(:name($<longname>.ast), :argument($<circumfix>.ast))
+            !! $ast-type.new(:name($<longname>.ast));
+        $trait.ensure-begin-performed($*R);
+        make $trait;
+    }
+
     method trait_mod:sym<hides>($/) {
         make self.r('Trait', 'Hides').new($<typename>.ast);
     }

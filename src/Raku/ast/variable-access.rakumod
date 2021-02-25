@@ -28,6 +28,18 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
     }
 }
 
+# A lexical variable lookup, but assumed to resolve to a compile time
+# value.
+class RakuAST::Var::Lexical::Constant is RakuAST::Var::Lexical {
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-lexical-constant(self.name);
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+}
+
 # A lexical looked up in the setting (used for when we really want the setting
 # version of a routine).
 class RakuAST::Var::Lexical::Setting is RakuAST::Var::Lexical is RakuAST::Lookup {

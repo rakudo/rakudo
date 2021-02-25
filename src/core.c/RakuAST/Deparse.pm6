@@ -1091,7 +1091,28 @@ class RakuAST::Deparse {
         ))
     }
 
-    multi method deparse(RakuAST::Trait:D $ast --> str) {
+    multi method deparse(RakuAST::Trait::Is:D $ast --> str) {
+        my str $base = $ast.IMPL-TRAIT-NAME ~ ' ' ~ self.deparse($ast.name);
+        with $ast.argument { $base ~ self.deparse($_) } else { $base }
+    }
+
+    multi method deparse(RakuAST::Trait::Hides:D $ast --> str) {
+        self!typish-trait($ast)
+    }
+
+    multi method deparse(RakuAST::Trait::Does:D $ast --> str) {
+        self!typish-trait($ast)
+    }
+
+    multi method deparse(RakuAST::Trait::Of:D $ast --> str) {
+        self!typish-trait($ast)
+    }
+
+    multi method deparse(RakuAST::Trait::Returns:D $ast --> str) {
+        self!typish-trait($ast)
+    }
+
+    method !typish-trait(RakuAST::Trait:D $ast --> str) {
         nqp::concat(
           $ast.IMPL-TRAIT-NAME,
           nqp::concat(

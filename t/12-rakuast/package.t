@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 10;
+plan 11;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -309,7 +309,7 @@ subtest 'class with accessor usage' => {
     }
 }
 
-subtest 'class with does trait gets correct name' => {
+subtest 'class with does trait really does the role' => {
     my role TestRole {
         method test-meth() { 'role meth' }
     }
@@ -335,6 +335,33 @@ subtest 'class with does trait gets correct name' => {
           "$type: Class with does trait does the role";
         is $class.test-meth, 'role meth',
           "$type: The role method can be called";
+    }
+}
+
+subtest 'class with is trait really inherits' => {
+    my class TestBase {
+        method test-meth() { 'base meth' }
+    }
+
+    ast RakuAST::Package.new(
+      scope => 'my',
+      package-declarator => 'class',
+      name => RakuAST::Name.from-identifier('TestChild'),
+      how => Metamodel::ClassHOW,
+      traits => [
+        RakuAST::Trait::Is.new(
+          name => RakuAST::Name.from-identifier('TestBase')
+        )
+      ]
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $class {
+        is $class.^name, 'TestChild',
+          "$type: Class with is trait gets correct name";
+        ok $class ~~ TestBase,
+          "$type: Class with is trait inherits the base class";
+        is $class.test-meth, 'base meth',
+          "$type: A base class method can be called";
     }
 }
 

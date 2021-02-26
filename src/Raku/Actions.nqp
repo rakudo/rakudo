@@ -315,12 +315,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     method statement_mod_cond:sym<unless>($/) {
         self.attach: $/, self.r('StatementModifier', 'Condition', 'Unless').new($<modifier_expr>.ast);
     }
+    method statement_mod_cond:sym<when>($/) {
+        self.attach: $/, self.r('StatementModifier', 'Condition', 'When').new($<modifier_expr>.ast);
+    }
+    method statement_mod_cond:sym<with>($/) {
+        self.attach: $/, self.r('StatementModifier', 'Condition', 'With').new($<modifier_expr>.ast);
+    }
+    method statement_mod_cond:sym<without>($/) {
+        self.attach: $/, self.r('StatementModifier', 'Condition', 'Without').new($<modifier_expr>.ast);
+    }
 
     method statement_mod_loop:sym<while>($/) {
         self.attach: $/, self.r('StatementModifier', 'Loop', 'While').new($<modifier_expr>.ast);
     }
     method statement_mod_loop:sym<until>($/) {
         self.attach: $/, self.r('StatementModifier', 'Loop', 'Until').new($<modifier_expr>.ast);
+    }
+    method statement_mod_loop:sym<given>($/) {
+        self.attach: $/, self.r('StatementModifier', 'Loop', 'Given').new($<modifier_expr>.ast);
     }
 
     ##

@@ -583,12 +583,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token modifier_expr($k) { <EXPR> || <.nomodexpr($k)> }
 
     proto rule statement_mod_cond { <...> }
-    rule statement_mod_cond:sym<if>     { <sym><.kok> <modifier_expr('if')> }
-    rule statement_mod_cond:sym<unless> { <sym><.kok> <modifier_expr('unless')> }
+    rule statement_mod_cond:sym<if>      { <sym><.kok> <modifier_expr('if')> }
+    rule statement_mod_cond:sym<unless>  { <sym><.kok> <modifier_expr('unless')> }
+    rule statement_mod_cond:sym<when>    { <sym><.kok> <modifier_expr('when')> }
+    rule statement_mod_cond:sym<with>    { <sym><.kok> <modifier_expr('with')> }
+    rule statement_mod_cond:sym<without> { <sym><.kok> <modifier_expr('without')> }
 
     proto rule statement_mod_loop { <...> }
     rule statement_mod_loop:sym<while> { <sym><.kok> <modifier_expr('while')> }
     rule statement_mod_loop:sym<until> { <sym><.kok> <modifier_expr('until')> }
+    rule statement_mod_loop:sym<given> { <sym><.kok> <modifier_expr('given')> }
 
     ##
     ## Statement prefixes

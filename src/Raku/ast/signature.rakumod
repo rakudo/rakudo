@@ -110,7 +110,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
 
 # A parameter within a signature. A parameter may result in binding or assignment
 # into a target; this is modeled by a RakuAST::ParameterTarget, which is optional.
-class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
+class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching is RakuAST::ImplicitLookups {
     has RakuAST::Type $.type;
     has int $!default-to-any;
     has RakuAST::ParameterTarget $.target;
@@ -201,6 +201,18 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
         $visitor($!target) if $!target;
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        my str $sigil := $!target.sigil;
+        my str $sigil-type;
+        if $sigil eq '@' { $sigil-type := 'Positional' }
+        elsif $sigil eq '%' { $sigil-type := 'Associative' }
+        elsif $sigil eq '&' { $sigil-type := 'Callable' }
+        else { $sigil-type := '' }
+        self.IMPL-WRAP-LIST($sigil-type
+            ?? [RakuAST::Type::Setting.new(RakuAST::Name.from-identifier($sigil-type))]
+            !! [])
+    }
+
     method PRODUCE-META-OBJECT() {
         my $parameter := nqp::create(Parameter);
         if $!target {
@@ -244,11 +256,19 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching {
     }
 
     method IMPL-NOMINAL-TYPE() {
-        if $!type {
-            $!type.resolution.compile-time-value
+        my str $sigil := $!target.sigil;
+        if $sigil eq '@' || $sigil eq '%' || $sigil eq '&' {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+            my $sigil-type := @lookups[0].resolution.compile-time-value;
+            $!type
+                ?? $sigil-type.HOW.parameterize($sigil-type,
+                        $!type.resolution.compile-time-value)
+                !! $sigil-type
         }
         else {
-            $!default-to-any ?? Any !! Mu
+            $!type
+                ?? $!type.resolution.compile-time-value
+                !! $!default-to-any ?? Any !! Mu
         }
     }
 

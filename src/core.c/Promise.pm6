@@ -155,14 +155,10 @@ my class Promise does Awaitable {
     method result(Promise:D:) {
         # One important missing optimization here is that if the promise is
         # not yet started, then the work can be done immediately by the
-        # thing that is blocking on it. (Note the while loop is there to cope
-        # with spurious wake-ups).
-        while $!status == Planned {
-            $!lock.protect({
-                # Re-check planned to avoid data race.
-                $!cond.wait() if $!status == Planned;
-            });
-        }
+        # thing that is blocking on it.
+        $!lock.protect: {
+            $!cond.wait: { $!status != Planned }
+        };
         if $!status == Kept {
             $!result
         }

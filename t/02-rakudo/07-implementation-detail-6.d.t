@@ -39,6 +39,16 @@ my @lower = ("",<<
   warn wordcase words
 >>).flat;
 
+my @lower-not-implemented = ();
+
+if $*VM.name eq 'jvm' {
+  @lower-not-implemented = <
+    atomic-fetch-inc atomic-dec-fetch atomic-fetch-sub atomic-fetch-add
+    atomic-add-fetch full-barrier atomic-fetch-dec atomic-inc-fetch
+    atomic-sub-fetch
+  >;
+}
+
 is-deeply
   non-implementation(CORE::, /^ "&" <[A..Z]> /) (^) @UPPER,
   set(),
@@ -51,11 +61,11 @@ is-deeply
 
 is-deeply
   non-implementation(CORE::, /^ "&" <[a..z]> /).grep({ !/ ':' / }) (^) @lower,
-  set(),
+  set(@lower-not-implemented),
   "were any global lowercase CORE:: subs added";
 
 is-deeply
-  non-implementation(SETTING::, /^ "&" <[a..z]> /).grep({ !/':'/ } )
+  non-implementation(SETTING::, /^ "&" <[a..z]> /).grep({ !/':'/ })
   (^) < await >,
   set(),
   "were any global lowercase SETTING:: subs added";

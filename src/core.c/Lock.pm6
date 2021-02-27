@@ -9,7 +9,9 @@ my class Lock {
         method new() {
             X::Lock::ConditionVariable::New.new.throw
         }
-        method wait() { nqp::condwait(self) }
+        proto method wait(|) {*}
+        multi method wait(--> Nil) { nqp::condwait(self) }
+        multi method wait(&predicate --> Nil) { nqp::condwait(self) until predicate; }
         method signal() { nqp::condsignalone(self) }
         method signal_all() { nqp::condsignalall(self) }
     }

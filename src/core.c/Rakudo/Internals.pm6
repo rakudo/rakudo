@@ -357,6 +357,8 @@ my class Rakudo::Internals {
         )
     }
 
+    method BUILTIN_ENCODINGS() { $encodings }
+
     # 1 if all elements of given type, otherwise 0
     method ALL_TYPE(\values,\type) {
         nqp::if(

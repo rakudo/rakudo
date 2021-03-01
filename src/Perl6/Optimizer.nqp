@@ -2296,7 +2296,7 @@ class Perl6::Optimizer {
             elsif $is-reverse {
               # We end up with two calls of the op if var is not definite.
               # This is by design:
-              # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
+              # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2018-01-12#l208
               $op.push:
               QAST::Op.new: :op<call>, :name($metaop[0][0].name),
                 $operand,
@@ -2308,7 +2308,7 @@ class Perl6::Optimizer {
             else {
               # We end up with two calls of the op if var is not definite.
               # This is by design:
-              # https://irclog.perlgeek.de/perl6-dev/2018-01-12#i_15681388
+              # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2018-01-12#l208
               $op.push:
               QAST::Op.new: :op<call>, :name($metaop[0].name),
                 QAST::Op.new(:op<if>,

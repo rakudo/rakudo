@@ -311,9 +311,11 @@ my class Rakudo::Internals {
       'utf-16be',        'utf16be',
       'utf16-be',        'utf16be',
       'utf-16-be',       'utf16be',
+#?if !moar
       # utf32
       'utf32',           'utf32',
       'utf-32',          'utf32',
+#?endif
       # ascii
       'ascii',           'ascii',
       # iso-8859-1 according to http://de.wikipedia.org/wiki/ISO-8859-1

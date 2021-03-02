@@ -66,7 +66,7 @@ subtest 'Assignment meta-op with short-circuit || evaluates to true LHS' => {
 }
 
 subtest 'Reduce meta-op on left associative operator' => {
-    # [+] 1, 2, 3
+    # [+](1, 2, 3)
     ast RakuAST::Term::Reduce.new(
         infix => RakuAST::Infix.new('+'),
         args => RakuAST::ArgList.new(
@@ -80,7 +80,7 @@ subtest 'Reduce meta-op on left associative operator' => {
 }
 
 subtest 'Triangle reduce meta-op on left associative operator' => {
-    # [\+] 1, 2, 3
+    # [\+](1, 2, 3)
     ast RakuAST::Term::Reduce.new(
         infix => RakuAST::Infix.new('+'),
         args => RakuAST::ArgList.new(

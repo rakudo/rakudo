@@ -73,18 +73,6 @@ class RakuAST::Deparse {
         die "You cannot deparse a $ast.^name type object";
     }
 
-    method indent(--> str) {
-        $!indent-spaces = nqp::concat($!indent-spaces,$!indent-with)
-    }
-
-    method dedent(--> str) {
-        $!indent-spaces = nqp::substr(
-          $!indent-spaces,
-          0,
-          nqp::chars($!indent-spaces) - nqp::chars($!indent-with)
-        )
-    }
-
     # helper method for deparsing contextualizers, sadly no private multis yet
     proto method context-target(|) is implementation-detail {*}
     multi method context-target(RakuAST::StatementSequence $target --> str) {
@@ -98,6 +86,18 @@ class RakuAST::Deparse {
 
 #--------------------------------------------------------------------------------
 # Private helper methods
+
+    method !indent(--> str) {
+        $!indent-spaces = nqp::concat($!indent-spaces,$!indent-with)
+    }
+
+    method !dedent(--> str) {
+        $!indent-spaces = nqp::substr(
+          $!indent-spaces,
+          0,
+          nqp::chars($!indent-spaces) - nqp::chars($!indent-with)
+        )
+    }
 
     method !routine(RakuAST::Routine:D $ast --> str) {
         my $parts := nqp::list_s;
@@ -300,10 +300,10 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Blockoid:D $ast --> str) {
         my $parts := nqp::list_s($.block-open);
 
-        self.indent;
+        self!indent;
         nqp::push_s($parts,self.deparse($ast.statement-list));
 
-        nqp::push_s($parts,self.dedent);
+        nqp::push_s($parts,self!dedent);
         nqp::push_s($parts,$.block-close);
 
         nqp::join('',$parts)

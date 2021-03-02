@@ -80,9 +80,7 @@ class RakuAST::Deparse {
     # helper method for deparsing contextualizers, sadly no private multis yet
     proto method context-target(|) is implementation-detail {*}
     multi method context-target(RakuAST::StatementSequence $target --> str) {
-        nqp::concat($!parens-open,
-          nqp::concat(self.deparse($target),$!parens-close)
-        )
+        self!parenthesize(self.deparse($target))
     }
     multi method context-target($target --> str) {
         self.deparse($target)
@@ -111,9 +109,7 @@ class RakuAST::Deparse {
             nqp::push_s($parts,self.deparse($name));
         }
 
-        nqp::push_s($parts,$.parens-open);
-        nqp::push_s($parts,self.deparse($ast.signature));
-        nqp::push_s($parts,$.parens-close);
+        nqp::push_s($parts,self!parenthesize(self.deparse($ast.signature)));
 
         if $ast.traits -> @traits {
             for @traits -> $trait {
@@ -318,42 +314,35 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Call::Method:D $ast --> str) {
-        nqp::concat(self.deparse($ast.name),
-          nqp::concat($.parens-open,
-            nqp::concat(self.deparse($ast.args),$.parens-close)
-          )
+        nqp::concat(
+          self.deparse($ast.name),
+          self!parenthesize(self.deparse($ast.args))
         )
     }
 
     multi method deparse(RakuAST::Call::QuotedMethod:D $ast --> str) {
-        nqp::concat(self.deparse($ast.name),
-          nqp::concat($.parens-open,
-            nqp::concat(self.deparse($ast.args),$.parens-close)
-          )
+        nqp::concat(
+          self.deparse($ast.name),
+          self!parenthesize(self.deparse($ast.args))
         )
     }
 
     multi method deparse(RakuAST::Call::MetaMethod:D $ast --> str) {
         nqp::concat(
           nqp::concat('^', $ast.name),
-          nqp::concat($.parens-open,
-            nqp::concat(self.deparse($ast.args),$.parens-close)
-          )
+          self!parenthesize(self.deparse($ast.args))
         )
     }
 
     multi method deparse(RakuAST::Call::Name:D $ast --> str) {
-        nqp::concat(self.deparse($ast.name),
-          nqp::concat($.parens-open,
-            nqp::concat(self.deparse($ast.args),$.parens-close)
-          )
+        nqp::concat(
+          self.deparse($ast.name),
+          self!parenthesize(self.deparse($ast.args))
         )
     }
 
     multi method deparse(RakuAST::Call::Term:D $ast --> str) {
-        nqp::concat($.parens-open,
-          nqp::concat(self.deparse($ast.args),$.parens-close)
-        )
+        self!parenthesize(self.deparse($ast.args))
     }
 
     multi method deparse(RakuAST::Circumfix::ArrayComposer:D $ast --> str) {
@@ -382,13 +371,7 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::Circumfix::Parentheses:D $ast --> str) {
         (my $semilist := $ast.semilist)
-          ?? nqp::concat(
-               $.parens-open,
-               nqp::concat(
-                 self.deparse($ast.semilist),
-                 $.parens-close
-               )
-             )
+          ?? self!parenthesize(self.deparse($semilist))
           !! '()'
     }
 
@@ -1077,10 +1060,9 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Capture:D $ast --> str) {
-        nqp::concat('\\',
-          nqp::concat($.parens-open,
-            nqp::concat(self.deparse($ast.source),$.parens-close)
-          )
+        nqp::concat(
+          '\\',
+          self!parenthesize(self.deparse($ast.source))
         )
     }
 
@@ -1097,7 +1079,7 @@ class RakuAST::Deparse {
     multi method deparse(RakuAST::Term::Rand:D $ast --> 'rand') { }
 
     multi method deparse(RakuAST::Term::Reduce:D $ast --> str) {
-        nqp::concat($ast.triangle ?? $.reduce-triangle !! $.reduce-open,
+        nqp::concat(($ast.triangle ?? $.reduce-triangle !! $.reduce-open),
           nqp::concat(self.deparse($ast.infix),
             nqp::concat(
               $.reduce-close,

@@ -860,6 +860,20 @@ class RakuAST::Deparse {
         self.deparse($ast.expression)
     }
 
+    multi method deparse(RakuAST::Statement::For:D $ast --> str) {
+        my $parts := nqp::list_s(
+          'for',
+          self.deparse($ast.source),
+          self.deparse($ast.body)
+        );
+
+        if $ast.mode -> str $mode {
+            nqp::unshift($parts,$mode) if $mode ne 'serial';
+        }
+
+        nqp::join(' ',$parts)
+    }
+
     multi method deparse(RakuAST::Statement::Given:D $ast --> str) {
         nqp::join(' ',nqp::list_s(
           'given',
@@ -1139,20 +1153,6 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Var::Compiler::File:D $ast --> '$?FILE') { }
-
-    multi method deparse(RakuAST::Statement::For:D $ast --> str) {
-        my $parts := nqp::list_s(
-          'for',
-          self.deparse($ast.source),
-          self.deparse($ast.body)
-        );
-
-        if $ast.mode -> str $mode {
-            nqp::unshift($parts,$mode) if $mode ne 'serial';
-        }
-
-        nqp::join(' ',$parts)
-    }
 
     multi method deparse(RakuAST::Var::Compiler::Line:D $ast --> '$?LINE') { }
 

@@ -17,7 +17,7 @@ class RakuAST::Deparse {
     has str $.square-close = ']';
 
     has str $.reduce-open     = '[';
-    has str $.reduce-triangle = '\\[';
+    has str $.reduce-triangle = '[\\';
     has str $.reduce-close    = ']';
 
     has str $.bracket-open  = '{';
@@ -222,7 +222,7 @@ class RakuAST::Deparse {
     }
 
     method !parenthesize(str $inside --> str) {
-        nqp::concat($.parens-open,nqp::concat($inside,$.parens.close))
+        nqp::concat($.parens-open,nqp::concat($inside,$.parens-close))
     }
 
 #--------------------------------------------------------------------------------

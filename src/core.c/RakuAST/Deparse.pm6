@@ -16,6 +16,10 @@ class RakuAST::Deparse {
     has str $.square-open  = '[';
     has str $.square-close = ']';
 
+    has str $.reduce-open     = '[';
+    has str $.reduce-triangle = '\\[';
+    has str $.reduce-close    = ']';
+
     has str $.bracket-open  = '{';
     has str $.bracket-close = '}';
 
@@ -215,6 +219,10 @@ class RakuAST::Deparse {
 
     method !quantifier(RakuAST::Regex::Quantifier:D $ast, str $quantifier --> str) {
         nqp::concat($quantifier,self.deparse($ast.backtrack))
+    }
+
+    method !parenthesize(str $inside --> str) {
+        nqp::concat($.parens-open,nqp::concat($inside,$.parens.close))
     }
 
 #--------------------------------------------------------------------------------
@@ -1076,13 +1084,6 @@ class RakuAST::Deparse {
         )
     }
 
-    multi method deparse(RakuAST::Term::Reduce:D $ast --> str) {
-        ($ast.triangle ?? '[\\' !! '[') ~ self.deparse($ast.infix) ~ ']' ~
-            $.parens-open ~ self.deparse($ast.args) ~ $.parens-close
-    }
-
-    multi method deparse(RakuAST::Term::EmptySet:D $ast --> '∅') { }
-
     multi method deparse(RakuAST::Term::HyperWhatever:D $ast --> '**') { }
 
     multi method deparse(RakuAST::Term::Name:D $ast --> str) {
@@ -1094,6 +1095,19 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Rand:D $ast --> 'rand') { }
+
+    multi method deparse(RakuAST::Term::Reduce:D $ast --> str) {
+        nqp::concat($ast.triangle ?? $.reduce-triangle !! $.reduce-open,
+          nqp::concat(self.deparse($ast.infix),
+            nqp::concat(
+              $.reduce-close,
+              self!parenthesize(self.deparse($ast.args))
+            )
+          )
+        )
+    }
+
+    multi method deparse(RakuAST::Term::EmptySet:D $ast --> '∅') { }
 
     multi method deparse(RakuAST::Term::Self:D $ast --> 'self') { }
 

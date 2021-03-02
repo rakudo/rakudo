@@ -85,6 +85,17 @@ class RakuAST::Deparse {
         )
     }
 
+    # helper method for deparsing contextualizers, sadly no private multis yet
+    proto method context-target(|) is implementation-detail {*}
+    multi method context-target(RakuAST::StatementSequence $target --> str) {
+        nqp::concat($!parens-open,
+          nqp::concat(self.deparse($target),$!parens-close)
+        )
+    }
+    multi method context-target($target --> str) {
+        self.deparse($target)
+    }
+
 #--------------------------------------------------------------------------------
 # Private helper methods
 
@@ -416,6 +427,10 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::CompUnit:D $ast --> str) {
         self.deparse($ast.statement-list)
+    }
+
+    multi method deparse(RakuAST::Contextualizer $ast --> str) {
+        nqp::concat($ast.sigil,self.context-target($ast.target))
     }
 
     multi method deparse(RakuAST::Declaration:D $ast --> str) {
@@ -1073,13 +1088,6 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::Term::Whatever:D $ast --> '*') { }
-
-    multi method deparse(RakuAST::Contextualizer $contextualizer --> str) {
-        $contextualizer.sigil ~ do given $contextualizer.target {
-            when RakuAST::StatementSequence { $!parens-open ~ self.deparse($_) ~ $!parens-close }
-            default { self.deparse($_) }
-        }
-    }
 
     multi method deparse(RakuAST::Ternary:D $ast --> str) {
         nqp::join('',nqp::list_s(

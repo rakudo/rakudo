@@ -291,8 +291,8 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     proto method decode(|) {*}
     multi method decode(Blob:D: $encoding = self.encoding // "utf-8") {
-        if Rakudo::Internals.BUILTIN_ENCODINGS{$encoding} {
-            nqp::p6box_s(nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
+        with Rakudo::Internals.NORMALIZE_ENCODING($encoding) {
+            nqp::p6box_s(nqp::decode(self, $_))
         }
         else { my $decoder = CORE::Encoding::Registry.find($encoding).decoder;
                $decoder.add-bytes(self);
@@ -300,9 +300,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?if !jvm
     multi method decode(Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False) {
-        if Rakudo::Internals.BUILTIN_ENCODINGS{$encoding} {
+        with Rakudo::Internals.NORMALIZE_ENCODING($encoding) {
             nqp::p6box_s( nqp::decoderepconf(self,
-                            Rakudo::Internals.NORMALIZE_ENCODING($encoding),
+                            $_,
                             $replacement.defined ?? $replacement !! nqp::null_s(),
                             $strict ?? 0 !! 1))
        }
@@ -311,9 +311,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
               $decoder.consume-all-chars }
     }
     multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
-        if Rakudo::Internals.BUILTIN_ENCODINGS{$encoding} {
+        with Rakudo::Internals.NORMALIZE_ENCODING($encoding) {
             nqp::p6box_s( nqp::decodeconf(self,
-                            Rakudo::Internals.NORMALIZE_ENCODING($encoding),
+                            $_,
                             $strict ?? 0 !! 1))
         }
         else { my $decoder = CORE::Encoding::Registry.find($encoding).decoder(:$strict);

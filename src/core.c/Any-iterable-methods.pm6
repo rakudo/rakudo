@@ -2041,6 +2041,135 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method rotor(Any:D: +@cycle, :$partial) {
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
+
+    proto method nodemap(|) is nodal {*}
+    multi method nodemap(Associative:D: &op) {
+        self.new.STORE: self.keys, self.values.nodemap(&op)
+    }
+    multi method nodemap(&op) {
+        my \iterator := self.iterator;
+        return Failure.new(X::Cannot::Lazy.new(:action<nodemap>))
+          if iterator.is-lazy;
+
+        my \buffer   := nqp::create(IterationBuffer);
+        my $value    := iterator.pull-one;
+
+        nqp::until(
+          nqp::eqaddr($value,IterationEnd),
+          nqp::stmts(
+            (my int $redo = 1),
+            nqp::while(
+              $redo,
+              nqp::stmts(
+                $redo = 0,
+                nqp::handle(
+                  nqp::push(buffer,op($value)),
+                  'REDO', ($redo = 1),
+                  'LAST', ($value := IterationEnd),
+                ) 
+              ),
+              :nohandler
+            ),
+            ($value := iterator.pull-one)
+          ) 
+        );
+        buffer.List
+    }   
+
+    proto method deepmap(|) is nodal {*}
+    multi method deepmap(Associative:D: &op) {
+        self.new.STORE: self.keys, self.values.deepmap(&op)
+    }
+    multi method deepmap(&op) {
+        my \iterator := self.iterator;
+        my \buffer   := nqp::create(IterationBuffer);
+        my $value    := iterator.pull-one;
+
+        nqp::until(
+          nqp::eqaddr($value,IterationEnd),
+          nqp::stmts(
+            (my int $redo = 1),
+            nqp::while(
+              $redo,
+              nqp::stmts(
+                $redo = 0,
+                nqp::handle(
+                  nqp::stmts(
+                    (my $result := nqp::if(
+                      nqp::istype($value,Iterable) && $value.DEFINITE,
+                      $value.deepmap(&op),
+                      op($value)
+                    )),
+                    nqp::if(
+                      nqp::istype($result,Slip),
+                      $result.iterator.push-all(buffer),
+                      nqp::push(buffer,$result)
+                    ),
+                  ),
+                  'REDO', ($redo = 1),
+                  'LAST', ($value := IterationEnd),
+                ) 
+              ),
+              :nohandler
+            ),
+            ($value := iterator.pull-one)
+          ) 
+        );
+        nqp::p6bindattrinvres(
+          nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
+          List,'$!reified',buffer
+        ) 
+    }   
+
+    proto method duckmap(|) is nodal {*}
+    multi method duckmap(Associative:D: &op) {
+        self.new.STORE: self.keys, self.values.duckmap(&op)
+    }
+    multi method duckmap(&op) {
+        my \iterator := self.iterator;
+        my \buffer   := nqp::create(IterationBuffer);
+        my $value    := iterator.pull-one;
+
+        sub duck(\arg) {
+            CATCH {
+                return nqp::istype(arg,Iterable:D)
+                  ?? arg.duckmap(&op)
+                  !! arg
+            }
+            op(arg)
+        }
+
+        nqp::until(
+          nqp::eqaddr($value,IterationEnd),
+          nqp::stmts(
+            (my int $redo = 1),
+            nqp::while(
+              $redo,
+              nqp::stmts(
+                $redo = 0,
+                nqp::handle(
+                  nqp::stmts(
+                    (my $result := duck($value)),
+                    nqp::if(
+                      nqp::istype($result,Slip),
+                      $result.iterator.push-all(buffer),
+                      nqp::push(buffer,$result)
+                    ),
+                  ),
+                  'REDO', ($redo = 1),
+                  'LAST', ($value := IterationEnd),
+                ) 
+              ),
+              :nohandler
+            ),
+            ($value := iterator.pull-one)
+          ) 
+        );
+        nqp::p6bindattrinvres(
+          nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
+          List,'$!reified',buffer
+        ) 
+    }   
 }
 
 BEGIN Attribute.^compose;
@@ -2133,5 +2262,14 @@ multi sub sort(&by, @values) { @values.sort(&by) }
 multi sub sort(&by, +values) { values.sort(&by) }
 multi sub sort(@values)      { @values.sort }
 multi sub sort(+values)      { values.sort }
+
+proto sub nodemap($, $, *%) {*}
+multi sub nodemap(&op, \obj) { obj.nodemap(&op) }
+
+proto sub deepmap($, $, *%) {*}
+multi sub deepmap(&op, \obj) { obj.deepmap(&op) }
+
+proto sub duckmap($, $, *%) {*}
+multi sub duckmap(&op, \obj) { obj.duckmap(&op) }
 
 # vim: expandtab shiftwidth=4

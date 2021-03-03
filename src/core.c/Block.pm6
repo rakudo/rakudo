@@ -5,7 +5,7 @@ my class Block { # declared in BOOTSTRAP
     #     has Mu $!why;
 
     proto method of() {*}
-    multi method of(Block:U: --> Mu) { }
+    multi method of(Block:U:) { Mu }
     multi method of(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }

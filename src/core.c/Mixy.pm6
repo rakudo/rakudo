@@ -1,6 +1,6 @@
 my role Mixy does Baggy  {
 
-    method of(--> Real) { }
+    method of() { Real }
 
     multi method hash(Mixy:D: --> Hash:D) { self!HASHIFY(Real) }
     multi method Hash(Mixy:D: --> Hash:D) { self!HASHIFY(Any) }

@@ -1277,7 +1277,7 @@ my class Array { # declared in BOOTSTRAP
     }
 
     proto method of() {*}
-    multi method of(Array:U: --> Mu) { }
+    multi method of(Array:U:) { Mu }
     multi method of(Array:D:) {
         nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
     }

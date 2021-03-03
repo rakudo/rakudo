@@ -210,7 +210,7 @@ my class Hash { # declared in BOOTSTRAP
     method keyof() { Str(Any) }  # overridden by Hash::Object
 
     proto method of() {*}
-    multi method of(Hash:U: --> Mu) { }
+    multi method of(Hash:U:) { Mu }
     multi method of(Hash:D:) { $!descriptor.of }
 
     method name(Hash:D:)    { $!descriptor.name }

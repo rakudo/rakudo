@@ -27,7 +27,7 @@ class IO::Path::Parts
 # original List of Pairs / Map implementation.  As soon as this is no longer
 # needed, this can go.
 
-    method of(--> Str) { }
+    method of() { Str }
 
     method iterator() { (:$!volume, :$!dirname, :$!basename).iterator }
 

@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 6;
+plan 8;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -122,6 +122,52 @@ subtest 'The postfix with statement works with a type object' => {
     # some weird interaction with Empty and postfix for
     is-deeply EVAL($ast), Empty;
     is-deeply EVAL($ast.DEPARSE), Empty;
+}
+
+subtest 'The postfix without statement works with defined expression' => {
+    # $_ * 2 without 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left => RakuAST::Var::Lexical.new('$_'),
+          infix => RakuAST::Infix.new('*'),
+          right => RakuAST::IntLiteral.new(2)
+        ),
+        condition-modifier => RakuAST::StatementModifier::Without.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    # some weird interaction with Empty and postfix for
+    is-deeply EVAL($ast), Empty;
+    is-deeply EVAL($ast.DEPARSE), Empty;
+}
+
+subtest 'The postfix without statement works with a type object' => {
+    # $_.Str without Int
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('$_'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('Str')
+          )
+        ),
+        condition-modifier => RakuAST::StatementModifier::Without.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier('Int')
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $_, ""
+      for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
 # vim: expandtab shiftwidth=4

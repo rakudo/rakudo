@@ -52,7 +52,7 @@ class RakuAST::StatementModifier::Condition is RakuAST::StatementModifier
 }
 
 # The if statement modifier.
-class RakuAST::StatementModifier::Condition::If is RakuAST::StatementModifier::Condition {
+class RakuAST::StatementModifier::If is RakuAST::StatementModifier::Condition {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         QAST::Op.new(
             :op('if'),
@@ -64,7 +64,7 @@ class RakuAST::StatementModifier::Condition::If is RakuAST::StatementModifier::C
 }
 
 # The unless statement modifier.
-class RakuAST::StatementModifier::Condition::Unless is RakuAST::StatementModifier::Condition {
+class RakuAST::StatementModifier::Unless is RakuAST::StatementModifier::Condition {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         QAST::Op.new(
             :op('unless'),
@@ -76,7 +76,7 @@ class RakuAST::StatementModifier::Condition::Unless is RakuAST::StatementModifie
 }
 
 # The when statement modifier.
-class RakuAST::StatementModifier::Condition::When is RakuAST::StatementModifier::Condition {
+class RakuAST::StatementModifier::When is RakuAST::StatementModifier::Condition {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         QAST::Op.new(
             :op('if'),
@@ -92,7 +92,7 @@ class RakuAST::StatementModifier::Condition::When is RakuAST::StatementModifier:
 }
 
 # The with statement modifier.
-class RakuAST::StatementModifier::Condition::With is RakuAST::StatementModifier::Condition {
+class RakuAST::StatementModifier::With is RakuAST::StatementModifier::Condition {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         my $tested := QAST::Node.unique('with_tested');
         QAST::Op.new(
@@ -115,7 +115,7 @@ class RakuAST::StatementModifier::Condition::With is RakuAST::StatementModifier:
 }
 
 # The without statement modifier.
-class RakuAST::StatementModifier::Condition::Without is RakuAST::StatementModifier::Condition {
+class RakuAST::StatementModifier::Without is RakuAST::StatementModifier::Condition {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         my $tested := QAST::Node.unique('without_tested');
         QAST::Op.new(
@@ -142,7 +142,7 @@ class RakuAST::StatementModifier::Loop is RakuAST::StatementModifier {
 }
 
 # The while statement modifier.
-class RakuAST::StatementModifier::Loop::While is RakuAST::StatementModifier::Loop {
+class RakuAST::StatementModifier::While is RakuAST::StatementModifier::Loop {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         QAST::Op.new(
             :op('while'),
@@ -153,7 +153,7 @@ class RakuAST::StatementModifier::Loop::While is RakuAST::StatementModifier::Loo
 }
 
 # The until statement modifier.
-class RakuAST::StatementModifier::Loop::Until is RakuAST::StatementModifier::Loop {
+class RakuAST::StatementModifier::Until is RakuAST::StatementModifier::Loop {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         QAST::Op.new(
             :op('until'),
@@ -164,7 +164,7 @@ class RakuAST::StatementModifier::Loop::Until is RakuAST::StatementModifier::Loo
 }
 
 # The given statement modifier.
-class RakuAST::StatementModifier::Loop::Given is RakuAST::StatementModifier::Loop {
+class RakuAST::StatementModifier::Given is RakuAST::StatementModifier::Loop {
     method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
         self.IMPL-TEMPORARIZE-TOPIC(
             self.expression.IMPL-TO-QAST($context),

@@ -336,13 +336,13 @@ subtest 'Chaining operator has correct outcome' => {
     ast RakuAST::ApplyInfix.new(
       left => RakuAST::ApplyInfix.new(
         left => RakuAST::IntLiteral.new(5),
-        infix => RakuAST::Infix::Chaining.new('>'),
+        infix => RakuAST::Infix.new('>'),
         right => RakuAST::ApplyPostfix.new(
           postfix => RakuAST::Postfix.new('++'),
           operand => RakuAST::Var::Lexical.new('$x')
         )
       ),
-      infix => RakuAST::Infix::Chaining.new('>'),
+      infix => RakuAST::Infix.new('>'),
       right => RakuAST::IntLiteral.new(3)
     );
 

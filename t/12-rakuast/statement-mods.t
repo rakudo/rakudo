@@ -208,7 +208,7 @@ subtest 'The postfix while statement works' => {
         RakuAST::Statement::Expression.new(
           expression => RakuAST::ApplyInfix.new(
             left => RakuAST::Var::Lexical.new('$foo'),
-            infix => RakuAST::Infix::Chaining.new('<'),
+            infix => RakuAST::Infix.new('<'),
             right => RakuAST::IntLiteral.new(5),
           )
         )
@@ -237,7 +237,7 @@ subtest 'The postfix until statement works' => {
         RakuAST::Statement::Expression.new(
           expression => RakuAST::ApplyInfix.new(
             left => RakuAST::Var::Lexical.new('$foo'),
-            infix => RakuAST::Infix::Chaining.new('>='),
+            infix => RakuAST::Infix.new('>='),
             right => RakuAST::IntLiteral.new(5),
           )
         )

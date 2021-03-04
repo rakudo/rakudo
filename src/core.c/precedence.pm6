@@ -92,6 +92,10 @@ BEGIN {
     trait_mod:<is>(&infix:<(-)>, :prec($junctive_or));
     trait_mod:<is>(&infix:<(^)>, :prec($junctive_or));
 
+    trait_mod:<is>(&infix:<< > >>,  :prec($chaining));
+    trait_mod:<is>(&infix:<< < >>,  :prec($chaining));
+    trait_mod:<is>(&infix:<< >= >>, :prec($chaining));
+    trait_mod:<is>(&infix:<< <= >>, :prec($chaining));
     trait_mod:<is>(&infix:<==>,     :prec($chaining));
     trait_mod:<is>(&infix:<!=>,     :prec($chaining));
     trait_mod:<is>(&infix:<eq>,     :prec($chaining));

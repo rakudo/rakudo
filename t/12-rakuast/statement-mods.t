@@ -199,19 +199,17 @@ subtest 'The postfix while statement works' => {
     my $foo;
 
     # ++$foo while $foo < 5
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::ApplyPrefix.new(
-          prefix => RakuAST::Prefix.new('++'),
-          operand => RakuAST::Var::Lexical.new('$foo')
-        ),
-        condition-modifier => RakuAST::StatementModifier::While.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::ApplyInfix.new(
-              left => RakuAST::Var::Lexical.new('$foo'),
-              infix => RakuAST::Infix::Chaining.new('<'),
-              right => RakuAST::IntLiteral.new(5),
-            )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('++'),
+        operand => RakuAST::Var::Lexical.new('$foo')
+      ),
+      condition-modifier => RakuAST::StatementModifier::While.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyInfix.new(
+            left => RakuAST::Var::Lexical.new('$foo'),
+            infix => RakuAST::Infix::Chaining.new('<'),
+            right => RakuAST::IntLiteral.new(5),
           )
         )
       )
@@ -230,19 +228,17 @@ subtest 'The postfix until statement works' => {
     my $foo;
 
     # ++$foo until $foo >= 5
-    ast RakuAST::StatementList.new(
-      RakuAST::Statement::Expression.new(
-        expression => RakuAST::ApplyPrefix.new(
-          prefix => RakuAST::Prefix.new('++'),
-          operand => RakuAST::Var::Lexical.new('$foo')
-        ),
-        condition-modifier => RakuAST::StatementModifier::Until.new(
-          RakuAST::Statement::Expression.new(
-            expression => RakuAST::ApplyInfix.new(
-              left => RakuAST::Var::Lexical.new('$foo'),
-              infix => RakuAST::Infix::Chaining.new('>='),
-              right => RakuAST::IntLiteral.new(5),
-            )
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('++'),
+        operand => RakuAST::Var::Lexical.new('$foo')
+      ),
+      condition-modifier => RakuAST::StatementModifier::Until.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyInfix.new(
+            left => RakuAST::Var::Lexical.new('$foo'),
+            infix => RakuAST::Infix::Chaining.new('>='),
+            right => RakuAST::IntLiteral.new(5),
           )
         )
       )

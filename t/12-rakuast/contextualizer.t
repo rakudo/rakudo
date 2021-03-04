@@ -67,3 +67,5 @@ subtest 'List contextualizer from pairs' => {
             "$type: Contextualizer gives expected result";
     }
 }
+
+# vim: expandtab shiftwidth=4

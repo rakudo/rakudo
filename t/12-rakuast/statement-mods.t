@@ -14,7 +14,7 @@ subtest 'The postfix if statement works with a true expression' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42),
-        condition-modifier => RakuAST::StatementModifier::Condition::If.new(
+        condition-modifier => RakuAST::StatementModifier::If.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::IntLiteral.new(666)
           )
@@ -31,7 +31,7 @@ subtest 'The postfix if statement works with a false expression' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42),
-        condition-modifier => RakuAST::StatementModifier::Condition::If.new(
+        condition-modifier => RakuAST::StatementModifier::If.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StrLiteral.new("")
           )
@@ -49,7 +49,7 @@ subtest 'The postfix unless statement works with a false expression' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42),
-        condition-modifier => RakuAST::StatementModifier::Condition::Unless.new(
+        condition-modifier => RakuAST::StatementModifier::Unless.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::StrLiteral.new("")
           )
@@ -66,7 +66,7 @@ subtest 'The postfix unless statement works with a true expression' => {
     ast RakuAST::StatementList.new(
       RakuAST::Statement::Expression.new(
         expression => RakuAST::IntLiteral.new(42),
-        condition-modifier => RakuAST::StatementModifier::Condition::Unless.new(
+        condition-modifier => RakuAST::StatementModifier::Unless.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::IntLiteral.new(666)
           )
@@ -88,7 +88,7 @@ subtest 'The postfix with statement works with defined expression' => {
           infix => RakuAST::Infix.new('*'),
           right => RakuAST::IntLiteral.new(2)
         ),
-        condition-modifier => RakuAST::StatementModifier::Condition::With.new(
+        condition-modifier => RakuAST::StatementModifier::With.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::IntLiteral.new(42)
           )
@@ -109,7 +109,7 @@ subtest 'The postfix with statement works with a type object' => {
           infix => RakuAST::Infix.new('*'),
           right => RakuAST::IntLiteral.new(2)
         ),
-        condition-modifier => RakuAST::StatementModifier::Condition::With.new(
+        condition-modifier => RakuAST::StatementModifier::With.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::Type::Simple.new(
               RakuAST::Name.from-identifier('Int')

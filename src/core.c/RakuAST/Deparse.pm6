@@ -995,51 +995,51 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
-      RakuAST::StatementModifier::Condition::If:D $ast
-    --> str) {
-        nqp::concat('if ',self.deparse($ast.expression))
-    }
-
-    multi method deparse(
-      RakuAST::StatementModifier::Condition::Unless:D $ast
-    --> str) {
-        nqp::concat('unless ',self.deparse($ast.expression))
-    }
-
-    multi method deparse(
-      RakuAST::StatementModifier::Condition::When:D $ast
-    --> str) {
-        nqp::concat('when ',self.deparse($ast.expression))
-    }
-
-    multi method deparse(
-      RakuAST::StatementModifier::Condition::With:D $ast
-    --> str) {
-        nqp::concat('with ',self.deparse($ast.expression))
-    }
-
-    multi method deparse(
-      RakuAST::StatementModifier::Condition::Without:D $ast
-    --> str) {
-        nqp::concat('without ',self.deparse($ast.expression))
-    }
-
-    multi method deparse(
-      RakuAST::StatementModifier::Loop::Given:D $ast  # feels misnamed
+      RakuAST::StatementModifier::Given:D $ast
     --> str) {
         nqp::concat('given ',self.deparse($ast.expression))
     }
 
     multi method deparse(
-      RakuAST::StatementModifier::Loop::While:D $ast
+      RakuAST::StatementModifier::If:D $ast
+    --> str) {
+        nqp::concat('if ',self.deparse($ast.expression))
+    }
+
+    multi method deparse(
+      RakuAST::StatementModifier::Unless:D $ast
+    --> str) {
+        nqp::concat('unless ',self.deparse($ast.expression))
+    }
+
+    multi method deparse(
+      RakuAST::StatementModifier::Until:D $ast
+    --> str) {
+        nqp::concat('until ',self.deparse($ast.expression))
+    }
+
+    multi method deparse(
+      RakuAST::StatementModifier::When:D $ast
+    --> str) {
+        nqp::concat('when ',self.deparse($ast.expression))
+    }
+
+    multi method deparse(
+      RakuAST::StatementModifier::While:D $ast
     --> str) {
         nqp::concat('while ',self.deparse($ast.expression))
     }
 
     multi method deparse(
-      RakuAST::StatementModifier::Loop::Until:D $ast
+      RakuAST::StatementModifier::With:D $ast
     --> str) {
-        nqp::concat('until ',self.deparse($ast.expression))
+        nqp::concat('with ',self.deparse($ast.expression))
+    }
+
+    multi method deparse(
+      RakuAST::StatementModifier::Without:D $ast
+    --> str) {
+        nqp::concat('without ',self.deparse($ast.expression))
     }
 
     multi method deparse(RakuAST::StatementPrefix::Do:D $ast --> str) {

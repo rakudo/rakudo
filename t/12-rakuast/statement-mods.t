@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 8;
+plan 10;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -157,6 +157,51 @@ subtest 'The postfix without statement works with a type object' => {
           )
         ),
         condition-modifier => RakuAST::StatementModifier::Without.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::Type::Simple.new(
+              RakuAST::Name.from-identifier('Int')
+            )
+          )
+        )
+      )
+    );
+
+    is-deeply $_, ""
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'The postfix given statement works with defined expression' => {
+    # $_ * 2 given 42
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyInfix.new(
+          left => RakuAST::Var::Lexical.new('$_'),
+          infix => RakuAST::Infix.new('*'),
+          right => RakuAST::IntLiteral.new(2)
+        ),
+        condition-modifier => RakuAST::StatementModifier::Given.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::IntLiteral.new(42)
+          )
+        )
+      )
+    );
+
+    is-deeply $_, 84
+      for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'The postfix given statement works with a type object' => {
+    # $_.Str given Int
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPostfix.new(
+          operand => RakuAST::Var::Lexical.new('$_'),
+          postfix => RakuAST::Call::Method.new(
+            name => RakuAST::Name.from-identifier('Str')
+          )
+        ),
+        condition-modifier => RakuAST::StatementModifier::Given.new(
           RakuAST::Statement::Expression.new(
             expression => RakuAST::Type::Simple.new(
               RakuAST::Name.from-identifier('Int')

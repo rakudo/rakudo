@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 10;
+plan 12;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -193,6 +193,68 @@ subtest 'The postfix given statement works with a type object' => {
 
     is-deeply $_, ""
       for EVAL($ast), EVAL($ast.DEPARSE);
+}
+
+subtest 'The postfix while statement works' => {
+    my $foo;
+
+    # ++$foo while $foo < 5
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('++'),
+          operand => RakuAST::Var::Lexical.new('$foo')
+        ),
+        condition-modifier => RakuAST::StatementModifier::While.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::Var::Lexical.new('$foo'),
+              infix => RakuAST::Infix::Chaining.new('<'),
+              right => RakuAST::IntLiteral.new(5),
+            )
+          )
+        )
+      )
+    );
+
+    $foo = 0;
+    EVAL($ast);  # return value is VMNull
+    is-deeply $foo, 5;
+
+    $foo = 0;
+    EVAL($ast.DEPARSE);  # return value is VMNull
+    is-deeply $foo, 5;
+}
+
+subtest 'The postfix until statement works' => {
+    my $foo;
+
+    # ++$foo until $foo >= 5
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::ApplyPrefix.new(
+          prefix => RakuAST::Prefix.new('++'),
+          operand => RakuAST::Var::Lexical.new('$foo')
+        ),
+        condition-modifier => RakuAST::StatementModifier::Until.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::ApplyInfix.new(
+              left => RakuAST::Var::Lexical.new('$foo'),
+              infix => RakuAST::Infix::Chaining.new('>='),
+              right => RakuAST::IntLiteral.new(5),
+            )
+          )
+        )
+      )
+    );
+
+    $foo = 0;
+    EVAL($ast);  # return value is VMNull
+    is-deeply $foo, 5;
+
+    $foo = 0;
+    EVAL($ast.DEPARSE);  # return value is VMNull
+    is-deeply $foo, 5;
 }
 
 # vim: expandtab shiftwidth=4

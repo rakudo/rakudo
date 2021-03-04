@@ -92,27 +92,39 @@ my class Any { # declared in BOOTSTRAP
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal {*}
-    multi method keys(Any:U:) { () }
+    multi method keys(Any:U:) {
+        nqp::istype(self.HOW,Metamodel::EnumHOW) ?? self.enums.keys !! ()
+    }
     multi method keys(Any:D:) { self.list.keys }
 
     proto method kv(|) is nodal {*}
-    multi method kv(Any:U:) { () }
+    multi method kv(Any:U:) {
+        nqp::istype(self.HOW,Metamodel::EnumHOW) ?? self.enums.kv !! ()
+    }
     multi method kv(Any:D:) { self.list.kv }
 
     proto method values(|) is nodal {*}
-    multi method values(Any:U:) { () }
+    multi method values(Any:U:) {
+        nqp::istype(self.HOW,Metamodel::EnumHOW) ?? self.enums.values !! ()
+    }
     multi method values(Any:D:) { self.list }
 
     proto method pairs(|) is nodal {*}
-    multi method pairs(Any:U:) { () }
+    multi method pairs(Any:U:) {
+        nqp::istype(self.HOW,Metamodel::EnumHOW) ?? self.enums.pairs !! ()
+    }
     multi method pairs(Any:D:) { self.list.pairs }
 
     proto method antipairs(|) is nodal {*}
-    multi method antipairs(Any:U:) { () }
+    multi method antipairs(Any:U:) {
+        nqp::istype(self.HOW,Metamodel::EnumHOW) ?? self.enums.antipairs !! ()
+    }
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal {*}
-    multi method invert(Any:U:) { () }
+    multi method invert(Any:U:) {
+        nqp::istype(self.HOW,Metamodel::EnumHOW) ?? self.enums.invert !! ()
+    }
     multi method invert(Any:D:) { self.list.invert }
 
     proto method splice(|) is nodal {*}

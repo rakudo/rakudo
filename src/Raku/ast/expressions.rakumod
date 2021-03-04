@@ -107,7 +107,7 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 }
 
 # A lookup of a chaining (non-meta) infix operator.
-class RakuAST::Infix::Chaining is RakuAST::Infix is RakuAST::Lookup {
+class RakuAST::Infix::Chaining is RakuAST::Infix {
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my $name := self.resolution.lexical-name;
         QAST::Op.new( :op('chain'), :$name, $left-qast, $right-qast )

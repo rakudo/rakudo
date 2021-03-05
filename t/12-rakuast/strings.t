@@ -150,7 +150,7 @@ subtest 'Using the val processor alone with interpolation' => {
 }
 
 subtest 'Using the words and val processor' => {
-    # <foo bar 42>
+    # qq:w:v/foo bar 42/
     ast RakuAST::QuotedString.new(
       :segments[RakuAST::StrLiteral.new('foo bar 42')],
       :processors['words', 'val']
@@ -162,8 +162,8 @@ subtest 'Using the words and val processor' => {
 subtest 'Words processor applied to a quoted string with interpolation' => {
     my $stuff = 'r baz';
 
-    # no source representation possible atm
-    $ast := RakuAST::QuotedString.new(
+    # qq:w:v/ba$stuff 66/
+    ast RakuAST::QuotedString.new(
       :segments[
         RakuAST::StrLiteral.new('ba'),
         RakuAST::Var::Lexical.new('$stuff'),
@@ -171,7 +171,8 @@ subtest 'Words processor applied to a quoted string with interpolation' => {
       ],
       :processors['words', 'val']
     );
-    is-deeply EVAL($ast), ('bar', 'baz', val("66"));
+    is-deeply $_, ('bar', 'baz', val("66"))
+       for EVAL($ast), EVAL($ast.DEPARSE);
 }
 
 subtest 'Using the exec processor alone gives expected result' => {

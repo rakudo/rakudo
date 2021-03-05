@@ -593,6 +593,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     rule statement_mod_loop:sym<while> { <sym><.kok> <modifier_expr('while')> }
     rule statement_mod_loop:sym<until> { <sym><.kok> <modifier_expr('until')> }
     rule statement_mod_loop:sym<given> { <sym><.kok> <modifier_expr('given')> }
+    rule statement_mod_loop:sym<for>   { <sym><.kok> <modifier_expr('for')> }
 
     ##
     ## Statement prefixes

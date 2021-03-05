@@ -636,13 +636,6 @@ class RakuAST::Statement::For is RakuAST::Statement
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        # TODO various optimized forms are possible here
-        self.IMPL-TO-QAST-GENERAL($context)
-    }
-
-    # The most general, least optimized, form for a `for` loop, which
-    # delegates to `map`.
-    method IMPL-TO-QAST-GENERAL(RakuAST::IMPL::QASTContext $context) {
         # Figure out the execution mode modifiers to apply.
         my str $mode := $!mode;
         my str $after-mode := '';
@@ -654,16 +647,33 @@ class RakuAST::Statement::For is RakuAST::Statement
             $after-mode := self.IMPL-DISCARD-RESULT ?? 'sink' !! 'eager';
         }
 
+        # Delegate to the for loop compilation helper (which we pass various
+        # attributes to in order to make it callable for the statement modifier
+        # form also).
+        self.IMPL-FOR-QAST($context, $mode, $after-mode,
+                $!source.IMPL-TO-QAST($context),
+                $!body.IMPL-TO-QAST($context))
+    }
+
+    method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
+            str $after-mode, Mu $source-qast, Mu $body-qast) {
+        # TODO various optimized forms are possible here
+        self.IMPL-TO-QAST-GENERAL($context, $mode, $after-mode, $source-qast, $body-qast)
+    }
+
+    # The most general, least optimized, form for a `for` loop, which
+    # delegates to `map`.
+    method IMPL-TO-QAST-GENERAL(RakuAST::IMPL::QASTContext $context, str $mode,
+            str $after-mode, Mu $source-qast, Mu $body-qast) {
         # Bind the source into a temporary.
         my $for-list-name := QAST::Node.unique('for-list');
         my $bind-source := QAST::Op.new(
             :op('bind'),
             QAST::Var.new( :name($for-list-name), :scope('local'), :decl('var') ),
-            $!source.IMPL-TO-QAST($context)
+            $source-qast
         );
 
         # Produce the map call.
-        my $body-qast := $!body.IMPL-TO-QAST($context);
         my $map-call := QAST::Op.new(
             :op('if'),
             QAST::Op.new( :op('iscont'), QAST::Var.new( :name($for-list-name), :scope('local') ) ),

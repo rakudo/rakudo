@@ -172,3 +172,51 @@ class RakuAST::StatementModifier::Given is RakuAST::StatementModifier::Loop {
         )
     }
 }
+
+# The for statement modifier.
+class RakuAST::StatementModifier::For is RakuAST::StatementModifier::Loop
+                                      is RakuAST::Meta is RakuAST::Code {
+    # The block that we create to hold the thunked expression; we create it
+    # when processing declarative things, and fill it out later when we are
+    # passed the imperative code.
+    has Mu $!qast-block;
+
+    method PRODUCE-META-OBJECT() {
+        # Create code object taking a parameter `$_ is raw`
+        my constant SIG_ELEM_IS_RAW := 1024;
+        my $param := nqp::create(Parameter);
+        nqp::bindattr_s($param, Parameter, '$!variable_name', '$_');
+        nqp::bindattr($param, Parameter, '$!type', Mu);
+        nqp::bindattr_i($param, Parameter, '$!flags', SIG_ELEM_IS_RAW);
+        my $signature := nqp::create(Signature);
+        nqp::bindattr($signature, Signature, '@!params', nqp::list($param));
+        nqp::bindattr_i($signature, Signature, '$!arity', 1);
+        nqp::bindattr($signature, Signature, '$!count', nqp::box_i(1, Int));
+        my $code := nqp::create(Code);
+        nqp::bindattr($code, Code, '$!signature', $signature);
+        $code
+    }
+
+    method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
+        my $block := QAST::Block.new(
+            :blocktype('declaration_static'),
+            QAST::Var.new( :name('$_'), :scope('lexical'), :decl('param') )
+        );
+        self.IMPL-LINK-META-OBJECT($context, $block);
+        nqp::bindattr(self, RakuAST::StatementModifier::For, '$!qast-block', $block);
+        $block
+    }
+
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
+        # Place the code we get into the block we produced.
+        my $block := nqp::ifnull($!qast-block,
+            nqp::die('Missing QAST block in `for` statement modifier'));
+        $block.push($statement-qast);
+
+        # Delegate compilation to the non-modifier `for` statement.
+        # TODO non-sink context
+        RakuAST::Statement::For.IMPL-FOR-QAST($context, 'serial', 'sink',
+            self.expression.IMPL-TO-QAST($context),
+            self.IMPL-CLOSURE-QAST())
+    }
+}

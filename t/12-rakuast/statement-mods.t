@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 12;
+plan 13;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -238,6 +238,35 @@ subtest 'The postfix until statement works' => {
           expression => RakuAST::ApplyInfix.new(
             left => RakuAST::Var::Lexical.new('$foo'),
             infix => RakuAST::Infix.new('>='),
+            right => RakuAST::IntLiteral.new(5),
+          )
+        )
+      )
+    );
+
+    $foo = 0;
+    EVAL($ast);  # return value is VMNull
+    is-deeply $foo, 5;
+
+    $foo = 0;
+    EVAL($ast.DEPARSE);  # return value is VMNull
+    is-deeply $foo, 5;
+}
+
+subtest 'The postfix for statement works' => {
+    my $foo;
+
+    # ++$foo for 1 .. 5
+    ast RakuAST::Statement::Expression.new(
+      expression => RakuAST::ApplyPrefix.new(
+        prefix => RakuAST::Prefix.new('++'),
+        operand => RakuAST::Var::Lexical.new('$foo')
+      ),
+      condition-modifier => RakuAST::StatementModifier::For.new(
+        RakuAST::Statement::Expression.new(
+          expression => RakuAST::ApplyInfix.new(
+            left => RakuAST::IntLiteral.new(1),
+            infix => RakuAST::Infix.new('..'),
             right => RakuAST::IntLiteral.new(5),
           )
         )

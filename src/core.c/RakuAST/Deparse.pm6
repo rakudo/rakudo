@@ -1007,6 +1007,12 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(
+      RakuAST::StatementModifier::For:D $ast
+    --> str) {
+        nqp::concat('for ',self.deparse($ast.expression))
+    }
+
+    multi method deparse(
       RakuAST::StatementModifier::Unless:D $ast
     --> str) {
         nqp::concat('unless ',self.deparse($ast.expression))

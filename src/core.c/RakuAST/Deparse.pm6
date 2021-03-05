@@ -643,7 +643,7 @@ class RakuAST::Deparse {
             elsif @processors == 2 {
                 my str $joined = @processors.join(' ');
                 if $joined eq 'words val' {
-                    nqp::concat('qq:w:v/',nqp::concat($string,'/'))
+                    nqp::concat($.pointy-open,nqp::concat($string,$.pointy-close))
                 }
                 elsif $joined eq 'quotewords val' {
                     nqp::concat($.double-pointy-open,

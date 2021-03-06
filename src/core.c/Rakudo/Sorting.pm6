@@ -51,12 +51,12 @@ my class Rakudo::Sorting {
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
-                            || nqp::iseq_i(
-                                 nqp::decont(  # for some reason we need this
-                                   nqp::atpos($A,$i) cmp nqp::atpos($A,$j)
-                                     || nqp::cmp_i($i,$j)
-                                 ), # apparently code gen with || isn't right
-                                 -1
+                            || nqp::eqaddr(
+                                 (my $cmp := nqp::atpos($A,$i) cmp nqp::atpos($A,$j)),
+                                 Order::Less
+                               )
+                            || (nqp::eqaddr($cmp,Order::Same)
+                                 && nqp::iseq_i(nqp::cmp_i($i,$j),-1)
                                )
                         ),
                         nqp::stmts(
@@ -94,8 +94,16 @@ my class Rakudo::Sorting {
         )
     }
 
-    # Takes the HLL List to be sorted *in place* using the comparator
+    # Takes the HLL List to be sorted *in place* using a comparator
     method MERGESORT-REIFIED-LIST-WITH(\list, &comparator) {
+        nqp::eqatic(&comparator.returns.^name,'int',0)
+          ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH-int(list, &comparator)
+          !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH-enum(list, &comparator)
+    }
+
+    # Takes the HLL List to be sorted *in place* using the comparator
+    # that is supposed to return an Order enum
+    method MERGESORT-REIFIED-LIST-WITH-enum(\list, &comparator) {
         nqp::if(
           nqp::isgt_i((my int $n = nqp::elems(
             # $A has the items to sort; $B is a work array
@@ -136,13 +144,12 @@ my class Rakudo::Sorting {
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
-                            || nqp::iseq_i(
-                                 nqp::decont(  # for some reason we need this
-                                   comparator(
-                                     nqp::atpos($A,$i),nqp::atpos($A,$j))
-                                      || nqp::cmp_i($i,$j)
-                                 ), # apparently code gen with || isn't right
-                                 -1
+                            || nqp::eqaddr(
+                                 (my $cmp := comparator(nqp::atpos($A,$i),nqp::atpos($A,$j))),
+                                 Order::Less
+                               )
+                            || (nqp::eqaddr($cmp,Order::Same)
+                                 && nqp::iseq_i(nqp::cmp_i($i,$j),-1)
                                )
                         ),
                         nqp::stmts(
@@ -180,6 +187,91 @@ my class Rakudo::Sorting {
           )
         )
     }
+
+    # Takes the HLL List to be sorted *in place* using the comparator
+    # that is supposed to return a native int
+    method MERGESORT-REIFIED-LIST-WITH-int(\list, &comparator) {
+        nqp::if(
+          nqp::isgt_i((my int $n = nqp::elems(
+            # $A has the items to sort; $B is a work array
+            my $A := nqp::getattr(list,List,'$!reified')
+          )),2),
+          nqp::stmts(     # we actually need to sort
+            (my $B := nqp::setelems(nqp::create(IterationBuffer),$n)),
+
+            # Each 1-element run in $A is already "sorted"
+            # Make successively longer sorted runs of length 2, 4, 8, 16...
+            # until $A is wholly sorted
+            (my int $width = 1),
+            nqp::while(
+              nqp::islt_i($width,$n),
+              nqp::stmts(
+                (my int $l = 0),
+
+                # $A is full of runs of length $width
+                nqp::while(
+                  nqp::islt_i($l,$n),
+
+                  nqp::stmts(
+                    (my int $left  = $l),
+                    (my int $right = nqp::add_i($l,$width)),
+                    nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                    (my int $end = nqp::add_i($l,nqp::add_i($width,$width))),
+                    nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                    (my int $i = $left),
+                    (my int $j = $right),
+                    (my int $k = nqp::sub_i($left,1)),
+
+                    # Merge two runs: $A[i       .. i+width-1] and
+                    #                 $A[i+width .. i+2*width-1]
+                    # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                    nqp::while(
+                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::if(
+                        nqp::islt_i($i,$right) && (
+                          nqp::isge_i($j,$end)
+                            || nqp::islt_i(
+                                 comparator(nqp::atpos($A,$i),nqp::atpos($A,$j))
+                                   || nqp::cmp_i($i,$j),
+                                 0
+                               )
+                        ),
+                        nqp::stmts(
+                          (nqp::bindpos($B,$k,nqp::atpos($A,$i))),
+                          ($i = nqp::add_i($i,1))
+                        ),
+                        nqp::stmts(
+                          (nqp::bindpos($B,$k,nqp::atpos($A,$j))),
+                          ($j = nqp::add_i($j,1))
+                        )
+                      )
+                    ),
+                    ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+                  )
+                ),
+
+                # Now work array $B is full of runs of length 2*width.
+                # Copy array B to array A for next iteration. A more
+                # efficient implementation would swap the roles of A and B.
+                (my $temp := $B),($B := $A),($A := $temp),   # swap
+                # Now array $A is full of runs of length 2*width.
+
+                ($width = nqp::add_i($width,$width))
+              )
+            ),
+            nqp::p6bindattrinvres(list,List,'$!reified',$A)
+          ),
+          nqp::if(
+            nqp::islt_i($n,2)
+              || nqp::isle_i(comparator(nqp::atpos($A,0),nqp::atpos($A,1)),0),
+            list,  # nothing to be done, we already have the result
+            nqp::p6bindattrinvres(list,List,'$!reified',  # need to swap
+              IB2(nqp::atpos($A,1),nqp::atpos($A,0)))
+          )
+        )
+    }
+
     # Takes the HLL List to be sorted *in place* using the mapper
     method MERGESORT-REIFIED-LIST-AS(\list,&mapper) {
         nqp::if(
@@ -230,14 +322,14 @@ my class Rakudo::Sorting {
                       nqp::if(
                         nqp::islt_i($i,$right) && (
                           nqp::isge_i($j,$end)
-                            || (nqp::iseq_i(
-                                 nqp::decont(
-                                   nqp::atpos($S,nqp::atpos_i($A,$i))
-                                     cmp nqp::atpos($S,nqp::atpos_i($A,$j))
-                                     || nqp::cmp_i($i,$j)
-                                 ),
-                                 -1
-                               ))
+                            || nqp::eqaddr(
+                                 (my $cmp := nqp::atpos($S,nqp::atpos_i($A,$i))
+                                         cmp nqp::atpos($S,nqp::atpos_i($A,$j))),
+                                 Order::Less
+                               )
+                            || (nqp::eqaddr($cmp,Order::Same)
+                                 && nqp::iseq_i(nqp::cmp_i($i,$j),-1)
+                               )
                         ),
                         nqp::stmts(
                           (nqp::bindpos_i($B,$k,nqp::atpos_i($A,$i))),

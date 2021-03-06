@@ -68,6 +68,10 @@ multi sub infix:<cmp>(\a, Code:D \b) {
      a.Stringy cmp b.name
 }
 
+proto sub infix:«<=>»($, $, *% --> Order:D) is pure {*}
+multi sub infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
+multi sub infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }
+
 multi sub infix:«<=>»(Int:D \a, Int:D \b) {
     ORDER(nqp::cmp_I(nqp::decont(a), nqp::decont(b)))
 }
@@ -86,5 +90,8 @@ multi sub infix:<after>($x? --> True) { }
 multi sub infix:<after>(\a, \b) {
     nqp::hllbool(nqp::eqaddr((a cmp b),Order::More))
 }
+
+proto sub infix:<leg>($, $, *% --> Order:D) is pure {*}
+multi sub infix:<leg>(\a, \b) { a.Stringy cmp b.Stringy }
 
 # vim: expandtab shiftwidth=4

@@ -3633,10 +3633,10 @@ multi sub infix:<x>(str $s, int $repetition --> str) {
     nqp::islt_i($repetition,1) ?? '' !! nqp::x($s, $repetition)
 }
 
-multi sub infix:<cmp>(Str:D \a, Str:D \b --> Order:D) {
+multi sub infix:<cmp>(Str:D \a, Str:D \b) {
     ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<cmp>(str $a, str $b --> Order:D) {
+multi sub infix:<cmp>(str $a, str $b) {
     ORDER(nqp::cmp_s($a, $b))
 }
 
@@ -3650,10 +3650,10 @@ multi sub infix:<===>(str $a, str $b --> Bool:D) {
     nqp::hllbool(nqp::iseq_s($a, $b)) #?js: NFG
 }
 
-multi sub infix:<leg>(Str:D \a, Str:D \b --> Order:D) {
+multi sub infix:<leg>(Str:D \a, Str:D \b) {
     ORDER(nqp::cmp_s(nqp::unbox_s(a), nqp::unbox_s(b)))
 }
-multi sub infix:<leg>(str $a, str $b --> Order:D) {
+multi sub infix:<leg>(str $a, str $b) {
     ORDER(nqp::cmp_s($a, $b))
 }
 
@@ -3784,28 +3784,28 @@ sub UNBASE_BRACKET($base, @a) is implementation-detail {
     }
     $v;
 }
-proto sub infix:<unicmp>($, $, *%) is pure {*}
-proto sub infix:<coll>($, $, *%) {*}
+proto sub infix:<unicmp>($, $, *% --> Order:D) is pure {*}
+proto sub infix:<coll>($, $, *% --> Order:D) {*}
 #?if !jvm
-multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D) {
+multi sub infix:<unicmp>(Str:D \a, Str:D \b) {
     ORDER(
         nqp::unicmp_s(
             nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0))
 }
-multi sub infix:<unicmp>(Pair:D \a, Pair:D \b --> Order:D) {
+multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
     (a.key unicmp b.key) || (a.value unicmp b.value)
 }
-multi sub infix:<coll>(Str:D \a, Str:D \b --> Order:D) {
+multi sub infix:<coll>(Str:D \a, Str:D \b) {
     ORDER(
         nqp::unicmp_s(
             nqp::unbox_s(a), nqp::unbox_s(b), $*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Cool:D \a, Cool:D \b --> Order:D) {
+multi sub infix:<coll>(Cool:D \a, Cool:D \b) {
     ORDER(
         nqp::unicmp_s(
             nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), $*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Pair:D \a, Pair:D \b --> Order:D) {
+multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
     (a.key coll b.key) || (a.value coll b.value)
 }
 #?endif

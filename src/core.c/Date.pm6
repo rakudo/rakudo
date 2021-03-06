@@ -382,10 +382,10 @@ multi sub infix:<->(Date:D \date, Int:D $x --> Date:D) {
 multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
     $a.daycount - $b.daycount;
 }
-multi sub infix:<cmp>(Date:D $a, Date:D $b --> Order:D) {
+multi sub infix:<cmp>(Date:D $a, Date:D $b) {
     $a.daycount cmp $b.daycount
 }
-multi sub infix:«<=>»(Date:D $a, Date:D $b --> Order:D) {
+multi sub infix:«<=>»(Date:D $a, Date:D $b) {
     $a.daycount <=> $b.daycount
 }
 multi sub infix:<==>(Date:D $a, Date:D $b --> Bool:D) {

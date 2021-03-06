@@ -29,9 +29,6 @@ multi sub infix:<x>($s, Num:D $n) {
 multi sub infix:<x>($s, Any:D $n) { $s.Stringy x $n.Int         }
 multi sub infix:<x>($s, Any:U $n) { $s.Stringy x $n.Numeric.Int }
 
-proto sub infix:<leg>($, $, *%) is pure {*}
-multi sub infix:<leg>(\a, \b)      { a.Stringy cmp b.Stringy }
-
 proto sub infix:<eq>($?, $?, *%)  is pure {*}
 multi sub infix:<eq>($x?)          { Bool::True }
 multi sub infix:<eq>(\a, \b)       { a.Stringy eq b.Stringy }

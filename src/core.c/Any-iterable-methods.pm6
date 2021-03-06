@@ -1,4 +1,5 @@
 class X::Cannot::Map { ... }
+class Rakudo::Sorting { ... }
 
 # Now that Iterable is defined, we add extra methods into Any for the list
 # operations. (They can't go into Any right away since we need Attribute to

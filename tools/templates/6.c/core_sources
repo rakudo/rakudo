@@ -15,7 +15,6 @@ src/core.c/Rakudo/SlippyIterator.pm6
 src/core.c/Rakudo/Internals.pm6
 src/core.c/Rakudo/Iterator.pm6
 src/core.c/Rakudo/QuantHash.pm6
-src/core.c/Rakudo/Sorting.pm6
 src/core.c/HyperConfiguration.pm6
 src/core.c/Iterable.pm6
 src/core.c/Any-iterable-methods.pm6
@@ -41,6 +40,7 @@ src/core.c/Real.pm6
 src/core.c/Int.pm6
 src/core.c/Bool.pm6
 src/core.c/Order.pm6
+src/core.c/Rakudo/Sorting.pm6
 src/core.c/Num.pm6
 src/core.c/Buf.pm6
 @if(backend!=jvm

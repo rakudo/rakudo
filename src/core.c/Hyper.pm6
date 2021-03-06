@@ -249,8 +249,8 @@ class Hyper {
     # using an infix on a one element list in a meta op
     multi method infix(\object) {
         nqp::can($!operator,"nodal")
-          ?? nodemap($!operator,object)
-          !! deepmap($!operator,object)
+          ?? object.nodemap($!operator)
+          !! object.deepmap($!operator)
     }
 
 #--- Private helper methods ----------------------------------------------------

@@ -96,7 +96,7 @@ my class Rakudo::Sorting {
 
     # Takes the HLL List to be sorted *in place* using a comparator
     method MERGESORT-REIFIED-LIST-WITH(\list, &comparator) {
-        nqp::istype(&comparator.returns,Order:D)
+        nqp::eqaddr(&comparator.returns,Order:D)
           ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH-enum(list, &comparator)
           !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH-int(list, &comparator)
     }

@@ -511,9 +511,21 @@ multi sub infix:<≅>(Num(Real) \a, Complex:D \b --> Bool:D) { a.Complex ≅ b }
 
 # Meaningful only for sorting purposes, of course.
 # We delegate to Real::cmp rather than <=> because parts might be NaN.
-multi sub infix:<cmp>(Complex:D \a, Complex:D \b --> Order:D) { a.re cmp b.re || a.im cmp b.im }
-multi sub infix:<cmp>(Num(Real) \a, Complex:D \b --> Order:D) { a cmp b.re || 0 cmp b.im }
-multi sub infix:<cmp>(Complex:D \a, Num(Real) \b --> Order:D) { a.re cmp b || a.im cmp 0 }
+multi sub infix:<cmp>(Complex:D \a, Complex:D \b --> Order:D) {
+    nqp::eqaddr((my $cmp := a.re cmp b.re),Order::Same)
+      ?? a.im cmp b.im
+      !! $cmp
+}
+multi sub infix:<cmp>(Num(Real) \a, Complex:D \b --> Order:D) {
+    nqp::eqaddr((my $cmp := a cmp b.re),Order::Same)
+      ?? 0 cmp b.im
+      !! $cmp
+}
+multi sub infix:<cmp>(Complex:D \a, Num(Real) \b --> Order:D) {
+    nqp::eqaddr((my $cmp := a.re cmp b),Order::Same)
+      ?? a.im cmp 0
+      !! $cmp
+}
 
 multi sub infix:«<=>»(Complex:D \a, Complex:D \b --> Order:D) {
     my $tolerance = a && b

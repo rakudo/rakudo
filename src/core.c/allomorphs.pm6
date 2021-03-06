@@ -147,7 +147,9 @@ my class ComplexStr is Allomorph is Complex {
 }
 
 multi sub infix:<cmp>(Allomorph:D $a, Allomorph:D $b) is default {
-    $a.Numeric cmp $b.Numeric || $a.Str cmp $b.Str
+    nqp::eqaddr((my $cmp := $a.Numeric cmp $b.Numeric),Order::Same)
+      ?? $a.Str cmp $b.Str
+      !! $cmp
 }
 
 multi sub infix:<eqv>(Allomorph:D $a, Allomorph:D $b --> Bool:D) is default {

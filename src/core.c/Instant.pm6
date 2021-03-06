@@ -54,10 +54,10 @@ my class Instant is Cool does Real {
 #    }
 }
 
-multi sub infix:«cmp»(Instant:D $a, Instant:D $b --> Order:D) {
+multi sub infix:«cmp»(Instant:D $a, Instant:D $b) {
     $a.tai <=> $b.tai }
 
-multi sub infix:«<=>»(Instant:D $a, Instant:D $b --> Order:D) {
+multi sub infix:«<=>»(Instant:D $a, Instant:D $b) {
     $a.tai <=> $b.tai
 }
 

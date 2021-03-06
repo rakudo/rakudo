@@ -1616,7 +1616,7 @@ multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 proto sub prefix:<|>($, *%) {*}
 multi sub prefix:<|>(\x --> Slip:D) { x.Slip }
 
-multi sub infix:<cmp>(@a, @b --> Order:D) {
+multi sub infix:<cmp>(@a, @b) {
 
     sub CMP-SLOW(@a, @b) {
         (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b

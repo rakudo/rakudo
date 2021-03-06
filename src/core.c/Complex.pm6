@@ -511,23 +511,23 @@ multi sub infix:<≅>(Num(Real) \a, Complex:D \b --> Bool:D) { a.Complex ≅ b }
 
 # Meaningful only for sorting purposes, of course.
 # We delegate to Real::cmp rather than <=> because parts might be NaN.
-multi sub infix:<cmp>(Complex:D \a, Complex:D \b --> Order:D) {
+multi sub infix:<cmp>(Complex:D \a, Complex:D \b) {
     nqp::eqaddr((my $cmp := a.re cmp b.re),Order::Same)
       ?? a.im cmp b.im
       !! $cmp
 }
-multi sub infix:<cmp>(Num(Real) \a, Complex:D \b --> Order:D) {
+multi sub infix:<cmp>(Num(Real) \a, Complex:D \b) {
     nqp::eqaddr((my $cmp := a cmp b.re),Order::Same)
       ?? 0 cmp b.im
       !! $cmp
 }
-multi sub infix:<cmp>(Complex:D \a, Num(Real) \b --> Order:D) {
+multi sub infix:<cmp>(Complex:D \a, Num(Real) \b) {
     nqp::eqaddr((my $cmp := a.re cmp b),Order::Same)
       ?? a.im cmp 0
       !! $cmp
 }
 
-multi sub infix:«<=>»(Complex:D \a, Complex:D \b --> Order:D) {
+multi sub infix:«<=>»(Complex:D \a, Complex:D \b) {
     my $tolerance = a && b
         ?? (a.re.abs + b.re.abs) / 2 * $*TOLERANCE  # Scale slop to average real parts.
         !! $*TOLERANCE;                             # Don't want tolerance 0 if either arg is 0.
@@ -536,8 +536,8 @@ multi sub infix:«<=>»(Complex:D \a, Complex:D \b --> Order:D) {
       ?? a.re <=> b.re
       !! Failure.new(X::Numeric::Real.new(target => Real, reason => "Complex is not numerically orderable", source => "Complex"))
 }
-multi sub infix:«<=>»(Num(Real) \a, Complex:D \b --> Order:D) { a.Complex <=> b }
-multi sub infix:«<=>»(Complex:D \a, Num(Real) \b --> Order:D) { a <=> b.Complex }
+multi sub infix:«<=>»(Num(Real) \a, Complex:D \b) { a.Complex <=> b }
+multi sub infix:«<=>»(Complex:D \a, Num(Real) \b) { a <=> b.Complex }
 
 proto sub postfix:<i>($, *%        --> Complex:D) is pure {*}
 multi sub postfix:<i>(Real      \a --> Complex:D) { Complex.new(0e0, a);     }

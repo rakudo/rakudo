@@ -3784,34 +3784,52 @@ sub UNBASE_BRACKET($base, @a) is implementation-detail {
     }
     $v;
 }
-proto sub infix:<unicmp>($, $, *% --> Order:D) is pure {*}
-proto sub infix:<coll>($, $, *% --> Order:D) {*}
+
 #?if !jvm
 multi sub infix:<unicmp>(Str:D \a, Str:D \b) {
     ORDER(
-        nqp::unicmp_s(
-            nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0))
+      nqp::unicmp_s(nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0)
+    )
+}
+multi sub infix:<unicmp>(Cool:D \a, Cool:D \b) {
+    ORDER(
+      nqp::unicmp_s(nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), 85,0,0)
+    )
 }
 multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
-    (a.key unicmp b.key) || (a.value unicmp b.value)
+    nqp::eqaddr((my $cmp := (a.key unicmp b.key)),Order::Same)
+      ?? (a.value unicmp b.value)
+      !! $cmp
 }
+
 multi sub infix:<coll>(Str:D \a, Str:D \b) {
     ORDER(
-        nqp::unicmp_s(
-            nqp::unbox_s(a), nqp::unbox_s(b), $*COLLATION.collation-level,0,0))
+      nqp::unicmp_s(
+        nqp::unbox_s(a),nqp::unbox_s(b),$*COLLATION.collation-level,0,0
+      )
+    )
 }
 multi sub infix:<coll>(Cool:D \a, Cool:D \b) {
     ORDER(
-        nqp::unicmp_s(
-            nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), $*COLLATION.collation-level,0,0))
+      nqp::unicmp_s(
+        nqp::unbox_s(a.Str),nqp::unbox_s(b.Str),$*COLLATION.collation-level,0,0
+      )
+    )
 }
 multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
-    (a.key coll b.key) || (a.value coll b.value)
+    nqp::eqaddr((my $cmp := (a.key coll b.key)),Order::Same)
+      ?? (a.value coll b.value)
+      !! $cmp
 }
 #?endif
+
 #?if jvm
-multi sub infix:<unicmp>(Str:D \a, Str:D \b) { die "unicmp NYI on JVM" }
-multi sub infix:<coll>(Str:D \a, Str:D \b)   { die "coll NYI on JVM" }
+multi sub infix:<unicmp>($, $) {
+    X::NYI.new(feature => "infix unicmp on JVM").throw
+}
+multi sub infix:<coll>($, $) {
+    X::NYI.new(feature => "infix coll on JVM").throw
+}
 #?endif
 
 proto sub chrs(|) {*}

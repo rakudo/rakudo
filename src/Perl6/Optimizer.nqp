@@ -1354,6 +1354,28 @@ class Perl6::Optimizer {
             }
         }
 
+        # Optimize `while @a { ... }` and `if @a { ... }` into
+        # `while +@a { ... }` and `if +@a { ... }`
+        if $optype eq 'while' {
+            my $conditions := $op[0];
+            if nqp::istype($conditions, QAST::Var) && nqp::substr($conditions.name, 0, 1) eq '@' {
+                $op[0] := QAST::Op.new( :op('callstatic'), :name('&prefix:<+>'), $conditions );
+            }
+            self.visit_op_children($op);
+            return $op;
+        }
+        elsif $optype eq 'if' && ($op.name eq '&infix:<&&>' || $op.name eq '&infix:<||>') {
+            my int $i := 0;
+            for @($op) -> $item {
+                if nqp::istype($item, QAST::Var) && nqp::substr($item.name, 0, 1) eq '@' {
+                    $op[$i] := QAST::Op.new( :op('callstatic'), :name('&prefix:<+>'), $item );
+                }
+                $i++;
+            }
+            self.visit_op_children($op);
+            return $op;
+        }
+
         # It could also be that the user explicitly spelled out the for loop
         # with a method call to "map".
         if $optype eq 'callmethod' && $op.name eq 'sink'

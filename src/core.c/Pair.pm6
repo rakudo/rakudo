@@ -198,7 +198,9 @@ multi sub infix:<eqv>(Pair:D \a, Pair:D \b --> Bool:D) {
 }
 
 multi sub infix:<cmp>(Pair:D \a, Pair:D \b) {
-    (a.key cmp b.key) || (a.value cmp b.value)
+    nqp::eqaddr((my $cmp := a.key cmp b.key),Order::Same)
+      ?? (a.value cmp b.value)
+      !! $cmp
 }
 
 proto sub infix:«=>»(Mu, Mu, *%) is pure {*}

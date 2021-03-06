@@ -2045,7 +2045,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method nodemap(|) is nodal {*}
     multi method nodemap(Associative:D: &op) {
-        self.new.STORE: self.keys, self.values.nodemap(&op)
+        self.new.STORE: self.keys, self.values.nodemap(&op), :INITIALIZE
     }
     multi method nodemap(&op) {
         my \iterator := self.iterator;
@@ -2079,7 +2079,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
     proto method deepmap(|) is nodal {*}
     multi method deepmap(Associative:D: &op) {
-        self.new.STORE: self.keys, self.values.deepmap(&op)
+        self.new.STORE: self.keys, self.values.deepmap(&op), :INITIALIZE
     }
     multi method deepmap(&op) {
         my \iterator := self.iterator;

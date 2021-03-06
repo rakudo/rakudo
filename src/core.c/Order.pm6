@@ -79,7 +79,7 @@ multi sub infix:«<=>»(int $a, int $b) {
     ORDER(nqp::cmp_i($a, $b))
 }
 
-proto sub infix:<before>($?, $?, *% --> Bool:D)  is pure {*}
+proto sub infix:<before>($?, $?, *% --> Bool:D) is pure {*}
 multi sub infix:<before>($? --> True) { }
 multi sub infix:<before>(\a, \b) {
     nqp::hllbool(nqp::eqaddr((a cmp b),Order::Less))
@@ -93,5 +93,10 @@ multi sub infix:<after>(\a, \b) {
 
 proto sub infix:<leg>($, $, *% --> Order:D) is pure {*}
 multi sub infix:<leg>(\a, \b) { a.Stringy cmp b.Stringy }
+
+proto sub infix:<unicmp>($, $, *% --> Order:D) is pure {*}
+
+# NOT is pure because of $*COLLATION
+proto sub infix:<coll>(  $, $, *% --> Order:D) {*}
 
 # vim: expandtab shiftwidth=4

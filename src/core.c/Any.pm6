@@ -462,14 +462,6 @@ multi sub infix:<===>(\a, \b --> Bool:D) {
     )
 }
 
-proto sub infix:<before>($?, $?, *%)  is pure {*}
-multi sub infix:<before>($? --> True) { }
-multi sub infix:<before>(\a, \b --> Bool:D) { (a cmp b) < 0 }
-
-proto sub infix:<after>($?, $?, *%) is pure {*}
-multi sub infix:<after>($x? --> True) { }
-multi sub infix:<after>(\a, \b --> Bool:D) { (a cmp b) > 0 }
-
 proto sub prefix:<++>(Mu, *%)        {*}
 multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
 multi sub prefix:<++>(Mu:U $a is rw) { $a = 1 }

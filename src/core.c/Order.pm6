@@ -10,7 +10,7 @@ sub ORDER(int $i --> Order) is implementation-detail {
       !! Same
 }
 
-proto sub infix:<cmp>($, $, *%) is pure {*}
+proto sub infix:<cmp>($, $, *% --> Order:D) is pure {*}
 multi sub infix:<cmp>(\a, \b) {
     nqp::eqaddr(nqp::decont(a), nqp::decont(b))
       ?? Same
@@ -73,6 +73,18 @@ multi sub infix:«<=>»(Int:D \a, Int:D \b) {
 }
 multi sub infix:«<=>»(int $a, int $b) {
     ORDER(nqp::cmp_i($a, $b))
+}
+
+proto sub infix:<before>($?, $?, *% --> Bool:D)  is pure {*}
+multi sub infix:<before>($? --> True) { }
+multi sub infix:<before>(\a, \b) {
+    nqp::hllbool(nqp::eqaddr((a cmp b),Order::Less))
+}
+
+proto sub infix:<after>($?, $?, *% --> Bool:D) is pure {*}
+multi sub infix:<after>($x? --> True) { }
+multi sub infix:<after>(\a, \b) {
+    nqp::hllbool(nqp::eqaddr((a cmp b),Order::More))
 }
 
 # vim: expandtab shiftwidth=4

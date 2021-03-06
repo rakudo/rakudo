@@ -413,14 +413,14 @@ multi sub infix:<**>(num $a, num $b --> num) {
 
 # Here we sort NaN in with string "NaN"
 multi sub infix:<cmp>(Num:D \a, Num:D \b) {
-     ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b))) or
-         a === b ?? Same # === cares about signed zeros, we don't, so:
+    nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b)) ?? ORDER(nqp::cmp_n(nqp::unbox_n(a), nqp::unbox_n(b)))
+       !! a === b ?? Same # === cares about signed zeros, we don't, so:
             !! nqp::iseq_n(a, 0e0) && nqp::iseq_n(b, 0e0)
                 ?? Same !! a.Stringy cmp b.Stringy;
 }
 multi sub infix:<cmp>(num $a, num $b) {
-    ORDER(nqp::cmp_n($a, $b)) or
-         $a === $b ?? Same # === cares about signed zeros, we don't, so:
+    nqp::cmp_n($a, $b) ?? ORDER(nqp::cmp_n($a, $b))
+       !! $a === $b ?? Same # === cares about signed zeros, we don't, so:
             !! nqp::iseq_n($a, 0e0) && nqp::iseq_n($b, 0e0)
                 ?? Same !! $a.Stringy cmp $b.Stringy;
 }

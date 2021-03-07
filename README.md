@@ -185,6 +185,10 @@ and on Twitter, there's a Raku news aggregator at
 Questions about NQP can also be posted to the #raku IRC channel.
 For questions about MoarVM, you can join #moarvm on freenode.
 
+## Code of Conduct
+
+The Raku community is committed to providing a welcoming, inclusive, safe, and enjoyable environment for everyone.  Programming should be `-Ofun`.  The Raku Community therefore has adopted a [Code of Conduct](https://github.com/Raku/problem-solving/blob/master/solutions/meta/code_of_conduct.md).  Please see the [CoC Incident Report Guide](https://github.com/Raku/problem-solving/blob/master/solutions/meta/coc_incident_response_guide.md) should you feel the need to report any violations of the Code of Conduct.
+
 ## Reporting bugs
 
 See https://github.com/rakudo/rakudo/issues/new

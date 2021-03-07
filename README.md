@@ -164,7 +164,7 @@ That can be written as a one-liner:
 ## Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available with
-help for Raku and Rakudo. Figuring out the right one to use
+help for the Raku Programming Language and Rakudo. Figuring out the right one to use
 is often the biggest battle. Here are some rough guidelines:
 
 The central hub for Raku information is [raku.org](https://raku.org/).

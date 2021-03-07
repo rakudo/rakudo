@@ -208,5 +208,4 @@ An alternative is to use a third-party program such as [rlwrap](https://github.c
 
 ## AUTHOR
 
-See CREDITS for the **many** people that have contributed
-to the development of the Rakudo compiler.
+See [CREDITS](CREDITS) for the **many** people that have contributed to the development of the Rakudo compiler, some of which have [left this existence way too early](IN-MEMORIAM.md).

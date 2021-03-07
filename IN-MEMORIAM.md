@@ -1,3 +1,5 @@
+# In Memoriam
+
 The people mentioned here have been contributors to the various stages of
 the development of the Raku Programming Language, but unfortunately have
 departed this existence.  We thank them for their contributions and hope

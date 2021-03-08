@@ -2065,6 +2065,7 @@ Consider using a block if any of these are necessary for your mapping code."
                 $redo = 0,
                 nqp::handle(
                   nqp::push(buffer,op($value)),
+                  'NEXT', nqp::null,
                   'REDO', ($redo = 1),
                   'LAST', ($value := IterationEnd),
                 ) 
@@ -2107,6 +2108,7 @@ Consider using a block if any of these are necessary for your mapping code."
                       nqp::push(buffer,$result)
                     ),
                   ),
+                  'NEXT', nqp::null,
                   'REDO', ($redo = 1),
                   'LAST', ($value := IterationEnd),
                 ) 
@@ -2157,6 +2159,7 @@ Consider using a block if any of these are necessary for your mapping code."
                       nqp::push(buffer,$result)
                     ),
                   ),
+                  'NEXT', nqp::null,
                   'REDO', ($redo = 1),
                   'LAST', ($value := IterationEnd),
                 ) 

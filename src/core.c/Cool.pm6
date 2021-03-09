@@ -56,6 +56,7 @@ my class Cool { # declared in BOOTSTRAP
     method floor()          { self.Numeric.floor        }
     method ceiling()        { self.Numeric.ceiling      }
     method truncate()       { self.Numeric.truncate     }
+    method frac()           { self.Numeric.frac         }
 
     ## string methods
 

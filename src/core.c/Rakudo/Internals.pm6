@@ -350,7 +350,7 @@ my class Rakudo::Internals {
             nqp::atkey($encodings,encoding),
             nqp::ifnull(
               nqp::atkey($encodings,nqp::lc(encoding)),
-              Nil
+              nqp::lc(encoding)
             )
           ),
           'utf8'

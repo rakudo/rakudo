@@ -289,14 +289,18 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         X::Buf::AsStr.new(object => self, method => 'Stringy' ).throw
     }
 
+    method !decode-from-registry($encoding, :$replacement, :$strict) {
+        my $decoder = CORE::Encoding::Registry
+                          .find($encoding)
+                          .decoder(|(:$replacement with $replacement), |(:$strict with $strict));
+        $decoder.add-bytes(self);
+        $decoder.consume-all-chars
+    }
+
     proto method decode(|) {*}
     multi method decode(Blob:D: $encoding = self.encoding // "utf-8") {
-        with Rakudo::Internals.NORMALIZE_ENCODING($encoding) {
-            nqp::p6box_s(nqp::decode(self, $_))
-        }
-        else { my $decoder = CORE::Encoding::Registry.find($encoding).decoder;
-               $decoder.add-bytes(self);
-               $decoder.consume-all-chars }
+        with Rakudo::Internals.NORMALIZE_ENCODING($encoding) { nqp::p6box_s(nqp::decode(self, $_)) }
+        else { self!decode-from-registry($encoding) }
     }
 #?if !jvm
     multi method decode(Blob:D: $encoding, Str :$replacement!, Bool:D :$strict = False) {
@@ -305,26 +309,20 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                             $_,
                             $replacement.defined ?? $replacement !! nqp::null_s(),
                             $strict ?? 0 !! 1))
-       }
-       else { my $decoder = CORE::Encoding::Registry.find($encoding).decoder(:$replacement, :$strict);
-              $decoder.add-bytes(self);
-              $decoder.consume-all-chars }
+        }
+        else { self!decode-from-registry($encoding) }
     }
     multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
         with Rakudo::Internals.NORMALIZE_ENCODING($encoding) {
-            nqp::p6box_s( nqp::decodeconf(self,
-                            $_,
-                            $strict ?? 0 !! 1))
+            nqp::p6box_s( nqp::decodeconf(self, $_, $strict ?? 0 !! 1))
         }
-        else { my $decoder = CORE::Encoding::Registry.find($encoding).decoder(:$strict);
-               $decoder.add-bytes(self);
-               $decoder.consume-all-chars }
+        else { self!decode-from-registry($encoding) }
     }
 #?endif
 #?if jvm
     multi method decode(Blob:D: $encoding, Bool:D :$strict = False) {
-        nqp::p6box_s(
-          nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
+        with Rakudo::Internals.NORMALIZE_ENCODING($encoding) { nqp::p6box_s(nqp::decode(self, $_)) }
+        else { self!decode-from-registry($encoding) }
     }
     multi method decode(Blob:D: $encoding, Str:D :$replacement!, Bool:D :$strict = False) {
         X::NYI.new(:feature<decode-with-replacement>).throw

@@ -125,10 +125,9 @@ multi sub close(Channel:D $channel) { $channel.close }
 
 proto sub slurp(|) {*}
 multi sub slurp(*%_) { $*ARGFILES.slurp(|%_) }
-multi sub slurp(IO::Handle:D $fh, *%_) { $fh.slurp(|%_) }
-multi sub slurp(IO() $path, :$bin!) { $path.slurp(:$bin) }
-multi sub slurp(IO() $path, :$enc ) { $path.slurp(:$enc) }
-multi sub slurp(IO() $path        ) { $path.slurp(:enc<utf8>) }
+multi sub slurp(IO::Handle:D $fh, *%_)    { $fh.slurp(|%_) }
+multi sub slurp(IO() $path, :$bin!)       { $path.slurp(:$bin) }
+multi sub slurp(IO() $path, :$enc='utf8') { $path.slurp(:$enc) }
 
 proto sub spurt($, |) {*}
 # Don't do anything special for the IO::Handle, as using spurt() as a sub

@@ -2087,6 +2087,8 @@ Consider using a block if any of these are necessary for your mapping code."
         my \buffer   := nqp::create(IterationBuffer);
         my $value    := iterator.pull-one;
 
+        sub deep(\value) is raw { my $ = value.deepmap(&op) }
+
         nqp::until(
           nqp::eqaddr($value,IterationEnd),
           nqp::stmts(
@@ -2099,7 +2101,7 @@ Consider using a block if any of these are necessary for your mapping code."
                   nqp::stmts(
                     (my $result := nqp::if(
                       nqp::istype($value,Iterable) && $value.DEFINITE,
-                      $value.deepmap(&op),
+                      deep($value),
                       op($value)
                     )),
                     nqp::if(
@@ -2133,10 +2135,10 @@ Consider using a block if any of these are necessary for your mapping code."
         my \buffer   := nqp::create(IterationBuffer);
         my $value    := iterator.pull-one;
 
-        sub duck(\arg) {
+        sub duck(\arg) is raw {
             CATCH {
                 return nqp::istype(arg,Iterable:D)
-                  ?? arg.duckmap(&op)
+                  ?? (my $ = arg.duckmap(&op))
                   !! arg
             }
             op(arg)

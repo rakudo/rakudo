@@ -133,14 +133,8 @@ class RakuAST::ArgList is RakuAST::CaptureSource {
 
 # Base role for all kinds of calls (named sub calls, calling some term, and
 # method calls).
-class RakuAST::Call is RakuAST::Sinkable {
+class RakuAST::Call {
     has RakuAST::ArgList $.args;
-
-    method IMPL-APPLY-SINK(Mu $qast) {
-        self.sunk
-            ?? QAST::Op.new( :op('p6sink'), $qast )
-            !! $qast
-    }
 }
 
 # A call to a named sub.
@@ -178,7 +172,7 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
             nqp::die('compiling complex call names NYI')
         }
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        self.IMPL-APPLY-SINK($call)
+        $call
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -211,7 +205,7 @@ class RakuAST::Call::Term is RakuAST::Call is RakuAST::Postfixish {
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $callee-qast) {
         my $call := QAST::Op.new( :op('call'), $callee-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        self.IMPL-APPLY-SINK($call)
+        $call
     }
 }
 
@@ -256,7 +250,7 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
                 # A standard method call.
                 my $call := QAST::Op.new( :op('callmethod'), :$name, $invocant-qast );
                 self.args.IMPL-ADD-QAST-ARGS($context, $call);
-                self.IMPL-APPLY-SINK($call)
+                $call
             }
         }
         else {
@@ -318,7 +312,7 @@ class RakuAST::Call::QuotedMethod is RakuAST::Call::Methodish {
         my $name-qast := QAST::Op.new( :op<unbox_s>, $!name.IMPL-TO-QAST($context) );
         my $call := QAST::Op.new( :op('callmethod'), $invocant-qast, $name-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        self.IMPL-APPLY-SINK($call)
+        $call
     }
 }
 
@@ -340,7 +334,7 @@ class RakuAST::Call::MetaMethod is RakuAST::Call::Methodish {
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         my $call := QAST::Op.new( :op('p6callmethodhow'), :name($!name), $invocant-qast );
         self.args.IMPL-ADD-QAST-ARGS($context, $call);
-        self.IMPL-APPLY-SINK($call)
+        $call
     }
 }
 

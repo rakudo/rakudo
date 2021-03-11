@@ -52,6 +52,8 @@ class RakuAST::Code is RakuAST::Node {
             )
         });
     }
+
+    method needs-sink-call() { False }
 }
 
 # A block, either without signature or with only a placeholder signature.

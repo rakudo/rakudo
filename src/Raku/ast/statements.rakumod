@@ -205,9 +205,7 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := $!expression.IMPL-TO-QAST($context);
-        if self.sunk && !nqp::istype($!expression, RakuAST::Sinkable) {
-            # In sink context and doesn't apply its own sinking, so we should
-            # sink the result of the expression.
+        if self.sunk && $!expression.needs-sink-call {
             $qast := QAST::Op.new( :op('p6sink'), $qast );
         }
         $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier;

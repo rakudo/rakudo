@@ -67,16 +67,8 @@ class RakuAST::StatementList is RakuAST::SinkPropagator {
         while $i < $n {
             my $cur-statement := @statements[$i];
             $cur-statement.apply-sink($i == $wanted-statement ?? False !! True);
-            if $has-block-parent {
-                if nqp::istype($cur-statement, RakuAST::BlockStatementSensitive) {
-                    $cur-statement.mark-block-statement();
-                }
-                elsif nqp::istype($cur-statement, RakuAST::Statement::Expression) {
-                    my $expr := $cur-statement.expression;
-                    if nqp::istype($expr, RakuAST::BlockStatementSensitive) {
-                        $expr.mark-block-statement();
-                    }
-                }
+            if $has-block-parent && nqp::istype($cur-statement, RakuAST::BlockStatementSensitive) {
+                $cur-statement.mark-block-statement();
             }
             $i++;
         }
@@ -181,7 +173,8 @@ class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookup
 # An expression statement is a statement consisting of the evaluation of an
 # expression. It may have modifiers also, and the expression may consist of a
 # single term.
-class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropagator {
+class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropagator
+                                     is RakuAST::Sinkable is RakuAST::BlockStatementSensitive {
     has RakuAST::Expression $.expression;
     has RakuAST::StatementModifier::Condition $.condition-modifier;
     has RakuAST::StatementModifier::Loop $.loop-modifier;
@@ -213,12 +206,28 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         my $qast := $!expression.IMPL-TO-QAST($context);
         $qast := $!condition-modifier.IMPL-WRAP-QAST($context, $qast) if $!condition-modifier;
-        $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast) if $!loop-modifier;
+        if $!loop-modifier {
+            my $sink := self.IMPL-DISCARD-RESULT;
+            $qast := $!loop-modifier.IMPL-WRAP-QAST($context, $qast, :$sink);
+        }
         $qast
+    }
+
+    method IMPL-DISCARD-RESULT() {
+        self.is-block-statement || self.sunk
     }
 
     method propagate-sink(Bool $is-sunk) {
         $!expression.apply-sink($is-sunk) if $is-sunk;
+        $!condition-modifier.apply-sink(False) if $!condition-modifier;
+        $!loop-modifier.apply-sink(False) if $!loop-modifier;
+    }
+
+    method mark-block-statement() {
+        nqp::findmethod(RakuAST::BlockStatementSensitive, 'mark-block-statement')(self);
+        if nqp::istype($!expression, RakuAST::BlockStatementSensitive) {
+            $!expression.mark-block-statement();
+        }
     }
 
     method visit-children(Code $visitor) {

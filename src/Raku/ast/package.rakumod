@@ -153,4 +153,6 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         self.visit-traits($visitor);
         $visitor($!body);
     }
+
+    method needs-sink-call() { False }
 }

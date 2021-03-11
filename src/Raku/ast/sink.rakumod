@@ -53,6 +53,10 @@ class RakuAST::Sinkable is RakuAST::Node {
     }
 
     method sunk() { $!sunk ?? True !! False }
+
+    # Things that take care of their own sinking do not need us to call
+    # the sink method on them
+    method needs-sink-call() { False }
 }
 
 # Marks nodes that want to know if they are block-level statements or not.

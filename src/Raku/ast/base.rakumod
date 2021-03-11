@@ -36,6 +36,10 @@ class RakuAST::Node {
         }
     }
 
+    # Checks if this node needs the sink method calling on it in the event
+    # that it appears in a sink context.
+    method needs-sink-call() { True }
+
     # Resolves all nodes beneath this one, recursively, using the specified
     # resolver.
     method resolve-all(RakuAST::Resolver $resolver) {

@@ -403,6 +403,8 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
             nqp::die("Cannot compile lookup of scope $scope")
         }
     }
+
+    method needs-sink-call() { False }
 }
 
 # An anonymous variable declaration, such as `my $ = 42`

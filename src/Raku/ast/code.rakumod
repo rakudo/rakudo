@@ -523,7 +523,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method is-boundary-sunk() {
-        True
+        False
     }
 
     method visit-children(Code $visitor) {

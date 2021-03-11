@@ -143,29 +143,39 @@ class RakuAST::StatementModifier::Loop is RakuAST::StatementModifier {
 
 # The while statement modifier.
 class RakuAST::StatementModifier::While is RakuAST::StatementModifier::Loop {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
-        QAST::Op.new(
-            :op('while'),
-            self.expression.IMPL-TO-QAST($context),
-            $statement-qast
-        )
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
+        if $sink {
+            nqp::die('non-sink statement modifier until NYI');
+        }
+        else {
+            QAST::Op.new(
+                :op('while'),
+                self.expression.IMPL-TO-QAST($context),
+                $statement-qast
+            )
+        }
     }
 }
 
 # The until statement modifier.
 class RakuAST::StatementModifier::Until is RakuAST::StatementModifier::Loop {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
-        QAST::Op.new(
-            :op('until'),
-            self.expression.IMPL-TO-QAST($context),
-            $statement-qast
-        )
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
+        if $sink {
+            nqp::die('non-sink statement modifier until NYI');
+        }
+        else {
+            QAST::Op.new(
+                :op('until'),
+                self.expression.IMPL-TO-QAST($context),
+                $statement-qast
+            )
+        }
     }
 }
 
 # The given statement modifier.
 class RakuAST::StatementModifier::Given is RakuAST::StatementModifier::Loop {
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
         self.IMPL-TEMPORARIZE-TOPIC(
             self.expression.IMPL-TO-QAST($context),
             $statement-qast
@@ -207,15 +217,15 @@ class RakuAST::StatementModifier::For is RakuAST::StatementModifier::Loop
         $block
     }
 
-    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast) {
+    method IMPL-WRAP-QAST(RakuAST::IMPL::QASTContext $context, Mu $statement-qast, Bool :$sink) {
         # Place the code we get into the block we produced.
         my $block := nqp::ifnull($!qast-block,
             nqp::die('Missing QAST block in `for` statement modifier'));
         $block.push($statement-qast);
 
         # Delegate compilation to the non-modifier `for` statement.
-        # TODO non-sink context
-        RakuAST::Statement::For.IMPL-FOR-QAST($context, 'serial', 'sink',
+        RakuAST::Statement::For.IMPL-FOR-QAST($context, 'serial',
+            ($sink ?? 'sink' !! 'eager'),
             self.expression.IMPL-TO-QAST($context),
             self.IMPL-CLOSURE-QAST())
     }

@@ -1820,24 +1820,16 @@ Consider using a block if any of these are necessary for your mapping code."
     proto method collate(|) {*}
     multi method collate() { self.sort(&[coll]) }
 
-    sub find-reducer-for-op(&op) {
-        nqp::iseq_s(&op.prec("prec"),"f=")
-          ?? &METAOP_REDUCE_LISTINFIX
-          !! nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0)
-            ?? &METAOP_REDUCE_LEFT
-            !! ::(nqp::concat('&METAOP_REDUCE_',nqp::uc($assoc)))
-    }
-
     proto method reduce(|) is nodal {*}
     multi method reduce(Any:U: & --> Nil) { }
     multi method reduce(Any:D: &with) {
-        (find-reducer-for-op(&with))(&with)(self)
+        (&with.reducer)(&with)(self)
     }
 
     proto method produce(|) is nodal {*}
     multi method produce(Any:U: & --> Nil) { }
     multi method produce(Any:D: &with) {
-        (find-reducer-for-op(&with))(&with,1)(self)
+        (&with.reducer)(&with, 1)(self)
     }
 
     proto method slice(|) is nodal { * }

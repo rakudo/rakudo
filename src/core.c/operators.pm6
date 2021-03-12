@@ -429,31 +429,28 @@ multi sub infix:<orelse>(+$) {
 
 # next three sub would belong to traits.pm6 if PseudoStash were available
 # so early in the setting compunit
-multi sub trait_mod:<is>(Routine $r, Str :$equiv!) {
-    if (my $i = nqp::index($r.name, ':')) > 0 {
-        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($equiv) ~ '>';
-        trait_mod:<is>($r, equiv => ::(nm));
-        return;
-    }
-    die "Routine given to equiv does not appear to be an operator";
+multi sub trait_mod:<is>(Routine $r, str :$equiv! --> Nil) {
+    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
+      ?? $r.equiv(::(
+           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($equiv) ~ '>'
+         ))
+      !! (die "Routine given to 'is equiv' does not appear to be an operator")
 }
 
 multi sub trait_mod:<is>(Routine $r, Str :$tighter!) {
-    if (my $i = nqp::index($r.name, ':')) > 0 {
-        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($tighter) ~ '>';
-        trait_mod:<is>($r, tighter => ::(nm));
-        return;
-    }
-    die "Routine given to tighter does not appear to be an operator";
+    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
+      ?? $r.tighter(::(
+           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($tighter) ~ '>'
+         ))
+      !! (die "Routine given to 'is tighter' does not appear to be an operator")
 }
 
 multi sub trait_mod:<is>(Routine $r, Str :$looser!) {
-    if (my $i = nqp::index($r.name, ':')) > 0 {
-        my \nm ='&' ~ nqp::substr($r.name, 0, $i+1) ~ '<' ~ nqp::escape($looser) ~ '>';
-        trait_mod:<is>($r, looser => ::(nm));
-        return;
-    }
-    die "Routine given to looser does not appear to be an operator";
+    nqp::isgt_i((my int $i = nqp::index($r.name,':')),0)
+      ?? $r.looser(::(
+           '&' ~ nqp::substr($r.name,0,$i+1) ~ '<' ~ nqp::escape($looser) ~ '>'
+         ))
+      !! (die "Routine given to 'is looser' does not appear to be an operator")
 }
 
 proto sub infix:<o> (&?, &?, *%) {*}

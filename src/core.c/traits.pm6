@@ -1,3 +1,5 @@
+my class OperatorProperties { ... }
+
 # for errors
 my class X::Syntax::ParentAsHash { ... }
 my class X::Inheritance::Unsupported { ... }
@@ -199,50 +201,33 @@ multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
 multi sub trait_mod:<is>(Routine:D $r, :onlystar($)!) {
     $r.set_onlystar();
 }
-multi sub trait_mod:<is>(Routine:D $r, :prec(%spec)!) {
-    my role Precedence {
-        has %!prec;
-        proto method prec(|) {*}
-        multi method prec() is raw { %!prec }
-        multi method prec(Str:D $key) {
-            nqp::ifnull(
-              nqp::atkey(nqp::getattr(%!prec,Map,'$!storage'),$key),
-              ''
-            )
-        }
-    }
-    if nqp::istype($r, Precedence) {
-        for %spec {
-            $r.prec.{.key} := .value;
-        }
-    }
-    else {
-        $r.^mixin(Precedence);
-        nqp::bindattr(nqp::decont($r), $r.WHAT, '%!prec', %spec);
-    }
-    0;
+
+# old interface, should probably be marked DEPRECATED
+multi sub trait_mod:<is>(Routine:D $r, :%prec!) {     # --> Nil
+    nqp::bindattr($r,Routine,'$!op_props',OperatorProperties.new(|%(
+      (precedence  => $_ with %prec<prec>),
+      (associative => $_ with %prec<assoc>),
+      (thunky      => $_ with %prec<thunky>),
+      (iffy        => $_ with %prec<iffy>),
+    )));
+    Nil
 }
 # three other trait_mod sub for equiv/tighter/looser in operators.pm6
-multi sub trait_mod:<is>(Routine:D $r, Code :$equiv!) {
-    trait_mod:<is>($r, :prec($equiv.prec));
-    $r.prec<assoc>:delete;
+multi sub trait_mod:<is>(Routine:D $r, :&equiv!) {    # --> Nil
+    $r.equiv(&equiv);
+    Nil
 }
-multi sub trait_mod:<is>(Routine:D $r, Code :$tighter!) {
-    if $r.prec<prec> !~~ /<[@:]>/ {
-        trait_mod:<is>($r, :prec($tighter.prec))
-    }
-    $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', '@=');
-    $r.prec<assoc>:delete;
+multi sub trait_mod:<is>(Routine:D $r, :&tighter!) {  # --> Nil
+    $r.tighter(&tighter);
+    Nil
 }
-multi sub trait_mod:<is>(Routine:D $r, Code :$looser!) {
-    if $r.prec<prec> !~~ /<[@:]>/ {
-        trait_mod:<is>($r, :prec($looser.prec))
-    }
-    $r.prec<prec> && ($r.prec<prec> := $r.prec<prec>.subst: '=', ':=');
-    $r.prec<assoc>:delete;
+multi sub trait_mod:<is>(Routine:D $r, :&looser!) {   # --> Nil
+    $r.looser(&looser);
+    Nil
 }
-multi sub trait_mod:<is>(Routine:D $r, :$assoc!) {
-    trait_mod:<is>($r, :prec({ :$assoc }))
+multi sub trait_mod:<is>(Routine:D $r, :$assoc!) {    # --> Nil
+    $r.assoc($assoc);
+    Nil
 }
 
 # Since trait_mod:<is> to set onlystar isn't there at the

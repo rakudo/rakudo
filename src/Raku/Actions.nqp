@@ -952,7 +952,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $routine.replace-signature($<signature>.ast);
         }
         $routine.replace-body($<blockoid>.ast);
-        $routine.calculate-sink();
         $routine.ensure-begin-performed($*R);
         self.attach: $/, $routine;
     }
@@ -963,7 +962,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $routine.replace-signature($<signature>.ast);
         }
         $routine.replace-body($<blockoid>.ast);
-        $routine.calculate-sink();
         self.attach: $/, $routine;
     }
 
@@ -1154,7 +1152,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             # TODO have to twiddle based on sep
             @parameters.push($param);
         }
-        self.attach: $/, self.r('Signature').new(:@parameters);
+        my $returns;
+        if $<typename> {
+            $returns := $<typename>.ast;
+        }
+        elsif $<value> {
+            $returns := $<value>.ast;
+            unless nqp::istype($returns, self.r('CompileTimeValue')) {
+                $<value>.panic('Return value after --> may only be a type or a constant');
+            }
+        }
+        else {
+            $returns := self.r('Node');
+        }
+        self.attach: $/, self.r('Signature').new(:@parameters, :$returns);
     }
 
     method parameter($/) {

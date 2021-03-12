@@ -1777,13 +1777,13 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <.ws>
         [ <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' > || <.malformed('parameter')> ]
         { $*IN_DECL := ''; }
-#        [ '-->' <.ws> [ || [<typename>|<value>||<typo_typename(1)>] <.ws>
-#                           [ || <?[ { ) ]>
-#                             || <?before <.param_sep>? <.parameter>>
-#                                <.malformed('return value (return constraints only allowed at the end of the signature)')>
-#                           ]
-#                        || <.malformed('return value')>
-#                      ] ]?
+        [ '-->' <.ws> [ || [<typename>|<value>||<typo_typename(1)>] <.ws>
+                           [ || <?[ { ) ]>
+                             || <?before <.param_sep>? <.parameter>>
+                                <.malformed('return value (return constraints only allowed at the end of the signature)')>
+                           ]
+                        || <.malformed('return value')>
+                      ] ]?
         { $*LEFTSIGIL := '@'; }
     }
 

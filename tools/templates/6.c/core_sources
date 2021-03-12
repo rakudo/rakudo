@@ -165,7 +165,7 @@ src/core.c/Rakudo/SEQUENCE.pm6
 src/core.c/operators.pm6
 src/core.c/Hyper.pm6
 src/core.c/metaops.pm6
-src/core.c/precedence.pm6
+src/core.c/OperatorProperties.pm6
 src/core.c/Deprecations.pm6
 src/core.c/Thread.pm6
 src/core.c/Lock.pm6

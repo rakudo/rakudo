@@ -37,7 +37,7 @@ sub METAOP_REVERSE(\op) is implementation-detail {
 }
 
 sub METAOP_CROSS(\op, &reduce) is implementation-detail {
-    nqp::if(op.prec('thunky').starts-with('.'),
+    nqp::if(op.thunky.starts-with('.'),
     -> +lol {
         my $rop = lol.elems == 2 ?? op !! &reduce(op);
         my $laze = False;
@@ -97,7 +97,7 @@ sub METAOP_CROSS(\op, &reduce) is implementation-detail {
 }
 
 sub METAOP_ZIP(\op, &reduce) is implementation-detail {
-   nqp::if(op.prec('thunky').starts-with('.'),
+   nqp::if(op.thunky.starts-with('.'),
    -> +lol {
         my $arity = lol.elems;
         my $rop = $arity == 2 ?? op !! &reduce(op);

@@ -16,6 +16,34 @@ my class Routine { # declared in BOOTSTRAP
     #     has Mu $!package;
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
+    #     has Mu $!op_props;
+
+    # Accessing operator properties, can be simplified once we can make
+    # $!op_props have an OperatorProperties constraint in bootstrap
+    method prec(|c)      { ($!op_props // OperatorProperties).prec(|c)        }
+    method precedence()  { ($!op_props // OperatorProperties).precedence  }
+    method associative() { ($!op_props // OperatorProperties).associative }
+    method thunky()      { ($!op_props // OperatorProperties).thunky      }
+    method iffy()        { ($!op_props // OperatorProperties).iffy        }
+    method reducer()     { ($!op_props // OperatorProperties).reducer     }
+
+    method op_props() is implementation-detail {
+        $!op_props // OperatorProperties
+    }
+
+    # Set operator properties, usually called through trait_mods
+    method equiv(Routine:D: &op --> Nil) {
+        nqp::bindattr(self,Routine,'$!op_props',&op.op_props.equiv)
+    }
+    method tighter(Routine:D: &op --> Nil) {
+        nqp::bindattr(self,Routine,'$!op_props',&op.op_props.tighter)
+    }
+    method looser(Routine:D: &op --> Nil) {
+        nqp::bindattr(self,Routine,'$!op_props',&op.op_props.looser)
+    }
+    method assoc(Routine:D: Str:D $assoc --> Nil) {
+        nqp::bindattr(self,Routine,'$!op_props',OperatorProperties.new(:$assoc))
+    }
 
     method candidates(Bool :$local = True, Bool() :$with-proto) {
         $local

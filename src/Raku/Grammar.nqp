@@ -1737,6 +1737,16 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
         <!old_rx_mods>
     }
+    token quote:sym<m> {
+        <sym> (s)**0..1
+        :my %*RX;
+        :my $*INTERPOLATE := 1;
+        { %*RX<s> := 1 if $/[0] }
+        <.qok($/)>
+#        <rx_adverbs>
+        <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
+        <!old_rx_mods>
+    }
 
     token old_rx_mods {
         (<[ i g s m x c e ]>)

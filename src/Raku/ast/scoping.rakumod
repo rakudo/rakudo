@@ -48,14 +48,14 @@ class RakuAST::LexicalScope is RakuAST::Node {
             $stmts.push(QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :decl('var'), :name('__CATCH_HANDLER'), :scope('lexical') ),
-                $!catch-handlers[0].body.IMPL-CLOSURE-QAST()
+                $!catch-handlers[0].body.IMPL-CLOSURE-QAST($context)
             ));
         }
         if $!control-handlers {
             $stmts.push(QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :decl('var'), :name('__CONTROL_HANDLER'), :scope('lexical') ),
-                $!control-handlers[0].body.IMPL-CLOSURE-QAST()
+                $!control-handlers[0].body.IMPL-CLOSURE-QAST($context)
             ));
         }
 

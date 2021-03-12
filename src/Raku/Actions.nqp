@@ -1134,6 +1134,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('QuotedRegex').new(body => $<quibble>.ast);
     }
 
+    method quote:sym<m>($/) {
+        self.attach: $/, self.r('QuotedRegex').new(body => $<quibble>.ast, :match-immediately);
+    }
+
     ##
     ## Types
     ##

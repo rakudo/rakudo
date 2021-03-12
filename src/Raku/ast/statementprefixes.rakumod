@@ -199,7 +199,7 @@ class RakuAST::StatementPrefix::Gather is RakuAST::StatementPrefix::Thunky is Ra
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        QAST::Op.new( :op('call'), :name('&GATHER'), self.IMPL-CLOSURE-QAST() )
+        QAST::Op.new( :op('call'), :name('&GATHER'), self.IMPL-CLOSURE-QAST($context) )
     }
 }
 
@@ -224,7 +224,7 @@ class RakuAST::StatementPrefix::Start is RakuAST::StatementPrefix::Thunky
         my $qast := QAST::Op.new(
             :op('callmethod'), :name('start'),
             $promise,
-            self.IMPL-CLOSURE-QAST()
+            self.IMPL-CLOSURE-QAST($context)
         );
         unless $context.lang-version eq 'c' {
             my $true := @lookups[1].IMPL-TO-QAST($context);

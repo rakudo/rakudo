@@ -83,7 +83,7 @@ class Rakudo::Metaops {
           nqp::existskey($mappers,(my str $where = nqp::tostr_I(&op.WHERE))),
           nqp::atkey($mappers,$where),
           nqp::if(
-            nqp::iseq_i(nqp::chars(my str $assoc = &op.prec("assoc")),0)
+            nqp::iseq_i(nqp::chars(my str $assoc = &op.associative),0)
               || nqp::iseq_s($assoc,'left'),
             -> \list {                   # generic left-assoc op
                 nqp::if(

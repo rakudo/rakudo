@@ -614,7 +614,9 @@ class RakuAST::Deparse {
     }
 
     multi method deparse(RakuAST::QuotedRegex:D $ast --> str) {
-        nqp::concat($.regex-open,
+        my str $starter = $ast.match-immediately ?? 'm' !! '';
+        nqp::concat(
+          nqp::concat($starter, $.regex-open),
           nqp::concat(self.deparse($ast.body),$.regex-close)
         )
     }

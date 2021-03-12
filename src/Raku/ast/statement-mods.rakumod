@@ -227,6 +227,6 @@ class RakuAST::StatementModifier::For is RakuAST::StatementModifier::Loop
         RakuAST::Statement::For.IMPL-FOR-QAST($context, 'serial',
             ($sink ?? 'sink' !! 'eager'),
             self.expression.IMPL-TO-QAST($context),
-            self.IMPL-CLOSURE-QAST())
+            self.IMPL-CLOSURE-QAST($context))
     }
 }

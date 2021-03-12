@@ -247,7 +247,7 @@ class RakuAST::Regex::CapturingGroup is RakuAST::Regex::Atom is RakuAST::RegexTh
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
-                self.IMPL-CLOSURE-QAST()
+                self.IMPL-CLOSURE-QAST($context)
             )
         )
     }
@@ -541,7 +541,7 @@ class RakuAST::Regex::Assertion::Named::RegexArg is RakuAST::Regex::Assertion::N
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
-                self.IMPL-CLOSURE-QAST()
+                self.IMPL-CLOSURE-QAST($context)
             )
         )
     }

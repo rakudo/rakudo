@@ -24,15 +24,14 @@ class RakuAST::Blockoid is RakuAST::SinkPropagator {
 
 # Marker for all code-y things.
 class RakuAST::Code is RakuAST::Node {
-    method IMPL-CLOSURE-QAST() {
+    method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
         my $code-obj := self.meta-object;
-        QAST::Op.new(
-            :op('p6capturelex'),
-            QAST::Op.new(
-                :op('callmethod'), :name('clone'),
-                QAST::WVal.new( :value($code-obj) )
-            )
-        )
+        my $clone := QAST::Op.new(
+            :op('callmethod'), :name('clone'),
+            QAST::WVal.new( :value($code-obj) )
+        );
+        self.IMPL-TWEAK-REGEX-CLONE($context, $clone) if $regex;
+        QAST::Op.new( :op('p6capturelex'), $clone )
     }
 
     method IMPL-LINK-META-OBJECT(RakuAST::IMPL::QASTContext $context, Mu $block) {
@@ -231,7 +230,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         else {
             # Not immediate, so already produced as a declaration above; just
             # closure clone it. Only invoke if it's a bare block.
-            my $ast := self.IMPL-CLOSURE-QAST();
+            my $ast := self.IMPL-CLOSURE-QAST($context);
             self.bare-block
                 ?? QAST::Op.new( :op('call'), $ast )
                 !! $ast
@@ -487,7 +486,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :decl<var>, :scope<lexical>, :$name ),
-                self.IMPL-CLOSURE-QAST()
+                self.IMPL-CLOSURE-QAST($context)
             )
         }
         else {
@@ -501,7 +500,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             QAST::Var.new( :scope<lexical>, :name('&' ~ $canon-name) )
         }
         else {
-            self.IMPL-CLOSURE-QAST
+            self.IMPL-CLOSURE-QAST($context)
         }
     }
 
@@ -633,8 +632,8 @@ class RakuAST::RegexDeclaration is RakuAST::Code is RakuAST::LexicalScope is Rak
 }
 
 # Done by things that "thunk" a regex - that is to say, they want to compile as
-# a separate regex code object but without introducing a new lexical scope. This#
-# includes quoted regexes like /.../, capturing groups, and calls of the  form
+# a separate regex code object but without introducing a new lexical scope. This
+# includes quoted regexes like /.../, capturing groups, and calls of the form
 # `<?before foo>`, where `foo` is the thunked regex.
 class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
     method PRODUCE-META-OBJECT() {
@@ -674,19 +673,32 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
 # A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
 # new lexical scope.
 class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
-                           is RakuAST::Sinkable {
+                           is RakuAST::Sinkable is RakuAST::ImplicitLookups {
     has RakuAST::Regex $.body;
+    has Bool $.match-immediately;
 
-    method new(RakuAST::Regex :$body) {
+    method new(RakuAST::Regex :$body, Bool :$match-immediately) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::QuotedRegex, '$!body',
             $body // RakuAST::Regex::Assertion::Fail.new);
+        nqp::bindattr($obj, RakuAST::QuotedRegex, '$!match-immediately',
+            $match-immediately ?? True !! False);
         $obj
     }
 
     method replace-body(RakuAST::Regex $new-body) {
         nqp::bindattr(self, RakuAST::QuotedRegex, '$!body', $new-body);
         Nil
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Var::Lexical.new('$_'),
+            RakuAST::Var::Lexical.new('$/'),
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier-parts(
+                'Rakudo', 'Internals', 'RegexBoolification6cMarker'
+            ))
+        ])
     }
 
     method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -701,8 +713,46 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        # TODO topic/slash capture and sink context
-        self.IMPL-CLOSURE-QAST
+        my $closure := self.IMPL-CLOSURE-QAST($context, :regex);
+        if $!match-immediately {
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+            my $topic := @lookups[0].IMPL-TO-QAST($context);
+            my $match-qast := QAST::Op.new(
+                :op('callmethod'), :name('match'),
+                $topic, $closure );
+            # TODO immediate match mode updating $/ should not always happen,
+            # but adverbs NYI so far
+            if 1 {
+                my $slash := @lookups[0].IMPL-TO-QAST($context);
+                QAST::Op.new( :op('p6store'), $slash, $match-qast )
+            }
+            else {
+                $match-qast
+            }
+        }
+        else {
+            self.sunk
+                ?? QAST::Op.new( :op('callmethod'), :name('Bool'), $closure )
+                !! $closure
+        }
+    }
+
+    method IMPL-TWEAK-REGEX-CLONE(RakuAST::IMPL::QASTContext $context, Mu $clone) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        if $context.lang-version lt 'd' {
+            my $topic := @lookups[2].IMPL-TO-QAST($context);
+            $topic.named('topic');
+            $clone.push($topic);
+        }
+        else {
+            my $topic := @lookups[0].IMPL-TO-QAST($context);
+            $topic.named('topic');
+            $clone.push($topic);
+            my $slash := @lookups[1].IMPL-TO-QAST($context);
+            $slash.named('slash');
+            $clone.push($slash);
+        }
+        Nil
     }
 
     method visit-children(Code $visitor) {

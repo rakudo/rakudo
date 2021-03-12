@@ -2,15 +2,17 @@
 # signature literal or a signature-based variable declarator.
 class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     has List $.parameters;
+    has RakuAST::Node $.returns;
     has int $!is-on-method;
     has RakuAST::Package $!method-package;
     has RakuAST::Parameter $!implicit-invocant;
     has RakuAST::Parameter $!implicit-slurpy-hash;
 
-    method new(List :$parameters) {
+    method new(List :$parameters, RakuAST::Node :$returns) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Signature, '$!parameters',
             self.IMPL-WRAP-LIST($parameters // []));
+        nqp::bindattr($obj, RakuAST::Signature, '$!returns', $returns // RakuAST::Node);
         $obj
     }
 
@@ -27,6 +29,16 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         }
         else {
             nqp::bindattr_i(self, RakuAST::Signature, '$!is-on-method', 0);
+        }
+    }
+
+    method provides-return-value() {
+        if $!returns {
+            my $value := self.IMPL-RETURN-VALUE();
+            nqp::isconcrete($value) || nqp::eqaddr($value, Nil) ?? True !! False
+        }
+        else {
+            False
         }
     }
 
@@ -61,7 +73,25 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         nqp::bindattr($signature, Signature, '@!params', @parameters);
         nqp::bindattr_i($signature, Signature, '$!arity', self.arity);
         nqp::bindattr($signature, Signature, '$!count', self.count);
+
+        # Figure out and set return type.
+        nqp::bindattr($signature, Signature, '$!returns', $!returns
+            ?? self.IMPL-RETURN-VALUE()
+            !! nqp::null());
+
         $signature
+    }
+
+    method IMPL-RETURN-VALUE() {
+        if nqp::istype($!returns, RakuAST::Type) {
+            $!returns.resolution.compile-time-value
+        }
+        elsif nqp::istype($!returns, RakuAST::CompileTimeValue) {
+            $!returns.compile-time-value
+        }
+        else {
+            nqp::die('--> return constraint must be a type or a constant value');
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
@@ -105,6 +135,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
         for self.IMPL-UNWRAP-LIST($!parameters) {
             $visitor($_);
         }
+        $visitor($!returns) if $!returns;
     }
 }
 

@@ -53,7 +53,17 @@ class RakuAST::Code is RakuAST::Node {
         });
     }
 
+    method IMPL-APPEND-SIGNATURE-RETURN(RakuAST::IMPL::QASTContext $context, Mu $qast-stmts) {
+        my $signature := self.signature;
+        if $signature && $signature.provides-return-value {
+            $qast-stmts.push($signature.returns.IMPL-TO-QAST($context));
+        }
+        $qast-stmts
+    }
+
     method needs-sink-call() { False }
+
+    method signature() { Nil }
 }
 
 # A block, either without signature or with only a placeholder signature.
@@ -111,8 +121,6 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         self.clear-handler-attachments();
         Nil
     }
-
-    method signature() { Nil }
 
     method propagate-sink(Bool $is-sunk) {
         $!body.apply-sink($is-sunk);
@@ -185,7 +193,8 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 
         # Compile body and, if needed, a signature, and set up arity and any
         # exception rethrow logic.
-        my $body-qast := $!body.IMPL-TO-QAST($context);
+        my $body-qast := self.IMPL-APPEND-SIGNATURE-RETURN($context,
+            $!body.IMPL-TO-QAST($context));
         my $signature := self.signature;
         if $signature {
             $block.push($signature.IMPL-TO-QAST($context));
@@ -419,7 +428,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         $block.arity($!signature.arity);
         $block.annotate('count', $!signature.count);
         $block.push(self.IMPL-WRAP-RETURN-HANDLER($context,
-            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context, $!body.IMPL-TO-QAST($context))));
+            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
+                self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context)))));
         $block
     }
 
@@ -444,7 +454,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         # Add return type check if needed.
         # TODO also infer body type
         my $returns := nqp::ifnull($signature.returns, Mu);
-        unless $returns =:= Mu {
+        unless $returns =:= Mu || $returns =:= Nil || nqp::isconcrete($returns) {
             $result := QAST::Op.new(
                 :op('p6typecheckrv'),
                 $result,
@@ -525,7 +535,8 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
     }
 
     method is-boundary-sunk() {
-        False
+        my $signature := self.signature;
+        $signature ?? $signature.provides-return-value !! False
     }
 
     method visit-children(Code $visitor) {

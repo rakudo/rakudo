@@ -74,13 +74,6 @@ class RakuAST::Node {
             }
         }
 
-        # Unless in resolve-only mode, do other check-time activities.
-        unless $resolve-only {
-            if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
-                self.calculate-sink();
-            }
-        }
-
         # Visit children.
         my int $is-scope := nqp::istype(self, RakuAST::LexicalScope);
         my int $is-package := nqp::istype(self, RakuAST::Package);
@@ -93,6 +86,13 @@ class RakuAST::Node {
         # Perform any after-children BEGIN-time effects.
         if $needs-begin-after {
             self.ensure-begin-performed($resolver);
+        }
+
+        # Unless in resolve-only mode, do other check-time activities.
+        unless $resolve-only {
+            if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
+                self.calculate-sink();
+            }
         }
 
         Nil

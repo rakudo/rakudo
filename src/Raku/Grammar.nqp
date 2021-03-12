@@ -1728,6 +1728,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ '/' || <.panic: "Unable to parse regex; couldn't find final '/'"> ]
         <.old_rx_mods>?
     }
+    token quote:sym<rx>   {
+        <sym>
+        :my %*RX;
+        :my $*INTERPOLATE := 1;
+        {} <.qok($/)>
+#        <rx_adverbs>
+        <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
+        <!old_rx_mods>
+    }
 
     token old_rx_mods {
         (<[ i g s m x c e ]>)
@@ -1742,6 +1751,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             elsif $m eq 'e' { $/.obs('/e','interpolated {...} or s{} = ... form'); }
             else            { $/.obs('suffix regex modifiers','prefix adverbs');   }
         }
+    }
+
+    token quote:sym<qr> {
+        <sym> {} <.qok($/)> <.obs('qr for regex quoting', 'rx//')>
     }
 
     ##

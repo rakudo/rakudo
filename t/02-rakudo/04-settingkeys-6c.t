@@ -601,6 +601,7 @@ my %allowed = (
     Q{NumericEnumeration},
     Q{NumericStringyEnumeration},
     Q{ObjAt},
+    Q{OperatorProperties},
     Q{Order},
     Q{PF_INET},
     Q{PF_INET6},

@@ -488,6 +488,7 @@ my %allowed = (
     Q{&wordcase},
     Q{&words},
     Q{&zip},
+    Q{&zprintf},   # TEMPORARY!
     Q{AST},
     Q{Allomorph},
     Q{Any},
@@ -603,6 +604,7 @@ my %allowed = (
     Q{NumericEnumeration},
     Q{NumericStringyEnumeration},
     Q{ObjAt},
+    Q{OperatorProperties},
     Q{Order},
     Q{PF_INET},
     Q{PF_INET6},

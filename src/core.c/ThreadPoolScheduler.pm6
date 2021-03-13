@@ -1,4 +1,5 @@
 my class ThreadPoolScheduler does Scheduler {
+    has $!ended;
     # A concurrent, blocking-on-receive queue.
     my class Queue is repr('ConcBlockingQueue') {
         method elems() is raw { nqp::elems(self) }
@@ -270,16 +271,20 @@ my class ThreadPoolScheduler does Scheduler {
             ++$!total;
         }
     }
+    method tear-down() {
+        $!ended = True;
+    }
     my class GeneralWorker does Worker {
         has Queue $!queue;
 
         submethod BUILD(Queue :$queue!, :$!scheduler!) {
             $!queue := $queue;
-            $!thread = Thread.start(:app_lifetime, :name<GeneralWorker>, {
+            $!thread = Thread.start(:app_lifetime, :name<GeneralWorker>, -> --> Nil {
                 my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
-                loop {
-                    self!run-one(nqp::shift($queue));
+                while !nqp::isnull(my \task = nqp::shift($queue)) {
+                    self!run-one(task);
                 }
+                $!scheduler.tear-down;
             });
         }
     }
@@ -288,11 +293,12 @@ my class ThreadPoolScheduler does Scheduler {
 
         submethod BUILD(Queue :$queue!, :$!scheduler!) {
             $!queue := $queue;
-            $!thread = Thread.start(:app_lifetime, :name<TimerWorker>, {
+            $!thread = Thread.start(:app_lifetime, :name<TimerWorker>, -> --> Nil {
                 my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
-                loop {
-                    self!run-one(nqp::shift($queue));
+                while !nqp::isnull(my \task = nqp::shift($queue)) {
+                    self!run-one(task);
                 }
+                $!scheduler.tear-down;
             });
         }
     }
@@ -301,11 +307,12 @@ my class ThreadPoolScheduler does Scheduler {
 
         submethod BUILD(:$!scheduler!) {
             my $queue := $!queue := Queue.CREATE;
-            $!thread = Thread.start(:app_lifetime, :name<AffinityWorker>, {
+            $!thread = Thread.start(:app_lifetime, :name<AffinityWorker>, -> --> Nil {
                 my $*AWAITER := ThreadPoolAwaiter.new(:$!queue);
-                loop {
-                    self!run-one(nqp::shift($queue));
+                while !nqp::isnull(my \task = nqp::shift($queue)) {
+                    self!run-one(task);
                 }
+                $!scheduler.tear-down;
             });
         }
     }
@@ -616,6 +623,7 @@ my class ThreadPoolScheduler does Scheduler {
                     # Wait until the next time we should check how things
                     # are.
                     nqp::sleep(SUPERVISION_INTERVAL);
+                    last if $!ended;
 
                     # Work out the delta of CPU usage since last supervision
                     # and the time period that measurement spans.

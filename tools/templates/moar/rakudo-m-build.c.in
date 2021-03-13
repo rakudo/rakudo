@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     char **exec_argv;
     char *moar = "@c_escape(@nfp(@MOAR@)@)@";
 
-    moar_argc = 5;
+    moar_argc = 6;
 
     // program name + moar args + passed args (without program name) + NULL pointer
     exec_argc = 1 + moar_argc + (argc - 1) + 1;
@@ -26,7 +26,8 @@ int main(int argc, char *argv[])
     exec_argv[2] = "--libpath=@c_escape(@nfp(@base_dir@)@)@";
     exec_argv[3] = "--libpath=@c_escape(@nfp(@base_dir@/blib)@)@";
     exec_argv[4] = "--libpath=@c_escape(@nfp(@nqp_lib_dir@)@)@";
-    exec_argv[5] = "@c_escape(@nfp(@base_dir@/@mbc@)@)@";
+    exec_argv[5] = "--full-cleanup";
+    exec_argv[6] = "@c_escape(@nfp(@base_dir@/@mbc@)@)@";
 
     // Copy passed args.
     for (c = 0; c < argc - 1; c++) {

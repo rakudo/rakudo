@@ -767,6 +767,12 @@ implementation detail and has no serviceable parts inside"
       !! Empty;
     method LL-EXCEPTION() { $LL-EXCEPTION }
 
+    # running with --full-cleanup
+    my $FULL-CLEANUP := nqp::existskey($compiling-options, 'full-cleanup')
+      ?? '--full-cleanup'
+      !! Empty;
+    method FULL-CLEANUP() { $FULL-CLEANUP }
+
     # running with --profile
     my $PROFILE := nqp::existskey($compiling-options, 'profile')
       ?? '--profile'

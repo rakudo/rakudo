@@ -9,7 +9,7 @@
 
 MOAR_PREFIX = @nfp(@moar::prefix@)@
 MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
-@bpv(NQP)@       = @nfpq(@m_nqp@)@
+@bpv(NQP)@       = @nfpq(@m_nqp@)@ --full-cleanup
 @bpv(NQP_RR)@    = @bpm(NQP)@
 @bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-m-early-build
 @bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
@@ -96,7 +96,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(RAKUDO_OPS_EXTRA)@ = @bpm(RAKUDO_OPS_DLL)@
 
-@bpv(NQP_FLAGS_EXTRA)@ = --vmlibs=@bpm(RAKUDO_OPS_DLL)@=Rakudo_ops_init
+@bpv(NQP_FLAGS_EXTRA)@ = --full-cleanup --vmlibs=@bpm(RAKUDO_OPS_DLL)@=Rakudo_ops_init
 
 #@bpv(HARNESS_TYPE)@ = $(HARNESS_TYPE)
 

@@ -296,6 +296,7 @@ int main(int argc, char *argv[]) {
         switch (flag) {
             case FLAG_FULL_CLEANUP:
             full_cleanup = 1;
+            argv[new_argc++] = argv[argi];
             continue;
 
 #if MVM_TRACING
@@ -500,8 +501,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     if (full_cleanup) {
-        MVM_vm_destroy_instance(instance);
-        return EXIT_SUCCESS;
+        return MVM_vm_destroy_instance(instance);
     }
     else {
         MVM_vm_exit(instance);

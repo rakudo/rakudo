@@ -15,7 +15,7 @@
 @bpv(NQP_RR)@ = @bpm(NQP)@
 @make_pp_pfx@endif
 @make_pp_pfx@ifndef @bpv(NQP_FLAGS)@
-@bpv(NQP_FLAGS)@ = --module-path=blib --ll-exception
+@bpv(NQP_FLAGS)@ = --module-path=blib --ll-exception --full-cleanup
 @make_pp_pfx@endif
 @make_pp_pfx@ifndef @bpv(RUNNER_SUFFIX)@
 @bpv(RUNNER_SUFFIX)@ = @runner_suffix@

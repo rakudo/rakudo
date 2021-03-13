@@ -40,6 +40,7 @@ class CompUnit::PrecompilationRepository::Default
       CompUnit::PrecompilationId.new-without-check(Compiler.id);
 
     my $lle        := Rakudo::Internals.LL-EXCEPTION;
+    my $full-cleanup := Rakudo::Internals.FULL-CLEANUP;
     my $profile    := Rakudo::Internals.PROFILE;
     my $optimize   := Rakudo::Internals.OPTIMIZE;
     my $stagestats := Rakudo::Internals.STAGESTATS;
@@ -392,7 +393,7 @@ Need to re-check dependencies.")
           $distribution ?? $distribution.serialize !! '{}');
 
         my $bc := "$io.bc".IO;
-        $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
+        $!RMD("Precompiling $path into $bc ($lle $full-cleanup $profile $optimize $stagestats)")
           if $!RMD;
 
         my $raku := $*EXECUTABLE.absolute
@@ -422,6 +423,7 @@ Need to re-check dependencies.")
             my $proc = Proc::Async.new(
                 $raku,
                 $lle,
+                $full-cleanup,
                 $profile,
                 $optimize,
                 $target,

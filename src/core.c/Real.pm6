@@ -60,7 +60,7 @@ my role Real does Numeric {
     multi method exp(Real:D: )           { self.Bridge.exp               }
     
     method frac(Real:D:) {
-        self.abs - self.Int.abs
+        abs(self - self.Int)
     }
     method truncate(Real:D:) {
         self < 0  ?? self.ceiling !! self.floor

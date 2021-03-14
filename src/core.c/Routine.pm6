@@ -18,31 +18,56 @@ my class Routine { # declared in BOOTSTRAP
     #     has Mu $!dispatch_cache;
     #     has Mu $!op_props;
 
-    # Accessing operator properties, can be simplified once we can make
-    # $!op_props have an OperatorProperties constraint in bootstrap
-    method prec(|c)      { ($!op_props // OperatorProperties).prec(|c)        }
-    method precedence()  { ($!op_props // OperatorProperties).precedence  }
-    method associative() { ($!op_props // OperatorProperties).associative }
-    method thunky()      { ($!op_props // OperatorProperties).thunky      }
-    method iffy()        { ($!op_props // OperatorProperties).iffy        }
-    method reducer()     { ($!op_props // OperatorProperties).reducer     }
+# Accessing operator properties, can be simplified once we can make
+# $!op_props have a RakuAST::OperatorProperties constraint in bootstrap
 
-    method op_props() is implementation-detail {
-        $!op_props // OperatorProperties
+    method prec(|c --> Hash:D) {
+        ($!op_props // RakuAST::OperatorProperties).prec(|c)
     }
+
+    method !proto() { $!dispatcher // self }
+
+    # Return the RakuAST::OperatorProperties of the proto of the invocant
+    method op_props(Routine:D:
+      --> RakuAST::OperatorProperties) is implementation-detail {
+        nqp::getattr(self!proto,Routine,'$!op_props')
+          // RakuAST::OperatorProperties
+    }
+
+    method precedence(Routine:D:   --> Str:D) { self.op_props.precedence  }
+    method associative(Routine:D:  --> Str:D) { self.op_props.associative }
+    method thunky(Routine:D:       --> Str:D) { self.op_props.thunky      }
+    method iffy(Routine:D:        --> Bool:D) { self.op_props.iffy.Bool   }
+    method reducer(Routine:D: --> Callable:D) { self.op_props.reducer     }
 
     # Set operator properties, usually called through trait_mods
     method equiv(Routine:D: &op --> Nil) {
-        nqp::bindattr(self,Routine,'$!op_props',&op.op_props.equiv)
+        nqp::bindattr(self!proto,Routine,'$!op_props',
+          &op.op_props.equiv(self.associative)
+        )
     }
     method tighter(Routine:D: &op --> Nil) {
-        nqp::bindattr(self,Routine,'$!op_props',&op.op_props.tighter)
+        nqp::bindattr(self!proto,Routine,'$!op_props',
+          &op.op_props.tighter(self.associative)
+        )
     }
     method looser(Routine:D: &op --> Nil) {
-        nqp::bindattr(self,Routine,'$!op_props',&op.op_props.looser)
+        nqp::bindattr(self!proto,Routine,'$!op_props',
+          &op.op_props.looser(self.associative)
+        )
     }
-    method assoc(Routine:D: Str:D $assoc --> Nil) {
-        nqp::bindattr(self,Routine,'$!op_props',OperatorProperties.new(:$assoc))
+    method assoc(Routine:D: Str:D $associative --> Nil) {
+        nqp::bindattr(self!proto,Routine,'$!op_props',
+          self.op_props.new(:$associative))
+    }
+
+    # Internal helper method to set operator properties
+    method set_op_props(Routine:D:) is implementation-detail {
+        my $parts := nqp::split(':',self.name);
+        my $type  := nqp::atpos($parts,0);
+        my $name  := nqp::atpos($parts,1).trans(('<','>','«','»') => ());
+        nqp::bindattr(self,Routine,'$!op_props',
+          RakuAST::OperatorProperties."properties-for-$type"($name))
     }
 
     method candidates(Bool :$local = True, Bool() :$with-proto) {

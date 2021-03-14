@@ -134,6 +134,7 @@ sub all-the-protos {
     &flat,
     &flip,
     &floor,
+    &frac,
     &full-barrier,
     &get,
     &getc,

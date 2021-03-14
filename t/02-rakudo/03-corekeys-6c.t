@@ -157,6 +157,7 @@ my @expected = (
   Q{&flat},
   Q{&flip},
   Q{&floor},
+  Q{&frac},
   Q{&from-json},
   Q{&full-barrier},
   Q{&get},

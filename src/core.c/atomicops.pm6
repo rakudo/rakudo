@@ -7,9 +7,10 @@ multi sub atomic-fetch($source is rw) {
 }
 
 proto sub prefix:<⚛>($, *%) {*}
-multi sub prefix:<⚛>($source is rw) {
+multi sub prefix:<⚛>($source is rw) is equiv(&prefix:<~>) {
     nqp::atomicload($source)
 }
+BEGIN &prefix:<⚛>.set_op_props;
 
 #-- assigning a value atomically
 proto sub atomic-assign($, $, *%) {*}
@@ -192,6 +193,16 @@ multi sub infix:<⚛-=>(atomicint $target is rw, $add --> atomicint) {
     my atomicint $ = nqp::atomicadd_i($target, $add-int) + $add-int
 }
 my constant &infix:<⚛−=> := &infix:<⚛-=>;
+
+BEGIN .set_op_props for
+  &infix:<⚛+=>,
+  &infix:<⚛-=>,
+  &infix:<⚛=>,
+  &prefix:<++⚛>,
+  &prefix:<--⚛>,
+  &postfix:<⚛++>,
+  &postfix:<⚛-->,
+;
 
 #-- provide full barrier semantics
 proto sub full-barrier(*%) {*}

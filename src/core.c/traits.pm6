@@ -1,5 +1,3 @@
-my class OperatorProperties { ... }
-
 # for errors
 my class X::Syntax::ParentAsHash { ... }
 my class X::Inheritance::Unsupported { ... }
@@ -204,7 +202,7 @@ multi sub trait_mod:<is>(Routine:D $r, :onlystar($)!) {
 
 # old interface, should probably be marked DEPRECATED
 multi sub trait_mod:<is>(Routine:D $r, :%prec!) {     # --> Nil
-    nqp::bindattr($r,Routine,'$!op_props',OperatorProperties.new(|%(
+    nqp::bindattr($r,Routine,'$!op_props',RakuAST::OperatorProperties.new(|%(
       (precedence  => $_ with %prec<prec>),
       (associative => $_ with %prec<assoc>),
       (thunky      => $_ with %prec<thunky>),

@@ -11,6 +11,13 @@ my class Code { # declared in BOOTSTRAP
     }
 
     method is-implementation-detail(--> False) { }
+    method precedence(Block:D:  --> "") { }
+    method associative(Block:D: --> "") { }
+    method thunky(Block:D:      --> "") { }
+    method iffy(Block:D:        --> 0 ) { }
+
+    # runtime lookup because of bootstrap issues
+    method reducer() { ::('&METAOP_REDUCE_LEFT') }
 
     proto method POSITIONS(|) {*} #  is implementation-detail
 

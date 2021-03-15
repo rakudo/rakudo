@@ -58,10 +58,6 @@ my role Real does Numeric {
     multi method log(Real:D: Real $base) { self.Bridge.log($base.Bridge) }
     proto method exp(|) {*}
     multi method exp(Real:D: )           { self.Bridge.exp               }
-    
-    method frac(Real:D:) {
-        abs(self - self.Int)
-    }
     method truncate(Real:D:) {
         self < 0  ?? self.ceiling !! self.floor
     }
@@ -180,13 +176,10 @@ multi sub abs(Real \a) {
     a < 0 ?? -a !! a;
 }
 
-proto sub frac($, *%) {*}
-multi sub frac(Real:D $x) { $x.frac }
-multi sub frac(Cool:D $x) { $x.Numeric.frac }
-
 proto sub truncate($, *%) {*}
 multi sub truncate(Real:D $x) { $x.truncate }
 multi sub truncate(Cool:D $x) { $x.Numeric.truncate }
+
 
 proto sub atan2($, $?, *%)    {*}
 multi sub atan2(Real \a, Real \b = 1e0) { a.Bridge.atan2(b.Bridge) }

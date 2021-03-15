@@ -21,7 +21,7 @@ my @lower = ("",<<
   chars chdir chmod chomp chop chr chrs cis classify close comb
   combinations copy cos cosec cosech cosh cotan cotanh deepmap defined
   die dir done duckmap elems emit end exit exp expmod fail fc first
-  flat flip floor frac full-barrier get getc gist goto grep hash index
+  flat flip floor full-barrier get getc gist goto grep hash index
   indices indir is-prime item join keys kv last lastcall lc leave
   lines link list log log10 log2 lsb make map max min minmax mix
   mkdir move msb next nextcallee nextsame nextwith nodemap none

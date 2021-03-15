@@ -351,36 +351,36 @@ my class X::Pragma::OnlyOne is Exception {
 
 my role X::Control is Exception {
 }
-my role CX::Returning {
+my role CX::Payload {
     method payload() {
         nqp::getpayload(nqp::getattr(self, Exception, '$!ex'))
     }
 }
-my class CX::Next does X::Control does CX::Returning {
+my class CX::Next does X::Control does CX::Payload {
     method message() { "<next control exception>" }
 }
-my class CX::Redo does X::Control does CX::Returning {
+my class CX::Redo does X::Control does CX::Payload {
     method message() { "<redo control exception>" }
 }
-my class CX::Last does X::Control does CX::Returning {
+my class CX::Last does X::Control does CX::Payload {
     method message() { "<last control exception>" }
 }
-my class CX::Take does X::Control does CX::Returning {
+my class CX::Take does X::Control does CX::Payload {
     method message() { "<take control exception>" }
 }
 my class CX::Warn does X::Control {
     has $.message;
 }
-my class CX::Succeed does X::Control does CX::Returning {
+my class CX::Succeed does X::Control does CX::Payload {
     method message() { "<succeed control exception>" }
 }
 my class CX::Proceed does X::Control {
     method message() { "<proceed control exception>" }
 }
-my class CX::Return does X::Control does CX::Returning {
+my class CX::Return does X::Control does CX::Payload {
     method message() { "<return control exception>" }
 }
-my class CX::Emit does X::Control does CX::Returning {
+my class CX::Emit does X::Control does CX::Payload {
     method message() { "<emit control exception>" }
 }
 my class CX::Done does X::Control {

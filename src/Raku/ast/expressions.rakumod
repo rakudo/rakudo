@@ -25,14 +25,16 @@ class RakuAST::Infixish is RakuAST::Node {
 # others need more special attention.
 class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     has str $.operator;
+    has OperatorProperties $.properties;
 
     method new(str $operator) {
-        my $obj := nqp::create(
-          OperatorProperties.properties-for-infix($operator).chaining
-            ?? RakuAST::Infix::Chaining
-            !! self
+        my $properties := OperatorProperties.properties-for-infix($operator);
+        my $obj := nqp::create($properties.chaining
+          ?? RakuAST::Infix::Chaining
+          !! self
         );
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
+        nqp::bindattr($obj, RakuAST::Infix, '$!properties', $properties);
         $obj
     }
 
@@ -44,20 +46,8 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         Nil
     }
 
-    # Returns True if this is a built-in short-circuit operator, and False if not.
-    method short-circuit() {
-        my constant SC := nqp::hash(
-            '||', True,
-            'or', True,
-            '&&', True,
-            'and', True,
-            '//', True,
-            'andthen', True,
-            'notandthen', True,
-            'orelse', True
-        );
-        SC{$!operator} // False
-    }
+    # Returns True if this is a built-in short-circuit operator, False if not.
+    method short-circuit() { $!properties.short-circuit }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my str $op := $!operator;

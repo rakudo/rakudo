@@ -26,10 +26,10 @@ class OperatorProperties {
 
     # convenience methods
     method chaining() {
-        nqp::defined(self) ?? False !! $!associative eq 'chain'
+        nqp::defined(self) ?? $!associative eq 'chain' !! False
     }
     method short-circuit() {
-        nqp::defined(self) ?? False !! $!thunky ne ""
+        nqp::defined(self) ?? $!thunky ne "" !! False
     }
 
     # Return properties depending on other properties

@@ -300,6 +300,7 @@ sub MAIN(*@files) {
         }
     }
     say('    EXPORT::DEFAULT.WHO<RakuAST> := RakuAST;');
+    say('    EXPORT::DEFAULT.WHO<OperatorProperties> := OperatorProperties;');
     say('}');
 }
 

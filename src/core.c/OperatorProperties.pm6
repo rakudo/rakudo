@@ -1,23 +1,23 @@
 class OperatorProperties {
 # defined in src/Raku/ast/operator-properties
-#    has str $.precedence;
-#    has str $.associative;
-#    has str $.thunky;
-#    has int $.iffy;
+#    has str $!precedence;
+#    has str $!associative;
+#    has str $!thunky;
+#    has int $!iffy;
 
     multi method WHICH(OperatorProperties:D: --> ValueObjAt:D) {
         my $parts := nqp::list_s('OperatorProperties');
 
-        if $.precedence -> $precedence {
+        if $.precedence -> str $precedence {
             nqp::push_s($parts,nqp::concat('precedence=',$precedence));
         }
-        if $.associative -> $associative {
+        if $.associative -> str $associative {
             nqp::push_s($parts,nqp::concat('associative=',$associative));
         }
-        if $.thunky -> $thunky {
+        if $.thunky -> str $thunky {
             nqp::push_s($parts,nqp::concat('thunky=',$thunky))
         }
-        if $.iffy -> $iffy {
+        if $.iffy -> int $iffy {
             nqp::push_s($parts,nqp::concat('iffy=',$iffy))
         }
 

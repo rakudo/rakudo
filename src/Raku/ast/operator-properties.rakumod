@@ -24,6 +24,11 @@ class OperatorProperties {
     method thunky()      { nqp::defined(self) ?? $!thunky      !! "" }
     method iffy()        { nqp::defined(self) ?? $!iffy        !! 0  }
 
+    # convenenience methods
+    method chaining() {
+        nqp::defined(self) ?? False !! $!associative eq 'chain'
+    }
+
     # Return properties depending on other properties
     method equiv(str $associative) {
         nqp::defined(self)

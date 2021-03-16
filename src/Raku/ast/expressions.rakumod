@@ -27,46 +27,11 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     has str $.operator;
 
     method new(str $operator) {
-        my constant CHAINING := nqp::hash(
-          '>',      True,
-          '<',      True,
-          '>=',     True,
-          '<=',     True,
-          '==',     True,
-          '!=',     True,
-          'eq',     True,
-          'ne',     True,
-          'le',     True,
-          'ge',     True,
-          'lt',     True,
-          'gt',     True,
-          '=:=',    True,
-          '===',    True,
-          'eqv',    True,
-          'before', True,
-          'after',  True,
-          '~~',     True,
-          '(elem)', True,
-          '∉',      True,
-          '(cont)', True,
-          '∌',      True,
-          '(<)',    True,
-          '⊄',      True,
-          '(>)',    True,
-          '⊅',      True,
-          '(==)',   True,
-          '≢',      True,
-          '(<=)',   True,
-          '⊈',      True,
-          '(>=)',   True,
-          '⊉',      True,
-          '(<+)',   True,
-          '(>+)',   True
+        my $obj := nqp::create(
+          OperatorProperties.properties-for-infix($operator).chaining
+            ?? RakuAST::Infix::Chaining
+            !! self
         );
-
-        my $obj := nqp::create(CHAINING{$operator}
-          ?? RakuAST::Infix::Chaining
-          !! self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
         $obj
     }

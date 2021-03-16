@@ -229,9 +229,8 @@ class RakuAST::Term::Reduce is RakuAST::Term is RakuAST::ImplicitLookups {
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         # Make a call to form the meta-op.
         # TODO Cache it using a dispatcher when UNIT/SETTING operator
-        my $reduce-helper := '&METAOP_REDUCE_LEFT'; # TODO Pick correct one
         my $form-meta := QAST::Op.new(
-            :op<call>, :name($reduce-helper),
+            :op<call>, :name($!infix.reducer-name),
             $!infix.IMPL-HOP-INFIX-QAST($context));
         if $!triangle {
             $form-meta.push(QAST::WVal.new( :value(True) ));

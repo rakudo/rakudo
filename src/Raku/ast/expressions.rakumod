@@ -49,6 +49,8 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     # Returns True if this is a built-in short-circuit operator, False if not.
     method short-circuit() { $!properties.short-circuit }
 
+    method reducer-name() { $!properties.reducer-name }
+
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my str $op := $!operator;
 

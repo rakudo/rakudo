@@ -151,7 +151,9 @@ my class ThreadPoolScheduler does Scheduler {
                             }
                             if $resume {
                                 nqp::push($!queue, {
-                                    nqp::continuationinvoke($continuation, nqp::null())
+                                    $l.protect: {
+                                        nqp::continuationinvoke($continuation, nqp::null())
+                                    }
                                 });
                             }
                         });

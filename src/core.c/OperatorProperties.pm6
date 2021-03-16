@@ -1,12 +1,12 @@
-class RakuAST::OperatorProperties {
+class OperatorProperties {
 # defined in src/Raku/ast/operator-properties
 #    has str $.precedence;
 #    has str $.associative;
 #    has str $.thunky;
 #    has int $.iffy;
 
-    multi method WHICH(RakuAST::OperatorProperties:D: --> ValueObjAt:D) {
-        my $parts := nqp::list_s('RakuAST::OperatorProperties');
+    multi method WHICH(OperatorProperties:D: --> ValueObjAt:D) {
+        my $parts := nqp::list_s('OperatorProperties');
 
         if $.precedence -> $precedence {
             nqp::push_s($parts,nqp::concat('precedence=',$precedence));

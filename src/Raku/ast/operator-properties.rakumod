@@ -123,152 +123,341 @@ class OperatorProperties {
     }
 
     method properties-for-infix(str $op) {
-        my $properties := nqp::hash();
-
-        my $multiplicative := self.new(:precedence<u=>, :associative<left>);
-        for '*', '/', 'div', 'gcd', 'lcm', '%', 'mod', '+&', '~&', '?&' {
-            nqp::bindkey($properties,$_,$multiplicative);
-        }
-
-        my $additive := self.new(:precedence<t=>, :associative<left>);
-        for < + - +| +^ ~| ~^ ?| ?^ > {
-            nqp::bindkey($properties,$_,$additive);
-        }
-
-        my $exponentiation := self.new(:precedence<w=>, :associative<right>);
-        nqp::bindkey($properties,'**',$exponentiation);
-
-        my $iffy := self.new(:precedence<u=>, :associative<left>, :iffy);
-        nqp::bindkey($properties,'%%',$iffy);
-
-        my $replication := self.new(:precedence<s=>, :associative<left>);
-        nqp::bindkey($properties,'x',$replication);
-
-        my $replication-xx := self.new(:precedence<s=>, :associative<left>, :thunky<t.>);
-        nqp::bindkey($properties,'xx',$replication-xx);
-
-        my $concatenation := self.new(:precedence<r=>, :associative<list>);
-        nqp::bindkey($properties,'~',$concatenation);
-
-        my $junctive-and := self.new(:precedence<q=>, :associative<list>);
-        for < & (&) ∩ (.) ⊍ > {
-            nqp::bindkey($properties,$_,$junctive-and);
-        }
-
-        my $junctive-or := self.new(:precedence<p=>, :associative<list>);
-        for < | ^ (+) ⊎ (|) ∪ (-) ∖ (^) ⊖ > {
-            nqp::bindkey($properties,$_,$junctive-or);
-        }
-
-        my $structural := self.new(:precedence<n=>, :associative<non>);
-        for < .. ^.. ..^» ^..^ <=> leg cmp unicmp coll but does > {
-            nqp::bindkey($properties,$_,$structural);
-        }
-
-        my $chaining := self.new(:precedence<m=>, :associative<chain>, :iffy);
-        # unquotewordable
-        for '>', '<', '>=', '<=', '(<)', '⊂', '(>)', '⊃',
-            '(<=)', '⊆', '(>=)', '⊇', '(<+)', '≼', '(>+)', '≽' {
-            nqp::bindkey($properties,$_,$chaining);
-        }
-
-        for < == != eq ne le ge lt gt =:= === eqv before after ~~
-              (elem) ∈ (cont) ∋ (==) ≡ ∉ ∌ ⊄ ⊅ ≢ ⊈ ⊉ > {
-            nqp::bindkey($properties,$_,$chaining);
-        }
-
-        my $tight-and := self.new(:precedence<l=>, :associative<list>, :thunky<.t>);
-        nqp::bindkey($properties,'&&',$tight-and);
-
-        my $tight-or := self.new(:precedence<k=>, :associative<list>, :thunky<.t>);
-        for '||', '//' {
-            nqp::bindkey($properties,$_,$tight-or);
-        }
-
-        my $tight-or-xor := self.new(:precedence<k=>, :associative<list>, :thunky<..t>);
-        nqp::bindkey($properties,'^^',$tight-or-xor);
-
-        my $tight-or-minmax := self.new(:precedence<k=>, :associative<list>);
-        for < min max > {
-            nqp::bindkey($properties,$_,$tight-or-minmax);
-        }
-
-        my $item-assignment := self.new(:precedence<i=>, :associative<right>);
-        nqp::bindkey($properties,'=>',$item-assignment);
-
-        my $comma := self.new(:precedence<g=>, :associative<list>);
-        nqp::bindkey($properties,',',$comma);
-
-        my $list-infix := self.new(:precedence<f=>, :associative<list>);
-        for < Z X ... ...^ ^... ^...^ minmax > {
-            nqp::bindkey($properties,$_,$list-infix);
-        }
-
-        my $list-prefix := self.new(:precedence<e=>);
-        for < = ⚛= ⚛+= ⚛-= ⚛−= > {
-            nqp::bindkey($properties,$_,$list-prefix);
-        }
-
-        my $loose-and := self.new(:precedence<d=>, :associative<list>, :thunky<.t>);
-        nqp::bindkey($properties,'and',$loose-and);
-
-        my $loose-andthen := self.new(:precedence<d=>, :associative<list>, :thunky<.b>);
-        for < andthen notandthen > {
-            nqp::bindkey($properties,$_,$loose-andthen);
-        }
-
-        my $loose-orelse := self.new(:precedence<c=>, :associative<list>, :thunky<.b>);
-        for < or xor orelse > {
-            nqp::bindkey($properties,$_,$loose-orelse);
-        }
-
-        nqp::atkey($properties,$op)
+        BuiltinOperatorProperties.infix($op)
     }
-
     method properties-for-prefix(str $op) {
-        my $properties := nqp::hash();
-
-        my $autoincrement := self.new(:precedence<x=>);
-        for < ++ -- ++⚛  --⚛  > {
-            nqp::bindkey($properties,$_,$autoincrement);
-        }
-
-        my $symbolic-unary := self.new(:precedence<v=>);
-        for < + ~ - ? ! | +^ ~^ ?^ ^ ⚛ > {
-            nqp::bindkey($properties,$_,$symbolic-unary);
-        }
-
-        my $loose-unary := self.new(:precedence<h=>);
-        for < so not > {
-            nqp::bindkey($properties,$_,$loose-unary);
-        }
-
-        nqp::atkey($properties,$op)
+        BuiltinOperatorProperties.prefix($op)
     }
-
     method properties-for-postfix(str $op) {
-        my $properties := nqp::hash();
+        BuiltinOperatorProperties.postfix($op)
+    }
+    method properties-for-postcircumfix(str $op) {
+        BuiltinOperatorProperties.postcircumfix($op)
+    }
+}
 
-        my $methodcall := self.new(:precedence<y=>);
-        nqp::bindkey($properties,'i',$methodcall);
-
-        my $autoincrement := self.new(:precedence<x=>);
-        for < ++ -- ⚛++ ⚛-- > {
-           nqp::bindkey($properties,$_,$autoincrement);
-        }
-
-        nqp::atkey($properties,$op)
+class BuiltinOperatorTypes {
+    method methodcall() {
+        OperatorProperties.new(:precedence<y=>)
+    }
+    method autoincrement() {
+        OperatorProperties.new(:precedence<x=>)
+    }
+    method exponentiation() {
+        OperatorProperties.new(:precedence<w=>, :associative<right>)
+    }
+    method symbolic-unary() {
+        OperatorProperties.new(:precedence<v=>)
+    }
+    method multiplicative() {
+        OperatorProperties.new(:precedence<u=>, :associative<left>)
+    }
+    method iffy() {
+        OperatorProperties.new(:precedence<u=>, :associative<left>, :iffy)
+    }
+    method additive() {
+        OperatorProperties.new(:precedence<t=>, :associative<left>)
+    }
+    method replication() {
+        OperatorProperties.new(:precedence<s=>, :associative<left>)
+    }
+    method replication-xx() {
+        OperatorProperties.new(:precedence<s=>, :associative<left>, :thunky<t.>)
+    }
+    method concatenation() {
+        OperatorProperties.new(:precedence<r=>, :associative<list>)
+    }
+    method junctive-and() {
+        OperatorProperties.new(:precedence<q=>, :associative<list>)
+    }
+    method junctive-or() {
+        OperatorProperties.new(:precedence<p=>, :associative<list>)
+    }
+    method structural() {
+        OperatorProperties.new(:precedence<n=>, :associative<non>)
+    }
+    method chaining() {
+        OperatorProperties.new(:precedence<m=>, :associative<chain>, :iffy)
+    }
+    method tight-and() {
+        OperatorProperties.new(:precedence<l=>, :associative<list>, :thunky<.t>)
+    }
+    method tight-or() {
+        OperatorProperties.new(:precedence<k=>, :associative<list>, :thunky<.t>)
+    }
+    method tight-or-xor() {
+        OperatorProperties.new(:precedence<k=>, :associative<list>, :thunky<..t>)
+    }
+    method tight-or-minmax() {
+        OperatorProperties.new(:precedence<k=>, :associative<list>)
+    }
+    method item-assignment() {
+        OperatorProperties.new(:precedence<i=>, :associative<right>)
+    }
+    method loose-unary() {
+        OperatorProperties.new(:precedence<h=>)
+    }
+    method comma() {
+        OperatorProperties.new(:precedence<g=>, :associative<list>)
+    }
+    method list-infix() {
+        OperatorProperties.new(:precedence<f=>, :associative<list>)
+    }
+    method list-prefix() {
+        OperatorProperties.new(:precedence<e=>)
+    }
+    method loose-and() {
+        OperatorProperties.new(:precedence<d=>, :associative<list>, :thunky<.t>)
+    }
+    method loose-andthen() {
+        OperatorProperties.new(:precedence<d=>, :associative<list>, :thunky<.b>)
+    }
+    method loose-orelse() {
+        OperatorProperties.new(:precedence<c=>, :associative<list>, :thunky<.b>)
     }
 
-    method properties-for-postcircumfix(str $op) {
-        my $properties := nqp::hash();
+    method lookup(str $type) {
+        my constant PROPERTIES := nqp::hash(
+          'methodcall',      '',
+          'autoincrement',   '',
+          'exponentiation',  '',
+          'symbolic-unary',  '',
+          'multiplicative',  '',
+          'iffy',            '',
+          'additive',        '',
+          'replication',     '',
+          'replication-xx',  '',
+          'concatenation',   '',
+          'junctive-and',    '',
+          'junctive-or',     '',
+          'structural',      '',
+          'chaining',        '',
+          'tight-and',       '',
+          'tight-or',        '',
+          'tight-or-xor',    '',
+          'tight-or-minmax', '',
+          'item-assignment', '',
+          'loose-unary',     '',
+          'comma',           '',
+          'list-infix',      '',
+          'list-prefix',     '',
+          'loose-and',       '',
+          'loose-andthen',   '',
+          'loose-orelse',    '',
+        );
 
-        my $methodcall := self.new(:precedence<y=>);
-        for '[ ]', '{ }' {
-            nqp::bindkey($properties,$_,$methodcall);
-        }
+        (my $properties := nqp::atkey(PROPERTIES,$type))
+          ?? $properties
+          !! nqp::bindkey(PROPERTIES,$type,self."$type"())
+    }
+}
 
-        nqp::atkey($properties,$op)
+class BuiltinOperatorProperties {
+
+    method infix(str $op) {
+        my constant PROPERTIES := nqp::hash(
+
+          '*',   'multiplicative',
+          '/',   'multiplicative',
+          'div', 'multiplicative',
+          'gcd', 'multiplicative',
+          'lcm', 'multiplicative',
+          '%',   'multiplicative',
+          'mod', 'multiplicative',
+          '+&',  'multiplicative',
+          '~&',  'multiplicative',
+          '?&',  'multiplicative',
+
+          '+',  'additive',
+          '-',  'additive',
+          '+|', 'additive',
+          '+^', 'additive',
+          '~|', 'additive',
+          '~^', 'additive',
+          '?|', 'additive',
+          '?^', 'additive',
+
+          '**', 'exponentiation',
+
+          '%%', 'iffy',
+
+          'x', 'replication',
+
+          'xx', 'replication-xx',
+
+          '~', 'concatenation',
+
+          '&',   'junctive-and',
+          '(&)', 'junctive-and',
+          '∩',   'junctive-and',
+          '(.)', 'junctive-and',
+          '⊍',   'junctive-and',
+
+          '|',   'junctive-or',
+          '^',   'junctive-or',
+          '(+)', 'junctive-or',
+          '⊎',   'junctive-or',
+          '(|)', 'junctive-or',
+          '∪',   'junctive-or',
+          '(-)', 'junctive-or',
+          '∖',   'junctive-or',
+          '(^)', 'junctive-or',
+          '⊖',   'junctive-or',
+
+          '..',     'structural',
+          '^..',    'structural',
+          '..^',    'structural',
+          '^..^',   'structural',
+          '<=>',    'structural',
+          'leg',    'structural',
+          'cmp',    'structural',
+          'unicmp', 'structural',
+          'coll',   'structural',
+          'but',    'structural',
+          'does',   'structural',
+
+          '>',      'chaining',
+          '<',      'chaining',
+          '>=',     'chaining',
+          '<=',     'chaining',
+          '(<)',    'chaining',
+          '⊂',      'chaining',
+          '(>)',    'chaining',
+          '⊃',      'chaining',
+          '(<=)',   'chaining',
+          '⊆',      'chaining',
+          '(>=)',   'chaining',
+          '⊇',      'chaining',
+          '(<+)',   'chaining',
+          '≼',      'chaining',
+          '(>+)',   'chaining',
+          '≽',      'chaining',
+          '==',     'chaining',
+          '!=',     'chaining',
+          'eq',     'chaining',
+          'ne',     'chaining',
+          'le',     'chaining',
+          'ge',     'chaining',
+          'lt',     'chaining',
+          'gt',     'chaining',
+          '=:=',    'chaining',
+          '===',    'chaining',
+          'eqv',    'chaining',
+          'before', 'chaining',
+          'after',  'chaining',
+          '~~',     'chaining',
+          '(elem)', 'chaining',
+          '∈',      'chaining',
+          '(cont)', 'chaining',
+          '∋',      'chaining',
+          '(==)',   'chaining',
+          '≡',      'chaining',
+          '∉',      'chaining',
+          '∌',      'chaining',
+          '⊄',      'chaining',
+          '⊅',      'chaining',
+          '≢',      'chaining',
+          '⊈',      'chaining',
+          '⊉',      'chaining',
+
+          '&&', 'tight-and',
+
+          '||', 'tight-or',
+          '//', 'tight-or',
+
+          '^^', 'tight-or-xor',
+
+          'min', 'tight-or-minmax',
+          'max', 'tight-or-minmax',
+
+          '=>', 'item-assignment',
+
+          ',', 'comma',
+
+          'Z',      'list-infix',
+          'X',      'list-infix',
+          '...',    'list-infix',
+          '...^',   'list-infix',
+          '^...',   'list-infix',
+          '^...^',  'list-infix',
+          'minmax', 'list-infix',
+
+          '=',   'list-prefix',
+          '⚛=',  'list-prefix',
+          '⚛+=', 'list-prefix',
+          '⚛-=', 'list-prefix',
+          '⚛−=', 'list-prefix',
+
+          'and', 'loose-and',
+
+          'andthen',    'loose-andthen',
+          'notandthen', 'loose-andthen',
+
+          'or',     'loose-orelse',
+          'xor',    'loose-orelse',
+          'orelse', 'loose-orelse',
+        );
+
+        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
+          ?? nqp::bindkey(PROPERTIES,$op,BuiltinOperatorTypes.lookup($properties))
+          !! $properties
+    }
+
+    method prefix(str $op) {
+        my constant PROPERTIES := nqp::hash(
+
+          '++',  'autoincrement',
+          '--',  'autoincrement',
+          '++⚛', 'autoincrement',
+          '--⚛', 'autoincrement',
+
+          '+',  'symbolic-unary',
+          '~',  'symbolic-unary',
+          '-',  'symbolic-unary',
+          '?',  'symbolic-unary',
+          '!',  'symbolic-unary',
+          '|',  'symbolic-unary',
+          '+^', 'symbolic-unary',
+          '~^', 'symbolic-unary',
+          '?^', 'symbolic-unary',
+          '^',  'symbolic-unary',
+          '⚛',  'symbolic-unary',
+
+          'so',  'loose-unary',
+          'not', 'loose-unary',
+        );
+
+        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
+          ?? nqp::bindkey(PROPERTIES,$op,BuiltinOperatorTypes.lookup($properties))
+          !! $properties
+    }
+
+    method postfix(str $op) {
+        my constant PROPERTIES := nqp::hash(
+
+          'i', 'methodcall',
+
+          '++',  'autoincrement',
+          '--',  'autoincrement',
+          '⚛++', 'autoincrement',
+          '⚛--', 'autoincrement',
+        );
+
+        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
+          ?? nqp::bindkey(PROPERTIES,$op,BuiltinOperatorTypes.lookup($properties))
+          !! $properties
+    }
+
+    method postcircumfix(str $op) {
+        my constant PROPERTIES := nqp::hash(
+
+          '[ ]', 'methodcall',
+          '{ }', 'methodcall',
+        );
+
+        nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
+          ?? nqp::bindkey(PROPERTIES,$op,BuiltinOperatorTypes.lookup($properties))
+          !! $properties
     }
 }
 

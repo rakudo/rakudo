@@ -19,19 +19,19 @@ my class Routine { # declared in BOOTSTRAP
     #     has Mu $!op_props;
 
 # Accessing operator properties, can be simplified once we can make
-# $!op_props have a RakuAST::OperatorProperties constraint in bootstrap
+# $!op_props have a OperatorProperties constraint in bootstrap
 
     method prec(|c --> Hash:D) {
-        ($!op_props // RakuAST::OperatorProperties).prec(|c)
+        ($!op_props // OperatorProperties).prec(|c)
     }
 
     method !proto() { $!dispatcher // self }
 
-    # Return the RakuAST::OperatorProperties of the proto of the invocant
+    # Return the OperatorProperties of the proto of the invocant
     method op_props(Routine:D:
-      --> RakuAST::OperatorProperties) is implementation-detail {
+      --> OperatorProperties) is implementation-detail {
         nqp::getattr(self!proto,Routine,'$!op_props')
-          // RakuAST::OperatorProperties
+          // OperatorProperties
     }
 
     method precedence(Routine:D:   --> Str:D) { self.op_props.precedence  }
@@ -67,7 +67,7 @@ my class Routine { # declared in BOOTSTRAP
         my $type  := nqp::atpos($parts,0);
         my $name  := nqp::atpos($parts,1).trans(('<','>','«','»') => ());
         nqp::bindattr(self,Routine,'$!op_props',
-          RakuAST::OperatorProperties."properties-for-$type"($name))
+          OperatorProperties."properties-for-$type"($name))
     }
 
     method candidates(Bool :$local = True, Bool() :$with-proto) {

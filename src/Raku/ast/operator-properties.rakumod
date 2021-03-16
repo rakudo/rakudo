@@ -1,4 +1,4 @@
-class RakuAST::OperatorProperties {
+class OperatorProperties {
     has str $.precedence;
     has str $.associative;
     has str $.thunky;
@@ -6,13 +6,13 @@ class RakuAST::OperatorProperties {
 
     method new(str :$precedence, str :$associative, str :$thunky, int :$iffy) {
         my $obj := nqp::create(self);
-        nqp::bindattr_s($obj,RakuAST::OperatorProperties,'$!precedence',
+        nqp::bindattr_s($obj,OperatorProperties,'$!precedence',
           $precedence // (nqp::defined(self) ?? $!precedence !! ""));
-        nqp::bindattr_s($obj,RakuAST::OperatorProperties,'$!associative',
+        nqp::bindattr_s($obj,OperatorProperties,'$!associative',
           $associative // (nqp::defined(self) ?? $!associative !! ""));
-        nqp::bindattr_s($obj,RakuAST::OperatorProperties,'$!thunky',
+        nqp::bindattr_s($obj,OperatorProperties,'$!thunky',
           $thunky // (nqp::defined(self) ?? $!thunky !! ""));
-        nqp::bindattr_i($obj,RakuAST::OperatorProperties,'$!iffy',
+        nqp::bindattr_i($obj,OperatorProperties,'$!iffy',
           $iffy // (nqp::defined(self) ?? $!iffy !! 0));
 
         $obj

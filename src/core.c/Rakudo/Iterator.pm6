@@ -3116,7 +3116,7 @@ class Rakudo::Iterator {
 
         method !SET-SELF(Mu \value,\times) {
             $!value := value;
-            $!times  = times;
+            $!times := times;
             $!is-lazy = nqp::isbig_I(nqp::decont(times));
             self
         }
@@ -3129,7 +3129,7 @@ class Rakudo::Iterator {
             nqp::if(
               $!times,
               nqp::stmts(
-                --$!times,
+                ($!times := nqp::sub_I($!times,1,Int)),
                 $!value
               ),
               IterationEnd
@@ -3139,17 +3139,26 @@ class Rakudo::Iterator {
             nqp::while(
               $!times,
               nqp::stmts(
-                --$!times,
+                ($!times := nqp::sub_I($!times,1,Int)),
                 target.push($!value)
               )
             )
         }
-        method skip-one() { nqp::if($!times,$!times--) }
+        method skip-one() {
+            nqp::if(
+              $!times,
+              nqp::stmts(
+                (my $times := $!times),
+                ($!times   := nqp::sub_I($!times,1,Int)),
+                $times
+              )
+            )
+        }
         method is-lazy() { nqp::hllbool($!is-lazy) }
         method count-only(--> Int:D) { $!times }
-        method sink-all(--> IterationEnd) { $!times = 0 }
+        method sink-all(--> IterationEnd) { $!times := 0 }
     }
-    method OneValueTimes(Mu \value,\times) { OneValueTimes.new(value,times) }
+    method OneValueTimes(Mu \value, Int() \times) { OneValueTimes.new(value,times) }
 
     # Return an iterator that will generate a pair with the index as the
     # key and as value the value of the given iterator, basically the

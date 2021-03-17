@@ -67,9 +67,6 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         Nil
     }
 
-    # Returns True if this is a built-in short-circuit operator, False if not.
-    method short-circuit() { $!properties.short-circuit }
-
     method reducer-name() { $!properties.reducer-name }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
@@ -110,7 +107,8 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     }
 
     method IMPL-CAN-INTERPRET() {
-        !self.short-circuit && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+        !self.properties.short-circuit
+          && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands) {
@@ -161,7 +159,7 @@ class RakuAST::MetaInfix::Assign is RakuAST::Infixish is RakuAST::Lookup {
             QAST::Var.new( :decl('var'), :scope('local'), :name($temp) ),
             $left-qast
         );
-        if nqp::istype($!infix, RakuAST::Infix) && $!infix.short-circuit {
+        if nqp::istype($!infix, RakuAST::Infix) && $!infix.properties.short-circuit {
             # Compile the short-circuit ones "inside out", so we can avoid the
             # assignment.
             QAST::Stmt.new(

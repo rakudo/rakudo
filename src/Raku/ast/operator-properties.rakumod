@@ -140,19 +140,6 @@ class OperatorProperties {
     method properties-for-postcircumfix(str $op) {
         BuiltinOperatorProperties.postcircumfix($op)
     }
-
-    method qast-for-infix(str $op) {
-        my constant QAST := nqp::hash(
-          '||',  'unless',
-          'or',  'unless',
-          '&&',  'if',
-          'and', 'if',
-          '^^',  'xor',
-          'xor', 'xor',
-          '//',  'defor'
-        );
-        nqp::atkey(QAST,$op)
-    }
 }
 
 class BuiltinOperatorTypes {

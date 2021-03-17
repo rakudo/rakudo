@@ -67,13 +67,9 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
         Nil
     }
 
-    # convenience shortcut methods
+    # Returns True if this is a built-in short-circuit operator, False if not.
     method short-circuit() { $!properties.short-circuit }
-    method reducer-name()  { $!properties.reducer-name  }
-    method precedence()    { $!properties.precedence    }
-    method associative()   { $!properties.associative   }
-    method thunky()        { $!properties.thunky        }
-    method iffy()          { $!properties.iffy          }
+    method reducer-name() { $!properties.reducer-name }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
 

@@ -37,7 +37,9 @@ class OperatorProperties {
         nqp::defined(self)
           ?? self.new(
                precedence  => $!precedence,
-               associative => $associative,
+               associative => nqp::isnull_s($associative)
+                                ?? $!associative
+                                !! $associative,
                thunky      => $!thunky,
                iffy        => $!iffy
              )
@@ -48,7 +50,9 @@ class OperatorProperties {
         nqp::defined(self)
           ?? self.new(
                precedence  => nqp::join('@=',nqp::split('=',$!precedence)),
-               associative => $associative,
+               associative => nqp::isnull_s($associative)
+                                ?? $!associative
+                                !! $associative,
                thunky      => $!thunky,
                iffy        => $!iffy
              )
@@ -59,7 +63,9 @@ class OperatorProperties {
         nqp::defined(self)
           ?? self.new(
                precedence  => nqp::join(':=',nqp::split('=',$!precedence)),
-               associative => $associative,
+               associative => nqp::isnull_s($associative)
+                                ?? $!associative
+                                !! $associative,
                thunky      => $!thunky,
                iffy        => $!iffy
              )

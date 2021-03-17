@@ -127,7 +127,9 @@ my class ThreadPoolScheduler does Scheduler {
             if $num-handles {
                 my $continuation;
                 my $exception;
+                my $thread-id = $*THREAD.id;
                 my $l = Lock.new;
+                note "Locking in thread $thread-id with lock { nqp::where($l) }";
                 $l.lock;
                 {
                     my int $remaining = $num-handles;
@@ -151,9 +153,13 @@ my class ThreadPoolScheduler does Scheduler {
                             }
                             if $resume {
                                 nqp::push($!queue, {
-                                    $l.protect: {
-                                        nqp::continuationinvoke($continuation, nqp::null())
+                                    unless nqp::isconcrete($continuation) { # cheap check for the common case that $continuation is already set
+                                        note "Thread { $*THREAD.id } continuation not defined yet, locking {nqp::where($l)}";
+                                        $l.lock; # lock gets released as soon as $continuation is initialized
+                                        $l.unlock; # no need to hold the lock while running the continuation - no one else is gonna take it
                                     }
+                                    note "Thread { $*THREAD.id } invoking continuation { nqp::reprname($continuation) }";
+                                    nqp::continuationinvoke($continuation, nqp::null())
                                 });
                             }
                         });
@@ -165,8 +171,10 @@ my class ThreadPoolScheduler does Scheduler {
                     }
                 }
                 nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
+                    note "Setting continuation in thread $thread-id with lock { nqp::where($l) }";
                     $continuation := c;
                     $l.unlock;
+                    note "Unlocked in thread $thread-id";
                 });
 
                 # If we got an exception, throw it.

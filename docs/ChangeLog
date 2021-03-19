@@ -1,3 +1,36 @@
+New in 2021.03:
+
+  + Additions:
+    + Implement space-delimited command line interface arguments [54b6ff30][244abf6e][67143a6d]
+    + Add a predicated wait for `Lock::ConditionVariable` [b4980a1c][30e07901][94c562c4]
+    + The `Pod::To::Text` module's output supports rendering of multi-level lists now [76dab72f]
+  + Removals:
+    + Remove `utf32` from encodings lists for MoarVM, it was never supported before
+      and attempts to use it gave a confusing error message [9c603460]
+  + Build System:
+    + Avoid Azure CI failures on re-builds [58930cfb]
+    + Fix `ln -nfs` on AIX platform [91ce9a29]
+  + Changes:
+    + Make `printf` directive error more descriptive [171d3c46]
+  + Efficiency:
+    + Make sorting and related infix operators about 2x as fast [70a8e366][d61d9836][b2ae599a][0ad991e4][599b6ea5][afab11e6][9ad47170][7f2dba7a]
+    + Optimize coercive parameter typechecking [734e7f48][20e6f50e]
+    + Make `>>.` construct faster [412d7706][3d2940af]
+    + Make `BagHash.add` a few percent faster [7c0a556e]
+    + Make `xx` on a constant value about 5% faster [bf67b1f7]
+  + Fixes:
+    + Fix single item assignment at `List` creation (`my @l is List = 'foo'` now produces a correct result) [d40c8cd1]
+    + `Kernel.signals` no longer returns unwanted extraneous data [d3aab833]
+    + Fixed `.of` method on type objects [ee5244b2]
+    + Set up proper precedence info for a number of infix operators [ceac5217][affdd058]
+    + Fix hypering on `Map` [b21bb5ab]
+    + Fix hypering when using `next` [d18653c4]
+    + Fix containerization on hypering [722c2c97]
+    + Tweak some tests to work on JVM backend [08345f1d]
+    + Various internal documentation updates / fixes [7f0ababc][6c1b02ec][9b071642][0e957a66][9b22e51b][09d27c32]
+  + Internal:
+    + Update broken links to IRC logs [f395cc52]
+
 New in 2021.02.1:
 
   + Fixes:

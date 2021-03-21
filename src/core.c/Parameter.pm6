@@ -662,6 +662,18 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
         nqp::getattr(b,Parameter,'$!flags')
       );
 
+    # only pass if both subsignatures are defined and equivalent
+    my \asub_signature := nqp::getattr(a,Parameter,'$!sub_signature');
+    my \bsub_signature := nqp::getattr(b,Parameter,'$!sub_signature');
+    if asub_signature {
+        return False
+          unless bsub_signature
+          && (asub_signature eqv bsub_signature);
+    }
+    elsif bsub_signature {
+        return False;
+    }
+
     # first is named
     if a.named {
 

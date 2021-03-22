@@ -43,6 +43,9 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
     if (!initialized) {
         initialized = 1;
 
+    /* As these MVMStrings are permarooted, if we create them in gen2 we
+     * save some GC work */
+        MVM_gc_allocate_gen2_default_set(tc);
         /* Strings. */
         str_dispatcher = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "$*DISPATCHER");
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_dispatcher, "$*DISPATCHER");
@@ -54,6 +57,7 @@ static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_p6ex, "P6EX");
         str_xnodisp = MVM_string_ascii_decode_nt(tc, tc->instance->VMString, "X::NoDispatcher");
         MVM_gc_root_add_permanent_desc(tc, (MVMCollectable **)&str_xnodisp, "X::NoDispatcher");
+        MVM_gc_allocate_gen2_default_clear(tc);
     }
 }
 

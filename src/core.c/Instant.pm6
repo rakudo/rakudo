@@ -114,12 +114,12 @@ multi sub infix:<->(Instant:D $a, Real:D $b --> Instant:D) {
       $a.tai - $b.Rat)
 }
 
-sub term:<time>(--> Int:D) { nqp::p6box_i(nqp::time_i()) }
+sub term:<time>(--> Int:D) { nqp::p6box_i(nqp::div_i(nqp::time(),1000000000)) }
 sub term:<now>(--> Instant:D) {
     # FIXME: During a leap second, the returned value is one
     # second greater than it should be.
     nqp::p6bindattrinvres(nqp::create(Instant),Instant,'$!tai',
-      Rakudo::Internals.tai-from-posix(nqp::time_n,0).Rat)
+      Rakudo::Internals.tai-from-posix(nqp::div_n(nqp::time(),1000000000e0),0).Rat)
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*INIT-INSTANT', {

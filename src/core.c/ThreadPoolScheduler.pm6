@@ -562,7 +562,7 @@ my class ThreadPoolScheduler does Scheduler {
                 }
 
                 scheduler-debug "Supervisor started";
-                my num $last-rusage-time = nqp::time_n;
+                my int $last-rusage-time = nqp::time;
 #?if !jvm
                 my int @rusage;
                 nqp::getrusage(@rusage);
@@ -603,8 +603,8 @@ my class ThreadPoolScheduler does Scheduler {
                 # unclear until we have profiling options that also work
                 # when multiple threads are running.
                 my int $exhausted;
-                my num $now;
-                my num $rusage-period;
+                my int $now;
+                my int $rusage-period;
                 my int $current-usage;
                 my int $usage-delta;
                 my num $normalized-delta;
@@ -620,7 +620,7 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Work out the delta of CPU usage since last supervision
                     # and the time period that measurement spans.
-                    $now = nqp::time_n;
+                    $now = nqp::time;
                     $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
                     nqp::getrusage(@rusage);
@@ -641,10 +641,10 @@ my class ThreadPoolScheduler does Scheduler {
                     ## instead of VMArrayInstance_i
                     ## see https://github.com/rakudo/rakudo/issues/1666
                     $current-usage =
-                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
-                        + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
-                        + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
-                        + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
+                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)  +
+                                nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC) +
+                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)  +
+                                nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
 #?endif
                     $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;

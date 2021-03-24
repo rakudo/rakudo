@@ -667,6 +667,18 @@ my class IO::Path is Cool does IO {
         spurt-blob($path, $mode, $blob)
     }
 
+    method user(IO::Path:D:) {
+        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
+          ?? nqp::stat($path,nqp::const::STAT_UID)
+          !! self!does-not-exist("user")
+    }
+
+    method group(IO::Path:D:) {
+        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
+          ?? nqp::stat($path,nqp::const::STAT_GID)
+          !! self!does-not-exist("group")
+    }
+
     proto method spurt(|) {*}
     multi method spurt(IO::Path:D: --> Bool:D) {
         self.open(:w).close

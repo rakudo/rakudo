@@ -9,14 +9,6 @@
 #include <sys/time.h>
 #endif
 
-#ifndef MVM_spesh_get_and_use_facts
-#define MVM_spesh_get_and_use_facts MVM_spesh_get_facts
-#endif
-
-#ifndef MVM_gc_root_add_permanent_desc
-#define MVM_gc_root_add_permanent_desc(tc, obj_ref, description) MVM_gc_root_add_permanent(tc, obj_ref)
-#endif
-
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(cur_op + idx))]
 #define REAL_BODY(tc, obj)  MVM_p6opaque_real_data(tc, OBJECT_BODY(obj))
 

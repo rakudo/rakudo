@@ -29,26 +29,11 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 
     method new(
       str                 $operator,
-      OperatorProperties :$properties,
-      RakuAST::Infix     :$equiv,
-      RakuAST::Infix     :$tighter,
-      RakuAST::Infix     :$looser
+      OperatorProperties :$properties
     ) {
 
-        unless $properties {
-            if $equiv {
-                $properties := $equiv.properties.equiv(nqp::null_s);
-            }
-            elsif $tighter {
-                $properties := $tighter.properties.tighter(nqp::null_s);
-            }
-            elsif $looser {
-                $properties := $tighter.properties.looser(nqp::null_s);
-            }
-            else {
-                $properties := OperatorProperties.properties-for-infix($operator)
-            }
-        }
+        $properties := OperatorProperties.properties-for-infix($operator)
+          unless $properties;
 
         my $obj := nqp::create($properties.chaining
           ?? RakuAST::Infix::Chaining

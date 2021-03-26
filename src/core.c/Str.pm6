@@ -2860,11 +2860,49 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method unival(Str:D:) { self ?? self.ord.unival !! Nil }
     method univals(Str:D:) { self.ords.map: *.unival }
 
-    method wordcase(Str:D: :&filter = &tclc, Mu :$where = True --> Str:D) {
-        self.subst(:g, / [<:L> \w* ] +% <['\-]> /, -> $m {  # ' highlighting
-            my Str $s = $m.Str;
-            $s ~~ $where ?? filter($s) !! $s;
-        });
+    my &SMART-WORDS = / [<:L> \w* ] +% <['\-]> /;
+
+    method wordcase(Str:D: :&filter, Mu :$where = True --> Str:D) {
+        my int $c;
+        my int $pos;
+        my int $from;
+        my str $word;
+
+        my $parts := nqp::list_s;
+
+        nqp::until(
+          nqp::islt_i(
+            ($pos = nqp::getattr_i(
+              (my $m := SMART-WORDS($cursor-init(Match,self,:$c))),
+              Match,
+              '$!pos'
+            )),
+            0
+          ),
+          nqp::stmts(
+            nqp::if(
+              nqp::isgt_i(($from = nqp::getattr_i($m,Match,'$!from')),$c),
+              nqp::push_s($parts,nqp::substr($!value,$c,nqp::sub_i($from,$c)))
+            ),
+            ($word = nqp::substr($!value,$from,nqp::sub_i($pos,$from))),
+            nqp::push_s(
+              $parts,
+              nqp::if(
+                $where.ACCEPTS($word),
+                nqp::if(&filter,filter($word),nqp::tclc($word)),
+                $word
+              )
+            ),
+            ($c = $pos)
+          )
+        );
+
+        nqp::push_s(
+          $parts,
+          nqp::substr($!value,$c,nqp::sub_i(nqp::chars($!value),$c))
+        ) if nqp::islt_i($c,nqp::chars($!value));
+
+        nqp::join('',$parts)
     }
 
     proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }

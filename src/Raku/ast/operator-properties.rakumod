@@ -2,14 +2,16 @@ class OperatorProperties {
     has str $.precedence;
     has str $.associative;
     has str $.thunky;
-    has str $.dba;
-    has str $.next-term;
-    has str $.sub-precedence;
     has int $.iffy;
     has int $.diffy;
     has int $.fiddly;
 
-    method new(str :$precedence, str :$associative, str :$thunky, str :$dba, str :$next-term, str :$sub-precedence, int :$iffy, int :$diffy, int :$fiddly) {
+    # grammar specific attributes
+    has str $.dba;             
+    has str $.next-term;
+    has str $.sub-precedence;
+
+    method new(str :$precedence, str :$associative, str :$thunky, int :$iffy, int :$diffy, int :$fiddly, str :$dba, str :$next-term, str :$sub-precedence) {
         my $obj := nqp::create(self);
         nqp::bindattr_s($obj,OperatorProperties,'$!precedence',
           $precedence // (nqp::defined(self) ?? $!precedence !! ""));
@@ -17,6 +19,12 @@ class OperatorProperties {
           $associative // (nqp::defined(self) ?? $!associative !! ""));
         nqp::bindattr_s($obj,OperatorProperties,'$!thunky',
           $thunky // (nqp::defined(self) ?? $!thunky !! ""));
+        nqp::bindattr_i($obj,OperatorProperties,'$!iffy',
+          $iffy // (nqp::defined(self) ?? $!iffy !! 0));
+        nqp::bindattr_i($obj,OperatorProperties,'$!diffy',
+          $diffy // (nqp::defined(self) ?? $!diffy !! 0));
+        nqp::bindattr_i($obj,OperatorProperties,'$!fiddly',
+          $fiddly // (nqp::defined(self) ?? $!fiddly !! 0));
 
         nqp::bindattr_s($obj,OperatorProperties,'$!dba',
           $dba // (nqp::defined(self) ?? $!dba !! ""));
@@ -24,13 +32,6 @@ class OperatorProperties {
           $next-term // (nqp::defined(self) ?? $!next-term !! ""));
         nqp::bindattr_s($obj,OperatorProperties,'$!sub-precedence',
           $sub-precedence // (nqp::defined(self) ?? $!sub-precedence !! ""));
-
-        nqp::bindattr_i($obj,OperatorProperties,'$!iffy',
-          $iffy // (nqp::defined(self) ?? $!iffy !! 0));
-        nqp::bindattr_i($obj,OperatorProperties,'$!diffy',
-          $diffy // (nqp::defined(self) ?? $!diffy !! 0));
-        nqp::bindattr_i($obj,OperatorProperties,'$!fiddly',
-          $fiddly // (nqp::defined(self) ?? $!fiddly !! 0));
 
         $obj
     }

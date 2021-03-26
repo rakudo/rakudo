@@ -4,6 +4,8 @@ class OperatorProperties {
 #    has str $!associative;
 #    has str $!thunky;
 #    has int $!iffy;
+#    has int $!diffy;
+#    has int $!fiddly;
 
     multi method WHICH(OperatorProperties:D: --> ValueObjAt:D) {
         my $parts := nqp::list_s('OperatorProperties');
@@ -17,15 +19,36 @@ class OperatorProperties {
         if $.thunky -> str $thunky {
             nqp::push_s($parts,nqp::concat('thunky=',$thunky))
         }
-        if $.iffy -> int $iffy {
-            nqp::push_s($parts,nqp::concat('iffy=',$iffy))
-        }
+        nqp::push_s($parts,'iffy=1')   if $.iffy;
+        nqp::push_s($parts,'diffy=1')  if $.diffy;
+        nqp::push_s($parts,'fiddly=1') if $.fiddly;
 
         nqp::box_s(nqp::join('|',$parts),ValueObjAt)
     }
 
     # Return handler for reducing with these operator properties
     method reducer() { ::(self.reducer-name) }
+
+    multi method raku(OperatorProperties:D: --> Str:D) {
+        my $parts := nqp::list_s;
+
+        if $.precedence -> str $precedence {
+            nqp::push_s($parts,nqp::concat('precedence => ',$precedence.raku));
+        }
+        if $.associative -> str $associative {
+            nqp::push_s($parts,nqp::concat('associative => ',$associative.raku));
+        }
+        if $.thunky -> str $thunky {
+            nqp::push_s($parts,nqp::concat('thunky => ',$thunky.raku))
+        }
+        nqp::push_s($parts,':iffy')   if $.iffy;
+        nqp::push_s($parts,':diffy')  if $.diffy;
+        nqp::push_s($parts,':fiddly') if $.fiddly;
+
+        nqp::concat('OperatorProperties.new(',
+          nqp::concat(nqp::join(',',$parts),')')
+        )
+    }
 }
 
 # Attach operator properties to all of the built-in operators.  This is

@@ -3261,21 +3261,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method uniparse(Str:D: --> Str:D) {
-        my     \names := nqp::split(',', self);
-        my int $elems  = nqp::elems(names);
-        my int $i      = -1;
-        my str $res    = '';
+        my $names := nqp::split(',', self);
+        my $parts := nqp::list_s;
+
         nqp::while(
-            nqp::islt_i( ($i = nqp::add_i($i,1)), $elems ),
-            ($res = nqp::concat($res,
-                nqp::unless(
-                    nqp::strfromname(nqp::atpos(names, $i).trim),
-                    X::Str::InvalidCharName.new(
-                        :name(nqp::atpos(names, $i).trim)
-                    ).fail
-            ))),
+          nqp::elems($names),
+          nqp::push_s(
+            $parts,
+            nqp::unless(
+              nqp::strfromname(my $name := nqp::shift($names).trim),
+              X::Str::InvalidCharName.new(:$name).fail
+            )
+          )
         );
-        $res
+
+        nqp::join("",$parts)
     }
 
     proto method indent($) {*}

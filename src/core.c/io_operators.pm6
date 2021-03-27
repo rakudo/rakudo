@@ -107,11 +107,39 @@ multi sub dir(       ) { IO::Path.new($*SPEC.curdir).dir         }
 proto sub open($, |) {*}
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
 
-proto sub lines($?, |) {*}
-multi sub lines($what = $*ARGFILES, |c) { $what.lines(|c) }
+proto sub lines($?, $?, *%) {*}
+multi sub lines(*%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $*ARGFILES.lines(|%_)
+      !! $*ARGFILES.lines
+}
+multi sub lines($what, *%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $what.lines(|%_)
+      !! $what.lines
+}
+multi sub lines($what, $number, *%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $what.lines($number, |%_)
+      !! $what.lines($number)
+}
 
-proto sub words($?, |) {*}
-multi sub words($what = $*ARGFILES, |c) { $what.words(|c) }
+proto sub words($?, $?, *%) {*}
+multi sub words(*%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $*ARGFILES.words(|%_)
+      !! $*ARGFILES.words
+}
+multi sub words($what, *%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $what.words(|%_)
+      !! $what.words
+}
+multi sub words($what, $number, *%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $what.words($number, |%_)
+      !! $what.words($number)
+}
 
 proto sub get  ($?, *%) {*}
 multi sub get  (IO::Handle:D $fh = $*ARGFILES) { $fh.get  }

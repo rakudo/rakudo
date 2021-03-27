@@ -431,12 +431,27 @@ public final class Binder {
                  */
                 if (paramType != gcx.Mu && !(isSlurpyNamed && paramType == gcx.Associative) && Ops.istype_nd(decontValue, paramType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
+
+                    /* Try to figure out the most helpful name for the expected. */
+                    SixModelObject expectedType = null;
+                    SixModelObject postConstraints = param.get_attribute_boxed(tc, gcx.Parameter,
+                            "$!post_contraints", HINT_post_constraints);
+                    if (postConstraints != null) {
+                        SixModelObject consType = postConstraints.at_pos_boxed(tc, 0);
+                        expectedType = (Ops.istype(consType, gcx.Code, tc) != 0)
+                            ? paramType.st.WHAT
+                            : consType.st.WHAT;
+                    }
+                    else {
+                        expectedType = paramType.st.WHAT;
+                    }
+
                     if (error != null) {
                         SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
                         if (thrower != null) {
                             error[0] = thrower;
                             error[1] = bindParamThrower;
-                            error[2] = new Object[] { decontValue, paramType.st.WHAT,
+                            error[2] = new Object[] { decontValue, expectedType.st.WHAT,
                                 varName, param, (long)0 };
                         }
                         else {

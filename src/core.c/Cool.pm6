@@ -454,78 +454,77 @@ my class Cool { # declared in BOOTSTRAP
 Metamodel::ClassHOW.exclude_parent(Cool);
 
 proto sub chop($, $?, *%) {*}
-multi sub chop(Cool:D $s --> Str:D) { $s.chop }
-multi sub chop(Cool:D $s, Int() $n --> Str:D) { $s.chop($n) }
+multi sub chop($s --> Str:D) { $s.chop }
+multi sub chop($s, Int() $n --> Str:D) { $s.chop($n) }
 
 proto sub chomp($, *%) {*}
-multi sub chomp(Cool $s --> Str:D) { $s.chomp }
+multi sub chomp($s --> Str:D) { $s.chomp }
 
 proto sub flip($, *%) {*}
-multi sub flip(Cool $s --> Str:D) { $s.flip }
+multi sub flip($s --> Str:D) { $s.flip }
 
 proto sub index($, $, $?, *%) {*}
-multi sub index(Cool:D $s,
+multi sub index($s,
   Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Int:D) {
     $s.index($needle, :$ignorecase, :$ignoremark)
 }
-multi sub index(Cool:D $s,
+multi sub index($s,
   Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark) --> Int:D) {
     $s.index($needle, $pos, :$ignorecase, :$ignoremark)
 }
 
 proto sub rindex($, $, $?, *%) {*}
-multi sub rindex(Cool:D $s, Cool:D $needle --> Int:D) {
+multi sub rindex($s, Cool:D $needle --> Int:D) {
     $s.rindex($needle)
 }
-multi sub rindex(Cool:D $s, Cool:D $needle, Cool:D $pos --> Int:D) {
+multi sub rindex($s, Cool:D $needle, Cool:D $pos --> Int:D) {
     $s.rindex($needle,$pos)
 }
 
 proto sub lc($, *%) {*}
-multi sub lc(Cool $s) { $s.lc }
+multi sub lc($s) { $s.lc }
 
 proto sub ord($, *%) {*}
-multi sub ord(Cool $s) { $s.ord }
+multi sub ord($s) { $s.ord }
 
 proto sub uc($, *%) {*}
-multi sub uc(Cool $s) { $s.uc }
+multi sub uc($s) { $s.uc }
 
 proto sub tc($, *%) {*}
-multi sub tc(Cool $s) { $s.tc }
+multi sub tc($s) { $s.tc }
 
 proto sub fc($, *%) {*}
-multi sub fc(Cool $s) { $s.fc }
+multi sub fc($s) { $s.fc }
 
 proto sub tclc($, *%) {*}
-multi sub tclc(Cool $s) { $s.tclc }
+multi sub tclc($s) { $s.tclc }
 
 proto sub indices($, $, $?, *%) {*}
-multi sub indices(Cool:D $s,
+multi sub indices($s,
   Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
     $s.indices($needle, :$ignorecase, :$ignoremark, :$overlap)
 }
-multi sub indices(Cool:D $s,
+multi sub indices($s,
   Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
     $s.indices($needle, $pos, :$ignorecase, :$ignoremark, :$overlap)
 }
 
 proto sub ords($, *%) {*}
-multi sub ords(Cool:D $s) { $s.ords }
+multi sub ords($s) { $s.ords }
 
 proto sub comb($, $, $?, *%) {*}
-multi sub comb(Regex $matcher, Cool $input, $limit = *, :$match) {
+multi sub comb(Regex $matcher, $input, $limit = *, :$match) {
     $input.comb($matcher, $limit, :$match)
 }
-multi sub comb(Str $matcher, Cool $input, $limit = *) {
+multi sub comb(Str $matcher, $input, $limit = *) {
     $input.comb($matcher, $limit)
 }
-multi sub comb(Int:D $size, Cool $input, $limit = *) {
+multi sub comb(Int:D $size, $input, $limit = *) {
     $input.comb($size, $limit)
 }
 
 proto sub wordcase($, *%) is pure {*}
-multi sub wordcase(Str:D $x) {$x.wordcase }
-multi sub wordcase(Cool $x)  {$x.Str.wordcase }
+multi sub wordcase($x) { $x.wordcase }
 
 proto sub sprintf($, |) {*}
 multi sub sprintf(Cool:D $format, *@args) {
@@ -549,16 +548,15 @@ multi sub sprintf(Cool:D $format, *@args) {
 }
 
 proto sub samecase($, $, *%) {*}
-multi sub samecase(Cool:D $string, Cool:D $pattern) { $string.samecase($pattern) }
+multi sub samecase($s, Cool:D $pattern) { $s.samecase($pattern) }
 
 proto sub split($, $, |) {*}
-multi sub split($pat, Cool:D $target, |c) { c ?? $target.split($pat, |c) !! $target.split($pat) }
+multi sub split($pat, $target, |c) { c ?? $target.split($pat, |c) !! $target.split($pat) }
 
 proto sub chars($, *%) is pure {*}
-multi sub chars(Cool $x)  { $x.Str.chars }
-
 multi sub chars(Str:D $x) { nqp::p6box_i(nqp::chars($x)) } #?js: NFG
 multi sub chars(str $x --> int) { nqp::chars($x) } #?js: NFG
+multi sub chars($x)  { $x.chars }
 
 # These probably belong in a separate unicodey file
 

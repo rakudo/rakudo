@@ -4361,7 +4361,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Cannot inline things with custom invocation handler or phasers.
         return 0 if nqp::can($code, 'CALL-ME');
         my $phasers := nqp::getattr($code,$*W.find_single_symbol('Block', :setting-only),'$!phasers');
-        return 0 unless nqp::isnull($phasers) || !nqp::hllbool($phasers);
+        return 0 unless nqp::isnull($phasers) || !$phasers;
 
         # Make sure the block has the common structure we expect
         # (decls then statements).

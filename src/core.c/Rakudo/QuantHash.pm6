@@ -576,30 +576,27 @@ my class Rakudo::QuantHash {
     }
 
     method ADD-ITERATOR-TO-BAG(\elems, Mu \iterator, Mu \type) {
-        my $pair;
         nqp::until(
           nqp::eqaddr(
             (my \pulled := nqp::decont(iterator.pull-one)),
             IterationEnd
           ),
-          nqp::bindattr($pair,Pair,'$!value',nqp::add_i(
-            nqp::getattr(
-              ($pair := nqp::ifnull(
-                nqp::atkey(elems,(my \which := pulled.WHICH)),
-                nqp::if(
-                  nqp::istype(pulled,type),
-                  nqp::bindkey(elems,which,Pair.new(pulled,0)),
-                  X::TypeCheck::Binding.new(
-                    got      => pulled,
-                    expected => type
-                  ).throw
-                )
-              )),
-              Pair,
-              '$!value'
-            ),
-            1
-          ))
+          nqp::stmts(
+            (my $pair := nqp::ifnull(
+              nqp::atkey(elems,(my \which := pulled.WHICH)),
+              nqp::if(
+                nqp::istype(pulled,type),
+                nqp::bindkey(elems,which,Pair.new(pulled,0)),
+                X::TypeCheck::Binding.new(
+                  got      => pulled,
+                  expected => type
+                ).throw
+              )
+            )),
+            nqp::bindattr($pair,Pair,'$!value',
+              nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+            )
+          )
         );
         elems
     }

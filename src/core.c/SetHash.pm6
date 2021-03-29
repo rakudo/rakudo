@@ -192,8 +192,8 @@ my class SetHash does Setty {
     multi method Mixy (SetHash:D:) { self.MixHash }
 
 #--- interface methods
-    multi method STORE(SetHash:D: *@pairs --> SetHash:D) {
-        (my \iterator := @pairs.iterator).is-lazy
+    multi method STORE(SetHash:D: Iterable:D \iterable --> SetHash:D) {
+        (my \iterator := iterable.iterator).is-lazy
           ?? Failure.new(
                X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
              )

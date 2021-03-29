@@ -8,8 +8,8 @@ my class MixHash does Mixy {
     method total() { Rakudo::QuantHash.MIX-TOTAL($!elems) }
     method !total-positive() { Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems) }
 
-    multi method STORE(MixHash:D: *@pairs --> MixHash:D) {
-        (my \iterator := @pairs.iterator).is-lazy
+    multi method STORE(MixHash:D: Iterable:D \iterable --> MixHash:D) {
+        (my \iterator := iterable.iterator).is-lazy
           ?? Failure.new(
                X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
              )

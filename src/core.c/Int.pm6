@@ -247,29 +247,16 @@ my class Int does Real { # declared in BOOTSTRAP
         }
     }
 
-    my $nuprop := nqp::null;
-    my $deprop := nqp::null;
+    my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
+    my constant $deprop = nqp::unipropcode("Numeric_Value_Denominator");
     method unival(Int:D:) {
-        my str $de = nqp::getuniprop_str(
-          self,
-          nqp::ifnull(
-            $deprop,
-            $deprop := nqp::unipropcode("Numeric_Value_Denominator")
-          )
-        );
         nqp::if(
-          nqp::chars($de),
+          nqp::chars(my str $de = nqp::getuniprop_str(self,$deprop)),
           nqp::if(                                    # some string to work with
             nqp::iseq_s($de,"NaN"),
             NaN,                                       # no value found
             nqp::stmts(                                # value for denominator
-              (my str $nu = nqp::getuniprop_str(
-                self,
-                nqp::ifnull(
-                  $nuprop,
-                  $nuprop := nqp::unipropcode("Numeric_Value_Numerator")
-                )
-              )),
+              (my str $nu = nqp::getuniprop_str(self,$nuprop)),
               nqp::if(
                 nqp::iseq_s($de,"1"),
                 nqp::atpos(nqp::radix(10,$nu,0,0),0),   # just the numerator

@@ -762,6 +762,7 @@ my @allowed =
       Q{π},
       Q{τ},
       Q{𝑒},
+      Q{tai-offset-nanos},
     ),
     d => (
         Q{$!},

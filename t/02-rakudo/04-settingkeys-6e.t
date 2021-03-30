@@ -759,6 +759,7 @@ my %allowed = (
     Q{π},
     Q{τ},
     Q{𝑒},
+    Q{tai-offset-nanos},
 ).map: { $_ => 1 };
 
 my %nyi-for-backend = (

@@ -759,6 +759,7 @@ my @expected = (
   Q{π},
   Q{τ},
   Q{𝑒},
+  Q{tai-offset-nanos},
 );
 
 my %nyi-for-backend = (

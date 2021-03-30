@@ -97,7 +97,10 @@ my class Cool { # declared in BOOTSTRAP
 
     method uniname()        { uniname(self) }
     method uninames()       { uninames(self) }
-    method unival(Cool:D:)  { self.Int.unival }
+
+    proto method unival() is pure {*}
+    multi method unival(Cool:D:) { self.Int.unival }
+
     method univals(Cool:D:) { self.Str.univals }
     method uniprop(|c)      { uniprop(self, |c) }
     method uniprop-int(|c)  { uniprop-int(self, |c) }
@@ -590,9 +593,8 @@ multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
 #?endif
 
 #?if !jvm
-proto sub unival($, *%) {*}
-multi sub unival(Str:D $str) { $str ?? $str.ord.unival !! Nil }
-multi sub unival(Int:D $code) { $code.unival }
+proto sub unival($, *%) is pure {*}
+multi sub unival(\what) { what.unival }
 
 proto sub univals($, *%) {*}
 multi sub univals(Str:D $str) { $str.univals }

@@ -2857,7 +2857,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method NFKD() { X::NYI.new(:feature<NFKD>).throw }
 #?endif
 
-    method unival(Str:D:)  { nqp::ord($!value).unival }
+    multi method unival(Str:D:)  { nqp::ord($!value).unival }
     method univals(Str:D:) { self.ords.map: *.unival }
 
     my &SMART-WORDS = / [<:L> \w* ] +% <['\-]> /;

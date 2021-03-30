@@ -249,26 +249,18 @@ my class Int does Real { # declared in BOOTSTRAP
 
     my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
     my constant $deprop = nqp::unipropcode("Numeric_Value_Denominator");
-    method unival(Int:D:) {
-        nqp::if(                                      # valid?
-          nqp::isge_I(self,0)
-            && nqp::chars(my str $de = nqp::getuniprop_str(self,$deprop)),
-          nqp::if(                                    # some string to work with
-            nqp::iseq_s($de,"NaN"),
-            NaN,                                       # no value found
-            nqp::if(
-              nqp::iseq_s($de,"1"),
-              nqp::coerce_si(                           # just the numerator
-                nqp::getuniprop_str(self,$nuprop)
-              ),
-              Rat.new(                                  # spotted a Rat
-                nqp::coerce_si(nqp::getuniprop_str(self,$nuprop)),
-                nqp::coerce_si($de)
-              )
-            )
-          ),
-          Nil                                          # no string, so no value
-        )
+    multi method unival(Int:D:) {
+        nqp::isge_I(self,0)                          # valid?
+          && nqp::chars(my str $de = nqp::getuniprop_str(self,$deprop))
+          ?? nqp::iseq_s($de,"NaN")                   # some string to work with
+            ?? NaN                                     # no value found
+            !! nqp::iseq_s($de,"1")                    # some value
+              ?? nqp::coerce_si(nqp::getuniprop_str(self,$nuprop))
+              !! Rat.new(
+                   nqp::coerce_si(nqp::getuniprop_str(self,$nuprop)),
+                   nqp::coerce_si($de)
+                 )
+          !! Nil                                      # not valid, so no value
     }
 }
 

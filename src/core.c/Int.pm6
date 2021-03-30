@@ -250,8 +250,9 @@ my class Int does Real { # declared in BOOTSTRAP
     my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
     my constant $deprop = nqp::unipropcode("Numeric_Value_Denominator");
     method unival(Int:D:) {
-        nqp::if(
-          nqp::chars(my str $de = nqp::getuniprop_str(self,$deprop)),
+        nqp::if(                                      # valid?
+          nqp::isge_I(self,0)
+            && nqp::chars(my str $de = nqp::getuniprop_str(self,$deprop)),
           nqp::if(                                    # some string to work with
             nqp::iseq_s($de,"NaN"),
             NaN,                                       # no value found

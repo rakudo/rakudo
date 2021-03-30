@@ -5,7 +5,7 @@ use NativeCall::Types;
 use NativeCall::Compiler::GNU;
 use NativeCall::Compiler::MSVC;
 
-my constant $repr_map = nqp::hash(
+my $repr_map := nqp::hash(
   "CArray",    "carray",
   "CPPStruct", "cppstruct",
   "CPointer",  "cpointer",
@@ -133,7 +133,7 @@ my constant $signed_ints_by_size =
   nqp::list_s( "", "char", "short", "", "int", "", "", "", "longlong" );
 
 # Gets the NCI type code to use based on a given Raku type.
-my constant $type_map = nqp::hash(
+my $type_map := nqp::hash(
   "Bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
   "bool",       nqp::atpos_s($signed_ints_by_size,nativesizeof(bool)),
   "Callable",   "callback",

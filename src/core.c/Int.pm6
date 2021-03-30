@@ -255,15 +255,14 @@ my class Int does Real { # declared in BOOTSTRAP
           nqp::if(                                    # some string to work with
             nqp::iseq_s($de,"NaN"),
             NaN,                                       # no value found
-            nqp::stmts(                                # value for denominator
-              (my str $nu = nqp::getuniprop_str(self,$nuprop)),
-              nqp::if(
-                nqp::iseq_s($de,"1"),
-                nqp::atpos(nqp::radix(10,$nu,0,0),0),   # just the numerator
-                Rat.new(                                # spotted a Rat
-                  nqp::atpos(nqp::radix(10,$nu,0,0),0),
-                  nqp::atpos(nqp::radix(10,$de,0,0),0)
-                )
+            nqp::if(
+              nqp::iseq_s($de,"1"),
+              nqp::coerce_si(                           # just the numerator
+                nqp::getuniprop_str(self,$nuprop)
+              ),
+              Rat.new(                                  # spotted a Rat
+                nqp::coerce_si(nqp::getuniprop_str(self,$nuprop)),
+                nqp::coerce_si($de)
               )
             )
           ),

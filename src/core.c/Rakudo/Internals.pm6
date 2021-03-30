@@ -755,7 +755,7 @@ implementation detail and has no serviceable parts inside"
           !! ("", "", "", "", "<HERE>");
     }
 
-    my num $init-time-num = nqp::time_n;
+    my num $init-time-num = nqp::div_n(nqp::time,1000000000e0);
     method INITTIME() is raw { $init-time-num }
 
 #?if moar

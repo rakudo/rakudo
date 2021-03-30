@@ -17,7 +17,7 @@ my class DateTime does Dateish {
 
         # not set explicitly
         else {
-            my int $utc = nqp::time_i;
+            my int $utc = nqp::div_i(nqp::time,1000000000);
             my $lt     := nqp::decodelocaltime($utc);
 
             # first time, or possible DST change
@@ -352,7 +352,7 @@ my class DateTime does Dateish {
     }
 
     method now(:$timezone, :&formatter --> DateTime:D) {
-        self.new(nqp::time_n(),
+        self.new(nqp::div_n(nqp::time(),1000000000e0),
           timezone => $timezone // get-local-timezone-offset,
           :&formatter
         )

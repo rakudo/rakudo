@@ -409,12 +409,12 @@
                 else {   # no emit-timed
                     my int $msecs = ($seconds * 1000).Int;
                     my int $last_time =
-                      nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
+                      nqp::div_i(nqp::mul_i(nqp::time,1000000),$msecs);
 
                     if $max > 0 {
                         whenever self -> \val {
                             my int $this_time =
-                              nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
+                              nqp::div_i(nqp::time,nqp::mul_i($msecs,1000000));
                             if $this_time != $last_time {
                                 flush if nqp::elems($batched);
                                 $last_time = $this_time;
@@ -430,7 +430,7 @@
                     else {            # no max and $seconds
                         whenever self -> \val {
                             my int $this_time =
-                              nqp::div_i(nqp::mul_n(nqp::time_n,1000e0),$msecs);
+                              nqp::div_i(nqp::time,nqp::mul_i($msecs,1000000));
                             if $this_time != $last_time {
                                 flush if nqp::elems($batched);
                                 $last_time = $this_time;
@@ -564,7 +564,7 @@
     }
     multi method elems(Supply:D: $seconds ) {
         supply {
-            my $last-time := nqp::time_i() div $seconds;
+            my $last-time := nqp::div_i(nqp::time(),1000000000) div $seconds;
             my $this-time;
 
             my int $elems;
@@ -572,7 +572,7 @@
 
             whenever self {
                 $last-elems = ++$elems;
-                $this-time := nqp::time_i() div $seconds;
+                $this-time := nqp::div_i(nqp::time(),1000000000) div $seconds;
 
                 if $this-time != $last-time {
                     emit $elems;

@@ -864,6 +864,12 @@ register_op_desugar('p6var', -> $qast {
         )
     )
 });
+register_op_desugar('time_i', -> $qast {
+    QAST::Op.new( :op('div_i'), QAST::Op.new( :op('time' ) ), QAST::IVal.new( :value(1000000000) ) )
+});
+register_op_desugar('time_n', -> $qast {
+    QAST::Op.new( :op('div_n'), QAST::Op.new( :op('time' ) ), QAST::NVal.new( :value(1000000000e0) ) )
+});
 {
     my $is_moar;
     register_op_desugar('p6decontrv_internal', -> $qast {

@@ -95,20 +95,6 @@ my class Cool { # declared in BOOTSTRAP
 
     method wordcase()   { self.Str.wordcase }
 
-    method uniname()        { uniname(self) }
-    method uninames()       { uninames(self) }
-
-    proto method unival() is pure {*}
-    multi method unival(Cool:D:) { self.Int.unival }
-
-    method univals(Cool:D:) { self.Str.univals }
-    method uniprop(|c)      { uniprop(self, |c) }
-    method uniprop-int(|c)  { uniprop-int(self, |c) }
-    method uniprop-bool(|c) { uniprop-bool(self, |c) }
-    method uniprop-str(|c)  { uniprop-str(self, |c) }
-    method uniprops(|c)     { uniprops(self, |c) }
-    method unimatch(|c)     { unimatch(self, |c) }
-
     method chomp(Cool:D:) { self.Str.chomp }
 
     proto method chop(|)                {*}

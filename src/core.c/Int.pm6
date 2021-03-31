@@ -246,22 +246,6 @@ my class Int does Real { # declared in BOOTSTRAP
             }
         }
     }
-
-    my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
-    my constant $deprop = nqp::unipropcode("Numeric_Value_Denominator");
-    multi method unival(Int:D:) {
-        nqp::isge_I(self,0)                          # valid?
-          && nqp::chars(my str $de = nqp::getuniprop_str(self,$deprop))
-          ?? nqp::iseq_s($de,"NaN")                   # some string to work with
-            ?? NaN                                     # no value found
-            !! nqp::iseq_s($de,"1")                    # some value
-              ?? nqp::coerce_si(nqp::getuniprop_str(self,$nuprop))
-              !! Rat.new(
-                   nqp::coerce_si(nqp::getuniprop_str(self,$nuprop)),
-                   nqp::coerce_si($de)
-                 )
-          !! Nil                                      # not valid, so no value
-    }
 }
 
 multi sub prefix:<++>(Int:D $a is rw --> Int:D) {

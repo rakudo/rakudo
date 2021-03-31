@@ -1,3 +1,37 @@
+augment class Cool {
+    method uniname()        { uniname(self) }
+    method uninames()       { uninames(self) }
+
+    proto method unival() is pure {*}
+    multi method unival(Cool:D:) { self.Int.unival }
+
+    method univals(Cool:D:) { self.Str.univals }
+    method uniprop(|c)      { uniprop(self, |c) }
+    method uniprop-int(|c)  { uniprop-int(self, |c) }
+    method uniprop-bool(|c) { uniprop-bool(self, |c) }
+    method uniprop-str(|c)  { uniprop-str(self, |c) }
+    method uniprops(|c)     { uniprops(self, |c) }
+    method unimatch(|c)     { unimatch(self, |c) }
+}
+
+augment class Int {
+    my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
+    my constant $deprop = nqp::unipropcode("Numeric_Value_Denominator");
+    multi method unival(Int:D:) {
+        nqp::isge_I(self,0)                          # valid?
+          && nqp::chars(my str $de = nqp::getuniprop_str(self,$deprop))
+          ?? nqp::iseq_s($de,"NaN")                   # some string to work with
+            ?? NaN                                     # no value found
+            !! nqp::iseq_s($de,"1")                    # some value
+              ?? nqp::coerce_si(nqp::getuniprop_str(self,$nuprop))
+              !! Rat.new(
+                   nqp::coerce_si(nqp::getuniprop_str(self,$nuprop)),
+                   nqp::coerce_si($de)
+                 )
+          !! Nil                                      # not valid, so no value
+    }
+}
+
 augment class Str {
 
 #?if !jvm
@@ -75,6 +109,9 @@ multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 proto sub uninames($, *%) {*}
 multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
 
+proto sub unival($, *%) is pure {*}
+proto sub univals($, *%) {*}
+
 #?if jvm
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
 multi sub univals(|)      { die 'univals NYI on jvm backend' }
@@ -98,10 +135,7 @@ multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
 #?endif
 
 #?if !jvm
-proto sub unival($, *%) is pure {*}
 multi sub unival(\what) { what.unival }
-
-proto sub univals($, *%) {*}
 multi sub univals(Str:D $str) { $str.univals }
 #?endif
 

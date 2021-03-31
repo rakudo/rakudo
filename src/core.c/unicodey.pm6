@@ -1,8 +1,8 @@
 augment class Cool {
-    proto method ord(*%) {*}
+    proto method ord(*%) is pure {*}
     multi method ord(Cool:D: --> Int:D) { self.Str.ord }
 
-    proto method ords(*%) {*}
+    proto method ords(*%) is pure {*}
     multi method ords(Cool:D:) { self.Str.ords }
 
     method chr() {

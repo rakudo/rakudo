@@ -497,11 +497,6 @@ multi sub prefix:<+^>(int $a --> int) {
    nqp::bitneg_i($a);
 }
 
-proto sub chr($, *%) is pure  {*}
-multi sub chr(Int:D  \x --> Str:D) { x.chr        }
-multi sub chr(Cool \x   --> Str:D) { x.Int.chr    }
-multi sub chr(int $x    --> str)   { nqp::chr($x) }
-
 proto sub is-prime($, *%) is pure {*}
 multi sub is-prime(\x --> Int:D) { x.is-prime }
 

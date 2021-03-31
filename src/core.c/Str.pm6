@@ -3756,9 +3756,6 @@ sub UNBASE_BRACKET($base, @a) is implementation-detail {
     $v;
 }
 
-proto sub chrs(|) {*}
-multi sub chrs(*@c --> Str:D) { @c.chrs }
-
 proto sub parse-base($, $, *%) {*}
 multi sub parse-base(Str:D $str, Int:D $radix) { $str.parse-base($radix) }
 

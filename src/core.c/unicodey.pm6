@@ -103,16 +103,25 @@ augment class Str {
 }
 
 # all proto's in one place so they're available on all (conditional) backends
+proto sub ord($, *%)             is pure {*}
+proto sub ords($, *%)            is pure {*}
+
 proto sub uniname($, *%)         is pure {*}
 proto sub uninames($, *%)        is pure {*}
+
 proto sub uniprop($, |)          is pure {*}
+proto sub uniprops($, $?, *%)    is pure {*}
+
 proto sub uniprop-bool($, $, *%) is pure {*}
 proto sub uniprop-int($, $, *%)  is pure {*}
 proto sub uniprop-str($, $, *%)  is pure {*}
-proto sub uniprops($, $?, *%)    is pure {*}
 proto sub unimatch($, |)         is pure {*}
+
 proto sub unival($, *%)          is pure {*}
 proto sub univals($, *%)         is pure {*}
+
+multi sub ord($s) { $s.ord }
+multi sub ords($s) { $s.ords }
 
 multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
 multi sub uniname(Int:D $code) { nqp::getuniname($code) }

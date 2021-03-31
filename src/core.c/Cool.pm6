@@ -473,9 +473,6 @@ multi sub rindex($s, Cool:D $needle, Cool:D $pos --> Int:D) {
 proto sub lc($, *%) {*}
 multi sub lc($s) { $s.lc }
 
-proto sub ord($, *%) {*}
-multi sub ord($s) { $s.ord }
-
 proto sub uc($, *%) {*}
 multi sub uc($s) { $s.uc }
 
@@ -497,9 +494,6 @@ multi sub indices($s,
   Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark), :$overlap) {
     $s.indices($needle, $pos, :$ignorecase, :$ignoremark, :$overlap)
 }
-
-proto sub ords($, *%) {*}
-multi sub ords($s) { $s.ords }
 
 proto sub comb($, $, $?, *%) {*}
 multi sub comb(Regex $matcher, $input, $limit = *, :$match) {

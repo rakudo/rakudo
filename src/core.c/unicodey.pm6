@@ -2,15 +2,15 @@ augment class Cool {
     proto method ord(*%) {*}
     multi method ord(Cool:D: --> Int:D) { self.Str.ord }
 
+    proto method ords(*%) {*}
+    multi method ords(Cool:D:) { self.Str.ords }
+
     method chr() {
         self.Int.chr;
     }
 
     proto method chrs(|) {*}
     multi method chrs(Cool:D:) { self.list.chrs }
-
-    proto method ords(|) {*}
-    multi method ords(Cool:D:) { self.Str.ords }
 
     method uniname()        { uniname(self) }
     method uninames()       { uninames(self) }
@@ -57,6 +57,30 @@ augment class Str {
     }
 
 #?if !jvm
+    multi method ords(Str:D: --> Seq:D) {
+        Seq.new(nqp::strtocodes(
+          $!value,
+          nqp::const::NORMALIZE_NFC,
+          nqp::create(array[uint32])
+        ).iterator)
+    }
+#?endif
+#?if jvm
+    multi method ords(Str:D: --> Seq:D) {
+        my uint32 @ords;
+        my int $chars = nqp::chars($!value);
+        my int $i     = -1;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$chars),
+          nqp::push_i(@ords,nqp::ord($!value,$i))
+        );
+
+        Seq.new(@ords.iterator)
+    }
+#?endif
+
+#?if !jvm
     method NFC(--> NFC:D) {
         nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFC, nqp::create(NFC))
     }
@@ -75,31 +99,6 @@ augment class Str {
     method NFD()  { X::NYI.new(:feature<NFD>).throw }
     method NFKC() { X::NYI.new(:feature<NFKC>).throw }
     method NFKD() { X::NYI.new(:feature<NFKD>).throw }
-#?endif
-
-#?if !jvm
-    multi method ords(Str:D:) { self.NFC.list }
-#?endif
-#?if jvm
-    multi method ords(Str:D: --> Seq:D) {
-        Seq.new(class :: does Iterator {
-            has str $!str;
-            has int $!chars;
-            has int $!pos;
-            method !SET-SELF(\string) {
-                $!str   = nqp::unbox_s(string);
-                $!chars = nqp::chars($!str);
-                $!pos   = -1;
-                self
-            }
-            method new(\string) { nqp::create(self)!SET-SELF(string) }
-            method pull-one() {
-                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
-                  ?? nqp::p6box_i(nqp::ordat($!str,$!pos))
-                  !! IterationEnd
-            }
-        }.new(self));
-    }
 #?endif
 
     multi method unival(Str:D:)  { nqp::ord($!value).unival }

@@ -379,23 +379,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           self.is-lazy,
           self!lazy('.sum'),
           nqp::if(
-            nqp::isconcrete($!reified) && (my int $elems = self.elems), # reify
-            nqp::if(
-              nqp::isgt_i($elems,2),
-              nqp::stmts(
-                (my $list := $!reified),
-                (my $sum = nqp::ifnull(nqp::atpos($list,0),0)),
-                (my int $i),
-                nqp::while(
-                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                  ($sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0))
-                ),
-                $sum
+            (my int $elems = self.elems), # reify
+            nqp::stmts(
+              (my $sum := nqp::ifnull(nqp::atpos($!reified,0),0).Numeric),
+              (my int $i),
+              nqp::while(
+                nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                ($sum := $sum + nqp::ifnull(nqp::atpos($!reified,$i),0))
               ),
-              nqp::ifnull(nqp::atpos($!reified,0),0)
-                + nqp::ifnull(nqp::atpos($!reified,1),0)
-            ),
-            0
+              $sum
+            )
           )
         )
     }

@@ -1,3 +1,4 @@
+use v6.c;
 use MONKEY-GUTS;          # Allow NQP ops.
 
 unit module Test;
@@ -424,6 +425,7 @@ sub skip-rest($reason = '<unknown>') is export {
 multi sub subtest(Pair $what)            is export { subtest($what.value,$what.key) }
 multi sub subtest($desc, &subtests)      is export { subtest(&subtests,$desc)       }
 multi sub subtest(&subtests, $desc = '') is export {
+    _diag "Subtest" ~ ($desc ?? ": " ~ $desc !! ''), :force-informative;
     my $parent_todo = $todo_reason || $subtest_todo_reason;
     _push_vars();
     _init_vars();
@@ -456,11 +458,11 @@ sub diag($message) is export {
     _diag $message, :force-stderr;
 }
 
-sub _diag($message, :$force-stderr) {
+sub _diag($message, :$force-stderr, :$force-informative) {
     _init_io() unless $output;
-    my $is_todo = !$force-stderr
+    my $is_todo = !$force-stderr && !$force-informative
         && ($subtest_todo_reason || $num_of_tests_run <= $todo_upto_test_num);
-    my $out     = $is_todo ?? $todo_output !! $failure_output;
+    my $out     = $is_todo || $force-informative ?? $todo_output !! $failure_output;
 
     $time_after = nqp::time;
     my $str-message = nqp::join(

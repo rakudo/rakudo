@@ -102,15 +102,22 @@ augment class Str {
     }
 }
 
-proto sub uniname($, *%) {*}
+# all proto's in one place so they're available on all (conditional) backends
+proto sub uniname($, *%)         is pure {*}
+proto sub uninames($, *%)        is pure {*}
+proto sub uniprop($, |)          is pure {*}
+proto sub uniprop-bool($, $, *%) is pure {*}
+proto sub uniprop-int($, $, *%)  is pure {*}
+proto sub uniprop-str($, $, *%)  is pure {*}
+proto sub uniprops($, $?, *%)    is pure {*}
+proto sub unimatch($, |)         is pure {*}
+proto sub unival($, *%)          is pure {*}
+proto sub univals($, *%)         is pure {*}
+
 multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
 multi sub uniname(Int:D $code) { nqp::getuniname($code) }
 
-proto sub uninames($, *%) {*}
 multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
-
-proto sub unival($, *%) is pure {*}
-proto sub univals($, *%) {*}
 
 #?if jvm
 multi sub unival(|)       { die 'unival NYI on jvm backend' }
@@ -140,7 +147,6 @@ multi sub univals(Str:D $str) { $str.univals }
 #?endif
 
 #?if moar
-proto sub uniprop($, |) {*}
 multi sub uniprop(Str:D $str, |c) { $str ?? uniprop($str.ord, |c) !! Nil }
 multi sub uniprop(Int:D $code) {
     nqp::getuniprop_str($code,nqp::unipropcode('General_Category'));
@@ -247,14 +253,12 @@ multi sub uniprop(Int:D $code, Stringy:D $propname) {
                             nqp::getuniprop_int($code,$prop)))))))))))))
 }
 # Unicode functions
-proto sub uniprop-int($, $, *%) {*}
 multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-int($str.ord, $propname) !! Nil }
 multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_int($code,nqp::unipropcode($propname));
 }
 
-proto sub uniprop-bool($, $, *%) {*}
 multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-bool($str.ord, $propname) !! Nil
 }
@@ -262,19 +266,16 @@ multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
     nqp::hllbool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
 }
 
-proto sub uniprop-str($, $, *%) {*}
 multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
     $str ?? uniprop-str($str.ord, $propname) !! Nil
 }
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,nqp::unipropcode($propname));
 }
-proto sub uniprops($, $?, *%) {*}
 multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
     $str.ords.map: { uniprop($_, $propname) }
 }
 
-proto sub unimatch($, |) {*}
 multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
 multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
     my $prop := nqp::unipropcode($propname);

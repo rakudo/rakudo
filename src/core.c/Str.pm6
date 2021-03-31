@@ -3497,14 +3497,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         self.Str
     }
 
-    proto method ord(|) {*}
-    multi method ord(Str:D: --> Int:D) {
-        nqp::chars($!value)
-          ?? nqp::p6box_i(nqp::ord($!value))
-          !! Nil;
-    }
-    multi method ord(Str:U: --> Nil) { }
-
     method Date(Str:D:)     { Date.new(self)     }
     method DateTime(Str:D:) { DateTime.new(self) }
 

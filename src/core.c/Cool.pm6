@@ -101,19 +101,6 @@ my class Cool { # declared in BOOTSTRAP
     multi method chop(Cool:D:)          { self.Str.chop }
     multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
 
-    method ord(--> Int:D) {
-        self.Str.ord
-    }
-    method chr() {
-        self.Int.chr;
-    }
-
-    proto method chrs(|) {*}
-    multi method chrs(Cool:D:) { self.list.chrs }
-
-    proto method ords(|) {*}
-    multi method ords(Cool:D:) { self.Str.ords }
-
     method flip() {
         self.Str.flip
     }

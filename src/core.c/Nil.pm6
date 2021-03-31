@@ -20,10 +20,6 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method prepend(|) is nodal { die "Attempted to prepend to {self.gist}." }
     method FALLBACK(| --> Nil) { }
 
-    # These suggest using Nil.new if they fall through, which is LTA
-    method ords() { self.Str.ords }
-    method chrs() { self.Int.chrs }
-
     method chop()  { self.Str.chop }
     method chomp() { self.Str.chomp }
 

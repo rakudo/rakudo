@@ -86,12 +86,6 @@ my class Int does Real { # declared in BOOTSTRAP
             !! self.Real::Bridge
     }
 
-    method chr(Int:D: --> Str:D) {
-        nqp::isbig_I(self)
-          ?? die("chr codepoint %i (0x%X) is out of bounds".sprintf(self,self))
-          !! nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
-    }
-
     method sqrt(Int:D: --> Num:D) {
         nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self)))
     }

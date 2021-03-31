@@ -1,4 +1,17 @@
 augment class Cool {
+    method ord(--> Int:D) {
+        self.Str.ord
+    }
+    method chr() {
+        self.Int.chr;
+    }
+
+    proto method chrs(|) {*}
+    multi method chrs(Cool:D:) { self.list.chrs }
+
+    proto method ords(|) {*}
+    multi method ords(Cool:D:) { self.Str.ords }
+
     method uniname()        { uniname(self) }
     method uninames()       { uninames(self) }
 
@@ -15,6 +28,12 @@ augment class Cool {
 }
 
 augment class Int {
+    method chr(Int:D: --> Str:D) {
+        nqp::isbig_I(self)
+          ?? die("chr codepoint %i (0x%X) is out of bounds".sprintf(self,self))
+          !! nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
+    }
+
     my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
     my constant $deprop = nqp::unipropcode("Numeric_Value_Denominator");
     multi method unival(Int:D:) {
@@ -33,6 +52,13 @@ augment class Int {
 }
 
 augment class Str {
+    proto method ord(|) {*}
+    multi method ord(Str:D: --> Int:D) {
+        nqp::chars($!value)
+          ?? nqp::p6box_i(nqp::ord($!value))
+          !! Nil;
+    }
+    multi method ord(Str:U: --> Nil) { }
 
 #?if !jvm
     method NFC(--> NFC:D) {
@@ -100,6 +126,49 @@ augment class Str {
 
         nqp::join("",$parts)
     }
+}
+BEGIN .^compose for IntStr, NumStr, RatStr, ComplexStr;
+
+augment class List {
+    multi method chrs(List:D: --> Str:D) {
+        nqp::if(
+          self.is-lazy,
+          Failure.new(X::Cannot::Lazy.new(action => 'chrs')),
+          nqp::stmts(
+            (my int $i     = -1),
+            (my int $elems = self.elems),    # reifies
+            (my $result   := nqp::setelems(nqp::list_s,$elems)),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::istype((my $value := nqp::atpos($!reified,$i)),Int),
+                nqp::bindpos_s($result,$i,nqp::chr($value)),
+                nqp::if(
+                  nqp::istype($value,Str),
+                  nqp::if(
+                    nqp::istype(($value := +$value),Failure),
+                    (return $value),
+                    nqp::bindpos_s($result,$i,nqp::chr($value))
+                  ),
+                  (return Failure.new(X::TypeCheck.new(
+                    operation => "converting element #$i to .chr",
+                    got       => $value,
+                    expected  => Int
+                  )))
+                )
+              )
+            ),
+            nqp::join("",$result)
+          )
+        )
+    }
+}
+BEGIN .^compose for Array, Match, Range, Seq;
+
+augment class Nil {
+    # These suggest using Nil.new if they fall through, which is LTA
+    method ords() { self.Str.ords }
+    method chrs() { self.Int.chrs }
 }
 
 # all proto's in one place so they're available on all (conditional) backends

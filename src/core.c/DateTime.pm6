@@ -398,6 +398,21 @@ my class DateTime does Dateish {
         Instant.from-posix: self.posix + $!second % 1, $!second >= 60;
     }
 
+    method day-fraction(DateTime:D: --> Real:D) {
+        my $sec = self.hour * 60 * 60;
+        $sec   += self.minute * 60;
+        $sec   += self.second;
+        $sec / (24.0 * 60 * 60)
+    }
+
+    method mjd(DateTime:D: --> Real:D) {
+        self.daycount + self.day-fraction
+    }
+
+    method juliandate(DateTime:D: --> Real:D) {
+        self.mjd + 2_400_000.5
+    }
+
     method posix(DateTime:D: $ignore-timezone? --> Int:D) {
         return self.utc.posix if $!timezone && !$ignore-timezone;
 

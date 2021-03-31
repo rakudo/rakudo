@@ -268,9 +268,7 @@ my class DateTime does Dateish {
         my Int $minutes := nqp::div_I($epoch.Int, 60, Int);
         my Int $minute  := nqp::mod_I($minutes, 60, Int);
         my Int $hours   := nqp::div_I($minutes, 60, Int);
-        # XXX changing this with a nqp::mod_I causes execution error:
-        # Cannot unbox a type object (Int) to int.  Go figure!
-        my Int $hour    := $hours % 24;
+        my Int $hour    := nqp::mod_I($hours, 24, Int);
         my Int $days    := nqp::div_I($hours, 24, Int);
 
         # Day month and leap year arithmetic, based on Gregorian day #.

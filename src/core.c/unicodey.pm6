@@ -53,11 +53,8 @@ augment class Int {
 
 augment class Str {
     multi method ord(Str:D: --> Int:D) {
-        nqp::chars($!value)
-          ?? nqp::p6box_i(nqp::ord($!value))
-          !! Nil;
+        nqp::chars($!value) ?? nqp::p6box_i(nqp::ord($!value)) !! Nil
     }
-    multi method ord(Str:U: --> Nil) { }
 
 #?if !jvm
     method NFC(--> NFC:D) {

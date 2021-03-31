@@ -370,10 +370,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method to(List:D:)      { self.elems ?? self[self.end].to !! Nil }
     method from(List:D:)    { self.elems ?? self[0].from !! Nil }
 
+    method !lazy(str $action) is hidden-from-backtrace {
+        Failure.new(X::Cannot::Lazy.new(:$action))
+    }
+
     method sum(List:D:) is nodal {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action('.sum'))),
+          self!lazy('.sum'),
           nqp::if(
             nqp::isconcrete($!reified) && (my int $elems = self.elems), # reify
             nqp::if(
@@ -467,7 +471,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ($!todo := nqp::null),
                 nqp::elems($!reified)
               ),
-              Failure.new(X::Cannot::Lazy.new(:action('.elems')))
+              self!lazy('.elems')
             )
           ),
           nqp::isconcrete($!reified) && nqp::elems($!reified),
@@ -865,11 +869,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method Capture(List:D: --> Capture:D) {
-        fail X::Cannot::Lazy.new(:action('create a Capture from'))
-            if self.is-lazy;
+
+        # too lazy
+        if self.is-lazy {
+            self!lazy('create a Capture from');
+        }
 
         # we have something to work with
-        if nqp::isconcrete($!reified) && nqp::elems($!reified) -> int $elems {
+        elsif nqp::isconcrete($!reified) && nqp::elems($!reified) -> int $elems {
             my $capture := nqp::create(Capture);
             my $list := nqp::create(IterationBuffer);
             my $hash := nqp::hash;
@@ -929,14 +936,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     proto method pick(|) is nodal {*}
     multi method pick(List:D:) {
         self.is-lazy
-         ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
+         ?? self!lazy('.pick from')
          !! (my int $elems = self.elems)   # reifies
            ?? nqp::atpos($!reified,nqp::floor_n(nqp::rand_n($elems)))
            !! Nil
     }
     multi method pick(List:D: Callable:D $calculate) {
         self.is-lazy
-         ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
+         ?? self!lazy('.pick from')
          !! self.pick( $calculate(self.elems) )
     }
 
@@ -997,7 +1004,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         method deterministic(--> False) { }
     }
     multi method pick(List:D: $number is copy) {
-        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
+        return self!lazy('.pick from') if self.is-lazy;
         my Int $elems = self.elems;
         return () unless $elems;
 
@@ -1010,7 +1017,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     proto method roll(|) is nodal {*}
     multi method roll(List:D:) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
+          ?? self!lazy('.roll from')
           !! (my int $elems = self.elems)    # reify
             ?? nqp::atpos($!reified,nqp::floor_n(nqp::rand_n($elems)))
             !! Nil
@@ -1018,7 +1025,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method roll(List:D: Whatever) {
         nqp::if(
           self.is-lazy,
-          X::Cannot::Lazy.new(:action('.roll from')).throw,
+          self!lazy('.roll from'),
           Seq.new(nqp::if(
             (my int $elems = self.elems),
             nqp::stmts(
@@ -1070,7 +1077,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         number == Inf
           ?? self.roll(*)
           !! self.is-lazy
-            ?? X::Cannot::Lazy.new(:action('.roll from')).throw
+            ?? self!lazy('.roll from').throw
             !! Seq.new(self.elems   # this allocates/reifies
                  ?? RollN.new(self,number.Int)
                  !! Rakudo::Iterator.Empty
@@ -1079,7 +1086,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method reverse(List:D: --> Seq:D) is nodal {
         self.is-lazy    # reifies
-          ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
+          ?? self!lazy('reverse')
           !! Seq.new: $!reified
             ?? Rakudo::Iterator.ReifiedReverse(self, Mu)
             !! Rakudo::Iterator.Empty
@@ -1087,7 +1094,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method rotate(List:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
         self.is-lazy    # reifies
-          ?? Failure.new(X::Cannot::Lazy.new(:action<rotate>))
+          ?? self!lazy('rotate')
           !! Seq.new: $!reified
             ?? Rakudo::Iterator.ReifiedRotate($rotate, self, Mu)
             !! Rakudo::Iterator.Empty
@@ -1321,7 +1328,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::if(
                 $!todo.fully-reified,
                 ($!todo := nqp::null),
-                X::Cannot::Lazy.new(:action('.sort')).throw
+                self!lazy('.sort').throw
               )
             )
           ),
@@ -1350,7 +1357,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::if(
                 $!todo.fully-reified,
                 ($!todo := nqp::null),
-                X::Cannot::Lazy.new(:action('.sort')).throw
+                self!lazy('.sort').throw
               )
             )
           ),

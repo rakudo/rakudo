@@ -1,7 +1,7 @@
 augment class Cool {
-    method ord(--> Int:D) {
-        self.Str.ord
-    }
+    proto method ord(*%) {*}
+    multi method ord(Cool:D: --> Int:D) { self.Str.ord }
+
     method chr() {
         self.Int.chr;
     }
@@ -52,7 +52,6 @@ augment class Int {
 }
 
 augment class Str {
-    proto method ord(|) {*}
     multi method ord(Str:D: --> Int:D) {
         nqp::chars($!value)
           ?? nqp::p6box_i(nqp::ord($!value))
@@ -127,7 +126,6 @@ augment class Str {
         nqp::join("",$parts)
     }
 }
-BEGIN .^compose for IntStr, NumStr, RatStr, ComplexStr;
 
 augment class List {
     multi method chrs(List:D: --> Str:D) {
@@ -163,13 +161,16 @@ augment class List {
         )
     }
 }
-BEGIN .^compose for Array, Match, Range, Seq;
 
 augment class Nil {
     # These suggest using Nil.new if they fall through, which is LTA
     method ords() { self.Str.ords }
     method chrs() { self.Int.chrs }
 }
+
+# Make sure all affected subclasses are aware of additions to their parents
+BEGIN .^compose for
+  Array, Match, Range, Seq, IntStr, NumStr, RatStr, ComplexStr;
 
 # all proto's in one place so they're available on all (conditional) backends
 #-------------------------------------------------------------------------------
@@ -201,7 +202,7 @@ multi sub chr(int $x    --> str)   { nqp::chr($x) }
 
 multi sub chrs(*@c --> Str:D) { @c.chrs }
 
-multi sub ord($s) { $s.ord }
+multi sub ord(\what) { what.ord }
 multi sub ords($s) { $s.ords }
 
 multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }

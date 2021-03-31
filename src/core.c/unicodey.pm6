@@ -1,3 +1,73 @@
+augment class Str {
+
+#?if !jvm
+    method NFC(--> NFC:D) {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFC, nqp::create(NFC))
+    }
+    method NFD(--> NFD:D) {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFD, nqp::create(NFD))
+    }
+    method NFKC(--> NFKC:D) {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKC, nqp::create(NFKC))
+    }
+    method NFKD(--> NFKD:D) {
+        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
+    }
+#?endif
+#?if jvm
+    method NFC()  { X::NYI.new(:feature<NFC>).throw }
+    method NFD()  { X::NYI.new(:feature<NFD>).throw }
+    method NFKC() { X::NYI.new(:feature<NFKC>).throw }
+    method NFKD() { X::NYI.new(:feature<NFKD>).throw }
+#?endif
+
+#?if !jvm
+    multi method ords(Str:D:) { self.NFC.list }
+#?endif
+#?if jvm
+    multi method ords(Str:D: --> Seq:D) {
+        Seq.new(class :: does Iterator {
+            has str $!str;
+            has int $!chars;
+            has int $!pos;
+            method !SET-SELF(\string) {
+                $!str   = nqp::unbox_s(string);
+                $!chars = nqp::chars($!str);
+                $!pos   = -1;
+                self
+            }
+            method new(\string) { nqp::create(self)!SET-SELF(string) }
+            method pull-one() {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
+                  ?? nqp::p6box_i(nqp::ordat($!str,$!pos))
+                  !! IterationEnd
+            }
+        }.new(self));
+    }
+#?endif
+
+    multi method unival(Str:D:)  { nqp::ord($!value).unival }
+    method univals(Str:D:) { self.ords.map: *.unival }
+
+    method uniparse(Str:D: --> Str:D) {
+        my $names := nqp::split(',', self);
+        my $parts := nqp::list_s;
+
+        nqp::while(
+          nqp::elems($names),
+          nqp::push_s(
+            $parts,
+            nqp::unless(
+              nqp::strfromname(my $name := nqp::shift($names).trim),
+              X::Str::InvalidCharName.new(:$name).fail
+            )
+          )
+        );
+
+        nqp::join("",$parts)
+    }
+}
+
 proto sub uniname($, *%) {*}
 multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
 multi sub uniname(Int:D $code) { nqp::getuniname($code) }
@@ -177,5 +247,55 @@ multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pval
     nqp::hllbool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));
 }
 #?endif
+
+#?if !jvm
+multi sub infix:<unicmp>(Str:D \a, Str:D \b) {
+    ORDER(
+      nqp::unicmp_s(nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0)
+    )
+}
+multi sub infix:<unicmp>(Cool:D \a, Cool:D \b) {
+    ORDER(
+      nqp::unicmp_s(nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), 85,0,0)
+    )
+}
+multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
+    nqp::eqaddr((my $cmp := (a.key unicmp b.key)),Order::Same)
+      ?? (a.value unicmp b.value)
+      !! $cmp
+}
+
+multi sub infix:<coll>(Str:D \a, Str:D \b) {
+    ORDER(
+      nqp::unicmp_s(
+        nqp::unbox_s(a),nqp::unbox_s(b),$*COLLATION.collation-level,0,0
+      )
+    )
+}
+multi sub infix:<coll>(Cool:D \a, Cool:D \b) {
+    ORDER(
+      nqp::unicmp_s(
+        nqp::unbox_s(a.Str),nqp::unbox_s(b.Str),$*COLLATION.collation-level,0,0
+      )
+    )
+}
+multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
+    nqp::eqaddr((my $cmp := (a.key coll b.key)),Order::Same)
+      ?? (a.value coll b.value)
+      !! $cmp
+}
+#?endif
+
+#?if jvm
+multi sub infix:<unicmp>($, $) {
+    X::NYI.new(feature => "infix unicmp on JVM").throw
+}   
+multi sub infix:<coll>($, $) {
+    X::NYI.new(feature => "infix coll on JVM").throw
+}   
+#?endif
+
+proto sub uniparse($, *%) {*}
+multi sub uniparse(Str:D \names --> Str:D) { names.uniparse }
 
 # vim: expandtab shiftwidth=4

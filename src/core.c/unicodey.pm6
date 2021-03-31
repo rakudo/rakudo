@@ -1,13 +1,12 @@
 augment class Cool {
+    proto method chr(*%) is pure {*}
+    multi method chr(Cool:D:) { self.Int.chr }
+
     proto method ord(*%) is pure {*}
     multi method ord(Cool:D: --> Int:D) { self.Str.ord }
 
     proto method ords(*%) is pure {*}
     multi method ords(Cool:D:) { self.Str.ords }
-
-    method chr() {
-        self.Int.chr;
-    }
 
     proto method chrs(|) {*}
     multi method chrs(Cool:D:) { self.list.chrs }
@@ -28,7 +27,7 @@ augment class Cool {
 }
 
 augment class Int {
-    method chr(Int:D: --> Str:D) {
+    multi method chr(Int:D: --> Str:D) {
         nqp::isbig_I(self)
           ?? die("chr codepoint %i (0x%X) is out of bounds".sprintf(self,self))
           !! nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
@@ -192,9 +191,7 @@ proto sub unival($, *%)  is pure {*}
 proto sub univals($, *%) is pure {*}
 #-------------------------------------------------------------------------------
 
-multi sub chr(Int:D  \x --> Str:D) { x.chr        }
-multi sub chr(Cool \x   --> Str:D) { x.Int.chr    }
-multi sub chr(int $x    --> str)   { nqp::chr($x) }
+multi sub chr(\what) { what.chr }
 
 multi sub chrs(*@c --> Str:D) { @c.chrs }
 

@@ -217,7 +217,7 @@ HEADER
               nqp::bindpos_i(
                 @data,
                 WALLCLOCK,
-                nqp::sub_i(nqp::div_i(nqp::time,100),$start)
+                nqp::sub_i(nqp::div_i(nqp::time,1000),$start)
               ),
               @data
             )

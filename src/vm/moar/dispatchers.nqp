@@ -910,18 +910,81 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
 
 # The core of multi dispatch. Once we are here, either there was a simple
 # proto that we don't need to inovke, or we already did invoke the proto.
-# There are a number of cases that we need to deal with here.
-# 1. Everything about the dispatch is possible to express with guards, so we
-#    need do no more than add guards as needed and then delegate to raku-invoke
-#    to dispatch to the chosen result.
-# 2. Even if the properties above are true, we can only narrow down the list
-#    of candidates to (hopefully) some subset of them, guarding against them.
-#    Those will need further checks per dispatch. This is also the case when
-#    we have to do things like reading from Proxy, which we cannot express via
-#    the guard mechanism.
-# 3. The dispatch fails, but then we do the Junction failover. In this case,
-#    we can delegate to an invoke of the auto-threader, conditional on there
-#    being a Junction in that argument spot.
+#
+# Multiple dispatch is relatively complex in the most general case. However,
+# the most common case by far consists of
+#
+# * Arguments are not in any containers or in Scalar containers, which we can
+#   dereference as part of the dispatch program
+# * A candidate that is identified by arity and nominal type, and thus can be
+#   identified just using the callsite and guards on argument types
+# * No resumption via callsame and friends
+#
+# This is the case we want to optimize for, and is called a "trivial" multiple
+# dispatch. All other cases are "non-trivial", including the case where a
+# trivial multiple dispatch is resumed. In a trivial multiple dispatch, we
+# save the incoming argument tuple as dispatch state, establish guards, and
+# then delegate to raku-invoke to invoke the chose candidate.
+#
+# The case with non-Scalar containers is handled by first extracting those and
+# then proceeding with the dispatch.
+#
+# The non-trivial multiple dispatch establishes the guards that a trivial
+# multiple dispatch does, and then works through the dispatch plan. This is a
+# linked list featuring candidates to try calling, terminated either with a
+# fallback to the next resumable dispatcher (if we're in a resume) or to the
+# production of an error (ambiguous dispatch or no applicable candidate).
+#
+# The plan nodes are as follows:
+# * A candidate to call; we don't expect any bind failure (that is, we
+#   consider it safe from nominality alone).
+my class MultiDispatchCall {
+    has $!candidate;
+    has $!next;
+    method new($candidate) {
+        my $obj := nqp::create(MultiDispatchCall);
+        nqp::bindattr($obj, MultiDispatchCall, '$!candidate', $candidate);
+        $obj
+    }
+    method set-next($next) {
+        $!next := $next;
+    }
+    method candidate() { $!candidate }
+    method next() { $!next }
+}
+# * A candidate to try and invoke; if there's a bind failure, it will be
+#   mapped into a resumption
+my class MultiDispatchTry is MultiDispatchCall {
+}
+# * An ambiguity. It's only an error if it's reached during the initial
+#   phase of dispatch, not during a callsame-alike, thus why the chain
+#   continues beyond this point.
+my class MultiDispatchAmbiguous {
+    has $!next;
+    method set-next($next) {
+        $!next := $next;
+    }
+    method next() { $!next }
+}
+# * The end of the candidates. Either a "no applicable candidates" error
+#   if we are in the initial phase of dispatch, or a next resumption (or
+#   Nil) otherwise.
+my class MultiDispatchEnd {
+}
+# * Not actually used in a plan, just a sentinel to convey we have the
+#   container but not Scalar (such as Proxy) case. The guards in this
+#   case will just be on the arguments that are such containers.
+my class MultiDispatchNonScalar {
+}
+# Apart from the last one, these are used as the dispatch state; this is the
+# same immutable linked list traversal approach as used in other kinds of
+# resumption.
+#
+# The plan is calculated by the following code. Note that the trivial case
+# also uses this plan calculation routine, but in a "stop on trivial success"
+# mode. A resumption of a trivial dispatch will call this again, but with that
+# flag not set, and then drop the first candidate from the plan, which was
+# already invoked. It will then walk the candidate list as usual.
 my int $DEFCON_DEFINED    := 1;
 my int $DEFCON_UNDEFINED  := 2;
 my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
@@ -933,25 +996,43 @@ my int $BIND_VAL_OBJ      := 0;
 my int $BIND_VAL_INT      := 1;
 my int $BIND_VAL_NUM      := 2;
 my int $BIND_VAL_STR      := 3;
-my int $REQUIRE_CHECK_NONE        := 0; # Candidate can be chosen with no checking
-my int $REQUIRE_CHECK_ALL         := 1; # Candidate needs checking in full
-my int $REQUIRE_CHECK_BINDABILITY := 2; # Candidate needs only bindability checking
-sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
-        $filtered_check_requirements) {
+sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
+    # First check there's no non-Scalar containers in the positional arguments.
+    # If there are, establish guards relating to those and we're done.
+    my int $num_args := nqp::captureposelems($capture);
+    my int $i;
+    my $non-scalar := nqp::list_i();
+    while $i < $num_args {
+        my int $got_prim := nqp::captureposprimspec($capture, $i);
+        if $got_prim == 0 {
+            my $value := nqp::captureposarg($capture, $i);
+            if nqp::iscont($value) && !nqp::istype_nd($value, Scalar) {
+                nqp::push_i($non-scalar, $i);
+            }
+        }
+        $i++;
+    }
+    if nqp::elems($non-scalar) {
+        # TODO guards
+        return MultiDispatchNonScalar;
+    }
+
+    # We keep track of the head of the plan as well as the tail node of it,
+    # so we know where to add the next step.
+    my $current-head := nqp::null();
+    my $current-tail := nqp::null();
+
     # Look through all candidates. Eliminate those that can be ruled out by
     # setting guards on the incoming arguments OR by the shape of the
     # callsite. That callsite shape includes argument count, which named
     # arguments are present, and which arguments are natively typed.
-    my int $num_args := nqp::captureposelems($capture);
     my int $cur_idx := 0;
     my int $done := 0;
     my $need_scalar_read := nqp::list_i();
     my $need_scalar_rw_check := nqp::list_i();
     my $need_type_guard := nqp::list_i();
     my $need_conc_guard := nqp::list_i();
-    my int $group_has_unguardable := 0;
     my @possibles;
-    my $possibles_unguardable := nqp::list_i();
     until $done {
         # The candidate list is broken into tied groups (that is, groups of
         # candidates that are equally narrow). Those are seperated by a
@@ -969,9 +1050,8 @@ sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
                     !! nqp::atkey($cur_candidate, 'num_types');
                 my int $type_mismatch := 0;
                 my int $rwness_mismatch := 0;
-                my int $unguardable := 0;
                 my int $i := 0;
-                while $i < $type_check_count && !($unguardable +| $type_mismatch +| $rwness_mismatch) {
+                while $i < $type_check_count && !($type_mismatch +| $rwness_mismatch) {
                     # Obtain parameter properties.
                     my $type := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
                     my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
@@ -1000,7 +1080,7 @@ sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
                                 $value := nqp::getattr($value, Scalar, '$!value');
                             }
                             else {
-                                nqp::die('multi disp on non-Scalar container NYI');
+                                nqp::die('multi disp on native references NYI');
                             }
                         }
                         else {
@@ -1013,7 +1093,7 @@ sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
 
                         # Ensure the value meets the required type constraints.
                         unless nqp::istype_nd($value, $type) {
-                            # XXX various failovers
+                            # XXX various failovers, such as positional bind
                             $type_mismatch := 1;
                         }
 
@@ -1056,14 +1136,10 @@ sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
                     $i++;
                 }
 
-                # If it's unguardable, we must always add it to the list of
-                # possibles. Otherwise, it's guardable and we only add it to
-                # the list if there's no mismatch.
-                if $unguardable || !($type_mismatch || $rwness_mismatch) {
+                # Add it to the possibles list of this group.
+                unless $type_mismatch || $rwness_mismatch {
                     nqp::push(@possibles, $cur_candidate);
-                    nqp::push_i($possibles_unguardable, $unguardable);
                 }
-                $group_has_unguardable := 1 if $unguardable;
 #                            if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
 #                                # If we need a container but don't have one it clearly can't work.
 #                                $rwness_mismatch := 1;
@@ -1114,58 +1190,89 @@ sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
         else {
             # End of tied group. If there's possibles...
             if nqp::elems(@possibles) {
-                if nqp::elems(@possibles) == 1 && !$group_has_unguardable {
-                    # Exactly one guardable result, so we just take it and we
-                    # are done.
-                    nqp::push(@filtered_candidates, @possibles[0]);
-                    nqp::push_i($filtered_check_requirements, $REQUIRE_CHECK_NONE);
+                # Build a linked list of them, but filtering out any with
+                # required named parameters that we don't have. Also track if
+                # any need a bind check (so are thus not pure type and arity
+                # based results).
+                my $new-head;
+                my $new-tail;
+                my int $i;
+                my int $n := nqp::elems(@possibles);
+                my int $match;
+                my int $need-bind-check;
+                while $i < $n {
+                    my %info := @possibles[$i];
+                    unless nqp::existskey(%info, 'req_named') &&
+                            !nqp::captureexistsnamed($capture, nqp::atkey(%info, 'req_named')) {
+                        my $node;
+                        if nqp::existskey(%info, 'bind_check') {
+                            $node := MultiDispatchTry.new(%info<sub>);
+                            $need-bind-check++;
+                        }
+                        else {
+                            $node := MultiDispatchCall.new(%info<sub>);
+                        }
+                        if $new-head {
+                            $new-tail.set-next($node);
+                        }
+                        else {
+                            $new-head := $node;
+                        }
+                        $new-tail := $node;
+                        $match++;
+                    }
+                    $i++;
+                }
+
+                # If there are multiple results that don't need a bind check,
+                # add the ambiguity marker.
+                my int $first-group := nqp::isnull($current-head);
+                if $need-bind-check == 0 && $match > 1 {
+                    my $node := MultiDispatchAmbiguous.new();
+                    if nqp::isnull($current-head) {
+                        $current-head := $node;
+                    }
+                    else {
+                        $current-tail.set-next($node);
+                    }
+                    $current-tail := $node;
+                }
+
+                # Add the candidates.
+                if $match > 0 {
+                    if nqp::isnull($current-head) {
+                        $current-head := $new-head;
+                    }
+                    else {
+                        $current-tail.set-next($new-head);
+                    }
+                    $current-tail := $new-tail;
+                }
+
+                # If we are to stop at a trivial match and nothing needs a
+                # bind check, and we've no results before now, we're done.
+                if $stop-at-trivial && $first-group && $need-bind-check == 0 {
                     $done := 1;
                 }
-                else {
-                    # We have multiple candidates. We will visit them and see
-                    # if any drop out by lack of required named argument; if
-                    # that is not the case, then they survive into the filtered
-                    # set.
-                    my int $i := 0;
-                    my int $n := nqp::elems(@possibles);
-                    while $i < $n {
-                        my %info := @possibles[$i];
-                        unless nqp::existskey(%info, 'req_named') &&
-                                !nqp::captureexistsnamed($capture, nqp::atkey(%info, 'req_named')) {
-                            # Will need disambiguation later.
-                            nqp::push(@filtered_candidates, %info);
-                            nqp::push_i($filtered_check_requirements,
-                                nqp::atpos_i($possibles_unguardable, $i) ?? $REQUIRE_CHECK_ALL !!
-                                nqp::existskey(%info, 'bind_check') ?? $REQUIRE_CHECK_BINDABILITY !!
-                                $REQUIRE_CHECK_NONE);
-                        }
-                        $i++;
-                    }
-
-                    # Done if we're ran out of candidates to consider.
-                    unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
-                        $done := 1;
-                    }
-                }
-
-                # Mark end of group.
-                nqp::push(@filtered_candidates, Mu);
-
-                # Clear state for next group.
-                nqp::setelems(@possibles, 0);
-                nqp::setelems($possibles_unguardable, 0);
-                $group_has_unguardable := 0;
             }
 
-            # If we're really and the end of the list, we're done.
+            # If we're really at the end of the list, we're done.
             unless nqp::isconcrete(nqp::atpos(@candidates, $cur_idx)) {
                 $done := 1;
             }
         }
     }
 
+    # Add an end node.
+    if nqp::isnull($current-head) {
+        $current-head := MultiDispatchEnd;
+    }
+    else {
+        $current-tail.set-next(MultiDispatchEnd);
+    }
+
     # Install guards as required.
-    my int $i := 0;
+    $i := 0;
     while $i < $num_args {
         if nqp::atpos_i($need_scalar_read, $i) {
             my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);
@@ -1190,50 +1297,56 @@ sub raku-multi-filter(@candidates, $capture, int $all, @filtered_candidates,
         }
         $i++;
     }
-    0
+
+    # Return the dispatch plan.
+    $current-head
 }
-nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core', -> $capture {
-    # Obtain the candidate list, producing it if it doesn't already exist.
-    my $target := nqp::captureposarg($capture, 0);
-    my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
-    if nqp::isnull(@candidates) {
-        nqp::scwbdisable();
-        @candidates := $target.'!sort_dispatchees_internal'();
-        nqp::bindattr($target, Routine, '@!dispatch_order', @candidates);
-        nqp::scwbenable();
-    }
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
+    # Initial dispatch. Tries to find an initial candidate.
+    -> $capture {
+        # Obtain the candidate list, producing it if it doesn't already exist.
+        my $target := nqp::captureposarg($capture, 0);
+        my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
+        if nqp::isnull(@candidates) {
+            nqp::scwbdisable();
+            @candidates := $target.'!sort_dispatchees_internal'();
+            nqp::bindattr($target, Routine, '@!dispatch_order', @candidates);
+            nqp::scwbenable();
+        }
 
-    # TODO Set dispatch state for resumption (we only need consider those that
-    # might match)
-
-    # Drop the first argument, to get just the arguments to dispatch on, and
-    # then pre-filter the candidate list.
-    my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
-    my @filtered_candidates;
-    my $filtered_check_requirements := nqp::list_i();
-    raku-multi-filter(@candidates, $arg-capture, 0, @filtered_candidates,
-        $filtered_check_requirements);
-
-    # See what we're left with after filtering. In the best case, it's only one
-    # result.
-    if nqp::elems(@filtered_candidates) == 2 &&
-            nqp::atpos_i($filtered_check_requirements, 0) == $REQUIRE_CHECK_NONE {
-        # Simple case where we have a single group with a single filtered
-        # candidate, which was chosen based on guardable properties and has
-        # no late-bound checks to do. Add this resolved target to the argument
-        # capture and delegate to raku-invoke to run it.
-        my $capture_delegate := nqp::dispatch('boot-syscall',
-            'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
-            @filtered_candidates[0]<sub>);
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
-            $capture_delegate);
-    }
-    else {
-        # We need to perform disambiguation per-dispatch, but we hopefully have
-        # saved ourselves some of the up-front work.
-        nqp::die('new multi disp requiring per-dispatch disambiguation NYI');
-    }
-});
+        # Drop the first argument, to get just the arguments to dispatch on, and
+        # then produce a multi-dispatch plan. Decide what to do based upon it.
+        my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
+        my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 1);
+        if nqp::istype($dispatch-plan, MultiDispatchCall) &&
+                nqp::istype($dispatch-plan.next, MultiDispatchEnd) {
+            # Trivial multi dispatch. Set dispatch state for resumption, and
+            # then delegate to raku-invoke to run it.
+            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $capture);
+            my $capture-delegate := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
+                $dispatch-plan.candidate);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+                $capture-delegate);
+        }
+        elsif nqp::istype($dispatch-plan, MultiDispatchNonScalar) {
+            nqp::die('Handling of Proxy arguments in multiple dispatch NYI');
+        }
+        elsif nqp::istype($dispatch-plan, MultiDispatchAmbiguous) &&
+                nqp::istype($dispatch-plan.next, MultiDispatchCall) {
+            nqp::die('Ambiguous multi candidates; better error NYI');
+        }
+        elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
+            nqp::die('No applicable multi candidates; better error NYI');
+        }
+        else {
+            nqp::die('Non-trivial multi dispatch NYI');
+        }
+    },
+    # Resume of a trivial dispatch.
+    -> $capture {
+        nqp::die('Multi-dispatch resumption NYI')
+    });
 
 # This is where invocation bottoms out, however we reach it. By this point, we
 # just have something to invoke, which is either a code object (potentially with

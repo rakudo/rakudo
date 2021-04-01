@@ -1254,6 +1254,25 @@ Consider using a block if any of these are necessary for your mapping code."
         )
     }
 
+    method !lazy(str $action) is hidden-from-backtrace {
+        Failure.new(X::Cannot::Lazy.new(:$action))
+    }
+
+    method sum() is nodal {
+        nqp::if(
+          (my \iterator := self.iterator).is-lazy,
+          self!lazy('.sum'),
+          nqp::stmts(
+            (my $sum := 0),
+            nqp::until(
+              nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),
+              ($sum := $sum + pulled)
+            ),
+            $sum
+          )
+        )
+    }
+
     proto method min (|) is nodal {*}
     multi method min() {
         nqp::if(

@@ -437,17 +437,6 @@ my class Any { # declared in BOOTSTRAP
     method print-nl() { self.print(self.nl-out) }
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
-
-    method sum() is nodal {
-        my \iter = self.iterator;
-        my $sum = 0;
-        my Mu $value;
-        nqp::until(
-          nqp::eqaddr(($value := iter.pull-one),IterationEnd),
-          ($sum = $sum + $value)
-        );
-        $sum;
-    }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 

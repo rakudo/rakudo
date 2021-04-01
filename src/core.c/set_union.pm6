@@ -135,7 +135,7 @@ multi sub infix:<(|)>(Map:D \a, Map:D \b) {
 multi sub infix:<(|)>(Iterable:D \a, Iterable:D \b) {
     (my $aiterator := a.flat.iterator).is-lazy
       || (my $biterator := b.flat.iterator).is-lazy
-      ?? Failure.new(X::Cannot::Lazy.new(:action<union>,:what<set>))
+      ?? Any.fail-iterator-cannot-be-lazy('union', 'set')
       !! nqp::create(Set).SET-SELF(
            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
              Rakudo::QuantHash.ADD-PAIRS-TO-SET(

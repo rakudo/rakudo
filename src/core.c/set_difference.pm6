@@ -33,7 +33,7 @@ multi sub infix:<(-)>(Setty:D \a, Map:D \b) {
 multi sub infix:<(-)>(Setty:D \a, Iterable:D \b) {
     nqp::if(
       (my $iterator := b.iterator).is-lazy,
-      Failure.new(X::Cannot::Lazy.new(:action('difference'),:what<set>)),
+      Any.fail-iterator-cannot-be-lazy('set difference', 'set'),
       nqp::if(
         (my $raw := a.RAW-HASH) && nqp::elems($raw),
         nqp::create(a.Setty).SET-SELF(                    # elems in b
@@ -117,7 +117,7 @@ multi sub infix:<(-)>(+@p) {   # also Any
 
     nqp::if(
       (my $params := @p.iterator).is-lazy,
-      Failure.new(X::Cannot::Lazy.new(:action('difference'))),  # bye bye
+      Any.fail-iterator-cannot-be-lazy('set difference'),   # bye bye
 
       nqp::stmts(                                # fixed list of things to diff
         (my $type := nqp::if(

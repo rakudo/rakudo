@@ -1265,6 +1265,17 @@ my class array does Iterable does Positional {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
+        multi method chrs(intarray:D: --> Str:D) {
+            my int $i = -1;
+            my int $elems = nqp::elems(self);
+            my $result   := nqp::setelems(nqp::list_s,$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_s($result,$i,nqp::chr(nqp::atpos_i(self,$i)))
+            );
+            nqp::join("",$result)
+        }
+
         multi method sum(intarray:D: :$wrap) {
             nqp::if(
               (my int $elems = nqp::elems(self)),

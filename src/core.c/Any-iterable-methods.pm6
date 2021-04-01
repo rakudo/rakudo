@@ -13,6 +13,11 @@ my class Rakudo::Sorting  { ... }
 use MONKEY-TYPING;
 augment class Any {
 
+    # Because the first occurrence of "method chrs" is in the intarray
+    # role, we need to create the proto earlier in the setting.  That's
+    # why it is not in unicodey.
+    proto method chrs(*%) is pure {*}
+
     # A helper method for throwing an exception because of a lazy iterator,
     # to help reduce bytecode size in hot code paths, making it more likely
     # that the (conditional) caller of this method, can be inlined.

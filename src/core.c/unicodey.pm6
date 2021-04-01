@@ -2,14 +2,14 @@ augment class Cool {
     proto method chr(*%) is pure {*}
     multi method chr(Cool:D:) { self.Int.chr }
 
+#    proto method chrs(*%) is pure {*}  # lives in Any-iterable
+    multi method chrs(Cool:D:) { self.list.chrs }
+
     proto method ord(*%) is pure {*}
     multi method ord(Cool:D: --> Int:D) { self.Str.ord }
 
     proto method ords(*%) is pure {*}
     multi method ords(Cool:D:) { self.Str.ords }
-
-    proto method chrs(|) {*}
-    multi method chrs(Cool:D:) { self.list.chrs }
 
     method uniname()        { uniname(self) }
     method uninames()       { uninames(self) }
@@ -159,8 +159,8 @@ augment class List {
 
 augment class Nil {
     # These suggest using Nil.new if they fall through, which is LTA
-    method ords() { self.Str.ords }
-    method chrs() { self.Int.chrs }
+    multi method ords(Nil:) { self.Str.ords }
+    multi method chrs(Nil:) { self.Int.chrs }
 }
 
 # Make sure all affected subclasses are aware of additions to their parents

@@ -543,7 +543,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 $jit-optimized-body.code_object(self);
                 nqp::bindattr(self, $?CLASS, '$!jit-optimized-body', $stub);
                 my $fixups := QAST::Stmts.new();
-                my $des := QAST::Stmts.new();
                 if $*W {
                     $*W.add_root_code_ref($stub, $optimized-body);
                     $*W.add_root_code_ref($stub, $jit-optimized-body);

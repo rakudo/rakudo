@@ -1,5 +1,7 @@
-class X::Cannot::Map { ... }
-class Rakudo::Sorting { ... }
+my class X::Cannot::Empty { ... }
+my class X::Cannot::Lazy  { ... }
+my class X::Cannot::Map   { ... }
+my class Rakudo::Sorting  { ... }
 
 # Now that Iterable is defined, we add extra methods into Any for the list
 # operations. (They can't go into Any right away since we need Attribute to
@@ -13,8 +15,7 @@ augment class Any {
 
     # A helper method for throwing an exception because of a lazy iterator,
     # to help reduce bytecode size in hot code paths, making it more likely
-    # that the (conditional) caller of this method, can be inlined.  Takes
-    # the name of the method that was attempted.
+    # that the (conditional) caller of this method, can be inlined.
     method throw-iterator-cannot-be-lazy(
       str $action, str $what = ""
     ) is hidden-from-backtrace is implementation-detail {
@@ -23,12 +24,29 @@ augment class Any {
 
     # A helper method for creating a failure because of a lazy iterator, to
     # to help reduce bytecode size in hot code paths, making it more likely
-    # that the (conditional) caller of this method, can be inlined.  Takes
-    # the name of the method that was attempted.
+    # that the (conditional) caller of this method, can be inlined.
     method fail-iterator-cannot-be-lazy(
       str $action, str $what = ""
     ) is hidden-from-backtrace is implementation-detail {
         Failure.new(X::Cannot::Lazy.new(:$action, :$what))
+    }
+
+    # A helper method for throwing an exception because of an array being
+    # empty, to help reduce bytecode size in hot code paths, making it more
+    # likely that the (conditional) caller of this method, can be inlined.
+    method throw-cannot-be-empty(
+      str $action, str $what = ""
+    ) is hidden-from-backtrace is implementation-detail {
+        X::Cannot::Empty.new(:$action, :$what).throw
+    }
+
+    # A helper method for creating a failure because of an array being empty
+    # to help reduce bytecode size in hot code paths, making it more likely
+    # that the (conditional) caller of this method, can be inlined.
+    method fail-cannot-be-empty(
+      str $action, str $what = ""
+    ) is hidden-from-backtrace is implementation-detail {
+        Failure.new(X::Cannot::Empty.new(:$action, :$what))
     }
 
     proto method map(|) is nodal {*}

@@ -310,13 +310,13 @@ while @lines {
         method pop(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::pop_#postfix#(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw
+              !! self.throw-cannot-be-empty('pop', self.^name)
         }
 
         method shift(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::shift_#postfix#(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw
+              !! self.throw-cannot-be-empty('shift', self.^name)
         }
 
         multi method unshift(#type#array:D: #type# $value --> #type#array:D) {

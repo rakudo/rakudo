@@ -1,4 +1,3 @@
-my class X::Cannot::Lazy             { ... }
 my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }

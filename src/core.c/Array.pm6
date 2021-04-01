@@ -782,18 +782,13 @@ my class Array { # declared in BOOTSTRAP
         self
     }
 
-    # helper subs to reduce size of pop / shift
-    method !empty($action) is hidden-from-backtrace {
-        Failure.new(X::Cannot::Empty.new(:$action,:what(self.^name)))
-    }
-
     method pop(Array:D:) is nodal {
         self.is-lazy
           ?? self.fail-iterator-cannot-be-lazy('pop from')
           !! nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
                && nqp::elems(nqp::getattr(self,List,'$!reified'))
             ?? nqp::pop(nqp::getattr(self,List,'$!reified'))
-            !! self!empty('pop')
+            !! self.fail-cannot-be-empty('pop')
     }
 
     method shift(Array:D:) is nodal {
@@ -806,7 +801,7 @@ my class Array { # declared in BOOTSTRAP
           !! nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
                && nqp::getattr(self,List,'$!todo').reify-at-least(1)
             ?? nqp::shift(nqp::getattr(self,List,'$!reified'))
-            !! self!empty('shift')
+            !! self.fail-cannot-be-empty('shift')
     }
 
     my $empty := nqp::create(IterationBuffer); # splicing in without values

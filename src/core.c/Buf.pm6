@@ -3,8 +3,6 @@ my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
-my class X::Cannot::Empty       { ... }
-my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
 
 # externalize the endian indicators
@@ -955,13 +953,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method pop(Buf:D:) {
         nqp::elems(self)
           ?? nqp::pop_i(self)
-          !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
+          !! self.fail-cannot-be-empty('pop', self.^name)
     }
     proto method shift(|) { * }
     multi method shift(Buf:D:) {
         nqp::elems(self)
           ?? nqp::shift_i(self)
-          !! Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
+          !! self.fail-cannot-be-empty('shift', self.^name)
     }
 
     method reallocate(Buf:D: Int:D $elements) { nqp::setelems(self,$elements) }

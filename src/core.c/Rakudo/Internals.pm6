@@ -8,7 +8,6 @@ my class Proc { ... }
 my class Proc::Async { ... }
 
 my class X::Assignment::ToShaped { ... }
-my class X::Cannot::Lazy { ... }
 my class X::IllegalDimensionInShape { ... }
 my class X::IllegalOnFixedDimensionArray { ... }
 my class X::Localizer::NoContainer { ... }

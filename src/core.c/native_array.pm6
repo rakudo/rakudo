@@ -94,7 +94,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2021-04-01T16:41:23+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T18:57:04+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -350,13 +350,13 @@ my class array does Iterable does Positional {
         method pop(strarray:D: --> str) {
             nqp::elems(self)
               ?? nqp::pop_s(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw
+              !! self.throw-cannot-be-empty('pop', self.^name)
         }
 
         method shift(strarray:D: --> str) {
             nqp::elems(self)
               ?? nqp::shift_s(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw
+              !! self.throw-cannot-be-empty('shift', self.^name)
         }
 
         multi method unshift(strarray:D: str $value --> strarray:D) {
@@ -687,7 +687,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2021-04-01T16:41:23+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T18:57:04+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -943,13 +943,13 @@ my class array does Iterable does Positional {
         method pop(intarray:D: --> int) {
             nqp::elems(self)
               ?? nqp::pop_i(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw
+              !! self.throw-cannot-be-empty('pop', self.^name)
         }
 
         method shift(intarray:D: --> int) {
             nqp::elems(self)
               ?? nqp::shift_i(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw
+              !! self.throw-cannot-be-empty('shift', self.^name)
         }
 
         multi method unshift(intarray:D: int $value --> intarray:D) {
@@ -1332,7 +1332,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2021-04-01T16:41:23+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T18:57:04+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1588,13 +1588,13 @@ my class array does Iterable does Positional {
         method pop(numarray:D: --> num) {
             nqp::elems(self)
               ?? nqp::pop_n(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw
+              !! self.throw-cannot-be-empty('pop', self.^name)
         }
 
         method shift(numarray:D: --> num) {
             nqp::elems(self)
               ?? nqp::shift_n(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw
+              !! self.throw-cannot-be-empty('shift', self.^name)
         }
 
         multi method unshift(numarray:D: num $value --> numarray:D) {

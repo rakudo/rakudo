@@ -218,7 +218,7 @@ my class Hash { # declared in BOOTSTRAP
     method dynamic(Hash:D:) { nqp::hllbool($!descriptor.dynamic) }
 
     method push(+values) {
-        fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
+        return self.fail-iterator-cannot-be-lazy('.push', self.^name)
           if values.is-lazy;
 
         my $previous;
@@ -245,7 +245,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method append(+values) {
-        fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+        return self.fail-iterator-cannot-be-lazy('.append', self.^name)
           if values.is-lazy;
 
         my $previous;
@@ -273,7 +273,9 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method classify-list(|) {*}
     multi method classify-list( &test, \list, :&as ) {
-        fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
+        return self.fail-iterator-cannot-be-lazy('classify')
+          if list.is-lazy;
+
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
         unless $value =:= IterationEnd {
@@ -333,7 +335,9 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method categorize-list(|) {*}
     multi method categorize-list( &test, \list, :&as ) {
-       fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
+        return self.fail-iterator-cannot-be-lazy('.categorize')
+          if list.is-lazy;
+
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
         unless $value =:= IterationEnd {

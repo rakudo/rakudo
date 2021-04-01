@@ -235,9 +235,7 @@ while @lines {
         multi method STORE(#type#array:D: Seq:D \seq --> #type#array:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              X::Cannot::Lazy.new(
-                :action<store>, :what(self.^name)
-              ).throw,
+              self.throw-iterator-cannot-be-lazy('store', self.^name),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -303,7 +301,7 @@ while @lines {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(#type#array:D: @values --> #type#array:D) {
-            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.append', self.^name)
               if @values.is-lazy;
             nqp::push_#postfix#(self, $_) for flat @values;
             self
@@ -312,13 +310,13 @@ while @lines {
         method pop(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::pop_#postfix#(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
+              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw
         }
 
         method shift(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::shift_#postfix#(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
+              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw
         }
 
         multi method unshift(#type#array:D: #type# $value --> #type#array:D) {
@@ -330,7 +328,7 @@ while @lines {
             self
         }
         multi method unshift(#type#array:D: @values --> #type#array:D) {
-            fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.unshift', self.^name)
               if @values.is-lazy;
             nqp::unshift_#postfix#(self, @values.pop) while @values;
             self
@@ -403,7 +401,7 @@ while @lines {
         multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq --> #type#array:D) {
             nqp::if(
               seq.is-lazy,
-              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
+              self.throw-iterator-cannot-be-lazy('.splice', self.^name),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -417,7 +415,7 @@ while @lines {
             )
         }
         multi method splice(#type#array:D: $offset=0, $size=Whatever, *@values --> #type#array:D) {
-            fail X::Cannot::Lazy.new(:action('splice in'))
+            return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
             my int $elems = nqp::elems(self);

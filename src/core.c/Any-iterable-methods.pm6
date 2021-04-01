@@ -808,7 +808,7 @@ Consider using a block if any of these are necessary for your mapping code."
     sub sequential-map(\source, &block, \label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
-        my $count = &block.count;
+        my $count := &block.count;
 
         Seq.new(
           nqp::istype(&block,Block) && &block.has-phasers

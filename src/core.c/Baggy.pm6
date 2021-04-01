@@ -59,7 +59,7 @@ my role Baggy does QuantHash {
     # helper method to create Bag from iterator, check for laziness
     method !create-from-iterator(\type, \iterator --> Baggy:D) {
         iterator.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name)))
+          ?? self.fail-iterator-cannot-be-lazy('coerce', type.^name)
           !! nqp::create(type).SET-SELF(
                Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
                  nqp::create(Rakudo::Internals::IterationSet),
@@ -90,7 +90,7 @@ my role Baggy does QuantHash {
 
     method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {
         (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name)))
+          ?? self.fail-iterator-cannot-be-lazy('coerce', self.^name)
           !! nqp::create(self).SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                  nqp::create(Rakudo::Internals::IterationSet),
@@ -552,7 +552,8 @@ my role Baggy does QuantHash {
 #--- classification method
     proto method classify-list(|) {*}
     multi method classify-list( &test, \list) {
-        fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
+        return self.fail-iterator-cannot-be-lazy('classify')
+          if list.is-lazy;
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
 
         until nqp::eqaddr((my $value := iter.pull-one),IterationEnd) {
@@ -584,7 +585,9 @@ my role Baggy does QuantHash {
 
     proto method categorize-list(|) {*}
     multi method categorize-list( &test, \list ) {
-        fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
+        return self.fail-iterator-cannot-be-lazy('categorize')
+          if list.is-lazy;
+
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
         unless nqp::eqaddr($value,IterationEnd) {

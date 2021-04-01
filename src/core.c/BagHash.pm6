@@ -7,9 +7,7 @@ my class BagHash does Baggy {
 #--- interface methods
     multi method STORE(BagHash:D: Iterable:D \iterable --> BagHash:D) {
         (my \iterator := iterable.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
-             )
+          ?? self.fail-iterator-cannot-be-lazy('initialize', self.^name)
           !! self.SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                  nqp::create(Rakudo::Internals::IterationSet),

@@ -374,7 +374,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         Failure.new(X::Cannot::Lazy.new(:$action))
     }
 
-    method sum(List:D:) is nodal {
+    multi method sum(List:D:) {
         nqp::if(
           self.is-lazy,
           self!lazy('.sum'),

@@ -1269,7 +1269,7 @@ my class array does Iterable does Positional {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
-        method sum(intarray:D: :$wrap) {
+        multi method sum(intarray:D: :$wrap) {
             nqp::if(
               (my int $elems = nqp::elems(self)),
               nqp::stmts(
@@ -1916,7 +1916,7 @@ my class array does Iterable does Positional {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------
 
-        method sum(numarray:D:) {
+        multi method sum(numarray:D:) {
             nqp::if(
               (my int $elems = nqp::elems(self)),
               nqp::stmts(

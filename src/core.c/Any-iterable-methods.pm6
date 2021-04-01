@@ -1258,7 +1258,8 @@ Consider using a block if any of these are necessary for your mapping code."
         Failure.new(X::Cannot::Lazy.new(:$action))
     }
 
-    method sum() is nodal {
+    proto method sum(*%) is nodal {*}
+    multi method sum(Any:D:) {
         nqp::if(
           (my \iterator := self.iterator).is-lazy,
           self!lazy('.sum'),

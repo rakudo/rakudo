@@ -241,7 +241,7 @@ my role Array::Shaped1 does Array::Shaped {
           $rotate, self, nqp::getattr(self,Array,'$!descriptor')
         )
     }
-    method sum() is nodal { self.List::sum }
+    multi method sum(::?CLASS:D:) { self.List::sum }
 }
 
 # vim: expandtab shiftwidth=4

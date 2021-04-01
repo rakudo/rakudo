@@ -2255,7 +2255,7 @@ class Rakudo::Iterator {
         method new(\iterator,\n,\action,\f) {
             nqp::if(
               iterator.is-lazy,
-              X::Cannot::Lazy.new(:action(action)).throw,
+              Any.throw-iterator-cannot-be-lazy(action),
               nqp::if(
                 nqp::istype(n,Whatever),
                 iterator,                   # * just give back itself
@@ -2324,7 +2324,7 @@ class Rakudo::Iterator {
     method LastValue(\iterator, $action) is raw {
         nqp::if(
           iterator.is-lazy,
-          X::Cannot::Lazy.new(:$action).throw,
+          Any.throw-iterator-cannot-be-lazy($action),
           nqp::stmts(
             (my $result := IterationEnd),
             nqp::if(

@@ -270,7 +270,7 @@ multi sub infix:<(^)>(+@p) {   # also Any
 
     nqp::if(
       (my $params := @p.iterator).is-lazy,
-      Any.fail-iterator-cannot-be-lazy('symmetric diff'), # bye bye
+      Any.fail-iterator-cannot-be-lazy('symmetric diff',''), # bye bye
 
       nqp::stmts(                                # fixed list of things to diff
         (my \elems := nqp::create(Rakudo::Internals::IterationSet)),

@@ -69,7 +69,7 @@ my role Mixy does Baggy  {
 #--- object creation methods
     method new-from-pairs(Mixy:_: *@pairs --> Mixy:D) {
         (my \iterator := @pairs.iterator).is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('coerce', self.^name)
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(self).SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                  nqp::create(Rakudo::Internals::IterationSet),

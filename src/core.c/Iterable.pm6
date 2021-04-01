@@ -62,7 +62,7 @@ my role Iterable {
 
     method !MIXIFY(\type) {
         (my \iterator := self.flat.iterator).is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('coerce', type.^name)
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
              ))
@@ -76,7 +76,7 @@ my role Iterable {
 
     method !BAGGIFY(\type) {
         (my \iterator := self.flat.iterator).is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('coerce', type.^name)
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
              ))
@@ -90,7 +90,7 @@ my role Iterable {
 
     method !SETIFY(\type) {
         (my \iterator := self.flat.iterator).is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('coerce', type.^name)
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
              ))
@@ -115,7 +115,7 @@ multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
               a.is-lazy,
               nqp::if(                           # a lazy
                 b.is-lazy,
-                Any.throw-iterator-cannot-be-lazy('eqv') # a && b lazy
+                Any.throw-iterator-cannot-be-lazy('eqv','') # a && b lazy
               ),
               nqp::if(                           # a NOT lazy
                 b.is-lazy,
@@ -141,7 +141,7 @@ multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
               ),
               nqp::if(
                 ia.is-lazy,
-                Any.throw-iterator-cannot-be-lazy('eqv'),
+                Any.throw-iterator-cannot-be-lazy('eqv',''),
                 nqp::stmts(
                   nqp::until(
                     nqp::stmts(

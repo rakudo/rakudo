@@ -6,7 +6,7 @@ my role Setty does QuantHash {
     # private method to create Set from iterator, check for laziness
     method !create-from-iterator(\type, \iterator --> Setty:D) {
         iterator.is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('coerce', type.^name)
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(type).SET-SELF(
                Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
@@ -37,7 +37,7 @@ my role Setty does QuantHash {
 
     method new-from-pairs(*@pairs --> Setty:D) {
         (my \iterator := @pairs.iterator).is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('coerce', self.^name)
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(self).SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),

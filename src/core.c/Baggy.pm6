@@ -59,7 +59,7 @@ my role Baggy does QuantHash {
     # helper method to create Bag from iterator, check for laziness
     method !create-from-iterator(\type, \iterator --> Baggy:D) {
         iterator.is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('coerce', type.^name)
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(type).SET-SELF(
                Rakudo::QuantHash.ADD-ITERATOR-TO-BAG(
                  nqp::create(Rakudo::Internals::IterationSet),
@@ -90,7 +90,7 @@ my role Baggy does QuantHash {
 
     method new-from-pairs(Baggy:_: *@pairs --> Baggy:D) {
         (my \iterator := @pairs.iterator).is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('coerce', self.^name)
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(self).SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                  nqp::create(Rakudo::Internals::IterationSet),

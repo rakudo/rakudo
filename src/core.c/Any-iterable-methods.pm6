@@ -17,7 +17,7 @@ augment class Any {
     # to help reduce bytecode size in hot code paths, making it more likely
     # that the (conditional) caller of this method, can be inlined.
     method throw-iterator-cannot-be-lazy(
-      str $action, str $what = ""
+      str $action, str $what = self.^name
     ) is hidden-from-backtrace is implementation-detail {
         X::Cannot::Lazy.new(:$action, :$what).throw
     }
@@ -26,7 +26,7 @@ augment class Any {
     # to help reduce bytecode size in hot code paths, making it more likely
     # that the (conditional) caller of this method, can be inlined.
     method fail-iterator-cannot-be-lazy(
-      str $action, str $what = ""
+      str $action, str $what = self.^name
     ) is hidden-from-backtrace is implementation-detail {
         Failure.new(X::Cannot::Lazy.new(:$action, :$what))
     }
@@ -35,7 +35,7 @@ augment class Any {
     # empty, to help reduce bytecode size in hot code paths, making it more
     # likely that the (conditional) caller of this method, can be inlined.
     method throw-cannot-be-empty(
-      str $action, str $what = ""
+      str $action, str $what = self.^name
     ) is hidden-from-backtrace is implementation-detail {
         X::Cannot::Empty.new(:$action, :$what).throw
     }
@@ -44,7 +44,7 @@ augment class Any {
     # to help reduce bytecode size in hot code paths, making it more likely
     # that the (conditional) caller of this method, can be inlined.
     method fail-cannot-be-empty(
-      str $action, str $what = ""
+      str $action, str $what = self.^name
     ) is hidden-from-backtrace is implementation-detail {
         Failure.new(X::Cannot::Empty.new(:$action, :$what))
     }

@@ -710,7 +710,7 @@ my class Array { # declared in BOOTSTRAP
             IterationEnd
           ),
           self,
-          self.throw-iterator-cannot-be-lazy('push', self.^name)
+          self.throw-iterator-cannot-be-lazy('push')
         )
     }
 

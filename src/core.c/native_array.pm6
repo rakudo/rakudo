@@ -94,7 +94,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2021-04-01T18:57:04+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T19:23:33+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -275,7 +275,7 @@ my class array does Iterable does Positional {
         multi method STORE(strarray:D: Seq:D \seq --> strarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              self.throw-iterator-cannot-be-lazy('store', self.^name),
+              self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -341,7 +341,7 @@ my class array does Iterable does Positional {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(strarray:D: @values --> strarray:D) {
-            return self.fail-iterator-cannot-be-lazy('.append', self.^name)
+            return self.fail-iterator-cannot-be-lazy('.append')
               if @values.is-lazy;
             nqp::push_s(self, $_) for flat @values;
             self
@@ -350,13 +350,13 @@ my class array does Iterable does Positional {
         method pop(strarray:D: --> str) {
             nqp::elems(self)
               ?? nqp::pop_s(self)
-              !! self.throw-cannot-be-empty('pop', self.^name)
+              !! self.throw-cannot-be-empty('pop')
         }
 
         method shift(strarray:D: --> str) {
             nqp::elems(self)
               ?? nqp::shift_s(self)
-              !! self.throw-cannot-be-empty('shift', self.^name)
+              !! self.throw-cannot-be-empty('shift')
         }
 
         multi method unshift(strarray:D: str $value --> strarray:D) {
@@ -368,7 +368,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method unshift(strarray:D: @values --> strarray:D) {
-            return self.fail-iterator-cannot-be-lazy('.unshift', self.^name)
+            return self.fail-iterator-cannot-be-lazy('.unshift')
               if @values.is-lazy;
             nqp::unshift_s(self, @values.pop) while @values;
             self
@@ -441,7 +441,7 @@ my class array does Iterable does Positional {
         multi method splice(strarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> strarray:D) {
             nqp::if(
               seq.is-lazy,
-              self.throw-iterator-cannot-be-lazy('.splice', self.^name),
+              self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -687,7 +687,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2021-04-01T18:57:04+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T19:23:33+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -868,7 +868,7 @@ my class array does Iterable does Positional {
         multi method STORE(intarray:D: Seq:D \seq --> intarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              self.throw-iterator-cannot-be-lazy('store', self.^name),
+              self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -934,7 +934,7 @@ my class array does Iterable does Positional {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(intarray:D: @values --> intarray:D) {
-            return self.fail-iterator-cannot-be-lazy('.append', self.^name)
+            return self.fail-iterator-cannot-be-lazy('.append')
               if @values.is-lazy;
             nqp::push_i(self, $_) for flat @values;
             self
@@ -943,13 +943,13 @@ my class array does Iterable does Positional {
         method pop(intarray:D: --> int) {
             nqp::elems(self)
               ?? nqp::pop_i(self)
-              !! self.throw-cannot-be-empty('pop', self.^name)
+              !! self.throw-cannot-be-empty('pop')
         }
 
         method shift(intarray:D: --> int) {
             nqp::elems(self)
               ?? nqp::shift_i(self)
-              !! self.throw-cannot-be-empty('shift', self.^name)
+              !! self.throw-cannot-be-empty('shift')
         }
 
         multi method unshift(intarray:D: int $value --> intarray:D) {
@@ -961,7 +961,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method unshift(intarray:D: @values --> intarray:D) {
-            return self.fail-iterator-cannot-be-lazy('.unshift', self.^name)
+            return self.fail-iterator-cannot-be-lazy('.unshift')
               if @values.is-lazy;
             nqp::unshift_i(self, @values.pop) while @values;
             self
@@ -1034,7 +1034,7 @@ my class array does Iterable does Positional {
         multi method splice(intarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> intarray:D) {
             nqp::if(
               seq.is-lazy,
-              self.throw-iterator-cannot-be-lazy('.splice', self.^name),
+              self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -1332,7 +1332,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2021-04-01T18:57:04+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T19:23:33+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1513,7 +1513,7 @@ my class array does Iterable does Positional {
         multi method STORE(numarray:D: Seq:D \seq --> numarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              self.throw-iterator-cannot-be-lazy('store', self.^name),
+              self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -1579,7 +1579,7 @@ my class array does Iterable does Positional {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(numarray:D: @values --> numarray:D) {
-            return self.fail-iterator-cannot-be-lazy('.append', self.^name)
+            return self.fail-iterator-cannot-be-lazy('.append')
               if @values.is-lazy;
             nqp::push_n(self, $_) for flat @values;
             self
@@ -1588,13 +1588,13 @@ my class array does Iterable does Positional {
         method pop(numarray:D: --> num) {
             nqp::elems(self)
               ?? nqp::pop_n(self)
-              !! self.throw-cannot-be-empty('pop', self.^name)
+              !! self.throw-cannot-be-empty('pop')
         }
 
         method shift(numarray:D: --> num) {
             nqp::elems(self)
               ?? nqp::shift_n(self)
-              !! self.throw-cannot-be-empty('shift', self.^name)
+              !! self.throw-cannot-be-empty('shift')
         }
 
         multi method unshift(numarray:D: num $value --> numarray:D) {
@@ -1606,7 +1606,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method unshift(numarray:D: @values --> numarray:D) {
-            return self.fail-iterator-cannot-be-lazy('.unshift', self.^name)
+            return self.fail-iterator-cannot-be-lazy('.unshift')
               if @values.is-lazy;
             nqp::unshift_n(self, @values.pop) while @values;
             self
@@ -1679,7 +1679,7 @@ my class array does Iterable does Positional {
         multi method splice(numarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> numarray:D) {
             nqp::if(
               seq.is-lazy,
-              self.throw-iterator-cannot-be-lazy('.splice', self.^name),
+              self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(

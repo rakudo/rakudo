@@ -218,7 +218,7 @@ my class Hash { # declared in BOOTSTRAP
     method dynamic(Hash:D:) { nqp::hllbool($!descriptor.dynamic) }
 
     method push(+values) {
-        return self.fail-iterator-cannot-be-lazy('.push', self.^name)
+        return self.fail-iterator-cannot-be-lazy('.push')
           if values.is-lazy;
 
         my $previous;
@@ -245,7 +245,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method append(+values) {
-        return self.fail-iterator-cannot-be-lazy('.append', self.^name)
+        return self.fail-iterator-cannot-be-lazy('.append')
           if values.is-lazy;
 
         my $previous;

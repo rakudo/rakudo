@@ -194,7 +194,7 @@ my class SetHash does Setty {
 #--- interface methods
     multi method STORE(SetHash:D: Iterable:D \iterable --> SetHash:D) {
         (my \iterator := iterable.iterator).is-lazy
-          ?? self.fail-iterator-cannot-be-lazy('initialize', self.^name)
+          ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),

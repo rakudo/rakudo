@@ -235,7 +235,7 @@ while @lines {
         multi method STORE(#type#array:D: Seq:D \seq --> #type#array:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              self.throw-iterator-cannot-be-lazy('store', self.^name),
+              self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -301,7 +301,7 @@ while @lines {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(#type#array:D: @values --> #type#array:D) {
-            return self.fail-iterator-cannot-be-lazy('.append', self.^name)
+            return self.fail-iterator-cannot-be-lazy('.append')
               if @values.is-lazy;
             nqp::push_#postfix#(self, $_) for flat @values;
             self
@@ -310,13 +310,13 @@ while @lines {
         method pop(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::pop_#postfix#(self)
-              !! self.throw-cannot-be-empty('pop', self.^name)
+              !! self.throw-cannot-be-empty('pop')
         }
 
         method shift(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::shift_#postfix#(self)
-              !! self.throw-cannot-be-empty('shift', self.^name)
+              !! self.throw-cannot-be-empty('shift')
         }
 
         multi method unshift(#type#array:D: #type# $value --> #type#array:D) {
@@ -328,7 +328,7 @@ while @lines {
             self
         }
         multi method unshift(#type#array:D: @values --> #type#array:D) {
-            return self.fail-iterator-cannot-be-lazy('.unshift', self.^name)
+            return self.fail-iterator-cannot-be-lazy('.unshift')
               if @values.is-lazy;
             nqp::unshift_#postfix#(self, @values.pop) while @values;
             self
@@ -401,7 +401,7 @@ while @lines {
         multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq --> #type#array:D) {
             nqp::if(
               seq.is-lazy,
-              self.throw-iterator-cannot-be-lazy('.splice', self.^name),
+              self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(

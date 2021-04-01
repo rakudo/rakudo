@@ -57,7 +57,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method STORE(Blob:D: Iterable:D \iterable, :$INITIALIZE) {
         $INITIALIZE
           ?? iterable.is-lazy
-            ?? self.throw-iterator-cannot-be-lazy('store', self.^name)
+            ?? self.throw-iterator-cannot-be-lazy('store')
             !! self!push-list("initializ",self,iterable)
           !! X::Assignment::RO.new(:value(self)).throw
     }
@@ -734,7 +734,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
     multi method STORE(Buf:D: Iterable:D \iterable) {
         iterable.is-lazy
-          ?? self.throw-iterator-cannot-be-lazy('store', self.^name)
+          ?? self.throw-iterator-cannot-be-lazy('store')
           !! self!push-list("initializ",nqp::setelems(self,0),iterable);
     }
     multi method STORE(Buf:D: Any:D \non-iterable) {
@@ -953,13 +953,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method pop(Buf:D:) {
         nqp::elems(self)
           ?? nqp::pop_i(self)
-          !! self.fail-cannot-be-empty('pop', self.^name)
+          !! self.fail-cannot-be-empty('pop')
     }
     proto method shift(|) { * }
     multi method shift(Buf:D:) {
         nqp::elems(self)
           ?? nqp::shift_i(self)
-          !! self.fail-cannot-be-empty('shift', self.^name)
+          !! self.fail-cannot-be-empty('shift')
     }
 
     method reallocate(Buf:D: Int:D $elements) { nqp::setelems(self,$elements) }
@@ -1053,7 +1053,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     method !pend(Buf:D: @values, $action) {
         @values.is-lazy
-          ?? self.fail-iterator-cannot-be-lazy($action, self.^name)
+          ?? self.fail-iterator-cannot-be-lazy($action)
           !! $action eq 'push' || $action eq 'append'
             ?? self!push-list($action,self,@values)
             !! self!unshift-list($action,self,@values)

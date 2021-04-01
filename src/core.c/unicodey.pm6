@@ -14,7 +14,8 @@ augment class Cool {
     proto method uniname(*%) is pure {*}
     multi method uniname(Cool:D: --> Str:D) { self.Int.uniname }
 
-    method uninames()       { uninames(self) }
+    proto method uninames(*%) is pure {*}
+    multi method uninames(Cool:D: --> Str:D) { self.Str.uninames }
 
     proto method unival() is pure {*}
     multi method unival(Cool:D:) { self.Int.unival }
@@ -96,6 +97,46 @@ augment class Str {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
           !! nqp::getuniname($ord)
+    }
+
+    my class UninamesIterator does PredictiveIterator {
+        has $!codes;
+        method new(\string) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),
+              self,
+              '$!codes',
+              nqp::strtocodes(
+                string,
+                nqp::const::NORMALIZE_NFC,
+                nqp::create(array[uint32])
+              )
+            )
+        }
+        method pull-one() {
+            nqp::elems($!codes)
+              ?? nqp::getuniname(nqp::shift_i($!codes))
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $codes := $!codes;
+            nqp::while(
+              nqp::elems($codes),
+              target.push(nqp::getuniname(nqp::shift_i($codes)))
+            );
+        }
+        method skip-one() {
+            nqp::if(
+              nqp::elems($!codes),
+              nqp::shift_i($!codes)
+            )
+        }
+        method count-only(--> Int:D) { nqp::elems($!codes) }
+        method bool-only(--> Bool:D) { nqp::hllbool(nqp::elems($!codes)) }
+    }
+
+    multi method uninames(Str:D:) {
+        Seq.new(UninamesIterator.new(self))
     }
 
 #?if !jvm
@@ -218,8 +259,7 @@ multi sub ord(\what) { what.ord }
 multi sub ords($s) { $s.ords }
 
 multi sub uniname(\what) { what.uniname }
-
-multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
+multi sub uninames(\what) { what.uninames }
 
 #?if jvm
 multi sub unival(|)       { die 'unival NYI on jvm backend' }

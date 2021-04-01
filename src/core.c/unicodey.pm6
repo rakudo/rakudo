@@ -11,7 +11,9 @@ augment class Cool {
     proto method ords(*%) is pure {*}
     multi method ords(Cool:D:) { self.Str.ords }
 
-    method uniname()        { uniname(self) }
+    proto method uniname(*%) is pure {*}
+    multi method uniname(Cool:D: --> Str:D) { self.Int.uniname }
+
     method uninames()       { uninames(self) }
 
     proto method unival() is pure {*}
@@ -27,10 +29,21 @@ augment class Cool {
 }
 
 augment class Int {
+
+    method !codepoint-out-of-bounds(str $action) {
+        die "Codepoint %i (0x%X) is out of bounds in '$action'".sprintf(self,self)
+    }
+
     multi method chr(Int:D: --> Str:D) {
         nqp::isbig_I(self)
-          ?? die("chr codepoint %i (0x%X) is out of bounds".sprintf(self,self))
-          !! nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
+          ?? self!codepoint-out-of-bounds('chr')
+          !! nqp::chr(self)
+    }
+
+    multi method uniname(Int:D: --> Str:D) {
+        nqp::isbig_I(self)
+          ?? self!codepoint-out-of-bounds('uniname')
+          !! nqp::getuniname(self)
     }
 
     my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
@@ -78,6 +91,12 @@ augment class Str {
         Seq.new(@ords.iterator)
     }
 #?endif
+
+    multi method uniname(Str:D: --> Str:D) {
+        nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
+          ?? Nil
+          !! nqp::getuniname($ord)
+    }
 
 #?if !jvm
     method NFC(--> NFC:D) {
@@ -198,8 +217,7 @@ multi sub chrs(*@c --> Str:D) { @c.chrs }
 multi sub ord(\what) { what.ord }
 multi sub ords($s) { $s.ords }
 
-multi sub uniname(Str:D $str)  { $str ?? uniname($str.ord) !! Nil }
-multi sub uniname(Int:D $code) { nqp::getuniname($code) }
+multi sub uniname(\what) { what.uniname }
 
 multi sub uninames(Str:D $str) { $str.NFC.map: { uniname($_) } }
 

@@ -126,7 +126,7 @@ augment class List {
     multi method chrs(List:D: --> Str:D) {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'chrs')),
+          self.fail-iterator-cannot-be-lazy('.chrs'),
           nqp::stmts(
             (my int $i     = -1),
             (my int $elems = self.elems),    # reifies

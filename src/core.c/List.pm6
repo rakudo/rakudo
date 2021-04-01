@@ -381,8 +381,8 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           nqp::if(
             (my int $elems = self.elems), # reify
             nqp::stmts(
-              (my $sum := nqp::ifnull(nqp::atpos($!reified,0),0).Numeric),
-              (my int $i),
+              (my $sum  := 0),
+              (my int $i = -1),
               nqp::while(
                 nqp::islt_i($i = nqp::add_i($i,1),$elems),
                 ($sum := $sum + nqp::ifnull(nqp::atpos($!reified,$i),0))

@@ -59,7 +59,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method STORE(Blob:D: Iterable:D \iterable, :$INITIALIZE) {
         $INITIALIZE
           ?? iterable.is-lazy
-            ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+            ?? self.throw-iterator-cannot-be-lazy('store', self.^name)
             !! self!push-list("initializ",self,iterable)
           !! X::Assignment::RO.new(:value(self)).throw
     }
@@ -736,7 +736,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
     multi method STORE(Buf:D: Iterable:D \iterable) {
         iterable.is-lazy
-          ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+          ?? self.throw-iterator-cannot-be-lazy('store', self.^name)
           !! self!push-list("initializ",nqp::setelems(self,0),iterable);
     }
     multi method STORE(Buf:D: Any:D \non-iterable) {
@@ -1055,7 +1055,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     method !pend(Buf:D: @values, $action) {
         @values.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:$action,:what(self.^name)))
+          ?? self.fail-iterator-cannot-be-lazy($action, self.^name)
           !! $action eq 'push' || $action eq 'append'
             ?? self!push-list($action,self,@values)
             !! self!unshift-list($action,self,@values)

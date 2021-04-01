@@ -46,7 +46,7 @@ my class Seq is Cool does Iterable does Sequence {
 
     method elems() {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(action => '.elems'))
+          ?? self.fail-iterator-cannot-be-lazy('.elems')
           !! nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator)
             ?? $!iter.count-only
             !! self.cache.elems
@@ -104,7 +104,7 @@ my class Seq is Cool does Iterable does Sequence {
     method reverse(--> Seq:D) is nodal {
         nqp::if(
           (my $iterator := self.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
+          self.fail-iterator-cannot-be-lazy('.reverse'),
           nqp::stmts(
             $iterator.push-all(my \buffer := nqp::create(IterationBuffer)),
             Seq.new: Rakudo::Iterator.ReifiedReverse(buffer, Mu)
@@ -115,7 +115,7 @@ my class Seq is Cool does Iterable does Sequence {
     method rotate(Int(Cool) $rotate = 1 --> Seq:D) is nodal {
         nqp::if(
           (my $iterator := self.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<rotate>)),
+          self.fail-iterator-cannot-be-lazy('.rotate'),
           nqp::if(
             $rotate,
             Seq.new( nqp::if(

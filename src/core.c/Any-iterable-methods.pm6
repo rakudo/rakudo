@@ -16,9 +16,9 @@ augment class Any {
     # that the (conditional) caller of this method, can be inlined.  Takes
     # the name of the method that was attempted.
     method throw-iterator-cannot-be-lazy(
-      str $action
+      str $action, str $what = ""
     ) is hidden-from-backtrace is implementation-detail {
-        X::Cannot::Lazy.new(:$action).throw
+        X::Cannot::Lazy.new(:$action, :$what).throw
     }
 
     # A helper method for creating a failure because of a lazy iterator, to
@@ -26,9 +26,9 @@ augment class Any {
     # that the (conditional) caller of this method, can be inlined.  Takes
     # the name of the method that was attempted.
     method fail-iterator-cannot-be-lazy(
-      str $action
+      str $action, str $what = ""
     ) is hidden-from-backtrace is implementation-detail {
-        Failure.new(X::Cannot::Lazy.new(:$action))
+        Failure.new(X::Cannot::Lazy.new(:$action, :$what))
     }
 
     proto method map(|) is nodal {*}

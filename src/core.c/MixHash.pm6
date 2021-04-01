@@ -10,9 +10,7 @@ my class MixHash does Mixy {
 
     multi method STORE(MixHash:D: Iterable:D \iterable --> MixHash:D) {
         (my \iterator := iterable.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
-             )
+          ?? self.fail-iterator-cannot-be-lazy('initialize', self.^name)
           !! self.SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                  nqp::create(Rakudo::Internals::IterationSet),

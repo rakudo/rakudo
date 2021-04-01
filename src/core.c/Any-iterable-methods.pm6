@@ -11,6 +11,26 @@ class Rakudo::Sorting { ... }
 use MONKEY-TYPING;
 augment class Any {
 
+    # A helper method for throwing an exception because of a lazy iterator,
+    # to help reduce bytecode size in hot code paths, making it more likely
+    # that the (conditional) caller of this method, can be inlined.  Takes
+    # the name of the method that was attempted.
+    method throw-iterator-cannot-be-lazy(
+      str $action
+    ) is hidden-from-backtrace is implementation-detail {
+        X::Cannot::Lazy.new(:$action).throw
+    }
+
+    # A helper method for creating a failure because of a lazy iterator, to
+    # to help reduce bytecode size in hot code paths, making it more likely
+    # that the (conditional) caller of this method, can be inlined.  Takes
+    # the name of the method that was attempted.
+    method fail-iterator-cannot-be-lazy(
+      str $action
+    ) is hidden-from-backtrace is implementation-detail {
+        Failure.new(X::Cannot::Lazy.new(:$action))
+    }
+
     proto method map(|) is nodal {*}
     multi method map(Hash:D \hash) {
         X::Cannot::Map.new(
@@ -1254,15 +1274,11 @@ Consider using a block if any of these are necessary for your mapping code."
         )
     }
 
-    method !lazy(str $action) is hidden-from-backtrace {
-        Failure.new(X::Cannot::Lazy.new(:$action))
-    }
-
     proto method sum(*%) is nodal {*}
     multi method sum(Any:D:) {
         nqp::if(
           (my \iterator := self.iterator).is-lazy,
-          self!lazy('.sum'),
+          self.fail-iterator-cannot-be-lazy('.sum'),
           nqp::stmts(
             (my $sum := 0),
             nqp::until(

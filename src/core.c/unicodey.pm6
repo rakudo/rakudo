@@ -8,7 +8,7 @@ my class Rakudo::Unicodey is implementation-detail {
 
     method ords(str $str) {  # strtocodes NYI on JVM
         my uint32 @ords;
-        my int $chars = nqp::chars($!value);
+        my int $chars = nqp::chars($str);
         my int $i     = -1;
 
         nqp::while(

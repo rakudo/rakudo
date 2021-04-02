@@ -71,6 +71,58 @@ my class Rakudo::Unicodey is implementation-detail {
         nqp::strtocodes($str,nqp::const::NORMALIZE_NFKD,nqp::create(NFKD))
     }
 #?endif
+
+    my role UnicodeyIterator does PredictiveIterator {
+        has $!codes;
+        method new(str $str) {
+            nqp::p6bindattrinvres(
+              nqp::create(self),
+              self,
+              '$!codes',
+              Rakudo::Unicodey.ords($str)
+            )
+        }
+        method skip-one() {
+            nqp::if(
+              nqp::elems($!codes),
+              nqp::shift_i($!codes)
+            )
+        }
+        method count-only(--> Int:D) { nqp::elems($!codes) }
+        method bool-only(--> Bool:D) { nqp::hllbool(nqp::elems($!codes)) }
+    }
+
+    my class UninamesIterator does UnicodeyIterator {
+        method pull-one() {
+            nqp::elems($!codes)
+              ?? nqp::getuniname(nqp::shift_i($!codes))
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $codes := $!codes;
+            nqp::while(
+              nqp::elems($codes),
+              target.push(nqp::getuniname(nqp::shift_i($codes)))
+            );
+        }
+    }
+    method uninames(str $str) { UninamesIterator.new($str) }
+
+    my class UnivalsIterator does UnicodeyIterator {
+        method pull-one() {
+            nqp::elems($!codes)
+              ?? Rakudo::Unicodey.unival(nqp::shift_i($!codes))
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $codes := $!codes;
+            nqp::while(
+              nqp::elems($codes),
+              target.push(Rakudo::Unicodey.unival(nqp::shift_i($codes)))
+            );
+        }
+    }
+    method univals(str $str) { UnivalsIterator.new($str) }
 }
 
 augment class Cool {
@@ -95,7 +147,8 @@ augment class Cool {
     proto method unival(*%) is pure {*}
     multi method unival(Cool:D:) { self.Int.unival }
 
-    method univals(Cool:D:) { self.Str.univals }
+    proto method univals(*%) is pure {*}
+    multi method univals(Cool:D:) { self.Str.univals }
 
     method uniprop(|c)      { uniprop(self, |c) }
     method uniprop-int(|c)  { uniprop-int(self, |c) }
@@ -159,44 +212,8 @@ augment class Str {
           !! nqp::getuniname($ord)
     }
 
-    my class UninamesIterator does PredictiveIterator {
-        has $!codes;
-        method new(\string) {
-            nqp::p6bindattrinvres(
-              nqp::create(self),
-              self,
-              '$!codes',
-              nqp::strtocodes(
-                string,
-                nqp::const::NORMALIZE_NFC,
-                nqp::create(array[uint32])
-              )
-            )
-        }
-        method pull-one() {
-            nqp::elems($!codes)
-              ?? nqp::getuniname(nqp::shift_i($!codes))
-              !! IterationEnd
-        }
-        method push-all(\target --> IterationEnd) {
-            my $codes := $!codes;
-            nqp::while(
-              nqp::elems($codes),
-              target.push(nqp::getuniname(nqp::shift_i($codes)))
-            );
-        }
-        method skip-one() {
-            nqp::if(
-              nqp::elems($!codes),
-              nqp::shift_i($!codes)
-            )
-        }
-        method count-only(--> Int:D) { nqp::elems($!codes) }
-        method bool-only(--> Bool:D) { nqp::hllbool(nqp::elems($!codes)) }
-    }
-
     multi method uninames(Str:D:) {
-        Seq.new(UninamesIterator.new(self))
+        Seq.new(Rakudo::Unicodey.uninames(self))
     }
 
     multi method unival(Str:D:) {
@@ -204,7 +221,10 @@ augment class Str {
           ?? Nil
           !! Rakudo::Unicodey.unival($ord)
     }
-    method univals(Str:D:) { self.ords.map: *.unival }
+
+    multi method univals(Str:D:) {
+        Seq.new(Rakudo::Unicodey.univals(self))
+    }
 
     method uniparse(Str:D: --> Str:D) {
         my $names := nqp::split(',', self);

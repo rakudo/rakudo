@@ -130,9 +130,11 @@ augment class Int {
     }
 
     multi method uniname(Int:D: --> Str:D) {
-        nqp::isbig_I(self)
-          ?? self!codepoint-out-of-bounds('uniname')
-          !! nqp::getuniname(self)
+        nqp::islt_I(self,0)       # (bigint) negative number?
+          ?? '<illegal>'
+          !! nqp::isbig_I(self)   # bigint positive number?
+            ?? '<unassigned>'
+            !! nqp::getuniname(self)
     }
 
     multi method unival(Int:D:) {

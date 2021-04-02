@@ -7,13 +7,13 @@ my class Rakudo::Unicodey is implementation-detail {
     }
 
     method ords(str $str) {  # strtocodes NYI on JVM
-        my uint32 @ords;
+        my @ords;
         my int $chars = nqp::chars($str);
         my int $i     = -1;
 
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$chars),
-          nqp::push_i(@ords,nqp::ord($str,$i))
+          @ords.push(nqp::ord($str,$i))
         );
 
         @ords

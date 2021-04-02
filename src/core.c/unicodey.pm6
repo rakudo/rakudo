@@ -1,3 +1,31 @@
+# a helper class to abstract support for unicode value property
+my class Rakudo::Unival is implementation-detail {
+
+#?if jvm
+    method unival() is hidden-from-backtrace {
+        X::NYI.new(:feature<unival>).throw
+    }
+#?endif
+
+#?if !jvm
+    my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
+    my constant $deprop = nqp::unipropcode("Numeric_Value_Denominator");
+
+    method unival(int $ord) {
+        nqp::chars(my str $de = nqp::getuniprop_str($ord,$deprop))
+          ?? nqp::iseq_s($de,"NaN")                 # some string to work with
+            ?? NaN                                   # no value found
+            !! nqp::iseq_s($de,"1")                  # some value
+              ?? nqp::coerce_si(nqp::getuniprop_str($ord,$nuprop))
+              !! Rat.new(
+                   nqp::coerce_si(nqp::getuniprop_str($ord,$nuprop)),
+                   nqp::coerce_si($de)
+                 )
+          !! Nil                                    # not valid, so no value
+    }
+#?endif
+}
+
 augment class Cool {
     proto method chr(*%) is pure {*}
     multi method chr(Cool:D:) { self.Int.chr }
@@ -17,7 +45,7 @@ augment class Cool {
     proto method uninames(*%) is pure {*}
     multi method uninames(Cool:D: --> Str:D) { self.Str.uninames }
 
-    proto method unival() is pure {*}
+    proto method unival(*%) is pure {*}
     multi method unival(Cool:D:) { self.Int.unival }
 
     method univals(Cool:D:) { self.Str.univals }
@@ -47,20 +75,12 @@ augment class Int {
           !! nqp::getuniname(self)
     }
 
-    my constant $nuprop = nqp::unipropcode("Numeric_Value_Numerator");
-    my constant $deprop = nqp::unipropcode("Numeric_Value_Denominator");
     multi method unival(Int:D:) {
-        nqp::isge_I(self,0)                          # valid?
-          && nqp::chars(my str $de = nqp::getuniprop_str(self,$deprop))
-          ?? nqp::iseq_s($de,"NaN")                   # some string to work with
-            ?? NaN                                     # no value found
-            !! nqp::iseq_s($de,"1")                    # some value
-              ?? nqp::coerce_si(nqp::getuniprop_str(self,$nuprop))
-              !! Rat.new(
-                   nqp::coerce_si(nqp::getuniprop_str(self,$nuprop)),
-                   nqp::coerce_si($de)
-                 )
-          !! Nil                                      # not valid, so no value
+        nqp::isbig_I(self)
+          ?? self!codepoint-out-of-bounds('unival')
+          !! nqp::isge_I(self,0)                     # valid?
+            ?? Rakudo::Unival.unival(self)
+            !! Nil
     }
 }
 
@@ -160,7 +180,11 @@ augment class Str {
     method NFKD() { X::NYI.new(:feature<NFKD>).throw }
 #?endif
 
-    multi method unival(Str:D:)  { nqp::ord($!value).unival }
+    multi method unival(Str:D:) {
+        nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
+          ?? Nil
+          !! Rakudo::Unival.unival($ord)
+    }
     method univals(Str:D:) { self.ords.map: *.unival }
 
     method uniparse(Str:D: --> Str:D) {
@@ -264,8 +288,9 @@ multi sub ords($s) { $s.ords }
 multi sub uniname(\what) { what.uniname }
 multi sub uninames(\what) { what.uninames }
 
+multi sub unival(\what) { what.unival }
+
 #?if jvm
-multi sub unival(|)       { die 'unival NYI on jvm backend' }
 multi sub univals(|)      { die 'univals NYI on jvm backend' }
 multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
 multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
@@ -287,7 +312,6 @@ multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
 #?endif
 
 #?if !jvm
-multi sub unival(\what) { what.unival }
 multi sub univals(Str:D $str) { $str.univals }
 #?endif
 

@@ -1,9 +1,21 @@
-# a helper class to abstract support for unicode value property
-my class Rakudo::Unival is implementation-detail {
+# a helper class to abstract support for unicodey functions
+my class Rakudo::Unicodey is implementation-detail {
 
 #?if jvm
     method unival() is hidden-from-backtrace {
         X::NYI.new(:feature<unival>).throw
+    }
+    method ords(str $str) {  # strtocodes NYI on JVM
+        my uint32 @ords;
+        my int $chars = nqp::chars($!value);
+        my int $i     = -1;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$chars),
+          nqp::push_i(@ords,nqp::ord($str,$i))
+        );
+
+        @ords
     }
 #?endif
 
@@ -22,6 +34,14 @@ my class Rakudo::Unival is implementation-detail {
                    nqp::coerce_si($de)
                  )
           !! Nil                                    # not valid, so no value
+    }
+
+    method ords(str $str) {
+        nqp::strtocodes(
+          $str,
+          nqp::const::NORMALIZE_NFC,
+          nqp::create(array[uint32])
+        )
     }
 #?endif
 }
@@ -49,6 +69,7 @@ augment class Cool {
     multi method unival(Cool:D:) { self.Int.unival }
 
     method univals(Cool:D:) { self.Str.univals }
+
     method uniprop(|c)      { uniprop(self, |c) }
     method uniprop-int(|c)  { uniprop-int(self, |c) }
     method uniprop-bool(|c) { uniprop-bool(self, |c) }
@@ -79,7 +100,7 @@ augment class Int {
         nqp::isbig_I(self)
           ?? self!codepoint-out-of-bounds('unival')
           !! nqp::isge_I(self,0)                     # valid?
-            ?? Rakudo::Unival.unival(self)
+            ?? Rakudo::Unicodey.unival(self)
             !! Nil
     }
 }
@@ -89,29 +110,9 @@ augment class Str {
         nqp::chars($!value) ?? nqp::p6box_i(nqp::ord($!value)) !! Nil
     }
 
-#?if !jvm
     multi method ords(Str:D: --> Seq:D) {
-        Seq.new(nqp::strtocodes(
-          $!value,
-          nqp::const::NORMALIZE_NFC,
-          nqp::create(array[uint32])
-        ).iterator)
+        Seq.new(Rakudo::Unicodey.ords($!value).iterator)
     }
-#?endif
-#?if jvm
-    multi method ords(Str:D: --> Seq:D) {
-        my uint32 @ords;
-        my int $chars = nqp::chars($!value);
-        my int $i     = -1;
-
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$chars),
-          nqp::push_i(@ords,nqp::ord($!value,$i))
-        );
-
-        Seq.new(@ords.iterator)
-    }
-#?endif
 
     multi method uniname(Str:D: --> Str:D) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
@@ -183,7 +184,7 @@ augment class Str {
     multi method unival(Str:D:) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
-          !! Rakudo::Unival.unival($ord)
+          !! Rakudo::Unicodey.unival($ord)
     }
     method univals(Str:D:) { self.ords.map: *.unival }
 

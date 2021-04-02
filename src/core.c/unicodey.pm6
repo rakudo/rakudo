@@ -5,6 +5,7 @@ my class Rakudo::Unicodey is implementation-detail {
     method unival() is hidden-from-backtrace {
         X::NYI.new(:feature<unival>).throw
     }
+
     method ords(str $str) {  # strtocodes NYI on JVM
         my uint32 @ords;
         my int $chars = nqp::chars($!value);
@@ -16,6 +17,19 @@ my class Rakudo::Unicodey is implementation-detail {
         );
 
         @ords
+    }
+
+    method NFC(str) is hidden-from-backtrace {
+        X::NYI.new(:feature<NFC>).throw
+    }
+    method NFD(str)  is hidden-from-backtrace {
+        X::NYI.new(:feature<NFD>).throw
+    }
+    method NFKC(str) is hidden-from-backtrace {
+        X::NYI.new(:feature<NFKC>).throw
+    }
+    method NFKD(str) is hidden-from-backtrace {
+        X::NYI.new(:feature<NFKD>).throw
     }
 #?endif
 
@@ -42,6 +56,19 @@ my class Rakudo::Unicodey is implementation-detail {
           nqp::const::NORMALIZE_NFC,
           nqp::create(array[uint32])
         )
+    }
+
+    method NFC(str $str) {
+        nqp::strtocodes($str,nqp::const::NORMALIZE_NFC,nqp::create(NFC))
+    }
+    method NFD(str $str) {
+        nqp::strtocodes($str,nqp::const::NORMALIZE_NFD,nqp::create(NFD))
+    }
+    method NFKC(str $str) {
+        nqp::strtocodes($str,nqp::const::NORMALIZE_NFKC,nqp::create(NFKC))
+    }
+    method NFKD(str $str) {
+        nqp::strtocodes($str,nqp::const::NORMALIZE_NFKD,nqp::create(NFKD))
     }
 #?endif
 }
@@ -76,6 +103,18 @@ augment class Cool {
     method uniprop-str(|c)  { uniprop-str(self, |c) }
     method uniprops(|c)     { uniprops(self, |c) }
     method unimatch(|c)     { unimatch(self, |c) }
+
+    proto method NFC(*%) {*}
+    multi method NFC(Cool:D:) { self.Str.NFC }
+
+    proto method NFD(*%) {*}
+    multi method NFD(Cool:D:) { self.Str.NFD }
+
+    proto method NFKC(*%) {*}
+    multi method NFKC(Cool:D:) { self.Str.NFKC }
+
+    proto method NFKD(*%) {*}
+    multi method NFKD(Cool:D:) { self.Str.NFKD }
 }
 
 augment class Int {
@@ -160,27 +199,6 @@ augment class Str {
         Seq.new(UninamesIterator.new(self))
     }
 
-#?if !jvm
-    method NFC(--> NFC:D) {
-        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFC, nqp::create(NFC))
-    }
-    method NFD(--> NFD:D) {
-        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFD, nqp::create(NFD))
-    }
-    method NFKC(--> NFKC:D) {
-        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKC, nqp::create(NFKC))
-    }
-    method NFKD(--> NFKD:D) {
-        nqp::strtocodes(nqp::unbox_s(self), nqp::const::NORMALIZE_NFKD, nqp::create(NFKD))
-    }
-#?endif
-#?if jvm
-    method NFC()  { X::NYI.new(:feature<NFC>).throw }
-    method NFD()  { X::NYI.new(:feature<NFD>).throw }
-    method NFKC() { X::NYI.new(:feature<NFKC>).throw }
-    method NFKD() { X::NYI.new(:feature<NFKD>).throw }
-#?endif
-
     multi method unival(Str:D:) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
@@ -205,6 +223,11 @@ augment class Str {
 
         nqp::join("",$parts)
     }
+
+    multi method NFC(Str:D:  --> NFC:D)  { Rakudo::Unicodey.NFC($!value)  }
+    multi method NFD(Str:D:  --> NFD:D)  { Rakudo::Unicodey.NFD($!value)  }
+    multi method NFKC(Str:D: --> NFKC:D) { Rakudo::Unicodey.NFKC($!value) }
+    multi method NFKD(Str:D: --> NFKD:D) { Rakudo::Unicodey.NFKD($!value) }
 }
 
 augment class List {

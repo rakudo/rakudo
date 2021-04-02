@@ -43,7 +43,11 @@ subtest 'chr with large codepoints throws useful error' => {
     plan +@tests;
     for @tests {
         throws-like $^code, Exception,
-            :message{ not .contains('negative') and .contains('codepoint') },
+          :message{
+            .contains('Codepoint')
+            && .contains('out of bounds')
+            && .contains('chr')
+        },
         "$code.raku()";
     }
 }

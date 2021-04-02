@@ -244,10 +244,19 @@ augment class Str {
         nqp::join("",$parts)
     }
 
+#?if jvm
+    multi method NFC(Str:D:)  { Rakudo::Unicodey.NFC($!value)  }
+    multi method NFD(Str:D:)  { Rakudo::Unicodey.NFD($!value)  }
+    multi method NFKC(Str:D:) { Rakudo::Unicodey.NFKC($!value) }
+    multi method NFKD(Str:D:) { Rakudo::Unicodey.NFKD($!value) }
+#?endif
+
+#?if !jvm
     multi method NFC(Str:D:  --> NFC:D)  { Rakudo::Unicodey.NFC($!value)  }
     multi method NFD(Str:D:  --> NFD:D)  { Rakudo::Unicodey.NFD($!value)  }
     multi method NFKC(Str:D: --> NFKC:D) { Rakudo::Unicodey.NFKC($!value) }
     multi method NFKD(Str:D: --> NFKD:D) { Rakudo::Unicodey.NFKD($!value) }
+#?endif
 }
 
 augment class List {

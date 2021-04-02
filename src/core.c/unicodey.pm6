@@ -7,8 +7,8 @@ my class Rakudo::Unicodey is implementation-detail {
     }
 
     method ords(str $str) {  # strtocodes NYI on JVM
-        my uint32 @ords;
-        my int $chars = nqp::chars($!value);
+        my int @ords;
+        my int $chars = nqp::chars($str);
         my int $i     = -1;
 
         nqp::while(
@@ -244,10 +244,10 @@ augment class Str {
         nqp::join("",$parts)
     }
 
-    multi method NFC(Str:D:  --> NFC:D)  { Rakudo::Unicodey.NFC($!value)  }
-    multi method NFD(Str:D:  --> NFD:D)  { Rakudo::Unicodey.NFD($!value)  }
-    multi method NFKC(Str:D: --> NFKC:D) { Rakudo::Unicodey.NFKC($!value) }
-    multi method NFKD(Str:D: --> NFKD:D) { Rakudo::Unicodey.NFKD($!value) }
+    multi method NFC(Str:D:)  { Rakudo::Unicodey.NFC($!value)  }
+    multi method NFD(Str:D:)  { Rakudo::Unicodey.NFD($!value)  }
+    multi method NFKC(Str:D:) { Rakudo::Unicodey.NFKC($!value) }
+    multi method NFKD(Str:D:) { Rakudo::Unicodey.NFKD($!value) }
 }
 
 augment class List {

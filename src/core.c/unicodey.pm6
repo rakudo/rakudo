@@ -124,7 +124,7 @@ augment class Int {
     }
 
     multi method chr(Int:D: --> Str:D) {
-        nqp::isbig_I(self)
+        nqp::isbig_I(self) || nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('chr')
           !! nqp::chr(self)
     }
@@ -136,11 +136,9 @@ augment class Int {
     }
 
     multi method unival(Int:D:) {
-        nqp::isbig_I(self)
+        nqp::isbig_I(self) || nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('unival')
-          !! nqp::isge_I(self,0)                     # valid?
-            ?? Rakudo::Unicodey.unival(self)
-            !! Nil
+          !! Rakudo::Unicodey.unival(self)
     }
 }
 

@@ -344,7 +344,7 @@ role STD {
     }
 
     token experimental($feature) {
-        <?{ try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)) }>
+        <?{ $*COMPILING_CORE_SETTING || try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)) }>
         || <.typed_panic('X::Experimental', :$feature)>
     }
 

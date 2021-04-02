@@ -405,12 +405,12 @@ my class DateTime does Dateish {
         $sec / (24.0 * 60 * 60)
     }
 
-    method mjd(DateTime:D: --> Real:D) {
+    method modified-julian-date(DateTime:D: --> Real:D) {
         self.daycount + self.day-fraction
     }
 
-    method juliandate(DateTime:D: --> Real:D) {
-        self.mjd + 2_400_000.5
+    method julian-date(DateTime:D: --> Real:D) {
+        self.modified-julian-date + 2_400_000.5
     }
 
     method posix(DateTime:D: $ignore-timezone? --> Int:D) {

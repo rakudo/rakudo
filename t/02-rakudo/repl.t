@@ -3,7 +3,7 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-plan 45;
+plan 46;
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
@@ -244,6 +244,13 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
         :out(/'The value is 42'/),
     'variables persist across multiple lines of input';
 }
+
+# https://github.com/Raku/old-issue-tracker/issues/2917
+is-run-repl "my \\a = any set <1 2 3>;\nsay 1 ~~ a",
+    :out{
+        .contains('any') and .contains('False') and not .contains: 'True';
+    },
+    'REPL does not report True and False for junction';
 
 {
     # If the REPL evaluates all of the previously-entered code on each

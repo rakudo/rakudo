@@ -89,16 +89,30 @@ my class Backtrace {
         self
     }
     multi method new() {
+#?if moar
+        nqp::create(self)!SET-SELF(
+          nqp::backtrace(nqp::null),
+          0)
+#?endif
+#?if !moar
         try X::AdHoc.new(:payload("Died")).throw;
         nqp::create(self)!SET-SELF(
           nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
           1)
+#?endif
     }
     multi method new(Int:D $offset) {
+#?if moar
+        nqp::create(self)!SET-SELF(
+          nqp::backtrace(nqp::null),
+          $offset)
+#?endif
+#?if !moar
         try X::AdHoc.new(:payload("Died")).throw;
         nqp::create(self)!SET-SELF(
           nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
           1 + $offset)
+#?endif
     }
     multi method new(Exception:D \ex) {
         nqp::create(self)!SET-SELF(

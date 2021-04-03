@@ -13,7 +13,7 @@ my class Rakudo::Unicodey is implementation-detail {
 
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$chars),
-          nqp::push(@ords,nqp::ord($str,$i))
+          @ords.push(nqp::ord($str,$i))
         );
 
         @ords

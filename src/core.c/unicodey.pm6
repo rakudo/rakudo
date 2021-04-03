@@ -16,7 +16,7 @@ my class Rakudo::Unicodey is implementation-detail {
           @ords.push(nqp::ord($str,$i))
         );
 
-        @ords
+        array[uint32].new(@ords)
     }
 
     method NFC(str) is hidden-from-backtrace {
@@ -95,24 +95,14 @@ my class Rakudo::Unicodey is implementation-detail {
     my class UninamesIterator does UnicodeyIterator {
         method pull-one() {
             nqp::elems($!codes)
-#?if jvm
-              ?? nqp::getuniname(nqp::shift($!codes))
-#?endif
-#?if !jvm
               ?? nqp::getuniname(nqp::shift_i($!codes))
-#?endif
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             my $codes := $!codes;
             nqp::while(
               nqp::elems($codes),
-#?if jvm
-              target.push(nqp::getuniname(nqp::shift($codes)))
-#?endif
-#?if !jvm
               target.push(nqp::getuniname(nqp::shift_i($codes)))
-#?endif
             );
         }
     }
@@ -121,24 +111,14 @@ my class Rakudo::Unicodey is implementation-detail {
     my class UnivalsIterator does UnicodeyIterator {
         method pull-one() {
             nqp::elems($!codes)
-#?if jvm
-              ?? Rakudo::Unicodey.unival(nqp::shift($!codes))
-#?endif
-#?if !jvm
               ?? Rakudo::Unicodey.unival(nqp::shift_i($!codes))
-#?endif
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             my $codes := $!codes;
             nqp::while(
               nqp::elems($codes),
-#?if jvm
-              target.push(Rakudo::Unicodey.unival(nqp::shift($codes)))
-#?endif
-#?if !jvm
               target.push(Rakudo::Unicodey.unival(nqp::shift_i($codes)))
-#?endif
             );
         }
     }

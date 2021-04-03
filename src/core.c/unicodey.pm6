@@ -7,16 +7,16 @@ my class Rakudo::Unicodey is implementation-detail {
     }
 
     method ords(str $str) {  # strtocodes NYI on JVM
-        my     @ords;
+        my @ords := array[uint32].new;
         my int $chars = nqp::chars($str);
         my int $i     = -1;
 
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$chars),
-          @ords.push(nqp::ord($str,$i))
+          nqp::push_i(@ords,nqp::ord($str,$i))
         );
 
-        array[uint32].new(@ords)
+        @ords
     }
 
     method NFC(str) is hidden-from-backtrace {

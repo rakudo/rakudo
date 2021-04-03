@@ -565,8 +565,12 @@ my class ThreadPoolScheduler does Scheduler {
 
                 scheduler-debug "Supervisor started";
                 my int $last-rusage-time = nqp::time;
+#?if jvm
+                my @rusage := array[int].new;
+#?endif
 #?if !jvm
                 my int @rusage;
+#?endif
                 nqp::getrusage(@rusage);
                 my int $last-usage =
                   nqp::mul_i(
@@ -579,21 +583,11 @@ my class ThreadPoolScheduler does Scheduler {
                       )
                     + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
-                my num @last-utils = 0e0 xx NUM_SAMPLES;
-#?endif
 #?if jvm
-                ## dirty hack, that relies on rusage being a VMArrayInstance
-                ## instead of VMArrayInstance_i
-                ## see https://github.com/rakudo/rakudo/issues/1666
-                my int @rusage;
-                nqp::getrusage(@rusage);
-                my int $last-usage =
-                  1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
-                    + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
-                    + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
-                    + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-
-                my @last-utils = 0e0 xx NUM_SAMPLES;
+                my @last-utils := array[num].new(0e0 xx NUM_SAMPLES);
+#?endif
+#?if !jvm
+                my num @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
                 my int $cpu-cores = max(nqp::cpucores() - 1,1);
 
@@ -626,7 +620,6 @@ my class ThreadPoolScheduler does Scheduler {
                     $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
                     nqp::getrusage(@rusage);
-#?if !jvm
                     $current-usage =
                       nqp::mul_i(
                         nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_SEC),
@@ -637,17 +630,6 @@ my class ThreadPoolScheduler does Scheduler {
                             1000000
                           )
                         + nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-#?endif
-#?if jvm
-                    ## dirty hack, that relies on rusage being a VMArrayInstance
-                    ## instead of VMArrayInstance_i
-                    ## see https://github.com/rakudo/rakudo/issues/1666
-                    $current-usage =
-                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)  +
-                                nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC) +
-                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)  +
-                                nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-#?endif
                     $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 
@@ -662,16 +644,9 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
-#?if !jvm
                     $smooth-per-core-util -= nqp::shift_n(@last-utils);
                     $smooth-per-core-util += $per-core-util;
                     nqp::push_n(@last-utils,$per-core-util);
-#?endif
-#?if jvm
-                    $smooth-per-core-util -= @last-utils.shift;
-                    $smooth-per-core-util += $per-core-util;
-                    @last-utils.push($per-core-util);
-#?endif
                     note "[SCHEDULER $pid] Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 

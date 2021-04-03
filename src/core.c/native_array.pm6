@@ -3711,10 +3711,9 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2021-01-04T17:27:27+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:57+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Int:D $pos
 ) is raw {
@@ -3838,7 +3837,12 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -3869,7 +3873,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -3907,7 +3916,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my $values  := Rakudo::Iterator.TailWith(values.iterator,'');
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -3944,16 +3958,14 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2021-01-04T17:27:27+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:57+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Int:D $pos
 ) is raw {
@@ -4077,7 +4089,12 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4108,7 +4125,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4146,7 +4168,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my $values  := Rakudo::Iterator.TailWith(values.iterator,0e0);
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4183,16 +4210,14 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2021-01-04T17:27:27+01:00 by ./tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:57+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Int:D $pos
 ) is raw {
@@ -4316,7 +4341,12 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4347,7 +4377,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4385,7 +4420,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my $values  := Rakudo::Iterator.TailWith(values.iterator,0);
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4422,16 +4462,14 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
-#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:54+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1strarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4520,7 +4558,12 @@ multi sub postcircumfix:<[ ]>(
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -4546,7 +4589,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4566,16 +4614,14 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of strarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of intarray -----------------------
-#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:54+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1intarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4664,7 +4710,12 @@ multi sub postcircumfix:<[ ]>(
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -4690,7 +4741,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4710,16 +4766,14 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
-#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:54+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1numarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4808,7 +4862,12 @@ multi sub postcircumfix:<[ ]>(
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -4834,7 +4893,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4854,7 +4918,6 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of numarray -------------------------

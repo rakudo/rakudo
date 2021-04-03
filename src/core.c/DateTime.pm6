@@ -397,10 +397,10 @@ my class DateTime does Dateish {
     }
 
     method day-fraction(DateTime:D: --> Real:D) {
-        my $sec = self.hour * 60 * 60;
-        $sec   += self.minute * 60;
-        $sec   += self.second;
-        $sec / (24.0 * 60 * 60)
+        (nqp::add_i(
+          nqp::mul_i($!hour,3600),
+          nqp::mul_i($!minute,60)
+        ) + $!second) / 86400
     }
 
     method modified-julian-date(DateTime:D: --> Real:D) {

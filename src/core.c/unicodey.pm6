@@ -7,13 +7,13 @@ my class Rakudo::Unicodey is implementation-detail {
     }
 
     method ords(str $str) {  # strtocodes NYI on JVM
-        my int @ords;
+        my     @ords;
         my int $chars = nqp::chars($str);
         my int $i     = -1;
 
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$chars),
-          nqp::push_i(@ords,nqp::ord($str,$i))
+          nqp::push(@ords,nqp::ord($str,$i))
         );
 
         @ords
@@ -95,14 +95,24 @@ my class Rakudo::Unicodey is implementation-detail {
     my class UninamesIterator does UnicodeyIterator {
         method pull-one() {
             nqp::elems($!codes)
+#?if jvm
+              ?? nqp::getuniname(nqp::shift($!codes))
+#?endif
+#?if !jvm
               ?? nqp::getuniname(nqp::shift_i($!codes))
+#?endif
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             my $codes := $!codes;
             nqp::while(
               nqp::elems($codes),
+#?if jvm
+              target.push(nqp::getuniname(nqp::shift($codes)))
+#?endif
+#?if !jvm
               target.push(nqp::getuniname(nqp::shift_i($codes)))
+#?endif
             );
         }
     }
@@ -111,14 +121,24 @@ my class Rakudo::Unicodey is implementation-detail {
     my class UnivalsIterator does UnicodeyIterator {
         method pull-one() {
             nqp::elems($!codes)
+#?if jvm
+              ?? Rakudo::Unicodey.unival(nqp::shift($!codes))
+#?endif
+#?if !jvm
               ?? Rakudo::Unicodey.unival(nqp::shift_i($!codes))
+#?endif
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
             my $codes := $!codes;
             nqp::while(
               nqp::elems($codes),
+#?if jvm
+              target.push(Rakudo::Unicodey.unival(nqp::shift($codes)))
+#?endif
+#?if !jvm
               target.push(Rakudo::Unicodey.unival(nqp::shift_i($codes)))
+#?endif
             );
         }
     }

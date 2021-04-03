@@ -151,6 +151,8 @@ my class ThreadPoolScheduler does Scheduler {
                             }
                             if $resume {
                                 nqp::push($!queue, {
+                                    $l.lock; # lock gets released as soon as $continuation is initialized
+                                    $l.unlock; # no need to hold the lock while running the continuation - no one else is gonna take it
                                     nqp::continuationinvoke($continuation, nqp::null())
                                 });
                             }

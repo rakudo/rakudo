@@ -333,9 +333,9 @@ multi sub uniname(\what) { what.uniname }
 multi sub uninames(\what) { what.uninames }
 
 multi sub unival(\what) { what.unival }
+multi sub univals(\what) { what.univals }
 
 #?if jvm
-multi sub univals(|)      { die 'univals NYI on jvm backend' }
 multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }
 multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
 multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
@@ -353,10 +353,6 @@ multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
 }
 multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
-#?endif
-
-#?if !jvm
-multi sub univals(Str:D $str) { $str.univals }
 #?endif
 
 #?if moar

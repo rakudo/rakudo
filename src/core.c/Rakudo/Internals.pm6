@@ -952,11 +952,19 @@ implementation detail and has no serviceable parts inside"
         57753,
         #END leap-second-daycount
     );
+
+    # For some reason, putting a negative integer value into an
+    # nqp::list_i this early in the setting, causes a:
+    #
+    #   Cannot invoke this object (REPR: Null; VMNull)
+    #
+    # error *during* setting compilation.  So we put in that value
+    # at startup instead, which is sub-optimal, but at least it works.
     nqp::bindpos_i($daycounts,0,-9223372036854775808);
 
     method daycount-leapseconds(int $daycount) {
         my int $i = nqp::elems($daycounts);
-        nqp::while(
+        nqp::while(  # will always terminate because of element #0
           nqp::islt_i(
             $daycount,
             nqp::atpos_i($daycounts,$i = nqp::sub_i($i,1))

@@ -501,6 +501,7 @@ my %allowed = (
     Q{Buf},
     Q{CORE-SETTING-REV},
     Q{CX},
+    Q{CachedIterator},
     Q{CallFrame},
     Q{Callable},
     Q{Cancellation},

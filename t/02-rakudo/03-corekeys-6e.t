@@ -503,6 +503,7 @@ my @expected = (
     Q{Broken},
     Q{Buf},
     Q{CX},
+    Q{CachedIterator},
     Q{CallFrame},
     Q{Callable},
     Q{Cancellation},

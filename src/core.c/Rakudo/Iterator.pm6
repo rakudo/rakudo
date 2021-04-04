@@ -1702,13 +1702,18 @@ class Rakudo::Iterator {
 
     # Returns a sentinel Iterator object that will never generate any value.
     # Does not take a parameter.
-    my class Empty does PredictiveIterator {
+    my class Empty does CachedIterator {
         method new() { nqp::create(self) }
         method pull-one(--> IterationEnd)  { }
         method push-all($ --> IterationEnd) { }
         method sink-all(--> IterationEnd)  { }
         method skip-one(--> 0) { }
         method skip-at-least($ --> 0) { }
+        method cache() {
+            BEGIN nqp::p6bindattrinvres(
+              nqp::create(List),List,'$!reified',nqp::create(IterationBuffer)
+            )
+        }
         method count-only(--> 0) { }
         method bool-only(--> False) { }
     }
@@ -3287,7 +3292,7 @@ class Rakudo::Iterator {
     # Return an iterator for an Array that has been completely reified
     # already.  Returns a assignable container for elements don't exist
     # before the end of the reified array.
-    my class ReifiedArrayIterator does PredictiveIterator {
+    my class ReifiedArrayIterator does CachedIterator {
         has $!reified;
         has $!descriptor;
         has int $!i;
@@ -3363,6 +3368,13 @@ class Rakudo::Iterator {
               )
             )
         }
+        method cache() is raw {
+            nqp::iseq_i($!i,-1)
+              ?? nqp::p6bindattrinvres(
+                   nqp::create(List),List,'$!reified',$!reified
+                 )
+              !! List.from-iterator(self)
+        }
         method count-only(--> Int:D) {
             nqp::elems($!reified) - $!i - nqp::islt_i($!i,nqp::elems($!reified))
         }
@@ -3375,7 +3387,7 @@ class Rakudo::Iterator {
     # Return an iterator for a List that has been completely reified
     # already.  Returns an nqp::null for elements that don't exist
     # before the end of the reified list.
-    my class ReifiedListIterator does PredictiveIterator {
+    my class ReifiedListIterator does CachedIterator {
         has $!reified;
         has int $!i;
 
@@ -3443,6 +3455,13 @@ class Rakudo::Iterator {
                 nqp::islt_i($!i,nqp::elems($!reified))
               )
             )
+        }
+        method cache() is raw {
+            nqp::iseq_i($!i,-1)
+              ?? nqp::p6bindattrinvres(
+                   nqp::create(List),List,'$!reified',$!reified
+                 )
+              !! List.from-iterator(self)
         }
         method count-only(--> Int:D) {
             nqp::elems($!reified) - $!i - nqp::islt_i($!i,nqp::elems($!reified))

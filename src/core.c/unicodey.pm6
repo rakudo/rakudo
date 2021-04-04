@@ -320,6 +320,11 @@ proto sub unimatch($, |) is pure {*}
 
 proto sub unival($, *%)  is pure {*}
 proto sub univals($, *%) is pure {*}
+
+proto sub NFC($, *%) is pure {*}
+proto sub NFD($, *%) is pure {*}
+proto sub NFKC($, *%) is pure {*}
+proto sub NFKD($, *%) is pure {*}
 #-------------------------------------------------------------------------------
 
 multi sub chr(\what) { what.chr }
@@ -334,6 +339,11 @@ multi sub uninames(\what) { what.uninames }
 
 multi sub unival(\what) { what.unival }
 multi sub univals(\what) { what.univals }
+
+multi sub NFC(\what) { what.NFC }
+multi sub NFD(\what) { what.NFD }
+multi sub NFKC(\what) { what.NFKC }
+multi sub NFKD(\what) { what.NFKD }
 
 #?if jvm
 multi sub uniprop(|)      { die 'uniprop NYI on jvm backend' }

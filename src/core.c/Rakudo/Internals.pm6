@@ -908,6 +908,63 @@ implementation detail and has no serviceable parts inside"
         '2016-12-31',
         #END leap-second-dates
     );
+#?if !js
+    my int constant $elems = nqp::elems($dates);
+#?endif
+#?if js
+    my int $elems = nqp::elems($dates);
+#?endif
+
+#?if !js
+    my constant $daycounts = nqp::list_i(
+#?endif
+#?if js
+    my $daycounts := nqp::list_i(
+#?endif
+        0,
+        #BEGIN leap-second-daycount
+        41498,
+        41682,
+        42047,
+        42412,
+        42777,
+        43143,
+        43508,
+        43873,
+        44238,
+        44785,
+        45150,
+        45515,
+        46246,
+        47160,
+        47891,
+        48256,
+        48803,
+        49168,
+        49533,
+        50082,
+        50629,
+        51178,
+        53735,
+        54831,
+        56108,
+        57203,
+        57753,
+        #END leap-second-daycount
+    );
+    nqp::bindpos_i($daycounts,0,-9223372036854775808);
+
+    method daycount-leapseconds(int $daycount) {
+        my int $i = nqp::elems($daycounts);
+        nqp::while(
+          nqp::islt_i(
+            $daycount,
+            nqp::atpos_i($daycounts,$i = nqp::sub_i($i,1))
+          ),
+          nqp::null
+        );
+        nqp::iseq_i($daycount,nqp::atpos_i($daycounts,$i))
+    }
 
     # our %leap-seconds =
     #     @leap-second-dates Z=> $initial-offset + 1 .. *;
@@ -953,12 +1010,6 @@ implementation detail and has no serviceable parts inside"
         1483228800,
         #END leap-second-posix
     );
-#?if !js
-    my int constant $elems = nqp::elems($dates);
-#?endif
-#?if js
-    my int $elems = nqp::elems($dates);
-#?endif
 
     method is-leap-second-date(\date) {
         nqp::hllbool(

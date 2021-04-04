@@ -400,7 +400,10 @@ my class DateTime does Dateish {
         (nqp::add_i(
           nqp::mul_i($!hour,3600),
           nqp::mul_i($!minute,60)
-        ) + $!second) / 86400
+        ) + $!second) / nqp::add_i(
+          86400,
+          Rakudo::Internals.daycount-leapseconds(self.daycount)
+        )
     }
 
     method modified-julian-date(DateTime:D: --> Real:D) {

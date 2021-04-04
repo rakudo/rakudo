@@ -92,26 +92,38 @@ my class Any { # declared in BOOTSTRAP
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal {*}
+    multi method keys(Enumeration:) { self.enums.keys }
+    multi method keys(Bool:)        { self.enums.keys }
     multi method keys(Any:U:) { () }
     multi method keys(Any:D:) { self.list.keys }
 
     proto method kv(|) is nodal {*}
+    multi method kv(Enumeration:) { self.enums.kv }
+    multi method kv(Bool:)        { self.enums.kv }
     multi method kv(Any:U:) { () }
     multi method kv(Any:D:) { self.list.kv }
 
     proto method values(|) is nodal {*}
+    multi method values(Enumeration:) { self.enums.values }
+    multi method values(Bool:)        { self.enums.values }
     multi method values(Any:U:) { () }
     multi method values(Any:D:) { self.list }
 
     proto method pairs(|) is nodal {*}
+    multi method pairs(Enumeration:) { self.enums.pairs }
+    multi method pairs(Bool:)        { self.enums.pairs }
     multi method pairs(Any:U:) { () }
     multi method pairs(Any:D:) { self.list.pairs }
 
     proto method antipairs(|) is nodal {*}
+    multi method antipairs(Enumeration:) { self.enums.antipairs }
+    multi method antipairs(Bool:)        { self.enums.antipairs }
     multi method antipairs(Any:U:) { () }
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal {*}
+    multi method invert(Enumeration:) { self.enums.invert }
+    multi method invert(Bool:)        { self.enums.invert }
     multi method invert(Any:U:) { () }
     multi method invert(Any:D:) { self.list.invert }
 

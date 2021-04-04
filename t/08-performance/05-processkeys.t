@@ -12,6 +12,7 @@ my $allowed = (
   Q{$PID},
   Q{$RAKU},
   Q{$RAKUDO_MODULE_DEBUG},
+  Q{$RAT-UPGRADE-CLASS},
   Q{$REPO},
   Q{$SCHEDULER},
   Q{$SPEC},

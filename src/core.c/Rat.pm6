@@ -40,6 +40,13 @@ my class FatRat is Cool does Rational[Int, Int] {
     multi method raku(FatRat:D: --> Str:D) {
         "FatRat.new($!numerator, $!denominator)";
     }
+
+    method UPGRADE-RAT(\nu, \de) is raw {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
+          FatRat,'$!denominator',de
+        )
+    }
 }
 
 # NORMALIZE two integer values and create a Rat/FatRat/float from them.
@@ -72,6 +79,9 @@ sub DIVIDE_NUMBERS(
     )
 }
 
+# Initialize the $*RAT-UPGRADE-CLASS dynamic var so that it can be used
+PROCESS::<$RAT-UPGRADE-CLASS> = Num;
+
 # ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot
 # ever get a non-normalized Rational, if we start with a normalized Rational.
 # For such cases, we can use this routine, to bypass normalization step,
@@ -83,7 +93,7 @@ multi sub CREATE_RATIONAL_FROM_INTS(Int:D \nu, Int:D \de, \t1, \t2) is raw {
            nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',nu),
            Rat,'$!denominator',de
          )
-      !! nqp::p6box_n(nqp::div_In(nu,de))  # downgrade to float
+      !! $*RAT-UPGRADE-CLASS.UPGRADE-RAT(nu, de)
 }
 
 # already a FatRat, so keep that

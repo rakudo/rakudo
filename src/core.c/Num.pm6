@@ -283,6 +283,10 @@ my class Num does Real { # declared in BOOTSTRAP
             ?? $i
             !! self
     }
+
+    method UPGRADE-RAT(\nu, \de) is raw {
+        nqp::p6box_n(nqp::div_In(nu,de))  # downgrade to float
+    }
 }
 
 my constant tau = 6.28318_53071_79586_476e0;

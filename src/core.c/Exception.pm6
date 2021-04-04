@@ -91,6 +91,10 @@ my class Exception {
 
     method is-compile-time(--> False) { }
     method message() { ... }
+
+    method UPGRADE-RAT(Int $nu, Int $de) {
+        die "Upgrading of Rat $nu / $de not allowed"
+    }
 }
 
 my class X::SecurityPolicy is Exception {}
@@ -365,6 +369,11 @@ my class CX::Take does X::Control {
 }
 my class CX::Warn does X::Control {
     has $.message;
+
+    method UPGRADE-RAT(Int $nu, Int $de) is raw {
+        warn "Downgrading Rat $nu / $de to Num";
+        nqp::p6box_n(nqp::div_In($nu,$de))
+    }
 }
 my class CX::Succeed does X::Control {
     method message() { "<succeed control exception>" }

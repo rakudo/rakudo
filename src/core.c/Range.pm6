@@ -20,6 +20,16 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method is-lazy(Range:D:) { self.infinite }
 
+    multi method contains(Range:D: \needle) {
+        warn "Applying '.contains' to a Range will look at its .Str representation.  Did you mean 'needle (elem) Range'?".naive-word-wrapper;
+        self.Str.contains(needle)
+    }
+
+    multi method index(Range:D: \needle) {
+        warn "Applying '.index' to a Range will look at its .Str representation.  Did you mean 'Range.first(needle, :k)'?".naive-word-wrapper;
+        self.Str.index(needle)
+    }
+
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments
     # are present (e.g., Range,Whatever or Real,Range).

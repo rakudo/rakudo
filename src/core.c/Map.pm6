@@ -13,6 +13,18 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self.new.STORE(@args, :INITIALIZE)
     }
 
+    multi method contains(Map:D: \needle) {
+        my $name := self.^name;
+        warn "Applying '.contains' to a $name will look at its .Str representation.  Did you mean '$name\{needle}:exists'?".naive-word-wrapper;
+        self.Str.contains(needle)
+    }
+
+    multi method index(Map:D: \needle) {
+        my $name := self.^name;
+        warn "Applying '.index' to a $name will look at its .Str representation.  Did you mean '$name\{needle}:exists'?".naive-word-wrapper;
+        self.Str.index(needle)
+    }
+
     multi method Map(Map:) { self }
 
     multi method Hash(Map:U:) { Hash }

@@ -11,10 +11,10 @@ my class Failure is Nil {
     method !SET-SELF(\exception) {
         $!exception := exception;
         $!backtrace := exception.backtrace || Backtrace.new(
-#?if moar
+#?if !js
             4
 #?endif
-#?if !moar
+#?if js
             5
 #?endif
         );

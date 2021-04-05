@@ -449,11 +449,14 @@ multi sub trait_mod:<handles>(Attribute:D $target, $thunk) {
         }
 
         method add_delegator_method($attr: Mu $pkg, $meth_name, $call_name) {
-            my $meth := method (|c) is rw {
-                $attr.get_value(self)."$call_name"(|c)
-            };
-            $meth.set_name($meth_name);
-            $pkg.^add_method($meth_name, $meth);
+            # Don't add a method to the destination type object if it already has a method with the same name.
+            unless $pkg.^declares_method($meth_name) {
+                my $meth := method (|c) is rw {
+                    $attr.get_value(self)."$call_name"(|c)
+                };
+                $meth.set_name($meth_name);
+                $pkg.^add_method($meth_name, $meth);
+            }
         }
 
         method apply_handles($attr: Mu $pkg) {

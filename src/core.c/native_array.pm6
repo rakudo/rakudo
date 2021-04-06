@@ -683,6 +683,27 @@ my class array does Iterable does Positional {
 
             nqp::join($delim.Str,self)
         }
+        method raku(strarray:D: --> Str:D) {
+            my $parts := nqp::list_s;
+            my int $i  = -1;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::push_s($parts,nqp::if(
+                nqp::isnull_s(my $str := nqp::atpos_s(self,$i)),
+                '""',
+                $str.raku
+              ))
+            );
+
+            nqp::concat('array[',
+              nqp::concat(T.^name,
+                nqp::concat('].new(',
+                  nqp::concat(nqp::join(', ',$parts),')')
+                )
+              )
+            )
+        }
     }
 
     role intarray[::T] does Positional[T] is array_type(T) {

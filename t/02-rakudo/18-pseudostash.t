@@ -17,7 +17,7 @@ plan 3;
                             print CALLER::CLIENT::CLIENT::MY::<$foo>;
                             C.new;
                         }
-                    }
+                    };
                     C(42);
                     TEST-CODE
                 "CLIENT:: doesn't fail on NQP packages for 6.$rev",

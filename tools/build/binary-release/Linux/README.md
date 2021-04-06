@@ -11,7 +11,7 @@ Running Raku
 
 To run a Raku program, open a command prompt and type
 
-    /path/to/this/folder/bin/raku my_script.p6
+    /path/to/this/folder/bin/raku my_script.raku
 
 or start a REPL by calling `raku` without an argument
 

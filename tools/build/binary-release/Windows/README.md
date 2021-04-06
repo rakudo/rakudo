@@ -11,7 +11,7 @@ Running Raku
 
 To run a Raku program, open a command prompt and type
 
-    C:\path\to\this\folder\bin\raku.exe my_script.p6
+    C:\path\to\this\folder\bin\raku.exe my_script.raku
 
 or start a REPL by calling `raku.exe` without an argument
 

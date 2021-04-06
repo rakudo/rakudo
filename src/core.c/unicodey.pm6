@@ -127,48 +127,58 @@ my class Rakudo::Unicodey is implementation-detail {
       'nv','nv','sc','S','scf','S','sfc','S','slc','S','space','B','stc','S',
       'suc','S','tc','tc','uc','uc','vo','S',
     );
+
     method uniprop(int $code, str $propname) {
         my int $prop = nqp::unipropcode($propname);
-        my str $pref = nqp::ifnull(nqp::atkey($prefs, $propname),'');
+        my str $pref = nqp::ifnull(
+          nqp::atkey($prefs,$propname),
+          nqp::bindkey(
+            $prefs,
+            $propname,
+            nqp::if(
+              nqp::istrue(my $result := nqp::getuniprop_str($code,$prop)),
+              'S',
+              'I'
+            )
+          )
+        );
         nqp::if(
-          nqp::iseq_s($pref, 'S'),
+          nqp::iseq_s($pref,'S'),
           nqp::getuniprop_str($code,$prop),
           nqp::if(
-            nqp::iseq_s($pref, 'I'),
+            nqp::iseq_s($pref,'I'),
             nqp::getuniprop_int($code,$prop),
             nqp::if(
-              nqp::iseq_s($pref, 'B'),
+              nqp::iseq_s($pref,'B'),
               nqp::hllbool(nqp::getuniprop_bool($code,$prop)),
               nqp::if(
-                nqp::iseq_s($pref, 'lc'),
+                nqp::iseq_s($pref,'lc'),
                 nqp::lc(nqp::chr(nqp::unbox_i($code))),
                 nqp::if(
-                  nqp::iseq_s($pref, 'tc'),
+                  nqp::iseq_s($pref,'tc'),
                   nqp::tc(nqp::chr(nqp::unbox_i($code))),
                   nqp::if(
-                    nqp::iseq_s($pref, 'uc'),
+                    nqp::iseq_s($pref,'uc'),
                     nqp::uc(nqp::chr(nqp::unbox_i($code))),
                     nqp::if(
-                      nqp::iseq_s($pref, 'na'),
+                      nqp::iseq_s($pref,'na'),
                       nqp::getuniname($code),
                       nqp::if(
-                        nqp::iseq_s($pref, 'nv'),
+                        nqp::iseq_s($pref,'nv'),
                         $code.unival,
                         nqp::if(
-                          nqp::iseq_s($pref, 'bmg'),
-                          nqp::stmts(
-                            (my int $bmg-ord = nqp::getuniprop_int($code, $prop)),
-                            $bmg-ord ?? nqp::chr($bmg-ord) !! ''),
-                          nqp::stmts(
-                            (my $result := nqp::getuniprop_str($code,$prop)),
-                            nqp::if(
-                              nqp::istrue($result),
-                              nqp::stmts(
-                                nqp::bindkey($prefs, $propname, 'S'),
-                                $result),
-                              nqp::stmts(
-                                nqp::bindkey($prefs, $propname, 'I'),
-                                nqp::getuniprop_int($code,$prop)))))))))))))
+                          (my int $bmg-ord = nqp::getuniprop_int($code, $prop)),
+                          nqp::chr($bmg-ord),
+                          ''
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
     }
 
     method NFC(str $str) {

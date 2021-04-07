@@ -19,6 +19,10 @@ my class Rakudo::Unicodey is implementation-detail {
         @ords
     }
 
+    method unimatch(int, str, str) is hidden-from-backtrace {
+        X::NYI.new(:feature<unimatch>).throw
+    }
+
     method uniprop-general(int) is hidden-from-backtrace {
         X::NYI.new(:feature<uniprop>).throw
     }
@@ -66,6 +70,13 @@ my class Rakudo::Unicodey is implementation-detail {
           $str,
           nqp::const::NORMALIZE_NFC,
           nqp::create(array[uint32])
+        )
+    }
+
+    method unimatch(int $code, str $pvalname, str $propname) {
+        my $prop := nqp::unipropcode($propname);
+        nqp::hllbool(
+          nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname))
         )
     }
 
@@ -365,6 +376,14 @@ augment class Cool {
     proto method ords(*%) is pure {*}
     multi method ords(Cool:D:) { self.Str.ords }
 
+    proto method unimatch($, $?, *%) is pure {*}
+    multi method unimatch(Cool:D: Str:D $pvalname --> Bool:D) {
+        self.Int.unimatch($pvalname)
+    }
+    multi method unimatch(Cool:D: Str:D $pvalname, Str:D $propname --> Bool:D) {
+        self.Int.unimatch($pvalname, $propname)
+    }
+
     proto method uniname(*%) is pure {*}
     multi method uniname(Cool:D: --> Str:D) { self.Int.uniname }
 
@@ -396,7 +415,6 @@ augment class Cool {
     method uniprop-int(|c)  { uniprop-int(self, |c) }
     method uniprop-bool(|c) { uniprop-bool(self, |c) }
     method uniprop-str(|c)  { uniprop-str(self, |c) }
-    method unimatch(|c)     { unimatch(self, |c) }
 
     proto method NFC(*%) {*}
     multi method NFC(Cool:D:) { self.Str.NFC }
@@ -421,6 +439,21 @@ augment class Int {
         nqp::isbig_I(self) || nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('chr')
           !! nqp::chr(self)
+    }
+
+    multi method unimatch(Int:D: Str:D $pvalname --> Bool:D) {
+        nqp::islt_I(self,0)
+          ?? self!codepoint-out-of-bounds('unimatch')
+          !! nqp::isbig_I(self)
+            ?? False
+            !! Rakudo::Unicodey.unimatch(self, $pvalname, $pvalname)
+    }
+    multi method unimatch(Int:D: Str:D $pvalname, Str:D $propname --> Bool:D) {
+        nqp::islt_I(self,0)
+          ?? self!codepoint-out-of-bounds('unimatch')
+          !! nqp::isbig_I(self)
+            ?? False
+            !! Rakudo::Unicodey.unimatch(self, $pvalname, $propname)
     }
 
     multi method uniname(Int:D: --> Str:D) {
@@ -460,6 +493,17 @@ augment class Str {
 
     multi method ords(Str:D: --> Seq:D) {
         Seq.new(Rakudo::Unicodey.ords($!value).iterator)
+    }
+
+    multi method unimatch(Str:D: Str:D $pvalname --> Bool:D) {
+        nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
+          ?? Nil
+          !! Rakudo::Unicodey.unimatch($ord, $pvalname, $pvalname)
+    }
+    multi method unimatch(Str:D: Str:D $pvalname, Str:D $propname --> Bool:D) {
+        nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
+          ?? Nil
+          !! Rakudo::Unicodey.unimatch($ord, $pvalname, $propname)
     }
 
     multi method uniname(Str:D: --> Str:D) {
@@ -577,6 +621,8 @@ proto sub chrs(|)    is pure {*}
 proto sub ord($, *%)  is pure {*}
 proto sub ords($, *%) is pure {*}
 
+proto sub unimatch($, $, $?, *%) is pure {*}
+
 proto sub uniname($, *%)  is pure {*}
 proto sub uninames($, *%) is pure {*}
 
@@ -586,8 +632,6 @@ proto sub uniprops($, $?, *%) is pure {*}
 proto sub uniprop-bool($, $, *%) is pure {*}
 proto sub uniprop-int($, $, *%)  is pure {*}
 proto sub uniprop-str($, $, *%)  is pure {*}
-
-proto sub unimatch($, |) is pure {*}
 
 proto sub unival($, *%)  is pure {*}
 proto sub univals($, *%) is pure {*}
@@ -599,6 +643,13 @@ multi sub chrs(*@c --> Str:D) { @c.chrs }
 
 multi sub ord(\what) { what.ord }
 multi sub ords($s) { $s.ords }
+
+multi sub unimatch(\what, Str:D $pvalname) {
+    what.unimatch($pvalname)
+}
+multi sub unimatch(\what, Str:D $pvalname, Str:D $propname) {
+    what.unimatch($pvalname, $propname)
+}
 
 multi sub uniname(\what) { what.uniname }
 multi sub uninames(\what) { what.uninames }
@@ -616,7 +667,6 @@ multi sub univals(\what) { what.univals }
 multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
 multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
 multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
-multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
 #?if js
@@ -625,7 +675,6 @@ multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,nqp::unipropcode($propname));
 }
-multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
 #?endif
 
 #?if moar
@@ -652,12 +701,6 @@ multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
 }
 multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
     $str.ords.map: { uniprop($_, $propname) }
-}
-
-multi sub unimatch(Str:D $str, |c) { $str ?? unimatch($str.ord, |c) !! Nil }
-multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname) {
-    my $prop := nqp::unipropcode($propname);
-    nqp::hllbool(nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname)));
 }
 #?endif
 

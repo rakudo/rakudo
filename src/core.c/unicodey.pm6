@@ -699,9 +699,6 @@ multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,nqp::unipropcode($propname));
 }
-multi sub uniprops(Str:D $str, Stringy:D $propname = "General_Category") {
-    $str.ords.map: { uniprop($_, $propname) }
-}
 #?endif
 
 #?if !jvm

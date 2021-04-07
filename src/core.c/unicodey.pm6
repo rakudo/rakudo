@@ -26,6 +26,10 @@ my class Rakudo::Unicodey is implementation-detail {
         X::NYI.new(:feature<uniprop>).throw
     }
 
+    method uniprops(str, str) is hidden-from-backtrace {
+        X::NYI.new(:feature<uniprops>).throw
+    }
+
     method NFC(str) is hidden-from-backtrace {
         X::NYI.new(:feature<NFC>).throw
     }
@@ -129,9 +133,13 @@ my class Rakudo::Unicodey is implementation-detail {
     );
     my constant $prop2pref = nqp::list_s("", "", "", "S", "S", "bmg", "S", "S", "nv", "S", "", "", "S", "S", "S", "S", "S", "S", "S", "", "S", "S", "S", "S", "S", "", "S", "S", "B", "B", "", "", "B", "B", "", "", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "", "B", "B", "B", "", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "B", "", "lc", "B", "B", "", "", "", "B", "", "", "", "S", "S", "B", "B", "B", "B", "B", "B", "B", "B", "B", "", "B", "B", "B", "B", "B", "B", "", "B", "B", "B", "B", "B", "B", "B", "B", "B");
 
-    method uniprop(int $code, str $propname) {
-        my int $prop = nqp::unipropcode($propname);
-        my str $pref = nqp::atpos_s($prop2pref,$prop) || nqp::ifnull(
+    # helper sub to set prop value and representation preference for a
+    # given code and propname
+    my sub codename2proppref(
+      int $code, str $propname, $prop is rw, $pref is rw
+    --> Nil) {
+        $prop = nqp::unipropcode($propname);
+        $pref = nqp::atpos_s($prop2pref,$prop) || nqp::ifnull(
           nqp::atkey($name2pref,$propname),
           nqp::bindkey(
             $name2pref,
@@ -142,7 +150,12 @@ my class Rakudo::Unicodey is implementation-detail {
               'I'
             )
           )
-        );
+        )
+    }
+
+    method uniprop(int $code, str $propname) {
+        codename2proppref($code, $propname, my int $prop, my str $pref);
+
         nqp::if(
           nqp::iseq_s($pref,'S'),
           nqp::getuniprop_str($code,$prop),
@@ -180,6 +193,96 @@ my class Rakudo::Unicodey is implementation-detail {
             )
           )
         )
+    }
+
+    my class UnipropsIterator does PredictiveIterator {
+        has &!propify;
+        has $!codes;
+
+        method new(str $str, str $propname) {
+            my $self  := nqp::create(self);
+            my $codes := Rakudo::Unicodey.ords($str);
+            codename2proppref(
+              nqp::atpos_i($codes,0), $propname, my int $prop, my str $pref
+            );
+
+            nqp::bindattr($self,self,'$!codes',$codes);
+            nqp::bindattr($self,self,'&!propify',nqp::if(
+              nqp::iseq_s($pref,'S'),
+              (-> int $code { nqp::getuniprop_str($code,$prop) }),
+              nqp::if(
+                nqp::iseq_s($pref,'I'),
+                (-> int $code { nqp::getuniprop_int($code,$prop) }),
+                nqp::if(
+                  nqp::iseq_s($pref,'B'),
+                  (-> int $code {
+                      nqp::hllbool(nqp::getuniprop_bool($code,$prop))
+                  }),
+                  nqp::if(
+                    nqp::iseq_s($pref,'lc'),
+                    (-> int $code {
+                        nqp::lc(nqp::chr(nqp::unbox_i($code)))
+                    }),
+                    nqp::if(
+                      nqp::iseq_s($pref,'tc'),
+                      (-> int $code {
+                          nqp::tc(nqp::chr(nqp::unbox_i($code)))
+                      }),
+                      nqp::if(
+                        nqp::iseq_s($pref,'uc'),
+                        (-> int $code {
+                            nqp::uc(nqp::chr(nqp::unbox_i($code)))
+                        }),
+                        nqp::if(
+                          nqp::iseq_s($pref,'na'),
+                          (-> int $code {nqp::getuniname($code) }),
+                          nqp::if(
+                            nqp::iseq_s($pref,'nv'),
+                            (-> Int:D $code { $code.unival }),
+                            (-> int $code {
+                                nqp::if(
+                                  (my int $bmg-ord =
+                                    nqp::getuniprop_int($code, $prop)),
+                                  nqp::chr($bmg-ord),
+                                  ''
+                                )
+                            })
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            ));
+
+            $self
+        }
+        method pull-one() {
+            nqp::elems($!codes)
+              ?? &!propify(nqp::shift_i($!codes))
+              !! IterationEnd
+        }
+        method push-all(\target --> IterationEnd) {
+            my $codes   := $!codes;
+            my &propify := &!propify;
+            nqp::while(
+              nqp::elems($codes),
+              target.push(propify(nqp::shift_i($codes)))
+            );
+        }
+        method skip-one() {
+            nqp::if(
+              nqp::elems($!codes),
+              nqp::shift_i($!codes)
+            )
+        }
+        method count-only(--> Int:D) { nqp::elems($!codes) }
+        method bool-only(--> Bool:D) { nqp::hllbool(nqp::elems($!codes)) }
+    }
+
+    method uniprops(str $str, str $propname) {
+        Seq.new(UnipropsIterator.new($str, $propname))
     }
 
     method NFC(str $str) {
@@ -282,10 +385,17 @@ augment class Cool {
         self.Str.uniprop($propname)
     }
 
+    proto method uniprops($?, *%) is pure {*}
+    multi method uniprops(Cool:D:) {
+        self.Str.uniprops
+    }
+    multi method uniprops(Cool:D: Str:D $propname) {
+        self.Str.uniprops($propname)
+    }
+
     method uniprop-int(|c)  { uniprop-int(self, |c) }
     method uniprop-bool(|c) { uniprop-bool(self, |c) }
     method uniprop-str(|c)  { uniprop-str(self, |c) }
-    method uniprops(|c)     { uniprops(self, |c) }
     method unimatch(|c)     { unimatch(self, |c) }
 
     proto method NFC(*%) {*}
@@ -391,6 +501,10 @@ augment class Str {
           !! Rakudo::Unicodey.uniprop($ord, $propname)
     }
 
+    multi method uniprops(Str:D: Str:D $propname = 'General_Category') {
+        Rakudo::Unicodey.uniprops(self, $propname)
+    }
+
     multi method unival(Str:D:) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
@@ -492,6 +606,9 @@ multi sub uninames(\what) { what.uninames }
 multi sub uniprop(\what) { what.uniprop }
 multi sub uniprop(\what, Str:D $propname) { what.uniprop($propname) }
 
+multi sub uniprops(\what) { what.uniprops }
+multi sub uniprops(\what, Str:D $propname) { what.uniprops($propname) }
+
 multi sub unival(\what) { what.unival }
 multi sub univals(\what) { what.univals }
 
@@ -499,7 +616,6 @@ multi sub univals(\what) { what.univals }
 multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
 multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
 multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
-multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on jvm backend' }
 #?endif
 
@@ -509,7 +625,6 @@ multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
 multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
     nqp::getuniprop_str($code,nqp::unipropcode($propname));
 }
-multi sub uniprops(|)     { die 'uniprops NYI on jvm backend' }
 multi sub unimatch(|)     { die 'unimatch NYI on js backend' }
 #?endif
 

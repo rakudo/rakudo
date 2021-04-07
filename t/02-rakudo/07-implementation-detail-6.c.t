@@ -34,9 +34,8 @@ my @lower = ("",<<
   splice split sprintf spurt sqrt squish srand subbuf-rw substr
   substr-rw succeed sum symlink take take-rw tan tanh tc tclc trim
   trim-leading trim-trailing truncate uc undefine unimatch uniname
-  uninames uniparse uniprop uniprop-bool uniprop-int uniprop-str
-  uniprops unique unival univals unlink unpolar unshift val values
-  warn wordcase words
+  uninames uniparse uniprop uniprops unique unival univals unlink
+  unpolar unshift val values warn wordcase words
 >>).flat;
 
 my @lower-not-implemented = ();

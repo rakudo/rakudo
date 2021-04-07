@@ -113,29 +113,38 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     method chomp(Str:D: --> Str:D) {
-        nqp::substr(
-          self,
-          0,
-          nqp::chars(self) - nqp::iscclass(                       #?js: NFG
-            nqp::const::CCLASS_NEWLINE,self,nqp::chars(self) - 1  #?js: NFG
-          )
+        nqp::box_s(
+          nqp::substr(
+            self,
+            0,
+            nqp::chars(self) - nqp::iscclass(                       #?js: NFG
+              nqp::const::CCLASS_NEWLINE,self,nqp::chars(self) - 1  #?js: NFG
+            )
+          ),
+          self
         )
     }
 
     multi method chop(Str:D: --> Str:D) {
-        nqp::substr(
-          self,
-          0,
-          nqp::chars(self) && nqp::chars(self) - 1
+        nqp::box_s(
+          nqp::substr(
+            self,
+            0,
+            nqp::chars(self) && nqp::chars(self) - 1
+          ),
+          self
         )
     }
     multi method chop(Str:D: Int:D $chopping --> Str:D) {
-        nqp::substr(
-          self,
-          0,
-          nqp::not_i(nqp::isbig_I(nqp::decont($chopping)))
-            && nqp::isgt_i(nqp::chars(self),$chopping)
-            && nqp::sub_i(nqp::chars(self),$chopping)
+        nqp::box_s(
+          nqp::substr(
+            self,
+            0,
+            nqp::not_i(nqp::isbig_I(nqp::decont($chopping)))
+              && nqp::isgt_i(nqp::chars(self),$chopping)
+              && nqp::sub_i(nqp::chars(self),$chopping)
+          ),
+          self
         )
     }
     multi method chop(Str:D: $chopping --> Str:D) {

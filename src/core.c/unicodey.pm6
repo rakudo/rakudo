@@ -390,11 +390,7 @@ augment class Cool {
     proto method uninames(*%) is pure {*}
     multi method uninames(Cool:D: --> Str:D) { self.Str.uninames }
 
-    proto method unival(*%) is pure {*}
-    multi method unival(Cool:D:) { self.Int.unival }
-
-    proto method univals(*%) is pure {*}
-    multi method univals(Cool:D:) { self.Str.univals }
+    proto method uniparse(*%) is pure {*}
 
     proto method uniprop($?, *%) is pure {*}
     multi method uniprop(Cool:D:) {
@@ -411,6 +407,12 @@ augment class Cool {
     multi method uniprops(Cool:D: Str:D $propname) {
         self.Str.uniprops($propname)
     }
+
+    proto method unival(*%) is pure {*}
+    multi method unival(Cool:D:) { self.Int.unival }
+
+    proto method univals(*%) is pure {*}
+    multi method univals(Cool:D:) { self.Str.univals }
 
     method uniprop-int(|c)  { uniprop-int(self, |c) }
     method uniprop-bool(|c) { uniprop-bool(self, |c) }
@@ -516,7 +518,7 @@ augment class Str {
         Seq.new(Rakudo::Unicodey.uninames(self))
     }
 
-    method uniparse(Str:D: --> Str:D) {
+    multi method uniparse(Str:D: --> Str:D) {
         my $names := nqp::split(',', self);
         my $parts := nqp::list_s;
 
@@ -626,6 +628,8 @@ proto sub unimatch($, $, $?, *%) is pure {*}
 proto sub uniname($, *%)  is pure {*}
 proto sub uninames($, *%) is pure {*}
 
+proto sub uniparse($, *%) {*}
+
 proto sub uniprop($, $?, *%)  is pure {*}
 proto sub uniprops($, $?, *%) is pure {*}
 
@@ -653,6 +657,8 @@ multi sub unimatch(\what, Str:D $pvalname, Str:D $propname) {
 
 multi sub uniname(\what) { what.uniname }
 multi sub uninames(\what) { what.uninames }
+
+multi sub uniparse(\what --> Str:D) { what.uniparse }
 
 multi sub uniprop(\what) { what.uniprop }
 multi sub uniprop(\what, Str:D $propname) { what.uniprop($propname) }
@@ -747,8 +753,5 @@ multi sub infix:<coll>($, $) {
     X::NYI.new(feature => "infix coll on JVM").throw
 }   
 #?endif
-
-proto sub uniparse($, *%) {*}
-multi sub uniparse(Str:D \names --> Str:D) { names.uniparse }
 
 # vim: expandtab shiftwidth=4

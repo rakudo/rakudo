@@ -767,13 +767,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     method pred(Str:D: --> Str:D) {
         (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
-          ?? Rakudo::Internals.PRED(self,$chars - 1)
+          ?? nqp::istype(
+               (my $pred := Rakudo::Internals.PRED(self,$chars - 1)),
+               Failure
+             ) ?? $pred
+               !! nqp::box_s($pred,self)
           !! self
     }
 
     method succ(Str:D: --> Str:D) {
         (my int $chars = Rakudo::Internals.POSSIBLE-MAGIC-CHARS(self))
-          ?? Rakudo::Internals.SUCC(self,$chars - 1)
+          ?? nqp::istype(
+               (my $succ := Rakudo::Internals.SUCC(self,$chars - 1)),
+               Failure
+             ) ?? $succ
+               !! nqp::box_s($succ,self)
           !! self
     }
 

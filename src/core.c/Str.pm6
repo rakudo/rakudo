@@ -3333,14 +3333,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method substr(Str:D: Int:D $from --> Str:D) {
         nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
           ?? self!SUBSTR-START-OOR($from)
-          !! nqp::substr(self,$from)                                 #?js: NFG
+          !! nqp::box_s(nqp::substr(self,$from),self)                #?js: NFG
     }
     multi method substr(Str:D: Int:D $from, Int:D $want --> Str:D) {
         nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
           ?? self!SUBSTR-START-OOR($from)
           !! nqp::islt_i($want,0)
             ?? self!SUBSTR-CHARS-OOR($want)
-            !! nqp::substr(self,$from,$want)                         #?js: NFG
+            !! nqp::box_s(nqp::substr(self,$from,$want),self)        #?js: NFG
     }
     multi method substr(Str:D: Int:D $from, &want --> Str:D) {
         self.substr(
@@ -3370,15 +3370,22 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method substr(Str:D: Range:D \start --> Str:D) {
         nqp::islt_i((my int $from = (start.min + start.excludes-min).Int),0)
-          || nqp::isgt_i($from,nqp::chars($!value)) #?js: NFG
+          || nqp::isgt_i($from,nqp::chars($!value))                    #?js: NFG
           ?? self!SUBSTR-START-OOR($from)
-          !! start.max == Inf
-            ?? nqp::substr($!value,$from) #?js: NFG
-            !! nqp::substr($!value,$from,
-                 (start.max - start.excludes-max - $from + 1).Int) #?js: NFG
+          !! nqp::box_s(
+               (start.max == Inf
+                 ?? nqp::substr($!value,$from)                         #?js: NFG
+                 !! nqp::substr(
+                      $!value,
+                      $from,
+                      (start.max - start.excludes-max - $from + 1).Int #?js: NFG
+                    )
+               ),
+               self
+             )
     }
-    multi method substr(Str:D: Regex:D, $) {
-        die "You cannot use a Regex on 'substr', did you mean 'subst'?"  # GH 1314
+    multi method substr(Str:D: Regex:D, $) {                           # GH 1314
+        die "You cannot use a Regex on 'substr', did you mean 'subst'?"
     }
     multi method substr(Str:D: \start --> Str:D) {
         self.substr(start.Int)
@@ -3418,14 +3425,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
                    nqp::substr(nqp::unbox_s(SELF),$from,$chars)
                },
                STORE => sub ($, Str() $new) {
-                   SELF = nqp::p6box_s(  # need to make it a new HLL Str
+                   SELF = nqp::box_s(    # need to make it a new HLL Str
                      nqp::concat(
                        nqp::substr($!value,0,$from),
                        nqp::concat(
                          nqp::unbox_s($new),
                          nqp::substr($!value,nqp::add_i($from,$chars))
                        )
-                     )
+                     ),
+                     self
                    )
                }
              )

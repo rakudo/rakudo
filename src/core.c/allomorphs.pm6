@@ -12,6 +12,21 @@ my class Allomorph is Str {
     method succ(Allomorph:D:) { self.Numeric.succ }
     method pred(Allomorph:D:) { self.Numeric.pred }
 
+    multi method comb(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').comb(|c)
+    }
+
+    multi method chop(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').chop(|c)
+    }
+    method chomp(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').chomp(|c)
+    }
+
+    multi method substr(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').substr(|c)
+    }
+
     multi method Str(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value')
     }

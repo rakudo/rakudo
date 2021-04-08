@@ -3415,7 +3415,18 @@ my class Str does Stringy { # declared in BOOTSTRAP
                          nqp::istype(want, Callable) ?? want !! want.Int)
     }
 
-    multi method substr-rw(Str:D \SELF: \start, $want = Inf) is rw {
+    multi method substr-rw(Str:D \SELF:) is rw {
+        SELF.substr-rw(0, nqp::chars($!value), self)
+    }
+    multi method substr-rw(Str:D \SELF: \start) is rw {
+        SELF.substr-rw(start, Whatever, self)
+    }
+    multi method substr-rw(Str:D \SELF: \start, \want) is rw {
+        SELF.substr-rw(start, want, self)
+    }
+    multi method substr-rw(Str:D \SELF:
+      \start, $want, \what
+    ) is rw is implementation-detail {
         my int $max  = nqp::chars($!value);
         my int $from = nqp::istype(start,Callable)
           ?? (start)($max)
@@ -3450,7 +3461,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                          nqp::substr($!value,nqp::add_i($from,$chars))
                        )
                      ),
-                     self
+                     what
                    )
                }
              )

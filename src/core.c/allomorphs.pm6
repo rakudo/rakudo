@@ -26,6 +26,12 @@ my class Allomorph is Str {
     multi method substr(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').substr(|c)
     }
+    multi method substr-rw(Allomorph:D \SELF:
+      $start = 0,
+      $want  = Whatever
+    ) is rw {
+        SELF.substr-rw($start, $want, Str)
+    }
 
     multi method Str(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value')

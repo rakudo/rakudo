@@ -133,18 +133,19 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr(|) {*}
-    multi method substr(\from)         { self.Str.substr(from)       }
-    multi method substr(\from, \chars) { self.Str.substr(from,chars) }
+    multi method substr(Cool:D:)               { self.Str.substr             }
+    multi method substr(Cool:D: \from)         { self.Str.substr(from)       }
+    multi method substr(Cool:D: \from, \chars) { self.Str.substr(from,chars) }
 
     proto method substr-rw(|) {*}
-    multi method substr-rw(\SELF:) is rw {
+    multi method substr-rw(Cool:D \SELF:) is rw {
         (SELF = self.Str).substr-rw
     }
-    multi method substr-rw(\SELF: \from) is rw {
+    multi method substr-rw(Cool:D \SELF: \from) is rw {
         (SELF = self.Str).substr-rw(from)
     }
-    multi method substr-rw(\SELF: \from, \chars) is rw {
-        (SELF = self.Str).substr-rw(from,chars)
+    multi method substr-rw(Cool:D \SELF: \from, \want) is rw {
+        (SELF = self.Str).substr-rw(from, want)
     }
 
     proto method substr-eq(|) {*}

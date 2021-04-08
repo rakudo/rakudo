@@ -930,52 +930,56 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my class CombAll does PredictiveIterator {
         has str $!str;
-        has int $!chars;
+        has Mu  $!what;
         has int $!pos;
         method !SET-SELF(\string) {
-            $!str   = nqp::unbox_s(string);
-            $!chars = nqp::chars($!str);  #?js: NFG
+            $!str   = string;
+            $!what := string.WHAT;
             $!pos   = -1;
             self
         }
         method new(\string) { nqp::create(self)!SET-SELF(string) }
         method pull-one() {
-            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
-              ?? nqp::p6box_s(nqp::substr($!str,$!pos,1)) #?js: NFG
+            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::chars($!str))
+              ?? nqp::box_s(nqp::substr($!str,$!pos,1),$!what) #?js: NFG
               !! IterationEnd
         }
         method skip-one() {
-            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),$!chars)
+            nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::chars($!str))
         }
         method push-all(\target --> IterationEnd) {
             my str $str   = $!str;      # locals are faster
             my int $pos   = $!pos;
-            my int $chars = $!chars;
+            my int $chars = nqp::chars($str);
+            my Mu $what  := $!what;
             nqp::while(
               nqp::islt_i(($pos = nqp::add_i($pos,1)),$chars),
-              target.push(nqp::substr($str,$pos,1)) #?js: NFG
+              target.push(nqp::box_s(nqp::substr($str,$pos,1),$what)) #?js: NFG
             );
             $!pos = $pos;
         }
         method count-only(--> Int:D) {
-            nqp::p6box_i($!chars - $!pos - nqp::islt_i($!pos,$!chars))
+            nqp::box_i(
+              nqp::chars($!str) - $!pos - nqp::islt_i($!pos,nqp::chars($!str)),
+              Int
+            )
         }
-        method sink-all(--> IterationEnd) { $!pos = $!chars }
+        method sink-all(--> IterationEnd) { $!pos = nqp::chars($!str) }
     }
     multi method comb(Str:D: --> Seq:D) { Seq.new(CombAll.new(self)) }
 
     my class CombN does PredictiveIterator {
         has str $!str;
-        has int $!chars;
+        has Mu  $!what;
         has int $!size;
         has int $!pos;
         has int $!todo;
         method !SET-SELF(\string,\size,\limit) {
-            $!str   = nqp::unbox_s(string);
-            $!chars = nqp::chars($!str); #?js: NFG
+            $!str   = string;
+            $!what := string.WHAT;
             $!size  = size < 1 ?? 1 !! size;
             $!pos   = -$!size;
-            $!todo  = 1 + (($!chars - 1) div $!size);
+            $!todo  = 1 + ((nqp::chars($!str) - 1) div $!size);
             $!todo  = limit
               unless nqp::istype(limit,Whatever) || limit > $!todo;
             $!todo  = $!todo + 1;
@@ -987,31 +991,43 @@ my class Str does Stringy { # declared in BOOTSTRAP
               !! Rakudo::Iterator.Empty
         }
         method pull-one() {
-            ($!todo = $!todo - 1)
-              ?? nqp::p6box_s(
-                   nqp::substr($!str,($!pos = $!pos + $!size), $!size) #?js: NFG
+            ($!todo = nqp::sub_i($!todo,1))
+              ?? nqp::box_s(
+                   nqp::substr(                #?js: NFG
+                     $!str,
+                     ($!pos = nqp::add_i($!pos,$!size)),
+                     $!size
+                   ),
+                   $!what
                  )
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
+            my str $str   = $!str;
             my int $todo  = $!todo;
             my int $pos   = $!pos;
             my int $size  = $!size;
-            my int $chars = $!chars;
+            my Mu  $what := $!what;
+
             nqp::while(
-              ($todo = $todo - 1),
+              ($todo = nqp::sub_i($todo,1)),
               target.push(
-                nqp::p6box_s(
-                  nqp::substr($!str,($pos = $pos + $size), $size) #?js: NFG
+                nqp::box_s(
+                  nqp::substr(                 #?js: NFG
+                    $str,
+                    ($pos = nqp::add_i($pos,$size)),
+                    $size
+                  ),
+                  $what
                 )
               )
             );
             $!todo = 0;
         }
         method count-only(--> Int:D) {
-            nqp::p6box_i($!todo - nqp::isgt_i($!todo,0))
+            nqp::sub_i($!todo,nqp::isgt_i($!todo,0))
         }
-        method sink-all(--> IterationEnd) { $!pos = $!chars }
+        method sink-all(--> IterationEnd) { $!pos = nqp::chars($!str) }
     }
 
     multi method comb(Str:D: Int:D $size, $limit = * --> Seq:D) {
@@ -1022,25 +1038,30 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my class CombPat does Iterator {
         has str $!str;
+        has Mu  $!what;
         has str $!pat;
         has int $!patsz;
         has int $!pos;
         method !SET-SELF(\string, \pat) {
-            $!str = nqp::unbox_s(string);
-            $!pat = nqp::unbox_s(pat);
+            $!str   = string;
+            $!what := string.WHAT;
+            $!pat   = pat;
             $!patsz = nqp::chars($!pat);
             self
         }
         method new(\string, \pat) { nqp::create(self)!SET-SELF(string,pat) }
         method pull-one() {
-            my int $found = nqp::index($!str, $!pat, $!pos);
-            if $found < 0 {
-                IterationEnd
-            }
-            else {
-                $!pos = $found + $!patsz;
-                nqp::p6box_s($!pat)
-            }
+            nqp::if(
+              nqp::islt_i(
+                (my int $found = nqp::index($!str,$!pat,$!pos)),
+                0
+              ),
+              IterationEnd,
+              nqp::stmts(  
+                $!pos = nqp::add_i($found,$!patsz),
+                nqp::box_s($!pat,$!what)
+              )
+            )
         }
     }
     multi method comb(Str:D: Str:D $pat --> Seq:D) {
@@ -1051,28 +1072,33 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my class CombPatLimit does Iterator {
         has str $!str;
+        has Mu  $!what;
         has str $!pat;
         has int $!pos;
         has int $!todo;
         method !SET-SELF(\string, \pat, \limit) {
-            $!str  = nqp::unbox_s(string);
-            $!pat  = nqp::unbox_s(pat);
-            $!todo = nqp::unbox_i(limit.Int);
+            $!str   = string;
+            $!what := string.WHAT;
+            $!pat   = nqp::unbox_s(pat);
+            $!todo  = nqp::unbox_i(limit.Int);
             self
         }
         method new(\string, \pat, \limit) {
             nqp::create(self)!SET-SELF(string, pat, limit)
         }
         method pull-one() {
-            my int $found = nqp::index($!str, $!pat, $!pos);
-            if $found < 0 || $!todo == 0 {
-                IterationEnd
-            }
-            else {
-                $!pos  = $found + 1;
-                $!todo = $!todo - 1;
-                nqp::p6box_s($!pat)
-            }
+            nqp::if(
+              nqp::islt_i(
+                (my int $found = nqp::index($!str, $!pat, $!pos)),
+                0
+              ) || nqp::iseq_i($!todo,0),
+              IterationEnd,
+              nqp::stmts(
+                ($!pos  = nqp::add_i($found,1)),
+                ($!todo = nqp::sub_i($!todo,1)),
+                nqp::box_s($!pat,$!what)
+              )
+            )
         }
     }
     multi method comb(Str:D: Str:D $pat, $limit --> Seq:D) {

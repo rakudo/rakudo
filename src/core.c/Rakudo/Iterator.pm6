@@ -2645,6 +2645,7 @@ class Rakudo::Iterator {
     # generate strings for given regex, string and limit
     my class MatchStr does Iterator {
         has Mu $!iterator;
+        has Mu $!what;
 
         method new(\regex, \string, \limit) {
             my \iterator := nqp::istype(limit,Whatever) || limit == Inf
@@ -2653,21 +2654,25 @@ class Rakudo::Iterator {
                 ?? (return Rakudo::Iterator.Empty)
                 !! MatchCursorLimit.new(regex, string, limit.Int, 0);
 
-            nqp::p6bindattrinvres(nqp::create(self),self,'$!iterator',iterator)
+            my $self := nqp::create(self);
+            nqp::bindattr($self,self,'$!iterator',iterator);
+            nqp::bindattr($self,self,'$!what',string.WHAT);
+            $self
         }
         method pull-one() is raw {
             nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
               ?? IterationEnd
-              !! $cursor.MATCH.Str
+              !! nqp::box_s($cursor.MATCH.Str,$!what)
         }
         method skip-one() {
             nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
         }
         method push-all(\target --> IterationEnd) {
             my $iterator := $!iterator;
+            my $what     := $!what;
             nqp::until(
               nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
-              target.push($cursor.MATCH.Str)
+              target.push(nqp::box_s($cursor.MATCH.Str,$!what))
             );
         }
     }

@@ -2912,7 +2912,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           nqp::substr($!value,$c,nqp::sub_i(nqp::chars($!value),$c))
         ) if nqp::islt_i($c,nqp::chars($!value));
 
-        nqp::join('',$parts)
+        nqp::box_s(nqp::join('',$parts),self)
     }
 
     proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }

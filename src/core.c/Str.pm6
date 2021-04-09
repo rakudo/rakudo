@@ -2785,11 +2785,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     my class Words does PredictiveIterator {
         has str $!str;
+        has Mu  $!what;
         has int $!chars;
         has int $!pos;
 
         method !SET-SELF(\string) {
             $!str   = nqp::unbox_s(string);
+            $!what := string.WHAT;
             $!chars = nqp::chars($!str);
             $!pos   = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $!str, 0, $!chars);
@@ -2802,8 +2804,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::stmts(
                 (my int $nextpos = nqp::findcclass(
                   nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left)),
-                (my $found := nqp::p6box_s(
-                  nqp::substr($!str, $!pos, $nextpos - $!pos)
+                (my $found := nqp::box_s(
+                  nqp::substr($!str, $!pos, $nextpos - $!pos),
+                  $!what
                 )),
                 ($!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
                   $!str, $nextpos, $!chars - $nextpos)),
@@ -2820,8 +2823,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 $nextpos = nqp::findcclass(
                   nqp::const::CCLASS_WHITESPACE, $!str, $!pos, $left);
 
-                target.push(nqp::p6box_s(
-                  nqp::substr($!str, $!pos, $nextpos - $!pos)
+                target.push(nqp::box_s(
+                  nqp::substr($!str, $!pos, $nextpos - $!pos),
+                  $!what
                 ));
                 $!pos = nqp::findnotcclass( nqp::const::CCLASS_WHITESPACE,
                   $!str, $nextpos, $!chars - $nextpos);

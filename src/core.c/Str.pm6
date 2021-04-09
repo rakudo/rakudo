@@ -1855,10 +1855,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my class Lines does PredictiveIterator {
         has str $!str;
+        has Mu  $!what;
         has int $!chars;
         has int $!pos;
         method !SET-SELF(\string) {
             $!str   = nqp::unbox_s(string);
+            $!what := string.WHAT;
             $!chars = nqp::chars($!str);
             $!pos   = 0;
             self
@@ -1870,8 +1872,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
               nqp::stmts(
                 (my int $findpos = nqp::findcclass(
                   nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left)),
-                (my $found := nqp::p6box_s(
-                  nqp::substr($!str, $!pos, $findpos - $!pos)
+                (my $found := nqp::box_s(
+                  nqp::substr($!str, $!pos, $findpos - $!pos),
+                  $!what
                 )),
                 ($!pos = $findpos +
 #?if moar
@@ -1892,7 +1895,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
             while ($left = $!chars - $!pos) > 0 {
                 my int $findpos = nqp::findcclass(
                   nqp::const::CCLASS_NEWLINE, $!str, $!pos, $left);
-                target.push(nqp::substr($!str, $!pos, $findpos - $!pos));
+                target.push(nqp::box_s(
+                  nqp::substr($!str, $!pos, $findpos - $!pos),
+                  $!what
+                ));
                 $!pos = $findpos +
 #?if moar
                   1
@@ -1924,10 +1930,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my class LinesKeepNL is Lines {
         has str $!str;
+        has Mu  $!what;
         has int $!chars;
         has int $!pos;
         method !SET-SELF(\string) {
             $!str   = nqp::unbox_s(string);
+            $!what := string.WHAT;
             $!chars = nqp::chars($!str);
             $!pos   = 0;
             self
@@ -1947,8 +1955,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   (nqp::iseq_s(nqp::substr($!str, $findpos, 2), "\r\n") ?? 2 !! 1)
 #?endif
                 ),
-                (my $found := nqp::p6box_s(
-                  nqp::substr($!str, $!pos, $nextpos - $!pos)
+                (my $found := nqp::box_s(
+                  nqp::substr($!str, $!pos, $nextpos - $!pos),
+                  $!what
                 )),
                 ($!pos = $nextpos),
                 $found
@@ -1971,7 +1980,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?endif
                   ;
 
-                target.push(nqp::substr($!str, $!pos, $nextpos - $!pos));
+                target.push(nqp::box_s(
+                  nqp::substr($!str, $!pos, $nextpos - $!pos),
+                  $!what
+                ));
                 $!pos = $nextpos;
             }
         }

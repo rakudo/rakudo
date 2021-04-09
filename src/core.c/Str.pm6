@@ -2929,8 +2929,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
           || %n;                       # or any named params passed
 
         # from 1 char
-        return Rakudo::Internals.TRANSPOSE(self, $from, substr($to,0,1))
-          if $from.chars == 1;
+        return nqp::box_s(
+          Rakudo::Internals.TRANSPOSE(self, $from, $to.substr(0,1)),
+          self
+        ) if $from.chars == 1;
 
         my str $sfrom  = Rakudo::Internals.EXPAND-LITERAL-RANGE($from,0);
         my str $str    = nqp::unbox_s(self);
@@ -2986,11 +2988,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
 
-        nqp::p6box_s(nqp::join('',$result));
+        nqp::box_s(nqp::join('',$result),self);
     }
 
     my class LSM {
         has str $!source;
+        has Mu  $!what;
         has     $!substitutions;
         has int $!squash;
         has int $!complement;
@@ -3010,6 +3013,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
         method !SET-SELF(\source,\substitutions,\squash,\complement) {
             $!source         = nqp::unbox_s(source);
+            $!what          := source.WHAT;
             $!substitutions := nqp::getattr(substitutions,List,'$!reified');
             $!squash         = ?squash;
             $!complement     = ?complement;
@@ -3154,7 +3158,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::push_s($result,$!substituted_text);
             }
             nqp::push_s($result,$!unsubstituted_text);
-            nqp::p6box_s(nqp::join('', $result))
+            nqp::box_s(nqp::join('', $result),$!what)
         }
     }
     multi method trans(Str:D:
@@ -3246,7 +3250,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   nqp::atkey($lookup,nqp::atpos($result,$i)))
                     if nqp::existskey($lookup,nqp::atpos($result,$i))
                   while nqp::islt_i($i = $i + 1,$elems);
-                nqp::join("",$result)
+                nqp::box_s(nqp::join("",$result),self)
             }
 
             # use multi-needle split with in-place mapping
@@ -3260,7 +3264,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     nqp::push_s($strings,$iterator.pull-one)
                   )
                 );
-                nqp::join("",$strings)
+                nqp::box_s(nqp::join("",$strings),self)
             }
         }
 

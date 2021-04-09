@@ -409,7 +409,7 @@ my class Rakudo::Internals {
         )
     }
 
-    method TRANSPOSE(Str:D $string, Str:D $original, Str:D $final) {
+    method TRANSPOSE(str $string, str $original, str $final) {
         nqp::join($final,nqp::split($original,$string))
     }
     method TRANSPOSE-ONE(Str:D $string, Str:D $original, Str:D $final) {

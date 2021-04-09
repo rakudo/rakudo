@@ -588,7 +588,7 @@ my class DateTime does Dateish {
 
     multi method raku(DateTime:D: --> Str:D) {
         self.^name
-          ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second"
+          ~ ".new($!year,$!month,$!day,$!hour,$!minute," ~ sprintf('%.6f',$!second)
           ~ (',' ~ :$!timezone.raku if $!timezone)
           ~ ')'
     }

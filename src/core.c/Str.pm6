@@ -1802,7 +1802,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                             ?? -> $w,$p { $w.samecase($p) }
                             !! -> $w,$p { $w.samemark($p) }
                         nqp::push_s($result,nqp::unbox_s(
-                          $it.word-by-word($mstr,&filter,:samespace(?space))
+                          $it!word-by-word($mstr,&filter,:samespace(?space))
                         ) );
                     }
                     elsif case-and-mark {
@@ -2627,7 +2627,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               ))
             ),
 
-            nqp::join("",$result)                    # wrap it up
+            nqp::box_s(nqp::join("",$result),self)   # wrap it up
           ),
 
           self                                       # nothing to be done
@@ -2695,7 +2695,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
               )
             ),
 
-            nqp::join("",$result)                     # wrap it up
+            nqp::box_s(nqp::join("",$result),self)    # wrap it up
           ),
 
           self                                        # nothing to be done
@@ -2706,9 +2706,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
     method samemark(Str:D: Str:D $pattern) { X::NYI.new(:feature<samemark>).throw }
 #?endif
 
-    method samespace(Str:D: Str:D $pattern) { self.word-by-word($pattern, :samespace) }
+    method samespace(Str:D: Str:D $pattern) { self!word-by-word($pattern, :samespace) }
 
-    method word-by-word(Str:D: Str:D $pattern, &filter?, Bool :$samespace) {
+    method !word-by-word(Str:D $pattern, &filter?, Bool :$samespace) {
         my str $str = nqp::unbox_s(self);
         my str $pat = nqp::unbox_s($pattern);
         my Mu $ret := nqp::list_s;
@@ -2764,7 +2764,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
         }
 
-        nqp::join("",$ret)
+        nqp::box_s(nqp::join("",$ret),self)
     }
 
     multi method trim(Str:D: --> Str:D) {

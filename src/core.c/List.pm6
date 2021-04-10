@@ -1227,7 +1227,17 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 )
               ),
               nqp::if($infinite,nqp::push_s($strings,'...')),
-              nqp::p6box_s(nqp::join($separator,$strings))  # done
+              nqp::box_s(                            # done
+                nqp::join($separator,$strings),
+                nqp::if(
+                  nqp::istype(
+                    (my $what := nqp::atpos($!reified,0)),
+                    Str
+                  ),
+                  nqp::decont($what.Str),
+                  Str
+                )
+              )
             ),
             nqp::if($infinite,'...','')          # nothing to join
           )

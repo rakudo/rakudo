@@ -83,6 +83,8 @@ multi sub infix:<(elem)>(Any \a, Any \b) { a (elem) b.Set }
 
 # U+2208 ELEMENT OF
 my constant &infix:<∈> := &infix:<(elem)>;
+# U+220A SMALL ELEMENT OF
+my constant &infix:<∊> := &infix:<(elem)>;
 
 # U+2209 NOT AN ELEMENT OF
 proto sub infix:<∉>($, $, *%) is pure {*}
@@ -92,8 +94,9 @@ proto sub infix:<(cont)>($, $, *%) is pure {*}
 multi sub infix:<(cont)>(\a, \b --> Bool:D) { b (elem) a }
 
 # U+220B CONTAINS AS MEMBER
-proto sub infix:<∋>($, $, *%) is pure {*}
-multi sub infix:<∋>(\a, \b --> Bool:D) { b (elem) a }
+my constant &infix:<∋> = &infix:<(cont)>;
+# U+220D SMALL CONTAINS AS MEMBER
+my constant &infix:<∍> = &infix:<(cont)>;
 
 # U+220C DOES NOT CONTAIN AS MEMBER
 proto sub infix:<∌>($, $, *%) is pure {*}

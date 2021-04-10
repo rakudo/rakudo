@@ -106,6 +106,21 @@ my class Cool { # declared in BOOTSTRAP
     multi method chop(Cool:D:)          { self.Str.chop }
     multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
 
+    proto method samecase($, *%) {*}
+    multi method samecase(Cool:D: Cool:D $pattern) {
+        self.Stringy.samecase($pattern)
+    }
+
+    proto method samemark($, *%) {*}
+    multi method samemark(Cool:D: Cool:D $pattern) {
+        self.Stringy.samemark($pattern)
+    }
+
+    proto method samespace(*%) {*}
+    multi method samespace(Cool:D: Cool:D $pattern) {
+        self.Stringy.samespace($pattern)
+    }
+
     proto method starts-with(|) {*}
     multi method starts-with(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {
@@ -367,7 +382,6 @@ my class Cool { # declared in BOOTSTRAP
 
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };
-    method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
     method path() { self.Stringy.IO }
 

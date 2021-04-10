@@ -2567,7 +2567,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Note that in these same* methods, as used by s/LHS/RHS/, the
     # pattern is actually the original string matched by LHS, while the
     # invocant "original" is really the replacement RHS part.  Confusing...
-    method samecase(Str:D: Str:D $pattern --> Str:D) {
+    multi method samecase(Str:D: Str:D $pattern --> Str:D) {
         nqp::if(
           nqp::chars(nqp::unbox_s($pattern)),        # something to work with
           nqp::stmts(
@@ -2635,7 +2635,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
 #?if !jvm
-    method samemark(Str:D: Str:D $pattern --> Str:D) {
+    multi method samemark(Str:D: Str:D $pattern --> Str:D) {
         nqp::if(
           nqp::chars(nqp::unbox_s($pattern)),        # something to work with
           nqp::stmts(
@@ -2703,10 +2703,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 #?endif
 #?if jvm
-    method samemark(Str:D: Str:D $pattern) { X::NYI.new(:feature<samemark>).throw }
+    multi method samemark(Str:D: Str:D $pattern) { X::NYI.new(:feature<samemark>).throw }
 #?endif
 
-    method samespace(Str:D: Str:D $pattern) { self!word-by-word($pattern, :samespace) }
+    multi method samespace(Str:D: Str:D $pattern) { self!word-by-word($pattern, :samespace) }
 
     method !word-by-word(Str:D $pattern, &filter?, Bool :$samespace) {
         my str $str = nqp::unbox_s(self);

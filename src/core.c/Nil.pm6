@@ -1,10 +1,14 @@
 my class Nil is Cool { # declared in BOOTSTRAP
 
     method !die(str $method) is hidden-from-backtrace {
-        die "Use of Nil.$method not allowed";
+        nqp::istype(self,Failure)
+          ?? self.throw
+          !! die "Use of Nil.$method not allowed";
     }
     method !warn(str $method) is hidden-from-backtrace {
-        warn "Use of Nil.$method coerced to empty string";
+        nqp::istype(self,Failure)
+          ?? self.throw
+          !! warn "Use of Nil.$method coerced to empty string";
     }
 
     # core functionality
@@ -32,16 +36,30 @@ my class Nil is Cool { # declared in BOOTSTRAP
     multi method prepend(Nil: |) { self!die: 'prepend' }
 
     # Cool methods that should just warn
-    multi method wordcase(Nil:  --> '') { self!warn: 'wordcase' }
-    multi method trans(Nil: |c  --> '') { self!warn: 'trans' }
-    multi method indent(Nil: |c --> '') { self!warn: 'indent' }
-    multi method uc(Nil:        --> '') { self!warn: 'uc' }
-    multi method lc(Nil:        --> '') { self!warn: 'lc' }
-    multi method tc(Nil:        --> '') { self!warn: 'tc' }
-    multi method tclc(Nil:      --> '') { self!warn: 'tclc' }
-    multi method flip(Nil:      --> '') { self!warn: 'flip' }
-    multi method chop(Nil: |c   --> '') { self!warn: 'chop' }
-    multi method chomp(Nil:     --> '') { self!warn: 'chomp' }
+    multi method chomp(Nil:         --> '') { self!warn: 'chomp' }
+    multi method chop(Nil: |        --> '') { self!warn: 'chop' }
+    multi method comb(Nil: |        --> '') { self!warn: 'comb' }
+    multi method contains(Nil: |    --> '') { self!warn: 'contains' }
+    multi method ends-with(Nil: |   --> '') { self!warn: 'ends-with' }
+    multi method flip(Nil:          --> '') { self!warn: 'flip' }
+    multi method Int(Nil: |         --> '') { self!warn: 'Int' }
+    multi method indent(Nil: |      --> '') { self!warn: 'indent' }
+    multi method index(Nil: |       --> '') { self!warn: 'index' }
+    multi method indices(Nil: |     --> '') { self!warn: 'indices' }
+    multi method lc(Nil:            --> '') { self!warn: 'lc' }
+    multi method lines(Nil: |       --> '') { self!warn: 'lines' }
+    multi method tc(Nil:            --> '') { self!warn: 'tc' }
+    multi method tclc(Nil:          --> '') { self!warn: 'tclc' }
+    multi method rindex(Nil: |      --> '') { self!warn: 'rindex' }
+    multi method starts-with(Nil: | --> '') { self!warn: 'starts-with' }
+    multi method trans(Nil: |       --> '') { self!warn: 'trans' }
+    multi method substr(Nil: |      --> '') { self!warn: 'substr' }
+    multi method subst(Nil: |       --> '') { self!warn: 'subst' }
+    multi method substr-eq(Nil: |   --> '') { self!warn: 'substr-eq' }
+    multi method substr-rw(Nil: |   --> '') { self!warn: 'substr-rw' }
+    multi method wordcase(Nil:      --> '') { self!warn: 'wordcase' }
+    multi method words(Nil: |       --> '') { self!warn: 'words' }
+    multi method uc(Nil:            --> '') { self!warn: 'uc' }
 
     # numeric coercions
     method Numeric( --> 0) { warn "Use of Nil in numeric context" }

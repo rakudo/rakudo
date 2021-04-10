@@ -2721,7 +2721,7 @@ class Rakudo::Iterator {
                     nqp::sub_i(nqp::getattr_i($cursor,Match,'$!from'),$!last-pos)
                   )),
                   ($!last-pos = nqp::getattr_i($cursor,Match,'$!pos')),
-                  $result
+                  nqp::box_s($result,$!string)
                 )
               )
             )
@@ -2746,7 +2746,10 @@ class Rakudo::Iterator {
                     ($last-pos = nqp::getattr_i($cursor,Match,'$!pos'))
                   )
                 );
-                target.push(nqp::substr($string,$last-pos));
+                target.push(nqp::box_s(
+                  nqp::substr($string,$last-pos),
+                  $string
+                ));
             }
         }
     }

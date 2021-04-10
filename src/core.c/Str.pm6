@@ -2136,6 +2136,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # split really, really fast in NQP, also supports ""
         my $matches := nqp::split($needle,nqp::unbox_s(self));
 
+        # handle subclassed strings
+        unless nqp::eqaddr(self.WHAT,Str) {
+            my $subclassed := nqp::list;
+            my $what       := self.WHAT;
+            nqp::while(
+              nqp::elems($matches),
+              nqp::push(
+                $subclassed,
+                nqp::box_s(nqp::shift($matches),$what)
+              )
+            );
+            $matches := $subclassed;
+        }
+
         # interleave the necessary strings if needed
         if $chars {
             if $any {
@@ -2183,6 +2197,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my class SplitStrLimit does Iterator {
         has str $!string;
+        has Mu  $!what;
         has int $!chars;
         has str $!match;
         has int $!match-chars;
@@ -2190,6 +2205,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has int $!pos;
         method !SET-SELF(\string, \match, \todo) {
             $!string      = nqp::unbox_s(string);
+            $!what       := string.WHAT;
             $!chars       = nqp::chars($!string);
             $!match       = nqp::unbox_s(match);
             $!match-chars = nqp::chars($!match);
@@ -2203,13 +2219,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
             my str $string = nqp::substr($!string,$!pos);
             $!pos  = $!chars + 1;
             $!todo = 0;
-            nqp::p6box_s($string)
+            nqp::box_s($string,$!what)
         }
         method !next-part(int $found) is raw {
             my str $string =
               nqp::substr($!string,$!pos, $found - $!pos);
             $!pos = $found + $!match-chars;
-            nqp::p6box_s($string);
+            nqp::box_s($string,$!what);
         }
         method pull-one() is raw {
             if $!todo {
@@ -2241,6 +2257,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     my class SplitEmptyLimit does PredictiveIterator {
         has str $!string;
+        has Mu  $!what;
         has int $!todo;
         has int $!chars;
         has int $!pos;
@@ -2248,6 +2265,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has int $!last;
         method !SET-SELF(\string, \todo, \skip-empty) {
             $!string = nqp::unbox_s(string);
+            $!what  := string.WHAT;
             $!chars  = nqp::chars($!string);
             $!todo   = todo;
             $!first  = !skip-empty;
@@ -2273,7 +2291,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             }
             elsif $!todo {           # next char
                 $!todo = $!todo - 1;
-                nqp::p6box_s(nqp::substr($!string,$!pos++,1))
+                nqp::box_s(nqp::substr($!string,$!pos++,1),$!what)
             }
             elsif $!last {           # do final empty string
                 $!last = 0;
@@ -2282,7 +2300,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
             elsif nqp::islt_i($!pos,$!chars) {  # do rest of string
                 my str $rest = nqp::substr($!string,$!pos);
                 $!pos = $!chars;
-                nqp::p6box_s($rest)
+                nqp::box_s($rest,$!what)
             }
             else {
                 IterationEnd
@@ -2293,10 +2311,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $!todo = $!todo - 1;
             while $!todo {
                 target.push(
-                  nqp::p6box_s(nqp::substr($!string,$!pos++,1)));
+                  nqp::box_s(nqp::substr($!string,$!pos++,1),$!what));
                 $!todo = $!todo - 1;
             }
-            target.push( nqp::p6box_s(nqp::substr($!string,$!pos)))
+            target.push(nqp::box_s(nqp::substr($!string,$!pos),$!what))
               if nqp::islt_i($!pos,$!chars);
             target.push("") if $!last;
         }
@@ -2482,8 +2500,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
                   (my int $needle-index = nqp::atpos_i($pair,1)),
                   nqp::unless(
                     $skip && nqp::iseq_i($from,$pos),
-                    nqp::push($result,
-                      nqp::substr($str,$pos,nqp::sub_i($from,$pos)))
+                    nqp::push(
+                      $result,
+                      nqp::box_s(
+                        nqp::substr($str,$pos,nqp::sub_i($from,$pos)),
+                        self
+                      )
+                    )
                   ),
                   nqp::if($k || $kv,
                     nqp::push($result,nqp::clone($needle-index))
@@ -2518,8 +2541,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 nqp::stmts(
                   nqp::unless(
                     $skip && nqp::iseq_i($from,$pos),
-                    nqp::push($result,
-                      nqp::substr($str,$pos,nqp::sub_i($from,$pos))),
+                    nqp::push(
+                      $result,
+                      nqp::box_s(
+                        nqp::substr($str,$pos,nqp::sub_i($from,$pos)),
+                        self
+                      )
+                    ),
                   ),
                   ($pos = nqp::add_i($from,
                     nqp::atpos_i($needle-chars,nqp::atpos_i($pair,1))
@@ -2528,8 +2556,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
               )
             );
         }
-        nqp::push($result,nqp::substr($str,$pos))
-          unless $skip && nqp::iseq_i($pos,nqp::chars($str));
+        nqp::push(
+          $result,
+          nqp::box_s(nqp::substr($str,$pos),self)
+        ) unless $skip && nqp::iseq_i($pos,nqp::chars($str));
 
         Seq.new(Rakudo::Iterator.ReifiedList($result))
     }

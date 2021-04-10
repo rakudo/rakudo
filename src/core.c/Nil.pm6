@@ -3,8 +3,8 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method !die(str $method) is hidden-from-backtrace {
         die "Use of Nil.$method not allowed";
     }
-    method !warn(str $method, $what = 'empty string') is hidden-from-backtrace {
-        warn "Use of Nil.$method coerced to $what";
+    method !warn(str $method) is hidden-from-backtrace {
+        warn "Use of Nil.$method coerced to empty string";
     }
 
     # core functionality
@@ -19,9 +19,11 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method AT-KEY(| --> Nil) { }
 #    method ACCEPTS(*@ --> Nil) { }  # XXX spec says Nil, but makes install fail
 
+    # interface methods that should fail
+    multi method BIND-POS(Nil: |)   { Failure.new(X::Bind.new(:target<Nil>)) }
+    multi method BIND-KEY(Nil: |)   { Failure.new(X::Bind.new(:target<Nil>)) }
+
     # interface methods that should throw
-    multi method BIND-POS(Nil: |)   { self!die: 'BIND-POS' }
-    multi method BIND-KEY(Nil: |)   { Failure.new(X::Bind.new(target => self.gist)) }
     multi method ASSIGN-POS(Nil: |) { self!die: 'ASSIGN-POS' }
     multi method ASSIGN-KEY(Nil: |) { self!die: 'ASSIGN-KEY' }
     multi method push(Nil: |)    { self!die: 'push' }

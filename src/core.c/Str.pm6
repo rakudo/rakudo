@@ -3511,7 +3511,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
              )
     }
 
-    proto method codes(|) {*}
     multi method codes(Str:D: --> Int:D) {
         nqp::codes(self)
     }
@@ -3520,7 +3519,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         0
     }
 
-    proto method chars(|) {*}
     multi method chars(Str:D: --> Int:D) {
         nqp::p6box_i(nqp::chars($!value)) #?js: NFG
     }

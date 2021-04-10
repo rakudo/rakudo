@@ -36,8 +36,10 @@ my class Nil is Cool { # declared in BOOTSTRAP
     multi method prepend(Nil: |) { self!die: 'prepend' }
 
     # Cool methods that should just warn
+    multi method chars(Nil:         --> '') { self!warn: 'chars' }
     multi method chomp(Nil:         --> '') { self!warn: 'chomp' }
     multi method chop(Nil: |        --> '') { self!warn: 'chop' }
+    multi method codes(Nil: |       --> '') { self!warn: 'codes' }
     multi method comb(Nil: |        --> '') { self!warn: 'comb' }
     multi method contains(Nil: |    --> '') { self!warn: 'contains' }
     multi method ends-with(Nil: |   --> '') { self!warn: 'ends-with' }

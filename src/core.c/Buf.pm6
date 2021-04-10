@@ -280,6 +280,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method chars(Blob:D:) {
         X::Buf::AsStr.new(object => self, method => 'chars').throw
     }
+    method codes(Blob:D:) {
+        X::Buf::AsStr.new(object => self, method => 'codes').throw
+    }
     multi method Str(Blob:D:) {
         X::Buf::AsStr.new(object => self, method => 'Str'  ).throw
     }

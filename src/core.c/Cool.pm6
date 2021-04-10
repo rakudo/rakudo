@@ -59,12 +59,11 @@ my class Cool { # declared in BOOTSTRAP
 
     ## string methods
 
-    method chars(--> Int:D) {
-        self.Str.chars
-    }
-    method codes() {
-        self.Str.codes
-    }
+    proto method chars(*%) {*}
+    multi method chars(Cool:D: --> Int:D) { self.Str.chars }
+
+    proto method codes(*%) {*}
+    multi method codes(Cool:D: --> Int:D) { self.Str.codes }
 
     method fmt($format = '%s') {
         Rakudo::Internals.initialize-sprintf-handler;

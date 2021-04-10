@@ -73,38 +73,39 @@ my class Cool { # declared in BOOTSTRAP
         )
     }
 
-    method uc() {
-        self.Str.uc
-    }
+    proto method wordcase(*%) {*}
+    multi method wordcase(Cool:D:) { self.Str.wordcase(|%_) }
 
-    method lc() {
-        self.Str.lc
-    }
+    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
+    multi method trans(Cool:D: |c) { self.Str.trans(|c) }
 
-    method tc() {
-        self.Str.tc
-    }
+    proto method indent($, *%) {*}
+    multi method indent(Cool:D: $steps) { self.Str.indent($steps) }
 
-    method fc() {
-        self.Str.fc
-    }
+    proto method uc(*%) {*}
+    multi method uc(Cool:D:) { self.Str.uc }
 
-    method tclc() {
-        self.Str.tclc
-    }
+    proto method lc(*%) {*}
+    multi method lc(Cool:D:) { self.Str.lc }
 
-    method wordcase()   { self.Str.wordcase }
+    proto method tc(*%) {*}
+    multi method tc(Cool:D:) { self.Str.tc }
 
-    method chomp(Cool:D:) { self.Str.chomp }
+    proto method fc(*%) {*}
+    multi method fc(Cool:D:) { self.Str.fc }
+
+    proto method tclc(*%) {*}
+    multi method tclc(Cool:D:) { self.Str.tclc }
+
+    proto method flip(*%) {*}
+    multi method flip(Cool:D:) { self.Str.flip }
+
+    proto method chomp(*%) {*}
+    multi method chomp(Cool:D:) { self.Str.chomp }
 
     proto method chop(|)                {*}
     multi method chop(Cool:D:)          { self.Str.chop }
     multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
-
-    method flip() {
-        self.Str.flip
-    }
-    method trans(|c) { self.Str.trans(|c) }
 
     proto method starts-with(|) {*}
     multi method starts-with(Cool:D:

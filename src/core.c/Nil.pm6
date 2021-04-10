@@ -20,6 +20,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
     method prepend(|) is nodal { die "Attempted to prepend to {self.gist}." }
     method FALLBACK(| --> Nil) { }
 
+    method uc() { self.Str.uc }  # TEMPORARY fix to appease roast
     method chop()  { self.Str.chop }
     method chomp() { self.Str.chomp }
 

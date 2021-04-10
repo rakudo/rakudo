@@ -112,7 +112,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::hllbool(nqp::iseq_s(nqp::unbox_s(other.Str),$!value));
     }
 
-    method chomp(Str:D: --> Str:D) {
+    multi method chomp(Str:D: --> Str:D) {
         nqp::box_s(
           nqp::substr(
             self,
@@ -2872,7 +2872,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     my &SMART-WORDS = / [<:L> \w* ] +% <['\-]> /;
 
-    method wordcase(Str:D: :&filter, Mu :$where = True --> Str:D) {
+    multi method wordcase(Str:D: :&filter, Mu :$where = True --> Str:D) {
         my int $c;
         my int $pos;
         my int $from;
@@ -2915,7 +2915,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::box_s(nqp::join('',$parts),self)
     }
 
-    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
     multi method trans(Str:D: Pair:D \what, *%n --> Str:D) {
         my $from = what.key;
         my $to   = what.value;
@@ -3274,7 +3273,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
         }
     }
 
-    proto method indent($) {*}
     # Zero indent does nothing
     multi method indent(Str:D: Int() $steps where { $_ == 0 }) {
         self;
@@ -3531,15 +3529,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         0
     }
 
-    proto method uc(|) {*}
     multi method uc(Str:D: --> Str:D) { nqp::box_s(nqp::uc($!value),self) }
     multi method uc(Str:U: --> Str:D) { self.Str }
 
-    proto method lc(|) {*}
     multi method lc(Str:D: --> Str:D) { nqp::box_s(nqp::lc($!value),self) }
     multi method lc(Str:U: --> Str:D) { self.Str }
 
-    proto method tc(|) {*}
     multi method tc(Str:D: --> Str:D) {
         nqp::box_s(
           nqp::concat(                                 #?js: NFG
@@ -3551,15 +3546,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method tc(Str:U: --> Str:D) { self.Str }
 
-    proto method fc(|) {*}
     multi method fc(Str:D: --> Str:D) { nqp::box_s(nqp::fc($!value),self) }
     multi method fc(Str:U: --> Str:D) { self.Str }
 
-    proto method tclc(|) {*}
     multi method tclc(Str:D: --> Str:D) { nqp::box_s(nqp::tclc($!value),self) }
     multi method tclc(Str:U: --> Str:D) { self.Str }
 
-    proto method flip(|) {*}
     multi method flip(Str:D: --> Str:D) { nqp::box_s(nqp::flip($!value),self) }
     multi method flip(Str:U: --> Str:D) { self.Str }
 

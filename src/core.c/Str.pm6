@@ -3282,7 +3282,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Positive indent does indent
     multi method indent(Int() $steps where { $_ > 0 }) {
-        self.lines(:!chomp).map({
+        nqp::box_s(self.lines(:!chomp).map({
             given $_.Str {
                 when /^ \n? $ / {
                     $_;
@@ -3303,7 +3303,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                     $0 ~ (' ' x $steps) ~ $1
                 }
             }
-        }).join;
+        }).join,self)
     }
 
     # Negative indent (de-indent)
@@ -3351,7 +3351,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         # Work forwards from the left end of the indent whitespace, removing
         # array elements up to # (or over, in the case of tab-explosion)
         # the specified de-indent amount.
-        @lines.map(-> $l {
+        nqp::box_s(@lines.map(-> $l {
             my $pos = 0;
             while $l<indent-chars> and $pos < $de-indent {
                 if $l<indent-chars>.shift.key eq "\t" {
@@ -3371,7 +3371,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 }
             }
             $l<indent-chars>».key.join ~ ' ' x ($pos - $de-indent) ~ $l<rest>;
-        }).join;
+        }).join,nqp::decont($obj))
     }
 
     method !SUBSTR-START-OOR($from) {

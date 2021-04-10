@@ -3532,52 +3532,36 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     proto method uc(|) {*}
-    multi method uc(Str:D: --> Str:D) {
-        nqp::p6box_s(nqp::uc($!value));
-    }
-    multi method uc(Str:U: --> Str:D) {
-        self.Str;
-    }
+    multi method uc(Str:D: --> Str:D) { nqp::box_s(nqp::uc($!value),self) }
+    multi method uc(Str:U: --> Str:D) { self.Str }
 
     proto method lc(|) {*}
-    multi method lc(Str:D: --> Str:D) {
-        nqp::p6box_s(nqp::lc($!value));
-    }
-    multi method lc(Str:U: --> Str:D) {
-        self.Str;
-    }
+    multi method lc(Str:D: --> Str:D) { nqp::box_s(nqp::lc($!value),self) }
+    multi method lc(Str:U: --> Str:D) { self.Str }
 
     proto method tc(|) {*}
     multi method tc(Str:D: --> Str:D) {
-        nqp::concat(nqp::tc(nqp::substr(self,0,1)),nqp::substr(self,1)); #?js: NFG
+        nqp::box_s(
+          nqp::concat(                                 #?js: NFG
+            nqp::tc(nqp::substr(self,0,1)),
+            nqp::substr(self,1)
+          ),
+          self
+        )
     }
-    multi method tc(Str:U: --> Str:D) {
-        self.Str
-    }
+    multi method tc(Str:U: --> Str:D) { self.Str }
 
     proto method fc(|) {*}
-    multi method fc(Str:D: --> Str:D) {
-        nqp::p6box_s(nqp::fc($!value));
-    }
-    multi method fc(Str:U: --> Str:D) {
-        self.Str;
-    }
+    multi method fc(Str:D: --> Str:D) { nqp::box_s(nqp::fc($!value),self) }
+    multi method fc(Str:U: --> Str:D) { self.Str }
 
     proto method tclc(|) {*}
-    multi method tclc(Str:D: --> Str:D) {
-        nqp::p6box_s(nqp::tclc($!value))
-    }
-    multi method tclc(Str:U: --> Str:D) {
-        self.Str
-    }
+    multi method tclc(Str:D: --> Str:D) { nqp::box_s(nqp::tclc($!value),self) }
+    multi method tclc(Str:U: --> Str:D) { self.Str }
 
     proto method flip(|) {*}
-    multi method flip(Str:D: --> Str:D) {
-        nqp::p6box_s(nqp::flip($!value))
-    }
-    multi method flip(Str:U: --> Str:D) {
-        self.Str
-    }
+    multi method flip(Str:D: --> Str:D) { nqp::box_s(nqp::flip($!value),self) }
+    multi method flip(Str:U: --> Str:D) { self.Str }
 
     method Date(Str:D:)     { Date.new(self)     }
     method DateTime(Str:D:) { DateTime.new(self) }

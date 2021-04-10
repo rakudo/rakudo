@@ -2767,16 +2767,31 @@ my class Str does Stringy { # declared in BOOTSTRAP
         nqp::join("",$ret)
     }
 
-    method trim-leading(Str:D: --> Str:D) {
-        nqp::substr(
+    multi method trim(Str:D: --> Str:D) {
+        my int $left = nqp::findnotcclass(
+          nqp::const::CCLASS_WHITESPACE,
+          self,
+          0,
+          (my int $pos = nqp::chars(self))
+        );
+        nqp::while(
+          nqp::isgt_i(--$pos,$left)
+            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE,self,$pos),
+          nqp::null
+        );
+        nqp::box_s(nqp::substr(self,$left,$pos + 1 - $left),self)
+    }
+
+    multi method trim-leading(Str:D: --> Str:D) {
+        nqp::box_s(nqp::substr(
           self,
           nqp::findnotcclass(
             nqp::const::CCLASS_WHITESPACE,self,0,nqp::chars(self)
           )
-        )
+        ),self)
     }
 
-    method trim-trailing(Str:D: --> Str:D) {
+    multi method trim-trailing(Str:D: --> Str:D) {
         nqp::if(
           nqp::iscclass(
             nqp::const::CCLASS_WHITESPACE,
@@ -2789,25 +2804,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 && nqp::iscclass(nqp::const::CCLASS_WHITESPACE,self,$pos),
               nqp::null
             ),
-            nqp::substr(self,0,$pos + 1)
+            nqp::box_s(nqp::substr(self,0,$pos + 1),self)
           ),
           self          # no whitespace, so done
         )
-    }
-
-    method trim(Str:D: --> Str:D) {
-        my int $left = nqp::findnotcclass(
-          nqp::const::CCLASS_WHITESPACE,
-          self,
-          0,
-          (my int $pos = nqp::chars(self))
-        );
-        nqp::while(
-          nqp::isgt_i(--$pos,$left)
-            && nqp::iscclass(nqp::const::CCLASS_WHITESPACE,self,$pos),
-          nqp::null
-        );
-        nqp::substr(self,$left,$pos + 1 - $left)
     }
 
     multi method words(Str:D: $limit --> Seq:D) {

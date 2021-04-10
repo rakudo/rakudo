@@ -370,9 +370,15 @@ my class Cool { # declared in BOOTSTRAP
     method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
     method path() { self.Stringy.IO }
-    method trim         () { self.Stringy.trim          };
-    method trim-leading () { self.Stringy.trim-leading  };
-    method trim-trailing() { self.Stringy.trim-trailing };
+
+    proto method trim(*%) {*}
+    multi method trim(Cool:D:) { self.Stringy.trim }
+
+    proto method trim-leading(*%) {*}
+    multi method trim-leading(Cool:D:) { self.Stringy.trim-leading }
+
+    proto method trim-trailing(*%) {*}
+    multi method trim-trailing(Cool:D:) { self.Stringy.trim-trailing }
 
     method EVAL(*%opts) {
         EVAL(self, context => CALLER::, |%opts);

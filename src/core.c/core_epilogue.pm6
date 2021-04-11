@@ -113,6 +113,13 @@ augment class Str {
     }
 }
 
+# Make sure all affected subclasses are aware of additions to their parents
+BEGIN .^compose for
+  List, Array, Match, Range, Seq,
+  Int, Num, Rat, Complex,
+  IntStr, NumStr, RatStr, ComplexStr
+;
+
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 
 {YOU_ARE_HERE}

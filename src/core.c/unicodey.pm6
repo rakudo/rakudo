@@ -609,13 +609,6 @@ augment class Nil {
     multi method chrs(Nil:) { self.Int.chrs }
 }
 
-# Make sure all affected subclasses are aware of additions to their parents
-BEGIN .^compose for
-  Array, Match, Range, Seq,
-  Int, Num, Rat, Complex,
-  IntStr, NumStr, RatStr, ComplexStr
-;
-
 # all proto's in one place so they're available on all (conditional) backends
 #-------------------------------------------------------------------------------
 proto sub chr($, *%) is pure {*}

@@ -2892,7 +2892,6 @@ my class Str does Stringy { # declared in BOOTSTRAP
           !! $words.List
     }
 
-    proto method encode(|) {*}
     multi method encode(Str:D $encoding = 'utf8',
       :$replacement, Bool() :$translate-nl = False, :$strict --> Blob:D) {
         Encoding::Registry.find($encoding)

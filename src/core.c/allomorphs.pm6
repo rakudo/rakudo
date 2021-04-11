@@ -16,6 +16,10 @@ my class Allomorph is Str {
         nqp::getattr_s(self,Str,'$!value').comb(|c)
     }
 
+    method split(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').split(|c)
+    }
+
     multi method chop(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').chop(|c)
     }

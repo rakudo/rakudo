@@ -3,7 +3,7 @@ use lib <t/packages>;
 use Test;
 use Test::Helpers;
 
-plan 46;
+plan 47;
 
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
@@ -250,7 +250,7 @@ is-run-repl "my \\a = any set <1 2 3>;\nsay 1 ~~ a",
     :out{
         .contains('any') and .contains('False') and not .contains: 'True';
     },
-    'REPL does not report True and False for junction';
+    'REPL does neither crash nor report True and False for junction';
 
 {
     # If the REPL evaluates all of the previously-entered code on each
@@ -298,6 +298,11 @@ is-run-repl "my \\a = any set <1 2 3>;\nsay 1 ~~ a",
 is-run-repl "say 42; none True\n", :err(''), :out{
     .contains('42') and not .contains: 'No such method';
 }, 'REPL does not explode with none Junction return values';
+
+# https://github.com/Raku/old-issue-tracker/issues/3254
+is-run-repl '"asa" ~~ /:s ^a* %',
+    :out{.contains: 'Missing quantifier' and not .contains('NullPointerException')},
+    'REPL detects incomplete regex (no NullPointerException)';
 
 # https://github.com/Raku/old-issue-tracker/issues/2768
 is-run-repl '$_**2',

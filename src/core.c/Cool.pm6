@@ -119,7 +119,7 @@ my class Cool { # declared in BOOTSTRAP
         self.Str.samemark($pattern)
     }
 
-    proto method samespace(*%) {*}
+    proto method samespace($, *%) {*}
     multi method samespace(Cool:D: Cool:D $pattern) {
         self.Str.samespace($pattern)
     }

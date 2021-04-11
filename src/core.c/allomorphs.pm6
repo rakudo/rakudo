@@ -20,6 +20,16 @@ my class Allomorph is Str {
         nqp::getattr_s(self,Str,'$!value').split(|c)
     }
 
+    method samecase(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samecase(|c)
+    }
+    method samemark(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samemark(|c)
+    }
+    method samespace(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samespace(|c)
+    }
+
     method chop(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').chop(|c)
     }

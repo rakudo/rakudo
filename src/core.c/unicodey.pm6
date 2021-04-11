@@ -391,6 +391,7 @@ augment class Cool {
     multi method uninames(Cool:D: --> Str:D) { self.Str.uninames }
 
     proto method uniparse(*%) is pure {*}
+    multi method uniparse(Cool:D: --> Str:D) { self.Str.uniparse }
 
     proto method uniprop($?, *%) is pure {*}
     multi method uniprop(Cool:D:) {

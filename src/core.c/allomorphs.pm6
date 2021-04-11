@@ -19,8 +19,17 @@ my class Allomorph is Str {
     multi method chop(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').chop(|c)
     }
-    method chomp(Allomorph:D: |c) {
-        nqp::getattr_s(self,Str,'$!value').chomp(|c)
+    multi method chomp(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').chomp
+    }
+    multi method trim(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim
+    }
+    multi method trim-leading(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim-leading
+    }
+    multi method trim-trailing(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim-trailing
     }
 
     multi method substr(Allomorph:D: |c) {

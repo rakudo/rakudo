@@ -386,8 +386,6 @@ my class Cool { # declared in BOOTSTRAP
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };
 
-    method path() { self.Stringy.IO }
-
     proto method trim(*%) {*}
     multi method trim(Cool:D:) { self.Stringy.trim }
 

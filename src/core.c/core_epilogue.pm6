@@ -107,17 +107,20 @@ multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
 # Methods that are DEPRECATED are moved here and augmented into the classes
 # they belong to without bootstrapping issues.
 
-augment class Str {
-    method parse-names(Str:D: --> Str:D) is DEPRECATED('uniparse') {
+augment class Cool {
+    method parse-names(Cool:D: --> Str:D) is DEPRECATED('uniparse') {
         self.uniparse
+    }
+    method path(Cool:D: --> IO::Path:D) is DEPRECATED('IO') {
+        self.IO
     }
 }
 
 # Make sure all affected subclasses are aware of additions to their parents
 BEGIN .^compose for
+  Str, Int, Num, Rat, Complex,
+  IntStr, NumStr, RatStr, ComplexStr,
   List, Array, Match, Range, Seq,
-  Int, Num, Rat, Complex,
-  IntStr, NumStr, RatStr, ComplexStr
 ;
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);

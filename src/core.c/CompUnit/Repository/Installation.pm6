@@ -406,8 +406,8 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                         my ($ver, $auth, $api, $source, $checksum) = $_.slurp.split("\n");
                         $_.basename => {
                             auth     => $auth,
-                            api      => Version.new( $api || 0 ), # Create the Version objects once
-                            ver      => Version.new( $ver || 0 ), # (used to compare, and then sort)
+                            api      => Version.new( $api // 0 ), # Create the Version objects once
+                            ver      => Version.new( $ver // 0 ), # (used to compare, and then sort)
                             source   => $source || Any,
                             checksum => $checksum || Str,
                         }

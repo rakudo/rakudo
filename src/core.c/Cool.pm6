@@ -71,7 +71,7 @@ my class Cool { # declared in BOOTSTRAP
     method fmt($format = '%s') {
         Rakudo::Internals.initialize-sprintf-handler;
         nqp::p6box_s(
-            nqp::sprintf(nqp::unbox_s($format.Stringy), nqp::list(self))
+            nqp::sprintf(nqp::unbox_s($format.Str), nqp::list(self))
         )
     }
 
@@ -111,17 +111,17 @@ my class Cool { # declared in BOOTSTRAP
 
     proto method samecase($, *%) {*}
     multi method samecase(Cool:D: Cool:D $pattern) {
-        self.Stringy.samecase($pattern)
+        self.Str.samecase($pattern)
     }
 
     proto method samemark($, *%) {*}
     multi method samemark(Cool:D: Cool:D $pattern) {
-        self.Stringy.samemark($pattern)
+        self.Str.samemark($pattern)
     }
 
     proto method samespace(*%) {*}
     multi method samespace(Cool:D: Cool:D $pattern) {
-        self.Stringy.samespace($pattern)
+        self.Str.samespace($pattern)
     }
 
     proto method starts-with(|) {*}
@@ -314,12 +314,12 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method split(Cool: |c) {
-        self.Stringy.split(|c);
+        self.Str.split(|c);
     }
 
     method match(Cool:D: |c) {
         $/ := nqp::getlexcaller('$/');
-        self.Stringy.match(|c)
+        self.Str.match(|c)
     }
 
     proto method comb(|) {*}
@@ -366,7 +366,7 @@ my class Cool { # declared in BOOTSTRAP
     }
     multi method subst(Cool:D: $original, $replacement = "", *%options) {
         $/ := nqp::getlexcaller('$/');
-        self.Stringy.subst($original, $replacement, |%options);
+        self.Str.subst($original, $replacement, |%options);
     }
 
     # `$value-to-subst-mutate` will show up in errors when called on non-rw
@@ -387,13 +387,13 @@ my class Cool { # declared in BOOTSTRAP
     method printf (*@args) {  printf(self, @args) };
 
     proto method trim(*%) {*}
-    multi method trim(Cool:D:) { self.Stringy.trim }
+    multi method trim(Cool:D:) { self.Str.trim }
 
     proto method trim-leading(*%) {*}
-    multi method trim-leading(Cool:D:) { self.Stringy.trim-leading }
+    multi method trim-leading(Cool:D:) { self.Str.trim-leading }
 
     proto method trim-trailing(*%) {*}
-    multi method trim-trailing(Cool:D:) { self.Stringy.trim-trailing }
+    multi method trim-trailing(Cool:D:) { self.Str.trim-trailing }
 
     method EVAL(*%opts) {
         EVAL(self, context => CALLER::, |%opts);
@@ -531,7 +531,7 @@ multi sub sprintf(Cool:D $format, *@args) {
     Rakudo::Internals.initialize-sprintf-handler;
     nqp::p6box_s(
       nqp::sprintf(
-        nqp::unbox_s($format.Stringy),
+        nqp::unbox_s($format.Str),
         @args.elems
           ?? nqp::clone(nqp::getattr(@args,List,'$!reified'))
           !! nqp::create(IterationBuffer)

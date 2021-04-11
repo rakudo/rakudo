@@ -12,7 +12,7 @@ my class Allomorph is Str {
     method succ(Allomorph:D:) { self.Numeric.succ }
     method pred(Allomorph:D:) { self.Numeric.pred }
 
-    multi method comb(Allomorph:D: |c) {
+    method comb(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').comb(|c)
     }
 
@@ -20,33 +20,33 @@ my class Allomorph is Str {
         nqp::getattr_s(self,Str,'$!value').split(|c)
     }
 
-    multi method chop(Allomorph:D: |c) {
+    method chop(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').chop(|c)
     }
-    multi method chomp(Allomorph:D:) {
+    method chomp(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').chomp
     }
-    multi method trim(Allomorph:D:) {
+    method trim(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').trim
     }
-    multi method trim-leading(Allomorph:D:) {
+    method trim-leading(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').trim-leading
     }
-    multi method trim-trailing(Allomorph:D:) {
+    method trim-trailing(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').trim-trailing
     }
 
-    multi method substr(Allomorph:D: |c) {
+    method substr(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').substr(|c)
     }
-    multi method substr-rw(Allomorph:D \SELF:
+    method substr-rw(Allomorph:D \SELF:
       $start = 0,
       $want  = Whatever
     ) is rw {
         SELF.substr-rw($start, $want, Str)
     }
 
-    multi method Str(Allomorph:D:) {
+    method Str(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value')
     }
 

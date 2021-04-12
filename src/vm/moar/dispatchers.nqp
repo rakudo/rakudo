@@ -912,7 +912,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
 # proto that we don't need to inovke, or we already did invoke the proto.
 #
 # Multiple dispatch is relatively complex in the most general case. However,
-# the most common case by far consists of
+# the most common case by far consists of:
 #
 # * Arguments are not in any containers or in Scalar containers, which we can
 #   dereference as part of the dispatch program
@@ -951,6 +951,9 @@ my class MultiDispatchCall {
     }
     method candidate() { $!candidate }
     method next() { $!next }
+    method debug() {
+        "Candidate " ~ $!candidate.signature.raku ~ "\n" ~ $!next.debug
+    }
 }
 # * A candidate to try and invoke; if there's a bind failure, it will be
 #   mapped into a resumption
@@ -965,11 +968,17 @@ my class MultiDispatchAmbiguous {
         $!next := $next;
     }
     method next() { $!next }
+    method debug() {
+        "Ambiguous\n" ~ $!next.debug
+    }
 }
 # * The end of the candidates. Either a "no applicable candidates" error
 #   if we are in the initial phase of dispatch, or a next resumption (or
 #   Nil) otherwise.
 my class MultiDispatchEnd {
+    method debug() {
+        "End"
+    }
 }
 # * Not actually used in a plan, just a sentinel to convey we have the
 #   container but not Scalar (such as Proxy) case. The guards in this
@@ -1262,6 +1271,11 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                 if $stop-at-trivial && $first-group && $need-bind-check == 0 {
                     $done := 1;
                 }
+
+                # Otherwise, clear the set of possibles for the next group.
+                else {
+                    nqp::setelems(@possibles, 0);
+                }
             }
 
             # If we're really at the end of the list, we're done.
@@ -1348,13 +1362,107 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             nqp::die('No applicable multi candidates; better error NYI');
         }
         else {
-            nqp::die('Non-trivial multi dispatch NYI');
+            # It's a non-trivial multi dispatch. Prefix the arguments with
+            # the dispatch plan, and also a zero to indicate this is not a
+            # resumption of any kind. The delegate to the non-trivial multi
+            # dispatcher.
+            my $capture-with-plan := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
+                $dispatch-plan);
+            my $capture-delegate := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-int', $capture-with-plan, 0, 0);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-non-trivial',
+                $capture-delegate);
         }
     },
     # Resume of a trivial dispatch.
     -> $capture {
-        nqp::die('Multi-dispatch resumption NYI')
+        # We'll delegate the hard work to the non-trivial dispatcher. We
+        # only want to do that once, however, and so set the dispatch state
+        # to exhausted if we've already done it. Check that's not so.
+        my $track-state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-state);
+        my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
+        if nqp::isnull($state) {
+            # First time. Set state to exhausted.
+            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
+
+            # Obtain resume initialization arguments and form the plan.
+            my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
+            my $target := nqp::captureposarg($init, 0);
+            my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
+            my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0);
+            my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 0);
+
+            # We already called the first candidate in the trivial plan, so
+            # drop it.
+            $dispatch-plan := $dispatch-plan.next;
+
+            # Delegate to the non-trivial dispatcher, passing along the kind
+            # of dispatch we're doing and the plan.
+            my $capture-with-plan := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
+                $dispatch-plan);
+            my $track-kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+            my $capture-delegate := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg', $capture-with-plan, 0, $track-kind);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-non-trivial',
+                $capture-delegate);
+        }
+        else {
+            # Resume next disaptcher, if any, otherwise hand back Nil.
+            if !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $capture, 0, Nil));
+            }
+        }
     });
+# The non-trivial multi dispatch has quite similar initial and resume steps,
+# and thus the majority of the work is factored out into a subroutine.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
+    # Initialization of a non-trivial dispatch. Receives a dispatch resumption
+    # kind, which is zero if we're not resuming.
+    -> $capture {
+        # Extract and guard on the kind (first argument).
+        my $track-kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-kind);
+        my int $kind := nqp::captureposarg_i($capture, 0);
+
+        # Extract and track the current state.
+        my $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
+        my $cur-state := nqp::captureposarg($capture, 1);
+
+        # Drop the leading two arguments to get the argument capture.
+        my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0), 0);
+
+        # Perform the step. XXX TODO resume init state 
+        raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $arg-capture);
+    },
+    -> $capture {
+        nqp::die('Non-trivial multi dispatch resumption NYI')
+    });
+sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-capture) {
+    if nqp::istype($cur-state, MultiDispatchTry) {
+        nqp::die('Multi-dispatch with bind checks NYI');
+    }
+    elsif nqp::istype($cur-state, MultiDispatchCall) {
+        # Guard on the current state and on the callee (the type guards are
+        # implicitly established when we guard the callee).
+        my $track-candidate := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $track-cur-state, MultiDispatchCall, '$!candidate');
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-candidate);
+
+        # Set up the call.
+        my $capture-delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+            $arg-capture, 0, $track-candidate);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture-delegate);
+    }
+    else {
+        nqp::die('Non-trivial multi dispatch step NYI for ' ~ $cur-state.HOW.name($cur-state));
+    }
+}
 
 # This is where invocation bottoms out, however we reach it. By this point, we
 # just have something to invoke, which is either a code object (potentially with

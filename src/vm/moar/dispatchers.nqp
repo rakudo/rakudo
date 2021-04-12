@@ -1033,6 +1033,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
     my $need_type_guard := nqp::list_i();
     my $need_conc_guard := nqp::list_i();
     my @possibles;
+    my $Positional := nqp::gethllsym('Raku', 'MD_Pos');
     until $done {
         # The candidate list is broken into tied groups (that is, groups of
         # candidates that are equally narrow). Those are seperated by a
@@ -1092,9 +1093,16 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                         }
 
                         # Ensure the value meets the required type constraints.
-                        unless nqp::istype_nd($value, $type) {
-                            # XXX various failovers, such as positional bind
-                            $type_mismatch := 1;
+                        unless nqp::eqaddr($type, Mu) || nqp::istype_nd($value, $type) {
+                            if $type =:= $Positional {
+                                # Things like Seq can bind to an @ sigil.
+                                my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
+                                unless nqp::istype_nd($value, $PositionalBindFailover) {
+                                    $type_mismatch := 1;
+                                }
+                            } else {
+                                $type_mismatch := 1;
+                            }
                         }
 
                         # Also ensure any concreteness constraints are unheld.

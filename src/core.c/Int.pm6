@@ -367,10 +367,10 @@ multi sub infix:<%%>(int $a, int $b --> Bool:D) {
 multi sub infix:<**>(Int:D \a, Int:D \b --> Real:D) {
     my $power := nqp::pow_I(nqp::decont(a), nqp::decont(b), Num, Int);
     # when a**b is too big nqp::pow_I returns Inf
-    nqp::istype($power, Num) && nqp::isnanorinf($power)
-        ?? Failure.new(
-            b >= 0 ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new
-        ) !! b >= 0 ?? $power
+    nqp::istype($power, Int)
+        ?? $power
+        !! nqp::isnanorinf($power)
+            ?? Failure.new(b >= 0 ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new)
             !! $power == 0 && a != 0
                 ?? Failure.new(X::Numeric::Underflow.new)
                     !! $power.Rat(1e-15);

@@ -260,45 +260,83 @@ my class DateTime does Dateish {
       Numeric:D $epoch is copy, :$timezone = 0, :&formatter, *%_
     --> DateTime:D) {
 
+        # Interpret $time as a POSIX time in seconds since (or before) the Unix epoch.
         # allow for timezone offset
         $epoch = $epoch + $timezone;
 
-        # Interpret $time as a POSIX time.
-        my $second := $epoch % 60;
-        my Int $minutes := nqp::div_I($epoch.Int, 60, Int);
-        my Int $minute  := nqp::mod_I($minutes, 60, Int);
-        my Int $hours   := nqp::div_I($minutes, 60, Int);
-        my Int $hour    := nqp::mod_I($hours, 24, Int);
-        my Int $days    := nqp::div_I($hours, 24, Int);
+        # handle negative POSIX epoch values
+        if $epoch < 0 {
+            # convert to Julian date (days as a fraction)
+            constant \unix-epoch-jd = 2_440_587.5;
+            constant \sec-per-day = 86400;
+            my $jd = unix-epoch-jd + $epoch/sec-per-day;
+            # use jd2cal sub from Perl module Astro::Montenbruck::Time.pm
+            # assume Gregorian calendar
+            my ($ye, $mo, $da) = jd2cal $jd;
+            my Int $year  := $ye;
+            my Int $month := $mo;
 
-        # Day month and leap year arithmetic, based on Gregorian day #.
-        # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
-        my Int $julian := $days + 2440588;   # because 2000-01-01 == Unix epoch day 10957
+            # convert the day into its parts
+            my ($frac-day, $day) = modf $da;
+            my $hours = $frac-day * 24;
+            my Int $hour := $hours.Int;
+            my $minutes = ($hours - $hour) * 60;
+            my Int $minute := $minutes.Int;
+            my $second := ($minutes - $minute) * 60;
 
-        my Int $a := $julian + 32044;     # date algorithm from Claus Tøndering
-        my Int $b := nqp::div_I(4 * $a + 3, 146097, Int);  # 146097 = days in 400 years
-        my Int $c := $a - nqp::div_I(146097 * $b, 4, Int);
-        my Int $d := nqp::div_I(4 * $c + 3, 1461, Int);  # 1461 = days in 4 years
-        my Int $e := $c - nqp::div_I($d * 1461, 4, Int);
-        my Int $m := nqp::div_I(5 * $e + 2, 153, Int); # 153 = days in Mar-Jul Aug-Dec
-        my Int $day   := $e - nqp::div_I(153 * $m + 2, 5, Int) + 1;
-        my Int $month := $m + 3 - 12 * nqp::div_I($m, 10, Int);
-        my Int $year  := $b * 100 + $d - 4800 + nqp::div_I($m, 10, Int);
+            nqp::eqaddr(self.WHAT,DateTime)
+              ?? ( nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+                ?? die "Unexpected named parameter{"s" if %_ > 1} "
+                     ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
+                     ~ "trying to use the named parameter form of .new() but "
+                     ~ "accidentally passed one named parameter as a positional?"
+                !! nqp::create(self)!SET-SELF(
+                     $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
+                 )
+              !! self.bless(
+                   :$year,:$month,:$day,
+                   :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
+                 )!SET-DAYCOUNT;
+        }
+        else {
+            # $epoch >= 0
+            my $second := $epoch % 60;
+            my Int $minutes := nqp::div_I($epoch.Int, 60, Int);
+            my Int $minute  := nqp::mod_I($minutes, 60, Int);
+            my Int $hours   := nqp::div_I($minutes, 60, Int);
+            my Int $hour    := nqp::mod_I($hours, 24, Int);
+            my Int $days    := nqp::div_I($hours, 24, Int);
 
-        nqp::eqaddr(self.WHAT,DateTime)
-          ?? ( nqp::elems(nqp::getattr(%_,Map,'$!storage'))
-            ?? die "Unexpected named parameter{"s" if %_ > 1} "
-                 ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
-                 ~ "trying to use the named parameter form of .new() but "
-                 ~ "accidentally passed one named parameter as a positional?"
-            !! nqp::create(self)!SET-SELF(
-                 $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
-             )
-          !! self.bless(
-               :$year,:$month,:$day,
-               :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
-             )!SET-DAYCOUNT;
+            # Day month and leap year arithmetic, based on Gregorian day #.
+            # 2000-01-01 noon UTC == 2451558.0 Julian == 2451545.0 Gregorian
+            my Int $julian := $days + 2440588;   # because 2000-01-01 == Unix epoch day 10957
+
+            my Int $a := $julian + 32044;     # date algorithm from Claus Tøndering
+            my Int $b := nqp::div_I(4 * $a + 3, 146097, Int);  # 146097 = days in 400 years
+            my Int $c := $a - nqp::div_I(146097 * $b, 4, Int);
+            my Int $d := nqp::div_I(4 * $c + 3, 1461, Int);  # 1461 = days in 4 years
+            my Int $e := $c - nqp::div_I($d * 1461, 4, Int);
+            my Int $m := nqp::div_I(5 * $e + 2, 153, Int); # 153 = days in Mar-Jul Aug-Dec
+            my Int $day   := $e - nqp::div_I(153 * $m + 2, 5, Int) + 1;
+            my Int $month := $m + 3 - 12 * nqp::div_I($m, 10, Int);
+            my Int $year  := $b * 100 + $d - 4800 + nqp::div_I($m, 10, Int);
+
+            nqp::eqaddr(self.WHAT,DateTime)
+              ?? ( nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+                ?? die "Unexpected named parameter{"s" if %_ > 1} "
+                     ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
+                     ~ "trying to use the named parameter form of .new() but "
+                     ~ "accidentally passed one named parameter as a positional?"
+                !! nqp::create(self)!SET-SELF(
+                     $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
+                 )
+              !! self.bless(
+                   :$year,:$month,:$day,
+                   :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
+                 )!SET-DAYCOUNT;
+        }
     }
+
     multi method new(DateTime:
       Str:D $datetime, :$timezone is copy, :&formatter, *%_
     --> DateTime:D) {
@@ -629,6 +667,35 @@ multi sub infix:<+>(DateTime:D \a, Duration:D \b --> DateTime:D) {
 }
 multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
     b.new(b.Instant + a).in-timezone(b.timezone)
+}
+
+my sub modf($x) {
+    # splits $x into integer and fractional parts
+    # note the sign of $x is applied to BOTH parts
+    my $int-part  = $x.Int;
+    my $frac-part = $x - $int-part;
+    $frac-part, $int-part;
+}
+
+my sub jd2cal($jd, :$gregorian = True) {
+    # Standard Julian Date for 31.12.1899 12:00 (astronomical epoch 1900.0)
+    constant \J1900 = 2415020;
+    my ($f, $i) = modf( $jd - J1900 + 0.5 );
+    #note "DEBUG: input to modf: {$jd - J1900 + 0.5} => \$f ($f), \$i ($i)" if 0;
+
+    if $gregorian && $i > -115860  {
+        my $a = floor( $i / 36524.25 + 9.9835726e-1 ) + 14;
+        $i += 1 + $a - floor( $a / 4 );
+    }
+
+    my $b  = floor( $i / 365.25 + 8.02601e-1 );
+    my $c  = $i - floor( 365.25 * $b + 7.50001e-1 ) + 416;
+    my $g  = floor( $c / 30.6001 );
+    my $da = $c - floor( 30.6001 * $g ) + $f;
+    my $mo = $g - ( $g > 13.5 ?? 13 !! 1 );
+    my $ye = $b + ( $mo < 2.5 ?? 1900 !! 1899 );
+    # Note $da is a Real number
+    $ye, $mo, $da;
 }
 
 # vim: expandtab shiftwidth=4

@@ -364,16 +364,19 @@ multi sub infix:<%%>(int $a, int $b --> Bool:D) {
     nqp::hllbool(nqp::iseq_i(nqp::mod_i($a, $b), 0))
 }
 
+my constant UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
+
 multi sub infix:<**>(Int:D \a, Int:D \b --> Real:D) {
-    my $power := nqp::pow_I(nqp::decont(a), nqp::decont(b >= 0 ?? b !! -b), Num, Int);
+    my \decont_b := nqp::decont(b);
+    my $power := nqp::pow_I(nqp::decont(a), nqp::isge_I(decont_b, 0) ?? decont_b !! nqp::neg_I(decont_b, Int), Num, Int);
     # when a**b is too big nqp::pow_I returns Inf
     nqp::istype($power, Num)
-        ?? Failure.new(
-            b >= 0 ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new
-        ) !! b >= 0 ?? $power
-            !! ($power := 1 / $power) == 0 && a != 0
+        ?? Failure.new(nqp::isge_I(decont_b, 0) ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new)
+        !! nqp::isge_I(decont_b, 0)
+            ?? $power
+            !! nqp::isge_I($power, UINT64_UPPER) && nqp::isne_I(nqp::decont(a), 0)
                 ?? Failure.new(X::Numeric::Underflow.new)
-                    !! $power;
+                !! 1 / $power;
 }
 
 multi sub infix:<**>(int $a, int $b --> int) {

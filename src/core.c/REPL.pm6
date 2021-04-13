@@ -440,6 +440,12 @@ do {
 
             $!history-file.absolute
         }
+
+        method now() {
+            my $repl := self.new(nqp::getcomp("Raku"),%_);
+            nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
+            $repl.repl-loop
+        }
     }
 }
 

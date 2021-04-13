@@ -1715,10 +1715,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     multi method subst(Str:D: Str:D $original, Str:D $final = "", *%options) {
-        nqp::if(
+        my $result := nqp::if(
           (my $opts := nqp::getattr(%options,Map,'$!storage'))
             && nqp::isgt_i(nqp::elems($opts),1),
-            self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options),
+          self!SUBST(nqp::getlexcaller('$/'),$original,$final,|%options),
           nqp::if(
             nqp::elems($opts),
             nqp::if(                                      # one named
@@ -1732,10 +1732,23 @@ my class Str does Stringy { # declared in BOOTSTRAP
             ),
             Rakudo::Internals.TRANSPOSE-ONE(self, $original, $final) # no nameds
           )
-        )
+        );
+
+        nqp::istype($result,Failure)
+          ?? $result
+          !! nqp::box_s($result,self)
     }
     multi method subst(Str:D: $matcher, $replacement = "", *%options) {
-        self!SUBST(nqp::getlexcaller('$/'), $matcher, $replacement, |%options)
+        nqp::istype(
+          (my $result := self!SUBST(
+            nqp::getlexcaller('$/'),
+            $matcher,
+            $replacement,
+            |%options
+          )),
+          Failure
+        ) ?? $result
+          !! nqp::box_s($result,self)
     }
     method !SUBST(Str:D: \caller_dollar_slash, $matcher, $replacement,
       :global(:$g), :ii(:$samecase), :ss(:$samespace), :mm(:$samemark),

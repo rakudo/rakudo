@@ -19,6 +19,9 @@ my class Allomorph is Str {
     method split(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').split(|c)
     }
+    method subst(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').subst(|c)
+    }
 
     method samecase(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').samecase(|c)

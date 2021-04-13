@@ -370,8 +370,8 @@ multi sub infix:<**>(Int:D \a, Int:D \b --> Real:D) {
     nqp::istype($power, Int)
         ?? $power
         !! nqp::isnanorinf($power)
-            ?? Failure.new(b >= 0 ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new)
-            !! $power == 0 && a != 0
+            ?? Failure.new(nqp::isge_I(b, 0) ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new)
+            !! nqp::iseq_n($power, 0e0) && nqp::isne_I(a, 0)
                 ?? Failure.new(X::Numeric::Underflow.new)
                     !! $power.Rat(1e-15);
 }

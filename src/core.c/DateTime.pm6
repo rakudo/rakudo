@@ -277,7 +277,8 @@ my class DateTime does Dateish {
             my Int $month := $mo;
 
             # convert the day into its parts
-            my ($frac-day, $day) = modf $da;
+            my ($frac-day, $Day) = modf $da;
+            my Int $day := $Day;
             my $hours = $frac-day * 24;
             my Int $hour := $hours.Int;
             my $minutes = ($hours - $hour) * 60;

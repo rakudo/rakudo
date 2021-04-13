@@ -368,15 +368,21 @@ my constant UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
 
 multi sub infix:<**>(Int:D \a, Int:D \b --> Real:D) {
     my \decont_b := nqp::decont(b);
-    my $power := nqp::pow_I(nqp::decont(a), nqp::isge_I(decont_b, 0) ?? decont_b !! nqp::neg_I(decont_b, Int), Num, Int);
-    # when a**b is too big nqp::pow_I returns Inf
-    nqp::istype($power, Num)
-        ?? Failure.new(nqp::isge_I(decont_b, 0) ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new)
-        !! nqp::isge_I(decont_b, 0)
+    my $power;
+    if nqp::isge_I(decont_b, 0) {
+        $power := nqp::pow_I(nqp::decont(a), decont_b, Num, Int);
+        # when a**b is too big nqp::pow_I returns Inf
+        nqp::istype($power, Int)
             ?? $power
-            !! nqp::isge_I($power, UINT64_UPPER) && nqp::isne_I(nqp::decont(a), 0)
-                ?? Failure.new(X::Numeric::Underflow.new)
-                !! 1 / $power;
+            !! Failure.new(X::Numeric::Overflow.new)
+    }
+    else {
+        $power := nqp::pow_I(nqp::decont(a), nqp::neg_I(decont_b, Int), Num, Int);
+        # when a**b is too big nqp::pow_I returns Inf
+        nqp::istype($power, Num) || (nqp::isge_I($power, UINT64_UPPER) && nqp::isne_I(nqp::decont(a), 0))
+            ?? Failure.new(X::Numeric::Underflow.new)
+            !! 1 / $power;
+    }
 }
 
 multi sub infix:<**>(int $a, int $b --> int) {

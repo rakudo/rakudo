@@ -68,10 +68,10 @@ my class Cool { # declared in BOOTSTRAP
     proto method encode($?, *%) {*}
     multi method encode(Cool:D: |c) { self.Str.encode(|c) }
 
-    method fmt($format = '%s') {
+    method fmt(Str(Cool) $format = '%s') {
         Rakudo::Internals.initialize-sprintf-handler;
         nqp::p6box_s(
-            nqp::sprintf(nqp::unbox_s($format.Str), nqp::list(self))
+            nqp::sprintf(nqp::unbox_s($format), nqp::list(self))
         )
     }
 
@@ -519,7 +519,7 @@ proto sub wordcase($, *%) is pure {*}
 multi sub wordcase($x) { $x.wordcase }
 
 proto sub sprintf($, |) {*}
-multi sub sprintf(Cool:D $format, *@args) {
+multi sub sprintf(Str(Cool) $format, *@args) {
     CATCH {
         when X::Cannot::Lazy {
             X::Cannot::Lazy.new(:action('(s)printf')).throw
@@ -531,7 +531,7 @@ multi sub sprintf(Cool:D $format, *@args) {
     Rakudo::Internals.initialize-sprintf-handler;
     nqp::p6box_s(
       nqp::sprintf(
-        nqp::unbox_s($format.Str),
+        nqp::unbox_s($format),
         @args.elems
           ?? nqp::clone(nqp::getattr(@args,List,'$!reified'))
           !! nqp::create(IterationBuffer)

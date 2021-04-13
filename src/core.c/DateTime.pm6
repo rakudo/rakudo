@@ -272,12 +272,12 @@ my class DateTime does Dateish {
             my $jd = unix-epoch-jd + $epoch/sec-per-day;
             # use jd2cal sub from Perl module Astro::Montenbruck::Time.pm
             # assume Gregorian calendar
-            my ($ye, $mo, $da) = jd2cal $jd;
+            my ($ye, $mo, $da) = self!jd2cal($jd);
             my Int $year  := $ye;
             my Int $month := $mo;
 
             # convert the day into its parts
-            my ($frac-day, $Day) = modf $da;
+            my ($frac-day, $Day) = self!modf($da);
             my Int $day := $Day;
             my $hours = $frac-day * 24;
             my Int $hour := $hours.Int;
@@ -631,6 +631,35 @@ my class DateTime does Dateish {
           ~ (',' ~ :$!timezone.raku if $!timezone)
           ~ ')'
     }
+
+    method !modf($x --> List) {
+        # splits $x into integer and fractional parts
+        # note the sign of $x is applied to BOTH parts
+        my $int-part  = $x.Int;
+        my $frac-part = $x - $int-part;
+        $frac-part, $int-part;
+    }
+
+    method !jd2cal($jd, :$gregorian = True --> List) {
+        # Standard Julian Date for 31.12.1899 12:00 (astronomical epoch 1900.0)
+        constant \J1900 = 2415020;
+        my ($f, $i) = self!modf( $jd - J1900 + 0.5 );
+        #note "DEBUG: input to modf: {$jd - J1900 + 0.5} => \$f ($f), \$i ($i)" if 0;
+
+        if $gregorian && $i > -115860  {
+            my $a = floor( $i / 36524.25 + 9.9835726e-1 ) + 14;
+            $i += 1 + $a - floor( $a / 4 );
+        }
+
+        my $b  = floor( $i / 365.25 + 8.02601e-1 );
+        my $c  = $i - floor( 365.25 * $b + 7.50001e-1 ) + 416;
+        my $g  = floor( $c / 30.6001 );
+        my $da = $c - floor( 30.6001 * $g ) + $f;
+        my $mo = $g - ( $g > 13.5 ?? 13 !! 1 );
+        my $ye = $b + ( $mo < 2.5 ?? 1900 !! 1899 );
+        # Note $da is a Real number
+        $ye, $mo, $da;
+    }
 }
 
 multi sub infix:«<»(DateTime:D \a, DateTime:D \b --> Bool:D) {
@@ -668,35 +697,6 @@ multi sub infix:<+>(DateTime:D \a, Duration:D \b --> DateTime:D) {
 }
 multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
     b.new(b.Instant + a).in-timezone(b.timezone)
-}
-
-my sub modf($x) {
-    # splits $x into integer and fractional parts
-    # note the sign of $x is applied to BOTH parts
-    my $int-part  = $x.Int;
-    my $frac-part = $x - $int-part;
-    $frac-part, $int-part;
-}
-
-my sub jd2cal($jd, :$gregorian = True) {
-    # Standard Julian Date for 31.12.1899 12:00 (astronomical epoch 1900.0)
-    constant \J1900 = 2415020;
-    my ($f, $i) = modf( $jd - J1900 + 0.5 );
-    #note "DEBUG: input to modf: {$jd - J1900 + 0.5} => \$f ($f), \$i ($i)" if 0;
-
-    if $gregorian && $i > -115860  {
-        my $a = floor( $i / 36524.25 + 9.9835726e-1 ) + 14;
-        $i += 1 + $a - floor( $a / 4 );
-    }
-
-    my $b  = floor( $i / 365.25 + 8.02601e-1 );
-    my $c  = $i - floor( 365.25 * $b + 7.50001e-1 ) + 416;
-    my $g  = floor( $c / 30.6001 );
-    my $da = $c - floor( 30.6001 * $g ) + $f;
-    my $mo = $g - ( $g > 13.5 ?? 13 !! 1 );
-    my $ye = $b + ( $mo < 2.5 ?? 1900 !! 1899 );
-    # Note $da is a Real number
-    $ye, $mo, $da;
 }
 
 # vim: expandtab shiftwidth=4

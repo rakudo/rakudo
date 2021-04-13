@@ -1701,17 +1701,24 @@ my class Str does Stringy { # declared in BOOTSTRAP
         my \matches := %options
           ?? self.match($matcher, |%options)
           !! self.match($matcher);  # 30% faster
+
         nqp::if(
-          nqp::istype(matches, Failure) || nqp::isfalse(matches),
+          nqp::istype(matches,Failure) || nqp::isfalse(matches),
+          $SET_DOLLAR_SLASH && (try caller_dollar_slash = $/),
           nqp::stmts(
-            $SET_DOLLAR_SLASH && (try caller_dollar_slash = $/),
-            matches),
-          nqp::stmts(
-            ($self = $self!APPLY-MATCHES: matches, $replacement,
-              caller_dollar_slash, $SET_DOLLAR_SLASH, $word_by_word,
-              $samespace, $samecase, $samemark),
+            ($self = nqp::box_s(
+              $self!APPLY-MATCHES(
+                matches, $replacement,
+                caller_dollar_slash, $SET_DOLLAR_SLASH,
+                $word_by_word, $samespace, $samecase, $samemark
+              ),
+              self
+            )),
             $SET_DOLLAR_SLASH && (try caller_dollar_slash = matches),
-            matches))
+          )
+        );
+
+        matches   
     }
 
     multi method subst(Str:D: Str:D $original, Str:D $final = "", *%options) {

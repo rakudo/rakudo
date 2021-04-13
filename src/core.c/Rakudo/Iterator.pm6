@@ -74,7 +74,7 @@ class Rakudo::Iterator {
         method new(\hash) { nqp::create(self)!SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
 
     # Generic role for iterating over a Map / Hash that has pairs
@@ -139,7 +139,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
 
@@ -435,12 +435,12 @@ class Rakudo::Iterator {
         }
     }
     my class AllButLast does Iterator does AllButLastRole {
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     my class AllButLastPredictive does PredictiveIterator does AllButLastRole {
         method count-only() { ($!iterator.count-only || 1) - 1 }
         method bool-only()  {  $!iterator.count-only > 1       }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
 
     proto method AllButLast(|) {*}
@@ -501,7 +501,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method AllButLastNValues(\iterator, \n) {
         n == 1
@@ -532,7 +532,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method AntiPair(\iterator) { AntiPair.new(iterator) }
 
@@ -561,7 +561,7 @@ class Rakudo::Iterator {
               target.push(associative.AT-KEY(key))
             )
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method AssociativeIterableKeys(\asso, \iterable) {
         AssociativeIterableKeys.new(asso,iterable.iterator)
@@ -629,7 +629,7 @@ class Rakudo::Iterator {
           )
         }
         method is-lazy() { $!iterator.is-lazy }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Batch(\iterator,\size,\partial) { Batch.new(iterator,size,partial) }
 
@@ -1696,7 +1696,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method DWIM(\source) { DWIM.new(source) }
 
@@ -1749,7 +1749,7 @@ class Rakudo::Iterator {
                   IterationEnd),
                 got2))
         }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
         method sink-all(--> IterationEnd) { self.FINISH-UP }
         method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }
         method !SET-SELF($!source,$!n,&!callable) { self }
@@ -1774,7 +1774,7 @@ class Rakudo::Iterator {
         }
         method new(\s,\c) { nqp::create(self)!SET-SELF(s,c) }
         method !SET-SELF($!source,&!callable) { self }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method FirstNThenSinkAll(\source,\n,&callable?) {
         # XXX TODO: Make this code DRYer by moving common bits to a role,
@@ -1852,7 +1852,7 @@ class Rakudo::Iterator {
             );
         }
         method is-lazy() { $!source.is-lazy }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method Flat(\iterator) { Flat.new(iterator) }
 
@@ -1929,7 +1929,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!source.is-lazy && $!indexes.is-lazy }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method FromIndexes(\source,\indexes,\offset,&out?) {
         FromIndexes.new(source,indexes,offset,&out)
@@ -2185,7 +2185,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!iterator.is-lazy }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
         method sink-all(--> IterationEnd) {
             nqp::until(
               nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd),
@@ -2235,7 +2235,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method KeyValue(\iterator) { KeyValue.new(iterator) }
 
@@ -2317,7 +2317,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method LastNValues(\iterator, \n, \action, $full = 0) {
         LastNValues.new(iterator, n, action, $full)
@@ -2379,7 +2379,7 @@ class Rakudo::Iterator {
         }
 
         method is-lazy(--> True) { }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Lazy(\iterable) { Lazy.new(iterable) }
 
@@ -2880,8 +2880,8 @@ class Rakudo::Iterator {
             );
             IterationEnd
         }
-        method deterministic(--> Bool:D) {
-            $!source.deterministic && $!indexes.deterministic
+        method is-deterministic(--> Bool:D) {
+            $!source.is-deterministic && $!indexes.is-deterministic
         }
     }
     method MonotonicIndexes(\source,\indexes,\offset,&out?) {
@@ -3076,7 +3076,7 @@ class Rakudo::Iterator {
               target.push(pulled)
             );
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method NextNValues(\iterator, \times) { NextNValues.new(iterator, times) }
 
@@ -3197,7 +3197,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method Pairs(\iterator) { Pairs.new(iterator) }
 
@@ -3667,7 +3667,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy(--> True) { }     # we're lazy, always
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Repeat(\iterator) { Repeat.new(iterator) }
 
@@ -3773,7 +3773,7 @@ class Rakudo::Iterator {
                 ?? self!exhausted()
                 !! pulled
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Rotate(\rotate, \iterator) {
         RotateIterator.new(rotate, iterator)
@@ -3945,7 +3945,7 @@ class Rakudo::Iterator {
           )
         }
         method is-lazy() { $!iterator.is-lazy }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Rotor(\iterator,\cycle,\partial) {
         Rotor.new(iterator,cycle,partial)
@@ -4366,7 +4366,7 @@ class Rakudo::Iterator {
             )
         }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method Toggle(\iter, \conds, $on) { Toggle.new(iter, conds, $on) }
 
@@ -4387,7 +4387,7 @@ class Rakudo::Iterator {
             );
             IterationEnd
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Truthy(\iterator) { Truthy.new(iterator) }
 
@@ -4520,7 +4520,7 @@ class Rakudo::Iterator {
             IterationEnd
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method UniqueRepeatedAsWith(\iterator, \as, \with, \unique) {
@@ -4578,7 +4578,7 @@ class Rakudo::Iterator {
             IterationEnd
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method UniqueRepeatedWith(\iterator, \with, \unique) {
@@ -4614,7 +4614,7 @@ class Rakudo::Iterator {
               $!iter.pull-one
             )
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method Until(\iter, &cond) { Until.new(iter, &cond) }
@@ -4673,7 +4673,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method Whatever(\source) { WhateverIterator.new(source) }
 
@@ -4704,7 +4704,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method While(\iter, &cond) { While.new(iter, &cond) }

@@ -649,7 +649,7 @@ my class array does Iterable does Positional {
                   IterationEnd
                 )
             }
-            method deterministic(--> False) { }
+            method is-deterministic(--> False) { }
         }
         multi method grab(strarray:D: \count --> Seq:D) {
             Seq.new(
@@ -1263,7 +1263,7 @@ my class array does Iterable does Positional {
                   IterationEnd
                 )
             }
-            method deterministic(--> False) { }
+            method is-deterministic(--> False) { }
         }
         multi method grab(intarray:D: \count --> Seq:D) {
             Seq.new(
@@ -1919,7 +1919,7 @@ my class array does Iterable does Positional {
                   IterationEnd
                 )
             }
-            method deterministic(--> False) { }
+            method is-deterministic(--> False) { }
         }
         multi method grab(numarray:D: \count --> Seq:D) {
             Seq.new(

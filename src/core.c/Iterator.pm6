@@ -109,7 +109,7 @@ my role Iterator {
     # the same for a given data source).  This is True for most iterators,
     # but *not* true for iterators that typically return keys and/or values
     # from a hash.
-    method deterministic(--> True) { }
+    method is-deterministic(--> True) { }
 }
 
 # The PredictiveIterator role is a refinement of the Iterator role for those

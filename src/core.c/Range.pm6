@@ -487,7 +487,7 @@ my class Range is Cool does Iterable does Positional {
         method new(\b,\e) { nqp::create(self)!SET-SELF(b,e) }
         method pull-one() { $!min + nqp::rand_I($!elems, Int) }
         method is-lazy(--> True) { }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     my class RollN does Iterator {
         has $!min;
@@ -509,7 +509,7 @@ my class Range is Cool does Iterable does Positional {
             target.push($!min + nqp::rand_I($!elems, Int))
               while $!todo--;
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method roll(Range:D: Whatever) {
         (my \elems := self.elems)
@@ -579,7 +579,7 @@ my class Range is Cool does Iterable does Positional {
                 }
             }
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method pick() { self.roll }
     multi method pick(Whatever)  {

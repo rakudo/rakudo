@@ -874,7 +874,7 @@ Consider using a block if any of these are necessary for your mapping code."
             );
             $!index = $i;
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-k(Callable:D $test) { Seq.new(Grep-K.new(self,$test)) }
 
@@ -930,7 +930,7 @@ Consider using a block if any of these are necessary for your mapping code."
               )
             );
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-kv(Callable:D $test) { Seq.new(Grep-KV.new(self,$test)) }
 
@@ -973,7 +973,7 @@ Consider using a block if any of these are necessary for your mapping code."
             );
             $!index = $i;
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-p(Callable:D $test) { Seq.new(Grep-P.new(self,$test)) }
 
@@ -987,7 +987,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
         method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-callable(Callable:D $test) {
         nqp::if(
@@ -1617,7 +1617,7 @@ Consider using a block if any of these are necessary for your mapping code."
             )
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     multi method unique() { Seq.new(Unique.new(self)) }
@@ -1665,7 +1665,7 @@ Consider using a block if any of these are necessary for your mapping code."
               )
             )
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method unique( :&as! ) { Seq.new(Unique-As.new(self,&as)) }
 
@@ -1708,7 +1708,7 @@ Consider using a block if any of these are necessary for your mapping code."
             );
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method repeated() { Seq.new(Repeated.new(self)) }
 
@@ -1752,7 +1752,7 @@ Consider using a block if any of these are necessary for your mapping code."
             );
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method repeated( :&as! ) { Seq.new(Repeated-As.new(self,&as)) }
 
@@ -1831,7 +1831,7 @@ Consider using a block if any of these are necessary for your mapping code."
             }
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method squish( :&as!, :&with = &[===] ) {
         Seq.new(Squish-As.new(self.iterator, &as, &with))
@@ -1900,7 +1900,7 @@ Consider using a block if any of these are necessary for your mapping code."
             }
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method squish( :&with = &[===] ) {
         Seq.new(Squish-With.new(self.iterator,&with))

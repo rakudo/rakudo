@@ -50,7 +50,7 @@ my role Rakudo::SlippyIterator does Iterator {
           $slip.iterator.push-all(target)
         )
     }
-    method deterministic(--> Bool:D) { $!slip-iter.deterministic }
+    method is-deterministic(--> Bool:D) { $!slip-iter.is-deterministic }
 }
 
 # vim: expandtab shiftwidth=4

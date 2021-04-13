@@ -1243,7 +1243,7 @@ my class Array { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method grab(Array:D: \count --> Seq:D) {
         Seq.new(

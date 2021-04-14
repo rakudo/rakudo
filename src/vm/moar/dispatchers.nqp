@@ -942,7 +942,7 @@ my class MultiDispatchCall {
     has $!candidate;
     has $!next;
     method new($candidate) {
-        my $obj := nqp::create(MultiDispatchCall);
+        my $obj := nqp::create(self);
         nqp::bindattr($obj, MultiDispatchCall, '$!candidate', $candidate);
         $obj
     }
@@ -958,6 +958,9 @@ my class MultiDispatchCall {
 # * A candidate to try and invoke; if there's a bind failure, it will be
 #   mapped into a resumption
 my class MultiDispatchTry is MultiDispatchCall {
+    method debug() {
+        "Try candidate " ~ self.candidate.signature.raku ~ "\n" ~ self.next.debug
+    }
 }
 # * An ambiguity. It's only an error if it's reached during the initial
 #   phase of dispatch, not during a callsame-alike, thus why the chain
@@ -1341,6 +1344,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
         my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
         my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 1);
         if nqp::istype($dispatch-plan, MultiDispatchCall) &&
+                !nqp::istype($dispatch-plan, MultiDispatchTry) &&
                 nqp::istype($dispatch-plan.next, MultiDispatchEnd) {
             # Trivial multi dispatch. Set dispatch state for resumption, and
             # then delegate to raku-invoke to run it.
@@ -1476,10 +1480,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
     });
 sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-capture,
         $is-resume) {
-    if nqp::istype($cur-state, MultiDispatchTry) {
-        nqp::die('Multi-dispatch with bind checks NYI');
-    }
-    elsif nqp::istype($cur-state, MultiDispatchCall) {
+    if nqp::istype($cur-state, MultiDispatchCall) {
         # Guard on the current state and on the callee (the type guards are
         # implicitly established when we guard the callee).
         my $track-candidate := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
@@ -1497,6 +1498,11 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-ca
             my $init-state := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                 $arg-capture, 0, $next);
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $init-state);
+        }
+
+        # If it needs a bind check, set us up to resume if it fails.
+        if nqp::istype($cur-state, MultiDispatchTry) {
+            nqp::dispatch('boot-syscall', 'dispatcher-resume-on-bind-failure', $kind);
         }
 
         # Set up the call.

@@ -260,10 +260,10 @@ my class DateTime does Dateish {
       Numeric:D $epoch is copy, :$timezone = 0, :&formatter, *%_
     --> DateTime:D) {
 
+        # Interpret $time as a POSIX time in seconds since (or before) the Unix epoch.
         # allow for timezone offset
         $epoch = $epoch + $timezone;
 
-        # Interpret $time as a POSIX time.
         # handle negative POSIX epoch values
         return self!negative-posix-epoch($epoch, :$timezone, :&formatter, |%_) if $epoch < 0;
         
@@ -303,6 +303,7 @@ my class DateTime does Dateish {
                :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
              )!SET-DAYCOUNT;
     }
+
     multi method new(DateTime:
       Str:D $datetime, :$timezone is copy, :&formatter, *%_
     --> DateTime:D) {

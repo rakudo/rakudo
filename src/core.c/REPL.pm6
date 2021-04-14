@@ -440,13 +440,13 @@ do {
 
             $!history-file.absolute
         }
-
-        method here() {
-            my $repl := self.new(nqp::getcomp("Raku"),%_);
-            nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
-            $repl.repl-loop
-        }
     }
+}
+
+sub repl(*%_) {
+    my $repl := REPL.new(nqp::getcomp("Raku"),%_);
+    nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
+    $repl.repl-loop
 }
 
 # vim: expandtab shiftwidth=4

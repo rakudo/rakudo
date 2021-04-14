@@ -264,6 +264,10 @@ my class DateTime does Dateish {
         $epoch = $epoch + $timezone;
 
         # Interpret $time as a POSIX time.
+        # handle negative POSIX epoch values
+        return self!negative-posix-epoch($epoch, :$timezone, :&formatter, |%_) if $epoch < 0;
+        
+        # $epoch >= 0
         my $second := $epoch % 60;
         my Int $minutes := nqp::div_I($epoch.Int, 60, Int);
         my Int $minute  := nqp::mod_I($minutes, 60, Int);
@@ -591,6 +595,70 @@ my class DateTime does Dateish {
           ~ ".new($!year,$!month,$!day,$!hour,$!minute,$!second"
           ~ (',' ~ :$!timezone.raku if $!timezone)
           ~ ')'
+    }
+
+    method !modf($x --> List) {
+        # splits $x into integer and fractional parts
+        # note the sign of $x is applied to BOTH parts
+        my $int-part  = $x.Int;
+        my $frac-part = $x - $int-part;
+        $frac-part, $int-part;
+    }
+
+    method !jd2cal($jd, :$gregorian = True --> List) {
+        # Standard Julian Date for 31.12.1899 12:00 (astronomical epoch 1900.0)
+        constant \J1900 = 2415020;
+        my ($f, $i) = self!modf( $jd - J1900 + 0.5 );
+        #note "DEBUG: input to modf: {$jd - J1900 + 0.5} => \$f ($f), \$i ($i)" if 0;
+
+        if $gregorian && $i > -115860  {
+            my $a = floor( $i / 36524.25 + 9.9835726e-1 ) + 14;
+            $i += 1 + $a - floor( $a / 4 );
+        }
+
+        my $b  = floor( $i / 365.25 + 8.02601e-1 );
+        my $c  = $i - floor( 365.25 * $b + 7.50001e-1 ) + 416;
+        my $g  = floor( $c / 30.6001 );
+        my $da = $c - floor( 30.6001 * $g ) + $f;
+        my $mo = $g - ( $g > 13.5 ?? 13 !! 1 );
+        my $ye = $b + ( $mo < 2.5 ?? 1900 !! 1899 );
+        # Note $da is a Real number
+        $ye, $mo, $da;
+    }
+
+    method !negative-posix-epoch($epoch, :$timezone, :&formatter, *%_) {
+        # convert to Julian date (days as a fraction)
+        constant \unix-epoch-jd = 2_440_587.5;
+        constant \sec-per-day = 86400;
+        my $jd = unix-epoch-jd + $epoch/sec-per-day;
+        # use jd2cal sub from Perl module Astro::Montenbruck::Time.pm
+        # assume Gregorian calendar
+        my ($ye, $mo, $da) = self!jd2cal($jd);
+        my Int $year  := $ye;
+        my Int $month := $mo;
+
+        # convert the day into its parts
+        my ($frac-day, $Day) = self!modf($da);
+        my Int $day    := $Day;
+        my $hours       = $frac-day * 24;
+        my Int $hour   := $hours.Int;
+        my $minutes     = ($hours - $hour) * 60;
+        my Int $minute := $minutes.Int;
+        my $second     := ($minutes - $minute) * 60;
+
+        nqp::eqaddr(self.WHAT,DateTime)
+          ?? ( nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+            ?? die "Unexpected named parameter{"s" if %_ > 1} "
+                 ~ %_.keys.map({"`$_`"}).join(", ") ~ " passed. Were you "
+                 ~ "trying to use the named parameter form of .new() but "
+                 ~ "accidentally passed one named parameter as a positional?"
+            !! nqp::create(self)!SET-SELF(
+                 $year,$month,$day,$hour,$minute,$second,$timezone,&formatter)
+             )
+          !! self.bless(
+               :$year,:$month,:$day,
+               :$hour,:$minute,:$second,:$timezone,:&formatter,|%_
+             )!SET-DAYCOUNT;
     }
 }
 

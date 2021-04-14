@@ -246,9 +246,11 @@ do {
             $self but FallbackBehavior
         }
 
-        method new(Mu \compiler, Mu \adverbs) {
-            say compiler.version_string(:shorten-versions);
-            say '';
+        method new(Mu \compiler, Mu \adverbs, $skip?) {
+            unless $skip {
+                say compiler.version_string(:shorten-versions);
+                say '';
+            }
 
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
@@ -444,7 +446,7 @@ do {
 }
 
 sub repl(*%_) {
-    my $repl := REPL.new(nqp::getcomp("Raku"),%_);
+    my $repl := REPL.new(nqp::getcomp("Raku"), %_, True);
     nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
     $repl.repl-loop
 }

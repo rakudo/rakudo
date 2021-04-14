@@ -1437,13 +1437,45 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
         my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
             nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0), 0);
 
-        # Perform the step. XXX TODO resume init state 
-        raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $arg-capture);
+        # Perform the step.
+        raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $arg-capture, 0);
     },
     -> $capture {
-        nqp::die('Non-trivial multi dispatch resumption NYI')
+        # Extract and guard on the kind (first argument).
+        my $track-kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-kind);
+        my int $kind := nqp::captureposarg_i($capture, 0);
+
+        # Have dispatch state already, or first resume?
+        my $track-state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
+        my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
+        if nqp::isnull($state) {
+            # First resumption. Guard that it is so.
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-state);
+
+            # Obtain plan and args from init state.
+            my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
+            my $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                $init, 0);
+            my $cur-state := nqp::captureposarg($init, 0);
+
+            # Drop the leading argument to get the argument capture, and
+            # then perform the step.
+            my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                $init, 0);
+            raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $arg-capture, 1);
+        }
+        else {
+            # Drop the leading argument to get the argument capture, and
+            # then perform the step.
+            my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
+            my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                $init, 0);
+            raku-multi-non-trivial-step($kind, $track-state, $state, $arg-capture, 1);
+        }
     });
-sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-capture) {
+sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-capture,
+        $is-resume) {
     if nqp::istype($cur-state, MultiDispatchTry) {
         nqp::die('Multi-dispatch with bind checks NYI');
     }
@@ -1453,6 +1485,19 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-ca
         my $track-candidate := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
             $track-cur-state, MultiDispatchCall, '$!candidate');
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-candidate);
+
+        # Peel off one candidate and use that as the next state.
+        if $is-resume {
+            my $track-next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track-cur-state, MultiDispatchCall, '$!next');
+            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track-next);
+        }
+        else {
+            my $next := $cur-state.next;
+            my $init-state := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $arg-capture, 0, $next);
+            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $init-state);
+        }
 
         # Set up the call.
         my $capture-delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',

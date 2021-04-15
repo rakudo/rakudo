@@ -368,12 +368,14 @@ my constant UINT64_UPPER = nqp::pow2_I(2, 64, Int);
 
 multi sub infix:<**>(Int:D $a, Int:D $b --> Real:D) {
     # when a**b is too big nqp::pow2_I returns (Int)
-    nqp::isge_I($b, 0)
-      ?? nqp::isconcrete((my $power := nqp::pow2_I($a, $b, Int))) 
+    nqp::isconcrete((my $power := nqp::pow2_I($a, $b, Int)))
+      ?? nqp::isge_I($b, 0)
         ?? $power
-        !! POW_FAIL(1)
-      !! nqp::isconcrete(($power := nqp::pow2_I($a, nqp::neg_I($b, Int), Int))) && (nqp::islt_I($power, UINT64_UPPER) || nqp::iseq_I($a, 0))
-        ?? 1 / $power
+        !! nqp::islt_I($power, UINT64_UPPER) || nqp::iseq_I($a, 0)
+          ?? 1 / $power
+          !! POW_FAIL(0)
+      !! nqp::isge_I($b, 0)
+        ?? POW_FAIL(1)
         !! POW_FAIL(0)
 }
 

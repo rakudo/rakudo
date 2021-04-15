@@ -371,10 +371,14 @@ multi sub infix:<**>(Int:D $a, Int:D $b --> Real:D) {
     nqp::isge_I($b, 0)
       ?? nqp::isconcrete((my $power := nqp::pow2_I($a, $b, Int))) 
         ?? $power
-        !! Failure.new(X::Numeric::Overflow.new)
+        !! POW_FAIL(1)
       !! nqp::isconcrete(($power := nqp::pow2_I($a, nqp::neg_I($b, Int), Int))) && (nqp::islt_I($power, UINT64_UPPER) || nqp::iseq_I($a, 0))
         ?? 1 / $power
-        !! Failure.new(X::Numeric::Underflow.new)
+        !! POW_FAIL(0)
+}
+
+sub POW_FAIL(Int:D \b --> Failure:D) is implementation-detail {
+    Failure.new(b ?? X::Numeric::Overflow.new !! X::Numeric::Underflow.new)
 }
 
 multi sub infix:<**>(int $a, int $b --> int) {

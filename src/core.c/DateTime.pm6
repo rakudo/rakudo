@@ -265,7 +265,7 @@ my class DateTime does Dateish {
         $epoch = $epoch + $timezone;
 
         # handle negative POSIX epoch values
-        return self!negative-posix-epoch($epoch, :$timezone, :&formatter, |%_) if $epoch < 0;
+        #return self!negative-posix-epoch($epoch, :$timezone, :&formatter, |%_) if $epoch < 0;
         
         # $epoch >= 0
         my $second := $epoch % 60;
@@ -630,11 +630,11 @@ my class DateTime does Dateish {
     method !negative-posix-epoch($epoch, :$timezone, :&formatter, *%_) {
         # convert to Julian date (days as a fraction)
         constant \unix-epoch-jd = 2_440_587.5;
-        constant \sec-per-day = 86400;
+        constant \sec-per-day   = 86400;
         my $jd = unix-epoch-jd + $epoch/sec-per-day;
         # use jd2cal sub from Perl module Astro::Montenbruck::Time.pm
         # assume Gregorian calendar
-        my ($ye, $mo, $da) = self!jd2cal($jd);
+        my ($ye, $mo, $da) = self!jd2cal($jd, :gregorian(False));
         my Int $year  := $ye;
         my Int $month := $mo;
 

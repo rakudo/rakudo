@@ -265,7 +265,7 @@ my class DateTime does Dateish {
         $epoch = $epoch + $timezone;
 
         # handle negative POSIX epoch values
-        #return self!negative-posix-epoch($epoch, :$timezone, :&formatter, |%_) if $epoch < 0;
+        return self!negative-posix-epoch($epoch, :$timezone, :&formatter, |%_) if $epoch < 0;
         
         # $epoch >= 0
         my $second := $epoch % 60;

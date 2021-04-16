@@ -264,10 +264,15 @@ my class DateTime does Dateish {
         # allow for timezone offset
         $epoch = $epoch + $timezone;
 
-        # handle negative POSIX epoch values
-        return self!negative-posix-epoch($epoch, :$timezone, :&formatter, |%_) if $epoch < 0;
+        constant \unix-epoch-jd = 2_440_587.5;
+        constant \sec-per-day   = 86400;
+        # handle negative POSIX epoch values less than 0001-01-01T00:00:00Z 
+        constant \AD-min-julian-date = 1_720_057.5; # from JPL Time Conversion Tool
+        constant \min-unix-epoch = (AD-min-julian-date - unix-epoch-jd) * sec-per-day; 
+        return self!negative-posix-epoch($epoch, :$timezone, :&formatter, |%_) if $epoch < min-unix-epoch;
         
-        # $epoch >= 0
+        # use normal handling for most A.D. dates
+        # $epoch >= min-epoch
         my $second := $epoch % 60;
         my Int $minutes := nqp::div_I($epoch.Int, 60, Int);
         my Int $minute  := nqp::mod_I($minutes, 60, Int);
@@ -628,7 +633,7 @@ my class DateTime does Dateish {
     }
 
     method !negative-posix-epoch($epoch, :$timezone, :&formatter, *%_) {
-        # convert to Julian date (days as a fraction)
+        # convert epoch seconds to Julian date (days as a fraction)
         constant \unix-epoch-jd = 2_440_587.5;
         constant \sec-per-day   = 86400;
         my $jd = unix-epoch-jd + $epoch/sec-per-day;

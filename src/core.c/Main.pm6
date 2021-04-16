@@ -83,7 +83,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 if !$param.named { next }
                 for $param.named_names -> str $name {
                     my int $accepts-true = $param.type.ACCEPTS: True;
-                    for $param.constraint_list { $accepts-true++ if .ACCEPTS: True}
+                    for $param.constraint_list { $accepts-true++ if try .ACCEPTS: True}
                     if !$accepts-true { %options-with-req-arg.push($name => True) }
                 }
             }
@@ -264,7 +264,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                         elsif $type !=== Bool {
 
                             my int $accepts-true = $param.type.ACCEPTS: True;
-                            for $param.constraint_list { $accepts-true++ if .ACCEPTS: True}
+                            for $param.constraint_list { $accepts-true++ if try .ACCEPTS: True}
                             $argument ~= ($accepts-true ?? "[={$constraints || $type.^name}]"
                                                         !! "=<{$constraints || $type.^name}>");
                             if Metamodel::EnumHOW.ACCEPTS($type.HOW) {

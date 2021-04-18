@@ -1713,7 +1713,8 @@ class Rakudo::Iterator {
         method count-only(--> 0) { }
         method bool-only(--> False) { }
     }
-    method Empty() { BEGIN Empty.new }
+    my constant EmptyIterator = Empty.new;
+    method Empty() { EmptyIterator }
 
     # Returns at most N items, then calls .sink-all on source. Optionally,
     # executes a Callable when either N items were returned or original iterator

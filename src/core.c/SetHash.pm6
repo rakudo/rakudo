@@ -8,7 +8,7 @@ my class SetHash does Setty {
 
     multi method grab(SetHash:D:) {
         nqp::if(
-          $!elems,
+          $!elems && nqp::elems($!elems),
           nqp::stmts(
             (my $object := nqp::iterval(
               my $iter := Rakudo::QuantHash.ROLL($!elems)

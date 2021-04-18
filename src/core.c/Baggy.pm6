@@ -24,13 +24,13 @@ my role Baggy does QuantHash {
         self (==) other.Bag
     }
 
+    my constant notfound =
+      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
+
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
         $!elems
           ?? nqp::getattr(
-               nqp::ifnull(
-                 nqp::atkey($!elems,k.WHICH),
-                 BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
-               ),
+               nqp::ifnull(nqp::atkey($!elems,k.WHICH),notfound),
                Pair,
                '$!value'
              )

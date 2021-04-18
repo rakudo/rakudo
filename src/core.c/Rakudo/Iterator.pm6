@@ -1506,6 +1506,7 @@ class Rakudo::Iterator {
               )
             );
 
+            nqp::closedir($!dirhandle);
             IterationEnd
         }
 

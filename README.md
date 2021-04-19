@@ -176,7 +176,7 @@ mailing list or the [irc.freenode.net/#raku IRC
 channel](https://webchat.freenode.net/?channels=#raku). The mailing
 list is primarily for the people who want to use Raku to write
 programs, so newbie questions are welcomed there.  Newbie questions
-are also welcome on the #raku channel; the Rakudo 
+are also welcome on the #raku channel; the Rakudo
 development teams tend to hang out there and are generally glad
 to help.  You can follow [@raku_news](https://twitter.com/raku_news)
 and on Twitter, there's a Raku news aggregator at

@@ -113,11 +113,11 @@ Before doing anything else, take a look at the many options available with *make
 
     $ make --help
     ...
-    
+
 Get detailed output by trying:
 
     $ make --trace
-    
+
 which should help pinpoint source file problems.
 
 If you are still having problems, try to remove the "install/" subdirectory:
@@ -172,4 +172,4 @@ recommend version 3.16 or newer).
 
 # SEE ALSO
 
-- CAVEATS.md 
+- CAVEATS.md

@@ -113,7 +113,7 @@ This makes them look better and easier to read in shortlog/oneline form.
 
 If you fixed a ticket, or the commit relates to a specific ticket, please
 mention the ticket in the title or the body as `#12345` so that
-GitHub will automatically link to the corresponding issue. 
+GitHub will automatically link to the corresponding issue.
 If there was an IRC conversation that can give some background or useful information,
 you can link to it by visiting [the IRC logs](https://colabti.org/irclogger/irclogger_log/raku-dev) and
 linking the link provided by the timestamps on the left side of the page.

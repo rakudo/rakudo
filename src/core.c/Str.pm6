@@ -3659,7 +3659,7 @@ multi sub infix:<~>(str $a, str $b   --> str) {
     nqp::concat($a, $b)
 }
 multi sub infix:<~>(Str:D \a, str $b --> str) {
-    nqp::box_s(nqp::concat(nqp::unbox_s(a),$b),nqp::decont(a.Str))
+    nqp::concat(nqp::unbox_s(a),$b)
 }
 multi sub infix:<~>(str $a, Str:D \b --> str) {
     nqp::concat($a, nqp::unbox_s(b))
@@ -3668,7 +3668,7 @@ multi sub infix:<~>(str $a, Str:D \b --> str) {
 multi sub infix:<~>(Str:D \a, Str:D \b --> Str:D) {
     nqp::box_s(
       nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b)),
-      nqp::decont(a.Str)
+      Str
     )
 }
 
@@ -3681,7 +3681,7 @@ multi sub infix:<~>(Cool:D \a, Str:D \b --> Str:D) {
 multi sub infix:<~>(Str:D \a, Cool:D \b --> Str:D) {
     nqp::box_s(
       nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Str)),
-      nqp::decont(a.Str)
+      Str
     )
 }
 multi sub infix:<~>(Cool:D \a, Cool:D \b --> Str:D) {
@@ -3700,7 +3700,7 @@ multi sub infix:<~>(Any:D \a, Str:D \b --> Str:D) {
 multi sub infix:<~>(Str:D \a, Any:D \b --> Str:D) {
     nqp::box_s(
       nqp::concat(nqp::unbox_s(a), nqp::unbox_s(b.Stringy)),
-      nqp::decont(a.Str)
+      Str
     )
 }
 # Any/Any candidate in src/core.c/Stringy.pm6

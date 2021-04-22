@@ -630,5 +630,11 @@ multi sub infix:<+>(DateTime:D \a, Duration:D \b --> DateTime:D) {
 multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
     b.new(b.Instant + a).in-timezone(b.timezone)
 }
+multi sub infix:<eqv>(DateTime:D \a, DateTime:D \b --> Bool:D) {
+    nqp::hllbool(
+          nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+      || (nqp::eqaddr(a.WHAT,b.WHAT) && a == b)
+    )
+}
 
 # vim: expandtab shiftwidth=4

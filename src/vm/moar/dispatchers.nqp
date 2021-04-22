@@ -296,6 +296,9 @@
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
         my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
+            if $type.HOW.archetypes.coercive {
+                $value := $type.HOW.coerce($type, $value);
+            }
             nqp::bindattr($cont, Scalar, '$!value', $value);
         }
         else {
@@ -319,6 +322,9 @@
         my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor');
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
+            if $type.HOW.archetypes.coercive {
+                $value := $type.HOW.coerce($type, $value);
+            }
             nqp::bindattr($cont, Scalar, '$!value', $value);
             nqp::bindpos(
                 nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!target'),

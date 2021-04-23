@@ -126,62 +126,59 @@ multi sub succeed(| --> Nil) {
 
 sub proceed(--> Nil) { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 
+# XXX Remove this one we have completed migration to the new dispatcher
+my int $NEW-DISP = nqp::getenvhash()<RAKUDO_NEW_DISP> ?? 1 !! 0;
+
 sub callwith(|c) is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('callwith');
-    $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_args(|c)
+    $NEW-DISP
+        ?? nqp::die('new-disp callwith nyi')
+        !! nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('callwith')),
+            $dispatcher.exhausted ?? Nil !!
+                $dispatcher.call_with_args(|c))
 }
 
 sub nextwith(|c) is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
-        ?? Nil
-        !! $dispatcher.call_with_args(|c))
+    $NEW-DISP
+        ?? nqp::die('new-disp callwith nyi')
+        !! nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextwith')),
+            nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
+                ?? Nil
+                !! $dispatcher.call_with_args(|c)))
 }
 
 sub callsame() is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('callsame');
-    $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_capture(
-            nqp::p6argsfordispatcher($dispatcher))
-}
-
-sub new-disp-callsame() is raw {
-    $/ := nqp::getlexcaller('$/');
-    nqp::dispatch('boot-resume-caller', 0)
+    $NEW-DISP
+        ?? nqp::dispatch('boot-resume-caller', 0)
+        !! nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('callsame')),
+            $dispatcher.exhausted ?? Nil !!
+                $dispatcher.call_with_capture(
+                    nqp::p6argsfordispatcher($dispatcher)))
 }
 
 sub nextsame() is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
-        ?? Nil
-        !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher)))
-}
-
-sub new-disp-nextsame() is raw {
-    $/ := nqp::getlexcaller('$/');
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::dispatch('boot-resume-caller', 0))
+    $NEW-DISP
+        ?? nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::dispatch('boot-resume-caller', 0))
+        !! nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextsame')),
+            nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
+                ?? Nil
+                !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher))))
 }
 
 sub lastcall(--> True) {
-    nqp::p6finddispatcher('lastcall').last();
-}
-
-sub new-disp-lastcall(--> True) {
-    nqp::dispatch('boot-resume-caller', 2)
+    $NEW-DISP
+        ?? nqp::dispatch('boot-resume-caller', 2)
+        !! nqp::p6finddispatcher('lastcall').last();
 }
 
 sub nextcallee() {
-    my Mu $dispatcher := nqp::p6finddispatcher('nextcallee');
-    $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
-}
-
-sub new-disp-nextcallee() {
-    nqp::dispatch('boot-resume-caller', 3)
+    $NEW-DISP
+        ?? nqp::dispatch('boot-resume-caller', 3)
+        !! nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextcallee')),
+            $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee())
 }
 
 sub samewith(|c) {

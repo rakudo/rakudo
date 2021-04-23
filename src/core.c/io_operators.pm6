@@ -104,12 +104,8 @@ multi sub dir(IO() $path         ) { $path.dir         }
 multi sub dir(:$test!) { IO::Path.new($*SPEC.curdir).dir(:$test) }
 multi sub dir(       ) { IO::Path.new($*SPEC.curdir).dir         }
 
-proto sub open($, *%) {*}
-multi sub open(IO() $path, *%_) {
-    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
-      ?? IO::Handle.new(:$path).open(|%_)
-      !! IO::Handle.new(:$path).open
-}
+proto sub open($, |) {*}
+multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
 
 proto sub lines($?, $?, *%) {*}
 multi sub lines(*%_) {

@@ -306,6 +306,58 @@ $ops.add_hll_op('Raku', 'defor', -> $qastcomp, $op {
         )))
 });
 
+# If it's the new dispatcher, override call ops.
+if nqp::getenvhash()<RAKUDO_NEW_DISP> {
+    $ops.add_hll_op('Raku', 'callmethod', -> $qastcomp, $op {
+        # Evaluate invocant into a temporary. Place its decont as the first
+        # dispatch argument after the dispatcher name.
+        my @args := $op.list;
+        if nqp::elems(@args) == 0 {
+            nqp::die('Method call node requires at least one child');
+        }
+        my $inv := QAST::Node.unique('invocant');
+        my $dispatch := QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-meth-call') ),
+            QAST::Op.new(
+                :op('decont'),
+                QAST::Var.new( :name($inv), :scope('local') )
+            )
+        );
+        my $qast := QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($inv), :scope('local'), :decl('var') ),
+                @args[0]
+            ),
+            $dispatch
+        );
+
+        # Process the method name.
+        my int $first-arg;
+        if $op.name {
+            $dispatch.push(QAST::SVal.new( :value($op.name) ));
+            $first-arg := 1;
+        }
+        else {
+            $dispatch.push(QAST::Op.new( :op('unbox_s'), @args[1] ));
+            $first-arg := 2;
+        }
+
+        # Push the rest of the arguments.
+        $dispatch.push(QAST::Var.new( :name($inv), :scope('local') ));
+        my int $n := nqp::elems(@args);
+        my int $i := $first-arg;
+        while $i < $n {
+            $dispatch.push(@args[$i]);
+            $i++;
+        }
+
+        # Delegate to compilation of dispatch op.
+        $qastcomp.as_mast($qast)
+    });
+}
+
 # Boxing and unboxing configuration.
 sub boxer($kind, $box_op, $type_op) {
     -> $qastcomp, $reg {

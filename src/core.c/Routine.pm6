@@ -82,6 +82,12 @@ my class Routine { # declared in BOOTSTRAP
     method soft( --> Nil ) { }
 
     method wrap(&wrapper) {
+        $NEW-DISP
+            ?? self!new-disp-wrap(&wrapper)
+            !! self!old-disp-wrap(&wrapper)
+    }
+
+    method !old-disp-wrap(&wrapper) {
         my class WrapHandle {
             has $!dispatcher;
             has $!wrapper;
@@ -168,7 +174,7 @@ my class Routine { # declared in BOOTSTRAP
                 !! False
         }
     }
-    method new-disp-wrap(&wrapper) {
+    method !new-disp-wrap(&wrapper) {
         # We can't wrap a hardened routine (that is, one that's been
         # marked inlinable).
         if nqp::istype(self, HardRoutine) {

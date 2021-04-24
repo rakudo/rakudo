@@ -27,7 +27,7 @@ role Perl6::Metamodel::MethodContainer {
               ~ $method_type
               ~ " '"
               ~ $name
-              ~ "' (did you mean to declare a multi-method?)");
+              ~ "' (did you mean to declare a multi method?)");
         }
 
         # Add to correct table depending on if it's a Submethod.

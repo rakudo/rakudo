@@ -81,7 +81,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         for $short-dir.dir -> $dir {
             $dir.add($id).unlink;
-            $dir.rmdir unless $dir.dir;
+            $dir.rmdir unless $dir.dir.elems;
         }
     }
 

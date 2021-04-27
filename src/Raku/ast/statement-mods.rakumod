@@ -11,29 +11,6 @@ class RakuAST::StatementModifier is RakuAST::Node {
     method visit-children(Code $visitor) {
         $visitor($!expression);
     }
-
-    method IMPL-TEMPORARIZE-TOPIC(Mu $new-topic-qast, Mu $with-topic-qast) {
-        my $temporary := QAST::Node.unique('save_topic');
-        QAST::Stmt.new(
-            :resultchild(2),
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name($temporary), :scope('local'), :decl('var') ),
-                QAST::Var.new( :name('$_'), :scope('lexical') )
-            ),
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name('$_'), :scope('lexical') ),
-                $new-topic-qast
-            ),
-            $with-topic-qast,
-            QAST::Op.new(
-                :op('bind'),
-                QAST::Var.new( :name('$_'), :scope('lexical') ),
-                QAST::Var.new( :name($temporary), :scope('local') )
-            )
-        )
-    }
 }
 
 # The base of all condition statement modifiers.

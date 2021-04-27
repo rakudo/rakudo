@@ -723,7 +723,7 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
             # TODO immediate match mode updating $/ should not always happen,
             # but adverbs NYI so far
             if 1 {
-                my $slash := @lookups[0].IMPL-TO-QAST($context);
+                my $slash := @lookups[1].IMPL-TO-QAST($context);
                 QAST::Op.new( :op('p6store'), $slash, $match-qast )
             }
             else {

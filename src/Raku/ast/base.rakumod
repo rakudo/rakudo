@@ -251,6 +251,29 @@ class RakuAST::Node {
             }
         }
     }
+
+    method IMPL-TEMPORARIZE-TOPIC(Mu $new-topic-qast, Mu $with-topic-qast) {
+        my $temporary := QAST::Node.unique('save_topic');
+        QAST::Stmt.new(
+            :resultchild(2),
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($temporary), :scope('local'), :decl('var') ),
+                QAST::Var.new( :name('$_'), :scope('lexical') )
+            ),
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('$_'), :scope('lexical') ),
+                $new-topic-qast
+            ),
+            $with-topic-qast,
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name('$_'), :scope('lexical') ),
+                QAST::Var.new( :name($temporary), :scope('local') )
+            )
+        )
+    }
 }
 
 # Anything with a known compile time value does RakuAST::CompileTimeValue.

@@ -67,11 +67,38 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
             return QAST::Op.new( :op($qast-op), $left-qast, $right-qast );
         }
 
+        # Others are compiler special forms.
+        if $op eq '~~' {
+            return self.IMPL-SMARTMATCH-QAST($context, $left-qast, $right-qast, 0);
+        }
+        elsif $op eq '!~~' {
+            return self.IMPL-SMARTMATCH-QAST($context, $left-qast, $right-qast, 1);
+        }
+
         # Otherwise, it's called by finding the lexical sub to call, and
         # compiling it as chaining if required.
         my $name := self.resolution.lexical-name;
         my str $call-op := $!properties.chaining ?? 'chain' !! 'call';
         QAST::Op.new( :op($call-op), :$name, $left-qast, $right-qast )
+    }
+
+    method IMPL-SMARTMATCH-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast,
+            Mu $right-qast, int $negate) {
+        my $accepts-call := QAST::Op.new(
+            :op('callmethod'), :name('ACCEPTS'),
+            $right-qast,
+            QAST::Var.new( :name('$_'), :scope('lexical') )
+        );
+        if $negate {
+            $accepts-call := QAST::Op.new(
+                :op('hllbool'),
+                QAST::Op.new(
+                    :op('not_i'),
+                    QAST::Op.new( :op('istrue'), $accepts-call )
+                )
+            );
+        }
+        self.IMPL-TEMPORARIZE-TOPIC($left-qast, $accepts-call)
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {

@@ -29,13 +29,11 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 
     method new(str $operator, OperatorProperties :$properties) {
         $properties := OperatorProperties.properties-for-infix($operator)
-          unless $properties;
+            unless $properties;
         unless nqp::isconcrete($properties) {
             nqp::die("Failed to resolve operator properties for infix '$operator'");
         }
-        my $obj := nqp::create($properties.chaining
-            ?? RakuAST::Infix::Chaining
-            !! self);
+        my $obj := nqp::create(self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
         nqp::bindattr($obj, RakuAST::Infix, '$!properties', $properties);
         $obj
@@ -69,9 +67,11 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
             return QAST::Op.new( :op($qast-op), $left-qast, $right-qast );
         }
 
-        # Otherwise, it's called by finding the lexical sub to call.
+        # Otherwise, it's called by finding the lexical sub to call, and
+        # compiling it as chaining if required.
         my $name := self.resolution.lexical-name;
-        QAST::Op.new( :op('call'), :$name, $left-qast, $right-qast )
+        my str $call-op := $!properties.chaining ?? 'chain' !! 'call';
+        QAST::Op.new( :op($call-op), :$name, $left-qast, $right-qast )
     }
 
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
@@ -89,8 +89,8 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     }
 
     method IMPL-CAN-INTERPRET() {
-        !self.properties.short-circuit
-          && nqp::istype(self.resolution, RakuAST::CompileTimeValue)
+        !$!properties.short-circuit && !$!properties.chaining &&
+            nqp::istype(self.resolution, RakuAST::CompileTimeValue)
     }
 
     method IMPL-INTERPRET(RakuAST::IMPL::InterpContext $ctx, List $operands) {
@@ -100,14 +100,6 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
             nqp::push(@operands, $_.IMPL-INTERPRET($ctx));
         }
         $op(|@operands)
-    }
-}
-
-# A lookup of a chaining (non-meta) infix operator.
-class RakuAST::Infix::Chaining is RakuAST::Infix {
-    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
-        my $name := self.resolution.lexical-name;
-        QAST::Op.new( :op('chain'), :$name, $left-qast, $right-qast )
     }
 }
 

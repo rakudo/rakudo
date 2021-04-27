@@ -4,9 +4,10 @@ my class IO::Handle { ... }
 my class IO::Path { ... }
 my class Rakudo::Metaops { ... }
 my class List::Reifier { ... }
+my class Proc { ... }
+my class Proc::Async { ... }
 
 my class X::Assignment::ToShaped { ... }
-my class X::Cannot::Lazy { ... }
 my class X::IllegalDimensionInShape { ... }
 my class X::IllegalOnFixedDimensionArray { ... }
 my class X::Localizer::NoContainer { ... }
@@ -309,9 +310,11 @@ my class Rakudo::Internals {
       'utf-16be',        'utf16be',
       'utf16-be',        'utf16be',
       'utf-16-be',       'utf16be',
+#?if !moar
       # utf32
       'utf32',           'utf32',
       'utf-32',          'utf32',
+#?endif
       # ascii
       'ascii',           'ascii',
       # iso-8859-1 according to http://de.wikipedia.org/wiki/ISO-8859-1
@@ -406,7 +409,7 @@ my class Rakudo::Internals {
         )
     }
 
-    method TRANSPOSE(Str:D $string, Str:D $original, Str:D $final) {
+    method TRANSPOSE(str $string, str $original, str $final) {
         nqp::join($final,nqp::split($original,$string))
     }
     method TRANSPOSE-ONE(Str:D $string, Str:D $original, Str:D $final) {
@@ -712,9 +715,11 @@ implementation detail and has no serviceable parts inside"
     }
     method SHORT-STRING(Mu \thing, Str:D :$method = 'gist' --> Str:D) {
         my str $str = nqp::unbox_s(self.MAYBE-STRING: thing, :$method);
-        nqp::isgt_i(nqp::chars($str),23)
-          ?? nqp::p6box_s(nqp::concat(nqp::substr($str, 0, 20), '...'))
-          !! nqp::p6box_s($str)
+        nqp::isnull_s($str)
+          ?? ""
+          !! nqp::isgt_i(nqp::chars($str),23)
+            ?? nqp::concat(nqp::substr($str, 0, 20), '...')
+            !! $str
     }
 
     my $IS-WIN = do {
@@ -749,7 +754,7 @@ implementation detail and has no serviceable parts inside"
           !! ("", "", "", "", "<HERE>");
     }
 
-    my num $init-time-num = nqp::time_n;
+    my num $init-time-num = nqp::div_n(nqp::time,1000000000e0);
     method INITTIME() is raw { $init-time-num }
 
 #?if moar
@@ -758,41 +763,90 @@ implementation detail and has no serviceable parts inside"
 #?endif
 
     # easy access to compile options
-    my Mu $compiling-options :=
-      nqp::ifnull(nqp::atkey(%*COMPILING,'%?OPTIONS'),nqp::hash);
+    my Mu $compiling-options := nqp::ifnull(  # cannot be lazy
+      nqp::atkey(nqp::getlexdyn('%*COMPILING'),'%?OPTIONS'),
+      nqp::hash
+    );
+    my $LL-EXCEPTION := my $PROFILE := my $OPTIMIZE :=
+      my $STAGESTATS := my $INCLUDE := my $E := nqp::null;
 
     # running with --ll-exception
-    my $LL-EXCEPTION := nqp::existskey($compiling-options, 'll-exception')
-      ?? '--ll-exception'
-      !! Empty;
-    method LL-EXCEPTION() { $LL-EXCEPTION }
+    method LL-EXCEPTION() {
+        nqp::ifnull(
+          $LL-EXCEPTION,
+          $LL-EXCEPTION := nqp::if(
+            nqp::existskey($compiling-options,'ll-exception'),
+            '--ll-exception',
+            Empty
+          )
+        )
+    }
 
     # running with --profile
-    my $PROFILE := nqp::existskey($compiling-options, 'profile')
-      ?? '--profile'
-      !! Empty;
-    method PROFILE() { $PROFILE }
+    method PROFILE() {
+        nqp::ifnull(
+          $PROFILE,
+          $PROFILE := nqp::if(
+            nqp::existskey($compiling-options,'profile'),
+            '--profile',
+            Empty
+          )
+        )
+    }
 
     # running with --optimize=X
-    my $OPTIMIZE := nqp::existskey($compiling-options, 'optimize')
-      ?? '--optimize=' ~ nqp::atkey($compiling-options, 'optimize')
-      !! Empty;
-    method OPTIMIZE() { $OPTIMIZE }
+    method OPTIMIZE() {
+        nqp::ifnull(
+          $OPTIMIZE,
+          $OPTIMIZE := nqp::if(
+            nqp::existskey($compiling-options,'optimize'),
+            nqp::concat('--optimize=',nqp::atkey($compiling-options,'optimize')),
+            Empty
+          )
+        )
+    }
 
     # running with --stagestats
-    my $STAGESTATS := nqp::existskey($compiling-options, 'stagestats')
-      ?? '--stagestats'
-      !! Empty;
-    method STAGESTATS() { $STAGESTATS }
+    method STAGESTATS() {
+        nqp::ifnull(
+          $STAGESTATS,
+          $STAGESTATS := nqp::if(
+            nqp::existskey($compiling-options,'stagestats'),
+            '--stagestats',
+            Empty
+          )
+        )
+    }
 
     # whatever specified with -I
-    my $INCLUDE := nqp::existskey($compiling-options,'I')
-      ?? do {
-             my $I := nqp::atkey($compiling-options,'I');
-             nqp::islist($I) ?? $I !! nqp::list($I)
-         }
-      !! nqp::list;
-    method INCLUDE() { $INCLUDE }
+    method INCLUDE() {
+        nqp::ifnull(
+          $INCLUDE,
+          $INCLUDE := nqp::p6bindattrinvres(
+            nqp::create(List),List,'$!reified',
+            nqp::if(
+              nqp::existskey($compiling-options,'I'),
+              nqp::stmts(
+                (my $I := nqp::atkey($compiling-options,'I')),
+                nqp::if(nqp::islist($I),$I,nqp::list($I))
+              ),
+              nqp::list
+            )
+          )
+        )
+    }
+
+    # the program to execute, either a script or -e, code
+    method PROGRAM() {
+        nqp::ifnull(
+          $E,
+          $E := nqp::if(
+            nqp::existskey($compiling-options,'e'),
+            ('-e', nqp::atkey($compiling-options,'e')),
+            $*PROGRAM-NAME
+          )
+        )
+    }
 
 #?if moar
     method PRECOMP-EXT(--> "moarvm") { }
@@ -806,6 +860,7 @@ implementation detail and has no serviceable parts inside"
     method PRECOMP-EXT(   --> "js") { }
     method PRECOMP-TARGET(--> "js") { }
 #?endif
+    method TARGET() { "--target=" ~ Rakudo::Internals.PRECOMP-TARGET }
 
 # Keep track of the differences between TAI and UTC for internal use.
 # The "BEGIN" and "END" comments are for tools/add-leap-second.raku.
@@ -853,6 +908,59 @@ implementation detail and has no serviceable parts inside"
         '2016-12-31',
         #END leap-second-dates
     );
+#?if !js
+    my int constant $elems = nqp::elems($dates);
+#?endif
+#?if js
+    my int $elems = nqp::elems($dates);
+#?endif
+
+#?if !js
+    my constant $daycounts = nqp::list_i(
+#?endif
+#?if js
+    my $daycounts := nqp::list_i(
+#?endif
+        #BEGIN leap-second-daycount
+        41498,
+        41682,
+        42047,
+        42412,
+        42777,
+        43143,
+        43508,
+        43873,
+        44238,
+        44785,
+        45150,
+        45515,
+        46246,
+        47160,
+        47891,
+        48256,
+        48803,
+        49168,
+        49533,
+        50082,
+        50629,
+        51178,
+        53735,
+        54831,
+        56108,
+        57203,
+        57753,
+        #END leap-second-daycount
+    );
+
+    method daycount-leapseconds(int $daycount) {
+        my int $i = nqp::elems($daycounts);
+        nqp::while(
+          nqp::isge_i(($i = nqp::sub_i($i,1)),0)
+            && nqp::islt_i($daycount,nqp::atpos_i($daycounts,$i)),
+          nqp::null
+        );
+        nqp::isge_i($i,0) && nqp::iseq_i($daycount,nqp::atpos_i($daycounts,$i))
+    }
 
     # our %leap-seconds =
     #     @leap-second-dates Z=> $initial-offset + 1 .. *;
@@ -898,12 +1006,6 @@ implementation detail and has no serviceable parts inside"
         1483228800,
         #END leap-second-posix
     );
-#?if !js
-    my int constant $elems = nqp::elems($dates);
-#?endif
-#?if js
-    my int $elems = nqp::elems($dates);
-#?endif
 
     method is-leap-second-date(\date) {
         nqp::hllbool(
@@ -1518,94 +1620,6 @@ implementation detail and has no serviceable parts inside"
         $target
     }
 
-    proto method coremap(|) {*}
-
-    multi method coremap(\op, Associative \h, Bool :$deep) {
-        my @keys = h.keys;
-        hash @keys Z self.coremap(op, h{@keys}, :$deep)
-    }
-
-    my class CoreMap does Rakudo::SlippyIterator {
-        has &!block;
-        has $!source;
-        has $!deep;
-
-        method new(&block, $source, $deep) {
-            my \iter := nqp::create(self);
-            nqp::bindattr(iter, self, '&!block', &block);
-            nqp::bindattr(iter, self, '$!source', $source);
-            nqp::bindattr(iter, self, '$!deep', $deep);
-            iter
-        }
-
-        method is-lazy() {
-            $!source.is-lazy
-        }
-
-        method pull-one() is raw {
-            my int $redo = 1;
-            my $value;
-            my $result;
-            if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
-                $result
-            }
-            elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
-                $value
-            }
-            else {
-                nqp::while(
-                    $redo,
-                    nqp::stmts(
-                        $redo = 0,
-                        nqp::handle(
-                            nqp::stmts(
-                                nqp::if(
-                                    $!deep,
-                                    nqp::if(
-                                        nqp::istype($value, Iterable) && $value.DEFINITE,
-                                        ($result := Rakudo::Internals.coremap(&!block, $value, :$!deep).item),
-                                        ($result := &!block($value))
-                                    ),
-                                    ($result := &!block($value))
-                                ),
-                                nqp::if(
-                                    nqp::istype($result, Slip),
-                                    nqp::stmts(
-                                        ($result := self.start-slip($result)),
-                                        nqp::if(
-                                            nqp::eqaddr($result, IterationEnd),
-                                            nqp::stmts(
-                                                ($value := $!source.pull-one()),
-                                                ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
-                                        ))
-                                    ))
-                            ),
-                            'NEXT', nqp::stmts(
-                                ($value := $!source.pull-one()),
-                                nqp::eqaddr($value, IterationEnd)
-                                    ?? ($result := IterationEnd)
-                                    !! ($redo = 1)),
-                            'REDO', $redo = 1,
-                            'LAST', ($result := IterationEnd))),
-                    :nohandler);
-                $result
-            }
-        }
-    }
-    multi method coremap(\op, \obj, Bool :$deep) {
-        my \iterable := obj.DEFINITE && nqp::istype(obj, Iterable)
-          ?? obj
-          !! obj.list;
-
-        my \result := CoreMap.new(op, iterable.iterator, $deep);
-        my \type := nqp::istype(obj, List) ?? obj.WHAT !! List; # keep subtypes of List
-        my \buffer := nqp::create(IterationBuffer);
-        result.push-all(buffer);
-        my \retval := type.new;
-        nqp::bindattr(retval, List, '$!reified', buffer);
-        nqp::iscont(obj) ?? retval.item !! retval;
-    }
-
     method INFIX_COMMA_SLIP_HELPER(\reified, \future) {
         my $list :=
           nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',reified);
@@ -1700,6 +1714,31 @@ implementation detail and has no serviceable parts inside"
 
     my %vm-sigs;
     method VM-SIGNALS() { %vm-sigs ?? %vm-sigs !! %vm-sigs = nqp::getsignals }
+
+    # Re-run current process with a given environment variable and value,
+    # given as a named variable, e.g. .RERUN-WITH(MVM_SPESH_INLINE_LOG => 1).
+    # If that environment variable is *not* set, it will run the current
+    # executor with the originally given parameters *and* the environment
+    # variable set and return the associated Proc::Async object.  Once the
+    # process is done, it will do an exit with the status result of the
+    # child process.  If that environment variable is set, it will return
+    # Nil (and do nothing), allowing that process to run its normal course.
+    method RERUN-WITH() {
+        my str $name = nqp::iterkey_s(
+          nqp::shift(nqp::iterator(nqp::getattr(%_,Map,'$!storage')))
+        );
+        return Nil if %*ENV.EXISTS-KEY($name);
+
+        %*ENV{$name} := %_{$name};
+        Proc::Async.new(
+          $*EXECUTABLE.absolute,
+          Rakudo::Internals.LL-EXCEPTION,
+          Rakudo::Internals.PROFILE,
+          Rakudo::Internals.INCLUDE.map({ ("-I", $_).Slip }),
+          Rakudo::Internals.PROGRAM,
+          |@*ARGS
+        )
+    }
 }
 
 # expose the number of bits a native int has

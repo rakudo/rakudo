@@ -486,96 +486,36 @@ sub METAOP_HYPER(\op, *%opt) is implementation-detail {
 }
 
 proto sub METAOP_HYPER_POSTFIX(|) is implementation-detail {*}
-multi sub METAOP_HYPER_POSTFIX(\op) {
-    nqp::can(op,"nodal")
-      ?? (-> \obj { nodemap(op, obj) })
-      !! (-> \obj { deepmap(op, obj) })
+multi sub METAOP_HYPER_POSTFIX(&op) {
+    nqp::can(&op,"nodal") ?? *.nodemap(&op) !! *.deepmap(&op)
 }
 
 # no indirection for subscripts and such
 proto sub METAOP_HYPER_POSTFIX_ARGS(|) is implementation-detail {*}
-multi sub METAOP_HYPER_POSTFIX_ARGS(\obj,\op) {
-    nqp::can(op,"nodal")
-      ?? nodemap(op, obj)
-      !! deepmap(op, obj)
+multi sub METAOP_HYPER_POSTFIX_ARGS(\obj, &op) {
+    nqp::can(&op,"nodal") ?? obj.nodemap(&op) !! obj.deepmap(&op)
 }
-multi sub METAOP_HYPER_POSTFIX_ARGS(\obj, @args, \op) {
-    nqp::can(op,"nodal")
-      ?? nodemap( -> \o { op.(o,@args) }, obj )
-      !! deepmap( -> \o { op.(o,@args) }, obj )
+multi sub METAOP_HYPER_POSTFIX_ARGS(\obj, @args, &op) {
+    nqp::can(&op,"nodal")
+      ?? obj.nodemap(-> \o { op(o, @args) })
+      !! obj.deepmap(-> \o { op(o, @args) })
 }
-multi sub METAOP_HYPER_POSTFIX_ARGS(\obj, \args, \op) {
-    nqp::can(op,"nodal")
-      ?? nodemap( -> \o { op.(o,|args) }, obj )
-      !! deepmap( -> \o { op.(o,|args) }, obj )
+multi sub METAOP_HYPER_POSTFIX_ARGS(\obj, \args, &op) {
+    nqp::can(&op,"nodal")
+      ?? obj.nodemap( -> \o { op(o,|args) })
+      !! obj.deepmap( -> \o { op(o,|args) })
 }
 
-sub METAOP_HYPER_PREFIX(\op) is implementation-detail {
-    nqp::can(op,"nodal")      # rarely true for prefixes
-      ?? (-> \obj { nodemap(op, obj) })
-      !! (-> \obj { deepmap(op, obj) })
+sub METAOP_HYPER_PREFIX(&op) is implementation-detail {
+    nqp::can(&op,"nodal") ?? *.nodemap(&op) !! *.deepmap(&op)
 }
 
 sub METAOP_HYPER_CALL(\list, |args) is implementation-detail {
-    deepmap(-> $c { $c(|args) }, list)
+    list.deepmap(-> &code { code(|args) })
 }
 
 sub HYPER(\operator, :$dwim-left, :$dwim-right, |c) is implementation-detail {
     Hyper.new(operator, :$dwim-left, :$dwim-right).infix(|c)
-}
-
-proto sub deepmap($, $, *%) {*}
-multi sub deepmap(\op, \obj) {
-    Rakudo::Internals.coremap(op, obj, :deep)
-}
-multi sub deepmap(\op, Associative \h) {
-    my @keys = h.keys;
-    hash @keys Z deepmap(op, h{@keys})
-}
-
-proto sub nodemap($, $, *%) {*}
-multi sub nodemap(\op, \obj) {
-    my Mu $rpa := nqp::create(IterationBuffer);
-    my \objs := obj.list;
-    # as a wanted side-effect is-lazy reifies the list
-    fail X::Cannot::Lazy.new(:action<nodemap>) if objs.is-lazy;
-    return () unless my Mu $items := nqp::getattr(objs, List, '$!reified');
-    my Mu $o;
-    # We process the elements in two passes, end to start, to
-    # prevent users from relying on a sequential ordering of hyper.
-    # Also, starting at the end pre-allocates $rpa for us.
-    my int $i = nqp::elems($items) - 1;
-    nqp::while(
-        nqp::isge_i($i, 0),
-        nqp::stmts(
-            nqp::bindpos($rpa, $i, op.(nqp::atpos($items, $i))),
-            $i = nqp::sub_i($i, 2)
-        )
-    );
-    $i = nqp::elems($items) - 2;
-    nqp::while(
-        nqp::isge_i($i, 0),
-        nqp::stmts(
-            nqp::bindpos($rpa, $i, op.(nqp::atpos($items, $i))),
-            $i = nqp::sub_i($i, 2)
-        )
-    );
-    nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', $rpa)
-}
-
-multi sub nodemap(\op, Associative \h) {
-    my @keys = h.keys;
-    hash @keys Z nodemap(op, h{@keys})
-}
-
-proto sub duckmap($, $, *%) {*}
-multi sub duckmap(\op, \obj) {
-    Rakudo::Internals.coremap(sub (\arg) { CATCH { return arg ~~ Iterable:D ?? duckmap(op,arg) !! arg }; op.(arg); }, obj);
-}
-
-multi sub duckmap(\op, Associative \h) {
-    my @keys = h.keys;
-    hash @keys Z duckmap(op, h{@keys})
 }
 
 # vim: expandtab shiftwidth=4

@@ -487,7 +487,7 @@ multi sub infix:«>=»(Int:D \a, Rational:D \b --> Bool:D) {
     )
 }
 
-multi sub infix:«<=>»(Rational:D \a, Rational:D \b --> Order:D) {
+multi sub infix:«<=>»(Rational:D \a, Rational:D \b) {
 #    a.numerator * b.denominator <=> b.numerator * a.denominator
     ORDER(
       nqp::cmp_I(
@@ -504,7 +504,7 @@ multi sub infix:«<=>»(Rational:D \a, Rational:D \b --> Order:D) {
       )
     )
 }
-multi sub infix:«<=>»(Rational:D \a, Int:D \b --> Order:D) {
+multi sub infix:«<=>»(Rational:D \a, Int:D \b) {
 #    a.numerator  <=> b * a.denominator
     ORDER(
       nqp::cmp_I(
@@ -517,7 +517,7 @@ multi sub infix:«<=>»(Rational:D \a, Int:D \b --> Order:D) {
       )
     )
 }
-multi sub infix:«<=>»(Int:D \a, Rational:D \b --> Order:D) {
+multi sub infix:«<=>»(Int:D \a, Rational:D \b) {
 #    a * b.denominator <=> b.numerator
     ORDER(
       nqp::cmp_I(

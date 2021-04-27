@@ -8,15 +8,14 @@ my class Mix does Mixy {
     }
 
 #--- interface methods
-    multi method STORE(Mix:D: *@pairs, :$INITIALIZE! --> Mix:D) {
-        (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
+    multi method STORE(Mix:D: Iterable:D \iterable, :INITIALIZE($)! --> Mix:D) {
+        (my \iterator := iterable.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('.initialize')
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
              ))
     }
-    multi method STORE(Mix:D: \objects, \values, :$INITIALIZE! --> Mix:D) {
+    multi method STORE(Mix:D: \objects, \values, :INITIALIZE($)! --> Mix:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
             nqp::create(Rakudo::Internals::IterationSet),

@@ -7,18 +7,19 @@ my class ThreadPoolScheduler does Scheduler {
     # Initialize $*PID here, as we need it for the debug message
     # anyway *and* it appears to have a positive effect on stability
     # specifically wrt GH #1202.
-    PROCESS::<$PID> := nqp::p6box_i(my $pid := nqp::getpid);
+    PROCESS::<$PID> := nqp::p6box_i(my int $pid = nqp::getpid);
 
-    # Scheduler debug, controlled by an environment variable.
-    my int $scheduler-debug = so %*ENV<RAKUDO_SCHEDULER_DEBUG>;
-    my int $scheduler-debug-status = so %*ENV<RAKUDO_SCHEDULER_DEBUG_STATUS>;
+    # Scheduler defaults controlled by environment variables
+    my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
+    my int $scheduler-debug;
+    $scheduler-debug = 1
+      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG');
+    my int $scheduler-debug-status;
+    $scheduler-debug-status = 1
+      if nqp::atkey($ENV,'RAKUDO_SCHEDULER_DEBUG_STATUS');
+
     sub scheduler-debug($message --> Nil) {
         if $scheduler-debug {
-            note "[SCHEDULER $pid] $message";
-        }
-    }
-    sub scheduler-debug-status($message --> Nil) {
-        if $scheduler-debug-status {
             note "[SCHEDULER $pid] $message";
         }
     }
@@ -150,6 +151,8 @@ my class ThreadPoolScheduler does Scheduler {
                             }
                             if $resume {
                                 nqp::push($!queue, {
+                                    $l.lock; # lock gets released as soon as $continuation is initialized
+                                    $l.unlock; # no need to hold the lock while running the continuation - no one else is gonna take it
                                     nqp::continuationinvoke($continuation, nqp::null())
                                 });
                             }
@@ -561,9 +564,13 @@ my class ThreadPoolScheduler does Scheduler {
                 }
 
                 scheduler-debug "Supervisor started";
-                my num $last-rusage-time = nqp::time_n;
+                my int $last-rusage-time = nqp::time;
+#?if jvm
+                my @rusage := array[int].new;
+#?endif
 #?if !jvm
                 my int @rusage;
+#?endif
                 nqp::getrusage(@rusage);
                 my int $last-usage =
                   nqp::mul_i(
@@ -576,21 +583,11 @@ my class ThreadPoolScheduler does Scheduler {
                       )
                     + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
-                my num @last-utils = 0e0 xx NUM_SAMPLES;
-#?endif
 #?if jvm
-                ## dirty hack, that relies on rusage being a VMArrayInstance
-                ## instead of VMArrayInstance_i
-                ## see https://github.com/rakudo/rakudo/issues/1666
-                my int @rusage;
-                nqp::getrusage(@rusage);
-                my int $last-usage =
-                  1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
-                    + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
-                    + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
-                    + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-
-                my @last-utils = 0e0 xx NUM_SAMPLES;
+                my @last-utils := array[num].new(0e0 xx NUM_SAMPLES);
+#?endif
+#?if !jvm
+                my num @last-utils = 0e0 xx NUM_SAMPLES;
 #?endif
                 my int $cpu-cores = max(nqp::cpucores() - 1,1);
 
@@ -602,8 +599,8 @@ my class ThreadPoolScheduler does Scheduler {
                 # unclear until we have profiling options that also work
                 # when multiple threads are running.
                 my int $exhausted;
-                my num $now;
-                my num $rusage-period;
+                my int $now;
+                my int $rusage-period;
                 my int $current-usage;
                 my int $usage-delta;
                 my num $normalized-delta;
@@ -619,11 +616,10 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Work out the delta of CPU usage since last supervision
                     # and the time period that measurement spans.
-                    $now = nqp::time_n;
+                    $now = nqp::time;
                     $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
                     nqp::getrusage(@rusage);
-#?if !jvm
                     $current-usage =
                       nqp::mul_i(
                         nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_SEC),
@@ -634,17 +630,6 @@ my class ThreadPoolScheduler does Scheduler {
                             1000000
                           )
                         + nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-#?endif
-#?if jvm
-                    ## dirty hack, that relies on rusage being a VMArrayInstance
-                    ## instead of VMArrayInstance_i
-                    ## see https://github.com/rakudo/rakudo/issues/1666
-                    $current-usage =
-                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
-                        + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
-                        + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
-                        + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-#?endif
                     $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 
@@ -659,17 +644,10 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
-#?if !jvm
                     $smooth-per-core-util -= nqp::shift_n(@last-utils);
                     $smooth-per-core-util += $per-core-util;
                     nqp::push_n(@last-utils,$per-core-util);
-#?endif
-#?if jvm
-                    $smooth-per-core-util -= @last-utils.shift;
-                    $smooth-per-core-util += $per-core-util;
-                    @last-utils.push($per-core-util);
-#?endif
-                    scheduler-debug-status "Per-core utilization (approx): $smooth-per-core-util%"
+                    note "[SCHEDULER $pid] Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 
                     # exhausted the system allotment of low level threads
@@ -801,7 +779,12 @@ my class ThreadPoolScheduler does Scheduler {
 
     submethod BUILD(
         Int :$!initial_threads = 0,
+#?if jvm
         Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 64).Int
+#?endif
+#?if !jvm
+        Int :$!max_threads = nqp::ifnull(nqp::atkey($ENV,'RAKUDO_MAX_THREADS'),64)
+#?endif
         --> Nil
     ) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"

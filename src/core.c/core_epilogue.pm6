@@ -36,9 +36,7 @@ BEGIN {
       &DYNAMIC,
       &RETURN-LIST,
       &SLICE_MORE_HASH,
-      &SLICE_MORE_LIST,
       &SLICE_ONE_HASH,
-      &SLICE_ONE_LIST,
       &THROW,
       &THROW-NIL,
 
@@ -79,6 +77,51 @@ augment class Uni {
     }
 }
 #?endif
+
+# Subs that are DEPRECATED are moved here so that the "is DEPRECATED" trait
+# can be applied without bootstrapping issues.
+
+sub parse-names(Str:D \names) is DEPRECATED('uniparse') {
+    names.uniparse
+}
+
+sub to-json(|c)
+  is implementation-detail
+  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.raku.org/')
+{
+    Rakudo::Internals::JSON.to-json(|c);
+}
+
+sub from-json($text)
+  is implementation-detail
+  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.raku.org/')
+{
+    Rakudo::Internals::JSON.from-json($text);
+}
+
+proto sub gethostname(*%) is implementation-detail {*}
+multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
+    $*KERNEL.hostname
+}
+
+# Methods that are DEPRECATED are moved here and augmented into the classes
+# they belong to without bootstrapping issues.
+
+augment class Cool {
+    method parse-names(Cool:D: --> Str:D) is DEPRECATED('uniparse') {
+        self.uniparse
+    }
+    method path(Cool:D: --> IO::Path:D) is DEPRECATED('IO') {
+        self.IO
+    }
+}
+
+# Make sure all affected subclasses are aware of additions to their parents
+BEGIN .^compose for
+  Str, Int, Num, Rat, Complex,
+  IntStr, NumStr, RatStr, ComplexStr,
+  List, Array, Match, Range, Seq,
+;
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 

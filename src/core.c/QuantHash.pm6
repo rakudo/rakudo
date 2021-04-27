@@ -1,6 +1,7 @@
 my role QuantHash does Associative {
 
     method keyof() { Mu }
+    method item() is raw { my $ = self }
 
     method SET-SELF(QuantHash:D: \elems) is implementation-detail {
         nqp::bindattr(self,::?CLASS,'$!elems',elems)
@@ -44,6 +45,7 @@ my role QuantHash does Associative {
 
     method hash() { ... }
     method Hash() { ... }
+    method Map()  { ... }
 }
 
 # vim: expandtab shiftwidth=4

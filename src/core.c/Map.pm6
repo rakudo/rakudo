@@ -13,6 +13,18 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self.new.STORE(@args, :INITIALIZE)
     }
 
+    multi method contains(Map:D: \needle) {
+        my $name := self.^name;
+        warn "Applying '.contains' to a $name will look at its .Str representation.  Did you mean '$name\{needle}:exists'?".naive-word-wrapper;
+        self.Str.contains(needle)
+    }
+
+    multi method index(Map:D: \needle) {
+        my $name := self.^name;
+        warn "Applying '.index' to a $name will look at its .Str representation.  Did you mean '$name\{needle}:exists'?".naive-word-wrapper;
+        self.Str.index(needle)
+    }
+
     multi method Map(Map:) { self }
 
     multi method Hash(Map:U:) { Hash }
@@ -198,9 +210,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
     }
-    method iterator(Map:D: --> Iterator:D) { Iterate.new(self) }
 
-    method list(Map:D: --> List:D) { self.List }
+    multi method iterator(Map:D: --> Iterator:D) { Iterate.new(self) }
+    multi method list(Map:D: --> List:D) { self.List }
 
     multi method pairs(Map:D: --> Seq:D) {
         Seq.new(self.iterator)
@@ -579,7 +591,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
         method is-lazy() { $!count == Inf }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method roll(Map:D: $count) {
         Seq.new(

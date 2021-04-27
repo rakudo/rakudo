@@ -153,8 +153,6 @@ multi sub infix:<%>(Real \a, Real \b)   { a.Bridge % b.Bridge }
 
 multi sub infix:<**>(Real \a, Real \b)  { a.Bridge ** b.Bridge }
 
-multi sub infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }
-
 multi sub infix:<==>(Real \a, Real \b)  { a.Bridge == b.Bridge }
 
 multi sub infix:«<»(Real \a, Real \b)   { a.Bridge < b.Bridge }

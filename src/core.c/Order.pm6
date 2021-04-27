@@ -10,7 +10,7 @@ sub ORDER(int $i --> Order) is implementation-detail {
       !! Same
 }
 
-proto sub infix:<cmp>($, $, *%) is pure {*}
+proto sub infix:<cmp>($, $, *% --> Order:D) is pure {*}
 multi sub infix:<cmp>(\a, \b) {
     nqp::eqaddr(nqp::decont(a), nqp::decont(b))
       ?? Same
@@ -68,11 +68,35 @@ multi sub infix:<cmp>(\a, Code:D \b) {
      a.Stringy cmp b.name
 }
 
+proto sub infix:«<=>»($, $, *% --> Order:D) is pure {*}
+multi sub infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
+multi sub infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }
+
 multi sub infix:«<=>»(Int:D \a, Int:D \b) {
     ORDER(nqp::cmp_I(nqp::decont(a), nqp::decont(b)))
 }
 multi sub infix:«<=>»(int $a, int $b) {
     ORDER(nqp::cmp_i($a, $b))
 }
+
+proto sub infix:<before>($?, $?, *% --> Bool:D) is pure {*}
+multi sub infix:<before>($? --> True) { }
+multi sub infix:<before>(\a, \b) {
+    nqp::hllbool(nqp::eqaddr((a cmp b),Order::Less))
+}
+
+proto sub infix:<after>($?, $?, *% --> Bool:D) is pure {*}
+multi sub infix:<after>($x? --> True) { }
+multi sub infix:<after>(\a, \b) {
+    nqp::hllbool(nqp::eqaddr((a cmp b),Order::More))
+}
+
+proto sub infix:<leg>($, $, *% --> Order:D) is pure {*}
+multi sub infix:<leg>(\a, \b) { a.Stringy cmp b.Stringy }
+
+proto sub infix:<unicmp>($, $, *% --> Order:D) is pure {*}
+
+# NOT is pure because of $*COLLATION
+proto sub infix:<coll>(  $, $, *% --> Order:D) {*}
 
 # vim: expandtab shiftwidth=4

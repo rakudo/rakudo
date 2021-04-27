@@ -68,7 +68,7 @@ eval-lives-ok ｢
 # https://github.com/rakudo/rakudo/issues/1315
 # https://github.com/rakudo/rakudo/issues/1477
 # The non-optimizing custom stuff might not be spec material:
-# https://irclog.perlgeek.de/perl6-dev/2018-02-07#i_15786958
+# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2018-02-07#l44
 # and with extra comments on https://github.com/rakudo/rakudo/issues/1477#issuecomment-363644261
 subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
     plan 5;
@@ -137,12 +137,12 @@ subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
 
 group-of 2 => 'collation experiment' => {
     is-run ｢$*COLLATION.set: :primary; print 'pass'｣,
-        :out<pass>, '$*COLLECTION.set no longer requires experimental pragma';
+        :out<pass>, '$*COLLATION.set no longer requires experimental pragma';
     is-run ｢
         use experimental :collation;
         $*COLLATION.set: :primary;
         print 'pass'
-    ｣, :out<pass>, 'we can still use the pragma (to support old code)';
+    ｣, :out<pass>, :compiler-args[<-I lib>], 'we can still use the pragma (to support old code)';
 }
 
 subtest 'Distribution::Resource can be stringified', {

@@ -119,12 +119,12 @@ stages:
             echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
             echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)/bin:$(PATH)"
           displayName: "Set java version (non-Windows)"
-          condition: and( eq( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), eq( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
         - pwsh: |
             echo "##vso[task.setvariable variable=JAVA_HOME]$(JAVA_HOME_11_X64)"
             echo "##vso[task.setvariable variable=PATH]$(JAVA_HOME_11_X64)\bin;$(PATH)"
           displayName: "Set java version (Windows)"
-          condition: and( eq( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), eq( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
 
         - checkout: self
           path: selfrepo
@@ -132,11 +132,11 @@ stages:
 
         - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) $(MOAR_CHECKOUT_TYPE)
           workingDirectory: $(Pipeline.Workspace)
-          condition: ne( variables['BACKEND'], 'JVM')
+          condition: and(succeeded(), ne(variables['BACKEND'], 'JVM'))
           displayName: Checkout repositories (MoarVM)
         - script: perl selfrepo/tools/build/checkout-repos-for-test.pl $(RAKUDO_CHECKOUT_TYPE) $(NQP_CHECKOUT_TYPE) none
           workingDirectory: $(Pipeline.Workspace)
-          condition: eq( variables['BACKEND'], 'JVM')
+          condition: and(succeeded(), eq(variables['BACKEND'], 'JVM'))
           displayName: Checkout repositories (JVM)
 
         # Build MoarVM
@@ -144,7 +144,7 @@ stages:
             perl Configure.pl --prefix=../install $(MOAR_OPTIONS)
             make install
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and( ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
+          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
           displayName: Build MoarVM
         - pwsh: |
             ${{ variables.PWSH_DEV }}
@@ -152,7 +152,7 @@ stages:
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/MoarVM'
-          condition: and( eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ), ne( variables['BACKEND'], 'JVM') )
           displayName: Build MoarVM (Windows)
 
         # Build NQP
@@ -160,7 +160,7 @@ stages:
             perl Configure.pl --prefix=../install $(NQP_OPTIONS)
             make install
           workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: ne( variables['Agent.OS'], 'Windows_NT' )
+          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build NQP
         - pwsh: |
             ${{ variables.PWSH_DEV }}
@@ -168,7 +168,7 @@ stages:
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/nqp'
-          condition: eq( variables['Agent.OS'], 'Windows_NT' )
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build NQP (Windows)
 
         # Build Rakudo
@@ -176,7 +176,7 @@ stages:
             perl Configure.pl --prefix=../install $(RAKUDO_OPTIONS)
             make install
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: ne( variables['Agent.OS'], 'Windows_NT' )
+          condition: and(succeeded(), ne( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build Rakudo
         - pwsh: |
             ${{ variables.PWSH_DEV }}
@@ -184,43 +184,43 @@ stages:
             nmake install
           failOnStderr: false
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: eq( variables['Agent.OS'], 'Windows_NT' )
+          condition: and(succeeded(), eq( variables['Agent.OS'], 'Windows_NT' ))
           displayName: Build Rakudo (Windows)
 
         # TODO: Should use "install moved" instead of "install-moved". But `prove` currently fails with an executable path that contains a space.
         - script: mv install install-moved
           workingDirectory: $(Pipeline.Workspace)
-          condition: and( eq( variables['RELOCATABLE'], 'yes' ), ne( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Move installation
         - pwsh: mv install install-moved
           workingDirectory: $(Pipeline.Workspace)
-          condition: and( eq( variables['RELOCATABLE'], 'yes' ), eq( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), eq( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Move installation (Windows)
 
         # Test Rakudo
         - script: prove -e ../install/bin/perl6 -vlr t
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and( ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Test Rakudo
         - pwsh: |
             ${{ variables.PWSH_DEV }}
             prove -e ..\install\bin\perl6 -vlr t
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and( ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), ne( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Test Rakudo (Windows)
         - script: prove -e ../install-moved/bin/perl6 -vlr t
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and( eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), ne( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Test Rakudo (relocated)
         - pwsh: |
             ${{ variables.PWSH_DEV }}
             prove -e ..\install-moved\bin\perl6 -vlr t
           workingDirectory: '$(Pipeline.Workspace)/rakudo'
-          condition: and( eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
+          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM'), eq( variables['Agent.OS'], 'Windows_NT' ) )
           displayName: Test Rakudo (relocated, Windows)
 
         - publish: $(Pipeline.Workspace)/install-moved
-          condition: and( eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
+          condition: and(succeeded(), eq( variables['RELOCATABLE'], 'yes' ), ne( variables['BACKEND'], 'JVM') )
           displayName: Publish build artifact
 
 - stage: Build_Precomp_Release
@@ -231,7 +231,7 @@ stages:
       pool:
         vmImage: 'ubuntu-18.04'
       container:
-        image: centos:6
+        image: centos:7
         options: "--name raku-build-container -v /usr/bin/docker:/tmp/docker:ro"
       workspace:
         clean: all

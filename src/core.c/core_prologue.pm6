@@ -33,6 +33,7 @@ my role Positional { ... }
 my role Associative { ... }
 my role Callable { ... }
 my role Iterable { ... }
+my role Enumeration { ... }
 my role PositionalBindFailover { ... }
 my role Hash::Typed { ... }
 my role Hash::Object { ... }
@@ -64,7 +65,11 @@ my constant IterationEnd = nqp::create(Mu);
 
 # To allow passing of nqp::hash without being HLLized, we create a HLL class
 # with the same low level REPR as nqp::hash.
-my class Rakudo::Internals::IterationSet is repr('VMHash') { }
+my class Rakudo::Internals::IterationSet is repr('VMHash') {
+    method raku() {
+        nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',self)
+    }
+}
 
 # The value for \n.
 my constant $?NL = "\x0A";

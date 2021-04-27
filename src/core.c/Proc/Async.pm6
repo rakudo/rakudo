@@ -1,5 +1,3 @@
-my class Proc::Async { ... }
-
 my role X::Proc::Async is Exception {
     has Proc::Async $.proc;
 }
@@ -101,6 +99,7 @@ my class Proc::Async {
     has $.w;
     has $.enc = 'utf8';
     has $.translate-nl = True;
+    has $.arg0;
     has $.win-verbatim-args = False;
     has Bool $.started = False;
     has $!stdout_supply;
@@ -130,6 +129,9 @@ my class Proc::Async {
 
     submethod TWEAK(--> Nil) {
         $!encoder := Encoding::Registry.find($!enc).encoder(:$!translate-nl);
+
+        $!arg0 //= $!path;
+        @!args.unshift: $!arg0;
     }
 
     method !pipe-cbs(\channel) {
@@ -323,17 +325,19 @@ my class Proc::Async {
 #?if jvm
         # The Java process API does not allow disabling Javas
         # sophisticated heuristics of command mangling.
-        # So it's not easily possible to do the quoting ourselves.
-        # So the $!win-quote-args argument is ignored on JVM and we
-        # just let Java do its magic.
+        # NQPs spawnprocasync implementation on JVM thus overwrites
+        # arg[0] with the program name and forwards the result to Javas
+        # APIs.
+        # So we do not quote the arguments and just let Java do its magic.
         my @quoted-args := @!args;
 #?endif
 #?if !jvm
         my @quoted-args;
         if Rakudo::Internals.IS-WIN {
-            @quoted-args.append($!win-verbatim-args
-                ?? @!args.join(' ')
-                !! self!win-quote-CommandLineToArgvW(@!args));
+            @quoted-args.push(
+                $!win-verbatim-args
+                    ?? @!args.join(' ')
+                    !! self!win-quote-CommandLineToArgvW(@!args));
         }
         else {
             @quoted-args := @!args;
@@ -346,7 +350,7 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'done', -> Mu \status {
            $!exit_promise.keep(Proc.new(
                :exitcode(status +> 8), :signal(status +& 0xFF),
-               :command( $!path, |@!args ),
+               :command( @!command ),
            ))
         });
 
@@ -393,7 +397,8 @@ my class Proc::Async {
         nqp::bindkey($callbacks, 'stderr_fd', $!stderr-fd) if $!stderr-fd.DEFINITE;
 
         $!process_handle := nqp::spawnprocasync($scheduler.queue(:hint-affinity),
-            CLONE-LIST-DECONTAINERIZED($!path,@quoted-args),
+            $!path.Str,
+            CLONE-LIST-DECONTAINERIZED(@quoted-args),
             $cwd.Str,
             CLONE-HASH-DECONTAINERIZED(%ENV),
             $callbacks,

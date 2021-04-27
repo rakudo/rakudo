@@ -94,7 +94,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2020-12-03T13:08:28+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T19:23:33+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -275,9 +275,7 @@ my class array does Iterable does Positional {
         multi method STORE(strarray:D: Seq:D \seq --> strarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              X::Cannot::Lazy.new(
-                :action<store>, :what(self.^name)
-              ).throw,
+              self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -343,7 +341,7 @@ my class array does Iterable does Positional {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(strarray:D: @values --> strarray:D) {
-            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.append')
               if @values.is-lazy;
             nqp::push_s(self, $_) for flat @values;
             self
@@ -352,13 +350,13 @@ my class array does Iterable does Positional {
         method pop(strarray:D: --> str) {
             nqp::elems(self)
               ?? nqp::pop_s(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
+              !! self.throw-cannot-be-empty('pop')
         }
 
         method shift(strarray:D: --> str) {
             nqp::elems(self)
               ?? nqp::shift_s(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
+              !! self.throw-cannot-be-empty('shift')
         }
 
         multi method unshift(strarray:D: str $value --> strarray:D) {
@@ -370,7 +368,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method unshift(strarray:D: @values --> strarray:D) {
-            fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.unshift')
               if @values.is-lazy;
             nqp::unshift_s(self, @values.pop) while @values;
             self
@@ -443,7 +441,7 @@ my class array does Iterable does Positional {
         multi method splice(strarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> strarray:D) {
             nqp::if(
               seq.is-lazy,
-              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
+              self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -457,7 +455,7 @@ my class array does Iterable does Positional {
             )
         }
         multi method splice(strarray:D: $offset=0, $size=Whatever, *@values --> strarray:D) {
-            fail X::Cannot::Lazy.new(:action('splice in'))
+            return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
             my int $elems = nqp::elems(self);
@@ -651,7 +649,7 @@ my class array does Iterable does Positional {
                   IterationEnd
                 )
             }
-            method deterministic(--> False) { }
+            method is-deterministic(--> False) { }
         }
         multi method grab(strarray:D: \count --> Seq:D) {
             Seq.new(
@@ -685,11 +683,32 @@ my class array does Iterable does Positional {
 
             nqp::join($delim.Str,self)
         }
+        method raku(strarray:D: --> Str:D) {
+            my $parts := nqp::list_s;
+            my int $i  = -1;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::push_s($parts,nqp::if(
+                nqp::isnull_s(my $str := nqp::atpos_s(self,$i)),
+                '""',
+                $str.raku
+              ))
+            );
+
+            nqp::concat('array[',
+              nqp::concat(T.^name,
+                nqp::concat('].new(',
+                  nqp::concat(nqp::join(', ',$parts),')')
+                )
+              )
+            )
+        }
     }
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2020-12-03T13:08:28+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T19:23:33+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -870,9 +889,7 @@ my class array does Iterable does Positional {
         multi method STORE(intarray:D: Seq:D \seq --> intarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              X::Cannot::Lazy.new(
-                :action<store>, :what(self.^name)
-              ).throw,
+              self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -938,7 +955,7 @@ my class array does Iterable does Positional {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(intarray:D: @values --> intarray:D) {
-            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.append')
               if @values.is-lazy;
             nqp::push_i(self, $_) for flat @values;
             self
@@ -947,13 +964,13 @@ my class array does Iterable does Positional {
         method pop(intarray:D: --> int) {
             nqp::elems(self)
               ?? nqp::pop_i(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
+              !! self.throw-cannot-be-empty('pop')
         }
 
         method shift(intarray:D: --> int) {
             nqp::elems(self)
               ?? nqp::shift_i(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
+              !! self.throw-cannot-be-empty('shift')
         }
 
         multi method unshift(intarray:D: int $value --> intarray:D) {
@@ -965,7 +982,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method unshift(intarray:D: @values --> intarray:D) {
-            fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.unshift')
               if @values.is-lazy;
             nqp::unshift_i(self, @values.pop) while @values;
             self
@@ -1038,7 +1055,7 @@ my class array does Iterable does Positional {
         multi method splice(intarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> intarray:D) {
             nqp::if(
               seq.is-lazy,
-              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
+              self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -1052,7 +1069,7 @@ my class array does Iterable does Positional {
             )
         }
         multi method splice(intarray:D: $offset=0, $size=Whatever, *@values --> intarray:D) {
-            fail X::Cannot::Lazy.new(:action('splice in'))
+            return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
             my int $elems = nqp::elems(self);
@@ -1246,7 +1263,7 @@ my class array does Iterable does Positional {
                   IterationEnd
                 )
             }
-            method deterministic(--> False) { }
+            method is-deterministic(--> False) { }
         }
         multi method grab(intarray:D: \count --> Seq:D) {
             Seq.new(
@@ -1269,7 +1286,18 @@ my class array does Iterable does Positional {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of intarray role -------------------------------------
 
-        method sum(intarray:D: :$wrap) {
+        multi method chrs(intarray:D: --> Str:D) {
+            my int $i = -1;
+            my int $elems = nqp::elems(self);
+            my $result   := nqp::setelems(nqp::list_s,$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_s($result,$i,nqp::chr(nqp::atpos_i(self,$i)))
+            );
+            nqp::join("",$result)
+        }
+
+        multi method sum(intarray:D: :$wrap) {
             nqp::if(
               (my int $elems = nqp::elems(self)),
               nqp::stmts(
@@ -1336,7 +1364,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2020-12-03T13:08:28+01:00 by tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-04-01T19:23:33+02:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1517,9 +1545,7 @@ my class array does Iterable does Positional {
         multi method STORE(numarray:D: Seq:D \seq --> numarray:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              X::Cannot::Lazy.new(
-                :action<store>, :what(self.^name)
-              ).throw,
+              self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -1585,7 +1611,7 @@ my class array does Iterable does Positional {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(numarray:D: @values --> numarray:D) {
-            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.append')
               if @values.is-lazy;
             nqp::push_n(self, $_) for flat @values;
             self
@@ -1594,13 +1620,13 @@ my class array does Iterable does Positional {
         method pop(numarray:D: --> num) {
             nqp::elems(self)
               ?? nqp::pop_n(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
+              !! self.throw-cannot-be-empty('pop')
         }
 
         method shift(numarray:D: --> num) {
             nqp::elems(self)
               ?? nqp::shift_n(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
+              !! self.throw-cannot-be-empty('shift')
         }
 
         multi method unshift(numarray:D: num $value --> numarray:D) {
@@ -1612,7 +1638,7 @@ my class array does Iterable does Positional {
             self
         }
         multi method unshift(numarray:D: @values --> numarray:D) {
-            fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.unshift')
               if @values.is-lazy;
             nqp::unshift_n(self, @values.pop) while @values;
             self
@@ -1685,7 +1711,7 @@ my class array does Iterable does Positional {
         multi method splice(numarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> numarray:D) {
             nqp::if(
               seq.is-lazy,
-              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
+              self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -1699,7 +1725,7 @@ my class array does Iterable does Positional {
             )
         }
         multi method splice(numarray:D: $offset=0, $size=Whatever, *@values --> numarray:D) {
-            fail X::Cannot::Lazy.new(:action('splice in'))
+            return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
             my int $elems = nqp::elems(self);
@@ -1893,7 +1919,7 @@ my class array does Iterable does Positional {
                   IterationEnd
                 )
             }
-            method deterministic(--> False) { }
+            method is-deterministic(--> False) { }
         }
         multi method grab(numarray:D: \count --> Seq:D) {
             Seq.new(
@@ -1916,7 +1942,7 @@ my class array does Iterable does Positional {
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of numarray role -------------------------------------
 
-        method sum(numarray:D:) {
+        multi method sum(numarray:D:) {
             nqp::if(
               (my int $elems = nqp::elems(self)),
               nqp::stmts(
@@ -3700,16 +3726,15 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
             )
           )
         ),
-        POSITIONS(SELF, range).map({ SELF[$_] }).eager.list
+        postcircumfix:<[ ]>(SELF, range.list)
       )
     )
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:57+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Int:D $pos
 ) is raw {
@@ -3813,9 +3838,11 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::strarray:D \SELF, Callable:D $pos
 ) is raw {
-    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
-      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
-      !! nqp::atposref_s(nqp::decont(SELF),$got)
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_s(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -3831,21 +3858,30 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push_s(@result,nqp::atpos_s($self,$got))
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_s(@result,nqp::atpos_s($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native str array".naive-word-wrapper)
+        )
       )
     );
 
@@ -3858,20 +3894,24 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          Int
+        ) && nqp::isge_i($got,0),
         nqp::push_s(
           @result,
           nqp::bindpos_s(
@@ -3879,6 +3919,54 @@ multi sub postcircumfix:<[ ]>(
             $got,
             nqp::atpos_s($values,$i = nqp::add_i($i,1))
           )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native str array slice".naive-word-wrapper)
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::strarray:D \SELF, Iterable:D $pos, \values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my $values  := Rakudo::Iterator.TailWith(values.iterator,'');
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
+    my str @result;
+#?endif
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled.POSITIONS($self),
+            $pulled
+          )),
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_s(
+          @result,
+          nqp::bindpos_s(
+            $self,
+            $got,
+            $values.pull-one.Str
+          )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native str array slice".naive-word-wrapper)
         )
       )
     );
@@ -3891,16 +3979,14 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:57+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Int:D $pos
 ) is raw {
@@ -4004,9 +4090,11 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::numarray:D \SELF, Callable:D $pos
 ) is raw {
-    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
-      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
-      !! nqp::atposref_n(nqp::decont(SELF),$got)
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_n(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4022,21 +4110,30 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push_n(@result,nqp::atpos_n($self,$got))
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_n(@result,nqp::atpos_n($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native num array".naive-word-wrapper)
+        )
       )
     );
 
@@ -4049,20 +4146,24 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          Int
+        ) && nqp::isge_i($got,0),
         nqp::push_n(
           @result,
           nqp::bindpos_n(
@@ -4070,6 +4171,54 @@ multi sub postcircumfix:<[ ]>(
             $got,
             nqp::atpos_n($values,$i = nqp::add_i($i,1))
           )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native num array slice".naive-word-wrapper)
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::numarray:D \SELF, Iterable:D $pos, \values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my $values  := Rakudo::Iterator.TailWith(values.iterator,0e0);
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
+    my num @result;
+#?endif
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled.POSITIONS($self),
+            $pulled
+          )),
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_n(
+          @result,
+          nqp::bindpos_n(
+            $self,
+            $got,
+            $values.pull-one.Num
+          )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native num array slice".naive-word-wrapper)
         )
       )
     );
@@ -4082,16 +4231,14 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2020-12-07T00:08:19+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:57+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Int:D $pos
 ) is raw {
@@ -4195,9 +4342,11 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Callable:D $pos
 ) is raw {
-    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
-      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
-      !! nqp::atposref_i(nqp::decont(SELF),$got)
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_i(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4213,21 +4362,30 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push_i(@result,nqp::atpos_i($self,$got))
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_i(@result,nqp::atpos_i($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native int array".naive-word-wrapper)
+        )
       )
     );
 
@@ -4240,20 +4398,24 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          Int
+        ) && nqp::isge_i($got,0),
         nqp::push_i(
           @result,
           nqp::bindpos_i(
@@ -4261,6 +4423,54 @@ multi sub postcircumfix:<[ ]>(
             $got,
             nqp::atpos_i($values,$i = nqp::add_i($i,1))
           )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native int array slice".naive-word-wrapper)
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::intarray:D \SELF, Iterable:D $pos, \values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my $values  := Rakudo::Iterator.TailWith(values.iterator,0);
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
+    my int @result;
+#?endif
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled.POSITIONS($self),
+            $pulled
+          )),
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_i(
+          @result,
+          nqp::bindpos_i(
+            $self,
+            $got,
+            $values.pull-one.Int
+          )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native int array slice".naive-word-wrapper)
         )
       )
     );
@@ -4273,16 +4483,14 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of intarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
-#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:54+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1strarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4371,7 +4579,12 @@ multi sub postcircumfix:<[ ]>(
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -4397,7 +4610,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[str].new;
+#?endif
+#?if !jvm
     my str @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4417,16 +4635,14 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of strarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of intarray -----------------------
-#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:54+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1intarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4515,7 +4731,12 @@ multi sub postcircumfix:<[ ]>(
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -4541,7 +4762,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[int].new;
+#?endif
+#?if !jvm
     my int @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4561,16 +4787,14 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
-#- Generated on 2020-12-08T10:51:10+01:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
+#- Generated on 2021-04-03T16:18:54+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1numarray:D \SELF, Int:D $pos
 ) is default is raw {
@@ -4659,7 +4883,12 @@ multi sub postcircumfix:<[ ]>(
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -4685,7 +4914,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[num].new;
+#?endif
+#?if !jvm
     my num @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -4705,7 +4939,6 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
-#?endif
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of numarray -------------------------

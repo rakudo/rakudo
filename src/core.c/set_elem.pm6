@@ -54,7 +54,7 @@ multi sub infix:<(elem)>(Any \a, Iterable:D \b --> Bool:D) {
 multi sub infix:<(elem)>(Any \a, Iterator:D \b --> Bool:D) {
     nqp::if(
       b.is-lazy,
-      Failure.new(X::Cannot::Lazy.new(:action<(elem)>)),
+      Any.fail-iterator-cannot-be-lazy('(elem)',''),
       nqp::stmts(
         (my str $needle = a.WHICH),
         nqp::until(

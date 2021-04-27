@@ -746,6 +746,11 @@ my class X::IO::BinaryMode does X::IO {
     method message { "Cannot do '$.trying' on a handle in binary mode" }
 }
 
+my class X::IO::Closed does X::IO {
+    has $.trying;
+    method message { "Cannot do '$.trying' on a closed handle" }
+}
+
 my role X::Comp is Exception {
     has $.filename;
     has $.pos;
@@ -1428,8 +1433,8 @@ my class X::Method::Private::Unqualified does X::Comp {
 }
 
 my class X::Adverb is Exception {
-    has $.what;
-    has $.source;
+    has $.what   is rw;
+    has $.source is rw;
     has @.unexpected;
     has @.nogo;
     method message {
@@ -2144,7 +2149,7 @@ my class X::Package::Stubbed does X::Comp {
 
     # The unnamed named param is here so this candidate, rather than
     # the one from X::Comp is used. (is it a bug that this is needed?
-    # No idea: https://irclog.perlgeek.de/perl6-dev/2017-09-14#i_15164569 )
+    # No idea: https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-09-14#l405
     multi method gist(::?CLASS:D: :$) {
         $.message;
     }
@@ -2272,8 +2277,8 @@ my class X::Str::Sprintf::Directives::BadType is Exception {
     has $.value;
     method message() {
         $.expected
-          ??  "Directive $.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
-          !! "Directive $.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
+          ??  "Directive %$.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
+          !! "Directive %$.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
     }
 }
 
@@ -2769,6 +2774,14 @@ my class X::Numeric::Confused is Exception {
                 ~ " string, use {$.num.raku}.base($.base) instead.)"
             if $.num.^can('base')
         );
+    }
+}
+
+my class X::Enum::NoValue is Exception {
+    has Mu $.type is required;
+    has $.value is required;
+    method message {
+        "No value '" ~ $!value ~ "' found in enum " ~ $!type.^name
     }
 }
 

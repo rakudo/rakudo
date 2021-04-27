@@ -51,7 +51,6 @@ while @lines {
     # spurt the candidates
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::shaped1#type#array:D \SELF, Int:D $pos
 ) is default is raw {
@@ -140,7 +139,12 @@ multi sub postcircumfix:<[ ]>(
 ) is default is raw {
     my $self     := nqp::decont(SELF);
     my $iterator := $pos.iterator;
+#?if jvm
+    my @result := array[#type#].new;
+#?endif
+#?if !jvm
     my #type# @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
@@ -166,7 +170,12 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[#type#].new;
+#?endif
+#?if !jvm
     my #type# @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
@@ -186,7 +195,6 @@ multi sub postcircumfix:<[ ]>(
 
     @result
 }
-#?endif
 
 SOURCE
 

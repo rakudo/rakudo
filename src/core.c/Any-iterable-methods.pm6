@@ -1,4 +1,7 @@
-class X::Cannot::Map { ... }
+my class X::Cannot::Empty { ... }
+my class X::Cannot::Lazy  { ... }
+my class X::Cannot::Map   { ... }
+my class Rakudo::Sorting  { ... }
 
 # Now that Iterable is defined, we add extra methods into Any for the list
 # operations. (They can't go into Any right away since we need Attribute to
@@ -9,6 +12,47 @@ class X::Cannot::Map { ... }
 # work on by doing a .list coercion.
 use MONKEY-TYPING;
 augment class Any {
+
+    # Because the first occurrence of "method chrs" is in the intarray
+    # role, we need to create the proto earlier in the setting.  That's
+    # why it is not in unicodey.
+    proto method chrs(*%) is pure {*}
+
+    # A helper method for throwing an exception because of a lazy iterator,
+    # to help reduce bytecode size in hot code paths, making it more likely
+    # that the (conditional) caller of this method, can be inlined.
+    method throw-iterator-cannot-be-lazy(
+      str $action, str $what = self.^name
+    ) is hidden-from-backtrace is implementation-detail {
+        X::Cannot::Lazy.new(:$action, :$what).throw
+    }
+
+    # A helper method for creating a failure because of a lazy iterator, to
+    # to help reduce bytecode size in hot code paths, making it more likely
+    # that the (conditional) caller of this method, can be inlined.
+    method fail-iterator-cannot-be-lazy(
+      str $action, str $what = self.^name
+    ) is hidden-from-backtrace is implementation-detail {
+        Failure.new(X::Cannot::Lazy.new(:$action, :$what))
+    }
+
+    # A helper method for throwing an exception because of an array being
+    # empty, to help reduce bytecode size in hot code paths, making it more
+    # likely that the (conditional) caller of this method, can be inlined.
+    method throw-cannot-be-empty(
+      str $action, str $what = self.^name
+    ) is hidden-from-backtrace is implementation-detail {
+        X::Cannot::Empty.new(:$action, :$what).throw
+    }
+
+    # A helper method for creating a failure because of an array being empty
+    # to help reduce bytecode size in hot code paths, making it more likely
+    # that the (conditional) caller of this method, can be inlined.
+    method fail-cannot-be-empty(
+      str $action, str $what = self.^name
+    ) is hidden-from-backtrace is implementation-detail {
+        Failure.new(X::Cannot::Empty.new(:$action, :$what))
+    }
 
     proto method map(|) is nodal {*}
     multi method map(Hash:D \hash) {
@@ -769,7 +813,7 @@ Consider using a block if any of these are necessary for your mapping code."
     sub sequential-map(\source, &block, \label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
-        my $count = &block.count;
+        my $count := &block.count;
 
         Seq.new(
           nqp::istype(&block,Block) && &block.has-phasers
@@ -830,7 +874,7 @@ Consider using a block if any of these are necessary for your mapping code."
             );
             $!index = $i;
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-k(Callable:D $test) { Seq.new(Grep-K.new(self,$test)) }
 
@@ -886,7 +930,7 @@ Consider using a block if any of these are necessary for your mapping code."
               )
             );
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-kv(Callable:D $test) { Seq.new(Grep-KV.new(self,$test)) }
 
@@ -929,7 +973,7 @@ Consider using a block if any of these are necessary for your mapping code."
             );
             $!index = $i;
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-p(Callable:D $test) { Seq.new(Grep-P.new(self,$test)) }
 
@@ -943,7 +987,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
         method new(\list,Mu \test) { nqp::create(self)!SET-SELF(list,test) }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-callable(Callable:D $test) {
         nqp::if(
@@ -1253,6 +1297,22 @@ Consider using a block if any of these are necessary for your mapping code."
         )
     }
 
+    proto method sum(*%) is nodal {*}
+    multi method sum(Any:D:) {
+        nqp::if(
+          (my \iterator := self.iterator).is-lazy,
+          self.fail-iterator-cannot-be-lazy('.sum'),
+          nqp::stmts(
+            (my $sum := 0),
+            nqp::until(
+              nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),
+              ($sum := $sum + pulled)
+            ),
+            $sum
+          )
+        )
+    }
+
     proto method min (|) is nodal {*}
     multi method min() {
         nqp::if(
@@ -1519,6 +1579,9 @@ Consider using a block if any of these are necessary for your mapping code."
         (find-reducer-for-op(&with))(&with,1)(self)
     }
 
+    proto method slice(|) is nodal { * }
+    multi method slice(Any:D: *@indices --> Seq:D) { self.Seq.slice(@indices) }
+
     proto method unique(|) is nodal {*}
 
     my class Unique does Iterator {
@@ -1554,7 +1617,7 @@ Consider using a block if any of these are necessary for your mapping code."
             )
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     multi method unique() { Seq.new(Unique.new(self)) }
@@ -1602,7 +1665,7 @@ Consider using a block if any of these are necessary for your mapping code."
               )
             )
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method unique( :&as! ) { Seq.new(Unique-As.new(self,&as)) }
 
@@ -1645,7 +1708,7 @@ Consider using a block if any of these are necessary for your mapping code."
             );
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method repeated() { Seq.new(Repeated.new(self)) }
 
@@ -1689,7 +1752,7 @@ Consider using a block if any of these are necessary for your mapping code."
             );
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method repeated( :&as! ) { Seq.new(Repeated-As.new(self,&as)) }
 
@@ -1768,7 +1831,7 @@ Consider using a block if any of these are necessary for your mapping code."
             }
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method squish( :&as!, :&with = &[===] ) {
         Seq.new(Squish-As.new(self.iterator, &as, &with))
@@ -1837,7 +1900,7 @@ Consider using a block if any of these are necessary for your mapping code."
             }
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     multi method squish( :&with = &[===] ) {
         Seq.new(Squish-With.new(self.iterator,&with))
@@ -2038,6 +2101,140 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method rotor(Any:D: +@cycle, :$partial) {
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
+
+    proto method nodemap(|) is nodal {*}
+    multi method nodemap(Associative:D: &op) {
+        self.new.STORE: self.keys, self.values.nodemap(&op), :INITIALIZE
+    }
+    multi method nodemap(&op) {
+        my \iterator := self.iterator;
+        return Failure.new(X::Cannot::Lazy.new(:action<nodemap>))
+          if iterator.is-lazy;
+
+        my \buffer   := nqp::create(IterationBuffer);
+        my $value    := iterator.pull-one;
+
+        nqp::until(
+          nqp::eqaddr($value,IterationEnd),
+          nqp::stmts(
+            (my int $redo = 1),
+            nqp::while(
+              $redo,
+              nqp::stmts(
+                $redo = 0,
+                nqp::handle(
+                  nqp::push(buffer,op($value)),
+                  'NEXT', nqp::null,
+                  'REDO', ($redo = 1),
+                  'LAST', ($value := IterationEnd),
+                ) 
+              ),
+              :nohandler
+            ),
+            ($value := iterator.pull-one)
+          ) 
+        );
+        buffer.List
+    }   
+
+    proto method deepmap(|) is nodal {*}
+    multi method deepmap(Associative:D: &op) {
+        self.new.STORE: self.keys, self.values.deepmap(&op), :INITIALIZE
+    }
+    multi method deepmap(&op) {
+        my \iterator := self.iterator;
+        my \buffer   := nqp::create(IterationBuffer);
+        my $value    := iterator.pull-one;
+
+        sub deep(\value) is raw { my $ = value.deepmap(&op) }
+
+        nqp::until(
+          nqp::eqaddr($value,IterationEnd),
+          nqp::stmts(
+            (my int $redo = 1),
+            nqp::while(
+              $redo,
+              nqp::stmts(
+                $redo = 0,
+                nqp::handle(
+                  nqp::stmts(
+                    (my $result := nqp::if(
+                      nqp::istype($value,Iterable) && $value.DEFINITE,
+                      deep($value),
+                      op($value)
+                    )),
+                    nqp::if(
+                      nqp::istype($result,Slip),
+                      $result.iterator.push-all(buffer),
+                      nqp::push(buffer,$result)
+                    ),
+                  ),
+                  'NEXT', nqp::null,
+                  'REDO', ($redo = 1),
+                  'LAST', ($value := IterationEnd),
+                ) 
+              ),
+              :nohandler
+            ),
+            ($value := iterator.pull-one)
+          ) 
+        );
+        nqp::p6bindattrinvres(
+          nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
+          List,'$!reified',buffer
+        ) 
+    }   
+
+    proto method duckmap(|) is nodal {*}
+    multi method duckmap(Associative:D: &op) {
+        self.new.STORE: self.keys, self.values.duckmap(&op)
+    }
+    multi method duckmap(&op) {
+        my \iterator := self.iterator;
+        my \buffer   := nqp::create(IterationBuffer);
+        my $value    := iterator.pull-one;
+
+        sub duck(\arg) is raw {
+            CATCH {
+                return nqp::istype(arg,Iterable:D)
+                  ?? (my $ = arg.duckmap(&op))
+                  !! arg
+            }
+            op(arg)
+        }
+
+        nqp::until(
+          nqp::eqaddr($value,IterationEnd),
+          nqp::stmts(
+            (my int $redo = 1),
+            nqp::while(
+              $redo,
+              nqp::stmts(
+                $redo = 0,
+                nqp::handle(
+                  nqp::stmts(
+                    (my $result := duck($value)),
+                    nqp::if(
+                      nqp::istype($result,Slip),
+                      $result.iterator.push-all(buffer),
+                      nqp::push(buffer,$result)
+                    ),
+                  ),
+                  'NEXT', nqp::null,
+                  'REDO', ($redo = 1),
+                  'LAST', ($value := IterationEnd),
+                ) 
+              ),
+              :nohandler
+            ),
+            ($value := iterator.pull-one)
+          ) 
+        );
+        nqp::p6bindattrinvres(
+          nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
+          List,'$!reified',buffer
+        ) 
+    }   
 }
 
 BEGIN Attribute.^compose;
@@ -2130,5 +2327,14 @@ multi sub sort(&by, @values) { @values.sort(&by) }
 multi sub sort(&by, +values) { values.sort(&by) }
 multi sub sort(@values)      { @values.sort }
 multi sub sort(+values)      { values.sort }
+
+proto sub nodemap($, $, *%) {*}
+multi sub nodemap(&op, \obj) { obj.nodemap(&op) }
+
+proto sub deepmap($, $, *%) {*}
+multi sub deepmap(&op, \obj) { obj.deepmap(&op) }
+
+proto sub duckmap($, $, *%) {*}
+multi sub duckmap(&op, \obj) { obj.duckmap(&op) }
 
 # vim: expandtab shiftwidth=4

@@ -20,6 +20,16 @@ my class Range is Cool does Iterable does Positional {
     }
     multi method is-lazy(Range:D:) { self.infinite }
 
+    multi method contains(Range:D: \needle) {
+        warn "Applying '.contains' to a Range will look at its .Str representation.  Did you mean 'needle (elem) Range'?".naive-word-wrapper;
+        self.Str.contains(needle)
+    }
+
+    multi method index(Range:D: \needle) {
+        warn "Applying '.index' to a Range will look at its .Str representation.  Did you mean 'Range.first(needle, :k)'?".naive-word-wrapper;
+        self.Str.index(needle)
+    }
+
     # The order of "method new" declarations matters here, to ensure
     # appropriate candidate tiebreaking when mixed type arguments
     # are present (e.g., Range,Whatever or Real,Range).
@@ -111,7 +121,7 @@ my class Range is Cool does Iterable does Positional {
         $!is-int
           ?? 0 max $!max - $!excludes-max - $!min - $!excludes-min + 1
           !! $!infinite
-            ?? Failure.new(X::Cannot::Lazy.new(:action<.elems>))
+            ?? self.fail-iterator-cannot-be-lazy('.elems')
             !! nextsame
     }
 
@@ -477,7 +487,7 @@ my class Range is Cool does Iterable does Positional {
         method new(\b,\e) { nqp::create(self)!SET-SELF(b,e) }
         method pull-one() { $!min + nqp::rand_I($!elems, Int) }
         method is-lazy(--> True) { }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     my class RollN does Iterator {
         has $!min;
@@ -499,7 +509,7 @@ my class Range is Cool does Iterable does Positional {
             target.push($!min + nqp::rand_I($!elems, Int))
               while $!todo--;
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method roll(Range:D: Whatever) {
         (my \elems := self.elems)
@@ -569,7 +579,7 @@ my class Range is Cool does Iterable does Positional {
                 }
             }
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method pick() { self.roll }
     multi method pick(Whatever)  {
@@ -624,7 +634,7 @@ my class Range is Cool does Iterable does Positional {
         X::Immutable.new(:typename<Range>, :method<pop>).throw
     }
 
-    method sum() is nodal {
+    multi method sum(Range:D:) {
         self.int-bounds(my $start, my $stop)
           ?? ($start + $stop) * (0 max $stop - $start + 1) div 2
           !! $!min == -Inf
@@ -739,13 +749,13 @@ multi sub infix:</>(Range:D \r, Real:D \v) {
     r.new: r.min / v, r.max / v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
 }
 
-multi sub infix:<cmp>(Range:D \a, Range:D \b --> Order:D) {
+multi sub infix:<cmp>(Range:D \a, Range:D \b) {
     a.min cmp b.min || a.excludes-min cmp b.excludes-min || a.max cmp b.max || b.excludes-max cmp a.excludes-max
 }
-multi sub infix:<cmp>(Num(Real) \a, Range:D \b --> Order:D) { (a..a) cmp b }
-multi sub infix:<cmp>(Range:D \a, Num(Real) \b --> Order:D) { a cmp (b..b) }
+multi sub infix:<cmp>(Num(Real) \a, Range:D \b) { (a..a) cmp b }
+multi sub infix:<cmp>(Range:D \a, Num(Real) \b) { a cmp (b..b) }
 
-multi sub infix:<cmp>(Positional \a, Range:D \b --> Order:D) { a cmp b.list }
-multi sub infix:<cmp>(Range:D \a, Positional \b --> Order:D) { a.list cmp b }
+multi sub infix:<cmp>(Positional \a, Range:D \b) { a cmp b.list }
+multi sub infix:<cmp>(Range:D \a, Positional \b) { a.list cmp b }
 
 # vim: expandtab shiftwidth=4

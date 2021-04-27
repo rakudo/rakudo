@@ -43,17 +43,21 @@ subtest 'chr with large codepoints throws useful error' => {
     plan +@tests;
     for @tests {
         throws-like $^code, Exception,
-            :message{ not .contains('negative') and .contains('codepoint') },
+          :message{
+            .contains('Codepoint')
+            && .contains('out of bounds')
+            && .contains('chr')
+        },
         "$code.raku()";
     }
 }
 
-# https://irclog.perlgeek.de/perl6/2017-03-14#i_14263417
+# https://colabti.org/irclogger/irclogger_log/perl6?date=2017-03-14#l1018
 throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
     :message(/«'do for'»/),
     '<-> does not prevent an error suggesting to use `do for`';
 
-# https://irclog.perlgeek.de/perl6-dev/2017-04-13#i_14425133
+# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-04-14#l101
 # https://github.com/Raku/old-issue-tracker/issues/2262
 {
     my $param = '$bar';
@@ -180,7 +184,7 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         'wrong arity in a signature mentions the name of the method';
 }
 
-{ # https://irclog.perlgeek.de/perl6-dev/2017-05-31#i_14666102
+{ # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-31#l169
     throws-like '42.length      ', Exception, '.length on non-List Cool',
         :message{ .contains: <chars codes>.all & none <elems graphs> };
 

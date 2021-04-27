@@ -15,7 +15,6 @@ src/core.c/Rakudo/SlippyIterator.pm6
 src/core.c/Rakudo/Internals.pm6
 src/core.c/Rakudo/Iterator.pm6
 src/core.c/Rakudo/QuantHash.pm6
-src/core.c/Rakudo/Sorting.pm6
 src/core.c/HyperConfiguration.pm6
 src/core.c/Iterable.pm6
 src/core.c/Any-iterable-methods.pm6
@@ -41,6 +40,7 @@ src/core.c/Real.pm6
 src/core.c/Int.pm6
 src/core.c/Bool.pm6
 src/core.c/Order.pm6
+src/core.c/Rakudo/Sorting.pm6
 src/core.c/Num.pm6
 src/core.c/Buf.pm6
 @if(backend!=jvm
@@ -71,14 +71,16 @@ src/core.c/RaceSeq.pm6
 src/core.c/Nil.pm6
 src/core.c/Range.pm6
 src/core.c/List.pm6
+src/core.c/Array/Element.pm6
+src/core.c/Array/Slice.pm6
 src/core.c/array_slice.pm6
 src/core.c/array_multislice.pm6
 src/core.c/Slip.pm6
+src/core.c/Array/Typed.pm6
 src/core.c/Array/Shaped.pm6
 src/core.c/Array/Shaped1.pm6
 src/core.c/Array/Shaped2.pm6
 src/core.c/Array/Shaped3.pm6
-src/core.c/Array/Typed.pm6
 src/core.c/Array.pm6
 src/core.c/array_operators.pm6
 src/core.c/native_array.pm6
@@ -198,9 +200,7 @@ src/core.c/Distro.pm6
 src/core.c/Kernel.pm6
 src/core.c/Compiler.pm6
 src/core.c/Raku.pm6
-src/core.c/OS.pm6
 src/core.c/Rakudo/Internals/JSON.pm6
-src/core.c/JSON/Pretty.pm6
 src/core.c/Distribution.pm6
 src/core.c/CompUnit/DependencySpecification.pm6
 src/core.c/CompUnit/Handle.pm6
@@ -236,4 +236,6 @@ src/core.c/REPL.pm6
 @if(backend==js
 src/core.c/WrappedJSObject.pm6)@
 src/core.c/Rakudo/Metaops.pm6
+src/core.c/Rakudo/Internals/PostcircumfixAdverbs.pm6
+src/core.c/unicodey.pm6
 src/core.c/core_epilogue.pm6

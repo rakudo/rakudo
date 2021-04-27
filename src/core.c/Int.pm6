@@ -86,12 +86,6 @@ my class Int does Real { # declared in BOOTSTRAP
             !! self.Real::Bridge
     }
 
-    method chr(Int:D: --> Str:D) {
-        nqp::isbig_I(self)
-          ?? die("chr codepoint %i (0x%X) is out of bounds".sprintf(self,self))
-          !! nqp::p6box_s(nqp::chr(nqp::unbox_i(self)))
-    }
-
     method sqrt(Int:D: --> Num:D) {
         nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self)))
     }
@@ -245,43 +239,6 @@ my class Int does Real { # declared in BOOTSTRAP
                   !! Range.new( -Inf, Inf, :excludes-min, :excludes-max )
             }
         }
-    }
-
-    my $nuprop := nqp::null;
-    my $deprop := nqp::null;
-    method unival(Int:D:) {
-        my str $de = nqp::getuniprop_str(
-          self,
-          nqp::ifnull(
-            $deprop,
-            $deprop := nqp::unipropcode("Numeric_Value_Denominator")
-          )
-        );
-        nqp::if(
-          nqp::chars($de),
-          nqp::if(                                    # some string to work with
-            nqp::iseq_s($de,"NaN"),
-            NaN,                                       # no value found
-            nqp::stmts(                                # value for denominator
-              (my str $nu = nqp::getuniprop_str(
-                self,
-                nqp::ifnull(
-                  $nuprop,
-                  $nuprop := nqp::unipropcode("Numeric_Value_Numerator")
-                )
-              )),
-              nqp::if(
-                nqp::iseq_s($de,"1"),
-                nqp::atpos(nqp::radix(10,$nu,0,0),0),   # just the numerator
-                Rat.new(                                # spotted a Rat
-                  nqp::atpos(nqp::radix(10,$nu,0,0),0),
-                  nqp::atpos(nqp::radix(10,$de,0,0),0)
-                )
-              )
-            )
-          ),
-          Nil                                          # no string, so no value
-        )
     }
 }
 
@@ -533,11 +490,6 @@ multi sub prefix:<+^>(Int:D \a --> Int:D) {
 multi sub prefix:<+^>(int $a --> int) {
    nqp::bitneg_i($a);
 }
-
-proto sub chr($, *%) is pure  {*}
-multi sub chr(Int:D  \x --> Str:D) { x.chr        }
-multi sub chr(Cool \x   --> Str:D) { x.Int.chr    }
-multi sub chr(int $x    --> str)   { nqp::chr($x) }
 
 proto sub is-prime($, *%) is pure {*}
 multi sub is-prime(\x --> Int:D) { x.is-prime }

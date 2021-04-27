@@ -864,6 +864,12 @@ register_op_desugar('p6var', -> $qast {
         )
     )
 });
+register_op_desugar('time_i', -> $qast {
+    QAST::Op.new( :op('div_i'), QAST::Op.new( :op('time' ) ), QAST::IVal.new( :value(1000000000) ) )
+});
+register_op_desugar('time_n', -> $qast {
+    QAST::Op.new( :op('div_n'), QAST::Op.new( :op('time' ) ), QAST::NVal.new( :value(1000000000e0) ) )
+});
 {
     my $is_moar;
     register_op_desugar('p6decontrv_internal', -> $qast {
@@ -4361,7 +4367,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Cannot inline things with custom invocation handler or phasers.
         return 0 if nqp::can($code, 'CALL-ME');
         my $phasers := nqp::getattr($code,$*W.find_single_symbol('Block', :setting-only),'$!phasers');
-        return 0 unless nqp::isnull($phasers) || !nqp::hllbool($phasers);
+        return 0 unless nqp::isnull($phasers) || !$phasers;
 
         # Make sure the block has the common structure we expect
         # (decls then statements).
@@ -9206,9 +9212,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
             # Add type checks.
             my $param_type := %info<type>;
+            my $ptype_archetypes := $param_type.HOW.archetypes;
             my int $is_generic := %info<type_generic>;
-            my int $is_coercive := $param_type.HOW.archetypes.coercive;
-            my $nomtype    := !$is_generic && $param_type.HOW.archetypes.nominalizable
+            my int $is_coercive := $ptype_archetypes.coercive;
+            my $nomtype    := !$is_generic && $ptype_archetypes.nominalizable
                                 ?? $param_type.HOW.nominalize($param_type)
                                 !! $param_type;
             my int $is_rw := $flags +& $SIG_ELEM_IS_RW;
@@ -9261,7 +9268,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         QAST::Var.new( :name($genericname), :scope<typevar> )
                     )));
                 } elsif !($param_type =:= $*W.find_single_symbol('Mu')) {
-                    if $param_type.HOW.archetypes.generic {
+                    if $ptype_archetypes.generic {
                         return 0 unless %info<is_invocant>;
                     }
                     else {
@@ -9286,11 +9293,29 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                                 QAST::Var.new( :name(get_decont_name()), :scope('local') )
                                             ))))));
                         }
-                        $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
-                            :op('istype_nd'),
-                            QAST::Var.new( :name(get_decont_name()), :scope('local') ),
-                            QAST::WVal.new( :value($param_type) )
-                        )));
+
+                        # Try to be smarter with coercions. We don't have to do full typecheck on them, which results in
+                        # additional call to a HOW method. Instead it's ok to check if value matches target or
+                        # constraint types.
+                        if $is_coercive && nqp::can($param_type.HOW, 'target_type') {
+                            $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                                    :op('unless'),
+                                    QAST::Op.new(
+                                        :op('istype_nd'),
+                                        QAST::Var.new( :name(get_decont_name()), :scope('local') ),
+                                        QAST::WVal.new( :value($param_type.HOW.target_type($param_type) ))),
+                                    QAST::Op.new(
+                                        :op('istype_nd'),
+                                        QAST::Var.new( :name(get_decont_name()), :scope('local') ),
+                                        QAST::WVal.new( :value($param_type.HOW.constraint_type($param_type) ))))));
+                        }
+                        else {
+                            $var.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                                :op('istype_nd'),
+                                QAST::Var.new( :name(get_decont_name()), :scope('local') ),
+                                QAST::WVal.new( :value($param_type) )
+                            )));
+                        }
                     }
                 }
                 if %info<undefined_only> {
@@ -9338,7 +9363,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Handle coercion.
             # For a generic we can't know beforehand if it's going to be a coercive or any other nominalizable. Thus
             # we have to fetch the instantiated parameter object and do run-time processing.
-            my $ptype_archetypes := $param_type.HOW.archetypes;
             if $ptype_archetypes.generic {
                 # For a generic-typed parameter get its instantiated clone and see if its type is a coercion.
                 $decont_name_invalid := 1;
@@ -9445,7 +9469,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                 :op<create>,
                                 QAST::WVal.new(
                                     value => nqp::istype($nomtype, $*W.find_single_symbol($role)) && nqp::can($nomtype.HOW, 'role_arguments')
-                                               ?? $*W.parameterize_type_with_args($/, $*W.find_single_symbol($base-type), $nomtype.HOW.role_arguments($nomtype), nqp::hash)
+                                               ?? $*W.parameterize_type_with_args(NQPMu, $*W.find_single_symbol($base-type), $nomtype.HOW.role_arguments($nomtype), nqp::hash)
                                                !! $*W.find_single_symbol($base-type)
                             )));
                     }

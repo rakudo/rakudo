@@ -18,12 +18,6 @@ my class Date does Dateish {
       'years',  0,
     );
 
-    method !VALID-UNIT($unit) {
-        nqp::existskey($valid-units,$unit)
-          ?? $unit
-          !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-    }
-
     # fast object creation with sanity check on month/day
     method !SET-SELF(\year,\month,\day,\formatter --> Date:D) {
         self!oor("Month",month,"1..12")
@@ -217,49 +211,46 @@ my class Date does Dateish {
         )
     }
 
-    method truncated-to(Cool $unit --> Date:D) {
-        self!clone-without-validating(
-          |self!truncate-ymd(self!VALID-UNIT($unit)));
+    method truncated-to(Date:D: str $unit --> Date:D) {
+        my $truncated := nqp::clone(self);
+        my $what      := self.WHAT;
+        nqp::bindattr_i($truncated,$what,'$!daycount',0);
+        nqp::if(
+          nqp::eqat($unit,'week',0),
+          ($truncated := $truncated.move-by-unit(
+            'day',
+            nqp::sub_i(1,$truncated.day-of-week)
+          )),
+          nqp::stmts(
+            nqp::bindattr_i($truncated,$what,'$!day',1),
+            nqp::unless(
+              nqp::eqat($unit,'month',0),
+              nqp::stmts(
+                nqp::bindattr_i($truncated,$what,'$!month',1),
+                nqp::unless(
+                  nqp::eqat($unit,'year',0),
+                  die "Cannot truncate {self.^name} object to '$unit'"
+                )
+              )
+            )
+          )
+        );
+
+        $truncated
     }
 
-    method earlier(*%unit --> Date:D) {
-        my $units := nqp::getattr(%unit,Map,'$!storage');
-        nqp::elems($units) == 1
-          ?? self!move(
-               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
-               nqp::neg_i(nqp::atkey($units,$u))
-             )
-          !! self!move-die(nqp::elems($units))
-    }
-    method later(*%unit --> Date:D) {
-        my $units := nqp::getattr(%unit,Map,'$!storage');
-        nqp::elems($units) == 1
-          ?? self!move(
-               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
-               nqp::atkey($units,$u)
-             )
-          !! self!move-die(nqp::elems($units))
-    }
-
-    # die for improper number of units when moving a Date
-    method !move-die(int $elems) {
-        die $elems
-          ?? "More than one time unit supplied"
-          !! die "No time unit supplied";
-    }
-
-    # helper method for moving a Date
-    method !move(str $unit, int $amount) {
+    # workhorse method for moving a Date
+    method move-by-unit(str $unit, int $amount) is implementation-detail {
         if nqp::atkey($valid-units,$unit) -> int $multiplier {
             self!move-days(nqp::mul_i($multiplier,$amount));
         }
         elsif nqp::eqat($unit,'month',0) {
-            my int $month = $!month + $amount;
+            my int $month = nqp::add_i($!month,$amount);
             my int $year;
-            if $month < 1 || $month > 12 {
-                $year  = $!year + nqp::div_i(nqp::sub_i($month,1),12);
+            if nqp::bitor_i(nqp::islt_i($month,1),nqp::isgt_i($month,12)) {
+                $year  = nqp::add_i($!year,nqp::div_i(nqp::sub_i($month,1),12));
                 $month = nqp::add_i(nqp::mod_i(nqp::sub_i($month,1),12),1);
-                $month = nqp::add_i($month,12) if $month < 1;
+                $month = nqp::add_i($month,12) if nqp::islt_i($month,1);
             }
             else {
                 $year = $!year;
@@ -275,13 +266,13 @@ my class Date does Dateish {
             $new
         }
         else { # year
-            my int $year = $!year + $amount;
+            my int $year = nqp::add_i($!year,$amount);
 
             my $new := nqp::clone(self);
             nqp::bindattr_i($new,Date,'$!year',$year);
             nqp::bindattr_i($new,Date,'$!day',
-              self!clip-day($year,$!month,$!day))
-              if $!day > 28;
+              self!clip-day($year,$!month,$!day)
+            ) if nqp::isgt_i($!day,28);
             nqp::bindattr_i($new,Date,'$!daycount',0);
             $new
         }
@@ -391,10 +382,10 @@ multi sub infix:<->(Date:D \date, Int:D $x --> Date:D) {
 multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
     $a.daycount - $b.daycount;
 }
-multi sub infix:<cmp>(Date:D $a, Date:D $b --> Order:D) {
+multi sub infix:<cmp>(Date:D $a, Date:D $b) {
     $a.daycount cmp $b.daycount
 }
-multi sub infix:«<=>»(Date:D $a, Date:D $b --> Order:D) {
+multi sub infix:«<=>»(Date:D $a, Date:D $b) {
     $a.daycount <=> $b.daycount
 }
 multi sub infix:<==>(Date:D $a, Date:D $b --> Bool:D) {

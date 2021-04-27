@@ -61,7 +61,6 @@ my @expected = (
   Q{&METAOP_TEST_ASSIGN:<||>},
   Q{&METAOP_ZIP},
   Q{&ORDER},
-  Q{&POSITIONS},
   Q{&QX},
   Q{&REACT},
   Q{&REACT-ONE-WHENEVER},
@@ -69,9 +68,7 @@ my @expected = (
   Q{&RETURN-LIST},
   Q{&RUN-MAIN},
   Q{&SLICE_MORE_HASH},
-  Q{&SLICE_MORE_LIST},
   Q{&SLICE_ONE_HASH},
-  Q{&SLICE_ONE_LIST},
   Q{&SUPPLY},
   Q{&SUPPLY-ONE-EMIT},
   Q{&SUPPLY-ONE-WHENEVER},
@@ -762,8 +759,41 @@ my @expected = (
   Q{π},
   Q{τ},
   Q{𝑒},
+  Q{tai-offset-nanos},
 );
 
-has-symbols CORE::, @expected, "Symbols in 6.c CORE::";
+my %nyi-for-backend = (
+  'jvm' => (
+    Q{&atomic-add-fetch},
+    Q{&atomic-dec-fetch},
+    Q{&atomic-fetch-add},
+    Q{&atomic-fetch-dec},
+    Q{&atomic-fetch-inc},
+    Q{&atomic-fetch-sub},
+    Q{&atomic-inc-fetch},
+    Q{&atomic-sub-fetch},
+    Q{&full-barrier},
+    Q{&infix:<⚛+=>},
+    Q{&infix:<⚛-=>},
+    Q{&infix:<⚛=>},
+    Q{&infix:<⚛−=>},
+    Q{&postfix:<⚛++>},
+    Q{&postfix:<⚛-->},
+    Q{&prefix:<++⚛>},
+    Q{&prefix:<--⚛>},
+    Q{atomicint},
+    Q{Collation},
+    Q{NFC},
+    Q{NFD},
+    Q{NFKC},
+    Q{NFKD},
+    Q{Uni},
+    Q{𝑒},
+  ),
+  'moar' => (),
+  'js' => (),
+);
+
+has-symbols CORE::, (@expected (-) %nyi-for-backend{$*VM.name}).keys, "Symbols in 6.c CORE::";
 
 # vim: expandtab shiftwidth=4

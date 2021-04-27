@@ -4,7 +4,10 @@ my class Block { # declared in BOOTSTRAP
     #     has Mu $!phasers;
     #     has Mu $!why;
 
-    method of(Block:D:)      { nqp::getattr(self,Code,'$!signature').returns }
+    proto method of() {*}
+    multi method of(Block:U:) { Mu }
+    multi method of(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
+
     method returns(Block:D:) { nqp::getattr(self,Code,'$!signature').returns }
 
     method add_phaser(Str:D \name, &block --> Nil) {
@@ -83,16 +86,18 @@ my class Block { # declared in BOOTSTRAP
 
     # helper method for array slicing
     multi method POSITIONS(Block:D: Failure:D \failure) { failure }
-    multi method POSITIONS(Block:D $self: Any:D \list) {
-      (nqp::istype(
-         (my \n := nqp::getattr(
-           nqp::getattr($self,Code,'$!signature'),Signature,'$!count')
-         ),
-         Num
-       ) && nqp::isnanorinf(n)
-      ) || nqp::iseq_i(nqp::unbox_i(n),1)
-        ?? $self(nqp::isconcrete(list) && list.elems)
-        !! $self(|(nqp::isconcrete(list) && list.elems) xx n)
+    multi method POSITIONS(Block:D $self: \list) {
+        nqp::isconcrete(list)
+          ?? (nqp::istype(
+               (my \count := nqp::getattr(
+                 nqp::getattr($self,Code,'$!signature'),Signature,'$!count'
+               )),
+               Num
+              ) && nqp::isnanorinf(count)
+             ) || nqp::iseq_i(count,1)
+            ?? $self(list.elems)
+            !! $self(|(list.elems xx count))
+          !! $self(0)
     }
 }
 

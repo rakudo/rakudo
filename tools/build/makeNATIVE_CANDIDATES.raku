@@ -46,12 +46,12 @@ while @lines {
       postfix => $type.substr(0,1),
       type    => $type,
       Type    => $type.tclc,
+      nil     => ($type eq "int" ?? "0" !! $type eq "num" ?? "0e0" !! "''")
     ;
 
     # spurt the candidates
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
 
-#?if !jvm
 multi sub postcircumfix:<[ ]>(
   array::#type#array:D \SELF, Int:D $pos
 ) is raw {
@@ -155,9 +155,11 @@ multi sub postcircumfix:<[ ]>(
 multi sub postcircumfix:<[ ]>(
   array::#type#array:D \SELF, Callable:D $pos
 ) is raw {
-    nqp::islt_i((my int $got = $pos(nqp::elems(nqp::decont(SELF)))),0)
-      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
-      !! nqp::atposref_#postfix#(nqp::decont(SELF),$got)
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_#postfix#(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -173,21 +175,30 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
+#?if jvm
+    my @result := array[#type#].new;
+#?endif
+#?if !jvm
     my #type# @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
-        nqp::push_#postfix#(@result,nqp::atpos_#postfix#($self,$got))
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_#postfix#(@result,nqp::atpos_#postfix#($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native #type# array".naive-word-wrapper)
+        )
       )
     );
 
@@ -200,20 +211,24 @@ multi sub postcircumfix:<[ ]>(
     my $self    := nqp::decont(SELF);
     my $indices := $pos.iterator;
     my int $i    = -1;
+#?if jvm
+    my @result := array[#type#].new;
+#?endif
+#?if !jvm
     my #type# @result;
+#?endif
 
     nqp::until(
       nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
       nqp::if(
-        nqp::islt_i(
-          (my int $got = nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
             nqp::istype($pulled,Callable),
-            $pulled(nqp::elems($self)),
-            $pulled.Int
+            $pulled.POSITIONS($self),
+            $pulled
           )),
-          0
-        ),
-        X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          Int
+        ) && nqp::isge_i($got,0),
         nqp::push_#postfix#(
           @result,
           nqp::bindpos_#postfix#(
@@ -221,6 +236,54 @@ multi sub postcircumfix:<[ ]>(
             $got,
             nqp::atpos_#postfix#($values,$i = nqp::add_i($i,1))
           )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native #type# array slice".naive-word-wrapper)
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::#type#array:D \SELF, Iterable:D $pos, \values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my $values  := Rakudo::Iterator.TailWith(values.iterator,#nil#);
+#?if jvm
+    my @result := array[#type#].new;
+#?endif
+#?if !jvm
+    my #type# @result;
+#?endif
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled.POSITIONS($self),
+            $pulled
+          )),
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_#postfix#(
+          @result,
+          nqp::bindpos_#postfix#(
+            $self,
+            $got,
+            $values.pull-one.#Type#
+          )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native #type# array slice".naive-word-wrapper)
         )
       )
     );
@@ -233,7 +296,6 @@ multi sub postcircumfix:<[ ]>(
 ) {
     nqp::decont(SELF)
 }
-#?endif
 
 SOURCE
 

@@ -1384,7 +1384,7 @@ BEGIN {
     #     has int $!associative_delegate;
     #     has Mu $!why;
     #     has Mu $!container_initializer;
-    #     has Attribute $!orig; # original attribute object used for instantiation
+    #     has Attribute $!original; # original attribute object used for instantiation
     Attribute.HOW.add_parent(Attribute, Any);
     Attribute.HOW.add_attribute(Attribute, BOOTSTRAPATTR.new(:name<$!name>, :type(str), :package(Attribute)));
     # The existence of both $!rw and $!ro might be confusing, but they're needed for late trait application with

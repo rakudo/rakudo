@@ -9,6 +9,7 @@ typedef signed __int64 int64_t;
 #else
 #define DLLEXPORT extern
 #include <inttypes.h>
+#include <sys/types.h>
 #endif
 
 DLLEXPORT int TakeInt(int x)

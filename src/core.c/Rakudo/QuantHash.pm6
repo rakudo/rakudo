@@ -38,7 +38,7 @@ my class Rakudo::QuantHash {
             )
         }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
 
     our role Pairs does Iterator {
@@ -57,7 +57,7 @@ my class Rakudo::QuantHash {
               ?? nqp::create(self)!SET-SELF(elems, $todo)
               !! Rakudo::Iterator.Empty
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
 
     # Return the iterator state of a randomly selected entry in a
@@ -581,15 +581,21 @@ my class Rakudo::QuantHash {
             (my \pulled := nqp::decont(iterator.pull-one)),
             IterationEnd
           ),
-          nqp::if(
-            nqp::existskey(elems,(my \which := pulled.WHICH)),
-            nqp::stmts(
-              (my \pair := nqp::atkey(elems,which)),
-              nqp::bindattr(pair,Pair,'$!value',
-                nqp::add_i(nqp::getattr(pair,Pair,'$!value'),1)
+          nqp::stmts(
+            (my $pair := nqp::ifnull(
+              nqp::atkey(elems,(my \which := pulled.WHICH)),
+              nqp::if(
+                nqp::istype(pulled,type),
+                nqp::bindkey(elems,which,Pair.new(pulled,0)),
+                X::TypeCheck::Binding.new(
+                  got      => pulled,
+                  expected => type
+                ).throw
               )
-            ),
-            self.BIND-TO-TYPED-BAG(elems, which, pulled, 1, type)
+            )),
+            nqp::bindattr($pair,Pair,'$!value',
+              nqp::add_i(nqp::getattr($pair,Pair,'$!value'),1)
+            )
           )
         );
         elems

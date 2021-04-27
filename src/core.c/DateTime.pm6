@@ -17,7 +17,7 @@ my class DateTime does Dateish {
 
         # not set explicitly
         else {
-            my int $utc = nqp::time_i;
+            my int $utc = nqp::div_i(nqp::time,1000000000);
             my $lt     := nqp::decodelocaltime($utc);
 
             # first time, or possible DST change
@@ -140,12 +140,6 @@ my class DateTime does Dateish {
       'years',   1,
     );
 
-    method !VALID-UNIT($unit) {
-        nqp::existskey($valid-units,$unit)
-          ?? $unit
-          !! X::DateTime::InvalidDeltaUnit.new(:$unit).throw
-    }
-
     method !SET-SELF(
         int \year,
         int \month,
@@ -179,13 +173,22 @@ my class DateTime does Dateish {
             %extra,
     --> DateTime:D) {
         self!oor("Month",$month,"1..12")
-          unless 1 <= $month <= 12;
-        self!oor("Day",$day,"1..{self!DAYS-IN-MONTH($year,$month)}")
-          unless 1 <= $day <= self!DAYS-IN-MONTH($year,$month);
+          if nqp::islt_I(nqp::decont($month),1)
+          || nqp::isgt_I(nqp::decont($month),12);
+
+        my $DIM := self!DAYS-IN-MONTH($year,$month);
+        self!oor("Day",$day,"1..$DIM")
+          if nqp::islt_I(nqp::decont($day),1)
+          || nqp::isgt_I(nqp::decont($day),$DIM);
+
         self!oor("Hour",$hour,"0..23")
-          unless 0 <= $hour <= 23;
+          if nqp::islt_I(nqp::decont($hour),0)
+          || nqp::isgt_I(nqp::decont($hour),23);
+
         self!oor("Minute",$minute,"0..59")
-          unless 0 <= $minute <= 59;
+          if nqp::islt_I(nqp::decont($minute),0)
+          || nqp::isgt_I(nqp::decont($minute),59);
+
         (^61).in-range($second,'Second'); # some weird semantics need this
 
         my $dt := nqp::eqaddr(self.WHAT,DateTime)
@@ -265,9 +268,7 @@ my class DateTime does Dateish {
         my Int $minutes := nqp::div_I($epoch.Int, 60, Int);
         my Int $minute  := nqp::mod_I($minutes, 60, Int);
         my Int $hours   := nqp::div_I($minutes, 60, Int);
-        # XXX changing this with a nqp::mod_I causes execution error:
-        # Cannot unbox a type object (Int) to int.  Go figure!
-        my Int $hour    := $hours % 24;
+        my Int $hour    := nqp::mod_I($hours, 24, Int);
         my Int $days    := nqp::div_I($hours, 24, Int);
 
         # Day month and leap year arithmetic, based on Gregorian day #.
@@ -349,7 +350,7 @@ my class DateTime does Dateish {
     }
 
     method now(:$timezone, :&formatter --> DateTime:D) {
-        self.new(nqp::time_n(),
+        self.new(nqp::div_n(nqp::time(),1000000000e0),
           timezone => $timezone // get-local-timezone-offset,
           :&formatter
         )
@@ -395,6 +396,24 @@ my class DateTime does Dateish {
         Instant.from-posix: self.posix + $!second % 1, $!second >= 60;
     }
 
+    method day-fraction(DateTime:D: --> Real:D) {
+        (nqp::add_i(
+          nqp::mul_i($!hour,3600),
+          nqp::mul_i($!minute,60)
+        ) + $!second) / nqp::add_i(
+          86400,
+          Rakudo::Internals.daycount-leapseconds(self.daycount)
+        )
+    }
+
+    method modified-julian-date(DateTime:D: --> Real:D) {
+        self.daycount + self.day-fraction
+    }
+
+    method julian-date(DateTime:D: --> Real:D) {
+        self.modified-julian-date + 2_400_000.5
+    }
+
     method posix(DateTime:D: $ignore-timezone? --> Int:D) {
         return self.utc.posix if $!timezone && !$ignore-timezone;
 
@@ -418,91 +437,119 @@ my class DateTime does Dateish {
         sprintf "%02d:%02d:%02d", $!hour,$!minute,$!second
     }
 
-    method later(DateTime:D: :$earlier, *%unit --> DateTime:D) {
-
-        # basic sanity check
-        nqp::if(
-          nqp::eqaddr(
-            (my \later := (my \iterator := %unit.iterator).pull-one),
-            IterationEnd
-          ),
-          (die "No time unit supplied"),
-          nqp::unless(
-            nqp::eqaddr(iterator.pull-one,IterationEnd),
-            (die "More than one time unit supplied")
-          )
-        );
-        my $unit  := later.key;
-        my $amount = later.value;
-        $amount = -$amount if $earlier;
+    # workhorse method of moving a DateTime
+    method move-by-unit(str $unit, \amount) is implementation-detail {
 
         # work on instant (tai)
-        if $unit.starts-with('second') {
-            self.new(self.Instant + $amount, :$!timezone, :&!formatter)
+        return self.new(self.Instant + amount, :$!timezone, :&!formatter)
+          if nqp::eqat($unit,'second',0);
+
+        my int $amount = amount.Int;
+
+        # on a leap second and not moving by second
+        if $!second >= 60 {
+            my $dt := self!clone-without-validating(
+              :second($!second-1)
+            ).move-by-unit($unit, $amount);
+            $dt.hour == 23 && $dt.minute == 59 && $dt.second >= 59
+              && Rakudo::Internals.is-leap-second-date($dt.yyyy-mm-dd)
+              ?? $dt!clone-without-validating(:$!second)
+              !! $dt
         }
+
+        # month,year
+        elsif nqp::atkey($valid-units,$unit) {
+            my $date :=
+              Date.new($!year,$!month,$!day).move-by-unit($unit,$amount);
+            nqp::create(self)!SET-SELF(
+              nqp::getattr_i($date,Date,'$!year'),
+              nqp::getattr_i($date,Date,'$!month'),
+              nqp::getattr_i($date,Date,'$!day'),
+              $!hour, $!minute, $!second, $!timezone, &!formatter
+            )
+        }
+        # minute,hour,day,week
         else {
-            $amount .= Int;
-            # on a leap second and not moving by second
-            if $!second >= 60 {
-                my $dt := self!clone-without-validating(
-                  :second($!second-1)).later(|($unit => $amount));
-                $dt.hour == 23 && $dt.minute == 59 && $dt.second >= 59
-                  && Rakudo::Internals.is-leap-second-date($dt.yyyy-mm-dd)
-                  ?? $dt!clone-without-validating(:$!second)
-                  !! $dt
-            }
+            my int $minute = $!minute;
+            my int $hour   = $!hour;
 
-            # month,year
-            elsif nqp::atkey($valid-units,$unit) {
-                my $date :=
-                  Date.new($!year,$!month,$!day).later(|($unit => $amount));
-                nqp::create(self)!SET-SELF(
-                  nqp::getattr_i($date,Date,'$!year'),
-                  nqp::getattr_i($date,Date,'$!month'),
-                  nqp::getattr_i($date,Date,'$!day'),
-                  $!hour, $!minute, $!second, $!timezone, &!formatter
-                )
-            }
-            # minute,hour,day,week
-            else {
-                my int $minute = $!minute;
-                my int $hour   = $!hour;
+            $minute = nqp::add_i($minute,$amount)
+              if nqp::eqat($unit,'minute',0);
+            $hour   = nqp::add_i($hour,nqp::div_i($minute,60));
+            $minute = nqp::islt_i($minute,0)
+              ?? nqp::add_i(nqp::mod_i($minute,60),60)
+              !! nqp::mod_i($minute,60);
+            $hour   = nqp::add_i($hour,$amount)
+              if nqp::eqat($unit,'hour',0);
 
-                $minute += $amount if $unit.starts-with('minute');
-                $hour   += floor($minute / 60);
-                $minute %= 60;
-                $hour   += $amount if $unit.starts-with('hour');
+            my int $day-delta = nqp::div_i($hour,24);
+            $hour = nqp::islt_i($hour,0)
+              ?? nqp::add_i(nqp::mod_i($hour,24),24)
+              !! nqp::mod_i($hour,24);
 
-                my $day-delta = floor($hour / 24);
-                $hour %= 24;
+            $day-delta = $amount               if nqp::eqat($unit,'day',0);
+            $day-delta = nqp::mul_i($amount,7) if nqp::eqat($unit,'week',0);
 
-                $day-delta = $amount     if $unit.starts-with('day');
-                $day-delta = 7 * $amount if $unit.starts-with('week');
-
-                my $date := Date.new-from-daycount(self.daycount + $day-delta);
-                nqp::create(self)!SET-SELF(
-                  nqp::getattr_i($date,Date,'$!year'),
-                  nqp::getattr_i($date,Date,'$!month'),
-                  nqp::getattr_i($date,Date,'$!day'),
-                  $hour, $minute, $!second, $!timezone, &!formatter)
-            }
+            my $date :=
+              Date.new-from-daycount(nqp::add_i(self.daycount,$day-delta));
+            nqp::create(self)!SET-SELF(
+              nqp::getattr_i($date,Date,'$!year'),
+              nqp::getattr_i($date,Date,'$!month'),
+              nqp::getattr_i($date,Date,'$!day'),
+              $hour, $minute, $!second, $!timezone, &!formatter)
         }
     }
 
-    method truncated-to(DateTime:D: Cool $unit --> DateTime:D) {
-        my %parts;
-        given self!VALID-UNIT($unit) {
-            %parts<second> = self.whole-second;
-            when 'second' | 'seconds' {}
-            %parts<second> = 0;
-            when 'minute' | 'minutes' {}
-            %parts<minute> = 0;
-            when 'hour'   | 'hours'   {}
-            %parts<hour> = 0;
-            when 'day'    | 'days'    {}
-            %parts = self!truncate-ymd($unit, %parts);
-        }
-        self!clone-without-validating(|%parts);
+    method truncated-to(DateTime:D: str $unit --> DateTime:D) {
+        my $truncated := nqp::clone(self);
+        my $what      := self.WHAT;
+        nqp::if(
+          nqp::eqat($unit,'second',0),
+          nqp::bindattr($truncated,$what,'$!second',$!second.Int),
+          nqp::stmts(
+            nqp::bindattr($truncated,$what,'$!second',0),
+            nqp::unless(
+              nqp::eqat($unit,'minute',0),
+              nqp::stmts(
+                nqp::bindattr_i($truncated,$what,'$!minute',0),
+                nqp::unless(
+                  nqp::eqat($unit,'hour',0),
+                  nqp::stmts(
+                    nqp::bindattr_i($truncated,$what,'$!hour',0),
+                    nqp::unless(
+                      nqp::eqat($unit,'day',0),
+                      nqp::stmts(
+                        nqp::bindattr_i($truncated,$what,'$!daycount',0),
+                        nqp::if(
+                          nqp::eqat($unit,'week',0),
+                          ($truncated := $truncated.move-by-unit(
+                            'day',
+                            nqp::sub_i(1,$truncated.day-of-week)
+                          )),
+                          nqp::stmts(
+                            nqp::bindattr_i($truncated,$what,'$!day',1),
+                            nqp::unless(
+                              nqp::eqat($unit,'month',0),
+                              nqp::stmts(
+                                nqp::bindattr_i($truncated,$what,'$!month',1),
+                                nqp::unless(
+                                  nqp::eqat($unit,'year',0),
+                                  die "Cannot truncate {self.^name} object to '$unit'"
+                                )
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        );
+
+        $truncated
     }
     method whole-second(DateTime:D: --> Int:D) { $!second.Int }
 
@@ -565,10 +612,10 @@ multi sub infix:«==»(DateTime:D \a, DateTime:D \b --> Bool:D) {
 multi sub infix:«!=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
     a.Instant != b.Instant
 }
-multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b --> Order:D) {
+multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
     a.Instant <=> b.Instant
 }
-multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b --> Order:D) {
+multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
     a.Instant cmp b.Instant
 }
 multi sub infix:<->(DateTime:D \a, DateTime:D \b --> Duration:D) {
@@ -582,6 +629,12 @@ multi sub infix:<+>(DateTime:D \a, Duration:D \b --> DateTime:D) {
 }
 multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
     b.new(b.Instant + a).in-timezone(b.timezone)
+}
+multi sub infix:<eqv>(DateTime:D \a, DateTime:D \b --> Bool:D) {
+    nqp::hllbool(
+          nqp::eqaddr(nqp::decont(a),nqp::decont(b))
+      || (nqp::eqaddr(a.WHAT,b.WHAT) && a == b)
+    )
 }
 
 # vim: expandtab shiftwidth=4

@@ -80,6 +80,13 @@ multi sub trait_mod:<is>(Mu:U $type, Mu:U $parent, Hash) {
       :what<Hash>
     ).throw;
 }
+multi sub trait_mod:<is>(Mu:U $type, :$implementation-detail!) {
+    my role is-implementation-detail {
+        method is-implementation-detail(Mu --> 1) { }
+    }
+    $type.HOW.^mixin(is-implementation-detail)
+      if $implementation-detail;
+}
 multi sub trait_mod:<is>(Mu:U $type, *%fail) {
     if %fail.keys[0] !eq $type.^name {
         X::Inheritance::UnknownParent.new(
@@ -155,8 +162,8 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
         declaring  => ' ' ~ $r.^name.split('+').head.lc,
         highexpect => (
             'rw raw hidden-from-backtrace hidden-from-USAGE pure default',
-            'DEPRECATED inlinable nodal prec equiv tighter looser assoc',
-            'leading_docs trailing_docs',
+            'implementation-detail DEPRECATED inlinable nodal prec equiv',
+            'tighter looser assoc leading_docs trailing_docs',
             ('',"or did you forget to 'use NativeCall'?"
               if $subtype eq 'native').Slip
           ),

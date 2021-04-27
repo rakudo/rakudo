@@ -6,7 +6,7 @@ my role Setty does QuantHash {
     # private method to create Set from iterator, check for laziness
     method !create-from-iterator(\type, \iterator --> Setty:D) {
         iterator.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name)))
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(type).SET-SELF(
                Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
@@ -37,7 +37,7 @@ my role Setty does QuantHash {
 
     method new-from-pairs(*@pairs --> Setty:D) {
         (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name)))
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(self).SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
@@ -101,6 +101,26 @@ my role Setty does QuantHash {
     }
     multi method hash(Setty:D: --> Hash:D) { self!HASHIFY(Bool) }
     multi method Hash(Setty:D: --> Hash:D) { self!HASHIFY(Any) }
+
+    method Map {
+        nqp::if(
+          $!elems && nqp::elems($!elems),
+          nqp::stmts(
+            (my \storage := nqp::hash),
+            (my \iter := nqp::iterator($!elems)),
+            nqp::while(
+              iter,
+              nqp::bindkey(
+                storage,
+                nqp::iterval(nqp::shift(iter)).Str,
+                True
+              )
+            ),
+            nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',storage)
+          ),
+          nqp::create(Map)
+        )
+    }
 
     multi method ACCEPTS(Setty:U: \other --> Bool:D) {
         other.^does(self)

@@ -82,7 +82,7 @@ is-run ｢my @a; sink @a; my $b := gather { print 'meow' }; sink $b｣,
     :out<meow>, 'no warnings when sinking variables';
 
 is-run ｢use experimental :macros; macro z($) { quasi {} };
-    z $; z <x>; print "pass"｣, :out<pass>,
+    z $; z <x>; print "pass"｣, :compiler-args[<-I lib>], :out<pass>,
     'args to macros do not cause useless use warnings';
 
 # https://github.com/rakudo/rakudo/issues/2554

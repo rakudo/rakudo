@@ -15,7 +15,9 @@ my class Encoding::Registry {
           nqp::list('utf16',   'utf-16'),
           nqp::list('utf16le', 'utf-16le', 'utf16-le', 'utf-16-le'),
           nqp::list('utf16be', 'utf-16be', 'utf16-be', 'utf-16-be'),
+#?if !moar
           nqp::list('utf32',   'utf-32'),
+#?endif
           nqp::list('ascii'),
           nqp::list('iso-8859-1','iso_8859-1:1987','iso_8859-1','iso-ir-100',
             'latin1','latin-1','csisolatin1','l1','ibm819','cp819'),

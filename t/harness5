@@ -29,12 +29,13 @@ GetOptions(
     'stress:1'          => \my $do_stress,
     'archive=s'         => \my $archive,
     'precompile'        => \my $precompile,
+    'evalserver'        => \my $evalserver,
     'jvm'               => \my $jvm,
-    'js'               => \my $js,
+    'js'                => \my $js,
     'moar'              => \my $moar,
     'randomize'         => \my $randomize,
     'slow'              => \(my $slow = !$win),
-    'no-merge'             => \my $no_merge,
+    'no-merge'          => \my $no_merge,
     'help|h' => sub { pod2usage(1); },
 ) or pod2usage(2);
 
@@ -135,7 +136,7 @@ if ($archive) {
     if $ENV{SMOLDER_SUBMITTER};
 }
 
-if ($jvm) {
+if ($jvm && $evalserver) {
     unlink("TESTTOKEN");
     $ENV{HARNESS_PERL} = "$^X .${slash}eval-client.pl TESTTOKEN run";
 
@@ -148,7 +149,7 @@ if ($jvm) {
 if (eval "require $tap_harness_class;") {
     my $run_with_perl = $precompile ? [$ENV{HARNESS_PERL}, 't/precompileandrun'] : [$ENV{HARNESS_PERL}];
     my %harness_options = (
-        exec        => $jvm ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : $run_with_perl,
+        exec        => $jvm && $evalserver ? [$^X, "./eval-client.pl", "TESTTOKEN", "run"] : $run_with_perl,
         verbosity   => 0+$Test::Harness::verbose,
         jobs        => $jobs,
         ignore_exit => 1,
@@ -258,13 +259,14 @@ Options:
     --help / -h - display the help message.
     --tests-from-file=[filename] - get the tests from the filename.
     --fudge - fudge (?)
-    --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 1
+    --jobs - number of jobs. Defaults to TEST_JOBS env var if specified, or 6
     --quick - do not run tests marked as long-running
     --stress - run tests marked as stress tests
     --archive=[archive] - write to an archive.
     --randomize randomize the order in which test-files are processed.
     --slow - spread tests marked "slow" equally over the run (default on non-Win)
-    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM backend
+    --evalserver - use EvalServer. Only has effect for JVM backend
+    --moar/--jvm/--js - mutually exclusive. Use MoarVM/JVM/JS backend
     --no-merge - pass STDERR from the tests through to the terminal's STDERR
     --precompile - precompile tests before running them
 

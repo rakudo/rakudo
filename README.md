@@ -1,8 +1,8 @@
 # Rakudo
 
-This is Rakudo, a Raku compiler for the MoarVM and JVM.
+This is Rakudo, a Raku Programming Language compiler for the MoarVM, JVM and Javascript virtual machines.
 
-Rakudo is Copyright © 2008-2020, The Perl Foundation. Rakudo
+Rakudo is Copyright © 2008-2021, Yet Another Society. Rakudo
 is distributed under the terms of the Artistic License 2.0. For more
 details, see the full text of the license in the file LICENSE.
 
@@ -23,7 +23,7 @@ text file.
 
 ## Building and Installing Rakudo
 
-[![Build Status](https://dev.azure.com/Rakudo/rakudo/_apis/build/status/rakudo.rakudo?branchName=master)](https://dev.azure.com/Rakudo/rakudo/_build/latest?definitionId=1&branchName=master) [![Build Status](https://circleci.com/gh/rakudo/rakudo.svg?style=shield)](https://circleci.com/gh/rakudo/rakudo)[![Build Status](https://travis-ci.org/rakudo/rakudo.svg?branch=master)](https://travis-ci.org/rakudo/rakudo) [![Build Status](https://ci.appveyor.com/api/projects/status/github/rakudo/rakudo?svg=true)](https://ci.appveyor.com/project/rakudo/rakudo/branch/master)
+[![Build Status](https://dev.azure.com/Rakudo/rakudo/_apis/build/status/rakudo.rakudo?branchName=master)](https://dev.azure.com/Rakudo/rakudo/_build/latest?definitionId=1&branchName=master)
 
 See the `INSTALL.md` file for detailed prerequisites and build and
 installation instructions. Check `CAVEATS.md` for platform specific notes.
@@ -31,7 +31,7 @@ installation instructions. Check `CAVEATS.md` for platform specific notes.
 The general process for building is running `perl Configure.pl` with
 the desired configuration options (common options listed below), and
 then running `make` or `make install`. Optionally, you may run
-`make spectest` to test your build on [Roast](http://github.com/Raku/roast),
+`make spectest` to test your build on [Roast](http://github.com/raku/roast),
 the Official Raku test suite. To update the test suite, run
 `make spectest_update`.
 
@@ -164,7 +164,7 @@ That can be written as a one-liner:
 ## Where to get help or answers to questions
 
 There are several mailing lists, IRC channels, and wikis available with
-help for Raku and Rakudo. Figuring out the right one to use
+help for the Raku Programming Language and Rakudo. Figuring out the right one to use
 is often the biggest battle. Here are some rough guidelines:
 
 The central hub for Raku information is [raku.org](https://raku.org/).
@@ -173,21 +173,25 @@ This is always a good starting point.
 If you have a question about Raku syntax or the right way to approach
 a problem using Raku, you probably want the “perl6-users@perl.org”
 mailing list or the [irc.freenode.net/#raku IRC
-channel](https://webchat.freenode.net/?channels=#raku). The perl6-users
+channel](https://webchat.freenode.net/?channels=#raku). The mailing
 list is primarily for the people who want to use Raku to write
 programs, so newbie questions are welcomed there.  Newbie questions
-are also welcome on the #raku channel; the Rakudo and Raku
+are also welcome on the #raku channel; the Rakudo
 development teams tend to hang out there and are generally glad
 to help.  You can follow [@raku_news](https://twitter.com/raku_news)
 and on Twitter, there's a Raku news aggregator at
-[Planet Perl 6](http://pl6anet.org/).
+[Planet Raku](http://planet.raku.org/).
 
 Questions about NQP can also be posted to the #raku IRC channel.
 For questions about MoarVM, you can join #moarvm on freenode.
 
+## Code of Conduct
+
+The Raku community is committed to providing a welcoming, inclusive, safe, and enjoyable environment for everyone.  Programming should be `-Ofun`.  The Raku Community therefore has adopted a [Code of Conduct](https://github.com/Raku/problem-solving/blob/master/solutions/meta/code_of_conduct.md).  Please see the [CoC Incident Report Guide](https://github.com/Raku/problem-solving/blob/master/solutions/meta/coc_incident_response_guide.md) should you feel the need to report any violations of the Code of Conduct.
+
 ## Reporting bugs
 
-See https://rakudo.org/bugs
+See https://github.com/rakudo/rakudo/issues/new
 
 ## Submitting patches
 
@@ -208,5 +212,4 @@ An alternative is to use a third-party program such as [rlwrap](https://github.c
 
 ## AUTHOR
 
-See CREDITS for the many people that have contributed
-to the development of the Rakudo compiler.
+See [CREDITS](CREDITS) for the **many** people that have contributed to the development of the Rakudo compiler, some of which have [left this existence way too early](IN-MEMORIAM.md).

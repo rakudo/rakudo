@@ -3,8 +3,6 @@ my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
 my class X::Buf::Pack::NonASCII { ... }
-my class X::Cannot::Empty       { ... }
-my class X::Cannot::Lazy        { ... }
 my class X::Experimental        { ... }
 
 # externalize the endian indicators
@@ -21,7 +19,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     # other then *8 not supported yet
     my int $bpe = try {
 #?if jvm
-        # https://irclog.perlgeek.de/perl6-dev/2017-01-20#i_13961377
+        # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-01-20#l202
         CATCH { default { Nil } }
 #?endif
         (T.^nativesize / 8).Int
@@ -59,7 +57,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method STORE(Blob:D: Iterable:D \iterable, :$INITIALIZE) {
         $INITIALIZE
           ?? iterable.is-lazy
-            ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+            ?? self.throw-iterator-cannot-be-lazy('store')
             !! self!push-list("initializ",self,iterable)
           !! X::Assignment::RO.new(:value(self)).throw
     }
@@ -282,6 +280,9 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     method chars(Blob:D:) {
         X::Buf::AsStr.new(object => self, method => 'chars').throw
     }
+    method codes(Blob:D:) {
+        X::Buf::AsStr.new(object => self, method => 'codes').throw
+    }
     multi method Str(Blob:D:) {
         X::Buf::AsStr.new(object => self, method => 'Str'  ).throw
     }
@@ -469,13 +470,6 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     multi method subbuf(Blob:D: \from, Numeric \length) {
         length == Inf ?? self.subbuf(from) !! self.subbuf(from,length.Int)
-    }
-    multi method subbuf(Blob:D: \from, Any:U) {
-        Rakudo::Deprecations.DEPRECATED(
-          "{self.^name}.subbuf({from}) or {self.^name}.subbuf({from},*)",
-          :what("{self.^name}.subbuf({from},Any)")
-        );
-        self.subbuf(from)
     }
 
     method reverse(Blob:D:) {
@@ -743,7 +737,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     }
     multi method STORE(Buf:D: Iterable:D \iterable) {
         iterable.is-lazy
-          ?? X::Cannot::Lazy.new(:action<store>,:what(self.^name)).throw
+          ?? self.throw-iterator-cannot-be-lazy('store')
           !! self!push-list("initializ",nqp::setelems(self,0),iterable);
     }
     multi method STORE(Buf:D: Any:D \non-iterable) {
@@ -962,13 +956,13 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method pop(Buf:D:) {
         nqp::elems(self)
           ?? nqp::pop_i(self)
-          !! Failure.new(X::Cannot::Empty.new(:action<pop>,:what(self.^name)))
+          !! self.fail-cannot-be-empty('pop')
     }
     proto method shift(|) { * }
     multi method shift(Buf:D:) {
         nqp::elems(self)
           ?? nqp::shift_i(self)
-          !! Failure.new(X::Cannot::Empty.new(:action<shift>,:what(self.^name)))
+          !! self.fail-cannot-be-empty('shift')
     }
 
     method reallocate(Buf:D: Int:D $elements) { nqp::setelems(self,$elements) }
@@ -1062,7 +1056,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     method !pend(Buf:D: @values, $action) {
         @values.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:$action,:what(self.^name)))
+          ?? self.fail-iterator-cannot-be-lazy($action)
           !! $action eq 'push' || $action eq 'append'
             ?? self!push-list($action,self,@values)
             !! self!unshift-list($action,self,@values)

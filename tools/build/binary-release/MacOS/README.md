@@ -11,7 +11,7 @@ Running Raku
 
 To run a Raku program, open a command prompt and type
 
-    /path/to/this/folder/bin/raku my_script.p6
+    /path/to/this/folder/bin/raku my_script.raku
 
 or start a REPL by calling `raku` without an argument
 
@@ -95,7 +95,7 @@ for more information.
 License
 =======
 
-Rakudo is Copyright © 2008-2020, The Perl Foundation. Rakudo is distributed
+Rakudo is Copyright © 2008-2021, The Perl Foundation. Rakudo is distributed
 under the terms of the Artistic License 2.0. For more details, see the full
 text of the license in the file LICENSE.
 

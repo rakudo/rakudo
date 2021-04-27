@@ -1,4 +1,3 @@
-my class X::Cannot::Lazy             { ... }
 my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
@@ -1157,7 +1156,7 @@ my class Mu { # declared in BOOTSTRAP
                 if $methods && !$class.HOW.archetypes.composable {
                     @methods.push: $_ with $class.^method_table{$name}
                 }
-                if $submethods {
+                if $submethods && nqp::can($class.HOW, 'submethod_table') {
                     @methods.push: $_ with $class.^submethod_table{$name}
                 }
             }

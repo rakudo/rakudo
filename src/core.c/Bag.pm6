@@ -34,12 +34,11 @@ my class Bag does Baggy {
           !! ($!total := Rakudo::QuantHash.BAG-TOTAL($!elems))
     }
 
+
 #--- interface methods
-    multi method STORE(Bag:D: *@pairs, :INITIALIZE($)! --> Bag:D) {
-        (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
-             )
+    multi method STORE(Bag:D: Iterable:D \iterable, :INITIALIZE($)! --> Bag:D) {
+        (my \iterator := iterable.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
              ))

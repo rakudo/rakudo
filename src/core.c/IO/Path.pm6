@@ -6,13 +6,14 @@ my class IO::Path is Cool does IO {
     has $!os-path;        # the absolute path associated with path/SPEC/CWD
     has $!parts;          # IO::Path::Parts object, if any
 
+    constant empty-path-message = "Must specify a non-empty string as a path";
+    
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
     method !SET-SELF(Str:D \path, IO::Spec \SPEC, Str:D \CWD, \absolute) {
-        die "Must specify something as a path: did you mean '.' for the current directory?"
-          unless nqp::chars(path);
+        die empty-path-message unless nqp::chars(path);
 
         X::IO::Null.new.throw
           if nqp::isne_i(nqp::index(path, "\0"), -1)
@@ -56,7 +57,7 @@ my class IO::Path is Cool does IO {
           $SPEC.join($volume,$dirname,$basename), $SPEC, $CWD.Str, False)
     }
     multi method new(IO::Path:) {
-        die "Must specify something as a path: did you mean '.' for the current directory?";
+        die empty-path-message;
     }
 
     method is-absolute(--> Bool:D) {
@@ -382,14 +383,6 @@ my class IO::Path is Cool does IO {
     }
 
     proto method chdir(|) {*}
-    multi method chdir(IO::Path:D: Str() $path, :$test!) {
-        Rakudo::Deprecations.DEPRECATED(
-            :what<:$test argument>,
-            'individual named parameters (e.g. :r, :w, :x)',
-            "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
-        );
-        self.chdir: $path, |$test.words.map(* => True).Hash;
-    }
     multi method chdir(IO::Path:D: IO $path, |c) {
         self.chdir: $path.absolute, |c
     }
@@ -672,6 +665,18 @@ my class IO::Path is Cool does IO {
         }
 
         spurt-blob($path, $mode, $blob)
+    }
+
+    method user(IO::Path:D:) {
+        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
+          ?? nqp::stat($path,nqp::const::STAT_UID)
+          !! self!does-not-exist("user")
+    }
+
+    method group(IO::Path:D:) {
+        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
+          ?? nqp::stat($path,nqp::const::STAT_GID)
+          !! self!does-not-exist("group")
     }
 
     proto method spurt(|) {*}

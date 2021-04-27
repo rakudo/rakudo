@@ -19,9 +19,10 @@ sub MAIN(
 ) {
 
     # set up the new leap second info
-    my $date   = Date.new($the-date);
-    my $epoch  = $date.DateTime.posix;
-    my $before = $date.earlier(:1day);
+    my $date     = Date.new($the-date);
+    my $epoch    = $date.DateTime.posix;
+    my $before   = $date.earlier(:1day);
+    my $daycount = $date.daycount;
 
     # run through the source file and update as appropriate
     for $the-source.IO.lines -> $line {
@@ -29,6 +30,8 @@ sub MAIN(
           if $line eq '        #END leap-second-dates';
         say "        $epoch,"
           if $line eq '        #END leap-second-posix';
+        say "        $daycount,"
+          if $line eq '        #END leap-second-daycount';
         say $line;
     }
 }

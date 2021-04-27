@@ -107,11 +107,39 @@ multi sub dir(       ) { IO::Path.new($*SPEC.curdir).dir         }
 proto sub open($, |) {*}
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }
 
-proto sub lines($?, |) {*}
-multi sub lines($what = $*ARGFILES, |c) { $what.lines(|c) }
+proto sub lines($?, $?, *%) {*}
+multi sub lines(*%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $*ARGFILES.lines(|%_)
+      !! $*ARGFILES.lines
+}
+multi sub lines($what, *%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $what.lines(|%_)
+      !! $what.lines
+}
+multi sub lines($what, $number, *%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $what.lines($number, |%_)
+      !! $what.lines($number)
+}
 
-proto sub words($?, |) {*}
-multi sub words($what = $*ARGFILES, |c) { $what.words(|c) }
+proto sub words($?, $?, *%) {*}
+multi sub words(*%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $*ARGFILES.words(|%_)
+      !! $*ARGFILES.words
+}
+multi sub words($what, *%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $what.words(|%_)
+      !! $what.words
+}
+multi sub words($what, $number, *%_) {
+    nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? $what.words($number, |%_)
+      !! $what.words($number)
+}
 
 proto sub get  ($?, *%) {*}
 multi sub get  (IO::Handle:D $fh = $*ARGFILES) { $fh.get  }
@@ -177,14 +205,6 @@ multi sub chdir(|c) {
 }
 
 proto sub indir($, $, *%) {*}
-multi sub indir(IO() $path, &what, :$test!) {
-    Rakudo::Deprecations.DEPRECATED(
-        :what<:$test argument>,
-        'individual named parameters (e.g. :r, :w, :x)',
-        "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
-    );
-    indir $path, &what, |$test.words.map(* => True).Hash;
-}
 multi sub indir(IO() $path, &what, :$d = True, :$r, :$w, :$x) {
     {   # NOTE: we need this extra block so that the IO() coercer doesn't
         # use our (empty at the time) $*CWD when making the IO::Path object

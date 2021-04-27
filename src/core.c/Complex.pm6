@@ -456,7 +456,46 @@ multi sub infix:<**>(Num(Real) \a, Complex:D \b --> Complex:D) {
         !! (b * a.log).exp
 }
 multi sub infix:<**>(Complex:D \a, Num(Real) \b --> Complex:D) {
-    b == 0e0 ?? Complex.new(1e0, 0e0) !! (b * a.log).exp
+    b.isNaN || b == Inf || b == -Inf
+      ?? Complex.new(NaN, NaN)
+      !! (my $ib := b.Int) == b
+        ?? a ** $ib
+        !! (my $fb2 := b - $ib * 2) == 1e0
+          ?? a ** $ib * a.sqrt
+          !! $fb2 == -1e0
+            ?? a ** $ib / a.sqrt
+            !! (b * a.log).exp
+}
+multi sub infix:<**>(Complex:D \a, Int:D \b --> Complex:D) {
+    my $r := Complex.new(1e0, 0e0);
+    nqp::if(
+      b == 0,
+      $r,
+      nqp::if(
+        a == $r || b == 1,
+        a,
+        nqp::stmts(
+          (my $u := b.abs),
+          (my $t := a),
+          nqp::while(
+            $u  > 0,
+            nqp::stmts(
+              nqp::if(
+                $u +& 1 == 1,
+                $r := $r * $t
+              ),
+              ($u := $u +> 1),
+              ($t := $t * $t)
+            )
+          ),
+          nqp::if(
+            b < 0,
+            1e0 / $r,
+            $r
+          )
+        )
+      )
+    )
 }
 
 multi sub infix:<==>(Complex:D \a, Complex:D \b --> Bool:D) { a.re == b.re && a.im == b.im }
@@ -472,11 +511,23 @@ multi sub infix:<≅>(Num(Real) \a, Complex:D \b --> Bool:D) { a.Complex ≅ b }
 
 # Meaningful only for sorting purposes, of course.
 # We delegate to Real::cmp rather than <=> because parts might be NaN.
-multi sub infix:<cmp>(Complex:D \a, Complex:D \b --> Order:D) { a.re cmp b.re || a.im cmp b.im }
-multi sub infix:<cmp>(Num(Real) \a, Complex:D \b --> Order:D) { a cmp b.re || 0 cmp b.im }
-multi sub infix:<cmp>(Complex:D \a, Num(Real) \b --> Order:D) { a.re cmp b || a.im cmp 0 }
+multi sub infix:<cmp>(Complex:D \a, Complex:D \b) {
+    nqp::eqaddr((my $cmp := a.re cmp b.re),Order::Same)
+      ?? a.im cmp b.im
+      !! $cmp
+}
+multi sub infix:<cmp>(Num(Real) \a, Complex:D \b) {
+    nqp::eqaddr((my $cmp := a cmp b.re),Order::Same)
+      ?? 0 cmp b.im
+      !! $cmp
+}
+multi sub infix:<cmp>(Complex:D \a, Num(Real) \b) {
+    nqp::eqaddr((my $cmp := a.re cmp b),Order::Same)
+      ?? a.im cmp 0
+      !! $cmp
+}
 
-multi sub infix:«<=>»(Complex:D \a, Complex:D \b --> Order:D) {
+multi sub infix:«<=>»(Complex:D \a, Complex:D \b) {
     my $tolerance = a && b
         ?? (a.re.abs + b.re.abs) / 2 * $*TOLERANCE  # Scale slop to average real parts.
         !! $*TOLERANCE;                             # Don't want tolerance 0 if either arg is 0.
@@ -485,8 +536,8 @@ multi sub infix:«<=>»(Complex:D \a, Complex:D \b --> Order:D) {
       ?? a.re <=> b.re
       !! Failure.new(X::Numeric::Real.new(target => Real, reason => "Complex is not numerically orderable", source => "Complex"))
 }
-multi sub infix:«<=>»(Num(Real) \a, Complex:D \b --> Order:D) { a.Complex <=> b }
-multi sub infix:«<=>»(Complex:D \a, Num(Real) \b --> Order:D) { a <=> b.Complex }
+multi sub infix:«<=>»(Num(Real) \a, Complex:D \b) { a.Complex <=> b }
+multi sub infix:«<=>»(Complex:D \a, Num(Real) \b) { a <=> b.Complex }
 
 proto sub postfix:<i>($, *%        --> Complex:D) is pure {*}
 multi sub postfix:<i>(Real      \a --> Complex:D) { Complex.new(0e0, a);     }

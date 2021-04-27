@@ -420,6 +420,7 @@ class BuiltinOperatorProperties {
           'before', 'chaining',
           'after',  'chaining',
           '~~',     'chaining',
+          '!~~',    'chaining',
           '(elem)', 'chaining',
           '∈',      'chaining',
           '(cont)', 'chaining',

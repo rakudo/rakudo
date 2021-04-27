@@ -486,7 +486,7 @@ class BuiltinOperatorProperties {
 
         nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
           ?? nqp::bindkey(PROPERTIES,$op,BuiltinOperatorTypes.lookup($properties))
-          !! $properties
+          !! nqp::ifnull($properties, Nil)
     }
 
     method prefix(str $op) {
@@ -515,7 +515,7 @@ class BuiltinOperatorProperties {
 
         nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
           ?? nqp::bindkey(PROPERTIES,$op,BuiltinOperatorTypes.lookup($properties))
-          !! $properties
+          !! nqp::ifnull($properties, Nil)
     }
 
     method postfix(str $op) {
@@ -531,7 +531,7 @@ class BuiltinOperatorProperties {
 
         nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
           ?? nqp::bindkey(PROPERTIES,$op,BuiltinOperatorTypes.lookup($properties))
-          !! $properties
+          !! nqp::ifnull($properties, Nil)
     }
 
     method postcircumfix(str $op) {
@@ -543,7 +543,7 @@ class BuiltinOperatorProperties {
 
         nqp::isstr(my $properties := nqp::atkey(PROPERTIES,$op))
           ?? nqp::bindkey(PROPERTIES,$op,BuiltinOperatorTypes.lookup($properties))
-          !! $properties
+          !! nqp::ifnull($properties, Nil)
     }
 }
 

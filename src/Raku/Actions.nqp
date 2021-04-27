@@ -437,10 +437,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 }
                 else {
                     unless $ast {
-                        my $type := $<OPER><O>.made<assoc> eq 'chain'
-                            ?? self.r('Infix', 'Chaining')
-                            !! self.r('Infix');
-                        $ast := $type.new($sym);
+                        $ast := self.r('Infix').new($sym);
                     }
                     self.attach: $/, self.r('ApplyInfix').new:
                         infix => $ast,

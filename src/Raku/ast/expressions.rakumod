@@ -27,18 +27,15 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     has str $.operator;
     has OperatorProperties $.properties;
 
-    method new(
-      str                 $operator,
-      OperatorProperties :$properties
-    ) {
-
+    method new(str $operator, OperatorProperties :$properties) {
         $properties := OperatorProperties.properties-for-infix($operator)
           unless $properties;
-
+        unless nqp::isconcrete($properties) {
+            nqp::die("Failed to resolve operator properties for infix '$operator'");
+        }
         my $obj := nqp::create($properties.chaining
-          ?? RakuAST::Infix::Chaining
-          !! self
-        );
+            ?? RakuAST::Infix::Chaining
+            !! self);
         nqp::bindattr_s($obj, RakuAST::Infix, '$!operator', $operator);
         nqp::bindattr($obj, RakuAST::Infix, '$!properties', $properties);
         $obj

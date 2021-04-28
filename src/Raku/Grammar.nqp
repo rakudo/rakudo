@@ -929,6 +929,14 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token infix:sym<.=> { <sym> <O(|%dottyinfix)> }
 
+    token infix:sym<:=> {
+        <sym> <O(|%list_assignment)>
+    }
+
+    token infix:sym<::=> {
+        <sym> <O(|%item_assignment)> <.NYI('"::="')>
+    }
+
     token dottyopish {
         <term=.dottyop>
     }

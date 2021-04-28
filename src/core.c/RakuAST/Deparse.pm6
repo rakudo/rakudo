@@ -109,7 +109,9 @@ class RakuAST::Deparse {
             nqp::push_s($parts,self.deparse($name));
         }
 
-        nqp::push_s($parts,self!parenthesize(self.deparse($ast.signature)));
+        unless $ast.placeholder-signature {
+            nqp::push_s($parts,self!parenthesize(self.deparse($ast.signature)));
+        }
 
         if $ast.traits -> @traits {
             for @traits -> $trait {
@@ -1231,6 +1233,22 @@ class RakuAST::Deparse {
 
     multi method deparse(RakuAST::VarDeclaration::Implicit:D $ast --> str) {
         $ast.name
+    }
+
+    multi method deparse(RakuAST::VarDeclaration::Placeholder::Positional:D $ast --> str) {
+        .substr(0, 1) ~ '^' ~ .substr(1) given $ast.lexical-name
+    }
+
+    multi method deparse(RakuAST::VarDeclaration::Placeholder::Named:D $ast --> str) {
+        .substr(0, 1) ~ ':' ~ .substr(1) given $ast.lexical-name
+    }
+
+    multi method deparse(RakuAST::VarDeclaration::Placeholder::SlurpyArray:D $ast --> str) {
+        '@_'
+    }
+
+    multi method deparse(RakuAST::VarDeclaration::Placeholder::SlurpyHash:D $ast --> str) {
+        '%_'
     }
 
     multi method deparse(RakuAST::VarDeclaration::Simple:D $ast --> str) {

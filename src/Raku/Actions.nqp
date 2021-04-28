@@ -23,6 +23,9 @@ role Raku::CommonActions {
         if nqp::istype($node, self.r('ImplicitLookups')) {
             $node.resolve-implicit-lookups-with($*R);
         }
+        if nqp::istype($node, self.r('Attaching')) {
+            $node.attach($*R);
+        }
         make $node;
     }
 
@@ -757,6 +760,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 # Generate an anonymous state variable.
                 self.attach: $/, self.r('VarDeclaration', 'Anonymous').new(:$sigil, :scope('state'));
             }
+            elsif $name eq '@_' {
+                my $decl := self.r('VarDeclaration', 'Placeholder', 'SlurpyArray').new();
+                $*R.declare-lexical($decl);
+                self.attach: $/, $decl;
+            }
+            elsif $name eq '%_' {
+                my $decl := self.r('VarDeclaration', 'Placeholder', 'SlurpyHash').new();
+                $*R.declare-lexical($decl);
+                self.attach: $/, $decl;
+            }
             elsif $twigil eq '' {
                 my $resolution := $*R.resolve-lexical($name);
                 if nqp::isconcrete($resolution) {
@@ -789,6 +802,18 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                 else {
                     self.attach: $/, self.r('Var', 'Compiler', 'Lookup').new($name);
                 }
+            }
+            elsif $twigil eq '^' {
+                my $decl := self.r('VarDeclaration', 'Placeholder', 'Positional').new:
+                        $sigil ~ $<desigilname>;
+                $*R.declare-lexical($decl);
+                self.attach: $/, $decl;
+            }
+            elsif $twigil eq ':' {
+                my $decl := self.r('VarDeclaration', 'Placeholder', 'Named').new:
+                        $sigil ~ $<desigilname>;
+                $*R.declare-lexical($decl);
+                self.attach: $/, $decl;
             }
             else {
                 nqp::die("Lookup with twigil '$twigil' NYI");

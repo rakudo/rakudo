@@ -1194,6 +1194,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $parameter.set-slurpy(self.r('Parameter', 'Slurpy', 'Capture'))
                 if $q eq '|';
         }
+        for $<trait> {
+            $parameter.add-trait($_.ast);
+        }
         self.attach: $/, $parameter;
     }
 

@@ -461,6 +461,8 @@ class BuiltinOperatorProperties {
           '⚛-=', 'item-assignment',
           '⚛−=', 'item-assignment',
 
+          ':=', 'list-assignment',
+
           ',', 'comma',
 
           'Z',      'list-infix',

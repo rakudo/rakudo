@@ -4,6 +4,9 @@ class RakuAST::CaptureSource is RakuAST::Node {
 
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression is RakuAST::Node {
+    # Returns True if the expression is something that can be bound to,
+    # and False otherwise.
+    method can-be-bound-to() { False }
 }
 
 # Everything that is termish (a term with prefixes or postfixes applied).
@@ -18,6 +21,15 @@ class RakuAST::Term is RakuAST::Termish {
 class RakuAST::Infixish is RakuAST::Node {
     method IMPL-LIST-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operands) {
         nqp::die('Cannot compile ' ~ self.HOW.name(self) ~ ' as a list infix');
+    }
+
+    # A node can implement this if it wishes to have full control of the
+    # compilation of nodes. Most implement IMPL-INFIX-QAST, which gets the
+    # QAST of the operands.
+    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $left, RakuAST::Expression $right) {
+        self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
+            $right.IMPL-TO-QAST($context)
     }
 }
 
@@ -48,6 +60,23 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
     }
 
     method reducer-name() { $!properties.reducer-name }
+
+    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $left, RakuAST::Expression $right) {
+        my str $op := $!operator;
+        if $op eq ':=' {
+            if $left.can-be-bound-to {
+                $left.IMPL-BIND-QAST($context, $right)
+            }
+            else {
+                nqp::die('Cannot compile bind to ' ~ $left.HOW.name($left));
+            }
+        }
+        else {
+            self.IMPL-INFIX-QAST: $context, $left.IMPL-TO-QAST($context),
+                $right.IMPL-TO-QAST($context)
+        }
+    }
 
     method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
         my str $op := $!operator;
@@ -214,9 +243,7 @@ class RakuAST::ApplyInfix is RakuAST::Expression {
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!infix.IMPL-INFIX-QAST: $context,
-            $!left.IMPL-TO-QAST($context),
-            $!right.IMPL-TO-QAST($context)
+        $!infix.IMPL-INFIX-COMPILE($context, $!left, $!right)
     }
 
     method visit-children(Code $visitor) {
@@ -431,6 +458,7 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
 # A marker for all postcircumfixes. These each have relatively special
 # compilation, so they get distinct nodes.
 class RakuAST::Postcircumfix is RakuAST::Postfixish {
+    method can-be-bound-to() { False }
 }
 
 # A postcircumfix array index operator, possibly multi-dimensional.
@@ -441,6 +469,10 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::ArrayIndex, '$!index', $index);
         $obj
+    }
+
+    method can-be-bound-to() {
+        True
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -464,6 +496,17 @@ class RakuAST::Postcircumfix::ArrayIndex is RakuAST::Postcircumfix is RakuAST::L
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
         $op
     }
+
+    method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $operand, RakuAST::Expression $source) {
+        my $name := self.resolution.lexical-name;
+        my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        my $bind := $source.IMPL-TO-QAST($context);
+        $bind.named('BIND');
+        $op.push($bind);
+        $op
+    }
 }
 
 # A postcircumfix hash index operator, possibly multi-dimensional.
@@ -474,6 +517,10 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::HashIndex, '$!index', $index);
         $obj
+    }
+
+    method can-be-bound-to() {
+        True
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -497,6 +544,17 @@ class RakuAST::Postcircumfix::HashIndex is RakuAST::Postcircumfix is RakuAST::Lo
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
         $op
     }
+
+    method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $operand, RakuAST::Expression $source) {
+        my $name := self.resolution.lexical-name;
+        my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty;
+        my $bind := $source.IMPL-TO-QAST($context);
+        $bind.named('BIND');
+        $op.push($bind);
+        $op
+    }
 }
 
 # A postcircumfix literal hash index operator.
@@ -507,6 +565,10 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Postcircumfix::LiteralHashIndex, '$!index', $index);
         $obj
+    }
+
+    method can-be-bound-to() {
+        True
     }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -527,6 +589,17 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
         $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
         $op
     }
+
+    method IMPL-BIND-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $operand, RakuAST::Expression $source) {
+        my $name := self.resolution.lexical-name;
+        my $op := QAST::Op.new( :op('call'), :$name, $operand.IMPL-TO-QAST($context) );
+        $op.push($!index.IMPL-TO-QAST($context)) unless $!index.is-empty-words;
+        my $bind := $source.IMPL-TO-QAST($context);
+        $bind.named('BIND');
+        $op.push($bind);
+        $op
+    }
 }
 
 # Application of an postfix operator.
@@ -541,8 +614,16 @@ class RakuAST::ApplyPostfix is RakuAST::Termish {
         $obj
     }
 
+    method can-be-bound-to() {
+        $!postfix.can-be-bound-to
+    }
+
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         $!postfix.IMPL-POSTFIX-QAST($context, $!operand.IMPL-TO-QAST($context))
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
+        $!postfix.IMPL-BIND-POSTFIX-QAST($context, $!operand, $source)
     }
 
     method visit-children(Code $visitor) {

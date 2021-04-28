@@ -573,14 +573,14 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
     }
 
     method propagate-sink(Bool $is-sunk) {
-        $!condition.apply-sink(False);
+        $!condition.apply-sink(False) if $!condition;
         $!body.body.apply-sink(self.IMPL-DISCARD-RESULT ?? True !! False);
         $!setup.apply-sink(True) if $!setup;
         $!increment.apply-sink(True) if $!increment;
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!condition);
+        $visitor($!condition) if $!condition;
         $visitor($!body);
         $visitor($!setup) if $!setup;
         $visitor($!increment) if $!increment;

@@ -15,6 +15,10 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
 
     method sigil() { nqp::substr($!name, 0, 1) }
 
+    method can-be-bound-to() {
+        self.is-resolved ?? self.resolution.can-be-bound-to !! False
+    }
+
     method resolve-with(RakuAST::Resolver $resolver) {
         my $resolved := $resolver.resolve-lexical($!name);
         if $resolved {
@@ -25,6 +29,10 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
+        self.resolution.IMPL-BIND-QAST($context, $source)
     }
 }
 

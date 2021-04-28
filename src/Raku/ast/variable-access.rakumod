@@ -145,6 +145,12 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
 
     method sigil() { nqp::substr($!name, 0, 1) }
 
+    method can-be-bound-to() {
+        my $package := $!package.meta-object;
+        my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
+        nqp::objprimspec($attr-type) ?? False !! True
+    }
+
     method attach(RakuAST::Resolver $resolver) {
         my $package := $resolver.find-attach-target('package');
         if $package {
@@ -173,6 +179,30 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
             :scope('attribute'), :name($!name), :returns($attr-type),
             @lookups[0].IMPL-TO-QAST($context),
             QAST::WVal.new( :value($package) ),
+        )
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $package := $!package.meta-object;
+        my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
+        my $source-qast := $source.IMPL-TO-QAST($context);
+        unless nqp::eqaddr($attr-type, Mu) {
+            $context.ensure-sc($attr-type);
+            $source-qast := QAST::Op.new(
+                :op('p6bindassert'),
+                $source-qast,
+                QAST::WVal.new( :value($attr-type) )
+            );
+        }
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new(
+                :scope('attribute'), :name($!name), :returns($attr-type),
+                @lookups[0].IMPL-TO-QAST($context),
+                QAST::WVal.new( :value($package) ),
+            ),
+            $source-qast
         )
     }
 }

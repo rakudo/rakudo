@@ -1848,6 +1848,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | $<quant>=['\\'|'|'|'+'] <param_term>
         | [ <param_var> | <named_param> ] $<quant>=['?'|'!'|<?>]
         ]
+        <.ws>
+        <trait>*
     }
 
     token param_var {

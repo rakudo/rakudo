@@ -141,7 +141,9 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
 
 # A parameter within a signature. A parameter may result in binding or assignment
 # into a target; this is modeled by a RakuAST::ParameterTarget, which is optional.
-class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching is RakuAST::ImplicitLookups {
+class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
+                         is RakuAST::ImplicitLookups is RakuAST::TraitTarget
+                         is RakuAST::BeginTime {
     has RakuAST::Type $.type;
     has int $!default-to-any;
     has RakuAST::ParameterTarget $.target;
@@ -152,7 +154,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching is RakuAST::Impl
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
             List :$names, Bool :$invocant, Bool :$optional,
-            RakuAST::Parameter::Slurpy :$slurpy) {
+            RakuAST::Parameter::Slurpy :$slurpy, List :$traits) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
@@ -163,6 +165,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching is RakuAST::Impl
             nqp::istype($slurpy, RakuAST::Parameter::Slurpy)
                 ?? $slurpy
                 !! RakuAST::Parameter::Slurpy);
+        $obj.set-traits($traits);
         $obj
     }
 
@@ -301,6 +304,10 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching is RakuAST::Impl
                 ?? $!type.resolution.compile-time-value
                 !! $!default-to-any ?? Any !! Mu
         }
+    }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        self.apply-traits($resolver, self)
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

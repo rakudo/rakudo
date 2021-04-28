@@ -64,6 +64,8 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
 
     method sigil() { nqp::substr($!name, 0, 1) }
 
+    method can-be-bound-to() { True }
+
     method needs-resolution() { False }
 
     method resolve-with(RakuAST::Resolver $resolver) {
@@ -90,6 +92,32 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
                     :op('callstatic'), :name('&DYNAMIC-FALLBACK'),
                     $with-star, $without-star
                 )
+            )
+        }
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
+        # If it's resolved in the current scope, just a lexical bind.
+        my $source-qast := $source.IMPL-TO-QAST($context);
+        if self.is-resolved {
+            my $name := self.resolution.lexical-name;
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :$name, :scope<lexical> ),
+                $source-qast
+            )
+        }
+        else {
+            my $complain := QAST::Op.new(
+                :op('die_s'),
+                QAST::SVal.new( :value('Dynamic variable ' ~ $!name ~ ' not found') )
+            );
+            QAST::Op.new(
+                :op('bind'),
+                QAST::VarWithFallback.new(
+                    :name($!name), :scope('contextual'), :fallback($complain)
+                ),
+                $source-qast
             )
         }
     }

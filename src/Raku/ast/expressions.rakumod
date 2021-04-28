@@ -4,9 +4,6 @@ class RakuAST::CaptureSource is RakuAST::Node {
 
 # Everything that can appear as an expression does RakuAST::Expression.
 class RakuAST::Expression is RakuAST::Node {
-    # Returns True if the expression is something that can be bound to,
-    # and False otherwise.
-    method can-be-bound-to() { False }
 }
 
 # Everything that is termish (a term with prefixes or postfixes applied).
@@ -458,7 +455,6 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
 # A marker for all postcircumfixes. These each have relatively special
 # compilation, so they get distinct nodes.
 class RakuAST::Postcircumfix is RakuAST::Postfixish {
-    method can-be-bound-to() { False }
 }
 
 # A postcircumfix array index operator, possibly multi-dimensional.

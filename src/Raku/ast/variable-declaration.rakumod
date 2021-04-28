@@ -101,6 +101,18 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         }
     }
 
+    method can-be-bound-to() {
+        # Must be lexical and non-native.
+        if self.scope eq 'my' {
+            my str $sigil := self.sigil;
+            return True if $sigil eq '@' || $sigil eq '%';
+            return True unless $!type;
+            my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+            return True unless nqp::objprimspec(@lookups[0].resolution.compile-time-value);
+        }
+        False
+    }
+
     method visit-children(Code $visitor) {
         my $type := $!type;
         $visitor($type) if nqp::isconcrete($type);
@@ -402,6 +414,16 @@ class RakuAST::VarDeclaration::Simple is RakuAST::Declaration is RakuAST::Implic
         else {
             nqp::die("Cannot compile lookup of scope $scope")
         }
+    }
+
+    method IMPL-BIND-QAST(RakuAST::IMPL::QASTContext $context, RakuAST::Expression $source) {
+        my str $scope := self.scope;
+        nqp::die('Can only compile bind to my-scoped variables') unless $scope eq 'my';
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($!name), :scope('lexical') ),
+            $source.IMPL-TO-QAST($context)
+        )
     }
 
     method needs-sink-call() { False }

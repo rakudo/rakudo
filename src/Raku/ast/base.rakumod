@@ -40,6 +40,10 @@ class RakuAST::Node {
     # that it appears in a sink context.
     method needs-sink-call() { True }
 
+    # Returns True if the expression is something that can be bound to,
+    # and False otherwise.
+    method can-be-bound-to() { False }
+
     # Resolves all nodes beneath this one, recursively, using the specified
     # resolver.
     method resolve-all(RakuAST::Resolver $resolver) {

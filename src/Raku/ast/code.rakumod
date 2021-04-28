@@ -65,11 +65,105 @@ class RakuAST::Code is RakuAST::Node {
     method signature() { Nil }
 }
 
+# A code object that can have placeholder parameters.
+class RakuAST::PlaceholderParameterOwner is RakuAST::Node {
+    # Any placeholder parameters that have been attached
+    has Mu $!attached-placeholder-parameters;
+
+    # A map grouping placeholder parameters by name, for error checking and
+    # compilation.
+    has Mu $!placeholder-map;
+
+    # Cached generated placeholder signature.
+    has RakuAST::Signature $!placeholder-signature;
+
+    method add-placeholder-parameter(RakuAST::VarDeclaration::Placeholder $placeholder) {
+        unless nqp::islist($!attached-placeholder-parameters) {
+            nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
+                '$!attached-placeholder-parameters', []);
+        }
+        nqp::push($!attached-placeholder-parameters, $placeholder);
+        Nil
+    }
+
+    method clear-placeholder-attachments() {
+        nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
+            '$!attached-placeholder-parameters', nqp::null());
+        Nil
+    }
+
+    method has-placeholder-parameters() {
+        my $params := $!attached-placeholder-parameters;
+        nqp::islist($params) && nqp::elems($params) ?? True !! False
+    }
+
+    method IMPL-PLACEHOLDER-MAP() {
+        unless nqp::ishash($!placeholder-map) {
+            my %map;
+            if self.has-placeholder-parameters {
+                for $!attached-placeholder-parameters -> $param {
+                    my str $key := $param.lexical-name;
+                    (%map{$key} || (%map{$key} := [])).push($param);
+                }
+            }
+            nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
+                '$!placeholder-map', %map);
+        }
+        $!placeholder-map
+    }
+
+    # Gets the placeholder signature. Only reliable after resolution has taken
+    # place.
+    method placeholder-signature() {
+        # Return Nil if there isn't one to generate, or the cached one if we have
+        # it.
+        return Nil unless self.has-placeholder-parameters();
+        return $!placeholder-signature if $!placeholder-signature;
+
+        # Group and sort parameters.
+        my @positionals;
+        my @nameds;
+        my @slurpies;
+        for self.IMPL-PLACEHOLDER-MAP() {
+            my $placeholder := $_.value[0];
+            if nqp::istype($placeholder, RakuAST::VarDeclaration::Placeholder::Positional) {
+                my int $insert-at := 0;
+                my str $desigil-insert := nqp::substr($placeholder.lexical-name, 1);
+                while $insert-at < nqp::elems(@positionals) {
+                    my str $desigil-cur := nqp::substr(@positionals[$insert-at].lexical-name, 1);
+                    last if $desigil-insert lt $desigil-cur;
+                    $insert-at++;
+                }
+                nqp::splice(@positionals, [$placeholder], $insert-at, 0);
+            }
+            elsif nqp::istype($_, RakuAST::VarDeclaration::Placeholder::Named) {
+                @nameds.push($placeholder);
+            }
+            else {
+                @slurpies.push($placeholder);
+            }
+        }
+
+        # Add to signature.
+        my @parameters;
+        for @positionals, @nameds, @slurpies -> @placeholders {
+            for @placeholders {
+                @parameters.push($_.generate-parameter());
+            }
+        }
+        my $signature := RakuAST::Signature.new(:@parameters);
+        nqp::bindattr(self, RakuAST::PlaceholderParameterOwner,
+            '$!placeholder-signature', $signature);
+        $signature
+    }
+}
+
 # A block, either without signature or with only a placeholder signature.
 class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
                      is RakuAST::BlockStatementSensitive is RakuAST::SinkPropagator
                      is RakuAST::Blorst is RakuAST::ImplicitDeclarations
-                     is RakuAST::AttachTarget {
+                     is RakuAST::AttachTarget is RakuAST::PlaceholderParameterOwner
+                     is RakuAST::BeginTime {
     has RakuAST::Blockoid $.body;
 
     # Should this block have an implicit topic, in the absence of a (perhaps
@@ -118,6 +212,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 
     method clear-attachments() {
         self.clear-handler-attachments();
+        self.clear-placeholder-attachments();
         Nil
     }
 
@@ -127,7 +222,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
 
     method PRODUCE-IMPLICIT-DECLARATIONS() {
         my @implicit;
-        unless self.signature {
+        unless self.signature || self.placeholder-signature {
             if $!implicit-topic-mode == 1 {
                 @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new;
             }
@@ -138,21 +233,32 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
                 @implicit[0] := RakuAST::VarDeclaration::Implicit::TopicParameter.new(:required,
                     :exception);
             }
-            if $!fresh-match {
-                nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
-            }
-            if $!fresh-exception {
-                nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
-            }
+        }
+        if $!fresh-match {
+            nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')));
+        }
+        if $!fresh-exception {
+            nqp::push(@implicit, RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')));
         }
         self.IMPL-WRAP-LIST(@implicit)
+    }
+
+    method is-begin-performed-before-children() { False }
+
+    method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        # Make sure that our placeholder signature has resolutions performed.
+        my $placeholder-signature := self.placeholder-signature;
+        if $placeholder-signature {
+            $placeholder-signature.IMPL-CHECK($resolver, True);
+        }
+        Nil
     }
 
     method PRODUCE-META-OBJECT() {
         # Create block object and install signature. If it doesn't have one, then
         # we can create it based upon the implicit topic it may or may not have.
         my $block := nqp::create(Block);
-        my $signature := self.signature;
+        my $signature := self.signature || self.placeholder-signature;
         if $signature {
             nqp::bindattr($block, Code, '$!signature', $signature.meta-object);
         }
@@ -194,7 +300,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         # exception rethrow logic.
         my $body-qast := self.IMPL-APPEND-SIGNATURE-RETURN($context,
             $!body.IMPL-TO-QAST($context));
-        my $signature := self.signature;
+        my $signature := self.signature || self.placeholder-signature;
         if $signature {
             $block.push($signature.IMPL-TO-QAST($context));
             $block.arity($signature.arity);
@@ -358,6 +464,7 @@ class RakuAST::PointyBlock is RakuAST::Block {
 class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
                        is RakuAST::SinkBoundary is RakuAST::Declaration
                        is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget
+                       is RakuAST::PlaceholderParameterOwner
                        is RakuAST::BeginTime is RakuAST::TraitTarget {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
@@ -396,17 +503,26 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
 
     method clear-attachments() {
         self.clear-handler-attachments();
+        self.clear-placeholder-attachments();
         Nil
     }
 
     method PRODUCE-META-OBJECT() {
         my $routine := nqp::create(self.IMPL-META-OBJECT-TYPE);
-        my $signature := self.signature;
+        my $signature := self.placeholder-signature || self.signature;
         nqp::bindattr($routine, Code, '$!signature', $signature.meta-object);
         $routine
     }
 
+    method is-begin-performed-before-children() { False }
+
     method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
+        # Make sure that our placeholder signature has resolutions performed.
+        my $placeholder-signature := self.placeholder-signature;
+        if $placeholder-signature {
+            $placeholder-signature.IMPL-CHECK($resolver, True);
+        }
+        # Apply any traits.
         self.apply-traits($resolver, self)
     }
 
@@ -423,9 +539,10 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
             :blocktype('declaration_static'),
             self.IMPL-QAST-DECLS($context)
         );
-        $block.push($!signature.IMPL-TO-QAST($context));
-        $block.arity($!signature.arity);
-        $block.annotate('count', $!signature.count);
+        my $signature := self.placeholder-signature || $!signature;
+        $block.push($signature.IMPL-TO-QAST($context));
+        $block.arity($signature.arity);
+        $block.annotate('count', $signature.count);
         $block.push(self.IMPL-WRAP-RETURN-HANDLER($context,
             self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
                 self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context)))));
@@ -596,7 +713,6 @@ class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
 
 # A submethod.
 class RakuAST::Submethod is RakuAST::Method {
-
     method IMPL-META-OBJECT-TYPE() { Submethod }
 }
 

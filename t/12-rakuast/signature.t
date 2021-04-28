@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 12;
+plan 14;
 
 my $ast;
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -445,6 +445,72 @@ subtest 'Capture parameter' => {
           "$type: Passing named arguments gets correct capture";
         is-deeply $sub("foo", :bar<baz>), \("foo", bar => 'baz'),
           "$type: Passing a mix of positional and named arguments gets correct capture";
+    }
+}
+
+subtest 'Placeholder positional parameter' => {
+    # sub { $^pos }
+    ast RakuAST::Sub.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Placeholder::Positional.new('$pos')
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        is $sub.signature.params.elems, 1,
+          "$type: Sub has one params elem";
+        is-deeply $sub.arity, 1,
+          "$type: The block has 1 arity";
+        is-deeply $sub.count, 1,
+          "$type: The block has 1 count";
+        given $sub.signature.params[0] {
+            is-deeply .name, '$pos',
+              "$type: Correct variable name";
+            nok .optional,
+              "$type: It is not optional";
+        }
+        is $sub(777), 777,
+          "$type: Invoking the sub with a positional argument works";
+        dies-ok { $sub() },
+          "$type: Invoking the sub without an argument dies";
+    }
+}
+
+subtest 'Placeholder named parameter' => {
+    # sub { $:named }
+    ast RakuAST::Sub.new(
+      body => RakuAST::Blockoid.new(
+        RakuAST::StatementList.new(
+          RakuAST::Statement::Expression.new(
+            expression => RakuAST::VarDeclaration::Placeholder::Named.new('$named')
+          )
+        )
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $sub {
+        is $sub.signature.params.elems, 1,
+          "$type: Sub has one params elem";
+        is-deeply $sub.arity, 0,
+          "$type: The block has 0 arity";
+        is-deeply $sub.count, 0,
+          "$type: The block has 0 count";
+        given $sub.signature.params[0] {
+            is-deeply .name, '$named',
+              "$type: Correct variable name";
+            is-deeply .named_names, ('named',),
+              "$type: Correct named name";
+            nok .optional,
+              "$type: It is not optional";
+        }
+        is $sub(named => 999), 999,
+          "$type: Invoking the sub with a named argument works";
+        dies-ok { $sub() },
+          "$type: Invoking the sub without an argument dies";
     }
 }
 

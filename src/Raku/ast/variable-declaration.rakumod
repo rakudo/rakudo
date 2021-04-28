@@ -615,3 +615,104 @@ class RakuAST::VarDeclaration::Implicit::Self is RakuAST::VarDeclaration::Implic
         QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) )
     }
 }
+
+# The commonalities for placeholder parameters.
+class RakuAST::VarDeclaration::Placeholder is RakuAST::Declaration is RakuAST::Attaching {
+    method lexical-name() { nqp::die('Missing lexical-name implementation') }
+
+    method generate-parameter() {
+        nqp::die('Missing generate-parameter implementation')
+    }
+
+    method attach(RakuAST::Resolver $resolver) {
+        my $owner := $resolver.find-attach-target('block');
+        if $owner {
+            $owner.add-placeholder-parameter(self);
+        }
+    }
+
+    method default-scope() { 'my' }
+
+    method allowed-scopes() { ['my'] }
+
+    method generate-lookup() {
+        my $lookup := RakuAST::Var::Lexical.new(self.lexical-name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-LOOKUP-QAST($context)
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        QAST::Var.new( :name(self.lexical-name), :scope('lexical') )
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.lexical-name) )
+    }
+}
+
+# A positional placeholder parameter.
+class RakuAST::VarDeclaration::Placeholder::Positional is RakuAST::VarDeclaration::Placeholder {
+    has str $.lexical-name;
+
+    method new(str $declared-name) {
+        if nqp::substr($declared-name, 1, 1) eq '^' {
+            nqp::die('Should construct a ' ~ self.HOW.name(self) ~ ' without the ^ twigil');
+        }
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Placeholder::Positional,
+            '$!lexical-name', $declared-name);
+        $obj
+    }
+
+    method generate-parameter() {
+        RakuAST::Parameter.new:
+            target => RakuAST::ParameterTarget::Var.new(self.lexical-name)
+    }
+}
+
+# A named placeholder parameter.
+class RakuAST::VarDeclaration::Placeholder::Named is RakuAST::VarDeclaration::Placeholder {
+    has str $.lexical-name;
+
+    method new(str $declared-name) {
+        if nqp::substr($declared-name, 1, 1) eq ':' {
+            nqp::die('Should construct a ' ~ self.HOW.name(self) ~ ' without the : twigil');
+        }
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Placeholder::Named,
+            '$!lexical-name', $declared-name);
+        $obj
+    }
+
+    method generate-parameter() {
+        RakuAST::Parameter.new:
+            target => RakuAST::ParameterTarget::Var.new(self.lexical-name),
+            names => [nqp::substr(self.lexical-name, 1)]
+    }
+}
+
+# A slurpy array placeholder parameter.
+class RakuAST::VarDeclaration::Placeholder::SlurpyArray is RakuAST::VarDeclaration::Placeholder {
+    method lexical-name() { '@_' }
+
+    method generate-parameter() {
+        RakuAST::Parameter.new:
+            target => RakuAST::ParameterTarget::Var.new(self.lexical-name),
+            slurpy => RakuAST::Parameter::Slurpy::Flattened
+    }
+}
+
+# A slurpy hash placeholder parameter.
+class RakuAST::VarDeclaration::Placeholder::SlurpyHash is RakuAST::VarDeclaration::Placeholder {
+    method lexical-name() { '%_' }
+
+    method generate-parameter() {
+        RakuAST::Parameter.new:
+            target => RakuAST::ParameterTarget::Var.new(self.lexical-name),
+            slurpy => RakuAST::Parameter::Slurpy::Flattened
+    }
+}

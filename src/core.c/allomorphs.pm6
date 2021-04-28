@@ -52,6 +52,24 @@ my class Allomorph is Str {
     method trim-trailing(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').trim-trailing
     }
+    method lc(Allomorph:D:) { 
+        nqp::getattr_s(self,Str,'$!value').lc
+    }
+    method uc(Allomorph:D:) { 
+        nqp::getattr_s(self,Str,'$!value').uc
+    }
+    method tc(Allomorph:D:) { 
+        nqp::getattr_s(self,Str,'$!value').tc
+    }
+    method tclc(Allomorph:D:) { 
+        nqp::getattr_s(self,Str,'$!value').tclc
+    }
+    method fc(Allomorph:D:) { 
+        nqp::getattr_s(self,Str,'$!value').fc
+    }
+    method flip(Allomorph:D:) { 
+        nqp::getattr_s(self,Str,'$!value').flip
+    }
 
     method substr(Allomorph:D: |c) {
         nqp::getattr_s(self,Str,'$!value').substr(|c)

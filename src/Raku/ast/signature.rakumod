@@ -311,13 +311,19 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        # Flag constants we need to pay attention to.
+        my constant SIG_ELEM_IS_RW               := 256;
+        my constant SIG_ELEM_IS_COPY             := 512;
+        my constant SIG_ELEM_IS_RAW              := 1024;
+
         # Get the parameter meta-object, since traits can change some things.
         my $param-obj := self.meta-object;
+        my int $flags := nqp::getattr_i($param-obj, Parameter, '$!flags');
 
         # Take the parameter into a temporary local.
         my $name := QAST::Node.unique("__lowered_param");
         my $param-qast := QAST::Var.new( :decl('param'), :scope('local'), :$name );
-        my $temp-qast := QAST::Var.new( :name($name), :scope('local') );
+        my $temp-qast-var := QAST::Var.new( :name($name), :scope('local') );
 
         # Deal with nameds and slurpies.
         my int $was-slurpy;
@@ -326,20 +332,34 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             $param-qast.named(nqp::elems($!names) == 1 ?? $!names[0] !! $!names);
         }
         elsif !($!slurpy =:= RakuAST::Parameter::Slurpy) {
-            $!slurpy.IMPL-TRANSFORM-PARAM-QAST($context, $param-qast, $temp-qast,
+            $!slurpy.IMPL-TRANSFORM-PARAM-QAST($context, $param-qast, $temp-qast-var,
                 $!target.sigil, @prepend);
             $was-slurpy := 1;
         }
 
         # HLLize before type checking unless it was a slurpy (in which
         # case we know full well what we produced).
-        # TODO decont does not belong here
         unless $was-slurpy {
             $param-qast.push(QAST::Op.new(
                 :op('bind'),
-                $temp-qast,
-                QAST::Op.new( :op('decont'), QAST::Op.new( :op('hllize'), $temp-qast ) )
+                $temp-qast-var,
+                QAST::Op.new( :op('hllize'), $temp-qast-var )
             ));
+        }
+
+        # We may need to decontainerize it; produce that lazily if so.
+        my $decont-qast-var := $was-slurpy ?? $temp-qast-var !! Nil;
+        my $get-decont-var := -> {
+            unless $decont-qast-var {
+                my str $name := QAST::Node.unique("__decont_param");
+                $param-qast.push(QAST::Op.new(
+                    :op('bind'),
+                    QAST::Var.new( :$name, :scope('local'), :decl('var') ),
+                    QAST::Op.new( :op('decont'), $temp-qast-var )
+                ));
+                $decont-qast-var := QAST::Var.new( :$name, :scope('local') );
+            }
+            $decont-qast-var
         }
 
         # Do type checks.
@@ -350,8 +370,16 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             $context.ensure-sc($nominal-type);
             $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
                 :op('istype_nd'),
-                $temp-qast,
+                $get-decont-var(),
                 QAST::WVal.new( :value($nominal-type) )
+            )));
+        }
+
+        # If marked `is rw`, do rw check.
+        if $flags +& SIG_ELEM_IS_RW {
+            $param-qast.push(QAST::ParamTypeCheck.new(QAST::Op.new(
+                :op('isrwcont'),
+                $temp-qast-var
             )));
         }
 
@@ -366,11 +394,18 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             $param-qast.push(QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :name('self'), :scope('lexical') ),
-                $temp-qast
+                $get-decont-var()
             ));
         }
         if nqp::isconcrete($!target) {
-            $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast));
+            if $flags +& (SIG_ELEM_IS_RW +| SIG_ELEM_IS_RAW) {
+                # Don't do any decontainerization (rw or raw).
+                $param-qast.push($!target.IMPL-BIND-QAST($context, $temp-qast-var));
+            }
+            else {
+                # Give the decontainerized thing.
+                $param-qast.push($!target.IMPL-BIND-QAST($context, $get-decont-var()));
+            }
         }
 
         @prepend ?? QAST::Stmts.new( |@prepend, $param-qast ) !! $param-qast

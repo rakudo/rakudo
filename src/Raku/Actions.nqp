@@ -918,6 +918,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $<variable_declarator> {
             self.attach: $/, $<variable_declarator>.ast;
         }
+        elsif $<routine_declarator> {
+            self.attach: $/, $<routine_declarator>.ast;
+        }
         else {
             nqp::die('Unimplemented declarator');
         }

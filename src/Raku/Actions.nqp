@@ -177,9 +177,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<statement_control> {
             self.attach: $/, $<statement_control>.ast;
         }
+        elsif $<label> {
+            my $statement := $<statement>.ast;
+            $statement.add-label($<label>.ast);
+            make $statement;
+        }
         else {
             self.attach: $/, self.r('Statement', 'Empty').new;
         }
+    }
+
+    method label($/) {
+        my $label := self.r('Label').new(~$<identifier>);
+        $*R.declare-lexical($label);
+        self.attach: $/, $label;
     }
 
     method pblock($/) {

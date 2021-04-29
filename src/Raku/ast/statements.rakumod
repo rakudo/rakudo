@@ -6,8 +6,78 @@ class RakuAST::Blorst is RakuAST::Node {
 # Something that can be the target of a contextualizer.
 class RakuAST::Contextualizable is RakuAST::Node {}
 
+# A label, which can be placed on a statement.
+class RakuAST::Label is RakuAST::Declaration is RakuAST::ImplicitLookups is RakuAST::Meta {
+    has str $.name;
+
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Label, '$!name', $name);
+        $obj
+    }
+
+    method default-scope() { 'my' }
+
+    method allowed-scopes() { ['my'] }
+
+    method lexical-name() { $!name }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('Label')),
+        ])
+    }
+
+    method PRODUCE-META-OBJECT() {
+        my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
+        my $label-type := @lookups[0].resolution.compile-time-value;
+        # TODO line, prematch, postmatch
+        $label-type.new(:name($!name), :line(0), :prematch(''), :postmatch(''))
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new(
+            :scope('lexical'), :decl('static'), :name($!name),
+            :value(self.meta-object)
+        )
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context, Mu :$rvalue) {
+        my $label := self.meta-object;
+        $context.ensure-sc($label);
+        QAST::WVal.new( :value($label) )
+    }
+}
+
 # Everything that can appear at statement level does RakuAST::Statement.
 class RakuAST::Statement is RakuAST::Blorst {
+    has Mu $!labels;
+
+    method add-label(RakuAST::Label $label) {
+        nqp::push(($!labels // nqp::bindattr(self, RakuAST::Statement, '$!labels', [])),
+            $label);
+        Nil
+    }
+
+    method labels() {
+        self.IMPL-WRAP-LIST($!labels // [])
+    }
+
+    method set-labels(List $labels) {
+        nqp::bindattr(self, RakuAST::Statement, '$!labels', self.IMPL-UNWRAP-LIST($labels));
+        Nil
+    }
+
+    method visit-labels(Code $visitor) {
+        my $labels := $!labels;
+        if $labels {
+            for $!labels {
+                $visitor($_);
+            }
+        }
+        Nil
+    }
+
     method IMPL-WRAP-WHEN-OR-DEFAULT(RakuAST::IMPL::QASTContext $context, Mu $qast) {
         my $succeed-qast := QAST::Op.new( :op('call'), :name('&succeed'), $qast );
         QAST::Op.new(
@@ -154,8 +224,10 @@ class RakuAST::StatementSequence is RakuAST::StatementList is RakuAST::ImplicitL
 # Any empty statement. Retained because it can have a semantic effect (for
 # example, in block vs. hash distinction with a leading `;`).
 class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookups {
-    method new() {
-        nqp::create(self)
+    method new(List :$labels) {
+        my $obj := nqp::create(self);
+        $obj.set-labels($labels) if $labels;
+        $obj
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -168,6 +240,10 @@ class RakuAST::Statement::Empty is RakuAST::Statement is RakuAST::ImplicitLookup
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         @lookups[0].IMPL-TO-QAST($context)
     }
+
+    method visit-children(Code $visitor) {
+        self.visit-labels($visitor);
+    }
 }
 
 # An expression statement is a statement consisting of the evaluation of an
@@ -179,11 +255,12 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
     has RakuAST::StatementModifier::Condition $.condition-modifier;
     has RakuAST::StatementModifier::Loop $.loop-modifier;
 
-    method new(RakuAST::Expression :$expression!,
+    method new(RakuAST::Expression :$expression!, List :$labels,
                RakuAST::StatementModifier::Condition :$condition-modifier,
                RakuAST::StatementModifier::Loop :$loop-modifier) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!expression', $expression);
+        $obj.set-labels($labels) if $labels;
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!condition-modifier',
             $condition-modifier // RakuAST::StatementModifier::Condition);
         nqp::bindattr($obj, RakuAST::Statement::Expression, '$!loop-modifier',
@@ -237,6 +314,7 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
         $visitor($!expression);
         $visitor($!condition-modifier) if $!condition-modifier;
         $visitor($!loop-modifier) if $!loop-modifier;
+        self.visit-labels($visitor);
     }
 
     method IMPL-CAN-INTERPRET() {
@@ -263,13 +341,14 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
     has RakuAST::Block $.else;
 
     method new(RakuAST::Expression :$condition!, RakuAST::Expression :$then!,
-               List :$elsifs, RakuAST::Block :$else) {
+               List :$elsifs, RakuAST::Block :$else, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::If, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::If, '$!then', $then);
         nqp::bindattr($obj, RakuAST::Statement::If, '$!elsifs',
             self.IMPL-UNWRAP-LIST($elsifs // []));
         nqp::bindattr($obj, RakuAST::Statement::If, '$!else', $else // RakuAST::Block);
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 
@@ -362,6 +441,7 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
         if $!else {
             $visitor($!else);
         }
+        self.visit-labels($visitor);
     }
 }
 
@@ -407,10 +487,11 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
-    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!) {
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Unless, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Unless, '$!body', $body);
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 
@@ -442,6 +523,7 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
     method visit-children(Code $visitor) {
         $visitor($!condition);
         $visitor($!body);
+        self.visit-labels($visitor);
     }
 }
 
@@ -452,10 +534,11 @@ class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLook
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
-    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!) {
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Without, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Without, '$!body', $body);
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 
@@ -487,6 +570,7 @@ class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLook
     method visit-children(Code $visitor) {
         $visitor($!condition);
         $visitor($!body);
+        self.visit-labels($visitor);
     }
 }
 
@@ -510,12 +594,14 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
     has RakuAST::Expression $.increment;
 
     method new(RakuAST::Block :$body!, RakuAST::Expression :$condition,
-               RakuAST::Expression :$setup, RakuAST::Expression :$increment) {
+               RakuAST::Expression :$setup, RakuAST::Expression :$increment,
+               List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Loop, '$!body', $body);
         nqp::bindattr($obj, RakuAST::Statement::Loop, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::Loop, '$!setup', $setup);
         nqp::bindattr($obj, RakuAST::Statement::Loop, '$!increment', $increment);
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 
@@ -554,6 +640,14 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
                 $loop-qast.push($!increment.IMPL-TO-QAST($context));
             }
 
+            # Add a label if there is one.
+            my @labels := self.IMPL-UNWRAP-LIST(self.labels);
+            if @labels {
+                my $label-qast := @labels[0].IMPL-LOOKUP-QAST($context);
+                $label-qast.named('label');
+                $loop-qast.push($label-qast);
+            }
+
             # Prepend setup code and evaluate to Nil if not sunk.
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
             my $wrapper := QAST::Stmt.new();
@@ -584,6 +678,7 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
         $visitor($!body);
         $visitor($!setup) if $!setup;
         $visitor($!increment) if $!increment;
+        self.visit-labels($visitor);
     }
 }
 
@@ -621,11 +716,13 @@ class RakuAST::Statement::For is RakuAST::Statement
     # The mode of evaluation, (defaults to serial, may be race or hyper also).
     has str $.mode;
 
-    method new(RakuAST::Expression :$source!, RakuAST::Block :$body!, str :$mode) {
+    method new(RakuAST::Expression :$source!, RakuAST::Block :$body!, str :$mode,
+            List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::For, '$!source', $source);
         nqp::bindattr($obj, RakuAST::Statement::For, '$!body', $body);
         nqp::bindattr_s($obj, RakuAST::Statement::For, '$!mode', $mode || 'serial');
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 
@@ -662,21 +759,24 @@ class RakuAST::Statement::For is RakuAST::Statement
         # Delegate to the for loop compilation helper (which we pass various
         # attributes to in order to make it callable for the statement modifier
         # form also).
+        my @labels := self.IMPL-UNWRAP-LIST(self.labels);
         self.IMPL-FOR-QAST($context, $mode, $after-mode,
                 $!source.IMPL-TO-QAST($context),
-                $!body.IMPL-TO-QAST($context))
+                $!body.IMPL-TO-QAST($context),
+                @labels ?? @labels[0] !! RakuAST::Label)
     }
 
     method IMPL-FOR-QAST(RakuAST::IMPL::QASTContext $context, str $mode,
-            str $after-mode, Mu $source-qast, Mu $body-qast) {
+            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label?) {
         # TODO various optimized forms are possible here
-        self.IMPL-TO-QAST-GENERAL($context, $mode, $after-mode, $source-qast, $body-qast)
+        self.IMPL-TO-QAST-GENERAL($context, $mode, $after-mode, $source-qast,
+            $body-qast, $label)
     }
 
     # The most general, least optimized, form for a `for` loop, which
     # delegates to `map`.
     method IMPL-TO-QAST-GENERAL(RakuAST::IMPL::QASTContext $context, str $mode,
-            str $after-mode, Mu $source-qast, Mu $body-qast) {
+            str $after-mode, Mu $source-qast, Mu $body-qast, RakuAST::Label $label) {
         # Bind the source into a temporary.
         my $for-list-name := QAST::Node.unique('for-list');
         my $bind-source := QAST::Op.new(
@@ -704,6 +804,12 @@ class RakuAST::Statement::For is RakuAST::Statement
                 $body-qast
             )
         );
+        if $label {
+            my $label-qast := $label.IMPL-LOOKUP-QAST($context);
+            $label-qast.named('label');
+            $map-call[1].push($label-qast);
+            $map-call[2].push($label-qast);
+        }
 
         # Apply after mode to the map result, and we're done.
         QAST::Stmts.new(
@@ -715,6 +821,7 @@ class RakuAST::Statement::For is RakuAST::Statement
     method visit-children(Code $visitor) {
         $visitor($!source);
         $visitor($!body);
+        self.visit-labels($visitor);
     }
 }
 
@@ -727,10 +834,11 @@ class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
     # The body of the given statement.
     has RakuAST::Block $.body;
 
-    method new(RakuAST::Expression :$source!, RakuAST::Block :$body!) {
+    method new(RakuAST::Expression :$source!, RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Given, '$!source', $source);
         nqp::bindattr($obj, RakuAST::Statement::Given, '$!body', $body);
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 
@@ -754,6 +862,7 @@ class RakuAST::Statement::Given is RakuAST::Statement is RakuAST::SinkPropagator
     method visit-children(Code $visitor) {
         $visitor($!source);
         $visitor($!body);
+        self.visit-labels($visitor);
     }
 }
 
@@ -765,10 +874,11 @@ class RakuAST::Statement::When is RakuAST::Statement is RakuAST::SinkPropagator
     has RakuAST::Expression $.condition;
     has RakuAST::Block $.body;
 
-    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!) {
+    method new(RakuAST::Expression :$condition!, RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::When, '$!condition', $condition);
         nqp::bindattr($obj, RakuAST::Statement::When, '$!body', $body);
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 
@@ -816,6 +926,7 @@ class RakuAST::Statement::When is RakuAST::Statement is RakuAST::SinkPropagator
     method visit-children(Code $visitor) {
         $visitor($!condition);
         $visitor($!body);
+        self.visit-labels($visitor);
     }
 }
 
@@ -824,9 +935,10 @@ class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagat
                                   is RakuAST::ImplicitBlockSemanticsProvider is RakuAST::Attaching {
     has RakuAST::Block $.body;
 
-    method new(RakuAST::Block :$body!) {
+    method new(RakuAST::Block :$body!, List :$labels) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Statement::Default, '$!body', $body);
+        $obj.set-labels($labels) if $labels;
         $obj
     }
 
@@ -857,6 +969,7 @@ class RakuAST::Statement::Default is RakuAST::Statement is RakuAST::SinkPropagat
 
     method visit-children(Code $visitor) {
         $visitor($!body);
+        self.visit-labels($visitor);
     }
 }
 
@@ -894,6 +1007,7 @@ class RakuAST::Statement::ExceptionHandler is RakuAST::Statement is RakuAST::Sin
 
     method visit-children(Code $visitor) {
         $visitor($!body);
+        self.visit-labels($visitor);
     }
 }
 
@@ -1080,5 +1194,6 @@ class RakuAST::Statement::Use is RakuAST::Statement is RakuAST::BeginTime
 
     method visit-children(Code $visitor) {
         $visitor($!module-name);
+        self.visit-labels($visitor);
     }
 }

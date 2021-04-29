@@ -345,7 +345,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
-    token statement($*LABEL = '') {
+    token statement {
         :my $*QSIGIL := '';
         :my $*SCOPE := '';
 
@@ -356,7 +356,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!!{ nqp::rebless($/, self.slang_grammar('MAIN')); 1 }>
 
         [
-        #| <label> <statement($*LABEL)> { $*LABEL := '' if $*LABEL }
+        | <label> <statement>
         | <statement_control>
         | <EXPR> :dba('statement end')
             [
@@ -376,6 +376,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         #| <?stopper>
         | {} <.panic: "Bogus statement">
         ]
+    }
+
+    token label {
+        <identifier> ':' <?[\s]> <.ws>
     }
 
     token eat_terminator {

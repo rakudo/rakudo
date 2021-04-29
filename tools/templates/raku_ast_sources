@@ -6,6 +6,7 @@ src/Raku/ast/scoping.rakumod
 src/Raku/ast/attaching.rakumod
 src/Raku/ast/begintime.rakumod
 src/Raku/ast/traits.rakumod
+src/Raku/ast/meta.rakumod
 src/Raku/ast/statements.rakumod
 src/Raku/ast/operator-properties.rakumod
 src/Raku/ast/expressions.rakumod
@@ -15,7 +16,6 @@ src/Raku/ast/call.rakumod
 src/Raku/ast/term.rakumod
 src/Raku/ast/name.rakumod
 src/Raku/ast/type.rakumod
-src/Raku/ast/meta.rakumod
 src/Raku/ast/variable-declaration.rakumod
 src/Raku/ast/variable-access.rakumod
 src/Raku/ast/contextualizer.rakumod

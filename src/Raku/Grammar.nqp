@@ -1487,6 +1487,8 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token declarator {
         :my $*LEFTSIGIL := '';
         [
+        | '\\' <defterm>
+            [ <.ws> <term_init=initializer> || <.typed_panic: "X::Syntax::Term::MissingInitializer"> ]
         | <variable_declarator>
         | <routine_declarator>
         ]

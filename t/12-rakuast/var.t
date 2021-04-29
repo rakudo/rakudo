@@ -1,7 +1,7 @@
 use MONKEY-SEE-NO-EVAL;
 use Test;
 
-plan 36;
+plan 37;
 
 my $ast;   # so we don't need to repeat the "my" all the time
 sub ast(RakuAST::Node:D $node --> Nil) {
@@ -793,6 +793,29 @@ subtest 'A pointy block node with a state variable' => {
     for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, $block {
         is $block(), 42, "$type: state variable initialized";
         is $block(), 43, "$type: state variable kept value";
+    }
+}
+
+subtest 'Term (sigilless) variable declaration' => {
+    # my \foo = 111; foo
+    ast RakuAST::StatementList.new(
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::VarDeclaration::Term.new(
+          scope => 'my',
+          name  => RakuAST::Name.from-identifier('foo'),
+          initializer => RakuAST::Initializer::Assign.new(
+            RakuAST::IntLiteral.new(111)
+          )
+        )
+      ),
+      RakuAST::Statement::Expression.new(
+        expression => RakuAST::Term::Name.new(RakuAST::Name.from-identifier('foo'))
+      )
+    );
+
+    for 'AST', EVAL($ast), 'DEPARSE', EVAL($ast.DEPARSE) -> $type, \value {
+        is-deeply value, 111, "$type: sigilless variable initialized with correct value";
+        ok value.VAR =:= value, "$type: no container produced";
     }
 }
 

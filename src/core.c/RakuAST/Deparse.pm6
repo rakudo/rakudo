@@ -1272,6 +1272,25 @@ class RakuAST::Deparse {
         nqp::join('', $parts)
     }
 
+    multi method deparse(RakuAST::VarDeclaration::Term:D $ast --> str) {
+        my $parts := nqp::list_s;
+
+        nqp::push_s($parts,$ast.scope);
+        nqp::push_s($parts,' ');
+
+        if $ast.type -> $type {
+            nqp::push_s($parts,self.deparse($type));
+            nqp::push_s($parts,' ');
+        }
+
+        nqp::push_s($parts,'\\');
+        nqp::push_s($parts,self.deparse($ast.name));
+
+        nqp::push_s($parts,self.deparse($ast.initializer));
+
+        nqp::join('', $parts)
+    }
+
     multi method deparse(RakuAST::VersionLiteral:D $ast --> str) {
         $ast.value.raku
     }

@@ -1488,6 +1488,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*LEFTSIGIL := '';
         [
         | <variable_declarator>
+        | <routine_declarator>
         ]
     }
 

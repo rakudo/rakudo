@@ -471,6 +471,66 @@ class RakuAST::VarDeclaration::Anonymous is RakuAST::VarDeclaration::Simple {
     }
 }
 
+# The declaration of a term (sigilless) variable.
+class RakuAST::VarDeclaration::Term is RakuAST::Declaration {
+    has RakuAST::Type $.type;
+    has RakuAST::Name $.name;
+    has RakuAST::Initializer $.initializer;
+
+    method new(str :$scope, RakuAST::Type :$type, RakuAST::Name :$name!,
+            RakuAST::Initializer :$initializer!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!type', $type // RakuAST::Type);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::VarDeclaration::Term, '$!initializer',
+            $initializer // RakuAST::Initializer);
+        $obj
+    }
+
+    method lexical-name() {
+        $!name.canonicalize
+    }
+
+    method generate-lookup() {
+        my $lookup := RakuAST::Term::Name.new($!name);
+        $lookup.set-resolution(self);
+        $lookup
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new( :decl('var'), :scope('lexical'), :name($!name.canonicalize) )
+    }
+
+    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $init-qast := $!initializer.IMPL-TO-QAST($context);
+        if $!type {
+            $init-qast := QAST::Op.new(
+                :op('p6bindassert'),
+                $init-qast,
+                $!type.IMPL-TO-QAST($context)
+            );
+        }
+        QAST::Op.new( :op('bind'), self.IMPL-LOOKUP-QAST($context), $init-qast )
+    }
+
+    method IMPL-LOOKUP-QAST(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new( :name($!name.canonicalize), :scope('lexical') )
+    }
+
+    method default-scope() { 'my' }
+
+    method allowed-scopes() { self.IMPL-WRAP-LIST(['my']) }
+
+    method needs-sink-call() { False }
+
+    method visit-children(Code $visitor) {
+        $visitor($!type) if $!type;
+        $visitor($!name);
+        $visitor($!initializer) if $!initializer;
+    }
+}
+
 # The commonalities for implicitly declared variables.
 class RakuAST::VarDeclaration::Implicit is RakuAST::Declaration {
     has str $.name;

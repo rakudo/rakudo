@@ -475,7 +475,7 @@ class RakuAST::ParameterTarget::Var is RakuAST::ParameterTarget is RakuAST::Decl
 class RakuAST::ParameterTarget::Term is RakuAST::ParameterTarget is RakuAST::Declaration {
     has RakuAST::Name $.name;
 
-    method new(str $name!) {
+    method new(RakuAST::Name $name!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ParameterTarget::Term, '$!name', $name);
         $obj

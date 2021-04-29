@@ -921,6 +921,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<routine_declarator> {
             self.attach: $/, $<routine_declarator>.ast;
         }
+        elsif $<defterm> {
+            my str $scope := $*SCOPE;
+            my $type := $*OFTYPE ?? $*OFTYPE.ast !! self.r('Type');
+            my $name := $<defterm>.ast;
+            my $initializer := $<term_init>.ast;
+            my $decl := self.r('VarDeclaration', 'Term').new:
+                :$scope, :$type, :$name, :$initializer;
+            $*R.declare-lexical($decl);
+            self.attach: $/, $decl;
+        }
         else {
             nqp::die('Unimplemented declarator');
         }

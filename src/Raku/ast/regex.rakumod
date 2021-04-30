@@ -21,6 +21,21 @@ class RakuAST::Regex is RakuAST::Node {
         }
         $wrap-qast
     }
+
+    method IMPL-REGEX-BLOCK-CALL(RakuAST::IMPL::QASTContext $context, RakuAST::Block $block) {
+        QAST::Stmts.new(
+            QAST::Op.new(
+                :op('p6store'),
+                QAST::Var.new( :name('$/'), :scope<lexical> ),
+                QAST::Op.new(
+                    QAST::Var.new( :name('$¢'), :scope<lexical> ),
+                    :name('MATCH'),
+                    :op('callmethod')
+                )
+            ),
+            $block.IMPL-TO-QAST($context, :immediate)
+        )
+    }
 }
 
 # Common role done by all branching regex constructs (alternations and conjunctions).
@@ -410,21 +425,6 @@ class RakuAST::Regex::Block is RakuAST::Regex::Atom {
         QAST::Regex.new( $block-call, :rxtype<qastnode> )
     }
 
-    method IMPL-REGEX-BLOCK-CALL(RakuAST::IMPL::QASTContext $context, RakuAST::Block $block) {
-        QAST::Stmts.new(
-            QAST::Op.new(
-                :op('p6store'),
-                QAST::Var.new( :name('$/'), :scope<lexical> ),
-                QAST::Op.new(
-                    QAST::Var.new( :name('$¢'), :scope<lexical> ),
-                    :name('MATCH'),
-                    :op('callmethod')
-                )
-            ),
-            $block.IMPL-TO-QAST($context, :immediate)
-        )
-    }
-
     method visit-children(Code $visitor) {
         $visitor($!block);
     }
@@ -792,6 +792,39 @@ class RakuAST::Regex::Quantifier::Range is RakuAST::Regex::Quantifier {
         self.backtrack.IMPL-QAST-APPLY:
             QAST::Regex.new( :rxtype<quant>, :min($min), :max($max), $atom-qast ),
             %mods
+    }
+}
+
+# The block range (** {$n..$m}) quantifier.
+class RakuAST::Regex::Quantifier::BlockRange is RakuAST::Regex::Quantifier {
+    has RakuAST::Block $.block;
+
+    method new(RakuAST::Block :$block!, RakuAST::Regex::Backtrack :$backtrack) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Quantifier, '$!backtrack',
+            nqp::istype($backtrack, RakuAST::Regex::Backtrack)
+                ?? $backtrack
+                !! RakuAST::Regex::Backtrack);
+        nqp::bindattr($obj, RakuAST::Regex::Quantifier::BlockRange, '$!block', $block);
+        $obj
+    }
+
+    method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
+        self.backtrack.IMPL-QAST-APPLY:
+            QAST::Regex.new(
+                :rxtype<dynquant>,
+                $atom-qast,
+                QAST::Op.new(
+                    :op('callmethod'), :name('DYNQUANT_LIMITS'),
+                    QAST::Var.new( :name('$¢'), :scope('lexical') ),
+                    RakuAST::Regex.IMPL-REGEX-BLOCK-CALL($context, $!block)
+                ),
+            ),
+            %mods
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!block);
     }
 }
 

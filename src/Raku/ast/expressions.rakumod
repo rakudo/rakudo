@@ -224,6 +224,47 @@ class RakuAST::MetaInfix::Assign is RakuAST::Infixish is RakuAST::Lookup {
     }
 }
 
+# A negate meta-operator.
+class RakuAST::MetaInfix::Negate is RakuAST::Infixish is RakuAST::Lookup {
+    has RakuAST::Infixish $.infix;
+
+    method new(RakuAST::Infixish $infix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Negate, '$!infix', $infix);
+        $obj
+    }
+
+    method resolve-with(RakuAST::Resolver $resolver) {
+        my $resolved := $resolver.resolve-infix('&METAOP_NEGATE');
+        if $resolved {
+            self.set-resolution($resolved);
+        }
+        Nil
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+    }
+
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        QAST::Op.new(
+            :op('hllbool'),
+            QAST::Op.new(
+                :op('not_i'),
+                QAST::Op.new(
+                    :op('istrue'),
+                    $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
+                )
+            )
+        )
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $name := self.resolution.lexical-name;
+        QAST::Op.new( :op('call'), :$name, $!infix.IMPL-HOP-INFIX-QAST($context) )
+    }
+}
+
 # Application of an infix operator.
 class RakuAST::ApplyInfix is RakuAST::Expression {
     has RakuAST::Infixish $.infix;

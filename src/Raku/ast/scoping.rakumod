@@ -25,7 +25,8 @@ class RakuAST::LexicalScope is RakuAST::Node {
             my $visit := @code-todo.shift;
             $visit.visit-children: -> $node {
                 if nqp::istype($node, RakuAST::Code) {
-                    unless nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) {
+                    unless nqp::istype($visit, RakuAST::IMPL::ImmediateBlockUser) &&
+                            $visit.IMPL-IMMEDIATELY-USES($node) {
                         $stmts.push($node.IMPL-QAST-DECL-CODE($context));
                     }
                 }

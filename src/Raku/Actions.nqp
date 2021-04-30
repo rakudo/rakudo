@@ -199,12 +199,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             $block.replace-signature($<signature>.ast);
         }
         $block.replace-body($<blockoid>.ast);
+        $block.ensure-begin-performed($*R);
         self.attach: $/, $block;
     }
 
     method block($/) {
         my $block := $*BLOCK;
         $block.replace-body($<blockoid>.ast);
+        $block.ensure-begin-performed($*R);
         self.attach: $/, $block;
     }
 

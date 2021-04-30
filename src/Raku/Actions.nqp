@@ -1662,6 +1662,32 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Regex', 'Quantifier', 'ZeroOrOne').new(backtrack => $<backmod>.ast);
     }
 
+    method quantifier:sym<**>($/) {
+        if $<codeblock> {
+            nqp::die('NYI codeblock quantifier')
+        }
+        else {
+            my $min := $<min>
+                ?? $*LITERALS.build-int(~$<min>, 10)
+                !! $*LITERALS.int-type;
+            my $max;
+            if !$<max> {
+                $max := $min;
+            }
+            elsif $<max> eq '*' {
+                $max := $*LITERALS.int-type;
+            }
+            else {
+                $max := $*LITERALS.build-int(~$<max>, 10);
+            }
+            my int $excludes-min := $<from> eq '^';
+            my int $excludes-max := $<upto> eq '^';
+            self.attach: $/, self.r('Regex', 'Quantifier', 'Range').new:
+                :$min, :$max, :$excludes-min, :$excludes-max,
+                :backtrack($<backmod>.ast);
+        }
+    }
+
     method backmod($/) {
         my str $backmod := ~$/;
         if $backmod eq ':' {

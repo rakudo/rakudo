@@ -237,6 +237,9 @@ class RakuAST::LiteralBuilder {
         self.build-num($chars)
     }
 
+    # Gets the type object used for Int objects
+    method int-type() { Int }
+
     # Build a Num constant, but do not intern it.
     method build-num(str $chars) {
         nqp::box_n(nqp::numify($chars), Num)

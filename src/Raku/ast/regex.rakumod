@@ -758,6 +758,43 @@ class RakuAST::Regex::Quantifier::OneOrMore is RakuAST::Regex::Quantifier {
     }
 }
 
+# The literal range (** 1..5) quantifier.
+class RakuAST::Regex::Quantifier::Range is RakuAST::Regex::Quantifier {
+    has Int $.min;
+    has Int $.max;
+    has Bool $.excludes-min;
+    has Bool $.excludes-max;
+
+    method new(Int :$min, Int :$max, Bool :$excludes-max, Bool :$excludes-min,
+            RakuAST::Regex::Backtrack :$backtrack) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Quantifier, '$!backtrack',
+            nqp::istype($backtrack, RakuAST::Regex::Backtrack)
+                ?? $backtrack
+                !! RakuAST::Regex::Backtrack);
+        nqp::bindattr($obj, RakuAST::Regex::Quantifier::Range, '$!min', $min // Int);
+        nqp::bindattr($obj, RakuAST::Regex::Quantifier::Range, '$!max', $max // Int);
+        nqp::bindattr($obj, RakuAST::Regex::Quantifier::Range, '$!excludes-min',
+            $excludes-min ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Regex::Quantifier::Range, '$!excludes-max',
+            $excludes-max ?? True !! False);
+        $obj
+    }
+
+    method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
+        my int $min := $!min // 0;
+        $min-- if $!excludes-min;
+        my int $max := -1;
+        if $!max {
+            $max := $!max;
+            $max-- if $!excludes-max;
+        }
+        self.backtrack.IMPL-QAST-APPLY:
+            QAST::Regex.new( :rxtype<quant>, :min($min), :max($max), $atom-qast ),
+            %mods
+    }
+}
+
 # Backtracking modifiers.
 class RakuAST::Regex::Backtrack is RakuAST::Node {
     method IMPL-QAST-APPLY(Mu $quant-qast, %mods) {

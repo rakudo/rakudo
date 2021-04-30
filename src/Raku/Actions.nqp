@@ -450,9 +450,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                         right => $/[1].ast;
                 }
                 else {
-                    unless $ast {
-                        $ast := self.r('Infix').new($sym);
-                    }
                     self.attach: $/, self.r('ApplyInfix').new:
                         infix => $ast,
                         left => $/[0].ast,
@@ -466,7 +463,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
                     @operands.push($ast) if nqp::isconcrete($ast);
                 }
                 self.attach: $/, self.r('ApplyListInfix').new:
-                    infix => $ast // self.r('Infix').new($<infix><sym>),
+                    infix => $ast,
                     operands => @operands;
             }
             elsif $KEY eq 'PREFIX' {
@@ -569,15 +566,24 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         my $ast;
         if $<infix> {
             $ast := $<infix>.ast;
+            unless $ast || $<infix><sym> eq '??' {
+                $ast := self.r('Infix').new(~$<infix>);
+            }
+        }
+        elsif $<infix_prefix_meta_operator> {
+            $ast := $<infix_prefix_meta_operator>.ast;
         }
         else {
             nqp::die('unknown kind of infix');
         }
         if $<infix_postfix_meta_operator> {
-            $ast := $<infix_postfix_meta_operator>.ast.new:
-                $ast // self.r('Infix').new(~$<infix>);
+            $ast := $<infix_postfix_meta_operator>.ast.new($ast);
         }
         self.attach: $/, $ast;
+    }
+
+    method infix_prefix_meta_operator:sym<!>($/) {
+        self.attach: $/, self.r('MetaInfix', 'Negate').new($<infixish>.ast);
     }
 
     method infix_postfix_meta_operator:sym<=>($/) {

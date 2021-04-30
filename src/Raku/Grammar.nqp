@@ -695,7 +695,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #                    self.check_variable($<variable>)
 #                }
 #            | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
-#            | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
+            | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
             | <infix> { $*OPER := $<infix> }
             | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
             ]
@@ -710,6 +710,18 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
         | <?before '!!'> <?{ $*GOAL eq '!!' }>
         | <?before '{' | <.lambda> > <?MARKED('ws')> <?{ $*GOAL eq '{' || $*GOAL eq 'endargs' }>
+        ]
+    }
+
+    proto token infix_prefix_meta_operator { <...> }
+
+    token infix_prefix_meta_operator:sym<!> {
+        <sym> <![!]> {} [ <infixish('neg')> || <.panic: "Negation metaoperator not followed by valid infix"> ]
+        <!{ $<infixish>.Str eq '=' }>
+        [
+        || <.can_meta($<infixish>, "negate")> <?{ $<infixish><OPER><O>.made<iffy> }>
+           <O=.AS_MATCH($<infixish><OPER><O>)>
+        || { self.typed_panic: "X::Syntax::CannotMeta", meta => "negate", operator => ~$<infixish>, dba => ~$<infixish><OPER><O>.made<dba>, reason => "not iffy enough" }
         ]
     }
 

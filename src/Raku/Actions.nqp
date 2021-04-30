@@ -1664,7 +1664,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method quantifier:sym<**>($/) {
         if $<codeblock> {
-            nqp::die('NYI codeblock quantifier')
+            self.attach: $/, self.r('Regex', 'Quantifier', 'BlockRange').new:
+                :block($<codeblock>.ast), :backtrack($<backmod>.ast);
         }
         else {
             my $min := $<min>

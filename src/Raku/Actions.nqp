@@ -588,6 +588,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('MetaInfix', 'Negate').new($<infixish>.ast);
     }
 
+    method infix_prefix_meta_operator:sym<R>($/) {
+        self.attach: $/, self.r('MetaInfix', 'Reverse').new($<infixish>.ast);
+    }
+
+    method revO($/) {
+        my $O := nqp::clone($*FROM);
+        if    $O<assoc> eq 'right' { $O<assoc> := 'left' }
+        elsif $O<assoc> eq 'left'  { $O<assoc> := 'right' }
+        make $O;
+    }
+
     method infix_postfix_meta_operator:sym<=>($/) {
         self.attach: $/, self.r('MetaInfix', 'Assign');
     }

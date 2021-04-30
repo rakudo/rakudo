@@ -2837,6 +2837,10 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
 
     token rxstopper { <stopper> }
 
+    token metachar:sym<{ }> {
+        <?[{]> <codeblock>
+    }
+
     token metachar:sym<qw> {
         <?before '<' \s >  # (note required whitespace)
         '<' <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w']))> '>'
@@ -2863,6 +2867,12 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
             | '(' <arglist> ')'
             | <.normspace> <nibbler>
             ]?
+    }
+
+    token codeblock {
+        :my $*ESCAPEBLOCK := 1;
+        <!RESTRICTED>
+        <block=.LANG('MAIN','block')>
     }
 
     token arglist {

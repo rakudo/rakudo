@@ -185,7 +185,6 @@ class RakuAST::Regex::Quote is RakuAST::Regex::Atom {
     }
 }
 
-
 # A (non-capturing) regex group, from the [...] syntax.
 class RakuAST::Regex::Group is RakuAST::Regex::Atom {
     has RakuAST::Regex $.regex;
@@ -393,6 +392,41 @@ class RakuAST::Regex::CharClass::Space is RakuAST::Regex::CharClass::Negatable {
 class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<w>, :negate(self.negated) )
+    }
+}
+
+# A block of code embedded in a regex, executed only for its side-effects.
+class RakuAST::Regex::Block is RakuAST::Regex::Atom {
+    has RakuAST::Block $.block;
+
+    method new(RakuAST::Block $block) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Block, '$!block', $block);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $block-call := self.IMPL-REGEX-BLOCK-CALL($context, $!block);
+        QAST::Regex.new( $block-call, :rxtype<qastnode> )
+    }
+
+    method IMPL-REGEX-BLOCK-CALL(RakuAST::IMPL::QASTContext $context, RakuAST::Block $block) {
+        QAST::Stmts.new(
+            QAST::Op.new(
+                :op('p6store'),
+                QAST::Var.new( :name('$/'), :scope<lexical> ),
+                QAST::Op.new(
+                    QAST::Var.new( :name('$¢'), :scope<lexical> ),
+                    :name('MATCH'),
+                    :op('callmethod')
+                )
+            ),
+            $block.IMPL-TO-QAST($context, :immediate)
+        )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!block);
     }
 }
 

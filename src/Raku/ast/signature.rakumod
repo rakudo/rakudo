@@ -268,24 +268,28 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 
     method IMPL-FLAGS() {
         my constant SIG_ELEM_INVOCANT            := 64;
+        my constant SIG_ELEM_IS_RAW              := 1024;
         my constant SIG_ELEM_IS_OPTIONAL         := 2048;
         my constant SIG_ELEM_ARRAY_SIGIL         := 4096;
         my constant SIG_ELEM_HASH_SIGIL          := 8192;
         my constant SIG_ELEM_CODE_SIGIL          := 33554432;
         my $sigil := $!target.sigil;
         my int $flags;
-        $flags := $flags + SIG_ELEM_INVOCANT if $!invocant;
-        $flags := $flags + SIG_ELEM_IS_OPTIONAL if $!optional;
+        $flags := $flags +| SIG_ELEM_INVOCANT if $!invocant;
+        $flags := $flags +| SIG_ELEM_IS_OPTIONAL if $!optional;
         if $sigil eq '@' {
-            $flags := $flags + SIG_ELEM_ARRAY_SIGIL;
+            $flags := $flags +| SIG_ELEM_ARRAY_SIGIL;
         }
         elsif $sigil eq '%' {
-            $flags := $flags + SIG_ELEM_HASH_SIGIL;
+            $flags := $flags +| SIG_ELEM_HASH_SIGIL;
         }
         elsif $sigil eq '&' {
-            $flags := $flags + SIG_ELEM_CODE_SIGIL;
+            $flags := $flags +| SIG_ELEM_CODE_SIGIL;
         }
-        $flags := $flags + $!slurpy.IMPL-FLAGS($sigil);
+        if nqp::istype($!target, RakuAST::ParameterTarget::Term) {
+            $flags := $flags +| SIG_ELEM_IS_RAW;
+        }
+        $flags := $flags +| $!slurpy.IMPL-FLAGS($sigil);
         $flags
     }
 

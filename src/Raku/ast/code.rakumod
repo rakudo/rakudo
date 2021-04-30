@@ -26,6 +26,7 @@ class RakuAST::Blockoid is RakuAST::SinkPropagator {
 class RakuAST::Code is RakuAST::Node {
     method IMPL-CLOSURE-QAST(RakuAST::IMPL::QASTContext $context, Bool :$regex) {
         my $code-obj := self.meta-object;
+        $context.ensure-sc($code-obj);
         my $clone := QAST::Op.new(
             :op('callmethod'), :name('clone'),
             QAST::WVal.new( :value($code-obj) )

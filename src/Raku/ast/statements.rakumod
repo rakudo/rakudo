@@ -329,6 +329,7 @@ class RakuAST::Statement::Expression is RakuAST::Statement is RakuAST::SinkPropa
 # Mark out things that immediately consume their body, rather than needing it as
 # a closure.
 class RakuAST::IMPL::ImmediateBlockUser is RakuAST::Node {
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) { True }
 }
 
 # An if conditional, with optional elsif/orwith/else parts.
@@ -443,6 +444,14 @@ class RakuAST::Statement::If is RakuAST::Statement is RakuAST::ImplicitLookups
         }
         self.visit-labels($visitor);
     }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
+        return False if $node =:= $!condition;
+        for $!elsifs {
+            return False if $node =:= $_.condition;
+        }
+        True
+    }
 }
 
 # A with conditional, with optional elsif/orwith/else parts.
@@ -525,6 +534,10 @@ class RakuAST::Statement::Unless is RakuAST::Statement is RakuAST::ImplicitLooku
         $visitor($!body);
         self.visit-labels($visitor);
     }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
+        $node =:= $!body
+    }
 }
 
 # A without statement control.
@@ -571,6 +584,10 @@ class RakuAST::Statement::Without is RakuAST::Statement is RakuAST::ImplicitLook
         $visitor($!condition);
         $visitor($!body);
         self.visit-labels($visitor);
+    }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
+        $node =:= $!body
     }
 }
 
@@ -679,6 +696,10 @@ class RakuAST::Statement::Loop is RakuAST::Statement is RakuAST::ImplicitLookups
         $visitor($!setup) if $!setup;
         $visitor($!increment) if $!increment;
         self.visit-labels($visitor);
+    }
+
+    method IMPL-IMMEDIATELY-USES(RakuAST::Node $node) {
+        $node =:= $!body
     }
 }
 

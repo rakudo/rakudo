@@ -234,6 +234,7 @@ role Raku::Common {
     }
     method typed_worry($type_str, *%opts) {
         # TODO collect these
+        self
     }
 }
 

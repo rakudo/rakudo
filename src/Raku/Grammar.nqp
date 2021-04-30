@@ -725,6 +725,17 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
     }
 
+    token infix_prefix_meta_operator:sym<R> {
+        <sym> <infixish('R')> {}
+        <.can_meta($<infixish>, "reverse the args of")>
+        <O=.revO($<infixish>)>
+    }
+
+    token revO($from) {
+        :my $*FROM := $from<OPER><O>.made;
+        <?>
+    }
+
     proto token infix_postfix_meta_operator { <...> }
 
     token infix_postfix_meta_operator:sym<=> {

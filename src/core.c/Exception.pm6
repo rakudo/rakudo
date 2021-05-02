@@ -917,7 +917,7 @@ my class X::NYI is Exception {
     has $.did-you-mean;
     has $.workaround;
     method message() {
-        my $msg = "{ $.feature andthen "$_ not" orelse "Not" } yet implemented. Sorry.";
+        my $msg = ($.feature ?? $.feature ~ " not" !! "Not") ~ " yet implemented. Sorry.";
         $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
         $msg ~= "\nWorkaround: $.workaround" if $.workaround;
         $msg
@@ -2949,6 +2949,11 @@ my class X::Inheritance::NotComposed does X::MOP {
 
 my class X::PhaserExceptions is Exception {
     has @.exceptions;
+    method new(:@exceptions) {
+        # This exception is raised by BOOTSTRAP which passes in
+        # BOOTException type objects and we want HLLized versions.
+        nextwith(exceptions => @exceptions.map: -> Mu \ex { EXCEPTION(ex) });
+    }
     method message() {
         "Multiple exceptions were thrown by LEAVE/POST phasers"
     }
@@ -2988,12 +2993,9 @@ my class X::Nominalizable::NoKind does X::Nominalizable {
     }
 }
 
+nqp::bindcurhllsym('METAMODEL_CONFIGURATION', Perl6::Metamodel::Configuration);
 #?if !moar
 nqp::bindcurhllsym('P6EX', nqp::hash(
-#?endif
-#?if moar
-nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
-#?endif
   'X::TypeCheck::Binding',
   -> Mu $got is raw, Mu $expected is raw, $symbol? is raw {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
@@ -3018,10 +3020,6 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::ControlFlow::Return',
   -> $out-of-dynamic-scope is raw = False {
       X::ControlFlow::Return.new(:$out-of-dynamic-scope).throw;
-  },
-  'X::NoDispatcher',
-  -> $redispatcher is raw {
-      X::NoDispatcher.new(:$redispatcher).throw;
   },
   'X::Method::NotFound',
   -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False, :$in-class-call is raw = False {
@@ -3063,6 +3061,14 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::NYI',
   -> $feature is raw {
       X::NYI.new(:$feature).throw;
+  },
+#?endif
+#?if moar
+nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
+#?endif
+  'X::NoDispatcher',
+  -> $redispatcher is raw {
+      X::NoDispatcher.new(:$redispatcher).throw;
   },
 ));
 

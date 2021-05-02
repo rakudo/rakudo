@@ -76,7 +76,11 @@ class Perl6::Metamodel::Configuration {
             nqp::die($die_message)
         }
         else {
-            $ex_type.new(|@pos, |%named).throw
+            my %hll_named;
+            for %named {
+                %hll_named{nqp::iterkey_s($_)} := nqp::hllizefor(nqp::iterval($_), 'Raku');
+            }
+            $ex_type.new(|@pos, |%hll_named).throw
         }
     }
 }

@@ -318,15 +318,17 @@ my class Binder {
                     ) ?? nqp::atpos($post, 0) !! $param_type;
 
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('Raku', 'P6EX');
-                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
-                            $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
-                                "'; expected " ~ $expected.HOW.name($expected) ~
-                                " but got " ~ $oval.HOW.name($oval);
-                        } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')($oval,
-                                $expected.WHAT, $varname, $param) };
-                        }
+                        $error[0] := {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::TypeCheck::Binding::Parameter',
+                                "Nominal type check failed for parameter '" ~ $varname
+                                    ~ "'; expected " ~ $expected.HOW.name($expected)
+                                    ~ " but got " ~ $oval.HOW.name($oval),
+                                :got($oval),
+                                :expected($expected.WHAT),
+                                :symbol(nqp::hllizefor($varname, 'Raku')),
+                                :parameter($param))
+                        };
                     }
 
                     # Report junction failure mode if it's a junction.
@@ -344,19 +346,25 @@ my class Binder {
                             my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
                             my $class  := $param_type.HOW.name($param_type);
                             my $got    := $oval.HOW.name($oval);
-                            my %ex     := nqp::gethllsym('Raku', 'P6EX');
-                            if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
-                                $method   := '<anon>' if nqp::isnull_s($method) || $method eq '';
-                                $error[0] := $flags +& $SIG_ELEM_INVOCANT
+                            my $die_msg := $flags +& $SIG_ELEM_INVOCANT
                                   ?? $should_be_concrete
                                        ?? "Invocant of method '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
                                        !! "Invocant of method '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?"
                                   !! $should_be_concrete
                                        ?? "Parameter '$varname' of routine '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
                                        !! "Parameter '$varname' of routine '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?";
-                            } else {
-                                $error[0] := { nqp::atkey(%ex, 'X::Parameter::InvalidConcreteness')($class, $got, $method, $varname, $should_be_concrete, $flags +& $SIG_ELEM_INVOCANT) };
-                            }
+                            $error[0] := {
+                                Perl6::Metamodel::Configuration.throw_or_die(
+                                    'X::Parameter::InvalidConcreteness',
+                                    $die_msg,
+                                    :expected($class),
+                                    :got($got),
+                                    :routine($method),
+                                    :param($varname),
+                                    :should-be-concrete(nqp::hllboolfor($should_be_concrete, 'Raku')),
+                                    :param-is-invocant(nqp::hllboolfor($flags +& $SIG_ELEM_INVOCANT, 'Raku'))
+                                );
+                            };
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION
@@ -414,13 +422,15 @@ my class Binder {
                 }
                 else {
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('Raku', 'P6EX');
-                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
-                            $error[0] := "Parameter '$varname' expected a writable container, but got an " ~
-                                ~ $oval.HOW.name($oval) ~ " value";
-                        } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::Parameter::RW')($oval, $varname) };
-                        }
+                        $error[0] := {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::Parameter::RW',
+                                "Parameter '$varname' expected a writable container, but got an " ~
+                                    ~ $oval.HOW.name($oval) ~ " value",
+                                :got($oval),
+                                :symbol($varname)
+                            )
+                        };
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -507,13 +517,17 @@ my class Binder {
                 }
                 unless $result {
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('Raku', 'P6EX');
-                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
-                            $error[0] := "Constraint type check failed for parameter '$varname'";
-                        } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')(
-                                $bad_value, $cons_type, $varname, $param, 1) };
-                        }
+                        $error[0] := {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::TypeCheck::Binding::Parameter',
+                                "Constraint type check failed for parameter '$varname'",
+                                :got($bad_value),
+                                :expected($cons_type),
+                                :symbol($varname),
+                                :parameter($param),
+                                :constraint(nqp::hllboolfor(1, 'Raku'))
+                            )
+                        };
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -1642,13 +1656,13 @@ BEGIN {
                     }
                 }
                 else {
-                    my %x := nqp::gethllsym('Raku', 'P6EX');
-                    if nqp::ishash(%x) {
-                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
-                    }
-                    else {
-                        nqp::die("Type check failed in assignment");
-                    }
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::TypeCheck::Assignment',
+                        "Type check failed in assignment",
+                        :symbol($desc.name),
+                        :got($val),
+                        :expected($type)
+                    );
                 }
             }
             else {
@@ -1673,13 +1687,13 @@ BEGIN {
                     nqp::casattr($cont, Scalar, '$!value', $expected, $val);
                 }
                 else {
-                    my %x := nqp::gethllsym('Raku', 'P6EX');
-                    if nqp::ishash(%x) {
-                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
-                    }
-                    else {
-                        nqp::die("Type check failed in assignment");
-                    }
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::TypeCheck::Assignment',
+                        "Type check failed in assignment",
+                        :symbol($desc.name),
+                        :got($val),
+                        :expected($type)
+                    );
                 }
             }
             else {
@@ -1695,13 +1709,13 @@ BEGIN {
                     nqp::atomicbindattr($cont, Scalar, '$!value', $val);
                 }
                 else {
-                    my %x := nqp::gethllsym('Raku', 'P6EX');
-                    if nqp::ishash(%x) {
-                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
-                    }
-                    else {
-                        nqp::die("Type check failed in assignment");
-                    }
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::TypeCheck::Assignment',
+                        "Type check failed in assignment",
+                        :symbol($desc.name),
+                        :got($val),
+                        :expected($type)
+                    );
                 }
             }
             else {
@@ -1946,13 +1960,14 @@ BEGIN {
             }
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                my %ex := nqp::gethllsym('Raku', 'P6EX');
-                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Trait::Invalid') {
-                    nqp::die("Cannot use 'is rw' on optional parameter '$varname'");
-                }
-                else {
-                    nqp::atkey(%ex, 'X::Trait::Invalid')('is', 'rw', 'optional parameter', $varname);
-                }
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Trait::Invalid',
+                    "Cannot use 'is rw' on optional parameter '$varname'",
+                    :type('is'),
+                    :subtype('rw'),
+                    :declaring('optional parameter'),
+                    :name($varname)
+                );
             }
             nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
             $dcself
@@ -2932,27 +2947,23 @@ BEGIN {
                 $junctional_res;
             }
             elsif nqp::elems(@possibles) == 0 {
-                my %ex := nqp::gethllsym('Raku', 'P6EX');
-                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Multi::NoMatch') {
-                    nqp::die("Cannot call " ~ $self.name() ~
-                        "; no signatures match");
-                }
-                else {
-                    nqp::atkey(%ex, 'X::Multi::NoMatch')($self, $self.'!p6capture'($capture))
-                }
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Multi::NoMatch',
+                    "Cannot call " ~ $self.name() ~ "; no signatures match",
+                    :dispatcher($self),
+                    :capture($self.'!p6capture'($capture)));
             }
             else {
-                my %ex := nqp::gethllsym('Raku', 'P6EX');
-                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Multi::Ambiguous') {
-                    nqp::die("Ambiguous call to " ~ $self.name());
+                my @ambiguous;
+                for @possibles {
+                    nqp::push(@ambiguous, $_<sub>);
                 }
-                else {
-                    my @ambig;
-                    for @possibles {
-                        nqp::push(@ambig, $_<sub>);
-                    }
-                    nqp::atkey(%ex, 'X::Multi::Ambiguous')($self, @ambig, $self.'!p6capture'($capture))
-                }
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Multi::Ambiguous',
+                    "Ambiguous call to " ~ $self.name(),
+                    :dispatcher($self),
+                    :@ambiguous,
+                    :capture($self.'!p6capture'($capture)));
             }
         }));
     Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
@@ -3846,10 +3857,11 @@ nqp::sethllconfig('Raku', nqp::hash(
 
             if @exceptions {
                 if nqp::elems(@exceptions) > 1 {
-                    my %ex := nqp::gethllsym('Raku', 'P6EX');
-                    if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::PhaserExceptions') {
-                        nqp::atkey(%ex, 'X::PhaserExceptions')(@exceptions);
-                    }
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::PhaserExceptions',
+                        "Multiple exceptions were thrown by LEAVE/POST phasers",
+                        :exceptions(@exceptions)
+                    );
                 }
                 nqp::rethrow(@exceptions[0]);
             }
@@ -3901,31 +3913,32 @@ nqp::sethllconfig('Raku', nqp::hash(
     },
     'method_not_found_error', -> $obj, str $name {
         my $class := nqp::getlexcaller('$?CLASS');
-        if nqp::gethllsym('Raku', 'P6EX') -> %ex {
-            if $name eq 'STORE' {
-                if nqp::atkey(%ex,'X::Assignment::RO') -> $thrower {
-                    $thrower($obj);
-                }
-            }
-            elsif nqp::atkey(%ex,'X::Method::NotFound') -> $thrower {
-                $thrower($obj, $name, $obj.HOW.name($obj), :in-class-call(nqp::eqaddr(nqp::what($obj), $class)));
-            }
+        my $die_msg := "Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'";
+        if $name eq 'STORE' {
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Assignment::RO',
+                $die_msg,
+                :value($obj)
+            );
         }
-
-        # no thrower found
-        nqp::die("Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'");
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Method::NotFound',
+            $die_msg,
+            :invocant($obj),
+            :method($name),
+            :typename($obj.HOW.name($obj)),
+            :private(nqp::hllboolfor(0, 'Raku')),
+            :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku'))
+        );
     },
 #?endif
     'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {
         if $cat == nqp::const::CONTROL_RETURN {
-            if nqp::gethllsym('Raku', 'P6EX') -> %ex {
-                if nqp::atkey(%ex,'X::ControlFlow::Return') -> $thrower {
-                    $thrower($out_of_dyn_scope);
-                }
-            }
-
-            # no thrower found
-            nqp::die('Attempt to return outside of any Routine');
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::ControlFlow::Return',
+                'Attempt to return outside of any Routine',
+                :out-of-dynamic-scope(nqp::hllboolfor($out_of_dyn_scope, 'Raku'))
+            );
         }
         else {
             my $ex := nqp::newexception();

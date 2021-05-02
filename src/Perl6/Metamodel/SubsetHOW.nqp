@@ -63,13 +63,11 @@ class Perl6::Metamodel::SubsetHOW
         }
         $!refinee := nqp::decont($refinee);
         if nqp::objprimspec($!refinee) {
-            my %ex := nqp::gethllsym('Raku', 'P6EX');
-            if nqp::existskey(%ex, 'X::NYI') {
-                %ex{'X::NYI'}('Subsets of native types');
-            }
-            else {
-                nqp::die("Subsets of native types NYI");
-            }
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::NYI',
+                "Subsets of native types NYI",
+                :feature(nqp::hllizefor('Subsets of native types', 'Raku'))
+            );
         }
     }
 

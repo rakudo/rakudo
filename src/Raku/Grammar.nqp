@@ -2861,6 +2861,13 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
 
     token rxstopper { <stopper> }
 
+    token metachar:sym<:my> {
+        ':' <?before ['my'|'constant'|'state'|'our'|'temp'|'let'] >> >
+        <statement=.LANG('MAIN', 'statement')>
+        <!RESTRICTED>
+        <.LANG('MAIN', 'eat_terminator')>
+    }
+
     token metachar:sym<{ }> {
         <?[{]> <codeblock>
     }

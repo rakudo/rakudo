@@ -410,6 +410,27 @@ class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
     }
 }
 
+# A statement embedded in a regex, typically used for making a variable
+# declaration.
+class RakuAST::Regex::Statement is RakuAST::Regex::Atom {
+    has RakuAST::Statement $.statement;
+
+    method new(RakuAST::Statement $statement) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Statement, '$!statement', $statement);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new: :rxtype<qastnode>, :subtype<declarative>,
+            $!statement.IMPL-TO-QAST($context)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!statement);
+    }
+}
+
 # A block of code embedded in a regex, executed only for its side-effects.
 class RakuAST::Regex::Block is RakuAST::Regex::Atom {
     has RakuAST::Block $.block;

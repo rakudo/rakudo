@@ -1780,6 +1780,10 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<assertion>.ast;
     }
 
+    method metachar:sym<:my>($/) {
+        self.attach: $/, self.r('Regex', 'Statement').new($<statement>.ast);
+    }
+
     method metachar:sym<{ }>($/) {
         self.attach: $/, self.r('Regex', 'Block').new($<codeblock>.ast);
     }

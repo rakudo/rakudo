@@ -51,8 +51,8 @@ __END__
 :endofperl
 ';
     my $perl_wrapper = '#!/usr/bin/env #perl#
-sub MAIN(:$name, :$auth, :$ver, *@, *%) {
-    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
+sub MAIN(:$raku-dist-name, :$raku-dist-auth, :$raku-dist-ver, :$raku-dist-api, *@, *%) {
+    CompUnit::RepositoryRegistry.run-script("#name#", :name($raku-dist-name), :auth($raku-dist-auth), :ver($raku-dist-ver), :api($raku-dist-api));
 }';
 
     method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }

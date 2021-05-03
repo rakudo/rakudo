@@ -662,6 +662,31 @@ class RakuAST::Regex::Assertion::Lookahead is RakuAST::Regex::Assertion {
     }
 }
 
+# A lookahead assertion (where another assertion is evaluated as a
+# zerowidth lookahead, either positive or negative).
+class RakuAST::Regex::Assertion::Block is RakuAST::Regex::Assertion {
+    has Bool $.negated;
+    has RakuAST::Block $.block;
+
+    method new(Bool :$negated, RakuAST::Block :$block!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Block, '$!negated',
+            $negated ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Block, '$!block', $block);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new:
+            :rxtype<qastnode>, :subtype<zerowidth>, :negate($!negated ?? 1 !! 0),
+            self.IMPL-REGEX-BLOCK-CALL($context, $!block)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!block);
+    }
+}
+
 # A quantified atom in a regex - that is, an atom with a quantifier and
 # optional separator.
 class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {

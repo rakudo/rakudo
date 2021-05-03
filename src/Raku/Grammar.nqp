@@ -2893,6 +2893,14 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
             ]?
     }
 
+    token assertion:sym<?{ }> {
+        '?' <?before '{'> <codeblock>
+    }
+
+    token assertion:sym<!{ }> {
+        '!' <?before '{'> <codeblock>
+    }
+
     token codeblock {
         :my $*ESCAPEBLOCK := 1;
         <!RESTRICTED>

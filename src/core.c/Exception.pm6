@@ -2993,7 +2993,6 @@ my class X::Nominalizable::NoKind does X::Nominalizable {
     }
 }
 
-nqp::bindcurhllsym('METAMODEL_CONFIGURATION', Perl6::Metamodel::Configuration);
 #?if !moar
 nqp::bindcurhllsym('P6EX', nqp::hash(
   'X::TypeCheck::Binding',

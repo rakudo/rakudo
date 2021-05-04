@@ -19,7 +19,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     method attach(RakuAST::Resolver $resolver) {
         # If we're the signature for a method...
         my $owner := $resolver.find-attach-target('block');
-        if nqp::istype($owner, RakuAST::Method) {
+        if nqp::istype($owner, RakuAST::Methodish) {
             # Stash away the fact we should generate implicit parameters, and
             # also retrieve the enclosing package so we can set an implicit
             # invocant parameter up correctly.

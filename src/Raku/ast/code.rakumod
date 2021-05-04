@@ -462,34 +462,16 @@ class RakuAST::PointyBlock is RakuAST::Block {
 }
 
 # Done by all kinds of Routine.
-class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code is RakuAST::Meta
-                       is RakuAST::SinkBoundary is RakuAST::Declaration
+class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code
+                       is RakuAST::Meta is RakuAST::Declaration
                        is RakuAST::ImplicitDeclarations is RakuAST::AttachTarget
                        is RakuAST::PlaceholderParameterOwner
                        is RakuAST::BeginTime is RakuAST::TraitTarget {
     has RakuAST::Name $.name;
     has RakuAST::Signature $.signature;
-    has RakuAST::Blockoid $.body;
-
-    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
-            List :$traits, RakuAST::Blockoid :$body) {
-        my $obj := nqp::create(self);
-        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
-        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
-        nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
-            // RakuAST::Signature.new);
-        nqp::bindattr($obj, RakuAST::Routine, '$!body', $body // RakuAST::Blockoid.new);
-        $obj.set-traits($traits);
-        $obj
-    }
 
     method replace-name(RakuAST::Name $new-name) {
         nqp::bindattr(self, RakuAST::Routine, '$!name', $new-name);
-        Nil
-    }
-
-    method replace-body(RakuAST::Blockoid $new-body) {
-        nqp::bindattr(self, RakuAST::Routine, '$!body', $new-body);
         Nil
     }
 
@@ -544,10 +526,12 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         $block.push($signature.IMPL-TO-QAST($context));
         $block.arity($signature.arity);
         $block.annotate('count', $signature.count);
-        $block.push(self.IMPL-WRAP-RETURN-HANDLER($context,
-            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
-                self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context)))));
+        $block.push(self.IMPL-COMPILE-BODY($context));
         $block
+    }
+
+    method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        nqp::die('RakuAST::Routine subclass must implement IMPL-COMPILE-BODY')
     }
 
     method IMPL-WRAP-RETURN-HANDLER(RakuAST::IMPL::QASTContext $context, RakuAST::Node $body) {
@@ -647,25 +631,34 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         QAST::Var.new( :scope('lexical'), :name(self.lexical-name) )
     }
 
-    method get-boundary-sink-propagator() {
-        $!body.statement-list
-    }
-
-    method is-boundary-sunk() {
-        my $signature := self.signature;
-        $signature ?? $signature.provides-return-value !! False
-    }
-
     method visit-children(Code $visitor) {
-        $visitor($!name);
+        $visitor($!name) if $!name;
         $visitor($!signature);
         self.visit-traits($visitor);
-        $visitor($!body);
+        $visitor(self.body);
     }
 }
 
 # A subroutine.
-class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
+class RakuAST::Sub is RakuAST::Routine is RakuAST::SinkBoundary {
+    has RakuAST::Blockoid $.body;
+
+    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
+            List :$traits, RakuAST::Blockoid :$body) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
+            // RakuAST::Signature.new);
+        nqp::bindattr($obj, RakuAST::Sub, '$!body', $body // RakuAST::Blockoid.new);
+        $obj.set-traits($traits);
+        $obj
+    }
+
+    method replace-body(RakuAST::Blockoid $new-body) {
+        nqp::bindattr(self, RakuAST::Sub, '$!body', $new-body);
+        Nil
+    }
 
     method IMPL-META-OBJECT-TYPE() { Sub }
 
@@ -676,27 +669,32 @@ class RakuAST::Sub is RakuAST::Routine is RakuAST::Declaration {
     method allowed-scopes() {
         self.IMPL-WRAP-LIST(['my', 'anon', 'our'])
     }
+
+    method get-boundary-sink-propagator() {
+        $!body.statement-list
+    }
+
+    method is-boundary-sunk() {
+        my $signature := self.signature;
+        $signature ?? $signature.provides-return-value !! False
+    }
+
+    method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-WRAP-RETURN-HANDLER($context,
+            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
+                self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context))))
+    }
 }
 
-# A method.
-class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
-    method IMPL-META-OBJECT-TYPE() { Method }
-
+# The commonalities of method-like things, whichever language their body is in
+# (be it the main Raku language or the regex language).
+class RakuAST::Methodish is RakuAST::Routine is RakuAST::Attaching {
     method default-scope() {
         self.name ?? 'has' !! 'anon'
     }
 
     method allowed-scopes() {
         self.IMPL-WRAP-LIST(['has', 'my', 'anon', 'our'])
-    }
-
-    method PRODUCE-IMPLICIT-DECLARATIONS() {
-        self.IMPL-WRAP-LIST([
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')),
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')),
-            RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')),
-            RakuAST::VarDeclaration::Implicit::Self.new(),
-        ])
     }
 
     method attach(RakuAST::Resolver $resolver) {
@@ -712,6 +710,54 @@ class RakuAST::Method is RakuAST::Routine is RakuAST::Attaching {
     }
 }
 
+# A method.
+class RakuAST::Method is RakuAST::Methodish is RakuAST::SinkBoundary {
+    has RakuAST::Blockoid $.body;
+
+    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
+            List :$traits, RakuAST::Blockoid :$body) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature', $signature
+            // RakuAST::Signature.new);
+        nqp::bindattr($obj, RakuAST::Method, '$!body', $body // RakuAST::Blockoid.new);
+        $obj.set-traits($traits);
+        $obj
+    }
+
+    method replace-body(RakuAST::Blockoid $new-body) {
+        nqp::bindattr(self, RakuAST::Method, '$!body', $new-body);
+        Nil
+    }
+
+    method IMPL-META-OBJECT-TYPE() { Method }
+
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')),
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')),
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')),
+            RakuAST::VarDeclaration::Implicit::Self.new(),
+        ])
+    }
+
+    method get-boundary-sink-propagator() {
+        $!body.statement-list
+    }
+
+    method is-boundary-sunk() {
+        my $signature := self.signature;
+        $signature ?? $signature.provides-return-value !! False
+    }
+
+    method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-WRAP-RETURN-HANDLER($context,
+            self.IMPL-WRAP-SCOPE-HANDLER-QAST($context,
+                self.IMPL-APPEND-SIGNATURE-RETURN($context, $!body.IMPL-TO-QAST($context))))
+    }
+}
+
 # A submethod.
 class RakuAST::Submethod is RakuAST::Method {
     method IMPL-META-OBJECT-TYPE() { Submethod }
@@ -719,16 +765,19 @@ class RakuAST::Submethod is RakuAST::Method {
 
 # A regex declaration, such as `token foo { bar }`. This implies its own
 # lexical scope.
-class RakuAST::RegexDeclaration is RakuAST::Code is RakuAST::LexicalScope is RakuAST::Term {
-    has RakuAST::Signature $.signature;
+class RakuAST::RegexDeclaration is RakuAST::Methodish {
     has RakuAST::Regex $.body;
 
-    method new(RakuAST::Signature :$signature, RakuAST::Regex :$body) {
+    method new(str :$scope, RakuAST::Name :$name, RakuAST::Signature :$signature,
+            List :$traits, RakuAST::Regex :$body) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::RegexDeclaration, '$!signature',
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', $scope);
+        nqp::bindattr($obj, RakuAST::Routine, '$!name', $name // RakuAST::Name);
+        nqp::bindattr($obj, RakuAST::Routine, '$!signature',
             $signature // RakuAST::Signature.new);
         nqp::bindattr($obj, RakuAST::RegexDeclaration, '$!body',
             $body // RakuAST::Regex::Assertion::Fail.new);
+        $obj.set-traits($traits);
         $obj
     }
 
@@ -737,14 +786,28 @@ class RakuAST::RegexDeclaration is RakuAST::Code is RakuAST::LexicalScope is Rak
         Nil
     }
 
-    method replace-signature(RakuAST::Signature $new-signature) {
-        nqp::bindattr(self, RakuAST::RegexDeclaration, '$!signature', $new-signature);
-        Nil
+    method IMPL-META-OBJECT-TYPE() { Regex }
+
+    method PRODUCE-IMPLICIT-DECLARATIONS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$/')),
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$!')),
+            RakuAST::VarDeclaration::Implicit::Special.new(:name('$_')),
+            RakuAST::VarDeclaration::Implicit::Self.new(),
+            RakuAST::VarDeclaration::Implicit::Cursor.new(),
+        ])
     }
 
-    method visit-children(Code $visitor) {
-        $visitor($!signature);
-        $visitor($!body);
+    method IMPL-COMPILE-BODY(RakuAST::IMPL::QASTContext $context) {
+        QAST::Stmts.new(
+            # Regex compiler wants a local named "self"
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
+                QAST::Var.new( :scope('lexical'), :name('self') )
+            ),
+            $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
+        )
     }
 }
 

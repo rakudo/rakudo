@@ -679,6 +679,10 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<routine_declarator>.ast;
     }
 
+    method term:sym<regex_declarator>($/){
+        self.attach: $/, $<regex_declarator>.ast;
+    }
+
     method term:sym<statement_prefix>($/) {
         self.attach: $/, $<statement_prefix>.ast;
     }
@@ -1028,6 +1032,28 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         $routine.replace-body($<blockoid>.ast);
         self.attach: $/, $routine;
+    }
+
+    method regex_declarator:sym<regex>($/) {
+        self.attach: $/, $<regex_def>.ast;
+    }
+
+    method regex_declarator:sym<token>($/) {
+        self.attach: $/, $<regex_def>.ast;
+    }
+
+    method regex_declarator:sym<rule>($/) {
+        self.attach: $/, $<regex_def>.ast;
+    }
+
+    method regex_def($/) {
+        my $regex := $*BLOCK;
+        if $<signature> {
+            $regex.replace-signature($<signature>.ast);
+        }
+        $regex.replace-body($<nibble>.ast);
+        $regex.ensure-begin-performed($*R);
+        self.attach: $/, $regex;
     }
 
     method trait($/) {
@@ -1403,7 +1429,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         if $scope eq 'my' {
             $*R.declare-lexical-in-outer($*BLOCK);
         }
-        else {
+        elsif $*DEFAULT-SCOPE ne 'has' {
             $*R.declare-lexical($*BLOCK);
         }
     }

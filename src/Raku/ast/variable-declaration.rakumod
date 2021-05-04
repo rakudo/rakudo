@@ -676,6 +676,20 @@ class RakuAST::VarDeclaration::Implicit::Self is RakuAST::VarDeclaration::Implic
     }
 }
 
+# The implicit `$¢` declaration for the cursor.
+class RakuAST::VarDeclaration::Implicit::Cursor is RakuAST::VarDeclaration::Implicit {
+    method new() {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::VarDeclaration::Implicit, '$!name', '$¢');
+        nqp::bindattr_s($obj, RakuAST::Declaration, '$!scope', 'my');
+        $obj
+    }
+
+    method IMPL-QAST-DECL(RakuAST::IMPL::QASTContext $context) {
+        QAST::Var.new( :decl('var'), :scope('lexical'), :name(self.name) )
+    }
+}
+
 # The commonalities for placeholder parameters.
 class RakuAST::VarDeclaration::Placeholder is RakuAST::Declaration is RakuAST::Attaching {
     method lexical-name() { nqp::die('Missing lexical-name implementation') }

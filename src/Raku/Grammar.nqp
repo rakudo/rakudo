@@ -1279,6 +1279,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token term:sym<package_declarator> { <package_declarator> }
     token term:sym<scope_declarator>   { <scope_declarator> }
     token term:sym<routine_declarator> { <routine_declarator> }
+    token term:sym<regex_declarator>   { <regex_declarator> }
     token term:sym<statement_prefix>   { <statement_prefix> }
     token term:sym<*>                  { <sym> }
     token term:sym<**>                 { <sym> }
@@ -1463,6 +1464,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*PACKAGE;
         <longname>? {}
         <.stub-package($<longname>)>
+       { $/.set_package($*PACKAGE) }
         <trait($*PACKAGE)>*
         <.enter-package-scope>
         [
@@ -1600,6 +1602,58 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ '(' <signature> ')' ]?
         <blockoid>
         <.leave-block-scope>
+    }
+
+    proto token regex_declarator { <...> }
+
+    token regex_declarator:sym<rule> {
+        <sym><.kok>
+        :my %*RX;
+        :my $*INTERPOLATE := 1;
+        :my $*IN_DECL := 'rule';
+        {
+            %*RX<s> := 1;
+            %*RX<r> := 1;
+        }
+        <regex_def>
+    }
+
+    token regex_declarator:sym<token> {
+        <sym><.kok>
+        :my %*RX;
+        :my $*INTERPOLATE := 1;
+        :my $*IN_DECL := 'token';
+        {
+            %*RX<r> := 1;
+        }
+        <regex_def>
+    }
+
+    token regex_declarator:sym<regex> {
+        <sym><.kok>
+        :my %*RX;
+        :my $*INTERPOLATE := 1;
+        :my $*IN_DECL := 'regex';
+        <regex_def>
+    }
+
+    rule regex_def {
+        :my $*BLOCK;
+        <.enter-block-scope('RegexDeclaration')>
+        [
+          <deflongname('has')>?
+          { if $<longname> { %*RX<name> := ~$<deflongname>.ast } }
+          { $*IN_DECL := '' }
+          [ '(' <signature> ')' ]?
+          <trait($*BLOCK)>*
+          '{'
+          [
+#          | ['*'|'<...>'|'<*>'] <?{ $*MULTINESS eq 'proto' }> $<onlystar>={1}
+          | <nibble(self.quote_lang(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), '{', '}'))>
+          ]
+          '}'<!RESTRICTED><?ENDSTMT>
+          <.leave-block-scope>
+        ] || <.malformed('regex')>
     }
 
     rule trait($*TARGET?) {

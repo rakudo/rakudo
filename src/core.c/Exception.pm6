@@ -301,6 +301,22 @@ my class X::Method::NotFound is Exception {
     }
 }
 
+my class X::Method::Duplicate is Exception {
+    has $.method-type;
+    has $.method;
+    has $.typename;
+
+    method message() {
+        "Package '"
+        ~ $.typename
+        ~ "' already has a "
+        ~ $.method-type
+        ~ " '"
+        ~ $.method
+        ~ "' (did you mean to declare a multi method?)"
+    }
+}
+
 my class X::Method::InvalidQualifier is Exception {
     has $.method;
     has $.invocant;

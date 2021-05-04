@@ -3314,7 +3314,9 @@ my class Exceptions::JSON {
     }
 }
 
-# Provide means of accessing any X:: exception to the Metamodel.
-Metamodel::Configuration.set_X_package(X);
+# Provide Metamodel::Configuration with symbol lookup routine. We do it here because throw_or_die method learn about
+# availability of all exception classes based on this registration. OTOH, it is better to provide them as soon as
+# possible as this might improve diagnostics of CORE.setting compilation failures.
+Metamodel::Configuration.set_sym_lookup_routine( -> $sym is raw { ::($sym) } );
 
 # vim: expandtab shiftwidth=4

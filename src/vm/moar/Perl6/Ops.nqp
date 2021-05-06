@@ -136,15 +136,14 @@ $ops.add_hll_op('Raku', 'p6bindassert', -> $qastcomp, $op {
 
     # Error generation.
     proto bind_error($got, $wanted) {
-        my %ex := nqp::gethllsym('Raku', 'P6EX');
-        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding') {
-            nqp::die("Type check failed in binding; expected '" ~
+        nqp::gethllsym('Raku', 'METAMODEL_CONFIGURATION').throw_or_die(
+            'X::TypeCheck::Binding',
+            "Type check failed in binding; expected '" ~
                 $wanted.HOW.name($wanted) ~ "' but got '" ~
-                $got.HOW.name($got) ~ "'");
-        }
-        else {
-            nqp::atkey(%ex, 'X::TypeCheck::Binding')($got, $wanted)
-        }
+                $got.HOW.name($got) ~ "'",
+            :$got,
+            :expected($wanted)
+        );
     }
     my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&bind_error)) ));
     MAST::Call.new(

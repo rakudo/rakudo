@@ -50,10 +50,6 @@ goto endofperl
 __END__
 :endofperl
 ';
-    my $perl_wrapper = '#!/usr/bin/env #perl#
-sub MAIN(:$name, :$auth, :$ver, *@, *%) {
-    CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
-}';
 
     method !sources-dir   { with $.prefix.add('sources')   { once { .mkdir unless .e }; $_ } }
     method !resources-dir { with $.prefix.add('resources') { once { .mkdir unless .e }; $_ } }
@@ -204,6 +200,53 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         # bin/ scripts
+
+        state $perl-wrapper
+        = do {
+            # code below replaces #ext# with '-j', '-m', etc.
+            #
+            # question here is how to dispatch it: via env or absolute
+            # path to a rakudo executable. this will use env in every
+            # case of *NIX I know of; the bin/rakudo loop is boilerplate.
+            #
+            # lacking both env and raukdo we could try something with
+            # #!/bin/sh -e but that seems to be going too far: give up.
+
+            my $exec = gather {
+                with < /bin/env /usr/bin/env >.first: { .IO.e } -> $env {
+                    take "$env rakudo";
+                } else {
+                    constant SEARCH = 'bin/rakudo';
+                    my $curr    = $.prefix.absolute.IO;
+
+                    note "# Perl-wrapper lacks 'env', using {SEARCH}";
+
+                    loop {
+                        my $raku    = $curr.add( SEARCH );
+
+                        if $raku.f {
+                            take $raku;
+                            last
+                        } elsif $curr eq ( my $next = $curr.parent ) {
+                            die "No '{SEARCH}' above {$.prefix}";
+                        } else {
+                            $curr   = $next;
+                        }
+                    }
+                }
+            };
+
+            # Q: why does this fail with the here-doc indented? 
+
+            ( qq{#!$exec#ext#}, q:to/SHELL/ ).join( "\n" )
+
+sub MAIN(:$name, :$auth, :$ver, *@, *%)
+{
+    CompUnit::RepositoryRegistry.run-script( "#name#", :$name, :$auth, :$ver );
+}
+SHELL
+       };
+
         for %files.kv -> $name-path, $file is copy {
             next unless $name-path.starts-with('bin/');
             my $name        = $name-path.subst(/^bin\//, '');
@@ -212,10 +255,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m', '-js' -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
-                    $perl_wrapper.subst('#name#', $name, :g).subst('#perl#', "perl6$be");
+                    $perl-wrapper.subst('#name#', $name, :g).subst('#ext#', $be );
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
-                        $windows_wrapper.subst('#perl#', "perl6$be", :g);
+                        $windows_wrapper.subst('#ext#', $be, :g);
                 }
                 else {
                     $.prefix.add("$withoutext$be").IO.chmod(0o755);

@@ -2,10 +2,10 @@ my class Date does Dateish {
 
     method !formatter(--> Str:D) { self.yyyy-mm-dd }
 
-#?if moar
+#?if !js
     my constant $valid-units = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $valid-units := nqp::hash(
 #?endif
       'day',    1,

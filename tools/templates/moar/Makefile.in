@@ -255,13 +255,13 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 
 @backend_prefix@-runner-default-install: @backend_prefix@-install
 	@echo(+++ Installing @uc(@backend@)@ launchers)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6)@)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG)@)@
+	$(NOECHO)$(CP) @bpm(INST_RAKUDO)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@
+	$(NOECHO)$(CP) @bpm(INST_RAKUDO_DEBUG)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG)@)@
 @if(platform==windows
-	$(NOECHO)$(CP) @bpm(INST_RAKUDOW_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDOW)@)@
-	$(NOECHO)$(CP) @bpm(INST_PERL6W_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6W)@)@
+	$(NOECHO)$(CP) @bpm(INST_RAKUDOW)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDOW)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6W)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6W)@)@
 )@
 @if(with_raku_alias==on @tab@@echo(+++ Creating Raku executable alias)@
 @if(platform!=windows

@@ -15,6 +15,9 @@ class RakuAST::Resolver {
     # Packages we're currently in.
     has Mu $!packages;
 
+    # Nodes with check-time problems to report.
+    has Mu $!nodes-with-check-time-problems;
+
     # Push an attachment target, so children can attach to it.
     method push-attach-target(RakuAST::AttachTarget $target) {
         $target.clear-attachments();
@@ -118,8 +121,20 @@ class RakuAST::Resolver {
 
     # Resolve a RakuAST::Name to a constant.
     method resolve-name-constant(RakuAST::Name $name) {
+        self.IMPL-RESOLVE-NAME-CONSTANT($name)
+    }
+
+    # Resolve a RakuAST::Name to a constant looking only in the setting.
+    method resolve-name-constant-in-setting(RakuAST::Name $name) {
+        self.IMPL-RESOLVE-NAME-CONSTANT($name, :setting)
+    }
+
+    method IMPL-RESOLVE-NAME-CONSTANT(RakuAST::Name $name, Bool :$setting) {
         if $name.is-identifier {
-            self.resolve-lexical-constant($name.IMPL-UNWRAP-LIST($name.parts)[0].name)
+            my str $identifier := $name.IMPL-UNWRAP-LIST($name.parts)[0].name;
+            $setting
+                ?? self.resolve-lexical-constant-in-setting($identifier)
+                !! self.resolve-lexical-constant($identifier)
         }
         else {
             # Obtain parts.
@@ -131,7 +146,9 @@ class RakuAST::Resolver {
             # See if we can obtain the first part lexically.
             # TODO pseudo-packages
             # TODO GLOBALish fallback
-            my $first-resolved := self.resolve-lexical-constant(@parts[0].name);
+            my $first-resolved := $setting
+                ?? self.resolve-lexical-constant-in-setting(@parts[0].name)
+                !! self.resolve-lexical-constant(@parts[0].name);
             return Nil unless $first-resolved;
 
             # Now chase down through the packages until we find something.
@@ -278,6 +295,129 @@ class RakuAST::Resolver {
     method is-name-known(RakuAST::Name $name) {
         nqp::isconcrete(self.resolve-name($name)) ?? True !! False
     }
+
+    # Build an exception object for a check-time exception.
+    method build-exception(Str $type-name, *%opts) {
+        my $name := RakuAST::Name.from-identifier-parts(|nqp::split('::', $type-name));
+        my $type-res := self.resolve-name-constant-in-setting($name);
+        my $XComp-res := self.resolve-name-constant-in-setting:
+            RakuAST::Name.from-identifier-parts('X', 'Comp');
+        if $type-res && $XComp-res {
+            # Successfully resolved. Maka sure it is an X::Comp.
+            my $type := $type-res.compile-time-value;
+            my $XComp := $XComp-res.compile-time-value;
+            unless nqp::istype($type, $XComp) {
+                $type := $type.HOW.mixin($type, $XComp);
+            }
+
+            # Ensure that the options are Raku types.
+            for %opts -> $p {
+                if nqp::islist($p.value) {
+                    my @a := [];
+                    for $p.value {
+                        nqp::push(@a, nqp::hllizefor($_, 'Raku'));
+                    }
+                    %opts{$p.key} := nqp::hllizefor(@a, 'Raku');
+                }
+                else {
+                    %opts{$p.key} := nqp::hllizefor($p.value, 'Raku');
+                }
+            }
+
+            # TODO file, line, loads of other things
+            %opts<is-compile-time> := True;
+
+            # Construct the exception object and return it.
+            $type.new(|%opts)
+        }
+        else {
+            # Could not find exception type, so build a fake (typically happens
+            # during CORE.setting compilation).
+            nqp::die('nyi missing exception type fallback')
+        }
+    }
+
+    # Add a node to the list of those with check-time problems. 
+    method add-node-with-check-time-problems(RakuAST::CheckTime $node) {
+        unless $!nodes-with-check-time-problems {
+            nqp::bindattr(self, RakuAST::Resolver, '$!nodes-with-check-time-problems', []);
+        }
+        nqp::push($!nodes-with-check-time-problems, $node);
+        Nil
+    }
+
+    # Produce an exception with any compile-time errors, optionally using the
+    # specified one as a the main "panic" exception. Incorporates any sorries
+    # and worries from check time, and also those registered by specific
+    # resolvers (for example, the compiler resolver may also add syntax level
+    # problems). If there are no problems, produces Nil.
+    method produce-compilation-exception(Any :$panic) {
+        my $sorries := self.all-sorries;
+        my $worries := self.all-worries;
+        my int $num-sorries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($sorries));
+        my int $num-worries := nqp::elems(RakuAST::Node.IMPL-UNWRAP-LIST($worries));
+        if $panic && $num-sorries == 0 && $num-worries == 0 {
+            # There's just the panic, so return it without an enclosing group.
+            return $panic;
+        }
+        elsif !$panic && $num-sorries == 1 && $num-worries == 0 {
+            # Only one sorry and no worries, so no need to wrap that either.
+            return RakuAST::Node.IMPL-UNWRAP-LIST($sorries)[0];
+        }
+        elsif $num-sorries || $num-worries {
+            # Resolve the group exception type.
+            my $XCompGroup-res := self.resolve-name-constant-in-setting:
+                RakuAST::Name.from-identifier-parts('X', 'Comp', 'Group');
+            if $XCompGroup-res {
+                my $XCompGroup := $XCompGroup-res.compile-time-value;
+                return $panic
+                    ?? $XCompGroup.new(:$panic, :sorrows($sorries), :$worries)
+                    !! $XCompGroup.new(:sorrows($sorries), :$worries)
+            }
+            # Fallback if missing group.
+            elsif $panic {
+                return $panic;
+            }
+            else {
+                my @sorries := RakuAST::Node.IMPL-UNWRAP-LIST($sorries);
+                return @sorries[0] if @sorries;
+            } 
+        }
+        Nil
+    }
+
+    # Returns True if there are any compilation errors (worries don't count).
+    method has-compilation-errors() {
+        RakuAST::Node.IMPL-UNWRAP-LIST(self.all-sorries) ?? True !! False
+    }
+
+    # Gathers all sorries (from check time, if performed, and any specific to
+    # a given resolver).
+    method all-sorries() {
+        my @sorries;
+        if $!nodes-with-check-time-problems {
+            for $!nodes-with-check-time-problems -> $node {
+                for $node.IMPL-UNWRAP-LIST($node.sorries) {
+                    @sorries.push($_);
+                }
+            }
+        }
+        RakuAST::Node.IMPL-WRAP-LIST(@sorries)
+    }
+
+    # Gathers all worries (from check time, if performed, and any specific to
+    # a given resolver).
+    method all-worries() {
+        my @worries;
+        if $!nodes-with-check-time-problems {
+            for $!nodes-with-check-time-problems -> $node {
+                for $node.IMPL-UNWRAP-LIST($node.worries) {
+                    @worries.push($_);
+                }
+            }
+        }
+        RakuAST::Node.IMPL-WRAP-LIST(@worries)
+    }
 }
 
 # The EVAL resolver is used when we are given an AST as a whole, and visit it
@@ -375,6 +515,10 @@ class RakuAST::Resolver::EVAL is RakuAST::Resolver {
 class RakuAST::Resolver::Compile is RakuAST::Resolver {
     # Scopes stack; an array of RakuAST::Resolver::Compile::Scope.
     has Mu $!scopes;
+
+    # Sorries and worries produced by the compiler.
+    has Mu $!sorries;
+    has Mu $!worries;
 
     method new(Mu :$setting!, Mu :$outer!, Mu :$global!) {
         my $obj := nqp::create(self);
@@ -517,6 +661,54 @@ class RakuAST::Resolver::Compile is RakuAST::Resolver {
 
         # Fall back to looking in outer scopes.
         self.resolve-lexical-constant-in-outer($name);
+    }
+
+    # Add a sorry check-time problem produced by the compiler.
+    method add-sorry(Any $exception) {
+        unless $!sorries {
+            nqp::bindattr(self, RakuAST::Resolver::Compile, '$!sorries', []);
+        }
+        nqp::push($!sorries, $exception);
+        Nil
+    }
+
+    # Add a worry check-time problem produced by the compiler.
+    method add-worry(Any $exception) {
+        unless $!worries {
+            nqp::bindattr(self, RakuAST::Resolver::Compile, '$!worries', []);
+        }
+        nqp::push($!worries, $exception);
+        Nil
+    }
+
+    # Panic with the specified exception. This immediately throws it,
+    # incorporating any sorries and worries.
+    method panic(Any $exception) {
+        self.produce-compilation-exception(:panic($exception)).throw
+    }
+
+    # Gathers all sorries (from check time, if performed, and syntactic).
+    method all-sorries() {
+        my @sorries := RakuAST::Node.IMPL-UNWRAP-LIST:
+            nqp::findmethod(RakuAST::Resolver, 'all-sorries')(self);
+        if $!sorries {
+            for $!sorries {
+                @sorries.push($_);
+            }
+        }
+        RakuAST::Node.IMPL-WRAP-LIST(@sorries)
+    }
+
+    # Gathers all worries (from check time, if performed, and syntactic).
+    method all-worries() {
+        my @worries := RakuAST::Node.IMPL-UNWRAP-LIST:
+            nqp::findmethod(RakuAST::Resolver, 'all-worries')(self);
+        if $!worries {
+            for $!worries {
+                @worries.push($_);
+            }
+        }
+        RakuAST::Node.IMPL-WRAP-LIST(@worries)
     }
 }
 

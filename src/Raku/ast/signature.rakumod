@@ -143,14 +143,14 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
 # into a target; this is modeled by a RakuAST::ParameterTarget, which is optional.
 class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
                          is RakuAST::ImplicitLookups is RakuAST::TraitTarget
-                         is RakuAST::BeginTime {
+                         is RakuAST::BeginTime is RakuAST::CheckTime {
     has RakuAST::Type $.type;
-    has int $!default-to-any;
     has RakuAST::ParameterTarget $.target;
     has Mu $!names;
     has Bool $.invocant;
     has Bool $.optional;
     has RakuAST::Parameter::Slurpy $.slurpy;
+    has RakuAST::Node $!owner;
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
             List :$names, Bool :$invocant, Bool :$optional,
@@ -224,10 +224,8 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     }
 
     method attach(RakuAST::Resolver $resolver) {
-        # If we're on a routine, then the default nominal type will be Any.
-        my $owner := $resolver.find-attach-target('block');
-        nqp::bindattr_i(self, RakuAST::Parameter, '$!default-to-any',
-            nqp::istype($owner, RakuAST::Routine));
+        nqp::bindattr(self, RakuAST::Parameter, '$!owner',
+            $resolver.find-attach-target('block'));
     }
 
     method visit-children(Code $visitor) {
@@ -306,12 +304,22 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         else {
             $!type
                 ?? $!type.resolution.compile-time-value
-                !! $!default-to-any ?? Any !! Mu
+                !! nqp::istype($!owner, RakuAST::Routine) ?? Any !! Mu
         }
     }
 
     method PERFORM-BEGIN(RakuAST::Resolver $resolver) {
         self.apply-traits($resolver, self)
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+        if nqp::istype($!owner, RakuAST::Routine) {
+            my $name := $!owner.name;
+            if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
+                self.add-worry: $resolver.build-exception: 'X::AdHoc',
+                    payload => "'is rw' on parameters of 'sub MAIN' usually cannot be satisfied.\nDid you mean 'is copy'?"
+            }
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

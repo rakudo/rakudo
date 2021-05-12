@@ -225,21 +225,24 @@ role Raku::Common {
     }
 
     method typed_panic($type_str, *%opts) {
-        # TODO exception, format error, etc.
-        nqp::findmethod(HLL::Grammar, 'panic')(self, $type_str);
+        $*R.panic($*R.build-exception($type_str, |%opts));
     }
     method typed_sorry($type_str, *%opts) {
-        # TODO collect these up to limit
-        self.typed_panic($type_str, |%opts)
+        if $*SORRY_REMAINING-- {
+            $*R.add-sorry($*R.build-exception($type_str, |%opts));
+            self
+        }
+        else {
+            self.typed_panic($type_str, |%opts)
+        }
     }
     method typed_worry($type_str, *%opts) {
-        # TODO collect these
+        $*R.add-worry($*R.build-exception($type_str, |%opts));
         self
     }
 }
 
 grammar Raku::Grammar is HLL::Grammar does Raku::Common {
-
     ##
     ## Compilation unit, language version and other entry point bits
     ##
@@ -262,6 +265,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         my $*IN_REDUCE := 0;                      # attempting to parse an [op] construct
         my %*QUOTE_LANGS;                         # quote language cache
         my $*LASTQUOTE := [0,0];                  # for runaway quote detection
+        my $*SORRY_REMAINING := 10;               # decremented on each sorry; panic when 0
 
         # Variables used for Pod parsing.
         my $*VMARGIN := 0;

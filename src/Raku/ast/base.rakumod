@@ -1,6 +1,5 @@
 # The base of all RakuAST nodes.
 class RakuAST::Node {
-
     # What type does evaluating this node produce, if known?
     method type() { Mu }
 
@@ -96,6 +95,13 @@ class RakuAST::Node {
         unless $resolve-only {
             if nqp::istype(self, RakuAST::SinkBoundary) && !self.sink-calculated {
                 self.calculate-sink();
+            }
+            if nqp::istype(self, RakuAST::CheckTime) {
+                self.clear-check-time-problems();
+                self.PERFORM-CHECK($resolver);
+                if self.has-check-time-problems {
+                    $resolver.add-node-with-check-time-problems(self);
+                }
             }
         }
 

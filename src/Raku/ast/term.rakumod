@@ -29,7 +29,7 @@ class RakuAST::Term::Name is RakuAST::Term is RakuAST::Lookup {
 }
 
 # The self term for getting the current invocant
-class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup {
+class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup is RakuAST::CheckTime {
     method new() {
         nqp::create(self)
     }
@@ -40,6 +40,12 @@ class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup {
             self.set-resolution($resolved);
         }
         Nil
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+        unless self.is-resolved {
+            self.add-sorry($resolver.build-exception('X::Syntax::Self::WithoutObject'))
+        }
     }
 
     method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {

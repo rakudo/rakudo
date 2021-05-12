@@ -131,6 +131,17 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Have check time.
         $cu.check($*R);
+        my $compilation-exception := $*R.produce-compilation-exception;
+        if nqp::isconcrete($compilation-exception) {
+            if $*R.has-compilation-errors {
+                # Really has errors, so report them.
+                $compilation-exception.throw;
+            }
+            else {
+                # Only potential difficulties, just just print them.
+                stderr().print($compilation-exception.gist);
+            }
+        }
 
         self.attach: $/, $cu;
     }

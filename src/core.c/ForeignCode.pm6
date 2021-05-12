@@ -84,7 +84,11 @@ $lang = 'Raku' if $lang eq 'perl6';
         }
 
         # Perform symbol resolution, then compile to QAST and in turn bytecode.
-        $comp-unit.check(RakuAST::Resolver::EVAL.new(:context($eval_ctx), :global(GLOBAL)));
+        my $resolver := RakuAST::Resolver::EVAL.new(:context($eval_ctx), :global(GLOBAL));
+        $comp-unit.check($resolver);
+        if $resolver.has-compilation-errors {
+            $resolver.produce-compilation-exception.throw;
+        }
         $compiled := $compiler.compile: :from<optimize>, $comp-unit.IMPL-TO-QAST-COMP-UNIT;
     }
     else {

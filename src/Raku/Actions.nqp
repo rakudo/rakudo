@@ -1833,9 +1833,37 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Regex', 'Quote').new($<quote>.ast);
     }
 
+    method backslash:sym<e>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'Escape').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<f>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'FormFeed').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<h>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'HorizontalSpace').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<r>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'CarriageReturn').new(negated => $<sym> le 'Z');
+    }
+
     method backslash:sym<s>($/) {
         my constant NAME := nqp::hash('d', 'Digit', 'n', 'Newline', 's', 'Space', 'w', 'Word');
         self.attach: $/, self.r('Regex', 'CharClass', NAME{nqp::lc(~$<sym>)}).new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<t>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'Tab').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<v>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'VerticalSpace').new(negated => $<sym> le 'Z');
+    }
+
+    method backslash:sym<0>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'Nul').new();
     }
 
     method backslash:sym<misc>($/) {

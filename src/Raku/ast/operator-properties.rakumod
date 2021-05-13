@@ -337,6 +337,10 @@ class BuiltinOperatorProperties {
           'mod', 'multiplicative',
           '+&',  'multiplicative',
           '~&',  'multiplicative',
+          '+<',  'multiplicative',
+          '+>',  'multiplicative',
+          '~<',  'multiplicative',
+          '~>',  'multiplicative',
 
           '%%', 'multiplicative-iffy',
           '?&', 'multiplicative-iffy',

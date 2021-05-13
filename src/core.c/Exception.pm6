@@ -2749,7 +2749,9 @@ my class X::Numeric::CannotConvert is Exception {
     has $.source;
 
     method message() {
-        "Cannot convert {$!source // $!source.raku} to {$!target // $!target.raku}: $!reason";
+        $!reason
+          ?? "Cannot convert {$!source // $!source.raku} to {$!target // $!target.raku}: $!reason"
+          !! "Cannot convert {$!source // $!source.raku} to {$!target // $!target.raku}";
     }
 
 }

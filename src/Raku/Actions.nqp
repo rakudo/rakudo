@@ -1935,4 +1935,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     method codeblock($/) {
         make $<block>.ast;
     }
+
+    method arglist($/) {
+        make $<arglist>.ast;
+    }
 }

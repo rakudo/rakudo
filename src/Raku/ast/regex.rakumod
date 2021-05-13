@@ -600,6 +600,12 @@ class RakuAST::Regex::Assertion::Named::Args is RakuAST::Regex::Assertion::Named
         $obj
     }
 
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $call := self.IMPL-REGEX-QAST-CALL($context);
+        $!args.IMPL-ADD-QAST-ARGS($context, $call[0]);
+        $call
+    }
+
     method visit-children(Code $visitor) {
         $visitor(self.name);
         $visitor($!args);

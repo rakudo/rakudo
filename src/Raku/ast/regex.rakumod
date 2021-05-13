@@ -389,10 +389,43 @@ class RakuAST::Regex::CharClass::Digit is RakuAST::Regex::CharClass::Negatable {
     }
 }
 
+# The escape character class (\e, \E)
+class RakuAST::Regex::CharClass::Escape is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new:
+            :rxtype('enumcharlist'), :negate(self.negated), "\c[27]"
+    }
+}
+
+# The form feed character class (\f, \F)
+class RakuAST::Regex::CharClass::FormFeed is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new:
+            :rxtype('enumcharlist'), :negate(self.negated), "\c[12]"
+    }
+}
+
+# The horizontal whitespace character class (\h, \H)
+class RakuAST::Regex::CharClass::HorizontalSpace is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new:
+            :rxtype('enumcharlist'), :negate(self.negated),
+            "\x[09,20,a0,1680,180e,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,200a,202f,205f,3000]"
+    }
+}
+
 # The newline character class (\n, \N).
 class RakuAST::Regex::CharClass::Newline is RakuAST::Regex::CharClass::Negatable {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<n>, :negate(self.negated) )
+    }
+}
+
+# The carriage return character class (\r, \R)
+class RakuAST::Regex::CharClass::CarriageReturn is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new:
+            :rxtype('enumcharlist'), :negate(self.negated), "\r"
     }
 }
 
@@ -403,10 +436,34 @@ class RakuAST::Regex::CharClass::Space is RakuAST::Regex::CharClass::Negatable {
     }
 }
 
+# The tab character class (\t, \T)
+class RakuAST::Regex::CharClass::Tab is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new:
+            :rxtype('enumcharlist'), :negate(self.negated), "\t"
+    }
+}
+
+# The vertical whitespace character class (\v, \V)
+class RakuAST::Regex::CharClass::VerticalSpace is RakuAST::Regex::CharClass::Negatable {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new:
+            :rxtype('enumcharlist'), :negate(self.negated),
+            "\x[0a,0b,0c,0d,85,2028,2029]\r\n"
+    }
+}
+
 # The word character class (\w, \W).
 class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<w>, :negate(self.negated) )
+    }
+}
+
+# The nul character class (\0)
+class RakuAST::Regex::CharClass::Nul is RakuAST::Regex::CharClass {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new: :rxtype<literal>, "\0"
     }
 }
 

@@ -1932,6 +1932,33 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         make self.r('Regex', 'Assertion', 'Block').new(:negated, :block($<codeblock>.ast));
     }
 
+    method assertion:sym<[>($/) {
+        my @elems := $<cclass_elem>;
+        my @asts;
+        my int $i := 0;
+        my int $n := nqp::elems(@elems);
+        while $i < $n {
+            my $sign := @elems[$i]<sign>;
+            if $i > 0 && $sign eq '' {
+                $sign."!clear_highwater"();
+                $sign.panic('Missing + or - between character class elements')
+            }
+            @asts.push(@elems[$i].ast);
+            $i++;
+        }
+        make self.r('Regex', 'Assertion', 'CharClass').new(|@asts);
+    }
+
+    method cclass_elem($/) {
+        my int $negated := $<sign> eq '-';
+        if $<name> {
+            make self.r('Regex', 'CharClassElement', 'Rule').new(:name(~$<name>), :$negated);
+        }
+        else {
+            nqp::die('nyi actions for cclass_elem');
+        }
+    }
+
     method codeblock($/) {
         make $<block>.ast;
     }

@@ -1954,6 +1954,15 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         if $<name> {
             make self.r('Regex', 'CharClassElement', 'Rule').new(:name(~$<name>), :$negated);
         }
+        elsif $<identifier> {
+            my str $property := ~$<identifier>;
+            my int $inverted := $<invert> eq '!';
+            my $predicate := $<coloncircumfix>
+                ?? $<coloncircumfix>.ast
+                !! self.r('Expression');
+            make self.r('Regex', 'CharClassElement', 'Property').new:
+                :$property, :$inverted, :$predicate, :$negated;
+        }
         else {
             nqp::die('nyi actions for cclass_elem');
         }

@@ -845,6 +845,37 @@ class RakuAST::Regex::CharClassElement::Rule is RakuAST::Regex::CharClassElement
     }
 }
 
+# A character class element that tests a Unicode property.
+class RakuAST::Regex::CharClassElement::Property is RakuAST::Regex::CharClassElement {
+    has str $.property;
+    has Bool $.inverted;
+    has RakuAST::Expression $.predicate;
+
+    method new(str :$property!, Bool :$inverted, RakuAST::Expression :$predicate,
+            Bool :$negated) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::CharClassElement, '$!negated',
+            $negated ?? True !! False);
+        nqp::bindattr_s($obj, RakuAST::Regex::CharClassElement::Property, '$!property',
+            $property);
+        nqp::bindattr($obj, RakuAST::Regex::CharClassElement::Property, '$!inverted',
+            $inverted ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Regex::CharClassElement::Property, '$!predicate',
+            $predicate // RakuAST::Expression);
+        $obj
+    }
+
+    method IMPL-CCLASS-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $first) {
+        my $negate := self.negated ?? !$!inverted !! $!inverted;
+        my $qast := QAST::Regex.new( :rxtype<uniprop>, :$negate, $!property );
+        $qast.push($!predicate.IMPL-TO-QAST($context)) if $!predicate;
+        $qast
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!predicate) if $!predicate;
+    }
+}
 
 # A quantified atom in a regex - that is, an atom with a quantifier and
 # optional separator.

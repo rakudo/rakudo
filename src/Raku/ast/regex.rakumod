@@ -771,6 +771,81 @@ class RakuAST::Regex::Assertion::Block is RakuAST::Regex::Assertion {
     }
 }
 
+# An assertion containing one or more character class elements.
+class RakuAST::Regex::Assertion::CharClass is RakuAST::Regex::Assertion {
+    has Mu $!elements;
+
+    method new(*@elements) {
+        my $obj := nqp::create(self);
+        if nqp::elems(@elements) == 0 {
+            nqp::die('RakuAST::Regex::Assertion::CharClass must have at least one element');
+        }
+        for @elements {
+            unless nqp::istype($_, RakuAST::Regex::CharClassElement) {
+                nqp::die('Can only construct a RakuAST::Regex::Assertion::CharClass with elements of type RakuAST::Regex::CharClassElement')
+            }
+        }
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::CharClass, '$!elements',
+            @elements);
+        $obj
+    }
+
+    method elements() {
+        self.IMPL-WRAP-LIST($!elements)
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        # Compile the first element.
+        my $first := $!elements[0];
+        my $qast := $first.IMPL-CCLASS-QAST($context, %mods, True);
+
+        # TODO further elements
+        if nqp::elems($!elements) > 1 {
+            nqp::die('complex cclass nyi');
+        }
+
+        $qast
+    }
+
+    method visit-children(Code $visitor) {
+        for $!elements {
+            $visitor($_);
+        }
+    }
+}
+
+# The base of all user-defined character class elements.
+class RakuAST::Regex::CharClassElement is RakuAST::Node {
+    has Bool $.negated;
+}
+
+# A character class element that calls another rule (for example, <-alpha>).
+class RakuAST::Regex::CharClassElement::Rule is RakuAST::Regex::CharClassElement {
+    has str $.name;
+
+    method new(str :$name!, Bool :$negated) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::CharClassElement, '$!negated',
+            $negated ?? True !! False);
+        nqp::bindattr_s($obj, RakuAST::Regex::CharClassElement::Rule, '$!name', $name);
+        $obj
+    }
+
+    method IMPL-CCLASS-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $first) {
+        my $negate := self.negated;
+        my $name := QAST::NodeList.new(QAST::SVal.new( :value($!name) ));
+        if $negate && $first {
+            QAST::Regex.new: :rxtype<concat>,
+                QAST::Regex.new( :rxtype<subrule>, :subtype<zerowidth>, :$negate, $name ),
+                QAST::Regex.new( :rxtype<cclass>, :name<.> );
+        }
+        else {
+            QAST::Regex.new( :rxtype<subrule>, :subtype<method>, :$negate, $name )
+        }
+    }
+}
+
+
 # A quantified atom in a regex - that is, an atom with a quantifier and
 # optional separator.
 class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {

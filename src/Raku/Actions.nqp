@@ -1813,6 +1813,10 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, $<backslash>.ast;
     }
 
+    method metachar:sym<mod>($/) {
+        self.attach: $/, $<mod_internal>.ast;
+    }
+
     method metachar:sym<assert>($/) {
         self.attach: $/, $<assertion>.ast;
     }
@@ -1965,6 +1969,21 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         }
         else {
             nqp::die('nyi actions for cclass_elem');
+        }
+    }
+
+    method mod_internal($/) {
+        my constant NODE := nqp::hash('i', 'IgnoreCase', 'm', 'IgnoreMark',
+            'r', 'Ratchet', 's', 'Sigspace');
+        if NODE{$<mod_ident><sym>} -> $node-name {
+            my str $n := $<n> ?? ~$<n>[0] !! '';
+            my $negated := $n eq ''  ?? 0 !!
+                           $n eq '!' ?? 1 !!
+                           +$n == 0  ?? 1 !! 0;
+            self.attach: $/, self.r('Regex', 'InternalModifier', $node-name).new(:$negated);
+        }
+        else {
+            nqp::die('Unimplemented internal modifier ' ~ $<sym>);
         }
     }
 

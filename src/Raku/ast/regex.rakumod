@@ -36,6 +36,19 @@ class RakuAST::Regex is RakuAST::Node {
             $block.IMPL-TO-QAST($context, :immediate)
         )
     }
+
+    method IMPL-APPLY-LITERAL-MODS(Mu $qast, %mods) {
+        if %mods<i> && %mods<m> {
+            $qast.subtype('ignorecase+ignoremark')
+        }
+        elsif %mods<i> {
+            $qast.subtype('ignorecase')
+        }
+        elsif %mods<m> {
+            $qast.subtype('ignoremark')
+        }
+        $qast
+    }
 }
 
 # Common role done by all branching regex constructs (alternations and conjunctions).
@@ -106,7 +119,8 @@ class RakuAST::Regex::Sequence is RakuAST::Regex {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $concat := QAST::Regex.new(:rxtype<concat>);
         for $!terms {
-            $concat.push($_.IMPL-REGEX-QAST($context, %mods));
+            my $ast := $_.IMPL-REGEX-QAST($context, %mods);
+            $concat.push($ast) if $ast;
         }
         $concat
     }
@@ -124,6 +138,7 @@ class RakuAST::Regex::Term is RakuAST::Regex {
 
 # Marker for all regex atoms.
 class RakuAST::Regex::Atom is RakuAST::Regex::Term {
+    method quantifiable() { True }
 }
 
 # A literal, unquoted, piece of text appearing in the regex.
@@ -137,8 +152,9 @@ class RakuAST::Regex::Literal is RakuAST::Regex::Atom {
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        # TODO modifiers
-        QAST::Regex.new( :rxtype<literal>, $!text )
+        self.IMPL-APPLY-LITERAL-MODS:
+            QAST::Regex.new( :rxtype<literal>, $!text ),
+            %mods
     }
 }
 
@@ -159,15 +175,17 @@ class RakuAST::Regex::Quote is RakuAST::Regex::Atom {
         if nqp::isconcrete($literal-value) {
             if nqp::istype($literal-value, Str) {
                 # Really simple string; just match it.
-                # TODO modifiers
-                QAST::Regex.new( :rxtype<literal>, $literal-value )
+                self.IMPL-APPLY-LITERAL-MODS:
+                    QAST::Regex.new( :rxtype<literal>, $literal-value ),
+                    %mods
             }
             elsif nqp::istype($literal-value, List) {
                 # Quote words alternation.
                 my $alt := QAST::Regex.new( :rxtype<alt> );
                 for self.IMPL-UNWRAP-LIST($literal-value) {
-                    # TODO modifiers 
-                    $alt.push(QAST::Regex.new( :rxtype<literal>, $_ ));
+                    $alt.push: self.IMPL-APPLY-LITERAL-MODS:
+                        QAST::Regex.new( :rxtype<literal>, $_ ),
+                        %mods
                 }
                 $alt
             }
@@ -288,6 +306,8 @@ class RakuAST::Regex::Anchor is RakuAST::Regex::Atom {
         nqp::create(self)
     }
 
+    method quantifiable() { False }
+
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<anchor>, :subtype(self.IMPL-QAST-SUBTYPE) )
     }
@@ -329,6 +349,8 @@ class RakuAST::Regex::MatchFrom is RakuAST::Regex::Atom {
         nqp::create(self)
     }
 
+    method quantifiable() { False }
+
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<subrule>, :subtype<capture>,
             :backtrack<r>, :name('$!from'),
@@ -343,6 +365,8 @@ class RakuAST::Regex::MatchTo is RakuAST::Regex::Atom {
     method new() {
         nqp::create(self)
     }
+
+    method quantifiable() { False }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<subrule>, :subtype<capture>,
@@ -519,6 +543,8 @@ class RakuAST::Regex::Assertion::Pass is RakuAST::Regex::Assertion {
         nqp::create(self)
     }
 
+    method quantifiable() { False }
+
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<anchor>, :subtype<pass> )
     }
@@ -529,6 +555,8 @@ class RakuAST::Regex::Assertion::Fail is RakuAST::Regex::Assertion {
     method new() {
         nqp::create(self)
     }
+
+    method quantifiable() { False }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<anchor>, :subtype<fail> )
@@ -877,9 +905,55 @@ class RakuAST::Regex::CharClassElement::Property is RakuAST::Regex::CharClassEle
     }
 }
 
+# The base of all internal modifiers.
+class RakuAST::Regex::InternalModifier is RakuAST::Regex::Atom {
+    has Bool $.negated;
+
+    method new(Bool :$negated) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::InternalModifier, '$!negated',
+            $negated ?? True !! False);
+        $obj
+    }
+
+    method quantifiable() { False }
+}
+
+# The ignorecase internal modifier.
+class RakuAST::Regex::InternalModifier::IgnoreCase is RakuAST::Regex::InternalModifier {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        %mods<i> := !self.negated;
+        Nil
+    }
+}
+
+# The ignoremark internal modifier.
+class RakuAST::Regex::InternalModifier::IgnoreMark is RakuAST::Regex::InternalModifier {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        %mods<m> := !self.negated;
+        Nil
+    }
+}
+
+# The ratchet internal modifier.
+class RakuAST::Regex::InternalModifier::Ratchet is RakuAST::Regex::InternalModifier {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        %mods<r> := !self.negated;
+        Nil
+    }
+}
+
+# The sigspace internal modifier.
+class RakuAST::Regex::InternalModifier::Sigspace is RakuAST::Regex::InternalModifier {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        %mods<s> := !self.negated;
+        Nil
+    }
+}
+
 # A quantified atom in a regex - that is, an atom with a quantifier and
 # optional separator.
-class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {
+class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term is RakuAST::CheckTime {
     has RakuAST::Atom $.atom;
     has RakuAST::Quantifier $.quantifier;
     has RakuAST::Regex::Term $.separator;
@@ -895,6 +969,12 @@ class RakuAST::Regex::QuantifiedAtom is RakuAST::Regex::Term {
         nqp::bindattr($obj, RakuAST::Regex::QuantifiedAtom, '$!trailing-separator',
             $trailing-separator ?? True !! False);
         $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+        unless $!atom.quantifiable {
+            self.add-sorry($resolver.build-exception('X::Syntax::Regex::NonQuantifiable'));
+        }
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {

@@ -415,8 +415,7 @@ my class DateTime does Dateish {
     }
 
     method posix-real(DateTime:D: $ignore-timezone? --> Real:D) {
-	    my $p = $ignore-timezone ?? self.posix($ignore-timezone) !! self.posix;
-	    $p + self.second - self.second.Int
+        self.posix($ignore-timezone) + $!second - $!second.Int
     }
 
     method posix(DateTime:D: $ignore-timezone? --> Int:D) {

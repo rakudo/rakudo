@@ -78,7 +78,7 @@ my class Allomorph is Str {
       $start = 0,
       $want  = Whatever
     ) is rw {
-        SELF.substr-rw($start, $want, Str)
+        (SELF = nqp::getattr_s(self,Str,'$!value')).substr-rw($start, $want)
     }
 
     method Str(Allomorph:D:) {

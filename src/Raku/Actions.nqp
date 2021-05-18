@@ -1870,6 +1870,23 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Regex', 'CharClass', 'Nul').new();
     }
 
+    method backslash:sym<o>($/) {
+        my str $characters := HLL::Actions.ints_to_string($<octint> || $<octints><octint>);
+        self.attach: $/, self.r('Regex', 'CharClass', 'Specified').new:
+            :negated($<sym> le 'Z'), :$characters
+    }
+
+    method backslash:sym<x>($/) {
+        my str $characters := HLL::Actions.ints_to_string($<hexint> || $<hexints><hexint>);
+        self.attach: $/, self.r('Regex', 'CharClass', 'Specified').new:
+            :negated($<sym> le 'Z'), :$characters
+    }
+
+    method backslash:sym<c>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'Specified').new:
+            :negated($<sym> le 'Z'), :characters($<charspec>.ast)
+    }
+
     method backslash:sym<misc>($/) {
         self.attach: $/, self.r('Regex', 'Literal').new(~$/);
     }

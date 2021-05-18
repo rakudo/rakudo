@@ -414,7 +414,11 @@ my class DateTime does Dateish {
         self.modified-julian-date + 2_400_000.5
     }
 
-    method posix(DateTime:D: $ignore-timezone? --> Int:D) {
+    proto method posix(|) {*}
+    multi method posix(DateTime:D: $ignore-timezone?, :$real! --> Real:D) {
+        self.posix($ignore-timezone) + $!second - $!second.Int
+    }
+    multi method posix(DateTime:D: $ignore-timezone? --> Int:D) {
         return self.utc.posix if $!timezone && !$ignore-timezone;
 
         # algorithm from Claus Tøndering

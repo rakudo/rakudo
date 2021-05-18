@@ -308,7 +308,7 @@ do {
 
         method interactive_prompt() { '> ' }
 
-        method repl-loop(*%adverbs) {
+        method repl-loop(:$no-exit, *%adverbs) {
 
             if $*DISTRO.is-win {
                 say "To exit type 'exit' or '^Z'";
@@ -326,6 +326,7 @@ do {
 
             REPL: loop {
                 my $newcode = self.repl-read(~$prompt);
+                last if $no-exit and $newcode eq 'exit';
 
                 my $initial_out_position = $*OUT.tell;
 
@@ -448,7 +449,7 @@ do {
 sub repl(*%_) {
     my $repl := REPL.new(nqp::getcomp("Raku"), %_, True);
     nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
-    $repl.repl-loop
+    $repl.repl-loop(:no-exit);
 }
 
 # vim: expandtab shiftwidth=4

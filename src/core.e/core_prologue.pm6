@@ -7,9 +7,7 @@ my constant CORE-SETTING-REV = 'e';
 
 my constant DateTimeD = DateTime;
 class DateTime is DateTimeD {
-    method posix(DateTime:D: $ignore-timezone? --> Numeric:D) {
-        return self.utc.posix if $.timezone && !$ignore-timezone;
-
+    multi method posix(DateTime:D: --> Real:D) {
         # algorithm from Claus Tøndering
         my int $a = (14 - $.month) div 12;
         my int $y = $.year + 4800 - $a;
@@ -19,6 +17,7 @@ class DateTime is DateTimeD {
         ($jd - 2440588) * 86400
           + $.hour      * 3600
           + $.minute    * 60
+          - $.timezone
           + nqp::getattr(self,DateTimeD,'$!second')
     }
 }

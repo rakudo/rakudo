@@ -237,11 +237,26 @@ my class Proc {
 }
 
 proto sub run(|) {*}
-multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
-        Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env, :$arg0, :$win-verbatim-args = False) {
-    my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
+multi sub run(*@args where .so,
+       :$in  = '-',
+       :$out = '-',
+       :$err = '-',
+  Bool :$bin,
+  Bool :$chomp = True,
+  Bool :$merge,
+  Str  :$enc,
+  Str  :$nl = "\n",
+       :$cwd = $*CWD,
+       :$env,
+       :$arg0,
+       :$win-verbatim-args = False,
+       :$throw,
+--> Proc:D) {
+    my $proc := Proc.new(
+      :$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl
+    );
     $proc.spawn(@args, :$cwd, :$env, :$arg0, :$win-verbatim-args);
+    $proc.sink if $throw;
     $proc
 }
 

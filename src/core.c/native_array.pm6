@@ -2028,7 +2028,7 @@ my class array does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2020-12-08T18:47:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2021-05-18T14:32:07+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2533,7 +2533,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2020-12-08T18:47:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2021-05-18T14:32:07+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2832,7 +2832,7 @@ my class array does Iterable does Positional {
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos_n(self,$i,nqp::atpos_i(from,$i))
+                  nqp::bindpos_n(self,$i,nqp::atpos_n(from,$i))
                 ),
                 self
               ),
@@ -2850,7 +2850,7 @@ my class array does Iterable does Positional {
               nqp::bindpos_n(self,$i,iter.pull-one)
             );
             # too many values? then throw by just accessing out of range
-            nqp::atpos_i(list,$i) unless iter.exhausted;
+            nqp::atpos_n(list,$i) unless iter.exhausted;
             self
         }
         multi method STORE(::?CLASS:D: Num:D \item) {
@@ -3038,7 +3038,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2020-12-08T18:47:05+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2021-05-18T14:32:07+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -3337,7 +3337,7 @@ my class array does Iterable does Positional {
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos_s(self,$i,nqp::atpos_i(from,$i))
+                  nqp::bindpos_s(self,$i,nqp::atpos_s(from,$i))
                 ),
                 self
               ),
@@ -3355,7 +3355,7 @@ my class array does Iterable does Positional {
               nqp::bindpos_s(self,$i,iter.pull-one)
             );
             # too many values? then throw by just accessing out of range
-            nqp::atpos_i(list,$i) unless iter.exhausted;
+            nqp::atpos_s(list,$i) unless iter.exhausted;
             self
         }
         multi method STORE(::?CLASS:D: Str:D \item) {

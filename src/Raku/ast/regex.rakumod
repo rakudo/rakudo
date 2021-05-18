@@ -484,6 +484,43 @@ class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
     }
 }
 
+# A character class containing a specified character or "long character".
+# This covers \c13, \c[13,10], \x1F98B, \c[BUTTERFLY], and so forth (the
+# node is always constructed with the character(s) resulting from processing
+# these sequences).
+class RakuAST::Regex::CharClass::Specified is RakuAST::Regex::CharClass::Negatable {
+    has str $.characters;
+
+    method new(Bool :$negated, str :$characters!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::CharClass::Negatable, '$!negated',
+            $negated ?? True !! False);
+        nqp::bindattr_s($obj, RakuAST::Regex::CharClass::Specified, '$!characters',
+            $characters);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        if self.negated {
+            # Negated, it is treated like a "long character". Quoting S05:
+            # > A consequence of this is that the negated form advances by a single
+            # > position (matching as . does) when the long character doesn't match
+            # > as a whole
+            # Rakudo got this wrong pre-RakuAST; hopefully it's rare enough of a
+            # construct that we can get away with doing it right here.
+            QAST::Regex.new(
+                :rxtype<concat>,
+                QAST::Regex.new( :rxtype<literal>, :subtype<zerowidth>, :negate, $!characters ),
+                QAST::Regex.new( :rxtype<cclass>, :name<.> )
+            )
+        }
+        else {
+            # Non-negated, match the character(s)
+            QAST::Regex.new( :rxtype<literal>, $!characters )
+        }
+    }
+}
+
 # The nul character class (\0)
 class RakuAST::Regex::CharClass::Nul is RakuAST::Regex::CharClass {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {

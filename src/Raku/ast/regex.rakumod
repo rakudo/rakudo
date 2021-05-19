@@ -406,81 +406,178 @@ class RakuAST::Regex::CharClass::Negatable is RakuAST::Regex::CharClass {
     }
 }
 
+# Done by everything that can appear inside of a user-defined character class
+# enumeration (that is, `<[this]>`).
+class RakuAST::Regex::CharClassEnumerationElement is RakuAST::Node {
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { '' }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        nqp::die("Missing IMPL-CCLASS-ENUM-QAST implementation on " ~ self.HOW.name(self));
+    }
+
+    method IMPL-MAYBE-NEGATE(Mu $qast, Bool $negate) {
+        $qast.negate(!$qast.negate) if $negate;
+        $qast
+    }
+
+    # Returns a single-character string if this can potentially serve as a
+    # range endpoint, or Nil if not. Does not check if it is a synthetic
+    # character.
+    method range-endpoint() {
+        my str $chars := self.IMPL-CCLASS-ENUM-CHARS({});
+        nqp::chars($chars) == 1 ?? $chars !! Nil
+    }
+}
+
+# The backspace character class (\b, \B). In Raku syntax, this may only appear
+# in a character class enumeration.
+class RakuAST::Regex::CharClass::BackSpace is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new:
+            :rxtype('enumcharlist'), :negate(self.negated), "\b"
+    }
+
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { self.negated ?? "" !! "\b" }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
+    }
+}
+
 # The digit character class (\d, \D).
-class RakuAST::Regex::CharClass::Digit is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::Digit is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<d>, :negate(self.negated) )
+    }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
     }
 }
 
 # The escape character class (\e, \E)
-class RakuAST::Regex::CharClass::Escape is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::Escape is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\c[27]"
     }
+
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { self.negated ?? "" !! "\c[27]" }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
+    }
 }
 
 # The form feed character class (\f, \F)
-class RakuAST::Regex::CharClass::FormFeed is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::FormFeed is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\c[12]"
     }
+
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { self.negated ?? "" !! "\c[12]" }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
+    }
 }
 
 # The horizontal whitespace character class (\h, \H)
-class RakuAST::Regex::CharClass::HorizontalSpace is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::HorizontalSpace is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated),
             "\x[09,20,a0,1680,180e,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,200a,202f,205f,3000]"
     }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
+    }
 }
 
 # The newline character class (\n, \N).
-class RakuAST::Regex::CharClass::Newline is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::Newline is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<n>, :negate(self.negated) )
+    }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
     }
 }
 
 # The carriage return character class (\r, \R)
-class RakuAST::Regex::CharClass::CarriageReturn is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::CarriageReturn is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\r"
     }
+
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { self.negated ?? "" !! "\r" }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
+    }
 }
 
 # The space character class (\s, \S).
-class RakuAST::Regex::CharClass::Space is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::Space is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<s>, :negate(self.negated) )
+    }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
     }
 }
 
 # The tab character class (\t, \T)
-class RakuAST::Regex::CharClass::Tab is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::Tab is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated), "\t"
     }
+
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { self.negated ?? "" !! "\t" }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
+    }
 }
 
 # The vertical whitespace character class (\v, \V)
-class RakuAST::Regex::CharClass::VerticalSpace is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::VerticalSpace is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:
             :rxtype('enumcharlist'), :negate(self.negated),
             "\x[0a,0b,0c,0d,85,2028,2029]\r\n"
     }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
+    }
 }
 
 # The word character class (\w, \W).
-class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new( :rxtype<cclass>, :name<w>, :negate(self.negated) )
+    }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-MAYBE-NEGATE(self.IMPL-REGEX-QAST($context, %mods), $negate)
     }
 }
 
@@ -488,7 +585,8 @@ class RakuAST::Regex::CharClass::Word is RakuAST::Regex::CharClass::Negatable {
 # This covers \c13, \c[13,10], \x1F98B, \c[BUTTERFLY], and so forth (the
 # node is always constructed with the character(s) resulting from processing
 # these sequences).
-class RakuAST::Regex::CharClass::Specified is RakuAST::Regex::CharClass::Negatable {
+class RakuAST::Regex::CharClass::Specified is RakuAST::Regex::CharClass::Negatable
+        is RakuAST::Regex::CharClassEnumerationElement {
     has str $.characters;
 
     method new(Bool :$negated, str :$characters!) {
@@ -501,7 +599,19 @@ class RakuAST::Regex::CharClass::Specified is RakuAST::Regex::CharClass::Negatab
     }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
-        if self.negated {
+        self.IMPL-QAST($context, %mods, self.negated)
+    }
+
+    method IMPL-CCLASS-ENUM-CHARS(%mods) {
+        self.negated || nqp::chars($!characters) != 1 ?? "" !! $!characters
+    }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        self.IMPL-QAST($context, %mods, self.negated ?? !$negate !! $negate)
+    }
+
+    method IMPL-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negated) {
+        if $negated {
             # Negated, it is treated like a "long character". Quoting S05:
             # > A consequence of this is that the negated form advances by a single
             # > position (matching as . does) when the long character doesn't match
@@ -522,10 +632,13 @@ class RakuAST::Regex::CharClass::Specified is RakuAST::Regex::CharClass::Negatab
 }
 
 # The nul character class (\0)
-class RakuAST::Regex::CharClass::Nul is RakuAST::Regex::CharClass {
+class RakuAST::Regex::CharClass::Nul is RakuAST::Regex::CharClass
+        is RakuAST::Regex::CharClassEnumerationElement {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new: :rxtype<literal>, "\0"
     }
+
+    method IMPL-CCLASS-ENUM-CHARS(%mods) { "\0" }
 }
 
 # A statement embedded in a regex, typically used for making a variable
@@ -864,9 +977,25 @@ class RakuAST::Regex::Assertion::CharClass is RakuAST::Regex::Assertion {
         my $first := $!elements[0];
         my $qast := $first.IMPL-CCLASS-QAST($context, %mods, True);
 
-        # TODO further elements
+        # Add further elements, exactly how depending on the exact nature of
+        # the elements
         if nqp::elems($!elements) > 1 {
-            nqp::die('complex cclass nyi');
+            my int $i := 1;
+            while $i < nqp::elems($!elements) {
+                my $elem := $!elements[$i];
+                my $elem-qast := $elem.IMPL-CCLASS-QAST($context, %mods, False);
+                if $elem.negated {
+                    $elem-qast.subtype('zerowidth');
+                    $qast := QAST::Regex.new:
+                        :rxtype<concat>, :subtype<zerowidth>, :negate,
+                        QAST::Regex.new( :rxtype<conj>, :subtype<zerowidth>, $elem-qast ),
+                        $qast;
+                }
+                else {
+                    $qast := QAST::Regex.new( :rxtype<alt>, $qast, $elem-qast );
+                }
+                $i++;
+            }
         }
 
         $qast
@@ -939,6 +1068,134 @@ class RakuAST::Regex::CharClassElement::Property is RakuAST::Regex::CharClassEle
 
     method visit-children(Code $visitor) {
         $visitor($!predicate) if $!predicate;
+    }
+}
+
+# A character class element that is a user-defined enumeration of characters,
+# including characters, ranges, and backslash sequences.
+class RakuAST::Regex::CharClassElement::Enumeration is RakuAST::Regex::CharClassElement {
+    has Mu $!elements;
+
+    method new(List :$elements!, Bool :$negated) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::CharClassElement, '$!negated',
+            $negated ?? True !! False);
+        my @elements := self.IMPL-UNWRAP-LIST($elements);
+        for @elements {
+            unless nqp::istype($_, RakuAST::Regex::CharClassEnumerationElement) {
+                nqp::die('Can only construct a RakuAST::Regex::CharClassElement with elements of type RakuAST::Regex::CharClassEnumerationElement')
+            }
+        }
+        nqp::bindattr($obj, RakuAST::Regex::CharClassElement::Enumeration, '$!elements',
+            @elements);
+        $obj
+    }
+
+    method elements() {
+        self.IMPL-WRAP-LIST($!elements)
+    }
+
+    method IMPL-CCLASS-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $first) {
+        # Go through the elements, which either produce characters to go into an
+        # enumeration or a QAST node.
+        my str $enum := '';
+        my @alts;
+        for $!elements {
+            my str $enum-contrib := $_.IMPL-CCLASS-ENUM-CHARS(%mods);
+            if $enum-contrib ne '' {
+                $enum := $enum ~ $enum-contrib;
+            }
+            else {
+                @alts.push($_.IMPL-CCLASS-ENUM-QAST($context, %mods, self.negated));
+            }
+        }
+
+        # If we collected characters, add the enumeration to the alternation
+        # parts we'll compile into.
+        if $enum {
+            @alts.push: QAST::Regex.new:
+                :rxtype<enumcharlist>, :negate(self.negated),
+                :subtype(%mods<m> ?? 'ignoremark' !! ''),
+                $enum
+        }
+
+        # A single alternation part can compile into just that.
+        if nqp::elems(@alts) == 1 {
+            @alts[0]
+        }
+
+        # An empty enumation always fails.
+        elsif nqp::elems(@alts) == 0 {
+            QAST::Regex.new( :rxtype<anchor>, :subtype<fail> )
+        }
+
+        else {
+            nqp::die('nyi cclass compilation')
+        }
+    }
+
+    method visit-children(Code $visitor) {
+        for $!elements {
+            $visitor($_);
+        }
+    }
+}
+
+# A single character in a character class enumeration (for example, the "a" in
+# `<[a]>`).
+class RakuAST::Regex::CharClassEnumerationElement::Character
+        is RakuAST::Regex::CharClassEnumerationElement {
+    has str $.character;
+
+    method new(str :$character!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Regex::CharClassEnumerationElement::Character,
+            '$!character', $character);
+        $obj
+    }
+
+    method IMPL-CCLASS-ENUM-CHARS(%mods) {
+        my str $c := %mods<m>
+            ?? nqp::chr(nqp::ordbaseat($!character, 0))
+            !! $!character;
+        %mods<i>
+            ?? nqp::fc($c) ~ nqp::uc($c)
+            !! $c
+    }
+}
+
+# A range of characters in a character class enumeration, for example the a..f
+# in `<[a..f]>`. Constructed with two integer codepoints, which means that a
+# number of problems are not possible at the AST level.
+class RakuAST::Regex::CharClassEnumerationElement::Range is RakuAST::CheckTime
+        is RakuAST::Regex::CharClassEnumerationElement {
+    has int $.from;
+    has int $.to;
+
+    method new(int :$from!, int :$to!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_i($obj, RakuAST::Regex::CharClassEnumerationElement::Range,
+            '$!from', $from);
+        nqp::bindattr_i($obj, RakuAST::Regex::CharClassEnumerationElement::Range,
+            '$!to', $to);
+        $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+        if $!from > $!to {
+            self.add-sorry: $resolver.build-exception: 'X::AdHoc',
+                payload => "Illegal reversed character range"
+        }
+    }
+
+    method IMPL-CCLASS-ENUM-QAST(RakuAST::IMPL::QASTContext $context, %mods, Bool $negate) {
+        QAST::Regex.new:
+            :rxtype<charrange>, :$negate,
+            %mods<m>
+                ?? (%mods<i> ?? 'ignorecase+ignoremark' !! 'ignoremark')
+                !! (%mods<i> ?? 'ignorecase' !! ''),
+            QAST::IVal.new( :value($!from) ),
+            QAST::IVal.new( :value($!to) )
     }
 }
 

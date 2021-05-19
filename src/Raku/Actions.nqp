@@ -1985,8 +1985,104 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                 :$property, :$inverted, :$predicate, :$negated;
         }
         else {
-            nqp::die('nyi actions for cclass_elem');
+            my @elements;
+            for $<charspec> {
+                if $_[1] {
+                    my int $from := extract_endpoint($_[0]);
+                    my int $to := extract_endpoint($_[1][0]);
+                    my $node := self.r('Regex', 'CharClassEnumerationElement', 'Range');
+                    @elements.push($node.new(:$from, :$to));
+                }
+                elsif $_[0]<cclass_backslash> {
+                    @elements.push($_[0]<cclass_backslash>.ast);
+                }
+                else {
+                    my $node := self.r('Regex', 'CharClassEnumerationElement', 'Character');
+                    @elements.push($node.new(:character(~$_[0])));
+                }
+            }
+            make self.r('Regex', 'CharClassElement', 'Enumeration').new(:@elements, :$negated);
         }
+    }
+
+    sub extract_endpoint($/) {
+        my str $chr;
+        if $<cclass_backslash> {
+            my $ast := $<cclass_backslash>.ast;
+            if $ast.range-endpoint -> $ok {
+                $chr := $ok;
+            }
+            else {
+                $/.panic("Illegal range endpoint: " ~ ~$/)
+            }
+        }
+        else {
+            $chr := ~$/;
+        }
+        %*RX<m>
+            ?? nqp::ordbaseat($chr, 0)
+            !! non_synthetic_ord($/, $chr)
+    }
+
+    sub non_synthetic_ord($/, $chr) {
+        my int $ord := nqp::ord($chr);
+        if nqp::chr($ord) ne $chr {
+            $/.panic("Cannot use $chr as a range endpoint, as it is not a single codepoint");
+        }
+        $ord
+    }
+
+    method cclass_backslash:sym<s>($/) {
+        self.backslash:sym<s>($/)
+    }
+
+    method cclass_backslash:sym<b>($/) {
+        self.attach: $/, self.r('Regex', 'CharClass', 'BackSpace').new(negated => $<sym> le 'Z');
+    }
+
+    method cclass_backslash:sym<e>($/) {
+        self.backslash:sym<e>($/)
+    }
+
+    method cclass_backslash:sym<f>($/) {
+        self.backslash:sym<f>($/)
+    }
+
+    method cclass_backslash:sym<h>($/) {
+        self.backslash:sym<h>($/)
+    }
+
+    method cclass_backslash:sym<r>($/) {
+        self.backslash:sym<r>($/)
+    }
+
+    method cclass_backslash:sym<t>($/) {
+        self.backslash:sym<t>($/)
+    }
+
+    method cclass_backslash:sym<v>($/) {
+        self.backslash:sym<v>($/)
+    }
+
+    method cclass_backslash:sym<o>($/) {
+        self.backslash:sym<o>($/)
+    }
+
+    method cclass_backslash:sym<x>($/) {
+        self.backslash:sym<x>($/)
+    }
+
+    method cclass_backslash:sym<c>($/) {
+        self.backslash:sym<c>($/)
+    }
+
+    method cclass_backslash:sym<0>($/) {
+        self.backslash:sym<0>($/)
+    }
+
+    method cclass_backslash:sym<any>($/) {
+        self.attach: $/,
+            self.r('Regex', 'CharClassEnumerationElement', 'Character').new(:character(~$/));
     }
 
     method mod_internal($/) {

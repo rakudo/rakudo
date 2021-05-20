@@ -704,7 +704,6 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 }
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
-    my \native-type = T;
 
     multi method WHICH(Buf:D:) { self.Mu::WHICH }
 

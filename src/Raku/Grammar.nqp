@@ -119,6 +119,26 @@ role Raku::Common {
         $lang.'!cursor_init'(self.orig(), :p(self.pos()), :shared(self.'!shared'())).nibbler().set_braid_from(self)
     }
 
+    method fail-terminator ($/, $start, $stop, $line?) {
+        my $message;
+        if $start ne nqp::chr(nqp::ord($start)) {
+            $message := "Starter $start is immediately followed by a combining codepoint. Please use {nqp::chr(nqp::ord($start))} without a combining glyph";
+            if $line {
+                $message := "$message ($start was at line $line)";
+            }
+        }
+        else {
+            $message := "Couldn't find terminator $stop";
+            if $line {
+                $message := "$message (corresponding $start was at line $line)";
+            }
+        }
+        $/.typed_panic('X::Comp::AdHoc',
+            payload => $message,
+            expected => [$stop]
+        );
+    }
+
     token quibble($l, *@base_tweaks) {
         :my $lang;
         :my $start;

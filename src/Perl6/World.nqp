@@ -5127,6 +5127,12 @@ class Perl6::World is HLL::World {
                 QAST::SVal.new( :value('GLOBAL') ) );
         }
 
+        if $*COMPILING_CORE_SETTING && +@name > 1 && @name[0] eq 'CORE' {
+            # PseudoStash is likely to be unavailable while CORE is compiled. Here we provide very basic support for
+            # CORE:: namespace for the core code itself.
+            return QAST::WVal.new( :value(self.find_symbol_in_setting(@name)) )
+        }
+
         # Handle things starting with pseudo-package.
         if self.is_pseudo_package(@name[0]) && @name[0] ne 'GLOBAL' && @name[0] ne 'PROCESS' {
             my $lookup;

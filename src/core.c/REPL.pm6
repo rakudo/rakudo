@@ -310,11 +310,11 @@ do {
 
         method repl-loop(:$no-exit, *%adverbs) {
 
-            if $*DISTRO.is-win {
-                say "To exit type 'exit' or '^Z'";
-            } else {
-                say "To exit type 'exit' or '^D'";
-            }
+            say $no-exit
+              ?? "Type 'exit' to leave"
+              !! $*DISTRO.is-win
+                ?? "To exit type 'exit' or '^Z'"
+                !! "To exit type 'exit' or '^D'";
 
             my $prompt;
             my $code;
@@ -326,7 +326,7 @@ do {
 
             REPL: loop {
                 my $newcode = self.repl-read(~$prompt);
-                last if $no-exit and $newcode eq 'exit';
+                last if $no-exit and $newcode and $newcode eq 'exit';
 
                 my $initial_out_position = $*OUT.tell;
 

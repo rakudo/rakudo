@@ -682,6 +682,69 @@ class RakuAST::Regex::Block is RakuAST::Regex::Atom {
     }
 }
 
+# An interpolation of a variable into a regex. While this is typically a
+# variable, in fact it could also be a contextualizer like `$(something())`,
+# thus it can be constructed with any expression.
+class RakuAST::Regex::Interpolation is RakuAST::Regex::Atom is RakuAST::ImplicitLookups {
+    has RakuAST::Expression $.var;
+    has Bool $.sequential;
+
+    method new(RakuAST::Expression :$var, Bool :$sequential) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Interpolation, '$!var', $var);
+        nqp::bindattr($obj, RakuAST::Regex::Interpolation, '$!sequential',
+            $sequential ?? True !! False);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
+        ])
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        # Look for fast paths.
+        if nqp::istype($!var, RakuAST::Lookup) && $!var.is-resolved {
+            my $resolution := $!var.resolution;
+            # TODO contant case
+            if !%mods<m> && nqp::istype($resolution, RakuAST::VarDeclaration::Simple) &&
+                    $resolution.sigil eq '$' {
+                my $type := $resolution.type;
+                if $type && $type.is-known-to-be(Str) {
+                    # Certainly a string.
+                    return QAST::Regex.new:
+                        :rxtype<subrule>, :subtype<method>,
+                        QAST::NodeList.new:
+                            QAST::SVal.new( :value('!LITERAL') ),
+                            $!var.IMPL-TO-QAST($context),
+                            QAST::IVal.new( :value(%mods<i> ?? 1 !! 0) )
+                }
+            }
+        }
+
+        # Fallback to slow path.
+        my $PseudoStash := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+        QAST::Regex.new:
+            :rxtype<subrule>, :subtype<method>,
+            QAST::NodeList.new:
+                QAST::SVal.new( :value('INTERPOLATE') ),
+                $!var.IMPL-TO-QAST($context),
+                QAST::IVal.new( :value((%mods<i> ?? 1 !! 0) + (%mods<m> ?? 2 !! 0)) ),
+                QAST::IVal.new( :value(0) ),
+                QAST::IVal.new( :value($!sequential ?? 1 !! 0) ),
+                QAST::IVal.new( :value(0) ),
+                QAST::Op.new(
+                    :op<callmethod>, :name<new>,
+                    $PseudoStash.IMPL-TO-QAST($context)
+                )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!var);
+    }
+}
+
 # The base of all regex assertions (things of the form `<...>`, such as subrule
 # calls, lookaheads, and user-defined character classes).
 class RakuAST::Regex::Assertion is RakuAST::Regex::Atom {

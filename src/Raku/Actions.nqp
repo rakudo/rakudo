@@ -1829,6 +1829,14 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Regex', 'Block').new($<codeblock>.ast);
     }
 
+    method metachar:sym<rakvar>($/) {
+        if $<var><sigil> eq '%' {
+            $<var>.typed_panic('X::Syntax::Reserved', :reserved('use of hash variables in regexes'))
+        }
+        my $sequential := $*SEQ ?? 1 !! 0;
+        self.attach: $/, self.r('Regex', 'Interpolation').new(:var($<var>.ast), :$sequential);
+    }
+
     method metachar:sym<qw>($/) {
         self.attach: $/, self.r('Regex', 'Quote').new($<nibble>.ast);
     }

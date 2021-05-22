@@ -1,5 +1,17 @@
 # Some kind of type (done by all kinds of things that result in a type).
 class RakuAST::Type is RakuAST::Term {
+    # Checks if the type is statically known to be some particular type
+    # (provided as the type object, not as another RakuAST node).
+    method is-known-to-be(Mu $type) {
+        nqp::die('Expected a type object') if nqp::isconcrete($type);
+        if nqp::istype(self, RakuAST::Lookup) && self.is-resolved {
+            my $resolution := self.resolution;
+            if nqp::istype($resolution, RakuAST::CompileTimeValue) {
+                return nqp::istype($resolution.compile-time-value, $type);
+            }
+        }
+        0
+    }
 }
 
 # A simple type name, e.g. Int, Foo::Bar, etc.

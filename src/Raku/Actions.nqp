@@ -1954,11 +1954,11 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method assertion:sym<?{ }>($/) {
-        make self.r('Regex', 'Assertion', 'Block').new(:block($<codeblock>.ast));
+        make self.r('Regex', 'Assertion', 'PredicateBlock').new(:block($<codeblock>.ast));
     }
 
     method assertion:sym<!{ }>($/) {
-        make self.r('Regex', 'Assertion', 'Block').new(:negated, :block($<codeblock>.ast));
+        make self.r('Regex', 'Assertion', 'PredicateBlock').new(:negated, :block($<codeblock>.ast));
     }
 
     method assertion:sym<[>($/) {

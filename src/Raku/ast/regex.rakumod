@@ -987,17 +987,17 @@ class RakuAST::Regex::Assertion::Lookahead is RakuAST::Regex::Assertion {
     }
 }
 
-# A lookahead assertion (where another assertion is evaluated as a
-# zerowidth lookahead, either positive or negative).
-class RakuAST::Regex::Assertion::Block is RakuAST::Regex::Assertion {
+# An assertion that evaluates a block of code and then decides whether to match
+# based on the boolification of the produced result.
+class RakuAST::Regex::Assertion::PredicateBlock is RakuAST::Regex::Assertion {
     has Bool $.negated;
     has RakuAST::Block $.block;
 
     method new(Bool :$negated, RakuAST::Block :$block!) {
         my $obj := nqp::create(self);
-        nqp::bindattr($obj, RakuAST::Regex::Assertion::Block, '$!negated',
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::PredicateBlock, '$!negated',
             $negated ?? True !! False);
-        nqp::bindattr($obj, RakuAST::Regex::Assertion::Block, '$!block', $block);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::PredicateBlock, '$!block', $block);
         $obj
     }
 

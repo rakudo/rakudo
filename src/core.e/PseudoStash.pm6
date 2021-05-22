@@ -416,20 +416,23 @@ my class PseudoStash is CORE::v6c::PseudoStash {
     my role CtxSymIterator does Iterator {
         has PseudoStash $!stash;
         has $!stash-mode;
+        has $!implementation-detail;
         has Mu $!ctx;
         has $!ctx-mode;
         has $!ctx-walker;
         has $!iter;
         has $!seen; # this also serves as "the first run" indicator.
 
-        method !SET-SELF(PseudoStash:D \pseudo) {
+        method !SET-SELF(PseudoStash:D \pseudo, $!implementation-detail) {
             $!stash := pseudo;
             $!ctx-walker := CtxWalker.new(pseudo); # Don't waste memory, create for chained modes only
             $!stash-mode := nqp::getattr(pseudo, PseudoStash6c, '$!mode'); # Cache for faster access
             self
         }
 
-        method new(PseudoStash:D \pseudo) { nqp::create(self)!SET-SELF(pseudo) }
+        method new(PseudoStash:D \pseudo, $implementation-detail = False) {
+            nqp::create(self)!SET-SELF(pseudo, $implementation-detail)
+        }
 
         # Switch to the next parent context if necessary
         method maybe-next-context() {
@@ -453,7 +456,10 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         # Like pull-one but doesn't return actual value. Skips non-dynamics in dynamic chains.
         method next-one() {
             my $got-one := 0;
+            my $non-dynamic := ! ( nqp::bitand_i($!stash-mode, REQUIRE_DYNAMIC)
+                                    || (nqp::defined($!ctx-mode) && $!ctx-mode == DYNAMIC_CHAIN) );
             my $sym;
+            my $value;
             nqp::while( # Repeat until got a candidate or no more contexts to iterate left
                 (!nqp::defined($!seen) || ($!ctx && !$got-one)),
                 nqp::stmts(
@@ -463,23 +469,22 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                         $!iter,
                         nqp::stmts(
                             nqp::shift($!iter),
-                            # We have candidate if the chain is not dynamic; or if container under the symbol is
+                            # We have a candidate if the chain is not dynamic; or if container under the symbol is
                             # dynamic.
                             ($sym := nqp::iterkey_s($!iter)),
+                            # Only pre-fetch value when we would need it.
+                            ($value := $non-dynamic && $!implementation-detail ?? Nil !! nqp::iterval($!iter)),
                             # The symbol has to be dynamic if pseudo-package is marked as requiring dynamics or if
                             # we'recurrently iterating over the dynamic chain.
-                            ($got-one := !nqp::atkey($!seen,$sym) && (
-                                            ! (
-                                                nqp::bitand_i($!stash-mode, REQUIRE_DYNAMIC)
-                                                || $!ctx-mode == DYNAMIC_CHAIN
-                                            )
-                                            || (try { nqp::iterval($!iter).VAR.dynamic })
-                                        ))
-                        )
-                    )
-                )
-            );
-            nqp::bindkey($!seen,$sym,1) if $got-one;
+                            nqp::if(
+                                ($got-one := ! nqp::atkey($!seen,$sym) && ($non-dynamic || (try { $value.VAR.dynamic }))),
+                                nqp::stmts(
+                                    nqp::bindkey($!seen, $sym, 1),
+                                    # We must skip an implementation detail candidate unless requested not to.
+                                    nqp::unless(
+                                        $!implementation-detail,
+                                        ($got-one := !(nqp::istype($value, Code)
+                                                        && $value.is-implementation-detail)))))))));
             $got-one
         }
     }
@@ -514,17 +519,34 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         }
     }
 
-    multi method iterator(PseudoStash:D: --> Iterator:D) { CtxSymIterator::Pairs.new(self) }
+    # The default iterator includes the implementation detail symbols.
+    multi method iterator(::?CLASS:D: --> Iterator:D) { CtxSymIterator::Pairs.new(self, :implementation-detail) }
 
-    multi method keys(PseudoStash:D: --> Seq:D) {
-        Seq.new(CtxSymIterator::Keys.new(self))
+    multi method keys(::?CLASS:D: :$implementation-detail --> Seq:D) {
+        Seq.new(CtxSymIterator::Keys.new(self, $implementation-detail))
     }
 
-    multi method values(PseudoStash:D: --> Seq:D) {
-        Seq.new(CtxSymIterator::Values.new(self))
+    multi method values(::?CLASS:D: :$implementation-detail --> Seq:D) {
+        Seq.new(CtxSymIterator::Values.new(self, $implementation-detail))
     }
 
-    method pseudo-package(PseudoStash:D: Str:D $name) is raw {
+    multi method kv(::?CLASS:D: :$implementation-detail --> Seq:D) {
+        Seq.new(CtxSymIterator::Pairs.new(self, $implementation-detail)).map: { (.key, .value).Slip }
+    }
+
+    multi method pairs(::?CLASS:D: :$implementation-detail --> Seq:D) {
+        Seq.new(CtxSymIterator::Pairs.new(self, $implementation-detail))
+    }
+
+    method sort(::?CLASS:D: :$implementation-detail --> Seq:D) {
+        Seq.new(CtxSymIterator::Pairs.new(self, $implementation-detail)).sort
+    }
+
+    multi method elems(::?CLASS:D: :$implementation-detail) {
+        Seq.new(CtxSymIterator::Values.new(self, $implementation-detail)).elems
+    }
+
+    method pseudo-package(::?CLASS:D: Str:D $name) is raw {
         nqp::setwho(
             ($!package := Metamodel::ModuleHOW.new_type(:$name)),
             self

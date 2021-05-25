@@ -1314,7 +1314,8 @@ class Perl6::Optimizer {
         # This is a hack to compensate for Test.pm6 using unspecified
         # behavior. The EVAL form of it should be deprecated and then
         # removed, at which point this can go away.
-        '&throws-like', NQPMu);
+        '&throws-like', NQPMu,
+        '&repl', NQPMu);
 
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.

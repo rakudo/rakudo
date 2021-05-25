@@ -246,9 +246,11 @@ do {
             $self but FallbackBehavior
         }
 
-        method new(Mu \compiler, Mu \adverbs) {
-            say compiler.version_string(:shorten-versions);
-            say '';
+        method new(Mu \compiler, Mu \adverbs, $skip?) {
+            unless $skip {
+                say compiler.version_string(:shorten-versions);
+                say '';
+            }
 
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
@@ -306,13 +308,13 @@ do {
 
         method interactive_prompt() { '> ' }
 
-        method repl-loop(*%adverbs) {
+        method repl-loop(:$no-exit, *%adverbs) {
 
-            if $*DISTRO.is-win {
-                say "To exit type 'exit' or '^Z'";
-            } else {
-                say "To exit type 'exit' or '^D'";
-            }
+            say $no-exit
+              ?? "Type 'exit' to leave"
+              !! $*DISTRO.is-win
+                ?? "To exit type 'exit' or '^Z'"
+                !! "To exit type 'exit' or '^D'";
 
             my $prompt;
             my $code;
@@ -324,6 +326,7 @@ do {
 
             REPL: loop {
                 my $newcode = self.repl-read(~$prompt);
+                last if $no-exit and $newcode and $newcode eq 'exit';
 
                 my $initial_out_position = $*OUT.tell;
 
@@ -441,6 +444,12 @@ do {
             $!history-file.absolute
         }
     }
+}
+
+sub repl(*%_) {
+    my $repl := REPL.new(nqp::getcomp("Raku"), %_, True);
+    nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
+    $repl.repl-loop(:no-exit);
 }
 
 # vim: expandtab shiftwidth=4

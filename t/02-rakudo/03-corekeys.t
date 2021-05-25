@@ -399,6 +399,7 @@ my @allowed =
       Q{&reduce},
       Q{&rename},
       Q{&repeated},
+      Q{&repl},
       Q{&return},
       Q{&return-rw},
       Q{&reverse},

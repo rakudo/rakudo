@@ -264,6 +264,14 @@ class RakuAST::Declaration is RakuAST::Node {
             !! $scope
     }
 
+    # Change the scope of this declaration. Passing the empty string will set
+    # it back to the default scope for this element type.
+    method replace-scope(str $scope) {
+        nqp::bindattr_s(self, RakuAST::Declaration, '$!scope',
+            $scope eq '' ?? nqp::null_s !! $scope);
+        Nil
+    }
+
     # Tests if this is a lexical declaration (`my` or `state` scope).
     method is-lexical() {
         my str $scope := self.scope;

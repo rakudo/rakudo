@@ -1068,6 +1068,34 @@ class RakuAST::Regex::Assertion::InterpolatedVar is RakuAST::Regex::Assertion
     }
 }
 
+# An assertion of the form <&foo> or <&foo($arg)>, which resolves the callable
+# (typically a lexical rules) and then calls it.
+class RakuAST::Regex::Assertion::Callable is RakuAST::Regex::Assertion {
+    has RakuAST::Expression $.callee;
+    has RakuAST::ArgList $.args;
+
+    method new(RakuAST::Expression :$callee!, Raku::ArgList :$args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Callable, '$!callee', $callee);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::Callable, '$!args',
+            $args // RakuAST::ArgList);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $node-list := QAST::NodeList.new:
+            QAST::SVal.new( :value('CALL_SUBRULE') ),
+            $!callee.IMPL-TO-QAST($context);
+        $!args.IMPL-ADD-QAST-ARGS($context, $node-list);
+        QAST::Regex.new( :rxtype<subrule>, :subtype<method>, $node-list )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!callee);
+        $visitor($!args) if $!args;
+    }
+}
+
 # An assertion that evaluates a block of code and then decides whether to match
 # based on the boolification of the produced result.
 class RakuAST::Regex::Assertion::PredicateBlock is RakuAST::Regex::Assertion {

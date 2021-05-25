@@ -1955,7 +1955,9 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method assertion:sym<{ }>($/) {
-        make self.r('Regex', 'Assertion', 'InterpolatedBlock').new(:block($<codeblock>.ast));
+        my $sequential := $*SEQ ?? 1 !! 0;
+        make self.r('Regex', 'Assertion', 'InterpolatedBlock').new:
+            :block($<codeblock>.ast), :$sequential;
     }
 
     method assertion:sym<?{ }>($/) {
@@ -1964,6 +1966,17 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method assertion:sym<!{ }>($/) {
         make self.r('Regex', 'Assertion', 'PredicateBlock').new(:negated, :block($<codeblock>.ast));
+    }
+
+    method assertion:sym<var>($/) {
+        if $<call> {
+            nqp::die('nyi')
+        }
+        else {
+            my $sequential := $*SEQ ?? 1 !! 0;
+            make self.r('Regex', 'Assertion', 'InterpolatedVar').new:
+                :var($<var>.ast), :$sequential;
+        }
     }
 
     method assertion:sym<[>($/) {

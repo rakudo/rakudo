@@ -1956,16 +1956,18 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method assertion:sym<{ }>($/) {
         my $sequential := $*SEQ ?? 1 !! 0;
-        make self.r('Regex', 'Assertion', 'InterpolatedBlock').new:
+        self.attach: $/, self.r('Regex', 'Assertion', 'InterpolatedBlock').new:
             :block($<codeblock>.ast), :$sequential;
     }
 
     method assertion:sym<?{ }>($/) {
-        make self.r('Regex', 'Assertion', 'PredicateBlock').new(:block($<codeblock>.ast));
+        self.attach: $/, self.r('Regex', 'Assertion', 'PredicateBlock').new:
+            :block($<codeblock>.ast);
     }
 
     method assertion:sym<!{ }>($/) {
-        make self.r('Regex', 'Assertion', 'PredicateBlock').new(:negated, :block($<codeblock>.ast));
+        self.attach: $/, self.r('Regex', 'Assertion', 'PredicateBlock').new:
+            :negated, :block($<codeblock>.ast);
     }
 
     method assertion:sym<var>($/) {
@@ -1974,7 +1976,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         }
         else {
             my $sequential := $*SEQ ?? 1 !! 0;
-            make self.r('Regex', 'Assertion', 'InterpolatedVar').new:
+            self.attach: $/, self.r('Regex', 'Assertion', 'InterpolatedVar').new:
                 :var($<var>.ast), :$sequential;
         }
     }
@@ -1993,13 +1995,14 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             @asts.push(@elems[$i].ast);
             $i++;
         }
-        make self.r('Regex', 'Assertion', 'CharClass').new(|@asts);
+        self.attach: $/, self.r('Regex', 'Assertion', 'CharClass').new(|@asts);
     }
 
     method cclass_elem($/) {
         my int $negated := $<sign> eq '-';
         if $<name> {
-            make self.r('Regex', 'CharClassElement', 'Rule').new(:name(~$<name>), :$negated);
+            self.attach: $/, self.r('Regex', 'CharClassElement', 'Rule').new:
+                :name(~$<name>), :$negated;
         }
         elsif $<identifier> {
             my str $property := ~$<identifier>;
@@ -2007,7 +2010,7 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
             my $predicate := $<coloncircumfix>
                 ?? $<coloncircumfix>.ast
                 !! self.r('Expression');
-            make self.r('Regex', 'CharClassElement', 'Property').new:
+            self.attach: $/, self.r('Regex', 'CharClassElement', 'Property').new:
                 :$property, :$inverted, :$predicate, :$negated;
         }
         else {
@@ -2027,7 +2030,8 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                     @elements.push($node.new(:character(~$_[0])));
                 }
             }
-            make self.r('Regex', 'CharClassElement', 'Enumeration').new(:@elements, :$negated);
+            self.attach: $/, self.r('Regex', 'CharClassElement', 'Enumeration').new:
+                :@elements, :$negated;
         }
     }
 

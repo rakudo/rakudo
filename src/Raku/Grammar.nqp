@@ -3008,6 +3008,17 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         '!' <?before '{'> <codeblock>
     }
 
+    token assertion:sym<var> {
+        [
+        | <?[&]> <!RESTRICTED> <call=.LANG('MAIN', 'term:sym<variable>')>
+            [
+            | ':' <arglist>
+            | '(' <arglist> ')'
+            ]?
+        | <?sigil> <!RESTRICTED> <var=.LANG('MAIN', 'term:sym<variable>')>
+        ]
+    }
+
     token codeblock {
         :my $*ESCAPEBLOCK := 1;
         <!RESTRICTED>

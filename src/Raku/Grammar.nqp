@@ -1517,6 +1517,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         || <.ws>
            [
            | <DECL=declarator>
+           | <DECL=regex_declarator>
            | <DECL=package_declarator>
            | [<typename><.ws>]+
              {

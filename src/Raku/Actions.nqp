@@ -1437,6 +1437,7 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
         # Register it with the resolver.
         my $scope := $*SCOPE || $*DEFAULT-SCOPE;
+        $*BLOCK.replace-scope($scope);
         if $scope eq 'my' {
             $*R.declare-lexical-in-outer($*BLOCK);
         }

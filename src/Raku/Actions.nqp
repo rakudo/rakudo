@@ -1972,7 +1972,10 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method assertion:sym<var>($/) {
         if $<call> {
-            nqp::die('nyi')
+            my $node := self.r('Regex', 'Assertion', 'Callable');
+            self.attach: $/, $<arglist>
+                ?? $node.new(:callee($<call>.ast), :args($<arglist>.ast))
+                !! $node.new(:callee($<call>.ast));
         }
         else {
             my $sequential := $*SEQ ?? 1 !! 0;

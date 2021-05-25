@@ -987,6 +987,49 @@ class RakuAST::Regex::Assertion::Lookahead is RakuAST::Regex::Assertion {
     }
 }
 
+# An assertion that evaluates a block of code and then interpolates the result,
+# treating it as code to be evaluated.
+class RakuAST::Regex::Assertion::InterpolatedBlock is RakuAST::Regex::Assertion
+        is RakuAST::ImplicitLookups {
+    has RakuAST::Block $.block;
+    has Bool $.sequential;
+
+    method new(RakuAST::Block :$block!, Bool :$sequential) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::InterpolatedBlock, '$!block', $block);
+        nqp::bindattr($obj, RakuAST::Regex::Assertion::InterpolatedBlock, '$!sequential',
+            $sequential ?? True !! False);
+        $obj
+    }
+
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        self.IMPL-WRAP-LIST([
+            RakuAST::Type::Setting.new(RakuAST::Name.from-identifier('PseudoStash')),
+        ])
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $PseudoStash := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
+        QAST::Regex.new:
+            :rxtype<subrule>, :subtype<method>,
+            QAST::NodeList.new:
+                QAST::SVal.new( :value('INTERPOLATE_ASSERTION') ),
+                self.IMPL-REGEX-BLOCK-CALL($context, $!block),
+                QAST::IVal.new( :value((%mods<i> ?? 1 !! 0) + (%mods<m> ?? 2 !! 0)) ),
+                QAST::IVal.new( :value(0) ), # XXX 1 if MONKEY-SEE-NO-EVAL
+                QAST::IVal.new( :value($!sequential ?? 1 !! 0) ),
+                QAST::IVal.new( :value(1) ),
+                QAST::Op.new(
+                    :op<callmethod>, :name<new>,
+                    $PseudoStash.IMPL-TO-QAST($context)
+                )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!block);
+    }
+}
+
 # An assertion that evaluates a block of code and then decides whether to match
 # based on the boolification of the produced result.
 class RakuAST::Regex::Assertion::PredicateBlock is RakuAST::Regex::Assertion {

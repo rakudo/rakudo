@@ -2996,6 +2996,10 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
             ]?
     }
 
+    token assertion:sym<{ }> {
+        <?[{]> <codeblock>
+    }
+
     token assertion:sym<?{ }> {
         '?' <?before '{'> <codeblock>
     }

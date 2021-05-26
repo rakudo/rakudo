@@ -69,7 +69,9 @@ class RakuAST::Regex::Branching is RakuAST::Regex {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $qast := QAST::Regex.new(:rxtype(self.IMPL-QAST-REGEX-TYPE));
         for $!branches {
-            $qast.push($_.IMPL-REGEX-QAST($context, %mods));
+            my $branch-qast := $_.IMPL-REGEX-QAST($context, %mods);
+            $branch-qast.backtrack('r') if %mods<r> && !$branch-qast.backtrack;
+            $qast.push($branch-qast);
         }
         $qast
     }
@@ -119,8 +121,11 @@ class RakuAST::Regex::Sequence is RakuAST::Regex {
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $concat := QAST::Regex.new(:rxtype<concat>);
         for $!terms {
-            my $ast := $_.IMPL-REGEX-QAST($context, %mods);
-            $concat.push($ast) if $ast;
+            my $qast := $_.IMPL-REGEX-QAST($context, %mods);
+            if $qast {
+                $qast.backtrack('r') if %mods<r> && !$qast.backtrack;
+                $concat.push($qast);
+            }
         }
         $concat
     }
@@ -1585,7 +1590,31 @@ class RakuAST::Regex::Quantifier::BlockRange is RakuAST::Regex::Quantifier {
     }
 
     method visit-children(Code $visitor) {
+        $visitor(self.backtrack);
         $visitor($!block);
+    }
+}
+
+# An atom followed by a backtracking modifier.
+class RakuAST::Regex::BacktrackModifiedAtom is RakuAST::Regex::Term {
+    has RakuAST::Atom $.atom;
+    has RakuAST::Regex::Backtrack $.backtrack;
+
+    method new(RakuAST::Atom :$atom!, RakuAST::Regex::Backtrack :$backtrack!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::BacktrackModifiedAtom, '$!atom', $atom);
+        nqp::bindattr($obj, RakuAST::Regex::BacktrackModifiedAtom, '$!backtrack', $backtrack);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $atom := $!atom.IMPL-REGEX-QAST($context, %mods);
+        $atom.backtrack ?? $atom !! $!backtrack.IMPL-QAST-APPLY($atom, %mods)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!atom);
+        $visitor($!backtrack);
     }
 }
 

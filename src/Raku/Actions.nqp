@@ -1692,9 +1692,15 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         else {
             if $<separator> {
                 $/.panic("'" ~ $<separator><septype> ~
-                    "' may only be used immediately following a quantifier")
+                    "' may only be used immediately following a quantifier");
             }
-            self.attach: $/, $atom;
+            if $<backmod> {
+                self.attach: $/, self.r('Regex', 'BacktrackModifiedAtom').new:
+                    :$atom, :backtrack($<backmod>.ast);
+            }
+            else {
+                self.attach: $/, $atom;
+            }
         }
     }
 
@@ -1749,16 +1755,16 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     method backmod($/) {
         my str $backmod := ~$/;
         if $backmod eq ':' {
-            self.r('Regex', 'Backtrack', 'Ratchet')
+            self.attach: $/, self.r('Regex', 'Backtrack', 'Ratchet')
         }
         elsif $backmod eq ':?' || $backmod eq '?' {
-            self.r('Regex', 'Backtrack', 'Frugal')
+            self.attach: $/, self.r('Regex', 'Backtrack', 'Frugal')
         }
         elsif $backmod eq ':!' || $backmod eq '!' {
-            self.r('Regex', 'Backtrack', 'Greedy')
+            self.attach: $/, self.r('Regex', 'Backtrack', 'Greedy')
         }
         else {
-            self.r('Regex', 'Backtrack')
+            self.attach: $/, self.r('Regex', 'Backtrack')
         }
     }
 

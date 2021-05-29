@@ -25,6 +25,21 @@ my class Regex { # declared in BOOTSTRAP
     my $braid := $cursor.braid;
     my $fail_cursor := $cursor.'!cursor_start_cur'();
 
+    # This is basically the same as .ACCEPTS, but does *not* create a
+    # relatively expensive Match object when a match was found.  This
+    # is intended for situations like .grep(Regex) or .first(Regex)
+    method ACCEPTS-AS-BOOL(Regex:D \SELF: Any \topic) is implementation-detail {
+        nqp::hllbool(
+          nqp::isge_i(
+            nqp::getattr_i(
+              SELF.(Match.'!cursor_init'(topic, :c(0), :$braid, :$fail_cursor)),
+              Match,
+              '$!pos'
+            ),
+            0
+          )
+        )
+    }
     multi method ACCEPTS(Regex:D \SELF: Any \topic) {
         my $slash := nqp::getlexrelcaller(
           nqp::ctxcallerskipthunks(nqp::ctx()),

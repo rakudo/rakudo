@@ -1029,6 +1029,27 @@ Consider using a block if any of these are necessary for your mapping code."
         )
     }
 
+    my class Grep-Regex does Grepper {
+        method pull-one() is raw {
+            nqp::until(
+              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                || $!test.ACCEPTS-AS-BOOL($_),
+              nqp::null
+            );
+            $_
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::until(
+              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+              nqp::if(  # doesn't sink
+                $!test.ACCEPTS-AS-BOOL($_),
+                target.push($_)
+              )
+            );
+        }
+    }
+    method !grep-regex(Mu $test) { Seq.new(Grep-Regex.new(self,$test)) }
+
     my class Grep-Accepts does Grepper {
         method pull-one() is raw {
             nqp::until(
@@ -1110,7 +1131,7 @@ Consider using a block if any of these are necessary for your mapping code."
         my $storage := nqp::getattr(%_,Map,'$!storage');
         if nqp::iseq_i(nqp::elems($storage),0) {
             nqp::istype($t,Regex:D)
-              ?? self!grep-accepts: $t
+              ?? self!grep-regex: $t
               !! nqp::istype($t,Callable:D)
                    ?? self!grep-callable: $t
                    !! self!grep-accepts: $t
@@ -1139,7 +1160,7 @@ Consider using a block if any of these are necessary for your mapping code."
             }
             elsif nqp::atkey($storage,"v") {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-accepts: $t
+                  ?? self!grep-regex: $t
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-callable: self!wrap-callable-for-grep($t)
                        !! self!grep-accepts: $t
@@ -1149,7 +1170,7 @@ Consider using a block if any of these are necessary for your mapping code."
                   nqp::iterkey_s(nqp::shift(nqp::iterator($storage)));
                 if nqp::iseq_s($key,"k") || nqp::iseq_s($key,"kv") || nqp::iseq_s($key,"p") {
                     nqp::istype($t,Regex:D)
-                      ?? self!grep-accepts: $t
+                      ?? self!grep-regex: $t
                       !! nqp::istype($t,Callable:D)
                            ?? self!grep-callable: self!wrap-callable-for-grep($t)
                            !! self!grep-accepts: $t
@@ -1192,8 +1213,8 @@ Consider using a block if any of these are necessary for your mapping code."
     # need to handle Regex differently, since it is also Callable
     multi method first(Regex:D $test, :$end, *%a) is raw {
         $end
-          ?? self!first-accepts-end($test,%a)
-          !! self!first-accepts($test,%a)
+          ?? self!first-regex-end($test,%a)
+          !! self!first-regex($test,%a)
     }
     multi method first(Callable:D $test, :$end, *%a is copy) is raw {
         if $end {
@@ -1243,7 +1264,40 @@ Consider using a block if any of these are necessary for your mapping code."
             ?? self.tail
             !! self.head
     }
-    method !first-accepts(Mu $test,%a) is raw {
+    method !first-regex(Mu $test, %a) is raw {
+        my $iter := self.iterator;
+        my int $index;
+
+        nqp::until(
+          nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
+            || $test.ACCEPTS-AS-BOOL($_),
+          ($index = nqp::add_i($index,1))
+        );
+
+        nqp::eqaddr($_,IterationEnd)
+          ?? Nil
+          !! self!first-result($index,$_,'first',%a)
+    }
+    method !first-regex-end(Mu $test, %a) is raw {
+        my $elems = self.elems;
+        nqp::if(
+          ($elems && nqp::not_i($elems == Inf)),
+          nqp::stmts(
+            (my int $index = $elems),
+            nqp::while(
+              nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+              nqp::if(
+                $test.ACCEPTS-AS-BOOL(self.AT-POS($index)),
+                return self!first-result(
+                  $index,self.AT-POS($index),'first :end',%a)
+              )
+            ),
+            Nil
+          ),
+          Nil
+        )
+    }
+    method !first-accepts(Mu $test, %a) is raw {
         my $iter := self.iterator;
         my int $index;
 
@@ -1257,7 +1311,7 @@ Consider using a block if any of these are necessary for your mapping code."
           ?? Nil
           !! self!first-result($index,$_,'first',%a)
     }
-    method !first-accepts-end(Mu $test,%a) is raw {
+    method !first-accepts-end(Mu $test, %a) is raw {
         my $elems = self.elems;
         nqp::if(
           ($elems && nqp::not_i($elems == Inf)),

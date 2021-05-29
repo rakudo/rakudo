@@ -1029,11 +1029,27 @@ Consider using a block if any of these are necessary for your mapping code."
         )
     }
 
+    # Create a braid and fail cursor that we can use with all the normal,
+    # "boring", regex matches that are on the Regex type. This saves them
+    # being created every single time.
+    my $cursor := Match.'!cursor_init'('');
+    my $braid := $cursor.braid;
+    my $fail_cursor := $cursor.'!cursor_start_cur'();
+
     my class Grep-Regex does Grepper {
         method pull-one() is raw {
             nqp::until(
               nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
-                || $!test.ACCEPTS-AS-BOOL($_),
+                || nqp::isge_i(
+                     nqp::getattr_i(
+                       $!test.(Match.'!cursor_init'(
+                         .Str, :c(0), :$braid, :$fail_cursor
+                       )),
+                       Match,
+                       '$!pos'
+                     ),
+                     0
+                   ),
               nqp::null
             );
             $_
@@ -1042,7 +1058,16 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::until(
               nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
               nqp::if(  # doesn't sink
-                $!test.ACCEPTS-AS-BOOL($_),
+                nqp::isge_i(
+                  nqp::getattr_i(
+                    $!test.(Match.'!cursor_init'(
+                      .Str, :c(0), :$braid, :$fail_cursor
+                    )),
+                    Match,
+                    '$!pos'
+                  ),
+                  0
+                ),
                 target.push($_)
               )
             );
@@ -1270,7 +1295,16 @@ Consider using a block if any of these are necessary for your mapping code."
 
         nqp::until(
           nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
-            || $test.ACCEPTS-AS-BOOL($_),
+            || nqp::isge_i(
+                 nqp::getattr_i(
+                   $test.(Match.'!cursor_init'(
+                     .Str, :c(0), :$braid, :$fail_cursor
+                   )),
+                   Match,
+                   '$!pos'
+                 ),
+                 0
+               ),
           ($index = nqp::add_i($index,1))
         );
 
@@ -1287,7 +1321,16 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::while(
               nqp::isge_i(($index = nqp::sub_i($index,1)),0),
               nqp::if(
-                $test.ACCEPTS-AS-BOOL(self.AT-POS($index)),
+                nqp::isge_i(
+                  nqp::getattr_i(
+                    $test.(Match.'!cursor_init'(
+                      self.AT-POS($index).Str, :c(0), :$braid, :$fail_cursor
+                    )),
+                    Match,
+                    '$!pos'
+                  ),
+                  0
+                ),
                 return self!first-result(
                   $index,self.AT-POS($index),'first :end',%a)
               )

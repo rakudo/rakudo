@@ -992,6 +992,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
         method is-deterministic(--> False) { }
     }
+    multi method pick(List:D: HyperWhatever) {
+        self.pick(*).Slip xx *
+    }
     multi method pick(List:D: $number is copy) {
         return self.fail-iterator-cannot-be-lazy('.pick from') if self.is-lazy;
         my Int $elems = self.elems;

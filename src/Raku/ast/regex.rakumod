@@ -677,6 +677,8 @@ class RakuAST::Regex::Block is RakuAST::Regex::Atom {
         $obj
     }
 
+    method quantifiable() { False }
+
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $block-call := self.IMPL-REGEX-BLOCK-CALL($context, $!block);
         QAST::Regex.new( $block-call, :rxtype<qastnode> )
@@ -1114,6 +1116,8 @@ class RakuAST::Regex::Assertion::PredicateBlock is RakuAST::Regex::Assertion {
         nqp::bindattr($obj, RakuAST::Regex::Assertion::PredicateBlock, '$!block', $block);
         $obj
     }
+
+    method quantifiable() { False }
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         QAST::Regex.new:

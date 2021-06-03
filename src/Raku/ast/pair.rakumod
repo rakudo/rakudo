@@ -78,8 +78,12 @@ class RakuAST::ColonPair is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST
     }
 }
 
+# The base of colonpairs that can be placed as adverbs on a quote construct.
+class RakuAST::QuotePair is RakuAST::ColonPair {
+}
+
 # A truthy colonpair (:foo).
-class RakuAST::ColonPair::True is RakuAST::ColonPair {
+class RakuAST::ColonPair::True is RakuAST::QuotePair {
     method new(Str :$key!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
@@ -95,6 +99,8 @@ class RakuAST::ColonPair::True is RakuAST::ColonPair {
     method value() {
         RakuAST::Declaration::ResolvedConstant.new(compile-time-value => True)
     }
+
+    method simple-compile-time-quote-value() { True }
 
     method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := True;
@@ -112,7 +118,7 @@ class RakuAST::ColonPair::True is RakuAST::ColonPair {
 }
 
 # A falsey colonpair (:!foo).
-class RakuAST::ColonPair::False is RakuAST::ColonPair {
+class RakuAST::ColonPair::False is RakuAST::QuotePair {
     method new(Str :$key!) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::ColonPair, '$!key', $key);
@@ -129,6 +135,8 @@ class RakuAST::ColonPair::False is RakuAST::ColonPair {
         RakuAST::Declaration::ResolvedConstant.new(compile-time-value => False),
     }
     
+    method simple-compile-time-quote-value() { False }
+
     method IMPL-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := False;
         $context.ensure-sc($value);
@@ -145,7 +153,7 @@ class RakuAST::ColonPair::False is RakuAST::ColonPair {
 }
 
 # A number colonpair (:2th).
-class RakuAST::ColonPair::Number is RakuAST::ColonPair {
+class RakuAST::ColonPair::Number is RakuAST::QuotePair {
     has RakuAST::IntLiteral $.value;
 
     method new(Str :$key!, RakuAST::IntLiteral :$value) {
@@ -154,6 +162,8 @@ class RakuAST::ColonPair::Number is RakuAST::ColonPair {
         nqp::bindattr($obj, RakuAST::ColonPair::Number, '$!value', $value);
         $obj
     }
+
+    method simple-compile-time-quote-value() { $!value.value }
 
     method visit-children(Code $visitor) {
         $visitor($!value);
@@ -169,7 +179,7 @@ class RakuAST::ColonPair::Number is RakuAST::ColonPair {
 }
 
 # A colonpair with a value (:foo(42)).
-class RakuAST::ColonPair::Value is RakuAST::ColonPair {
+class RakuAST::ColonPair::Value is RakuAST::QuotePair {
     has RakuAST::Expression $.value;
 
     method new(Str :$key!, RakuAST::Expression :$value) {
@@ -181,6 +191,11 @@ class RakuAST::ColonPair::Value is RakuAST::ColonPair {
 
     method visit-children(Code $visitor) {
         $visitor($!value);
+    }
+
+    method simple-compile-time-quote-value() {
+        # TODO various cases we can handle here
+        Nil
     }
 
     method IMPL-CAN-INTERPRET() { $!value.IMPL-CAN-INTERPRET }

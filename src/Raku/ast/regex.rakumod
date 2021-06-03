@@ -49,6 +49,17 @@ class RakuAST::Regex is RakuAST::Node {
         }
         $qast
     }
+
+    method IMPL-SUBRULE-ALIAS(Mu $qast, str $name) {
+        if $qast.name gt '' {
+            $qast.name($name ~ '=' ~ $qast.name);
+        }
+        else {
+            $qast.name($name);
+        }
+        $qast.subtype('capture');
+        $qast
+    }
 }
 
 # Common role done by all branching regex constructs (alternations and conjunctions).
@@ -298,6 +309,42 @@ class RakuAST::Regex::CapturingGroup is RakuAST::Regex::Atom is RakuAST::RegexTh
             QAST::NodeList.new(QAST::Var.new( :$name, :scope('lexical') )),
             $body-qast
         )
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!regex);
+    }
+}
+
+# A named capture, of the form $<name>=quantified-atom.
+class RakuAST::Regex::NamedCapture is RakuAST::Regex::Atom {
+    has str $.name;
+    has Bool $.array;
+    has RakuAST::Term $.regex;
+
+    method new(str :$name!, Bool :$array, RakuAST::Term :$regex!) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Regex::NamedCapture, '$!name', $name);
+        nqp::bindattr($obj, RakuAST::Regex::NamedCapture, '$!array',
+            $array ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Regex::NamedCapture, '$!regex', $regex);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        my $qast := $!regex.IMPL-REGEX-QAST($context, %mods);
+        if ($qast.rxtype eq 'quant' || $qast.rxtype eq 'dynquant') &&
+                $qast[0].rxtype eq 'subrule' {
+            self.IMPL-SUBRULE-ALIAS($qast[0], $!name);
+        }
+        elsif $qast.rxtype eq 'subrule' {
+            self.IMPL-SUBRULE-ALIAS($qast, $!name);
+            $qast := QAST::Regex.new( :rxtype<quant>, :min(1), :max(1), $qast) if $!array;
+        }
+        else {
+            $qast := QAST::Regex.new( :rxtype<subcapture>, :name($!name), $qast );
+        }
+        $qast
     }
 
     method visit-children(Code $visitor) {
@@ -1003,17 +1050,6 @@ class RakuAST::Regex::Assertion::Alias is RakuAST::Regex::Assertion {
         else {
             QAST::Regex.new( $qast, :name($!name), :rxtype<subcapture> );
         }
-    }
-
-    method IMPL-SUBRULE-ALIAS(Mu $qast, str $name) {
-        if $qast.name gt '' {
-            $qast.name($name ~ '=' ~ $qast.name);
-        }
-        else {
-            $qast.name($name);
-        }
-        $qast.subtype('capture');
-        $qast
     }
 
     method visit-children(Code $visitor) {

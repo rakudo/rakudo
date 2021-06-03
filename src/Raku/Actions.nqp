@@ -1676,17 +1676,19 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
     }
 
     method quantified_atom($/) {
-        my $atom := $<atom>.ast;
+        my $atom := self.wrap-sigspace: $<sigmaybe>, $<atom>.ast;
         if $<quantifier> {
             my $quantifier := $<quantifier>.ast;
             if $<separator> {
                 my $separator := $<separator>.ast;
                 my $trailing-separator := $<separator><septype> eq '%%';
-                self.attach: $/, self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier,
-                    :$separator, :$trailing-separator);
+                self.attach: $/, self.wrap-sigspace: $<sigfinal>,
+                    self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier,
+                        :$separator, :$trailing-separator);
             }
             else {
-                self.attach: $/, self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier);
+                self.attach: $/, self.wrap-sigspace: $<sigfinal>,
+                    self.r('Regex', 'QuantifiedAtom').new(:$atom, :$quantifier);
             }
         }
         else {
@@ -1695,14 +1697,24 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
                     "' may only be used immediately following a quantifier");
             }
             if $<backmod> {
-                self.attach: $/, self.r('Regex', 'BacktrackModifiedAtom').new:
-                    :$atom, :backtrack($<backmod>.ast);
+                self.attach: $/, self.wrap-sigspace: $<sigfinal>,
+                    self.r('Regex', 'BacktrackModifiedAtom').new:
+                        :$atom, :backtrack($<backmod>.ast);
             }
             else {
-                self.attach: $/, $atom;
+                self.attach: $/, self.wrap-sigspace: $<sigfinal>, $atom;
             }
         }
     }
+
+    method wrap-sigspace($cond, $ast) {
+        $cond && $cond.ast
+            ?? self.r('Regex', 'WithSigspace').new($ast)
+            !! $ast
+    }
+
+    method sigmaybe:sym<normspace>($/) { make 0; }
+    method sigmaybe:sym<sigwhite>($/) { make 1; }
 
     method atom($/) {
         if $<metachar> {

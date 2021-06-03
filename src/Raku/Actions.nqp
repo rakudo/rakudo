@@ -1240,6 +1240,57 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('QuotedRegex').new(body => $<quibble>.ast, :match-immediately);
     }
 
+    # We make a list of the quotepairs to attach them to the regex
+    # construct; validation of what is valid takes place in the AST.
+    # However, a limited number of them are required for parsing the
+    # regex and constructing its AST correctly. Of note, these are
+    # s (sigspace, as it controls how whitespce is parsed), m (so we
+    # can construct character class ranges correctly), and P5 (Perl5,
+    # so we know which regex language to parse). These get special
+    # handling.
+    my %RX_ADVERB_COMPILE := nqp::hash('s', 1, 'm', 1, 'P5', 1);
+    my %RX_ADVERB_COMPILE_CANON := nqp::hash(
+        'sigspace', 's',
+        'ignoremark', 'm',
+        'Perl5', 'P5');
+    method rx_adverbs($/) {
+        my @pairs;
+        for $<quotepair> {
+            my $ast := $_.ast;
+            @pairs.push($ast);
+            my str $key := $ast.key;
+            my str $canon := %RX_ADVERB_COMPILE_CANON{$key} // $key;
+            if %RX_ADVERB_COMPILE{$canon} {
+                my $value := $ast.simple-compile-time-quote-value();
+                if nqp::isconcrete($value) {
+                    %*RX{$canon} := $value ?? 1 !! 0;
+                }
+                else {
+                    $_.typed_panic('X::Value::Dynamic', what => "Adverb $key");
+                }
+            }
+        }
+        make @pairs;
+    }
+
+    method quotepair($/) {
+        my $key := $*LITERALS.intern-str($*key);
+        if $<num> {
+            my $value := self.r('IntLiteral').new($*LITERALS.intern-int(~$<num>, 10));
+            self.attach: $/, self.r('ColonPair', 'Number').new(:$key, :$value);
+        }
+        elsif $<circumfix> {
+            my $value := $<circumfix>.ast;
+            self.attach: $/, self.r('ColonPair', 'Value').new(:$key, :$value);
+        }
+        elsif $<neg> {
+            self.attach: $/, self.r('ColonPair', 'False').new(:$key);
+        }
+        else {
+            self.attach: $/, self.r('ColonPair', 'True').new(:$key);
+        }
+    }
+
     ##
     ## Types
     ##

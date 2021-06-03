@@ -1424,7 +1424,6 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token colonpair {
         :my $*key;
-
         ':'
         :dba('colon pair')
         [
@@ -1433,23 +1432,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             $/.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
             { $*key := $<identifier>.Str }
         | $<num> = [\d+] <identifier> [ <?before <.[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
-            <?{
-                # Here we go over each character in the numeral and check $ch.chr eq $ch.ord.chr
-                # to fail any matches that have synthetics, such as 7\x[308]
-                my $num       := ~$<num>;
-                my $chars-num := nqp::chars($num);
-                my $pos       := -1;
-                nqp::while(
-                    nqp::islt_i( ($pos := nqp::add_i($pos, 1)), $chars-num )
-                    && nqp::eqat(
-                        $num,
-                        nqp::chr( nqp::ord($num, $pos) ),
-                        $pos,
-                    ),
-                    nqp::null,
-                );
-                nqp::iseq_i($chars-num, $pos);
-            }>
+            <?{ self.no-synthetics(~$<num>) }>
             { $*key := $<identifier>.Str }
         | <identifier>
             { $*key := $<identifier>.Str }
@@ -1457,6 +1440,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | <var=.colonpair_variable>
             { $*key := $<var><desigilname>.Str }
         ]
+    }
+
+    method no-synthetics($num) {
+        # Here we go over each character in the numeral and check $ch.chr eq $ch.ord.chr
+        # to fail any matches that have synthetics, such as 7\x[308]
+        my $chars-num := nqp::chars($num);
+        my $pos       := -1;
+        nqp::while(
+            nqp::islt_i( ($pos := nqp::add_i($pos, 1)), $chars-num )
+            && nqp::eqat(
+                $num,
+                nqp::chr( nqp::ord($num, $pos) ),
+                $pos,
+            ),
+            nqp::null,
+        );
+        nqp::iseq_i($chars-num, $pos);
     }
 
     token coloncircumfix($front) {
@@ -1923,7 +1923,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my %*RX;
         :my $*INTERPOLATE := 1;
         {} <.qok($/)>
-#        <rx_adverbs>
+        <rx_adverbs>
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
         <!old_rx_mods>
     }
@@ -1933,7 +1933,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         :my $*INTERPOLATE := 1;
         { %*RX<s> := 1 if $/[0] }
         <.qok($/)>
-#        <rx_adverbs>
+        <rx_adverbs>
         <quibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'))>
         <!old_rx_mods>
     }
@@ -1955,6 +1955,28 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token quote:sym<qr> {
         <sym> {} <.qok($/)> <.obs('qr for regex quoting', 'rx//')>
+    }
+
+    token rx_adverbs() {
+        [ <quotepair> <.ws> ]*
+    }
+
+    token quotepair {
+        :my $*key;
+        ':'
+        :dba('colon pair (restricted)')
+        [
+        | $<neg>='!' [ <identifier> || <.panic: "Malformed False pair; expected identifier"> ]
+            [ <[ \[ \( \< \{ ]> {
+            $/.typed_panic('X::Syntax::NegatedPair', key => ~$<identifier>) } ]?
+            { $*key := $<identifier>.Str }
+        | $<num> = [\d+] <identifier> [ <?before <.[ \[ \( \< \{ ]>> {} <.sorry("Extra argument not allowed; pair already has argument of " ~ $<num>.Str)> <.circumfix> ]?
+            <?{ self.no-synthetics(~$<num>) }>
+            { $*key := $<identifier>.Str }
+        | <identifier>
+            { $*key := ~$<identifier> }
+            [ <?[(]> <circumfix> ]?
+        ]
     }
 
     ##

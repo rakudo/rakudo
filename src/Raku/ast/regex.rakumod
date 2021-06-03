@@ -646,6 +646,45 @@ class RakuAST::Regex::CharClass::Nul is RakuAST::Regex::CharClass
     method IMPL-CCLASS-ENUM-CHARS(%mods) { "\0" }
 }
 
+# The base of all kinds of back-reference to a capture.
+class RakuAST::Regex::BackReference is RakuAST::Regex::Atom {
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new: :rxtype<subrule>, :subtype<method>, QAST::NodeList.new:
+            QAST::SVal.new( :value('!BACKREF') ),
+            QAST::SVal.new( :value(self.IMPL-CAPTURE-NAME) )
+    }
+
+    method IMPL-CAPTURE-NAME() {
+        nqp::die('IMPL-CAPTURE-NAME not implemented in ' ~ self.HOW.name(self))
+    }
+}
+
+# A back-reference to a positional capture.
+class RakuAST::Regex::BackReference::Positional is RakuAST::Regex::BackReference {
+    has int $.index;
+
+    method new(int $index) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_i($obj, RakuAST::Regex::BackReference::Positional, '$!index', $index);
+        $obj
+    }
+
+    method IMPL-CAPTURE-NAME() { ~$!index }
+}
+
+# A back-reference to a named capture.
+class RakuAST::Regex::BackReference::Named is RakuAST::Regex::BackReference {
+    has str $.name;
+
+    method new(str $name) {
+        my $obj := nqp::create(self);
+        nqp::bindattr_s($obj, RakuAST::Regex::BackReference::Named, '$!name', $name);
+        $obj
+    }
+
+    method IMPL-CAPTURE-NAME() { $!name }
+}
+
 # A statement embedded in a regex, typically used for making a variable
 # declaration.
 class RakuAST::Regex::Statement is RakuAST::Regex::Atom {

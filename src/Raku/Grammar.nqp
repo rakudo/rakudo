@@ -3023,19 +3023,17 @@ grammar Raku::RegexGrammar is QRegex::P6Regex::Grammar does Raku::Common {
         <?[{]> <codeblock>
     }
 
+    # This doesn't handle the backref case; this is done in the (inherited)
+    # metachar:sym<var>, which will win thanks to the LANG switch being an
+    # LTM barrier.
     token metachar:sym<rakvar> {
         <?before <.sigil> $<twigil>=[<.alpha> | <+[\W]-[\s]><.alpha> | '(']>
         <!before <.sigil> <.rxstopper> >
         <var=.LANG('MAIN', 'variable')>
         [
-        # This appears in the current Raku grammar, but it doesn't seem to
-        # compile it in the actions
-#        || $<binding> = ( \s* '=' \s* <quantified_atom> )
-        || [
-              <?before '.'? <.[ \[ \{ \< ]>>
-              <.worry: "Apparent subscript will be treated as regex">
-           ]?
-        ]
+            <?before '.'? <.[ \[ \{ \< ]>>
+            <.worry: "Apparent subscript will be treated as regex">
+        ]?
         <.SIGOK>
     }
 

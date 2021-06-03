@@ -1722,3 +1722,26 @@ class RakuAST::Regex::Backtrack::Ratchet is RakuAST::Regex::Backtrack {
         $quant-qast
     }
 }
+
+# A regex atom or term followed by sigspace.
+class RakuAST::Regex::WithSigspace is RakuAST::Regex::Atom {
+    has RakuAST::Regex::Term $.regex;
+
+    method new(RakuAST::Regex::Term $regex) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Regex::WithSigspace, '$!regex', $regex);
+        $obj
+    }
+
+    method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
+        QAST::Regex.new: :rxtype<concat>,
+            $!regex.IMPL-REGEX-QAST($context, %mods),
+            QAST::Regex.new:
+                :rxtype<subrule>, :subtype<method>, :name<ws>,
+                QAST::NodeList.new(QAST::SVal.new( :value('ws') ))
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!regex);
+    }
+}

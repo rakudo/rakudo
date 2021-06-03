@@ -1549,7 +1549,7 @@ class RakuAST::Regex::Quantifier::Range is RakuAST::Regex::Quantifier {
 
     method IMPL-QAST-QUANTIFY(RakuAST::IMPL::QASTContext $context, Mu $atom-qast, %mods) {
         my int $min := $!min // 0;
-        $min-- if $!excludes-min;
+        $min++ if $!excludes-min;
         my int $max := -1;
         if $!max {
             $max := $!max;

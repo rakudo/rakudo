@@ -1836,6 +1836,18 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
         self.attach: $/, self.r('Regex', 'Block').new($<codeblock>.ast);
     }
 
+    method metachar:sym<var>($/) {
+        if $<quantified_atom> {
+            nqp::die('nyi')
+        }
+        elsif $<pos> {
+            make self.r('Regex', 'BackReference', 'Positional').new: +$<pos>;
+        }
+        else {
+            make self.r('Regex', 'BackReference', 'Named').new: ~$<name>;
+        }
+    }
+
     method metachar:sym<rakvar>($/) {
         if $<var><sigil> eq '%' {
             $<var>.typed_panic('X::Syntax::Reserved', :reserved('use of hash variables in regexes'))

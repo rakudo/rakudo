@@ -63,7 +63,7 @@ my class IO::Socket::INET does IO::Socket {
             :$family,
             :listening($listen),
             |%rest,
-        )!initialize(nqp::socket(0))
+        )!initialize(nqp::socket(10))
     }
 
     # Open new connection to socket on $host:$port
@@ -85,7 +85,7 @@ my class IO::Socket::INET does IO::Socket {
             :$port,
             :$family,
             |%rest,
-        )!initialize(nqp::socket(10))
+        )!initialize(nqp::socket(0))
     }
 
     # Fail if no valid parameters are passed

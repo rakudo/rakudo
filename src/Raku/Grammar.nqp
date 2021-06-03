@@ -233,6 +233,16 @@ role Raku::Common {
     method NYI($feature) {
         self.typed_panic('X::Comp::NYI', :$feature)
     }
+    method EXPR_nonassoc($cur, $left, $right) {
+        self.typed_panic('X::Syntax::NonAssociative', :left(~$left), :right(~$right));
+    }
+    method EXPR_nonlistassoc($cur, $left, $right) {
+        self.typed_panic('X::Syntax::NonListAssociative', :left(~$left), :right(~$right));
+    }
+    method dupprefix($prefixes) {
+        self.typed_panic('X::Syntax::DuplicatedPrefix', :$prefixes);
+    }
+    token obsbrace { <.obs('curlies around escape argument','square brackets')> }
 
     method panic(*@args) {
         self.typed_panic('X::Comp::AdHoc', payload => nqp::join('', @args))
@@ -259,6 +269,68 @@ role Raku::Common {
     method typed_worry($type_str, *%opts) {
         $*R.add-worry($*R.build-exception($type_str, |%opts));
         self
+    }
+
+    method FAILGOAL($goal, $dba?) {
+        my $stopper;
+        unless $dba {
+            $dba := nqp::getcodename(nqp::callercode());
+            # Handle special case to conceal variable name leaked by core grammar
+            if ~$goal eq '$stopper ' {
+                my $ch := $dba ~~ /[post]?circumfix\:sym[\<|\«]\S+\s+(\S+)[\>|\»]/;
+                $ch := ~$ch[0];
+                if nqp::chars($ch) {
+                    $stopper := "'" ~ $ch ~ "'";
+                }
+            }
+        }
+        # core grammar also has a penchant for sending us trailing .ws contents
+        $stopper := $stopper // $goal;
+        $stopper := $stopper ~~ /(.*\S)\s*/;
+        $stopper := ~$stopper[0];
+        self.typed_panic('X::Comp::FailGoal', :$dba, :goal($stopper),
+                         :line-real(HLL::Compiler.lineof(self.orig(), self.from(),
+                                                         :cache(1))));
+    }
+
+    # "when" arg assumes more things will become obsolete after Raku comes out...
+    method obs($old, $new, $when = 'in Raku', :$ism = 'p5isms') {
+        # TODO isms
+#        unless $*LANG.pragma($ism) {
+            self.typed_panic: 'X::Obsolete',
+                old         => $old,
+                replacement => $new,
+                when        => $when;
+#        }
+        self;
+    }
+    method obsvar($name, $identifier-name?) {
+        # TODO isms
+#        unless $*LANG.pragma('p5isms') {
+            self.typed_panic: 'X::Syntax::Perl5Var',
+              :$name, :$identifier-name;
+#        }
+        self;
+    }
+    method sorryobs($old, $new, $when = 'in Raku') {
+        # TODO isms
+#        unless $*LANG.pragma('p5isms') {
+            self.typed_sorry: 'X::Obsolete',
+                old         => $old,
+                replacement => $new,
+                when        => $when;
+#        }
+        self;
+    }
+    method worryobs($old, $new, $when = 'in Raku') {
+        # TODO isms
+#        unless $*LANG.pragma('p5isms') {
+            self.typed_worry: 'X::Obsolete',
+                old         => $old,
+                replacement => $new,
+                when        => $when;
+#        }
+        self;
     }
 }
 

@@ -57,14 +57,13 @@ my class IO::Socket::INET does IO::Socket {
             split-host-port :host($localhost), :port($localport), :$family
         orelse fail $_) unless $family == PF_UNIX;
 
-        #TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
             :$localhost,
             :$localport,
             :$family,
             :listening($listen),
             |%rest,
-        )!initialize()
+        )!initialize(nqp::socket(0))
     }
 
     # Open new connection to socket on $host:$port
@@ -81,13 +80,12 @@ my class IO::Socket::INET does IO::Socket {
             :$family,
         ) unless $family == PF_UNIX;
 
-        # TODO: Learn what protocols map to which socket types and then determine which is needed.
         self.bless(
             :$host,
             :$port,
             :$family,
             |%rest,
-        )!initialize()
+        )!initialize(nqp::socket(10))
     }
 
     # Fail if no valid parameters are passed
@@ -96,8 +94,8 @@ my class IO::Socket::INET does IO::Socket {
             ~ "Invalid arguments to .new?";
     }
 
-    method !initialize() {
-        my $PIO := nqp::socket($!listening ?? 10 !! 0);
+    method !initialize(Mu $PIO is raw) {
+        CATCH { nqp::closefh($PIO) }
 
         # Quoting perl's SIO::INET:
         # If Listen is defined then a listen socket is created, else if the socket type,

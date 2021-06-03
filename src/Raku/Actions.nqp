@@ -1838,13 +1838,16 @@ class Raku::RegexActions is HLL::Actions does Raku::CommonActions {
 
     method metachar:sym<var>($/) {
         if $<quantified_atom> {
-            nqp::die('nyi')
+            self.attach: $/, self.r('Regex', 'NamedCapture').new:
+                name => ~($<name> || $<pos>),
+                array => $<wantarray> ?? 1 !! 0,
+                regex => $<quantified_atom>[0].ast;
         }
         elsif $<pos> {
-            make self.r('Regex', 'BackReference', 'Positional').new: +$<pos>;
+            self.attach: $/, self.r('Regex', 'BackReference', 'Positional').new: +$<pos>;
         }
         else {
-            make self.r('Regex', 'BackReference', 'Named').new: ~$<name>;
+            self.attach: $/, self.r('Regex', 'BackReference', 'Named').new: ~$<name>;
         }
     }
 

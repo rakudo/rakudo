@@ -4159,6 +4159,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«=~=»  { <sym>  <O(|%chaining)> }
     token infix:sym«≅»    { <sym>  <O(|%chaining)> }
     token infix:sym«==»   { <sym>  <O(|%chaining)> }
+    token infix:sym«⩵»   { <sym>  <O(|%chaining)> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O(|%chaining)> }
     token infix:sym«≠»    { <sym>  <O(|%chaining)> }
     token infix:sym«<=»   { <sym>  <O(|%chaining)> }
@@ -4175,6 +4176,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«gt»   { <sym> >> <O(|%chaining)> }
     token infix:sym«=:=»  { <sym>  <O(|%chaining)> }
     token infix:sym<===>  { <sym>  <O(|%chaining)> }
+    token infix:sym<⩶>  { <sym>  <O(|%chaining)> }
     token infix:sym<eqv>    { <sym> >> <O(|%chaining)> }
     token infix:sym<before> { <sym> >> <O(|%chaining)> }
     token infix:sym<after>  { <sym> >> <O(|%chaining)> }

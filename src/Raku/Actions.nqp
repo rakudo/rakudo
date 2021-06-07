@@ -1233,11 +1233,15 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method quote:sym<rx>($/) {
-        self.attach: $/, self.r('QuotedRegex').new(body => $<quibble>.ast);
+        self.attach: $/, self.r('QuotedRegex').new:
+            body => $<quibble>.ast,
+            adverbs => $<rx_adverbs>.ast;
     }
 
     method quote:sym<m>($/) {
-        self.attach: $/, self.r('QuotedRegex').new(body => $<quibble>.ast, :match-immediately);
+        self.attach: $/, self.r('QuotedRegex').new: :match-immediately,
+            body => $<quibble>.ast,
+            adverbs => $<rx_adverbs>.ast;
     }
 
     # We make a list of the quotepairs to attach them to the regex

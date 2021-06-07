@@ -1637,12 +1637,10 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token desigilname {
         [
-#        | <?before <.sigil> <.sigil> > <variable>
-#        | <?sigil>
-#            [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
-#            <variable> {
-#                $*VAR := $<variable>;
-#            }
+        | <?before <.sigil> <.sigil> > <variable>
+        | <?sigil>
+          [ <?{ $*IN_DECL }> <.typed_panic: 'X::Syntax::Variable::IndirectDeclaration'> ]?
+          <variable>
         | <longname>
         ]
     }

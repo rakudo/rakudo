@@ -830,10 +830,12 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
     }
 
     method IMPL-QAST-FORM-BLOCK(RakuAST::IMPL::QASTContext $context, str $blocktype) {
+        my $slash := RakuAST::VarDeclaration::Implicit::Special.new(:name('$/'));
         QAST::Block.new(
             :blocktype('declaration_static'),
             QAST::Var.new( :decl('var'), :scope('local'), :name('self') ),
             QAST::Var.new( :decl('var'), :scope('lexical'), :name('$¢') ),
+            $slash.IMPL-QAST-DECL($context),
             QAST::Var.new(
                 :decl('param'), :scope('local'), :name('__lowered_param'),
                 QAST::Op.new(

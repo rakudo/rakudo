@@ -853,21 +853,38 @@ class RakuAST::RegexThunk is RakuAST::Code is RakuAST::Meta {
 # A quoted regex, such as `/abc/` or `rx/def/` or `m/ghi/`. Does not imply a
 # new lexical scope.
 class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
-                           is RakuAST::Sinkable is RakuAST::ImplicitLookups {
+                           is RakuAST::Sinkable is RakuAST::ImplicitLookups
+                           is RakuAST::CheckTime {
     has RakuAST::Regex $.body;
     has Bool $.match-immediately;
+    has List $.adverbs;
 
-    method new(RakuAST::Regex :$body, Bool :$match-immediately) {
+    method new(RakuAST::Regex :$body, Bool :$match-immediately, List :$adverbs) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::QuotedRegex, '$!body',
             $body // RakuAST::Regex::Assertion::Fail.new);
         nqp::bindattr($obj, RakuAST::QuotedRegex, '$!match-immediately',
             $match-immediately ?? True !! False);
+        $obj.replace-adverbs($adverbs // []);
         $obj
     }
 
     method replace-body(RakuAST::Regex $new-body) {
         nqp::bindattr(self, RakuAST::QuotedRegex, '$!body', $new-body);
+        Nil
+    }
+
+    method replace-adverbs(List $adverbs) {
+        my @checked-adverbs;
+        if $adverbs {
+            for self.IMPL-UNWRAP-LIST($adverbs) {
+                unless nqp::istype($_, RakuAST::QuotePair) {
+                    nqp::die('A regex adverb may only be a RakuAST::QuotePair');
+                }
+                nqp::push(@checked-adverbs, $_);
+            }
+        }
+        nqp::bindattr(self, RakuAST::QuotedRegex, '$!adverbs', @checked-adverbs);
         Nil
     }
 
@@ -881,8 +898,85 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
         ])
     }
 
+    method IMPL-NORMALIZE-ADVERB(str $adverb) {
+        my constant NORMS := nqp::hash(
+            'ignorecase',   'i',
+            'ignoremark',   'm',
+            'ratchet',      'r',
+            'sigspace',     's',
+            'continue',     'c',
+            'pos',          'p',
+            'th',           'nth',
+            'st',           'nth',
+            'nd',           'nth',
+            'rd',           'nth',
+            'global',       'g',
+            'overlap',      'ov',
+            'exhaustive',   'ex',
+            'Perl5',        'P5',
+            'samecase',     'ii',
+            'samespace',    'ss',
+            'samemark',     'mm',
+            'squash',       's',
+            'complement',   'c',
+            'delete',       'd'
+        );
+        NORMS{$adverb} // $adverb
+    }
+
+    method IMPL-IS-COMPILATION-ADVERB(str $norm-adverb) {
+        my constant COMPS := nqp::hash('i', 1, 'm', 1, 'r', 1, 's', 1, 'P5', 1);
+        nqp::existskey(COMPS, $norm-adverb)
+    }
+
+    method IMPL-IS-POSITION-ADVERB(str $norm-adverb) {
+        my constant POS := nqp::hash('c', 1, 'p', 1);
+        nqp::existskey(POS, $norm-adverb)
+    }
+
+    method IMPL-IS-MULTIPLE-ADVERB(str $norm-adverb) {
+        my constant POS := nqp::hash('x', 1, 'g', 1, 'ov', 1, 'ex', 1);
+        nqp::existskey(POS, $norm-adverb)
+    }
+
+    method IMPL-IS-IMMEDIATE-MATCH-ADVERB(str $norm-adverb) {
+        $norm-adverb eq 'nth' || self.IMPL-IS-POSITION-ADVERB($norm-adverb) ||
+            self.IMPL-IS-MULTIPLE-ADVERB($norm-adverb)
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+        # Check adverbs
+        for self.IMPL-UNWRAP-LIST($!adverbs) {
+            my str $key := $_.key;
+            my str $norm := self.IMPL-NORMALIZE-ADVERB($key);
+            if self.IMPL-IS-COMPILATION-ADVERB($norm) {
+                # Compile-time adverbs must have a simple compile time value.
+                unless nqp::isconcrete($_.simple-compile-time-quote-value()) {
+                    self.add-sorry: $resolver.build-exception:
+                        'X::Value::Dynamic', what => "Adverb $key";
+                }
+            }
+            elsif !($!match-immediately && self.IMPL-IS-IMMEDIATE-MATCH-ADVERB($norm)) {
+                # Not applicable to the construct, so report.
+                self.add-sorry: $resolver.build-exception:
+                    'X::Syntax::Regex::Adverb',
+                    adverb    => $key,
+                    construct => $!match-immediately ?? 'm' !! 'rx'
+            }
+        }
+    }
+
     method IMPL-THUNKED-REGEX-QAST(RakuAST::IMPL::QASTContext $context) {
-        $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, nqp::hash())
+        # Obtain adverbs that affect compilation and install them into
+        # the %mods hash.
+        my %mods;
+        for self.IMPL-UNWRAP-LIST($!adverbs) {
+            my str $norm := self.IMPL-NORMALIZE-ADVERB($_.key);
+            if self.IMPL-IS-COMPILATION-ADVERB($norm) {
+                %mods{$norm} := $_.simple-compile-time-quote-value() ?? 1 !! 0;
+            }
+        }
+        $!body.IMPL-REGEX-TOP-LEVEL-QAST($context, self.meta-object, %mods)
     }
 
     method IMPL-QAST-DECL-CODE(RakuAST::IMPL::QASTContext $context) {
@@ -900,14 +994,33 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
             my $match-qast := QAST::Op.new(
                 :op('callmethod'), :name('match'),
                 $topic, $closure );
-            # TODO immediate match mode updating $/ should not always happen,
-            # but adverbs NYI so far
-            if 1 {
-                my $slash := @lookups[1].IMPL-TO-QAST($context);
-                QAST::Op.new( :op('p6store'), $slash, $match-qast )
+            my int $is-multiple-match := 0;
+            for self.IMPL-UNWRAP-LIST($!adverbs) {
+                my str $norm := self.IMPL-NORMALIZE-ADVERB($_.key);
+                if self.IMPL-IS-POSITION-ADVERB($norm) {
+                    # These need to be passed the end of the last match.
+                    my $slash := @lookups[1].IMPL-TO-QAST($context);
+                    $match-qast.push: QAST::Op.new:
+                        :named($norm), :op<if>,
+                        $slash,
+                        QAST::Op.new( :op<callmethod>, :name<to>, $slash ),
+                        QAST::IVal.new( :value(0) )
+                }
+                else {
+                    # Pass the value of the pair.
+                    my $arg := $_.value.IMPL-TO-QAST($context);
+                    $arg.named($_.key);
+                    $match-qast.push($arg);
+                    $is-multiple-match := 1 if self.IMPL-IS-MULTIPLE-ADVERB($norm);
+                }
+            }
+            if $is-multiple-match {
+                # Don't update $/ in the list case
+                $match-qast
             }
             else {
-                $match-qast
+                my $slash := @lookups[1].IMPL-TO-QAST($context);
+                QAST::Op.new( :op('p6store'), $slash, $match-qast )
             }
         }
         else {
@@ -936,6 +1049,9 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
     }
 
     method visit-children(Code $visitor) {
+        for self.IMPL-UNWRAP-LIST($!adverbs) {
+            $visitor($_);
+        }
         $visitor($!body);
     }
 }

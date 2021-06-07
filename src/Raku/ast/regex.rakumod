@@ -1187,7 +1187,7 @@ class RakuAST::Regex::Assertion::Callable is RakuAST::Regex::Assertion {
         my $node-list := QAST::NodeList.new:
             QAST::SVal.new( :value('CALL_SUBRULE') ),
             $!callee.IMPL-TO-QAST($context);
-        $!args.IMPL-ADD-QAST-ARGS($context, $node-list);
+        $!args.IMPL-ADD-QAST-ARGS($context, $node-list) if $!args;
         QAST::Regex.new( :rxtype<subrule>, :subtype<method>, $node-list )
     }
 

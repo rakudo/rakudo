@@ -888,7 +888,8 @@ class RakuAST::Regex::Assertion::Fail is RakuAST::Regex::Assertion {
 # A named assertion, which may or may not capture. Models `<foo>` and
 # `<.foo>`, and also `<foo::bar>`. Forms with arguments or taking a regex
 # argument are modeled as subclasses of this.
-class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion {
+class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion
+                                       is RakuAST::ImplicitLookups {
     has RakuAST::Name $.name;
     has Bool $.capturing;
 
@@ -906,6 +907,14 @@ class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion {
         Nil
     }
 
+    method PRODUCE-IMPLICIT-LOOKUPS() {
+        # A call like <foo> will look for <&foo> and only then do <.foo>
+        # (but in both cases it captures).
+        self.IMPL-WRAP-LIST: $!capturing && $!name.is-identifier
+            ?? [RakuAST::Var::Lexical.new('&' ~ $!name.canonicalize)]
+            !! []
+    }
+
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         self.IMPL-REGEX-QAST-CALL($context)
     }
@@ -918,8 +927,18 @@ class RakuAST::Regex::Assertion::Named is RakuAST::Regex::Assertion {
                 nqp::die('special <sym> name not yet compiled');
             }
             else {
-                my $qast := QAST::Regex.new: :rxtype<subrule>,
-                    QAST::NodeList.new(QAST::SVal.new( :value($name) ));
+                my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
+                my $qast;
+                if @lookups && @lookups[0].is-resolved {
+                    $qast := QAST::Regex.new: :rxtype<subrule>,:subtype<method>,
+                        QAST::NodeList.new:
+                            QAST::SVal.new( :value('CALL_SUBRULE') ),
+                            @lookups[0].IMPL-TO-QAST($context);
+                }
+                else {
+                    $qast := QAST::Regex.new: :rxtype<subrule>,
+                        QAST::NodeList.new(QAST::SVal.new( :value($name) ));
+                }
                 if $!capturing {
                     $qast.subtype('capture');
                     $qast.name($name);

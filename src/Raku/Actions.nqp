@@ -797,6 +797,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<contextualizer> {
             self.attach: $/, $<contextualizer>.ast;
         }
+        elsif $<desigilname><variable> {
+            self.contextualizer-for-sigil($/, ~$<sigil>, $<desigilname><variable>.ast);
+        }
         else {
             my str $sigil := ~$<sigil>;
             my str $twigil := $<twigil> ?? ~$<twigil> !! '';
@@ -882,11 +885,14 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method contextualizer($/) {
-        my str $sigil := ~$<sigil>;
+        self.contextualizer-for-sigil($/, ~$<sigil>, $<coercee>.ast);
+    }
+
+    method contextualizer-for-sigil($/, $sigil, $target) {
         my str $node-type := $sigil eq '@' ?? 'List' !!
                              $sigil eq '%' ?? 'Hash' !!
                                               'Item';
-        self.attach: $/, self.r('Contextualizer', $node-type).new($<coercee>.ast);
+        self.attach: $/, self.r('Contextualizer', $node-type).new($target);
     }
 
     method term:sym<reduce>($/) {

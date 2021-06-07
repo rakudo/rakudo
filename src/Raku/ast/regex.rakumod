@@ -131,14 +131,33 @@ class RakuAST::Regex::Sequence is RakuAST::Regex {
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my $concat := QAST::Regex.new(:rxtype<concat>);
+        my str $collect-literals := '';
         for $!terms {
-            my $qast := $_.IMPL-REGEX-QAST($context, %mods);
-            if $qast {
-                $qast.backtrack('r') if %mods<r> && !$qast.backtrack;
-                $concat.push($qast);
+            if nqp::istype($_, RakuAST::Regex::Literal) {
+                $collect-literals := $collect-literals ~ $_.text;
+            }
+            else {
+                if $collect-literals ne '' {
+                    $concat.push(self.IMPL-LIT($collect-literals, %mods));
+                    $collect-literals := '';
+                }
+                my $qast := $_.IMPL-REGEX-QAST($context, %mods);
+                if $qast {
+                    $qast.backtrack('r') if %mods<r> && !$qast.backtrack;
+                    $concat.push($qast);
+                }
             }
         }
+        if $collect-literals ne '' {
+            $concat.push(self.IMPL-LIT($collect-literals, %mods));
+        }
         $concat
+    }
+
+    method IMPL-LIT(str $text, %mods) {
+        self.IMPL-APPLY-LITERAL-MODS:
+            QAST::Regex.new( :rxtype<literal>, $text ),
+            %mods
     }
 
     method visit-children(Code $visitor) {

@@ -302,7 +302,7 @@ class RakuAST::Regex::CapturingGroup is RakuAST::Regex::Atom is RakuAST::RegexTh
 
     method IMPL-REGEX-QAST(RakuAST::IMPL::QASTContext $context, %mods) {
         my str $name := self.IMPL-UNIQUE-NAME;
-        my $body-qast := $!regex.IMPL-REGEX-QAST($context, %mods);
+        my $body-qast := $!regex.IMPL-REGEX-QAST($context, nqp::clone(%mods));
         nqp::bindattr(self, RakuAST::Regex::CapturingGroup, '$!body-qast', $body-qast);
         QAST::Regex.new(
             :rxtype('subrule'), :subtype('capture'),

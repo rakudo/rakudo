@@ -60,43 +60,40 @@ nqp::bindcurhllsym('nqplist', &nqplist);
 # when deriving from an unknown/typo'd class.
 sub levenshtein($a, $b) {
     my %memo;
-    my $alen := nqp::chars($a);
-    my $blen := nqp::chars($b);
+    my int $alen := nqp::chars($a);
+    my int $blen := nqp::chars($b);
 
-    return 0 if $alen eq 0 || $blen eq 0;
+    return 0 if $alen == 0 || $blen == 0;
 
-    # the longer of the two strings is an upper bound.
-    #my $bound := $alen < $blen ?? $blen !! $alen;
-
-    sub changecost($ac, $bc) {
+    sub changecost(str $ac, str $bc) {
         sub issigil($_) { nqp::index('$@%&|', $_) != -1 };
         return 0 if $ac eq $bc;
         return 0.1 if nqp::fc($ac) eq nqp::fc($bc);
         return 0.5 if issigil($ac) && issigil($bc);
-        return 1;
+        1;
     }
 
-    sub levenshtein_impl($apos, $bpos, $estimate) {
-        my $key := join(":", ($apos, $bpos));
+    sub levenshtein_impl(int $apos, int $bpos, num $estimate) {
+        my $key := "$apos:$bpos";
 
         return %memo{$key} if nqp::existskey(%memo, $key);
 
         # if either cursor reached the end of the respective string,
         # the result is the remaining length of the other string.
-        sub check($pos1, $len1, $pos2, $len2) {
+        sub check(int $pos1, int $len1, int $pos2, int $len2) {
             if $pos2 == $len2 {
                 return $len1 - $pos1;
             }
-            return -1;
+            -1;
         }
 
-        my $check := check($apos, $alen, $bpos, $blen);
+        my int $check := check($apos, $alen, $bpos, $blen);
         return $check unless $check == -1;
         $check := check($bpos, $blen, $apos, $alen);
         return $check unless $check == -1;
 
-        my $achar := nqp::substr($a, $apos, 1);
-        my $bchar := nqp::substr($b, $bpos, 1);
+        my str $achar := nqp::substr($a, $apos, 1);
+        my str $bchar := nqp::substr($b, $bpos, 1);
 
         my num $cost := changecost($achar, $bchar);
 
@@ -125,11 +122,9 @@ sub levenshtein($a, $b) {
         }
 
         %memo{$key} := $distance;
-        return $distance;
     }
 
-    my num $result := levenshtein_impl(0, 0, 0);
-    return $result;
+    return levenshtein_impl(0, 0, 0e0);
 }
 
 sub make_levenshtein_evaluator($orig_name, @candidates) {

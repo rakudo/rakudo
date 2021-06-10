@@ -2677,10 +2677,10 @@ class Perl6::World is HLL::World {
                 # do dynamic compilation.
                 %!code_object_fixup_list{$cuid} := $fixups;
             }
-
-            # Stash the QAST block in the comp stuff.
-            @compstuff[0] := $code_past;
         }
+
+        # Stash the QAST block in the comp stuff.
+        @compstuff[0] := $code_past;
 
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
@@ -2976,6 +2976,26 @@ class Perl6::World is HLL::World {
         # Return the VM coderef that maps to the thing we were originally
         # asked to compile.
         $result
+    }
+    method unstub_code_object($code, $code_type) {
+        my @compstuff := nqp::getattr($code, $code_type, q<@!compstuff>);
+        unless nqp::isnull(@compstuff) {
+            my $subid := @compstuff[0].cuid;
+
+            nqp::bindattr($code, $code_type, '@!compstuff', nqp::null());
+
+            my %sub_id_to_sc_idx := self.context().sub_id_to_sc_idx();
+            my $code_ref := nqp::getattr($code, $code_type, '$!do');
+            if nqp::existskey(%sub_id_to_sc_idx, $subid) {
+                nqp::markcodestatic($code_ref); # maybe $!do instead
+                self.update_root_code_ref(%sub_id_to_sc_idx{$subid}, $code_ref);
+            }
+            if nqp::existskey(%!code_object_fixup_list, $subid) {
+                my $fixups := %!code_object_fixup_list{$subid};
+                $fixups.pop() while $fixups.list;
+            }
+            nqp::deletekey(self.context().sub_id_to_code_object(), $subid);
+        }
     }
     method try_add_to_sc($value, $fallback) {
         if nqp::isnull($value) {

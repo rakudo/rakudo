@@ -1549,12 +1549,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Produces a LoL from a semicolon list
     method semilist($/) {
+        my $Nil := $*W.find_single_symbol('Nil');
         if $<statement> -> $statements {
             my $past := QAST::Stmts.new( :node($/) );
             if nqp::elems($statements) > 1 {
                 my $l := QAST::Op.new( :name('&infix:<,>'), :op('call') );
                 for $statements {
-                    my $sast := $_.ast || QAST::WVal.new( :value($*W.find_single_symbol('Nil')) );
+                    my $sast := $_.ast || QAST::WVal.new( :value($Nil) );
                     $l.push(wanted($sast, 'semilist'));
                 }
                 $past.push($l);
@@ -1582,7 +1583,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                 }
 
-                $past.push($ast || QAST::WVal.new( :value($*W.find_single_symbol('Nil')) ));
+                $past.push($ast || QAST::WVal.new( :value($Nil) ));
             }
             make $past;
         }

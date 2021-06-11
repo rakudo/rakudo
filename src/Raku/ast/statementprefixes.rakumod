@@ -36,7 +36,7 @@ class RakuAST::StatementPrefix::Do is RakuAST::StatementPrefix is RakuAST::SinkP
         self.blorst.apply-sink($is-sunk);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.IMPL-CALLISH-QAST($context)
     }
 }
@@ -47,7 +47,7 @@ class RakuAST::StatementPrefix::Quietly is RakuAST::StatementPrefix is RakuAST::
         self.blorst.apply-sink($is-sunk);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
             :op('handle'),
             self.IMPL-CALLISH-QAST($context),
@@ -61,7 +61,7 @@ class RakuAST::StatementPrefix::Quietly is RakuAST::StatementPrefix is RakuAST::
 class RakuAST::StatementPrefix::Race is RakuAST::StatementPrefix {
     method allowed-on-for-statement() { False }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
             :op('callmethod'), :name('race'),
             self.IMPL-CALLISH-QAST($context),
@@ -73,7 +73,7 @@ class RakuAST::StatementPrefix::Race is RakuAST::StatementPrefix {
 class RakuAST::StatementPrefix::Hyper is RakuAST::StatementPrefix {
     method allowed-on-for-statement() { False }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
             :op('callmethod'), :name('hyper'),
             self.IMPL-CALLISH-QAST($context),
@@ -85,7 +85,7 @@ class RakuAST::StatementPrefix::Hyper is RakuAST::StatementPrefix {
 class RakuAST::StatementPrefix::Lazy is RakuAST::StatementPrefix {
     method allowed-on-for-statement() { False }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
             :op('callmethod'), :name('lazy'),
             self.IMPL-CALLISH-QAST($context),
@@ -96,7 +96,7 @@ class RakuAST::StatementPrefix::Lazy is RakuAST::StatementPrefix {
 # The `eager` statement prefix.
 class RakuAST::StatementPrefix::Eager is RakuAST::StatementPrefix {
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new(
             :op('callmethod'), :name('eager'),
             self.IMPL-CALLISH-QAST($context),
@@ -118,7 +118,7 @@ class RakuAST::StatementPrefix::Try is RakuAST::StatementPrefix is RakuAST::Sink
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # If it's a block that already has a CATCH handler, just run it.
         my $blorst := self.blorst;
         if nqp::istype($blorst, RakuAST::Block) && $blorst.IMPL-HAS-CATCH-HANDLER {
@@ -198,7 +198,7 @@ class RakuAST::StatementPrefix::Gather is RakuAST::StatementPrefix::Thunky is Ra
         self.blorst.apply-sink(True);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new( :op('call'), :name('&GATHER'), self.IMPL-CLOSURE-QAST($context) )
     }
 }
@@ -218,7 +218,7 @@ class RakuAST::StatementPrefix::Start is RakuAST::StatementPrefix::Thunky
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $promise := @lookups[0].IMPL-TO-QAST($context);
         my $qast := QAST::Op.new(
@@ -254,7 +254,7 @@ class RakuAST::StatementPrefix::Phaser::Sinky is RakuAST::StatementPrefix::Phase
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         @lookups[0].IMPL-TO-QAST($context)
     }
@@ -272,7 +272,7 @@ class RakuAST::StatementPrefix::Phaser::Begin is RakuAST::StatementPrefix::Phase
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!produced-value;
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )

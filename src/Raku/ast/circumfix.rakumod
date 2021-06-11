@@ -12,7 +12,7 @@ class RakuAST::Circumfix::Parentheses is RakuAST::Circumfix {
         $obj
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         $!semilist.IMPL-TO-QAST($context)
     }
 
@@ -39,7 +39,7 @@ class RakuAST::Circumfix::ArrayComposer is RakuAST::Circumfix is RakuAST::Lookup
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := self.resolution.lexical-name;
         QAST::Op.new(
             :op('call'), :$name,
@@ -75,7 +75,7 @@ class RakuAST::Circumfix::HashComposer is RakuAST::Circumfix is RakuAST::Lookup 
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $name := self.resolution.lexical-name;
         my $op := QAST::Op.new( :op('call'), :$name );
         if $!expression {

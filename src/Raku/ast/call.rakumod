@@ -163,7 +163,7 @@ class RakuAST::Call::Name is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $call := QAST::Op.new( :op('call') );
         if $!name.is-identifier {
             $call.name(self.resolution.lexical-name);
@@ -340,7 +340,6 @@ class RakuAST::Call::MetaMethod is RakuAST::Call::Methodish {
 
 # Base role for all stubs
 class RakuAST::Stub is RakuAST::Term is RakuAST::Call is RakuAST::Lookup {
-
     method new(RakuAST::ArgList :$args) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Call, '$!args', $args // RakuAST::ArgList);

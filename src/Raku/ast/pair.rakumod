@@ -26,7 +26,7 @@ class RakuAST::FatArrow is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST:
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my $pair-type := @lookups[0].resolution.compile-time-value;
         my $key := $!key;
@@ -60,7 +60,7 @@ class RakuAST::ColonPair is RakuAST::Term is RakuAST::ImplicitLookups is RakuAST
         ])
     }
     
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups());
         my $pair-type := @lookups[0].resolution.compile-time-value;
         my $key := $!key;

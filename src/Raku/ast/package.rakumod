@@ -131,7 +131,7 @@ class RakuAST::Package is RakuAST::StubbyMeta is RakuAST::Term
         $type
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $type-object := self.meta-object;
         $context.ensure-sc($type-object);
         QAST::Stmts.new(

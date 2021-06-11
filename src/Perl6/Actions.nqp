@@ -10690,9 +10690,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @meta    := [];
             for $/[0] {
                 if $_<html_ref> {
+#?if !jvm
                     my $s := Perl6::Pod::str_from_entity(~$_);
                     $s ?? @contents.push($s) && @meta.push($*W.add_string_constant(~$_).compile_time_value)
                        !! $/.worry("\"$_\" is not a valid HTML5 entity.");
+#?endif
+#?if jvm
+                    # Java 64K method limit can't compile Perl6::Pod::str_from_entity
+                    @contents.push(~$_);
+                    @meta.push($*W.add_string_constant(~$_).compile_time_value);
+#?endif
                 } else {
                     my $n := $_<integer>
                           ?? $_<integer>.made

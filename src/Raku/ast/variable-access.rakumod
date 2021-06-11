@@ -27,7 +27,7 @@ class RakuAST::Var::Lexical is RakuAST::Var is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)
     }
 
@@ -84,7 +84,7 @@ class RakuAST::Var::Dynamic is RakuAST::Var is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # If it's resolved in the current scope, just a lexical access.
         if self.is-resolved {
             my $name := self.resolution.lexical-name;
@@ -171,7 +171,7 @@ class RakuAST::Var::Attribute is RakuAST::Var is RakuAST::ImplicitLookups
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $package := $!package.meta-object;
         my $attr-type := $package.HOW.get_attribute_for_usage($package, $!name).type;
@@ -223,7 +223,7 @@ class RakuAST::Var::Compiler::File is RakuAST::Var::Compiler {
 
     method sigil() { '$' }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!file;
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
@@ -246,7 +246,7 @@ class RakuAST::Var::Compiler::Line is RakuAST::Var::Compiler {
 
     method sigil() { '$' }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!line;
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
@@ -277,7 +277,7 @@ class RakuAST::Var::Compiler::Lookup is RakuAST::Var::Compiler is RakuAST::Looku
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)
     }
 }
@@ -299,7 +299,7 @@ class RakuAST::Var::PositionalCapture is RakuAST::Var is RakuAST::ImplicitLookup
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $index := $!index;
         $context.ensure-sc($index);
@@ -329,7 +329,7 @@ class RakuAST::Var::NamedCapture is RakuAST::Var is RakuAST::ImplicitLookups {
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);
         my $op := QAST::Op.new(
             :op('call'),

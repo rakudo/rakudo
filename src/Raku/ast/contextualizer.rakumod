@@ -9,7 +9,7 @@ class RakuAST::Contextualizer is RakuAST::Term {
         $obj
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # TODO 6.c semantics with $/
         QAST::Op.new(
             :op('callmethod'), :name(self.IMPL-METHOD),

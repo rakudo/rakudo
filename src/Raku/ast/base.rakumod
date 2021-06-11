@@ -195,6 +195,14 @@ class RakuAST::Node {
         my $markers := @markers ?? ' ' ~ nqp::join('', @markers) !! '';
 
         my $dump := "$prefix$name$markers\n";
+        if nqp::istype(self, RakuAST::Expression) {
+            self.visit-thunks(-> $thunk {
+                $dump := "$dump$prefix  🧠 " ~ $thunk.thunk-kind ~ "\n";
+                $thunk.visit-children(-> $child {
+                    $dump := $dump ~ $child.dump($indent + 4);
+                });
+            });
+        }
         self.visit-children(-> $child {
             $dump := $dump ~ $child.dump($indent + 2);
         });

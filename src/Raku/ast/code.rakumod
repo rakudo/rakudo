@@ -328,7 +328,7 @@ class RakuAST::Block is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Code 
         $block
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context, :$immediate) {
         if $immediate {
             # For now, assume we never need a code object for such a block. The
             # closure clone is done for us by the QAST compiler.
@@ -596,7 +596,7 @@ class RakuAST::Routine is RakuAST::LexicalScope is RakuAST::Term is RakuAST::Cod
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         if self.scope eq 'my' {
             my $canon-name := $!name.canonicalize;
             QAST::Var.new( :scope<lexical>, :name('&' ~ $canon-name) )
@@ -988,7 +988,7 @@ class RakuAST::QuotedRegex is RakuAST::RegexThunk is RakuAST::Term
         $block
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $closure := self.IMPL-CLOSURE-QAST($context, :regex);
         if $!match-immediately {
             my @lookups := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups);

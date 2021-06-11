@@ -32,7 +32,7 @@ class RakuAST::Type::Simple is RakuAST::Type is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := self.resolution.compile-time-value;
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )

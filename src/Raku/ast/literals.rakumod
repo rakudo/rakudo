@@ -11,7 +11,7 @@ class RakuAST::IntLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $!value.WHAT
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
@@ -40,7 +40,7 @@ class RakuAST::NumLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $!value.WHAT
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
@@ -67,7 +67,7 @@ class RakuAST::RatLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $!value.WHAT
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
@@ -93,7 +93,7 @@ class RakuAST::VersionLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $!value.WHAT
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
         QAST::WVal.new( :$value )
@@ -122,7 +122,7 @@ class RakuAST::StrLiteral is RakuAST::Term is RakuAST::CompileTimeValue {
         $!value.WHAT
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $value := $!value;
         $context.ensure-sc($value);
         my $wval := QAST::WVal.new( :$value );
@@ -254,7 +254,7 @@ class RakuAST::QuotedString is RakuAST::Term is RakuAST::ImplicitLookups {
         False
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # If we can constant fold it, just produce the constant.
         my $literal-value := self.literal-value;
         if nqp::isconcrete($literal-value) {

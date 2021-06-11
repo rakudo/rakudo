@@ -18,7 +18,7 @@ class RakuAST::Term::Name is RakuAST::Term is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # TODO indirects, trailing ::, etc.
         self.resolution.IMPL-LOOKUP-QAST($context)
     }
@@ -48,7 +48,7 @@ class RakuAST::Term::Self is RakuAST::Term is RakuAST::Lookup is RakuAST::CheckT
         }
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         self.resolution.IMPL-LOOKUP-QAST($context)
     }
 }
@@ -69,7 +69,7 @@ class RakuAST::Term::TopicCall is RakuAST::Term is RakuAST::ImplicitLookups {
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $topic := self.IMPL-UNWRAP-LIST(self.get-implicit-lookups)[0];
         $!call.IMPL-POSTFIX-QAST($context, $topic.resolution.IMPL-LOOKUP-QAST($context))
     }
@@ -97,7 +97,7 @@ class RakuAST::Term::Named is RakuAST::Term is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
     }
 }
@@ -116,7 +116,7 @@ class RakuAST::Term::EmptySet is RakuAST::Term is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
     }
 }
@@ -135,7 +135,7 @@ class RakuAST::Term::Rand is RakuAST::Term is RakuAST::Lookup {
         Nil
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         QAST::Op.new( :op('call'), :name(self.resolution.lexical-name) )
     }
 }
@@ -154,7 +154,7 @@ class RakuAST::Term::Whatever is RakuAST::Term is RakuAST::Attaching {
         nqp::bindattr(self, RakuAST::Term::Whatever, '$!enclosing-comp-unit', $compunit);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $whatever := $!enclosing-comp-unit.singleton-whatever();
         $context.ensure-sc($whatever);
         QAST::WVal.new( :value($whatever) )
@@ -175,7 +175,7 @@ class RakuAST::Term::HyperWhatever is RakuAST::Term is RakuAST::Attaching {
         nqp::bindattr(self, RakuAST::Term::HyperWhatever, '$!enclosing-comp-unit', $compunit);
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $whatever := $!enclosing-comp-unit.singleton-hyper-whatever();
         $context.ensure-sc($whatever);
         QAST::WVal.new( :value($whatever) )
@@ -192,7 +192,7 @@ class RakuAST::Term::Capture is RakuAST::Term {
         $obj
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         my $op := QAST::Op.new(
             :op('callmethod'),
             :name('from-args'),
@@ -232,7 +232,7 @@ class RakuAST::Term::Reduce is RakuAST::Term is RakuAST::ImplicitLookups {
         ])
     }
 
-    method IMPL-TO-QAST(RakuAST::IMPL::QASTContext $context) {
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
         # Make a call to form the meta-op.
         # TODO Cache it using a dispatcher when UNIT/SETTING operator
         my $form-meta := QAST::Op.new(

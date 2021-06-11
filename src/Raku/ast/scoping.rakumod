@@ -30,6 +30,9 @@ class RakuAST::LexicalScope is RakuAST::Node {
                         $stmts.push($node.IMPL-QAST-DECL-CODE($context));
                     }
                 }
+                elsif nqp::istype($node, RakuAST::Expression) {
+                    $node.IMPL-QAST-ADD-THUNK-DECL-CODE($context, $stmts);
+                }
                 unless nqp::istype($node, RakuAST::LexicalScope) {
                     @code-todo.push($node);
                 }

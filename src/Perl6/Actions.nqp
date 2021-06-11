@@ -10690,11 +10690,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my @meta    := [];
             for $/[0] {
                 if $_<html_ref> {
-                    @contents.push(~$_);
-                    @meta.push($*W.add_string_constant(~$_).compile_time_value);
-                    #my $s := Perl6::Pod::str_from_entity(~$_);
-                    #$s ?? @contents.push($s) && @meta.push(~$_)
-                    #   !! $/.worry("\"$_\" is not a valid HTML5 entity.");
+                    my $s := Perl6::Pod::str_from_entity(~$_);
+                    $s ?? @contents.push($s) && @meta.push($*W.add_string_constant(~$_).compile_time_value)
+                       !! $/.worry("\"$_\" is not a valid HTML5 entity.");
                 } else {
                     my $n := $_<integer>
                           ?? $_<integer>.made

@@ -565,12 +565,7 @@ my class ThreadPoolScheduler does Scheduler {
 
                 scheduler-debug "Supervisor started";
                 my int $last-rusage-time = nqp::time;
-#?if jvm
-                my @rusage := array[int].new;
-#?endif
-#?if !jvm
                 my int @rusage;
-#?endif
                 nqp::getrusage(@rusage);
                 my int $last-usage =
                   nqp::mul_i(
@@ -583,12 +578,7 @@ my class ThreadPoolScheduler does Scheduler {
                       )
                     + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
-#?if jvm
-                my @last-utils := array[num].new(0e0 xx NUM_SAMPLES);
-#?endif
-#?if !jvm
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
-#?endif
                 my int $cpu-cores = max(nqp::cpucores() - 1,1);
 
                 # These definitions used to live inside the supervisor loop.

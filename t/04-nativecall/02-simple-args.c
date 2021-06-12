@@ -78,14 +78,14 @@ DLLEXPORT int TakeInt64(int64_t x)
     return 0;
 }
 
-DLLEXPORT int TakeUint8(char x)
+DLLEXPORT int TakeUint8(int x)
 {
     if ((0xFF&(unsigned int)x) == 0xFE)
         return 10;
     return 0;
 }
 
-DLLEXPORT int TakeUint16(char x)
+DLLEXPORT int TakeUint16(int x)
 {
     if ((0xFFFF&(unsigned int)x) == 0xFFFE)
         return 11;

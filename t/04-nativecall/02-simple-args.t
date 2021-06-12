@@ -48,7 +48,7 @@ is TakeInt64(0xFFFFFFFFFF), 9, 'passed int64 0xFFFFFFFFFF';
 sub TakeUint8(uint8) returns int32 is native('./02-simple-args') { * }
 sub TakeUint16(uint16) returns int32 is native('./02-simple-args') { * }
 sub TakeUint32(uint32) returns int32 is native('./02-simple-args') { * }
-if $*DISTRO.name eq 'macosx' {
+if $*DISTRO.name ~~ 'macosx'|'macos' {
     #
     # For some reason, on OS X with clang, the following test fails with -O3
     # specified.  One can only assume this is some weird compiler issue (tested

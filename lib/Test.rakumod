@@ -907,9 +907,7 @@ Test - Rakudo Testing Library
 Please check the section Language/testing of the doc repository.
 If you have 'p6doc' installed, you can do 'p6doc Language/testing'.
 
-You can also check the documentation about testing in Raku online on:
-
-  https://doc.raku.org/language/testing
+You can also check the documentation about testing in Raku online on L<https://docs.raku.org/language/testing>.
 
 =end pod
 

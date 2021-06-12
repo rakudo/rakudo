@@ -48,20 +48,8 @@ is TakeInt64(0xFFFFFFFFFF), 9, 'passed int64 0xFFFFFFFFFF';
 sub TakeUint8(uint8) returns int32 is native('./02-simple-args') { * }
 sub TakeUint16(uint16) returns int32 is native('./02-simple-args') { * }
 sub TakeUint32(uint32) returns int32 is native('./02-simple-args') { * }
-if $*DISTRO.name ~~ 'macosx'|'macos' {
-    #
-    # For some reason, on OS X with clang, the following test fails with -O3
-    # specified.  One can only assume this is some weird compiler issue (tested
-    # on Apple LLVM version 6.1.0 (clang-602.0.49) (based on LLVM 3.6.0svn).
-    #
-    skip("Cannot test TakeUint8(0xFE) on OS X with -O3");
-}
-else {
-    is TakeUint8(0xFE),        10, 'passed uint8 0xFE';
-}
-# R#2124 https://github.com/rakudo/rakudo/issues/2124
-skip("Cannot test TakeUint16(0xFFFE) with clang without -O0");
-#is TakeUint16(0xFFFE),     11, 'passed uint16 0xFFFE';
+is TakeUint8(0xFE),        10, 'passed uint8 0xFE';
+is TakeUint16(0xFFFE),     11, 'passed uint16 0xFFFE';
 
 
 is TakeUint32(0xFFFFFFFE), 12, 'passed uint32 0xFFFFFFFE';

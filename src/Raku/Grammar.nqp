@@ -2052,6 +2052,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         ]
         <.ws>
         <trait>*
+        [
+            <default_value>
+            [ <modifier=.trait> {
+                self.typed_panic: "X::Parameter::AfterDefault", type => "trait", modifier => $<modifier>, default => $<default_value>
+            }]?
+#            [ <modifier=.post_constraint('param')> {
+#                self.typed_panic: "X::Parameter::AfterDefault", type => "post constraint", modifier => $<modifier>, default => $<default_value>
+#            }]?
+        ]?
     }
 
     token param_var {
@@ -2097,6 +2106,11 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             [ ')' || <.panic: 'Unable to parse named parameter; couldn\'t find right parenthesis'> ]
         | <param_var>
         ]
+    }
+
+    rule default_value {
+        :my $*IN_DECL := '';
+        '=' <EXPR('i=')>
     }
 
     token type_constraint {

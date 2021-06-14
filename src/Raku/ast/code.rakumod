@@ -66,6 +66,86 @@ class RakuAST::Code is RakuAST::Node {
     method signature() { Nil }
 }
 
+# The base of all expression thunks, which produce a code object of some kind
+# that wraps the thunk.
+class RakuAST::ExpressionThunk is RakuAST::Code is RakuAST::Meta {
+    has RakuAST::ExpressionThunk $.next;
+    has RakuAST::Signature $!signature;
+
+    method set-next(RakuAST::ExpressionThunk $next) {
+        nqp::bindattr(self, RakuAST::ExpressionThunk, '$!next', $next);
+        Nil
+    }
+
+    method thunk-kind() {
+        self.HOW.name(self)
+    }
+
+    # Called to produce the QAST::Block for the thunk, which should be pushed
+    # into the passed `$target`. If there is a next thunk in `$!next` then it
+    # should be compiled recursively and the expression passed along; otherwise,
+    # the expression itself should be compiled and used as the body.
+    method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
+            RakuAST::Expression $expression) {
+        # From the block, compiling the signature.
+        my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
+        my $block := QAST::Block.new(
+            :blocktype('declaration_static'),
+            QAST::Stmts.new(
+                $signature.IMPL-TO-QAST($context)
+            ));
+        $block.arity($signature.arity);
+
+        # If there's an inner thunk the body evaluates to that.
+        if $!next {
+            $!next.IMPL-THUNK-CODE-QAST($context, $block[0], $expression);
+            $block.push($!next.IMPL-THUNK-VALUE-QAST($context));
+        }
+
+        # Otherwise, we evaluate to the expression.
+        else {
+            $block.push($expression.IMPL-EXPR-QAST($context));
+        }
+
+        # Link and push the produced code block.
+        self.IMPL-LINK-META-OBJECT($context, $block);
+        $target.push($block);
+    }
+
+    # Produces a Code object that corresponds to the thunk.
+    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
+        self.IMPL-CLOSURE-QAST($context)
+    }
+
+    # The type of code object produced. Defaults to Code; override to produce
+    # something else.
+    method IMPL-THUNK-OBJECT-TYPE() { Code }
+
+    # The signature for the code object produced. Defaults to the empty
+    # signature; override to produce something else
+    method IMPL-THUNK-SIGNATURE() {
+        RakuAST::Signature.new
+    }
+
+    # A callback for when the thunk meta-object is produced, potentially to
+    # update some other meta-object that wants to reference it.
+    method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $meta) {
+    }
+
+    method IMPL-GET-OR-PRODUCE-SIGNATURE() {
+        $!signature // nqp::bindattr(self, RakuAST::ExpressionThunk, '$!signature',
+            self.IMPL-THUNK-SIGNATURE)
+    }
+
+    method PRODUCE-META-OBJECT() {
+        my $code := nqp::create(self.IMPL-THUNK-OBJECT-TYPE);
+        my $signature := self.IMPL-GET-OR-PRODUCE-SIGNATURE;
+        nqp::bindattr($code, Code, '$!signature', $signature.meta-object);
+        self.IMPL-THUNK-META-OBJECT-PRODUCED($code);
+        $code
+    }
+}
+
 # A code object that can have placeholder parameters.
 class RakuAST::PlaceholderParameterOwner is RakuAST::Node {
     # Any placeholder parameters that have been attached

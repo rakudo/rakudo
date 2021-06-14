@@ -20,7 +20,7 @@ class RakuAST::Expression is RakuAST::Node {
 
     method IMPL-QAST-ADD-THUNK-DECL-CODE(RakuAST::IMPL::QASTContext $context, Mu $target) {
         if $!thunks {
-            $!thunks.IMPL-THUNK-CODE-QAST($context, $target, $!thunks.next, self);
+            $!thunks.IMPL-THUNK-CODE-QAST($context, $target, self);
         }
     }
 
@@ -40,35 +40,6 @@ class RakuAST::Expression is RakuAST::Node {
             $visitor($cur-thunk);
             $cur-thunk := $cur-thunk.next;
         }
-    }
-}
-
-# The base of all expression thunks.
-class RakuAST::ExpressionThunk is RakuAST::Node {
-    has RakuAST::ExpressionThunk $.next;
-
-    method set-next(RakuAST::ExpressionThunk $next) {
-        nqp::bindattr(self, RakuAST::ExpressionThunk, '$!next', $next);
-        Nil
-    }
-
-    method thunk-kind() {
-        self.HOW.name(self)
-    }
-
-    # Called to produce the QAST::Block for the thunk, which should be pushed
-    # into the passed `$target`. If there is an immediate inner thunk, then the
-    # `$inner-thunk` argument will be a defined value, and should be handled
-    # recursively. Otherwise, the expression itself should be compiled and used
-    # as the body.
-    method IMPL-THUNK-CODE-QAST(RakuAST::IMPL::QASTContext $context, Mu $target,
-            RakuAST::ExpressionThunk $inner-thunk, RakuAST::Expression $expression) {
-        nqp::die('Missing IMPL-THUNK-CODE-QAST method on ' ~ self.HOW.name(self))
-    }
-
-    # Produces a Code object that corresponds to the thunk.
-    method IMPL-THUNK-VALUE-QAST(RakuAST::IMPL::QASTContext $context) {
-        nqp::die('Missing IMPL-THUNK-VALUE-QAST method on ' ~ self.HOW.name(self))
     }
 }
 

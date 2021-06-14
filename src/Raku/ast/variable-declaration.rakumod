@@ -765,7 +765,8 @@ class RakuAST::VarDeclaration::Placeholder::Named is RakuAST::VarDeclaration::Pl
     method generate-parameter() {
         RakuAST::Parameter.new:
             target => RakuAST::ParameterTarget::Var.new(self.lexical-name),
-            names => [nqp::substr(self.lexical-name, 1)]
+            names => [nqp::substr(self.lexical-name, 1)],
+            optional => 0
     }
 }
 

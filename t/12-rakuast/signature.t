@@ -131,7 +131,8 @@ subtest 'One required named parameter' => {
         parameters => (
           RakuAST::Parameter.new(
             target => RakuAST::ParameterTarget::Var.new('$named'),
-            names => ['named']
+            names => ['named'],
+            :!optional
           ),
         )
       ),
@@ -173,7 +174,8 @@ subtest 'Required named parameter with alias' => {
         parameters => (
           RakuAST::Parameter.new(
             target => RakuAST::ParameterTarget::Var.new('$var'),
-            names => ['first', 'fst']
+            names => ['first', 'fst'],
+            :!optional
           ),
         )
       ),

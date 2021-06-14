@@ -1349,8 +1349,8 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         if $<quant> {
             my str $q := ~$<quant>;
-            $parameter.set-optional(1) if $q eq '?';
-            $parameter.set-optional(0) if $q eq '!';
+            $parameter.set-optional() if $q eq '?';
+            $parameter.set-required() if $q eq '!';
             $parameter.set-slurpy(self.r('Parameter', 'Slurpy', 'Flattened'))
                 if $q eq '*';
             $parameter.set-slurpy(self.r('Parameter', 'Slurpy', 'Unflattened'))
@@ -1362,6 +1362,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
         for $<trait> {
             $parameter.add-trait($_.ast);
+        }
+        if $<default_value> {
+            $parameter.set-default($<default_value>.ast);
         }
         self.attach: $/, $parameter;
     }
@@ -1401,18 +1404,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
             else {
                 $parameter := $<param_var>.ast;
-                $parameter.set-optional(1);
             }
             $parameter.add-name(~$<name>);
         }
         else {
             # Name comes from the parameter variable.
             $parameter := $<param_var>.ast;
-            $parameter.set-optional(1);
             my $name-match := $<param_var><name>;
             $parameter.add-name($name-match ?? ~$name-match !! '');
         }
         self.attach: $/, $parameter;
+    }
+
+    method default_value($/) {
+        make $<EXPR>.ast;
     }
 
     method type_constraint($/) {

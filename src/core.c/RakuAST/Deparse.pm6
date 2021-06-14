@@ -563,7 +563,8 @@ class RakuAST::Deparse {
                 nqp::push_s($parts,':') if $seen;
                 nqp::push_s($parts,$var);
                 nqp::push_s($parts,nqp::x(')',$parens)) if $parens;
-                nqp::push_s($parts,'!') unless $ast.optional;
+                nqp::push_s($parts,'?') if $ast.is-declared-optional;
+                nqp::push_s($parts,'!') if $ast.is-declared-required;
             }
 
             # positional parameter
@@ -575,8 +576,11 @@ class RakuAST::Deparse {
                 if $ast.invocant {
                     nqp::push_s($parts,':');
                 }
-                elsif $ast.optional {
+                elsif $ast.is-declared-optional {
                     nqp::push_s($parts,'?');
+                }
+                elsif $ast.is-declared-required {
+                    nqp::push_s($parts,'!');
                 }
             }
         }

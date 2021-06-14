@@ -112,7 +112,7 @@ class RakuAST::Signature is RakuAST::Meta is RakuAST::Attaching {
     method arity() {
         my int $arity := 0;
         for self.IMPL-UNWRAP-LIST($!parameters) {
-            last unless $_.is-positional && !$_.optional;
+            last unless $_.is-positional && !$_.is-optional;
             $arity++;
         }
         nqp::box_i($arity, Int)
@@ -148,24 +148,29 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     has RakuAST::ParameterTarget $.target;
     has Mu $!names;
     has Bool $.invocant;
-    has Bool $.optional;
+    has Bool $!optional;
     has RakuAST::Parameter::Slurpy $.slurpy;
+    has RakuAST::Expression $.default;
     has RakuAST::Node $!owner;
 
     method new(RakuAST::Type :$type, RakuAST::ParameterTarget :$target,
             List :$names, Bool :$invocant, Bool :$optional,
-            RakuAST::Parameter::Slurpy :$slurpy, List :$traits) {
+            RakuAST::Parameter::Slurpy :$slurpy, List :$traits,
+            RakuAST::Expression :$default) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::Parameter, '$!type', $type // RakuAST::Type);
         nqp::bindattr($obj, RakuAST::Parameter, '$!target', $target // RakuAST::ParameterTarget);
         nqp::bindattr($obj, RakuAST::Parameter, '$!names', self.IMPL-NAMES($names));
         nqp::bindattr($obj, RakuAST::Parameter, '$!invocant', $invocant ?? True !! False);
-        nqp::bindattr($obj, RakuAST::Parameter, '$!optional', $optional ?? True !! False);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!optional', nqp::defined($optional)
+            ?? ($optional ?? True !! False)
+            !! Bool);
         nqp::bindattr($obj, RakuAST::Parameter, '$!slurpy',
             nqp::istype($slurpy, RakuAST::Parameter::Slurpy)
                 ?? $slurpy
                 !! RakuAST::Parameter::Slurpy);
         $obj.set-traits($traits);
+        nqp::bindattr($obj, RakuAST::Parameter, '$!default', $default // RakuAST::Expression);
         $obj
     }
 
@@ -179,8 +184,18 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         Nil
     }
 
-    method set-optional(Bool $optional) {
-        nqp::bindattr(self, RakuAST::Parameter, '$!optional', $optional ?? True !! False);
+    method set-optional() {
+        nqp::bindattr(self, RakuAST::Parameter, '$!optional', True);
+        Nil
+    }
+
+    method set-required() {
+        nqp::bindattr(self, RakuAST::Parameter, '$!optional', False);
+        Nil
+    }
+
+    method clear-optionality() {
+        nqp::bindattr(self, RakuAST::Parameter, '$!optional', Bool);
         Nil
     }
 
@@ -203,9 +218,31 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         self.IMPL-WRAP-LIST($!names)
     }
 
+    method set-default(RakuAST::Expression $default) {
+        nqp::bindattr(self, RakuAST::Parameter, '$!default', $default);
+        Nil
+    }
+
     # Tests if the parameter is a simple positional parameter.
     method is-positional() {
         $!names || !($!slurpy =:= RakuAST::Parameter::Slurpy) ?? False !! True
+    }
+
+    # Tests if the parameter has been explicitly marked optional.
+    method is-declared-optional() {
+        nqp::eqaddr($!optional, True)
+    }
+
+    # Tests if the parameter has been explicitly marked required.
+    method is-declared-required() {
+        nqp::eqaddr($!optional, False)
+    }
+
+    # Tests if the parameter is optional, which may be because it was
+    # declared that way, or alternatively may be because it has a
+    # default value or is named.
+    method is-optional() {
+        $!optional // ($!default || $!names ?? True !! False)
     }
 
     method IMPL-NAMES(Mu $names) {
@@ -231,6 +268,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
     method visit-children(Code $visitor) {
         $visitor($!type) if $!type;
         $visitor($!target) if $!target;
+        $visitor($!default) if $!default;
     }
 
     method PRODUCE-IMPLICIT-LOOKUPS() {
@@ -274,7 +312,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         my $sigil := $!target.sigil;
         my int $flags;
         $flags := $flags +| SIG_ELEM_INVOCANT if $!invocant;
-        $flags := $flags +| SIG_ELEM_IS_OPTIONAL if $!optional;
+        $flags := $flags +| SIG_ELEM_IS_OPTIONAL if self.is-optional;
         if $sigil eq '@' {
             $flags := $flags +| SIG_ELEM_ARRAY_SIGIL;
         }
@@ -318,6 +356,23 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
             if $name && $name.is-identifier && $name.canonicalize eq 'MAIN' {
                 self.add-worry: $resolver.build-exception: 'X::AdHoc',
                     payload => "'is rw' on parameters of 'sub MAIN' usually cannot be satisfied.\nDid you mean 'is copy'?"
+            }
+        }
+
+        if $!default {
+            # Ensure this is something that a default can go on.
+            if nqp::isconcrete($!slurpy) {
+                self.add-sorry: $resolver.build-exception: 'X::Parameter::Default',
+                    how => 'slurpy', parameter => $!target.name;
+            }
+            if self.is-declared-required {
+                self.add-sorry: $resolver.build-exception: 'X::Parameter::Default',
+                    how => 'required', parameter => $!target.name;
+            }
+
+            # If it doesn't have a compile-time value, we'll need to thunk it.
+            unless nqp::istype($!default, RakuAST::CompileTimeValue) {
+                $!default.wrap-with-thunk(RakuAST::ParameterDefaultThunk.new(self));
             }
         }
     }
@@ -376,7 +431,6 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 
         # Do type checks.
         # TODO really more involved than this
-        # TODO decont handling probably needs a tweak
         my $nominal-type := nqp::getattr($param-obj, Parameter, '$!type');
         unless $nominal-type =:= Mu {
             $context.ensure-sc($nominal-type);
@@ -396,9 +450,22 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
         }
 
         # If it's optional, do any default handling.
-        if $!optional {
-            # TODO default value, non-Scalar sigil, etc.
-            $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
+        if self.is-optional {
+            if nqp::istype($!default, RakuAST::CompileTimeValue) {
+                # Literal default value, so just insert it.
+                $param-qast.default($!default.IMPL-TO-QAST($context));
+            }
+            elsif $!default {
+                # Default has been thunked, so call the produced thunk.
+                $param-qast.default(QAST::Op.new(
+                    :op('call'),
+                    $!default.IMPL-TO-QAST($context)
+                ));
+            }
+            else {
+                # TODO non-Scalar sigil and native types
+                $param-qast.default(QAST::WVal.new( :value($nominal-type) ));
+            }
         }
 
         # Bind parameter into its target.
@@ -430,6 +497,7 @@ class RakuAST::Parameter is RakuAST::Meta is RakuAST::Attaching
 # parameter target.
 class RakuAST::ParameterTarget is RakuAST::Node {
     method sigil() { '' }
+    method name() { '' }
 }
 
 # A binding of a parameter into a lexical variable (with sigil).
@@ -667,5 +735,24 @@ class RakuAST::Parameter::Slurpy::Capture is RakuAST::Parameter::Slurpy {
                 QAST::SVal.new( :value('%!hash') ),
                 QAST::Var.new( :name($hash-param-name), :scope('local') )
             )));
+    }
+}
+
+# Thunk for a default parameter.
+class RakuAST::ParameterDefaultThunk is RakuAST::ExpressionThunk {
+    has RakuAST::Parameter $!parameter;
+
+    method new(RakuAST::Parameter $parameter) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::ParameterDefaultThunk, '$!parameter', $parameter);
+        $obj
+    }
+
+    method thunk-kind() {
+        'Parameter default'
+    }
+
+    method IMPL-THUNK-META-OBJECT-PRODUCED(Mu $code) {
+        nqp::bindattr($!parameter.meta-object, Parameter, '$!default_value', $code);
     }
 }

@@ -139,7 +139,7 @@ class RakuAST::Trait::Is is RakuAST::Trait is RakuAST::BeginTime {
 
     method visit-children(Code $visitor) {
         $visitor($!name);
-        $visitor($!argument);
+        $visitor($!argument) if $!argument;
     }
 }
 

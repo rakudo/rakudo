@@ -85,6 +85,6 @@ class RakuAST::Circumfix::HashComposer is RakuAST::Circumfix is RakuAST::Lookup 
     }
 
     method visit-children(Code $visitor) {
-        $visitor($!expression);
+        $visitor($!expression) if $!expression;
     }
 }

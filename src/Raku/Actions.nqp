@@ -1250,6 +1250,16 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             adverbs => $<rx_adverbs>.ast;
     }
 
+    method quote:sym<s>($/) {
+        self.attach: $/, self.r('Substitution').new:
+            immutable => $<sym> eq 'S',
+            samespace => ?$/[0],
+            adverbs => $<rx_adverbs>.ast,
+            pattern => $<sibble><left>.ast,
+            infix => $<sibble><infixish> ?? $<sibble><infixish>.ast !! self.r('Infixish'),
+            replacement => $<sibble><right>.ast;
+    }
+
     # We make a list of the quotepairs to attach them to the regex
     # construct; validation of what is valid takes place in the AST.
     # However, a limited number of them are required for parsing the
@@ -1262,7 +1272,11 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     my %RX_ADVERB_COMPILE_CANON := nqp::hash(
         'sigspace', 's',
         'ignoremark', 'm',
-        'Perl5', 'P5');
+        'Perl5', 'P5',
+        'ss', 's',
+        'samespace', 's',
+        'mm', 'm',
+        'samemark', 'm');
     method rx_adverbs($/) {
         my @pairs;
         for $<quotepair> {

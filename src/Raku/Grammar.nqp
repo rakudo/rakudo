@@ -1936,6 +1936,41 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         <!old_rx_mods>
     }
 
+    token quote:sym<s> {
+        <sym=[Ss]> (s)**0..1
+        :my %*RX;
+        :my $*INTERPOLATE := 1;
+        {
+            %*RX<s> := 1 if $/[0]
+        }
+        <.qok($/)>
+        <rx_adverbs>
+        <sibble(%*RX<P5> ?? self.slang_grammar('P5Regex') !! self.slang_grammar('Regex'), self.slang_grammar('Quote'), ['qq'])>
+        [ <?{ $<sibble><infixish> }> || <.old_rx_mods>? ]
+    }
+
+    token sibble($l, $lang2, @lang2tweaks?) {
+        :my $lang;
+        :my $start;
+        :my $stop;
+
+        <babble($l)>
+        { my $B := $<babble><B>.ast; $lang := $B[0]; $start := $B[1]; $stop := $B[2]; }
+
+        $start <left=.nibble($lang)> [ $stop || { self.fail-terminator($/, $start, $stop) } ]
+        [ <?{ $start ne $stop }>
+            <.ws>
+            [ <?[ \[ \{ \( \< ]> <.obs('brackets around replacement', 'assignment syntax')> ]?
+            [ <infixish> || <.missing: "assignment operator"> ]
+            [ <?{ $<infixish>.Str eq '=' || $<infixish><infix_postfix_meta_operator> }> || <.malformed: "assignment operator"> ]
+            <.ws>
+            [ <right=.EXPR('i')> || <.panic: "Assignment operator missing its expression"> ]
+        ||
+            { $lang := self.quote_lang($lang2, $stop, $stop, @lang2tweaks); }
+            <right=.nibble($lang)> $stop || <.panic("Malformed replacement part; couldn't find final $stop")>
+        ]
+    }
+
     token old_rx_mods {
         (<[ i g s m x c e ]>)
         {

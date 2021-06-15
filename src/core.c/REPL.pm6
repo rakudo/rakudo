@@ -308,7 +308,15 @@ do {
 
         method interactive_prompt() { '> ' }
 
+        my int $sigint;    # did we install a CTRL-c catcher?
+        my int $stopped;   # did we press CTRL-c just now?
+
         method repl-loop(:$no-exit, *%adverbs) {
+            signal(SIGINT).tap: {
+                exit if $stopped++;
+                say "Pressed CTRL-c, press CTRL-c again to exit";
+                print self.interactive_prompt;
+            } unless $sigint++;
 
             say $no-exit
               ?? "Type 'exit' to leave"
@@ -328,6 +336,7 @@ do {
                 my $newcode = self.repl-read(~$prompt);
                 last if $no-exit and $newcode and $newcode eq 'exit';
 
+                $stopped = 0;
                 my $initial_out_position = $*OUT.tell;
 
                 # An undef $newcode implies ^D or similar

@@ -308,15 +308,13 @@ do {
 
         method interactive_prompt() { '> ' }
 
-        my int $sigint;    # did we install a CTRL-c catcher?
-        my int $stopped;   # did we press CTRL-c just now?
-
         method repl-loop(:$no-exit, *%adverbs) {
+            my int $stopped;   # did we press CTRL-c just now?
             signal(SIGINT).tap: {
                 exit if $stopped++;
                 say "Pressed CTRL-c, press CTRL-c again to exit";
                 print self.interactive_prompt;
-            } unless $sigint++;
+            }
 
             say $no-exit
               ?? "Type 'exit' to leave"

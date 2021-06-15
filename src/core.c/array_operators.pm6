@@ -27,18 +27,22 @@ multi sub circumfix:<[ ]>(Iterable:D \iterable) {
     )
 }
 multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
-    nqp::p6bindattrinvres(
-      nqp::create(Array),List,'$!reified',
-      nqp::stmts(
-        nqp::bindpos(
-          (my \reified := nqp::create(IterationBuffer)),
-          0,
-          nqp::p6scalarwithvalue(
-            (BEGIN nqp::getcurhllsym('default_cont_spec')),
-            nqp::decont(x)
-          )
-        ),
-        reified
+    nqp::if(
+      nqp::eqaddr(nqp::decont(x),Nil),
+      Array.new,
+      nqp::p6bindattrinvres(
+        nqp::create(Array),List,'$!reified',
+        nqp::stmts(
+          nqp::bindpos(
+            (my \reified := nqp::create(IterationBuffer)),
+            0,
+            nqp::p6scalarwithvalue(
+              (BEGIN nqp::getcurhllsym('default_cont_spec')),
+              nqp::decont(x)
+            )
+          ),
+          reified
+        )
       )
     )
 }

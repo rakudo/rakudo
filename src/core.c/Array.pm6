@@ -20,14 +20,26 @@ my class Array { # declared in BOOTSTRAP
         }
 
         method push(Mu \value --> Nil) {
-            nqp::push($!target, nqp::p6scalarwithvalue($!descriptor, value));
+            my \cont := nqp::p6scalarwithvalue($!descriptor,value); # typecheck
+            nqp::eqaddr(value,Nil)
+              ?? nqp::setelems($!target,nqp::add_i(nqp::elems($!target),1))
+              !! nqp::push($!target,cont)
         }
 
         method append(IterationBuffer:D \buffer --> Nil) {
             nqp::while(
               nqp::elems(buffer),
-              nqp::push($!target,
-                nqp::p6scalarwithvalue($!descriptor,nqp::shift(buffer))
+              nqp::stmts(
+                # make sure we typecheck any value being stored
+                (my \cont := nqp::p6scalarwithvalue(
+                  $!descriptor,
+                  (my \value := nqp::shift(buffer))
+                )),
+                nqp::if(
+                  nqp::eqaddr(value,Nil),
+                  nqp::setelems($!target,nqp::add_i(nqp::elems($!target),1)),
+                  nqp::push($!target,cont)
+                )
               )
             );
         }
@@ -106,7 +118,7 @@ my class Array { # declared in BOOTSTRAP
               nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
               nqp::if(
                 nqp::islt_i($!i,nqp::elems($!reified)),
-                self!hole($!i),
+                self.hole($!i),
                 nqp::if(
                   nqp::isconcrete($!todo),
                   nqp::if(
@@ -122,7 +134,7 @@ my class Array { # declared in BOOTSTRAP
               )
             )
         }
-        method !hole(int $i) is raw {
+        method hole(int $i) is raw is implementation-detail {
             nqp::p6scalarfromcertaindesc(
               ContainerDescriptor::BindArrayPos.new($!descriptor,$!reified,$i)
             )
@@ -160,7 +172,7 @@ my class Array { # declared in BOOTSTRAP
                 nqp::while(   # doesn't sink
                   nqp::islt_i($i = nqp::add_i($i,1),$elems),
                   target.push(
-                    nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
+                    nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
                   )
                 ),
                 ($!i = $i),
@@ -213,11 +225,14 @@ my class Array { # declared in BOOTSTRAP
         my \reified  := nqp::create(IterationBuffer);
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::bindpos(
-            reified, $i,
-            nqp::p6scalarwithvalue(
-              (BEGIN nqp::getcurhllsym('default_cont_spec')),
-              nqp::decont(nqp::atpos(params,$i))
+          nqp::unless(
+            nqp::isnull(my \value := nqp::decont(nqp::atpos(params,$i)))
+              || nqp::eqaddr(value,Nil),
+            nqp::bindpos(reified,$i,
+              nqp::p6scalarwithvalue(
+                (BEGIN nqp::getcurhllsym('default_cont_spec')),
+                value
+              )
             )
           )
         );
@@ -308,10 +323,10 @@ my class Array { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
     multi method STORE(Array:D: Mu \item --> Array:D) {
-        nqp::push(
-          (my \buffer = nqp::create(IterationBuffer)),
-          nqp::p6scalarwithvalue($!descriptor, item)
-        );
+        my \buffer = nqp::create(IterationBuffer);
+        # Make sure we typecheck always
+        my \cont := nqp::p6scalarwithvalue($!descriptor,item);
+        nqp::push(buffer,cont) unless nqp::eqaddr(nqp::decont(item),Nil);
         nqp::bindattr(self,List,'$!todo',Mu);
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
@@ -324,7 +339,7 @@ my class Array { # declared in BOOTSTRAP
 
     multi method Slip(Array:D: --> Slip:D) {
 
-       # A Slip-With-Descripto is a special kind of Slip that also has a
+       # A Slip-With-Descriptor is a special kind of Slip that also has a
        # descriptor to be able to generate containers for null elements that
        # have type and default information.
         my class Slip-With-Descriptor is Slip {
@@ -1280,13 +1295,35 @@ my class Array { # declared in BOOTSTRAP
     method dynamic() {
         nqp::isnull($!descriptor) ?? False !! so $!descriptor.dynamic
     }
+
     multi method raku(Array:D \SELF: --> Str:D) {
+        my role NilHole { method hole(int $ --> Nil) { } }
+
         SELF.rakuseen('Array', {
-             '$' x nqp::iscont(SELF)  # self is always deconted
-             ~ '['
-             ~ self.map({nqp::decont($_).raku}).join(', ')
-             ~ ',' x (self.elems == 1 && nqp::istype(self.AT-POS(0),Iterable))
-             ~ ']'
+            my $iterator := SELF.iterator but NilHole;
+
+            my $parts := nqp::list_s;
+            nqp::push_s($parts,'$') if nqp::iscont(SELF);
+            nqp::push_s($parts,'[');
+            nqp::until(
+              nqp::eqaddr(
+                (my \value := nqp::decont($iterator.pull-one)),
+                IterationEnd
+              ),
+              nqp::stmts(
+                nqp::push_s(
+                  $parts,
+                  nqp::if(nqp::isnull(value),'Nil',value.raku)
+                ),
+                nqp::push_s($parts,', ')
+              )
+            );
+            nqp::pop_s($parts) unless nqp::isle_i(nqp::elems($parts),2);
+            nqp::push_s($parts,',')
+              if self.elems == 1 && nqp::istype(self.AT-POS(0),Iterable);
+            nqp::push_s($parts,']');
+
+            nqp::join('',$parts)
         })
     }
     multi method WHICH(Array:D: --> ObjAt:D) { self.Mu::WHICH }

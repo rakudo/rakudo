@@ -389,7 +389,6 @@ my role Baggy does QuantHash {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
-    proto method pick(|) {*}
     multi method pick(Baggy:D:) { self.roll }
     multi method pick(Baggy:D: Callable:D $calculate) {
         self.pick( $calculate(self.total) )

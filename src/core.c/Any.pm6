@@ -132,6 +132,9 @@ my class Any { # declared in BOOTSTRAP
     proto method pick(|) is nodal {*}
     multi method pick()   { self.list.pick     }
     multi method pick($n) { self.list.pick($n) }
+    multi method pick(HyperWhatever) is default {
+        Seq.new: Rakudo::Iterator.Reiterate: { self.pick(Whatever).iterator }
+    }
 
     proto method roll(|) is nodal {*}
     multi method roll()   { self.list.roll     }

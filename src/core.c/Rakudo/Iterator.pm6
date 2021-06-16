@@ -3603,6 +3603,30 @@ class Rakudo::Iterator {
         ReifiedRotateIterator.new(rotate, list, descriptor)
     }
 
+    # Return a lazy iterator that takes a Callable that returns an iterator,
+    # produces the values of that iterator until it is exhausted, then gets
+    # an iterator by calling the Callable again, ad infinitum.
+    my class Reiterate does Iterator {
+        has &!reiterator;
+        has $!iterator;
+
+        method !SET-SELF(&reiterator) {
+            &!reiterator := &reiterator;
+            $!iterator   := reiterator();
+            self
+        }
+        method new(\reiterator) { nqp::create(self)!SET-SELF(reiterator) }
+        method pull-one() {
+            nqp::if(
+              nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd),
+              ($!iterator := &!reiterator()).pull-one,
+              pulled
+            )
+        }
+        method is-lazy(--> True) { }     # we're lazy, always
+    }
+    method Reiterate(\reiterator) { Reiterate.new(reiterator) }
+
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,
     # it will cache the values seen to handle case that the iterator

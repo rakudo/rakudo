@@ -165,7 +165,6 @@ my role Setty does QuantHash {
     proto method grab(|) {*}
     proto method grabpairs(|) {*}
 
-    proto method pick(|) {*}
     multi method pick(Setty:D:) { self.roll }
     multi method pick(Setty:D: Callable:D $calculate) {
         self.pick( $calculate(self.elems) )

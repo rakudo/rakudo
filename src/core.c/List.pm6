@@ -922,7 +922,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method pick(|) is nodal {*}
     multi method pick(List:D:) {
         self.is-lazy
          ?? self.fail-iterator-cannot-be-lazy('.pick from')

@@ -182,46 +182,48 @@ my class Array { # declared in BOOTSTRAP
             !! Rakudo::Iterator.Empty            # nothing now or in the future
     }
     method from-iterator(Array:U: Iterator $iter --> Array:D) {
+        my \array := self.new;
         nqp::if(
           nqp::eqaddr(
             $iter.push-until-lazy(
               my \target := ArrayReificationTarget.new(
                 (my \buffer := nqp::create(IterationBuffer)),
-                BEGIN nqp::getcurhllsym('default_cont_spec')
+                nqp::getattr(array,Array,'$!descriptor')
               )
             ),
             IterationEnd
           ),
-          nqp::p6bindattrinvres(nqp::create(self),List,'$!reified',buffer),
+          nqp::p6bindattrinvres(array,List,'$!reified',buffer),
           nqp::stmts(
-            nqp::bindattr((my \result := nqp::create(self)),
-              List,'$!reified',buffer),
+            nqp::bindattr(array,List,'$!reified',buffer),
             nqp::bindattr((my \todo := nqp::create(List::Reifier)),
               List::Reifier,'$!current-iter',$iter),
             nqp::bindattr(todo,
               List::Reifier,'$!reified',buffer),
             nqp::bindattr(todo,
               List::Reifier,'$!reification-target',target),
-            nqp::p6bindattrinvres(result,List,'$!todo',todo)
+            nqp::p6bindattrinvres(array,List,'$!todo',todo)
           )
         )
     }
     method from-list(Array:U: Mu \list --> Array:D) {
-        my \params   := nqp::getattr(list,List,'$!reified');
-        my int $elems = list.elems;  # reifies
-        my int $i     = -1;
+        my \params     := nqp::getattr(list,List,'$!reified');
+        my \array      := self.new;
+        my \descriptor := nqp::getattr(array,Array,'$!descriptor');
+        my int $elems   = list.elems;  # reifies
+        my int $i       = -1;
         my \reified  := nqp::create(IterationBuffer);
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
           nqp::bindpos(
             reified, $i,
             nqp::p6scalarwithvalue(
-              (BEGIN nqp::getcurhllsym('default_cont_spec')),
+              descriptor,
               nqp::decont(nqp::atpos(params,$i))
             )
           )
         );
-        nqp::p6bindattrinvres(nqp::create(Array),List,'$!reified',reified)
+        nqp::p6bindattrinvres(array,List,'$!reified',reified)
     }
 
     # handle non-straightforward shapes

@@ -39,8 +39,21 @@ my class Rakudo::Internals {
         ))
     }
 
+    method hash-with-Array-typename(%hash) {
+        nqp::if(
+          nqp::istype(
+            (my \type := ::(nqp::iterkey_s(
+              nqp::shift(nqp::iterator(nqp::getattr(%hash,Map,'$!storage')))
+            ))),
+            Failure
+          ),
+          type.throw,
+          Array[type]
+        )
+    }
+
     method Array-with-one-elem(Mu \type, Mu \value) {
-        my \array := (nqp::eqaddr(type,Mu) ?? Array !! Array[type]).new;
+        my \array := type.new;
         nqp::p6bindattrinvres(array,List,'$!reified',
           nqp::stmts(
             nqp::bindpos(

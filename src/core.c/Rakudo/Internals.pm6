@@ -39,6 +39,23 @@ my class Rakudo::Internals {
         ))
     }
 
+    method Array-with-one-elem(Mu \type, Mu \value) {
+        my \array := (nqp::eqaddr(type,Mu) ?? Array !! Array[type]).new;
+        nqp::p6bindattrinvres(array,List,'$!reified',
+          nqp::stmts(
+            nqp::bindpos(
+              (my \reified := nqp::create(IterationBuffer)),
+              0,
+              nqp::p6scalarwithvalue(
+                nqp::getattr(array,Array,'$!descriptor'),
+                nqp::decont(value)
+              )
+            ),
+            reified
+          )
+        )
+    }
+
     # for use in nqp::splice
     my $empty := nqp::list;
 

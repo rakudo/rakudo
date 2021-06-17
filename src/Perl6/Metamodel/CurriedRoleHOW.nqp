@@ -133,10 +133,11 @@ class Perl6::Metamodel::CurriedRoleHOW
         # for $!curried_role.HOW.role_typecheck_list($obj) {
         #     nqp::push(@rtl, $_);
         # }
-        for self.roles_to_compose($obj) {
-            if $_.HOW.archetypes.composable() || $_.HOW.archetypes.composalizable() {
-                nqp::push(@rtl, $_);
-                for $_.HOW.role_typecheck_list($_) {
+        for self.roles_to_compose($obj) -> $role {
+            my $how := $role.HOW;
+            if $how.archetypes.composable() || $how.archetypes.composalizable() {
+                nqp::push(@rtl, $role);
+                for $how.role_typecheck_list($role) {
                     nqp::push(@rtl, $_);
                 }
             }

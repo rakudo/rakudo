@@ -237,7 +237,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         # the case they're generic (role Foo[::T] is T { })
         for self.parents($obj, :local(1)) {
             my $p := $_;
-            if $_.HOW.archetypes.generic {
+            if $p.HOW.archetypes.generic {
                 $p := $p.HOW.instantiate_generic($p, $type_env);
             }
             $conc.HOW.add_parent($conc, $p, :hides(self.hides_parent($obj, $_)));

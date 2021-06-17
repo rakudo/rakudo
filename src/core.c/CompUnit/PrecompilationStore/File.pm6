@@ -291,6 +291,23 @@ class CompUnit::PrecompilationStore::File
       IO::Path:D $path,
       Str:D :$extension = ''
     ) {
+        if $*DISTRO.is-win {
+            # File renaming can easily race and fail on Windows. There's no great solution,
+            # so instead just try 10 times catching a failure (and returning out of the
+            # loop and method if it succeeds), and if it hasn't succeeded after that, try
+            # one more time without catching a failure.
+            my $retry-count = 10;
+            while $retry-count-- {
+                $path.rename(self!file($compiler-id, $precomp-id, :$extension));
+                CATCH {
+                    when X::IO::Rename {
+                        sleep 0.1;
+                        next;
+                    }
+                }
+                return;
+            }
+        }
         $path.rename(self!file($compiler-id, $precomp-id, :$extension));
     }
 
@@ -301,6 +318,24 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $precomp-file := self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
+        if $*DISTRO.is-win {
+            # File renaming can easily race and fail on Windows. There's no great solution,
+            # so instead just try 10 times catching a failure (and returning out of the
+            # loop and method if it succeeds), and if it hasn't succeeded after that, try
+            # one more time without catching a failure.
+            my $retry-count = 10;
+            while $retry-count-- {
+                $precomp-file.rename(self!file($compiler-id, $precomp-id));
+                CATCH {
+                    when X::IO::Rename {
+                        sleep 0.1;
+                        next;
+                    }
+                }
+                self.remove-from-cache($precomp-id);
+                return;
+            }
+        }
         $precomp-file.rename(self!file($compiler-id, $precomp-id));
         self.remove-from-cache($precomp-id);
     }
@@ -312,6 +347,23 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
         $repo-id-file.spurt($repo-id);
+        if $*DISTRO.is-win {
+            # File renaming can easily race and fail on Windows. There's no great solution,
+            # so instead just try 10 times catching a failure (and returning out of the
+            # loop and method if it succeeds), and if it hasn't succeeded after that, try
+            # one more time without catching a failure.
+            my $retry-count = 10;
+            while $retry-count-- {
+                $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
+                CATCH {
+                    when X::IO::Rename {
+                        sleep 0.1;
+                        next;
+                    }
+                }
+                return;
+            }
+        }
         $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
     }
 

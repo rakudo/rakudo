@@ -13,7 +13,9 @@ my class Pod::Block::Declarator { ... }
 
 proto sub trait_mod:<is>(Mu $, |) {*}
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
-    if $parent.HOW.archetypes.inheritable() {
+    if $parent.HOW.archetypes.inheritable()
+        || ($child.HOW.archetypes.parametric && $parent.HOW.archetypes.generic)
+    {
         $child.^add_parent($parent);
     }
     elsif $parent.HOW.archetypes.inheritalizable() {
@@ -371,11 +373,14 @@ multi sub trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
 
 proto sub trait_mod:<does>(Mu, Mu, *%) {*}
 multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
-    if $role.HOW.archetypes.composable() {
+    my $how := $role.HOW;
+    if $how.archetypes.parametric()
+        || ($doee.HOW.archetypes.parametric && $how.archetypes.generic)
+    {
         $doee.^add_role($role)
     }
-    elsif $role.HOW.archetypes.composalizable() {
-        $doee.^add_role($role.HOW.composalize($role))
+    elsif $how.archetypes.composalizable() {
+        $doee.^add_role($how.composalize($role))
     }
     else {
         X::Composition::NotComposable.new(

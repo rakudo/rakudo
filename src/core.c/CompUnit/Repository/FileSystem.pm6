@@ -155,7 +155,7 @@ class CompUnit::Repository::FileSystem
         ));
     }
     multi method candidates(CompUnit::DependencySpecification $spec) {
-        return Empty unless $spec.from eq 'Perl6';
+        return Empty unless $spec.from eq 'Raku';
 
         my $distribution = self!distribution;
 

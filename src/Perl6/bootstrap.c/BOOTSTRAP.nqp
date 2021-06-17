@@ -604,7 +604,7 @@ my class Binder {
                         $error[0] := $error[0] ~ " of parameter " ~ $varname;
                     }
                 }
-                return $result;
+                return $BIND_RESULT_FAIL;
             }
         }
 

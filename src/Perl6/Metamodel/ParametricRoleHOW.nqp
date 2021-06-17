@@ -83,9 +83,12 @@ class Perl6::Metamodel::ParametricRoleHOW
             @rtl.push($!group);
         }
         for self.roles_to_compose($obj) {
-            @rtl.push($_);
-            for $_.HOW.role_typecheck_list($_) {
+            my $how := $_.HOW;
+            if $how.archetypes.composable || $how.archetypes.composalizable {
                 @rtl.push($_);
+                for $_.HOW.role_typecheck_list($_) {
+                    @rtl.push($_);
+                }
             }
         }
         @!role_typecheck_list := @rtl;
@@ -213,6 +216,16 @@ class Perl6::Metamodel::ParametricRoleHOW
             my $ins := my $r := $_;
             if $_.HOW.archetypes.generic {
                 $ins := $ins.HOW.instantiate_generic($ins, $type_env);
+                unless $ins.HOW.archetypes.parametric {
+                    my $target-name := $obj.HOW.name($obj);
+                    my $role-name := $ins.HOW.name($ins);
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::Composition::NotComposable',
+                        $role-name ~ " is not composable, so " ~ $target-name ~ " cannot compose it",
+                        :$target-name,
+                        composer => $ins,
+                    )
+                }
                 $conc.HOW.add_to_role_typecheck_list($conc, $ins);
             }
             $ins := $ins.HOW.specialize($ins, @pos_args[0]);

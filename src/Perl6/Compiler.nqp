@@ -24,7 +24,7 @@ class Perl6::Compiler is HLL::Compiler {
         nqp::exit(0);
     }
 
-    method version_string(:$shorten-versions) {
+    method version_string(:$shorten-versions, :$no-unicode) {
         my $config-version  := self.config()<version>;
         my $backend-version := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
 
@@ -38,13 +38,15 @@ class Perl6::Compiler is HLL::Compiler {
             $index := nqp::index($backend-version,"-");
             $backend-version := nqp::substr($backend-version,0,$index)
               unless $index == -1;
-
-            $raku   := "𝐑𝐚𝐤𝐮™";
-            $rakudo := "𝐑𝐚𝐤𝐮𝐝𝐨™";
         }
-        else {
+
+        if $no-unicode {
             $raku   := "Raku(tm)";
             $rakudo := "Rakudo(tm)";
+        }
+        else {
+            $raku   := "𝐑𝐚𝐤𝐮™";
+            $rakudo := "𝐑𝐚𝐤𝐮𝐝𝐨™";
         }
 
         "Welcome to "

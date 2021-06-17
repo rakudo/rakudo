@@ -248,7 +248,10 @@ do {
 
         method new(Mu \compiler, Mu \adverbs, $skip?) {
             unless $skip {
-                say compiler.version_string(:shorten-versions);
+                say compiler.version_string(
+                  :shorten-versions,
+                  :no-unicode(Rakudo::Internals.IS-WIN)
+                );
                 say '';
             }
 

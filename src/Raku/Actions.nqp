@@ -499,6 +499,29 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method postfixish($/) {
+        my $ast := $<OPER>.ast // self.r('Postfix').new(~$<postfix>);
+        if $<postfix_prefix_meta_operator> {
+            $ast := $<postfix_prefix_meta_operator>.ast.new($ast);
+        }
+        self.attach: $/, $ast;
+    }
+
+    method postfix_prefix_meta_operator:sym<»>($/) {
+        # Check if we are inside «...» quoters and complain if the hyper creates
+        # ambiguity with the quoters, since user may not wanted to have a hyper
+        my str $sym := ~$<sym>;
+        if ($/.pragma("STOPPER") // '') eq $sym {
+            $/.worry:
+                "Ambiguous use of $sym; use "
+                ~ ($<sym> eq '>>' ?? '»' !! '>>')
+                ~ " instead to mean hyper, or insert whitespace before"
+                ~ " $sym to mean a quote terminator (or use different delimiters?)";
+        }
+
+        make self.r('MetaPostfix', 'Hyper');
+    }
+
     method postop($/) {
         self.attach: $/, $<postfix> ?? $<postfix>.ast !! $<postcircumfix>.ast;
     }

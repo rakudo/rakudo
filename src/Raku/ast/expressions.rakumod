@@ -254,6 +254,60 @@ class RakuAST::MetaInfix::Assign is RakuAST::Infixish {
     }
 }
 
+# A bracketed infix.
+class RakuAST::BracketedInfix is RakuAST::Infixish {
+    has RakuAST::Infixish $.infix;
+
+    method new(RakuAST::Infixish $infix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::BracketedInfix, '$!infix', $infix);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+    }
+
+    method IMPL-INFIX-COMPILE(RakuAST::IMPL::QASTContext $context,
+            RakuAST::Expression $left, RakuAST::Expression $right) {
+        $!infix.IMPL-INFIX-COMPILE($context, $left, $right)
+    }
+
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        $!infix.IMPL-INFIX-QAST($context, $left-qast, $right-qast)
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!infix.IMPL-HOP-INFIX-QAST($context)
+    }
+}
+
+# A function infix (`$x [&func] $y`).
+class RakuAST::FunctionInfix is RakuAST::Infixish {
+    has RakuAST::Expression $.function;
+
+    method new(RakuAST::Expression $function) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::FunctionInfix, '$!function', $function);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!function);
+    }
+
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        QAST::Op.new:
+            :op('call'),
+            $!function.IMPL-TO-QAST($context),
+            $left-qast, $right-qast
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        $!function.IMPL-TO-QAST($context)
+    }
+}
+
 # A negate meta-operator.
 class RakuAST::MetaInfix::Negate is RakuAST::Infixish {
     has RakuAST::Infixish $.infix;

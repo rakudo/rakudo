@@ -624,6 +624,12 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<infix_circumfix_meta_operator> {
             $ast := $<infix_circumfix_meta_operator>.ast;
         }
+        elsif $<infixish> {
+            $ast := self.r('BracketedInfix').new($<infixish>.ast);
+        }
+        elsif $<variable> {
+            $ast := self.r('FunctionInfix').new($<variable>.ast);
+        }
         else {
             nqp::die('unknown kind of infix');
         }

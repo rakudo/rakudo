@@ -10,6 +10,8 @@
 
 class Rakudo::Iterator {
     my $empty := nqp::list;   # an empty list for nqp::splice
+    sub always-IterationEnd(--> IterationEnd) { }
+    sub always-False(--> False) { }
 
 #-------------------------------------------------------------------------------
 # Roles that are used by iterators in the rest of the core settings, in
@@ -1438,7 +1440,16 @@ class Rakudo::Iterator {
                             ($stopped = nqp::if(&!cond(),0,1))
                           ),
                           'REDO', ($stopped = 0),
-                          'LAST', ($result := IterationEnd)
+                          'LAST', nqp::if(
+                            nqp::isnull(
+                              $result := nqp::getpayload(nqp::exception)
+                            ),
+                            ($result := IterationEnd),
+                            nqp::stmts(
+                              ($!seen-first = 0),
+                              (&!cond := &always-False)
+                            )
+                          )
                         )
                       ),
                       :nohandler
@@ -2467,7 +2478,11 @@ class Rakudo::Iterator {
                       'LABELED', $!label,
                       'NEXT', ($stopped = 0),
                       'REDO', ($stopped = 0),
-                      'LAST', ($result := IterationEnd)
+                      'LAST', nqp::if(
+                        nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                        ($result := IterationEnd),
+                        (&!body := &always-IterationEnd)
+                      )
                     )
                   ),
                   :nohandler
@@ -3682,14 +3697,14 @@ class Rakudo::Iterator {
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition..
     my class RepeatLoop does Rakudo::SlippyIterator {
-        has $!body;
-        has $!cond;
+        has &!body;
+        has &!cond;
         has $!label;
         has int $!skip;
 
         method !SET-SELF(\body,\cond,\label) {
-            $!body  := body;
-            $!cond  := cond;
+            &!body  := body;
+            &!cond  := cond;
             $!label := nqp::decont(label);
             $!skip   = 1;
             self
@@ -3706,25 +3721,31 @@ class Rakudo::Iterator {
             }
             else {
                 nqp::if(
-                  $!skip || $!cond(),
+                  $!skip || &!cond(),
                   nqp::stmts(
                     ($!skip = 0),
-                    nqp::until(
+                    nqp::until(   # XXX perhaps repeat_until?
                       (my int $stopped),
                       nqp::stmts(
                         ($stopped = 1),
                         nqp::handle(
                           nqp::if(
-                            nqp::istype(($result := $!body()),Slip),
+                            nqp::istype(($result := &!body()),Slip),
                             ($stopped = nqp::eqaddr(
                               ($result := self.start-slip($result)),
                               IterationEnd
-                            ) && nqp::if($!cond(),0,1))
+                            ) && nqp::if(&!cond(),0,1))
                           ),
                           'LABELED', $!label,
-                          'NEXT', ($stopped = nqp::if($!cond(),0,1)),
+                          'NEXT', ($stopped = nqp::if(&!cond(),0,1)),
                           'REDO', ($stopped = 0),
-                          'LAST', ($result := IterationEnd)
+                          'LAST', nqp::if(
+                            nqp::isnull(
+                              $result := nqp::getpayload(nqp::exception)
+                            ),
+                            ($result := IterationEnd),
+                            (&!cond  := &always-False)
+                          )
                         )
                       ),
                       :nohandler
@@ -4720,13 +4741,13 @@ class Rakudo::Iterator {
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition.
     my class WhileLoop does Rakudo::SlippyIterator {
-        has $!body;
-        has $!cond;
+        has &!body;
+        has &!cond;
         has $!label;
 
         method !SET-SELF(\body,\cond,\label) {
-            $!body := body;
-            $!cond := cond;
+            &!body := body;
+            &!cond := cond;
             $!label := nqp::decont(label);
             self
         }
@@ -4742,7 +4763,7 @@ class Rakudo::Iterator {
             }
             else {
                 nqp::if(
-                  $!cond(),
+                  &!cond(),
                   nqp::stmts(
                     nqp::until(
                       (my int $stopped),
@@ -4750,16 +4771,22 @@ class Rakudo::Iterator {
                         ($stopped = 1),
                         nqp::handle(
                           nqp::if(
-                            nqp::istype(($result := $!body()),Slip),
+                            nqp::istype(($result := &!body()),Slip),
                             ($stopped = nqp::eqaddr(
                               ($result := self.start-slip($result)),
                               IterationEnd
-                            ) && nqp::if($!cond(),0,1))
+                            ) && nqp::if(&!cond(),0,1))
                           ),
                           'LABELED', $!label,
-                          'NEXT', ($stopped = nqp::if($!cond(),0,1)),
+                          'NEXT', ($stopped = nqp::if(&!cond(),0,1)),
                           'REDO', ($stopped = 0),
-                          'LAST', ($result := IterationEnd)
+                          'LAST', nqp::if(
+                            nqp::isnull(
+                              $result := nqp::getpayload(nqp::exception)
+                            ),
+                            ($result := IterationEnd),
+                            (&!cond  := &always-False)
+                          )
                         )
                       ),
                       :nohandler

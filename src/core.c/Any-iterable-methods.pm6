@@ -355,18 +355,15 @@ Consider using a block if any of these are necessary for your mapping code."
                         )
                       )
                     ),
-                    'LABELED',
-                    $!label,
-                    'NEXT',
-                    nqp::if(
+                    'LABELED', $!label,
+                    'NEXT', nqp::if(
                       nqp::eqaddr(
                         ($value := $!source.pull-one),IterationEnd
                       ),
                       ($result := IterationEnd),
                       ($redo = 1)
                     ),
-                    'REDO',
-                    ($redo = 1),
+                    'REDO', ($redo = 1),
                     'LAST', nqp::if(
                       nqp::isnull($result := nqp::getpayload(nqp::exception)),
                       ($result := IterationEnd),
@@ -511,18 +508,15 @@ Consider using a block if any of these are necessary for your mapping code."
                         )
                       )
                     ),
-                    'LABELED',
-                    $!label,
-                    'NEXT',
-                    nqp::if(
+                    'LABELED', $!label,
+                    'NEXT', nqp::if(
                       nqp::eqaddr(
                         ($value := $!source.pull-one),IterationEnd
                       ),
                       ($result := IterationEnd),
                       ($redo = 1)
                     ),
-                    'REDO',
-                    ($redo = 1),
+                    'REDO', ($redo = 1),
                     'LAST', nqp::if(
                       nqp::isnull($result := nqp::getpayload(nqp::exception)),
                       ($result  := IterationEnd),
@@ -916,43 +910,80 @@ Consider using a block if any of these are necessary for your mapping code."
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-callable(Callable:D $test) {
-        nqp::if(
-          $test.count == 1,
-          sequential-map(
-            self.iterator,
-            {
-                (nqp::istype((my \result := $test($_)),Regex)
-                  ?? result.ACCEPTS($_)
-                  !! nqp::istype(result,Junction)
-                    ?? result.Bool
-                    !! result
-                ) ?? $_
-                  !! Empty
-            },
-            Any)
-          ,
-          nqp::stmts(
-            (my role CheatArity {
+        my int $done;
+        if $test.count == 1 {
+            sequential-map(
+              self.iterator,
+              {
+                  nqp::if(
+                    $done,
+                    IterationEnd,
+                    nqp::if(
+                      nqp::stmts(
+                        nqp::handle(
+                          (my $result := $test($_)),
+                          'LAST', nqp::stmts(
+                            ($done = 1),
+                            ($result := nqp::ifnull(
+                              nqp::getpayload(nqp::exception),
+                              False
+                            ))
+                          )
+                        ),
+                        nqp::if(
+                          nqp::istype($result,Regex),
+                          $result.ACCEPTS($_),
+                          nqp::if(
+                            nqp::istype($result,Junction),
+                            $result.Bool,
+                            $result
+                          )
+                        )
+                      ),
+                      $_,
+                      Empty
+                    )
+                  )
+              },
+              Any
+            )
+        }
+        else {
+            my role CheatArity {
                 has $!arity;
                 has $!count;
 
-                method set-cheat($new-arity, $new-count --> Nil) {
-                    $!arity = $new-arity;
-                    $!count = $new-count;
+                method with-arity-count($new-arity, $new-count) {
+                    $!arity := $new-arity;
+                    $!count := $new-count;
+                    self
                 }
 
                 method arity(Code:D:) { $!arity }
                 method count(Code:D:) { $!count }
-            }),
-            (my &tester = -> |c {
-                #note "*cough* {c.raku} -> {$test(|c).raku}";
-                next unless $test(|c);
-                c.list
-            } but CheatArity),
-            &tester.set-cheat($test.arity, $test.count),
-            self.map(&tester)
-          )
-        )
+            }
+            my &tester := -> |c {
+                nqp::if(
+                  $done,
+                  IterationEnd,
+                  nqp::stmts(
+                    nqp::handle(
+                      (my $result := $test(|c)),
+                      'LAST', nqp::stmts(
+                        ($done = 1),
+                        ($result := nqp::ifnull(
+                          nqp::getpayload(nqp::exception),
+                          False
+                        ))
+                      )
+                    ),
+                    nqp::if($result,c.list,Empty)
+                  )
+                )
+            } but CheatArity;
+
+            self.map(&tester.with-arity-count($test.arity, $test.count))
+        }
     }
 
     # Create a braid and fail cursor that we can use with all the normal,

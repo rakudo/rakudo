@@ -108,6 +108,7 @@ multi sub goto(Label:D \x --> Nil) { x.goto }
 proto sub last($?, *%) {*}
 multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
 multi sub last(Label:D \x --> Nil) { x.last }
+multi sub last(\x --> Nil) { THROW(nqp::const::CONTROL_LAST, x) }
 
 proto sub next($?, *%) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }

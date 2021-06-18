@@ -855,12 +855,15 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 
     token prefixish {
         :dba('prefix')
-        [
-        | <OPER=prefix>
-#        | <OPER=prefix_circumfix_meta_operator>
-        ]
-#        <prefix_postfix_meta_operator>**0..1
+        <OPER=prefix>
+        <prefix_postfix_meta_operator>?
         <.ws>
+    }
+
+    proto token prefix_postfix_meta_operator { <...> }
+
+    token prefix_postfix_meta_operator:sym<«> {
+        <sym> | '<<'
     }
 
     token postfixish {

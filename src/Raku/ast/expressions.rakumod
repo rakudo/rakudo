@@ -510,6 +510,36 @@ class RakuAST::Prefix is RakuAST::Prefixish is RakuAST::Lookup {
         my $name := self.resolution.lexical-name;
         QAST::Op.new( :op('call'), :$name, $operand-qast )
     }
+
+    method IMPL-HOP-PREFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $name := self.resolution.lexical-name;
+        QAST::Var.new( :scope('lexical'), :$name )
+    }
+}
+
+# The prefix hyper meta-operator.
+class RakuAST::MetaPrefix::Hyper is RakuAST::Prefixish {
+    has RakuAST::Prefix $.prefix;
+
+    method new(RakuAST::Prefix $prefix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaPrefix::Hyper, '$!prefix', $prefix);
+        $obj
+    }
+
+    method IMPL-PREFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        QAST::Op.new:
+            :op('call'),
+            QAST::Op.new(
+                :op('callstatic'), :name('&METAOP_HYPER_PREFIX'),
+                $!prefix.IMPL-HOP-PREFIX-QAST($context)
+            ),
+            $operand-qast
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!prefix);
+    }
 }
 
 # Application of a prefix operator.

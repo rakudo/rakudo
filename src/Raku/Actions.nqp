@@ -499,8 +499,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         }
     }
 
+    method prefixish($/) {
+        my $ast := $<OPER>.ast // self.r('Prefix').new(~$<prefix><sym>);
+        if $<prefix_postfix_meta_operator> {
+            $ast := $<prefix_postfix_meta_operator>.ast.new($ast);
+        }
+        self.attach: $/, $ast;
+    }
+
+    method prefix_postfix_meta_operator:sym<«>($/) {
+        make self.r('MetaPrefix', 'Hyper');
+    }
+
     method postfixish($/) {
-        my $ast := $<OPER>.ast // self.r('Postfix').new(~$<postfix>);
+        my $ast := $<OPER>.ast // self.r('Postfix').new(~$<postfix><sym>);
         if $<postfix_prefix_meta_operator> {
             $ast := $<postfix_prefix_meta_operator>.ast.new($ast);
         }

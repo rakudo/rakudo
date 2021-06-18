@@ -194,21 +194,13 @@ class RakuAST::Infix is RakuAST::Infixish is RakuAST::Lookup {
 }
 
 # An assign meta-operator, operator on another infix.
-class RakuAST::MetaInfix::Assign is RakuAST::Infixish is RakuAST::Lookup {
+class RakuAST::MetaInfix::Assign is RakuAST::Infixish {
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaInfix::Assign, '$!infix', $infix);
         $obj
-    }
-
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-infix('&METAOP_ASSIGN');
-        if $resolved {
-            self.set-resolution($resolved);
-        }
-        Nil
     }
 
     method visit-children(Code $visitor) {
@@ -256,27 +248,20 @@ class RakuAST::MetaInfix::Assign is RakuAST::Infixish is RakuAST::Lookup {
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $name := self.resolution.lexical-name;
-        QAST::Op.new( :op('call'), :$name, $!infix.IMPL-HOP-INFIX-QAST($context) )
+        QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_ASSIGN'),
+            $!infix.IMPL-HOP-INFIX-QAST($context)
     }
 }
 
 # A negate meta-operator.
-class RakuAST::MetaInfix::Negate is RakuAST::Infixish is RakuAST::Lookup {
+class RakuAST::MetaInfix::Negate is RakuAST::Infixish {
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaInfix::Negate, '$!infix', $infix);
         $obj
-    }
-
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-infix('&METAOP_NEGATE');
-        if $resolved {
-            self.set-resolution($resolved);
-        }
-        Nil
     }
 
     method visit-children(Code $visitor) {
@@ -297,27 +282,20 @@ class RakuAST::MetaInfix::Negate is RakuAST::Infixish is RakuAST::Lookup {
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $name := self.resolution.lexical-name;
-        QAST::Op.new( :op('call'), :$name, $!infix.IMPL-HOP-INFIX-QAST($context) )
+        QAST::Op.new:
+            :op('call'), :name('&METAOP_NEGATE'),
+            $!infix.IMPL-HOP-INFIX-QAST($context)
     }
 }
 
 # A reverse meta-operator.
-class RakuAST::MetaInfix::Reverse is RakuAST::Infixish is RakuAST::Lookup {
+class RakuAST::MetaInfix::Reverse is RakuAST::Infixish {
     has RakuAST::Infixish $.infix;
 
     method new(RakuAST::Infixish $infix) {
         my $obj := nqp::create(self);
         nqp::bindattr($obj, RakuAST::MetaInfix::Reverse, '$!infix', $infix);
         $obj
-    }
-
-    method resolve-with(RakuAST::Resolver $resolver) {
-        my $resolved := $resolver.resolve-infix('&METAOP_REVERSE');
-        if $resolved {
-            self.set-resolution($resolved);
-        }
-        Nil
     }
 
     method visit-children(Code $visitor) {
@@ -329,8 +307,9 @@ class RakuAST::MetaInfix::Reverse is RakuAST::Infixish is RakuAST::Lookup {
     }
 
     method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
-        my $name := self.resolution.lexical-name;
-        QAST::Op.new( :op('call'), :$name, $!infix.IMPL-HOP-INFIX-QAST($context) )
+        QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_REVERSE'),
+            $!infix.IMPL-HOP-INFIX-QAST($context)
     }
 }
 

@@ -230,7 +230,7 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
         $visitor(self.args);
     }
 
-    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
+    method IMPL-SPECIAL-OP(str $name) {
         my constant SPECIAL-OPS := nqp::hash(
             'WHAT',     'what',
             'HOW',      'how',
@@ -239,9 +239,13 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
             'REPR',     'p6reprname',
             'DEFINITE', 'p6definite',
         );
+        SPECIAL-OPS{$name}
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $invocant-qast) {
         if $!name.is-identifier {
             my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
-            my $op := SPECIAL-OPS{$name};
+            my $op := self.IMPL-SPECIAL-OP($name);
             if $op {
                 # Not really a method call, just using that syntax.
                 QAST::Op.new( :$op, $invocant-qast )
@@ -256,6 +260,22 @@ class RakuAST::Call::Method is RakuAST::Call::Methodish {
         else {
             nqp::die('Qualified method calls NYI');
         }
+    }
+
+    method can-be-used-with-hyper() {
+        $!name.is-identifier && !self.IMPL-SPECIAL-OP($!name.canonicalize)
+    }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        # TODO later expand this to the qualified case
+        my $name := self.IMPL-UNWRAP-LIST($!name.parts)[0].name;
+        my $call := QAST::Op.new:
+            :op('callmethod'), :name('dispatch:<hyper>'),
+            $operand-qast,
+            QAST::SVal.new( :value('') ),
+            QAST::SVal.new( :value($name) );
+        self.args.IMPL-ADD-QAST-ARGS($context, $call);
+        $call
     }
 
     method IMPL-CAN-INTERPRET() { $!name.is-identifier && self.args.IMPL-CAN-INTERPRET }

@@ -910,39 +910,39 @@ Consider using a block if any of these are necessary for your mapping code."
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-callable(Callable:D $test) {
-        my int $done;
+        sub judge(Mu $result, Mu $value) is raw {
+            nqp::if(
+              nqp::istype($result,Regex),
+              $result.ACCEPTS($value),
+              nqp::if(
+                nqp::istype($result,Junction),
+                $result.Bool,
+                $result
+              )
+            )
+        }
+
         if $test.count == 1 {
             sequential-map(
               self.iterator,
               {
                   nqp::if(
-                    $done,
-                    IterationEnd,
-                    nqp::if(
-                      nqp::stmts(
-                        nqp::handle(
-                          (my $result := $test($_)),
-                          'LAST', nqp::stmts(
-                            ($done = 1),
-                            ($result := nqp::ifnull(
-                              nqp::getpayload(nqp::exception),
-                              False
-                            ))
-                          )
-                        ),
-                        nqp::if(
-                          nqp::istype($result,Regex),
-                          $result.ACCEPTS($_),
-                          nqp::if(
-                            nqp::istype($result,Junction),
-                            $result.Bool,
-                            $result
-                          )
+                    nqp::stmts(
+                      nqp::handle(
+                        (my $result := $test($_)),
+                        'LAST', nqp::if(
+                          judge(
+                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                            $_
+                          ),
+                          (last $_),
+                          (last)
                         )
                       ),
-                      $_,
-                      Empty
-                    )
+                      judge($result, $_)
+                    ),
+                    $_,
+                    Empty
                   )
               },
               Any
@@ -963,23 +963,19 @@ Consider using a block if any of these are necessary for your mapping code."
                 method count(Code:D:) { $!count }
             }
             my &tester := -> |c {
-                nqp::if(
-                  $done,
-                  IterationEnd,
-                  nqp::stmts(
-                    nqp::handle(
-                      (my $result := $test(|c)),
-                      'LAST', nqp::stmts(
-                        ($done = 1),
-                        ($result := nqp::ifnull(
-                          nqp::getpayload(nqp::exception),
-                          False
-                        ))
-                      )
+                my \params := c.list;
+                nqp::handle(
+                  (my $result := $test(|c)),
+                  'LAST', nqp::if(
+                    judge(
+                      nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                      params
                     ),
-                    nqp::if($result,c.list,Empty)
+                    (last params),
+                    (last)
                   )
-                )
+                );
+                judge($result, params) ?? params !! Empty
             } but CheatArity;
 
             self.map(&tester.with-arity-count($test.arity, $test.count))

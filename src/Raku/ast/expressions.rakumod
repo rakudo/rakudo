@@ -313,6 +313,48 @@ class RakuAST::MetaInfix::Reverse is RakuAST::Infixish {
     }
 }
 
+# An infix hyper operator.
+class RakuAST::MetaInfix::Hyper is RakuAST::Infixish {
+    has RakuAST::Infixish $.infix;
+    has Bool $.dwim-left;
+    has Bool $.dwim-right;
+
+    method new(RakuAST::Infixish :$infix!, Bool :$dwim-left, Bool :$dwim-right) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Hyper, '$!infix', $infix);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Hyper, '$!dwim-left',
+            $dwim-left ?? True !! False);
+        nqp::bindattr($obj, RakuAST::MetaInfix::Hyper, '$!dwim-right',
+            $dwim-right ?? True !! False);
+        $obj
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!infix);
+    }
+
+    method IMPL-INFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $left-qast, Mu $right-qast) {
+        QAST::Op.new:
+            :op('call'),
+            self.IMPL-HOP-INFIX-QAST($context),
+            $left-qast,
+            $right-qast
+    }
+
+    method IMPL-HOP-INFIX-QAST(RakuAST::IMPL::QASTContext $context) {
+        my $call := QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_HYPER'),
+            $!infix.IMPL-HOP-INFIX-QAST($context);
+        if $!dwim-left {
+            $call.push: QAST::WVal.new: :value(True), :named('dwim-left');
+        }
+        if $!dwim-right {
+            $call.push: QAST::WVal.new: :value(True), :named('dwim-right');
+        }
+        $call
+    }
+}
+
 # Application of an infix operator.
 class RakuAST::ApplyInfix is RakuAST::Expression {
     has RakuAST::Infixish $.infix;

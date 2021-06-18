@@ -790,7 +790,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
 #                    $*OPER := $<variable>;
 #                    self.check_variable($<variable>)
 #                }
-#            | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
+            | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
             | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
             | <infix> { $*OPER := $<infix> }
             | <?{ $*IN_META ~~ /^[ '[]' | 'hyper' | 'HYPER' | 'R' | 'S' ]$/ && !$*IN_REDUCE }> <.missing("infix inside " ~ $*IN_META)>
@@ -851,6 +851,23 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
             }
         }
         <O(|%prec, :dba('assignment operator'), :iffy(0))> {}
+    }
+
+    proto token infix_circumfix_meta_operator { <...> }
+
+    token infix_circumfix_meta_operator:sym<« »> {
+        $<opening>=[ '«' | '»' ]
+        {} <infixish('hyper')>
+        $<closing>=[ '«' | '»' || <.missing("« or »")> ]
+        <.can_meta($<infixish>, "hyper with")>
+        {} <O=.AS_MATCH($<infixish><OPER><O>)>
+    }
+
+    token infix_circumfix_meta_operator:sym«<< >>» {
+        $<opening>=[ '<<' | '>>' ]
+        {} <infixish('HYPER')>
+        $<closing>=[ '<<' | '>>' || <.missing("<< or >>")> ]
+        {} <O=.AS_MATCH($<infixish><OPER><O>)>
     }
 
     token prefixish {

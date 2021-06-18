@@ -621,6 +621,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<infix_prefix_meta_operator> {
             $ast := $<infix_prefix_meta_operator>.ast;
         }
+        elsif $<infix_circumfix_meta_operator> {
+            $ast := $<infix_circumfix_meta_operator>.ast;
+        }
         else {
             nqp::die('unknown kind of infix');
         }
@@ -647,6 +650,20 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
 
     method infix_postfix_meta_operator:sym<=>($/) {
         self.attach: $/, self.r('MetaInfix', 'Assign');
+    }
+
+    method infix_circumfix_meta_operator:sym<« »>($/) {
+        self.attach: $/, self.r('MetaInfix', 'Hyper').new:
+            infix => $<infixish>.ast,
+            dwim-left => $<opening> eq '«',
+            dwim-right => $<closing> eq '»'
+    }
+
+    method infix_circumfix_meta_operator:sym«<< >>»($/) {
+        self.attach: $/, self.r('MetaInfix', 'Hyper').new:
+            infix => $<infixish>.ast,
+            dwim-left => $<opening> eq '<<',
+            dwim-right => $<closing> eq '>>'
     }
 
     method circumfix:sym<( )>($/) {

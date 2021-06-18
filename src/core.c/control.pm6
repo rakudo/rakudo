@@ -197,8 +197,13 @@ sub emit(Mu \value --> Nil) {
     nqp::setextype($ex,nqp::const::CONTROL_EMIT);
     nqp::throw($ex);
 }
-sub done(--> Nil) {
+proto sub done(|) {*}
+multi sub done(--> Nil) {
     THROW-NIL(nqp::const::CONTROL_DONE);
+}
+multi sub done(Mu \value --> Nil) {
+    emit value;
+    done;
 }
 
 proto sub die(|) {*};

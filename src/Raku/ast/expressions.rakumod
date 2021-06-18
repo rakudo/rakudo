@@ -536,6 +536,7 @@ class RakuAST::ApplyPrefix is RakuAST::Termish {
 
 # Marker for all kinds of postfixish operators.
 class RakuAST::Postfixish is RakuAST::Node {
+    method can-be-used-with-hyper() { False }
 }
 
 # A lookup of a simple (non-meta) postfix operator.
@@ -559,6 +560,15 @@ class RakuAST::Postfix is RakuAST::Postfixish is RakuAST::Lookup {
     method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
         my $name := self.resolution.lexical-name;
         QAST::Op.new( :op('call'), :$name, $operand-qast )
+    }
+
+    method can-be-used-with-hyper() { True }
+
+    method IMPL-POSTFIX-HYPER-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        QAST::Op.new:
+            :op('callstatic'), :name('&METAOP_HYPER_POSTFIX_ARGS'),
+            $operand-qast,
+            self.resolution.IMPL-LOOKUP-QAST($context)
     }
 }
 
@@ -708,7 +718,33 @@ class RakuAST::Postcircumfix::LiteralHashIndex is RakuAST::Postcircumfix is Raku
     }
 }
 
-# Application of an postfix operator.
+# An hyper operator on a postfix operator.
+class RakuAST::MetaPostfix::Hyper is RakuAST::Postfixish is RakuAST::CheckTime {
+    has RakuAST::Postfixish $.postfix;
+
+    method new(RakuAST::Postfixish $postfix) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::MetaPostfix::Hyper, '$!postfix', $postfix);
+        $obj
+    }
+
+    method PERFORM-CHECK(RakuAST::Resolver $resolver) {
+        unless $!postfix.can-be-used-with-hyper {
+            self.add-sorry: $resolver.build-exception: 'X::AdHoc',
+                payload => 'Cannot hyper this postfix'
+        }
+    }
+
+    method IMPL-POSTFIX-QAST(RakuAST::IMPL::QASTContext $context, Mu $operand-qast) {
+        $!postfix.IMPL-POSTFIX-HYPER-QAST($context, $operand-qast)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!postfix);
+    }
+}
+
+# Application of a postfix operator.
 class RakuAST::ApplyPostfix is RakuAST::Termish {
     has RakuAST::Postfixish $.postfix;
     has RakuAST::Expression $.operand;

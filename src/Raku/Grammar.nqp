@@ -876,7 +876,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [ <!{ $*QSIGIL }> [ <.unsp> | '\\' ] ]?
 
         :dba('postfix')
-#        [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>?]**0..1
+        [ ['.' <.unsp>?]? <postfix_prefix_meta_operator> <.unsp>?]?
         [
         | <OPER=postfix>
         | '.' <?before \W> <OPER=postfix>  ## dotted form of postfix operator (non-wordy only)
@@ -884,14 +884,21 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | '.' <?[ [ { < ]> <OPER=postcircumfix>
         | <OPER=dotty>
 #        | <OPER=privop>
-#        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
-#            [
-#            || <?space> <.missing: "postfix">
-#            || <?alpha> <.missing: "dot on method call">
-#            || <.malformed: "postfix">
-#            ]
+        | <?{ $<postfix_prefix_meta_operator> && !$*QSIGIL }>
+            [
+            || <?space> <.missing: "postfix">
+            || <?alpha> <.missing: "dot on method call">
+            || <.malformed: "postfix">
+            ]
         ]
         { $*LEFTSIGIL := '@'; }
+    }
+
+    proto token postfix_prefix_meta_operator { <...> }
+
+    token postfix_prefix_meta_operator:sym<»> {
+        [ <sym> | $<sym> = '>>' ]
+        [ <!{ $*QSIGIL }> || <![(]> ]
     }
 
     token postop {

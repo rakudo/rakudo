@@ -782,14 +782,12 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         [
 #        | <!{ $*IN_REDUCE }> <colonpair> <fake_infix> { $*OPER := $<fake_infix> }
         |   [
-#            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
-#                # XXX Gets false positives.
-#            | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
-#                {
-#                    $<variable><O> := self.O(:prec<t=>, :assoc<left>, :dba<additive>).MATCH unless $<variable><O>;
-#                    $*OPER := $<variable>;
-#                    self.check_variable($<variable>)
-#                }
+            | :dba('bracketed infix') '[' ~ ']' <infixish('[]')> { $*OPER := $<infixish><OPER> }
+            | :dba('infixed function') <?before '[&' <twigil>? [<alpha>|'('] > '[' ~ ']' <variable>
+                {
+                    $<variable><O> := self.O(:prec<t=>, :assoc<left>, :dba<additive>).MATCH unless $<variable><O>;
+                    $*OPER := $<variable>;
+                }
             | <infix_circumfix_meta_operator> { $*OPER := $<infix_circumfix_meta_operator> }
             | <infix_prefix_meta_operator> { $*OPER := $<infix_prefix_meta_operator> }
             | <infix> { $*OPER := $<infix> }

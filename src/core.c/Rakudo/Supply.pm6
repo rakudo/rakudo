@@ -129,14 +129,6 @@ class Rakudo::Supply {
         }
 
         method run-done(--> Nil) {
-            my \ex := nqp::exception();
-            unless nqp::isnull(ex) {
-                my \value := nqp::getpayload(ex);
-                unless nqp::isnull(value) || nqp::istype(value,Exception) {
-                    my $emit-handler := &!emit;
-                    $emit-handler(value) if $emit-handler.DEFINITE;
-                }
-            }
             self.get-and-zero-active();
             self.teardown();
             my $done-handler := &!done;
@@ -337,15 +329,6 @@ class Rakudo::Supply {
 
         method run-done(--> Nil) {
             if $!active {
-                my \ex := nqp::exception();
-                unless nqp::isnull(ex) {
-                    my \value := nqp::getpayload(ex);
-                    unless nqp::isnull(value) || nqp::istype(value,Exception) {
-                        my $emit-handler := &!emit;
-                        $emit-handler(value) if $emit-handler.DEFINITE;
-                    }
-                }
-
                 self.teardown();
                 my $done-handler := &!done;
                 $done-handler() if $done-handler.DEFINITE;

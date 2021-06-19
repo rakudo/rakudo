@@ -293,106 +293,6 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    my class IterateOneNotSlippingWithoutPhasers does Iterator {
-        has &!block;
-        has $!source;
-        has $!label;
-
-        method new(&block,$source,\label) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '&!block', &block);
-            nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
-            $iter
-        }
-
-        method is-lazy() { $!source.is-lazy }
-
-        method pull-one() is raw {
-            if nqp::eqaddr((my $pulled := $!source.pull-one),IterationEnd) {
-                IterationEnd
-            }
-            else {
-                my $result;
-                my int $stopped;
-                nqp::stmts(
-                  nqp::until(
-                    $stopped,
-                    nqp::stmts(
-                      ($stopped = 1),
-                      nqp::handle(
-                        ($result := &!block($pulled)),
-                        'LABELED', $!label,
-                        'NEXT', nqp::if(
-                          nqp::eqaddr(
-                            ($pulled := $!source.pull-one),
-                            IterationEnd
-                          ),
-                          ($result := IterationEnd),
-                          ($stopped = 0)
-                        ),
-                        'REDO', ($stopped = 0),
-                        'LAST', ($result := IterationEnd)
-                      ),
-                    ),
-                    :nohandler
-                  ),
-                  $result
-                )
-            }
-        }
-
-        method push-all(\target --> IterationEnd) {
-            my $pulled;
-            my int $stopped;
-            nqp::until(
-              nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-               nqp::stmts(
-                ($stopped = 0),
-                nqp::until(
-                  $stopped,
-                  nqp::stmts(
-                    ($stopped = 1),
-                    nqp::handle(
-                      target.push(&!block($pulled)),
-                      'LABELED', $!label,
-                      'REDO', ($stopped = 0),
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                      'LAST', return
-                    )
-                  ),
-                  :nohandler
-                )
-              )
-            )
-        }
-
-        method sink-all(--> IterationEnd) {
-            my $pulled;
-            my int $stopped;
-            nqp::until(
-              nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                ($stopped = 0),
-                nqp::until(
-                  $stopped,
-                  nqp::stmts(
-                    ($stopped = 1),
-                    nqp::handle(
-                      &!block($pulled),
-                      'LABELED', $!label,
-                      'REDO', ($stopped = 0),
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                      'LAST', return
-                    )
-                  ),
-                  :nohandler
-                )
-              )
-            )
-        }
-    }
-
     my class IterateOneWithoutPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
@@ -810,24 +710,18 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    sub sequential-map(\source, &block, \label) {
+    sub sequential-map(\source, &code, \label) {
         # We want map to be fast, so we go to some effort to build special
         # case iterators that can ignore various interesting cases.
-        my $count := &block.count;
+        my $count := &code.count;
 
-        Seq.new(
-          nqp::istype(&block,Block) && &block.has-phasers
-            ?? $count < 2 || $count === Inf
-              ?? IterateOneWithPhasers.new(&block,source,label)
-              !! IterateMoreWithPhasers.new(&block,source,$count,label)
-            !! $count < 2 || $count === Inf
-              ?? nqp::istype(Slip,&block.returns)
-                ?? IterateOneWithoutPhasers.new(&block,source,label)
-                !! IterateOneNotSlippingWithoutPhasers.new(&block,source,label)
-              !! $count == 2
-                ?? IterateTwoWithoutPhasers.new(&block,source,label)
-                !! IterateMoreWithPhasers.new(&block,source,$count,label)
-        )
+        Seq.new: $count < 2 || $count == Inf
+          ?? &code.has-phasers
+            ?? IterateOneWithPhasers.new(&code, source, label)
+            !! IterateOneWithoutPhasers.new(&code, source, label)
+          !! $count > 2 || &code.has-phasers
+            ?? IterateMoreWithPhasers.new(&code, source, $count, label)
+            !! IterateTwoWithoutPhasers.new(&code, source, label)
     }
 
     proto method flatmap (|) is nodal {*}

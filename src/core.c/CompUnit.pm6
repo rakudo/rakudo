@@ -1,5 +1,5 @@
 class CompUnit {
-    has Str:D   $.from       is built(:bind) = 'Raku';
+    has Str:D   $.from       is built(:bind) = 'Perl6';
     has Str:D   $.short-name is built(:bind) is required;
     has Version $.version    is built(:bind);
     has Str     $.auth       is built(:bind);

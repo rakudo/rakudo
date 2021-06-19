@@ -1493,7 +1493,7 @@ class Perl6::World is HLL::World {
         my $true := self.find_single_symbol('True', :setting-only);
         my $spec := self.find_symbol(['CompUnit', 'DependencySpecification'], :setting-only).new(
             :short-name($module_name),
-            :from(%opts<from> // 'Raku'),
+            :from(%opts<from> // 'Perl6'),
             :auth-matcher(%opts<auth> // $true),
             :api-matcher(%opts<api> // $true),
             :version-matcher(%opts<ver> // $true),

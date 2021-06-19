@@ -749,7 +749,7 @@ public final class Binder {
                         error[0] += " of parameter " + varName;
                     }
                 }
-                return result;
+                return BIND_RESULT_FAIL;
             }
         }
 

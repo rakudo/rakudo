@@ -1,6 +1,6 @@
 my class X::Seq::Consumed { ... }
 my class X::Seq::NotIndexable { ... }
-my class Seq is Cool does Iterable does Sequence {
+my class Seq is Cool does Sequence {
     # The underlying iterator that iterating this sequence will work its
     # way through. Can only be obtained once.
     has Iterator $!iter;

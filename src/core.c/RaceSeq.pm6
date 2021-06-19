@@ -3,7 +3,7 @@
 # the input).
 
 #?if !js
-my class RaceSeq does Iterable does Sequence {
+my class RaceSeq does Sequence {
     has HyperConfiguration $.configuration;
     has Rakudo::Internals::HyperWorkStage $!work-stage-head;
 

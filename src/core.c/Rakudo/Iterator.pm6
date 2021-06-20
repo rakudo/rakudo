@@ -1446,6 +1446,10 @@ class Rakudo::Iterator {
                             ),
                             ($result := IterationEnd),
                             nqp::stmts(
+                              nqp::if(
+                                nqp::istype($result,Slip),
+                                ($result := self.start-slip($result))
+                              ),
                               ($!seen-first = 0),
                               (&!cond := &always-False)
                             )
@@ -2481,7 +2485,13 @@ class Rakudo::Iterator {
                       'LAST', nqp::if(
                         nqp::isnull($result := nqp::getpayload(nqp::exception)),
                         ($result := IterationEnd),
-                        (&!body := &always-IterationEnd)
+                        nqp::stmts(
+                          nqp::if(
+                            nqp::istype($result,Slip),
+                            ($result := self.start-slip($result))
+                          ),
+                          (&!body := &always-IterationEnd)
+                        )
                       )
                     )
                   ),
@@ -3744,7 +3754,13 @@ class Rakudo::Iterator {
                               $result := nqp::getpayload(nqp::exception)
                             ),
                             ($result := IterationEnd),
-                            (&!cond  := &always-False)
+                            nqp::stmts(
+                              nqp::if(
+                                nqp::istype($result,Slip),
+                                ($result := self.start-slip($result))
+                              ),
+                              (&!cond  := &always-False)
+                            )
                           )
                         )
                       ),
@@ -4785,7 +4801,13 @@ class Rakudo::Iterator {
                               $result := nqp::getpayload(nqp::exception)
                             ),
                             ($result := IterationEnd),
-                            (&!cond  := &always-False)
+                            nqp::stmts(
+                              nqp::if(
+                                nqp::istype($result,Slip),
+                                ($result := self.start-slip($result))
+                              ),
+                              (&!cond  := &always-False)
+                            )
                           )
                         )
                       ),

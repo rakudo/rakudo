@@ -159,7 +159,13 @@ Consider using a block if any of these are necessary for your mapping code."
                       nqp::if(
                         nqp::isnull($result := nqp::getpayload(nqp::exception)),
                         ($result  := IterationEnd),
-                        ($!source  := Rakudo::Iterator.Empty),
+                        nqp::stmts(
+                          nqp::if(
+                            nqp::istype($result, Slip),
+                            ($result := self.start-slip($result))
+                          ),
+                          ($!source  := Rakudo::Iterator.Empty)
+                        )
                       )
                     )
                   ),
@@ -232,7 +238,11 @@ Consider using a block if any of these are necessary for your mapping code."
                           ($done = $!did-iterate = 1),
                           nqp::unless(
                             nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                            target.push($value)
+                            nqp::if(
+                              nqp::istype($value,Slip),
+                              self.slip-all($value,target),
+                              target.push($value)
+                            )
                           )
                         )
                       )
@@ -367,11 +377,18 @@ Consider using a block if any of these are necessary for your mapping code."
                     'LAST', nqp::if(
                       nqp::isnull($result := nqp::getpayload(nqp::exception)),
                       ($result := IterationEnd),
-                      ($!source := Rakudo::Iterator.Empty),
+                      nqp::stmts(
+                        nqp::if(
+                          nqp::istype($result,Slip),
+                          ($result := self.start-slip($result))
+                        ),
+                        ($!source := Rakudo::Iterator.Empty)
+                      )
                     )
-                  ),
+                  )
                 ),
-              :nohandler);
+                :nohandler
+              );
             }
             $result
         }
@@ -406,7 +423,11 @@ Consider using a block if any of these are necessary for your mapping code."
                       'LAST', nqp::stmts(
                         nqp::unless(
                           nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                          target.push($value)
+                          nqp::if(
+                            nqp::istype($value,Slip),
+                            self.slip-all($value,target),
+                            target.push($value)
+                          )
                         ),
                         return
                       )
@@ -520,7 +541,13 @@ Consider using a block if any of these are necessary for your mapping code."
                     'LAST', nqp::if(
                       nqp::isnull($result := nqp::getpayload(nqp::exception)),
                       ($result  := IterationEnd),
-                      ($!source := Rakudo::Iterator.Empty),
+                      nqp::stmts(
+                        nqp::if(
+                          nqp::istype($result,Slip),
+                          ($result := self.start-slip($result))
+                        ),
+                        ($!source := Rakudo::Iterator.Empty)
+                      )
                     )
                   ),
                 ),
@@ -573,14 +600,18 @@ Consider using a block if any of these are necessary for your mapping code."
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
+                      'NEXT', nqp::null, # need NEXT for next LABEL support
                       'LAST', nqp::stmts(
                         nqp::unless(
                           nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                          target.push($value)
+                          nqp::if(
+                            nqp::istype($value,Slip),
+                            self.slip-all($result,target),
+                            target.push($value)
+                          )
                         ),
                         return
-                      ),
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
+                      )
                     )
                   ),
                   :nohandler
@@ -720,8 +751,14 @@ Consider using a block if any of these are necessary for your mapping code."
                         ($!did-iterate = 1),
                         nqp::if(
                           nqp::isnull($result := nqp::getpayload(nqp::exception)),
-                          ($result  := IterationEnd),
-                          ($!source := Rakudo::Iterator.Empty)
+                          ($result := IterationEnd),
+                          nqp::stmts(
+                            nqp::if(
+                              nqp::istype($result,Slip),
+                              ($result := self.start-slip($result))
+                            ),
+                            ($!source := Rakudo::Iterator.Empty)
+                          )
                         )
                       )
                     )

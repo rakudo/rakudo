@@ -611,6 +611,7 @@ my @expected = (
     Q{PROTO_TCP},
     Q{PROTO_UDP},
     Q{Pair},
+    Q{ParallelSequence},
     Q{Parameter},
     Q{Perl},
     Q{PhasersList},

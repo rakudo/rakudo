@@ -3,7 +3,7 @@
 # the input).
 
 #?if !js
-my class RaceSeq does Sequence::Hyper {
+my class RaceSeq does ParallelSequence {
     method hyper(RaceSeq:D:) {
         HyperSeq.new(
             :$!configuration,

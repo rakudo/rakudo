@@ -20,16 +20,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(INCPATH)@ = @nfp($(MOAR_PREFIX)/include)@
 @bpv(MOAR_INC_PATHS)@ = \
-	@moar::cincludes@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/moar)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libatomic_ops)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/dyncall)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/moar)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/sha1)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/tinymt)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libtommath)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libuv)@
+    @insert_list(moar_includes)@
 
 @bpv(RAKU)@ = raku@moar::exe@
 @bpv(RAKU_DEBUG)@ = raku-debug@moar::exe@

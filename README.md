@@ -172,8 +172,8 @@ This is always a good starting point.
 
 If you have a question about Raku syntax or the right way to approach
 a problem using Raku, you probably want the “perl6-users@perl.org”
-mailing list or the [irc.freenode.net/#raku IRC
-channel](https://webchat.freenode.net/?channels=#raku). The mailing
+mailing list or the [irc.libera.chat/#raku IRC
+channel](https://web.libera.chat/#raku). The mailing
 list is primarily for the people who want to use Raku to write
 programs, so newbie questions are welcomed there.  Newbie questions
 are also welcome on the #raku channel; the Rakudo
@@ -183,7 +183,7 @@ and on Twitter, there's a Raku news aggregator at
 [Planet Raku](http://planet.raku.org/).
 
 Questions about NQP can also be posted to the #raku IRC channel.
-For questions about MoarVM, you can join #moarvm on freenode.
+For questions about MoarVM, you can join #moarvm on Libera.
 
 ## Code of Conduct
 

@@ -1014,6 +1014,28 @@ my int $BIND_VAL_OBJ      := 0;
 my int $BIND_VAL_INT      := 1;
 my int $BIND_VAL_NUM      := 2;
 my int $BIND_VAL_STR      := 3;
+sub missing-required-named($capture, $name-sets) {
+    if $name-sets {
+        my int $i := 0;
+        my int $n := nqp::elems($name-sets);
+        while $i < $n {
+            my int $found := 0;
+            my $names := nqp::atpos($name-sets, $i);
+            my int $j := 0;
+            my int $m := nqp::elems($names);
+            while $j < $m {
+                if nqp::captureexistsnamed($capture, nqp::atpos_s($names, $j)) {
+                    $found := 1;
+                    last;
+                }
+                $j++;
+            }
+            return 1 unless $found;
+            $i++;
+        }
+    }
+    0
+}
 sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
     # First check there's no non-Scalar containers in the positional arguments.
     # If there are, establish guards relating to those and we're done.
@@ -1228,8 +1250,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                 my int $need-bind-check;
                 while $i < $n {
                     my %info := @possibles[$i];
-                    unless nqp::existskey(%info, 'req_named') &&
-                            !nqp::captureexistsnamed($capture, nqp::atkey(%info, 'req_named')) {
+                    unless missing-required-named($capture, %info<required_nameds>) {
                         my $node;
                         if nqp::existskey(%info, 'bind_check') {
                             $node := MultiDispatchTry.new(%info<sub>);

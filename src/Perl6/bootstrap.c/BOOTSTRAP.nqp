@@ -2441,6 +2441,14 @@ BEGIN {
                     unless nqp::isnull($named_names) {
                         if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                             unless $flags +& $SIG_ELEM_IS_OPTIONAL {
+                                # Store the set of names for this parameter, so that
+                                # multiple dispatch can make sure that at least one of
+                                # them is passed and quickly eliminate the candidate if
+                                # not.
+                                %info<required_nameds> := [] unless %info<required_nameds>;
+                                nqp::push(%info<required_nameds>, $named_names);
+                                # Store the name also under req_named, which is a legacy
+                                # optimization that will go away after new-disp lands.
                                 if nqp::elems($named_names) == 1 {
                                     %info<req_named> := nqp::atpos_s($named_names, 0);
                                 }

@@ -1277,7 +1277,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
 
                 # If we are to stop at a trivial match and nothing needs a
                 # bind check, and we've no results before now, we're done.
-                if $stop-at-trivial && $first-group && $need-bind-check == 0 {
+                if $match == 1 && $stop-at-trivial && $first-group && $need-bind-check == 0 {
                     $done := 1;
                 }
 

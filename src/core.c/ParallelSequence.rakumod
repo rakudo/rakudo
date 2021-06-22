@@ -2,7 +2,7 @@
 my role ParallelSequence does Iterable does Sequence {
     has HyperConfiguration $.configuration;
     has Rakudo::Internals::HyperWorkStage $!work-stage-head;
-    has $!has-iterator;
+    has atomicint $!has-iterator;
 
     submethod BUILD(:$!configuration!, :$!work-stage-head!) {
         $!has-iterator = 0;
@@ -10,7 +10,7 @@ my role ParallelSequence does Iterable does Sequence {
 
     method iterator(::?CLASS:D: --> Iterator) {
         X::Seq::Consumed.new(:kind(::?CLASS)).throw
-            if nqp::cas($!has-iterator, 0, 1);
+            if nqp::cas_i($!has-iterator, 0, 1);
         my $joiner := Rakudo::Internals::HyperToIterator.new:
                         source => $!work-stage-head;
         Rakudo::Internals::HyperPipeline.start($joiner, $!configuration);

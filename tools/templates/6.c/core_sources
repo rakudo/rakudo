@@ -57,6 +57,7 @@ src/core.c/Encoding/Registry.pm6
 src/core.c/Str.pm6
 src/core.c/Capture.pm6
 src/core.c/IterationBuffer.pm6
+src/core.c/atomicops.pm6
 src/core.c/Sequence.pm6
 src/core.c/Seq.pm6
 src/core.c/Rakudo/Internals/HyperWorkBatch.pm6
@@ -165,7 +166,6 @@ src/core.c/Hyper.pm6
 src/core.c/metaops.pm6
 src/core.c/precedence.pm6
 src/core.c/Deprecations.pm6
-src/core.c/atomicops.pm6
 src/core.c/Thread.pm6
 src/core.c/Lock.pm6
 src/core.c/Lock/Async.pm6

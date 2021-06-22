@@ -3184,10 +3184,12 @@ my class X::MultipleTypeSmiley does X::Comp {
 }
 
 my class X::Seq::Consumed is Exception {
+    has $.kind = Seq;
     method message() {
-        "The iterator of this Seq is already in use/consumed by another Seq\n" ~
-        "(you might solve this by adding .cache on usages of the Seq, or\n" ~
-        "by assigning the Seq into an array)"
+        my $kind_name = $!kind.^name;
+        ("The iterator of this $kind_name is already in use/consumed by another $kind_name" ~
+        " (you might solve this by adding .cache on usages of the $kind_name, or " ~
+        "by assigning the $kind_name into an array)").naive-word-wrapper
     }
 }
 

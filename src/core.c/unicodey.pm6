@@ -77,7 +77,7 @@ my class Rakudo::Unicodey is implementation-detail {
         my $prop := nqp::unipropcode($propname);
         nqp::hllbool(
           nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname))
-        )
+        ) || uniprop($code, $propname) eq $pvalname
     }
 
     my constant $gcprop = nqp::unipropcode("General_Category");
@@ -377,6 +377,7 @@ augment class Cool {
     multi method ords(Cool:D:) { self.Str.ords }
 
     proto method unimatch($, $?, *%) is pure {*}
+
     multi method unimatch(Cool:D: Str:D $pvalname --> Bool:D) {
         self.Int.unimatch($pvalname)
     }

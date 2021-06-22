@@ -38,7 +38,7 @@ pushd zef
 popd
 
 echo "========= Copying auxiliary files"
-cp -r tools/build/binary-release/MacOS/* install
+cp -r tools/build/binary-release/assets/MacOS/* install
 cp LICENSE install
 
 echo "========= Preparing archive"

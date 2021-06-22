@@ -1,0 +1,303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+    <Product Id="*"
+            Language="1033"
+            Manufacturer="The Raku Community"
+            Name="Rakudo $(var.VERSION)"
+            UpgradeCode="08B7EB05-7EAC-4B60-9F5B-AF6E367FE0FD"
+            Version="1.0.0">
+
+        <Package Compressed="yes"
+                InstallerVersion="400"
+                Platform="x64"
+                InstallScope="perMachine"
+                Manufacturer="The Raku Community"
+                Description="Installs Rakudo $(var.VERSION)"
+                Keywords="Raku, Rakudo"
+                Comments="(c) 2021 The Raku Community" />
+        
+        <Media Id="1" Cabinet="product.cab" EmbedCab="yes" />
+
+        <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+        <Property Id="WIXUI_ADDTOPATH" Value="ADDTOPATH" />
+        
+        <Property Id="USERPROFILE" Value="%USERPROFILE%" />
+        
+        <Property Id="POWERSHELLEXE">
+            <RegistrySearch Id="POWERSHELLEXE"
+                Type="raw"
+                Root="HKLM"
+                Key="SOFTWARE\Microsoft\PowerShell\1\ShellIds\Microsoft.PowerShell"
+                Name="Path" />
+        </Property>
+        
+        <Condition Message="Rakudo is only supported on Windows 8, Windows Server 2012, or higher.">
+            <![CDATA[Installed OR (VersionNT >= 602)]]>
+        </Condition>
+        
+        <Condition Message="This Rakudo installer requires a x86 64 bit CPU and Windows.">
+            <![CDATA[VersionNT64]]>
+        </Condition>
+        
+        <MajorUpgrade AllowDowngrades="yes" />
+        
+        <!-- Stuff for Add/Remove Programs (ARP) -->
+        <Icon Id="RakudoIcon" SourceFile="$(var.ASSET_FILE_DIR)\rakudo_icon.ico" />
+        <Property Id="ARPPRODUCTICON" Value="RakudoIcon" />
+        <Property Id="ARPHELPLINK" Value="https://rakudo.org/" />
+        
+        <!-- https://web.archive.org/web/20141016001245/http://blogs.technet.com/b/alexshev/archive/2008/02/09/from-msi-to-wix-part-2.aspx -->
+        <InstallExecuteSequence>
+            <Custom Action="SetARPINSTALLLOCATION" After="InstallValidate"></Custom>
+        </InstallExecuteSequence>
+        <CustomAction Id="SetARPINSTALLLOCATION" Property="ARPINSTALLLOCATION" Value="[INSTALLDIR]" />
+
+        <!-- Determine the install dir of the previous installation. If missing stays empty -->
+        <Property Id="INSTALLDIR" Admin="yes" Secure="yes">
+            <RegistrySearch Id="DetermineInstallLocation" Type="raw" Root="HKLM" Key="Software\Rakudo" Name="InstallPath" />
+        </Property>
+
+        <!-- Save the command line value INSTALLDIR and restore it later in the sequence or it will be overwritten by the value saved to the registry during an upgrade -->
+        <!-- http://robmensching.com/blog/posts/2010/5/2/the-wix-toolsets-remember-property-pattern/ -->
+        <!-- Once for the install location -->
+        <CustomAction Id='SaveCmdLineValueINSTALLDIR' Property='CMDLINE_INSTALLDIR' Value='[INSTALLDIR]' Execute='firstSequence' />
+        <CustomAction Id='SetFromCmdLineValueINSTALLDIR' Property='INSTALLDIR' Value='[CMDLINE_INSTALLDIR]' Execute='firstSequence' />
+        <InstallUISequence>
+            <Custom Action='SaveCmdLineValueINSTALLDIR' Before='AppSearch' />
+            <Custom Action='SetFromCmdLineValueINSTALLDIR' After='AppSearch'>
+                CMDLINE_INSTALLDIR
+            </Custom>
+        </InstallUISequence>
+        <InstallExecuteSequence>
+            <Custom Action='SaveCmdLineValueINSTALLDIR' Before='AppSearch' />
+            <Custom Action='SetFromCmdLineValueINSTALLDIR' After='AppSearch'>
+                CMDLINE_INSTALLDIR
+            </Custom>
+        </InstallExecuteSequence>
+        
+        <!-- And once for the PATH adaption logic -->
+
+        <!-- Same for PATH adaption logic. Additionally do a dance to convert the Checkbox value.
+             Taken from Stackoverflow: https://stackoverflow.com/a/9188179 -->
+        <Property Id="ADDTOPATH" Value="-1" Admin="yes" Secure="yes">
+            <RegistrySearch Id="DetermineAddToPath" Type="raw" Root="HKLM" Key="Software\Rakudo" Name="AddToPath" />
+        </Property>
+        
+        <CustomAction Id='SaveCmdLineValueADDTOPATH' Property='CMDLINE_ADDTOPATH' Value='[ADDTOPATH]' Execute='firstSequence' />
+        <CustomAction Id='SetFromCmdLineValueADDTOPATH' Property='ADDTOPATH' Value='[CMDLINE_ADDTOPATH]' Execute='firstSequence' />
+        <CustomAction Id='ClearCheckboxADDTOPATH' Property='ADDTOPATH' Value='{}' Execute='firstSequence' />
+        <CustomAction Id='SaveCheckboxOffADDTOPATH' Property='ADDTOPATH' Value='0' />
+        <CustomAction Id='SaveCheckboxOnADDTOPATH' Property='ADDTOPATH' Value='1' />
+        
+        <InstallUISequence>
+            <Custom Action='SaveCmdLineValueADDTOPATH' Before='AppSearch' ><![CDATA[ADDTOPATH <> -1]]></Custom>
+            <Custom Action='SetFromCmdLineValueADDTOPATH' After='AppSearch'>CMDLINE_ADDTOPATH</Custom>
+            <Custom Action='ClearCheckboxADDTOPATH' After='SetFromCmdLineValueADDTOPATH'>ADDTOPATH=0</Custom>
+        </InstallUISequence>
+        <InstallExecuteSequence>
+            <Custom Action='SaveCmdLineValueADDTOPATH' Before='AppSearch' ><![CDATA[ADDTOPATH <> -1]]></Custom>
+            <Custom Action='SetFromCmdLineValueADDTOPATH' After='AppSearch'>CMDLINE_ADDTOPATH</Custom>
+            <Custom Action='ClearCheckboxADDTOPATH' After='SetFromCmdLineValueADDTOPATH'>ADDTOPATH=0</Custom>
+            <Custom Action='SaveCheckboxOffADDTOPATH' Before='InstallInitialize'>Not ADDTOPATH Or ADDTOPATH=0</Custom>
+            <Custom Action='SaveCheckboxOnADDTOPATH' Before='InstallInitialize'><![CDATA[ADDTOPATH And ADDTOPATH <> 0]]></Custom>
+        </InstallExecuteSequence>
+
+        <!--Directory structure-->
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFiles64Folder">
+                <Directory Id="INSTALLDIR" Name="Rakudo">
+                    <Directory Id="RAKUDO_BIN_DIR_REFS" />
+                    <Directory Id="ASSET_DIR_REFS" />
+                </Directory>
+            </Directory>
+
+            <Directory Id="ProgramMenuFolder">
+                <Directory Id="RakudoMenuFolder" Name="Rakudo" />
+            </Directory>
+
+            <!--PATH-->
+            <Component Id="RakudoPath" Guid="45669CAC-166D-4569-900A-6EF775EDC8F5">
+                <Environment Id="MYPATH" Name="PATH" Action="set" Part="last"
+                            Value="[INSTALLDIR]bin;[INSTALLDIR]share\perl6\site\bin"
+                            System="yes" Permanent="no" />
+                <Condition>ADDTOPATH</Condition>
+            </Component>
+
+            <!--Extension handler-->
+            <Component Id="RakuExtensions" Guid="3E1C3BD1-D757-48EE-ACB6-3C5938096568">
+                <ProgId Id='foo.raku' Description='Raku file' Icon='camelia_icon.ico'>
+                    <Extension Id='raku' ContentType='application/raku'>
+                        <Verb Id='open' Command='Open' TargetFile="raku.exe" Argument='"%1"' />
+                    </Extension>
+                </ProgId>
+                <ProgId Id='foo.rakutest' Description='Raku test file' Icon='camelia_icon.ico'>
+                    <Extension Id='rakutest' ContentType='application/raku'>
+                        <Verb Id='open' Command='Open' TargetFile="raku.exe" Argument='"%1"' />
+                    </Extension>
+                </ProgId>
+            </Component>
+
+            <!-- Registry entries -->
+            <Component Id="RakudoRegistryKeys" Guid="B05C488D-DCF7-43E9-A1C1-55D5B0C9A5C6">
+                <!-- Do NOT use the application's default registry key here, because THIS key will be removed on uninstall
+                (important when installing a newer version, because that is uninstall followed by install) -->
+                <RegistryKey Root="HKLM" Key="Software\Rakudo">
+                    <RegistryValue Name="InstallPath" Value="[INSTALLDIR]" Type="string" KeyPath="yes" />
+                    <RegistryValue Name="AddToPath" Value="[ADDTOPATH]" Type="string" />
+                </RegistryKey>
+            </Component>
+        </Directory>
+
+        <!--Start Menu Shortcuts-->
+        <DirectoryRef Id="RakudoMenuFolder">
+            <Component Id="RakudoShortcuts" Guid="B5BD7AEC-C8dC-4F84-AF2E-4A417350D642">
+                <Shortcut Id="PowershellShortcut"
+                        Name="Rakudo Powershell"
+                        Description="Rakudo enabled Powershell"
+                        Target="[POWERSHELLEXE]"
+                        Arguments='-NoExit -File "[INSTALLDIR]scripts\set-env.ps1"'
+                        WorkingDirectory="USERPROFILE" />
+                <Shortcut Id="CMDShortcut"
+                        Name="Rakudo CMD"
+                        Description="Rakudo enabled CMD"
+                        Target="[%ComSpec]"
+                        Arguments='/k "[INSTALLDIR]scripts\set-env.bat"'
+                        WorkingDirectory="USERPROFILE" />
+                <Shortcut Id="REPLShortcut"
+                        Name="Rakudo REPL"
+                        Description="The Rakudo REPL"
+                        Target="[INSTALLDIR]bin\raku"
+                        WorkingDirectory="INSTALLDIR"
+                        Icon="RakudoIcon" />
+                <Shortcut Id="READMEShortcut"
+                        Name="README"
+                        Description="Rakudo README - actually does contain relevant information"
+                        Target="[INSTALLDIR]README.txt"
+                        WorkingDirectory="INSTALLDIR" />
+                <util:InternetShortcut  Id="WebRakuShortcut"
+                        Name="Raku website"
+                        Target="https://raku.org/"
+                        Type="url" />
+                <util:InternetShortcut  Id="WebRakuDocsShortcut"
+                        Name="Raku Docs"
+                        Target="https://docs.raku.org/"
+                        Type="url" />
+                <util:InternetShortcut  Id="WebRakuLandShortcut"
+                        Name="Raku Land (modules)"
+                        Target="https://raku.land/"
+                        Type="url" />
+                <Shortcut Id="InstallBuildToolsShortcut"
+                        Name="Install build tools"
+                        Description="Install tools needed for modules with C stuff"
+                        Target="[POWERSHELLEXE]"
+                        Arguments='-File "[INSTALLDIR]scripts\vs_build_tools_install_assistant.ps1"'
+                        WorkingDirectory="INSTALLDIR" />
+                <RemoveFolder Id="RakudoMenuFolder" On="uninstall" />
+                
+                <!-- Hack: This installs the key in HKCU which is user specific, even though we install Rakudo system wide. -->
+                <RegistryValue Root="HKCU" Key="Software\Microsoft\Rakudo" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+            </Component>
+        </DirectoryRef>
+
+        <!--Features-->
+        <Feature Id="ProductFeature" Level="1" Title="Rakudo $(var.VERSION)">
+            <ComponentGroupRef Id="FileComponents" />
+            <ComponentGroupRef Id="AssetComponents" />
+            
+            <ComponentRef Id="RakudoShortcuts" />
+            <ComponentRef Id="RakudoPath" />
+            <ComponentRef Id="RakuExtensions" />
+            <ComponentRef Id="RakudoRegistryKeys" />
+        </Feature>
+
+        <!-- UI setup -->
+        <UIRef Id="WixUI_Common" />
+
+        <WixVariable Id="WixUIBannerBmp" Value="$(var.INSTALLER_ASSET_FILE_DIR)\banner.bmp" />
+        <WixVariable Id="WixUIDialogBmp" Value="$(var.INSTALLER_ASSET_FILE_DIR)\dialog.bmp" />
+        <WixVariable Id="WixUILicenseRtf" Value="$(var.INSTALLER_ASSET_FILE_DIR)\License.rtf" />
+        
+        <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Display README (It really does contain helpful information.)" />
+        <Property Id="WixShellExecTarget" Value="[#README.txt]" />
+        <CustomAction Id="LaunchReadme" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+
+        <!-- custom dialogs -->
+        <UI Id="WixUI_InstallDir">
+            <TextStyle Id="WixUI_Font_Normal" FaceName="Tahoma" Size="8" />
+            <TextStyle Id="WixUI_Font_Bigger" FaceName="Tahoma" Size="12" />
+            <TextStyle Id="WixUI_Font_Title" FaceName="Tahoma" Size="9" Bold="yes" />
+
+            <Property Id="DefaultUIFont" Value="WixUI_Font_Normal" />
+            <Property Id="WixUI_Mode" Value="InstallDir" />
+
+            <DialogRef Id="BrowseDlg" />
+            <DialogRef Id="DiskCostDlg" />
+            <DialogRef Id="ErrorDlg" />
+            <DialogRef Id="FatalError" />
+            <DialogRef Id="FilesInUse" />
+            <DialogRef Id="MsiRMFilesInUse" />
+            <DialogRef Id="PrepareDlg" />
+            <DialogRef Id="ProgressDlg" />
+            <DialogRef Id="ResumeDlg" />
+            <DialogRef Id="UserExit" />
+            
+            <Dialog Id="MySetPathDlg" Width="370" Height="270" Title="!(loc.InstallDirDlg_Title)">
+                <Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="!(loc.BrowseDlgBannerBitmap)" />
+                <Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
+                
+                <Control Id="Title" Type="Text" X="15" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" Text="{\WixUI_Font_Title}Environment Variables" />
+                <Control Id="Description" Type="Text" X="25" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" Text="Enabling Rakudo on the command line" />
+                <Control Id="Explanation" Type="Text" X="25" Y="60" Width="320" Height="20" Transparent="yes" NoPrefix="yes" Text="To make the Rakudo commands available on the command line by default the following directories need be added to your PATH:" />
+                <Control Id="Path1" Type="Text" X="25" Y="84" Width="220" Height="10" Transparent="yes" NoPrefix="yes" Text="[INSTALLDIR]bin" />
+                <Control Id="Path2" Type="Text" X="25" Y="95" Width="220" Height="10" Transparent="yes" NoPrefix="yes" Text="[INSTALLDIR]share\perl6\site\bin" />
+                <Control Id="MyCheckBoxSetPath" Type="CheckBox" X="25" Y="112" Width="290" Height="17" Property="WIXUI_ADDTOPATH" CheckBoxValue="1" Text="Add environment variables" Indirect="yes" />
+                
+                <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+                <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="!(loc.WixUINext)" >
+                    <Publish Property="WixUI_InstallMode" Value="Update">Installed AND PATCH</Publish>
+                </Control>
+                <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)" >
+                    <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+                </Control>
+                <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="!(loc.WixUIBack)" />
+            </Dialog>
+
+            <Publish Dialog="BrowseDlg" Control="OK" Event="DoAction" Value="WixUIValidatePath" Order="3">1</Publish>
+            <Publish Dialog="BrowseDlg" Control="OK" Event="SpawnDialog" Value="InvalidDirDlg" Order="4"><![CDATA[WIXUI_INSTALLDIR_VALID<>"1"]]></Publish>
+
+            <Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="LaunchReadme">WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed</Publish>
+            <Publish Dialog="ExitDialog" Control="Finish" Event="EndDialog" Value="Return" Order="999">1</Publish>
+
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="LicenseAgreementDlg">NOT Installed</Publish>
+            <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">Installed AND PATCH</Publish>
+
+            <Publish Dialog="LicenseAgreementDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg">1</Publish>
+            <Publish Dialog="LicenseAgreementDlg" Control="Next" Event="NewDialog" Value="InstallDirDlg">LicenseAccepted = "1"</Publish>
+
+            <Publish Dialog="InstallDirDlg" Control="Back" Event="NewDialog" Value="LicenseAgreementDlg">1</Publish>
+            <Publish Dialog="InstallDirDlg" Control="Next" Event="SetTargetPath" Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>
+            <Publish Dialog="InstallDirDlg" Control="Next" Event="DoAction" Value="WixUIValidatePath" Order="2">NOT WIXUI_DONTVALIDATEPATH</Publish>
+            <Publish Dialog="InstallDirDlg" Control="Next" Event="SpawnDialog" Value="InvalidDirDlg" Order="3"><![CDATA[NOT WIXUI_DONTVALIDATEPATH AND WIXUI_INSTALLDIR_VALID<>"1"]]></Publish>
+            <Publish Dialog="InstallDirDlg" Control="Next" Event="NewDialog" Value="MySetPathDlg" Order="4">WIXUI_DONTVALIDATEPATH OR WIXUI_INSTALLDIR_VALID="1"</Publish>
+            <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Property="_BrowseProperty" Value="[WIXUI_INSTALLDIR]" Order="1">1</Publish>
+            <Publish Dialog="InstallDirDlg" Control="ChangeFolder" Event="SpawnDialog" Value="BrowseDlg" Order="2">1</Publish>
+
+            <Publish Dialog="MySetPathDlg" Control="Back" Event="NewDialog" Value="InstallDirDlg">1</Publish>
+            <Publish Dialog="MySetPathDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+
+            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MySetPathDlg" Order="1">NOT Installed</Publish>
+            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="MaintenanceTypeDlg" Order="2">Installed AND NOT PATCH</Publish>
+            <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2">Installed AND PATCH</Publish>
+
+            <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg">1</Publish>
+
+            <Publish Dialog="MaintenanceTypeDlg" Control="RepairButton" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+            <Publish Dialog="MaintenanceTypeDlg" Control="RemoveButton" Event="NewDialog" Value="VerifyReadyDlg">1</Publish>
+            <Publish Dialog="MaintenanceTypeDlg" Control="Back" Event="NewDialog" Value="MaintenanceWelcomeDlg">1</Publish>
+
+            <Property Id="ARPNOMODIFY" Value="1" />
+            <Property Id="MYENVIRONMENTSETPATH">1</Property>
+        </UI>
+    </Product>
+</Wix>

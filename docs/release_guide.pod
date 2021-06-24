@@ -344,18 +344,20 @@ masak, tadzik, moritz, [Coke], lizmat, timotimo,
 =item 19.
 
 Build binary packages by following the steps in C<docs/release_guide_binary.md>.
-for Linux 64bit and Windows 64bit.
 
 =item 20.
 
-To avoid public confusion with Rakudo Star releases, we now publish
-compiler release announcements ONLY to perl6-compiler@perl.org.
-(We may restart widespread announcements of compiler releases
-once they are known, or we may begin publishing a single
-announcement for both.)
-
 Don’t send out any announcements until the files are actually available
 per step 14 above.
+
+Copy the release announcement file to the C<rakudo.org> repository into
+C<post/announce-rakudo-release-20XX.XX.md>.
+Change the heading to look as follows:
+
+  %% title: Announce: Rakudo compiler, Release #147 (2021.06)
+  %% date: 2020-06-19
+
+Commit and push the change to GitHub.
 
 =item 21.
 

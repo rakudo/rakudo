@@ -553,9 +553,8 @@ multi sub categorize($test, +items, *%named ) {
 }
 
 proto sub item(|) is pure {*}
-multi sub item(\x)    { my $ = x }
-multi sub item(|c)    { my $ = c.list }
-multi sub item(Mu $a) { $a }
+multi sub item(Mu \x) is raw { x.item }
+multi sub item(|c)    is raw { c.list.item }
 
 sub dd(|c) {  # is implementation-detail
 

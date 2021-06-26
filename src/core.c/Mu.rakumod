@@ -824,7 +824,11 @@ my class Mu { # declared in BOOTSTRAP
     }
     multi method Stringy(Mu:D $:) { self.Str }
 
-    method item(Mu \item:) is raw { item }
+    method item(Mu \item:) is raw {
+        nqp::iscont(item)
+          ?? item
+          !! (my $ = item)
+    }
 
     proto method say(|) {*}
     proto method put(|) {*}

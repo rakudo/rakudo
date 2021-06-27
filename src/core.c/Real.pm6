@@ -53,6 +53,11 @@ my role Real does Numeric {
         Complex.new(self.cos, self.sin);
     }
     method Complex() { Complex.new(self.Num, 0e0) }
+
+    proto method modf(|) {*}
+    multi method modf(Real:D: --> List)    { self.Bridge.modf                 }
+    multi method modf(Real:D: Int $places) { self.Bridge.modf($places.Bridge) }
+
     proto method log(|) {*}
     multi method log(Real:D: )           { self.Bridge.log               }
     multi method log(Real:D: Real $base) { self.Bridge.log($base.Bridge) }

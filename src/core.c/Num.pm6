@@ -168,6 +168,29 @@ my class Num does Real { # declared in BOOTSTRAP
     multi method sin(Num:D: ) {
         nqp::p6box_n(nqp::sin_n(nqp::unbox_n(self)));
     }
+
+    proto method modf(|) {*} 
+    multi method modf(Num:D: Num $places? --> List) { # method source of the return values, patterned after sub log
+        my $x = self; 
+        my \sign = $x.sign;
+        $x .= abs;  # now signless
+
+        # operate on absolute parts
+        my $int  = $x.Int;  
+        my $frac = $x - $int;
+        # restore original sign
+        $int  *= sign; 
+        $frac *= sign; 
+        $int  = 0 if $int  == 0;
+        $frac = 0 if $frac == 0;
+
+        if $places.defined and $places > 0 {
+            $frac = sprintf '%.*f', $places, $frac;
+        }
+
+        $int, $frac
+    }
+
     proto method asin(|) {*}
     multi method asin(Num:D: ) {
         nqp::p6box_n(nqp::asin_n(nqp::unbox_n(self)));
@@ -541,6 +564,26 @@ multi sub acosec(Num:D \x) {
 
 multi sub log(num $x --> num) {
     nqp::log_n($x);
+}
+
+multi sub modf(num $x is copy, num $places? --> List) { # sub source of the return values, patterned after sub log
+        my \sign = $x.sign;
+        $x .= abs;  # now signless
+
+        # operate on absolute parts
+        my $int  = $x.Int;  
+        my $frac = $x - $int;
+        # restore original sign
+        $int  *= sign; 
+        $frac *= sign; 
+        $int  = 0 if $int  == 0;
+        $frac = 0 if $frac == 0;
+
+        if $places.defined and $places > 0 {
+            $frac = sprintf '%.*f', $places, $frac;
+        }
+
+        $int, $frac
 }
 
 multi sub sin(num $x --> num) {

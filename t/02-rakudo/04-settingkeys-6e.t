@@ -331,6 +331,7 @@ my %allowed = (
     Q{&minmax},
     Q{&mix},
     Q{&mkdir},
+    Q{&modf},
     Q{&move},
     Q{&msb},
     Q{&next},

@@ -24,7 +24,7 @@ my @lower = ("",<<
   flat flip floor full-barrier get getc gist goto grep hash index
   indices indir is-prime item join keys kv last lastcall lc leave
   lines link list log log10 log2 lsb make map max min minmax mix
-  mkdir move msb next nextcallee nextsame nextwith nodemap none
+  mkdir modf move msb next nextcallee nextsame nextwith nodemap none
   not note one open ord ords pair pairs parse-base parse-names
   permutations pick pop prepend print printf proceed produce
   prompt push put rand redo reduce rename repeated repl return

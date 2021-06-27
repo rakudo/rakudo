@@ -72,6 +72,12 @@ proto sub sign($, *%) is pure {*}
 multi sub sign(Numeric \x) { x.sign }
 multi sub sign(Cool \x)    { x.Numeric.sign }
 
+proto sub modf($, $?, *%) is pure {*}
+multi sub modf(Numeric $x --> List)                  { $x.modf                  }
+multi sub modf(Numeric $x, Numeric $places --> List) { $x.modf($places)         }
+multi sub modf(Cool $x --> List)                     { $x.Numeric.modf          }
+multi sub modf(Cool $x, Cool $places --> List)       { $x.Numeric.modf($places) }
+
 proto sub log($, $?, *%) is pure {*}
 multi sub log(Numeric $x) { $x.log }
 multi sub log(Numeric $x, Numeric $base) { $x.log($base) }

@@ -40,6 +40,10 @@ my class Cool { # declared in BOOTSTRAP
     multi method log(Cool:D: )      { self.Numeric.log          }
     multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
 
+    proto method modf(|) {*}
+    multi method modf(Cool:D --> List)          { self.Numeric.modf                  }
+    multi method modf(Cool:D $places --> List)  { self.Numeric.modf($places.Numeric) }
+
     proto method exp(|) {*}
     multi method exp(Cool:D: )      { self.Numeric.exp          }
     multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }

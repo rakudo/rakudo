@@ -465,6 +465,8 @@ multi sub infix:<===>(\a, \b --> Bool:D) {
            && nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH)))
     )
 }
+# U+2A76 THREE CONSECUTIVE EQUALS SIGNS
+my constant &infix:<⩶> = &infix:<===>;
 
 proto sub prefix:<++>(Mu, *%)        {*}
 multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }

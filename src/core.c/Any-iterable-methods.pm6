@@ -156,7 +156,17 @@ Consider using a block if any of these are necessary for your mapping code."
                     'REDO', ($stopped = 0),
                     'LAST', nqp::stmts(
                       ($!did-iterate = 1),
-                      ($result := IterationEnd)
+                      nqp::if(
+                        nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                        ($result  := IterationEnd),
+                        nqp::stmts(
+                          nqp::if(
+                            nqp::istype($result, Slip),
+                            ($result := self.start-slip($result))
+                          ),
+                          ($!source  := Rakudo::Iterator.Empty)
+                        )
+                      )
                     )
                   ),
                   :nohandler
@@ -224,7 +234,17 @@ Consider using a block if any of these are necessary for your mapping code."
                             ?? ($done = 1)
                             !! ($stopped = 0)),
                         'REDO', ($stopped = 0),
-                        'LAST', ($done = $!did-iterate = 1)
+                        'LAST', nqp::stmts(
+                          ($done = $!did-iterate = 1),
+                          nqp::unless(
+                            nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                            nqp::if(
+                              nqp::istype($value,Slip),
+                              self.slip-all($value,target),
+                              target.push($value)
+                            )
+                          )
+                        )
                       )
                     ),
                     :nohandler
@@ -345,23 +365,30 @@ Consider using a block if any of these are necessary for your mapping code."
                         )
                       )
                     ),
-                    'LABELED',
-                    $!label,
-                    'NEXT',
-                    nqp::if(
+                    'LABELED', $!label,
+                    'NEXT', nqp::if(
                       nqp::eqaddr(
                         ($value := $!source.pull-one),IterationEnd
                       ),
                       ($result := IterationEnd),
                       ($redo = 1)
                     ),
-                    'REDO',
-                    ($redo = 1),
-                    'LAST',
-                    ($result := IterationEnd)
-                  ),
+                    'REDO', ($redo = 1),
+                    'LAST', nqp::if(
+                      nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                      ($result := IterationEnd),
+                      nqp::stmts(
+                        nqp::if(
+                          nqp::istype($result,Slip),
+                          ($result := self.start-slip($result))
+                        ),
+                        ($!source := Rakudo::Iterator.Empty)
+                      )
+                    )
+                  )
                 ),
-              :nohandler);
+                :nohandler
+              );
             }
             $result
         }
@@ -392,8 +419,18 @@ Consider using a block if any of these are necessary for your mapping code."
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'LAST', return,
                       'NEXT', nqp::null, # need NEXT for next LABEL support
+                      'LAST', nqp::stmts(
+                        nqp::unless(
+                          nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                          nqp::if(
+                            nqp::istype($value,Slip),
+                            self.slip-all($value,target),
+                            target.push($value)
+                          )
+                        ),
+                        return
+                      )
                     )
                   ),
                   :nohandler
@@ -492,20 +529,26 @@ Consider using a block if any of these are necessary for your mapping code."
                         )
                       )
                     ),
-                    'LABELED',
-                    $!label,
-                    'NEXT',
-                    nqp::if(
+                    'LABELED', $!label,
+                    'NEXT', nqp::if(
                       nqp::eqaddr(
                         ($value := $!source.pull-one),IterationEnd
                       ),
                       ($result := IterationEnd),
                       ($redo = 1)
                     ),
-                    'REDO',
-                    ($redo = 1),
-                    'LAST',
-                    ($result := IterationEnd)
+                    'REDO', ($redo = 1),
+                    'LAST', nqp::if(
+                      nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                      ($result  := IterationEnd),
+                      nqp::stmts(
+                        nqp::if(
+                          nqp::istype($result,Slip),
+                          ($result := self.start-slip($result))
+                        ),
+                        ($!source := Rakudo::Iterator.Empty)
+                      )
+                    )
                   ),
                 ),
               :nohandler);
@@ -557,8 +600,18 @@ Consider using a block if any of these are necessary for your mapping code."
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'LAST', return,
                       'NEXT', nqp::null, # need NEXT for next LABEL support
+                      'LAST', nqp::stmts(
+                        nqp::unless(
+                          nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                          nqp::if(
+                            nqp::istype($value,Slip),
+                            self.slip-all($result,target),
+                            target.push($value)
+                          )
+                        ),
+                        return
+                      )
                     )
                   ),
                   :nohandler
@@ -696,7 +749,17 @@ Consider using a block if any of these are necessary for your mapping code."
                       'REDO', $redo = 1,
                       'LAST', nqp::stmts(
                         ($!did-iterate = 1),
-                        ($result := IterationEnd)
+                        nqp::if(
+                          nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                          ($result := IterationEnd),
+                          nqp::stmts(
+                            nqp::if(
+                              nqp::istype($result,Slip),
+                              ($result := self.start-slip($result))
+                            ),
+                            ($!source := Rakudo::Iterator.Empty)
+                          )
+                        )
                       )
                     )
                   ),
@@ -884,43 +947,76 @@ Consider using a block if any of these are necessary for your mapping code."
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-callable(Callable:D $test) {
-        nqp::if(
-          $test.count == 1,
-          sequential-map(
-            self.iterator,
-            {
-                (nqp::istype((my \result := $test($_)),Regex)
-                  ?? result.ACCEPTS($_)
-                  !! nqp::istype(result,Junction)
-                    ?? result.Bool
-                    !! result
-                ) ?? $_
-                  !! Empty
-            },
-            Any)
-          ,
-          nqp::stmts(
-            (my role CheatArity {
+        sub judge(Mu $result, Mu $value) is raw {
+            nqp::if(
+              nqp::istype($result,Regex),
+              $result.ACCEPTS($value),
+              nqp::if(
+                nqp::istype($result,Junction),
+                $result.Bool,
+                $result
+              )
+            )
+        }
+
+        if $test.count == 1 {
+            sequential-map(
+              self.iterator,
+              {
+                  nqp::if(
+                    nqp::stmts(
+                      nqp::handle(
+                        (my $result := $test($_)),
+                        'LAST', nqp::if(
+                          judge(
+                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                            $_
+                          ),
+                          (last $_),
+                          (last)
+                        )
+                      ),
+                      judge($result, $_)
+                    ),
+                    $_,
+                    Empty
+                  )
+              },
+              Any
+            )
+        }
+        else {
+            my role CheatArity {
                 has $!arity;
                 has $!count;
 
-                method set-cheat($new-arity, $new-count --> Nil) {
-                    $!arity = $new-arity;
-                    $!count = $new-count;
+                method with-arity-count($new-arity, $new-count) {
+                    $!arity := $new-arity;
+                    $!count := $new-count;
+                    self
                 }
 
                 method arity(Code:D:) { $!arity }
                 method count(Code:D:) { $!count }
-            }),
-            (my &tester = -> |c {
-                #note "*cough* {c.raku} -> {$test(|c).raku}";
-                next unless $test(|c);
-                c.list
-            } but CheatArity),
-            &tester.set-cheat($test.arity, $test.count),
-            self.map(&tester)
-          )
-        )
+            }
+            my &tester := -> |c {
+                my \params := c.list;
+                nqp::handle(
+                  (my $result := $test(|c)),
+                  'LAST', nqp::if(
+                    judge(
+                      nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                      params
+                    ),
+                    (last params),
+                    (last)
+                  )
+                );
+                judge($result, params) ?? params !! Empty
+            } but CheatArity;
+
+            self.map(&tester.with-arity-count($test.arity, $test.count))
+        }
     }
 
     # Create a braid and fail cursor that we can use with all the normal,
@@ -2098,12 +2194,12 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.nodemap(&op), :INITIALIZE
     }
     multi method nodemap(&op) {
-        my \iterator := self.iterator;
+        my $source := self.iterator;
         return Failure.new(X::Cannot::Lazy.new(:action<nodemap>))
-          if iterator.is-lazy;
+          if $source.is-lazy;
 
-        my \buffer   := nqp::create(IterationBuffer);
-        my $value    := iterator.pull-one;
+        my \buffer := nqp::create(IterationBuffer);
+        my $value  := $source.pull-one;
 
         nqp::until(
           nqp::eqaddr($value,IterationEnd),
@@ -2117,12 +2213,18 @@ Consider using a block if any of these are necessary for your mapping code."
                   nqp::push(buffer,op($value)),
                   'NEXT', nqp::null,
                   'REDO', ($redo = 1),
-                  'LAST', ($value := IterationEnd),
+                  'LAST', nqp::stmts(
+                    nqp::unless(
+                      nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                      nqp::push(buffer,$value)
+                    ),
+                    ($source := Rakudo::Iterator.Empty)
+                  )
                 ) 
               ),
               :nohandler
             ),
-            ($value := iterator.pull-one)
+            ($value := $source.pull-one)
           ) 
         );
         buffer.List
@@ -2133,9 +2235,9 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.deepmap(&op), :INITIALIZE
     }
     multi method deepmap(&op) {
-        my \iterator := self.iterator;
-        my \buffer   := nqp::create(IterationBuffer);
-        my $value    := iterator.pull-one;
+        my $source := self.iterator;
+        my \buffer := nqp::create(IterationBuffer);
+        my $value  := $source.pull-one;
 
         sub deep(\value) is raw { my $ = value.deepmap(&op) }
 
@@ -2162,12 +2264,22 @@ Consider using a block if any of these are necessary for your mapping code."
                   ),
                   'NEXT', nqp::null,
                   'REDO', ($redo = 1),
-                  'LAST', ($value := IterationEnd),
+                  'LAST', nqp::stmts(
+                    nqp::unless(
+                      nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                      nqp::if(
+                        nqp::istype($value,Iterable) && $value.DEFINITE,
+                        deep($value),
+                        nqp::push(buffer,$value)
+                      )
+                    ),
+                    ($source := Rakudo::Iterator.Empty)
+                  )
                 ) 
               ),
               :nohandler
             ),
-            ($value := iterator.pull-one)
+            ($value := $source.pull-one)
           ) 
         );
         nqp::p6bindattrinvres(
@@ -2181,9 +2293,9 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.duckmap(&op)
     }
     multi method duckmap(&op) {
-        my \iterator := self.iterator;
-        my \buffer   := nqp::create(IterationBuffer);
-        my $value    := iterator.pull-one;
+        my $source := self.iterator;
+        my \buffer := nqp::create(IterationBuffer);
+        my $value  := $source.pull-one;
 
         sub duck(\arg) is raw {
             CATCH {
@@ -2213,12 +2325,22 @@ Consider using a block if any of these are necessary for your mapping code."
                   ),
                   'NEXT', nqp::null,
                   'REDO', ($redo = 1),
-                  'LAST', ($value := IterationEnd),
+                  'LAST', nqp::stmts(
+                    nqp::unless(
+                      nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                      nqp::if(
+                        nqp::istype($value,Slip),
+                        $value.iterator.push-all(buffer),
+                        nqp::push(buffer,$value)
+                      )
+                    ),
+                    ($source := Rakudo::Iterator.Empty)
+                  )
                 ) 
               ),
               :nohandler
             ),
-            ($value := iterator.pull-one)
+            ($value := $source.pull-one)
           ) 
         );
         nqp::p6bindattrinvres(

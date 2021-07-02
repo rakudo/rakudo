@@ -1435,9 +1435,19 @@ class Rakudo::Iterator {
                             )
                           ),
                           'LABELED', $!label,
-                          'NEXT', nqp::stmts(
-                            &!afterwards(),
-                            ($stopped = nqp::if(&!cond(),0,1))
+                          'NEXT', nqp::if(
+                            nqp::isnull(
+                              $result := nqp::getpayload(nqp::exception)
+                            ) || (nqp::istype($result,Slip)
+                                   && nqp::eqaddr(
+                                        ($result := self.start-slip($result)),
+                                        IterationEnd
+                                      )
+                                 ),
+                            nqp::stmts(          # bare next or empty Slip
+                              &!afterwards(),
+                              ($stopped = nqp::if(&!cond(),0,1))
+                            )
                           ),
                           'REDO', ($stopped = 0),
                           'LAST', nqp::if(
@@ -2497,7 +2507,17 @@ class Rakudo::Iterator {
                         ))
                       ),
                       'LABELED', $!label,
-                      'NEXT', ($stopped = 0),
+                      'NEXT', nqp::if(
+                        nqp::isnull(
+                          $result := nqp::getpayload(nqp::exception)
+                        ) || (nqp::istype($result,Slip)
+                               && nqp::eqaddr(
+                                    ($result := self.start-slip($result)),
+                                    IterationEnd
+                                  )
+                             ),
+                        ($stopped = 0)           # bare next or empty Slip
+                      ),
                       'REDO', ($stopped = 0),
                       'LAST', nqp::if(
                         nqp::isnull($result := nqp::getpayload(nqp::exception)),
@@ -3764,7 +3784,17 @@ class Rakudo::Iterator {
                             ) && nqp::if(&!cond(),0,1))
                           ),
                           'LABELED', $!label,
-                          'NEXT', ($stopped = nqp::if(&!cond(),0,1)),
+                          'NEXT', nqp::if(
+                            nqp::isnull(
+                              $result := nqp::getpayload(nqp::exception)
+                            ) || (nqp::istype($result,Slip)
+                                   && nqp::eqaddr(
+                                        ($result := self.start-slip($result)),
+                                        IterationEnd
+                                      )
+                                 ),
+                            ($stopped = nqp::if(&!cond(),0,1))
+                          ),
                           'REDO', ($stopped = 0),
                           'LAST', nqp::if(
                             nqp::isnull(
@@ -4809,7 +4839,17 @@ class Rakudo::Iterator {
                             ) && nqp::if(&!cond(),0,1))
                           ),
                           'LABELED', $!label,
-                          'NEXT', ($stopped = nqp::if(&!cond(),0,1)),
+                          'NEXT', nqp::if(
+                            nqp::isnull(
+                              $result := nqp::getpayload(nqp::exception)
+                            ) || (nqp::istype($result,Slip)
+                                   && nqp::eqaddr(
+                                        ($result := self.start-slip($result)),
+                                        IterationEnd
+                                      )
+                                 ),
+                            ($stopped = nqp::if(&!cond(),0,1))
+                          ),
                           'REDO', ($stopped = 0),
                           'LAST', nqp::if(
                             nqp::isnull(

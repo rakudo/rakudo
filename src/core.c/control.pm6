@@ -113,6 +113,7 @@ multi sub last(\x --> Nil) { THROW(nqp::const::CONTROL_LAST, x) }
 proto sub next($?, *%) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
 multi sub next(Label:D \x --> Nil) { x.next }
+multi sub next(\x --> Nil) { THROW(nqp::const::CONTROL_NEXT, x) }
 
 proto sub redo($?, *%) {*}
 multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }

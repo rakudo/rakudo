@@ -147,11 +147,31 @@ Consider using a block if any of these are necessary for your mapping code."
                     ),
                     'LABELED', $!label,
                     'NEXT', nqp::stmts(
-                       ($!did-iterate = 1),
-                       nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                       nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
-                         ?? ($result := IterationEnd)
-                         !! ($stopped = 0)
+                      ($!did-iterate = 1),
+                      nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                      nqp::if(
+                        nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                        nqp::if(                      # bare "next"
+                          nqp::eqaddr(
+                            ($value := $!source.pull-one),
+                            IterationEnd
+                          ),
+                          ($result := IterationEnd),  # source empty
+                          ($stopped = 0),             # process this value
+                        ),
+                        nqp::if(                      # next with value
+                          nqp::istype($result,Slip)
+                          && nqp::eqaddr(             # it's a Slip
+                               ($result := self.start-slip($result)),
+                               IterationEnd
+                             )
+                          && nqp::not_i(nqp::eqaddr(  # an empty Slip
+                               ($value := $!source.pull-one),
+                               IterationEnd
+                             )),
+                          ($stopped = 0)              # process this value
+                        )
+                      )
                     ),
                     'REDO', ($stopped = 0),
                     'LAST', nqp::stmts(
@@ -227,12 +247,23 @@ Consider using a block if any of these are necessary for your mapping code."
                         'NEXT', nqp::stmts(
                           ($!did-iterate = 1),
                           nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                          nqp::eqaddr(
-                            ($value := $!source.pull-one),
-                            IterationEnd
+                          nqp::if(
+                            nqp::isnull($pulled := nqp::getpayload(nqp::exception)),
+                            nqp::if(
+                              nqp::eqaddr(
+                                ($value := $!source.pull-one),
+                                IterationEnd
+                              ),
+                              ($done = 1),
+                              ($stopped = 0)i
+                            ),
+                            nqp::if(
+                              nqp::istype($pulled,Slip),
+                              self.slip-all($pulled,target),
+                              target.push($pulled)
+                            )
                           )
-                            ?? ($done = 1)
-                            !! ($stopped = 0)),
+                        ),
                         'REDO', ($stopped = 0),
                         'LAST', nqp::stmts(
                           ($done = $!did-iterate = 1),
@@ -367,11 +398,24 @@ Consider using a block if any of these are necessary for your mapping code."
                     ),
                     'LABELED', $!label,
                     'NEXT', nqp::if(
-                      nqp::eqaddr(
-                        ($value := $!source.pull-one),IterationEnd
+                      nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                      nqp::if(                      # bare next
+                        nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+                        ($result := IterationEnd),  # exhausted
+                        ($redo = 1)                 # process this value
                       ),
-                      ($result := IterationEnd),
-                      ($redo = 1)
+                      nqp::if(                      # next with value
+                        nqp::istype($result,Slip)
+                        && nqp::eqaddr(             # it's a Slip
+                             ($result := self.start-slip($result)),
+                             IterationEnd
+                           )
+                        && nqp::not_i(nqp::eqaddr(  # an empty Slip
+                             ($value := $!source.pull-one),
+                             IterationEnd
+                           )),
+                        ($redo = 1)                 # process this value
+                      )
                     ),
                     'REDO', ($redo = 1),
                     'LAST', nqp::if(
@@ -419,7 +463,14 @@ Consider using a block if any of these are necessary for your mapping code."
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
+                      'NEXT', nqp::unless(
+                        nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                        nqp::if(
+                          nqp::istype($result,Slip),
+                          self.slip-all($result,target),
+                          target.push($result)
+                        )
+                      ),
                       'LAST', nqp::stmts(
                         nqp::unless(
                           nqp::isnull($value := nqp::getpayload(nqp::exception)),
@@ -531,11 +582,26 @@ Consider using a block if any of these are necessary for your mapping code."
                     ),
                     'LABELED', $!label,
                     'NEXT', nqp::if(
-                      nqp::eqaddr(
-                        ($value := $!source.pull-one),IterationEnd
+                      nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                      nqp::if(                      # bare next
+                        nqp::eqaddr(
+                          ($value := $!source.pull-one),IterationEnd
+                        ),
+                        ($result := IterationEnd),  # exhausted
+                        ($redo = 1)                 # process this value
                       ),
-                      ($result := IterationEnd),
-                      ($redo = 1)
+                      nqp::if(                      # next with value
+                        nqp::istype($result,Slip)
+                        && nqp::eqaddr(             # it's a Slip
+                             ($result := self.start-slip($result)),
+                             IterationEnd
+                           )
+                        && nqp::not_i(nqp::eqaddr(  # an empty Slip
+                             ($value := $!source.pull-one),
+                             IterationEnd
+                           )),
+                        ($redo = 1)                 # process this value
+                      )
                     ),
                     'REDO', ($redo = 1),
                     'LAST', nqp::if(
@@ -551,7 +617,8 @@ Consider using a block if any of these are necessary for your mapping code."
                     )
                   ),
                 ),
-              :nohandler);
+                :nohandler
+              );
             }
             $result
         }
@@ -600,7 +667,14 @@ Consider using a block if any of these are necessary for your mapping code."
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
+                      'NEXT', nqp::unless(
+                        nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                        nqp::if(
+                          nqp::istype($result,Slip),
+                          self.slip-all($result,target),
+                          target.push($result)
+                        )
+                      ),
                       'LAST', nqp::stmts(
                         nqp::unless(
                           nqp::isnull($value := nqp::getpayload(nqp::exception)),
@@ -741,11 +815,33 @@ Consider using a block if any of these are necessary for your mapping code."
                       'NEXT', nqp::stmts(
                         ($!did-iterate = 1),
                         nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                          (nqp::setelems($!value-buffer, 0)),
-                          nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
-                          && nqp::elems($!value-buffer) == 0
-                            ?? ($result := IterationEnd)
-                            !! ($redo = 1)),
+                        nqp::setelems($!value-buffer,0),
+                        nqp::if(
+                          nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                          nqp::stmts(
+                            nqp::if(
+                              nqp::eqaddr(
+                                $!source.push-exactly($!value-buffer, $!count),
+                                IterationEnd
+                              ) && nqp::elems($!value-buffer) == 0,
+                              ($result := IterationEnd),
+                              ($redo = 1)
+                            )
+                          ),
+                          nqp::if(                        # next with value
+                            nqp::istype($result,Slip)
+                              && nqp::eqaddr(             # it's a Slip
+                                   ($result := self.start-slip($result)),
+                                   IterationEnd
+                                 )
+                              && nqp::not_i(nqp::eqaddr(  # an empty Slip
+                                   $!source.push-exactly($!value-buffer, $!count),
+                                   IterationEnd
+                                 )),
+                            ($redo = 1)                   # process these values
+                          )
+                        )
+                      ),
                       'REDO', $redo = 1,
                       'LAST', nqp::stmts(
                         ($!did-iterate = 1),
@@ -974,6 +1070,14 @@ Consider using a block if any of these are necessary for your mapping code."
                           ),
                           (last $_),
                           (last)
+                        ),
+                        'NEXT', nqp::if(
+                          judge(
+                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                            $_
+                          ),
+                          (next $_),
+                          (next)
                         )
                       ),
                       judge($result, $_)

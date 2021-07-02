@@ -2088,15 +2088,29 @@ class Rakudo::Iterator {
 
     # Return an iterator for the given low/high integer value (inclusive).
     # Has dedicated .push-all for those cases one needs to fill a list
-    # with consecutive numbers quickly.
+    # with consecutive numbers quickly.  Handle int ranges with an Inf as
+    # endpoint in separate Iterator class.
+    my class IntRangeUnending does Iterator {
+        has int $!i;
+
+        method !SET-SELF(int $i) { $!i = nqp::sub_i($i,1); self }
+        method new(int $from) { nqp::create(self)!SET-SELF($from) }
+
+        method pull-one() { $!i = nqp::add_i($!i,1) }
+        method push-exactly(\target, int $batch-size) {
+            target.push(self.pull-one) for ^$batch-size;
+            $batch-size
+        }
+        method is-lazy(--> True) { }
+        method sink-all(--> IterationEnd) { }
+    }
     my class IntRange does PredictiveIterator {
         has int $!i;
         has int $!last;
-        has $!is-lazy;
 
         method !SET-SELF(int $i, $last) {
             $!i    = nqp::sub_i($i,1);
-            $!last = ($!is-lazy := $last == Inf) ?? int.Range.max !! $last;
+            $!last = $last;
             self
         }
         method new(\f,\t) { nqp::create(self)!SET-SELF(f,t) }
@@ -2131,11 +2145,14 @@ class Rakudo::Iterator {
             );
             $!i = $i;                # make sure pull-one ends
         }
-        method is-lazy(--> Bool:D) { $!is-lazy }
         method count-only(--> Int:D) { $!last - $!i + nqp::isgt_i($!i,$!last) }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
-    method IntRange(\from,\to) { IntRange.new(from,to) }
+    method IntRange(\from,\to) {
+        to == Inf
+          ?? IntRangeUnending.new(from)
+          !! IntRange.new(from,to)
+    }
 
     # Return an iterator from a given iterator producing Pairs, in which
     # each .value is checked for iterability: if Iterable, produce Pairs

@@ -127,6 +127,10 @@ my role PredictiveIterator does Iterator {
     # to indicate whether the generator is (still) able to generate at least
     # one value, *without* actually generating that value.
     method bool-only(--> Bool:D) { self.count-only.Bool }
+
+    # Since PredictiveIterators are not supposed to be lazy, we can skip
+    # the step checking for laziness.
+    method push-until-lazy(\target) { self.push-all(target) }
 }
 
 # vim: expandtab shiftwidth=4

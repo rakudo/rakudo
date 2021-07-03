@@ -27,7 +27,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     has $!candidate;                # Will contain matching candidate from curried role group
     has @!pos_args;
     has %!named_args;
-    has @!role_typecheck_list;
+    has @!role_typecheck_list;      # Stale after adding roles; prefer its getter
     has @!parent_typecheck_list;    # Only for parents instantiated from generics
     has $!is_complete;
     has $!archetypes;
@@ -96,24 +96,21 @@ class Perl6::Metamodel::CurriedRoleHOW
                 my @result := $candidate-how.body_block($!candidate)(|@pos_args, |%!named_args);
                 $type_env := @result[1];
             }
-            if $candidate-how.roles($!candidate, :!transitive) -> @roles {
-                for @roles -> $role {
-                    if $role.HOW.archetypes.generic && $type_env {
-                        $role := $role.HOW.instantiate_generic($role, $type_env);
-                    }
-                    unless $role.HOW.archetypes.generic || $role.HOW.archetypes.parametric {
-                        my $target-name := $obj.HOW.name($obj);
-                        my $role-name := $role.HOW.name($role);
-                        Perl6::Metamodel::Configuration.throw_or_die(
-                            'X::Composition::NotComposable',
-                            $role-name ~ " is not composable, so " ~ $target-name ~ " cannot compose it",
-                            :$target-name,
-                            composer => $role,
-                        )
-                    }
-                    self.add_role($obj, $role);
+            for $candidate-how.roles($!candidate, :!transitive) -> $role {
+                if $role.HOW.archetypes.generic && $type_env {
+                    $role := $role.HOW.instantiate_generic($role, $type_env);
                 }
-                self.clear_role_typecheck_list($obj);
+                unless $role.HOW.archetypes.generic || $role.HOW.archetypes.parametric {
+                    my $target-name := $obj.HOW.name($obj);
+                    my $role-name := $role.HOW.name($role);
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::Composition::NotComposable',
+                        $role-name ~ " is not composable, so " ~ $target-name ~ " cannot compose it",
+                        :$target-name,
+                        composer => $role,
+                    )
+                }
+                self.add_role($obj, $role); # Defer typechek list update to next typecheck.
             }
             # Contrary to roles, we only consider generic parents. I.e. cases like:
             # role R[::T] is T {}
@@ -126,10 +123,6 @@ class Perl6::Metamodel::CurriedRoleHOW
                 }
             }
         }
-    }
-
-    method clear_role_typecheck_list($obj) {
-        @!role_typecheck_list := [];
     }
 
     method update_role_typecheck_list($obj) {
@@ -148,7 +141,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                 }
             }
         }
-        @!role_typecheck_list := @rtl;
+        @!role_typecheck_list := @rtl
     }
 
     method complete_parameterization($obj) {
@@ -193,8 +186,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     }
 
     method role_typecheck_list($obj) {
-        self.update_role_typecheck_list($obj) unless nqp::elems(@!role_typecheck_list);
-        @!role_typecheck_list
+        self.update_role_typecheck_list($obj)
     }
 
     method type_check($obj, $checkee) {
@@ -219,7 +211,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                 return 1
             }
         }
-        for @!role_typecheck_list {
+        for self.role_typecheck_list($obj) {
             my $dr := nqp::decont($_);
             if $decont =:= $dr {
                 return 1;

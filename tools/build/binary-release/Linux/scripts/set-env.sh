@@ -30,5 +30,5 @@ rreadlink() (
 EXEC=$(rreadlink "$0")
 DIR=$(dirname -- "$EXEC")
 
-echo export PATH=$DIR:$DIR/../share/perl6/site/bin:$PATH
+echo "export PATH=\"$DIR/../bin:$DIR/../share/perl6/site/bin:$PATH\""
 

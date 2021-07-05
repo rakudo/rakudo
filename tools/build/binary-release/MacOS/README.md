@@ -18,9 +18,9 @@ or start a REPL by calling `raku` without an argument
     /path/to/this/folder/bin/raku
 
 To add the relevant paths to your environment so you don't have to type the
-full path run the following script (don't forget the '$()'):
+full path run the following script (don't forget the 'eval $()'):
 
-    $(scripts/set-env.sh)
+    eval $(scripts/set-env.sh)
 
 
 Installing modules

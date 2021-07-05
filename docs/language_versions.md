@@ -10,7 +10,7 @@ stone; we need to keep learning and adapting them over time).
 ## Adding new features or deprecating features for a future version
 
 For example we use the upcoming new version '6.e' for which the tooling structure is in place
-and entries will be in the following directories an files:
+and entries will be in the following directories and files:
 
     ./src/core.e/
     ./t/02-rakudo/03-corekeys.t
@@ -20,13 +20,13 @@ and entries will be in the following directories an files:
     
 ### Adding a new class
 
-    create the file for the new class in directory core.e
+    + create the file for the new class in directory ./src/core.e/
     ...MORE TO BE ADDED
 
 ### Adding a new routine to an existing class
 
-    copy the class file from its most recent version into directory core.e if need be
-    add the new names (symbols) to the corekeys and settingkeys files listed above
+    + copy the class file from its most recent version into directory ./src/core.e/ if need be
+    + add the new names (symbols) to the corekeys and settingkeys files listed above
     ...MORE TO BE ADDED
 
 ## Rakudo branches

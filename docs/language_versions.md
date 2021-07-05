@@ -3,6 +3,32 @@
 For review, nothing set in sand yet (and these things should never be set in
 stone; we need to keep learning and adapting them over time).
 
+## Adding the tooling structure to start a future version
+
+    TO BE ADDED
+    
+## Adding new features or deprecating features for a future version
+
+For example we use the upcoming new version '6.e' for which the tooling structure is in place
+and entries will be in the following directories an files:
+
+    ./src/core.e/
+    ./t/02-rakudo/03-corekeys.t
+    ./t/02-rakudo/03-corekeys-6e.t
+    ./t/02-rakudo/04-settingkeys-6e.t
+    ./t/02-rakudo/07-implementation-detail-6e.t
+    
+### Adding a new class
+
+    create the file for the new class in directory core.e
+    ...MORE TO BE ADDED
+
+### Adding a new routine to an existing class
+
+    copy the class file from its most recent version into directory core.e if need be
+    add the new names (symbols) to the corekeys and settingkeys files listed above
+    ...MORE TO BE ADDED
+
 ## Rakudo branches
 
 We want to provide a little more stability than we attain today in terms of

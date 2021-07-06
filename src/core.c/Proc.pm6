@@ -160,7 +160,7 @@ my class Proc {
         CATCH { default { self!set-status(0x100) } }
         &!start-stdout() if &!start-stdout;
         &!start-stderr() if &!start-stderr;
-        self!set-status(await($!finished).status)
+        self!set-status(await($!finished)!status)
           if nqp::istype($!exitcode,Nil);
     }
 

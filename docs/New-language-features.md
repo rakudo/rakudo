@@ -1,8 +1,10 @@
 # New language versions
 
 This is intended to be a guide or checklist for creating a
-new language version or adding new features in an
-already-established future language version.
+new language version, adding new features in an
+already-established future language version, and deprecating
+and removing obsolete features..
+
 For general information on Rakudo language versioning
 see [Language versions and proposals](./language_versions.md).
 
@@ -15,7 +17,11 @@ to that effect.
 
     TO BE EXTENDED
 
-## Adding new features or deprecating features for a future version
+## Deprecating features
+
+    TO BE EXTENDED
+
+## Adding new features for a future version
 
 For an example we use the upcoming new version '6.e' for which the
 tooling structure is in place. New entries will be in the following
@@ -37,3 +43,4 @@ directories and files:
 *   copy the class file from its most recent version into directory ./src/core.e/ if need be
 *   add the new names (symbols) to the corekeys and settingkeys files listed above
 *   ...MORE TO BE ADDED
+

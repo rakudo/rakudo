@@ -203,12 +203,12 @@ my class Proc {
 
     # see https://github.com/rakudo/rakudo/issues/1366
     # should be deprecated and removed
-    proto method status(|) {*}
+    proto method status(|) is DEPRECATED('exitcode and/or signal methods (status is to be removed in 2022.06)') {*}
     multi method status($new_status) {
         $!exitcode = $new_status +> 8;
         $!signal   = $new_status +& 0xFF;
     }
-    multi method status(Proc:D:)  {
+    multi method status(Proc:D:) {
         self!wait-for-finish;
         ($!exitcode +< 8) +| $!signal
     }

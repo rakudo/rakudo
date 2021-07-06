@@ -27,7 +27,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     has $!candidate;                # Will contain matching candidate from curried role group
     has @!pos_args;
     has %!named_args;
-    has @!role_typecheck_list;
+    has @!role_typecheck_list;      # Stale after adding roles; prefer its getter
     has @!parent_typecheck_list;    # Only for parents instantiated from generics
     has $!is_complete;
     has $!archetypes;
@@ -110,7 +110,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                         composer => $role,
                     )
                 }
-                self.add_role($obj, $role);
+                self.add_role($obj, $role); # Defer typechek list update to next typecheck.
             }
             # Contrary to roles, we only consider generic parents. I.e. cases like:
             # role R[::T] is T {}
@@ -123,7 +123,6 @@ class Perl6::Metamodel::CurriedRoleHOW
                 }
             }
         }
-        self.update_role_typecheck_list($obj);
     }
 
     method update_role_typecheck_list($obj) {
@@ -142,14 +141,13 @@ class Perl6::Metamodel::CurriedRoleHOW
                 }
             }
         }
-        @!role_typecheck_list := @rtl;
+        @!role_typecheck_list := @rtl
     }
 
     method complete_parameterization($obj) {
         unless $!is_complete {
             $!is_complete := 1;
             self.parameterize_roles($obj);
-            self.update_role_typecheck_list($obj);
         }
     }
 
@@ -183,13 +181,12 @@ class Perl6::Metamodel::CurriedRoleHOW
     }
 
     method roles($obj, :$transitive = 1, :$mro = 0) {
-        self.complete_parameterization($obj);
+        self.update_role_typecheck_list($obj);
         self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro)
     }
 
     method role_typecheck_list($obj) {
-        self.complete_parameterization($obj);
-        @!role_typecheck_list
+        self.update_role_typecheck_list($obj)
     }
 
     method type_check($obj, $checkee) {
@@ -214,7 +211,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                 return 1
             }
         }
-        for @!role_typecheck_list {
+        for self.role_typecheck_list($obj) {
             my $dr := nqp::decont($_);
             if $decont =:= $dr {
                 return 1;

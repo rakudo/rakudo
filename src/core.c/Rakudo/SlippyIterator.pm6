@@ -1,11 +1,8 @@
 # A SlippyIterator is one that comes with some infrastructure for handling
-# flattening a received Slip into its own stream of values.
+# flattening a received Slip into its own stream of values.  Please note
+# that the $!slipper attribute *must* be set to nqp::null upon object creation.
 my role Rakudo::SlippyIterator does Iterator {
-    # Flat set to non-zero if the iterator is currently consuming a Slip.
-    has int $!slipping;
-
-    # The current Slip we're iterating.
-    has $!slip-iter;
+    has Mu $!slipper;  # iterator of the Slip we're iterating, null if none
 
     proto method start-slip(|) {*}
     multi method start-slip(Slip:U $slip) {
@@ -15,38 +12,34 @@ my role Rakudo::SlippyIterator does Iterator {
         nqp::if(
           nqp::eqaddr($slip,Empty),
           IterationEnd,                  # we know there's nothing
-          nqp::if(
-            nqp::eqaddr(
-              (my \result := ($!slip-iter := $slip.iterator).pull-one),
-              IterationEnd
+          nqp::stmts(
+            nqp::if(
+              nqp::eqaddr(
+                (my $result := ($!slipper := $slip.iterator).pull-one),
+                IterationEnd
+              ),
+              ($!slipper := nqp::null)   # we've determined there's nothing
             ),
-            IterationEnd,                # we've determined there's nothing
-            nqp::stmts(                  # need to start a Slip
-              ($!slipping = 1),
-              result
-            )
+            $result
           )
         )
     }
 
     method slip-one() {
         nqp::if(
-          nqp::eqaddr((my \result := $!slip-iter.pull-one),IterationEnd),
-          nqp::stmts(
-            ($!slipping = 0),
-            ($!slip-iter := nqp::null)
-          )
+          nqp::eqaddr((my $result := $!slipper.pull-one),IterationEnd),
+          ($!slipper := nqp::null)
         );
-        result
+        $result
     }
 
-    method push-rest(\target) {
-        $!slipping = 0;
-        $!slip-iter.push-all(target)
+    method push-rest(\target --> Nil) {
+        $!slipper.push-all(target);
+        $!slipper := nqp::null;
     }
-    method sink-rest() {
-        $!slipping = 0;
-        $!slip-iter.sink-all
+    method sink-rest( --> Nil) {
+        $!slipper.sink-all;
+        $!slipper := nqp::null;
     }
 
     proto method slip-all(|) {*}

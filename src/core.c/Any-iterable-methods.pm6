@@ -93,10 +93,11 @@ Consider using a block if any of these are necessary for your mapping code."
         has Int $!did-iterate;  # SHOULD BE int, but has Int performs better
 
         method !SET-SELF(\block,\source,\label) {
-            &!block  := block;
-            $!source := source;
-            $!label  := nqp::decont(label);
-            $!NEXT = block.has-phaser('NEXT');
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
+            &!block   := block;
+            $!source  := source;
+            $!label   := nqp::decont(label);
+            $!NEXT     = block.has-phaser('NEXT');
             self
         }
         method new(\bl,\sou,\la) { nqp::create(self)!SET-SELF(bl,sou,la) }
@@ -119,7 +120,7 @@ Consider using a block if any of these are necessary for your mapping code."
               )
             );
 
-            if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
                 # $result will be returned at the end
             }
             elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
@@ -216,7 +217,7 @@ Consider using a block if any of these are necessary for your mapping code."
             my $pulled;
             my $value;
 
-            self.push-rest(target) if $!slipping;
+            self.push-rest(target) unless nqp::isnull($!slipper);
 
             until $done
                 || nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
@@ -291,7 +292,7 @@ Consider using a block if any of these are necessary for your mapping code."
               )
             );
 
-            self.sink-rest if $!slipping;
+            self.sink-rest unless nqp::isnull($!slipper);
 
             my int $stopped;
             my int $done;
@@ -339,6 +340,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
         method new(&block,$source,\label) {
             my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!label', nqp::decont(label));
@@ -352,7 +354,7 @@ Consider using a block if any of these are necessary for your mapping code."
             my $value;
             my $result;
 
-            if $!slipping && nqp::not_i(nqp::eqaddr(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(nqp::eqaddr(
               ($result := self.slip-one),
               IterationEnd
             )) {
@@ -426,7 +428,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         method push-all(\target --> IterationEnd) {
-            self.push-rest(target) if $!slipping;
+            self.push-rest(target) unless nqp::isnull($!slipper);
 
             nqp::until(
               nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
@@ -472,7 +474,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         method sink-all(--> IterationEnd) {
-            self.sink-rest if $!slipping;
+            self.sink-rest unless nqp::isnull($!slipper);
 
             nqp::until(
               nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
@@ -504,6 +506,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
         method new(&block,$source,\label) {
             my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!label', nqp::decont(label));
@@ -518,7 +521,7 @@ Consider using a block if any of these are necessary for your mapping code."
             my $value2;
             my $result;
 
-            if $!slipping && nqp::not_i(nqp::eqaddr(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(nqp::eqaddr(
               ($result := self.slip-one),
               IterationEnd
             )) {
@@ -599,7 +602,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         method push-all(\target --> IterationEnd) {
-            self.push-rest(target) if $!slipping;
+            self.push-rest(target) unless nqp::isnull($!slipper);
 
             nqp::until(
               nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
@@ -663,7 +666,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         method sink-all(--> IterationEnd) {
-            self.sink-rest if $!slipping;
+            self.sink-rest unless nqp::isnull($!slipper);
 
             nqp::until(
               nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
@@ -711,6 +714,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
         method new(&block, $source, $count, \label) {
             my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!count', $count);
@@ -736,7 +740,7 @@ Consider using a block if any of these are necessary for your mapping code."
                   if &!block.has-phaser('FIRST');
             }
 
-            if $!slipping && nqp::not_i(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
               nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
                 # $result will be returned at the end
             }

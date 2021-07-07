@@ -1392,6 +1392,7 @@ class Rakudo::Iterator {
         has int $!seen-first;
 
         method !SET-SELF(\body,\cond,\afterwards,\label) {
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body := body;
             &!cond := cond;
             &!afterwards := afterwards;
@@ -1403,7 +1404,7 @@ class Rakudo::Iterator {
         }
 
         method pull-one() {
-            if $!slipping && nqp::not_i(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr((my $result := self.slip-one),IterationEnd)
             ) {
                 $result
@@ -1968,6 +1969,7 @@ class Rakudo::Iterator {
 
         method new(&block) {
             my \iter = nqp::create(self);
+            nqp::bindattr(iter, self, '$!slipper', nqp::null);
             my int $wanted;
             my $taken;
             my $taker := {
@@ -2006,7 +2008,7 @@ class Rakudo::Iterator {
 
         method pull-one() is raw {
             nqp::if(
-              $!slipping && nqp::not_i(
+              nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr((my \result = self.slip-one),IterationEnd)
               ),
               result,
@@ -2033,7 +2035,7 @@ class Rakudo::Iterator {
                 ($!wanted = $n),
                 ($!push-target := target),
                 nqp::if(
-                  $!slipping && nqp::not_i(
+                  nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                     nqp::eqaddr(self!slip-wanted,IterationEnd)
                   ),
                   nqp::stmts(
@@ -2476,6 +2478,7 @@ class Rakudo::Iterator {
         has $!label;
 
         method !SET-SELF(\body,\label) {
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body := body;
             $!label := nqp::decont(label);
             self
@@ -2489,7 +2492,7 @@ class Rakudo::Iterator {
             my $result;
             my int $stopped;
             nqp::if(
-              $!slipping && nqp::not_i(
+              nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr(($result := self.slip-one),IterationEnd)
               ),
               $result,
@@ -3750,6 +3753,7 @@ class Rakudo::Iterator {
         has int $!skip;
 
         method !SET-SELF(\body,\cond,\label) {
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body  := body;
             &!cond  := cond;
             $!label := nqp::decont(label);
@@ -3761,7 +3765,7 @@ class Rakudo::Iterator {
         }
 
         method pull-one() {
-            if $!slipping && nqp::not_i(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr((my $result := self.slip-one),IterationEnd)
             ) {
                 $result
@@ -4807,6 +4811,7 @@ class Rakudo::Iterator {
         has $!label;
 
         method !SET-SELF(\body,\cond,\label) {
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body := body;
             &!cond := cond;
             $!label := nqp::decont(label);
@@ -4817,7 +4822,7 @@ class Rakudo::Iterator {
         }
 
         method pull-one() {
-            if $!slipping && nqp::not_i(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr((my $result := self.slip-one),IterationEnd)
             ) {
                 $result

@@ -40,6 +40,15 @@ my role Rakudo::SlippyIterator does Iterator {
         result
     }
 
+    method push-rest(\target) {
+        $!slipping = 0;
+        $!slip-iter.push-all(target)
+    }
+    method sink-rest() {
+        $!slipping = 0;
+        $!slip-iter.sink-all
+    }
+
     proto method slip-all(|) {*}
     multi method slip-all(Slip:U $slip, \target) {
         target.push($slip)

@@ -216,13 +216,7 @@ Consider using a block if any of these are necessary for your mapping code."
             my $pulled;
             my $value;
 
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                target.push($value)
-              )
-            );
+            self.push-rest(target) if $!slipping;
 
             until $done
                 || nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
@@ -297,13 +291,7 @@ Consider using a block if any of these are necessary for your mapping code."
               )
             );
 
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(self.slip-one,IterationEnd),
-                nqp::null
-              )
-            );
+            self.sink-rest if $!slipping;
 
             my int $stopped;
             my int $done;
@@ -438,17 +426,10 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         method push-all(\target --> IterationEnd) {
-            my $value;
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                target.push($value)
-              )
-            );
+            self.push-rest(target) if $!slipping;
 
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
               nqp::stmts(
                 (my int $redo = 1),
                 nqp::while(
@@ -491,13 +472,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         method sink-all(--> IterationEnd) {
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(self.slip-one,IterationEnd),
-                nqp::null
-              )
-            );
+            self.sink-rest if $!slipping;
 
             nqp::until(
               nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
@@ -624,17 +599,10 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         method push-all(\target --> IterationEnd) {
-            my $value;
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                target.push($value)
-              )
-            );
+            self.push-rest(target) if $!slipping;
 
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
+              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
               nqp::stmts(
                 (my int $redo = 1),
                 nqp::while(
@@ -695,13 +663,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         method sink-all(--> IterationEnd) {
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(self.slip-one,IterationEnd),
-                nqp::null,
-              )
-            );
+            self.sink-rest if $!slipping;
 
             nqp::until(
               nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),

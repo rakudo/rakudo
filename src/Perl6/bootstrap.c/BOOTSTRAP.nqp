@@ -3980,6 +3980,8 @@ nqp::sethllconfig('Raku', nqp::hash(
     'int64_multidim_ref', Int64MultidimRef,
 #?endif
 #?if moar
+    'call_dispatcher', 'raku-call',
+    'method_call_dispatcher', 'raku-meth-call',
     'max_inline_size', 384,
 #?endif
 ));

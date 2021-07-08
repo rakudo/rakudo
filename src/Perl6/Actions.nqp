@@ -5,9 +5,6 @@ use Perl6::Ops;
 use QRegex;
 use QAST;
 
-# XXX Remove this one we have completed migration to the new dispatcher
-my int $NEW_DISP := nqp::getenvhash()<RAKUDO_NEW_DISP> ?? 1 !! 0;
-
 my $wantwant := Mu;
 
 # block types
@@ -2800,11 +2797,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<lambda>($/) {
         my $ast   := $<pblock>.ast;
         my $block := $ast.ann('past_block');
+#?if !moar
         $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
         $block[0].push(QAST::Op.new(
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
+#?endif
         make block_closure($ast);
     }
     method term:sym<unquote>($/) {
@@ -4088,6 +4087,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
         # if this is a multi then we'll need it to vivify to a MultiDispatcher.
+#?if moar
         if $*MULTINESS eq 'multi' {
             $*W.install_lexical_symbol($block, '$*DISPATCHER', $*W.find_single_symbol('MultiDispatcher'));
         }
@@ -4098,10 +4098,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
+#?endif
 
         # If it's a proto but not an onlystar, need some variables for the
-        # {*} implementation to use.
-        if !$NEW_DISP && $*MULTINESS eq 'proto' && !$<onlystar> {
+        # {*} implementation to use (except on MoarVM, which relies on the
+        # MoarVM dispatcher mechanism).
+#?if !moar
+        if $*MULTINESS eq 'proto' && !$<onlystar> {
             $block[0].push(QAST::Op.new(
                 :op('bind'),
                 QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical'), :decl('var') ),
@@ -4113,6 +4116,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
             ));
         }
+#?endif
 
         # Set name if we have one
         if $<deflongname> {
@@ -4300,6 +4304,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
         $p_past.is_thunk(1);
+#?if moar
+        $p_past.push(QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('boot-resume') ),
+            QAST::IVal.new( :value(5) )));
+#?endif
+#?if !moar
         $p_past.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(
@@ -4321,6 +4332,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Op.new( :op('usecapture') )
         ));
+#?endif
         $*W.pop_lexpad();
         $install_in.push(QAST::Stmt.new($p_past));
         my @p_params := [hash(is_capture => 1, type => $*W.find_single_symbol('Mu') )];
@@ -4572,7 +4584,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             %*SIG_INFO, :yada(is_yada($/)));
 
         # If it's a proto but not an onlystar, need some variables for the
-        # {*} implementation to use.
+        # {*} implementation to use on non-MoarVM.
+#?if !moar
         if $*MULTINESS eq 'proto' && !$<onlystar> {
             # Also stash the current lexical dispatcher and capture, for the {*}
             # to resolve.
@@ -4587,6 +4600,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
             ));
         }
+#?endif
 
         # attach return type
         if $*OFTYPE {
@@ -4737,12 +4751,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.symbol('self', :scope('lexical'));
 
         # Needs a slot to hold a multi or method dispatcher.
+#?if !moar
         $*W.install_lexical_symbol($past, '$*DISPATCHER',
             $*W.find_single_symbol($*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher'));
         $past[0].push(QAST::Op.new(
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
+#?endif
 
         # Finish up code object.
         $*W.attach_signature($code, $signature);
@@ -4834,35 +4850,35 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Add dispatching code.
-        if $NEW_DISP {
-            $BLOCK.push(QAST::Op.new(
-                :op('dispatch'),
-                QAST::SVal.new( :value('boot-resume') ),
-                QAST::IVal.new( :value(5) )));
-        }
-        else {
-            $BLOCK.push(QAST::Op.new(
-                :op('invokewithcapture'),
+#?if moar
+        $BLOCK.push(QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('boot-resume') ),
+            QAST::IVal.new( :value(5) )));
+#?endif
+#?if !moar
+        $BLOCK.push(QAST::Op.new(
+            :op('invokewithcapture'),
+            QAST::Op.new(
+                :op('ifnull'),
                 QAST::Op.new(
-                    :op('ifnull'),
-                    QAST::Op.new(
-                        :op('multicachefind'),
-                        QAST::Var.new(
-                            :name('$!dispatch_cache'), :scope('attribute'),
-                            QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                            QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
-                        ),
-                        QAST::Op.new( :op('usecapture') )
-                    ),
-                    QAST::Op.new(
-                        :op('callmethod'), :name('find_best_dispatchee'),
+                    :op('multicachefind'),
+                    QAST::Var.new(
+                        :name('$!dispatch_cache'), :scope('attribute'),
                         QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
-                        QAST::Op.new( :op('savecapture') )
-                    )
+                        QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
+                    ),
+                    QAST::Op.new( :op('usecapture') )
                 ),
-                QAST::Op.new( :op('usecapture') )
-            ));
-        }
+                QAST::Op.new(
+                    :op('callmethod'), :name('find_best_dispatchee'),
+                    QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) ),
+                    QAST::Op.new( :op('savecapture') )
+                )
+            ),
+            QAST::Op.new( :op('usecapture') )
+        ));
+#?endif
         $BLOCK.node($/);
         $BLOCK.is_thunk(1);
         make $BLOCK;
@@ -6589,43 +6605,43 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method term:sym<onlystar>($/) {
-        if $NEW_DISP {
-            make QAST::Op.new(
-                :op('dispatch'),
-                QAST::SVal.new( :value('boot-resume') ),
-                QAST::IVal.new( :value(5) ));
-        }
-        else {
-            my $dc_name := QAST::Node.unique('dispatch_cap');
-            my $stmts := QAST::Stmts.new(
+#?if moar
+        make QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('boot-resume') ),
+            QAST::IVal.new( :value(5) ));
+#?endif
+#?if !moar
+        my $dc_name := QAST::Node.unique('dispatch_cap');
+        my $stmts := QAST::Stmts.new(
+            QAST::Op.new(
+                :op('bind'),
+                QAST::Var.new( :name($dc_name), :scope('local'), :decl('var') ),
+                QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical') )
+            ),
+            QAST::Op.new(
+                :op('invokewithcapture'),
                 QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($dc_name), :scope('local'), :decl('var') ),
-                    QAST::Var.new( :name('CURRENT_DISPATCH_CAPTURE'), :scope('lexical') )
-                ),
-                QAST::Op.new(
-                    :op('invokewithcapture'),
+                    :op('ifnull'),
                     QAST::Op.new(
-                        :op('ifnull'),
-                        QAST::Op.new(
-                            :op('multicachefind'),
-                            QAST::Var.new(
-                                :name('$!dispatch_cache'), :scope('attribute'),
-                                QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                                QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
-                            ),
-                            QAST::Var.new( :name($dc_name), :scope('local') )
-                        ),
-                        QAST::Op.new(
-                            :op('callmethod'), :name('find_best_dispatchee'),
+                        :op('multicachefind'),
+                        QAST::Var.new(
+                            :name('$!dispatch_cache'), :scope('attribute'),
                             QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
-                            QAST::Var.new( :name($dc_name), :scope('local') )
-                        )
+                            QAST::WVal.new( :value($*W.find_single_symbol('Routine', :setting-only)) ),
+                        ),
+                        QAST::Var.new( :name($dc_name), :scope('local') )
                     ),
-                    QAST::Var.new( :name($dc_name), :scope('local') )
-                ));
-            make QAST::Op.new( :op('locallifetime'), $stmts, $dc_name );
-        }
+                    QAST::Op.new(
+                        :op('callmethod'), :name('find_best_dispatchee'),
+                        QAST::Var.new( :name('&*CURRENT_DISPATCHER'), :scope('lexical') ),
+                        QAST::Var.new( :name($dc_name), :scope('local') )
+                    )
+                ),
+                QAST::Var.new( :name($dc_name), :scope('local') )
+            ));
+        make QAST::Op.new( :op('locallifetime'), $stmts, $dc_name );
+#?endif
     }
 
     method args($/) {
@@ -7012,11 +7028,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             my $block := $past.ann('past_block');
+#?if !moar
             $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
             $block[0].push(QAST::Op.new(
                 :op('takedispatcher'),
                 QAST::SVal.new( :value('$*DISPATCHER') )
             ));
+#?endif
             $past := block_closure($past);
             $past.annotate('bare_block', QAST::Op.new( :op('call'), $past ));
         }

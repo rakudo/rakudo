@@ -1555,8 +1555,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
 
     # If it's already a VM-level code reference, just invoke it.
     if nqp::reprname($code) eq 'MVMCode' {
-        # TODO probably boot-code, not boot-code-constant
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code',
             $capture);
     }
 
@@ -1571,14 +1570,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
     elsif nqp::istype($code, Code) {
         # Concrete code object: extract the $!do, replace the code object,
         # and delegate to boot-code.
-        # TODO probably boot-code, not boot-code-constant
         if nqp::isconcrete($code) {
             my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                 $code_arg, Code, '$!do');
             my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                 nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
                 0, $do_attr);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code',
                 $delegate_capture);
         }
 
@@ -1597,7 +1595,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
             my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                 nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
                 0, $do_attr);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code',
                 $delegate_capture);
         }
         else {

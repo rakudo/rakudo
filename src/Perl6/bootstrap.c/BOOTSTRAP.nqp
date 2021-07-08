@@ -1370,6 +1370,15 @@ BEGIN {
     # Ensure Rakudo runtime support is initialized.
     nqp::p6init();
 
+    # On MoarVM, to get us through the bootstrap, put the NQP dispatchers in place
+    # as the Raku ones; they will get replaced later in the bootstrap.
+#?if moar
+    nqp::sethllconfig('Raku', nqp::hash(
+        'call_dispatcher', 'nqp-call',
+        'method_call_dispatcher', 'nqp-meth-call',
+    ));
+#?endif
+
     # class Mu { ... }
     Mu.HOW.compose_repr(Mu);
 

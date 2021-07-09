@@ -3998,11 +3998,18 @@ nqp::sethllconfig('Raku', nqp::hash(
 # Tell parametric role groups how to create a dispatcher.
 Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     my $sel := nqp::create(Sub);
+#?if moar
+    my $onlystar := sub (*@pos, *%named) {
+        nqp::dispatch('boot-resume', 5)
+    };
+#?endif
+#?if !moar
     my $onlystar := sub (*@pos, *%named) {
         nqp::invokewithcapture(
             nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
             nqp::usecapture())
     };
+#?endif
     nqp::setcodeobj($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);
     nqp::bindattr($sel, Routine, '@!dispatchees', []);

@@ -30,6 +30,29 @@ my class Block { # declared in BOOTSTRAP
         }
     }
 
+    # Return a Callable to run any phasers for the given name on this
+    # Block.  Returns Nil if there are no phasers, the only phaser if
+    # there only is one, or a Callable that will call all of the phasers.
+    method callable_for_phaser(str $name) {
+        nqp::if(
+          nqp::attrinited(self,Block,'$!phasers')
+            && (my \phasers := nqp::atkey($!phasers,$name)),
+          nqp::if(
+            nqp::iseq_i(nqp::elems(phasers),1),
+            nqp::atpos(phasers,0),
+            {
+                my int $i = -1;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(phasers)),
+                  nqp::atpos(phasers,$i)(),
+                  :nohandler
+                );
+            }
+          ),
+          Nil
+        )
+    }
+
     method fire_if_phasers(str $name --> Nil) {
         if nqp::attrinited(self,Block,'$!phasers')
           && nqp::atkey($!phasers,$name) -> \phasers {

@@ -2609,9 +2609,9 @@ class Perl6::World is HLL::World {
                 $compiler_thunk();
             }
 
+            my $code_obj := nqp::getcodeobj(nqp::curcode());
             unless nqp::getcomp('Raku').backend.name eq 'js' {
                 # Temporarly disabled for js untill we figure the bug out
-                my $code_obj := nqp::getcodeobj(nqp::curcode());
                 unless nqp::isnull($code_obj) {
                     return $code_obj(|@pos, |%named);
                 }
@@ -2622,6 +2622,7 @@ class Perl6::World is HLL::World {
         @compstuff[1] := $compiler_thunk;
         nqp::setcodename($stub, $code_past.name);
         nqp::bindattr($code, $code_type, '$!do', $stub);
+        nqp::setcodeobj($stub, $code);
 
         # Tag it as a static code ref and add it to the root code refs set.
         nqp::markcodestatic($stub);

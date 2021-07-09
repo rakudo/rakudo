@@ -90,6 +90,7 @@ Consider using a block if any of these are necessary for your mapping code."
         has $!label;
         has $!pulled;
         has $!NEXT;
+        has $!LAST;
 
         method new(\block, \source, \label) {
             my $iter := nqp::create(self);
@@ -121,6 +122,8 @@ Consider using a block if any of these are necessary for your mapping code."
                 nqp::bindattr($iter,self,'$!label',nqp::decont(label)),
                 nqp::bindattr($iter,self,'$!NEXT',
                   block.callable_for_phaser('NEXT') // nqp::null),
+                nqp::bindattr($iter,self,'$!LAST',
+                  block.callable_for_phaser('LAST')),
               )
             );
 
@@ -170,11 +173,21 @@ Consider using a block if any of these are necessary for your mapping code."
                 'LABELED', $!label,
                 'REDO', nqp::null,   # a 'redo' in the block
                 'NEXT', nqp::stmts(  # a 'next' in the block
+                  ($!pulled := $!source.pull-one),
                   nqp::unless(
                     nqp::isnull($excepted := nqp::getpayload(nqp::exception)),
-                    ($value := $excepted)
+                    nqp::if(
+                      nqp::istype($excepted,Slip),
+                      nqp::if(       # process the Slip
+                        nqp::eqaddr(
+                          ($value := self.start-slip($excepted)),
+                          IterationEnd
+                        ),
+                        ($value := nqp::null)  # nothing in the slip
+                      ),
+                      ($value := $excepted)
+                    )
                   ),
-                  ($!pulled := $!source.pull-one),
                   nqp::unless(
                     nqp::isnull($!NEXT),
                     nqp::handle(
@@ -183,25 +196,29 @@ Consider using a block if any of these are necessary for your mapping code."
                       'NEXT', nqp::null,
                       'LAST', ($!pulled := IterationEnd)
                     )
-                  ),
+                  )
                 ),
                 'LAST', nqp::stmts(  # a 'last' in the block'
+                  ($!pulled := IterationEnd),
                   nqp::unless(
                     nqp::isnull($excepted := nqp::getpayload(nqp::exception)),
-                    ($value := $excepted)
-                  ),
-                  ($!pulled := IterationEnd)
+                    nqp::if(
+                      nqp::istype($excepted,Slip),
+                      nqp::if(       # process the Slip
+                        nqp::eqaddr(
+                          ($value := self.start-slip($excepted)),
+                          IterationEnd
+                        ),
+                        ($value := nqp::null)  # nothing in the slip
+                      ),
+                      ($value := $excepted)
+                    )
+                  )
                 )
               )
             );
 
-            nqp::ifnull(
-              $value,
-              nqp::stmts(
-                self!fire-any-LAST,
-                IterationEnd
-              )
-            )
+            nqp::ifnull($value,self!fire-any-LAST)
         }
 
         # Process the payload of a control exception and add it to the
@@ -223,9 +240,10 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         # Fire any LAST phaser, making sure that any invalid control
-        # exceptions will be cause an exception.
-        method !fire-any-LAST(--> Nil) {
-            if &!block && &!block.callable_for_phaser('LAST') -> &LAST {
+        # exceptions will be cause an exception.  Returns IterationEnd
+        # for convenience.
+        method !fire-any-LAST(--> IterationEnd) {
+            if $!LAST -> &LAST {
                 nqp::handle(
                   LAST(),
                   'REDO', self!improper-control('redo', 'LAST'),
@@ -235,7 +253,7 @@ Consider using a block if any of these are necessary for your mapping code."
             }
         }
 
-        method push-all(\target --> IterationEnd) {
+        method push-all(\target) {
             my $source := $!source;
             my &block  := &!block;
             my $pulled := $!pulled;
@@ -267,17 +285,13 @@ Consider using a block if any of these are necessary for your mapping code."
                         NEXT(),
                         'REDO', self!improper-control('redo', 'NEXT'),
                         'NEXT', nqp::null,
-                        'LAST', nqp::stmts(
-                          self!fire-any-LAST,
-                          ($pulled := IterationEnd)
-                        )
+                        'LAST', ($pulled := self!fire-any-LAST)
                       )
                     ),
                     'REDO', nqp::null,
                     'LAST', nqp::stmts(
                       self!process-payload(target),
-                      self!fire-any-LAST,
-                      ($pulled := IterationEnd)
+                      ($pulled := self!fire-any-LAST)
                     )
                   ),
                   :nohandler
@@ -313,10 +327,10 @@ Consider using a block if any of these are necessary for your mapping code."
                 );
             }
 
-            self!fire-any-LAST;
+            self!fire-any-LAST
         }
 
-        method sink-all(--> IterationEnd) {
+        method sink-all() {
             my $source := $!source;
             my &block  := &!block;
             my $pulled := $!pulled;
@@ -370,7 +384,7 @@ Consider using a block if any of these are necessary for your mapping code."
                 );
             }
 
-            self!fire-any-LAST;
+            self!fire-any-LAST
         }
     }
 

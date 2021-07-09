@@ -81,13 +81,8 @@ my class Routine { # declared in BOOTSTRAP
 
     method soft( --> Nil ) { }
 
+#?if !moar
     method wrap(&wrapper) {
-        $NEW-DISP
-            ?? self!new-disp-wrap(&wrapper)
-            !! self!old-disp-wrap(&wrapper)
-    }
-
-    method !old-disp-wrap(&wrapper) {
         my class WrapHandle {
             has $!dispatcher;
             has $!wrapper;
@@ -134,7 +129,9 @@ my class Routine { # declared in BOOTSTRAP
         # Add this wrapper.
         self.UNSHIFT_WRAPPER(&wrapper);
     }
+#?endif
 
+#?if moar
     my role Wrapped {
         has Mu $!wrappers;
         has Routine $!wrapper-type;
@@ -174,7 +171,7 @@ my class Routine { # declared in BOOTSTRAP
                 !! False
         }
     }
-    method !new-disp-wrap(&wrapper) {
+    method wrap(&wrapper) {
         # We can't wrap a hardened routine (that is, one that's been
         # marked inlinable).
         if nqp::istype(self, HardRoutine) {
@@ -195,13 +192,9 @@ my class Routine { # declared in BOOTSTRAP
         nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
         $handle
     }
+#?endif
 
     method unwrap($handle) {
-        $handle.can('restore') && $handle.restore() ||
-            X::Routine::Unwrap.new.throw
-    }
-
-    method new-disp-unwrap($handle) {
         $handle.can('restore') && $handle.restore() ||
             X::Routine::Unwrap.new.throw
     }

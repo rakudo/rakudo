@@ -1038,7 +1038,9 @@ sub missing-required-named($capture, $name-sets) {
 }
 sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
     # First check there's no non-Scalar containers in the positional arguments.
-    # If there are, establish guards relating to those and we're done.
+    # If there are, establish guards relating to those and we're done. Native
+    # references don't count; we know the native types they shall match up with
+    # and don't need to dereference them.
     my int $num_args := nqp::captureposelems($capture);
     my int $i;
     my $non-scalar := nqp::list_i();
@@ -1046,7 +1048,8 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
         my int $got_prim := nqp::captureposprimspec($capture, $i);
         if $got_prim == 0 {
             my $value := nqp::captureposarg($capture, $i);
-            if nqp::iscont($value) && !nqp::istype_nd($value, Scalar) {
+            if nqp::iscont($value) && !nqp::istype_nd($value, Scalar) &&
+                !(nqp::iscont_i($value) || nqp::iscont_n($value) || nqp::iscont_s($value)) {
                 nqp::push_i($non-scalar, $i);
             }
         }
@@ -1102,11 +1105,13 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                     # Get the primitive type of the argument, and go on whether it's an
                     # object or primitive type.
                     my int $got_prim := nqp::captureposprimspec($capture, $i);
-                    if $got_prim == 0 {
+                    my int $want_prim := $type_flags +& $TYPE_NATIVE_MASK;
+                    if $got_prim == 0 && $want_prim == 0 {
                         # It's an object type. Obtain the value, and go by if it's a
                         # container or not.
                         my $value := nqp::captureposarg($capture, $i);
                         nqp::bindpos_i($need_type_guard, $i, 1);
+                        my int $promoted_primitive;
                         if nqp::iscont($value) {
                             # Containerized. Scalar we handle specially.
                             if nqp::istype_nd($value, Scalar) {
@@ -1120,8 +1125,22 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                                 }
                                 $value := nqp::getattr($value, Scalar, '$!value');
                             }
+                            # Otherwise, it should be a native reference. We'll
+                            # promote these to their boxed type.
+                            elsif nqp::iscont_i($value) {
+                                $value := Int;
+                                $promoted_primitive := 1;
+                            }
+                            elsif nqp::iscont_n($value) {
+                                $value := Num;
+                                $promoted_primitive := 1;
+                            }
+                            elsif nqp::iscont_s($value) {
+                                $value := Str;
+                                $promoted_primitive := 1;
+                            }
                             else {
-                                nqp::die('multi disp on native references NYI');
+                                nqp::die('Unknown kind of l-value in multiple dispatch');
                             }
                         }
                         else {
@@ -1147,12 +1166,21 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
 
                         # Also ensure any concreteness constraints are unheld.
                         if !$type_mismatch && $definedness {
-                            my int $got := nqp::isconcrete_nd($value);
+                            my int $got := $promoted_primitive || nqp::isconcrete_nd($value);
                             if ($got && $definedness == $DEFCON_UNDEFINED) ||
                                     (!$got && $definedness == $DEFCON_DEFINED) {
                                 $type_mismatch := 1;
                             }
                             nqp::bindpos_i($need_conc_guard, $i, 1);
+                        }
+                    }
+                    elsif $got_prim == 0 { # and $want_prim != 0 per last condition
+                        # Make sure it's the expected kind of native container.
+                        my $contish := nqp::captureposarg($capture, $i);
+                        unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
+                               (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
+                               (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
+                            $type_mismatch := 1;
                         }
                     }
                     else {

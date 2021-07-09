@@ -1152,7 +1152,8 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                         }
 
                         # Ensure the value meets the required type constraints.
-                        unless nqp::eqaddr($type, Mu) || nqp::istype_nd($value, $type) {
+                        unless nqp::eqaddr($type, Mu) ||
+                                nqp::istype_nd(nqp::hllizefor($value, 'Raku'), $type) {
                             if $type =:= $Positional {
                                 # Things like Seq can bind to an @ sigil.
                                 my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');

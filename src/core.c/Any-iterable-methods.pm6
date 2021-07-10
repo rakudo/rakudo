@@ -1115,6 +1115,14 @@ Consider using a block if any of these are necessary for your mapping code."
                 my \params := c.list;
                 nqp::handle(
                   (my $result := $test(|c)),
+                  'NEXT', nqp::if(
+                    judge(
+                      nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                      params
+                    ),
+                    (next params),
+                    (next)
+                  ),
                   'LAST', nqp::if(
                     judge(
                       nqp::ifnull(nqp::getpayload(nqp::exception),False),

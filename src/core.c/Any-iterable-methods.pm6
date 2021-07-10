@@ -1063,80 +1063,90 @@ Consider using a block if any of these are necessary for your mapping code."
             )
         }
 
-        if $test.count == 1 {
-            Seq.new: IterateOneWithoutPhasers.new(
-              {
-                  nqp::if(
-                    nqp::stmts(
-                      nqp::handle(
-                        (my $result := $test($_)),
-                        'LAST', nqp::if(
-                          judge(
-                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
-                            $_
-                          ),
-                          (last $_),
-                          (last)
-                        ),
-                        'NEXT', nqp::if(
-                          judge(
-                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
-                            $_
-                          ),
-                          (next $_),
-                          (next)
-                        )
-                      ),
-                      judge($result, $_)
-                    ),
-                    $_,
-                    Empty
-                  )
-              },
-              self.iterator,
-              Any
-            )
-        }
-        else {
-            my role CheatArity {
-                has $!arity;
-                has $!count;
+        my $count := $test.count;
 
-                method with-arity-count($new-arity, $new-count) {
-                    $!arity := $new-arity;
-                    $!count := $new-count;
-                    self
-                }
-
-                method arity(Code:D:) { $!arity }
-                method count(Code:D:) { $!count }
-            }
-            my &tester := -> |c {
-                my \params := c.list;
-                nqp::handle(
-                  (my $result := $test(|c)),
-                  'NEXT', nqp::if(
-                    judge(
-                      nqp::ifnull(nqp::getpayload(nqp::exception),False),
-                      params
-                    ),
-                    (next params),
-                    (next)
-                  ),
-                  'LAST', nqp::if(
-                    judge(
-                      nqp::ifnull(nqp::getpayload(nqp::exception),False),
-                      params
-                    ),
-                    (last params),
-                    (last)
-                  )
-                );
-                judge($result, params) ?? params !! Empty
-            } but CheatArity;
-
-            self.map(&tester.with-arity-count($test.arity, $test.count))
-        }
+        Seq.new: $count < 2 || $count == Inf
+          ?? IterateOneWithoutPhasers.new(
+               -> \a {
+                   nqp::handle(
+                     (my $result := $test(a)),
+                     'LAST', nqp::if(
+                       judge(
+                         nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                         a
+                       ),
+                       (last a),
+                       (last)
+                     ),
+                     'NEXT', nqp::if(
+                       judge(
+                         nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                         a
+                       ),
+                       (next a),
+                       (next)
+                     )
+                   );
+                   judge($result, a) ?? a !! Empty
+               },
+               self.iterator,
+               Any
+             )
+          !! $count == 2
+            ?? IterateTwoWithoutPhasers.new(
+                 -> \a, \b {
+                     my \params := (a, b);
+                     nqp::handle(
+                       (my $result := $test(a, b)),
+                       'NEXT', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           params
+                         ),
+                         (next params),
+                         (next)
+                       ),
+                       'LAST', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           params
+                         ),
+                         (last params),
+                         (last)
+                       )
+                     );
+                     judge($result, params) ?? params !! Empty
+                 },
+                 self.iterator,
+                 Any
+               )
+            !! IterateMoreWithPhasers.new(
+                 -> |c {
+                     my \params := c.list;
+                     nqp::handle(
+                       (my $result := $test(|c)),
+                       'NEXT', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           params
+                         ),
+                         (next params),
+                         (next)
+                       ),
+                       'LAST', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           params
+                         ),
+                         (last params),
+                         (last)
+                       )
+                     );
+                     judge($result, params) ?? params !! Empty
+                 },
+                 self.iterator,
+                 Any
+               )
     }
 
     # Create a braid and fail cursor that we can use with all the normal,

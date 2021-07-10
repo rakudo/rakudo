@@ -54,36 +54,6 @@ augment class Any {
         Failure.new(X::Cannot::Empty.new(:$action, :$what))
     }
 
-    proto method map(|) is nodal {*}
-    multi method map(Hash:D \hash) {
-        X::Cannot::Map.new(
-          what       => self.^name,
-          using      => "a {hash.^name}",
-          suggestion =>
-"Did you mean to add a stub (\{ ... \}) or did you mean to .classify?"
-        ).throw;
-    }
-    multi method map(Iterable:D \iterable) {
-        X::Cannot::Map.new(
-          what       => self.^name,
-          using      => "a {iterable.^name}",
-          suggestion =>
-"Did a * (Whatever) get absorbed by a comma, range, series, or list repetition?
-Consider using a block if any of these are necessary for your mapping code."
-        ).throw;
-    }
-    multi method map(|c) {
-        X::Cannot::Map.new(
-          what       => self.^name,
-          using      => "'{c.raku.substr(2).chop}'",
-          suggestion => "Did a * (Whatever) get absorbed by a list?"
-        ).throw;
-    }
-
-    multi method map(\SELF: &block;; :$label, :$item) {
-        sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, $label);
-    }
-
     my class IterateOneWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
@@ -877,18 +847,47 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    sub sequential-map(\source, &code, \label) {
-        # We want map to be fast, so we go to some effort to build special
-        # case iterators that can ignore various interesting cases.
-        my $count := &code.count;
+    proto method map(|) is nodal {*}
+    multi method map(Hash:D \hash) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "a {hash.^name}",
+          suggestion =>
+"Did you mean to add a stub (\{ ... \}) or did you mean to .classify?"
+        ).throw;
+    }
+    multi method map(Iterable:D \iterable) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "a {iterable.^name}",
+          suggestion =>
+"Did a * (Whatever) get absorbed by a comma, range, series, or list repetition?
+Consider using a block if any of these are necessary for your mapping code."
+        ).throw;
+    }
+    multi method map(|c) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "'{c.raku.substr(2).chop}'",
+          suggestion => "Did a * (Whatever) get absorbed by a list?"
+        ).throw;
+    }
+
+    # We want map to be fast, so we go to some effort to build special
+    # case iterators that can ignore various interesting cases.
+    multi method map(\SELF: &code;; :$label, :$item) {
+        my $count  := &code.count;
+        my $source := $item
+          ?? Rakudo::Iterator.OneValue(SELF)
+          !! SELF.iterator;
 
         Seq.new: $count < 2 || $count == Inf
           ?? &code.has-loop-phasers
-            ?? IterateOneWithPhasers.new(&code, source, label)
-            !! IterateOneWithoutPhasers.new(&code, source, label)
+            ?? IterateOneWithPhasers.new(&code, $source, $label)
+            !! IterateOneWithoutPhasers.new(&code, $source, $label)
           !! $count > 2 || &code.has-loop-phasers
-            ?? IterateMoreWithPhasers.new(&code, source, $count, label)
-            !! IterateTwoWithoutPhasers.new(&code, source, label)
+            ?? IterateMoreWithPhasers.new(&code, $source, $count, $label)
+            !! IterateTwoWithoutPhasers.new(&code, $source, $label)
     }
 
     proto method flatmap (|) is nodal {*}

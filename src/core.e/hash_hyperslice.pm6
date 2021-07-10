@@ -1,55 +1,100 @@
 # assoc postcircumfix with HyperWhatever goes here for 6.e
 
 multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$kv!, *%other ) is raw {
-    gather for SELF.kv -> $key, $value {
-        $value ~~ Associative
-        ?? $value.kv.map(&?BLOCK)
-        !! take slip $key, $value;
+    sub recurse(\k, \v) {
+        if v ~~ Associative {
+            for v.kv -> \k, \v { recurse k, v }
+        } else {
+            take slip k, v
+        }
+    }
+
+    gather for SELF.kv -> \k, \v {
+        recurse k, v
     }
 }
 
 multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$k!, *%other ) is raw {
-    gather for SELF.kv -> $key, $value {
-        $value ~~ Associative
-        ?? $value.kv.map(&?BLOCK)
-        !! take $key;
+    sub recurse(\k, \v) {
+        if v ~~ Associative {
+            for v.kv -> \k, \v { recurse k, v }
+        } else {
+            take slip k
+        }
+    }
+
+    gather for SELF.kv -> \k, \v {
+        recurse k, v
     }
 }
 
 multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$v!, *%other ) is raw {
-    gather for SELF.kv -> $key, $value {
-        $value ~~ Associative
-        ?? $value.kv.map(&?BLOCK)
-        !! take $value;
+    sub recurse(\k, \v) {
+        if v ~~ Associative {
+            for v.kv -> \k, \v { recurse k, v }
+        } else {
+            take slip v
+        }
+    }
+
+    gather for SELF.kv -> \k, \v {
+        recurse k, v
     }
 }
 
 multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$tree!, *%other ) is raw {
-    gather for SELF.kv -> $key, $value {
-        $value ~~ Associative
-        ?? (take slip $key, $value; $value.kv.map(&?BLOCK))
-        !! take slip $key, $value;
+    sub recurse(\k, \v) {
+        if v ~~ Associative {
+            take slip k, v;
+            for v.kv -> \k, \v { recurse k, v }
+        } else {
+            take slip k, v
+        }
+    }
+
+    gather for SELF.kv -> \k, \v {
+        recurse k, v
     }
 }
 
-# This requires v6.e .
-multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$semi!, *%other ) is raw {
-    multi sub recurse(%hash) {
-        for %hash.kv -> $key, $value {
-            recurse $key, $value;
+multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$deepk!, *%other ) is raw {
+    sub recurse(\v, @keys){
+        if v ~~ Associative {
+            for v.kv -> \k, \v {
+                recurse v, [@keys.Slip, slip k]
+            }
+        }else{
+            take @keys
         }
-    }
-    multi sub recurse($key is copy, Associative $value) {
-        for $value.kv -> $child-key, $child-value {
-            recurse slip($key, $child-key), $child-value
-        }
-    }
-    
-    multi sub recurse($key, $value) {
-        take $key, $value
     }
 
-    gather recurse(SELF);
+    gather for SELF.kv -> \k, \v {
+        if v ~~ Associative {
+            recurse(v, [k])
+        } else {
+            take [k]
+        }
+    };
+}
+
+multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$deepkv!, *%other ) is raw {
+    sub recurse(\v, @keys){
+        if v ~~ Associative {
+            for v.kv -> \k, \v {
+                recurse v, [@keys.Slip, slip k]
+            }
+        }else{
+            take slip(@keys, v)
+        }
+    }
+
+    gather for SELF.kv -> \k, \v {
+        if v ~~ Associative {
+            recurse(v, [k])
+        } else {
+            take slip([k], v)
+        }
+    };
 }
 
 # vim: expandtab shiftwidth=4

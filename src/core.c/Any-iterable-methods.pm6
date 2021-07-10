@@ -886,7 +886,7 @@ Consider using a block if any of these are necessary for your mapping code."
           ?? &code.has-loop-phasers
             ?? IterateOneWithPhasers.new(&code, source, label)
             !! IterateOneWithoutPhasers.new(&code, source, label)
-          !! $count > 2 || &code.has-phasers
+          !! $count > 2 || &code.has-loop-phasers
             ?? IterateMoreWithPhasers.new(&code, source, $count, label)
             !! IterateTwoWithoutPhasers.new(&code, source, label)
     }

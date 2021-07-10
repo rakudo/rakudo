@@ -75,7 +75,18 @@ my class Block { # declared in BOOTSTRAP
         );
     }
 
-    method has-phasers() { nqp::hllbool(nqp::attrinited(self,Block,'$!phasers')) }
+    method has-phasers() {
+        nqp::hllbool(nqp::attrinited(self,Block,'$!phasers'))
+    }
+    method has-loop-phasers() {
+        nqp::hllbool(
+          nqp::attrinited(self,Block,'$!phasers')
+            && (    nqp::existskey($!phasers,'NEXT')
+                 || nqp::existskey($!phasers,'LAST')
+                 || nqp::existskey($!phasers,'FIRST')
+               )
+        )
+    }
 
     method has-phaser(Str:D \name) {
         nqp::hllbool(nqp::attrinited(self,Block,'$!phasers')

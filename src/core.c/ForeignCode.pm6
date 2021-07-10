@@ -11,6 +11,7 @@ my class ForeignCode
     method arity(          --> 0) { }
     method count(        --> Inf) { }
     method has-phasers(--> False) { }
+    method has-loop-phasers(--> False) { }
 
     method signature(ForeignCode:D:) { (sub (|) { }).signature }
 

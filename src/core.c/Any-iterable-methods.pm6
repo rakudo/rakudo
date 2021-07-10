@@ -883,7 +883,7 @@ Consider using a block if any of these are necessary for your mapping code."
         my $count := &code.count;
 
         Seq.new: $count < 2 || $count == Inf
-          ?? &code.has-phasers
+          ?? &code.has-loop-phasers
             ?? IterateOneWithPhasers.new(&code, source, label)
             !! IterateOneWithoutPhasers.new(&code, source, label)
           !! $count > 2 || &code.has-phasers

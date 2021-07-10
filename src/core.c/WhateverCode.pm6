@@ -22,6 +22,7 @@ my class WhateverCode is Code {
     }
 
     method has-phasers(--> False) { }
+    method has-loop-phasers(--> False) { }
 }
 
 # vim: expandtab shiftwidth=4

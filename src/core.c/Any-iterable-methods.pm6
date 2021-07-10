@@ -405,81 +405,68 @@ Consider using a block if any of these are necessary for your mapping code."
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            my int $redo = 1;
-            my $value;
-            my $result;
+            my $redo  := nqp::null;
+            my $value := nqp::null;
 
-            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(nqp::eqaddr(
-              ($result := self.slip-one),
-              IterationEnd
-            )) {
-                # $result will be returned at the end
-            }
-            elsif nqp::eqaddr(
-              ($value := $!source.pull-one),
-              IterationEnd
-            ) {
-                $result := $value
-            }
-            else {
-              nqp::while(
-                $redo,
-                nqp::stmts(
-                  $redo = 0,
-                  nqp::handle(
+            nqp::unless(
+              nqp::isnull($!slipper),
+              nqp::if(
+                nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                ($value := nqp::null)
+              )
+            );
+
+            nqp::while(
+              nqp::isnull($value)
+                && ($redo || nqp::not_i(nqp::eqaddr(
+                     (my $pulled := $!source.pull-one),
+                     IterationEnd
+                   ))),
+              nqp::stmts(
+                ($redo := nqp::null),
+                nqp::handle(
+                  nqp::if(
+                    nqp::istype(($value := &!block($pulled)),Slip),
                     nqp::if(
-                      nqp::istype(($result := &!block($value)),Slip),
-                      nqp::if(
-                        nqp::eqaddr(
-                          ($result := self.start-slip($result)), IterationEnd),
-                        nqp::if(
-                          nqp::not_i(nqp::eqaddr(
-                            ($value := $!source.pull-one),
-                            IterationEnd
-                          )),
-                          $redo = 1
-                        )
-                      )
-                    ),
-                    'LABELED', $!label,
-                    'NEXT', nqp::if(
-                      nqp::isnull($result := nqp::getpayload(nqp::exception)),
-                      nqp::if(                      # bare next
-                        nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
-                        ($result := IterationEnd),  # exhausted
-                        ($redo = 1)                 # process this value
+                      nqp::eqaddr(
+                        ($value := self.start-slip($value)),
+                        IterationEnd
                       ),
-                      nqp::if(                      # next with value
-                        nqp::istype($result,Slip)
-                        && nqp::eqaddr(             # it's a Slip
-                             ($result := self.start-slip($result)),
-                             IterationEnd
-                           )
-                        && nqp::not_i(nqp::eqaddr(  # an empty Slip
-                             ($value := $!source.pull-one),
-                             IterationEnd
-                           )),
-                        ($redo = 1)                 # process this value
-                      )
-                    ),
-                    'REDO', ($redo = 1),
-                    'LAST', nqp::if(
-                      nqp::isnull($result := nqp::getpayload(nqp::exception)),
-                      ($result := IterationEnd),
-                      nqp::stmts(
-                        nqp::if(
-                          nqp::istype($result,Slip),
-                          ($result := self.start-slip($result))
-                        ),
-                        ($!source := Rakudo::Iterator.Empty)
-                      )
+                      ($value := nqp::null)
                     )
+                  ),
+                  'LABELED', $!label,
+                  'NEXT', nqp::unless(
+                    nqp::isnull(my $excepted := nqp::getpayload(nqp::exception)),
+                    ($value := nqp::if(  # not a bare 'next'
+                      nqp::istype($excepted,Slip)
+                        && nqp::eqaddr(  # it's a Slip
+                          ($value := self.start-slip($excepted)),
+                          IterationEnd
+                        ),
+                      nqp::null(),       # empty Slip
+                      $excepted          # this value now
+                    ))
+                  ),
+                  'REDO', ($redo := 1),
+                  'LAST', nqp::stmts(
+                    ($!source := Rakudo::Iterator.Empty),
+                    ($value := nqp::if(
+                      nqp::isnull($excepted := nqp::getpayload(nqp::exception)),
+                      IterationEnd,
+                      nqp::if(
+                        nqp::istype($excepted,Slip),
+                        self.start-slip($excepted),
+                        $excepted
+                      )
+                    ))
                   )
-                ),
-                :nohandler
-              );
-            }
-            $result
+                )
+              ),
+              :nohandler
+            );
+
+            nqp::ifnull($value,IterationEnd)
         }
 
         method push-all(\target --> IterationEnd) {

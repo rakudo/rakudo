@@ -1064,8 +1064,7 @@ Consider using a block if any of these are necessary for your mapping code."
         }
 
         if $test.count == 1 {
-            sequential-map(
-              self.iterator,
+            Seq.new: IterateOneWithoutPhasers.new(
               {
                   nqp::if(
                     nqp::stmts(
@@ -1094,6 +1093,7 @@ Consider using a block if any of these are necessary for your mapping code."
                     Empty
                   )
               },
+              self.iterator,
               Any
             )
         }

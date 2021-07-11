@@ -79,7 +79,6 @@ class VM does Systemic {
     method platform-library-name(IO::Path $library, Version :$version) {
         my int $is-win = Rakudo::Internals.IS-WIN;
         my int $is-darwin = self.osname eq 'darwin';
-        my int $is-openbsd = self.osname eq 'openbsd';
 
         my $basename  = $library.basename;
         my int $full-path = $library ne $basename;
@@ -98,7 +97,7 @@ class VM does Systemic {
 #?endif
 
         $platform-name ~= '.' ~ $version
-            if $version.defined and nqp::iseq_i(nqp::add_i(nqp::add_i($is-darwin,$is-win),$is-openbsd),0);
+            if $version.defined and nqp::iseq_i(nqp::add_i($is-darwin,$is-win),0);
 
         $full-path
           ?? $dirname.IO.add($platform-name).absolute

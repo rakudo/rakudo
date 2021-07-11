@@ -488,25 +488,20 @@ augment class Any {
         method sink-all(--> IterationEnd) {
             self.sink-rest unless nqp::isnull($!slipper);
 
+            my $pulled := $!source.pull-one;
             nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(  # doesn't sink
-                      &!block($value),
-                      'LABELED', $!label,
-                      'NEXT', nqp::null,  # need NEXT for next LABEL support
-                      'REDO', ($redo = 1),
-                      'LAST', return
-                    ),
-                  ),
-                  :nohandler
-                )
-              )
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                nqp::stmts(
+                  &!block($pulled),
+                  ($pulled := $!source.pull-one)
+                ),
+                'LABELED', $!label,
+                'NEXT', ($pulled := $!source.pull-one),
+                'REDO', nqp::null,
+                'LAST', ($pulled := IterationEnd)
+              ),
+              :nohandler
             );
         }
     }
@@ -680,35 +675,37 @@ augment class Any {
         method sink-all(--> IterationEnd) {
             self.sink-rest unless nqp::isnull($!slipper);
 
+            nqp::unless(
+              nqp::eqaddr((my $a := $!source.pull-one),IterationEnd),
+              (my $b := $!source.pull-one)
+            );
+
             nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
+              nqp::eqaddr($a,IterationEnd),
+              nqp::handle(  # doesn't sink
+                nqp::if(
+                  nqp::eqaddr($b,IterationEnd),
                   nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(  # doesn't sink
-                      nqp::if(
-                        nqp::eqaddr(
-                          (my $value2 := $!source.pull-one),
-                          IterationEnd
-                        ),
-                        nqp::stmts(
-                          (&!block($value)),
-                          return
-                        ),
-                        (&!block($value,$value2))
-                      ),
-                      'LABELED', $!label,
-                      'NEXT', nqp::null,  # need NEXT for next LABEL support
-                      'REDO', ($redo = 1),
-                      'LAST', return
-                    )
+                    &!block($a),
+                    ($a := IterationEnd)
                   ),
-                :nohandler
-                )
-              )
+                  nqp::stmts(
+                    &!block($a, $b),
+                    nqp::unless(
+                      nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
+                      ($b := $!source.pull-one)
+                    )
+                  )
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::unless(
+                  nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
+                  ($b := $!source.pull-one)
+                ),
+                'REDO', nqp::null,
+                'LAST', ($a := IterationEnd)
+              ),
+              :nohandler
             );
         }
     }

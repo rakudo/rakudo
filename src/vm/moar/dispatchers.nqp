@@ -1382,6 +1382,14 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
     # Return the dispatch plan.
     $current-head
 }
+sub form-raku-capture($vm-capture) {
+    my $raku-capture := nqp::create(Capture);
+    nqp::bindattr($raku-capture, Capture, '@!list',
+        nqp::dispatch('boot-syscall', 'capture-pos-args', $vm-capture));
+    nqp::bindattr($raku-capture, Capture, '%!hash',
+        nqp::dispatch('boot-syscall', 'capture-named-args', $vm-capture));
+    $raku-capture
+}
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
     # Initial dispatch. Tries to find an initial candidate.
     -> $capture {
@@ -1419,7 +1427,11 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             nqp::die('Ambiguous multi candidates; better error NYI');
         }
         elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
-            nqp::die('No applicable multi candidates; better error NYI');
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Multi::NoMatch',
+                "Cannot call " ~ $target.name() ~ "; no signatures match",
+                :dispatcher($target),
+                :capture(form-raku-capture($arg-capture)));
         }
         else {
             # It's a non-trivial multi dispatch. Prefix the arguments with

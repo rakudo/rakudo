@@ -1390,6 +1390,42 @@ sub form-raku-capture($vm-capture) {
         nqp::dispatch('boot-syscall', 'capture-named-args', $vm-capture));
     $raku-capture
 }
+sub multi-junction-failover($capture) {
+    # Take a first pass to see if there's a Junction arg.
+    my int $num-args := nqp::captureposelems($capture);
+    my int $i;
+    my $found-junction;
+    while $i < $num-args {
+        my int $got-prim := nqp::captureposprimspec($capture, $i);
+        if $got-prim == 0 && nqp::istype(nqp::captureposarg($capture, $i), Junction) {
+            $found-junction := 1;
+            last;
+        }
+        $i++;
+    }
+
+    # If there is a Junction arg, then take another pass through to put type
+    # guards on all positional argument types.
+    if $found-junction {
+        $i := 0;
+        while $i < $num-args {
+            if nqp::captureposprimspec($capture, $i) == 0 {
+                my $arg := nqp::captureposarg($capture, $i);
+                my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                    $capture, $i);
+                if nqp::istype_nd($arg, Scalar) {
+                    $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                        $tracked, Scalar, '$!value');
+                }
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked);
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked);
+            }
+            $i++;
+        }
+    }
+
+    $found-junction
+}
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
     # Initial dispatch. Tries to find an initial candidate.
     -> $capture {
@@ -1427,11 +1463,25 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             nqp::die('Ambiguous multi candidates; better error NYI');
         }
         elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Multi::NoMatch',
-                "Cannot call " ~ $target.name() ~ "; no signatures match",
-                :dispatcher($target),
-                :capture(form-raku-capture($arg-capture)));
+            # If no candidates are found but there is a Junction argument, we'll
+            # dispatch to that.
+            if multi-junction-failover($arg-capture) { # Guards added here
+                my $with-invocant := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj', $capture, 0, Junction);
+                my $threader := Junction.HOW.find_method(Junction, 'AUTOTHREAD') //
+                    nqp::die('Junction auto-thread method not found');
+                my $capture-delegate := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj', $with-invocant, 0, $threader);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+                    $capture-delegate);
+            }
+            # Otherwise, it's just an error.
+            else {
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Multi::NoMatch',
+                    "Cannot call " ~ $target.name() ~ "; no signatures match",
+                    :dispatcher($target), :capture(form-raku-capture($arg-capture)));
+            }
         }
         else {
             # It's a non-trivial multi dispatch. Prefix the arguments with

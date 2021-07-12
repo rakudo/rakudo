@@ -21,6 +21,10 @@ my int $MVM_operand_str         := nqp::bitshiftl_i($MVM_reg_str, 3);
 my int $MVM_operand_obj         := nqp::bitshiftl_i($MVM_reg_obj, 3);
 my int $MVM_operand_uint64      := nqp::bitshiftl_i($MVM_reg_uint64, 3);
 
+# Dispatch op generators.
+my %core_op_generators := MAST::Ops.WHO<%generators>;
+my &op_dispatch_v := %core_op_generators<dispatch_v>;
+
 # Register MoarVM extops.
 use MASTNodes;
 MAST::ExtOpRegistry.register_extop('p6init');
@@ -77,6 +81,7 @@ sub register_op_desugar($name, $desugar, :$inlinable = 1, :$compiler = 'Raku') i
 
 # Raku opcode specific mappings.
 my $ops := nqp::getcomp('QAST').operations;
+my $STORE := QAST::SVal.new( :value('STORE') );
 $ops.add_hll_op('Raku', 'p6store', -> $qastcomp, $op {
     my $cont_res  := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
     my $value_res := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
@@ -93,17 +98,14 @@ $ops.add_hll_op('Raku', 'p6store', -> $qastcomp, $op {
     $*REGALLOC.release_register($decont_reg, $MVM_reg_obj);
     MAST::Op.new( :op('goto'), $done_lbl );
 
-    my $meth_reg := $*REGALLOC.fresh_o();
     $*MAST_FRAME.add-label($no_cont_lbl);
-    MAST::Op.new( :op('findmeth'), $meth_reg, $cont_res.result_reg,
-        MAST::SVal.new( :value('STORE') ) );
-    MAST::Call.new(
-        :target($meth_reg),
-        :flags($Arg::obj, $Arg::obj),
-        $cont_res.result_reg, $value_res.result_reg
-    );
+    my $store_mast := $qastcomp.as_mast($STORE, :want($MVM_reg_str));
+    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+        [$op[0], $STORE, $op[0], $op[1]],
+        [$cont_res, $store_mast, $cont_res, $value_res]);
+    op_dispatch_v('lang-meth-call', $callsite_id,
+        [$cont_res.result_reg, $store_mast.result_reg, $cont_res.result_reg, $value_res.result_reg]);
     $*MAST_FRAME.add-label($done_lbl);
-    $*REGALLOC.release_register($meth_reg, $MVM_reg_obj);
 
     MAST::InstructionList.new($cont_res.result_reg, $MVM_reg_obj)
 });

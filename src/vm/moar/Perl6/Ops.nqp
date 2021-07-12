@@ -52,12 +52,6 @@ MAST::ExtOpRegistry.register_extop('p6captureouters',
 MAST::ExtOpRegistry.register_extop('p6getouterctx',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6finddispatcher',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_str   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6argsfordispatcher',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6staticouter',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
@@ -232,8 +226,6 @@ $ops.add_hll_op('Raku', 'p6bindattrinvres', -> $qastcomp, $op {
     $*REGALLOC.release_register($val_res.result_reg, $MVM_reg_obj);
     MAST::InstructionList.new($inv_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('Raku', 'p6finddispatcher', 'p6finddispatcher');
-$ops.add_hll_moarop_mapping('Raku', 'p6argsfordispatcher', 'p6argsfordispatcher');
 $ops.add_hll_moarop_mapping('Raku', 'p6staticouter', 'p6staticouter');
 $ops.add_hll_op('Raku', 'p6invokehandler', -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new( :op('call'), $op[0], $op[1] ));

@@ -1064,26 +1064,28 @@ Consider using a block if any of these are necessary for your mapping code."
         Seq.new: $count < 2 || $count == Inf
           ?? IterateOneWithoutPhasers.new(
                -> \a {
-                   nqp::handle(
-                     (my $result := $test(a)),
-                     'LAST', nqp::if(
-                       judge(
-                         nqp::ifnull(nqp::getpayload(nqp::exception),False),
-                         a
+                   nqp::stmts(  # don't sink the result
+                     nqp::handle(
+                        (my $result := $test(a)),
+                       'LAST', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           a
+                         ),
+                         (last a),
+                         (last)
                        ),
-                       (last a),
-                       (last)
+                       'NEXT', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           a
+                         ),
+                         (next a),
+                         (next)
+                       )
                      ),
-                     'NEXT', nqp::if(
-                       judge(
-                         nqp::ifnull(nqp::getpayload(nqp::exception),False),
-                         a
-                       ),
-                       (next a),
-                       (next)
-                     )
-                   );
-                   judge($result, a) ?? a !! Empty
+                     nqp::if(judge($result, a),a,Empty)
+                   )
                },
                self.iterator,
                Any

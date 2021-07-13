@@ -9,6 +9,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has %!dist-metas;
     has $!precomp-stores;
     has $!precomp-store;
+    has $!prefix-writeable-cache;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
@@ -23,8 +24,28 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         }
     }
 
+    method !prefix-writeable {
+            if Rakudo::Internals.IS-WIN {
+                $!prefix-writeable-cache //= do {
+                    my $writable = False;
+                    try {
+                        my $check-file = $.prefix.add('test-file');
+                        if my $handle = $check-file.open(:create, :w) {
+                            $handle.close;
+                            $check-file.unlink;
+                            $writable = True;
+                        }
+                    }
+                    $writable
+                }
+            }
+            else {
+                $.prefix.w;
+            }
+    }
+
     method writeable-path {
-        $.prefix.w ?? $.prefix !! IO::Path;
+        self!prefix-writeable ?? $.prefix !! IO::Path;
     }
 
     method !writeable-path {
@@ -32,7 +53,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     }
 
     method can-install() {
-        $.prefix.w || ?(!$.prefix.e && try { $.prefix.mkdir } && $.prefix.e);
+        self!prefix-writeable || ?(!$.prefix.e && try { $.prefix.mkdir } && $.prefix.e);
     }
 
     my $windows_wrapper = '@rem = \'--*-Perl-*--

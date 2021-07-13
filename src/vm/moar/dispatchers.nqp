@@ -958,7 +958,43 @@ class ProxyReaderFactory {
     }
 
     method !produce-reader($num-args, $has-nameds, $indices) {
-        nqp::die('proxy reader production nyi');
+        # Create a block taking each positional arg required, adding an
+        # slurpy named if needed.
+        my $block := QAST::Block.new;
+        my int $i := 0;
+        while $i < $num-args {
+            $block.push(QAST::Var.new( :name("a$i"), :decl<param>, :scope<local> ));
+            $i++;
+        }
+        if $has-nameds {
+            $block.push(QAST::Var.new( :name<n>, :decl<param>, :scope<local>, :named, :slurpy ));
+        }
+
+        # Produce a dispatch op with the required arguments decontainerized.
+        my $dispatch := QAST::Op.new:
+            :op('dispatch'),
+            QAST::SVal.new( :value('boot-resume') ),
+            QAST::IVal.new( :value(6) );
+        $i := 0;
+        my $decont-index := 0;
+        while $i < $num-args {
+            my $var := QAST::Var.new( :name("a$i"), :scope<local> );
+            if nqp::atpos_i($indices, $decont-index) == $i {
+                $dispatch.push(QAST::Op.new( :op<decont>, $var ));
+                $decont-index++;
+            }
+            else {
+                $dispatch.push($var);
+            }
+            $i++;
+        }
+        if $has-nameds {
+            $dispatch.push(QAST::Var.new( :name<n>, :scope<local>, :named, :flat ));
+        }
+        $block.push($dispatch);
+
+        # Compile and return it.
+        nqp::getcomp('Raku').compile($block, :from<optimize>)
     }
 }
 my $PROXY-READERS := ProxyReaderFactory.new;

@@ -914,6 +914,52 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
         }
     });
 
+# We we invoke a multi with an argument that is a Proxy (or some other non-Scalar
+# container), we need to read the value(s) from the Proxy argument(s) and then go
+# on with the dispatch. The ProxyReaderFactory produces code objects that do
+# that. We key it on total positional arguments, whether there are nameds to
+# strip, and then the indices of the arguments to strip.
+class ProxyReaderFactory {
+    has $!lock;
+    has %!readers;
+
+    method new() {
+        self.bless: lock => NQPLock.new, readers => nqp::hash(
+            '1|0,', -> $a1 { nqp::dispatch('boot-resume', 6, nqp::decont($a1)) },
+            '1%0,', -> $a1, *%n { nqp::dispatch('boot-resume', 6, nqp::decont($a1), |%n) },
+            '2|0,', -> $a1, $a2 { nqp::dispatch('boot-resume', 6, nqp::decont($a1), $a2) },
+            '2|1,', -> $a1, $a2 { nqp::dispatch('boot-resume', 6, $a1, nqp::decont($a2)) },
+            '2|0,1,', -> $a1, $a2 { nqp::dispatch('boot-resume', 6, nqp::decont($a1), nqp::decont($a2)) },
+        );
+    }
+
+    method reader-for($capture, $indices) {
+        $!lock.protect: {
+            # Form a key.
+            my int $num-args := nqp::captureposelems($capture);
+            my int $has-nameds := nqp::capturehasnameds($capture);
+            my str $key := $num-args ~ ($has-nameds ?? '%' !! '|');
+            my int $i;
+            while $i < nqp::elems($indices) {
+                $key := $key ~ nqp::atpos_i($indices, $i) ~ ',';
+                $i++;
+            }
+
+            # If we don't already have a reader for this key, produce it.
+            unless nqp::existskey(%!readers, $key) {
+                %!readers{$key} := self.'!produce-reader'($num-args, $has-nameds, $indices);
+            }
+
+            %!readers{$key}
+        }
+    }
+
+    method !produce-reader($num-args, $has-nameds, $indices) {
+        nqp::die('proxy reader production nyi');
+    }
+}
+my $PROXY-READERS := ProxyReaderFactory.new;
+
 # The core of multi dispatch. Once we are here, either there was a simple
 # proto that we don't need to inovke, or we already did invoke the proto.
 #
@@ -989,10 +1035,20 @@ my class MultiDispatchEnd {
         "End"
     }
 }
-# * Not actually used in a plan, just a sentinel to convey we have the
-#   container but not Scalar (such as Proxy) case. The guards in this
-#   case will just be on the arguments that are such containers.
+# * Not actually used in a plan, but instead conveys that we have containers
+#   that need complex (running code) removal. This is created with the indices
+#   of the arguments that need it removing.
 my class MultiDispatchNonScalar {
+    has $!args;
+    method new($args) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, MultiDispatchNonScalar, '$!args', $args);
+        $obj
+    }
+    method args() { $!args }
+    method debug() {
+        "Non-Scalar container dispatch"
+    }
 }
 # Apart from the last one, these are used as the dispatch state; this is the
 # same immutable linked list traversal approach as used in other kinds of
@@ -1056,8 +1112,21 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
         $i++;
     }
     if nqp::elems($non-scalar) {
-        # TODO guards
-        return MultiDispatchNonScalar;
+        # Establish guards on types of all positionals, but not on the values
+        # inside of them if they are Scalar containers; we just need to make
+        # sure we have the appropriate tuple of Proxy vs non-Proxy for the
+        # Proxy removal code we'll invoke.
+        my int $i;
+        while $i < $num_args {
+            if nqp::captureposprimspec($capture, $i) == 0 {
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+                    nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i));
+            }
+            $i++;
+        }
+
+        # Hand back the indices we need to strip Proxy from.
+        return MultiDispatchNonScalar.new($non-scalar);
     }
 
     # We keep track of the head of the plan as well as the tail node of it,
@@ -1426,6 +1495,30 @@ sub multi-junction-failover($capture) {
 
     $found-junction
 }
+sub multi-no-match-handler($target, $dispatch-arg-capture, $orig-capture, $orig-arg-capture) {
+    # If no candidates are found but there is a Junction argument, we'll
+    # dispatch to that.
+    if multi-junction-failover($dispatch-arg-capture) { # Guards added here
+        my $with-invocant := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj', $orig-capture, 0, Junction);
+        my $threader := Junction.HOW.find_method(Junction, 'AUTOTHREAD') //
+            nqp::die('Junction auto-thread method not found');
+        my $capture-delegate := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj', $with-invocant, 0, $threader);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+            $capture-delegate);
+    }
+    # Otherwise, it's just an error.
+    else {
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Multi::NoMatch',
+            "Cannot call " ~ $target.name() ~ "; no signatures match",
+            :dispatcher($target), :capture(form-raku-capture($orig-arg-capture)));
+    }
+}
+sub multi-ambiguous-handler($target, $arg-capture) {
+    nqp::die('Ambiguous multi candidates; better error NYI');
+}
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
     # Initial dispatch. Tries to find an initial candidate.
     -> $capture {
@@ -1456,32 +1549,22 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
                 $capture-delegate);
         }
         elsif nqp::istype($dispatch-plan, MultiDispatchNonScalar) {
-            nqp::die('Handling of Proxy arguments in multiple dispatch NYI');
+            # Need to strip the Proxy arguments and then try again. Produce a
+            # proxy reader code object to do so, insert it as the first arg,
+            # and delegate to a dispatcher to manage reading the args and
+            # then retrying with the outcome.
+            my $reader := $PROXY-READERS.reader-for($arg-capture, $dispatch-plan.args);
+            my $capture-delegate := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $capture, 0, $reader);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-remove-proxies',
+                $capture-delegate);
         }
         elsif nqp::istype($dispatch-plan, MultiDispatchAmbiguous) &&
                 nqp::istype($dispatch-plan.next, MultiDispatchCall) {
-            nqp::die('Ambiguous multi candidates; better error NYI');
+            multi-ambiguous-handler($target, $arg-capture);
         }
         elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
-            # If no candidates are found but there is a Junction argument, we'll
-            # dispatch to that.
-            if multi-junction-failover($arg-capture) { # Guards added here
-                my $with-invocant := nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-obj', $capture, 0, Junction);
-                my $threader := Junction.HOW.find_method(Junction, 'AUTOTHREAD') //
-                    nqp::die('Junction auto-thread method not found');
-                my $capture-delegate := nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-obj', $with-invocant, 0, $threader);
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
-                    $capture-delegate);
-            }
-            # Otherwise, it's just an error.
-            else {
-                Perl6::Metamodel::Configuration.throw_or_die(
-                    'X::Multi::NoMatch',
-                    "Cannot call " ~ $target.name() ~ "; no signatures match",
-                    :dispatcher($target), :capture(form-raku-capture($arg-capture)));
-            }
+            multi-no-match-handler($target, $arg-capture, $capture, $arg-capture);
         }
         else {
             # It's a non-trivial multi dispatch. Prefix the arguments with
@@ -1540,6 +1623,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             }
         }
     });
+
 # The non-trivial multi dispatch has quite similar initial and resume steps,
 # and thus the majority of the work is factored out into a subroutine.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
@@ -1632,6 +1716,73 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-ca
         nqp::die('Non-trivial multi dispatch step NYI for ' ~ $cur-state.HOW.name($cur-state));
     }
 }
+
+# Proxy removal for multiple dispatch.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-remove-proxies',
+    # The dispatch receives (remover, original invokee, args...).
+    -> $capture {
+        # The resume init state drops the remover.
+        nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0));
+
+        # We then invoke the remover with the arguments (so need to drop the
+        # original invokee).
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1));
+    },
+    # The resumption is done with the args with proxies stripped.
+    -> $capture {
+        # Make sure this really is the resume with the proxies stripped,
+        # not some inner resume, which we should just pass along.
+        my $track_kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_kind);
+        my int $kind := nqp::captureposarg_i($capture, 0);
+        if $kind == 6 {
+            # Yes, it's the resume we're looking for. Locate the candidates by
+            # using the resume init args.
+            my $orig-capture := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
+            my $target := nqp::captureposarg($orig-capture, 0);
+            my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
+
+            # We now make the dispatch plan using the arguments with proxies
+            # removed.
+            my $no-proxy-arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                $capture, 0);
+            my $dispatch-plan := raku-multi-plan(@candidates, $no-proxy-arg-capture, 0);
+
+            # Consider the dispatch plan. Note we should always pass along the original
+            # arguments when invoking, so anything `is rw` gets the Proxy. We for now
+            # also send everything through the non-trivial dispatch path to keep it
+            # a little simpler.
+            my $orig-arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                $orig-capture, 0);
+            if nqp::istype($dispatch-plan, MultiDispatchNonScalar) {
+                nqp::die('FETCH from a Proxy unexpectedly returned another Proxy');
+            }
+            elsif nqp::istype($dispatch-plan, MultiDispatchAmbiguous) &&
+                    nqp::istype($dispatch-plan.next, MultiDispatchCall) {
+                multi-ambiguous-handler($target, $orig-arg-capture);
+            }
+            elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
+                multi-no-match-handler($target, $no-proxy-arg-capture, $orig-capture,
+                    $orig-arg-capture);
+            }
+            else {
+                my $capture-with-plan := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj', $orig-arg-capture, 0,
+                    $dispatch-plan);
+                my $capture-delegate := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-int', $capture-with-plan, 0, 0);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-non-trivial',
+                    $capture-delegate);
+            }
+        }
+        elsif !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    $capture, 0, Nil));
+        }
+    });
 
 # This is where invocation bottoms out, however we reach it. By this point, we
 # just have something to invoke, which is either a code object (potentially with

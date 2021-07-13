@@ -1337,44 +1337,61 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
         else {
             # End of tied group. If there's possibles...
             if nqp::elems(@possibles) {
-                # Build a linked list of them, but filtering out any with
-                # required named parameters that we don't have. Also track if
-                # any need a bind check (so are thus not pure type and arity
-                # based results).
-                my $new-head;
-                my $new-tail;
+                # Build a new list of filtered possibles by ruling out any
+                # required named parameters, and track if we need bind
+                # checks or if we have declarative nodes. Also check for
+                # defaults and exact arity matches, which we can use for
+                # tie-breaking if there are ambiguities.
                 my int $i;
                 my int $n := nqp::elems(@possibles);
-                my int $match;
                 my int $need-bind-check;
+                my int $first-group := nqp::isnull($current-head);
+                my @filtered-possibles;
+                my @defaults;
+                my @exact-arity;
                 while $i < $n {
                     my %info := @possibles[$i];
                     unless missing-required-named($capture, %info<required_nameds>) {
-                        my $node;
-                        if nqp::existskey(%info, 'bind_check') {
-                            $node := MultiDispatchTry.new(%info<sub>);
-                            $need-bind-check++;
-                        }
-                        else {
-                            $node := MultiDispatchCall.new(%info<sub>);
-                        }
-                        if $new-head {
-                            $new-tail.set-next($node);
-                        }
-                        else {
-                            $new-head := $node;
-                        }
-                        $new-tail := $node;
-                        $match++;
+                        nqp::push(@filtered-possibles, %info);
+                        $need-bind-check++ if nqp::existskey(%info, 'bind_check');
+                        my $sub := %info<sub>;
+                        nqp::push(@defaults, %info) if nqp::can($sub, 'default') && $sub.default;
+                        nqp::push(@exact-arity, %info) if %info<min_arity> == $num_args &&
+                           %info<max_arity> == $num_args;
                     }
                     $i++;
                 }
 
-                # If there are multiple results that don't need a bind check,
-                # add the ambiguity marker.
-                my int $first-group := nqp::isnull($current-head);
-                if $need-bind-check == 0 && $match > 1 {
-                    my $node := MultiDispatchAmbiguous.new();
+                # If we still have multiple possibles and we don't need a bind
+                # check, try tie-breakers, and failing that add an ambiguity
+                # marker.
+                if !$need-bind-check && nqp::elems(@filtered-possibles) > 1 {
+                    if nqp::elems(@defaults) == 1 {
+                        @filtered-possibles := @defaults;
+                    }
+                    elsif nqp::elems(@exact-arity) == 1 {
+                        @filtered-possibles := @exact-arity;
+                    }
+                    else {
+                        my $node := MultiDispatchAmbiguous.new();
+                        if nqp::isnull($current-head) {
+                            $current-head := $node;
+                        }
+                        else {
+                            $current-tail.set-next($node);
+                        }
+                        $current-tail := $node;
+                    }
+                }
+
+                # Add the filtered possibles to the plan.
+                $i := 0;
+                $n := nqp::elems(@filtered-possibles);
+                while $i < $n {
+                    my %info := @filtered-possibles[$i];
+                    my $node := $need-bind-check
+                        ?? MultiDispatchTry.new(%info<sub>)
+                        !! MultiDispatchCall.new(%info<sub>);
                     if nqp::isnull($current-head) {
                         $current-head := $node;
                     }
@@ -1382,22 +1399,13 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                         $current-tail.set-next($node);
                     }
                     $current-tail := $node;
-                }
-
-                # Add the candidates.
-                if $match > 0 {
-                    if nqp::isnull($current-head) {
-                        $current-head := $new-head;
-                    }
-                    else {
-                        $current-tail.set-next($new-head);
-                    }
-                    $current-tail := $new-tail;
+                    $i++;
                 }
 
                 # If we are to stop at a trivial match and nothing needs a
                 # bind check, and we've no results before now, we're done.
-                if $match == 1 && $stop-at-trivial && $first-group && $need-bind-check == 0 {
+                if $stop-at-trivial && $first-group &&
+                        nqp::elems(@filtered-possibles) == 1 && $need-bind-check == 0 {
                     $done := 1;
                 }
 

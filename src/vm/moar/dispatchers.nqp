@@ -1589,12 +1589,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             multi-no-match-handler($target, $arg-capture, $capture, $arg-capture);
         }
         else {
-            # It's a non-trivial multi dispatch. Prefix the arguments with
+            # It's a non-trivial multi dispatch. Prefix the capture with
             # the dispatch plan, and also a zero to indicate this is not a
             # resumption of any kind. The delegate to the non-trivial multi
             # dispatcher.
             my $capture-with-plan := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
+                'dispatcher-insert-arg-literal-obj', $capture, 0,
                 $dispatch-plan);
             my $capture-delegate := nqp::dispatch('boot-syscall',
                 'dispatcher-insert-arg-literal-int', $capture-with-plan, 0, 0);
@@ -1628,7 +1628,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             # Delegate to the non-trivial dispatcher, passing along the kind
             # of dispatch we're doing and the plan.
             my $capture-with-plan := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
+                'dispatcher-insert-arg-literal-obj', $init, 0,
                 $dispatch-plan);
             my $track-kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
             my $capture-delegate := nqp::dispatch('boot-syscall',
@@ -1661,18 +1661,31 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
         my $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
         my $cur-state := nqp::captureposarg($capture, 1);
 
-        # Drop the leading two arguments to get the argument capture.
-        my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+        # Drop the leading two arguments to get the argument capture prefixed
+        # with the original dispatch target, and one more to get the argument
+        # capture.
+        my $orig-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
             nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0), 0);
+        my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+            $orig-capture, 0);
 
         # Perform the step.
-        raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $arg-capture, 0);
+        raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $orig-capture,
+            $arg-capture, 0);
     },
     -> $capture {
         # Extract and guard on the kind (first argument).
         my $track-kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
+
+        # Drop the leading argument to get the argument capture prefixed
+        # with the original target, one more to get the arguments.
+        my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
+        my $orig-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+            $init, 0);
+        my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+            $orig-capture, 0);
 
         # Have dispatch state already, or first resume?
         my $track-state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
@@ -1682,28 +1695,19 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
             nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-state);
 
             # Obtain plan and args from init state.
-            my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
             my $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
                 $init, 0);
             my $cur-state := nqp::captureposarg($init, 0);
-
-            # Drop the leading argument to get the argument capture, and
-            # then perform the step.
-            my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                $init, 0);
-            raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $arg-capture, 1);
+            raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state, $orig-capture,
+                $arg-capture, 1);
         }
         else {
-            # Drop the leading argument to get the argument capture, and
-            # then perform the step.
-            my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
-            my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                $init, 0);
-            raku-multi-non-trivial-step($kind, $track-state, $state, $arg-capture, 1);
+            raku-multi-non-trivial-step($kind, $track-state, $state, $orig-capture,
+                $arg-capture, 1);
         }
     });
-sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-capture,
-        $is-resume) {
+sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-capture,
+        $arg-capture, $is-resume) {
     if nqp::istype($cur-state, MultiDispatchCall) {
         # Guard on the current state and on the callee (the type guards are
         # implicitly established when we guard the callee).
@@ -1720,7 +1724,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-ca
         else {
             my $next := $cur-state.next;
             my $init-state := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $arg-capture, 0, $next);
+                $orig-capture, 0, $next);
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $init-state);
         }
 
@@ -1733,6 +1737,19 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $arg-ca
         my $capture-delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
             $arg-capture, 0, $track-candidate);
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture-delegate);
+    }
+    elsif nqp::istype($cur-state, MultiDispatchEnd) {
+        # If this is the initial dispatch, then error, otherwise hand back Nil.
+        if $kind == 0 {
+            my $target := nqp::captureposarg($orig-capture, 0);
+            multi-no-match-handler($target, $arg-capture, $orig-capture, $arg-capture);
+        }
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-cur-state);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    $arg-capture, 0, Nil));
+        }
     }
     else {
         nqp::die('Non-trivial multi dispatch step NYI for ' ~ $cur-state.HOW.name($cur-state));
@@ -1801,7 +1818,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-remove-proxies'
             }
             else {
                 my $capture-with-plan := nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-obj', $orig-arg-capture, 0,
+                    'dispatcher-insert-arg-literal-obj', $orig-capture, 0,
                     $dispatch-plan);
                 my $capture-delegate := nqp::dispatch('boot-syscall',
                     'dispatcher-insert-arg-literal-int', $capture-with-plan, 0, 0);

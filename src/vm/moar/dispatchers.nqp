@@ -115,15 +115,14 @@
 # coercion type.
 {
     sub return_error($got, $wanted) {
-        my %ex := nqp::gethllsym('Raku', 'P6EX');
-        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Return') {
-            nqp::die("Type check failed for return value; expected '" ~
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::TypeCheck::Return',
+            "Type check failed for return value; expected '" ~
                 $wanted.HOW.name($wanted) ~ "' but got '" ~
-                $got.HOW.name($got) ~ "'");
-        }
-        else {
-            nqp::atkey(%ex, 'X::TypeCheck::Return')($got, $wanted)
-        }
+                $got.HOW.name($got) ~ "'",
+            :$got,
+            :expected($wanted)
+        );
     }
 
     my $check_type_typeobj := -> $ret, $orig_type, $type {
@@ -269,13 +268,13 @@
 # be guards.
 {
     sub assign-type-error($desc, $value) {
-        my %x := nqp::gethllsym('Raku', 'P6EX');
-        if nqp::ishash(%x) {
-            %x<X::TypeCheck::Assignment>($desc.name, $value, $desc.of);
-        }
-        else {
-            nqp::die("Type check failed in assignment");
-        }
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::TypeCheck::Assignment',
+            "Type check failed in assignment",
+            :symbol($desc.name),
+            :got($value),
+            :expected($desc.of)
+        );
     }
 
     my $assign-fallback := -> $cont, $value {

@@ -1517,8 +1517,18 @@ sub multi-no-match-handler($target, $dispatch-arg-capture, $orig-capture, $orig-
             :dispatcher($target), :capture(form-raku-capture($orig-arg-capture)));
     }
 }
-sub multi-ambiguous-handler($target, $arg-capture) {
-    nqp::die('Ambiguous multi candidates; better error NYI');
+sub multi-ambiguous-handler($dispatch-plan, $target, $arg-capture) {
+    my @ambiguous;
+    my $ambig-call := $dispatch-plan.next;
+    while nqp::istype($ambig-call, MultiDispatchCall) {
+        nqp::push(@ambiguous, $ambig-call.candidate);
+        $ambig-call := $ambig-call.next;
+    }
+    Perl6::Metamodel::Configuration.throw_or_die(
+        'X::Multi::Ambiguous',
+        "Ambiguous call to " ~ $target.name(),
+        :dispatcher($target), :@ambiguous,
+        :capture(form-raku-capture($arg-capture)));
 }
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
     # Initial dispatch. Tries to find an initial candidate.
@@ -1562,7 +1572,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
         }
         elsif nqp::istype($dispatch-plan, MultiDispatchAmbiguous) &&
                 nqp::istype($dispatch-plan.next, MultiDispatchCall) {
-            multi-ambiguous-handler($target, $arg-capture);
+            multi-ambiguous-handler($dispatch-plan, $target, $arg-capture);
         }
         elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
             multi-no-match-handler($target, $arg-capture, $capture, $arg-capture);
@@ -1772,7 +1782,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-remove-proxies'
             }
             elsif nqp::istype($dispatch-plan, MultiDispatchAmbiguous) &&
                     nqp::istype($dispatch-plan.next, MultiDispatchCall) {
-                multi-ambiguous-handler($target, $orig-arg-capture);
+                multi-ambiguous-handler($dispatch-plan, $target, $orig-arg-capture);
             }
             elsif nqp::istype($dispatch-plan, MultiDispatchEnd) {
                 multi-no-match-handler($target, $no-proxy-arg-capture, $orig-capture,

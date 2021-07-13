@@ -710,6 +710,190 @@ augment class Any {
         }
     }
 
+    my class IterateMoreWithoutPhasers does Rakudo::SlippyIterator {
+        has &!block;
+        has $!source;
+        has $!label;
+        has int $!count;
+
+        method new(&block, \source, int $count, \label) {
+            my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '$!slipper', nqp::null);
+            nqp::bindattr($iter, self, '&!block', &block);
+            nqp::bindattr($iter, self, '$!source', source);
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
+            nqp::bindattr_i($iter, self, '$!count', $count);
+            $iter
+        }
+
+        method is-lazy() { $!source.is-lazy }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isnull(
+                nqp::if(
+                  nqp::isnull($!slipper)
+                    || nqp::eqaddr((my $value := self.slip-one),IterationEnd),
+                  ($value := nqp::null),
+                  $value
+                )
+              ),
+              (my $pulled := $!source.pull-one)
+            );
+
+            my $params := nqp::list;
+            nqp::while(
+              nqp::isnull($value)
+                && nqp::not_i(nqp::eqaddr($pulled,IterationEnd)),
+              nqp::handle(
+                nqp::stmts(
+                  nqp::unless(
+                    nqp::elems($params),
+                    nqp::push($params,$pulled)
+                  ),
+                  nqp::until(
+                    nqp::iseq_i(nqp::elems($params),$!count)
+                      || nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+                    nqp::push($params,$pulled)
+                  ),
+                  ($value := nqp::p6invokeflat(&!block,$params)),
+                  nqp::if(
+                    nqp::istype($value,Slip) && nqp::eqaddr(
+                      ($value := self.start-slip($value)),
+                      IterationEnd
+                    ),
+                    nqp::stmts(                # set up next iteration
+                      ($value  := nqp::null),
+                      ($pulled := $!source.pull-one),
+                      nqp::setelems($params,0)
+                    )
+                  )
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::if(
+                  nqp::isnull(
+                    ($value := nqp::getpayload(nqp::exception))
+                  ) || (nqp::istype($value,Slip) && nqp::eqaddr(
+                         ($value := self.start-slip($value)),
+                         IterationEnd
+                       )),
+                  nqp::stmts(                   # set up next iteration
+                    ($value  := nqp::null),
+                    ($pulled := $!source.pull-one),
+                    nqp::setelems($params,0)
+                  )
+                ),
+                'REDO', ($value := $pulled := nqp::null),
+                'LAST', nqp::if(
+                  nqp::isnull(
+                    ($value := nqp::getpayload(nqp::exception))
+                  ) || (nqp::istype($value,Slip) && nqp::eqaddr(
+                         ($value := self.start-slip($value)),
+                         IterationEnd
+                       )),
+                  ($value   := IterationEnd),           # end now
+                  ($!source := Rakudo::Iterator.Empty)  # end later
+                )
+              )
+            );
+
+            nqp::ifnull($value,IterationEnd)
+        }
+
+        method push-all(\target --> IterationEnd) {
+            self.push-rest(target) unless nqp::isnull($!slipper);
+
+            my $pulled := $!source.pull-one;
+            my $params := nqp::list;
+            nqp::until(
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                nqp::stmts(
+                  nqp::unless(
+                    nqp::elems($params),
+                    nqp::push($params,$pulled)
+                  ),
+                  nqp::until(
+                    nqp::iseq_i(nqp::elems($params),$!count)
+                      || nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+                    nqp::push($params,$pulled)
+                  ),
+                  (my $value := nqp::p6invokeflat(&!block,$params)),
+                  nqp::if(
+                    nqp::istype($value,Slip),
+                    self.slip-all($value,target),
+                    target.push($value)
+                  ),
+                  ($pulled := $!source.pull-one),
+                  nqp::setelems($params,0)
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::stmts(
+                  nqp::unless(
+                    nqp::isnull(
+                      ($value := nqp::getpayload(nqp::exception))
+                    ),
+                    nqp::if(           # next with value
+                      nqp::istype($value,Slip),
+                      self.slip-all($value,target),
+                      target.push($value)
+                    )
+                  ),
+                  ($pulled := $!source.pull-one),
+                  nqp::setelems($params,0)
+                ),
+                'REDO', nqp::null,
+                'LAST', nqp::stmts(
+                  nqp::unless(
+                    nqp::isnull(
+                      ($value := nqp::getpayload(nqp::exception))
+                    ),
+                    nqp::if(           # next with value
+                      nqp::istype($value,Slip),
+                      self.slip-all($value,target),
+                      target.push($value)
+                    )
+                  ),
+                  ($pulled := IterationEnd)
+                )
+              )
+            );
+        }
+
+        method sink-all(--> IterationEnd) {
+            self.sink-rest unless nqp::isnull($!slipper);
+
+            my $pulled := $!source.pull-one;
+            my $params := nqp::list;
+            nqp::until(
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                nqp::stmts(
+                  nqp::unless(
+                    nqp::elems($params),
+                    nqp::push($params,$pulled)
+                  ),
+                  nqp::until(
+                    nqp::iseq_i(nqp::elems($params),$!count)
+                      || nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+                    nqp::push($params,$pulled)
+                  ),
+                  nqp::p6invokeflat(&!block,$params),
+                  ($pulled := $!source.pull-one),
+                  nqp::setelems($params,0)
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::stmts(
+                  ($pulled := $!source.pull-one),
+                  nqp::setelems($params,0)
+                ),
+                'REDO', nqp::null,
+                'LAST', ($pulled := IterationEnd)
+              )
+            );
+        }
+    }
+
     my class IterateMoreWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
@@ -878,13 +1062,15 @@ Consider using a block if any of these are necessary for your mapping code."
           ?? Rakudo::Iterator.OneValue(SELF)
           !! SELF.iterator;
 
-        Seq.new: $count < 2 || $count == Inf
-          ?? &code.has-loop-phasers
+        Seq.new: &code.has-loop-phasers
+          ?? $count < 2 || $count == Inf
             ?? IterateOneWithPhasers.new(&code, $source, $label)
-            !! IterateOneWithoutPhasers.new(&code, $source, $label)
-          !! $count > 2 || &code.has-loop-phasers
-            ?? IterateMoreWithPhasers.new(&code, $source, $count, $label)
-            !! IterateTwoWithoutPhasers.new(&code, $source, $label)
+            !! IterateMoreWithPhasers.new(&code, $source, $count, $label)
+          !! $count < 2 || $count == Inf
+            ?? IterateOneWithoutPhasers.new(&code, $source, $label)
+            !! $count == 2
+              ?? IterateTwoWithoutPhasers.new(&code, $source, $label)
+              !! IterateMoreWithoutPhasers.new(&code, $source, $count, $label)
     }
 
     proto method flatmap (|) is nodal {*}

@@ -1104,7 +1104,8 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
         my int $got_prim := nqp::captureposprimspec($capture, $i);
         if $got_prim == 0 {
             my $value := nqp::captureposarg($capture, $i);
-            if nqp::iscont($value) && !nqp::istype_nd($value, Scalar) &&
+            if nqp::isconcrete_nd($value) &&
+                nqp::iscont($value) && !nqp::istype_nd($value, Scalar) &&
                 !(nqp::iscont_i($value) || nqp::iscont_n($value) || nqp::iscont_s($value)) {
                 nqp::push_i($non-scalar, $i);
             }
@@ -1181,7 +1182,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                         my $value := nqp::captureposarg($capture, $i);
                         nqp::bindpos_i($need_type_guard, $i, 1);
                         my int $promoted_primitive;
-                        if nqp::iscont($value) {
+                        if nqp::iscont($value) && nqp::isconcrete_nd($value) {
                             # Containerized. Scalar we handle specially.
                             if nqp::istype_nd($value, Scalar) {
                                 nqp::bindpos_i($need_scalar_read, $i, 1);

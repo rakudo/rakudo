@@ -1677,6 +1677,23 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
         }
     }
 
+    # If it's ForeignCode, extract the wrapped code object and delegate to
+    # lang-code to run whatever is wrapped there.
+    elsif nqp::istype($code, ForeignCode) {
+        if nqp::isconcrete($code) {
+            my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $code_arg, ForeignCode, '$!do');
+            my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                0, $do_attr);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'lang-call',
+                $delegate_capture);
+        }
+        else {
+            nqp::die('Cannot invoke a ' ~ $code.HOW.name($code) ~ ' type object');
+        }
+    }
+
     # If it's NQP code (ideally we want a more flexible cross-language solution
     # here) then unrap it also.
     elsif nqp::istype($code, NQPRoutine) {

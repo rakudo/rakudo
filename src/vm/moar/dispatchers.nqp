@@ -1745,6 +1745,16 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-remove-proxies'
             my $target := nqp::captureposarg($orig-capture, 0);
             my @candidates := nqp::getattr($target, Routine, '@!dispatch_order');
 
+            # Put a guard on the dispatchees. (TODO This risks the callsite in
+            # the generated removers becoming a polymorphic blow-up point; when
+            # we can associate it with the dispatch program of the initial
+            # dispatch, that will be rather better.)
+            my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                $orig-capture, 0);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track_callee, Routine, '@!dispatchees'));
+
             # We now make the dispatch plan using the arguments with proxies
             # removed.
             my $no-proxy-arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',

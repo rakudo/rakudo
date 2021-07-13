@@ -541,18 +541,21 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
     # Report an error if there is no such method.
     unless nqp::isconcrete($meth) {
         my $class := nqp::getlexcaller('$?CLASS');
-        if nqp::gethllsym('Raku', 'P6EX') -> %ex {
-            if $name eq 'STORE' {
-                if nqp::atkey(%ex,'X::Assignment::RO') -> $thrower {
-                    $thrower($obj);
-                }
-            }
-            elsif nqp::atkey(%ex,'X::Method::NotFound') -> $thrower {
-                $thrower($obj, $name, $obj.HOW.name($obj), :in-class-call(nqp::eqaddr(nqp::what($obj), $class)));
-            }
+        my $msg := "Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'";
+        if $name eq 'STORE' {
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Assignment::RO', $msg, :value($obj));
         }
         else {
-            nqp::die("Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'");
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Method::NotFound',
+                $msg,
+                :invocant($obj),
+                :method($name),
+                :typename($obj.HOW.name($obj)),
+                :private(nqp::hllboolfor(0, 'Raku')),
+                :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku'))
+            );
         }
     }
 

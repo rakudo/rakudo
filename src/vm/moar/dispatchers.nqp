@@ -1515,9 +1515,12 @@ sub multi-junction-failover($capture) {
     my $found-junction;
     while $i < $num-args {
         my int $got-prim := nqp::captureposprimspec($capture, $i);
-        if $got-prim == 0 && nqp::istype(nqp::captureposarg($capture, $i), Junction) {
-            $found-junction := 1;
-            last;
+        if $got-prim == 0 {
+            my $value := nqp::captureposarg($capture, $i);
+            if nqp::isconcrete($value) && nqp::istype($value, Junction) {
+                $found-junction := 1;
+                last;
+            }
         }
         $i++;
     }

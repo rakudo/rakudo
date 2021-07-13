@@ -536,12 +536,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
     # * Handling some forms of delegation via the dispatcher mechanism
     my $obj := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
-    my $meth := $obj.HOW.find_method($obj, $name);
+    my $how := nqp::how_nd($obj);
+    my $meth := $how.find_method($obj, $name);
 
     # Report an error if there is no such method.
     unless nqp::isconcrete($meth) {
         my $class := nqp::getlexcaller('$?CLASS');
-        my $msg := "Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'";
+        my $msg := "Method '$name' not found for invocant of class '{$how.name($obj)}'";
         if $name eq 'STORE' {
             Perl6::Metamodel::Configuration.throw_or_die(
                 'X::Assignment::RO', $msg, :value($obj));
@@ -552,7 +553,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
                 $msg,
                 :invocant($obj),
                 :method($name),
-                :typename($obj.HOW.name($obj)),
+                :typename($how.name($obj)),
                 :private(nqp::hllboolfor(0, 'Raku')),
                 :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku'))
             );

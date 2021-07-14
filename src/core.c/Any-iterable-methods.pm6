@@ -338,45 +338,35 @@ augment class Any {
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            my $redo  := nqp::null;
-            my $value := nqp::null;
+            my $pulled := nqp::isnull($!slipper)
+              || nqp::eqaddr((my $value := self.slip-one),IterationEnd)
+              ?? $!source.pull-one
+              !! IterationEnd;
 
-            nqp::unless(
-              nqp::isnull($!slipper),
-              nqp::if(
-                nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                ($value := nqp::null)
-              )
-            );
-
-            nqp::while(
-              nqp::isnull($value)
-                && ($redo || nqp::not_i(nqp::eqaddr(
-                     (my $pulled := $!source.pull-one),
-                     IterationEnd
-                   ))),
-              nqp::stmts(
-                ($redo := nqp::null),
-                nqp::handle(
-                  nqp::if(
-                    nqp::istype(($value := &!block($pulled)),Slip),
-                    nqp::if(
-                      nqp::eqaddr(
-                        ($value := self.start-slip($value)),
-                        IterationEnd
-                      ),
-                      ($value := nqp::null)
-                    )
-                  ),
-                  'LABELED', $!label,
-                  'NEXT', nqp::if(
+            nqp::until(
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                ($pulled := nqp::if(
+                  nqp::istype(($value := &!block($pulled)),Slip)
+                    && nqp::eqaddr(
+                         ($value := self.start-slip($value)),
+                         IterationEnd
+                       ),
+                    $!source.pull-one,
+                    IterationEnd
+                )),
+                'LABELED', $!label,
+                'NEXT', ($pulled := nqp::if(
+                  nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                  $!source.pull-one,
+                  IterationEnd
+                )),
+                'REDO', nqp::null,
+                'LAST', nqp::stmts(
+                  ($pulled := IterationEnd),
+                  nqp::unless(
                     nqp::eqaddr(($value := self.control-payload),IterationEnd),
-                    ($value := nqp::null)   # iterate again
-                  ),
-                  'REDO', ($redo := 1),
-                  'LAST', nqp::unless(
-                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
-                    ($!source := Rakudo::Iterator.Empty)   # done later
+                    ($!source := Rakudo::Iterator.Empty)   # also done later
                   )
                 )
               ),

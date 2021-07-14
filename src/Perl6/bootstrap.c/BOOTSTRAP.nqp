@@ -2443,32 +2443,39 @@ BEGIN {
                         %info<constrainty> := 1;
                     }
 
-                    # If it's a required named (and not slurpy) don't need its type info
-                    # but we will need a bindability check during the dispatch for it.
+                    # For named arguments:
+                    # * Under the legacy dispatcher (not on MoarVM, which uses new-disp)
+                    #   we leave named argument checking to be done via a bind check. We
+                    #   only set that if it's a required named.
+                    # * For the new-disp based dispatcher, we collect a list of required
+                    #   named arguments and allowed named arguments, and filter those out
+                    #   without the bind check.
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
                     my $named_names := nqp::getattr($param, Parameter, '@!named_names');
                     unless nqp::isnull($named_names) {
                         if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                             unless $flags +& $SIG_ELEM_IS_OPTIONAL {
-                                # Store the set of names for this parameter, so that
-                                # multiple dispatch can make sure that at least one of
-                                # them is passed and quickly eliminate the candidate if
-                                # not.
-                                %info<required_nameds> := [] unless %info<required_nameds>;
-                                nqp::push(%info<required_nameds>, $named_names);
-                                # Store the name also under req_named, which is a legacy
-                                # optimization that will go away after new-disp lands.
+                                %info<required_names> := [] unless %info<required_names>;
+                                nqp::push(%info<required_names>, $named_names);
                                 if nqp::elems($named_names) == 1 {
                                     %info<req_named> := nqp::atpos_s($named_names, 0);
                                 }
                             }
                             %info<bind_check> := 1;
                         }
+                        %info<allowed_names> := nqp::hash() unless %info<allowed_names>;
+                        my int $i;
+                        my int $n := nqp::elems($named_names);
+                        while $i < $n {
+                            %info<allowed_names>{nqp::atpos_s($named_names, $i)} := NQPMu;
+                            $i++;
+                        }
                         next;
                     }
-
-                    # If it's named slurpy, we're done, also we don't need a bind
-                    # check on account of nameds since we take them all.
+                    if $flags +& ($SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_IS_CAPTURE) {
+                        %info<allows_all_names> := 1;
+                        nqp::deletekey(%info, 'allowed_names');
+                    }
                     if $flags +& $SIG_ELEM_SLURPY_NAMED {
                         last;
                     }

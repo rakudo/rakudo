@@ -1975,9 +1975,35 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
         }
     }
 
-    # Otherwise, try the CALL-ME path.
+    # Otherwise, try the CALL-ME or coercion paths.
     else {
-        nqp::die('CALL-ME handling NYI in new dispatcher; got ' ~ $code.HOW.name($code));
+        my $call-me := $code.HOW.find_method($code, 'CALL-ME');
+        if nqp::isconcrete($call-me) {
+            # A CALL-ME method is found; set up a resolved method call to it.
+            my $with-name := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
+                $capture, 0, 'CALL-ME');
+            my $with-type := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $with-name, 0, $code.WHAT);
+            my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $with-type, 0, $call-me);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call-resolved',
+                $delegate);
+        }
+        elsif !nqp::isconcrete($code) && nqp::captureposelems($capture) >= 2 {
+            # Looks like a coercion. In the best case we just have one argument
+            # and things will be straightforward. Failing that, we'll have to
+            # form a list and take the slow-bound path.
+            nqp::die('Coercion NYI in new dispatcher');
+        }
+        else {
+            my $typename := $code.HOW.name($code);
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Method::NotFound',
+                "No such method 'CALL-ME' for invocant of type '$typename'",
+                :invocant($code), :method(nqp::hllizefor('CALL-ME', "Raku")),
+                :typename(nqp::hllizefor($typename, "Raku"))
+            );
+        }
     }
 });
 

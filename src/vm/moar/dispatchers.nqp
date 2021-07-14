@@ -1109,13 +1109,20 @@ my int $BIND_VAL_OBJ      := 0;
 my int $BIND_VAL_INT      := 1;
 my int $BIND_VAL_NUM      := 2;
 my int $BIND_VAL_STR      := 3;
-sub missing-required-named($capture, $name-sets) {
-    if $name-sets {
+sub has-named-args-mismatch($capture, %info) {
+    # First consider required nameds.
+    my $required-name-sets := %info<required_names>;
+    my $nameds-list := nqp::dispatch('boot-syscall', 'capture-names-list', $capture);
+    if $required-name-sets {
+        # Quick exit if we required names, but have none.
+        return 1 unless $nameds-list;
+
+        # Otherwise check that required nameds are present.
         my int $i := 0;
-        my int $n := nqp::elems($name-sets);
+        my int $n := nqp::elems($required-name-sets);
         while $i < $n {
             my int $found := 0;
-            my $names := nqp::atpos($name-sets, $i);
+            my $names := nqp::atpos($required-name-sets, $i);
             my int $j := 0;
             my int $m := nqp::elems($names);
             while $j < $m {
@@ -1129,6 +1136,23 @@ sub missing-required-named($capture, $name-sets) {
             $i++;
         }
     }
+
+    # If we don't accept all nameds, then check there are acceptable nameds.
+    if $nameds-list && !%info<allows_all_names> {
+        # Check exit if there are no allowed nameds.
+        my $allowed-names := %info<allowed_names>;
+        return 1 unless $allowed-names;
+
+        # Go through the nameds and check they are allowed.
+        my int $i;
+        my int $n := nqp::elems($nameds-list);
+        while $i < $n {
+            return 1 unless nqp::existskey($allowed-names, nqp::atpos_s($nameds-list, $i));
+            $i++;
+        }
+    }
+
+    # Otherwise, no mismatch.
     0
 }
 sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
@@ -1377,8 +1401,8 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
             # End of tied group. If there's possibles...
             if nqp::elems(@possibles) {
                 # Build a new list of filtered possibles by ruling out any
-                # required named parameters, and track if we need bind
-                # checks or if we have declarative nodes. Also check for
+                # that have unaccepted of missing nameds. Track if we need bind
+                # checks or if we have declarative candidates. Also check for
                 # defaults and exact arity matches, which we can use for
                 # tie-breaking if there are ambiguities.
                 my int $i;
@@ -1390,7 +1414,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                 my @exact-arity;
                 while $i < $n {
                     my %info := @possibles[$i];
-                    unless missing-required-named($capture, %info<required_nameds>) {
+                    unless has-named-args-mismatch($capture, %info) {
                         nqp::push(@filtered-possibles, %info);
                         $need-bind-check++ if nqp::existskey(%info, 'bind_check');
                         my $sub := %info<sub>;

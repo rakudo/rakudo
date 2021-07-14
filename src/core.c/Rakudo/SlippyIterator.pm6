@@ -33,13 +33,44 @@ my role Rakudo::SlippyIterator does Iterator {
         $result
     }
 
+    # Helper method for pushing the rest of the slipper into the target
     method push-rest(\target --> Nil) {
         $!slipper.push-all(target);
         $!slipper := nqp::null;
     }
+
+    # Helper method for sinking the rest of the slipper
     method sink-rest( --> Nil) {
         $!slipper.sink-all;
         $!slipper := nqp::null;
+    }
+
+    # Helper method to handle control exception payloads.  Returns
+    # IterationEnd if there was no payload, otherwise the value that
+    # was obtained.  Handles Slips.
+    method control-payload() is raw {
+        nqp::if(
+          nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+          IterationEnd,
+          nqp::if(
+            nqp::istype($value,Slip),
+            self.start-slip($value),
+            $value
+          )
+        )
+    }
+
+    # Process the payload of a control exception and push it to the
+    # target while following Slip semantics.
+    method push-control-payload(\target --> Nil) {
+        nqp::unless(
+          nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+          nqp::if(
+            nqp::istype($value,Slip),
+            self.slip-all($value,target),
+            target.push($value)
+          )
+        )
     }
 
     proto method slip-all(|) {*}

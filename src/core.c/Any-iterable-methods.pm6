@@ -143,18 +143,9 @@ augment class Any {
                 'REDO', nqp::null,   # a 'redo' in the block
                 'NEXT', nqp::stmts(  # a 'next' in the block
                   ($!pulled := $!source.pull-one),
-                  nqp::unless(
-                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                    nqp::if(
-                      nqp::istype($value,Slip),
-                      nqp::if(       # process the Slip
-                        nqp::eqaddr(
-                          ($value := self.start-slip($value)),
-                          IterationEnd
-                        ),
-                        ($value := nqp::null)  # nothing in the slip
-                      )
-                    )
+                  nqp::if(
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                    ($value := nqp::null)
                   ),
                   nqp::unless(
                     nqp::isnull($!NEXT),
@@ -166,32 +157,14 @@ augment class Any {
                     )
                   )
                 ),
-                'LAST', nqp::if(  # a 'last' in the block
-                  nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                  ($value := IterationEnd),     # done now
-                  nqp::if(
-                    nqp::istype($value,Slip),
-                    ($value := self.start-slip($value)),
-                    ($!pulled := IterationEnd)  # done later
-                  )
+                'LAST', nqp::unless(  # a 'last' in the block
+                  nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                  ($!pulled := IterationEnd)  # done later
                 )
               )
             );
 
             nqp::ifnull($value,self!fire-any-LAST)
-        }
-
-        # Process the payload of a control exception and add it to the
-        # target while following Slip semantics.
-        method !process-payload(\target --> Nil) {
-            nqp::unless(
-              nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
-              nqp::if(
-                nqp::istype($value,Slip),
-                self.slip-all($value,target),
-                target.push($value)
-              )
-            )
         }
 
         method !improper-control(str $control, str $phaser --> Nil) {
@@ -239,7 +212,7 @@ augment class Any {
                     ),
                     'LABELED', $!label,
                     'NEXT', nqp::stmts(
-                      self!process-payload(target),
+                      self.push-control-payload(target),
                       ($pulled := $source.pull-one),
                       nqp::handle(
                         NEXT(),
@@ -250,7 +223,7 @@ augment class Any {
                     ),
                     'REDO', nqp::null,
                     'LAST', nqp::stmts(
-                      self!process-payload(target),
+                      self.push-control-payload(target),
                       ($pulled := self!fire-any-LAST)
                     )
                   ),
@@ -274,12 +247,12 @@ augment class Any {
                     ),
                     'LABELED', $!label,
                     'NEXT', nqp::stmts(
-                      self!process-payload(target),
+                      self.push-control-payload(target),
                       ($pulled := $source.pull-one)
                     ),
                     'REDO', nqp::null,
                     'LAST', nqp::stmts(
-                      self!process-payload(target),
+                      self.push-control-payload(target),
                       ($pulled := IterationEnd)
                     )
                   ),
@@ -396,26 +369,14 @@ augment class Any {
                     )
                   ),
                   'LABELED', $!label,
-                  'NEXT', nqp::unless(
-                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                    nqp::if(
-                      nqp::istype($value,Slip)
-                        && nqp::eqaddr(  # it's a Slip
-                          ($value := self.start-slip($value)),
-                          IterationEnd
-                        ),
-                      ($value := nqp::null)
-                    )
+                  'NEXT', nqp::if(
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                    ($value := nqp::null)   # iterate again
                   ),
                   'REDO', ($redo := 1),
-                  'LAST', nqp::if(
-                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                    ($value := IterationEnd),                 # done now
-                    nqp::if(
-                      nqp::istype($value,Slip),
-                      ($value := self.start-slip($value)),
-                      ($!source := Rakudo::Iterator.Empty),   # done later
-                    )
+                  'LAST', nqp::unless(
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                    ($!source := Rakudo::Iterator.Empty)   # done later
                   )
                 )
               ),
@@ -444,23 +405,9 @@ augment class Any {
                       ),
                       'LABELED', $!label,
                       'REDO', ($redo = 1),
-                      'NEXT', nqp::unless(
-                        nqp::isnull($result := nqp::getpayload(nqp::exception)),
-                        nqp::if(
-                          nqp::istype($result,Slip),
-                          self.slip-all($result,target),
-                          target.push($result)
-                        )
-                      ),
+                      'NEXT', self.push-control-payload(target),
                       'LAST', nqp::stmts(
-                        nqp::unless(
-                          nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                          nqp::if(
-                            nqp::istype($value,Slip),
-                            self.slip-all($value,target),
-                            target.push($value)
-                          )
-                        ),
+                        self.push-control-payload(target),
                         return
                       )
                     )
@@ -508,21 +455,6 @@ augment class Any {
 
         method is-lazy() { $!source.is-lazy }
 
-        # Helper method to handle control exceptions.  Returns
-        # IterationEnd if there was no payload, otherwise the
-        # value that was obtained.  Handles Slips.
-        method !payload() is raw {
-            nqp::if(
-              nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
-              IterationEnd,
-              nqp::if(
-                nqp::istype($value,Slip),
-                self.start-slip($value),
-                $value
-              )
-            )
-        }
-
         method pull-one() is raw {
             nqp::if(
               nqp::isnull(
@@ -554,9 +486,9 @@ augment class Any {
                     )
                   ),
                   'LABELED', $!label,
-                  'NEXT', ($value := self!payload),
+                  'NEXT', ($value := self.control-payload),
                   'REDO', ($value := nqp::null),
-                  'LAST', ($value := self!payload)
+                  'LAST', ($value := self.control-payload)
                 ),
                 nqp::handle(  # iterator still good
                   nqp::stmts(
@@ -577,7 +509,7 @@ augment class Any {
                   ),
                   'LABELED', $!label,
                   'NEXT', nqp::if(
-                    nqp::eqaddr(($value := self!payload),IterationEnd),
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
                     nqp::stmts(
                       ($value := nqp::null),  # set up next iteration
                       nqp::unless(
@@ -588,7 +520,7 @@ augment class Any {
                   ),
                   'REDO', nqp::null,
                   'LAST', nqp::if(
-                    nqp::eqaddr(($value := self!payload),IterationEnd),
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
                     ($value   := IterationEnd),           # end now
                     ($!source := Rakudo::Iterator.Empty)  # end later
                   )
@@ -633,14 +565,7 @@ augment class Any {
                 ),
                 'LABELED', $!label,
                 'NEXT', nqp::stmts(
-                  nqp::unless(
-                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                    nqp::if(
-                      nqp::istype($value,Slip),
-                      self.slip-all($value,target),
-                      target.push($value)
-                    )
-                  ),
+                  self.push-control-payload(target),
                   nqp::unless(
                     nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
                     ($b := $!source.pull-one)
@@ -648,14 +573,7 @@ augment class Any {
                 ),
                 'REDO', nqp::null,
                 'LAST', nqp::stmts(
-                  nqp::unless(
-                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                    nqp::if(
-                      nqp::istype($value,Slip),
-                      self.slip-all($value,target),
-                      target.push($value)
-                    )
-                  ),
+                  self.push-control-payload(target),
                   ($a := IterationEnd)
                 )
               ),
@@ -762,12 +680,7 @@ augment class Any {
                 ),
                 'LABELED', $!label,
                 'NEXT', nqp::if(
-                  nqp::isnull(
-                    ($value := nqp::getpayload(nqp::exception))
-                  ) || (nqp::istype($value,Slip) && nqp::eqaddr(
-                         ($value := self.start-slip($value)),
-                         IterationEnd
-                       )),
+                  nqp::eqaddr(($value := self.control-payload),IterationEnd),
                   nqp::stmts(                   # set up next iteration
                     ($value  := nqp::null),
                     ($pulled := $!source.pull-one),
@@ -775,14 +688,8 @@ augment class Any {
                   )
                 ),
                 'REDO', ($value := $pulled := nqp::null),
-                'LAST', nqp::if(
-                  nqp::isnull(
-                    ($value := nqp::getpayload(nqp::exception))
-                  ) || (nqp::istype($value,Slip) && nqp::eqaddr(
-                         ($value := self.start-slip($value)),
-                         IterationEnd
-                       )),
-                  ($value   := IterationEnd),           # end now
+                'LAST', nqp::unless(
+                  nqp::eqaddr(($value := self.control-payload),IterationEnd),
                   ($!source := Rakudo::Iterator.Empty)  # end later
                 )
               )
@@ -820,31 +727,13 @@ augment class Any {
                 ),
                 'LABELED', $!label,
                 'NEXT', nqp::stmts(
-                  nqp::unless(
-                    nqp::isnull(
-                      ($value := nqp::getpayload(nqp::exception))
-                    ),
-                    nqp::if(           # next with value
-                      nqp::istype($value,Slip),
-                      self.slip-all($value,target),
-                      target.push($value)
-                    )
-                  ),
+                  self.push-control-payload(target),
                   ($pulled := $!source.pull-one),
                   nqp::setelems($params,0)
                 ),
                 'REDO', nqp::null,
                 'LAST', nqp::stmts(
-                  nqp::unless(
-                    nqp::isnull(
-                      ($value := nqp::getpayload(nqp::exception))
-                    ),
-                    nqp::if(           # next with value
-                      nqp::istype($value,Slip),
-                      self.slip-all($value,target),
-                      target.push($value)
-                    )
-                  ),
+                  self.push-control-payload(target),
                   ($pulled := IterationEnd)
                 )
               )

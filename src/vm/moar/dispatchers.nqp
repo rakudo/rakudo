@@ -1328,11 +1328,12 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                         }
                         # If we want a primitive type, but got the wrong one, then it's
                         # a mismatch.
-                        elsif (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
-                               (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
-                               (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
-                            # Mismatch.
-                            $type_mismatch := 1;
+                        elsif $want_prim {
+                            if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
+                                    (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
+                                    (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
+                                $type_mismatch := 1;
+                            }
                         }
                         # Otherwise, we want an object type. Figure out the correct
                         # one that we shall box to.

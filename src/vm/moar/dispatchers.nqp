@@ -1313,6 +1313,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                     }
                     elsif $got_prim == 0 { # and $want_prim != 0 per last condition
                         # Make sure it's the expected kind of native container.
+                        nqp::bindpos_i($need_type_guard, $i, 1);
                         my $contish := nqp::captureposarg($capture, $i);
                         unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
                                (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||

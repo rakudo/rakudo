@@ -63,15 +63,11 @@ augment class Any {
         has $!LAST;
 
         method new(\block, \source, \label) {
-            my $iter := nqp::create(self);
-
             nqp::if(
               nqp::eqaddr((my $pulled := source.pull-one),IterationEnd),
-              nqp::stmts(      # nothing to do
-                nqp::bindattr($iter,self,'$!slipper',nqp::null),
-                nqp::bindattr($iter,self,'$!pulled',IterationEnd)
-              ),
-              nqp::stmts(      # iterate at least once
+              Rakudo::Iterator.Empty,  # nothing to do
+              nqp::stmts(              # iterate at least once
+                (my $iter := nqp::create(self)),
                 nqp::if(
                   nqp::istype($pulled,Slip),
                   nqp::stmts(  # Set up a slipper and get next value
@@ -94,10 +90,9 @@ augment class Any {
                   block.callable_for_phaser('NEXT') // nqp::null),
                 nqp::bindattr($iter,self,'$!LAST',
                   block.callable_for_phaser('LAST')),
+                $iter
               )
-            );
-
-            $iter
+            )
         }
 
         method is-lazy() { $!source.is-lazy }

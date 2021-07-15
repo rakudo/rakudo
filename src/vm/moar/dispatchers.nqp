@@ -636,14 +636,11 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-qualified',
 
     # Otherwise, exception.
     else {
-        my %ex := nqp::gethllsym('Raku', 'P6EX');
-        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Method::InvalidQualifier') {
-            nqp::die("Cannot dispatch to method $name on " ~ $type.HOW.name($type) ~
-                " because it is not inherited or done by " ~ $obj.HOW.name($obj));
-        }
-        else {
-            nqp::atkey(%ex, 'X::Method::InvalidQualifier')($name, $obj, $type)
-        }
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Method::InvalidQualifier',
+            "Cannot dispatch to method $name on " ~ $type.HOW.name($type) ~
+                " because it is not inherited or done by " ~ $obj.HOW.name($obj),
+            :method($name), :invocant($obj), :qualifier-type($type));
     }
 });
 

@@ -131,7 +131,7 @@ subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
     multi sub foo($y where /{@res.push: $y}./) {}
     foo 'a';
     foo 'b';
-    is-deeply @res, [<a a b b>],
+    is-deeply @res, [<a b>],
         'regex blocks update their lexical variables right';
 }
 

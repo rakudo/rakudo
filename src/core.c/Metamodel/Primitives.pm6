@@ -1,8 +1,9 @@
 my class Metamodel::Primitives {
     method create_type(Mu $how, $repr = 'P6opaque', :$mixin = False) {
-        $mixin
+        my \type = $mixin
             ?? nqp::newmixintype($how, $repr.Str)
-            !! nqp::newtype($how, $repr.Str)
+            !! nqp::newtype($how, $repr.Str);
+        nqp::settypehll(type, 'Raku')
     }
 
     method set_package(Mu $type, $package) {

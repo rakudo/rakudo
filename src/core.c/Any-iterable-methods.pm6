@@ -68,17 +68,8 @@ augment class Any {
               Rakudo::Iterator.Empty,  # nothing to do
               nqp::stmts(              # iterate at least once
                 (my $iter := nqp::create(self)),
-                nqp::if(
-                  nqp::istype($pulled,Slip),
-                  nqp::stmts(  # Set up a slipper and get next value
-                    nqp::bindattr($iter,self,'$!slipper',$pulled.iterator),
-                    nqp::bindattr($iter,self,'$!pulled',source.pull-one)
-                  ),
-                  nqp::stmts(  # no slipper, process this value
-                    nqp::bindattr($iter,self,'$!slipper',nqp::null),
-                    nqp::bindattr($iter,self,'$!pulled',$pulled)
-                  )
-                ),
+                nqp::bindattr($iter,self,'$!slipper',nqp::null),
+                nqp::bindattr($iter,self,'$!pulled',$pulled),
                 nqp::if(       # set up FIRST phaser execution if needed
                   block.has-phaser('FIRST');
                   nqp::p6setfirstflag(block)

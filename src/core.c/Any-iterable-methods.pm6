@@ -365,30 +365,32 @@ augment class Any {
         method push-all(\target --> IterationEnd) {
             self.push-rest(target) unless nqp::isnull($!slipper);
 
-            my $pulled := $!source.pull-one;
             nqp::until(
-              nqp::eqaddr($pulled,IterationEnd),
-              nqp::handle(
-                nqp::stmts(
-                  nqp::if(
-                    nqp::istype((my $value := &!block($pulled)),Slip),
-                    self.slip-all($value, target),
-                    target.push($value)
+              nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
+              nqp::stmts(
+                (my int $redo = 1),
+                nqp::while(
+                  $redo,
+                  nqp::stmts(
+                    ($redo = 0),
+                    nqp::handle(
+                      nqp::if(
+                        nqp::istype((my $result := &!block($value)),Slip),
+                        self.slip-all($result,target),
+                        target.push($result)
+                      ),
+                      'LABELED', $!label,
+                      'REDO', ($redo = 1),
+                      'NEXT', self.push-control-payload(target),
+                      'LAST', nqp::stmts(
+                        self.push-control-payload(target),
+                        return
+                      )
+                    )
                   ),
-                  ($pulled := $!source.pull-one),
-                ),
-                'LABELED', $!label,
-                'REDO', nqp::null,
-                'NEXT', nqp::stmts(
-                  self.push-control-payload(target),
-                  ($pulled := $!source.pull-one)
-                ),
-                'LAST', nqp::stmts(
-                  self.push-control-payload(target),
-                  ($pulled := IterationEnd)
+                  :nohandler
                 )
-              ),
-              :nohandler
+              )
             );
         }
 

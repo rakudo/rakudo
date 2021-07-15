@@ -885,7 +885,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
     -> $capture {
         my $callee := nqp::captureposarg($capture, 0);
         my int $onlystar := nqp::getattr_i($callee, Routine, '$!onlystar');
-        if $onlystar {
+        if $onlystar && !nqp::can($callee, 'WRAPPERS') {
             # Don't need to invoke the proto itself, so just get on with the
             # candidate dispatch.
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-core', $capture);

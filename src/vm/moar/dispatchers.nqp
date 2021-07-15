@@ -924,13 +924,7 @@ class ProxyReaderFactory {
     has %!readers;
 
     method new() {
-        self.bless: lock => NQPLock.new, readers => nqp::hash(
-            '1|0,', -> $a1 { nqp::dispatch('boot-resume', 6, nqp::decont($a1)) },
-            '1%0,', -> $a1, *%n { nqp::dispatch('boot-resume', 6, nqp::decont($a1), |%n) },
-            '2|0,', -> $a1, $a2 { nqp::dispatch('boot-resume', 6, nqp::decont($a1), $a2) },
-            '2|1,', -> $a1, $a2 { nqp::dispatch('boot-resume', 6, $a1, nqp::decont($a2)) },
-            '2|0,1,', -> $a1, $a2 { nqp::dispatch('boot-resume', 6, nqp::decont($a1), nqp::decont($a2)) },
-        );
+        self.bless: lock => NQPLock.new, readers => nqp::hash()
     }
 
     method reader-for($capture, $indices) {
@@ -957,7 +951,7 @@ class ProxyReaderFactory {
     method !produce-reader($num-args, $has-nameds, $indices) {
         # Create a block taking each positional arg required, adding an
         # slurpy named if needed.
-        my $block := QAST::Block.new;
+        my $block := QAST::Block.new(:is_thunk);
         my int $i := 0;
         while $i < $num-args {
             $block.push(QAST::Var.new( :name("a$i"), :decl<param>, :scope<local> ));

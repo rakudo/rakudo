@@ -1155,7 +1155,7 @@ sub has-named-args-mismatch($capture, %info) {
     # Otherwise, no mismatch.
     0
 }
-sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
+sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture = $capture) {
     # First check there's no non-Scalar containers in the positional arguments.
     # If there are, establish guards relating to those and we're done. Native
     # references don't count; we know the native types they shall match up with
@@ -1278,8 +1278,11 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial) {
                         }
                         else {
                             # If we need an rw argument and didn't get a container,
-                            # we're out of luck.
-                            if $rwness {
+                            # we're out of luck. Before asserting this, we should make
+                            # sure that the original container (which maybe was a
+                            # Proxy that was removed in the args we're doing the
+                            # dispatch over) was not itself rw.
+                            if $rwness && !nqp::iscont(nqp::captureposarg($orig-capture, $i)) {
                                 $rwness_mismatch := 1;
                             }
                         }
@@ -1858,17 +1861,19 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-remove-proxies'
                     $track_callee, Routine, '@!dispatchees'));
 
             # We now make the dispatch plan using the arguments with proxies
-            # removed.
+            # removed, put pass along the original arg capture to, for use
+            # in `rw`-ness testing.
             my $no-proxy-arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
                 $capture, 0);
-            my $dispatch-plan := raku-multi-plan(@candidates, $no-proxy-arg-capture, 0);
+            my $orig-arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                $orig-capture, 0);
+            my $dispatch-plan := raku-multi-plan(@candidates, $no-proxy-arg-capture, 0,
+                $orig-arg-capture);
 
             # Consider the dispatch plan. Note we should always pass along the original
             # arguments when invoking, so anything `is rw` gets the Proxy. We for now
             # also send everything through the non-trivial dispatch path to keep it
             # a little simpler.
-            my $orig-arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                $orig-capture, 0);
             if nqp::istype($dispatch-plan, MultiDispatchNonScalar) {
                 nqp::die('FETCH from a Proxy unexpectedly returned another Proxy');
             }

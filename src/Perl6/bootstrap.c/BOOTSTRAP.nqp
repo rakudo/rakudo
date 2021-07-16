@@ -3935,7 +3935,7 @@ nqp::sethllconfig('Raku', nqp::hash(
             nqp::die("Internal error: inconsistent bind result");
         }
     },
-    'method_not_found_error', -> $obj, str $name {
+    'method_not_found_error', -> $obj, str $name, *@pos, *%named {
         my $class := nqp::getlexcaller('$?CLASS');
         my $die_msg := "Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'";
         if $name eq 'STORE' {

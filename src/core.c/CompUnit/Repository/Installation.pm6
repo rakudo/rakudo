@@ -26,7 +26,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
 
     method !prefix-writeable {
             if Rakudo::Internals.IS-WIN {
-                $!prefix-writeable-cache //= do {
+                $!prefix-writeable-cache ||= do {
                     my $writable = False;
                     try {
                         my $check-file = $.prefix.add('test-file');

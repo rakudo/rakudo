@@ -195,7 +195,9 @@ task ‘nqp-upload’, { # Step ❽ (nqp release guide)
 
 task ‘rakudo-upload’, { # Step ⓲ (rakudo release guide)
     for @tarball-distributors {
-        run ‘scp’, $rakudo-archive, “{$rakudo-archive}.asc”, “$_/rakudo/”
+        run ‘scp’, $rakudo-archive, “{$rakudo-archive}.asc”,
+            “{$rakudo-archive}.checksums.txt”, “{$rakudo-archive}.checksums.txt.asc”,
+            “$_/rakudo/”
     }
     True
 }
@@ -524,8 +526,18 @@ task ‘rakudo-tag’, { # Step ⓰ (rakudo release guide)
 }
 
 task ‘rakudo-sign’, { # Step ⓱ (rakudo release guide)
+    my $sig-file = $rakudo-archive ~ ‘.checksums.txt’;
+
     run <gpg2 --detach-sign --armor>,
         #`{‘--output’, $rakudo-signature,} ‘--’, $rakudo-archive;
+
+    for <md5sum sha1sum sha224sum sha256sum sha384sum sha512sum> -> $tool {
+        my $proc = run $tool, ‘--tag’, $rakudo-archive, :out;
+        my $sig = $proc.out.slurp: :close;
+        $sig-file.IO.spurt: $sig, :append;
+    }
+
+    run <gpg2 --clearsign>, ‘--’, $sig-file;
     True
 }
 

@@ -325,21 +325,32 @@ L<< settings -> keys page|https://github.com/settings/keys >>
 
 =item 17.
 
-Sign the tarball with your PGP key:
+Create a signature and checksum files:
 
-    gpg -b --armor rakudo-YYYY.MM.tar.gz
+    gpg --detach-sign --armor rakudo-YYYY.MM.tar.gz
+
+    md5sum    --tag rakudo-YYYY.MM.tar.gz >> rakudo-YYYY.MM.tar.gz.checksums.txt
+    sha1sum   --tag rakudo-YYYY.MM.tar.gz >> rakudo-YYYY.MM.tar.gz.checksums.txt
+    sha224sum --tag rakudo-YYYY.MM.tar.gz >> rakudo-YYYY.MM.tar.gz.checksums.txt
+    sha256sum --tag rakudo-YYYY.MM.tar.gz >> rakudo-YYYY.MM.tar.gz.checksums.txt
+    sha384sum --tag rakudo-YYYY.MM.tar.gz >> rakudo-YYYY.MM.tar.gz.checksums.txt
+    sha512sum --tag rakudo-YYYY.MM.tar.gz >> rakudo-YYYY.MM.tar.gz.checksums.txt
+
+    gpg --clearsign rakudo-YYYY.MM.tar.gz.checksums.txt
 
 =item 18.
 
-Upload the tarball and the signature to L<http://rakudo.org/downloads/rakudo>:
+Upload the tarball, the signature and checksum file to
+L<http://rakudo.org/downloads/rakudo>:
 
   scp rakudo-YYYY.MM.tar.gz rakudo-YYYY.MM.tar.gz.asc \
+       rakudo-YYYY.MM.tar.gz.checksums.txt \
        rakudo@rakudo.org:public_html/downloads/rakudo/
 
 
 If you do not have permissions for that, ask one of (jnthn,
 masak, tadzik, moritz, [Coke], lizmat, timotimo,
- AlexDaniel) on #raku or #raku-dev to do it for you.
+AlexDaniel) on #raku or #raku-dev to do it for you.
 
 =item 19.
 

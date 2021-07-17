@@ -159,7 +159,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     method !STRINGIFY(\whole, \fract, int $digits) {
         my str $s = nqp::tostr_I(
-          (fract * nqp::pow_I(10,$digits,Num,Int)).round
+          (fract * nqp::pow2_I(10,$digits,Int)).round
         );
         $s = nqp::concat(nqp::x('0',$digits - nqp::chars($s)),$s)
           if nqp::chars($s) < $digits;

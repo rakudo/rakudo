@@ -3634,7 +3634,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         '(' ~ ')' <semilist>
     }
     token circumfix:sym<[ ]> { :dba('array composer') '[' ~ ']' <semilist> }
-    token circumfix:sym<ang> {
+    token circumfix:sym«< >» {
         :dba('quote words')
         '<' ~ '>'
         [
@@ -3996,7 +3996,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         <O(|%methodcall)>
     }
 
-    token postcircumfix:sym<ang> {
+    token postcircumfix:sym«< >» {
         '<'
         [
         || <nibble(self.quote_lang(self.slang_grammar('Quote'), "<", ">", ['q', 'w', 'v']))> '>'
@@ -4528,7 +4528,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         'infix:sym<:=>', NQPMu,
         'infix:sym<::=>', NQPMu,
         'infix:sym<~~>', '(consider implementing an ACCEPTS method)',
-        'prefix:sym<|>', NQPMu);
+        'prefix:sym<|>', NQPMu,
+        'postcircumfix:sym«< >»', '(consider implementing \'&postcircumfix:<{ }>\', or method AT-KEY, or Associative role)',
+        'postcircumfix:sym«<< >>»', '(consider implementing \'&postcircumfix:<{ }>\', or method AT-KEY, or Associative role)',
+        'postcircumfix:sym<« »>', '(consider implementing \'&postcircumfix:<{ }>\', or method AT-KEY, or Associative role)',
+        );
     method add_categorical($category, $opname, $canname, $subname, $declarand?, :$defterm) {
         my $actions := self.actions;
 

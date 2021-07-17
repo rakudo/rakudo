@@ -2521,8 +2521,13 @@ my class X::TypeCheck::Assignment is X::TypeCheck {
     has $.symbol;
     method operation { 'assignment' }
     method message {
-        my $to = $.symbol.defined && $.symbol ne '$'
-            ?? " to $.symbol" !! "";
+        my $to = $.symbol
+          ?? $.symbol ne '$'
+            ?? " to $.symbol"
+            !! ""
+          !! $.symbol.defined
+            ?? " while creating a [ ]"
+            !! "";
         my $is-itself := nqp::eqaddr(self.expected, self.got);
         my $expected = $is-itself
             ?? "expected type $.expectedn cannot be itself"

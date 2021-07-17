@@ -3,20 +3,27 @@ proto sub circumfix:<[ ]>(Mu $?, *%) {*}
 multi sub circumfix:<[ ]>() {
     nqp::create(Array)
 }
-
-multi sub circumfix:<[ ]>(Iterable:D \iterable) {
+multi sub circumfix:<[ ]>(Iterable:D \iterable, *%_) {
+    my Mu \type := nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+      ?? Rakudo::Internals.hash-with-Array-typename(%_)
+      !! Array;
     nqp::if(
       nqp::iscont(iterable),
-      Rakudo::Internals.Array-with-one-elem(Mu, iterable),
+      Rakudo::Internals.Array-with-one-elem(type, iterable),
       nqp::if(
         nqp::istype(iterable,List) && nqp::isfalse(iterable.is-lazy),
-        Array.from-list(iterable),
-        Array.from-iterator(iterable.iterator)
+        type.from-list(iterable),
+        type.from-iterator(iterable.iterator)
       )
     )
 }
-multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
-    Rakudo::Internals.Array-with-one-elem(Mu, x)
+multi sub circumfix:<[ ]>(Mu \value, *%_) {   # really only for [$foo]
+    Rakudo::Internals.Array-with-one-elem(
+      nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+        ?? Rakudo::Internals.hash-with-Array-typename(%_)
+        !! Array,
+      value
+    )
 }
 
 proto sub pop($, *%) {*}

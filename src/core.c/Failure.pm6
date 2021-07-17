@@ -130,6 +130,9 @@ my class Failure is Nil {
     method STORE(Failure:D: *@) {
         self!throw()
     }
+    method UPGRADE-RAT(Int $nu, Int $de) {
+        Failure.new("Upgrading of Rat $nu / $de not allowed")
+    }
 }
 
 proto sub fail(|) {*};

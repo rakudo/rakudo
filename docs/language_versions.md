@@ -3,6 +3,9 @@
 For review, nothing set in sand yet (and these things should never be set in
 stone; we need to keep learning and adapting them over time).
 
+(For details on adding new versions or features in new versions,
+see [New language versions](./New-language-versions).)
+
 ## Rakudo branches
 
 We want to provide a little more stability than we attain today in terms of

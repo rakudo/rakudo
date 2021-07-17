@@ -395,10 +395,6 @@ my class Cool { # declared in BOOTSTRAP
     proto method trim-trailing(*%) {*}
     multi method trim-trailing(Cool:D:) { self.Str.trim-trailing }
 
-    method EVAL(*%opts) {
-        EVAL(self, context => CALLER::, |%opts);
-    }
-
     multi method Real() {
         nqp::istype((my $numeric := self.Numeric),Failure)
           ?? $numeric

@@ -287,8 +287,12 @@ multi sub infix:<=~=>(\a, \b, :$tolerance = $*TOLERANCE)    {
 my constant &infix:<≅> = &infix:<=~=>;
 
 proto sub infix:<!=>(Mu $?, Mu $?, *%) is pure  {*}
-multi sub infix:<!=>($?)                    { Bool::True }
-multi sub infix:<!=>(Mu \a, Mu \b)          { not a == b }
+multi sub infix:<!=>($?) { Bool::True }
+multi sub infix:<!=>(Mu \a, Mu \b) {
+    nqp::istype(($_ := a == b),Junction)
+      ?? $_ but .not
+      !! $_.not
+}
 # U+2260 NOT EQUAL TO
 my constant &infix:<≠> := &infix:<!=>;
 

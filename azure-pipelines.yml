@@ -290,6 +290,9 @@ stages:
 
         - publish: rakudo-win.zip
           artifact: rakudo-win
+          
+        - publish: rakudo-win.msi
+          artifact: rakudo-win-msi
 
     - job: zip
       displayName: Package results
@@ -314,7 +317,11 @@ stages:
 
       - download: current
         artifact: rakudo-win
-        displayName: Download Windows build artifacts
+        displayName: Download Windows binary build
+        
+      - download: current
+        artifact: rakudo-win-msi
+        displayName: Download Windows msi
 
       - script: |
           OUT_DIR=rakudo-builds-$(VERSION)-$(REVISION)
@@ -322,6 +329,7 @@ stages:
           cp $(Pipeline.Workspace)/rakudo-linux/rakudo-linux.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-linux-x86_64-gcc.tar.gz
           cp $(Pipeline.Workspace)/rakudo-macos/rakudo-macos.tar.gz $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-macos-x86_64-clang.tar.gz
           cp $(Pipeline.Workspace)/rakudo-win/rakudo-win.zip        $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-win-x86_64-msvc.zip
+          cp $(Pipeline.Workspace)/rakudo-win-msi/rakudo-win.msi    $OUT_DIR/rakudo-moar-$(VERSION)-$(REVISION)-win-x86_64-msvc.msi
           tar -czf rakudo-moar-builds-$(VERSION)-$(REVISION).tar.gz $OUT_DIR
 
       - publish: rakudo-moar-builds-$(VERSION)-$(REVISION).tar.gz

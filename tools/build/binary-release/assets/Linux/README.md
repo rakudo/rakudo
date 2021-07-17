@@ -13,14 +13,18 @@ To run a Raku program, open a command prompt and type
 
     /path/to/this/folder/bin/raku my_script.raku
 
-or start a REPL by calling `raku` without an argument
-
-    /path/to/this/folder/bin/raku
-
 To add the relevant paths to your environment so you don't have to type the
-full path run the following script (don't forget the 'eval $()'):
+full path run the following script (don't forget the 'eval "$()"'):
 
-    eval $(scripts/set-env.sh)
+    eval "$(/path/to/this/folder/scripts/set-env.sh)"
+
+Users of the Fish shell users type:
+
+    eval (/path/to/this/folder/scripts/set-env.sh --fish)
+
+To start an interactive Raku environment call `raku` without an argument
+
+    raku
 
 
 Installing modules
@@ -28,7 +32,7 @@ Installing modules
 
 To install Raku modules you can use the Zef module installer.
 
-    /path/to/this/folder/bin/raku /path/to/this/folder/share/perl6/site/bin/zef install JSON::Fast
+    raku /path/to/this/folder/share/perl6/site/bin/zef install JSON::Fast
 
 Modules will be installed into this Raku package and will thus be available
 even when moving this package.
@@ -38,7 +42,10 @@ Native code modules
 -------------------
 
 To install modules that require a compiler toolchain, you have to have a
-compiler installed. You can do that by installing `XCode` from the App Store.
+compiler installed.
+
+- On Debian/Ubuntu based systems do `sudo apt-get install gcc make`
+- On RedHat/Fedora based systems do `sudo dnf install gcc make`
 
 
 Changes
@@ -46,10 +53,6 @@ Changes
 
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
-
-To receive important notifications from the core developer team, please
-subscribe to [the p6lert service](https://alerts.raku.org) using the RSS feed,
-twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-p6lert).
 
 
 Where to get help or answers to questions
@@ -86,7 +89,7 @@ Submitting patches
 ==================
 
 If you have a patch that fixes a bug or adds a new feature, please create a
-pull request using github's pull request infrastructure.
+pull request using GitHub's pull request infrastructure.
 
 See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/CONTRIBUTING.md)
 for more information.

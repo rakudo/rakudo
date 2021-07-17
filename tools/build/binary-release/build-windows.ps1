@@ -60,7 +60,7 @@ CheckLastExitCode
 cd ..
 
 echo "========= Copying auxiliary files"
-cp -Force -r "tools\build\binary-release\Windows\*" install
+cp -Force -r "tools\build\binary-release\assets\Windows\*" install
 cp LICENSE install
 
 echo "========= Preparing archive"
@@ -68,3 +68,6 @@ $FILE_NAME = "rakudo-moar-${Env:VERSION}-${Env:REVISION}-win-x86_64-msvc"
 mv install $FILE_NAME
 Compress-Archive -Path $FILE_NAME -DestinationPath ..\rakudo-win.zip
 
+echo "========= Trigger the MSI build"
+$buildMSIScript = (Join-Path -Path $repoPath -ChildPath "\tools\build\binary-release\msi\build-msi.ps1")
+& $buildMSIScript ${Env:VERSION} $FILE_NAME ..\rakudo-win.msi

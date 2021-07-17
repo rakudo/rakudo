@@ -1,0 +1,4 @@
+*.wxsobj
+work/
+rakudo-moar-2021.05-01-win-x86_64-msvc/
+rakudo-moar-2021.05-01-win-x86_64-msvc.zip

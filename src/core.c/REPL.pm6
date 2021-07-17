@@ -432,7 +432,7 @@ do {
                     $!history-file = $history-file.IO;
                 }
                 else {
-                    my $dir := $*HOME || $*TMPDIR;
+                    my $dir := $*HOME || $*TMPDIR; # use temp directory if there is no home directory (e.g. Windows)
                     my $old := $dir.add('.perl6/rakudo-history');
                     my $new := $dir.add('.raku/rakudo-history');
                     if $old.e && !$new.e {  # migrate old hist to new location
@@ -442,9 +442,16 @@ do {
                     $!history-file = $new;
                 }
 
-                without mkdir $!history-file.parent {
-                    note "I ran into a problem trying to set up history: {.exception.message}";
-                    note 'Sorry, but history will not be saved at the end of your session';
+                if  !mkdir($!history-file.parent) || ! $!history-file.parent.d {
+                    # use temp directory if home directory is write protected
+                    my $dir := $*TMPDIR.add(".raku_{+$*USER}");
+                    with mkdir $dir, 0o700 {
+                        $!history-file = $dir.add('rakudo-history');
+                    }
+                    else {
+                        note "I ran into a problem trying to set up history: {.exception.message}";
+                        note 'Sorry, but history will not be saved at the end of your session';
+                    }
                 }
             }
 

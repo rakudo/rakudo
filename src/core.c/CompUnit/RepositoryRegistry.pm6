@@ -148,6 +148,17 @@ class CompUnit::RepositoryRegistry {
              )
            ) -> $home-path {
             $home = $home-path ~ $sep ~ '.raku';
+            # check if we can write the home directory, else fall back to temp directory
+            nqp::mkdir($home, 0o700) unless nqp::stat($home, nqp::const::STAT_EXISTS);
+            if !nqp::stat($home, nqp::const::STAT_ISDIR) {
+                my $tmp = "$*TMPDIR/.raku_{+$*USER}";
+                nqp::mkdir($tmp, 0o700) unless nqp::stat($tmp, nqp::const::STAT_EXISTS);
+                # tamper check (what about Windows?)
+                if ( +$*USER == nqp::stat($tmp, nqp::const::STAT_UID)
+                    && 0o700 == nqp::stat($tmp, nqp::const::STAT_PLATFORM_MODE) +& 0o777) {
+                    $home = $tmp;
+                }
+            }
             $home-spec = 'inst#' ~ $home;
         }
 

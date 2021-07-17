@@ -405,7 +405,6 @@ my class Cool { # declared in BOOTSTRAP
           !! $numeric.Real
     }
 
-    proto method Int(|) {*}
     multi method Int()  {
         nqp::istype((my $numeric := self.Numeric),Failure)
           ?? $numeric

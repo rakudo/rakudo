@@ -1376,6 +1376,7 @@ BEGIN {
     nqp::sethllconfig('Raku', nqp::hash(
         'call_dispatcher', 'nqp-call',
         'method_call_dispatcher', 'nqp-meth-call',
+        'find_method_dispatcher', 'nqp-find-meth',
     ));
 #?endif
 
@@ -3998,6 +3999,7 @@ nqp::sethllconfig('Raku', nqp::hash(
 #?if moar
     'call_dispatcher', 'raku-call',
     'method_call_dispatcher', 'raku-meth-call',
+    'find_method_dispatcher', 'nqp-find-meth',  # NQP one is probably good enough
     'max_inline_size', 384,
 #?endif
 ));

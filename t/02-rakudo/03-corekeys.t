@@ -792,6 +792,8 @@ my @allowed =
         Q{$=pod},
         Q{$_},
         Q{$¢},
+        Q{&last},
+        Q{&next},
         Q{&postcircumfix:<[; ]>},
         Q{&postcircumfix:<{; }>},
         Q{CORE-SETTING-REV},

@@ -1109,22 +1109,22 @@ Consider using a block if any of these are necessary for your mapping code."
                    nqp::stmts(  # don't sink the result
                      nqp::handle(
                         (my $result := $test(a)),
-                       'LAST', nqp::if(
-                         judge(
-                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
-                           a
-                         ),
-                         (last a),
-                         (last)
-                       ),
                        'NEXT', nqp::if(
                          judge(
                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
                            a
                          ),
-                         (next a),
-                         (next)
-                       )
+                         THROW(nqp::const::CONTROL_NEXT, a),
+                         nqp::throwextype(nqp::const::CONTROL_NEXT)
+                       ),
+                       'LAST', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           a
+                         ),
+                         THROW(nqp::const::CONTROL_LAST, a),
+                         nqp::throwextype(nqp::const::CONTROL_LAST)
+                       ),
                      ),
                      nqp::if(judge($result, a),a,Empty)
                    )
@@ -1143,16 +1143,16 @@ Consider using a block if any of these are necessary for your mapping code."
                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
                            params
                          ),
-                         (next params),
-                         (next)
+                         THROW(nqp::const::CONTROL_NEXT, params),
+                         nqp::throwextype(nqp::const::CONTROL_NEXT)
                        ),
                        'LAST', nqp::if(
                          judge(
                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
                            params
                          ),
-                         (last params),
-                         (last)
+                         THROW(nqp::const::CONTROL_LAST, params),
+                         nqp::throwextype(nqp::const::CONTROL_LAST)
                        )
                      );
                      judge($result, params) ?? params !! Empty
@@ -1170,16 +1170,16 @@ Consider using a block if any of these are necessary for your mapping code."
                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
                            params
                          ),
-                         (next params),
-                         (next)
+                         THROW(nqp::const::CONTROL_NEXT, params),
+                         nqp::throwextype(nqp::const::CONTROL_NEXT)
                        ),
                        'LAST', nqp::if(
                          judge(
                            nqp::ifnull(nqp::getpayload(nqp::exception),False),
                            params
                          ),
-                         (last params),
-                         (last)
+                         THROW(nqp::const::CONTROL_LAST, params),
+                         nqp::throwextype(nqp::const::CONTROL_LAST)
                        )
                      );
                      judge($result, params) ?? params !! Empty

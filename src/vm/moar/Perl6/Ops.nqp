@@ -221,29 +221,11 @@ $ops.add_hll_op('Raku', 'p6sink', -> $qastcomp, $op {
     # Only need to do anything special if it's an object.
     my $sinkee_res := $qastcomp.as_mast($op[0]);
     if $sinkee_res.result_kind == $MVM_reg_obj {
-        # Put computation of sinkee first.
-
-        # Check it's concrete try to find the sink method.
-        my $sinkee_reg := $sinkee_res.result_reg;
-        my $itmp := $*REGALLOC.fresh_i();
-        my $meth := $*REGALLOC.fresh_o();
-        my $done_lbl := MAST::Label.new();
-        MAST::Op.new( :op('isconcrete'), $itmp, $sinkee_reg );
-        MAST::Op.new( :op('unless_i'), $itmp, $done_lbl );
-        MAST::Op.new( :op('tryfindmeth'), $meth, $sinkee_reg,
-            MAST::SVal.new( :value('sink') ));
-        MAST::Op.new( :op('isnull'), $itmp, $meth );
-        MAST::Op.new( :op('if_i'), $itmp, $done_lbl );
-        $*REGALLOC.release_register($itmp, $MVM_reg_int64);
-
-        # Emit sink method call.
-        MAST::Call.new(
-            :target($meth), :flags([$Arg::obj]), $sinkee_reg
-        );
-        $*REGALLOC.release_register($meth, $MVM_reg_obj);
-
-        # Add end label, and we're done.
-        $*MAST_FRAME.add-label($done_lbl);
+        # Send it along to the dispatcher. Note that we do *not* decont it, as
+        # we don't want to sink things that are in containers.
+        my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+            [$op[0]], [$sinkee_res]);
+        op_dispatch_v('raku-sink', $callsite_id, [$sinkee_res.result_reg]);
         $*REGALLOC.release_register($sinkee_res.result_reg, $MVM_reg_obj);
         MAST::InstructionList.new(MAST::VOID, $MVM_reg_void);
     }

@@ -348,7 +348,7 @@ proto sub trial_bind(*@args) {
 my $trial_bind := -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new(
         :op('call'),
-        QAST::WVal.new( :value(nqp::getcodeobj(&trial_bind)) ),
+        QAST::WVal.new( :value(&trial_bind) ),
         |@($op)
     ));
 };
@@ -359,7 +359,7 @@ proto sub get_binder()   { $Binder }
 $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new(
         :op('call'),
-        QAST::WVal.new( :value(nqp::getcodeobj(&set_binder)) ),
+        QAST::WVal.new( :value(&set_binder) ),
         |@($op)
     ));
 });
@@ -368,7 +368,7 @@ $ops.add_hll_op('Raku', 'p6box', -> $qastcomp, $op {
 });
 $ops.add_hll_op('Raku', 'p6typecheckrv', -> $qastcomp, $op {
     if nqp::istype($op[1], QAST::WVal) {
-        my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[1].value);
+        my $type := &get_binder().get_return_type($op[1].value);
         if nqp::isnull($type) || nqp::objprimspec(nqp::decont($type)) {
             $qastcomp.as_mast($op[0])
         }
@@ -398,7 +398,7 @@ sub decontrv_op($version) {
             $qastcomp.as_mast($op[1])
         }
         else {
-            my $type := nqp::getcodeobj(&get_binder)().get_return_type($op[0].value);
+            my $type := &get_binder().get_return_type($op[0].value);
             if !nqp::isnull($type) && nqp::objprimspec(nqp::decont($type)) -> int $prim {
                 if    $prim == 1 { $qastcomp.as_mast($op[1], :want($MVM_reg_int64)) }
                 elsif $prim == 2 { $qastcomp.as_mast($op[1], :want($MVM_reg_num64)) }

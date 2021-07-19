@@ -503,6 +503,43 @@
     });
 }
 
+# Sink dispatcher. Called in void context with the decontainerized value to sink.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
+    # Guard on the type and concreteness.
+    my $sinkee := nqp::captureposarg($capture, 0);
+    my $track-sinkee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-sinkee);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-sinkee);
+
+    # Now consider what we're sinking.
+    if nqp::isconcrete_nd($sinkee) {
+        # Concrete. See if it has a `sink` method, and then also if it's not
+        # Mu.sink, which is a no-op.
+        my $meth := nqp::how_nd($sinkee).find_method($sinkee, 'sink');
+        if nqp::isconcrete($meth) && !nqp::eqaddr($meth, Mu.HOW.find_method(Mu, 'sink')) {
+            # Need to do a call to the sink method. Since sink is a Raku thing,
+            # assume we can go straight for the Raku method dispatcher.
+            my $with-name := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-str', $capture, 0, 'sink');
+            my $with-type := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $with-name, 0, nqp::what_nd($sinkee));
+            my $with-callee := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $with-type, 0, $meth);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+                'raku-meth-call-resolved', $with-callee);
+        }
+        else {
+            # Nothing to do (use boot-value and let void context take care of
+            # discarding the value).
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+        }
+    }
+    else {
+        # Not concrete, nothing to do.
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+    }
+});
+
 # Coercion dispatcher. The first argument is the value to coerce, the second
 # is what to coerce it into.
 {

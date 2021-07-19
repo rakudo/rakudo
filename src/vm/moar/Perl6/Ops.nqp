@@ -116,41 +116,24 @@ $ops.add_hll_op('Raku', 'p6definite', -> $qastcomp, $op {
 });
 $ops.add_hll_moarop_mapping('Raku', 'p6capturelex', 'p6capturelex');
 $ops.add_hll_op('Raku', 'p6bindassert', -> $qastcomp, $op {
-    # Compile the bind value and the type.
-    my $value_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-    my $type_res  := $qastcomp.as_mast($op[1], :want($MVM_reg_obj));
-
-    # Emit a type check.
-    my $tcr_reg  := $*REGALLOC.fresh_i();
-    my $dc_reg   := $*REGALLOC.fresh_o();
-    my $lbl_done := MAST::Label.new();
-    MAST::Op.new( :op('decont'), $dc_reg, $value_res.result_reg );
-    MAST::Op.new( :op('istype'), $tcr_reg, $dc_reg, $type_res.result_reg );
-    MAST::Op.new( :op('if_i'), $tcr_reg, $lbl_done );
-    $*REGALLOC.release_register($dc_reg, $MVM_reg_obj);
-    $*REGALLOC.release_register($tcr_reg, $MVM_reg_int64);
-
-    # Error generation.
-    proto bind_error($got, $wanted) {
-        nqp::gethllsym('Raku', 'METAMODEL_CONFIGURATION').throw_or_die(
-            'X::TypeCheck::Binding',
-            "Type check failed in binding; expected '" ~
-                $wanted.HOW.name($wanted) ~ "' but got '" ~
-                $got.HOW.name($got) ~ "'",
-            :$got,
-            :expected($wanted)
-        );
-    }
-    my $err_rep := $qastcomp.as_mast(QAST::WVal.new( :value(nqp::getcodeobj(&bind_error)) ));
-    MAST::Call.new(
-        :target($err_rep.result_reg),
-        :flags($Arg::obj, $Arg::obj),
-        $value_res.result_reg, $type_res.result_reg
-    );
-    $*MAST_FRAME.add-label($lbl_done);
-    $*REGALLOC.release_register($err_rep.result_reg, $MVM_reg_obj);
-
-    MAST::InstructionList.new($value_res.result_reg, $MVM_reg_obj)
+    my $temp := QAST::Node.unique('bind_value');
+    $qastcomp.as_mast(QAST::Stmt.new(
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :name($temp), :decl('var'), :scope('local') ),
+            $op[0]
+        ),
+        QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-bind-assert') ),
+            QAST::Var.new( :name($temp), :scope('local') ),
+            QAST::Op.new(
+                :op('decont'),
+                QAST::Var.new( :name($temp), :scope('local') )
+            ),
+            $op[1]
+        )
+    ))
 });
 $ops.add_hll_moarop_mapping('Raku', 'p6stateinit', 'p6stateinit');
 $ops.add_hll_moarop_mapping('Raku', 'p6setpre', 'p6setpre');

@@ -453,6 +453,56 @@
     });
 }
 
+# Binding type assertion dispatcher, used to do type checks of binds. Evaluates
+# to the value itself when the type check passes, installing a guard along the
+# way. Otherwise, throws.
+{
+    sub bind-error($value, $type) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::TypeCheck::Binding',
+            "Type check failed in binding; expected '" ~
+                $type.HOW.name($value) ~ "' but got '" ~
+                nqp::how_nd($value).HOW.name($value) ~ "'",
+            :got($value),
+            :expected($type)
+        );
+    }
+
+    my $bind-check := -> $value, $value-decont, $type {
+        nqp::istype_nd($value-decont, $type) ?? $value !! bind-error($value, $type)
+    }
+
+    nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-bind-assert', -> $capture {
+        my $value-decont := nqp::captureposarg($capture, 1);
+        my $type := nqp::captureposarg($capture, 2);
+        if nqp::how_nd($type).archetypes.nominal {
+            if nqp::istype_nd($value-decont, $type) {
+                # Nominal, so a type guard on the decont'd value will suffice,
+                # then produce the original value.
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+                        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1));
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+                        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 2));
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+            }
+            else {
+                my $value := nqp::captureposarg($capture, 0);
+                bind-error($value, $type)
+            }
+        }
+        else {
+            # Not a nominal type, can't guard it, so set up a call to do the
+            # check late-bound.
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+                    nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 2));
+            my $delegate := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $capture, 0, $bind-check);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                $delegate);
+        }
+    });
+}
+
 # Coercion dispatcher. The first argument is the value to coerce, the second
 # is what to coerce it into.
 {

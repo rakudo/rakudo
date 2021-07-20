@@ -2931,13 +2931,13 @@ BEGIN {
             sub add_to_cache($entry) {
 #?if !moar
                 return 0 if nqp::capturehasnameds($capture);
-#?endif
                 nqp::scwbdisable();
                 nqp::bindattr($dcself, Routine, '$!dispatch_cache',
                     nqp::multicacheadd(
                         nqp::getattr($dcself, Routine, '$!dispatch_cache'),
                         $capture, $entry));
                 nqp::scwbenable();
+#?endif
             }
             if nqp::elems(@possibles) == 1 && $pure_type_result {
                 add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));

@@ -794,6 +794,7 @@ my @allowed =
         Q{$¢},
         Q{&postcircumfix:<[; ]>},
         Q{&postcircumfix:<{; }>},
+        Q{&postcircumfix:<[ ]>},
         Q{CORE-SETTING-REV},
         Q{Grammar},
         Q{PseudoStash},

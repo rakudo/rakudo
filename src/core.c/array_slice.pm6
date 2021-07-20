@@ -289,11 +289,19 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, :$BIND!) is raw {
 }
 
 # @a[**]
-multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, *%adv) is raw {
-    X::NYI.new(feature => 'HyperWhatever in array index').throw;
+# candidates that are only useful with v6.e features can be found in
+# core.e/array_hyperslice.pm6
+
+multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever:D, *%other ) is raw {
+    gather SELF.deepmap(*.take)
 }
+
+multi sub postcircumfix:<[ ]>( \SELF, HyperWhatever:D, :$v!, *%other ) is raw {
+    gather SELF.deepmap(*.take)
+}
+
 multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is raw {
-    X::NYI.new(feature => 'HyperWhatever in array index').throw;
+    X::NYI.new(feature => 'Assigning to HyperWhatever in array index').throw;
 }
 
 # @a[]

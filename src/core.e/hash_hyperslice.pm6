@@ -1,5 +1,33 @@
 # assoc postcircumfix with HyperWhatever goes here for 6.e
 
+multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, *%other ) is raw {
+    sub recurse(\k, \v) {
+        if v ~~ Associative {
+            for v.kv -> \k, \v { recurse k, v }
+        } else {
+            take slip v
+        }
+    }
+
+    gather for SELF.kv -> \k, \v {
+        recurse k, v
+    }
+}
+
+multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$v!, *%other ) is raw {
+    sub recurse(\k, \v) {
+        if v ~~ Associative {
+            for v.kv -> \k, \v { recurse k, v }
+        } else {
+            take slip v
+        }
+    }
+
+    gather for SELF.kv -> \k, \v {
+        recurse k, v
+    }
+}
+
 multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$kv!, *%other ) is raw {
     sub recurse(\k, \v) {
         if v ~~ Associative {
@@ -20,20 +48,6 @@ multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$k!, *%other ) is raw {
             for v.kv -> \k, \v { recurse k, v }
         } else {
             take slip k
-        }
-    }
-
-    gather for SELF.kv -> \k, \v {
-        recurse k, v
-    }
-}
-
-multi sub postcircumfix:<{ }>( \SELF, HyperWhatever, :$v!, *%other ) is raw {
-    sub recurse(\k, \v) {
-        if v ~~ Associative {
-            for v.kv -> \k, \v { recurse k, v }
-        } else {
-            take slip v
         }
     }
 

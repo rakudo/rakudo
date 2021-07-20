@@ -158,4 +158,18 @@ my class NFKC is Uni {
     }
 }
 
+multi sub infix:<cmp>(Uni:D \a, Uni:D \b) {
+    my int $elems-a = nqp::elems(a);
+    my int $elems-b = nqp::elems(b);
+    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+
+    my int $i = -1;
+    nqp::until(
+      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+        || (my $res = nqp::cmp_i(nqp::atpos_i(a,$i),nqp::atpos_i(b,$i))),
+      nqp::null
+    );
+    ORDER($res || nqp::cmp_i($elems-a,$elems-b))
+}
+
 # vim: expandtab shiftwidth=4

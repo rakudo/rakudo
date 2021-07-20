@@ -18,7 +18,9 @@ class Perl6::Metamodel::EnumHOW
     does Perl6::Metamodel::BUILDPLAN
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
+#?if !moar
     does Perl6::Metamodel::InvocationProtocol
+#?endif
     does Perl6::Metamodel::Mixins
 {
     # Hash representing enumeration keys to values.
@@ -165,8 +167,10 @@ class Perl6::Metamodel::EnumHOW
             $!composed := 1;
         }
 
+#?if !moar
         # Compose invocation protocol.
         self.compose_invocation($obj);
+#?endif
 
         $obj
     }

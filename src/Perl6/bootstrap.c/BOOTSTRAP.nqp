@@ -2093,10 +2093,12 @@ BEGIN {
         }));
     Code.HOW.compose_repr(Code);
 
+#?if !moar
     # Need to actually run the code block. Also need this available before we finish
     # up the stub.
     Code.HOW.set_invocation_attr(Code, Code, '$!do');
     Code.HOW.compose_invocation(Code);
+#?endif
 
     # class Block is Code {
     #     has Mu $!phasers;                # phasers for this block
@@ -2222,7 +2224,9 @@ BEGIN {
             $dcself
     }));
     Block.HOW.compose_repr(Block);
+#?if !moar
     Block.HOW.compose_invocation(Block);
+#?endif
 
     # class Routine is Block {
     #     has @!dispatchees;
@@ -3243,23 +3247,31 @@ BEGIN {
             $dcself
         }));
     Routine.HOW.compose_repr(Routine);
+#?if !moar
     Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
     Routine.HOW.compose_invocation(Routine);
+#?endif
 
     # class Sub is Routine {
     Sub.HOW.add_parent(Sub, Routine);
     Sub.HOW.compose_repr(Sub);
+#?if !moar
     Sub.HOW.compose_invocation(Sub);
+#?endif
 
     # class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
     Method.HOW.compose_repr(Method);
+#?if !moar
     Method.HOW.compose_invocation(Method);
+#?endif
 
     # class Submethod is Routine {
     Submethod.HOW.add_parent(Submethod, Routine);
     Submethod.HOW.compose_repr(Submethod);
+#?if !moar
     Submethod.HOW.compose_invocation(Submethod);
+#?endif
 
     # Capture store for SET_CAPS.
     my class RegexCaptures {
@@ -3455,7 +3467,9 @@ BEGIN {
             }
         }));
     Regex.HOW.compose_repr(Regex);
+#?if !moar
     Regex.HOW.compose_invocation(Regex);
+#?endif
 
     # class Str is Cool {
     #     has str $!value is box_target;
@@ -3568,8 +3582,10 @@ BEGIN {
     ForeignCode.HOW.add_parent(ForeignCode, Any);
     ForeignCode.HOW.add_attribute(ForeignCode, Attribute.new(:name<$!do>, :type(Code), :package(ForeignCode)));
     ForeignCode.HOW.compose_repr(ForeignCode);
+#?if !moar
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
+#?endif
 
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
@@ -3633,6 +3649,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Junction);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
 
+#?if !moar
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
@@ -3675,6 +3692,7 @@ BEGIN {
         });
     Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);
     Mu.HOW.compose_invocation(Mu);
+#?endif
 
     # If we don't already have a PROCESS, set it up.
     my $PROCESS := nqp::gethllsym('Raku', 'PROCESS');
@@ -4050,6 +4068,7 @@ Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
 
+#?if !moar
 # Make roles handle invocations.
 my $role_invoke_handler := nqp::getstaticcode(sub ($self, *@pos, *%named) {
     $self.HOW.pun($self)(|@pos, |%named)
@@ -4063,6 +4082,7 @@ Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
 Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
+#?endif
 
 # Configure the MOP (not persisted as it ends up in a lexical...)
 Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);

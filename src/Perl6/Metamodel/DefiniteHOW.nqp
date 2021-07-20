@@ -17,7 +17,6 @@ class Perl6::Metamodel::DefiniteHOW
     #~ does Perl6::Metamodel::BUILDPLAN
     #~ does Perl6::Metamodel::BoolificationProtocol
     #~ does Perl6::Metamodel::REPRComposeProtocol
-    #~ does Perl6::Metamodel::InvocationProtocol
 {
     my $archetypes := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable(1));
     method archetypes() {

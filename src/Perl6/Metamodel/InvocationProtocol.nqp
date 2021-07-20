@@ -1,3 +1,4 @@
+#?if !moar
 role Perl6::Metamodel::InvocationProtocol {
     has int $!has_invocation_attr;
     has $!invocation_attr_class;
@@ -82,22 +83,10 @@ role Perl6::Metamodel::InvocationProtocol {
                         }
                     }
                 }
-#?if moar
-                for self.mro($obj) -> $class {
-                    if nqp::can($class.HOW, 'has_multi_invocation_attrs') {
-                        if $class.HOW.has_multi_invocation_attrs($class) {
-                            nqp::setmultispec($obj,
-                                $class.HOW.multi_attr_class($class),
-                                $class.HOW.multi_valid_attr_name($class),
-                                $class.HOW.multi_cache_attr_name($class));
-                            last;
-                        }
-                    }
-                }
-#?endif
             }
         }
     }
 }
+#?endif
 
 # vim: expandtab sw=4

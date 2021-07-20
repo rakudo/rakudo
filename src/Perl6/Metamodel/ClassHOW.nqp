@@ -20,7 +20,9 @@ class Perl6::Metamodel::ClassHOW
     does Perl6::Metamodel::ArrayType
     does Perl6::Metamodel::BoolificationProtocol
     does Perl6::Metamodel::REPRComposeProtocol
+#?if !moar
     does Perl6::Metamodel::InvocationProtocol
+#?endif
     does Perl6::Metamodel::ContainerSpecProtocol
     does Perl6::Metamodel::Finalization
     does Perl6::Metamodel::Concretization
@@ -245,8 +247,10 @@ class Perl6::Metamodel::ClassHOW
         # Compose the meta-methods.
         self.compose_meta_methods($obj);
 
+#?if !moar
         # Compose invocation protocol.
         self.compose_invocation($obj);
+#?endif
 
         $obj
     }

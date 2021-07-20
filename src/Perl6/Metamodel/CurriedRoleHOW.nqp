@@ -21,7 +21,9 @@ class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::LanguageRevision
+#?if !moar
     does Perl6::Metamodel::InvocationProtocol
+#?endif
 {
     has $!curried_role;
     has $!candidate;                # Will contain matching candidate from curried role group
@@ -74,8 +76,9 @@ class Perl6::Metamodel::CurriedRoleHOW
             :named_args(%named_args), :name($name));
         my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
         $meta.set_name($type, $name);
+#?if !moar
         $meta.compose_invocation($type);
-
+#?endif
         nqp::settypecheckmode($type, 2);
     }
 

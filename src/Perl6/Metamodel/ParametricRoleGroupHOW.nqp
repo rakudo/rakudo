@@ -17,7 +17,9 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::BoolificationProtocol
+#?if !moar
     does Perl6::Metamodel::InvocationProtocol
+#?endif
 {
     has @!candidates;
     has $!selector;
@@ -54,7 +56,9 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             $type.HOW.'!produce_parameterization'($type, @packed);
         });
 
+#?if !moar
         $meta.compose_invocation($type_obj);
+#?endif
 
         $type_obj
     }

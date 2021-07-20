@@ -203,4 +203,8 @@ sub GATHER(&block) is implementation-detail {
     Seq.new(Rakudo::Iterator.Gather(&block))
 }
 
+multi sub infix:<cmp>(Seq:D \a, Seq:D \b) {
+    a.iterator cmp b.iterator
+}
+
 # vim: expandtab shiftwidth=4

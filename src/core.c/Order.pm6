@@ -99,4 +99,28 @@ proto sub infix:<unicmp>($, $, *% --> Order:D) is pure {*}
 # NOT is pure because of $*COLLATION
 proto sub infix:<coll>(  $, $, *% --> Order:D) {*}
 
+multi sub infix:<cmp>(
+  Iterator:D \iter-a, Iterator:D \iter-b
+) is implementation-detail {
+    nqp::until(
+      nqp::eqaddr((my $a := iter-a.pull-one),IterationEnd)
+        || nqp::eqaddr((my $b := iter-b.pull-one),IterationEnd)
+        || (my $order := infix:<cmp>($a,$b)),
+      nqp::null
+    );
+
+    nqp::unless(
+      $order,                                         # ended because different?
+      nqp::if(
+        nqp::eqaddr($a,IterationEnd),                 # left exhausted?
+        nqp::if(
+          nqp::eqaddr(iter-b.pull-one,IterationEnd),  # right exhausted?
+          Same,
+          Less
+        ),
+        More
+      )
+    )
+}
+
 # vim: expandtab shiftwidth=4

@@ -16,6 +16,15 @@ multi sub infix:<cmp>(\a, \b) {
       ?? Same
       !! a.Stringy cmp b.Stringy
 }
+multi sub infix:<cmp>(Iterable:D \a, Iterable:D \b) {
+    a.iterator cmp b.iterator
+}
+multi sub infix:<cmp>(Iterable:D \a, \b) is default {
+    a.iterator cmp b.iterator
+}
+multi sub infix:<cmp>(\a, Iterable:D \b) is default {
+    a.iterator cmp b.iterator
+}
 multi sub infix:<cmp>(Real:D \a, \b) {
      a === -Inf
        ?? Less

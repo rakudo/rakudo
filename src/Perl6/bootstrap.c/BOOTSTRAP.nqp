@@ -2992,6 +2992,7 @@ BEGIN {
             }
         }));
     Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
+#?if !moar
         sub assemble_capture(*@pos, *%named) {
             my $c := nqp::create(Capture);
             nqp::bindattr($c, Capture, '@!list', @pos);
@@ -2999,6 +3000,15 @@ BEGIN {
             $c
         }
         nqp::invokewithcapture(&assemble_capture, $capture)
+#?endif
+#?if moar
+        my $raku-capture := nqp::create(Capture);
+        nqp::bindattr($raku-capture, Capture, '@!list',
+            nqp::dispatch('boot-syscall', 'capture-pos-args', $capture));
+        nqp::bindattr($raku-capture, Capture, '%!hash',
+            nqp::dispatch('boot-syscall', 'capture-named-args', $capture));
+        $raku-capture
+#?endif
     }));
     Routine.HOW.add_method(Routine, 'analyze_dispatch', nqp::getstaticcode(sub ($self, @args, @flags) {
             # Compile time dispatch result.

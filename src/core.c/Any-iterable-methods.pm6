@@ -2373,33 +2373,30 @@ Consider using a block if any of these are necessary for your mapping code."
 
         nqp::until(
           nqp::eqaddr($value,IterationEnd),
-          nqp::stmts(
-            (my int $redo = 1),
-            nqp::while(
-              $redo,
-              nqp::stmts(
-                $redo = 0,
-                nqp::handle(
-                  nqp::push(buffer,op($value)),
-                  'NEXT', nqp::unless(
-                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                    nqp::push(buffer,$value)
-                  ),
-                  'REDO', ($redo = 1),
-                  'LAST', nqp::stmts(
-                    nqp::unless(
-                      nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                      nqp::push(buffer,$value)
-                    ),
-                    ($source := Rakudo::Iterator.Empty)
-                  )
-                ) 
-              ),
-              :nohandler
+          nqp::handle(
+            nqp::stmts(
+              nqp::push(buffer,op($value)),
+              ($value := $source.pull-one)
             ),
-            ($value := $source.pull-one)
-          ) 
+            'NEXT', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                nqp::push(buffer,$value)
+              ),
+              ($value := $source.pull-one)
+            ),
+            'REDO', nqp::null,
+            'LAST', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                nqp::push(buffer,$value)
+              ),
+              ($value := IterationEnd)
+            )
+          ),
+          :nohandler
         );
+
         buffer.List
     }   
 
@@ -2410,57 +2407,51 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method deepmap(&op) {
         my $source := self.iterator;
         my \buffer := nqp::create(IterationBuffer);
-        my $value  := $source.pull-one;
+        my $pulled := $source.pull-one;
 
         sub deep(\value) is raw { my $ = value.deepmap(&op) }
 
         nqp::until(
-          nqp::eqaddr($value,IterationEnd),
-          nqp::stmts(
-            (my int $redo = 1),
-            nqp::while(
-              $redo,
-              nqp::stmts(
-                $redo = 0,
-                nqp::handle(
-                  nqp::stmts(
-                    (my $result := nqp::if(
-                      nqp::istype($value,Iterable) && $value.DEFINITE,
-                      deep($value),
-                      op($value)
-                    )),
-                    nqp::if(
-                      nqp::istype($result,Slip),
-                      $result.iterator.push-all(buffer),
-                      nqp::push(buffer,$result)
-                    ),
-                  ),
-                  'NEXT', nqp::unless(
-                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                    nqp::if(
-                      nqp::istype($value,Iterable) && $value.DEFINITE,
-                      deep($value),
-                      nqp::push(buffer,$value)
-                    )
-                  ),
-                  'REDO', ($redo = 1),
-                  'LAST', nqp::stmts(
-                    nqp::unless(
-                      nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                      nqp::if(
-                        nqp::istype($value,Iterable) && $value.DEFINITE,
-                        deep($value),
-                        nqp::push(buffer,$value)
-                      )
-                    ),
-                    ($source := Rakudo::Iterator.Empty)
-                  )
-                ) 
+          nqp::eqaddr($pulled,IterationEnd),
+          nqp::handle(
+            nqp::stmts(
+              (my $value := nqp::if(
+                nqp::istype($pulled,Iterable) && $pulled.DEFINITE,
+                deep($pulled),
+                op($pulled)
+              )),
+              nqp::if(
+                nqp::istype($value,Slip),
+                $value.iterator.push-all(buffer),
+                nqp::push(buffer,$value)
               ),
-              :nohandler
+              ($pulled := $source.pull-one)
             ),
-            ($value := $source.pull-one)
-          ) 
+            'NEXT', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                nqp::if(
+                  nqp::istype($value,Slip),
+                  $value.iterator.push-all(buffer),
+                  nqp::push(buffer,$value)
+                ),
+              ),
+              ($pulled := $source.pull-one)
+            ),
+            'REDO', nqp::null,
+            'LAST', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                nqp::if(
+                  nqp::istype($value,Slip),
+                  $value.iterator.push-all(buffer),
+                  nqp::push(buffer,$value)
+                ),
+              ),
+              ($pulled := IterationEnd)
+            )
+          ),
+          :nohandler
         );
         nqp::p6bindattrinvres(
           nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
@@ -2475,61 +2466,49 @@ Consider using a block if any of these are necessary for your mapping code."
     multi method duckmap(&op) {
         my $source := self.iterator;
         my \buffer := nqp::create(IterationBuffer);
-        my $value  := $source.pull-one;
+        my $pulled := $source.pull-one;
 
-        sub duck(\arg) is raw {
+        sub duck() is raw {
             CATCH {
-                return nqp::istype(arg,Iterable:D)
-                  ?? (my $ = arg.duckmap(&op))
-                  !! arg
+                return nqp::istype($pulled,Iterable:D)
+                  ?? (my $ = $pulled.duckmap(&op))
+                  !! $pulled
             }
-            op(arg)
+            op($pulled)
+        }
+
+        sub process(Mu \value --> Nil) {
+            nqp::istype(value,Slip)
+              ?? value.iterator.push-all(buffer)
+              !! nqp::push(buffer,value)
         }
 
         nqp::until(
-          nqp::eqaddr($value,IterationEnd),
-          nqp::stmts(
-            (my int $redo = 1),
-            nqp::while(
-              $redo,
-              nqp::stmts(
-                $redo = 0,
-                nqp::handle(
-                  nqp::stmts(
-                    (my $result := duck($value)),
-                    nqp::if(
-                      nqp::istype($result,Slip),
-                      $result.iterator.push-all(buffer),
-                      nqp::push(buffer,$result)
-                    ),
-                  ),
-                  'NEXT', nqp::unless(
-                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                    nqp::if(
-                      nqp::istype($value,Slip),
-                      $value.iterator.push-all(buffer),
-                      nqp::push(buffer,$value)
-                    )
-                  ),
-                  'REDO', ($redo = 1),
-                  'LAST', nqp::stmts(
-                    nqp::unless(
-                      nqp::isnull($value := nqp::getpayload(nqp::exception)),
-                      nqp::if(
-                        nqp::istype($value,Slip),
-                        $value.iterator.push-all(buffer),
-                        nqp::push(buffer,$value)
-                      )
-                    ),
-                    ($source := Rakudo::Iterator.Empty)
-                  )
-                ) 
-              ),
-              :nohandler
+          nqp::eqaddr($pulled,IterationEnd),
+          nqp::handle(
+            nqp::stmts(
+              process(duck),
+              ($pulled := $source.pull-one)
             ),
-            ($value := $source.pull-one)
-          ) 
+            'NEXT', nqp::stmts(
+              nqp::unless(
+                nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+                process($value)
+              ),
+              ($pulled := $source.pull-one)
+            ),
+            'REDO', nqp::null,
+            'LAST', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                process($value)
+              ),
+              ($pulled := IterationEnd)
+            )
+          ), 
+          :nohandler
         );
+
         nqp::p6bindattrinvres(
           nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
           List,'$!reified',buffer

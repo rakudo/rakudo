@@ -468,14 +468,14 @@ augment class Int {
             !! nqp::getuniname(self)
     }
 
-    multi method uniprop(Int:D:) { 
+    multi method uniprop(Int:D:) {
         nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('uniprop')
           !! nqp::isbig_I(self)
             ?? ""
             !! Rakudo::Unicodey.uniprop-general(self)
     }
-    multi method uniprop(Int:D: Str:D $propname) { 
+    multi method uniprop(Int:D: Str:D $propname) {
         nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('uniprop')
           !! nqp::isbig_I(self)
@@ -538,12 +538,12 @@ augment class Str {
         nqp::join("",$parts)
     }
 
-    multi method uniprop(Str:D:) { 
+    multi method uniprop(Str:D:) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
           !! Rakudo::Unicodey.uniprop-general($ord)
     }
-    multi method uniprop(Str:D: Str:D $propname) { 
+    multi method uniprop(Str:D: Str:D $propname) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
           !! Rakudo::Unicodey.uniprop($ord, $propname)
@@ -743,10 +743,10 @@ multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
 #?if jvm
 multi sub infix:<unicmp>($, $) {
     X::NYI.new(feature => "infix unicmp on JVM").throw
-}   
+}
 multi sub infix:<coll>($, $) {
     X::NYI.new(feature => "infix coll on JVM").throw
-}   
+}
 #?endif
 
 # vim: expandtab shiftwidth=4

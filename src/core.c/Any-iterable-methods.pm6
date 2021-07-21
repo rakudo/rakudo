@@ -2398,7 +2398,7 @@ Consider using a block if any of these are necessary for your mapping code."
         );
 
         buffer.List
-    }   
+    }
 
     proto method deepmap(|) is nodal {*}
     multi method deepmap(Associative:D: &op) {
@@ -2456,8 +2456,8 @@ Consider using a block if any of these are necessary for your mapping code."
         nqp::p6bindattrinvres(
           nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
           List,'$!reified',buffer
-        ) 
-    }   
+        )
+    }
 
     proto method duckmap(|) is nodal {*}
     multi method duckmap(Associative:D: &op) {
@@ -2505,15 +2505,15 @@ Consider using a block if any of these are necessary for your mapping code."
               ),
               ($pulled := IterationEnd)
             )
-          ), 
+          ),
           :nohandler
         );
 
         nqp::p6bindattrinvres(
           nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
           List,'$!reified',buffer
-        ) 
-    }   
+        )
+    }
 }
 
 BEGIN Attribute.^compose;

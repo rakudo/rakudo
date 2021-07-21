@@ -7,7 +7,7 @@ my class IO::Path is Cool does IO {
     has $!parts;          # IO::Path::Parts object, if any
 
     constant empty-path-message = "Must specify a non-empty string as a path";
-    
+
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }

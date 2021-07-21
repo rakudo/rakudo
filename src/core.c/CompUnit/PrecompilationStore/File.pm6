@@ -327,7 +327,7 @@ class CompUnit::PrecompilationStore::File
         my &rename-block = {
             $precomp-file.rename(self!file($compiler-id, $precomp-id));
             self.remove-from-cache($precomp-id);
-        }; 
+        };
         if $*DISTRO.is-win {
             # If the rename attempts don't succeed, we'll end up
             # trying again one more time but not catching any failures.

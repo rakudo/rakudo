@@ -9,7 +9,7 @@
 # outside the scope of the method API it exposes. This type is engineered for
 # performance over friendliness, and should not be encountered in normal use
 # of Raku. Do NOT add any checks and validation to methods in here. They
-# need to remain trivially inlineable for performance reasons.
+# need to remain trivially inlinable for performance reasons.
 my class IterationBuffer {
     method clear(IterationBuffer:D: --> Nil) {
         nqp::setelems(self, 0)
@@ -40,25 +40,25 @@ my class IterationBuffer {
     }
 
     # For maintainability mainly, and possibly for creating smaller, more
-    # inlineable candidates
+    # inlinable candidates
     method Slip(IterationBuffer:D:) {
         nqp::p6bindattrinvres(nqp::create(Slip),List,'$!reified',self)
     }
 
     # For maintainability mainly, and possibly for creating smaller, more
-    # inlineable candidates
+    # inlinable candidates
     method List(IterationBuffer:D:) {
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',self)
     }
 
     # For maintainability mainly, and possibly for creating smaller, more
-    # inlineable candidates
+    # inlinable candidates
     method Seq(IterationBuffer:D:) {
         Seq.new(Rakudo::Iterator.ReifiedList(self))
     }
 
     # For maintainability mainly, and possibly for creating smaller, more
-    # inlineable candidates
+    # inlinable candidates
     method iterator(IterationBuffer:D:) {
         Rakudo::Iterator.ReifiedList(self)
     }

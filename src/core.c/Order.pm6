@@ -77,27 +77,32 @@ multi sub infix:<cmp>(List:D \a, List:D \b) {
         (my int $elems-b = b.elems),  # reifies
         (my $list-a := nqp::getattr(nqp::decont(a),List,'$!reified')),
         (my $list-b := nqp::getattr(nqp::decont(b),List,'$!reified')),
-        (my int $elems   = nqp::if(
-          nqp::islt_i($elems-a,$elems-b),
-          $elems-a,
-          $elems-b
-        )),
-        (my $i = -1),
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-            && nqp::eqaddr(
-                 (my $order := infix:<cmp>(
-                   nqp::atpos($list-a,$i),
-                   nqp::atpos($list-b,$i)
-                 )),
-                 Same
-               ),
-          nqp::null
-        ),
         nqp::if(
-          nqp::eqaddr($order,Same),
-          ORDER(nqp::cmp_i($elems-a,$elems-b)),  # same, length significant
-          $order                                 # element different
+          (my int $elems = nqp::if(
+            nqp::islt_i($elems-a,$elems-b),
+            $elems-a,
+            $elems-b
+          )),
+          nqp::stmts(                                # elements to compare
+            (my $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::eqaddr(
+                     (my $order := infix:<cmp>(
+                       nqp::atpos($list-a,$i),
+                       nqp::atpos($list-b,$i)
+                     )),
+                     Same
+                   ),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::eqaddr($order,Same),
+              ORDER(nqp::cmp_i($elems-a,$elems-b)),  # same, length significant
+              $order                                 # element different
+            )
+          ),
+          ORDER(nqp::cmp_i($elems-a,$elems-b)),      # only length significant
         )
       )
     )

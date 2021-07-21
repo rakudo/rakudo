@@ -2381,7 +2381,10 @@ Consider using a block if any of these are necessary for your mapping code."
                 $redo = 0,
                 nqp::handle(
                   nqp::push(buffer,op($value)),
-                  'NEXT', nqp::null,
+                  'NEXT', nqp::unless(
+                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                    nqp::push(buffer,$value)
+                  ),
                   'REDO', ($redo = 1),
                   'LAST', nqp::stmts(
                     nqp::unless(
@@ -2432,7 +2435,14 @@ Consider using a block if any of these are necessary for your mapping code."
                       nqp::push(buffer,$result)
                     ),
                   ),
-                  'NEXT', nqp::null,
+                  'NEXT', nqp::unless(
+                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                    nqp::if(
+                      nqp::istype($value,Iterable) && $value.DEFINITE,
+                      deep($value),
+                      nqp::push(buffer,$value)
+                    )
+                  ),
                   'REDO', ($redo = 1),
                   'LAST', nqp::stmts(
                     nqp::unless(
@@ -2493,7 +2503,14 @@ Consider using a block if any of these are necessary for your mapping code."
                       nqp::push(buffer,$result)
                     ),
                   ),
-                  'NEXT', nqp::null,
+                  'NEXT', nqp::unless(
+                    nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                    nqp::if(
+                      nqp::istype($value,Slip),
+                      $value.iterator.push-all(buffer),
+                      nqp::push(buffer,$value)
+                    )
+                  ),
                   'REDO', ($redo = 1),
                   'LAST', nqp::stmts(
                     nqp::unless(

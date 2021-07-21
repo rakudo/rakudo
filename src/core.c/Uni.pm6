@@ -89,6 +89,26 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     method Numeric(Uni:D:) { nqp::elems(self) }
     method Int(Uni:D:)     { nqp::elems(self) }
 
+    multi method ACCEPTS(Uni:D: Uni:D \other --> Bool:D) {
+        my $other := nqp::decont(other);
+        nqp::hllbool(
+          nqp::iseq_i(nqp::elems(self),nqp::elems($other))
+            && nqp::stmts(
+                 (my int $i = -1),
+                 (my int $elems = nqp::elems(self)),
+                 nqp::while(
+                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                     && nqp::iseq_i(
+                          nqp::atpos_i(self,$i),
+                          nqp::atpos_i($other,$i)
+                        ),
+                   nqp::null
+                 ),
+                 nqp::iseq_i($i,$elems)
+               )
+        )
+    }
+
     multi method EXISTS-POS(Uni:D: int \pos) {
         nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)

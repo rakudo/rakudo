@@ -961,7 +961,7 @@ my class Binder {
     }
 
     method is_bindable($sig, $capture) {
-        unless nqp::reprname($capture) eq 'MVMCallCapture' {
+        unless nqp::reprname($capture) eq 'MVMCapture' {
             $capture := make_vm_capture($capture);
         }
         nqp::p6invokeunder(

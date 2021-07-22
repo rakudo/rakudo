@@ -4087,7 +4087,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
         # if this is a multi then we'll need it to vivify to a MultiDispatcher.
-#?if moar
+#?if !moar
         if $*MULTINESS eq 'multi' {
             $*W.install_lexical_symbol($block, '$*DISPATCHER', $*W.find_single_symbol('MultiDispatcher'));
         }

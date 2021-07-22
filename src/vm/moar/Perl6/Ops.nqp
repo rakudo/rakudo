@@ -33,12 +33,6 @@ MAST::ExtOpRegistry.register_extop('p6settypes',
 MAST::ExtOpRegistry.register_extop('p6reprname',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6capturelex',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6capturelexwhere',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6stateinit',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
 MAST::ExtOpRegistry.register_extop('p6setfirstflag',
@@ -114,7 +108,20 @@ $ops.add_hll_op('Raku', 'p6definite', -> $qastcomp, $op {
     $*REGALLOC.release_register($tmp_reg, $MVM_reg_int64);
     MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('Raku', 'p6capturelex', 'p6capturelex');
+$ops.add_hll_op('Raku', 'p6capturelex', -> $qastcomp, $op {
+    my $code_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+        [$op[0]], [$code_res]);
+    op_dispatch_v('raku-capture-lex', $callsite_id, [$code_res.result_reg]);
+    $code_res
+});
+$ops.add_hll_op('nqp', 'p6capturelexwhere', -> $qastcomp, $op {
+    my $code_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+        [$op[0]], [$code_res]);
+    op_dispatch_v('raku-capture-lex-callers', $callsite_id, [$code_res.result_reg]);
+    $code_res
+});
 $ops.add_hll_op('Raku', 'p6bindassert', -> $qastcomp, $op {
     my $temp := QAST::Node.unique('bind_value');
     $qastcomp.as_mast(QAST::Stmt.new(
@@ -239,7 +246,6 @@ $ops.add_hll_op('Raku', 'p6sink', -> $qastcomp, $op {
 $ops.add_hll_moarop_mapping('nqp', 'p6init', 'p6init');
 $ops.add_hll_moarop_mapping('nqp', 'p6settypes', 'p6settypes', 0);
 $ops.add_hll_moarop_mapping('nqp', 'p6inpre', 'p6inpre');
-$ops.add_hll_moarop_mapping('nqp', 'p6capturelexwhere', 'p6capturelexwhere');
 $ops.add_hll_moarop_mapping('nqp', 'p6invokeunder', 'p6invokeunder');
 
 # Override defor to call defined method.

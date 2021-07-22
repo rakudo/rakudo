@@ -32,64 +32,78 @@ my class Signature { # declared in BOOTSTRAP
         nqp::hllbool(nqp::p6isbindable(self, nqp::decont($topic)));
     }
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
-        my $sclass = self.params.classify({.named});
-        my $tclass = $topic.params.classify({.named});
-        my @spos := $sclass{False} // ();
-        my @tpos := $tclass{False} // ();
+        my @r-params := self.params;
+        my @l-params := $topic.params;
 
-        while @spos {
-            my $s;
-            my $t;
-            last unless @tpos && ($t = @tpos.shift);
-            $s=@spos.shift;
-            if $s.slurpy or $s.capture {
-                @spos=();
-                @tpos=();
-                last;
-            }
-            if $t.slurpy or $t.capture {
-                return False unless any(@spos) ~~ {.slurpy or .capture};
-                @spos=();
-                @tpos=();
-                last;
-            }
-            if not $s.optional {
-                return False if $t.optional
-            }
-            return False unless $t ~~ $s;
-        }
-        return False if @tpos;
-        if @spos {
-            return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
-        }
+        my @r-pos-queue;
+        my %r-named-queue;
 
-        for flat ($sclass{True} // ()).grep({!.optional and !.slurpy}) -> $this {
-            my $other;
-            return False unless $other=($tclass{True} // ()).grep(
-                {!.optional and $_ ~~ $this });
-            return False unless +$other == 1;
-        }
+        my $r-pos-sink   := False;
+        my $r-named-sink := False;
 
-        my $here=($sclass{True}:v).SetHash;
-        my $hasslurpy=($sclass{True} // ()).grep({.slurpy});
-        $here{@$hasslurpy} :delete;
-        $hasslurpy .= Bool;
-        for flat @($tclass{True} // ()) -> $other {
-            my $this;
-
-            if $other.slurpy {
-                return False if any($here.keys) ~~ -> Any $_ { !(.type =:= Mu) };
-                return $hasslurpy;
+        for @r-params -> $r-param is raw {
+            if $r-param.positional {
+                if $r-param.slurpy {
+                    $r-pos-sink := True;
+                }
+                else {
+                    @r-pos-queue.push: $r-param;
+                }
             }
-            if $this=$here.keys.grep( -> $t { $other ~~ $t }) {
-                $here{$this[0]} :delete;
+            elsif $r-param.named {
+                if $r-param.slurpy {
+                    $r-named-sink := True;
+                }
+                else {
+                    %r-named-queue{$_} := $r-param for $r-param.named_names;
+                }
             }
             else {
-                return False unless $hasslurpy;
+                $r-pos-sink := $r-named-sink := True;
             }
         }
-        return False unless self.returns =:= $topic.returns;
-        True;
+
+        for @l-params -> $l-param is raw {
+            if $l-param.positional {
+                if $l-param.slurpy {
+                    return False unless $r-pos-sink;
+                }
+                elsif @r-pos-queue {
+                    return False unless $l-param ~~ @r-pos-queue.shift;
+                }
+                else {
+                    return False unless $r-pos-sink or $l-param.optional;
+                }
+            }
+            elsif $l-param.named {
+                if $l-param.slurpy {
+                    return False unless $r-named-sink;
+                }
+                elsif %r-named-queue {
+                    my $found := False;
+                    for $l-param.named_names -> $name is raw {
+                        if %r-named-queue{$name}:exists {
+                            my $r-param := %r-named-queue{$name}:delete;
+                            return False unless $l-param ~~ $r-param;
+                            $found := True;
+                        }
+                    }
+                    return False unless $found or $l-param.optional and $l-param.type =:= Mu;
+                }
+                else {
+                    return False unless $r-named-sink or $l-param.optional and $l-param.type =:= Mu;
+                }
+            }
+            else {
+                return False unless $r-pos-sink and $r-named-sink;
+            }
+        }
+
+        return False unless .optional for @r-pos-queue;
+
+        return False unless .optional and .type =:= Mu for %r-named-queue.values;
+
+        self.returns =:= $topic.returns
     }
 
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }

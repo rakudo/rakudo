@@ -1076,7 +1076,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
     method !grep-p(Callable:D $test) { Seq.new(Grep-P.new(self,$test)) }
 
-    role Grepper does Iterator {
+    my role Grepper does Iterator {
         has Mu $!iter;
         has Mu $!test;
         method !SET-SELF(\list,Mu \test) {
@@ -1977,7 +1977,7 @@ Consider using a block if any of these are necessary for your mapping code."
              )
     }
 
-    class Repeated-As does Iterator {
+    my class Repeated-As does Iterator {
         has Mu $!iter;
         has &!as;
         has $!seen;

@@ -2322,3 +2322,48 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped',
             }
         }
     });
+
+# The dispatcher backing p6capturelex. If we are passed a code object, then
+# extracts the underlying handle and causes it to be captured.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-capture-lex', -> $capture {
+    my $code := nqp::captureposarg($capture, 0);
+    my $track-code := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-code);
+    if nqp::istype($code, Code) {
+        my $do := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $track-code, Code, '$!do');
+        my $with-do := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+            0, $do);
+        my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
+            $with-do, 0, 'try-capture-lex');
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-syscall',
+            $delegate);
+    }
+    else {
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+    }
+});
+
+# The dispatcher backing p6capturelexwhere. If we are passed a code object, then
+# extracts the underlying handle and looks down the callstack for a caller that
+# matches the outer, and captures it.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-capture-lex-callers', -> $capture {
+    my $code := nqp::captureposarg($capture, 0);
+    my $track-code := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-code);
+    if nqp::istype($code, Code) {
+        my $do := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $track-code, Code, '$!do');
+        my $with-do := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+            0, $do);
+        my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
+            $with-do, 0, 'try-capture-lex-callers');
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-syscall',
+            $delegate);
+    }
+    else {
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+    }
+});

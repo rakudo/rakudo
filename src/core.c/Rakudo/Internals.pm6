@@ -1525,7 +1525,7 @@ my class Rakudo::Internals {
         $i
     }
 
-    # next logical string frontend, hopefully inlineable (pos >= 0)
+    # next logical string frontend, hopefully inlinable (pos >= 0)
     method SUCC(str \string, int \pos) {
         my int $at = nqp::index($succ-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)
@@ -1576,7 +1576,7 @@ my class Rakudo::Internals {
         }
     }
 
-    # previous logical string frontend, hopefully inlineable
+    # previous logical string frontend, hopefully inlinable
     method PRED(str \string, int \pos) {
         my int $at = nqp::index($pred-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)

@@ -64,6 +64,7 @@ my class Signature { # declared in BOOTSTRAP
         }
 
         for @l-params -> $l-param is raw {
+            state %r-to-l-named{Mu};
             if $l-param.positional {
                 if $l-param.slurpy {
                     return False unless $r-pos-sink;
@@ -85,6 +86,10 @@ my class Signature { # declared in BOOTSTRAP
                         if %r-named-queue{$name}:exists {
                             my $r-param := %r-named-queue{$name}:delete;
                             return False unless $l-param ~~ $r-param;
+                            return False
+                                if %r-to-l-named{$r-param}:exists and not
+                                   %r-to-l-named{$r-param} =:= $l-param;
+                            %r-to-l-named{$r-param} := $l-param;
                             $found := True;
                         }
                     }

@@ -35,6 +35,9 @@ my class Signature { # declared in BOOTSTRAP
         my @r-params := self.params;
         my @l-params := $topic.params;
 
+        my $l-params := @l-params.elems;
+        my $todo     := $l-params;
+
         my @r-pos-queue;
         my %r-named-queue;
 
@@ -45,6 +48,19 @@ my class Signature { # declared in BOOTSTRAP
             if $r-param.positional {
                 if $r-param.slurpy {
                     $r-pos-sink := True;
+                }
+                elsif $todo {
+                    # When a required or optional positional parameter exists
+                    # in a signature, it will be prepended. Typechecks can be
+                    # predicted when such parameters exist in the topic too.
+                    my $l-param := @l-params[$l-params - $todo];
+                    if $l-param.positional and not $l-param.slurpy {
+                        return False unless $l-param ~~ $r-param;
+                        $todo := $todo - 1;
+                    }
+                    else {
+                        @r-pos-queue.push: $r-param;
+                    }
                 }
                 else {
                     @r-pos-queue.push: $r-param;
@@ -63,7 +79,7 @@ my class Signature { # declared in BOOTSTRAP
             }
         }
 
-        for @l-params -> $l-param is raw {
+        for @l-params.tail: $todo -> $l-param is raw {
             state %r-to-l-named{Mu};
             if $l-param.positional {
                 if $l-param.slurpy {

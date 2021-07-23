@@ -106,12 +106,14 @@ multi sub infix:<&&>(Mu $x = Bool::True)  { $x }
 multi sub infix:<&&>(Mu \a, &b)           { a && b() }
 multi sub infix:<&&>(Mu \a, Mu \b)        { a && b }
 multi sub infix:<&&>(+@a) {
+    my Mu $a = shift @a;
     while @a {
-        my Mu $a := shift @a;
-        $a := $a() if $a ~~ Callable;
-        return False unless $a;
+        my Mu $b := shift @a;
+        $b := $b() if $b ~~ Callable;
+        return $a unless $a;
+        $a := $b;
     }
-    True
+    $a
 }
 
 proto sub infix:<||>(|)                   {*}
@@ -119,12 +121,14 @@ multi sub infix:<||>(Mu $x = Bool::False) { $x }
 multi sub infix:<||>(Mu \a, &b)           { a || b() }
 multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
 multi sub infix:<||>(+@a) {
+    my Mu $a = shift @a;
     while @a {
-        my Mu $a := shift @a;
-        $a := $a() if $a ~~ Callable;
-        return True if $a;
+        my Mu $b := shift @a;
+        $b := $b() if $a ~~ Callable;
+        return $a if $a;
+        $a := $b;
     }
-    False
+    $a
 }
 
 proto sub infix:<^^>(|)                   {*}

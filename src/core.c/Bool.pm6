@@ -147,10 +147,20 @@ multi sub infix:<^^>(+@a) {
     $a;
 }
 
-proto sub infix:<//>(Mu $?, Mu $?, *%)    {*}
+proto sub infix:<//>(|)                   {*}
 multi sub infix:<//>(Mu $x = Any)         { $x }
 multi sub infix:<//>(Mu \a, &b)           { a // b }
 multi sub infix:<//>(Mu \a, Mu \b)        { a // b }
+multi sub infix:<//>(+@a) {
+    my Mu $a = shift @a;
+    while @a {
+        my Mu $b := shift @a;
+        $b := $b() if $a ~~ Callable;
+        return $a with $a;
+        $a := $b;
+    }
+    $a
+}
 
 proto sub infix:<and>(Mu $?, Mu $?, *%)   {*}
 multi sub infix:<and>(Mu $x = Bool::True) { $x }

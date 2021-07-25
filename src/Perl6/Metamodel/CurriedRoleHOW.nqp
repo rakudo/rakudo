@@ -182,6 +182,10 @@ class Perl6::Metamodel::CurriedRoleHOW
         @!pos_args
     }
 
+    method role_named_arguments($obj) {
+        %!named_args
+    }
+
     method roles($obj, :$transitive = 1, :$mro = 0) {
         self.complete_parameterization($obj);
         self.roles-ordered($obj, self.roles_to_compose($obj), :$transitive, :$mro)

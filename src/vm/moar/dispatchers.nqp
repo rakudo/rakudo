@@ -2380,9 +2380,11 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
                 $args, 0, $cur_deferral.next));
 
         # Invoke the first wrapper.
+        my $code := $cur_deferral.code;
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-            $args, 0, $cur_deferral.code);
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
+            $args, 0, $code);
+        my str $dispatcher := nqp::iscoderef($code) ?? 'boot-code' !! 'raku-call';
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', $dispatcher, $delegate_capture);
     },
     # Resumption.
     -> $capture {
@@ -2399,6 +2401,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
         if $kind == nqp::const::DISP_LASTCALL {
             # It's lastcall; just update the state to Exhausted.
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
+        }
+        elsif $kind == nqp::const::DISP_ONLYSTAR {
+            nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') ||
+                nqp::die('Failed to dispatch to candidate from wrapped proto')
         }
         elsif nqp::isnull($state) {
             # No state, so the initial resumption. Guard on there being no
@@ -2448,11 +2454,17 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
                     $track_cur_deferral, DeferralChain, '$!next');
                 nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track_next);
                 if $kind == nqp::const::DISP_CALLSAME {
-                    # Invoke the next bit of code.
+                    # Invoke the next bit of code. We send the original dispatchee to
+                    # boot-code, since it's an unwrapped code handle; the rest, we
+                    # treat as Raku calls, since it's possible somebody decided to wrap
+                    # some code up with a multi.
+                    my $code := $cur_deferral.code;
+                    my str $dispatcher := nqp::iscoderef($code) ?? 'boot-code' !! 'raku-call';
                     my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
-                        0, $cur_deferral.code);
-                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
+                        0, $code);
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', $dispatcher,
+                        $delegate_capture);
                 }
                 elsif $kind == nqp::const::DISP_NEXTCALLEE {
                     # We just want the code itself, not to invoke it.

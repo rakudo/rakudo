@@ -2521,3 +2521,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-capture-lex-callers',
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
     }
 });
+
+# Resumption error reporting dispatcher.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-resume-error', -> $capture {
+    my str $redispatcher := nqp::getcodename(nqp::callercode());
+    Perl6::Metamodel::Configuration.throw_or_die(
+        'X::NoDispatcher',
+        "$redispatcher is not in the dynamic scope of a dispatcher",
+        :$redispatcher
+    );
+});

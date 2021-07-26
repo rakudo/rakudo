@@ -4010,6 +4010,7 @@ nqp::sethllconfig('Raku', nqp::hash(
     'call_dispatcher', 'raku-call',
     'method_call_dispatcher', 'raku-meth-call',
     'find_method_dispatcher', 'nqp-find-meth',  # NQP one is probably good enough
+    'resume_error_dispatcher', 'raku-resume-error',
     'max_inline_size', 384,
 #?endif
 ));

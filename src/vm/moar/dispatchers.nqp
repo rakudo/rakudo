@@ -1853,14 +1853,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
         }
         else {
             # It's a non-trivial multi dispatch. Prefix the capture with
-            # the dispatch plan, and also a zero to indicate this is not a
-            # resumption of any kind. The delegate to the non-trivial multi
-            # dispatcher.
+            # the dispatch plan, and also a DISP_NONE to indicate this
+            # is not a resumption of any kind. The delegate to the
+            # non-trivial multi dispatcher.
             my $capture-with-plan := nqp::dispatch('boot-syscall',
                 'dispatcher-insert-arg-literal-obj', $capture, 0,
                 $dispatch-plan);
             my $capture-delegate := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg-literal-int', $capture-with-plan, 0, 0);
+                'dispatcher-insert-arg-literal-int', $capture-with-plan, 0,
+                nqp::const::DISP_NONE);
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-non-trivial',
                 $capture-delegate);
         }
@@ -2029,7 +2030,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
     }
     elsif nqp::istype($cur-state, MultiDispatchEnd) {
         # If this is the initial dispatch, then error, otherwise hand back Nil.
-        if $kind == nqp::const::DISP_CALLSAME {
+        if $kind == nqp::const::DISP_NONE {
             my $target := nqp::captureposarg($orig-capture, 0);
             multi-no-match-handler($target, $arg-capture, $orig-capture, $arg-capture);
         }

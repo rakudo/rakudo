@@ -24,7 +24,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::InvocationProtocol
 {
     has $!curried_role;
-    has $!candidate;                # Will contain matching candidate from curried role group
+    has $!binding;
     has @!pos_args;
     has %!named_args;
     has @!role_typecheck_list;
@@ -79,24 +79,38 @@ class Perl6::Metamodel::CurriedRoleHOW
         nqp::settypecheckmode($type, 2);
     }
 
-    method parameterize_roles($obj) {
-        my @pos_args;
-        nqp::push(@pos_args, $obj);
-        for @!pos_args {
-            nqp::push(@pos_args, $_);
+    # A curried role may be bound to form a role other than its origin, e.g.  a
+    # parametric role group and the candidate we're not quite ready to fetch at
+    # construction time. If we're still not ready yet whenever we need it, the
+    # binding is ourself for now. If the origin lacks a means of producing a
+    # binding, we assume it's its own by default.
+    method bind($obj) {
+        if $!binding =:= NQPMu {
+            if nqp::can($!curried_role.HOW, 'bind') {
+                my $binding := $!curried_role.HOW.bind($!curried_role, $obj);
+                $!binding := $binding unless nqp::decont($binding) =:= $obj;
+                $binding
+            }
+            else {
+                $!binding := $!curried_role
+            }
         }
-        if nqp::istype($!curried_role.HOW, Perl6::Metamodel::ParametricRoleGroupHOW) {
-            $!candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
-            my $candidate-how := $!candidate.HOW;
+        else {
+            $!binding
+        }
+    }
 
-            self.set_language_revision($obj, $candidate-how.language-revision($!candidate));
+    method parameterize_roles($obj) {
+        my $binding := self.bind($obj);
+        unless nqp::decont($binding) =:= $obj {
+            self.set_language_revision($obj, $binding.HOW.language-revision($binding));
 
             my $type_env;
             try {
-                my @result := $candidate-how.body_block($!candidate)(|@pos_args, |%!named_args);
+                my @result := $binding.HOW.body_block($binding)($obj, |@!pos_args, |%!named_args);
                 $type_env := @result[1];
             }
-            for $candidate-how.roles($!candidate, :!transitive) -> $role {
+            for $binding.HOW.roles($binding, :!transitive) -> $role {
                 if $role.HOW.archetypes.generic && $type_env {
                     $role := $role.HOW.instantiate_generic($role, $type_env);
                 }
@@ -115,7 +129,7 @@ class Perl6::Metamodel::CurriedRoleHOW
             # Contrary to roles, we only consider generic parents. I.e. cases like:
             # role R[::T] is T {}
             if $type_env {
-                for $candidate-how.parents($!candidate, :local) -> $parent {
+                for $binding.HOW.parents($binding, :local) -> $parent {
                     if $parent.HOW.archetypes.generic {
                         my $ins := $parent.HOW.instantiate_generic($parent, $type_env);
                         nqp::push(@!parent_typecheck_list, $ins)
@@ -210,9 +224,6 @@ class Perl6::Metamodel::CurriedRoleHOW
             }
         }
         self.complete_parameterization($obj) unless $!is_complete;
-        if !($!candidate =:= NQPMu) && $!candidate.HOW.type_check_parents($!candidate, $decont) {
-            return 1
-        }
         for @!parent_typecheck_list -> $parent {
             if nqp::istype($decont, $parent) {
                 return 1

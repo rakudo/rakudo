@@ -90,6 +90,20 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $curried
     }
 
+    method bind($obj, $curried) {
+        my $candidate;
+        my %named_args := $curried.HOW.role_named_arguments($curried);
+        my @pos_args := [$obj];
+        nqp::splice(@pos_args, $curried.HOW.role_arguments($curried), +@pos_args, 0);
+        try {
+            $candidate := self.select_candidate($obj, @pos_args, %named_args);
+            CATCH { return $curried }
+        }
+        nqp::can($candidate.HOW, 'bind')
+          ?? $candidate.HOW.bind($candidate, $curried)
+          !! $candidate
+    }
+
     method add_possibility($obj, $possible) {
         @!candidates[+@!candidates] := $possible;
         nqp::push(@!nonsignatured, nqp::decont($possible)) unless $possible.HOW.signatured($possible);

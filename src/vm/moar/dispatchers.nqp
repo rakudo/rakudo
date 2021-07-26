@@ -2098,7 +2098,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-remove-proxies'
 
 # This is where invocation bottoms out, however we reach it. By this point, we
 # just have something to invoke, which is either a code object (potentially with
-# wrappers)  or something that hopefully has a CALL-ME.
+# wrappers) or something that hopefully has a CALL-ME.
 my $late-coerce := -> $target, $val {
     my $how := $target.HOW;
     my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
@@ -2327,41 +2327,62 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
     }
 });
 
-# Dispatch to a wrapped routine, providing a resumption handler to deal with
-# moving through the various levels of wrapper.
-nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped',
-    # Dispatch
-    -> $capture {
-        # Guard on the current set of wrappers (the array of them is immutable,
-        # so we can rely on its identity).
-        my $routine := nqp::captureposarg($capture, 0);
-        my $wrapper_type := $routine.WRAPPER-TYPE;
-        my $track_routine := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
-        my $track-wrappers := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                $track_routine, $wrapper_type, '$!wrappers');
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-wrappers);
+# Entrypoint for dispatch to a wrapped routine. Builds the chain and delegates
+# to another dispatcher that will handle the walking through it via resumption.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped', -> $capture {
+    # Guard on the current set of wrappers (the array of them is immutable,
+    # so we can rely on its identity).
+    my $routine := nqp::captureposarg($capture, 0);
+    my $wrapper_type := $routine.WRAPPER-TYPE;
+    my $track_routine := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    my $track-wrappers := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $track_routine, $wrapper_type, '$!wrappers');
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-wrappers);
 
-        # With wrappers, we pretty much know we'll be traversing them, so we
-        # build the deferral chain up front, unlike in other dispatchers. It
-        # goes into the resume init state.
-        my @all_callees := nqp::clone($routine.WRAPPERS);
-        nqp::push(@all_callees, nqp::getattr($routine, Code, '$!do'));
-        my $first_callee := nqp::shift(@all_callees);
-        my $chain := Exhausted;
-        while nqp::elems(@all_callees) {
-            $chain := DeferralChain.new(nqp::pop(@all_callees), $chain);
-        }
-        my $without_routine := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
+    # With wrappers, we pretty much know we'll be traversing them, so we
+    # build the deferral chain up front, unlike in other dispatchers.
+    my @all_callees := nqp::clone($routine.WRAPPERS);
+    nqp::push(@all_callees, nqp::getattr($routine, Code, '$!do'));
+    my $chain := Exhausted;
+    while nqp::elems(@all_callees) {
+        $chain := DeferralChain.new(nqp::pop(@all_callees), $chain);
+    }
+
+    # Delegate to the wrap deferral dispatcher with the arguments to call
+    # the initial wrapper with, preceded by the calculated chain.
+    my $without_routine := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-wrapper-deferral',
+        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+            $without_routine, 0, $chain));
+});
+
+# The wrapper deferral dispatcher that moves through wrappers.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
+    # Initial dispatch, called with the chain to walk through along with the
+    # arguments. This is used either in the case we are just starting to walk
+    # through the dispatchers or in the event of a callwith.
+    -> $capture {
+        # Obtain and guard on the first wrapper callee.
+        my $cur_deferral := nqp::captureposarg($capture, 0);
+        my $track_cur_deferral := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+            $capture, 0);
+        my $track_code := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $track_cur_deferral, DeferralChain, '$!code');
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_code);
+
+        # Extract the arguments and set the resume init args to be the next item
+        # in the chain prepended to the arguments.
+        my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
         nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args',
             nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-            $without_routine, 0, $chain));
+                $args, 0, $cur_deferral.next));
 
         # Invoke the first wrapper.
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-            $without_routine, 0, $first_callee);
+            $args, 0, $cur_deferral.code);
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
     },
-    # Resumption
+    # Resumption.
     -> $capture {
         # Guard on the kind of resume we're doing, and get that flag.
         my $track_kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
@@ -2400,30 +2421,46 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped',
             nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_state);
         }
 
-        # If we have a current deferral, then update state to move to the next
-        # wrapper in the list and then put into effect the resumption.
+        # If we have a current deferral...
         if $cur_deferral {
-            my $track_code := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                $track_cur_deferral, DeferralChain, '$!code');
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_code);
-            my $track_next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                $track_cur_deferral, DeferralChain, '$!next');
-            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track_next);
-            if $kind == nqp::const::DISP_CALLSAME {
-                # Invoke the next bit of code.
-                my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
-                    0, $cur_deferral.code);
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
-            }
-            elsif $kind == nqp::const::DISP_NEXTCALLEE {
-                # We just want the code itself, not to invoke it.
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                        $capture, 0, $cur_deferral.code));
+            if $kind == nqp::const::DISP_CALLWITH {
+                # Mark this dispatcher exhausted since we're moving on from it,
+                # and then re-enter the dispatcher with the remaining wrappers
+                # and the args given to us.
+                nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal',
+                    Exhausted);
+                my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
+                my $with_chain := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                    $args, 0, $track_cur_deferral);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-wrapper-deferral',
+                    $with_chain);
             }
             else {
-                nqp::die('Unimplemented resumption kind in wrap dispatch');
+                # Not callwith, so we keep walking the list. Update state to
+                # move to the next wrapper in the list and then put into effect
+                # the resumption.
+                my $track_code := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track_cur_deferral, DeferralChain, '$!code');
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_code);
+                my $track_next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track_cur_deferral, DeferralChain, '$!next');
+                nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track_next);
+                if $kind == nqp::const::DISP_CALLSAME {
+                    # Invoke the next bit of code.
+                    my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
+                        0, $cur_deferral.code);
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
+                }
+                elsif $kind == nqp::const::DISP_NEXTCALLEE {
+                    # We just want the code itself, not to invoke it.
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            $capture, 0, $cur_deferral.code));
+                }
+                else {
+                    nqp::die('Unimplemented resumption kind in wrap dispatch');
+                }
             }
         }
         else {

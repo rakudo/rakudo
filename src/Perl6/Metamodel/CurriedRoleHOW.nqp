@@ -114,7 +114,7 @@ class Perl6::Metamodel::CurriedRoleHOW
                 if $role.HOW.archetypes.generic && $type_env {
                     $role := $role.HOW.instantiate_generic($role, $type_env);
                 }
-                unless $role.HOW.archetypes.generic || $role.HOW.archetypes.parametric {
+                unless $role.HOW.archetypes.composable || $role.HOW.archetypes.composalizable {
                     my $target-name := $obj.HOW.name($obj);
                     my $role-name := $role.HOW.name($role);
                     Perl6::Metamodel::Configuration.throw_or_die(

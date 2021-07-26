@@ -129,7 +129,8 @@ sub proceed(--> Nil) { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 sub callwith(|c) is raw {
     $/ := nqp::getlexcaller('$/');
 #?if moar
-    nqp::die('new-disp callwith nyi')
+    # TODO Future mechanism to avoid having to flatten here
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLWITH, |c)
 #?endif
 #?if !moar
     nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('callwith')),
@@ -141,7 +142,9 @@ sub callwith(|c) is raw {
 sub nextwith(|c) is raw {
     $/ := nqp::getlexcaller('$/');
 #?if moar
-    nqp::die('new-disp callwith nyi')
+    # TODO Future mechanism to avoid having to flatten here
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN,
+        nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLWITH, |c))
 #?endif
 #?if !moar
     nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextwith')),

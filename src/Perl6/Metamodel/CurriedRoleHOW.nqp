@@ -224,8 +224,8 @@ class Perl6::Metamodel::CurriedRoleHOW
             }
         }
         self.complete_parameterization($obj) unless $!is_complete;
-        for @!parent_typecheck_list -> $parent {
-            if nqp::istype($decont, $parent) {
+        for @!parent_typecheck_list {
+            if nqp::istype(nqp::decont($_), $decont) {
                 return 1
             }
         }

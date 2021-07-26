@@ -154,7 +154,7 @@ sub nextwith(|c) is raw {
 sub callsame() is raw {
     $/ := nqp::getlexcaller('$/');
 #?if moar
-    nqp::dispatch('boot-resume-caller', 0)
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLSAME)
 #?endif
 #?if !moar
     nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('callsame')),
@@ -167,7 +167,8 @@ sub callsame() is raw {
 sub nextsame() is raw {
     $/ := nqp::getlexcaller('$/');
 #?if moar
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, nqp::dispatch('boot-resume-caller', 0))
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN,
+        nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLSAME))
 #?endif
 #?if !moar
     nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextsame')),
@@ -179,7 +180,7 @@ sub nextsame() is raw {
 
 sub lastcall(--> True) {
 #?if moar
-    nqp::dispatch('boot-resume-caller', 2)
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_LASTCALL)
 #?endif
 #?if !moar
     nqp::p6finddispatcher('lastcall').last();
@@ -188,7 +189,7 @@ sub lastcall(--> True) {
 
 sub nextcallee() {
 #?if moar
-    nqp::dispatch('boot-resume-caller', 3)
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_NEXTCALLEE)
 #?endif
 #?if !moar
     nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextcallee')),

@@ -4019,7 +4019,7 @@ Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     my $sel := nqp::create(Sub);
 #?if moar
     my $onlystar := sub (*@pos, *%named) {
-        nqp::dispatch('boot-resume', 5)
+        nqp::dispatch('boot-resume', nqp::const::DISP_ONLYSTAR)
     };
 #?endif
 #?if !moar

@@ -4308,7 +4308,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $p_past.push(QAST::Op.new(
             :op('dispatch'),
             QAST::SVal.new( :value('boot-resume') ),
-            QAST::IVal.new( :value(5) )));
+            QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) )));
 #?endif
 #?if !moar
         $p_past.push(QAST::Op.new(
@@ -4854,7 +4854,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $BLOCK.push(QAST::Op.new(
             :op('dispatch'),
             QAST::SVal.new( :value('boot-resume') ),
-            QAST::IVal.new( :value(5) )));
+            QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) )));
 #?endif
 #?if !moar
         $BLOCK.push(QAST::Op.new(
@@ -6609,7 +6609,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         make QAST::Op.new(
             :op('dispatch'),
             QAST::SVal.new( :value('boot-resume') ),
-            QAST::IVal.new( :value(5) ));
+            QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) ));
 #?endif
 #?if !moar
         my $dc_name := QAST::Node.unique('dispatch_cap');

@@ -133,7 +133,11 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         for self.roles_to_compose($obj) {
-            if nqp::istype($decont, $_) {
+            my $dr := nqp::decont($_);
+            if $decont =:= $dr {
+                return 1;
+            }
+            if nqp::istype($dr, $decont) {
                 return 1;
             }
         }

@@ -1005,42 +1005,44 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-deferral',
                         $capture, 0, Nil));
             }
 
-            # Otherwise, guard on the candidate that we shall be invoking.
-            my $track_method := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                $track_chain, DeferralChain, '$!code');
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_method);
-
-            # Now perform the action needed based upon the kind of resumption
-            # we have.
-            my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0);
-            if $kind == nqp::const::DISP_CALLWITH {
-                # Set the state to exhausted as we're abandoning the walk through
-                # the methods with these args.
-                nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal',
-                    Exhausted);
-
-                # Re-enter this dispatcher with the new args.
-                my $new_args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                    $capture, 0);
-                my $with_invocant := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
-                    $new_args, 0,
-                    nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $args, 0));
-                my $new_args_with_kind := nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-int', $with_invocant, 0,
-                    nqp::const::DISP_CALLSAME);
-                my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
-                    $new_args_with_kind, 0, $track_chain);
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-deferral',
-                    $delegate);
-            }
             else {
-                # Update dispatch state to point to the next method.
-                my $track_next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                    $track_chain, DeferralChain, '$!next');
-                nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track_next);
+                # Otherwise, guard on the candidate that we shall be invoking.
+                my $track_method := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track_chain, DeferralChain, '$!code');
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_method);
 
-                # It's a normal step.
-                method-deferral-step($chain, $kind, $args);
+                # Now perform the action needed based upon the kind of resumption
+                # we have.
+                my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0);
+                if $kind == nqp::const::DISP_CALLWITH {
+                    # Set the state to exhausted as we're abandoning the walk through
+                    # the methods with these args.
+                    nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal',
+                        Exhausted);
+
+                    # Re-enter this dispatcher with the new args.
+                    my $new_args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                        $capture, 0);
+                    my $with_invocant := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                        $new_args, 0,
+                        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $args, 0));
+                    my $new_args_with_kind := nqp::dispatch('boot-syscall',
+                        'dispatcher-insert-arg-literal-int', $with_invocant, 0,
+                        nqp::const::DISP_CALLSAME);
+                    my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                        $new_args_with_kind, 0, $track_chain);
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-deferral',
+                        $delegate);
+                }
+                else {
+                    # Update dispatch state to point to the next method.
+                    my $track_next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                        $track_chain, DeferralChain, '$!next');
+                    nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track_next);
+
+                    # It's a normal step.
+                    method-deferral-step($chain, $kind, $args);
+                }
             }
         }
     });

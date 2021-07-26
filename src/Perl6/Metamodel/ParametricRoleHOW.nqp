@@ -242,6 +242,9 @@ class Perl6::Metamodel::ParametricRoleHOW
             my $p := $_;
             if $p.HOW.archetypes.generic {
                 $p := $p.HOW.instantiate_generic($p, $type_env);
+                if $p.HOW.archetypes.inheritalizable {
+                    $p := $p.HOW.inheritalize($p);
+                }
             }
             $conc.HOW.add_parent($conc, $p, :hides(self.hides_parent($obj, $_)));
         }

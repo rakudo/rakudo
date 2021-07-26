@@ -849,7 +849,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
         my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
         my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
         my $next_method;
-        if $kind == 2 {
+        if $kind == nqp::const::DISP_LASTCALL {
             # It's lastcall; just update the state to Exhausted.
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
         }
@@ -921,7 +921,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
         # If we found a next method...
         if nqp::isconcrete($next_method) {
             # Check the kind of deferral requested.
-            if $kind == 0 {
+            if $kind == nqp::const::DISP_CALLSAME {
                 # Call with same (that is, original) arguments. Invoke with those.
                 # We drop the first two arguments (which are only there for the
                 # resumption), add the code object to invoke, and then leave it
@@ -940,7 +940,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
                             $delegate_capture);
                 }
             }
-            elsif $kind == 3 {
+            elsif $kind == nqp::const::DISP_NEXTCALLEE {
                 # We just want method itself, not to invoke it.
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
@@ -990,7 +990,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
         my $track_kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
-        if $kind == 5 {
+        if $kind == nqp::const::DISP_ONLYSTAR {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-core',
                 nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args'));
         }
@@ -1052,7 +1052,7 @@ class ProxyReaderFactory {
         my $dispatch := QAST::Op.new:
             :op('dispatch'),
             QAST::SVal.new( :value('boot-resume') ),
-            QAST::IVal.new( :value(6) );
+            QAST::IVal.new( :value(nqp::const::DISP_DECONT) );
         $i := 0;
         my $decont-index := 0;
         while $i < $num-args {
@@ -1886,7 +1886,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
     }
     elsif nqp::istype($cur-state, MultiDispatchEnd) {
         # If this is the initial dispatch, then error, otherwise hand back Nil.
-        if $kind == 0 {
+        if $kind == nqp::const::DISP_CALLSAME {
             my $target := nqp::captureposarg($orig-capture, 0);
             multi-no-match-handler($target, $arg-capture, $orig-capture, $arg-capture);
         }
@@ -1922,7 +1922,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-remove-proxies'
         my $track_kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
-        if $kind == 6 {
+        if $kind == nqp::const::DISP_DECONT {
             # Yes, it's the resume we're looking for. Locate the candidates by
             # using the resume init args.
             my $orig-capture := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
@@ -2258,7 +2258,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped',
         my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
         my $track_cur_deferral;
         my $cur_deferral;
-        if $kind == 2 {
+        if $kind == nqp::const::DISP_LASTCALL {
             # It's lastcall; just update the state to Exhausted.
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
         }
@@ -2294,14 +2294,14 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped',
             my $track_next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                 $track_cur_deferral, DeferralChain, '$!next');
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track_next);
-            if $kind == 0 {
+            if $kind == nqp::const::DISP_CALLSAME {
                 # Invoke the next bit of code.
                 my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                     nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
                     0, $cur_deferral.code);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
             }
-            elsif $kind == 3 {
+            elsif $kind == nqp::const::DISP_NEXTCALLEE {
                 # We just want the code itself, not to invoke it.
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
@@ -2315,7 +2315,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped',
             # This dispatcher is exhausted. However, there may be another one
             # we can try (for example, in a wrapped method). Only do this if
             # it's not lastcall. Failing that, give back Nil.
-            if $kind == 2 || !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+            if $kind == nqp::const::DISP_LASTCALL || !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         $capture, 0, Nil));

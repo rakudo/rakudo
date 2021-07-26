@@ -1867,13 +1867,19 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
     },
     # Resume of a trivial dispatch.
     -> $capture {
+        # Obtain and guard on the kind of resume.
+        my $kind := nqp::captureposarg_i($capture, 0);
+        my $track-kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-kind);
+
         # We'll delegate the hard work to the non-trivial dispatcher. We
         # only want to do that once, however, and so set the dispatch state
-        # to exhausted if we've already done it. Check that's not so.
+        # to exhausted if we've already done it. Check that's not so. Also
+        # shortcut here if it's lastcall.
         my $track-state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-state);
         my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
-        if nqp::isnull($state) {
+        if nqp::isnull($state) || $kind == nqp::const::DISP_LASTCALL {
             # First time. Set state to exhausted.
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
 
@@ -1888,16 +1894,36 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             # drop it.
             $dispatch-plan := $dispatch-plan.next;
 
-            # Delegate to the non-trivial dispatcher, passing along the kind
-            # of dispatch we're doing and the plan.
-            my $capture-with-plan := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg-literal-obj', $init, 0,
-                $dispatch-plan);
-            my $track-kind := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
-            my $capture-delegate := nqp::dispatch('boot-syscall',
-                'dispatcher-insert-arg', $capture-with-plan, 0, $track-kind);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-non-trivial',
-                $capture-delegate);
+            # Now go by the kind of resumption we have.
+            if $kind == nqp::const::DISP_CALLWITH {
+                # It's a callwith, so we'll use the resumption args, and
+                # rewrite it into a callsame for the non-trivial dispatch
+                # handler.
+                my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
+                my $track-target := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                    $init, 0);
+                my $with-target := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                    $args, 0, $track-target);
+                my $capture-with-plan := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj', $with-target, 0,
+                    $dispatch-plan);
+                my $capture-delegate := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-int', $capture-with-plan,
+                    0, nqp::const::DISP_CALLSAME);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-non-trivial',
+                    $capture-delegate);
+            }
+            else {
+                # Delegate to the non-trivial dispatcher, passing along the kind
+                # of dispatch we're doing and the plan.
+                my $capture-with-plan := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj', $init, 0,
+                    $dispatch-plan);
+                my $capture-delegate := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg', $capture-with-plan, 0, $track-kind);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-non-trivial',
+                    $capture-delegate);
+            }
         }
         else {
             # Resume next disaptcher, if any, otherwise hand back Nil.

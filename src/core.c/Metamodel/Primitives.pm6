@@ -12,12 +12,14 @@ my class Metamodel::Primitives {
     }
 
     method install_method_cache(Mu $type, %cache, :$authoritative = True) {
+#?if !moar
         my Mu $cache := nqp::hash();
         for %cache.kv -> $name, $meth {
             nqp::bindkey($cache, $name, nqp::decont($meth));
         }
         nqp::setmethcache($type, $cache);
         nqp::setmethcacheauth($type, $authoritative ?? 1 !! 0);
+#?endif
         $type
     }
 

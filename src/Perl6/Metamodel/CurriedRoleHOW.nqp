@@ -29,7 +29,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     has %!named_args;
     has @!role_typecheck_list;
     has @!parent_typecheck_list;    # Only for parents instantiated from generics
-    has $!is_complete;
+    has int $!is_complete;
     has $!archetypes;
 
     my $archetypes_g := Perl6::Metamodel::Archetypes.new( :composable(1), :inheritalizable(1), :parametric(1), :generic(1) );

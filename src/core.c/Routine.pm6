@@ -181,8 +181,10 @@ my class Routine { # declared in BOOTSTRAP
 
         # Mix in the Wrapped role if needed and add the wrapper.
         unless nqp::istype(self, Wrapped) {
+            my $orig := self.clone;
             self does Wrapped;
             nqp::bindattr(self, self.WHAT, '$!wrapper-type', self.WHAT);
+            self.ADD-WRAPPER($orig);
         }
         self.ADD-WRAPPER(&wrapper);
 

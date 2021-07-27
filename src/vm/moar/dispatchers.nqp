@@ -2424,7 +2424,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke-wrapped', -> $
     # With wrappers, we pretty much know we'll be traversing them, so we
     # build the deferral chain up front, unlike in other dispatchers.
     my @all_callees := nqp::clone($routine.WRAPPERS);
-    nqp::push(@all_callees, nqp::getattr($routine, Code, '$!do'));
     my $chain := Exhausted;
     while nqp::elems(@all_callees) {
         $chain := DeferralChain.new(nqp::pop(@all_callees), $chain);
@@ -2463,7 +2462,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
         my $code := $cur_deferral.code;
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
             $args, 0, $code);
-        my str $dispatcher := nqp::iscoderef($code) ?? 'boot-code' !! 'raku-call';
+        my str $dispatcher := $cur_deferral.next ?? 'raku-call' !! 'raku-invoke';
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', $dispatcher, $delegate_capture);
     },
     # Resumption.
@@ -2539,7 +2538,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
                     # treat as Raku calls, since it's possible somebody decided to wrap
                     # some code up with a multi.
                     my $code := $cur_deferral.code;
-                    my str $dispatcher := nqp::iscoderef($code) ?? 'boot-code' !! 'raku-call';
+                    my str $dispatcher := $cur_deferral.next ?? 'raku-call' !! 'raku-invoke';
                     my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
                         0, $code);

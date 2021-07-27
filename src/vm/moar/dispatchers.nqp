@@ -1112,9 +1112,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
                 nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args'));
         }
         elsif !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                    $capture, 0, Nil));
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-resume-error',
+                $capture);
         }
     });
 

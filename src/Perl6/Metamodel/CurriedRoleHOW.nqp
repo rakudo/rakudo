@@ -87,8 +87,8 @@ class Perl6::Metamodel::CurriedRoleHOW
     method bind($obj) {
         if $!binding =:= NQPMu {
             if nqp::can($!curried_role.HOW, 'bind') {
-                my $binding := $!curried_role.HOW.bind($!curried_role, $obj);
-                $!binding := $binding unless nqp::decont($binding) =:= $obj;
+                my $binding := nqp::decont($!curried_role.HOW.bind($!curried_role, $obj));
+                $!binding := $binding unless $binding =:= $obj;
                 $binding
             }
             else {
@@ -102,7 +102,7 @@ class Perl6::Metamodel::CurriedRoleHOW
 
     method parameterize_roles($obj) {
         my $binding := self.bind($obj);
-        unless nqp::decont($binding) =:= $obj {
+        unless $binding =:= $obj {
             self.set_language_revision($obj, $binding.HOW.language-revision($binding));
 
             my $type_env;

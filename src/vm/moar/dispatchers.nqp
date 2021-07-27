@@ -859,7 +859,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
         # If the state is null, it's we are entering a walk through the methods.
         # We can short-circuit this if it's a lastcall (and the Exhausted above
         # puts it into effect).
-        if nqp::isnull($state) || $kind == nqp::const::DISP_LASTCALL {
+        if nqp::isnull($state) && $kind != nqp::const::DISP_LASTCALL {
             # No state, so just starting the resumption. Guard on the
             # invocant type and name.
             my $init := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
@@ -1880,7 +1880,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
         my $track-state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-state);
         my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
-        if nqp::isnull($state) || $kind == nqp::const::DISP_LASTCALL {
+        if nqp::isnull($state) && $kind != nqp::const::DISP_LASTCALL {
             # First time. Set state to exhausted.
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
 
@@ -1933,6 +1933,11 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             }
         }
         else {
+            # Mark dispatcher exhausted if it's lastcall.
+            if $kind == nqp::const::DISP_LASTCALL {
+                nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
+            }
+
             # Resume next disaptcher, if any, otherwise hand back Nil.
             if !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
@@ -1975,13 +1980,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
 
-        # If it's a lastcall, we'll poke an Exhausted into the state and
-        # produce Nil.
+        # If it's a lastcall, we'll poke an Exhausted into the state,
+        # propagate it, and produce Nil.
         if $kind == nqp::const::DISP_LASTCALL {
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                    $capture, 0, Nil));
+            if !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $capture, 0, Nil));
+            }
         }
 
         # If it's a callwith, then we want to re-enter the non-trivial
@@ -2074,7 +2081,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
             $arg-capture, 0, $track-candidate);
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture-delegate);
     }
-    elsif nqp::istype($cur-state, MultiDispatchEnd) {
+    elsif nqp::istype($cur-state, MultiDispatchEnd) || nqp::istype($cur-state, Exhausted) {
         # If this is the initial dispatch, then error, otherwise hand back Nil.
         if $kind == nqp::const::DISP_NONE {
             my $target := nqp::captureposarg($orig-capture, 0);
@@ -2552,9 +2559,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
         }
         else {
             # This dispatcher is exhausted. However, there may be another one
-            # we can try (for example, in a wrapped method). Only do this if
-            # it's not lastcall. Failing that, give back Nil.
-            if $kind == nqp::const::DISP_LASTCALL || !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+            # we can try (for example, in a wrapped method). Failing that,
+            # give back Nil.
+            unless nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         $capture, 0, Nil));

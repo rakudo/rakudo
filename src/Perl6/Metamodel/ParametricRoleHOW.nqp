@@ -128,20 +128,13 @@ class Perl6::Metamodel::ParametricRoleHOW
         if $decont =:= $obj.WHAT {
             return 1;
         }
-        if $!in_group && $decont =:= $!group {
-            return 1;
-        }
         for self.pretending_to_be() {
             if $decont =:= nqp::decont($_) {
                 return 1;
             }
         }
-        for self.roles_to_compose($obj) {
-            my $dr := nqp::decont($_);
-            if $decont =:= $dr {
-                return 1;
-            }
-            if nqp::istype($dr, $decont) {
+        for @!role_typecheck_list {
+            if $decont =:= $_ {
                 return 1;
             }
         }

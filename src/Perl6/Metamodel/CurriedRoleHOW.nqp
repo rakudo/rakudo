@@ -120,35 +120,21 @@ class Perl6::Metamodel::CurriedRoleHOW
                 }
                 self.add_role($obj, $role);
             }
-            # Contrary to roles, we only consider generic parents. I.e. cases like:
-            # role R[::T] is T {}
-            if $type_env {
-                for $binding.HOW.parents($binding, :local) -> $parent {
-                    if $parent.HOW.archetypes.generic {
-                        my $ins := $parent.HOW.instantiate_generic($parent, $type_env);
-                        nqp::push(@!parent_typecheck_list, $ins)
-                    }
+            for $binding.HOW.parents($binding, :local) -> $parent {
+                if $parent.HOW.archetypes.generic && $type_env {
+                    $parent := $parent.HOW.instantiate_generic($parent, $type_env);
                 }
+                nqp::push(@!parent_typecheck_list, $parent)
             }
         }
-        self.update_role_typecheck_list($obj);
+        self.update_role_typecheck_list($obj)
     }
 
     method update_role_typecheck_list($obj) {
-        my @rtl;
-        nqp::push(@rtl, $!curried_role);
-        # XXX Not sure if it makes sense adding roles from group into the type checking.
-        # for $!curried_role.HOW.role_typecheck_list($obj) {
-        #     nqp::push(@rtl, $_);
-        # }
-        for self.roles_to_compose($obj) -> $role {
-            my $how := $role.HOW;
-            if $how.archetypes.composable() || $how.archetypes.composalizable() {
-                nqp::push(@rtl, $role);
-                for $how.role_typecheck_list($role) {
-                    nqp::push(@rtl, $_);
-                }
-            }
+        my @rtl := [$!curried_role];
+        for self.roles_to_compose($obj) {
+            @rtl.push($_);
+            nqp::splice(@rtl, $_.HOW.role_typecheck_list($_), +@rtl, 0);
         }
         @!role_typecheck_list := @rtl;
     }
@@ -156,8 +142,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     method complete_parameterization($obj) {
         unless $!is_complete {
             $!is_complete := 1;
-            self.parameterize_roles($obj);
-            self.update_role_typecheck_list($obj);
+            self.parameterize_roles($obj)
         }
     }
 
@@ -217,13 +202,13 @@ class Perl6::Metamodel::CurriedRoleHOW
                 return 1;
             }
         }
-        self.complete_parameterization($obj) unless $!is_complete;
+        self.complete_parameterization($obj);
         for @!parent_typecheck_list {
             if nqp::istype(nqp::decont($_), $decont) {
                 return 1
             }
         }
-        for @!role_typecheck_list {
+        for self.roles_to_compose($obj) {
             my $dr := nqp::decont($_);
             if $decont =:= $dr {
                 return 1;

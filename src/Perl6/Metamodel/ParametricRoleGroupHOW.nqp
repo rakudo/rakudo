@@ -99,9 +99,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             $candidate := self.select_candidate($obj, @pos_args, %named_args);
             CATCH { return $curried }
         }
-        nqp::can($candidate.HOW, 'bind')
-          ?? $candidate.HOW.bind($candidate, $curried)
-          !! $candidate
+        $candidate.HOW.bind($candidate, $curried)
     }
 
     method add_possibility($obj, $possible) {

@@ -82,18 +82,12 @@ class Perl6::Metamodel::CurriedRoleHOW
     # A curried role may be bound to form a role other than its origin, e.g.  a
     # parametric role group and the candidate we're not quite ready to fetch at
     # construction time. If we're still not ready yet whenever we need it, the
-    # binding is ourself for now. If the origin lacks a means of producing a
-    # binding, we assume it's its own by default.
+    # binding is ourself for now.
     method bind($obj) {
         if $!binding =:= NQPMu {
-            if nqp::can($!curried_role.HOW, 'bind') {
-                my $binding := nqp::decont($!curried_role.HOW.bind($!curried_role, $obj));
-                $!binding := $binding unless $binding =:= $obj;
-                $binding
-            }
-            else {
-                $!binding := $!curried_role
-            }
+            my $binding := nqp::decont($!curried_role.HOW.bind($!curried_role, $obj));
+            $!binding := $binding unless $binding =:= $obj;
+            $binding
         }
         else {
             $!binding

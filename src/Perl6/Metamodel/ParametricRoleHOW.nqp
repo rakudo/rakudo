@@ -52,6 +52,10 @@ class Perl6::Metamodel::ParametricRoleHOW
         $currier.new_type($obj, |@pos_args, |%named_args)
     }
 
+    method bind($obj, $curried) {
+        $obj
+    }
+
     method set_body_block($obj, $block) {
         $!body_block := $block
     }

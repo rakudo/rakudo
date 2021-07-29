@@ -226,16 +226,16 @@ class Perl6::Metamodel::CurriedRoleHOW
         # that we only want those that have the same parametric role
         # as us.
         my @cands;
-        my $crdc := nqp::decont($!curried_role);
+        my $binding := self.bind($obj);
         if nqp::istype($checkee.HOW, self.WHAT) {
-            if nqp::decont($checkee.HOW.curried_role($checkee)) =:= $crdc {
+            if $checkee.HOW.bind($checkee) =:= $binding {
                 @cands.push($checkee);
             }
         }
         if nqp::can($checkee.HOW, 'role_typecheck_list') {
             for $checkee.HOW.role_typecheck_list($checkee) {
                 if nqp::istype($_.HOW, self.WHAT) && !$_.HOW.archetypes.generic {
-                    if nqp::decont($_.HOW.curried_role($_)) =:= $crdc {
+                    if $_.HOW.bind($_) =:= $binding {
                         @cands.push($_);
                     }
                 }

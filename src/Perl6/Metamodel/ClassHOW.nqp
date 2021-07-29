@@ -55,9 +55,9 @@ class Perl6::Metamodel::ClassHOW
             $new_type := nqp::newtype($metaclass, $repr);
         }
         my $obj := nqp::settypehll($new_type, 'Raku');
-        $id_lock.protect: {
-            $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
-        }
+        $metaclass.set_name($obj, $name // "<anon|{
+                $id_lock.protect: { $anon_id++ }
+            }>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;

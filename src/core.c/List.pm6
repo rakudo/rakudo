@@ -1327,8 +1327,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
         Seq.new(nqp::isconcrete($!reified)
           ?? Rakudo::Iterator.ReifiedList(
-               nqp::eqaddr((my &by := CALLERS::('&infix:<cmp>')),&infix:<cmp>)
-                 ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST($List)
+               nqp::eqaddr(
+                 (my &by := CALLERS::.AT-KEY('&infix:<cmp>')),
+                 &infix:<cmp>
+               ) ?? Rakudo::Sorting.MERGESORT-REIFIED-LIST($List)
                  !! Rakudo::Sorting.MERGESORT-REIFIED-LIST-WITH($List, &by)
              )
           !! Rakudo::Iterator.Empty

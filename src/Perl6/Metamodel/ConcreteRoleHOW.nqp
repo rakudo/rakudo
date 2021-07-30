@@ -30,7 +30,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     my class Collision {

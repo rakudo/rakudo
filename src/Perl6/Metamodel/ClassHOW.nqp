@@ -40,7 +40,7 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     my $id_lock := NQPLock.new;

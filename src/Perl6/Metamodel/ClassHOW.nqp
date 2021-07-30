@@ -43,6 +43,7 @@ class Perl6::Metamodel::ClassHOW
         nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
     }
 
+    my $id_lock := NQPLock.new;
     my $anon_id := 1;
     method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api, :$is_mixin) {
         my $metaclass := self.new();
@@ -54,7 +55,9 @@ class Perl6::Metamodel::ClassHOW
             $new_type := nqp::newtype($metaclass, $repr);
         }
         my $obj := nqp::settypehll($new_type, 'Raku');
-        $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
+        $metaclass.set_name($obj, $name // "<anon|{
+                $id_lock.protect: { $anon_id++ }
+            }>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;

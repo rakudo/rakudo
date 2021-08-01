@@ -515,7 +515,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
     if nqp::isconcrete_nd($sinkee) {
         # Concrete. See if it has a `sink` method, and then also if it's not
         # Mu.sink, which is a no-op.
-        my $meth := nqp::how_nd($sinkee).find_method($sinkee, 'sink');
+        my $meth := nqp::decont(nqp::how_nd($sinkee).find_method($sinkee, 'sink'));
         if nqp::isconcrete($meth) && !nqp::eqaddr($meth, Mu.HOW.find_method(Mu, 'sink')) {
             # Need to do a call to the sink method. Since sink is a Raku thing,
             # assume we can go straight for the Raku method dispatcher.
@@ -554,7 +554,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
 
         # See if there is a method named for the type.
         my str $to_name := $coerce_type.HOW.name($coerce_type);
-        my $coerce_method := $to_coerce.HOW.find_method($to_coerce, $to_name);
+        my $coerce_method := nqp::decont($to_coerce.HOW.find_method($to_coerce, $to_name));
         if nqp::isconcrete($coerce_method) {
             # Delegate to the resolved method call dispatcher. We need to drop
             # the arg of the coercion type, then insert three args:
@@ -623,7 +623,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
     my $obj := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
     my $how := nqp::how_nd($obj);
-    my $meth := $how.find_method($obj, $name);
+    my $meth := nqp::decont($how.find_method($obj, $name));
 
     # Report an error if there is no such method.
     unless nqp::isconcrete($meth) {
@@ -740,7 +740,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-me-maybe', 
     # Try to find the method.
     my $invocant := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
-    my $meth := $invocant.HOW.find_method($invocant, $name);
+    my $meth := nqp::decont($invocant.HOW.find_method($invocant, $name));
     if nqp::isconcrete($meth) {
         # Found it. Put in resolved method and leave the rest to the resolved
         # method call dispatcher.
@@ -2271,7 +2271,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
 
     # Otherwise, try the CALL-ME or coercion paths.
     else {
-        my $call-me := $code.HOW.find_method($code, 'CALL-ME');
+        my $call-me := nqp::decont($code.HOW.find_method($code, 'CALL-ME'));
         if nqp::isconcrete($call-me) {
             # A CALL-ME method is found; set up a resolved method call to it.
             my $with-name := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',

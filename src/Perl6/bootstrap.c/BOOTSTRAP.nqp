@@ -909,6 +909,16 @@ my class Binder {
         bind($capture, $sig, $lexpad, $no_param_type_check, $error);
     }
 
+    method try_bind_sig($capture) {
+        # Get signature and lexpad.
+        my $caller := nqp::getcodeobj(nqp::callercode());
+        my $sig    := nqp::getattr($caller, Code, '$!signature');
+        my $lexpad := nqp::ctxcaller(nqp::ctx());
+
+        # Call binder, and return non-zero if the bind is successful.
+        bind($capture, $sig, $lexpad, 0, NQPMu) == 0
+    }
+
     method bind_sig($capture) {
         # Get signature and lexpad.
         my $caller := nqp::getcodeobj(nqp::callercode());

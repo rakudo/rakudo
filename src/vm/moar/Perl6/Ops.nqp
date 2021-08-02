@@ -331,6 +331,13 @@ $ops.add_hll_op('Raku', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     $*REGALLOC.release_register($isnull_result,       $MVM_reg_int64);
     MAST::InstructionList.new(MAST::VOID, $MVM_reg_void);
 });
+$ops.add_hll_op('Raku', 'p6trybindsig', :!inlinable, -> $qastcomp, $op {
+    $qastcomp.as_mast(QAST::Op.new(
+        :op('callmethod'), :name('try_bind_sig'), :returns(int),
+        QAST::WVal.new( :value($Binder) ),
+        QAST::Op.new( :op('savecapture') ),
+    ), :want($MVM_reg_obj))
+});
 my $is_bindable := -> $qastcomp, $op {
     $qastcomp.as_mast(QAST::Op.new(
         :op('callmethod'), :name('is_bindable'),

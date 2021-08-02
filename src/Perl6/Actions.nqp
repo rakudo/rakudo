@@ -9064,7 +9064,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # handling.
         if $need_full_binder {
             $block.custom_args(1);
-            $block[0].push(QAST::Op.new( :op('p6bindsig') ));
+            $block[0].push(QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('dispatch'),
+                    QAST::SVal.new( :value('boot-syscall') ),
+                    QAST::SVal.new( :value('bind-will-resume-on-failure') )
+                ),
+                QAST::Op.new(
+                    :op('assertparamcheck'),
+                    QAST::Op.new( :op('p6trybindsig') )
+                ),
+                QAST::Op.new( :op('p6bindsig') )
+            ));
         }
 
         $block;

@@ -2057,28 +2057,60 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
             $track-cur-state, MultiDispatchCall, '$!candidate');
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-candidate);
 
-        # Peel off one candidate and use that as the next state.
-        if $is-resume {
-            my $track-next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                $track-cur-state, MultiDispatchCall, '$!next');
-            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track-next);
+        # If it's a bind failure or success, the we were doing nextcallee
+        # on a dispatch needing a bind check, and want to hand back the
+        # candidate or keep walking.
+        if $kind == nqp::const::DISP_BIND_SUCCESS {
+            # Successful. Peel off the candidate and hand it back.
+            peel-off-candidate($is-resume, $track-cur-state, $cur-state, $orig-capture);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                    $arg-capture, 0, $track-candidate));
+            return;
         }
-        else {
-            my $next := $cur-state.next;
-            my $init-state := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $orig-capture, 0, $next);
-            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $init-state);
+        elsif $kind == nqp::const::DISP_BIND_FAILURE {
+            # Unsuccessful. Skip over the candidate we already tried, and then
+            # try again.
+            $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track-cur-state, MultiDispatchCall, '$!next');
+            $cur-state := $cur-state.next;
+            return raku-multi-non-trivial-step(nqp::const::DISP_NEXTCALLEE,
+                $track-cur-state, $cur-state, $orig-capture, $arg-capture, $is-resume);
         }
 
-        # If it needs a bind check, set us up to resume if it fails.
-        if nqp::istype($cur-state, MultiDispatchTry) {
-            nqp::dispatch('boot-syscall', 'dispatcher-resume-on-bind-failure', $kind);
+        # If it needs a bind check, then...
+        my int $peel-off-candidate := 1;
+        my int $try := nqp::istype($cur-state, MultiDispatchTry);
+        if $try {
+            # If it's nextcallee, we need to resume either on success or failure,
+            # and hand back the candidate. This is the only case where we want to
+            # not peel off a candidate now.
+            if $kind == nqp::const::DISP_NEXTCALLEE {
+                my int $failure := nqp::const::DISP_BIND_FAILURE;
+                my int $success := nqp::const::DISP_BIND_SUCCESS;
+                nqp::dispatch('boot-syscall', 'dispatcher-resume-after-bind',
+                    $failure, $success);
+                $peel-off-candidate := 0;
+            }
+            # Otherwise, we just want to call it and resume on bind failure.
+            else {
+                nqp::dispatch('boot-syscall', 'dispatcher-resume-on-bind-failure', $kind);
+            }
+        }
+
+        # Peel off one candidate and use that as the next state, unless we
+        # aren't meant to.
+        if $peel-off-candidate {
+            peel-off-candidate($is-resume, $track-cur-state, $cur-state, $orig-capture);
         }
 
         # Set up the call.
         my $capture-delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
             $arg-capture, 0, $track-candidate);
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture-delegate);
+        my str $disp := $try || $kind != nqp::const::DISP_NEXTCALLEE
+            ?? 'raku-invoke'
+            !! 'boot-value';
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', $disp, $capture-delegate);
     }
     elsif nqp::istype($cur-state, MultiDispatchEnd) || nqp::istype($cur-state, Exhausted) {
         # If this is the initial dispatch, then error, otherwise hand back Nil.
@@ -2095,6 +2127,19 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
     }
     else {
         nqp::die('Non-trivial multi dispatch step NYI for ' ~ $cur-state.HOW.name($cur-state));
+    }
+}
+sub peel-off-candidate($is-resume, $track-cur-state, $cur-state, $orig-capture) {
+    if $is-resume {
+        my $track-next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $track-cur-state, MultiDispatchCall, '$!next');
+        nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state', $track-next);
+    }
+    else {
+        my $next := $cur-state.next;
+        my $init-state := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+            $orig-capture, 0, $next);
+        nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $init-state);
     }
 }
 

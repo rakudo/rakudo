@@ -4083,7 +4083,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $signature := $*W.create_signature_and_params($/,
                 nqp::hash('parameters', @params), $block, 'Any');
         }
-        add_signature_binding_code($block, $signature, @params);
+        add_signature_binding_code($block, $signature, @params, :multi($*MULTINESS ne ''));
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
         # if this is a multi then we'll need it to vivify to a MultiDispatcher.
@@ -4685,7 +4685,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @params := %sig_info<parameters>;
         my $signature := $*W.create_signature_and_params($<multisig> ?? $<multisig> !! $/,
             %sig_info, $block, 'Any');
-        add_signature_binding_code($block, $signature, @params);
+        add_signature_binding_code($block, $signature, @params, :multi($*MULTINESS ne ''));
 
         # Finish code object, associating it with the routine body.
         if $<deflongname> {
@@ -8997,7 +8997,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Adds code to do the signature binding.
     my $use_vm_binder;
-    sub add_signature_binding_code($block, $sig_obj, @params) {
+    sub add_signature_binding_code($block, $sig_obj, @params, :$multi) {
         # Set arity.
         my int $arity := 0;
         my $count := 0;
@@ -9078,6 +9078,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('p6bindsig') )
             ));
         }
+
+#?if moar
+        if $multi {
+            $block[0].push(QAST::Op.new( :op('bindcomplete') ));
+        }
+#?endif
 
         $block;
     }

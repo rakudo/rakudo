@@ -4748,26 +4748,19 @@ class Rakudo::Iterator {
     my class While does Iterator {
         has $!iter;
         has &!cond;
-        has $!done;
 
         method !SET-SELF(\iter, \cond) {
             $!iter := iter;
             &!cond := cond;
-            $!done := nqp::null;
             self
         }
         method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
 
         method pull-one() is raw {
-            nqp::ifnull(
-              $!done,
-              nqp::if(
-                nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd)
-                  || nqp::isfalse(&!cond(pulled)),
-                ($!done := IterationEnd),
-                pulled
-              )
-            )
+            nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd)
+              || nqp::isfalse(&!cond(pulled))
+              ?? IterationEnd
+              !! pulled
         }
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }

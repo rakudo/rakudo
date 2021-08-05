@@ -121,6 +121,9 @@ BEGIN .^compose for
   Str, Int, Num, Rat, Complex,
   IntStr, NumStr, RatStr, ComplexStr,
   List, Array, Match, Range, Seq,
+  int, int8, int16, int32, int64,
+  uint, uint8, uint16, uint32, uint64,
+  byte, num, num32, num64, str,
 ;
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);

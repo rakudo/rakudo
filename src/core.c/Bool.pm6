@@ -101,15 +101,35 @@ multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::hllbool(nqp::ifnull(nqp::xor(a.
 
 # These operators are normally handled as macros in the compiler;
 # we define them here for use as arguments to functions.
-proto sub infix:<&&>(Mu $?, Mu $?, *%)    {*}
+proto sub infix:<&&>(|)    {*}
 multi sub infix:<&&>(Mu $x = Bool::True)  { $x }
 multi sub infix:<&&>(Mu \a, &b)           { a && b() }
 multi sub infix:<&&>(Mu \a, Mu \b)        { a && b }
+multi sub infix:<&&>(+@a) {
+    my Mu $a = shift @a;
+    while @a {
+        my Mu $b := shift @a;
+        $b := $b() if $b ~~ Callable;
+        return $a unless $a;
+        $a := $b;
+    }
+    $a
+}
 
-proto sub infix:<||>(Mu $?, Mu $?, *%)    {*}
+proto sub infix:<||>(|)                   {*}
 multi sub infix:<||>(Mu $x = Bool::False) { $x }
 multi sub infix:<||>(Mu \a, &b)           { a || b() }
 multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
+multi sub infix:<||>(+@a) {
+    my Mu $a = shift @a;
+    while @a {
+        my Mu $b := shift @a;
+        $b := $b() if $a ~~ Callable;
+        return $a if $a;
+        $a := $b;
+    }
+    $a
+}
 
 proto sub infix:<^^>(|)                   {*}
 multi sub infix:<^^>(Mu $x = Bool::False) { $x }
@@ -127,10 +147,20 @@ multi sub infix:<^^>(+@a) {
     $a;
 }
 
-proto sub infix:<//>(Mu $?, Mu $?, *%)    {*}
+proto sub infix:<//>(|)                   {*}
 multi sub infix:<//>(Mu $x = Any)         { $x }
 multi sub infix:<//>(Mu \a, &b)           { a // b }
 multi sub infix:<//>(Mu \a, Mu \b)        { a // b }
+multi sub infix:<//>(+@a) {
+    my Mu $a = shift @a;
+    while @a {
+        my Mu $b := shift @a;
+        $b := $b() if $a ~~ Callable;
+        return $a with $a;
+        $a := $b;
+    }
+    $a
+}
 
 proto sub infix:<and>(Mu $?, Mu $?, *%)   {*}
 multi sub infix:<and>(Mu $x = Bool::True) { $x }

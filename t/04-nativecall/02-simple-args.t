@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 14;
+plan 16;
 
 compile_test_lib('02-simple-args');
 
@@ -19,9 +19,13 @@ is AssortedIntArgs(101, 102, 103), 3, 'passed an int32, int16 and int8';
 
 # Float related
 sub TakeADouble(num64) returns int32 is native('./02-simple-args') { * }
+sub TakeADoubleNaN(num64) returns int32 is native('./02-simple-args') { * }
 sub TakeAFloat(num32)  returns int32 is native('./02-simple-args') { * }
+sub TakeAFloatNaN(num32)  returns int32 is native('./02-simple-args') { * }
 is TakeADouble(-6.9e0), 4, 'passed a double';
+is TakeADoubleNaN(NaN), 4, 'passed a NaN (double)';
 is TakeAFloat(4.2e0),   5, 'passed a float';
+is TakeAFloatNaN(NaN), 5, 'passed a NaN (float)';
 
 # String related
 sub TakeAString(Str) returns int32 is native('./02-simple-args') { * }

@@ -36,6 +36,12 @@ From the obituary at: https://www.facebook.com/marcia.goff.5/posts/1021375569728
 
 > He is survived by his parents; his brother and sister-in-law, Brandon and Rebecca Goff, St. Ignatius, MT; his aunt and uncle, Christine and Roger Sebby, Colorado Springs, CO; cousins Amber and Ed Shipp and family of Colorado Springs, and Chad and Renae Sebby and family of Olathe, KS; and many dear friends throughout the world.
 
+Robert Lemmen (ROBERTLE)
+------------------------
+In June 2020, Robert Lemmen passed away after a serious illness.  Among other contributions, he packaged modules for Raku (Perl6 at that time) and helped other contributors to get involved in the Raku Team.  Robert Lemmen further contributed to MoarVM, nqp and the Raku documentation, as well as being the author of several ecosystem modules.
+
+From the obituary at: https://www.debian.org/News/2021/20210812
+
 Final words
 -----------
 If you have any suggestions for additions, changes or other comments,

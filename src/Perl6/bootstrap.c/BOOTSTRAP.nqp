@@ -4021,9 +4021,87 @@ nqp::sethllconfig('Raku', nqp::hash(
     'method_call_dispatcher', 'raku-meth-call',
     'find_method_dispatcher', 'nqp-find-meth',  # NQP one is probably good enough
     'resume_error_dispatcher', 'raku-resume-error',
+    'hllize_dispatcher', 'raku-hllize',
     'max_inline_size', 384,
 #?endif
 ));
+
+#?if moar
+my @types_for_hll_role := nqp::list(Mu, Int, Num, Str, List, Hash, ForeignCode);
+my @transform_type := nqp::list(
+    Mu,
+    -> $int { nqp::box_i($int, Int) },
+    -> $num { nqp::box_n($num, Num) },
+    -> $str { nqp::box_s($str, Str) },
+    -> $farray {
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', $farray);
+        $list
+    },
+    -> $hash {
+        my $result := nqp::create(Hash);
+        nqp::bindattr($result, Map, '$!storage', $hash);
+        $result
+    },
+    -> $code {
+        my $result := nqp::create(ForeignCode);
+        nqp::bindattr($result, ForeignCode, '$!do', $code);
+        $result
+    },
+);
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-hllize', -> $capture {
+    my $arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $arg);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $arg);
+    my $spec := nqp::captureposprimspec($capture, 0);
+    if $spec {
+        nqp::dispatch(
+            'boot-syscall', 'dispatcher-delegate', 'lang-call',
+            nqp::dispatch(
+                'boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $capture, 0, @transform_type[$spec > 3 ?? 1 !! $spec]
+            )
+        )
+    }
+    else {
+        my $obj := nqp::captureposarg($capture, 0);
+
+        if nqp::isnull($obj) {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                    0, Mu
+                )
+            );
+        }
+        else {
+            my $role := nqp::gettypehllrole($obj);
+            if $role > 0 {
+                if nqp::isconcrete($obj) {
+                    nqp::dispatch(
+                        'boot-syscall', 'dispatcher-delegate', 'lang-call',
+                        nqp::dispatch(
+                            'boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            $capture, 0, @transform_type[$role]
+                        )
+                    )
+                }
+                else {
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                            0, @types_for_hll_role[$role]
+                        )
+                    );
+                }
+            }
+            else {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+            }
+        }
+    }
+});
+#?endif
 
 # Tell parametric role groups how to create a dispatcher.
 Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({

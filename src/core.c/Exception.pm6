@@ -3238,6 +3238,33 @@ my class X::Multi::NoMatch is Exception {
     }
 }
 
+my class X::Symbol::Kind is Exception {
+    has $.symbol is required;
+    has $.package is required;
+    has $.kind is required;
+    method message {
+        "Cannot access '$.symbol' through $.package, because it is not declared as $.kind";
+    }
+}
+
+my class X::Symbol::NotDynamic is X::Symbol::Kind {
+    method new(*%initattrs) {
+        nextwith(|%initattrs, kind => 'dynamic')
+    }
+}
+
+my class X::Symbol::NotLexical is X::Symbol::Kind {
+    method new(*%initattrs) {
+        nextwith(|%initattrs, kind => 'lexical')
+    }
+}
+
+my class X::Caller::NotDynamic is X::Symbol::Kind {
+    method new(*%initattrs) {
+        nextwith(|%initattrs, package => 'CALLER', kind => 'dynamic')
+    }
+}
+
 my class X::NotSingleGrapheme is Exception {
     has $.characters;
     method message() {
@@ -3245,13 +3272,6 @@ my class X::NotSingleGrapheme is Exception {
           ~ $.characters.ords.map(*.uniname).join(", ")
           ~ ']" did not resolve to a single grapheme'
         ).naive-word-wrapper
-    }
-}
-
-my class X::Caller::NotDynamic is Exception {
-    has $.symbol;
-    method message() {
-        "Cannot access '$.symbol' through CALLER, because it is not declared as dynamic";
     }
 }
 

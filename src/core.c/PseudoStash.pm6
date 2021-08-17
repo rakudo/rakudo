@@ -73,7 +73,7 @@ my class PseudoStash is Map {
                 $stash);
         },
         'CORE', -> $cur {
-            # In 6.c and 6.d implementations of rakudo CORE was always poiting at the outermost setting.
+            # In 6.c and 6.d implementations of rakudo CORE was always pointing at the outermost setting.
             # XXX If EVAL get :unit option we'd need to check for intermidiate CORE.setting. But for now this code
             # should be ok.
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
@@ -243,39 +243,42 @@ my class PseudoStash is Map {
         nqp::if(
           nqp::existskey($pseudoers,$key),
           nqp::atkey($pseudoers,$key)(self),
-          nqp::if(
-            nqp::bitand_i($!mode,PRECISE_SCOPE),
-            nqp::stmts(
-              (my Mu $res := nqp::if(
-                nqp::existskey(
-                  nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
-                nqp::atkey(
-                  nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
-                Nil
-              )),
-              nqp::if(
-                (nqp::not_i(nqp::eqaddr($res,Nil))
-                  && nqp::bitand_i($!mode,REQUIRE_DYNAMIC)),
-                nqp::if(
-                  (try nqp::not_i($res.VAR.dynamic)),
-                  X::Caller::NotDynamic.new(symbol => $key).throw
-                )
-              ),
-              $res
-            ),
+          nqp::stmts(
+            (my $is-star := nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42)),  # has * twigil
             nqp::if(
-              nqp::bitand_i(
-                $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
-                ) && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42),  # "*"
-              nqp::ifnull(
-                nqp::getlexreldyn(
-                  nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
-                Nil
+              nqp::bitand_i($!mode,PRECISE_SCOPE),
+              nqp::stmts(
+                (my Mu $res := nqp::if(
+                  nqp::existskey(
+                    nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+                  nqp::atkey(
+                    nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
+                  Nil
+                )),
+                nqp::if(
+                  (nqp::not_i(nqp::eqaddr($res,Nil))
+                    && nqp::bitand_i($!mode,REQUIRE_DYNAMIC)),
+                  nqp::unless(
+                    ($is-star || try $res.VAR.dynamic),
+                    X::Caller::NotDynamic.new(symbol => $key).throw
+                  )
+                ),
+                $res
               ),
-              nqp::ifnull(                                    # STATIC_CHAIN
-                nqp::getlexrel(
-                  nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
-                Nil
+              nqp::if(
+                nqp::bitand_i(
+                  $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
+                  ) && $is-star,
+                nqp::ifnull(
+                  nqp::getlexreldyn(
+                    nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
+                  Nil
+                ),
+                nqp::ifnull(                                    # STATIC_CHAIN
+                  nqp::getlexrel(
+                    nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
+                  Nil
+                )
               )
             )
           )

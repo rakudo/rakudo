@@ -546,10 +546,9 @@ register_op_desugar('p6reprname', -> $qast {
     QAST::Op.new( :op('box_s'), QAST::Op.new( :op('reprname'), $qast[0]), QAST::Op.new( :op('hllboxtype_s') ) )
 });
 register_op_desugar('p6callmethodhow', -> $qast {
-    $qast   := $qast.shallow_clone();
+    $qast   := QAST::Op.new(:op<callmethod>, :name($qast.name), |$qast.list);
     my $inv := $qast.shift;
     my $tmp := QAST::Node.unique('how_invocant');
-    $qast.op('callmethod');
     $qast.unshift(QAST::Var.new( :name($tmp), :scope('local') ));
     $qast.unshift(QAST::Op.new(
         :op('how'),

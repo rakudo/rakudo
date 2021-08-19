@@ -309,7 +309,7 @@ class CompUnit::PrecompilationStore::File
       Str:D :$extension = ''
     ) {
         my &rename-block = { $path.rename(self!file($compiler-id, $precomp-id, :$extension)); };
-        if $*DISTRO.is-win {
+        if Rakudo::Internals.IS-WIN {
             # If the rename attempts don't succeed, we'll end up
             # trying again one more time but not catching any failures.
             return if try-rename-n-times(&rename-block, 10);
@@ -328,7 +328,7 @@ class CompUnit::PrecompilationStore::File
             $precomp-file.rename(self!file($compiler-id, $precomp-id));
             self.remove-from-cache($precomp-id);
         };
-        if $*DISTRO.is-win {
+        if Rakudo::Internals.IS-WIN {
             # If the rename attempts don't succeed, we'll end up
             # trying again one more time but not catching any failures.
             return if try-rename-n-times(&rename-block, 10);
@@ -344,7 +344,7 @@ class CompUnit::PrecompilationStore::File
         my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
         $repo-id-file.spurt($repo-id);
         my &rename-block = { $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>)); };
-        if $*DISTRO.is-win {
+        if Rakudo::Internals.IS-WIN {
             # If the rename attempts don't succeed, we'll end up
             # trying again one more time but not catching any failures.
             return if try-rename-n-times(&rename-block, 10);

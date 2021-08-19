@@ -44,7 +44,7 @@ do {
         my &add_history = $WHO<&add_history>;
         my $Readline = try { require Readline }
         my $read = $Readline.new;
-        if ! $*DISTRO.is-win {
+        if !Rakudo::Internals.IS-WIN {
             $read.read-init-file("/etc/inputrc");
             $read.read-init-file(%*ENV<INPUTRC> // "~/.inputrc");
         }
@@ -238,7 +238,7 @@ do {
                 say 'Continuing without tab completions or line editor';
                 say 'You may want to consider using rlwrap for simple line editor functionality';
             }
-            elsif !$*DISTRO.is-win and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
+            elsif !Rakudo::Internals.IS-WIN and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
                 say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor';
             }
             say '';
@@ -321,7 +321,7 @@ do {
 
             say $no-exit
               ?? "Type 'exit' to leave"
-              !! $*DISTRO.is-win
+              !! Rakudo::Internals.IS-WIN
                 ?? "To exit type 'exit' or '^Z'"
                 !! "To exit type 'exit' or '^D'";
 

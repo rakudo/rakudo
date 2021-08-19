@@ -36,11 +36,13 @@ role Perl6::Metamodel::Concretization {
     }
 
     method !rebuild_table() {
+        my %new_conc_table := nqp::clone(%!conc_table);
         for @!concretizations {
-            nqp::scwbdisable();
-            %!conc_table{~nqp::objectid(nqp::decont($_[0]))} := nqp::decont($_[1]);
-            nqp::scwbenable();
+            %new_conc_table{~nqp::objectid(nqp::decont($_[0]))} := nqp::decont($_[1]);
         }
+        nqp::scwbdisable();
+        %!conc_table := %new_conc_table;
+        nqp::scwbenable();
     }
 
     # Returns a list where the first element is the number of roles found and the rest are actual type objects.

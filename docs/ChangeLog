@@ -1,3 +1,29 @@
+New in 2021.08:
+
+  + Additions:
+    + Enable rendering of nested blocks in the `Pod::To::Text` module [07517164][27f7924e][36de39f6]
+  + Changes:
+    + Raise priority of `let` and `temp` operators compared to `.=`, `.` and
+      auto-increment, making `let $foo .= &{ Nil }` work more intuitively compared to
+      `(let $foo) .= &{ Nil }` as was necessary before [ca40fca0][723e7488]
+    + Change the `Scalar.WHICH` method implementation, fixing the semantics to reflect
+      that `Scalar` is not a value object [56fce9e7]
+  + Efficiency:
+    + Make the `&&`, `||` and `//` operators about 2x as fast for the `+@a` candidates [db441c2c]
+    + Improve performance of smartmatching between two `Signature` objects [66ae8612]
+  + Fixes:
+    + Fix some occurrences of hash-related concurrency issues [58ae9394]
+    + Fix the `List.reduce` method when used with `&infix:<&&>` [ea389d66][db441c2c]
+    + Fix matching of native types against roles `Numeric`, `Real` and `Stringy` [a8a78132]
+    + Make `Pointer.Numeric` and `Pointer.Int` methods return 0 instead of resulting in an error [681e3b5e]
+    + Fix a race in the `ClassHOW.new_type` method [08f5448d][83b0bca7]
+  + Internal:
+    + Make checking for Windows cheaper [89df7f4b]
+    + Simplify `Rakudo::Iterator::While` iterator code [ffde2ba2]
+    + Fix location of the `Proc.status` deprecation message [54f1b7a5]
+    + Add tests to make sure float and double `NaN` can be passed to native code
+      via NativeCall using the Raku `NaN` value [8ae6f394]
+
 New in 2021.07:
 
   + Additions:

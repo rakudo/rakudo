@@ -3,6 +3,8 @@ role Perl6::Metamodel::Concretization {
     has @!concretizations;
     has %!conc_table;
 
+    my $lock := NQPLock.new;
+
     method add_concretization($obj, $role, $concrete) {
         @!concretizations[+@!concretizations] := [$role, $concrete];
         nqp::scwbdisable();
@@ -35,25 +37,33 @@ role Perl6::Metamodel::Concretization {
         @conc
     }
 
-    method !rebuild_table() {
-        my %new_conc_table := nqp::clone(%!conc_table);
-        for @!concretizations {
-            %new_conc_table{~nqp::objectid(nqp::decont($_[0]))} := nqp::decont($_[1]);
-        }
-        nqp::scwbdisable();
-        %!conc_table := %new_conc_table;
-        nqp::scwbenable();
+    method !maybe_rebuild_table() {
+        my %new_conc_table := %!conc_table;
+        $lock.protect: {
+            # This block is locked because it's used by MRO method dispatch, so doing things
+            # such as parsing a grammar in a start block can cause concurrent access and modification.
+            if nqp::elems(%new_conc_table) < nqp::elems(@!concretizations) {
+                %new_conc_table := nqp::clone(%!conc_table);
+                for @!concretizations {
+                    %new_conc_table{~nqp::objectid(nqp::decont($_[0]))} := nqp::decont($_[1]);
+                }
+                nqp::scwbdisable();
+                %!conc_table := %new_conc_table;
+                nqp::scwbenable();
+            }
+        };
+        %new_conc_table;
     }
 
     # Returns a list where the first element is the number of roles found and the rest are actual type objects.
     method concretization_lookup($obj, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
-        self.'!rebuild_table'() if nqp::elems(%!conc_table) < nqp::elems(@!concretizations);
-        return [0] unless !$local || $transitive || nqp::elems(%!conc_table);
+        my %working_conc_table := self.'!maybe_rebuild_table'();
+        return [0] unless !$local || $transitive || nqp::elems(%working_conc_table);
         $ptype := nqp::decont($ptype);
         my $id := ~nqp::objectid($ptype);
         my @result;
-        if nqp::existskey(%!conc_table, $id) {
-            return [1, %!conc_table{$id}];
+        if nqp::existskey(%working_conc_table, $id) {
+            return [1, %working_conc_table{$id}];
         }
         if $relaxed {
             # Try search by role group for curryings. The first match is ok. Used by FQN method calls.

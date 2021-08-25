@@ -70,7 +70,8 @@ my class Metamodel::Primitives {
     }
 
     method set_parameterizer(Mu \obj, &parameterizer --> Nil) {
-        nqp::setparameterizer(obj, nqp::decont(&parameterizer))
+        my $wrapper := -> |c { parameterizer(|c) }
+        nqp::setparameterizer(obj, nqp::getattr(nqp::decont($wrapper), Code, '$!do'))
     }
 
     method parameterize_type(Mu \obj, +parameters --> Mu) {

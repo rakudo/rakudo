@@ -11,6 +11,7 @@ src/core.c/Stringy.pm6
 src/core.c/Any.pm6
 src/core.c/Attribute.pm6
 src/core.c/Iterator.pm6
+src/core.c/Metamodel/Primitives.pm6
 src/core.c/Rakudo/SlippyIterator.pm6
 src/core.c/Rakudo/Internals.pm6
 src/core.c/Rakudo/Iterator.pm6
@@ -233,7 +234,6 @@ src/vm/js/CompUnit/Repository/NodeJs.pm6)@
 src/core.c/Argfiles.pm6
 src/core.c/Process.pm6
 src/core.c/Slang.pm6
-src/core.c/Metamodel/Primitives.pm6
 src/core.c/REPL.pm6
 @if(backend==js
 src/core.c/WrappedJSObject.pm6)@

@@ -444,7 +444,7 @@ my class Rakudo::Internals {
     my constant \SHAPE-STORAGE-ROOT := do {
         my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
         nqp::setdebugtypename($root, 'MultiDimArray root');
-        nqp::setparameterizer($root, -> $, $key {
+        Metamodel::Primitives.set_parameterizer($root, -> $, $key {
             # We "steal" the meta-object for the multi-dim storage.
             my $dims := $key.elems.pred;
             my $meta := $key.AT-POS(0);

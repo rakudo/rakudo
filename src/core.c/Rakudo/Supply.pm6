@@ -18,25 +18,25 @@ class Rakudo::Supply {
             else {
                 my $reawaitable := CachedAwaitHandle.new(get-await-handle => $handle);
                 $!continuations := nqp::list() unless nqp::isconcrete($!continuations);
-                nqp::continuationcontrol(0, ADD_WHENEVER_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(0, ADD_WHENEVER_PROMPT, nqp::getattr(-> Mu \c {
                     nqp::push($!continuations, -> $delegate-awaiter {
-                        nqp::continuationinvoke(c, {
+                        nqp::continuationinvoke(c, nqp::getattr({
                             $delegate-awaiter.await($reawaitable);
-                        });
+                        }, Code, '$!do'));
                     });
-                });
+                }, Code, '$!do'));
             }
         }
 
         method await-all(Iterable:D \i) {
             $!continuations := nqp::list() unless nqp::isconcrete($!continuations);
-            nqp::continuationcontrol(0, ADD_WHENEVER_PROMPT, -> Mu \c {
+            nqp::continuationcontrol(0, ADD_WHENEVER_PROMPT, nqp::getattr(-> Mu \c {
                 nqp::push($!continuations, -> $delegate-awaiter {
-                    nqp::continuationinvoke(c, {
+                    nqp::continuationinvoke(c, nqp::getattr({
                         $delegate-awaiter.await-all(i);
-                    });
+                    }, Code, '$!do'));
                 });
-            });
+            }, Code, '$!do'));
         }
 
         method take-all() {
@@ -174,7 +174,7 @@ class Rakudo::Supply {
                 my $tap;
                 $state.run-async-lock.with-lock-hidden-from-recursion-check: {
                     my $*AWAITER := $state.awaiter;
-                    nqp::continuationreset(ADD_WHENEVER_PROMPT, {
+                    nqp::continuationreset(ADD_WHENEVER_PROMPT, nqp::getattr({
                         $supply.tap(
                             tap => {
                                 $tap := $_;
@@ -212,7 +212,7 @@ class Rakudo::Supply {
                                     self!deactivate-one($state);
                                 }
                             });
-                    });
+                    }, Code, '$!do'));
                 }
                 $tap
             }
@@ -263,9 +263,9 @@ class Rakudo::Supply {
                 my $delegate-awaiter := $*AWAITER;
                 while @run-after.elems {
                     my $*AWAITER := $nested-awaiter;
-                    nqp::continuationreset(ADD_WHENEVER_PROMPT, {
+                    nqp::continuationreset(ADD_WHENEVER_PROMPT, nqp::getattr({
                         @run-after.shift()($delegate-awaiter);
-                    });
+                    }, Code, '$!do'));
                     @run-after.append($nested-awaiter.take-all);
                 }
             }

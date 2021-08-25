@@ -1979,20 +1979,20 @@ class Rakudo::Iterator {
 
                 nqp::if(
                   nqp::iseq_i($wanted,0),
-                  nqp::continuationcontrol(0, PROMPT, -> Mu \c {
+                  nqp::continuationcontrol(0, PROMPT, nqp::getattr(-> Mu \c {
                       nqp::bindattr(iter, self, '&!resumption', c);
-                  })
+                  }, Code, '$!do'))
                 );
                 nqp::resume(nqp::exception())
             }
-            nqp::bindattr(iter, self, '&!resumption', {
+            nqp::bindattr(iter, self, '&!resumption', nqp::getattr({
                 nqp::stmts(  # doesn't sink
                   nqp::handle(&block(), 'TAKE', $taker()),
-                  nqp::continuationcontrol(0, PROMPT, -> | {
+                  nqp::continuationcontrol(0, PROMPT, nqp::getattr(-> | {
                       nqp::bindattr(iter, self, '&!resumption', Callable)
-                  })
+                  }, Code, '$!do'))
                 )
-            });
+            }, Code, '$!do'));
             iter
         }
 

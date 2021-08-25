@@ -269,6 +269,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     has Pointer $!entry-point;
     has int $!arity;
     has int $!any-optionals;
+    has int $!any-callbacks;
     has Mu $!optimized-body;
     has Mu $!jit-optimized-body;
     has $!name;
@@ -295,6 +296,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
             $!arity = $r.signature.arity;
             $!any-optionals = self!any-optionals;
+            $!any-callbacks = self!any-callbacks;
 
             my $jitted = nqp::buildnativecall(self,
                 nqp::unbox_s($guessed_libname),                           # library name
@@ -327,6 +329,13 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     method !any-optionals() {
         for $r.signature.params -> $p {
             return True if $p.optional
+        }
+        return False
+    }
+
+    method !any-callbacks() {
+        for $r.signature.params -> $p {
+            return True if $p.type ~~ Callable
         }
         return False
     }
@@ -584,11 +593,22 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             self.create-optimized-call() unless
                 $!optimized-body # Already have the optimized body
                 or $!any-optionals # the compiled code doesn't support optional parameters yet
+                or $!any-callbacks # the compiled code doesn't support unwrapping callbacks yet
                 or try $*W;    # Avoid issues with compiling specialized version during BEGIN time
             self!setup() unless nqp::unbox_i($!call);
 
             my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
             self!arity-error(args) if nqp::elems($args) != $!arity;
+            if $!any-callbacks {
+                my int $i = 0;
+                while $i < nqp::elems($args) {
+                    my $arg := nqp::decont(nqp::atpos($args, $i));
+                    if nqp::istype_nd($arg, Code) {
+                        nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
+                    }
+                    $i++;
+                }
+            }
 
             nqp::nativecall($!rettype, self, $args)
         };

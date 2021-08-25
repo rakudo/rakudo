@@ -78,7 +78,7 @@ ok +periods() == 0, 'did the snapper actually stop';
 
 snapper(2);
 sleep .5 * (%*ENV<ROAST_TIMING_SCALE>//1);  # give snapper thread some time to start up
-is +periods(), 1, 'did the snapper start taking snaps';
+ok +periods() >= 1, 'did the snapper start taking snaps';
 snapper(:stop);
 sleep 2 * (%*ENV<ROAST_TIMING_SCALE>//1);
 

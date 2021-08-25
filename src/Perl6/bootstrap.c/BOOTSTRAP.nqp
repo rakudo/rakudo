@@ -3653,6 +3653,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Junction);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
 
+#?if !moar
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
@@ -3695,6 +3696,7 @@ BEGIN {
         });
     Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);
     Mu.HOW.compose_invocation(Mu);
+#?endif
 
     # If we don't already have a PROCESS, set it up.
     my $PROCESS := nqp::gethllsym('Raku', 'PROCESS');
@@ -4149,6 +4151,7 @@ Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
 
+#?if !moar
 # Make roles handle invocations.
 my $role_invoke_handler := nqp::getstaticcode(sub ($self, *@pos, *%named) {
     $self.HOW.pun($self)(|@pos, |%named)
@@ -4162,6 +4165,7 @@ Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
 Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
+#?endif
 
 # Configure the MOP (not persisted as it ends up in a lexical...)
 Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);

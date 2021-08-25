@@ -3,18 +3,22 @@ role Perl6::Metamodel::InvocationProtocol {
     has $!invocation_attr_class;
     has str $!invocation_attr_name;
 
+#?if !moar
     has int $!has_invocation_handler;
     has $!invocation_handler;
+#?endif
 
     has int $!has_multi_attrs;
     has $!md_attr_class;
     has str $!md_valid_attr_name;
     has str $!md_cache_attr_name;
 
+#?if !moar
     my $default_invoke_handler;
     method set_default_invoke_handler($h) {
         $default_invoke_handler := $h;
     }
+#?endif
 
     method set_invocation_attr($obj, $class, str $name) {
         $!has_invocation_attr   := 1;
@@ -22,17 +26,21 @@ role Perl6::Metamodel::InvocationProtocol {
         $!invocation_attr_name  := $name;
     }
 
+#?if !moar
     method set_invocation_handler($obj, $handler) {
         $!has_invocation_handler := 1;
         $!invocation_handler     := $handler;
     }
+#?endif
 
     method has_invocation_attr($obj) { $!has_invocation_attr }
     method invocation_attr_class($obj) { $!invocation_attr_class }
     method invocation_attr_name($obj) { $!invocation_attr_name }
 
+#?if !moar
     method has_invocation_handler($obj) { $!has_invocation_handler }
     method invocation_handler($obj) { $!invocation_handler }
+#?endif
 
     method set_multi_invocation_attrs($obj, $class, str $valid_name, str $cache_name) {
         $!has_multi_attrs    := 1;
@@ -50,17 +58,21 @@ role Perl6::Metamodel::InvocationProtocol {
         # the default invocation forwarder. Otherwise, see if we or
         # a parent has an invocation attr.
         if $obj.HOW.archetypes.composable {
+#?if !moar
             # We special case roles by using only default handler
             nqp::setinvokespec($obj, nqp::null(), nqp::null_s(),
                 $default_invoke_handler);
+#?endif
         }
         else {
             my $pcmeth := self.find_method($obj, 'CALL-ME', :no_fallback(1));
             if nqp::defined($pcmeth) {
+#?if !moar
                 nqp::die('Default invocation handler is not invokable')
                     unless nqp::isinvokable($default_invoke_handler);
                 nqp::setinvokespec($obj, nqp::null(), nqp::null_s(),
                     $default_invoke_handler);
+#?endif
             }
             else {
                 for self.mro($obj) -> $class {

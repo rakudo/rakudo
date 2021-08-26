@@ -12,7 +12,7 @@
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(cur_op + idx))]
 
 /* Dummy zero callsite. */
-static MVMCallsite no_arg_callsite = { NULL, 0, 0, 0, 0, 0, NULL, NULL };
+static MVMCallsite no_arg_callsite = { NULL, 0, 0, 0, 0, 0, NULL };
 
 /* Initializes the Raku extension ops. */
 static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {

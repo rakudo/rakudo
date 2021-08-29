@@ -469,6 +469,8 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    instance->full_cleanup = full_cleanup;
+
     MVM_vm_run_file(instance, perl6_file);
 
 #ifdef HAVE_TELEMEH

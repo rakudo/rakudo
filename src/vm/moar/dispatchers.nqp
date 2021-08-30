@@ -585,7 +585,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
 # A standard call (such as `func($arg)`, `$obj($arg)`, etc.) It receives the
 # decontainerized callee as the first argument, followed by the arguments. Its
 # primary purpose is to deal with multi dispatch vs. single dispatch and then
-# delegate on to the appropriate dispatcher.
+# delegate on to the appropriate dispatcher. It also looks at if we are doing a
+# call to a method (either because it was looked up separately, or because we
+# are here via lang-call), and in that case sends it via the resolved method
+# call dispatcher. This means it will have a working nextsame etc.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
     # Guard on the type and, if it's a routine, on the dispatchees. (We assume
     # that the set of dispatchees shall not change, even over closure clones -
@@ -594,7 +597,18 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
     my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
     nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_callee);
     my $callee := nqp::captureposarg($capture, 0);
-    if nqp::istype_nd($callee, Routine) {
+    if nqp::istype_nd($callee, Method) && (my str $meth-name := $callee.name) &&
+            (my $inv_param := try { $callee.signature.params.AT-POS(0) }) {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_callee);
+        my $meth-type := $inv_param.type;
+        my $with-type := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+            $capture, 1, $meth-type);
+        my $with-name := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
+            $with-type, 2, $meth-name);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call-resolved',
+            $with-name);
+    }
+    elsif nqp::istype_nd($callee, Routine) {
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
             nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                 $track_callee, Routine, '@!dispatchees'));
@@ -604,7 +618,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
     else {
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture);
     }
-
 });
 
 # A standard method call of the form $obj.meth($arg); also used for the
@@ -2506,7 +2519,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
         my $code := $cur_deferral.code;
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
             $args, 0, $code);
-        my str $dispatcher := $cur_deferral.next ?? 'raku-call' !! 'raku-invoke';
+        my str $dispatcher := $cur_deferral.next ?? 'raku-call-wrapper' !! 'raku-invoke';
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', $dispatcher, $delegate_capture);
     },
     # Resumption.
@@ -2582,7 +2595,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
                     # treat as Raku calls, since it's possible somebody decided to wrap
                     # some code up with a multi.
                     my $code := $cur_deferral.code;
-                    my str $dispatcher := $cur_deferral.next ?? 'raku-call' !! 'raku-invoke';
+                    my str $dispatcher := $cur_deferral.next ?? 'raku-call-wrapper' !! 'raku-invoke';
                     my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
                         0, $code);
@@ -2611,6 +2624,24 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
             }
         }
     });
+
+# Like raku-call, except assumes that any method call we see will already have
+# been taken care of.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call-wrapper', -> $capture {
+    my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_callee);
+    my $callee := nqp::captureposarg($capture, 0);
+    if nqp::istype_nd($callee, Routine) {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+            nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track_callee, Routine, '@!dispatchees'));
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+            $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
+    }
+    else {
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture);
+    }
+});
 
 # The dispatcher backing p6capturelex. If we are passed a code object, then
 # extracts the underlying handle and causes it to be captured.

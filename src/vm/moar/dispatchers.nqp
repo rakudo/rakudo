@@ -1121,8 +1121,16 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
         if $kind == nqp::const::DISP_ONLYSTAR {
+            # Put a guard on the dispatchee list, as a given proto may be
+            # cloned and used for multiple candidate lists.
+            my $init_args := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args');
+            my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                $init_args, 0);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track_callee, Routine, '@!dispatchees'));
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-core',
-                nqp::dispatch('boot-syscall', 'dispatcher-get-resume-init-args'));
+                $init_args);
         }
         elsif !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-resume-error',

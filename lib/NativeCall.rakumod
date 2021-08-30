@@ -455,7 +455,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         for $r.signature.params {
             next if nqp::istype($r, Method) && ($_.name // '') eq '%_';
             my $name = $_.name || '__anonymous_param__' ~ $++;
-            my $decont = self!decont-for-type($_.type);
             if $_.rw and nqp::objprimspec($_.type) > 0 {
                 $block.push: QAST::Var.new(
                     :name($name),
@@ -500,7 +499,25 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                         QAST::Var.new(:scope<local>, :name($lowered_name)),
                     ),
                 );
-                $arglist.push: QAST::Var.new(:scope<local>, :name($lowered_name));
+                if nqp::istype($_.type, Callable) {
+                    $arglist.push: QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype'),
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                            QAST::WVal.new( :value(Code) ),
+                        ),
+                        QAST::Op.new(
+                            :op('getattr'),
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                            QAST::WVal.new( :value(Code) ),
+                            QAST::SVal.new( :value('$!do') )
+                        ),
+                        QAST::Var.new(:scope<local>, :name($lowered_name)));
+                }
+                else {
+                    $arglist.push: QAST::Var.new(:scope<local>, :name($lowered_name));
+                }
             }
         }
         $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
@@ -593,7 +610,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             self.create-optimized-call() unless
                 $!optimized-body # Already have the optimized body
                 or $!any-optionals # the compiled code doesn't support optional parameters yet
-                or $!any-callbacks # the compiled code doesn't support unwrapping callbacks yet
                 or try $*W;    # Avoid issues with compiling specialized version during BEGIN time
             self!setup() unless nqp::unbox_i($!call);
 

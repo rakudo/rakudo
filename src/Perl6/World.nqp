@@ -2592,17 +2592,6 @@ class Perl6::World is HLL::World {
 
             # Compile the block.
             $precomp := self.compile_in_context($code_past, $code_type);
-
-            # Also compile the candidates if this is a proto.
-            if $is_dispatcher {
-                for nqp::getattr($code, $routine_type, '@!dispatchees') {
-                    my $cs := nqp::getattr($_, $code_type, '@!compstuff');
-                    my $past := $cs[0] unless nqp::isnull($cs);
-                    if $past {
-                        self.compile_in_context($past, $code_type);
-                    }
-                }
-            }
         };
         my $stub := nqp::freshcoderef(sub (*@pos, *%named) {
             unless $precomp {

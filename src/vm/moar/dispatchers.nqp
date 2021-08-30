@@ -1102,7 +1102,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
     -> $capture {
         my $callee := nqp::captureposarg($capture, 0);
         my int $onlystar := nqp::getattr_i($callee, Routine, '$!onlystar');
-        if $onlystar && !nqp::can($callee, 'WRAPPERS') {
+        my int $simple := $onlystar && simple-args-proto($callee, $capture);
+        if $simple && !nqp::can($callee, 'WRAPPERS') {
             # Don't need to invoke the proto itself, so just get on with the
             # candidate dispatch.
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-core', $capture);
@@ -1137,6 +1138,46 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
                 $capture);
         }
     });
+
+# We in principle could always call the proto and have correct behavior. It is,
+# however, nice when we can go straight to a candidate. To see if that's the
+# case, we have to introspect the signature.
+sub simple-args-proto($callee, $capture) {
+    # If we're compiling the setting, all sorts of things missing, so don't
+    # even try.
+    return 0 if $*COMPILING_CORE_SETTING;
+
+    # If it's out of range so far as arity goes, we'll call the proto to
+    # produce an error.
+    my $signature := $callee.signature;
+    my int $got-args := nqp::captureposelems($capture) - 1; # First element is the callee
+    return 0 if nqp::islt_i($got-args, $signature.arity) || nqp::isgt_n($got-args, $signature.count);
+
+    # Otherwise, arity is alright. Look through the params.
+    my int $accepts-any-named := 0;
+    for $signature.params.FLATTENABLE_LIST -> $param {
+        # If there's a constraint or unpack, need the proto to be run.
+        return 0 unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) &&
+            nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature'));
+
+        # Otherwise, go by kind of parameter.
+        if $param.capture {
+            $accepts-any-named := 1;
+        }
+        elsif $param.slurpy {
+            $accepts-any-named := 1 if $param.named;
+        }
+        elsif $param.named {
+            # Can be a bit smarter by diffing what nameds we have or miss, but
+            # for now conservatively run the proto.
+            return 0;
+        }
+    }
+
+    # If we get here, it's OK to elide running the proto so long as if we have
+    # any named args, it accepts them.
+    return nqp::capturehasnameds($capture) ?? $accepts-any-named !! 1;
+}
 
 # We we invoke a multi with an argument that is a Proxy (or some other non-Scalar
 # container), we need to read the value(s) from the Proxy argument(s) and then go

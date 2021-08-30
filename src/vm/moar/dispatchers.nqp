@@ -1143,9 +1143,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
 # however, nice when we can go straight to a candidate. To see if that's the
 # case, we have to introspect the signature.
 sub simple-args-proto($callee, $capture) {
-    # If we're compiling the setting, all sorts of things missing, so don't
-    # even try.
-    return 0 if $*COMPILING_CORE_SETTING;
+    # If we're compiling the setting, all sorts of things we need to do the
+    # analysis are missing, so don't even try. Nothing invoked in the
+    # CORE.setting build today that has an onlystar proto actually needs
+    # its proto invoking today, so we also regard them all as simple, to
+    # avoid a bunch of throwaway compilations.
+    return 1 if $*COMPILING_CORE_SETTING;
 
     # If it's out of range so far as arity goes, we'll call the proto to
     # produce an error.

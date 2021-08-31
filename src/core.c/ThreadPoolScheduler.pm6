@@ -780,12 +780,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     submethod BUILD(
         Int :$!initial_threads = 0,
-#?if jvm
         Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 64).Int
-#?endif
-#?if !jvm
-        Int :$!max_threads = nqp::ifnull(nqp::atkey($ENV,'RAKUDO_MAX_THREADS'),64)
-#?endif
         --> Nil
     ) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
@@ -804,7 +799,7 @@ my class ThreadPoolScheduler does Scheduler {
               GeneralWorker.new(
                 queue => $!general-queue,
                 scheduler => self
-              )
+             )
             ) for ^$!initial_threads;
             scheduler-debug "Created scheduler with $!initial_threads initial general workers";
             self!maybe-start-supervisor();

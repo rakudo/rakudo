@@ -5759,7 +5759,8 @@ grammar Perl6::RegexGrammar is QRegex::P6Regex::Grammar does STD does MatchPacka
     method throw_solitary_quantifier() { self.typed_panic('X::Syntax::Regex::SolitaryQuantifier') }
     method throw_solitary_backtrack_control() { self.typed_sorry('X::Syntax::Regex::SolitaryBacktrackControl') }
 
-    token normspace { <?before \s | '#'> <.LANG('MAIN', 'ws')> }
+    token rxws { [ \s | <.LANG('MAIN', 'comment')> ]* }
+    token normspace {  <?before \s | '#'> <.rxws>  }
 
     token rxstopper { <stopper> }
 

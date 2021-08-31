@@ -72,7 +72,7 @@ augment class Any {
                 nqp::bindattr($iter,self,'$!pulled',$pulled),
                 nqp::if(       # set up FIRST phaser execution if needed
                   block.has-phaser('FIRST');
-                  nqp::p6setfirstflag(block)
+                  nqp::p6setfirstflag(nqp::getattr(block, Code, '$!do'))
                 ),
                 nqp::bindattr($iter,self,'&!block',block),
                 nqp::bindattr($iter,self,'$!source',source),
@@ -783,7 +783,7 @@ augment class Any {
                 $!did-init         = 1;
                 $!CAN_FIRE_PHASERS = 1;
                 $!NEXT             = &!block.has-phaser('NEXT');
-                nqp::p6setfirstflag(&!block)
+                nqp::p6setfirstflag(nqp::getattr(&!block, Code, '$!do'))
                   if &!block.has-phaser('FIRST');
             }
 

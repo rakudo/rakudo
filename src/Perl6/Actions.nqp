@@ -150,8 +150,7 @@ sub wanted($ast,$by) {
             my $block-closure;
             if $body.ann('loop-already-block-first-phaser') -> $loop-goods {
                 $block := $loop-goods[0][1][0];
-                $block-closure := QAST::Op.new: :node($body.node),
-                    :op<p6setfirstflag>, block_closure($block);
+                $block-closure := set_first_flag(block_closure($block));
 
                 # get rid of now-useless var and other bits of the QAST.
                 # If we .shift off all items, the QAST::Stmts gets a null
@@ -994,6 +993,26 @@ sub monkey_see_no_eval($/) {
         ?? $msne   # prevails if defined, can be either 1 or 0
         !! $*COMPILING_CORE_SETTING
             || try { $*W.find_single_symbol('&MONKEY-SEE-NO-EVAL')() };
+}
+
+sub set_first_flag($block) {
+    my $temp := QAST::Node.unique('first_tmp');
+    QAST::Stmts.new:
+        :resultchild(0),
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :decl('var'), :scope('local'), :name($temp) ),
+            $block
+        ),
+        QAST::Op.new(
+            :op('p6setfirstflag'),
+            QAST::Op.new(
+                :op('getattr'),
+                QAST::Var.new( :scope('local'), :name($temp) ),
+                QAST::WVal.new( :value($*W.find_symbol(['Code'])) ),
+                QAST::SVal.new( :value('$!do') )
+            )
+       )
 }
 
 role STDActions {
@@ -2093,7 +2112,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $var  := QAST::Var.new: :$node, :name($tmp), :scope<local>;
                 $loop := QAST::Stmts.new(:$node,
                     QAST::Op.new(:$node, :op<bind>, $var.decl_as('var'),
-                      QAST::Op.new: :$node, :op<p6setfirstflag>, $loop[1]),
+                      set_first_flag($loop[1])),
                     $loop);
                 $loop[1][1] := QAST::Op.new(:$node, :op<call>, $var
                   ).annotate_self: 'loop-already-block-first-phaser', $loop;

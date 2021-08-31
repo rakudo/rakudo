@@ -63,11 +63,12 @@ static MVMuint8 s_p6setfirstflag[] = {
 };
 static void p6setfirstflag(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject *code_obj = GET_REG(tc, 2).o;
-    MVMObject *vm_code  = MVM_frame_find_invokee(tc, code_obj, NULL);
+    if (!MVM_code_iscode(tc, code_obj))
+        MVM_exception_throw_adhoc(tc, "p6setfirstflag requires a bytecode handle");
 #ifdef MVM_COLLECTABLE_FLAGS1
-    vm_code->header.flags1 |= RAKUDO_FIRST_FLAG;
+    code_obj->header.flags1 |= RAKUDO_FIRST_FLAG;
 #else
-    vm_code->header.flags |= RAKUDO_FIRST_FLAG;
+    code_obj->header.flags |= RAKUDO_FIRST_FLAG;
 #endif
     GET_REG(tc, 0).o = code_obj;
 }

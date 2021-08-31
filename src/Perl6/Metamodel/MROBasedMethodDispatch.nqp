@@ -55,6 +55,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     }
 
     method publish_method_cache($obj) {
+#?if !moar
         # Walk MRO and add methods to cache, unless another method
         # lower in the class hierarchy "shadowed" it.
         my %cache;
@@ -81,6 +82,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($obj) {
             nqp::setmethcacheauth($obj, $authable);
         }
+#?endif
     }
 }
 

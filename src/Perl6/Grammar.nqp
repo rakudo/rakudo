@@ -1340,9 +1340,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             self.LANG($langname, $regex, @args);
         }
         else {
-            my $Str := $*W.find_single_symbol('Str');
             my $actions := self.slang_actions($langname);
-            my $lang_cursor := $grammar.'!cursor_init'($Str.new( :value(self.orig())), :p(self.pos()));
+            my $lang_cursor := $grammar.'!cursor_init'(self.orig, :p(self.pos()));
             $lang_cursor.clone_braid_from(self);
             $lang_cursor.set_actions($actions);
             if self.HOW.traced(self) {

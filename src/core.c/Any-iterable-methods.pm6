@@ -54,342 +54,256 @@ augment class Any {
         Failure.new(X::Cannot::Empty.new(:$action, :$what))
     }
 
-    proto method map(|) is nodal {*}
-    multi method map(Hash:D \hash) {
-        X::Cannot::Map.new(
-          what       => self.^name,
-          using      => "a {hash.^name}",
-          suggestion =>
-"Did you mean to add a stub (\{ ... \}) or did you mean to .classify?"
-        ).throw;
-    }
-    multi method map(Iterable:D \iterable) {
-        X::Cannot::Map.new(
-          what       => self.^name,
-          using      => "a {iterable.^name}",
-          suggestion =>
-"Did a * (Whatever) get absorbed by a comma, range, series, or list repetition?
-Consider using a block if any of these are necessary for your mapping code."
-        ).throw;
-    }
-    multi method map(|c) {
-        X::Cannot::Map.new(
-          what       => self.^name,
-          using      => "'{c.raku.substr(2).chop}'",
-          suggestion => "Did a * (Whatever) get absorbed by a list?"
-        ).throw;
-    }
-
-    multi method map(\SELF: &block;; :$label, :$item) {
-        sequential-map(($item ?? (SELF,) !! SELF).iterator, &block, $label);
-    }
-
     my class IterateOneWithPhasers does Rakudo::SlippyIterator {
         has &!block;
         has $!source;
         has $!label;
-        has Int $!NEXT;         # SHOULD BE int, but has Int performs better
-        has Int $!did-init;     # SHOULD BE int, but has Int performs better
-        has Int $!did-iterate;  # SHOULD BE int, but has Int performs better
+        has $!pulled;
+        has $!NEXT;
+        has $!LAST;
 
-        method !SET-SELF(\block,\source,\label) {
-            &!block  := block;
-            $!source := source;
-            $!label  := nqp::decont(label);
-            $!NEXT = block.has-phaser('NEXT');
-            self
+        method new(\block, \source, \label) {
+            nqp::if(
+              nqp::eqaddr((my $pulled := source.pull-one),IterationEnd),
+              Rakudo::Iterator.Empty,  # nothing to do
+              nqp::stmts(              # iterate at least once
+                (my $iter := nqp::create(self)),
+                nqp::bindattr($iter,self,'$!slipper',nqp::null),
+                nqp::bindattr($iter,self,'$!pulled',$pulled),
+                nqp::if(       # set up FIRST phaser execution if needed
+                  block.has-phaser('FIRST');
+                  nqp::p6setfirstflag(block)
+                ),
+                nqp::bindattr($iter,self,'&!block',block),
+                nqp::bindattr($iter,self,'$!source',source),
+                nqp::bindattr($iter,self,'$!label',nqp::decont(label)),
+                nqp::bindattr($iter,self,'$!NEXT',
+                  block.callable_for_phaser('NEXT') // nqp::null),
+                nqp::bindattr($iter,self,'$!LAST',
+                  block.callable_for_phaser('LAST')),
+                $iter
+              )
+            )
         }
-        method new(\bl,\sou,\la) { nqp::create(self)!SET-SELF(bl,sou,la) }
 
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            my int $stopped;
-            my $value;
-            my $result;
+            my $value := nqp::null;
 
+            # handle slipping
             nqp::unless(
-              $!did-init,
-              nqp::stmts(
-                ($!did-init = 1),
-                nqp::if(
-                  &!block.has-phaser('FIRST'),
-                  nqp::p6setfirstflag(&!block)
+              nqp::isnull($!slipper),
+              nqp::if(
+                nqp::eqaddr(($value := self.slip-one),IterationEnd),
+                ($value := nqp::null)
+              )
+            );
+
+            nqp::while(
+              nqp::isnull($value)
+                && nqp::not_i(nqp::eqaddr($!pulled,IterationEnd)),
+              nqp::handle(       # still something to do
+                nqp::stmts(
+                  ($value   := &!block($!pulled)),
+                  ($!pulled := $!source.pull-one),
+                  nqp::unless(
+                    nqp::isnull($!NEXT),
+                    nqp::handle(
+                      $!NEXT(),  # control ops inside NEXT phaser
+                      'REDO', self!improper-control('redo', 'NEXT'),
+                      'NEXT', nqp::null,
+                      'LAST', ($!pulled := IterationEnd)
+                    )
+                  ),
+                  nqp::if(       # check for Slip
+                    nqp::istype($value,Slip)
+                      && nqp::eqaddr(
+                           ($value := self.start-slip($value)),
+                           IterationEnd
+                         ),
+                    ($value := nqp::null)  # nothing in the slip
+                  ),
+                ),
+                'LABELED', $!label,
+                'REDO', nqp::null,   # a 'redo' in the block
+                'NEXT', nqp::stmts(  # a 'next' in the block
+                  ($!pulled := $!source.pull-one),
+                  nqp::if(
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                    ($value := nqp::null)
+                  ),
+                  nqp::unless(
+                    nqp::isnull($!NEXT),
+                    nqp::handle(
+                      $!NEXT(),  # control ops inside a NEXT phaser
+                      'REDO', self!improper-control('redo', 'NEXT'),
+                      'NEXT', nqp::null,
+                      'LAST', ($!pulled := IterationEnd)
+                    )
+                  )
+                ),
+                'LAST', nqp::unless(  # a 'last' in the block
+                  nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                  ($!pulled := IterationEnd)  # done later
                 )
               )
             );
 
-            if $!slipping && nqp::not_i(nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
-                # $result will be returned at the end
+            nqp::ifnull($value,self!fire-any-LAST)
+        }
+
+        method !improper-control(str $control, str $phaser --> Nil) {
+            # XXX make it a proper Exception
+            die "Cannot call '$control' inside a $phaser phaser";
+        }
+
+        # Fire any LAST phaser, making sure that any invalid control
+        # exceptions will be cause an exception.  Returns IterationEnd
+        # for convenience.
+        method !fire-any-LAST(--> IterationEnd) {
+            if $!LAST -> &LAST {
+                nqp::handle(
+                  LAST(),
+                  'REDO', self!improper-control('redo', 'LAST'),
+                  'NEXT', self!improper-control('next', 'LAST'),
+                  'LAST', nqp::null  # ok to last inside a LAST phaser
+                )
             }
-            elsif nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
-                $result := IterationEnd
-            }
-            else {
+        }
+
+        method push-all(\target) {
+            my $source := $!source;
+            my &block  := &!block;
+            my $pulled := $!pulled;
+
+            self.push-rest(target) unless nqp::isnull($!slipper);
+
+            if $!NEXT -> &NEXT {
                 nqp::until(
-                  $stopped,
+                  nqp::eqaddr($pulled,IterationEnd),
                   nqp::handle(
                     nqp::stmts(
-                      ($stopped = 1),
-                      ($result := &!block($value)),
-                      ($!did-iterate = 1),
+                      (my $value := block($pulled)),
                       nqp::if(
-                        nqp::istype($result, Slip),
-                        nqp::if(
-                          nqp::eqaddr(($result := self.start-slip($result)), IterationEnd),
-                          nqp::if(
-                            nqp::not_i(nqp::eqaddr(($value := $!source.pull-one),IterationEnd)),
-                            ($stopped = 0)
-                          ),
-                        )
+                        nqp::istype($value,Slip),
+                        self.slip-all($value,target),
+                        target.push($value)
                       ),
-                      nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
+                      nqp::handle(
+                        NEXT(),
+                        'REDO', self!improper-control('redo', 'NEXT')
+                      ),
+                      ($pulled := $source.pull-one)
                     ),
                     'LABELED', $!label,
                     'NEXT', nqp::stmts(
-                       ($!did-iterate = 1),
-                       nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                       nqp::eqaddr(($value := $!source.pull-one), IterationEnd)
-                         ?? ($result := IterationEnd)
-                         !! ($stopped = 0)
+                      self.push-control-payload(target),
+                      ($pulled := $source.pull-one),
+                      nqp::handle(
+                        NEXT(),
+                        'REDO', self!improper-control('redo', 'NEXT'),
+                        'NEXT', nqp::null,
+                        'LAST', ($pulled := self!fire-any-LAST)
+                      )
                     ),
-                    'REDO', ($stopped = 0),
+                    'REDO', nqp::null,
                     'LAST', nqp::stmts(
-                      ($!did-iterate = 1),
-                      ($result := IterationEnd)
+                      self.push-control-payload(target),
+                      ($pulled := self!fire-any-LAST)
                     )
                   ),
                   :nohandler
-                )
+                );
             }
-            nqp::if(
-              $!did-iterate && nqp::eqaddr($result,IterationEnd),
-              &!block.fire_if_phasers('LAST')
-            );
-            $result
-        }
 
-        method push-all(\target --> IterationEnd) {
-            nqp::unless(
-              $!did-init,
-              nqp::stmts(
-                ($!did-init = 1),
-                nqp::if(
-                  &!block.has-phaser('FIRST'),
-                  nqp::p6setfirstflag(&!block)
-                )
-              )
-            );
-
-            my int $stopped;
-            my int $done;
-            my $pulled;
-            my $value;
-
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                target.push($value)
-              )
-            );
-
-            until $done
-                || nqp::eqaddr(($value := $!source.pull-one),IterationEnd) {
-                nqp::stmts(
-                  ($stopped = 0),
-                  nqp::until(
-                    $stopped,
-                    nqp::stmts(
-                      ($stopped = 1),
-                      nqp::handle(
-                        nqp::stmts(  # doesn't sink
-                          ($pulled := &!block($value)),
-                          ($!did-iterate = 1),
-                          nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                          nqp::if(
-                            nqp::istype($pulled,Slip),
-                            self.slip-all($pulled,target),
-                            target.push($pulled)
-                          )
-                        ),
-                        'LABELED', $!label,
-                        'NEXT', nqp::stmts(
-                          ($!did-iterate = 1),
-                          nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                          nqp::eqaddr(
-                            ($value := $!source.pull-one),
-                            IterationEnd
-                          )
-                            ?? ($done = 1)
-                            !! ($stopped = 0)),
-                        'REDO', ($stopped = 0),
-                        'LAST', ($done = $!did-iterate = 1)
-                      )
-                    ),
-                    :nohandler
-                  )
-                )
-            }
-            nqp::if($!did-iterate,&!block.fire_if_phasers('LAST'))
-        }
-
-        method sink-all(--> IterationEnd) {
-            nqp::unless(
-              $!did-init,
-              nqp::stmts(
-                ($!did-init = 1),
-                nqp::if(
-                  &!block.has-phaser('FIRST'),
-                  nqp::p6setfirstflag(&!block)
-                )
-              )
-            );
-
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(self.slip-one,IterationEnd),
-                nqp::null
-              )
-            );
-
-            my int $stopped;
-            my int $done;
-            my $value;
-            until $done
-                || nqp::eqaddr(($value := $!source.pull-one()),IterationEnd) {
-                nqp::stmts(
-                  ($stopped = 0),
-                  nqp::until(
-                    $stopped,
-                    nqp::stmts(
-                      ($stopped = 1),
-                      nqp::handle(
-                        nqp::stmts(  # doesn't sink
-                          (&!block($value)),
-                          ($!did-iterate = 1),
-                          nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                        ),
-                        'LABELED', $!label,
-                        'NEXT', nqp::stmts(
-                          ($!did-iterate = 1),
-                          nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                          nqp::eqaddr(
-                            ($value := $!source.pull-one),
-                            IterationEnd
-                          )
-                            ?? ($done = 1)
-                            !! ($stopped = 0)),
-                        'REDO', ($stopped = 0),
-                        'LAST', ($done = $!did-iterate = 1)
-                      )
-                    ),
-                    :nohandler
-                  )
-                )
-            }
-            nqp::if($!did-iterate,&!block.fire_if_phasers('LAST'))
-        }
-    }
-
-    my class IterateOneNotSlippingWithoutPhasers does Iterator {
-        has &!block;
-        has $!source;
-        has $!label;
-
-        method new(&block,$source,\label) {
-            my $iter := nqp::create(self);
-            nqp::bindattr($iter, self, '&!block', &block);
-            nqp::bindattr($iter, self, '$!source', $source);
-            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
-            $iter
-        }
-
-        method is-lazy() { $!source.is-lazy }
-
-        method pull-one() is raw {
-            if nqp::eqaddr((my $pulled := $!source.pull-one),IterationEnd) {
-                IterationEnd
-            }
+            # no NEXT phaser
             else {
-                my $result;
-                my int $stopped;
-                nqp::stmts(
-                  nqp::until(
-                    $stopped,
+                nqp::until(
+                  nqp::eqaddr($pulled,IterationEnd),
+                  nqp::handle(
                     nqp::stmts(
-                      ($stopped = 1),
-                      nqp::handle(
-                        ($result := &!block($pulled)),
-                        'LABELED', $!label,
-                        'NEXT', nqp::if(
-                          nqp::eqaddr(
-                            ($pulled := $!source.pull-one),
-                            IterationEnd
-                          ),
-                          ($result := IterationEnd),
-                          ($stopped = 0)
-                        ),
-                        'REDO', ($stopped = 0),
-                        'LAST', ($result := IterationEnd)
+                      (my $value := block($pulled)),
+                      nqp::if(
+                        nqp::istype($value,Slip),
+                        self.slip-all($value,target),
+                        target.push($value)
                       ),
+                      ($pulled := $source.pull-one)
                     ),
-                    :nohandler
+                    'LABELED', $!label,
+                    'NEXT', nqp::stmts(
+                      self.push-control-payload(target),
+                      ($pulled := $source.pull-one)
+                    ),
+                    'REDO', nqp::null,
+                    'LAST', nqp::stmts(
+                      self.push-control-payload(target),
+                      ($pulled := IterationEnd)
+                    )
                   ),
-                  $result
-                )
+                  :nohandler
+                );
             }
+
+            self!fire-any-LAST
         }
 
-        method push-all(\target --> IterationEnd) {
-            my $pulled;
-            my int $stopped;
-            nqp::until(
-              nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-               nqp::stmts(
-                ($stopped = 0),
-                nqp::until(
-                  $stopped,
-                  nqp::stmts(
-                    ($stopped = 1),
-                    nqp::handle(
-                      target.push(&!block($pulled)),
-                      'LABELED', $!label,
-                      'REDO', ($stopped = 0),
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                      'LAST', return
-                    )
-                  ),
-                  :nohandler
-                )
-              )
-            )
-        }
+        method sink-all() {
+            my $source := $!source;
+            my &block  := &!block;
+            my $pulled := $!pulled;
 
-        method sink-all(--> IterationEnd) {
-            my $pulled;
-            my int $stopped;
-            nqp::until(
-              nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                ($stopped = 0),
+            self.sink-rest unless nqp::isnull($!slipper);
+
+            if $!NEXT -> &NEXT {
                 nqp::until(
-                  $stopped,
-                  nqp::stmts(
-                    ($stopped = 1),
-                    nqp::handle(
-                      &!block($pulled),
-                      'LABELED', $!label,
-                      'REDO', ($stopped = 0),
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                      'LAST', return
-                    )
+                  nqp::eqaddr($pulled,IterationEnd),
+                  nqp::handle(
+                    nqp::stmts(
+                      block($pulled),
+                      nqp::handle(
+                        NEXT(),
+                        'REDO', self!improper-control('redo', 'NEXT')
+                      ),
+                      ($pulled := $source.pull-one)
+                    ),
+                    'LABELED', $!label,
+                    'NEXT', nqp::stmts(
+                      ($pulled := $source.pull-one),
+                      nqp::handle(
+                        NEXT(),
+                        'REDO', self!improper-control('redo', 'NEXT'),
+                        'NEXT', nqp::null,
+                        'LAST', ($pulled := IterationEnd)
+                      )
+                    ),
+                    'REDO', nqp::null,
+                    'LAST', ($pulled := IterationEnd)
                   ),
                   :nohandler
-                )
-              )
-            )
+                );
+            }
+
+            # no NEXT phaser
+            else {
+                nqp::until(
+                  nqp::eqaddr($pulled,IterationEnd),
+                  nqp::handle(
+                    nqp::stmts(
+                      block($pulled),
+                      ($pulled := $source.pull-one)
+                    ),
+                    'LABELED', $!label,
+                    'NEXT', ($pulled := $source.pull-one),
+                    'REDO', nqp::null,
+                    'LAST', ($pulled := IterationEnd)
+                  ),
+                  :nohandler
+                );
+            }
+
+            self!fire-any-LAST
         }
     }
 
@@ -400,6 +314,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
         method new(&block,$source,\label) {
             my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!label', nqp::decont(label));
@@ -409,127 +324,91 @@ Consider using a block if any of these are necessary for your mapping code."
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            my int $redo = 1;
-            my $value;
-            my $result;
+            my $pulled := nqp::isnull($!slipper)
+              || nqp::eqaddr((my $value := self.slip-one),IterationEnd)
+              ?? $!source.pull-one
+              !! IterationEnd;
 
-            if $!slipping && nqp::not_i(nqp::eqaddr(
-              ($result := self.slip-one),
-              IterationEnd
-            )) {
-                # $result will be returned at the end
-            }
-            elsif nqp::eqaddr(
-              ($value := $!source.pull-one),
-              IterationEnd
-            ) {
-                $result := $value
-            }
-            else {
-              nqp::while(
-                $redo,
-                nqp::stmts(
-                  $redo = 0,
-                  nqp::handle(
-                    nqp::if(
-                      nqp::istype(($result := &!block($value)),Slip),
-                      nqp::if(
-                        nqp::eqaddr(
-                          ($result := self.start-slip($result)), IterationEnd),
-                        nqp::if(
-                          nqp::not_i(nqp::eqaddr(
-                            ($value := $!source.pull-one),
-                            IterationEnd
-                          )),
-                          $redo = 1
-                        )
-                      )
-                    ),
-                    'LABELED',
-                    $!label,
-                    'NEXT',
-                    nqp::if(
-                      nqp::eqaddr(
-                        ($value := $!source.pull-one),IterationEnd
-                      ),
-                      ($result := IterationEnd),
-                      ($redo = 1)
-                    ),
-                    'REDO',
-                    ($redo = 1),
-                    'LAST',
-                    ($result := IterationEnd)
-                  ),
-                ),
-              :nohandler);
-            }
-            $result
+            nqp::until(
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                ($pulled := nqp::if(
+                  nqp::istype(($value := &!block($pulled)),Slip)
+                    && nqp::eqaddr(
+                         ($value := self.start-slip($value)),
+                         IterationEnd
+                       ),
+                    $!source.pull-one,
+                    IterationEnd
+                )),
+                'LABELED', $!label,
+                'NEXT', ($pulled := nqp::if(
+                  nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                  $!source.pull-one,
+                  IterationEnd
+                )),
+                'REDO', nqp::null,
+                'LAST', nqp::stmts(
+                  ($pulled := IterationEnd),
+                  nqp::unless(
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                    ($!source := Rakudo::Iterator.Empty)   # also done later
+                  )
+                )
+              ),
+              :nohandler
+            );
+
+            nqp::ifnull($value,IterationEnd)
         }
 
         method push-all(\target --> IterationEnd) {
-            my $value;
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                target.push($value)
-              )
-            );
+            self.push-rest(target) unless nqp::isnull($!slipper);
 
+            my $pulled := $!source.pull-one;
             nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      nqp::if(
-                        nqp::istype((my $result := &!block($value)),Slip),
-                        self.slip-all($result,target),
-                        target.push($result)
-                      ),
-                      'LABELED', $!label,
-                      'REDO', ($redo = 1),
-                      'LAST', return,
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
-                    )
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                nqp::stmts(
+                  nqp::if(
+                    nqp::istype((my $value := &!block($pulled)),Slip),
+                    self.slip-all($value, target),
+                    target.push($value)
                   ),
-                  :nohandler
+                  ($pulled := $!source.pull-one),
+                ),
+                'LABELED', $!label,
+                'REDO', nqp::null,
+                'NEXT', nqp::stmts(
+                  self.push-control-payload(target),
+                  ($pulled := $!source.pull-one)
+                ),
+                'LAST', nqp::stmts(
+                  self.push-control-payload(target),
+                  ($pulled := IterationEnd)
                 )
-              )
+              ),
+              :nohandler
             );
         }
 
         method sink-all(--> IterationEnd) {
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(self.slip-one,IterationEnd),
-                nqp::null
-              )
-            );
+            self.sink-rest unless nqp::isnull($!slipper);
 
+            my $pulled := $!source.pull-one;
             nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(  # doesn't sink
-                      &!block($value),
-                      'LABELED', $!label,
-                      'NEXT', nqp::null,  # need NEXT for next LABEL support
-                      'REDO', ($redo = 1),
-                      'LAST', return
-                    ),
-                  :nohandler
-                  )
-                )
-              )
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                nqp::stmts(
+                  &!block($pulled),
+                  ($pulled := $!source.pull-one)
+                ),
+                'LABELED', $!label,
+                'NEXT', ($pulled := $!source.pull-one),
+                'REDO', nqp::null,
+                'LAST', ($pulled := IterationEnd)
+              ),
+              :nohandler
             );
         }
     }
@@ -541,6 +420,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
         method new(&block,$source,\label) {
             my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!label', nqp::decont(label));
@@ -550,160 +430,319 @@ Consider using a block if any of these are necessary for your mapping code."
         method is-lazy() { $!source.is-lazy }
 
         method pull-one() is raw {
-            my int $redo = 1;
-            my $value;
-            my $value2;
-            my $result;
-
-            if $!slipping && nqp::not_i(nqp::eqaddr(
-              ($result := self.slip-one),
-              IterationEnd
-            )) {
-                # $result will be returned at the end
-            }
-            elsif nqp::eqaddr(
-              ($value := $!source.pull-one),
-              IterationEnd
-            ) {
-                $result := IterationEnd;
-            }
-            else {
-              nqp::while(
-                $redo,
-                nqp::stmts(
-                  $redo = 0,
-                  nqp::handle(
-                    nqp::stmts(
-                      nqp::if(
-                        nqp::eqaddr(($value2 := $!source.pull-one),IterationEnd),
-                        nqp::if(                                 # don't have 2 params
-                          nqp::istype(($result := &!block($value)),Slip),
-                          ($result := self.start-slip($result))  # don't care if empty
-                        ),
-                        nqp::if(
-                          nqp::istype(($result := &!block($value,$value2)),Slip),
-                          nqp::if(
-                            nqp::eqaddr(($result := self.start-slip($result)),IterationEnd),
-                            nqp::unless(
-                              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
-                              ($redo = 1)
-                            )
-                          )
-                        )
-                      )
-                    ),
-                    'LABELED',
-                    $!label,
-                    'NEXT',
-                    nqp::if(
-                      nqp::eqaddr(
-                        ($value := $!source.pull-one),IterationEnd
-                      ),
-                      ($result := IterationEnd),
-                      ($redo = 1)
-                    ),
-                    'REDO',
-                    ($redo = 1),
-                    'LAST',
-                    ($result := IterationEnd)
-                  ),
-                ),
-              :nohandler);
-            }
-            $result
-        }
-
-        method push-all(\target --> IterationEnd) {
-            my $value;
             nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(($value := self.slip-one),IterationEnd),
-                target.push($value)
+              nqp::isnull(
+                nqp::if(
+                  nqp::isnull($!slipper)
+                    || nqp::eqaddr((my $value := self.slip-one),IterationEnd),
+                  ($value := nqp::null),
+                  $value
+                )
+              ),
+              nqp::unless(
+                nqp::eqaddr((my $a := $!source.pull-one),IterationEnd),
+                (my $b := $!source.pull-one)
               )
             );
 
-            nqp::until(
-              nqp::eqaddr(($value := $!source.pull-one),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
+            nqp::while(
+              nqp::isnull($value)
+                && nqp::not_i(nqp::eqaddr($a,IterationEnd)),
+              nqp::if(
+                nqp::eqaddr($b,IterationEnd),
+                nqp::handle(  # iterator exhausted
                   nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(
-                      nqp::if(
-                        nqp::eqaddr(
-                          (my $value2 := $!source.pull-one),
-                          IterationEnd
-                        ),
-                        nqp::stmts(
-                          (my $result := &!block($value)),
-                          nqp::if(
-                            nqp::istype($result,Slip),
-                            self.slip-all($result,target),
-                            target.push($result)
-                          ),
-                          return
-                        ),
-                        nqp::if(
-                          nqp::istype(
-                            ($result := &!block($value,$value2)),
-                            Slip
-                          ),
-                          self.slip-all($result,target),
-                          target.push($result)
-                        )
-                      ),
-                      'LABELED', $!label,
-                      'REDO', ($redo = 1),
-                      'LAST', return,
-                      'NEXT', nqp::null, # need NEXT for next LABEL support
+                    ($!source := Rakudo::Iterator.Empty),
+                    ($value := &!block($a)),
+                    nqp::if(
+                      nqp::istype($value,Slip),
+                      ($value := self.start-slip($value))
                     )
                   ),
-                  :nohandler
+                  'LABELED', $!label,
+                  'NEXT', ($value := self.control-payload),
+                  'REDO', ($value := nqp::null),
+                  'LAST', ($value := self.control-payload)
+                ),
+                nqp::handle(  # iterator still good
+                  nqp::stmts(
+                    ($value := &!block($a, $b)),
+                    nqp::if(
+                      nqp::istype($value,Slip) && nqp::eqaddr(
+                        ($value := self.start-slip($value)),
+                        IterationEnd
+                      ),
+                      nqp::stmts(             # set up next iteration
+                        ($value := nqp::null),
+                        nqp::unless(
+                          nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
+                          ($b := $!source.pull-one)
+                        )
+                      )
+                    )
+                  ),
+                  'LABELED', $!label,
+                  'NEXT', nqp::if(
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                    nqp::stmts(
+                      ($value := nqp::null),  # set up next iteration
+                      nqp::unless(
+                        nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
+                        ($b := $!source.pull-one)
+                      )
+                    )
+                  ),
+                  'REDO', nqp::null,
+                  'LAST', nqp::if(
+                    nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                    ($value   := IterationEnd),           # end now
+                    ($!source := Rakudo::Iterator.Empty)  # end later
+                  )
+                )
+              )
+            );
+
+            nqp::ifnull($value,IterationEnd)
+        }
+
+        method push-all(\target --> IterationEnd) {
+            self.push-rest(target) unless nqp::isnull($!slipper);
+
+            nqp::unless(
+              nqp::eqaddr((my $a := $!source.pull-one),IterationEnd),
+              (my $b := $!source.pull-one)
+            );
+
+            nqp::until(
+              nqp::eqaddr($a,IterationEnd),
+              nqp::handle(
+                nqp::stmts(
+                  nqp::if(
+                    nqp::eqaddr($b,IterationEnd),
+                    nqp::stmts(
+                      (my $value := &!block($a)),
+                      ($a := IterationEnd)
+                    ),
+                    nqp::stmts(
+                      ($value := &!block($a, $b)),
+                      nqp::unless(
+                        nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
+                        ($b := $!source.pull-one)
+                      )
+                    )
+                  ),
+                  nqp::if(
+                    nqp::istype($value,Slip),
+                    self.slip-all($value,target),
+                    target.push($value)
+                  )
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::stmts(
+                  self.push-control-payload(target),
+                  nqp::unless(
+                    nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
+                    ($b := $!source.pull-one)
+                  )
+                ),
+                'REDO', nqp::null,
+                'LAST', nqp::stmts(
+                  self.push-control-payload(target),
+                  ($a := IterationEnd)
+                )
+              ),
+              :nohandler
+            );
+        }
+
+        method sink-all(--> IterationEnd) {
+            self.sink-rest unless nqp::isnull($!slipper);
+
+            nqp::unless(
+              nqp::eqaddr((my $a := $!source.pull-one),IterationEnd),
+              (my $b := $!source.pull-one)
+            );
+
+            nqp::until(
+              nqp::eqaddr($a,IterationEnd),
+              nqp::handle(  # doesn't sink
+                nqp::if(
+                  nqp::eqaddr($b,IterationEnd),
+                  nqp::stmts(
+                    &!block($a),
+                    ($a := IterationEnd)
+                  ),
+                  nqp::stmts(
+                    &!block($a, $b),
+                    nqp::unless(
+                      nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
+                      ($b := $!source.pull-one)
+                    )
+                  )
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::unless(
+                  nqp::eqaddr(($a := $!source.pull-one),IterationEnd),
+                  ($b := $!source.pull-one)
+                ),
+                'REDO', nqp::null,
+                'LAST', ($a := IterationEnd)
+              ),
+              :nohandler
+            );
+        }
+    }
+
+    my class IterateMoreWithoutPhasers does Rakudo::SlippyIterator {
+        has &!block;
+        has $!source;
+        has $!label;
+        has int $!count;
+
+        method new(&block, \source, int $count, \label) {
+            my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '$!slipper', nqp::null);
+            nqp::bindattr($iter, self, '&!block', &block);
+            nqp::bindattr($iter, self, '$!source', source);
+            nqp::bindattr($iter, self, '$!label', nqp::decont(label));
+            nqp::bindattr_i($iter, self, '$!count', $count);
+            $iter
+        }
+
+        method is-lazy() { $!source.is-lazy }
+
+        method pull-one() is raw {
+            nqp::if(
+              nqp::isnull(
+                nqp::if(
+                  nqp::isnull($!slipper)
+                    || nqp::eqaddr((my $value := self.slip-one),IterationEnd),
+                  ($value := nqp::null),
+                  $value
+                )
+              ),
+              (my $pulled := $!source.pull-one)
+            );
+
+            my $params := nqp::list;
+            nqp::while(
+              nqp::isnull($value)
+                && nqp::not_i(nqp::eqaddr($pulled,IterationEnd)),
+              nqp::handle(
+                nqp::stmts(
+                  nqp::unless(
+                    nqp::elems($params),
+                    nqp::push($params,$pulled)
+                  ),
+                  nqp::until(
+                    nqp::iseq_i(nqp::elems($params),$!count)
+                      || nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+                    nqp::push($params,$pulled)
+                  ),
+                  ($value := nqp::p6invokeflat(&!block,$params)),
+                  nqp::if(
+                    nqp::istype($value,Slip) && nqp::eqaddr(
+                      ($value := self.start-slip($value)),
+                      IterationEnd
+                    ),
+                    nqp::stmts(                # set up next iteration
+                      ($value  := nqp::null),
+                      ($pulled := $!source.pull-one),
+                      nqp::setelems($params,0)
+                    )
+                  )
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::if(
+                  nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                  nqp::stmts(                   # set up next iteration
+                    ($value  := nqp::null),
+                    ($pulled := $!source.pull-one),
+                    nqp::setelems($params,0)
+                  )
+                ),
+                'REDO', ($value := $pulled := nqp::null),
+                'LAST', nqp::unless(
+                  nqp::eqaddr(($value := self.control-payload),IterationEnd),
+                  ($!source := Rakudo::Iterator.Empty)  # end later
+                )
+              )
+            );
+
+            nqp::ifnull($value,IterationEnd)
+        }
+
+        method push-all(\target --> IterationEnd) {
+            self.push-rest(target) unless nqp::isnull($!slipper);
+
+            my $pulled := $!source.pull-one;
+            my $params := nqp::list;
+            nqp::until(
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                nqp::stmts(
+                  nqp::unless(
+                    nqp::elems($params),
+                    nqp::push($params,$pulled)
+                  ),
+                  nqp::until(
+                    nqp::iseq_i(nqp::elems($params),$!count)
+                      || nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+                    nqp::push($params,$pulled)
+                  ),
+                  (my $value := nqp::p6invokeflat(&!block,$params)),
+                  nqp::if(
+                    nqp::istype($value,Slip),
+                    self.slip-all($value,target),
+                    target.push($value)
+                  ),
+                  ($pulled := $!source.pull-one),
+                  nqp::setelems($params,0)
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::stmts(
+                  self.push-control-payload(target),
+                  ($pulled := $!source.pull-one),
+                  nqp::setelems($params,0)
+                ),
+                'REDO', nqp::null,
+                'LAST', nqp::stmts(
+                  self.push-control-payload(target),
+                  ($pulled := IterationEnd)
                 )
               )
             );
         }
 
         method sink-all(--> IterationEnd) {
-            nqp::if(
-              $!slipping,
-              nqp::until(
-                nqp::eqaddr(self.slip-one,IterationEnd),
-                nqp::null,
-              )
-            );
+            self.sink-rest unless nqp::isnull($!slipper);
 
+            my $pulled := $!source.pull-one;
+            my $params := nqp::list;
             nqp::until(
-              nqp::eqaddr((my $value := $!source.pull-one()),IterationEnd),
-              nqp::stmts(
-                (my int $redo = 1),
-                nqp::while(
-                  $redo,
-                  nqp::stmts(
-                    ($redo = 0),
-                    nqp::handle(  # doesn't sink
-                      nqp::if(
-                        nqp::eqaddr(
-                          (my $value2 := $!source.pull-one),
-                          IterationEnd
-                        ),
-                        nqp::stmts(
-                          (&!block($value)),
-                          return
-                        ),
-                        (&!block($value,$value2))
-                      ),
-                      'LABELED', $!label,
-                      'NEXT', nqp::null,  # need NEXT for next LABEL support
-                      'REDO', ($redo = 1),
-                      'LAST', return
-                    )
+              nqp::eqaddr($pulled,IterationEnd),
+              nqp::handle(
+                nqp::stmts(
+                  nqp::unless(
+                    nqp::elems($params),
+                    nqp::push($params,$pulled)
                   ),
-                :nohandler
-                )
+                  nqp::until(
+                    nqp::iseq_i(nqp::elems($params),$!count)
+                      || nqp::eqaddr(($pulled := $!source.pull-one),IterationEnd),
+                    nqp::push($params,$pulled)
+                  ),
+                  nqp::p6invokeflat(&!block,$params),
+                  ($pulled := $!source.pull-one),
+                  nqp::setelems($params,0)
+                ),
+                'LABELED', $!label,
+                'NEXT', nqp::stmts(
+                  ($pulled := $!source.pull-one),
+                  nqp::setelems($params,0)
+                ),
+                'REDO', nqp::null,
+                'LAST', ($pulled := IterationEnd)
               )
             );
         }
@@ -722,6 +761,7 @@ Consider using a block if any of these are necessary for your mapping code."
 
         method new(&block, $source, $count, \label) {
             my $iter := nqp::create(self);
+            nqp::bindattr($iter, self, '$!slipper', nqp::null);
             nqp::bindattr($iter, self, '&!block', &block);
             nqp::bindattr($iter, self, '$!source', $source);
             nqp::bindattr($iter, self, '$!count', $count);
@@ -747,7 +787,7 @@ Consider using a block if any of these are necessary for your mapping code."
                   if &!block.has-phaser('FIRST');
             }
 
-            if $!slipping && nqp::not_i(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
               nqp::eqaddr(($result := self.slip-one),IterationEnd)) {
                 # $result will be returned at the end
             }
@@ -788,15 +828,47 @@ Consider using a block if any of these are necessary for your mapping code."
                       'NEXT', nqp::stmts(
                         ($!did-iterate = 1),
                         nqp::if($!NEXT, &!block.fire_phasers('NEXT')),
-                          (nqp::setelems($!value-buffer, 0)),
-                          nqp::eqaddr($!source.push-exactly($!value-buffer, $!count), IterationEnd)
-                          && nqp::elems($!value-buffer) == 0
-                            ?? ($result := IterationEnd)
-                            !! ($redo = 1)),
+                        nqp::setelems($!value-buffer,0),
+                        nqp::if(
+                          nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                          nqp::stmts(
+                            nqp::if(
+                              nqp::eqaddr(
+                                $!source.push-exactly($!value-buffer, $!count),
+                                IterationEnd
+                              ) && nqp::elems($!value-buffer) == 0,
+                              ($result := IterationEnd),
+                              ($redo = 1)
+                            )
+                          ),
+                          nqp::if(                        # next with value
+                            nqp::istype($result,Slip)
+                              && nqp::eqaddr(             # it's a Slip
+                                   ($result := self.start-slip($result)),
+                                   IterationEnd
+                                 )
+                              && nqp::not_i(nqp::eqaddr(  # an empty Slip
+                                   $!source.push-exactly($!value-buffer, $!count),
+                                   IterationEnd
+                                 )),
+                            ($redo = 1)                   # process these values
+                          )
+                        )
+                      ),
                       'REDO', $redo = 1,
                       'LAST', nqp::stmts(
                         ($!did-iterate = 1),
-                        ($result := IterationEnd)
+                        nqp::if(
+                          nqp::isnull($result := nqp::getpayload(nqp::exception)),
+                          ($result := IterationEnd),
+                          nqp::stmts(
+                            nqp::if(
+                              nqp::istype($result,Slip),
+                              ($result := self.start-slip($result))
+                            ),
+                            ($!source := Rakudo::Iterator.Empty)
+                          )
+                        )
                       )
                     )
                   ),
@@ -810,24 +882,49 @@ Consider using a block if any of these are necessary for your mapping code."
         }
     }
 
-    sub sequential-map(\source, &block, \label) {
-        # We want map to be fast, so we go to some effort to build special
-        # case iterators that can ignore various interesting cases.
-        my $count := &block.count;
+    proto method map(|) is nodal {*}
+    multi method map(Hash:D \hash) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "a {hash.^name}",
+          suggestion =>
+"Did you mean to add a stub (\{ ... \}) or did you mean to .classify?"
+        ).throw;
+    }
+    multi method map(Iterable:D \iterable) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "a {iterable.^name}",
+          suggestion =>
+"Did a * (Whatever) get absorbed by a comma, range, series, or list repetition?
+Consider using a block if any of these are necessary for your mapping code."
+        ).throw;
+    }
+    multi method map(|c) {
+        X::Cannot::Map.new(
+          what       => self.^name,
+          using      => "'{c.raku.substr(2).chop}'",
+          suggestion => "Did a * (Whatever) get absorbed by a list?"
+        ).throw;
+    }
 
-        Seq.new(
-          nqp::istype(&block,Block) && &block.has-phasers
-            ?? $count < 2 || $count === Inf
-              ?? IterateOneWithPhasers.new(&block,source,label)
-              !! IterateMoreWithPhasers.new(&block,source,$count,label)
-            !! $count < 2 || $count === Inf
-              ?? nqp::istype(Slip,&block.returns)
-                ?? IterateOneWithoutPhasers.new(&block,source,label)
-                !! IterateOneNotSlippingWithoutPhasers.new(&block,source,label)
-              !! $count == 2
-                ?? IterateTwoWithoutPhasers.new(&block,source,label)
-                !! IterateMoreWithPhasers.new(&block,source,$count,label)
-        )
+    # We want map to be fast, so we go to some effort to build special
+    # case iterators that can ignore various interesting cases.
+    multi method map(\SELF: &code;; :$label, :$item) {
+        my $count  := &code.count;
+        my $source := $item
+          ?? Rakudo::Iterator.OneValue(SELF)
+          !! SELF.iterator;
+
+        Seq.new: &code.has-loop-phasers
+          ?? $count < 2 || $count == Inf
+            ?? IterateOneWithPhasers.new(&code, $source, $label)
+            !! IterateMoreWithPhasers.new(&code, $source, $count, $label)
+          !! $count < 2 || $count == Inf
+            ?? IterateOneWithoutPhasers.new(&code, $source, $label)
+            !! $count == 2
+              ?? IterateTwoWithoutPhasers.new(&code, $source, $label)
+              !! IterateMoreWithoutPhasers.new(&code, $source, $count, $label)
     }
 
     proto method flatmap (|) is nodal {*}
@@ -977,7 +1074,7 @@ Consider using a block if any of these are necessary for your mapping code."
     }
     method !grep-p(Callable:D $test) { Seq.new(Grep-P.new(self,$test)) }
 
-    role Grepper does Iterator {
+    my role Grepper does Iterator {
         has Mu $!iter;
         has Mu $!test;
         method !SET-SELF(\list,Mu \test) {
@@ -990,44 +1087,151 @@ Consider using a block if any of these are necessary for your mapping code."
         method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method !grep-callable(Callable:D $test) {
-        nqp::if(
-          $test.count == 1,
-          sequential-map(
-            self.iterator,
-            {
-                (nqp::istype((my \result := $test($_)),Regex)
-                  ?? result.ACCEPTS($_)
-                  !! nqp::istype(result,Junction)
-                    ?? result.Bool
-                    !! result
-                ) ?? $_
-                  !! Empty
-            },
-            Any)
-          ,
-          nqp::stmts(
-            (my role CheatArity {
-                has $!arity;
-                has $!count;
+        sub judge(Mu $result, Mu $value) is raw {
+            nqp::if(
+              nqp::istype($result,Regex),
+              $result.ACCEPTS($value),
+              nqp::if(
+                nqp::istype($result,Junction),
+                $result.Bool,
+                $result
+              )
+            )
+        }
 
-                method set-cheat($new-arity, $new-count --> Nil) {
-                    $!arity = $new-arity;
-                    $!count = $new-count;
-                }
+        my $count := $test.count;
 
-                method arity(Code:D:) { $!arity }
-                method count(Code:D:) { $!count }
-            }),
-            (my &tester = -> |c {
-                #note "*cough* {c.raku} -> {$test(|c).raku}";
-                next unless $test(|c);
-                c.list
-            } but CheatArity),
-            &tester.set-cheat($test.arity, $test.count),
-            self.map(&tester)
-          )
-        )
+        Seq.new: $count < 2 || $count == Inf
+          ?? IterateOneWithoutPhasers.new(
+               -> \a {
+                   nqp::stmts(  # don't sink the result
+                     nqp::handle(
+                        (my $result := $test(a)),
+                       'NEXT', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           a
+                         ),
+                         THROW(nqp::const::CONTROL_NEXT, a),
+                         nqp::throwextype(nqp::const::CONTROL_NEXT)
+                       ),
+                       'LAST', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           a
+                         ),
+                         THROW(nqp::const::CONTROL_LAST, a),
+                         nqp::throwextype(nqp::const::CONTROL_LAST)
+                       ),
+                     ),
+                     nqp::if(judge($result, a),a,Empty)
+                   )
+               },
+               self.iterator,
+               Any
+             )
+          !! $count == 2
+            ?? IterateTwoWithoutPhasers.new(
+                 -> \a, \b {
+                     my \params := (a, b);
+                     nqp::handle(
+                       (my $result := $test(a, b)),
+                       'NEXT', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           params
+                         ),
+                         THROW(nqp::const::CONTROL_NEXT, params),
+                         nqp::throwextype(nqp::const::CONTROL_NEXT)
+                       ),
+                       'LAST', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           params
+                         ),
+                         THROW(nqp::const::CONTROL_LAST, params),
+                         nqp::throwextype(nqp::const::CONTROL_LAST)
+                       )
+                     );
+                     judge($result, params) ?? params !! Empty
+                 },
+                 self.iterator,
+                 Any
+               )
+            !! IterateMoreWithPhasers.new(
+                 -> |c {
+                     my \params := c.list;
+                     nqp::handle(
+                       (my $result := $test(|c)),
+                       'NEXT', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           params
+                         ),
+                         THROW(nqp::const::CONTROL_NEXT, params),
+                         nqp::throwextype(nqp::const::CONTROL_NEXT)
+                       ),
+                       'LAST', nqp::if(
+                         judge(
+                           nqp::ifnull(nqp::getpayload(nqp::exception),False),
+                           params
+                         ),
+                         THROW(nqp::const::CONTROL_LAST, params),
+                         nqp::throwextype(nqp::const::CONTROL_LAST)
+                       )
+                     );
+                     judge($result, params) ?? params !! Empty
+                 },
+                 self.iterator,
+                 Any
+               )
     }
+
+    # Create a braid and fail cursor that we can use with all the normal,
+    # "boring", regex matches that are on the Regex type. This saves them
+    # being created every single time.
+    my $cursor := Match.'!cursor_init'('');
+    my $braid := $cursor.braid;
+    my $fail_cursor := $cursor.'!cursor_start_cur'();
+
+    my class Grep-Regex does Grepper {
+        method pull-one() is raw {
+            nqp::until(
+              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd)
+                || nqp::isge_i(
+                     nqp::getattr_i(
+                       $!test.(Match.'!cursor_init'(
+                         .Str, :c(0), :$braid, :$fail_cursor
+                       )),
+                       Match,
+                       '$!pos'
+                     ),
+                     0
+                   ),
+              nqp::null
+            );
+            $_
+        }
+        method push-all(\target --> IterationEnd) {
+            nqp::until(
+              nqp::eqaddr(($_ := $!iter.pull-one),IterationEnd),
+              nqp::if(  # doesn't sink
+                nqp::isge_i(
+                  nqp::getattr_i(
+                    $!test.(Match.'!cursor_init'(
+                      .Str, :c(0), :$braid, :$fail_cursor
+                    )),
+                    Match,
+                    '$!pos'
+                  ),
+                  0
+                ),
+                target.push($_)
+              )
+            );
+        }
+    }
+    method !grep-regex(Mu $test) { Seq.new(Grep-Regex.new(self,$test)) }
 
     my class Grep-Accepts does Grepper {
         method pull-one() is raw {
@@ -1110,7 +1314,7 @@ Consider using a block if any of these are necessary for your mapping code."
         my $storage := nqp::getattr(%_,Map,'$!storage');
         if nqp::iseq_i(nqp::elems($storage),0) {
             nqp::istype($t,Regex:D)
-              ?? self!grep-accepts: $t
+              ?? self!grep-regex: $t
               !! nqp::istype($t,Callable:D)
                    ?? self!grep-callable: $t
                    !! self!grep-accepts: $t
@@ -1139,7 +1343,7 @@ Consider using a block if any of these are necessary for your mapping code."
             }
             elsif nqp::atkey($storage,"v") {
                 nqp::istype($t,Regex:D)
-                  ?? self!grep-accepts: $t
+                  ?? self!grep-regex: $t
                   !! nqp::istype($t,Callable:D)
                        ?? self!grep-callable: self!wrap-callable-for-grep($t)
                        !! self!grep-accepts: $t
@@ -1149,7 +1353,7 @@ Consider using a block if any of these are necessary for your mapping code."
                   nqp::iterkey_s(nqp::shift(nqp::iterator($storage)));
                 if nqp::iseq_s($key,"k") || nqp::iseq_s($key,"kv") || nqp::iseq_s($key,"p") {
                     nqp::istype($t,Regex:D)
-                      ?? self!grep-accepts: $t
+                      ?? self!grep-regex: $t
                       !! nqp::istype($t,Callable:D)
                            ?? self!grep-callable: self!wrap-callable-for-grep($t)
                            !! self!grep-accepts: $t
@@ -1192,8 +1396,8 @@ Consider using a block if any of these are necessary for your mapping code."
     # need to handle Regex differently, since it is also Callable
     multi method first(Regex:D $test, :$end, *%a) is raw {
         $end
-          ?? self!first-accepts-end($test,%a)
-          !! self!first-accepts($test,%a)
+          ?? self!first-regex-end($test,%a)
+          !! self!first-regex($test,%a)
     }
     multi method first(Callable:D $test, :$end, *%a is copy) is raw {
         if $end {
@@ -1243,7 +1447,58 @@ Consider using a block if any of these are necessary for your mapping code."
             ?? self.tail
             !! self.head
     }
-    method !first-accepts(Mu $test,%a) is raw {
+    method !first-regex(Mu $test, %a) is raw {
+        my $iter := self.iterator;
+        my int $index;
+
+        nqp::until(
+          nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
+            || nqp::isge_i(
+                 nqp::getattr_i(
+                   $test.(Match.'!cursor_init'(
+                     .Str, :c(0), :$braid, :$fail_cursor
+                   )),
+                   Match,
+                   '$!pos'
+                 ),
+                 0
+               ),
+          ($index = nqp::add_i($index,1))
+        );
+
+        nqp::eqaddr($_,IterationEnd)
+          ?? Nil
+          !! self!first-result($index,$_,'first',%a)
+    }
+    method !first-regex-end(Mu $test, %a) is raw {
+        my $elems = self.elems;
+        nqp::if(
+          ($elems && nqp::not_i($elems == Inf)),
+          nqp::stmts(
+            (my int $index = $elems),
+            nqp::while(
+              nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+              nqp::if(
+                nqp::isge_i(
+                  nqp::getattr_i(
+                    $test.(Match.'!cursor_init'(
+                      self.AT-POS($index).Str, :c(0), :$braid, :$fail_cursor
+                    )),
+                    Match,
+                    '$!pos'
+                  ),
+                  0
+                ),
+                return self!first-result(
+                  $index,self.AT-POS($index),'first :end',%a)
+              )
+            ),
+            Nil
+          ),
+          Nil
+        )
+    }
+    method !first-accepts(Mu $test, %a) is raw {
         my $iter := self.iterator;
         my int $index;
 
@@ -1257,7 +1512,7 @@ Consider using a block if any of these are necessary for your mapping code."
           ?? Nil
           !! self!first-result($index,$_,'first',%a)
     }
-    method !first-accepts-end(Mu $test,%a) is raw {
+    method !first-accepts-end(Mu $test, %a) is raw {
         my $elems = self.elems;
         nqp::if(
           ($elems && nqp::not_i($elems == Inf)),
@@ -1720,7 +1975,7 @@ Consider using a block if any of these are necessary for your mapping code."
              )
     }
 
-    class Repeated-As does Iterator {
+    my class Repeated-As does Iterator {
         has Mu $!iter;
         has &!as;
         has $!seen;
@@ -2107,134 +2362,156 @@ Consider using a block if any of these are necessary for your mapping code."
         self.new.STORE: self.keys, self.values.nodemap(&op), :INITIALIZE
     }
     multi method nodemap(&op) {
-        my \iterator := self.iterator;
+        my $source := self.iterator;
         return Failure.new(X::Cannot::Lazy.new(:action<nodemap>))
-          if iterator.is-lazy;
+          if $source.is-lazy;
 
-        my \buffer   := nqp::create(IterationBuffer);
-        my $value    := iterator.pull-one;
+        my \buffer := nqp::create(IterationBuffer);
+        my $value  := $source.pull-one;
 
         nqp::until(
           nqp::eqaddr($value,IterationEnd),
-          nqp::stmts(
-            (my int $redo = 1),
-            nqp::while(
-              $redo,
-              nqp::stmts(
-                $redo = 0,
-                nqp::handle(
-                  nqp::push(buffer,op($value)),
-                  'NEXT', nqp::null,
-                  'REDO', ($redo = 1),
-                  'LAST', ($value := IterationEnd),
-                ) 
-              ),
-              :nohandler
+          nqp::handle(
+            nqp::stmts(
+              nqp::push(buffer,op($value)),
+              ($value := $source.pull-one)
             ),
-            ($value := iterator.pull-one)
-          ) 
+            'NEXT', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                nqp::push(buffer,$value)
+              ),
+              ($value := $source.pull-one)
+            ),
+            'REDO', nqp::null,
+            'LAST', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                nqp::push(buffer,$value)
+              ),
+              ($value := IterationEnd)
+            )
+          ),
+          :nohandler
         );
+
         buffer.List
-    }   
+    }
 
     proto method deepmap(|) is nodal {*}
     multi method deepmap(Associative:D: &op) {
         self.new.STORE: self.keys, self.values.deepmap(&op), :INITIALIZE
     }
     multi method deepmap(&op) {
-        my \iterator := self.iterator;
-        my \buffer   := nqp::create(IterationBuffer);
-        my $value    := iterator.pull-one;
+        my $source := self.iterator;
+        my \buffer := nqp::create(IterationBuffer);
+        my $pulled := $source.pull-one;
 
         sub deep(\value) is raw { my $ = value.deepmap(&op) }
 
         nqp::until(
-          nqp::eqaddr($value,IterationEnd),
-          nqp::stmts(
-            (my int $redo = 1),
-            nqp::while(
-              $redo,
-              nqp::stmts(
-                $redo = 0,
-                nqp::handle(
-                  nqp::stmts(
-                    (my $result := nqp::if(
-                      nqp::istype($value,Iterable) && $value.DEFINITE,
-                      deep($value),
-                      op($value)
-                    )),
-                    nqp::if(
-                      nqp::istype($result,Slip),
-                      $result.iterator.push-all(buffer),
-                      nqp::push(buffer,$result)
-                    ),
-                  ),
-                  'NEXT', nqp::null,
-                  'REDO', ($redo = 1),
-                  'LAST', ($value := IterationEnd),
-                ) 
+          nqp::eqaddr($pulled,IterationEnd),
+          nqp::handle(
+            nqp::stmts(
+              (my $value := nqp::if(
+                nqp::istype($pulled,Iterable) && $pulled.DEFINITE,
+                deep($pulled),
+                op($pulled)
+              )),
+              nqp::if(
+                nqp::istype($value,Slip),
+                $value.iterator.push-all(buffer),
+                nqp::push(buffer,$value)
               ),
-              :nohandler
+              ($pulled := $source.pull-one)
             ),
-            ($value := iterator.pull-one)
-          ) 
+            'NEXT', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                nqp::if(
+                  nqp::istype($value,Slip),
+                  $value.iterator.push-all(buffer),
+                  nqp::push(buffer,$value)
+                ),
+              ),
+              ($pulled := $source.pull-one)
+            ),
+            'REDO', nqp::null,
+            'LAST', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                nqp::if(
+                  nqp::istype($value,Slip),
+                  $value.iterator.push-all(buffer),
+                  nqp::push(buffer,$value)
+                ),
+              ),
+              ($pulled := IterationEnd)
+            )
+          ),
+          :nohandler
         );
         nqp::p6bindattrinvres(
           nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
           List,'$!reified',buffer
-        ) 
-    }   
+        )
+    }
 
     proto method duckmap(|) is nodal {*}
     multi method duckmap(Associative:D: &op) {
         self.new.STORE: self.keys, self.values.duckmap(&op)
     }
     multi method duckmap(&op) {
-        my \iterator := self.iterator;
-        my \buffer   := nqp::create(IterationBuffer);
-        my $value    := iterator.pull-one;
+        my $source := self.iterator;
+        my \buffer := nqp::create(IterationBuffer);
+        my $pulled := $source.pull-one;
 
-        sub duck(\arg) is raw {
+        sub duck() is raw {
             CATCH {
-                return nqp::istype(arg,Iterable:D)
-                  ?? (my $ = arg.duckmap(&op))
-                  !! arg
+                return nqp::istype($pulled,Iterable:D)
+                  ?? (my $ = $pulled.duckmap(&op))
+                  !! $pulled
             }
-            op(arg)
+            op($pulled)
+        }
+
+        sub process(Mu \value --> Nil) {
+            nqp::istype(value,Slip)
+              ?? value.iterator.push-all(buffer)
+              !! nqp::push(buffer,value)
         }
 
         nqp::until(
-          nqp::eqaddr($value,IterationEnd),
-          nqp::stmts(
-            (my int $redo = 1),
-            nqp::while(
-              $redo,
-              nqp::stmts(
-                $redo = 0,
-                nqp::handle(
-                  nqp::stmts(
-                    (my $result := duck($value)),
-                    nqp::if(
-                      nqp::istype($result,Slip),
-                      $result.iterator.push-all(buffer),
-                      nqp::push(buffer,$result)
-                    ),
-                  ),
-                  'NEXT', nqp::null,
-                  'REDO', ($redo = 1),
-                  'LAST', ($value := IterationEnd),
-                ) 
-              ),
-              :nohandler
+          nqp::eqaddr($pulled,IterationEnd),
+          nqp::handle(
+            nqp::stmts(
+              process(duck),
+              ($pulled := $source.pull-one)
             ),
-            ($value := iterator.pull-one)
-          ) 
+            'NEXT', nqp::stmts(
+              nqp::unless(
+                nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+                process($value)
+              ),
+              ($pulled := $source.pull-one)
+            ),
+            'REDO', nqp::null,
+            'LAST', nqp::stmts(
+              nqp::unless(
+                nqp::isnull($value := nqp::getpayload(nqp::exception)),
+                process($value)
+              ),
+              ($pulled := IterationEnd)
+            )
+          ),
+          :nohandler
         );
+
         nqp::p6bindattrinvres(
           nqp::if(nqp::istype(self,List),self,List).new, # keep subtypes of List
           List,'$!reified',buffer
-        ) 
-    }   
+        )
+    }
 }
 
 BEGIN Attribute.^compose;

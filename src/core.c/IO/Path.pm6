@@ -7,7 +7,7 @@ my class IO::Path is Cool does IO {
     has $!parts;          # IO::Path::Parts object, if any
 
     constant empty-path-message = "Must specify a non-empty string as a path";
-    
+
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
@@ -377,9 +377,9 @@ my class IO::Path is Cool does IO {
           $!SPEC.join('', $!path, child.Str)
     }
 
-    method add (IO::Path:D: \child) {
+    method add (IO::Path:D: *@children) {
         nqp::clone(self).cloned-with-path:
-          $!SPEC.join('', $!path, child.Str)
+          $!SPEC.join: '', $!path, @children.join($!SPEC.dir-sep)
     }
 
     proto method chdir(|) {*}

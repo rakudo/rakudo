@@ -41,18 +41,35 @@ my class Promise does Awaitable {
     has Mu $!dynamic_context;
     has Bool $!report-broken-if-sunk;
 
+    method !SET-SELF(\scheduler, \report) {
+        $!scheduler             := scheduler;
+        $!report-broken-if-sunk := nqp::if(nqp::istrue(report),True,False);
+        $!lock                  := nqp::create(Lock);
+        $!cond                  := $!lock.condition;
+        $!status                := Planned;
+        $!thens                 := nqp::null;
+        self
+    }
     submethod new(:$scheduler = $*SCHEDULER, :$report-broken-if-sunk) {
-        my \p = nqp::create(self);
-        p.BUILD(:$scheduler, :$report-broken-if-sunk);
-        p
+        if nqp::eqaddr(self,Promise) {
+            nqp::create(self)!SET-SELF($scheduler, $report-broken-if-sunk)
+        }
+        else {
+            my \p = nqp::create(self);
+            p.BUILD(:$scheduler, :$report-broken-if-sunk);
+            p
+        }
     }
 
-    submethod BUILD(:$!scheduler = $*SCHEDULER, :$report-broken-if-sunk --> Nil) {
+    submethod BUILD(
+      :$!scheduler = $*SCHEDULER,
+      :$report-broken-if-sunk
+    --> Nil) {
         $!report-broken-if-sunk := so $report-broken-if-sunk;
         $!lock                  := nqp::create(Lock);
         $!cond                  := $!lock.condition();
         $!status                := Planned;
-        $!thens                 := nqp::list();
+        $!thens                 := nqp::null;
     }
 
     # A Vow is used to enable the right to keep/break a promise
@@ -147,9 +164,13 @@ my class Promise does Awaitable {
     }
 
     method !schedule_thens(--> Nil) {
-        while nqp::elems($!thens) {
+        nqp::unless(
+          nqp::isnull($!thens),
+          nqp::while(
+            nqp::elems($!thens),
             $!scheduler.cue(nqp::shift($!thens), :catch(nqp::shift($!thens)))
-        }
+          )
+        )
     }
 
     method result(Promise:D:) {
@@ -198,7 +219,10 @@ my class Promise does Awaitable {
             my $then-p := self.new(:$!scheduler);
             nqp::bindattr($then-p, Promise, '$!dynamic_context', nqp::ctx());
             my $vow := $then-p.vow;
-            nqp::push($!thens, { my $*PROMISE := $then-p; $vow.keep(code(self)) });
+            nqp::push(
+              nqp::ifnull($!thens,($!thens := nqp::list)),
+              { my $*PROMISE := $then-p; $vow.keep(code(self)) }
+            );
             nqp::push($!thens, -> $ex { $vow.break($ex) });
             nqp::unlock($!lock);
             $then-p
@@ -240,7 +264,10 @@ my class Promise does Awaitable {
                 else {
                     # Push 2 entries to $!thens (only need the first one in
                     # this case; second we push 'cus .then uses it).
-                    nqp::push($!thens, { on-ready($!status == Kept, $!result) });
+                    nqp::push(
+                      nqp::ifnull($!thens,($!thens := nqp::list)),
+                      { on-ready($!status == Kept, $!result) }
+                    );
                     nqp::push($!thens, Callable);
                     nqp::unlock($!lock);
                 }
@@ -249,9 +276,14 @@ my class Promise does Awaitable {
     }
 
     method sink(--> Nil) {
-        if $!report-broken-if-sunk && $!lock.protect({ not nqp::elems($!thens) }) {
-            self.then({ .status == Broken && $!scheduler.handle_uncaught(.cause) });
-        }
+         self.then({
+           $!scheduler.handle_uncaught(.cause) if .status == Broken
+         }) if $!report-broken-if-sunk
+            && $!lock.protect({
+                   nqp::hllbool(
+                     nqp::isnull($!thens) || nqp::not_i(nqp::elems($!thens))
+                   )
+               });
     }
 
     method start(Promise:U: &code, :&catch, :$scheduler = $*SCHEDULER,

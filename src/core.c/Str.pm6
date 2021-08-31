@@ -1057,7 +1057,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                 0
               ),
               IterationEnd,
-              nqp::stmts(  
+              nqp::stmts(
                 $!pos = nqp::add_i($found,$!patsz),
                 nqp::box_s($!pat,$!what)
               )
@@ -1718,7 +1718,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
           )
         );
 
-        matches   
+        matches
     }
 
     multi method subst(Str:D: Str:D $original, Str:D $final = "", *%options) {

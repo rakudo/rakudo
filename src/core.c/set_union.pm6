@@ -170,14 +170,22 @@ multi sub infix:<(|)>(Any \a, Any \b) {
 }
 
 multi sub infix:<(|)>(+@p) {   # also Any
-    my $result := @p.shift;
-    if @p {
-        $result := $result (|) @p.shift while @p;
-        $result
-    }
-    else {
-        $result.Set
-    }
+    my $iterator := @p.iterator;
+    nqp::if(
+      nqp::eqaddr((my $result := $iterator.pull-one),IterationEnd),
+      set(),          # nothing to process
+      nqp::if(
+        nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+        $result.Set,  # only 1 elem to process
+        nqp::stmts(
+          nqp::repeat_until(
+            nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd),
+            ($result := $result (|) $pulled)
+          ),
+          $result
+        )
+      )
+    )
 }
 
 # U+222A UNION

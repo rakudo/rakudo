@@ -9,41 +9,60 @@
 proto sub infix:<(elem)>($, $, *% --> Bool:D) is pure {*}
 multi sub infix:<(elem)>(Str:D \a, Map:D \b --> Bool:D) {
     nqp::hllbool(
-        nqp::istrue(
-            nqp::elems(my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage'))
-              && nqp::if(
-                   nqp::istype(b,Hash::Object),
-                   nqp::getattr(                                # object hash
-                     nqp::ifnull(
-                       nqp::atkey(storage,a.WHICH),
-                       BEGIN   # provide virtual value False    # did not exist
-                         nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
-                     ),
-                     Pair,
-                    '$!value'
-                   ),
-                   nqp::atkey(storage,a)                        # normal hash
-                 )
-        )
-    )
-}
-multi sub infix:<(elem)>(Any \a, Map:D \b --> Bool:D) {
-    nqp::hllbool(
-        nqp::istrue(
-            nqp::elems(                                       # haz a haystack
-              my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage')
-            ) && nqp::istype(b,Hash::Object)
-              && nqp::getattr(
+      nqp::istrue(
+        nqp::elems(my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage'))
+          && nqp::if(
+               nqp::istype(b,Hash::Object),
+                 nqp::getattr(                                # object hash
                    nqp::ifnull(
-                     nqp::atkey(storage,a.WHICH),             # exists
+                     nqp::atkey(storage,a.WHICH),
                      BEGIN   # provide virtual value False    # did not exist
                        nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
                    ),
                    Pair,
-                   '$!value'
-                 )
-        )
+                  '$!value'
+                 ),
+                 nqp::atkey(storage,a)                        # normal hash
+               )
+      )
     )
+}
+multi sub infix:<(elem)>(Any \a, Map:D \b --> Bool:D) {
+    nqp::hllbool(
+      nqp::istrue(
+        nqp::elems(                                       # haz a haystack
+          my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage')
+        ) && nqp::istype(b,Hash::Object)
+          && nqp::getattr(
+               nqp::ifnull(
+                 nqp::atkey(storage,a.WHICH),             # exists
+                 BEGIN   # provide virtual value False    # did not exist
+                   nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
+               ),
+               Pair,
+               '$!value'
+             )
+      )
+    )
+}
+multi sub infix:<(elem)>(Str:D \a, array[str] \b --> Bool:D) {
+    my int $i = -1;
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(b))
+        && nqp::isne_s(a, nqp::atpos_s(b,$i)),
+      nqp::null
+    );
+    nqp::hllbool(nqp::islt_i($i,nqp::elems(b)))
+}
+
+multi sub infix:<(elem)>(Int:D \a, array[int] \b --> Bool:D) {
+    my int $i = -1;
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(b))
+        && nqp::isne_i(a, nqp::atpos_i(b,$i)),
+      nqp::null
+    );
+    nqp::hllbool(nqp::islt_i($i,nqp::elems(b)))
 }
 multi sub infix:<(elem)>(Int:D \a, Range:D \b --> Bool:D) {
     b.is-int ?? b.ACCEPTS(a) !! a (elem) b.iterator
@@ -83,6 +102,8 @@ multi sub infix:<(elem)>(Any \a, Any \b) { a (elem) b.Set }
 
 # U+2208 ELEMENT OF
 my constant &infix:<∈> := &infix:<(elem)>;
+# U+220A SMALL ELEMENT OF
+my constant &infix:<∊> := &infix:<(elem)>;
 
 # U+2209 NOT AN ELEMENT OF
 proto sub infix:<∉>($, $, *%) is pure {*}
@@ -92,8 +113,9 @@ proto sub infix:<(cont)>($, $, *%) is pure {*}
 multi sub infix:<(cont)>(\a, \b --> Bool:D) { b (elem) a }
 
 # U+220B CONTAINS AS MEMBER
-proto sub infix:<∋>($, $, *%) is pure {*}
-multi sub infix:<∋>(\a, \b --> Bool:D) { b (elem) a }
+my constant &infix:<∋> = &infix:<(cont)>;
+# U+220D SMALL CONTAINS AS MEMBER
+my constant &infix:<∍> = &infix:<(cont)>;
 
 # U+220C DOES NOT CONTAIN AS MEMBER
 proto sub infix:<∌>($, $, *%) is pure {*}

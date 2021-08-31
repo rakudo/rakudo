@@ -39,6 +39,23 @@ my class Rakudo::Internals {
         ))
     }
 
+    method Array-with-one-elem(Mu \type, Mu \value) {
+        my \array := (nqp::eqaddr(type,Mu) ?? Array !! Array[type]).new;
+        nqp::p6bindattrinvres(array,List,'$!reified',
+          nqp::stmts(
+            nqp::bindpos(
+              (my \reified := nqp::create(IterationBuffer)),
+              0,
+              nqp::p6scalarwithvalue(
+                nqp::getattr(array,Array,'$!descriptor'),
+                nqp::decont(value)
+              )
+            ),
+            reified
+          )
+        )
+    }
+
     # for use in nqp::splice
     my $empty := nqp::list;
 
@@ -284,10 +301,10 @@ my class Rakudo::Internals {
     }
     # Fast mapping for identicals
     ### If updating encodings here, also update src/core.c/Encoding/Registry.pm6
-#?if moar
+#?if !js
     my constant $encodings = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $encodings := nqp::hash(
 #?endif
       # utf8
@@ -494,8 +511,7 @@ my class Rakudo::Internals {
     our role ImplementationDetail {
         method new(|) { die self.gist }
         method gist(--> Str:D) {
-            "The '{self.^name}' class is a Rakudo-specific
-implementation detail and has no serviceable parts inside"
+            "The '{self.^name}' class is a Rakudo-specific implementation detail and has no serviceable parts inside"
         }
         method Str( --> Str:D) { self.gist }
         method raku(--> Str:D) { self.gist }
@@ -1197,10 +1213,10 @@ implementation detail and has no serviceable parts inside"
           !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
     }
 
-#?if moar
+#?if !js
     my constant $clean-parts-nul = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $clean-parts-nul := nqp::hash(
 #?endif
       '..', 1, '.', 1, '', 1
@@ -1509,7 +1525,7 @@ implementation detail and has no serviceable parts inside"
         $i
     }
 
-    # next logical string frontend, hopefully inlineable (pos >= 0)
+    # next logical string frontend, hopefully inlinable (pos >= 0)
     method SUCC(str \string, int \pos) {
         my int $at = nqp::index($succ-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)
@@ -1560,7 +1576,7 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
-    # previous logical string frontend, hopefully inlineable
+    # previous logical string frontend, hopefully inlinable
     method PRED(str \string, int \pos) {
         my int $at = nqp::index($pred-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)

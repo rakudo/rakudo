@@ -68,6 +68,74 @@ multi sub infix:<cmp>(\a, Code:D \b) {
      a.Stringy cmp b.name
 }
 
+multi sub infix:<cmp>(List:D \a, List:D \b) {
+    nqp::if(
+      a.is-lazy || b.is-lazy,
+      infix:<cmp>(a.iterator, b.iterator),
+      nqp::stmts(
+        (my int $elems-a = a.elems),  # reifies
+        (my int $elems-b = b.elems),  # reifies
+        (my $list-a := nqp::getattr(nqp::decont(a),List,'$!reified')),
+        (my $list-b := nqp::getattr(nqp::decont(b),List,'$!reified')),
+        nqp::if(
+          (my int $elems = nqp::if(
+            nqp::islt_i($elems-a,$elems-b),
+            $elems-a,
+            $elems-b
+          )),
+          nqp::stmts(                                # elements to compare
+            (my $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::eqaddr(
+                     (my $order := infix:<cmp>(
+                       nqp::atpos($list-a,$i),
+                       nqp::atpos($list-b,$i)
+                     )),
+                     Same
+                   ),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::eqaddr($order,Same),
+              ORDER(nqp::cmp_i($elems-a,$elems-b)),  # same, length significant
+              $order                                 # element different
+            )
+          ),
+          ORDER(nqp::cmp_i($elems-a,$elems-b)),      # only length significant
+        )
+      )
+    )
+}
+
+multi sub infix:<cmp>(
+  Iterator:D \iter-a, Iterator:D \iter-b
+) is implementation-detail {
+    nqp::until(
+      nqp::eqaddr((my $a := iter-a.pull-one),IterationEnd)
+        || nqp::eqaddr((my $b := iter-b.pull-one),IterationEnd)
+        || nqp::not_i(nqp::eqaddr(
+             (my $order := infix:<cmp>($a,$b)),
+             Same
+           )),
+      nqp::null
+    );
+
+    nqp::if(
+      nqp::eqaddr($order,Same),                       # ended because different?
+      nqp::if(
+        nqp::eqaddr($a,IterationEnd),                 # left exhausted?
+        nqp::if(
+          nqp::eqaddr(iter-b.pull-one,IterationEnd),  # right exhausted?
+          Same,
+          Less
+        ),
+        More
+      ),
+      $order
+    )
+}
+
 proto sub infix:«<=>»($, $, *% --> Order:D) is pure {*}
 multi sub infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
 multi sub infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }

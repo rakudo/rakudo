@@ -160,7 +160,7 @@ my class Proc {
         CATCH { default { self!set-status(0x100) } }
         &!start-stdout() if &!start-stdout;
         &!start-stderr() if &!start-stderr;
-        self!set-status(await($!finished).status)
+        self!set-status(await($!finished)!status)
           if nqp::istype($!exitcode,Nil);
     }
 
@@ -204,11 +204,15 @@ my class Proc {
     # see https://github.com/rakudo/rakudo/issues/1366
     # should be deprecated and removed
     proto method status(|) {*}
-    multi method status($new_status) {
+    multi method status($new_status)
+      is DEPRECATED('exitcode and/or signal methods (status is to be removed in 2022.06)')
+    {
         $!exitcode = $new_status +> 8;
         $!signal   = $new_status +& 0xFF;
     }
-    multi method status(Proc:D:)  {
+    multi method status(Proc:D:)
+      is DEPRECATED('exitcode and/or signal methods (status is to be removed in 2022.06)')
+    {
         self!wait-for-finish;
         ($!exitcode +< 8) +| $!signal
     }

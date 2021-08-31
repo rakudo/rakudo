@@ -543,7 +543,7 @@ my class BlockVarOptimizer {
 
     method is_poisoned() { $!poisoned }
 
-    method is_inlineable() {
+    method is_inlinable() {
         !($!poisoned || $!uses_p6return)
     }
 
@@ -1150,7 +1150,7 @@ class Perl6::Optimizer {
         my int $flattened := 0;
         my $result := $block;
         if $!level >= 2 && $block.blocktype eq 'immediate' && $block.arity == 0
-                && $vars_info.is_inlineable && !$block.has_exit_handler {
+                && $vars_info.is_inlinable && !$block.has_exit_handler {
             # Scan symbols for any non-lowered ones.
             my $impossible := 0;
             for $block.symtable() {
@@ -1314,7 +1314,8 @@ class Perl6::Optimizer {
         # This is a hack to compensate for Test.pm6 using unspecified
         # behavior. The EVAL form of it should be deprecated and then
         # removed, at which point this can go away.
-        '&throws-like', NQPMu);
+        '&throws-like', NQPMu,
+        '&repl', NQPMu);
 
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.

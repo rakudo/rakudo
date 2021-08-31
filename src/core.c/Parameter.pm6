@@ -47,10 +47,10 @@ my class Parameter { # declared in BOOTSTRAP
                                          +| $SIG_ELEM_IS_COPY
                                          +| $SIG_ELEM_IS_RAW;
 
-#?if moar
+#?if !js
     my constant $sigils2bit = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $sigils2bit := nqp::hash(
 #?endif
       Q/@/, $SIG_ELEM_ARRAY_SIGIL,

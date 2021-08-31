@@ -13,11 +13,11 @@ my class Match is Capture is Cool does NQPMatchRole {
 #    has $!match;     # flag indicating Match object set up (NQPdidMATCH)
 #    has str $!name;  # name if named capture
 
-#?if moar
+#?if !js
     my constant $EMPTY_LIST = nqp::list();
     my constant $EMPTY_HASH = nqp::hash();
 #?endif
-#?if !moar
+#?if js
     my $EMPTY_LIST := nqp::list();
     my $EMPTY_HASH := nqp::hash();
 #?endif

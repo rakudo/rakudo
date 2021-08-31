@@ -19,7 +19,7 @@ my $store = CompUnit::PrecompilationStore::File.new(
 my $precompilation-repository = CompUnit::PrecompilationRepository::Default.new(:$store);
 my @checksums;
 my @units;
-my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
+my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
 my constant $id = CompUnit::PrecompilationId.new-without-check('6B7A1AECF02807F30DDAD99C02C34440CA036AF6');
 for ^2 -> $run {
     $precompilation-repository.precompile(
@@ -43,7 +43,7 @@ is @checksums[1], @checksums[0], 'Both precompilation runs resulted in the same 
         for :before(@units[0]), :after(@units[1]) {
             my $bytecode = $_.value.bytecode;
             $_.value.save-to($_.key().IO);
-            spurt("$_.key().bc", $bytecode, :bin);
+            spurt("$_.key().bc", $bytecode);
             shell("moar --dump $_.key().bc > $_.key().dump");
             shell("hexdump -C $_.key() > $_.key().hex");
         }

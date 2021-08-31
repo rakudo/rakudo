@@ -18,7 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2021-05-21   Rakudo #146 (Altai-man + Releasable)
+  2021-09-18   Rakudo #150 (Altai-man + Releasable)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -344,18 +344,20 @@ masak, tadzik, moritz, [Coke], lizmat, timotimo,
 =item 19.
 
 Build binary packages by following the steps in C<docs/release_guide_binary.md>.
-for Linux 64bit and Windows 64bit.
 
 =item 20.
 
-To avoid public confusion with Rakudo Star releases, we now publish
-compiler release announcements ONLY to perl6-compiler@perl.org.
-(We may restart widespread announcements of compiler releases
-once they are known, or we may begin publishing a single
-announcement for both.)
-
 Don’t send out any announcements until the files are actually available
 per step 14 above.
+
+Copy the release announcement file to the C<rakudo.org> repository into
+C<post/announce-rakudo-release-20XX.XX.md>.
+Change the heading to look as follows:
+
+  %% title: Announce: Rakudo compiler, Release #147 (2021.06)
+  %% date: 2020-06-19
+
+Commit and push the change to GitHub.
 
 =item 21.
 
@@ -526,6 +528,10 @@ Previous releases were bundled as part of monthly Parrot releases.
   2021-02-25   2021.02.1                       (Altai-man + Releasable)
   2021-03-20   Rakudo #144 "2021.03"           (Altai-man + Releasable)
   2021-04-24   Rakudo #145 "2021.04"           (Altai-man + Releasable)
+  2021-05-22   Rakudo #146 "2021.05"           (Altai-man + Releasable)
+  2021-06-19   Rakudo #147 "2021.06"           (Altai-man + Releasable)
+  2021-07-23   Rakudo #148 "2021.07"           (Altai-man + Releasable)
+  2021-08-21   Rakudo #149 "2021.08"           (Altai-man + Releasable)
 
 =head1 COPYRIGHT
 

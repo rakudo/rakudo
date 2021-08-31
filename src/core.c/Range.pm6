@@ -536,8 +536,6 @@ my class Range is Cool does Iterable does Positional {
           !! Seq.new(Rakudo::Iterator.Empty)
     }
 
-    proto method pick(|)        {*}
-
     my class PickN does Iterator {
         has $!min;
         has $!elems;

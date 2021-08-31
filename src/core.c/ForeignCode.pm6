@@ -8,9 +8,10 @@ my class ForeignCode
     # class ForeignCode
     #     has Code $!do;                # Code object we delegate to
 
-    method arity() { self.signature.arity }
-
-    method count() { self.signature.count }
+    method arity(          --> 0) { }
+    method count(        --> Inf) { }
+    method has-phasers(--> False) { }
+    method has-loop-phasers(--> False) { }
 
     method signature(ForeignCode:D:) { (sub (|) { }).signature }
 

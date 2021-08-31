@@ -1190,7 +1190,10 @@ multi sub infix:<=:=>(Mu \a, Mu \b) {
     nqp::hllbool(nqp::eqaddr(a, b));
 }
 
-proto sub infix:<eqv>(Any $?, Any $?, *%) is pure {*}
+proto sub infix:<eqv>(Mu $?, Mu $?, *%) is pure {*}
+multi sub infix:<eqv>(Mu:U $, Any  $ --> False) { }
+multi sub infix:<eqv>(Any  $, Mu:U $ --> False) { }
+multi sub infix:<eqv>(Mu:U $, Mu:U $ -->  True) { }
 multi sub infix:<eqv>($?)            { Bool::True }
 
 # Last ditch snapshot semantics.  We shouldn't come here too often, so

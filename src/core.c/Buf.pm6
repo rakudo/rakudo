@@ -40,7 +40,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 
     multi method new(Blob:) { nqp::create(self) }
-    multi method new(Blob: Blob:D $blob) {
+    multi method new(Blob: Blob:D $blob) is default {
         nqp::splice(nqp::create(self),$blob,0,0)
     }
     multi method new(Blob: int @values) {
@@ -51,6 +51,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
     multi method new(Blob: *@values) {
         nqp::create(self).STORE(@values, :INITIALIZE)
+    }
+
+    # Because it is (apparently) impossible to stub the Buf role in the
+    # setting, the lookup for Buf needs to be done at runtime, hence the
+    # ::<Buf> rather than just Buf.
+    method Buf(Blob:D:) {
+        (nqp::eqaddr(T,uint8) ?? ::<Buf> !! ::<Buf>.^parameterize(T)).new: self
     }
 
     proto method STORE(Blob:D: |) {*}
@@ -699,6 +706,10 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
     multi method WHICH(Buf:D:) { self.Mu::WHICH }
+
+    method Blob(Blob:D:) {
+        (nqp::eqaddr(T,uint8) ?? Blob !! Blob.^parameterize(T)).new: self
+    }
 
     multi method AT-POS(Buf:D: int \pos) is raw {
         nqp::islt_i(pos,0)

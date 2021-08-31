@@ -363,10 +363,10 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-#?if moar
+#?if !js
     my constant $short-id2class = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $short-id2class := nqp::hash(
 #?endif
       'file',   CompUnit::Repository::FileSystem,

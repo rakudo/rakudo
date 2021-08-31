@@ -101,15 +101,59 @@ multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::hllbool(nqp::ifnull(nqp::xor(a.
 
 # These operators are normally handled as macros in the compiler;
 # we define them here for use as arguments to functions.
-proto sub infix:<&&>(Mu $?, Mu $?, *%)    {*}
+proto sub infix:<&&>(|)    {*}
 multi sub infix:<&&>(Mu $x = Bool::True)  { $x }
 multi sub infix:<&&>(Mu \a, &b)           { a && b() }
 multi sub infix:<&&>(Mu \a, Mu \b)        { a && b }
+multi sub infix:<&&>(+@a) {
+    nqp::if(
+      (my int $elems = @a.elems),  # reifies
+      nqp::stmts(
+        (my $reified := nqp::getattr(@a,List,'$!reified')),
+        (my int $i    = -1),
+        nqp::until(
+          nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+            || nqp::isfalse(
+                 nqp::if(
+                   nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
+                   ($value := $value()),
+                   $value
+                 )
+               ),
+          nqp::null
+        ),
+        $value
+      ),
+      True
+    )
+}
 
-proto sub infix:<||>(Mu $?, Mu $?, *%)    {*}
+proto sub infix:<||>(|)                   {*}
 multi sub infix:<||>(Mu $x = Bool::False) { $x }
 multi sub infix:<||>(Mu \a, &b)           { a || b() }
 multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
+multi sub infix:<||>(+@a) {
+    nqp::if(
+      (my int $elems = @a.elems),  # reifies
+      nqp::stmts(
+        (my $reified := nqp::getattr(@a,List,'$!reified')),
+        (my int $i    = -1),
+        nqp::until(
+          nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+            || nqp::istrue(
+                 nqp::if(
+                   nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
+                   ($value := $value()),
+                   $value
+                 )
+               ),
+          nqp::null
+        ),
+        $value
+      ),
+      False
+    )
+}
 
 proto sub infix:<^^>(|)                   {*}
 multi sub infix:<^^>(Mu $x = Bool::False) { $x }
@@ -127,10 +171,30 @@ multi sub infix:<^^>(+@a) {
     $a;
 }
 
-proto sub infix:<//>(Mu $?, Mu $?, *%)    {*}
+proto sub infix:<//>(|)                   {*}
 multi sub infix:<//>(Mu $x = Any)         { $x }
 multi sub infix:<//>(Mu \a, &b)           { a // b }
 multi sub infix:<//>(Mu \a, Mu \b)        { a // b }
+multi sub infix:<//>(+@a) {
+    nqp::if(
+      (my int $elems = @a.elems),  # reifies
+      nqp::stmts(
+        (my $reified := nqp::getattr(@a,List,'$!reified')),
+        (my int $i    = -1),
+        nqp::until(
+          nqp::iseq_i(($i = nqp::add_i($i,1)),$elems)
+            || nqp::if(
+                 nqp::istype((my $value := nqp::atpos($reified,$i)),Callable),
+                 ($value := $value()),
+                 $value
+               ).defined,
+          nqp::null
+        ),
+        $value
+      ),
+      Any
+    )
+}
 
 proto sub infix:<and>(Mu $?, Mu $?, *%)   {*}
 multi sub infix:<and>(Mu $x = Bool::True) { $x }

@@ -2,10 +2,10 @@ my class VM { ... }
 
 my class IO::Spec {
 
-#?if moar
+#?if !js
     my constant $module = nqp::hash( # only list the non-Unix ones in lowercase
 #?endif
-#?if !moar
+#?if js
     my $module := nqp::hash( # only list the non-Unix ones in lowercase
 #?endif
       'mswin32', 'Win32',

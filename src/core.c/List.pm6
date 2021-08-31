@@ -922,7 +922,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method pick(|) is nodal {*}
     multi method pick(List:D:) {
         self.is-lazy
          ?? self.fail-iterator-cannot-be-lazy('.pick from')
@@ -1581,35 +1580,6 @@ multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 
 proto sub prefix:<|>($, *%) {*}
 multi sub prefix:<|>(\x --> Slip:D) { x.Slip }
-
-multi sub infix:<cmp>(@a, @b) {
-
-    sub CMP-SLOW(@a, @b) {
-        (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
-    }
-
-    nqp::if(
-        @a.is-lazy || @b.is-lazy,
-        CMP-SLOW(@a, @b),
-        nqp::stmts(
-            ( my $a_r := nqp::getattr(@a, List, '$!reified') ),
-            ( my $b_r := nqp::getattr(@b, List, '$!reified') ),
-            ( my int $ord = nqp::cmp_i(
-                ( my int $n_a = nqp::elems($a_r) ), ( my int $n_b = nqp::elems($b_r) )
-            )),
-            ( my int $res = ( my int $i = 0) ),
-            ( my int $total_iters = nqp::islt_i($ord, 0) ?? $n_a !! $n_b ),
-            nqp::while(
-                nqp::not_i($res) && nqp::islt_i($i, $total_iters),
-                nqp::stmts(
-                    $res = &infix:<cmp>(nqp::atpos($a_r, $i), nqp::atpos($b_r, $i)),
-                    $i   = nqp::add_i($i, 1)
-                )
-            ),
-            ORDER( $res ?? $res !! $ord )
-        )
-    )
-}
 
 proto sub infix:<X>(|) is pure {*}
 multi sub infix:<X>(+lol, :$with! --> Seq:D) {

@@ -20,6 +20,9 @@ my class WhateverCode is Code {
     multi method ACCEPTS(WhateverCode:D: \value) is raw {
         nqp::call(nqp::getattr(self,Code,'$!do'),value)
     }
+
+    method has-phasers(--> False) { }
+    method has-loop-phasers(--> False) { }
 }
 
 # vim: expandtab shiftwidth=4

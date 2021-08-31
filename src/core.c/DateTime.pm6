@@ -118,10 +118,10 @@ my class DateTime does Dateish {
         nqp::join('',$parts)
     }
 
-#?if moar
+#?if !js
     my constant $valid-units = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $valid-units := nqp::hash(
 #?endif
       'second',  0,
@@ -414,9 +414,13 @@ my class DateTime does Dateish {
         self.modified-julian-date + 2_400_000.5
     }
 
-    method posix(DateTime:D: $ignore-timezone? --> Int:D) {
-        return self.utc.posix if $!timezone && !$ignore-timezone;
-
+    proto method posix(|) {*}
+    multi method posix(DateTime:D: $ignore-timezone --> Real:D) {
+        $ignore-timezone
+          ?? (self.posix + $!timezone)
+          !! self.posix
+    }
+    multi method posix(DateTime:D: --> Real:D) {
         # algorithm from Claus Tøndering
         my int $a = (14 - $!month) div 12;
         my int $y = $!year + 4800 - $a;
@@ -426,6 +430,7 @@ my class DateTime does Dateish {
         ($jd - 2440588) * 86400
           + $!hour      * 3600
           + $!minute    * 60
+          - $!timezone
           + self.whole-second
     }
 

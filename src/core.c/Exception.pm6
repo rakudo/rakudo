@@ -301,6 +301,22 @@ my class X::Method::NotFound is Exception {
     }
 }
 
+my class X::Method::Duplicate is Exception {
+    has $.method-type;
+    has $.method;
+    has $.typename;
+
+    method message() {
+        "Package '"
+        ~ $.typename
+        ~ "' already has a "
+        ~ $.method-type
+        ~ " '"
+        ~ $.method
+        ~ "' (did you mean to declare a multi method?)"
+    }
+}
+
 my class X::Method::InvalidQualifier is Exception {
     has $.method;
     has $.invocant;
@@ -917,7 +933,7 @@ my class X::NYI is Exception {
     has $.did-you-mean;
     has $.workaround;
     method message() {
-        my $msg = "{ $.feature andthen "$_ not" orelse "Not" } yet implemented. Sorry.";
+        my $msg = ($.feature ?? $.feature ~ " not" !! "Not") ~ " yet implemented. Sorry.";
         $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
         $msg ~= "\nWorkaround: $.workaround" if $.workaround;
         $msg
@@ -1723,10 +1739,10 @@ my class X::Syntax::ConditionalOperator::SecondPartInvalid does X::Syntax {
 my class X::Syntax::Perl5Var does X::Syntax {
     has $.name;
     has $.identifier-name;
-#?if moar
+#?if !js
     my constant $m = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $m := nqp::hash(
 #?endif
       '$"',    '.join() method',
@@ -2733,7 +2749,9 @@ my class X::Numeric::CannotConvert is Exception {
     has $.source;
 
     method message() {
-        "Cannot convert {$!source // $!source.raku} to {$!target // $!target.raku}: $!reason";
+        $!reason
+          ?? "Cannot convert {$!source // $!source.raku} to {$!target // $!target.raku}: $!reason"
+          !! "Cannot convert {$!source // $!source.raku} to {$!target // $!target.raku}";
     }
 
 }
@@ -2949,6 +2967,11 @@ my class X::Inheritance::NotComposed does X::MOP {
 
 my class X::PhaserExceptions is Exception {
     has @.exceptions;
+    method new(:@exceptions) {
+        # This exception is raised by BOOTSTRAP which passes in
+        # BOOTException type objects and we want HLLized versions.
+        nextwith(exceptions => @exceptions.map: -> Mu \ex { EXCEPTION(ex) });
+    }
     method message() {
         "Multiple exceptions were thrown by LEAVE/POST phasers"
     }
@@ -2990,10 +3013,6 @@ my class X::Nominalizable::NoKind does X::Nominalizable {
 
 #?if !moar
 nqp::bindcurhllsym('P6EX', nqp::hash(
-#?endif
-#?if moar
-nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
-#?endif
   'X::TypeCheck::Binding',
   -> Mu $got is raw, Mu $expected is raw, $symbol? is raw {
       X::TypeCheck::Binding.new(:$got, :$expected, :$symbol).throw;
@@ -3018,10 +3037,6 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::ControlFlow::Return',
   -> $out-of-dynamic-scope is raw = False {
       X::ControlFlow::Return.new(:$out-of-dynamic-scope).throw;
-  },
-  'X::NoDispatcher',
-  -> $redispatcher is raw {
-      X::NoDispatcher.new(:$redispatcher).throw;
   },
   'X::Method::NotFound',
   -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False, :$in-class-call is raw = False {
@@ -3063,6 +3078,14 @@ nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
   'X::NYI',
   -> $feature is raw {
       X::NYI.new(:$feature).throw;
+  },
+#?endif
+#?if moar
+nqp::bindcurhllsym('P6EX', BEGIN nqp::hash(
+#?endif
+  'X::NoDispatcher',
+  -> $redispatcher is raw {
+      X::NoDispatcher.new(:$redispatcher).throw;
   },
 ));
 
@@ -3161,10 +3184,12 @@ my class X::MultipleTypeSmiley does X::Comp {
 }
 
 my class X::Seq::Consumed is Exception {
+    has $.kind = Seq;
     method message() {
-        "The iterator of this Seq is already in use/consumed by another Seq\n" ~
-        "(you might solve this by adding .cache on usages of the Seq, or\n" ~
-        "by assigning the Seq into an array)"
+        my $kind_name = $!kind.^name;
+        ("The iterator of this $kind_name is already in use/consumed by another $kind_name" ~
+        " (you might solve this by adding .cache on usages of the $kind_name, or " ~
+        "by assigning the $kind_name into an array)").naive-word-wrapper
     }
 }
 
@@ -3309,7 +3334,9 @@ my class Exceptions::JSON {
     }
 }
 
-# Provide means of accessing any X:: exception to the Metamodel.
-Metamodel::Configuration.set_X_package(X);
+# Provide Metamodel::Configuration with symbol lookup routine. We do it here because throw_or_die method learn about
+# availability of all exception classes based on this registration. OTOH, it is better to provide them as soon as
+# possible as this might improve diagnostics of CORE.setting compilation failures.
+Metamodel::Configuration.set_sym_lookup_routine( -> $sym is raw { ::($sym) } );
 
 # vim: expandtab shiftwidth=4

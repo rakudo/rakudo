@@ -565,12 +565,7 @@ my class ThreadPoolScheduler does Scheduler {
 
                 scheduler-debug "Supervisor started";
                 my int $last-rusage-time = nqp::time;
-#?if jvm
-                my @rusage := array[int].new;
-#?endif
-#?if !jvm
                 my int @rusage;
-#?endif
                 nqp::getrusage(@rusage);
                 my int $last-usage =
                   nqp::mul_i(
@@ -583,12 +578,7 @@ my class ThreadPoolScheduler does Scheduler {
                       )
                     + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
-#?if jvm
-                my @last-utils := array[num].new(0e0 xx NUM_SAMPLES);
-#?endif
-#?if !jvm
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
-#?endif
                 my int $cpu-cores = max(nqp::cpucores() - 1,1);
 
                 # These definitions used to live inside the supervisor loop.
@@ -736,11 +726,22 @@ my class ThreadPoolScheduler does Scheduler {
             }
         }
 
-        # If we didn't complete anything, then consider adding more threads.
+        # Consider adding more worker threads when:
+        # 1. We didn't complete anything since the last supervision. This is
+        #    likely because some long-running tasks are holding onto the
+        #    workers. We should at least think about adding more (and the
+        #    code below will try to determine if that's beneficial).
+        # 2. The number of tasks in the queue is greater than the number of
+        #    workers. Such a situation suggests we are under-resourced, and
+        #    so liable to fall behind. Consider it like checkout lanes at a
+        #    supermarket: if 20 people are queueing and there are only 2 open
+        #    checkout lanes, it makes sense to open more, but if there are 20
+        #    people waiting and 30 open checkout lanes, there's little to be
+        #    won by opening another one at this point.
         my int $total-workers = nqp::elems($!general-workers)
           + nqp::elems($!timer-workers)
           + nqp::elems($!affinity-workers);
-        if $total-completed == 0 {
+        if $total-completed == 0 || nqp::elems(queue) > nqp::elems(worker-list) {
             if $total-workers < $!max_threads {
                 # There's something in the queue and we haven't completed it.
                 # If we are still below the CPU core count, just add a worker.
@@ -779,12 +780,7 @@ my class ThreadPoolScheduler does Scheduler {
 
     submethod BUILD(
         Int :$!initial_threads = 0,
-#?if jvm
         Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 64).Int
-#?endif
-#?if !jvm
-        Int :$!max_threads = nqp::ifnull(nqp::atkey($ENV,'RAKUDO_MAX_THREADS'),64)
-#?endif
         --> Nil
     ) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
@@ -803,7 +799,7 @@ my class ThreadPoolScheduler does Scheduler {
               GeneralWorker.new(
                 queue => $!general-queue,
                 scheduler => self
-              )
+             )
             ) for ^$!initial_threads;
             scheduler-debug "Created scheduler with $!initial_threads initial general workers";
             self!maybe-start-supervisor();

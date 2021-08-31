@@ -34,12 +34,13 @@ role Perl6::Metamodel::MultipleInheritance {
         }
         my $parent_how := $parent.HOW;
         if nqp::can($parent_how, 'repr_composed') && !$parent_how.repr_composed($parent) {
-            my %ex := nqp::gethllsym('Raku', 'P6EX');
-            if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::Inheritance::NotComposed') {
-                %ex{'X::Inheritance::NotComposed'}(self.name($obj), $parent_how.name($parent))
-            }
-            nqp::die("Class " ~ self.name($obj) ~ " cannot inherit from "
-                ~ $parent_how.name($parent) ~ " because the parent is not composed yet");
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Inheritance::NotComposed',
+                "Class " ~ self.name($obj) ~ " cannot inherit from "
+                    ~ $parent_how.name($parent) ~ " because the parent is not composed yet",
+                :child-name(nqp::hllizefor(self.name($obj), 'Raku')),
+                :parent-name(nqp::hllizefor($parent_how.name($parent), 'Raku'))
+            );
         }
         for @!parents {
             if nqp::decont($_) =:= nqp::decont($parent) {

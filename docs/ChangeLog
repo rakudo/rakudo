@@ -1,3 +1,126 @@
+New in 2021.08:
+
+  + Additions:
+    + Enable rendering of nested blocks in the `Pod::To::Text` module [07517164][27f7924e][36de39f6]
+  + Changes:
+    + Raise priority of `let` and `temp` operators compared to `.=`, `.` and
+      auto-increment, making `let $foo .= &{ Nil }` work more intuitively compared to
+      `(let $foo) .= &{ Nil }` as was necessary before [ca40fca0][723e7488]
+    + Change the `Scalar.WHICH` method implementation, fixing the semantics to reflect
+      that `Scalar` is not a value object [56fce9e7]
+  + Efficiency:
+    + Make the `&&`, `||` and `//` operators about 2x as fast for the `+@a` candidates [db441c2c]
+    + Improve performance of smartmatching between two `Signature` objects [66ae8612]
+  + Fixes:
+    + Fix some occurrences of hash-related concurrency issues [58ae9394]
+    + Fix the `List.reduce` method when used with `&infix:<&&>` [ea389d66][db441c2c]
+    + Fix matching of native types against roles `Numeric`, `Real` and `Stringy` [a8a78132]
+    + Make `Pointer.Numeric` and `Pointer.Int` methods return 0 instead of resulting in an error [681e3b5e]
+    + Fix a race in the `ClassHOW.new_type` method [08f5448d][83b0bca7]
+  + Internal:
+    + Make checking for Windows cheaper [89df7f4b]
+    + Simplify `Rakudo::Iterator::While` iterator code [ffde2ba2]
+    + Fix location of the `Proc.status` deprecation message [54f1b7a5]
+    + Add tests to make sure float and double `NaN` can be passed to native code
+      via NativeCall using the Raku `NaN` value [8ae6f394]
+
+New in 2021.07:
+
+  + Additions:
+    + Make `cmp` routine work properly on `Iterator`, `Seq`, `Uni`, native arrays and empty `List`s
+      [efb3116a][f3ff0621][76714ca4][39ba8884]
+    + Add the `ACCEPTS(Uni)` method on `Uni` candidate [6b6459f3]
+    + Implement `last` and `next` with a value for `6.e` language revision
+      [402ea056][2542a0ac][a5d81353][0761d4b2][47ebc86c][a2faac4b]
+      [e777fc4f][4f190875][21576423]
+    + Properly support nearly all HTML5 entities in Pod `E<>` formatting code [910179d7]
+    + Allow `Ctrl-C` to stop entry in REPL  [cf7b4f18]
+    + Add `⩶` and `⩵` as Unicode synonyms for `===` and `==` [eab780f3]
+  + Deprecations:
+    + Deprecate the `status` method on `Proc` in place of `exitcode` and `signal` methods
+      [249fdba2][2fd458cc]
+  + Build System:
+    + Tidy and improve cleanup rules [e771bd8a]
+    + Support creating an MSI installer [4e93b84e]
+  + Changes:
+    + Allow `add` method on `IO::Path` to take multiple values (e.g. `"foo".IO.add(<bar baz>)`) [b4d33982]
+  + Efficiency:
+    + Optimize calls to `map` [a8f144cc][38626c68]
+    + Optimize loops without phasers for one and two arguments case [265888ce]
+    + Make for / map with 2+ arguments up to 2x as fast [4c417f31][4f5fb9e6][bfa6b295]
+    + Make `List cmp List` about 25% faster [50bd1717]
+    + Reduce overhead of loops with phasers by at least 5% [5ecc8308][7a1b729b]
+    + Make the `grep(Callable)` method about 3% faster [52ffc125][bb09bbb8][71f6bada]
+  + Fixes:
+    + Fix `rakuw.exe` to be a non-console app [57885f66]
+    + Fix CURI probing and installation edge case issue on Windows [2839cef6][d668d992]
+    + Clean up sockets created by `IO::Socket::INET.new` on error [bee5c7af][271f17b0]
+    + Fix freezes caused by concurrently produced iterators
+      [8eae05b9][2d396ae7][6e66c2e5][24b0df8a]
+    + Fix `unimatch` for non-base properties [0a1256af]
+  + Internal:
+    + Implement support for `moar::hllincludes` config variable [a96bfdc2][552f2810]
+    + Fix binary release `set-env.*` scripts with space in path [a4a46e3c]
+    + `Rakudo::Iterator::UnendingValue` no longer a `PredictiveIterator` [917d674b]
+    + Separate `Rakudo::Iterator::IntRange` into two classes [03aef65c]
+    + `PredictiveIterator` provides own `push-until-lazy` [7cf3927d]
+    + Various internal fixes and improvements
+      [5976e30e][bdc5092f][1bd0411c][f2959ad5][ddc7c9ff][9c69b7d5]
+      [941349d0][eae82f09][2efe4302][7f5f60e8][22f78f4e][9bf1e1c2]
+
+New in 2021.06:
+
+  + Additions:
+    + Support generics with consumption and inheritance in roles [4b996568][6e1cfe4c]
+    + Introduce `done foo` syntax as a shortcut for `emit foo; done` [452e92ed]
+    + Implement `pick` method on `Any` taking HyperWhatever as an argument (`.pick(**)`),
+      which  produce all values of Foo.pick(*), and then produce all values
+      of Foo.pick(*) again, and again, ad infinitum [cd4a72b6]
+    + Add a `repl` sub to enter the REPL from within a program [4183cdaf]
+    + Add `Buf` and `Blob` coercers to `Blob` and `Buf` roles [f83e5511]
+  + Changes:
+    + No longer use Unicode in REPL on Windows [5e1c97ba]
+  + Efficiency:
+    + Tweak worker addition for many small tasks [39e5834d]
+    + Make `.grep(Regex)` and `.first(Regex)` about 40% faster [0de28ae7]
+    + Speed up setup of NativeCall subs and reduce memory usage [3b7fef2e]
+    + Micro-optimize `levenshtein` sub used to suggest alternatives in error messages [da0f561c]
+  + Fixes:
+    + Improve stability on Windows by trying to rename precomp files multiple times [a9510b8d][7dfed29c]
+    + Fix bogus "emit without supply or react" error when using `hyper` to process arrays [4953a299]
+    + Fix some edge cases with `(+)`, `(.)`, `(&)` and `(|)` set operators [89fd8a8d]
+    + Make signature destructuring with a `Junction` an error [15d372e2][57070f05]
+    + Make `Mu eqv Mu` work [750c5d04]
+    + Fix possible error when throwing an exception on JVM backend [9743035f]
+  + Internals:
+    + Provide support for `CORE::` namespace for the core itself [ea92934c][3fcf6f75][b03afef5]
+    + Remove a special case for native arrays on JVM [28ff12a8]
+    + Simplify `Iterable eqv Iterable` implementation [168da39a]
+    + Abstract single elem path of `[]` into `Rakudo::Internals` [db074a8b]
+
+New in 2021.05:
+
+  + Additions:
+    + Add support for `∊` and `∍` as aliases for `∈` and `∋` [d00c7e35]
+  + Changes:
+    + Make `lc`, `uc`, `tc`, `tclc`, `fc`, `flip` methods on `Allomorph` return `Str` instance
+      to make it consistent on subclassing [bb069a99]
+  + Efficiency:
+    + Make infix `(elem)` operator about 30x as fast on native arrays [e6a7bfe7]
+    + Make `DateTime.posix` about 12x as fast [17c55f3c,ec8b1ae7]
+  + Fixes:
+    + Fix `$*EXECUTABLE` with non `_m` suffix executables and on Windows with `raku`, `raku-debug`, `rakuw` [b13542e8,a37f9790]
+    + Fix copying of empty shaped array [0bf10e26,ede453e1]
+    + Fix `substr_rw` method on `Allomorph` [1d8d05f5]
+    + Improve error messages text [5c78fb7a,5331a1d8]
+  + Internals:
+    + Replace use of `P6EX` hllsym with `Metamodel::Configuration.throw_or_die` method [ca2753b7,a524c3de,8427afe9,2c4a0062]
+    + Remove special cases for hash constants for JVM [4dab8405]
+    + Move opening of standard handles into `Rakudo::Internals` [b1e4350f]
+    + Fix a test for reproducible builds [21a60e17]
+    + Use "#!/usr/bin/env rakudo" instead of `perl6` in module scripts [adc89e2a]
+    + Add tests for REPL correctly handling junctions and incomplete regexes [45e8e8d9,cbf12d22,21100c91]
+
 New in 2021.04:
 
   + Additions:

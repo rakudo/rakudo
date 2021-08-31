@@ -349,7 +349,7 @@ while @lines {
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos_#postfix#(self,$i,nqp::atpos_i(from,$i))
+                  nqp::bindpos_#postfix#(self,$i,nqp::atpos_#postfix#(from,$i))
                 ),
                 self
               ),
@@ -367,7 +367,7 @@ while @lines {
               nqp::bindpos_#postfix#(self,$i,iter.pull-one)
             );
             # too many values? then throw by just accessing out of range
-            nqp::atpos_i(list,$i) unless iter.exhausted;
+            nqp::atpos_#postfix#(list,$i) unless iter.exhausted;
             self
         }
         multi method STORE(::?CLASS:D: #Type#:D \item) {

@@ -13,10 +13,6 @@ To run a Raku program, open a command prompt and type
 
     C:\path\to\this\folder\bin\raku.exe my_script.raku
 
-or start a REPL by calling `raku.exe` without an argument
-
-    C:\path\to\this\folder\bin\raku.exe
-
 To add the relevant paths to your environment so you don't have to type the
 full path execute the following script in CMD:
 
@@ -26,13 +22,17 @@ or when using Powershell (note the dot at the beginning):
 
     . C:\path\to\this\folder\scripts\set-env.ps1
 
+To start an interactive Raku environment call `raku` without an argument
+
+    raku.exe
+
 
 Installing modules
 ==================
 
 To install Raku modules you can use the Zef module installer.
 
-    C:\path\to\this\folder\bin\raku.exe C:\path\to\this\folder\share\perl6\site\bin\zef install JSON::Fast
+    raku.exe C:\path\to\this\folder\share\perl6\site\bin\zef install JSON::Fast
 
 Modules will be installed into this Raku package and will thus be available
 even when moving this package.
@@ -102,10 +102,6 @@ Changes
 Recent changes and feature additions are documented in the `docs/ChangeLog`
 text file.
 
-To receive important notifications from the core developer team, please
-subscribe to [the p6lert service](https://alerts.raku.org) using the RSS feed,
-twitter, or [the p6lert commandline script](https://github.com/zoffixznet/perl6-p6lert).
-
 
 Where to get help or answers to questions
 =========================================
@@ -119,8 +115,8 @@ This is always a good starting point.
 
 If you have a question about Raku syntax or the right way to approach
 a problem using Raku, you probably want the “perl6-users@perl.org”
-mailing list or the [irc.freenode.net/#raku IRC
-channel](https://webchat.freenode.net/?channels=#raku). The perl6-users
+mailing list or the [irc.libera.chat/#raku IRC
+channel](https://web.libera.chat/#raku). The perl6-users
 list is primarily for the people who want to use Raku to write
 programs, so newbie questions are welcomed there.  Newbie questions
 are also welcome on the #raku channel; the Rakudo and Raku
@@ -128,7 +124,7 @@ development teams tend to hang out there and are generally glad
 to help. There's a Raku news aggregator at [Planet Raku](https://planet.raku.org/).
 
 Questions about NQP can also be posted to the #raku IRC channel.
-For questions about MoarVM, you can join #moarvm on freenode.
+For questions about MoarVM, you can join #moarvm on Libera.
 
 
 Reporting bugs
@@ -141,7 +137,7 @@ Submitting patches
 ==================
 
 If you have a patch that fixes a bug or adds a new feature, please create a
-pull request using github's pull request infrastructure.
+pull request using GitHub's pull request infrastructure.
 
 See [our contribution guidelines](https://github.com/rakudo/rakudo/blob/master/CONTRIBUTING.md)
 for more information.

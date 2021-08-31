@@ -31,10 +31,10 @@ class Encoding::Builtin does Encoding {
             !! $encoder
     }
 
-#?if moar
+#?if !js
     my constant $enc_type = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $enc_type := nqp::hash(
 #?endif
       'utf8',utf8,'utf16',utf16,'utf32',utf32

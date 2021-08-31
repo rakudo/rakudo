@@ -44,7 +44,7 @@ do {
         my &add_history = $WHO<&add_history>;
         my $Readline = try { require Readline }
         my $read = $Readline.new;
-        if ! $*DISTRO.is-win {
+        if !Rakudo::Internals.IS-WIN {
             $read.read-init-file("/etc/inputrc");
             $read.read-init-file(%*ENV<INPUTRC> // "~/.inputrc");
         }
@@ -238,7 +238,7 @@ do {
                 say 'Continuing without tab completions or line editor';
                 say 'You may want to consider using rlwrap for simple line editor functionality';
             }
-            elsif !$*DISTRO.is-win and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
+            elsif !Rakudo::Internals.IS-WIN and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
                 say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor';
             }
             say '';
@@ -246,9 +246,14 @@ do {
             $self but FallbackBehavior
         }
 
-        method new(Mu \compiler, Mu \adverbs) {
-            say compiler.version_string(:shorten-versions);
-            say '';
+        method new(Mu \compiler, Mu \adverbs, $skip?) {
+            unless $skip {
+                say compiler.version_string(
+                  :shorten-versions,
+                  :no-unicode(Rakudo::Internals.IS-WIN)
+                );
+                say '';
+            }
 
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
@@ -306,13 +311,19 @@ do {
 
         method interactive_prompt() { '> ' }
 
-        method repl-loop(*%adverbs) {
-
-            if $*DISTRO.is-win {
-                say "To exit type 'exit' or '^Z'";
-            } else {
-                say "To exit type 'exit' or '^D'";
+        method repl-loop(:$no-exit, *%adverbs) {
+            my int $stopped;   # did we press CTRL-c just now?
+            signal(SIGINT).tap: {
+                exit if $stopped++;
+                say "Pressed CTRL-c, press CTRL-c again to exit";
+                print self.interactive_prompt;
             }
+
+            say $no-exit
+              ?? "Type 'exit' to leave"
+              !! Rakudo::Internals.IS-WIN
+                ?? "To exit type 'exit' or '^Z'"
+                !! "To exit type 'exit' or '^D'";
 
             my $prompt;
             my $code;
@@ -324,7 +335,9 @@ do {
 
             REPL: loop {
                 my $newcode = self.repl-read(~$prompt);
+                last if $no-exit and $newcode and $newcode eq 'exit';
 
+                $stopped = 0;
                 my $initial_out_position = $*OUT.tell;
 
                 # An undef $newcode implies ^D or similar
@@ -441,6 +454,12 @@ do {
             $!history-file.absolute
         }
     }
+}
+
+sub repl(*%_) {
+    my $repl := REPL.new(nqp::getcomp("Raku"), %_, True);
+    nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
+    $repl.repl-loop(:no-exit);
 }
 
 # vim: expandtab shiftwidth=4

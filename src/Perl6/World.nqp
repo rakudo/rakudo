@@ -60,43 +60,40 @@ nqp::bindcurhllsym('nqplist', &nqplist);
 # when deriving from an unknown/typo'd class.
 sub levenshtein($a, $b) {
     my %memo;
-    my $alen := nqp::chars($a);
-    my $blen := nqp::chars($b);
+    my int $alen := nqp::chars($a);
+    my int $blen := nqp::chars($b);
 
-    return 0 if $alen eq 0 || $blen eq 0;
+    return 0 if $alen == 0 || $blen == 0;
 
-    # the longer of the two strings is an upper bound.
-    #my $bound := $alen < $blen ?? $blen !! $alen;
-
-    sub changecost($ac, $bc) {
+    sub changecost(str $ac, str $bc) {
         sub issigil($_) { nqp::index('$@%&|', $_) != -1 };
         return 0 if $ac eq $bc;
         return 0.1 if nqp::fc($ac) eq nqp::fc($bc);
         return 0.5 if issigil($ac) && issigil($bc);
-        return 1;
+        1;
     }
 
-    sub levenshtein_impl($apos, $bpos, $estimate) {
-        my $key := join(":", ($apos, $bpos));
+    sub levenshtein_impl(int $apos, int $bpos, num $estimate) {
+        my $key := "$apos:$bpos";
 
         return %memo{$key} if nqp::existskey(%memo, $key);
 
         # if either cursor reached the end of the respective string,
         # the result is the remaining length of the other string.
-        sub check($pos1, $len1, $pos2, $len2) {
+        sub check(int $pos1, int $len1, int $pos2, int $len2) {
             if $pos2 == $len2 {
                 return $len1 - $pos1;
             }
-            return -1;
+            -1;
         }
 
-        my $check := check($apos, $alen, $bpos, $blen);
+        my int $check := check($apos, $alen, $bpos, $blen);
         return $check unless $check == -1;
         $check := check($bpos, $blen, $apos, $alen);
         return $check unless $check == -1;
 
-        my $achar := nqp::substr($a, $apos, 1);
-        my $bchar := nqp::substr($b, $bpos, 1);
+        my str $achar := nqp::substr($a, $apos, 1);
+        my str $bchar := nqp::substr($b, $bpos, 1);
 
         my num $cost := changecost($achar, $bchar);
 
@@ -125,11 +122,9 @@ sub levenshtein($a, $b) {
         }
 
         %memo{$key} := $distance;
-        return $distance;
     }
 
-    my num $result := levenshtein_impl(0, 0, 0);
-    return $result;
+    return levenshtein_impl(0, 0, 0e0);
 }
 
 sub make_levenshtein_evaluator($orig_name, @candidates) {
@@ -2682,10 +2677,10 @@ class Perl6::World is HLL::World {
                 # do dynamic compilation.
                 %!code_object_fixup_list{$cuid} := $fixups;
             }
-
-            # Stash the QAST block in the comp stuff.
-            @compstuff[0] := $code_past;
         }
+
+        # Stash the QAST block in the comp stuff.
+        @compstuff[0] := $code_past;
 
         # If this is a dispatcher, install dispatchee list that we can
         # add the candidates too.
@@ -2981,6 +2976,26 @@ class Perl6::World is HLL::World {
         # Return the VM coderef that maps to the thing we were originally
         # asked to compile.
         $result
+    }
+    method unstub_code_object($code, $code_type) {
+        my @compstuff := nqp::getattr($code, $code_type, q<@!compstuff>);
+        unless nqp::isnull(@compstuff) {
+            my $subid := @compstuff[0].cuid;
+
+            nqp::bindattr($code, $code_type, '@!compstuff', nqp::null());
+
+            my %sub_id_to_sc_idx := self.context().sub_id_to_sc_idx();
+            my $code_ref := nqp::getattr($code, $code_type, '$!do');
+            if nqp::existskey(%sub_id_to_sc_idx, $subid) {
+                nqp::markcodestatic($code_ref); # maybe $!do instead
+                self.update_root_code_ref(%sub_id_to_sc_idx{$subid}, $code_ref);
+            }
+            if nqp::existskey(%!code_object_fixup_list, $subid) {
+                my $fixups := %!code_object_fixup_list{$subid};
+                $fixups.pop() while $fixups.list;
+            }
+            nqp::deletekey(self.context().sub_id_to_code_object(), $subid);
+        }
     }
     method try_add_to_sc($value, $fallback) {
         if nqp::isnull($value) {
@@ -5125,6 +5140,12 @@ class Perl6::World is HLL::World {
         if +@name == 1 && @name[0] eq 'GLOBAL' {
             return QAST::Op.new( :op('getcurhllsym'),
                 QAST::SVal.new( :value('GLOBAL') ) );
+        }
+
+        if $*COMPILING_CORE_SETTING && +@name > 1 && @name[0] eq 'CORE' {
+            # PseudoStash is likely to be unavailable while CORE is compiled. Here we provide very basic support for
+            # CORE:: namespace for the core code itself.
+            return QAST::WVal.new( :value(self.find_symbol_in_setting(@name)) )
         }
 
         # Handle things starting with pseudo-package.

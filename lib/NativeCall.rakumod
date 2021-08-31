@@ -578,8 +578,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 
         # finish compilation of the original routine so our changes won't
         # become undone right afterwards
-        my Mu \compstuff := nqp::getattr(self, Code, q<@!compstuff>);
-        compstuff[1]() unless nqp::isnull(compstuff);
+        $*W.unstub_code_object(self, Code) if $*W;
 
         my $replacement := -> |args {
             self.create-optimized-call() unless
@@ -593,11 +592,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 
             nqp::nativecall($!rettype, self, $args)
         };
-
-        if $*W { # prevent compile_in_context from undoing our replacement
-            my $cuid := nqp::getcodecuid(nqp::getattr(self, Code, '$!do'));
-            nqp::deletekey($*W.context().sub_id_to_code_object(), $cuid);
-        }
 
         my $do := nqp::getattr($replacement, Code, '$!do');
         nqp::bindattr(self, Code, '$!do', $do);

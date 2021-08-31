@@ -24,6 +24,7 @@ my int $MVM_operand_uint64      := nqp::bitshiftl_i($MVM_reg_uint64, 3);
 # Dispatch op generators.
 my %core_op_generators := MAST::Ops.WHO<%generators>;
 my &op_dispatch_v := %core_op_generators<dispatch_v>;
+my &op_dispatch_o := %core_op_generators<dispatch_o>;
 
 # Register MoarVM extops.
 use MASTNodes;
@@ -42,9 +43,6 @@ MAST::ExtOpRegistry.register_extop('p6takefirstflag',
     $MVM_operand_int64 +| $MVM_operand_write_reg);
 MAST::ExtOpRegistry.register_extop('p6captureouters',
     $MVM_operand_obj   +| $MVM_operand_read_reg,
-    $MVM_operand_obj   +| $MVM_operand_read_reg);
-MAST::ExtOpRegistry.register_extop('p6getouterctx',
-    $MVM_operand_obj   +| $MVM_operand_write_reg,
     $MVM_operand_obj   +| $MVM_operand_read_reg);
 MAST::ExtOpRegistry.register_extop('p6staticouter',
     $MVM_operand_obj   +| $MVM_operand_write_reg,
@@ -156,7 +154,16 @@ $ops.add_hll_op('Raku', 'p6return', :!inlinable, -> $qastcomp, $op {
     MAST::Op.new( :op('return_o'), $value_res.result_reg );
     MAST::InstructionList.new($value_res.result_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('Raku', 'p6getouterctx', 'p6getouterctx', :decont(0));
+$ops.add_hll_op('Raku', 'p6getouterctx', -> $qastcomp, $op {
+    my $code_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
+    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+        [$op[0]], [$code_res]);
+    $*REGALLOC.release_register($code_res.result_reg, $MVM_reg_obj);
+    my $res_reg := $*REGALLOC.fresh_o();
+    MAST::Op.new( :op('decont'), $res_reg, $code_res.result_reg);
+    op_dispatch_o($res_reg, 'raku-get-code-outer-ctx', $callsite_id, [$res_reg]);
+    MAST::InstructionList.new($res_reg, $MVM_reg_obj)
+});
 $ops.add_hll_moarop_mapping('Raku', 'p6captureouters', 'p6captureouters', 0);
 $ops.add_hll_moarop_mapping('nqp', 'p6captureouters2', 'p6captureouters', 0);
 $ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {

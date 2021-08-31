@@ -2740,6 +2740,27 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-capture-lex-callers',
     }
 });
 
+# The dispatcher backing p6getouterctx. Unwraps the code object, and then
+# gets a context object for its enclosing scope.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-get-code-outer-ctx', -> $capture {
+    my $code := nqp::captureposarg($capture, 0);
+    if nqp::istype($code, Code) {
+        my $track-code := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        my $do := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $track-code, Code, '$!do');
+        my $with-do := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+            0, $do);
+        my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
+            $with-do, 0, 'get-code-outer-ctx');
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-syscall',
+            $delegate);
+    }
+    else {
+        nqp::die('raku-get-code-outer-ctx requires a Code object');
+    }
+});
+
 # Resumption error reporting dispatcher.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-resume-error', -> $capture {
     my str $redispatcher := nqp::getcodename(nqp::callercode());

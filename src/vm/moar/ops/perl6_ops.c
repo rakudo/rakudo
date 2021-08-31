@@ -15,20 +15,6 @@
 static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
 }
 
-static MVMuint8 s_p6getouterctx[] = {
-    MVM_operand_obj | MVM_operand_write_reg,
-    MVM_operand_obj | MVM_operand_read_reg
-};
-static void p6getouterctx(MVMThreadContext *tc, MVMuint8 *cur_op) {
-    MVMObject *p6_code_obj = GET_REG(tc, 2).o;
-    MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
-    MVMFrame  *outer       = ((MVMCode *)vm_code_obj)->body.outer;
-    if (outer)
-        GET_REG(tc, 0).o = MVM_frame_context_wrapper(tc, outer);
-    else
-        MVM_exception_throw_adhoc(tc, "Specified code ref has no outer");
-}
-
 static MVMuint8 s_p6captureouters[] = {
     MVM_operand_obj | MVM_operand_read_reg,
     MVM_operand_obj | MVM_operand_read_reg
@@ -185,7 +171,6 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
 /* Registers the extops with MoarVM. */
 MVM_DLL_EXPORT void Rakudo_ops_init(MVMThreadContext *tc) {
     MVM_ext_register_extop(tc, "p6init",  p6init, 0, NULL, NULL, NULL, 0);
-    MVM_ext_register_extop(tc, "p6getouterctx", p6getouterctx, 2, s_p6getouterctx, NULL, NULL, MVM_EXTOP_PURE | MVM_EXTOP_ALLOCATING);
     MVM_ext_register_extop(tc, "p6captureouters", p6captureouters, 2, s_p6captureouters, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6stateinit", p6stateinit, 1, s_p6stateinit, NULL, NULL, 0);
     MVM_ext_register_extop(tc, "p6setfirstflag", p6setfirstflag, 2, s_p6setfirstflag, NULL, NULL, 0);

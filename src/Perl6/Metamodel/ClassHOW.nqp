@@ -72,8 +72,10 @@ class Perl6::Metamodel::ClassHOW
     # and if it is calls $calculator with the object and method name to
     # calculate an invokable object.
     method add_fallback($obj, $condition, $calculator) {
+#?if !moar
         # Adding a fallback means any method cache is no longer authoritative.
         nqp::setmethcacheauth($obj, 0);
+#?endif
 
         # Add it.
         my %desc;
@@ -283,7 +285,9 @@ class Perl6::Metamodel::ClassHOW
     my $junction_type;
     my $junction_autothreader;
     method setup_junction_fallback($type, $autothreader) {
+#?if !moar
         nqp::setmethcacheauth($type, 0);
+#?endif
         $junction_type := $type;
         $junction_autothreader := $autothreader;
     }

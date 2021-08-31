@@ -4023,6 +4023,7 @@ nqp::sethllconfig('Raku', nqp::hash(
     'find_method_dispatcher', 'nqp-find-meth',  # NQP one is probably good enough
     'resume_error_dispatcher', 'raku-resume-error',
     'hllize_dispatcher', 'raku-hllize',
+    'istype_dispatcher', 'nqp-istype',  # Can write a Raku one later for more opts
     'max_inline_size', 384,
 #?endif
 ));

@@ -41,10 +41,24 @@ my class Promise does Awaitable {
     has Mu $!dynamic_context;
     has Bool $!report-broken-if-sunk;
 
+    method !SET-SELF(\scheduler, \report) {
+        $!scheduler             := scheduler;
+        $!report-broken-if-sunk := nqp::if(nqp::istrue(report),True,False);
+        $!lock                  := nqp::create(Lock);
+        $!cond                  := $!lock.condition;
+        $!status                := Planned;
+        $!thens                 := nqp::list;
+        self
+    }
     submethod new(:$scheduler = $*SCHEDULER, :$report-broken-if-sunk) {
-        my \p = nqp::create(self);
-        p.BUILD(:$scheduler, :$report-broken-if-sunk);
-        p
+        if nqp::eqaddr(self,Promise) {
+            nqp::create(self)!SET-SELF($scheduler, $report-broken-if-sunk)
+        }
+        else {
+            my \p = nqp::create(self);
+            p.BUILD(:$scheduler, :$report-broken-if-sunk);
+            p
+        }
     }
 
     submethod BUILD(:$!scheduler = $*SCHEDULER, :$report-broken-if-sunk --> Nil) {

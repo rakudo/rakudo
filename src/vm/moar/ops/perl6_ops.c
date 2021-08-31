@@ -11,9 +11,6 @@
 
 #define GET_REG(tc, idx)    (*tc->interp_reg_base)[*((MVMuint16 *)(cur_op + idx))]
 
-/* Dummy zero callsite. */
-static MVMCallsite no_arg_callsite = { NULL, 0, 0, 0, 0, 0, NULL };
-
 /* Initializes the Raku extension ops. */
 static void p6init(MVMThreadContext *tc, MVMuint8 *cur_op) {
 }
@@ -171,22 +168,18 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
     MVMObject   *fake = GET_REG(tc, 2).o;
     MVMObject   *code = GET_REG(tc, 4).o;
 
-    fake = MVM_frame_find_invokee(tc, fake, NULL);
-    code = MVM_frame_find_invokee(tc, code, NULL);
-
     /* Invoke the fake frame; note this doesn't return to the interpreter, so
      * we can do hackery after it. */
     tc->cur_frame->return_address = *(tc->interp_cur_op) + 6;
-    MVMROOT(tc, code, {
-        STABLE(fake)->invoke(tc, fake, &no_arg_callsite, tc->cur_frame->args);
-    });
+    MVM_frame_dispatch_zero_args(tc, (MVMCode *)fake);
 
     /* Now we call the second code ref, thus meaning it'll appear to have been
      * called by the first. We set up a special return handler to properly
      * remove it. */
-    MVM_args_setup_thunk(tc, res, MVM_RETURN_OBJ, &no_arg_callsite);
     MVM_frame_special_return(tc, tc->cur_frame, return_from_fake, NULL, NULL, NULL);
-    STABLE(code)->invoke(tc, code, &no_arg_callsite, tc->cur_frame->args);
+    tc->cur_frame->return_value = res;
+    tc->cur_frame->return_type = MVM_RETURN_OBJ;
+    MVM_frame_dispatch_zero_args(tc, (MVMCode *)code);
 }
 
 /* Registers the extops with MoarVM. */

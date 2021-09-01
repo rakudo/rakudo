@@ -181,7 +181,9 @@ $ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {
     MAST::Op.new( :op('lt_i'), $cmp_reg, $i_reg, $n_reg );
     MAST::Op.new( :op('unless_i'), $cmp_reg, $lbl_done );
     MAST::Op.new( :op('atpos_o'), $tmp_reg, $res_reg, $i_reg );
-    MAST::Op.new( :op('hllize'), $tmp_reg, $tmp_reg );
+    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+        [$op], [MAST::InstructionList.new($tmp_reg, $MVM_reg_obj)]);
+    op_dispatch_o($tmp_reg, 'lang-hllize', $callsite_id, [$tmp_reg]);
     MAST::Op.new( :op('bindpos_o'), $res_reg, $i_reg, $tmp_reg );
     MAST::Op.new( :op('const_i64'), $cmp_reg, MAST::IVal.new( :value(1) ) );
     MAST::Op.new( :op('add_i'), $i_reg, $i_reg, $cmp_reg );

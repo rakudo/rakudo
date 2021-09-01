@@ -54,7 +54,9 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             $type.HOW.'!produce_parameterization'($type, @packed);
         });
 
+#?if !moar
         $meta.compose_invocation($type_obj);
+#?endif
 
         $type_obj
     }

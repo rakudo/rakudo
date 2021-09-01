@@ -165,8 +165,10 @@ class Perl6::Metamodel::EnumHOW
             $!composed := 1;
         }
 
+#?if !moar
         # Compose invocation protocol.
         self.compose_invocation($obj);
+#?endif
 
         $obj
     }

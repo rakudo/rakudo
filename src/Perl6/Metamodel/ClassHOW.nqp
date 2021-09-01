@@ -250,8 +250,10 @@ class Perl6::Metamodel::ClassHOW
         # Compose the meta-methods.
         self.compose_meta_methods($obj);
 
+#?if !moar
         # Compose invocation protocol.
         self.compose_invocation($obj);
+#?endif
 
         $obj
     }

@@ -92,7 +92,9 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         @!role_typecheck_list := @rtl;
+#?if !moar
         self.compose_invocation($obj);
+#?endif
         $!composed := 1;
         $obj
     }

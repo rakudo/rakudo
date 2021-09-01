@@ -343,7 +343,7 @@ my class X::Pragma::NoArgs is Exception {
 }
 my class X::Pragma::CannotPrecomp is Exception {
     has $.what = 'This compilation unit';
-    method message { "$.what cannot be pre-compiled and thus cannot be used in a Module" }
+    method message { "$.what cannot be pre-compiled and thus cannot be used in a module" }
 }
 my class X::Pragma::CannotWhat is Exception {
     has $.what;

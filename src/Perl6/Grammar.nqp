@@ -1344,9 +1344,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             my $lang_cursor := $grammar.'!cursor_init'(self.orig, :p(self.pos()));
             $lang_cursor.clone_braid_from(self);
             $lang_cursor.set_actions($actions);
-            if self.HOW.traced(self) {
-                $lang_cursor.HOW.trace-on($lang_cursor, self.HOW.trace_depth(self));
-            }
             my $ret := $lang_cursor."$regex"(|@args);
 
             # Build up something NQP-levelish we can return.

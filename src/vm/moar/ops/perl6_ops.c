@@ -31,8 +31,7 @@ static void p6captureouters(MVMThreadContext *tc, MVMuint8 *cur_op) {
     if (!new_outer)
         return;
     for (i = 0; i < elems; i++) {
-        MVMObject *p6_code_obj = MVM_repr_at_pos_o(tc, todo, i);
-        MVMObject *vm_code_obj = MVM_frame_find_invokee(tc, p6_code_obj, NULL);
+        MVMObject *vm_code_obj = MVM_repr_at_pos_o(tc, todo, i);
         if (REPR(vm_code_obj)->ID == MVM_REPR_ID_MVMCode) {
             MVMFrame *outer = ((MVMCode *)vm_code_obj)->body.outer;
             MVM_ASSIGN_REF(tc, &(outer->header), outer->outer, new_outer);

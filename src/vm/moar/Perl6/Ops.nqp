@@ -164,7 +164,6 @@ $ops.add_hll_op('Raku', 'p6getouterctx', -> $qastcomp, $op {
     op_dispatch_o($res_reg, 'raku-get-code-outer-ctx', $callsite_id, [$res_reg]);
     MAST::InstructionList.new($res_reg, $MVM_reg_obj)
 });
-$ops.add_hll_moarop_mapping('Raku', 'p6captureouters', 'p6captureouters', 0);
 $ops.add_hll_moarop_mapping('nqp', 'p6captureouters2', 'p6captureouters', 0);
 $ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {
     my $res_reg := $*REGALLOC.fresh_o();

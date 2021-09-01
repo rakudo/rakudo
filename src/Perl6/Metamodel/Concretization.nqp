@@ -7,9 +7,6 @@ role Perl6::Metamodel::Concretization {
 
     method add_concretization($obj, $role, $concrete) {
         @!concretizations[+@!concretizations] := [$role, $concrete];
-        nqp::scwbdisable();
-        %!conc_table := nqp::hash(); # reset the cache
-        nqp::scwbenable();
     }
 
     method concretizations($obj, :$local = 0, :$transitive = 1) {
@@ -38,21 +35,29 @@ role Perl6::Metamodel::Concretization {
     }
 
     method !maybe_rebuild_table() {
-        my %new_conc_table := %!conc_table;
+        # Capturing the concretization list is first and foremost because we
+        # depend on its size to know whether or not a rebuild is necessary, but
+        # there may be a wait before then. Try for more predictable output.
+        my int $captured := nqp::elems(@!concretizations);
         $lock.protect: {
-            # This block is locked because it's used by MRO method dispatch, so doing things
-            # such as parsing a grammar in a start block can cause concurrent access and modification.
-            if nqp::elems(%new_conc_table) < nqp::elems(@!concretizations) {
-                %new_conc_table := nqp::clone(%!conc_table);
-                for @!concretizations {
-                    %new_conc_table{~nqp::objectid(nqp::decont($_[0]))} := nqp::decont($_[1]);
-                }
+            # The concretization table can be depended on outside a
+            # thread-safe context, e.g. MRO-based method dispatch. Parsing
+            # a grammar from a start block can lead to a concurrent access
+            # and modification, for instance.
+            my %conc_table := %!conc_table;
+            my int $cached := nqp::elems(%conc_table);
+            if $cached < $captured {
+                %conc_table := nqp::clone(%conc_table);
+                repeat { # Update.
+                    my @c := @!concretizations[$cached];
+                    %conc_table{~nqp::objectid(nqp::decont(@c[0]))} := nqp::decont(@c[1]);
+                } while ++$cached < $captured;
                 nqp::scwbdisable();
-                %!conc_table := %new_conc_table;
+                %!conc_table := %conc_table;
                 nqp::scwbenable();
             }
-        };
-        %new_conc_table;
+            %conc_table
+        }
     }
 
     # Returns a list where the first element is the number of roles found and the rest are actual type objects.

@@ -1796,14 +1796,15 @@ sub form-raku-capture($vm-capture) {
     $raku-capture
 }
 sub multi-junction-failover($capture) {
-    # Take a first pass to see if there's a Junction arg.
-    my int $num-args := nqp::captureposelems($capture);
+    # Take a first pass to see if there's a Junction arg (we look at both
+    # named and positional).
+    my int $num-args := nqp::dispatch('boot-syscall', 'capture-num-args', $capture);
     my int $i;
     my $found-junction;
     while $i < $num-args {
-        my int $got-prim := nqp::captureposprimspec($capture, $i);
+        my int $got-prim := nqp::dispatch('boot-syscall', 'capture-arg-prim-spec', $capture, $i);
         if $got-prim == 0 {
-            my $value := nqp::captureposarg($capture, $i);
+            my $value := nqp::dispatch('boot-syscall', 'capture-arg-value', $capture, $i);
             if nqp::isconcrete($value) && nqp::istype($value, Junction) {
                 $found-junction := 1;
                 last;
@@ -1813,12 +1814,12 @@ sub multi-junction-failover($capture) {
     }
 
     # If there is a Junction arg, then take another pass through to put type
-    # guards on all positional argument types.
+    # guards on all argument types.
     if $found-junction {
         $i := 0;
         while $i < $num-args {
-            if nqp::captureposprimspec($capture, $i) == 0 {
-                my $arg := nqp::captureposarg($capture, $i);
+            if nqp::dispatch('boot-syscall', 'capture-arg-prim-spec', $capture, $i) == 0 {
+                my $arg := nqp::dispatch('boot-syscall', 'capture-arg-value', $capture, $i);
                 my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
                     $capture, $i);
                 if nqp::istype_nd($arg, Scalar) {

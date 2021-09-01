@@ -4027,6 +4027,7 @@ nqp::sethllconfig('Raku', nqp::hash(
     'resume_error_dispatcher', 'raku-resume-error',
     'hllize_dispatcher', 'raku-hllize',
     'istype_dispatcher', 'nqp-istype',  # Can write a Raku one later for more opts
+    'isinvokable_dispatcher', 'raku-isinvokable',
     'max_inline_size', 384,
 #?endif
 ));

@@ -2770,3 +2770,14 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-resume-error', -> $ca
         :$redispatcher
     );
 });
+
+# Invokability test dispatcher.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-isinvokable', -> $capture {
+    # Guard on the type, then evaluate to a constant for if it's a Code type.
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+    my $callee := nqp::captureposarg($capture, 0);
+    my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-int',
+        $capture, 0, nqp::istype($callee, Code));
+    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant', $delegate);
+});

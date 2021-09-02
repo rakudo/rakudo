@@ -2246,6 +2246,7 @@ my class X::Str::Trans::InvalidArg is Exception {
 my class X::Str::Sprintf::Directives::Count is Exception {
     has int $.args-used; # number of directives actually detected in the format string
     has int $.args-have; # number of args supplied
+    has str $.format;
     method message() {
         my $msg = "Your printf-style directives specify ";
 
@@ -2268,13 +2269,13 @@ my class X::Str::Sprintf::Directives::Count is Exception {
                 $msg ~= "$.args-have arguments were";
             }
         }
-        $msg ~= " supplied.";
+        $msg ~= " supplied to format '$.format'.";
 
         if $.args-used > $.args-have {
-            $msg ~= "\nAre you using an interpolated '\$'?";
+            $msg ~= "  Are you using an interpolated '\$'?";
         }
 
-        $msg;
+        $msg.naive-word-wrapper
     }
 }
 
@@ -2282,7 +2283,7 @@ my class X::Str::Sprintf::Directives::Unsupported is Exception {
     has str $.directive;
     has str $.sequence;
     method message() {
-        "Directive $.directive is not valid in sprintf format sequence $.sequence"
+        "Directive $.directive is not valid in sprintf format '$.sequence'".naive-word-wrapper
     }
 }
 
@@ -2290,11 +2291,13 @@ my class X::Str::Sprintf::Directives::BadType is Exception {
     has str $.type;
     has str $.directive;
     has str $.expected;
+    has str $.format;
     has $.value;
     method message() {
-        $.expected
-          ??  "Directive %$.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
+        (($.expected
+          ?? "Directive %$.directive expected a $.expected value, not a $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
           !! "Directive %$.directive not applicable for value of type $.type ({Rakudo::Internals.SHORT-STRING: $.value[0]})"
+        ) ~ " in format '$.format'").naive-word-wrapper
     }
 }
 

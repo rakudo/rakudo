@@ -525,7 +525,7 @@ multi sub sprintf(Str(Cool) $format, *@args) {
             X::Cannot::Lazy.new(:action('(s)printf')).throw
         }
         default {
-            Rakudo::Internals.HANDLE-NQP-SPRINTF-ERRORS($_).throw
+            Rakudo::Internals.HANDLE-NQP-SPRINTF-ERRORS($_, $format).throw
         }
     }
     Rakudo::Internals.initialize-sprintf-handler;

@@ -67,10 +67,15 @@ augment class Uni {
         my $uni      := nqp::create(self);
         my int $elems = nqp::elems(codepoints);
         my int $i = -1;
+        my int $code;
 
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::push_i($uni,nqp::atpos_i(codepoints,$i))
+          nqp::if(nqp::isgt_i($code = nqp::atpos_i(codepoints,$i), 0x10ffff)
+                  || (nqp::isle_i(0xd800, $code) && nqp::isle_i($code, 0xdfff))
+                  || nqp::islt_i($code, 0),
+            X::InvalidCodepoint.new(:$code).throw,
+            nqp::push_i($uni,$code))
         );
 
         $uni

@@ -29,8 +29,9 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         nqp::p6bindattrinvres($stash, Map, '$!storage', nqp::hash())
     }
 
-    my atomicint $id = 0;
-    method NEW-PACKAGE(:$name = "<anon|{++⚛$id}>", *%initargs) is raw is implementation-detail {
+    my Int $id = 0;
+    method NEW-PACKAGE(:$name = "<anon|{cas($id, {$_ + 1})}>", *%initargs ) is raw is implementation-detail
+    {
         my $stash := self.new(|%initargs);
         nqp::setwho(
             nqp::bindattr($stash, PseudoStash, '$!package', Metamodel::ModuleHOW.new_type(:$name)),

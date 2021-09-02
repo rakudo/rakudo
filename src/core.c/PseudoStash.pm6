@@ -253,36 +253,24 @@ my class PseudoStash is Map {
                     nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
                   nqp::atkey(
                     nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key)),
-                  Nil
-                )),
+                  Nil )),
                 nqp::if(
                   (nqp::not_i(nqp::eqaddr($res,Nil))
                     && nqp::bitand_i($!mode,REQUIRE_DYNAMIC)),
                   nqp::unless(
                     ($is-star || try $res.VAR.dynamic),
-                    X::Caller::NotDynamic.new(symbol => $key).throw
-                  )
-                ),
-                $res
-              ),
+                    X::Caller::NotDynamic.new(symbol => $key).throw)),
+                $res ),
               nqp::if(
-                nqp::bitand_i(
-                  $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
-                  ) && $is-star,
+                nqp::bitand_i($!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)) && $is-star,
                 nqp::ifnull(
                   nqp::getlexreldyn(
                     nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
-                  Nil
-                ),
+                  Nil ),
                 nqp::ifnull(                                    # STATIC_CHAIN
                   nqp::getlexrel(
                     nqp::getattr(self,PseudoStash,'$!ctx'),nqp::unbox_s($key)),
-                  Nil
-                )
-              )
-            )
-          )
-        )
+                  Nil )))))
     }
     multi method ASSIGN-KEY(PseudoStash:D: Str() $key, Mu \value) is raw {
         self.AT-KEY($key) = value
@@ -297,14 +285,10 @@ my class PseudoStash is Map {
             nqp::bindkey(
               nqp::getattr(self,Map,'$!storage'),nqp::unbox_s($key),value),
             nqp::if(
-              nqp::bitand_i(
-                $!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME)
-              ) && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42),  # "*"
+              (nqp::bitand_i($!mode,nqp::bitor_i(DYNAMIC_CHAIN,PICK_CHAIN_BY_NAME))
+                && nqp::iseq_i(nqp::ord(nqp::unbox_s($key),1),42)),  # "*"
               (die "Binding to dynamic variables not yet implemented"),
-              (die "This case of binding is not yet implemented") # STATIC_CHAIN
-            )
-          )
-        )
+              (die "This case of binding is not yet implemented"))))
     }
 
     # for some reason we get an ambiguous dispatch error by making this a multi
@@ -329,11 +313,7 @@ my class PseudoStash is Map {
                   nqp::isnull(
                     nqp::getlexrel(
                       nqp::getattr(self, PseudoStash, '$!ctx'),
-                      nqp::unbox_s($key))))
-              )
-            )
-          )
-        )
+                      nqp::unbox_s($key))))))))
     }
 }
 

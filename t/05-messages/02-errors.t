@@ -135,8 +135,8 @@ throws-like {
 # https://github.com/Raku/old-issue-tracker/issues/3542
 # GH #3682
 throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
-    :message('Your printf-style directives specify 1 argument, but no '
-      ~ "argument was supplied.\nAre you using an interpolated '\$'?"),
+    :args-used(1),
+    :args-have(0),
     'sprintf %d directive with one directive and no corresponding argument throws';
 
 { # https://github.com/perl6/roast/commit/20fe657466

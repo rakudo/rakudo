@@ -270,8 +270,8 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         }
 
         method next-ctx() is raw {
-            nqp::ifnull($!ctx, (self!next-mode));
-            return Nil if nqp::isnull($!ctx);
+            self!next-mode if nqp::isnull($!ctx);
+            return Nil if $!exhausted;
 
             my Mu $lexpad;
             my Mu $sym-info;

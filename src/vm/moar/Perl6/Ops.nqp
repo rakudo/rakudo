@@ -84,14 +84,14 @@ $ops.add_hll_op('Raku', 'p6store', -> $qastcomp, $op {
     $qastcomp.regalloc.release_register($decont_reg, $MVM_reg_obj);
     MAST::Op.new( :op('goto'), $done_lbl );
 
-    $*MAST_FRAME.add-label($no_cont_lbl);
+    $qastcomp.mast_frame.add-label($no_cont_lbl);
     my $store_mast := $qastcomp.as_mast($STORE, :want($MVM_reg_str));
-    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+    my uint $callsite_id := $qastcomp.mast_frame.callsites.get_callsite_id_from_args(
         [$op[0], $STORE, $op[0], $op[1]],
         [$cont_res, $store_mast, $cont_res, $value_res]);
     op_dispatch_v('lang-meth-call', $callsite_id,
         [$cont_res.result_reg, $store_mast.result_reg, $cont_res.result_reg, $value_res.result_reg]);
-    $*MAST_FRAME.add-label($done_lbl);
+    $qastcomp.mast_frame.add-label($done_lbl);
 
     MAST::InstructionList.new($cont_res.result_reg, $MVM_reg_obj)
 });
@@ -108,14 +108,14 @@ $ops.add_hll_op('Raku', 'p6definite', -> $qastcomp, $op {
 });
 $ops.add_hll_op('Raku', 'p6capturelex', -> $qastcomp, $op {
     my $code_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+    my uint $callsite_id := $qastcomp.mast_frame.callsites.get_callsite_id_from_args(
         [$op[0]], [$code_res]);
     op_dispatch_v('raku-capture-lex', $callsite_id, [$code_res.result_reg]);
     $code_res
 });
 $ops.add_hll_op('nqp', 'p6capturelexwhere', -> $qastcomp, $op {
     my $code_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+    my uint $callsite_id := $qastcomp.mast_frame.callsites.get_callsite_id_from_args(
         [$op[0]], [$code_res]);
     op_dispatch_v('raku-capture-lex-callers', $callsite_id, [$code_res.result_reg]);
     $code_res
@@ -156,7 +156,7 @@ $ops.add_hll_op('Raku', 'p6return', :!inlinable, -> $qastcomp, $op {
 });
 $ops.add_hll_op('Raku', 'p6getouterctx', -> $qastcomp, $op {
     my $code_res := $qastcomp.as_mast($op[0], :want($MVM_reg_obj));
-    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+    my uint $callsite_id := $qastcomp.mast_frame.callsites.get_callsite_id_from_args(
         [$op[0]], [$code_res]);
     $qastcomp.regalloc.release_register($code_res.result_reg, $MVM_reg_obj);
     my $res_reg := $qastcomp.regalloc.fresh_o();
@@ -177,18 +177,18 @@ $ops.add_hll_op('Raku', 'p6argvmarray', -> $qastcomp, $op {
     my $lbl_done := MAST::Label.new();
     MAST::Op.new( :op('elems'), $n_reg, $res_reg );
     MAST::Op.new( :op('const_i64'), $i_reg, MAST::IVal.new( :value(0) ) );
-    $*MAST_FRAME.add-label($lbl_next);
+    $qastcomp.mast_frame.add-label($lbl_next);
     MAST::Op.new( :op('lt_i'), $cmp_reg, $i_reg, $n_reg );
     MAST::Op.new( :op('unless_i'), $cmp_reg, $lbl_done );
     MAST::Op.new( :op('atpos_o'), $tmp_reg, $res_reg, $i_reg );
-    my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+    my uint $callsite_id := $qastcomp.mast_frame.callsites.get_callsite_id_from_args(
         [$op], [MAST::InstructionList.new($tmp_reg, $MVM_reg_obj)]);
     op_dispatch_o($tmp_reg, 'lang-hllize', $callsite_id, [$tmp_reg]);
     MAST::Op.new( :op('bindpos_o'), $res_reg, $i_reg, $tmp_reg );
     MAST::Op.new( :op('const_i64'), $cmp_reg, MAST::IVal.new( :value(1) ) );
     MAST::Op.new( :op('add_i'), $i_reg, $i_reg, $cmp_reg );
     MAST::Op.new( :op('goto'), $lbl_next );
-    $*MAST_FRAME.add-label($lbl_done);
+    $qastcomp.mast_frame.add-label($lbl_done);
     $qastcomp.regalloc.release_register($i_reg, $MVM_reg_int64);
     $qastcomp.regalloc.release_register($n_reg, $MVM_reg_int64);
     $qastcomp.regalloc.release_register($cmp_reg, $MVM_reg_int64);
@@ -238,7 +238,7 @@ $ops.add_hll_op('Raku', 'p6sink', -> $qastcomp, $op {
     if $sinkee_res.result_kind == $MVM_reg_obj {
         # Send it along to the dispatcher. Note that we do *not* decont it, as
         # we don't want to sink things that are in containers.
-        my uint $callsite_id := $*MAST_FRAME.callsites.get_callsite_id_from_args(
+        my uint $callsite_id := $qastcomp.mast_frame.callsites.get_callsite_id_from_args(
             [$op[0]], [$sinkee_res]);
         op_dispatch_v('raku-sink', $callsite_id, [$sinkee_res.result_reg]);
         $qastcomp.regalloc.release_register($sinkee_res.result_reg, $MVM_reg_obj);
@@ -333,7 +333,7 @@ $ops.add_hll_op('Raku', 'p6bindsig', :!inlinable, -> $qastcomp, $op {
     MAST::Op.new( :op('isnull'), $isnull_result, $bind_res.result_reg );
     MAST::Op.new( :op('if_i'), $isnull_result, $dont_return_lbl );
     MAST::Op.new( :op('return_o'), $bind_res.result_reg );
-    $*MAST_FRAME.add-label($dont_return_lbl);
+    $qastcomp.mast_frame.add-label($dont_return_lbl);
 
     $qastcomp.regalloc.release_register($bind_res.result_reg, $MVM_reg_obj);
     $qastcomp.regalloc.release_register($isnull_result,       $MVM_reg_int64);

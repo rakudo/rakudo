@@ -181,13 +181,13 @@
             # to the base type.
             my $coerce_to := nqp::null();
             my int $definite_check := -1;
-            if $type.HOW.archetypes.coercive {
-                $coerce_to := $type.HOW.target_type($type);
-                $type := $type.HOW.constraint_type($type);
+            if nqp::how_nd($type).archetypes.coercive {
+                $coerce_to := nqp::how_nd($type).target_type($type);
+                $type := nqp::how_nd($type).constraint_type($type);
             }
-            if $type.HOW.archetypes.definite {
-                $definite_check := $type.HOW.definite($type);
-                $type := $type.HOW.base_type($type);
+            if nqp::how_nd($type).archetypes.definite {
+                $definite_check := nqp::how_nd($type).definite($type);
+                $type := nqp::how_nd($type).base_type($type);
             }
 
             # If the return value isn't containerized, and type matches what we
@@ -195,7 +195,7 @@
             # coercion.
             my $rv := nqp::captureposarg($capture, 0);
             if !nqp::iscont($rv) &&
-                    $type.HOW.archetypes.nominal &&
+                    nqp::how_nd($type).archetypes.nominal &&
                     # Allow through Nil/Failure
                     (nqp::istype($rv, Nil) || (nqp::istype($rv, $type) &&
                     # Enforce definite checks.
@@ -295,8 +295,8 @@
         my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
         my $type := nqp::getattr($desc, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
-            if $type.HOW.archetypes.coercive {
-                $value := $type.HOW.coerce($type, $value);
+            if nqp::how_nd($type).archetypes.coercive {
+                $value := nqp::how_nd($type).coerce($type, $value);
             }
             nqp::bindattr($cont, Scalar, '$!value', $value);
         }
@@ -321,8 +321,8 @@
         my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos, '$!next-descriptor');
         my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
         if nqp::istype($value, $type) {
-            if $type.HOW.archetypes.coercive {
-                $value := $type.HOW.coerce($type, $value);
+            if nqp::how_nd($type).archetypes.coercive {
+                $value := nqp::how_nd($type).coerce($type, $value);
             }
             nqp::bindattr($cont, Scalar, '$!value', $value);
             nqp::bindpos(
@@ -461,8 +461,8 @@
         Perl6::Metamodel::Configuration.throw_or_die(
             'X::TypeCheck::Binding',
             "Type check failed in binding; expected '" ~
-                $type.HOW.name($value) ~ "' but got '" ~
-                nqp::how_nd($value).HOW.name($value) ~ "'",
+                nqp::how_nd($type).name($value) ~ "' but got '" ~
+                nqp::how_nd($value).name($value) ~ "'",
             :got($value),
             :expected($type)
         );
@@ -553,8 +553,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
         my $coerce_type := nqp::captureposarg($capture, 1);
 
         # See if there is a method named for the type.
-        my str $to_name := $coerce_type.HOW.name($coerce_type);
-        my $coerce_method := nqp::decont($to_coerce.HOW.find_method($to_coerce, $to_name));
+        my str $to_name := nqp::how_nd($coerce_type).name($coerce_type);
+        my $coerce_method := nqp::decont(nqp::how_nd($to_coerce).find_method($to_coerce, $to_name));
         if nqp::isconcrete($coerce_method) {
             # Delegate to the resolved method call dispatcher. We need to drop
             # the arg of the coercion type, then insert three args:
@@ -577,7 +577,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
                     'raku-meth-call-resolved', $meth_capture);
         }
         else {
-            coercion_error($to_coerce.HOW.name($to_coerce), $to_name);
+            coercion_error(nqp::how_nd($to_coerce).name($to_coerce), $to_name);
         }
     });
 }
@@ -711,7 +711,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-qualified',
     my $meth;
     for ($caller-type, $obj.WHAT) {
         if nqp::istype($_, $type) {
-            $meth := $_.HOW.find_method_qualified($_, $type, $name);
+            $meth := nqp::how_nd($_).find_method_qualified($_, $type, $name);
             last if nqp::isconcrete($meth);
         }
     }
@@ -738,8 +738,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-qualified',
     else {
         Perl6::Metamodel::Configuration.throw_or_die(
             'X::Method::InvalidQualifier',
-            "Cannot dispatch to method $name on " ~ $type.HOW.name($type) ~
-                " because it is not inherited or done by " ~ $obj.HOW.name($obj),
+            "Cannot dispatch to method $name on " ~ nqp::how_nd($type).name($type) ~
+                " because it is not inherited or done by " ~ nqp::how_nd($obj).name($obj),
             :method($name), :invocant($obj), :qualifier-type($type));
     }
 });
@@ -753,7 +753,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-me-maybe', 
     # Try to find the method.
     my $invocant := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
-    my $meth := nqp::decont($invocant.HOW.find_method($invocant, $name));
+    my $meth := nqp::decont(nqp::how_nd($invocant).find_method($invocant, $name));
     if nqp::isconcrete($meth) {
         # Found it. Put in resolved method and leave the rest to the resolved
         # method call dispatcher.
@@ -778,7 +778,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-private', -> $ca
     # Find the private method.
     my $type := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
-    my $meth := $type.HOW.find_private_method($type, $name);
+    my $meth := nqp::how_nd($type).find_private_method($type, $name);
 
     # If it's found, then we drop the first two arguments, insert the
     # resolved callee, and invoke it. This goes directly to invoke, as
@@ -798,7 +798,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-private', -> $ca
     }
     else {
         # TODO typed exception
-        nqp::die("No such private method '$name' on " ~ $type.HOW.name($type));
+        nqp::die("No such private method '$name' on " ~ nqp::how_nd($type).name($type));
     }
 });
 
@@ -884,12 +884,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
             # Build up the list of methods to defer through.
             my $start_type := nqp::captureposarg($init, 0);
             my str $name := nqp::captureposarg_s($init, 1);
-            my @mro := nqp::can($start_type.HOW, 'mro_unhidden')
-                ?? $start_type.HOW.mro_unhidden($start_type)
-                !! $start_type.HOW.mro($start_type);
+            my $start_type_how := nqp::how_nd($start_type);
+            my @mro := nqp::can($start_type_how, 'mro_unhidden')
+                ?? $start_type_how.mro_unhidden($start_type)
+                !! $start_type_how.mro($start_type);
             my @methods;
             for @mro {
-                my %mt := nqp::hllize($_.HOW.method_table($_));
+                my %mt := nqp::hllize(nqp::how_nd($_).method_table($_));
                 if nqp::existskey(%mt, $name) {
                     @methods.push(%mt{$name});
                 }
@@ -2321,7 +2322,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
 
     # If it has a CALL-ME method then always use that (this means it being a
     # Code object, even).
-    elsif nqp::isconcrete(my $call-me := nqp::decont($code.HOW.find_method($code, 'CALL-ME'))) {
+    elsif nqp::isconcrete(my $call-me := nqp::decont(nqp::how_nd($code).find_method($code, 'CALL-ME'))) {
         # A CALL-ME method is found; make a call to it. We use raku-call-simple
         # to avoid setting up any further deferrals, which may get us into the
         # situation where we set up multiple resumptions.
@@ -2388,7 +2389,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
                 $delegate_capture);
         }
         else {
-            nqp::die('Cannot invoke a ' ~ $code.HOW.name($code) ~ ' type object');
+            nqp::die('Cannot invoke a ' ~ nqp::how_nd($code).name($code) ~ ' type object');
         }
     }
 
@@ -2431,7 +2432,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
             if nqp::capturehasnameds($capture) {
                 Perl6::Metamodel::Configuration.throw_or_die(
                     'X::Coerce::Impossible',
-                    "Cannot coerce to " ~ $code.HOW.name($code) ~ " with named arguments",
+                    "Cannot coerce to " ~ nqp::how_nd($code).name($code) ~ " with named arguments",
                     :target-type($code.WHAT),
                     :from-type($arg-type), :hint("named arguments passed")
                 );
@@ -2451,7 +2452,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
             # coercion.
             else {
                 # Form the coercion type.
-                my $how := $code.HOW;
+                my $how := nqp::how_nd($code);
                 my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
                     (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($code)
                         ?? $how.pun_source($code)
@@ -2466,7 +2467,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
                     $capture, 0);
                 my $with-coercion-type := nqp::dispatch('boot-syscall',
                     'dispatcher-insert-arg-literal-obj', $coercee-only, 0, $coercion-type);
-                my $coerce-how := $coercion-type.HOW;
+                my $coerce-how := nqp::how_nd($coercion-type);
                 my $with-how := nqp::dispatch('boot-syscall',
                     'dispatcher-insert-arg-literal-obj', $with-coercion-type, 0, $coerce-how);
                 my $with-name := nqp::dispatch('boot-syscall',
@@ -2485,12 +2486,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
             if nqp::capturehasnameds($capture) {
                 Perl6::Metamodel::Configuration.throw_or_die(
                     'X::Coerce::Impossible',
-                    "Cannot coerce to " ~ $code.HOW.name($code) ~ " with named arguments",
+                    "Cannot coerce to " ~ nqp::how_nd($code).name($code) ~ " with named arguments",
                     :target-type($code.WHAT),
                     :from-type(List), :hint("named arguments passed")
                 );
             }
-            my $how := $code.HOW;
+            my $how := nqp::how_nd($code);
             my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
                 (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($code)
                     ?? $how.pun_source($code)
@@ -2509,7 +2510,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
 
     # We can't invoke it; complain.
     else {
-        my $typename := $code.HOW.name($code);
+        my $typename := nqp::how_nd($code).name($code);
         Perl6::Metamodel::Configuration.throw_or_die(
             'X::Method::NotFound',
             "No such method 'CALL-ME' for invocant of type '$typename'",

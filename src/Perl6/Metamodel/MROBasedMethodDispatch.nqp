@@ -6,8 +6,9 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
 # uncomment line below for verbose information about uncached method lookups
 #nqp::say( "looking for " ~ $name ~ " in " ~ $obj.HOW.name($obj) );
 #
-        if nqp::can($obj.HOW, 'submethod_table') {
-            my %submethods := nqp::hllize($obj.HOW.submethod_table($obj));
+        my $obj_how := nqp::how_nd($obj);
+        if nqp::can($obj_how, 'submethod_table') {
+            my %submethods := nqp::hllize($obj_how.submethod_table($obj));
             my $found := nqp::atkey(%submethods, $name);
             return $found if nqp::isconcrete($found);
         }

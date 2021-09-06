@@ -625,17 +625,29 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
 # the method name, and the the args (starting with the invocant including any
 # container).
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $capture {
+    # See if we're making the method lookup on a pun; if so, rewrite the args
+    # to do the call on the pun.
+    my $obj := nqp::captureposarg($capture, 0);
+    my str $name := nqp::captureposarg_s($capture, 1);
+    my $how := nqp::how_nd($obj);
+    if nqp::istype($how, Perl6::Metamodel::RolePunning) &&
+            $how.is_method_call_punned($obj, $name) {
+        $obj := $how.pun($obj);
+        $how := $obj.HOW;
+        $capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+            0, $obj);
+        $capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 2),
+            2, $obj);
+    }
+
     # Try to resolve the method call.
     # TODO Assorted optimizations are possible here later on to speed up some
     # kinds of dispatch, including:
     # * Using the dispatcher to directly rewrite args and invoke FALLBACK if
     #   needed
-    # * Rewriting the args to use a formed role pun, thus caching the lookup
-    #   of the pun and an extra level of call
     # * Handling some forms of delegation via the dispatcher mechanism
-    my $obj := nqp::captureposarg($capture, 0);
-    my str $name := nqp::captureposarg_s($capture, 1);
-    my $how := nqp::how_nd($obj);
     my $meth := nqp::decont($how.find_method($obj, $name));
 
     # Report an error if there is no such method.

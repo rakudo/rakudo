@@ -2319,6 +2319,18 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
             $capture);
     }
 
+    # If it has a CALL-ME method then always use that (this means it being a
+    # Code object, even).
+    elsif nqp::isconcrete(my $call-me := nqp::decont($code.HOW.find_method($code, 'CALL-ME'))) {
+        # A CALL-ME method is found; make a call to it. We use raku-call-simple
+        # to avoid setting up any further deferrals, which may get us into the
+        # situation where we set up multiple resumptions.
+        my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+            $capture, 0, $call-me);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-call-simple',
+            $delegate);
+    }
+
     # If it's a routine that has wrappers (the guard on the type covers this,
     # since such a routine will have been mxied in to).
     elsif nqp::istype($code, Routine) && nqp::can($code, 'WRAPPERS') {
@@ -2380,142 +2392,130 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
         }
     }
 
-    # Otherwise, try the CALL-ME or coercion paths.
-    else {
-        my $call-me := nqp::decont($code.HOW.find_method($code, 'CALL-ME'));
-        if nqp::isconcrete($call-me) {
-            # A CALL-ME method is found; set up a resolved method call to it.
-            my $with-name := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-str',
-                $capture, 0, 'CALL-ME');
-            my $with-type := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $with-name, 0, $code.WHAT);
-            my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $with-type, 0, $call-me);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call-resolved',
-                $delegate);
-        }
-        elsif !nqp::isconcrete($code) && nqp::captureposelems($capture) >= 2 {
-            # Looks like a coercion. In the best case we just have one argument
-            # and things will be straightforward. Failing that, we'll have to
-            # form a list and take the slow-bound path.
-            if nqp::captureposelems($capture) == 2 {
-                # Work out what we have to coerce.
-                my $arg-type;
-                my int $could-not-guard;
-                my int $prim := nqp::captureposprimspec($capture, 1);
-                if $prim == 1    { $arg-type := Int }
-                elsif $prim == 2 { $arg-type := Num }
-                elsif $prim == 3 { $arg-type := Str }
-                else {
-                    # Object argument, so type guard.
-                    my $arg := nqp::captureposarg($capture, 1);
-                    $arg-type := $arg.WHAT;
-                    my $track-arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
-                        $capture, 1);
-                    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-arg);
-                    if nqp::isconcrete_nd($arg) && nqp::iscont($arg) {
-                        # Containerized. If it's a Scalar, we can deref and guard
-                        # on that. If not, we'll have to thunk it and figure it
-                        # out each time.
-                        if nqp::istype_nd($arg, Scalar) {
-                            nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
-                                nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                                    $track-arg, Scalar, '$!value'));
-                        }
-                        else {
-                            $could-not-guard := 1;
-                        }
+    # Otherwise, try the coercion path.
+    elsif !nqp::isconcrete($code) && nqp::captureposelems($capture) >= 2 {
+        # Looks like a coercion. In the best case we just have one argument
+        # and things will be straightforward. Failing that, we'll have to
+        # form a list and take the slow-bound path.
+        if nqp::captureposelems($capture) == 2 {
+            # Work out what we have to coerce.
+            my $arg-type;
+            my int $could-not-guard;
+            my int $prim := nqp::captureposprimspec($capture, 1);
+            if $prim == 1    { $arg-type := Int }
+            elsif $prim == 2 { $arg-type := Num }
+            elsif $prim == 3 { $arg-type := Str }
+            else {
+                # Object argument, so type guard.
+                my $arg := nqp::captureposarg($capture, 1);
+                $arg-type := $arg.WHAT;
+                my $track-arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                    $capture, 1);
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-arg);
+                if nqp::isconcrete_nd($arg) && nqp::iscont($arg) {
+                    # Containerized. If it's a Scalar, we can deref and guard
+                    # on that. If not, we'll have to thunk it and figure it
+                    # out each time.
+                    if nqp::istype_nd($arg, Scalar) {
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+                            nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                                $track-arg, Scalar, '$!value'));
+                    }
+                    else {
+                        $could-not-guard := 1;
                     }
                 }
-
-                # Ensure there's no nameds.
-                if nqp::capturehasnameds($capture) {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::Coerce::Impossible',
-                        "Cannot coerce to " ~ $code.HOW.name($code) ~ " with named arguments",
-                        :target-type($code.WHAT),
-                        :from-type($arg-type), :hint("named arguments passed")
-                    );
-                }
-
-                # If we could not guard need to delegate to a late-bound
-                # handler.
-                if $could-not-guard {
-                    my $delegate := nqp::dispatch('boot-syscall',
-                        'dispatcher-insert-arg-literal-obj', $capture,
-                        0, $late-coerce);
-                    nqp::dispatch('boot-syscall', 'dispatcher-delegate',
-                        'boot-code-constant', $delegate);
-                }
-
-                # Otherwise, can rewrite the callsite directly to do the
-                # coercion.
-                else {
-                    # Form the coercion type.
-                    my $how := $code.HOW;
-                    my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
-                        (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($code)
-                            ?? $how.pun_source($code)
-                            !! $code.WHAT),
-                        $arg-type);
-
-                    # Call $coercion-type.HOW.coerce($coercion-type, $val). We
-                    # know that there was only one item, so we can drop the
-                    # callee, prepend the coercion type, the HOW, and then the
-                    # name and type as raku-meth-call wants.
-                    my $coercee-only := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                        $capture, 0);
-                    my $with-coercion-type := nqp::dispatch('boot-syscall',
-                        'dispatcher-insert-arg-literal-obj', $coercee-only, 0, $coercion-type);
-                    my $coerce-how := $coercion-type.HOW;
-                    my $with-how := nqp::dispatch('boot-syscall',
-                        'dispatcher-insert-arg-literal-obj', $with-coercion-type, 0, $coerce-how);
-                    my $with-name := nqp::dispatch('boot-syscall',
-                        'dispatcher-insert-arg-literal-str', $with-how, 0, 'coerce');
-                    my $delegate := nqp::dispatch('boot-syscall',
-                        'dispatcher-insert-arg-literal-obj', $with-name, 0, $coerce-how);
-                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
-                        $delegate);
-                }
             }
+
+            # Ensure there's no nameds.
+            if nqp::capturehasnameds($capture) {
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Coerce::Impossible',
+                    "Cannot coerce to " ~ $code.HOW.name($code) ~ " with named arguments",
+                    :target-type($code.WHAT),
+                    :from-type($arg-type), :hint("named arguments passed")
+                );
+            }
+
+            # If we could not guard need to delegate to a late-bound
+            # handler.
+            if $could-not-guard {
+                my $delegate := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj', $capture,
+                    0, $late-coerce);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+                    'boot-code-constant', $delegate);
+            }
+
+            # Otherwise, can rewrite the callsite directly to do the
+            # coercion.
             else {
-                # List formation is too complex for a dispatch program, so we
-                # form a coercion type, prepend it, do the args that form the
-                # list to be coerced, and then delegate to a code object to
-                # do the rest of the work.
-                if nqp::capturehasnameds($capture) {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::Coerce::Impossible',
-                        "Cannot coerce to " ~ $code.HOW.name($code) ~ " with named arguments",
-                        :target-type($code.WHAT),
-                        :from-type(List), :hint("named arguments passed")
-                    );
-                }
+                # Form the coercion type.
                 my $how := $code.HOW;
                 my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
                     (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($code)
                         ?? $how.pun_source($code)
                         !! $code.WHAT),
-                    List);
-                my $list-elems-only := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                    $arg-type);
+
+                # Call $coercion-type.HOW.coerce($coercion-type, $val). We
+                # know that there was only one item, so we can drop the
+                # callee, prepend the coercion type, the HOW, and then the
+                # name and type as raku-meth-call wants.
+                my $coercee-only := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
                     $capture, 0);
                 my $with-coercion-type := nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-obj', $list-elems-only, 0, $coercion-type);
+                    'dispatcher-insert-arg-literal-obj', $coercee-only, 0, $coercion-type);
+                my $coerce-how := $coercion-type.HOW;
+                my $with-how := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj', $with-coercion-type, 0, $coerce-how);
+                my $with-name := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-str', $with-how, 0, 'coerce');
                 my $delegate := nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-obj', $with-coercion-type, 0, $listy-coercion);
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                    'dispatcher-insert-arg-literal-obj', $with-name, 0, $coerce-how);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call',
                     $delegate);
             }
         }
         else {
-            my $typename := $code.HOW.name($code);
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Method::NotFound',
-                "No such method 'CALL-ME' for invocant of type '$typename'",
-                :invocant($code), :method(nqp::hllizefor('CALL-ME', "Raku")),
-                :typename(nqp::hllizefor($typename, "Raku"))
-            );
+            # List formation is too complex for a dispatch program, so we
+            # form a coercion type, prepend it, do the args that form the
+            # list to be coerced, and then delegate to a code object to
+            # do the rest of the work.
+            if nqp::capturehasnameds($capture) {
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Coerce::Impossible',
+                    "Cannot coerce to " ~ $code.HOW.name($code) ~ " with named arguments",
+                    :target-type($code.WHAT),
+                    :from-type(List), :hint("named arguments passed")
+                );
+            }
+            my $how := $code.HOW;
+            my $coercion-type := Perl6::Metamodel::CoercionHOW.new_type(
+                (nqp::istype($how, Perl6::Metamodel::ClassHOW) && $how.is_pun($code)
+                    ?? $how.pun_source($code)
+                    !! $code.WHAT),
+                List);
+            my $list-elems-only := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                $capture, 0);
+            my $with-coercion-type := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $list-elems-only, 0, $coercion-type);
+            my $delegate := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $with-coercion-type, 0, $listy-coercion);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                $delegate);
         }
+    }
+
+    # We can't invoke it; complain.
+    else {
+        my $typename := $code.HOW.name($code);
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Method::NotFound',
+            "No such method 'CALL-ME' for invocant of type '$typename'",
+            :invocant($code), :method(nqp::hllizefor('CALL-ME', "Raku")),
+            :typename(nqp::hllizefor($typename, "Raku"))
+        );
     }
 });
 
@@ -2572,7 +2572,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
         my $code := $cur_deferral.code;
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
             $args, 0, $code);
-        my str $dispatcher := $cur_deferral.next ?? 'raku-call-wrapper' !! 'raku-invoke';
+        my str $dispatcher := $cur_deferral.next ?? 'raku-call-simple' !! 'raku-invoke';
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', $dispatcher, $delegate_capture);
     },
     # Resumption.
@@ -2648,7 +2648,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
                     # treat as Raku calls, since it's possible somebody decided to wrap
                     # some code up with a multi.
                     my $code := $cur_deferral.code;
-                    my str $dispatcher := $cur_deferral.next ?? 'raku-call-wrapper' !! 'raku-invoke';
+                    my str $dispatcher := $cur_deferral.next ?? 'raku-call-simple' !! 'raku-invoke';
                     my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
                         0, $code);
@@ -2680,7 +2680,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
 
 # Like raku-call, except assumes that any method call we see will already have
 # been taken care of.
-nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call-wrapper', -> $capture {
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call-simple', -> $capture {
     my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
     nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track_callee);
     my $callee := nqp::captureposarg($capture, 0);

@@ -887,7 +887,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
             my $start_type_how := nqp::how_nd($start_type);
             my @mro := nqp::can($start_type_how, 'mro_unhidden')
                 ?? $start_type_how.mro_unhidden($start_type)
-                !! $start_type_how.mro($start_type);
+                !! nqp::can($start_type_how, 'mro')
+                    ?? $start_type_how.mro($start_type)
+                    !! [];
             my @methods;
             for @mro {
                 my %mt := nqp::hllize(nqp::how_nd($_).method_table($_));

@@ -2211,6 +2211,22 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
                     $arg-capture, 0, Nil));
         }
     }
+    elsif nqp::istype($cur-state, MultiDispatchAmbiguous) {
+        # If this is the initial dispatch, then error.
+        if $kind == nqp::const::DISP_NONE {
+            my $target := nqp::captureposarg($orig-capture, 0);
+            multi-ambiguous-handler($cur-state, $target, $arg-capture);
+        }
+        # Otherwise, step past it and do whatever comes next.
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-cur-state);
+            $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track-cur-state, MultiDispatchAmbiguous, '$!next');
+            $cur-state := $cur-state.next;
+            return raku-multi-non-trivial-step($kind, $track-cur-state, $cur-state,
+                $orig-capture, $arg-capture, $is-resume);
+        }
+    }
     else {
         nqp::die('Non-trivial multi dispatch step NYI for ' ~ $cur-state.HOW.name($cur-state));
     }

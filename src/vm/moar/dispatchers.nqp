@@ -1971,6 +1971,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0);
             my $dispatch-plan := raku-multi-plan(@candidates, $arg-capture, 0);
 
+            # Put a guard on the dispatchees.
+            my $track-target := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                $init, 0);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track-target, Routine, '@!dispatchees'));
+
             # We already called the first candidate in the trivial plan, so
             # drop it.
             $dispatch-plan := $dispatch-plan.next;
@@ -1987,8 +1994,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
                     $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                         $args, 0, $track-invocant);
                 }
-                my $track-target := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
-                    $init, 0);
                 my $with-target := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                     $args, 0, $track-target);
                 my $capture-with-plan := nqp::dispatch('boot-syscall',

@@ -623,6 +623,12 @@ multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
 multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
     a.Instant cmp b.Instant
 }
+multi sub infix:<->(DateTime:D \a, Instant:D \b --> Duration:D) {
+    a.Instant - b
+}
+multi sub infix:<->(Instant:D \a, DateTime:D \b --> Duration:D) {
+    a - b.Instant
+}
 multi sub infix:<->(DateTime:D \a, DateTime:D \b --> Duration:D) {
     a.Instant - b.Instant
 }

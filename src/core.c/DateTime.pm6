@@ -392,6 +392,10 @@ my class DateTime does Dateish {
         )
     }
 
+    method Numeric(DateTime:D: --> Instant:D) {
+        self.Instant
+    }
+
     method Instant(DateTime:D: --> Instant:D) {
         Instant.from-posix: self.posix + $!second % 1, $!second >= 60;
     }

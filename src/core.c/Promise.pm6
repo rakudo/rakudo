@@ -303,7 +303,14 @@ my class Promise does Awaitable {
         $scheduler.cue({ $vow.keep(True) }, :in($seconds));
         $p
     }
-    method at(Promise:U: $at, :$scheduler = $*SCHEDULER) {
+
+    proto method at(|) { * }
+
+    multi method at(Promise:U: Instant() $at, :$scheduler = $*SCHEDULER) {
+        self.in( $at - now, :$scheduler )
+    }
+
+    multi method at(Promise:U: Numeric() $at, :$scheduler = $*SCHEDULER) {
         self.in( $at - now, :$scheduler )
     }
 

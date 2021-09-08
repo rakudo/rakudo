@@ -1731,9 +1731,22 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                 $n := nqp::elems(@filtered-possibles);
                 while $i < $n {
                     my %info := @filtered-possibles[$i];
-                    my $node := $need-bind-check
-                        ?? MultiDispatchTry.new(%info<sub>)
-                        !! MultiDispatchCall.new(%info<sub>);
+                    my $node;
+                    if $need-bind-check {
+                        # Ensure it's already compiled, otherwise we can have
+                        # compiler frames obscuring the bind control record we
+                        # use for trying the next candidate.
+                        my $sub := %info<sub>;
+                        my $cs := nqp::getattr($sub, Code, '@!compstuff');
+                        unless nqp::isnull($cs) {
+                            my $ctf := $cs[1];
+                            $ctf() if $ctf;
+                        }
+                        $node := MultiDispatchTry.new($sub);
+                    }
+                    else {
+                        $node := MultiDispatchCall.new(%info<sub>);
+                    }
                     if nqp::isnull($current-head) {
                         $current-head := $node;
                     }

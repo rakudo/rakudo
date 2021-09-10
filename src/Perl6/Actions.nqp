@@ -10210,15 +10210,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     # Some calls are handled specially by their name.
-    my %dispatchered := nqp::hash(
-        'callsame', NQPMu,
-        'callwith', NQPMu,
-        'nextsame', NQPMu,
-        'nextwith', NQPMu,
-        'nextcallee', NQPMu,
-        'lastcall', NQPMu,
-        'samewith', NQPMu,
-    );
     sub handle_special_call_names($/, $args, $name) {
         if $name eq 'sink' {
             return $args;   # Note that sink itself wants its args, to eat 'em...
@@ -10247,9 +10238,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval($/);
             $*W.cur_lexpad().no_inline(1);
-        }
-        elsif nqp::existskey(%dispatchered, $name) {
-            $*W.mark_no_inline_upto_dispatcher();
         }
         WANTALL($args, 'handle_special_call_names');
         $args;

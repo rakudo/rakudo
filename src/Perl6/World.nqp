@@ -312,18 +312,6 @@ class Perl6::World is HLL::World {
             }
         }
 
-        # Marks all blocks upto and including one declaring a $*DISPATCHER as
-        # being no-inline.
-        method mark_no_inline_upto_dispatcher() {
-            my $i := +@!PADS_AND_THUNKS;
-            while $i > 0 {
-                $i := $i - 1;
-                my $block := @!PADS_AND_THUNKS[$i];
-                $block.no_inline(1);
-                last if $block.symbol('$*DISPATCHER');
-            }
-        }
-
         # Hunts through scopes to find the type of a lexical.
         method find_lexical_container_type(str $name) {
             my int $i := +@!PADS;
@@ -903,12 +891,6 @@ class Perl6::World is HLL::World {
     # a certain symbol.
     method nearest_signatured_block_declares(str $symbol) {
         self.context().nearest_signatured_block_declares($symbol)
-    }
-
-    # Marks all blocks upto and including one declaring a $*DISPATCHER as
-    # being no-inline.
-    method mark_no_inline_upto_dispatcher() {
-        self.context().mark_no_inline_upto_dispatcher()
     }
 
     # Gets top code object in the code objects stack, or optionally the

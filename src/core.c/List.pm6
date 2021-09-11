@@ -432,13 +432,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::while(                           # only a single %s
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::bindpos_s($strings,$i,
-                    nqp::join(nqp::atpos($list,$i).Str,$parts)
+                    nqp::if(
+                      nqp::istype((my $elem := nqp::atpos($list,$i)),List),
+                      $elem.fmt($format, $separator),
+                      nqp::join($elem.Str,$parts)
+                    )
                   )
                 ),
                 nqp::while(                           # something else
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::bindpos_s($strings,$i,
-                    nqp::atpos($list,$i).fmt($format)
+                    nqp::if(
+                      nqp::istype(($elem := nqp::atpos($list,$i)),List),
+                      $elem.fmt($format, $separator),
+                      $elem.fmt($format)
+                    )
                   )
                 )
               ),

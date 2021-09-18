@@ -1,3 +1,31 @@
+New in 2021.09:
+
+  + Additions:
+    + Introduce the `safe-snapper` module. It is a shorthand
+      for loading `Telemetry` and starting a snapper with control-c
+      safety, allowing one to stop the script with control-c and
+      still get a report [87152eba]
+    + Add ability to subtract an `Instant` value from a `DateTime`
+      object and vice versa [9a4af4b6]
+    + Add `Numeric` coercer to `DateTime` [67138ec0]
+  + Changes:
+    + Make the `sprintf` method show its format string on error [ea8a95e5][57841911]
+    + The `test` named parameter of the `dir` routine now handles Junctions [21a7117d]
+    + Improve error message for the `X::Pragma::CannotPrecomp` exception [a52f1f62][fe461d17]
+  + Efficiency:
+    + Numerous small speed-ups and memory-related improvements
+      [94462dfa][3aba9707][3c1c709c]
+  + Fixes:
+    + Properly handle List of Lists in the `List.fmt` method [a86ec91e]
+    + Don't lose concurrent modifications to `%!conc_table` [72bc5623]
+    + Fix potential race in `Metamodel::Concretization` [d666dfe8]
+    + Make the default scheduler properly see `RAKUDO_MAX_THREADS` env variable [b14d404a]
+  + Internal:
+    + Support `ROAST_TIMING_SCALE` in telemetry tests [9681a093]
+    + Fix false positive in basic telemetry test [c0a6823b]
+    + Pass along whether the Rakudo runner was called with `--full-cleanup` [5492452b]
+    + Update the concretization table more sparingly [b236dcfd]
+
 New in 2021.08:
 
   + Additions:

@@ -199,7 +199,7 @@ multi sub is(Mu $got, Mu:D $expected, $desc = '') is export {
                     _diag "expected: '$expected'\n"
                     ~ "     got: '$got'";
                     True;
-                } or {
+                } or do {
                     _diag "expected: $expected.raku()\n"
                     ~ "     got: $got.raku()";
                 }

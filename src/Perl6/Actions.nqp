@@ -335,7 +335,7 @@ sub unwanted($ast, $by) {
             if $node.op eq 'callmethod' && !$ast.nosink {
                 if !$node.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$node.name} {
                     $ast.sunk(1);
-                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
+                    $ast := QAST::Op.new(:op<p6sink>, $ast);
                     $ast.sunk(1);
                     return $ast;
                 }
@@ -346,7 +346,7 @@ sub unwanted($ast, $by) {
             if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
                 return $ast if $*ALREADY_ADDED_SINK_CALL;
                 $ast.sunk(1);
-                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
+                $ast := QAST::Op.new(:op<p6sink>, $ast);
                 $ast.sunk(1);
                 return $ast;
             }
@@ -458,7 +458,7 @@ sub unwanted($ast, $by) {
             }
             elsif $node.op eq 'callmethod' {
                 if !$node.nosink && !%nosink{$node.name} {
-                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, unwanted($node, $byby));
+                    $ast := QAST::Op.new(:op<p6sink>, unwanted($node, $byby));
                     $ast.sunk(1);
                     return $ast;
                 }
@@ -514,7 +514,7 @@ sub add-sink-to-final-call($parent, $pos, $qast = $parent[$pos]) {
         add-sink-to-final-call($parent, $pos, $qast[0])
     }
     elsif nqp::istype($qast, QAST::Op) && $qast.op eq 'call' && !$qast.nosink {
-        $parent[$pos] := QAST::Op.new: :op<callmethod>, :name<sink>, $qast
+        $parent[$pos] := QAST::Op.new: :op<p6sink>, $qast
     }
 }
 

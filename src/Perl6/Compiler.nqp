@@ -45,8 +45,8 @@ class Perl6::Compiler is HLL::Compiler {
             $rakudo := "Rakudo(tm)";
         }
         else {
-            $raku   := "𝐑𝐚𝐤𝐮™";
-            $rakudo := "𝐑𝐚𝐤𝐮𝐝𝐨™";
+            $raku   := "Raku™";
+            $rakudo := "Rakudo™";
         }
 
         "Welcome to "

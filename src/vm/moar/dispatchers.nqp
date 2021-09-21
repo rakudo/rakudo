@@ -613,9 +613,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped', $capture);
         }
         else {
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
-                nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                    $track_callee, Routine, '@!dispatchees'));
+            my int $code-constant := nqp::dispatch('boot-syscall', 'dispatcher-is-arg-literal',
+                $capture, 0);
+            unless $code-constant {
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                    nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                        $track_callee, Routine, '@!dispatchees'));
+            }
             nqp::dispatch('boot-syscall', 'dispatcher-delegate',
                 $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
         }

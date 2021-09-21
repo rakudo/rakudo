@@ -2355,16 +2355,22 @@ my $listy-coercion := -> $coercion-type, *@args {
     $coercion-type.HOW.coerce($coercion-type, $list)
 }
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture {
-    # Guard type and concreteness of code object. This is a no-op in the case
-    # that it's been determined a constant by an upper dispatcher.
+    # Guard type and concreteness of code object, unless it is a literal one
+    # (and also determine if it's a literal, as we can avoid some things in
+    # that case);
     my $code := nqp::captureposarg($capture, 0);
+    my int $code-constant := nqp::dispatch('boot-syscall', 'dispatcher-is-arg-literal',
+        $capture, 0);
     my $code_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
-    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $code_arg);
-    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $code_arg);
+    unless $code-constant {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $code_arg);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $code_arg);
+    }
 
     # If it's already a VM-level code reference, just invoke it.
     if nqp::reprname($code) eq 'MVMCode' {
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code',
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+            $code-constant ?? 'boot-code-constant' !! 'boot-code',
             $capture);
     }
 
@@ -2392,13 +2398,24 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
         # Concrete code object: extract the $!do, replace the code object,
         # and delegate to boot-code.
         if nqp::isconcrete($code) {
-            my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                $code_arg, Code, '$!do');
-            my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
-                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-                0, $do_attr);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code',
-                $delegate_capture);
+            my $do := nqp::getattr($code, Code, '$!do');
+            if $code-constant && !nqp::dispatch('boot-syscall', 'code-is-stub', $do) {
+                my $delegate_capture := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                    0, $do);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                    $delegate_capture);
+            }
+            else {
+                my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $code_arg, Code, '$!do');
+                my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                    0, $do_attr);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code',
+                    $delegate_capture);
+            }
         }
 
         # Invoking non-concrete code object is an error.
@@ -2428,13 +2445,24 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
     # here) then unrap it also.
     elsif nqp::istype($code, NQPRoutine) {
         if nqp::isconcrete($code) {
-            my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                $code_arg, NQPRoutine, '$!do');
-            my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
-                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-                0, $do_attr);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code',
-                $delegate_capture);
+            if $code-constant {
+                my $do := nqp::getattr($code, NQPRoutine, '$!do');
+                my $delegate_capture := nqp::dispatch('boot-syscall',
+                    'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                    0, $do);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                    $delegate_capture);
+            }
+            else {
+                my $do_attr := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $code_arg, NQPRoutine, '$!do');
+                my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                    0, $do_attr);
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code',
+                    $delegate_capture);
+            }
         }
         else {
             nqp::die('Cannot invoke a ' ~ nqp::how_nd($code).name($code) ~ ' type object');

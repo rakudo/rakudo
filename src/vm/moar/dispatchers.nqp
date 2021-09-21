@@ -609,11 +609,16 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
             $with-name);
     }
     elsif nqp::istype_nd($callee, Routine) {
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
-            nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                $track_callee, Routine, '@!dispatchees'));
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
-            $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
+        if nqp::can($callee, 'WRAPPERS') {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped', $capture);
+        }
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track_callee, Routine, '@!dispatchees'));
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+                $callee.is_dispatcher ?? 'raku-multi' !! 'raku-invoke', $capture);
+        }
     }
     else {
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture);
@@ -851,8 +856,17 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
             nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1), 1);
         my $method := nqp::captureposarg($delegate_capture, 0);
-        if nqp::istype($method, Routine) && $method.is_dispatcher {
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $delegate_capture);
+        if nqp::istype($method, Routine) {
+            if nqp::can($method, 'WRAPPERS') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped',
+                    $delegate_capture);
+            }
+            elsif $method.is_dispatcher {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $delegate_capture);
+            }
+            else {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
+            }
         }
         else {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
@@ -1084,13 +1098,23 @@ sub method-deferral-step($chain-head, int $kind, $args) {
         # to the invoke dispatcher.
         my $delegate_capture := nqp::dispatch('boot-syscall',
             'dispatcher-insert-arg-literal-obj', $args, 0, $next_method);
-        if nqp::istype($next_method, Routine) && $next_method.is_dispatcher {
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi',
+        if nqp::istype($next_method, Routine) {
+            if nqp::can($next_method, 'WRAPPERS') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped',
                     $delegate_capture);
+            }
+            elsif $next_method.is_dispatcher {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi',
+                    $delegate_capture);
+            }
+            else {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+                    $delegate_capture);
+            }
         }
         else {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
-                    $delegate_capture);
+                $delegate_capture);
         }
     }
     elsif $kind == nqp::const::DISP_NEXTCALLEE {
@@ -1118,7 +1142,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
         my $callee := nqp::captureposarg($capture, 0);
         my int $onlystar := nqp::getattr_i($callee, Routine, '$!onlystar');
         my int $simple := $onlystar && simple-args-proto($callee, $capture);
-        if $simple && !nqp::can($callee, 'WRAPPERS') {
+        if $simple {
             # Don't need to invoke the proto itself, so just get on with the
             # candidate dispatch.
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi-core', $capture);
@@ -1920,10 +1944,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
             # Trivial multi dispatch. Set dispatch state for resumption, and
             # then delegate to raku-invoke to run it.
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $capture);
+            my $candidate := $dispatch-plan.candidate;
             my $capture-delegate := nqp::dispatch('boot-syscall',
                 'dispatcher-insert-arg-literal-obj', $arg-capture, 0,
-                $dispatch-plan.candidate);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
+                $candidate);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+                nqp::can($candidate, 'WRAPPERS') ?? 'raku-invoke-wrapped' !! 'raku-invoke',
                 $capture-delegate);
         }
         elsif nqp::istype($dispatch-plan, MultiDispatchNonScalar) {
@@ -2206,8 +2232,9 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
         # Set up the call.
         my $capture-delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
             $arg-capture, 0, $track-candidate);
+        my $candidate := $cur-state.candidate;
         my str $disp := $try || $kind != nqp::const::DISP_NEXTCALLEE
-            ?? 'raku-invoke'
+            ?? (nqp::can($candidate, 'WRAPPERS') ?? 'raku-invoke-wrapped' !! 'raku-invoke')
             !! 'boot-value';
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', $disp, $capture-delegate);
     }
@@ -2384,13 +2411,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
             $capture, 0, $call-me);
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-call-simple',
             $delegate);
-    }
-
-    # If it's a routine that has wrappers (the guard on the type covers this,
-    # since such a routine will have been mxied in to).
-    elsif nqp::istype($code, Routine) && nqp::can($code, 'WRAPPERS') {
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped',
-            $capture);
     }
 
     # If it's a code object...
@@ -2649,8 +2669,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
         my $code := $cur_deferral.code;
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
             $args, 0, $code);
-        my str $dispatcher := $cur_deferral.next ?? 'raku-call-simple' !! 'raku-invoke';
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', $dispatcher, $delegate_capture);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-call-simple', $delegate_capture);
     },
     # Resumption.
     -> $capture {
@@ -2725,11 +2744,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
                     # treat as Raku calls, since it's possible somebody decided to wrap
                     # some code up with a multi.
                     my $code := $cur_deferral.code;
-                    my str $dispatcher := $cur_deferral.next ?? 'raku-call-simple' !! 'raku-invoke';
                     my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                         nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0),
                         0, $code);
-                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', $dispatcher,
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-call-simple',
                         $delegate_capture);
                 }
                 elsif $kind == nqp::const::DISP_NEXTCALLEE {

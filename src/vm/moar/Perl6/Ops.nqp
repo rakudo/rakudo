@@ -249,9 +249,17 @@ $ops.add_hll_op('Raku', 'p6sink', -> $qastcomp, $op {
         my $frame := $qastcomp.mast_frame;
         my uint $callsite_id := $frame.callsites.get_callsite_id_from_args(
             [$op[0]], [$sinkee_res]);
-        op_dispatch_v($frame, 'raku-sink', $callsite_id, [$sinkee_res.result_reg]);
         $qastcomp.regalloc.release_register($sinkee_res.result_reg, $MVM_reg_obj);
-        MAST::InstructionList.new(MAST::VOID, $MVM_reg_void);
+        my $WANT := $*WANT;
+        if nqp::defined($WANT) && $WANT == $MVM_reg_void {
+            op_dispatch_v($frame, 'raku-sink', $callsite_id, [$sinkee_res.result_reg]);
+            MAST::InstructionList.new(MAST::VOID, $MVM_reg_void);
+        }
+        else {
+            my $res_reg := $qastcomp.regalloc.fresh_register($MVM_reg_obj);
+            op_dispatch_o($frame, $res_reg, 'raku-sink', $callsite_id, [$sinkee_res.result_reg]);
+            MAST::InstructionList.new($res_reg, $MVM_reg_obj);
+        }
     }
     else {
         $sinkee_res

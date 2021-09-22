@@ -188,18 +188,18 @@ my class Pair does Associative {
     }
 }
 
-multi sub infix:<eqv>(Pair:D \a, Pair:D \b --> Bool:D) {
+multi sub infix:<eqv>(Pair:D $a, Pair:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT)
-             && a.key   eqv b.key
-             && a.value eqv b.value)
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT)
+             && $a.key   eqv $b.key
+             && $a.value eqv $b.value)
     )
 }
 
-multi sub infix:<cmp>(Pair:D \a, Pair:D \b) {
-    nqp::eqaddr((my $cmp := a.key cmp b.key),Order::Same)
-      ?? (a.value cmp b.value)
+multi sub infix:<cmp>(Pair:D $a, Pair:D $b) {
+    nqp::eqaddr((my $cmp := $a.key cmp $b.key),Order::Same)
+      ?? ($a.value cmp $b.value)
       !! $cmp
 }
 

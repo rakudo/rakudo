@@ -349,9 +349,9 @@ my class Promise does Awaitable {
     }
 }
 
-multi sub infix:<eqv>(Promise:D \a, Promise:D \b --> Bool:D) {
+multi sub infix:<eqv>(Promise:D $a, Promise:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b)) || a.result eqv b.result
+      nqp::eqaddr($a,$b) || $a.result eqv $b.result
     )
 }
 

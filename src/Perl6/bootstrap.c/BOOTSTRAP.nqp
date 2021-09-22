@@ -2247,7 +2247,6 @@ BEGIN {
     #     has int $!flags;
     #     has Mu $!inline_info;
     #     has Mu $!package;
-    #     has int $!onlystar;
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
     Routine.HOW.add_parent(Routine, Block);
@@ -2256,7 +2255,6 @@ BEGIN {
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!flags>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
 #?if !moar
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
@@ -3266,9 +3264,10 @@ BEGIN {
             nqp::getattr($dcself, Routine, '$!inline_info')
         }));
     Routine.HOW.add_method(Routine, 'set_onlystar', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            nqp::bindattr_i($dcself, Routine, '$!onlystar', 1);
-            $dcself
+            $self.set_flag(0x04)
+        }));
+    Routine.HOW.add_method(Routine, 'onlystar', nqp::getstaticcode(sub ($self) {
+            $self.get_flag(0x04)
         }));
     Routine.HOW.compose_repr(Routine);
 #?if !moar

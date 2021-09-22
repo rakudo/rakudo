@@ -7,6 +7,7 @@ my class Signature { # declared in BOOTSTRAP
     #   has int $!arity;          # arity
     #   has Num $!count;          # count
     #   has Code $!code;
+    #   has int $!readonly;       # bit mask indicating read-only positionals
 
     multi method new(Signature:U:
             :@params,

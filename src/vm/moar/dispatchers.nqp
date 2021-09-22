@@ -2424,10 +2424,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
         if nqp::isconcrete($code) {
             my $do := nqp::getattr($code, Code, '$!do');
             if $code-constant && !nqp::dispatch('boot-syscall', 'code-is-stub', $do) {
+                my $args := pass-decontainerized($code,
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0));
                 my $delegate_capture := nqp::dispatch('boot-syscall',
-                    'dispatcher-insert-arg-literal-obj',
-                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-                    0, $do);
+                    'dispatcher-insert-arg-literal-obj', $args, 0, $do);
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
                     $delegate_capture);
             }
@@ -2619,6 +2619,50 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
         );
     }
 });
+
+# When we see that the callee expects readonly arguments, and what we are
+# going to pass is a Scalar container, we can unwrap them on the caller
+# side. This has a number of advantages:
+# * Since in a multiple dispatch we have to decontainerize in order to guard
+#   on the values, this dispatch program will often have already have the
+#   values in temporaries. Thus we would be doing the work anyway, and don't
+#   need to leave it to the callee.
+# * The specializer may do specialization linking and inlining, and may stack
+#   up extra guards, which include reading from containers. This would duplicate
+#   work in the dispatch program. However, if invocation at the end of the
+#   dispatch program is just on values, it can avoid that.
+# * Since most calls to an operator like infix:<+> will now be two values, not
+#   all permutations of scalar with value and value, we may produce less
+#   specializations. Further, value + value case has by far the simplest code
+#   to inline (and typically avoids further guards and container reads).
+# * Even in the case we can't inline, removing the value from the container
+#   caller side rather than callee side means that the container doesn't
+#   escape, which - especially as PEA in MoarVM gets more powerful - means it
+#   will be able to do a great deal more scalar replacements.
+sub pass-decontainerized($code, $args) {
+    my $signature := nqp::getattr($code, Code, '$!signature');
+    my int $readonly := nqp::getattr_i($signature, Signature, '$!readonly');
+    my int $pos-args := nqp::captureposelems($args);
+    my int $i := 0;
+    while $i < $pos-args {
+        # If it should be passed read only, and it's an object...
+        if $readonly +& nqp::bitshiftl_i(1, $i) && nqp::captureposprimspec($args, $i) == 0 {
+            # If it's in a Scalar container...
+            my $arg := nqp::captureposarg($args, $i);
+            if nqp::isconcrete_nd($arg) && nqp::what_nd($arg) =:= Scalar {
+                # Read it from the container and pass it decontainerized.
+                my $track-arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $args, $i);
+                my $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                    $track-arg, Scalar, '$!value');
+               $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, $i),
+                    $i, $track-value);
+            }
+        }
+        $i++;
+    }
+    $args
+}
 
 # Entrypoint for dispatch to a wrapped routine. Builds the chain and delegates
 # to another dispatcher that will handle the walking through it via resumption.

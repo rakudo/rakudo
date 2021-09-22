@@ -65,7 +65,7 @@ my class Mu { # declared in BOOTSTRAP
     method take {
         take self;
     }
-    method return-rw(|) {  # same code as control.pm6's return-rw
+    method return-rw(Mu \SELF: |) {  # same code as control.pm6's return-rw
         my $list := RETURN-LIST(nqp::p6argvmarray());
         nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $list);
         $list;

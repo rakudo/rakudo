@@ -2441,12 +2441,13 @@ class Perl6::World is HLL::World {
             nqp::bindattr($signature, $sig_type, '$!returns', %signature_info<returns>);
         }
 
-        # Compute arity and count.
+        # Compute arity, count, and readonly bit mask.
         my $p_type    := self.find_single_symbol('Parameter', :setting-only);
         my int $arity := 0;
         my int $count := 0;
         my int $n     := nqp::elems(@parameters);
         my int $i     := -1;
+        my int $readonly;
         while ++$i < $n {
             my $param := @parameters[$i];
             my int $flags := nqp::getattr_i($param, $p_type, '$!flags');
@@ -2457,16 +2458,23 @@ class Perl6::World is HLL::World {
                     nqp::isnull(nqp::getattr($param, $p_type, '@!named_names')) {
                 $count++;
                 $arity++ unless $flags +& $SIG_ELEM_IS_OPTIONAL;
+                if $i < 64 {
+                    unless $flags +& ($SIG_ELEM_IS_RW +| $SIG_ELEM_IS_RAW) {
+                        $readonly := $readonly +| nqp::bitshiftl_i(1, $i);
+                    }
+                }
             }
         }
         nqp::bindattr_i($signature, $sig_type, '$!arity', $arity);
         if $count == -1 {
             nqp::bindattr($signature, $sig_type, '$!count',
                 self.add_constant('Num', 'num', nqp::inf()).value);
-        } else {
+        }
+        else {
             nqp::bindattr($signature, $sig_type, '$!count',
                 self.add_constant('Int', 'int', $count).value);
         }
+        nqp::bindattr_i($signature, $sig_type, '$!readonly', $readonly);
 
         # Return created signature.
         $signature

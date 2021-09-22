@@ -832,6 +832,7 @@ register_op_desugar('p6recont_ro', -> $qast {
 register_op_desugar('p6var', -> $qast {
     my $result := QAST::Node.unique('result');
     my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
+    my $ScalarVAR := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'ScalarVAR')) );
     QAST::Stmt.new(
         QAST::Op.new(
             :op('bind'),
@@ -853,7 +854,7 @@ register_op_desugar('p6var', -> $qast {
             ),
             QAST::Op.new(
                 :op('p6bindattrinvres'),
-                QAST::Op.new( :op('create'), $Scalar ),
+                QAST::Op.new( :op('create'), $ScalarVAR ),
                 $Scalar,
                 QAST::SVal.new( :value('$!value') ),
                 QAST::Var.new( :name($result), :scope('local') )

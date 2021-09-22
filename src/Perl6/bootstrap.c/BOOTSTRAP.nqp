@@ -54,6 +54,7 @@ my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub ScalarVAR metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Proxy metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -1655,103 +1656,111 @@ BEGIN {
 
     # Scalar needs to be registered as a container type. Also provide the
     # slow-path implementation of various container operations.
-    nqp::setcontspec(Scalar, 'value_desc_cont', nqp::hash(
-        'attrs_class', Scalar,
-        'descriptor_attr', '$!descriptor',
-        'value_attr', '$!value',
-        'store', nqp::getstaticcode(sub ($cont, $val) {
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            if nqp::isconcrete($desc) {
-                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
-                my $type := $desc.of;
-                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
-                    if $type.HOW.archetypes.coercive {
-                        my $coercion_type := $type.HOW.wrappee($type, :coercion);
-                        nqp::bindattr($cont, Scalar, '$!value', $coercion_type.HOW.coerce($coercion_type, $val));
+    sub setup_scalar_contspec($type) {
+        nqp::setcontspec($type, 'value_desc_cont', nqp::hash(
+            'attrs_class', Scalar,
+            'descriptor_attr', '$!descriptor',
+            'value_attr', '$!value',
+            'store', nqp::getstaticcode(sub ($cont, $val) {
+                my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+                if nqp::isconcrete($desc) {
+                    $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                    my $type := $desc.of;
+                    if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                        if $type.HOW.archetypes.coercive {
+                            my $coercion_type := $type.HOW.wrappee($type, :coercion);
+                            nqp::bindattr($cont, Scalar, '$!value', $coercion_type.HOW.coerce($coercion_type, $val));
+                        }
+                        else {
+                            nqp::bindattr($cont, Scalar, '$!value', $val);
+                        }
+                        unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
+                               nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
+                            $desc.assigned($cont);
+                            nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+                        }
                     }
                     else {
-                        nqp::bindattr($cont, Scalar, '$!value', $val);
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                            'X::TypeCheck::Assignment',
+                            "Type check failed in assignment",
+                            :symbol($desc.name),
+                            :got($val),
+                            :expected($type)
+                        );
                     }
-                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
-                           nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
-                        $desc.assigned($cont);
-                        nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+                }
+                else {
+                    nqp::die("Cannot assign to a readonly variable or a value");
+                }
+            }),
+            'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
+                nqp::bindattr($cont, Scalar, '$!value', $val);
+                my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+                unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
+                       nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
+                    $desc.assigned($cont);
+                    nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+                }
+            }),
+            'cas', nqp::getstaticcode(sub ($cont, $expected, $val) {
+                my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+                if nqp::isconcrete($desc) {
+                    $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                    my $type := $desc.of;
+                    if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                        nqp::casattr($cont, Scalar, '$!value', $expected, $val);
+                    }
+                    else {
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                            'X::TypeCheck::Assignment',
+                            "Type check failed in assignment",
+                            :symbol($desc.name),
+                            :got($val),
+                            :expected($type)
+                        );
                     }
                 }
                 else {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::TypeCheck::Assignment',
-                        "Type check failed in assignment",
-                        :symbol($desc.name),
-                        :got($val),
-                        :expected($type)
-                    );
+                    nqp::die("Cannot assign to a readonly variable or a value");
                 }
-            }
-            else {
-                nqp::die("Cannot assign to a readonly variable or a value");
-            }
-        }),
-        'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
-            nqp::bindattr($cont, Scalar, '$!value', $val);
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
-                   nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
-                $desc.assigned($cont);
-                nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
-            }
-        }),
-        'cas', nqp::getstaticcode(sub ($cont, $expected, $val) {
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            if nqp::isconcrete($desc) {
-                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
-                my $type := $desc.of;
-                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
-                    nqp::casattr($cont, Scalar, '$!value', $expected, $val);
+            }),
+            'atomic_store', nqp::getstaticcode(sub ($cont, $val) {
+                my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+                if nqp::isconcrete($desc) {
+                    $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                    my $type := $desc.of;
+                    if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                        nqp::atomicbindattr($cont, Scalar, '$!value', $val);
+                    }
+                    else {
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                            'X::TypeCheck::Assignment',
+                            "Type check failed in assignment",
+                            :symbol($desc.name),
+                            :got($val),
+                            :expected($type)
+                        );
+                    }
                 }
                 else {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::TypeCheck::Assignment',
-                        "Type check failed in assignment",
-                        :symbol($desc.name),
-                        :got($val),
-                        :expected($type)
-                    );
+                    nqp::die("Cannot assign to a readonly variable or a value");
                 }
-            }
-            else {
-                nqp::die("Cannot assign to a readonly variable or a value");
-            }
-        }),
-        'atomic_store', nqp::getstaticcode(sub ($cont, $val) {
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            if nqp::isconcrete($desc) {
-                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
-                my $type := $desc.of;
-                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
-                    nqp::atomicbindattr($cont, Scalar, '$!value', $val);
-                }
-                else {
-                    Perl6::Metamodel::Configuration.throw_or_die(
-                        'X::TypeCheck::Assignment',
-                        "Type check failed in assignment",
-                        :symbol($desc.name),
-                        :got($val),
-                        :expected($type)
-                    );
-                }
-            }
-            else {
-                nqp::die("Cannot assign to a readonly variable or a value");
-            }
-        }),
-    ));
+            }),
+        ));
+    }
+    setup_scalar_contspec(Scalar);
 
     # Cache a single default Scalar container spec, to ensure we only get
     # one of them.
     Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
         ContainerDescriptor::Untyped.new(
             :of(Mu), :default(Any), :name('element')));
+
+    # class ScalarVAR is Scalar {
+    ScalarVAR.HOW.add_parent(ScalarVAR, Scalar);
+    ScalarVAR.HOW.compose_repr(ScalarVAR);
+    setup_scalar_contspec(ScalarVAR);
 
     # Set up various native reference types.
     sub setup_native_ref_type($type, $primitive, $ref_kind) {
@@ -1845,12 +1854,14 @@ BEGIN {
     #    has int $!arity;
     #    has Num $!count;
     #    has Code $!code;
+    #    has int $!readonly;
     Signature.HOW.add_parent(Signature, Any);
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<@!params>, :type(List), :package(Signature)));
     Signature.HOW.add_attribute(Signature, scalar_attr('$!returns', Mu, Signature, :!auto_viv_container));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!arity>, :type(int), :package(Signature)));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Num), :package(Signature)));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Code), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!readonly>, :type(int), :package(Signature)));
     Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If any parameter is generic, so are we.
             my @params := nqp::getattr($self, Signature, '@!params');
@@ -3626,6 +3637,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Cool);
     Perl6::Metamodel::ClassHOW.add_stash(Attribute);
     Perl6::Metamodel::ClassHOW.add_stash(Scalar);
+    Perl6::Metamodel::ClassHOW.add_stash(ScalarVAR);
     Perl6::Metamodel::ClassHOW.add_stash(Proxy);
     Perl6::Metamodel::ClassHOW.add_stash(Signature);
     Perl6::Metamodel::ClassHOW.add_stash(Parameter);
@@ -3778,6 +3790,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<ValueObjAt> := ValueObjAt;
     EXPORT::DEFAULT.WHO<Stash>      := Stash;
     EXPORT::DEFAULT.WHO<Scalar>     := Scalar;
+    EXPORT::DEFAULT.WHO<ScalarVAR>  := ScalarVAR;
     EXPORT::DEFAULT.WHO<IntLexRef>  := IntLexRef;
     EXPORT::DEFAULT.WHO<NumLexRef>  := NumLexRef;
     EXPORT::DEFAULT.WHO<StrLexRef>  := StrLexRef;
@@ -4202,6 +4215,7 @@ nqp::bindhllsym('Raku', 'PROCESS', PROCESS);
 
 # Stash Scalar and a default container spec away in the HLL state.
 nqp::bindhllsym('Raku', 'Scalar', Scalar);
+nqp::bindhllsym('Raku', 'ScalarVAR', ScalarVAR);
 nqp::bindhllsym('Raku', 'default_cont_spec',
     Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
 nqp::bindhllsym('Raku', 'Capture', Capture);

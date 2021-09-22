@@ -289,22 +289,22 @@ multi sub abs(int $a --> int) {
     nqp::abs_i($a)
 }
 
-multi sub infix:<+>(Int:D \a, Int:D \b --> Int:D) {
-    nqp::add_I(nqp::decont(a), nqp::decont(b), Int);
+multi sub infix:<+>(Int:D $a, Int:D $b --> Int:D) {
+    nqp::add_I(nqp::decont($a), nqp::decont($b), Int);
 }
 multi sub infix:<+>(int $a, int $b --> int) {
     nqp::add_i($a, $b)
 }
 
-multi sub infix:<->(Int:D \a, Int:D \b --> Int:D) {
-    nqp::sub_I(nqp::decont(a), nqp::decont(b), Int);
+multi sub infix:<->(Int:D $a, Int:D $b --> Int:D) {
+    nqp::sub_I(nqp::decont($a), nqp::decont($b), Int);
 }
 multi sub infix:<->(int $a, int $b --> int) {
     nqp::sub_i($a, $b)
 }
 
-multi sub infix:<*>(Int:D \a, Int:D \b --> Int:D) {
-    nqp::mul_I(nqp::decont(a), nqp::decont(b), Int);
+multi sub infix:<*>(Int:D $a, Int:D $b --> Int:D) {
+    nqp::mul_I(nqp::decont($a), nqp::decont($b), Int);
 }
 multi sub infix:<*>(int $a, int $b --> int) {
     nqp::mul_i($a, $b);

@@ -683,6 +683,7 @@ my %allowed = (
     Q{SOCK_STREAM},
     Q{Same},
     Q{Scalar},
+    Q{ScalarVAR},
     Q{Scheduler},
     Q{SeekFromBeginning},
     Q{SeekFromCurrent},

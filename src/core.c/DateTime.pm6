@@ -603,52 +603,52 @@ my class DateTime does Dateish {
     }
 }
 
-multi sub infix:«<»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant < b.Instant
+multi sub infix:«<»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant < $b.Instant
 }
-multi sub infix:«>»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant > b.Instant
+multi sub infix:«>»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant > $b.Instant
 }
-multi sub infix:«<=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant <= b.Instant
+multi sub infix:«<=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant <= $b.Instant
 }
-multi sub infix:«>=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant >= b.Instant
+multi sub infix:«>=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant >= $b.Instant
 }
-multi sub infix:«==»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant == b.Instant
+multi sub infix:«==»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant == $b.Instant
 }
-multi sub infix:«!=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant != b.Instant
+multi sub infix:«!=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant != $b.Instant
 }
-multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
-    a.Instant <=> b.Instant
+multi sub infix:«<=>»(DateTime:D $a, DateTime:D $b) {
+    $a.Instant <=> $b.Instant
 }
-multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
-    a.Instant cmp b.Instant
+multi sub infix:«cmp»(DateTime:D $a, DateTime:D $b) {
+    $a.Instant cmp $b.Instant
 }
-multi sub infix:<->(DateTime:D \a, Instant:D \b --> Duration:D) {
-    a.Instant - b
+multi sub infix:<->(DateTime:D $a, Instant:D $b --> Duration:D) {
+    $a.Instant - $b
 }
-multi sub infix:<->(Instant:D \a, DateTime:D \b --> Duration:D) {
-    a - b.Instant
+multi sub infix:<->(Instant:D $a, DateTime:D $b --> Duration:D) {
+    $a - $b.Instant
 }
-multi sub infix:<->(DateTime:D \a, DateTime:D \b --> Duration:D) {
-    a.Instant - b.Instant
+multi sub infix:<->(DateTime:D $a, DateTime:D $b --> Duration:D) {
+    $a.Instant - $b.Instant
 }
-multi sub infix:<->(DateTime:D \a, Duration:D \b --> DateTime:D) {
-    a.new(a.Instant - b).in-timezone(a.timezone)
+multi sub infix:<->(DateTime:D $a, Duration:D $b --> DateTime:D) {
+    $a.new($a.Instant - $b).in-timezone($a.timezone)
 }
-multi sub infix:<+>(DateTime:D \a, Duration:D \b --> DateTime:D) {
-    a.new(a.Instant + b).in-timezone(a.timezone)
+multi sub infix:<+>(DateTime:D $a, Duration:D $b --> DateTime:D) {
+    $a.new($a.Instant + $b).in-timezone($a.timezone)
 }
-multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
-    b.new(b.Instant + a).in-timezone(b.timezone)
+multi sub infix:<+>(Duration:D $a, DateTime:D $b --> DateTime:D) {
+    $b.new($b.Instant + $a).in-timezone($b.timezone)
 }
-multi sub infix:<eqv>(DateTime:D \a, DateTime:D \b --> Bool:D) {
+multi sub infix:<eqv>(DateTime:D $a, DateTime:D $b --> Bool:D) {
     nqp::hllbool(
-          nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-      || (nqp::eqaddr(a.WHAT,b.WHAT) && a == b)
+          nqp::eqaddr(nqp::decont($a),nqp::decont($b))
+      || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a == $b)
     )
 }
 

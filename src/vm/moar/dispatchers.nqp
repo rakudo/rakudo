@@ -810,9 +810,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-private', -> $ca
             nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
         my $capture_delegate := nqp::dispatch('boot-syscall',
             'dispatcher-insert-arg-literal-obj',
-            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
-                0),
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-n-args',
+                $capture, 0, 2),
             0, $meth);
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
             $capture_delegate);
@@ -857,8 +856,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
 
         # Drop the dispatch start type and name, and delegate to multi-dispatch or
         # just invoke if it's single dispatch.
-        my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 1), 1);
+        my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-n-args',
+            $capture, 1, 2);
         my $method := nqp::captureposarg($delegate_capture, 0);
         if nqp::istype($method, Routine) {
             if nqp::can($method, 'WRAPPERS') {
@@ -953,8 +952,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
                     nqp::const::DISP_CALLSAME);
             }
             else {
-                my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $init, 0), 0);
+                my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-n-args',
+                    $init, 0, 2);
                 $args_with_kind := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                     $args, 0, $track_kind);
             }
@@ -995,8 +994,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-deferral',
         else {
             # The resume init state for a multi-step deferral is the next
             # thing in the chain prepended to the dispatch arguments.
-            my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0), 0);
+            my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-n-args',
+                $capture, 0, 2);
             my $resume-capture := nqp::dispatch('boot-syscall',
                 'dispatcher-insert-arg-literal-obj', $args, 0, $chain.next);
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args', $resume-capture);
@@ -2093,8 +2092,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
         # Drop the leading two arguments to get the argument capture prefixed
         # with the original dispatch target, and one more to get the argument
         # capture.
-        my $orig-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0), 0);
+        my $orig-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-n-args',
+            $capture, 0, 2);
         my $arg-capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
             $orig-capture, 0);
 

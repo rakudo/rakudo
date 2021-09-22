@@ -10,7 +10,6 @@ my role SoftRoutine {
 my class Routine { # declared in BOOTSTRAP
     # class Routine is Block
     #     has @!dispatchees;
-    #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
     #     has int $!flags;
     #     has Mu $!inline_info;

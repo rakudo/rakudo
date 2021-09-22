@@ -2243,7 +2243,6 @@ BEGIN {
 
     # class Routine is Block {
     #     has @!dispatchees;
-    #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
     #     has int $!flags;
     #     has Mu $!inline_info;
@@ -2253,14 +2252,15 @@ BEGIN {
     #     has Mu $!dispatch_cache;
     Routine.HOW.add_parent(Routine, Block);
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<@!dispatchees>, :type(List), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!flags>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
+#?if !moar
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
+#?endif
 
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
@@ -2276,8 +2276,9 @@ BEGIN {
                     Routine, '$!dispatcher', $dc_self);
                 nqp::scwbdisable();
                 nqp::bindattr($dc_self, Routine, '@!dispatch_order', nqp::null());
+#?if !moar
                 nqp::bindattr($dc_self, Routine, '$!dispatch_cache', nqp::null());
-                nqp::bindattr($dc_self, Routine, '$!dispatcher_cache', nqp::null());
+#?endif
                 nqp::scwbenable();
                 $dc_self
             }

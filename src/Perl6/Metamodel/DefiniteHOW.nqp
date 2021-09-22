@@ -95,9 +95,9 @@ class Perl6::Metamodel::DefiniteHOW
 
     method nominalize($obj) {
         my $base_type := $obj.HOW.base_type($obj);
-        $base_type.HOW.archetypes.nominal ??
-            $base_type !!
-            $base_type.HOW.nominalize($base_type)
+        $base_type.HOW.archetypes.nominalizable
+            ?? $base_type.HOW.nominalize($base_type)
+            !! $base_type
     }
 
     #~ # Should have the same methods of the base type that we refine.
@@ -126,6 +126,15 @@ class Perl6::Metamodel::DefiniteHOW
             nqp::istype($checkee, $base_type) &&
             nqp::isconcrete($checkee) == $definite,
             "Raku"
+        )
+    }
+
+    method instantiate_generic($definite_type, $type_env) {
+        my $base_type := self.base_type($definite_type);
+        return $definite_type unless $!archetypes.generic;
+        self.new_type(
+            base_type => $base_type.HOW.instantiate_generic($base_type, $type_env),
+            definite => self.definite($definite_type)
         )
     }
 

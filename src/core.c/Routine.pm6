@@ -14,11 +14,8 @@ my class Routine { # declared in BOOTSTRAP
     #     has int $!flags;
     #     has Mu $!inline_info;
     #     has Mu $!package;
-    #     has int $!onlystar;
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
-
-    method onlystar() { nqp::hllbool($!onlystar) }
 
     method candidates() {
         self.is_dispatcher ??
@@ -121,7 +118,6 @@ my class Routine { # declared in BOOTSTRAP
         unless nqp::istype(self, Wrapped) {
             my $orig = self.clone();
             self does Wrapped;
-            $!onlystar = 0; # disable optimization if no body there
             self.UNSHIFT_WRAPPER($orig);
         }
 

@@ -1144,7 +1144,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi',
     # proto.
     -> $capture {
         my $callee := nqp::captureposarg($capture, 0);
-        my int $onlystar := nqp::getattr_i($callee, Routine, '$!onlystar');
+        my int $onlystar := $callee.onlystar;
         my int $simple := $onlystar && simple-args-proto($callee, $capture);
         if $simple {
             # Don't need to invoke the proto itself, so just get on with the

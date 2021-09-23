@@ -64,36 +64,40 @@ multi sub postfix:<-->(Bool:D $a is rw) {
 }
 
 proto sub prefix:<?>(Mu, *%) is pure {*}
-multi sub prefix:<?>(Bool:D \a) { a }
-multi sub prefix:<?>(Bool:U \a) { Bool::False }
+multi sub prefix:<?>(Bool:D $a) { $a }
+multi sub prefix:<?>(Bool:U --> Bool::False) { }
 multi sub prefix:<?>(Mu \a) { a.Bool }
 
 proto sub prefix:<so>(Mu, *%) is pure {*}
-multi sub prefix:<so>(Bool:D \a) { a }
-multi sub prefix:<so>(Bool:U \a) { Bool::False }
+multi sub prefix:<so>(Bool:D $a) { $a }
+multi sub prefix:<so>(Bool:U --> Bool::False) { }
 multi sub prefix:<so>(Mu \a) { a.Bool }
 
 proto sub prefix:<!>(Mu, *%) is pure {*}
-multi sub prefix:<!>(Bool \a) { nqp::hllbool(nqp::not_i(nqp::istrue(a))) }
+multi sub prefix:<!>(Bool:D $a) { $a ?? False !! True }
+multi sub prefix:<!>(Bool:U --> Bool::True) { }
 multi sub prefix:<!>(Mu \a) { nqp::hllbool(nqp::not_i(nqp::istrue(a))) }
 multi sub prefix:<!>(Mu \a, :$exists!) {
     die "Precedence issue with ! and :exists, perhaps you meant :!exists?"
 }
 
 proto sub prefix:<not>(Mu, *%) is pure {*}
-multi sub prefix:<not>(Bool \a) { nqp::hllbool(nqp::not_i(nqp::istrue(a))) }
+multi sub prefix:<not>(Bool:D $a) { $a ?? False !! True }
+multi sub prefix:<not>(Bool:U --> Bool::True) { }
 multi sub prefix:<not>(Mu \a) { nqp::hllbool(nqp::not_i(nqp::istrue(a))) }
 
 proto sub prefix:<?^>(Mu, *%) is pure {*}
 multi sub prefix:<?^>(Mu \a) { not a }
 
 proto sub infix:<?&>(Mu $?, Mu $?, *%) is pure {*}
-multi sub infix:<?&>(Mu $x = Bool::True) { $x.Bool }
-multi sub infix:<?&>(Mu \a, Mu \b)       { a.Bool && b.Bool }
+multi sub infix:<?&>(--> Bool::True) { }
+multi sub infix:<?&>(Mu $x) { $x.Bool }
+multi sub infix:<?&>(Mu \a, Mu \b) { a.Bool && b.Bool }
 
 proto sub infix:<?|>(Mu $?, Mu $?, *%) is pure {*}
-multi sub infix:<?|>(Mu $x = Bool::False) { $x.Bool }
-multi sub infix:<?|>(Mu \a, Mu \b)        { a.Bool || b.Bool }
+multi sub infix:<?|>(--> Bool::False) { }
+multi sub infix:<?|>(Mu $x) { $x.Bool }
+multi sub infix:<?|>(Mu \a, Mu \b) { a.Bool || b.Bool }
 
 proto sub infix:<?^>(Mu $?, Mu $?, *%) is pure {*}
 multi sub infix:<?^>(Mu $x = Bool::False) { $x.Bool }
@@ -101,10 +105,11 @@ multi sub infix:<?^>(Mu \a, Mu \b)        { nqp::hllbool(nqp::ifnull(nqp::xor(a.
 
 # These operators are normally handled as macros in the compiler;
 # we define them here for use as arguments to functions.
-proto sub infix:<&&>(|)    {*}
-multi sub infix:<&&>(Mu $x = Bool::True)  { $x }
-multi sub infix:<&&>(Mu \a, &b)           { a && b() }
-multi sub infix:<&&>(Mu \a, Mu \b)        { a && b }
+proto sub infix:<&&>(|) {*}
+multi sub infix:<&&>(--> Bool::True) { }
+multi sub infix:<&&>(Mu $x) { $x }
+multi sub infix:<&&>(Mu \a, &b)    { a && b() }
+multi sub infix:<&&>(Mu \a, Mu \b) { a && b   }
 multi sub infix:<&&>(+@a) {
     nqp::if(
       (my int $elems = @a.elems),  # reifies
@@ -128,10 +133,11 @@ multi sub infix:<&&>(+@a) {
     )
 }
 
-proto sub infix:<||>(|)                   {*}
-multi sub infix:<||>(Mu $x = Bool::False) { $x }
-multi sub infix:<||>(Mu \a, &b)           { a || b() }
-multi sub infix:<||>(Mu \a, Mu \b)        { a || b }
+proto sub infix:<||>(|) {*}
+multi sub infix:<||>(--> Bool::False) { }
+multi sub infix:<||>(Mu $x) { $x }
+multi sub infix:<||>(Mu \a, &b)    { a || b() }
+multi sub infix:<||>(Mu \a, Mu \b) { a || b   }
 multi sub infix:<||>(+@a) {
     nqp::if(
       (my int $elems = @a.elems),  # reifies
@@ -155,10 +161,11 @@ multi sub infix:<||>(+@a) {
     )
 }
 
-proto sub infix:<^^>(|)                   {*}
-multi sub infix:<^^>(Mu $x = Bool::False) { $x }
-multi sub infix:<^^>(Mu \a, &b)           { a ^^ b() }
-multi sub infix:<^^>(Mu \a, Mu \b)        { a ^^ b }
+proto sub infix:<^^>(|) {*}
+multi sub infix:<^^>(--> Bool::False) { }
+multi sub infix:<^^>(Mu $x) { $x }
+multi sub infix:<^^>(Mu \a, &b)    { a ^^ b() }
+multi sub infix:<^^>(Mu \a, Mu \b) { a ^^ b   }
 multi sub infix:<^^>(+@a) {
     my Mu $a = shift @a;
     while @a {
@@ -171,10 +178,11 @@ multi sub infix:<^^>(+@a) {
     $a;
 }
 
-proto sub infix:<//>(|)                   {*}
-multi sub infix:<//>(Mu $x = Any)         { $x }
-multi sub infix:<//>(Mu \a, &b)           { a // b }
-multi sub infix:<//>(Mu \a, Mu \b)        { a // b }
+proto sub infix:<//>(|) {*}
+multi sub infix:<//>() { Any }
+multi sub infix:<//>(Mu $x = Any)  { $x }
+multi sub infix:<//>(Mu \a, &b)    { a // b }  # shouldn't that be b() ??
+multi sub infix:<//>(Mu \a, Mu \b) { a // b }
 multi sub infix:<//>(+@a) {
     nqp::if(
       (my int $elems = @a.elems),  # reifies
@@ -196,20 +204,23 @@ multi sub infix:<//>(+@a) {
     )
 }
 
-proto sub infix:<and>(Mu $?, Mu $?, *%)   {*}
-multi sub infix:<and>(Mu $x = Bool::True) { $x }
-multi sub infix:<and>(Mu \a, &b)          { a && b }
-multi sub infix:<and>(Mu \a, Mu \b)       { a && b }
+proto sub infix:<and>(Mu $?, Mu $?, *%) {*}
+multi sub infix:<and>(--> Bool::True) { }
+multi sub infix:<and>(Mu $x) { $x }
+multi sub infix:<and>(Mu \a, &b)    { a && b }  # shouldn't that be b() ??
+multi sub infix:<and>(Mu \a, Mu \b) { a && b }
 
-proto sub infix:<or>(Mu $?, Mu $?, *%)    {*}
-multi sub infix:<or>(Mu $x = Bool::False) { $x }
-multi sub infix:<or>(Mu \a, &b)           { a || b }
-multi sub infix:<or>(Mu \a, Mu \b)        { a || b }
+proto sub infix:<or>(Mu $?, Mu $?, *%) {*}
+multi sub infix:<or>(--> Bool::False) { }
+multi sub infix:<or>(Mu $x) { $x }
+multi sub infix:<or>(Mu \a, &b)    { a || b }  # shouldn't that be b() ??
+multi sub infix:<or>(Mu \a, Mu \b) { a || b }
 
-proto sub infix:<xor>(|)   {*}
-multi sub infix:<xor>(Mu $x = Bool::False) { $x }
-multi sub infix:<xor>(Mu \a, &b)          { a ^^ b }
-multi sub infix:<xor>(Mu \a, Mu \b)       { a ^^ b }
-multi sub infix:<xor>(|c)                 { &infix:<^^>(|c); }
+proto sub infix:<xor>(|) {*}
+multi sub infix:<xor>(--> Bool::False) { }
+multi sub infix:<xor>(Mu $x) { $x }
+multi sub infix:<xor>(Mu \a, &b)    { a ^^ b }  # shouldn't that be b() ??
+multi sub infix:<xor>(Mu \a, Mu \b) { a ^^ b }
+multi sub infix:<xor>(|c) { &infix:<^^>(|c) }
 
 # vim: expandtab shiftwidth=4

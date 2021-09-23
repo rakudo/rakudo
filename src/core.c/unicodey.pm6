@@ -703,39 +703,27 @@ multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
 #?endif
 
 #?if !jvm
-multi sub infix:<unicmp>(Str:D \a, Str:D \b) {
-    ORDER(
-      nqp::unicmp_s(nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0)
-    )
+multi sub infix:<unicmp>(Str:D $a, Str:D $b) {
+    ORDER(nqp::unicmp_s($a,$b,85,0,0))
 }
-multi sub infix:<unicmp>(Cool:D \a, Cool:D \b) {
-    ORDER(
-      nqp::unicmp_s(nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), 85,0,0)
-    )
+multi sub infix:<unicmp>(Cool:D $a, Cool:D $b) {
+    ORDER(nqp::unicmp_s($a.Str,$b.Str,85,0,0))
 }
-multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
-    nqp::eqaddr((my $cmp := (a.key unicmp b.key)),Order::Same)
-      ?? (a.value unicmp b.value)
+multi sub infix:<unicmp>(Pair:D $a, Pair:D $b) {
+    nqp::eqaddr((my $cmp := ($a.key unicmp $b.key)),Order::Same)
+      ?? ($a.value unicmp $b.value)
       !! $cmp
 }
 
-multi sub infix:<coll>(Str:D \a, Str:D \b) {
-    ORDER(
-      nqp::unicmp_s(
-        nqp::unbox_s(a),nqp::unbox_s(b),$*COLLATION.collation-level,0,0
-      )
-    )
+multi sub infix:<coll>(Str:D $a, Str:D $b) {
+    ORDER(nqp::unicmp_s($a,$b,$*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Cool:D \a, Cool:D \b) {
-    ORDER(
-      nqp::unicmp_s(
-        nqp::unbox_s(a.Str),nqp::unbox_s(b.Str),$*COLLATION.collation-level,0,0
-      )
-    )
+multi sub infix:<coll>(Cool:D $a, Cool:D $b) {
+    ORDER(nqp::unicmp_s($a.Str,$b.Str,$*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
-    nqp::eqaddr((my $cmp := (a.key coll b.key)),Order::Same)
-      ?? (a.value coll b.value)
+multi sub infix:<coll>(Pair:D $a, Pair:D $b) {
+    nqp::eqaddr((my $cmp := ($a.key coll $b.key)),Order::Same)
+      ?? ($a.value coll $b.value)
       !! $cmp
 }
 #?endif

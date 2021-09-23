@@ -220,24 +220,24 @@ augment class Version {
 }
 
 
-multi sub infix:<eqv>(Version:D \a, Version:D \b --> Bool:D) {
+multi sub infix:<eqv>(Version:D $a, Version:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT)
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT)
              && nqp::iseq_s(
-               nqp::getattr_s(nqp::decont(a),Version,'$!string'),
-               nqp::getattr_s(nqp::decont(b),Version,'$!string')
+               nqp::getattr_s($a,Version,'$!string'),
+               nqp::getattr_s($b,Version,'$!string')
              ))
     )
 }
 
-multi sub infix:<cmp>(Version:D \a, Version:D \b) {
+multi sub infix:<cmp>(Version:D $a, Version:D $b) {
     nqp::if(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b)), # we're us
+      nqp::eqaddr($a,$b), # we're us
       Same,
       nqp::stmts(
-        (my \ia := nqp::clone(nqp::getattr(nqp::decont(a),Version,'$!parts'))),
-        (my \ib := nqp::clone(nqp::getattr(nqp::decont(b),Version,'$!parts'))),
+        (my \ia := nqp::clone(nqp::getattr($a,Version,'$!parts'))),
+        (my \ib := nqp::clone(nqp::getattr($b,Version,'$!parts'))),
         (my ($ret, $a-part, $b-part)),
         nqp::while(
           ia, # check from left
@@ -267,16 +267,16 @@ multi sub infix:<cmp>(Version:D \a, Version:D \b) {
                   More,
                   ($a-part cmp $b-part)))),
               return $ret))),
-        (     nqp::getattr_i(nqp::decont(a),Version,'$!plus')
-          cmp nqp::getattr_i(nqp::decont(b),Version,'$!plus'))))
+        (     nqp::getattr_i($a,Version,'$!plus')
+          cmp nqp::getattr_i($b,Version,'$!plus'))))
 }
 
-multi sub infix:«<=>»(Version:D \a, Version:D \b) { a cmp b }
-multi sub infix:«<»  (Version:D \a, Version:D \b) { a cmp b == Less }
-multi sub infix:«<=» (Version:D \a, Version:D \b) { a cmp b != More }
-multi sub infix:«==» (Version:D \a, Version:D \b) { a cmp b == Same }
-multi sub infix:«!=» (Version:D \a, Version:D \b) { a cmp b != Same }
-multi sub infix:«>=» (Version:D \a, Version:D \b) { a cmp b != Less }
-multi sub infix:«>»  (Version:D \a, Version:D \b) { a cmp b == More }
+multi sub infix:«<=>»(Version:D $a, Version:D $b) { $a cmp $b         }
+multi sub infix:«<»  (Version:D $a, Version:D $b) { $a cmp $b == Less }
+multi sub infix:«<=» (Version:D $a, Version:D $b) { $a cmp $b != More }
+multi sub infix:«==» (Version:D $a, Version:D $b) { $a cmp $b == Same }
+multi sub infix:«!=» (Version:D $a, Version:D $b) { $a cmp $b != Same }
+multi sub infix:«>=» (Version:D $a, Version:D $b) { $a cmp $b != Less }
+multi sub infix:«>»  (Version:D $a, Version:D $b) { $a cmp $b == More }
 
 # vim: expandtab shiftwidth=4

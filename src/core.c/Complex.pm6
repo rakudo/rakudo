@@ -3,14 +3,16 @@ my class Complex is Cool does Numeric {
     has num $.re;
     has num $.im;
 
-    method !SET-SELF(Num() \re, Num() \im) {
-        $!re = re;
-        $!im = im;
+    method !SET-SELF(Num() $re, Num() $im) {
+        $!re = $re;
+        $!im = $im;
         self
     }
     proto method new(|) {*}
     multi method new() { self.new: 0, 0 }
-    multi method new(Real \re, Real \im) { nqp::create(self)!SET-SELF(re, im) }
+    multi method new(Real $re, Real $im) {
+        nqp::create(self)!SET-SELF($re, $im)
+    }
 
     multi method WHICH(Complex:D: --> ValueObjAt:D) {
         nqp::box_s(
@@ -534,8 +536,8 @@ multi sub infix:«<=>»(Complex:D $a, Complex:D $b) {
            )
          )
 }
-multi sub infix:«<=>»(Num(Real) \a, Complex:D \b) { a.Complex <=> b }
-multi sub infix:«<=>»(Complex:D \a, Num(Real) \b) { a <=> b.Complex }
+multi sub infix:«<=>»(Num(Real) $a, Complex:D $b) { $a.Complex <=> $b }
+multi sub infix:«<=>»(Complex:D $a, Num(Real) $b) { $a <=> $b.Complex }
 
 proto sub postfix:<i>($, *%        --> Complex:D) is pure {*}
 multi sub postfix:<i>(Real      $a --> Complex:D) { Complex.new(0e0, $a)       }

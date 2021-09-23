@@ -291,8 +291,8 @@ my $!;
 my $/;
 my $_;
 
-multi sub trait_mod:<is>(Routine:D \r, :$export!, :$SYMBOL = '&' ~ r.name) {
-    my $to_export := r.multi ?? r.dispatcher !! r;
+multi sub trait_mod:<is>(Routine:D $r, :$export!, :$SYMBOL = '&' ~ $r.name) {
+    my $to_export := $r.multi ?? $r.dispatcher !! $r;
     my @tags = flat 'ALL', (
         nqp::istype($export,Pair)
             ?? $export.key()

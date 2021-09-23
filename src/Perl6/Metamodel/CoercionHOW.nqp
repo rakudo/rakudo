@@ -221,7 +221,6 @@ class Perl6::Metamodel::CoercionHOW
 }
 BEGIN {
     my $root := nqp::newtype(Perl6::Metamodel::CoercionHOW.new, 'Uninstantiable');
-    nqp::settypehll($root, 'Raku');
     nqp::setdebugtypename(nqp::settypehll($root, 'Raku'), 'CoercionHOW root');
     nqp::setparameterizer($root, sub ($type, $params) {
         my $metaclass := $type.HOW.new();

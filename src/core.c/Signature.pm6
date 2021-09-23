@@ -187,23 +187,23 @@ my class Signature { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
+multi sub infix:<eqv>(Signature:D $a, Signature:D $b) {
 
     # we're us
-    return True if a =:= b;
+    return True if nqp::eqaddr($a,$b);
 
     # different container type
-    return False unless a.WHAT =:= b.WHAT;
+    return False unless nqp::eqaddr($a.WHAT,$b.WHAT);
 
     # different return
-    return False unless a.returns =:= b.returns;
+    return False unless nqp::eqaddr($a.returns,$b.returns);
 
     # arity or count mismatch
-    return False if a.arity != b.arity || a.count != b.count;
+    return False if $a.arity != $b.arity || $a.count != $b.count;
 
     # different number of parameters or no parameters
-    my $ap := nqp::getattr(a.params,List,'$!reified');
-    my $bp := nqp::getattr(b.params,List,'$!reified');
+    my $ap := nqp::getattr($a.params,List,'$!reified');
+    my $bp := nqp::getattr($b.params,List,'$!reified');
     my int $elems = nqp::elems($ap);
     return False if nqp::isne_i($elems,nqp::elems($bp));
     return True unless $elems;
@@ -231,7 +231,7 @@ multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
               nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos_s($nn,0) !! '';
             die "Found named parameter '{
               nqp::chars($key) ?? $key !! '(unnamed)'
-            }' twice in signature {a.raku}: {$p.raku} vs {nqp::atkey($lookup,$key).raku}"
+            }' twice in signature {$a.raku}: {$p.raku} vs {nqp::atkey($lookup,$key).raku}"
               if nqp::existskey($lookup,$key);
             nqp::bindkey($lookup,$key,$p);
         }

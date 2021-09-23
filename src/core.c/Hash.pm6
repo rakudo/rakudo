@@ -26,14 +26,16 @@ my class Hash { # declared in BOOTSTRAP
           Hash, '$!descriptor', nqp::clone($!descriptor))
     }
 
-    method !AT_KEY_CONTAINER(Str:D \key) is raw {
-        nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindHashPos.new($!descriptor, self, key))
+    method !AT_KEY_CONTAINER(Str:D $key) is raw {
+        nqp::p6scalarfromcertaindesc(
+          ContainerDescriptor::BindHashPos.new($!descriptor,self,$key)
+        )
     }
 
-    multi method AT-KEY(Hash:D: Str:D \key) is raw {
+    multi method AT-KEY(Hash:D: Str:D $key) is raw {
         nqp::ifnull(
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),key),
-          self!AT_KEY_CONTAINER(key)
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+          self!AT_KEY_CONTAINER($key)
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
@@ -44,18 +46,18 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method STORE_AT_KEY(|) is implementation-detail {*}
-    multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
+    multi method STORE_AT_KEY(Str:D $key, Mu \value --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
-          nqp::unbox_s(key),
-          nqp::p6scalarwithvalue($!descriptor, x),
+          $key,
+          nqp::p6scalarwithvalue($!descriptor,value),
         )
     }
-    multi method STORE_AT_KEY(\key, Mu \x --> Nil) {
+    multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
           nqp::unbox_s(key.Str),
-          nqp::p6scalarwithvalue($!descriptor, x),
+          nqp::p6scalarwithvalue($!descriptor,value),
         )
     }
     method !STORE_MAP(\map --> Nil) {
@@ -141,34 +143,23 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method BIND-KEY(|) {*}
-    multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
-        nqp::bindkey(
-          nqp::getattr(self,Map,'$!storage'),
-          key.Str,
-          bindval
-        )
+    multi method BIND-KEY(Hash:D: Str:D $key, Mu \bindval) is raw {
+        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$key,bindval)
     }
-    multi method BIND-KEY(Hash:D: Str:D \key, Mu \bindval) is raw {
-        nqp::bindkey(
-          nqp::getattr(self,Map,'$!storage'),
-          key,
-          bindval
-        )
+    multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
+        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),key.Str,bindval)
     }
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }
-    multi method DELETE-KEY(Hash:D: Str:D \key) {
+    multi method DELETE-KEY(Hash:D: Str:D $key) {
         nqp::if(
           nqp::isnull(my \value := nqp::atkey(
             nqp::getattr(self,Map,'$!storage'),
-            key
+            $key
           )),
           $!descriptor.default,
           nqp::stmts(
-            nqp::deletekey(
-              nqp::getattr(self,Map,'$!storage'),
-              key
-            ),
+            nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$key),
             value
           )
         )

@@ -166,8 +166,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         try {self eqv m} // False;
     }
 
-    multi method EXISTS-KEY(Map:D: Str:D \key --> Bool:D) {
-        nqp::hllbool(nqp::existskey($!storage,key))
+    multi method EXISTS-KEY(Map:D: Str:D $key --> Bool:D) {
+        nqp::hllbool(nqp::existskey($!storage,$key))
     }
     multi method EXISTS-KEY(Map:D: \key --> Bool:D) {
         nqp::hllbool(nqp::existskey($!storage,key.Str))
@@ -282,8 +282,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
-    multi method AT-KEY(Map:D: Str:D \key) is raw {
-        nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
+    multi method AT-KEY(Map:D: Str:D $key) is raw {
+        nqp::ifnull(nqp::atkey($!storage,$key),Nil)
     }
     multi method AT-KEY(Map:D: \key) is raw {
         nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
@@ -452,7 +452,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
+    multi method STORE(Map:D:
+      Map:D \map, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
         nqp::if(
           nqp::istype(map,Hash::Object),
           self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map),
@@ -482,13 +484,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
-    multi method STORE(Map:D: Iterator:D \iter, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
-        self!STORE_MAP_FROM_ITERATOR_DECONT(iter)
+    multi method STORE(Map:D:
+      Iterator:D $iterator, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR_DECONT($iterator)
     }
-    multi method STORE(Map:D: Iterator:D \iter, :INITIALIZE($)! --> Map:D) {
-        self!STORE_MAP_FROM_ITERATOR(iter)
+    multi method STORE(Map:D:
+      Iterator:D $iterator, :INITIALIZE($)!
+    --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR($iterator)
     }
-    multi method STORE(Map:D: \to_store, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
+    multi method STORE(Map:D:
+      \to_store, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
         self!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator)
     }
     multi method STORE(Map:D: \to_store, :INITIALIZE($)! --> Map:D) {

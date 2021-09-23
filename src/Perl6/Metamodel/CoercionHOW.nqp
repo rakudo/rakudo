@@ -37,7 +37,7 @@ class Perl6::Metamodel::CoercionHOW
 
     method set_target_type($target_type) {
         $!target_type := $target_type;
-        $!nominal_target := $!target_type.HOW.archetypes.nominalizable
+        $!nominal_target := $!target_type.HOW.archetypes.nominalizable && !$!target_type.HOW.archetypes.generic
                                 ?? $!target_type.HOW.nominalize($!target_type)
                                 !! $!target_type;
     }

@@ -103,19 +103,19 @@ multi sub take(|) {
 }
 
 proto sub goto($, *%) {*}
-multi sub goto(Label:D \x --> Nil) { x.goto }
+multi sub goto(Label:D $x --> Nil) { $x.goto }
 
 proto sub last($?, *%) {*}
 multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
-multi sub last(Label:D \x --> Nil) { x.last }
+multi sub last(Label:D $x --> Nil) { $x.last }
 
 proto sub next($?, *%) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
-multi sub next(Label:D \x --> Nil) { x.next }
+multi sub next(Label:D $x --> Nil) { $x.next }
 
 proto sub redo($?, *%) {*}
 multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
-multi sub redo(Label:D \x --> Nil) { x.redo }
+multi sub redo(Label:D $x --> Nil) { $x.redo }
 
 proto sub succeed(|) {*}
 multi sub succeed(--> Nil) { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
@@ -269,7 +269,7 @@ multi sub warn(*@msg) {
     nqp::throw($ex);
     0;
 }
-multi sub warn(Junction:D \j) { j.THREAD: &warn }
+multi sub warn(Junction:D $j) { $j.THREAD: &warn }
 
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());

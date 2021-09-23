@@ -1497,11 +1497,11 @@ multi sub infix:<,>(|) {
 }
 
 proto sub combinations($, $?, *%) {*}
-multi sub combinations(Int() \n, Int() \k --> Seq:D) {
-    Seq.new(Rakudo::Iterator.Combinations(n,k,0))
+multi sub combinations(Int() $n, Int() $k --> Seq:D) {
+    Seq.new: Rakudo::Iterator.Combinations($n, $k, 0)
 }
-multi sub combinations(Int() \n, Range:D \k --> Seq:D) {
-    ^n .combinations: k
+multi sub combinations(Int() $n, Range:D \k --> Seq:D) {
+    ^$n .combinations: k
 }
 multi sub combinations(Iterable \n, \k --> Seq:D) is default {
     n.combinations: k
@@ -1511,8 +1511,8 @@ multi sub combinations(\n  --> Seq:D) {
 }
 
 proto sub permutations($, *%) {*}
-multi sub permutations(Int() \n --> Seq:D) {
-    Seq.new(Rakudo::Iterator.Permutations(n,0))
+multi sub permutations(Int() $n --> Seq:D) {
+    Seq.new: Rakudo::Iterator.Permutations($n, 0)
 }
 multi sub permutations(Iterable \n --> Seq:D) {
     n.permutations

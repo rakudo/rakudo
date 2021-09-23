@@ -2624,7 +2624,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
 # going to pass is a Scalar container, we can unwrap them on the caller
 # side. This has a number of advantages:
 # * Since in a multiple dispatch we have to decontainerize in order to guard
-#   on the values, this dispatch program will often have already have the
+#   on the values, this dispatch program will often already have the
 #   values in temporaries. Thus we would be doing the work anyway, and don't
 #   need to leave it to the callee.
 # * The specializer may do specialization linking and inlining, and may stack

@@ -205,9 +205,9 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
         has $!keys;
         has $!count;
 
-        method !SET-SELF(\hash,\count) {
+        method !SET-SELF(\hash, $count) {
             $!storage := nqp::getattr(hash,Map,'$!storage');
-            $!count = count;
+            $!count = $count;
             my $iter := nqp::iterator($!storage);
             $!keys := nqp::list_s;
             nqp::while(
@@ -216,7 +216,7 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
             );
             self
         }
-        method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+        method new(\hash, $count) { nqp::create(self)!SET-SELF(hash, $count) }
         method pull-one() {
             nqp::if(
               $!count,

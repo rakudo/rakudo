@@ -1243,11 +1243,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             my $type := $*OFTYPE.ast;
             $cur_lexpad[0].push(QAST::Var.new( :$name, :scope('lexical'),
                 :decl('var'), :returns($type) ));
-            $cur_lexpad.symbol($name, :$type, :scope<lexical>);
+            $cur_lexpad.symbol($name, :$type, :scope<lexical>, :ro(1));
         }
         else {
             $cur_lexpad[0].push(QAST::Var.new(:$name, :scope('lexical'), :decl('var')));
-            $cur_lexpad.symbol($name, :scope('lexical'));
+            $cur_lexpad.symbol($name, :scope('lexical'), :ro(1));
         }
         make $<defterm>.ast;
     }

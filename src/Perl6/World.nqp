@@ -338,7 +338,7 @@ class Perl6::World is HLL::World {
                 $i := $i - 1;
                 my %sym := @!PADS[$i].symbol($name);
                 if %sym {
-                    return nqp::existskey(%sym, 'ro');
+                    return nqp::existskey(%sym, 'ro') && nqp::atkey(%sym, 'ro');
                 }
             }
             0;
@@ -1795,7 +1795,7 @@ class Perl6::World is HLL::World {
             return nqp::null();
         }
 
-        $block.symbol($name, :value($cont));
+        $block.symbol($name, :value($cont), :ro(0));
         self.install_package_symbol_unchecked($package, $name, $cont) if $scope eq 'our';
 
         # Tweak var to have container.
@@ -2392,6 +2392,7 @@ class Perl6::World is HLL::World {
             # Add variable as needed.
             my int $flags := nqp::getattr_i($param_obj, $param_type, '$!flags');
             my $varname := $_<variable_name>;
+
             if $varname && ($flags +& $SIG_ELEM_IS_RW || $flags +& $SIG_ELEM_IS_COPY) {
                 my %sym := $lexpad.symbol($varname);
                 if +%sym && !nqp::existskey(%sym, 'descriptor') {
@@ -2401,7 +2402,9 @@ class Perl6::World is HLL::World {
                     nqp::bindattr($param_obj, $param_type, '$!container_descriptor', $desc);
                     $lexpad.symbol($varname, :descriptor($desc), :$type);
                 }
+                $lexpad.symbol($varname, :ro(0));
             }
+            elsif $varname { $lexpad.symbol($varname, :ro(1)) }
 
             # If it's natively typed and we got "is rw" set, need to mark the
             # container as being a lexical ref.

@@ -7539,7 +7539,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     }
                     $was_lexical := 1;
                 }
-                unless $was_lexical {
+                if $*W.is_lexical_marked_ro($target.name) || !$was_lexical {
                     $*W.throw($/, ['X', 'Bind']);
                 }
             }

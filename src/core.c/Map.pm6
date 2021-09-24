@@ -390,9 +390,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     # Store the contents of an iterator into the Map
-    method !STORE_MAP_FROM_ITERATOR_DECONT(\iter --> Map:D) is raw {
+    method !STORE_MAP_FROM_ITERATOR_DECONT($iterator --> Map:D) is raw {
         nqp::until(
-          nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
+          nqp::eqaddr((my Mu $x := $iterator.pull-one),IterationEnd),
           nqp::if(
             nqp::istype($x,Pair),
             nqp::bindkey(
@@ -404,7 +404,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
               self!STORE_MAP_DECONT($x),
               nqp::if(
-                nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
+                nqp::eqaddr((my Mu $y := $iterator.pull-one),IterationEnd),
                 nqp::if(
                   nqp::istype($x,Failure),
                   $x.throw,
@@ -420,9 +420,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         );
         self
     }
-    method !STORE_MAP_FROM_ITERATOR(\iter --> Map:D) is raw {
+    method !STORE_MAP_FROM_ITERATOR($iterator --> Map:D) is raw {
         nqp::until(
-          nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
+          nqp::eqaddr((my Mu $x := $iterator.pull-one),IterationEnd),
           nqp::if(
             nqp::istype($x,Pair),
             nqp::bindkey(
@@ -434,7 +434,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
               self!STORE_MAP($x),
               nqp::if(
-                nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
+                nqp::eqaddr((my Mu $y := $iterator.pull-one),IterationEnd),
                 nqp::if(
                   nqp::istype($x,Failure),
                   $x.throw,
@@ -560,9 +560,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         has $!pairs;
         has $!count;
 
-        method !SET-SELF(\hash,\count) {
+        method !SET-SELF(\hash, $count) {
             $!storage := nqp::getattr(hash,Map,'$!storage');
-            $!count = count;
+            $!count = $count;
             my int $i = nqp::elems($!storage);
             my \iter := nqp::iterator($!storage);
             $!keys := nqp::setelems(nqp::list_s,$i);
@@ -575,7 +575,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             );
             self
         }
-        method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+        method new(\hash, $count) { nqp::create(self)!SET-SELF(hash, $count) }
         method pull-one() {
             nqp::if(
               $!count,

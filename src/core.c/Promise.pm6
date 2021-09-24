@@ -41,9 +41,9 @@ my class Promise does Awaitable {
     has Mu $!dynamic_context;
     has Bool $!report-broken-if-sunk;
 
-    method !SET-SELF(\scheduler, \report) {
-        $!scheduler             := scheduler;
-        $!report-broken-if-sunk := nqp::if(nqp::istrue(report),True,False);
+    method !SET-SELF($scheduler, $report) {
+        $!scheduler             := $scheduler;
+        $!report-broken-if-sunk := nqp::if(nqp::istrue($report),True,False);
         $!lock                  := nqp::create(Lock);
         $!cond                  := $!lock.condition;
         $!status                := Planned;

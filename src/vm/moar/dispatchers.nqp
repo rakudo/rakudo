@@ -2107,10 +2107,24 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-kind);
         my int $kind := nqp::captureposarg_i($capture, 0);
 
+        # Obtain and track state.
+        my $track-state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
+        my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
+
         # If it's a lastcall, we'll poke an Exhausted into the state,
         # propagate it, and produce Nil.
         if $kind == nqp::const::DISP_LASTCALL {
             nqp::dispatch('boot-syscall', 'dispatcher-set-resume-state-literal', Exhausted);
+            if !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $capture, 0, Nil));
+            }
+        }
+
+        # If we're already exhausted, try for the next dispatcher.
+        elsif nqp::istype($state, Exhausted) {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-state);
             if !nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
@@ -2131,8 +2145,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
                 $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                     $args, 0, $track-invocant);
             }
-            my $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
-                $init, 0);
+            my $track-cur-state;
+            if nqp::isnull($track-cur-state) {
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-state);
+                $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $init, 0);
+            }
+            else {
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-state);
+                $track-cur-state := $track-state;
+            }
             my $track-target := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
                 $init, 1);
             my $with-target := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
@@ -2157,8 +2178,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
                 $orig-capture, 0);
 
             # Have dispatch state already, or first resume?
-            my $track-state := nqp::dispatch('boot-syscall', 'dispatcher-track-resume-state');
-            my $state := nqp::dispatch('boot-syscall', 'dispatcher-get-resume-state');
             if nqp::isnull($state) {
                 # First resumption. Guard that it is so.
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-state);
@@ -2242,16 +2261,19 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', $disp, $capture-delegate);
     }
     elsif nqp::istype($cur-state, MultiDispatchEnd) || nqp::istype($cur-state, Exhausted) {
-        # If this is the initial dispatch, then error, otherwise hand back Nil.
+        # If this is the initial dispatch, then error, otherwise try the next
+        # resumption (possibly method dispatch), and finally give up.
         if $kind == nqp::const::DISP_NONE {
             my $target := nqp::captureposarg($orig-capture, 0);
             multi-no-match-handler($target, $arg-capture, $orig-capture, $arg-capture);
         }
         else {
             nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-cur-state);
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                    $arg-capture, 0, Nil));
+            unless nqp::dispatch('boot-syscall', 'dispatcher-next-resumption') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $arg-capture, 0, Nil));
+            }
         }
     }
     elsif nqp::istype($cur-state, MultiDispatchAmbiguous) {
@@ -2271,7 +2293,7 @@ sub raku-multi-non-trivial-step(int $kind, $track-cur-state, $cur-state, $orig-c
         }
     }
     else {
-        nqp::die('Non-trivial multi dispatch step NYI for ' ~ $cur-state.HOW.name($cur-state));
+        nqp::die('Unexpected multi dispatch step ' ~ $cur-state.HOW.name($cur-state));
     }
 }
 sub peel-off-candidate($is-resume, $track-cur-state, $cur-state, $orig-capture) {

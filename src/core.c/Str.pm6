@@ -932,13 +932,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has str $!str;
         has Mu  $!what;
         has int $!pos;
-        method !SET-SELF(\string) {
-            $!str   = string;
-            $!what := string.WHAT;
+        method !SET-SELF($string) {
+            $!str   = $string;
+            $!what := $string.WHAT;
             $!pos   = -1;
             self
         }
-        method new(\string) { nqp::create(self)!SET-SELF(string) }
+        method new($string) { nqp::create(self)!SET-SELF($string) }
         method pull-one() {
             nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::chars($!str))
               ?? nqp::box_s(nqp::substr($!str,$!pos,1),$!what) #?js: NFG
@@ -974,20 +974,20 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has int $!size;
         has int $!pos;
         has int $!todo;
-        method !SET-SELF(\string,\size,\limit) {
-            $!str   = string;
-            $!what := string.WHAT;
-            $!size  = size < 1 ?? 1 !! size;
+        method !SET-SELF($string, $size, $limit) {
+            $!str   = $string;
+            $!what := $string.WHAT;
+            $!size  = $size < 1 ?? 1 !! $size;
             $!pos   = -$!size;
             $!todo  = 1 + ((nqp::chars($!str) - 1) div $!size);
-            $!todo  = limit
-              unless nqp::istype(limit,Whatever) || limit > $!todo;
+            $!todo  = $limit
+              unless nqp::istype($limit,Whatever) || $limit > $!todo;
             $!todo  = $!todo + 1;
             self
         }
-        method new(\string,\size,\limit) {
-            string
-              ?? nqp::create(self)!SET-SELF(string,size,limit)
+        method new($string, $size, $limit) {
+            $string
+              ?? nqp::create(self)!SET-SELF($string, $size, $limit)
               !! Rakudo::Iterator.Empty
         }
         method pull-one() {
@@ -1033,7 +1033,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     multi method comb(Str:D: Int:D $size, $limit = * --> Seq:D) {
         $size <= 1 && (nqp::istype($limit,Whatever) || $limit == Inf)
           ?? self.comb
-          !! Seq.new(CombN.new(self,$size,$limit))
+          !! Seq.new(CombN.new(self, $size, $limit))
     }
 
     my class CombPat does Iterator {
@@ -1878,14 +1878,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has Mu  $!what;
         has int $!chars;
         has int $!pos;
-        method !SET-SELF(\string) {
-            $!str   = nqp::unbox_s(string);
-            $!what := string.WHAT;
+        method !SET-SELF($string) {
+            $!str   = $string;
+            $!what := $string.WHAT;
             $!chars = nqp::chars($!str);
             $!pos   = 0;
             self
         }
-        method new(\string) { nqp::create(self)!SET-SELF(string) }
+        method new($string) { nqp::create(self)!SET-SELF($string) }
         method pull-one() {
             nqp::if(
               (my int $left = $!chars - $!pos) > 0,
@@ -1953,14 +1953,14 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has Mu  $!what;
         has int $!chars;
         has int $!pos;
-        method !SET-SELF(\string) {
-            $!str   = nqp::unbox_s(string);
-            $!what := string.WHAT;
+        method !SET-SELF($string) {
+            $!str   = $string;
+            $!what := $string.WHAT;
             $!chars = nqp::chars($!str);
             $!pos   = 0;
             self
         }
-        method new(\string) { nqp::create(self)!SET-SELF(string) }
+        method new($string) { nqp::create(self)!SET-SELF($string) }
         method pull-one() {
             nqp::if(
               (my int $left = $!chars - $!pos) > 0,
@@ -2029,13 +2029,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         Seq.new(($chomp ?? Lines !! LinesKeepNL).new(self))
     }
 
-    method !ensure-split-sanity(\v,\k,\kv,\p) {
+    method !ensure-split-sanity($v, $k, $kv, $p) {
         # cannot combine these
-        my int $any = ?v + ?k + ?kv + ?p;
+        my int $any = $v.Bool + $k.Bool + $kv.Bool + $p.Bool;
         X::Adverb.new(
           what   => 'split',
           source => 'Str',
-          nogo   => (:v(v),:k(k),:kv(kv),:p(p)).grep(*.value).map(*.key),
+          nogo   => (:$v, :$k, :$kv, :$p).grep(*.value).map(*.key),
         ).throw if nqp::isgt_i($any,1);
         $any
     }
@@ -2839,15 +2839,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has int $!chars;
         has int $!pos;
 
-        method !SET-SELF(\string) {
-            $!str   = nqp::unbox_s(string);
-            $!what := string.WHAT;
+        method !SET-SELF($string) {
+            $!str   = $string;
+            $!what := $string.WHAT;
             $!chars = nqp::chars($!str);
             $!pos   = nqp::findnotcclass(
               nqp::const::CCLASS_WHITESPACE, $!str, 0, $!chars);
             self
         }
-        method new(\string) { nqp::create(self)!SET-SELF(string) }
+        method new($string) { nqp::create(self)!SET-SELF($string) }
         method pull-one() {
             nqp::if(
               (my int $left = $!chars - $!pos) > 0,
@@ -3059,17 +3059,19 @@ my class Str does Stringy { # declared in BOOTSTRAP
         has str $!unsubstituted_text;
         has str $!substituted_text;
 
-        method !SET-SELF(\source,\substitutions,\squash,\complement) {
-            $!source         = nqp::unbox_s(source);
-            $!what          := source.WHAT;
+        method !SET-SELF($source, \substitutions, $squash, $complement) {
+            $!source         = $source;
+            $!what          := $source.WHAT;
             $!substitutions := nqp::getattr(substitutions,List,'$!reified');
-            $!squash         = ?squash;
-            $!complement     = ?complement;
+            $!squash         = $squash.Bool;
+            $!complement     = $complement.Bool;
             $!prev_result    = '';
             self
         }
-        method new(\source,\substitutions,\squash,\complement) {
-            nqp::create(self)!SET-SELF(source,substitutions,squash,complement)
+        method new($source, \substitutions, $squash, $complement) {
+            nqp::create(self)!SET-SELF(
+              $source, substitutions, $squash, $complement
+            )
         }
 
         method !compare_substitution(

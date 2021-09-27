@@ -87,8 +87,16 @@
             }
         }
         else {
-            # Not containerizied, so identity shall do.
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+            # Not containerizied, so identity shall do,
+            # Unless it is null, then we map it to Mu.
+            if nqp::isnull($rv) {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $capture, 0, Mu));
+            }
+            else {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+            }
         }
     });
 

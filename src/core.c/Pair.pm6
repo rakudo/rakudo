@@ -5,7 +5,7 @@ my class Pair does Associative {
 
     proto method new(|) {*}
     # This candidate is needed because it currently JITs better
-    multi method new(Pair: Cool:D $key, Mu \value) {
+    multi method new(Pair: Str:D $key, Mu \value) {
         my \p := nqp::p6bindattrinvres(
           nqp::create(self),Pair,'$!key',$key);
         nqp::bindattr(p,Pair,'$!value',value);

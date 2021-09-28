@@ -381,10 +381,10 @@
                 else {
                     # No whence, no Nil. Is it a nominal type? If yes, we can check
                     # it here.
+                    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
                     if $of.HOW.archetypes.nominal && nqp::istype($value, $of) {
                         # Nominal and passes type check; stack up gurads and delegate to
                         # simple bind.
-                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
                         my $tracked-of := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                                 $tracked-desc, ContainerDescriptor, '$!of');
                         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $tracked-of);

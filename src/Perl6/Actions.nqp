@@ -5582,7 +5582,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             # Set name, if there is one.
             if $<name> {
                 %*PARAM_INFO<variable_name> := ~$<declname>;
-                %*PARAM_INFO<desigilname> := ~$<name>;
+                %*PARAM_INFO<desigilname> := ~($<name><subshortname> // $<name>);
             }
             %*PARAM_INFO<sigil> := my $sigil := ~$<sigil>;
 
@@ -5759,7 +5759,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method named_param($/) {
         %*PARAM_INFO<named_names> := %*PARAM_INFO<named_names> || nqp::list_s();
         if $<name>               { nqp::push_s(%*PARAM_INFO<named_names>, ~$<name>); }
-        elsif $<param_var><name> { nqp::push_s(%*PARAM_INFO<named_names>, ~$<param_var><name>); }
+        elsif $<param_var><name> { 
+            my $name := $<param_var><name>;
+            nqp::push_s(%*PARAM_INFO<named_names>, ~($name<subshortname> // $name));
+        }
         else                     { nqp::push_s(%*PARAM_INFO<named_names>, ''); }
     }
 

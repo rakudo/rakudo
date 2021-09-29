@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 48;
+plan 47;
 
 # https://github.com/Raku/old-issue-tracker/issues/6613
 
@@ -229,10 +229,6 @@ for ThreadPoolScheduler.new, CurrentThreadScheduler -> $*SCHEDULER {
         'Too many positionals' .+ 'expected 0 arguments but got 1'
     /), '.tap block with incorrect signature must fail';
 }
-
-# https://github.com/Raku/old-issue-tracker/issues/5290
-is-run ｢133742.print｣, :compiler-args[<--rxtrace>], :out{ .ends-with: 133742 },
-    '--rxtrace does not crash';
 
 # https://github.com/rakudo/rakudo/issues/1336
 throws-like ｢

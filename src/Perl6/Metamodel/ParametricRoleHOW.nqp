@@ -30,7 +30,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     my $anon_id := 1;
@@ -92,7 +92,9 @@ class Perl6::Metamodel::ParametricRoleHOW
             }
         }
         @!role_typecheck_list := @rtl;
+#?if !moar
         self.compose_invocation($obj);
+#?endif
         $!composed := 1;
         $obj
     }

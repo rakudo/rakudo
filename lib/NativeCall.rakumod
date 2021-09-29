@@ -269,6 +269,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     has Pointer $!entry-point;
     has int $!arity;
     has int $!any-optionals;
+    has int $!any-callbacks;
     has Mu $!optimized-body;
     has Mu $!jit-optimized-body;
     has $!name;
@@ -295,6 +296,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
             $!arity = $r.signature.arity;
             $!any-optionals = self!any-optionals;
+            $!any-callbacks = self!any-callbacks;
 
             my $jitted = nqp::buildnativecall(self,
                 nqp::unbox_s($guessed_libname),                           # library name
@@ -327,6 +329,13 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     method !any-optionals() {
         for $r.signature.params -> $p {
             return True if $p.optional
+        }
+        return False
+    }
+
+    method !any-callbacks() {
+        for $r.signature.params -> $p {
+            return True if $p.type ~~ Callable
         }
         return False
     }
@@ -446,7 +455,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         for $r.signature.params {
             next if nqp::istype($r, Method) && ($_.name // '') eq '%_';
             my $name = $_.name || '__anonymous_param__' ~ $++;
-            my $decont = self!decont-for-type($_.type);
             if $_.rw and nqp::objprimspec($_.type) > 0 {
                 $block.push: QAST::Var.new(
                     :name($name),
@@ -491,7 +499,25 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                         QAST::Var.new(:scope<local>, :name($lowered_name)),
                     ),
                 );
-                $arglist.push: QAST::Var.new(:scope<local>, :name($lowered_name));
+                if nqp::istype($_.type, Callable) {
+                    $arglist.push: QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('istype'),
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                            QAST::WVal.new( :value(Code) ),
+                        ),
+                        QAST::Op.new(
+                            :op('getattr'),
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                            QAST::WVal.new( :value(Code) ),
+                            QAST::SVal.new( :value('$!do') )
+                        ),
+                        QAST::Var.new(:scope<local>, :name($lowered_name)));
+                }
+                else {
+                    $arglist.push: QAST::Var.new(:scope<local>, :name($lowered_name));
+                }
             }
         }
         $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
@@ -589,6 +615,16 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
 
             my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
             self!arity-error(args) if nqp::elems($args) != $!arity;
+            if $!any-callbacks {
+                my int $i = 0;
+                while $i < nqp::elems($args) {
+                    my $arg := nqp::decont(nqp::atpos($args, $i));
+                    if nqp::istype_nd($arg, Code) {
+                        nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
+                    }
+                    $i++;
+                }
+            }
 
             nqp::nativecall($!rettype, self, $args)
         };

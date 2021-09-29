@@ -413,9 +413,9 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
             )
         }
     }
-    multi method STORE(::?CLASS:D: Iterator:D \iterator, :$INITIALIZE) {
+    multi method STORE(::?CLASS:D: Iterator:D $iterator, :$INITIALIZE) {
         self!RE-INITIALIZE unless $INITIALIZE;
-        StoreIterator.new(self,iterator).sink-all;
+        StoreIterator.new(self,$iterator).sink-all;
         self
     }
 

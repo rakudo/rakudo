@@ -1,3 +1,5 @@
+# MoarVM uses new-disp instead of these
+#?if !moar
 class Perl6::Metamodel::BaseDispatcher {
     has @!candidates;
     has $!idx;
@@ -175,5 +177,6 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
         nqp::invokewithcapture($first, $capture);
     }
 }
+#?endif
 
 # vim: expandtab sw=4

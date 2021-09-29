@@ -203,12 +203,12 @@ my class Capture { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Capture:D \a, Capture:D \b --> Bool:D) {
+multi sub infix:<eqv>(Capture:D $a, Capture:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT)
-             && a.Capture::list eqv b.Capture::list
-             && a.Capture::hash eqv b.Capture::hash)
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT)
+             && $a.Capture::list eqv $b.Capture::list
+             && $a.Capture::hash eqv $b.Capture::hash)
     )
 }
 

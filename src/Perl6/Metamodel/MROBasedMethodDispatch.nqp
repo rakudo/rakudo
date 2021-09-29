@@ -6,22 +6,26 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
 # uncomment line below for verbose information about uncached method lookups
 #nqp::say( "looking for " ~ $name ~ " in " ~ $obj.HOW.name($obj) );
 #
-        if nqp::can($obj.HOW, 'submethod_table') {
-            my %submethods := nqp::hllize($obj.HOW.submethod_table($obj));
-            if nqp::existskey(%submethods, $name) {
-                return %submethods{$name}
-            }
+        my $obj_how := nqp::how_nd($obj);
+        if nqp::can($obj_how, 'submethod_table') {
+            my %submethods := nqp::hllize($obj_how.submethod_table($obj));
+            my $found := nqp::atkey(%submethods, $name);
+            return $found if nqp::isconcrete($found);
         }
         my %methods;
-        for self.mro($obj) {
-            %methods := nqp::hllize($_.HOW.method_table($_));
-            if nqp::existskey(%methods, $name) {
-                return %methods{$name}
-            }
+        my @mro := self.mro($obj);
+        my int $i := 0;
+        my int $n := nqp::elems(@mro);
+        while $i < $n {
+            my $class := nqp::atpos(@mro, $i);
+            %methods := nqp::hllize($class.HOW.method_table($class));
+            my $found := nqp::atkey(%methods, $name);
+            return $found if nqp::isconcrete($found);
+            $i++;
         }
-        !$no_fallback && nqp::can(self, 'find_method_fallback') ??
-            self.find_method_fallback($obj, $name) !!
-            nqp::null();
+        !$no_fallback && nqp::can(self, 'find_method_fallback')
+            ?? self.find_method_fallback($obj, $name)
+            !!nqp::null()
     }
 
     method find_method_qualified($obj, $qtype, $name) {
@@ -34,7 +38,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         else {
             # Non-parametric, so just locate it from the already concrete
             # type (or fallback to this if no .concretization on ourself).
-            nqp::findmethod($qtype, $name)
+            $qtype.HOW.find_method($qtype, $name)
         }
     }
 
@@ -55,6 +59,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
     }
 
     method publish_method_cache($obj) {
+#?if !moar
         # Walk MRO and add methods to cache, unless another method
         # lower in the class hierarchy "shadowed" it.
         my %cache;
@@ -81,6 +86,7 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($obj) {
             nqp::setmethcacheauth($obj, $authable);
         }
+#?endif
     }
 }
 

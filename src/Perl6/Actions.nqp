@@ -150,8 +150,7 @@ sub wanted($ast,$by) {
             my $block-closure;
             if $body.ann('loop-already-block-first-phaser') -> $loop-goods {
                 $block := $loop-goods[0][1][0];
-                $block-closure := QAST::Op.new: :node($body.node),
-                    :op<p6setfirstflag>, block_closure($block);
+                $block-closure := set_first_flag(block_closure($block));
 
                 # get rid of now-useless var and other bits of the QAST.
                 # If we .shift off all items, the QAST::Stmts gets a null
@@ -336,7 +335,7 @@ sub unwanted($ast, $by) {
             if $node.op eq 'callmethod' && !$ast.nosink {
                 if !$node.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$node.name} {
                     $ast.sunk(1);
-                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
+                    $ast := QAST::Op.new(:op<p6sink>, $ast);
                     $ast.sunk(1);
                     return $ast;
                 }
@@ -347,7 +346,7 @@ sub unwanted($ast, $by) {
             if !$ast.nosink && !$*COMPILING_CORE_SETTING && !%nosink{$ast.name} {
                 return $ast if $*ALREADY_ADDED_SINK_CALL;
                 $ast.sunk(1);
-                $ast := QAST::Op.new(:op<callmethod>, :name<sink>, $ast);
+                $ast := QAST::Op.new(:op<p6sink>, $ast);
                 $ast.sunk(1);
                 return $ast;
             }
@@ -459,7 +458,7 @@ sub unwanted($ast, $by) {
             }
             elsif $node.op eq 'callmethod' {
                 if !$node.nosink && !%nosink{$node.name} {
-                    $ast := QAST::Op.new(:op<callmethod>, :name<sink>, unwanted($node, $byby));
+                    $ast := QAST::Op.new(:op<p6sink>, unwanted($node, $byby));
                     $ast.sunk(1);
                     return $ast;
                 }
@@ -515,7 +514,7 @@ sub add-sink-to-final-call($parent, $pos, $qast = $parent[$pos]) {
         add-sink-to-final-call($parent, $pos, $qast[0])
     }
     elsif nqp::istype($qast, QAST::Op) && $qast.op eq 'call' && !$qast.nosink {
-        $parent[$pos] := QAST::Op.new: :op<callmethod>, :name<sink>, $qast
+        $parent[$pos] := QAST::Op.new: :op<p6sink>, $qast
     }
 }
 
@@ -546,10 +545,9 @@ register_op_desugar('p6reprname', -> $qast {
     QAST::Op.new( :op('box_s'), QAST::Op.new( :op('reprname'), $qast[0]), QAST::Op.new( :op('hllboxtype_s') ) )
 });
 register_op_desugar('p6callmethodhow', -> $qast {
-    $qast   := $qast.shallow_clone();
+    $qast   := QAST::Op.new(:op<callmethod>, :name($qast.name), |$qast.list);
     my $inv := $qast.shift;
     my $tmp := QAST::Node.unique('how_invocant');
-    $qast.op('callmethod');
     $qast.unshift(QAST::Var.new( :name($tmp), :scope('local') ));
     $qast.unshift(QAST::Op.new(
         :op('how'),
@@ -834,6 +832,7 @@ register_op_desugar('p6recont_ro', -> $qast {
 register_op_desugar('p6var', -> $qast {
     my $result := QAST::Node.unique('result');
     my $Scalar := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'Scalar')) );
+    my $ScalarVAR := QAST::WVal.new( :value(nqp::gethllsym('Raku', 'ScalarVAR')) );
     QAST::Stmt.new(
         QAST::Op.new(
             :op('bind'),
@@ -855,7 +854,7 @@ register_op_desugar('p6var', -> $qast {
             ),
             QAST::Op.new(
                 :op('p6bindattrinvres'),
-                QAST::Op.new( :op('create'), $Scalar ),
+                QAST::Op.new( :op('create'), $ScalarVAR ),
                 $Scalar,
                 QAST::SVal.new( :value('$!value') ),
                 QAST::Var.new( :name($result), :scope('local') )
@@ -877,22 +876,10 @@ register_op_desugar('time_n', -> $qast {
             $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
         }
         if $is_moar {
-            my $result := QAST::Node.unique('result');
-            QAST::Stmt.new(
-                QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($result), :scope('local'), :decl('var') ),
-                    QAST::Op.new( :op('wantdecont'), $qast[0] )
-                ),
-                QAST::Op.new(
-                    :op('call'),
-                    QAST::Op.new(
-                        :op('speshresolve'),
-                        QAST::SVal.new( :value($qast[1] eq '6c' ?? 'decontrv_6c' !! 'decontrv') ),
-                        QAST::Var.new( :name($result), :scope('local') )
-                    ),
-                    QAST::Var.new( :name($result), :scope('local') ),
-                )
+            QAST::Op.new(
+                :op('dispatch'),
+                QAST::SVal.new( :value($qast[1] eq '6c' ?? 'raku-rv-decont-6c' !! 'raku-rv-decont') ),
+                QAST::Op.new( :op('p6box'), QAST::Op.new( :op('wantdecont'), $qast[0] ) )
             )
         }
         else {
@@ -968,7 +955,6 @@ register_op_desugar('time_n', -> $qast {
         }
         if $is_moar {
             my $cont := QAST::Node.unique('assign_cont');
-            my $value := QAST::Node.unique('assign_value');
             QAST::Stmts.new(
                 QAST::Op.new(
                     :op('bind'),
@@ -976,20 +962,10 @@ register_op_desugar('time_n', -> $qast {
                     $qast[0]
                 ),
                 QAST::Op.new(
-                    :op('bind'),
-                    QAST::Var.new( :name($value), :scope('local'), :decl('var') ),
-                    QAST::Op.new( :op('decont'), $qast[1] )
-                ),
-                QAST::Op.new(
-                    :op('call'),
-                    QAST::Op.new(
-                        :op('speshresolve'),
-                        QAST::SVal.new( :value('assign') ),
-                        QAST::Var.new( :name($cont), :scope('local') ),
-                        QAST::Var.new( :name($value), :scope('local') ),
-                    ),
+                    :op('dispatch'),
+                    QAST::SVal.new( :value('raku-assign') ),
                     QAST::Var.new( :name($cont), :scope('local') ),
-                    QAST::Var.new( :name($value), :scope('local') ),
+                    QAST::Op.new( :op('decont'), $qast[1] )
                 ),
                 QAST::Var.new( :name($cont), :scope('local') )
             )
@@ -1018,6 +994,26 @@ sub monkey_see_no_eval($/) {
         ?? $msne   # prevails if defined, can be either 1 or 0
         !! $*COMPILING_CORE_SETTING
             || try { $*W.find_single_symbol('&MONKEY-SEE-NO-EVAL')() };
+}
+
+sub set_first_flag($block) {
+    my $temp := QAST::Node.unique('first_tmp');
+    QAST::Stmts.new:
+        :resultchild(0),
+        QAST::Op.new(
+            :op('bind'),
+            QAST::Var.new( :decl('var'), :scope('local'), :name($temp) ),
+            $block
+        ),
+        QAST::Op.new(
+            :op('p6setfirstflag'),
+            QAST::Op.new(
+                :op('getattr'),
+                QAST::Var.new( :scope('local'), :name($temp) ),
+                QAST::WVal.new( :value($*W.find_symbol(['Code'])) ),
+                QAST::SVal.new( :value('$!do') )
+            )
+       )
 }
 
 role STDActions {
@@ -2117,7 +2113,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 my $var  := QAST::Var.new: :$node, :name($tmp), :scope<local>;
                 $loop := QAST::Stmts.new(:$node,
                     QAST::Op.new(:$node, :op<bind>, $var.decl_as('var'),
-                      QAST::Op.new: :$node, :op<p6setfirstflag>, $loop[1]),
+                      set_first_flag($loop[1])),
                     $loop);
                 $loop[1][1] := QAST::Op.new(:$node, :op<call>, $var
                   ).annotate_self: 'loop-already-block-first-phaser', $loop;
@@ -2820,11 +2816,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method term:sym<lambda>($/) {
         my $ast   := $<pblock>.ast;
         my $block := $ast.ann('past_block');
+#?if !moar
         $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
         $block[0].push(QAST::Op.new(
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
+#?endif
         make block_closure($ast);
     }
     method term:sym<unquote>($/) {
@@ -4104,10 +4102,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $signature := $*W.create_signature_and_params($/,
                 nqp::hash('parameters', @params), $block, 'Any');
         }
-        add_signature_binding_code($block, $signature, @params);
+        add_signature_binding_code($block, $signature, @params, :multi($*MULTINESS ne ''));
 
         # Needs a slot that can hold a (potentially unvivified) dispatcher;
         # if this is a multi then we'll need it to vivify to a MultiDispatcher.
+#?if !moar
         if $*MULTINESS eq 'multi' {
             $*W.install_lexical_symbol($block, '$*DISPATCHER', $*W.find_single_symbol('MultiDispatcher'));
         }
@@ -4118,9 +4117,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
+#?endif
 
         # If it's a proto but not an onlystar, need some variables for the
-        # {*} implementation to use.
+        # {*} implementation to use (except on MoarVM, which relies on the
+        # MoarVM dispatcher mechanism).
+#?if !moar
         if $*MULTINESS eq 'proto' && !$<onlystar> {
             $block[0].push(QAST::Op.new(
                 :op('bind'),
@@ -4133,6 +4135,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
             ));
         }
+#?endif
 
         # Set name if we have one
         if $<deflongname> {
@@ -4320,6 +4323,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $p_past := $*W.push_lexpad($/);
         $p_past.name(~$name);
         $p_past.is_thunk(1);
+#?if moar
+        $p_past.push(QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('boot-resume') ),
+            QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) )));
+#?endif
+#?if !moar
         $p_past.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(
@@ -4341,6 +4351,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Op.new( :op('usecapture') )
         ));
+#?endif
         $*W.pop_lexpad();
         $install_in.push(QAST::Stmt.new($p_past));
         my @p_params := [hash(is_capture => 1, type => $*W.find_single_symbol('Mu') )];
@@ -4592,7 +4603,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
             %*SIG_INFO, :yada(is_yada($/)));
 
         # If it's a proto but not an onlystar, need some variables for the
-        # {*} implementation to use.
+        # {*} implementation to use on non-MoarVM.
+#?if !moar
         if $*MULTINESS eq 'proto' && !$<onlystar> {
             # Also stash the current lexical dispatcher and capture, for the {*}
             # to resolve.
@@ -4607,6 +4619,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Op.new( :op('getcodeobj'), QAST::Op.new( :op('curcode') ) )
             ));
         }
+#?endif
 
         # attach return type
         if $*OFTYPE {
@@ -4691,7 +4704,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my @params := %sig_info<parameters>;
         my $signature := $*W.create_signature_and_params($<multisig> ?? $<multisig> !! $/,
             %sig_info, $block, 'Any');
-        add_signature_binding_code($block, $signature, @params);
+        add_signature_binding_code($block, $signature, @params, :multi($*MULTINESS ne ''));
 
         # Finish code object, associating it with the routine body.
         if $<deflongname> {
@@ -4757,12 +4770,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $past.symbol('self', :scope('lexical'));
 
         # Needs a slot to hold a multi or method dispatcher.
+#?if !moar
         $*W.install_lexical_symbol($past, '$*DISPATCHER',
             $*W.find_single_symbol($*MULTINESS eq 'multi' ?? 'MultiDispatcher' !! 'MethodDispatcher'));
         $past[0].push(QAST::Op.new(
             :op('takedispatcher'),
             QAST::SVal.new( :value('$*DISPATCHER') )
         ));
+#?endif
 
         # Finish up code object.
         $*W.attach_signature($code, $signature);
@@ -4854,6 +4869,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Add dispatching code.
+#?if moar
+        $BLOCK.push(QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('boot-resume') ),
+            QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) )));
+#?endif
+#?if !moar
         $BLOCK.push(QAST::Op.new(
             :op('invokewithcapture'),
             QAST::Op.new(
@@ -4875,6 +4897,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Op.new( :op('usecapture') )
         ));
+#?endif
         $BLOCK.node($/);
         $BLOCK.is_thunk(1);
         make $BLOCK;
@@ -6563,6 +6586,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $i := $i + 2;
             }
         }
+        elsif $op eq 'dispatch' {
+            # We generally want to send unboxed string/int values in for dispatch
+            # arguments (although leave normal ones alone); we can't really
+            # know which are which, but if we're writing out an `nqp::op`
+            # just assume that they should all be unboxed; most situations
+            # will see the dispatch op generated anyway.
+            my int $i := 0;
+            my int $n := nqp::elems($past.list);
+            while $i < $n {
+                if nqp::istype($past[$i], QAST::Want) &&
+                        ($past[$i][1] eq 'Ss' || $past[$i][1] eq 'Ii') {
+                    $past[$i] := $past[$i][2];
+                }
+                $i++;
+            }
+        }
         $past.node($/);
         nqp::getcomp('QAST').operations.attach_result_type('Raku', $past);
         make $past;
@@ -6585,6 +6624,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method term:sym<onlystar>($/) {
+#?if moar
+        make QAST::Op.new(
+            :op('dispatch'),
+            QAST::SVal.new( :value('boot-resume') ),
+            QAST::IVal.new( :value(nqp::const::DISP_ONLYSTAR) ));
+#?endif
+#?if !moar
         my $dc_name := QAST::Node.unique('dispatch_cap');
         my $stmts := QAST::Stmts.new(
             QAST::Op.new(
@@ -6614,6 +6660,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 QAST::Var.new( :name($dc_name), :scope('local') )
             ));
         make QAST::Op.new( :op('locallifetime'), $stmts, $dc_name );
+#?endif
     }
 
     method args($/) {
@@ -7000,11 +7047,13 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         else {
             my $block := $past.ann('past_block');
+#?if !moar
             $block[0].push(QAST::Var.new( :name('$*DISPATCHER'), :scope('lexical'), :decl('var') ));
             $block[0].push(QAST::Op.new(
                 :op('takedispatcher'),
                 QAST::SVal.new( :value('$*DISPATCHER') )
             ));
+#?endif
             $past := block_closure($past);
             $past.annotate('bare_block', QAST::Op.new( :op('call'), $past ));
         }
@@ -8967,7 +9016,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     # Adds code to do the signature binding.
     my $use_vm_binder;
-    sub add_signature_binding_code($block, $sig_obj, @params) {
+    sub add_signature_binding_code($block, $sig_obj, @params, :$multi) {
         # Set arity.
         my int $arity := 0;
         my $count := 0;
@@ -9034,8 +9083,26 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # handling.
         if $need_full_binder {
             $block.custom_args(1);
-            $block[0].push(QAST::Op.new( :op('p6bindsig') ));
+            $block[0].push(QAST::Op.new(
+                :op('if'),
+                QAST::Op.new(
+                    :op('dispatch'),
+                    QAST::SVal.new( :value('boot-syscall') ),
+                    QAST::SVal.new( :value('bind-will-resume-on-failure') )
+                ),
+                QAST::Op.new(
+                    :op('assertparamcheck'),
+                    QAST::Op.new( :op('p6trybindsig') )
+                ),
+                QAST::Op.new( :op('p6bindsig') )
+            ));
         }
+
+#?if moar
+        if $multi {
+            $block[0].push(QAST::Op.new( :op('bindcomplete') ));
+        }
+#?endif
 
         $block;
     }
@@ -10144,15 +10211,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     # Some calls are handled specially by their name.
-    my %dispatchered := nqp::hash(
-        'callsame', NQPMu,
-        'callwith', NQPMu,
-        'nextsame', NQPMu,
-        'nextwith', NQPMu,
-        'nextcallee', NQPMu,
-        'lastcall', NQPMu,
-        'samewith', NQPMu,
-    );
     sub handle_special_call_names($/, $args, $name) {
         if $name eq 'sink' {
             return $args;   # Note that sink itself wants its args, to eat 'em...
@@ -10181,9 +10239,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
             }
             $*W.throw($/, 'X::SecurityPolicy::Eval') unless $all_literal || monkey_see_no_eval($/);
             $*W.cur_lexpad().no_inline(1);
-        }
-        elsif nqp::existskey(%dispatchered, $name) {
-            $*W.mark_no_inline_upto_dispatcher();
         }
         WANTALL($args, 'handle_special_call_names');
         $args;

@@ -10,16 +10,12 @@ my role SoftRoutine {
 my class Routine { # declared in BOOTSTRAP
     # class Routine is Block
     #     has @!dispatchees;
-    #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
     #     has int $!flags;
     #     has Mu $!inline_info;
     #     has Mu $!package;
-    #     has int $!onlystar;
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
-
-    method onlystar() { nqp::hllbool($!onlystar) }
 
     method candidates() {
         self.is_dispatcher ??
@@ -81,6 +77,7 @@ my class Routine { # declared in BOOTSTRAP
 
     method soft( --> Nil ) { }
 
+#?if !moar
     method wrap(&wrapper) {
         my class WrapHandle {
             has $!dispatcher;
@@ -121,13 +118,78 @@ my class Routine { # declared in BOOTSTRAP
         unless nqp::istype(self, Wrapped) {
             my $orig = self.clone();
             self does Wrapped;
-            $!onlystar = 0; # disable optimization if no body there
             self.UNSHIFT_WRAPPER($orig);
         }
 
         # Add this wrapper.
         self.UNSHIFT_WRAPPER(&wrapper);
     }
+#?endif
+
+#?if moar
+    my role Wrapped {
+        has Mu $!wrappers;
+        has Routine $!wrapper-type;
+        method WRAPPERS() { $!wrappers }
+        method WRAPPER-TYPE() { $!wrapper-type }
+        method ADD-WRAPPER(&wrapper --> Nil) {
+            my $new-wrappers := nqp::isconcrete($!wrappers)
+                ?? nqp::clone($!wrappers)
+                !! IterationBuffer.new;
+            nqp::unshift($new-wrappers, &wrapper);
+            $!wrappers := $new-wrappers;
+        }
+        method REMOVE-WRAPPER(&wrapper --> Bool) {
+            my $new-wrappers := IterationBuffer.new;
+            my int $i = 0;
+            my Bool $found := False;
+            while $i < nqp::elems($!wrappers) {
+                my $wrapper := nqp::atpos($!wrappers, $i);
+                if nqp::eqaddr(&wrapper, $wrapper) {
+                    $found := True;
+                }
+                else {
+                    nqp::push($new-wrappers, $wrapper);
+                }
+                $i++;
+            }
+            $!wrappers := $new-wrappers if $found;
+            $found
+        }
+    }
+    my class WrapHandle {
+        has &!routine;
+        has $!wrapper;
+        method restore(--> Bool) {
+            nqp::can(&!routine, 'REMOVE-WRAPPER')
+                ?? &!routine.REMOVE-WRAPPER($!wrapper)
+                !! False
+        }
+    }
+    method wrap(&wrapper) {
+        # We can't wrap a hardened routine (that is, one that's been
+        # marked inlinable).
+        if nqp::istype(self, HardRoutine) {
+            die "Cannot wrap a HardRoutine, since it may have been inlined; " ~
+                "use the 'soft' pragma to avoid marking routines as hard.";
+        }
+
+        # Mix in the Wrapped role if needed and add the wrapper.
+        unless nqp::istype(self, Wrapped) {
+            my $orig := self.clone;
+            self does Wrapped;
+            nqp::bindattr(self, self.WHAT, '$!wrapper-type', self.WHAT);
+            self.ADD-WRAPPER($orig);
+        }
+        self.ADD-WRAPPER(&wrapper);
+
+        # Create and return a wrap handle
+        my $handle := nqp::create(WrapHandle);
+        nqp::bindattr($handle, WrapHandle, '&!routine', self);
+        nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
+        $handle
+    }
+#?endif
 
     method unwrap($handle) {
         $handle.can('restore') && $handle.restore() ||

@@ -30,7 +30,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     my $selector_creator;
@@ -54,7 +54,9 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             $type.HOW.'!produce_parameterization'($type, @packed);
         });
 
+#?if !moar
         $meta.compose_invocation($type_obj);
+#?endif
 
         $type_obj
     }

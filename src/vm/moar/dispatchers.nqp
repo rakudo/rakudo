@@ -2154,7 +2154,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-non-trivial',
                     $args, 0, $track-invocant);
             }
             my $track-cur-state;
-            if nqp::isnull($track-cur-state) {
+            if nqp::isnull($state) {
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track-state);
                 $track-cur-state := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $init, 0);
             }

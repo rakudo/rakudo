@@ -635,6 +635,13 @@ my class Parameter { # declared in BOOTSTRAP
     }
 }
 
+my role Parameter::SignatureConstraint {
+    has $.signature-constraint;
+    method INSTANTIATE-SIGNATURE-CONSTRAINT(Mu \type_environment) is implementation-detail {
+        $!signature-constraint := $!signature-constraint.instantiate_generic(type_environment);
+    }
+}
+
 multi sub infix:<eqv>(Parameter:D $a, Parameter:D $b) {
 
     # we're us

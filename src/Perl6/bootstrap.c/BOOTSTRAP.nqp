@@ -486,6 +486,34 @@ my class Binder {
             nqp::bindkey($lexpad, 'self', nqp::decont($oval));
         }
 
+        if nqp::can($param, 'signature-constraint') {
+            # Assume argument not passed if it is undefined and is the same as parameter default type
+            unless !nqp::isconcrete($oval) && nqp::eqaddr(nqp::decont($oval), nqp::getattr($param, Parameter, '$!type')) {
+                my $can_signature;
+                my $sigc := $param.signature-constraint;
+                unless ($can_signature := nqp::can($oval, 'signature'))
+                        && ($sigc.is_generic
+                            ?? ($sigc := $sigc.instantiate_generic($lexpad))
+                            !! $sigc).ACCEPTS($oval.signature)
+                {
+                    if nqp::defined($error) {
+                        $error[0] := {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::TypeCheck::Binding::Parameter',
+                                "Signature check failed for parameter '$varname'",
+                                :got($can_signature ?? $oval.signature !! Nil),
+                                :expected($sigc),
+                                :symbol($varname),
+                                :parameter($param),
+                                :what("Signature constraint")
+                            )
+                        };
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+        }
+
         # Handle any constraint types (note that they may refer to the parameter by
         # name, so we need to have bound it already).
         my $post_cons := nqp::getattr($param, Parameter, '@!post_constraints');
@@ -1942,8 +1970,12 @@ BEGIN {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!type');
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
-            nqp::hllboolfor($type.HOW.archetypes.generic ||
-                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic), "Raku")
+            my $sc_generic := nqp::can($self, 'signature-constraint') ?? $self.signature-constraint.is_generic !! 0;
+            nqp::hllboolfor(
+                $type.HOW.archetypes.generic
+                || (!nqp::isnull($ap) && $ap.HOW.archetypes.generic)
+                || $sc_generic,
+                "Raku")
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -1963,6 +1995,10 @@ BEGIN {
                 !nqp::isnull($ap) && $ap.HOW.archetypes.generic
                     ?? $ap.HOW.instantiate_generic($ap, $type_environment)
                     !! $ap;
+            if nqp::can($self, 'signature-constraint') {
+                $ins.INSTANTIATE-SIGNATURE-CONSTRAINT($type_environment)
+                    if $ins.signature-constraint.is_generic;
+            }
             my int $flags := nqp::getattr_i($ins, Parameter, '$!flags');
             unless $ins_type.HOW.archetypes.generic {
                 if $flags +& $SIG_ELEM_TYPE_GENERIC {

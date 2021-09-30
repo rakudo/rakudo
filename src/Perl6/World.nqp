@@ -2286,6 +2286,11 @@ class Perl6::World is HLL::World {
         if nqp::existskey(%param_info, 'sub_signature') {
             nqp::bindattr($parameter, $par_type, '$!sub_signature', %param_info<sub_signature>);
         }
+        if nqp::existskey(%param_info, 'signature_constraint') {
+            my $psc-role := $*W.find_symbol(['Parameter', 'SignatureConstraint'], :setting-only);
+            $parameter.HOW.mixin($parameter, $psc-role);
+            nqp::bindattr($parameter, $parameter.WHAT, '$!signature-constraint', %param_info<signature_constraint>);
+        }
 
         if nqp::existskey(%param_info, 'dummy') {
             my $dummy := %param_info<dummy>;

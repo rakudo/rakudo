@@ -649,6 +649,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
     my $how := nqp::how_nd($obj);
     if nqp::istype($how, Perl6::Metamodel::RolePunning) &&
             $how.is_method_call_punned($obj, $name) {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+            nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
         $obj := $how.pun($obj);
         $how := $obj.HOW;
         $capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',

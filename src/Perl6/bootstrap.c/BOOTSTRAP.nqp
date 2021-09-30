@@ -2502,7 +2502,9 @@ BEGIN {
                     # to check constraint on every dispatch. Same if it's got a
                     # `where` clause.
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) &&
-                           nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
+                           nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) &&
+                           nqp::not_i(nqp::can($param, 'signature-constraint'))
+                    {
                         %info<bind_check> := 1;
                         %info<constrainty> := 1;
                     }
@@ -2572,7 +2574,8 @@ BEGIN {
                         }
                         %info<types>[$significant_param] := $ptype;
                     }
-                    unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
+                    unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints'))
+                            && nqp::not_i(nqp::can($param, 'signature-constraint')) {
                         %info<constraints>[$significant_param] := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {

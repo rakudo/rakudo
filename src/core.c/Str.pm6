@@ -3442,6 +3442,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
+    multi method substr(Str:D: --> Str:D) { self }
     multi method substr(Str:D: Int:D $from --> Str:D) {
         nqp::islt_i($from,0) || nqp::isgt_i($from,nqp::chars(self))  #?js: NFG
           ?? self!SUBSTR-START-OOR($from)

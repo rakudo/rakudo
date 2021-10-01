@@ -510,6 +510,15 @@ my class Parameter { # declared in BOOTSTRAP
             return False;
         }
 
+        my \osignature_constraint := nqp::getattr(o, Parameter, '$!signature_constraint');
+        if nqp::defined($!signature_constraint) {
+            return False unless nqp::defined(osignature_constraint)
+                                && $!signature_constraint.ACCEPTS(osignature_constraint);
+        }
+        else {
+            return False if nqp::defined(osignature_constraint);
+        }
+
         # we have a post constraint
         if nqp::islist(@!post_constraints) {
 
@@ -626,19 +635,16 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!sub_signature) ?? Signature !! $!sub_signature
     }
 
+    method signature_constraint(Parameter:D: --> Signature:_) {
+        nqp::isnull($!signature_constraint) ?? Signature !! $!signature_constraint
+    }
+
     method set_why(Parameter:D: $why --> Nil) {
         $!why := $why;
     }
 
     method set_default(Parameter:D: Code:D $default --> Nil) {
         $!default_value := $default;
-    }
-}
-
-my role Parameter::SignatureConstraint {
-    has $.signature-constraint;
-    method INSTANTIATE-SIGNATURE-CONSTRAINT(Mu \type_environment) is implementation-detail {
-        $!signature-constraint := $!signature-constraint.instantiate_generic(type_environment);
     }
 }
 

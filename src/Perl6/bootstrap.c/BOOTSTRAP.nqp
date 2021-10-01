@@ -486,15 +486,14 @@ my class Binder {
             nqp::bindkey($lexpad, 'self', nqp::decont($oval));
         }
 
-        if nqp::can($param, 'signature-constraint') {
+        if nqp::defined(my $sigc := nqp::getattr($param, Parameter, '$!signature_constraint')) {
             # Assume argument not passed if it is undefined and is the same as parameter default type
             unless !nqp::isconcrete($oval) && nqp::eqaddr(nqp::decont($oval), nqp::getattr($param, Parameter, '$!type')) {
                 my $can_signature;
-                my $sigc := $param.signature-constraint;
                 unless ($can_signature := nqp::can($oval, 'signature'))
-                        && ($sigc.is_generic
-                            ?? ($sigc := $sigc.instantiate_generic($lexpad))
-                            !! $sigc).ACCEPTS($oval.signature)
+                        && ( $sigc.is_generic
+                                ?? ($sigc := $sigc.instantiate_generic($lexpad))
+                                !! $sigc ).ACCEPTS($oval.signature)
                 {
                     if nqp::defined($error) {
                         $error[0] := {
@@ -1966,15 +1965,16 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, scalar_attr('$!container_descriptor', Mu, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!why>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!signature_constraint>, :type(Signature), :package(Parameter)));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!type');
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
-            my $sc_generic := nqp::can($self, 'signature-constraint') ?? $self.signature-constraint.is_generic !! 0;
+            my $sigc := nqp::getattr($self, Parameter, '$!signature_constraint');
             nqp::hllboolfor(
                 $type.HOW.archetypes.generic
                 || (!nqp::isnull($ap) && $ap.HOW.archetypes.generic)
-                || $sc_generic,
+                || (nqp::defined($sigc) && $sigc.is_generic),
                 "Raku")
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
@@ -1985,6 +1985,7 @@ BEGIN {
             my $type     := nqp::getattr($self, Parameter, '$!type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
             my $ap       := nqp::getattr($self, Parameter, '$!attr_package');
+            my $sigc     := nqp::getattr($self, Parameter, '$!signature_constraint');
             my $ins_type := $type;
             my $ins_cd   := $cd;
             if $type.HOW.archetypes.generic {
@@ -1995,10 +1996,10 @@ BEGIN {
                 !nqp::isnull($ap) && $ap.HOW.archetypes.generic
                     ?? $ap.HOW.instantiate_generic($ap, $type_environment)
                     !! $ap;
-            if nqp::can($self, 'signature-constraint') {
-                $ins.INSTANTIATE-SIGNATURE-CONSTRAINT($type_environment)
-                    if $ins.signature-constraint.is_generic;
-            }
+            my $ins_sigc :=
+                nqp::defined($sigc) && $sigc.is_generic
+                    ?? $sigc.instantiate_generic($type_environment)
+                    !! $sigc;
             my int $flags := nqp::getattr_i($ins, Parameter, '$!flags');
             unless $ins_type.HOW.archetypes.generic {
                 if $flags +& $SIG_ELEM_TYPE_GENERIC {
@@ -2012,6 +2013,7 @@ BEGIN {
             nqp::bindattr($ins, Parameter, '$!type', $ins_type);
             nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd);
             nqp::bindattr($ins, Parameter, '$!attr_package', $ins_ap);
+            nqp::bindattr($ins, Parameter, '$!signature_constraint', $ins_sigc);
             $ins
         }));
     Parameter.HOW.add_method(Parameter, 'set_rw', nqp::getstaticcode(sub ($self) {
@@ -2503,7 +2505,7 @@ BEGIN {
                     # `where` clause.
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) &&
                            nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) &&
-                           nqp::not_i(nqp::can($param, 'signature-constraint'))
+                           !nqp::defined(nqp::getattr($param, Parameter, '$!signature_constraint'))
                     {
                         %info<bind_check> := 1;
                         %info<constrainty> := 1;
@@ -2575,7 +2577,7 @@ BEGIN {
                         %info<types>[$significant_param] := $ptype;
                     }
                     unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints'))
-                            && nqp::not_i(nqp::can($param, 'signature-constraint')) {
+                            && !nqp::defined(nqp::getattr($param, Parameter, '$!signature_constraint')) {
                         %info<constraints>[$significant_param] := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {

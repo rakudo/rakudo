@@ -9732,8 +9732,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                                             QAST::Op.new(
                                                 :op<getattr>,
                                                 $inst_param,
-                                                QAST::Op.new(:op<what>, $inst_param),
-                                                QAST::SVal.new(:value('$!signature-constraint'))))),
+                                                QAST::WVal.new(:value($Param)),
+                                                QAST::SVal.new(:value('$!signature_constraint'))))),
                                     QAST::Op.new(
                                         :op<callmethod>,
                                         :name<instantiate_generic>,
@@ -9747,8 +9747,8 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $sigc-qast := QAST::Op.new(
                                     :op<getattr>,
                                     $inst_param,
-                                    QAST::Op.new(:op<what>, $inst_param),
-                                    QAST::SVal.new(:value('$!signature-constraint')));
+                                    QAST::WVal.new(:value($Param)),
+                                    QAST::SVal.new(:value('$!signature_constraint')));
                 }
                 $var.push(QAST::ParamTypeCheck.new(
                     QAST::Op.new(

@@ -620,6 +620,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
         if nqp::can($callee, 'WRAPPERS') {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped', $capture);
         }
+        elsif nqp::can($callee, 'CALL-ME') {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture);
+        }
         else {
             my int $code-constant := nqp::dispatch('boot-syscall', 'dispatcher-is-arg-literal',
                 $capture, 0);
@@ -874,6 +877,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped',
                     $delegate_capture);
             }
+            elsif nqp::can($method, 'CALL-ME') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
+            }
             elsif $method.is_dispatcher {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $delegate_capture);
             }
@@ -1114,6 +1120,10 @@ sub method-deferral-step($chain-head, int $kind, $args) {
         if nqp::istype($next_method, Routine) {
             if nqp::can($next_method, 'WRAPPERS') {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped',
+                    $delegate_capture);
+            }
+            elsif nqp::can($next_method, 'CALL-ME') {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke',
                     $delegate_capture);
             }
             elsif $next_method.is_dispatcher {

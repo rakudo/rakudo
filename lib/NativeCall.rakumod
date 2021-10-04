@@ -260,6 +260,26 @@ sub resolve-libname($libname) {
     $libname.platform-library-name.Str
 }
 
+use MONKEY-SEE-NO-EVAL;
+my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/CODE/;
+    use nqp;
+    nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-nativecall', nqp::getattr(-> $capture is raw {
+        my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_callee);
+        my $callee := nqp::captureposarg($capture, 0);
+        $callee.setup;
+
+        my \target = nqp::getattr($callee.target, Code, '$!do');
+        my $new_capture := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj',
+            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+            0, target);
+
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $new_capture);
+    }, Code, '$!do'));
+    True
+CODE
+
 # This role is mixed in to any routine that is marked as being a
 # native call.
 our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource] {
@@ -272,7 +292,12 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     has int $!any-callbacks;
     has Mu $!optimized-body;
     has Mu $!jit-optimized-body;
+    has Bool $!jitted;
     has $!name;
+
+    method CUSTOM-DISPATCHER(--> str) {
+        'raku-nativecall'
+    }
 
     method !setup() {
         $setup-lock.protect: {
@@ -298,7 +323,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             $!any-optionals = self!any-optionals;
             $!any-callbacks = self!any-callbacks;
 
-            my $jitted = nqp::buildnativecall(self,
+            $!jitted = so nqp::buildnativecall(self,
                 nqp::unbox_s($guessed_libname),                           # library name
                 nqp::unbox_s(gen_native_symbol($r, $!name, :$!cpp-name-mangler)), # symbol to call
                 nqp::unbox_s($conv),        # calling convention
@@ -312,17 +337,6 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                         :resolve-libname-arg($libname),
                     )
                     !! return_hash_for($r.signature, $r, :$!entry-point));
-
-            my $body := $jitted ?? $!jit-optimized-body !! $!optimized-body;
-            if $body {
-                nqp::bindattr(
-                    self,
-                    Code,
-                    '$!do',
-                    nqp::getattr(nqp::hllizefor($body, 'Raku'), ForeignCode, '$!do')
-                );
-            }
-
         }
     }
 
@@ -606,39 +620,65 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         ).throw
     }
 
+    method setup() {
+        self.create-optimized-call() unless
+            $!optimized-body # Already have the optimized body
+            or $!any-optionals # the compiled code doesn't support optional parameters yet
+            or self.?native_call_convention
+            or try $*W;    # Avoid issues with compiling specialized version during BEGIN time
+        self!setup() unless nqp::unbox_i($!call);
+    }
+
+    method target() is raw {
+        $!optimized-body
+            ?? $!jitted ?? $!jit-optimized-body !! $!optimized-body
+            !! nqp::getattr(-> |args {
+                my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
+                self!arity-error(args) if nqp::elems($args) != $!arity;
+                if $!any-callbacks {
+                    my int $i = 0;
+                    while $i < nqp::elems($args) {
+                        my $arg := nqp::decont(nqp::atpos($args, $i));
+                        if nqp::isconcrete($arg) && nqp::istype_nd($arg, Code) {
+                            nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
+                        }
+                        $i++;
+                    }
+                }
+
+                nqp::nativecall($!rettype, self, $args)
+            }, Code, '$!do')
+    }
+
     method setup-nativecall() {
         $!name = self.name;
 
-        # finish compilation of the original routine so our changes won't
-        # become undone right afterwards
-        $*W.unstub_code_object(self, Code) if $*W;
+        unless ($use-dispatcher) {
+            # finish compilation of the original routine so our changes won't
+            # become undone right afterwards
+            $*W.unstub_code_object(self, Code) if $*W;
 
-        my $replacement := -> |args {
-            self.create-optimized-call() unless
-                $!optimized-body # Already have the optimized body
-                or $!any-optionals # the compiled code doesn't support optional parameters yet
-                or try $*W;    # Avoid issues with compiling specialized version during BEGIN time
-            self!setup() unless nqp::unbox_i($!call);
+            my $replacement := -> |args {
+                self!setup() unless nqp::unbox_i($!call);
 
-            my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
-            self!arity-error(args) if nqp::elems($args) != $!arity;
-            if $!any-callbacks {
-                my int $i = 0;
-                while $i < nqp::elems($args) {
-                    my $arg := nqp::decont(nqp::atpos($args, $i));
-                    if nqp::isconcrete($arg) && nqp::istype_nd($arg, Code) {
-                        nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
+                my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
+                self!arity-error(args) if nqp::elems($args) != $!arity;
+                if $!any-callbacks {
+                    my int $i = 0;
+                    while $i < nqp::elems($args) {
+                        my $arg := nqp::decont(nqp::atpos($args, $i));
+                        if nqp::istype_nd($arg, Code) {
+                            nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
+                        }
+                        $i++;
                     }
-                    $i++;
                 }
-            }
-
-            nqp::nativecall($!rettype, self, $args)
-        };
-
-        my $do := nqp::getattr($replacement, Code, '$!do');
-        nqp::bindattr(self, Code, '$!do', $do);
-        nqp::setcodename($do, $!name);
+                nqp::nativecall($!rettype, self, $args)
+            };
+            my $do := nqp::getattr($replacement, Code, '$!do');
+            nqp::bindattr(self, Code, '$!do', $do);
+            nqp::setcodename($do, $!name);
+        }
     }
 
     method soft(--> True) {} # prevent inlining of the original function body
@@ -792,24 +832,12 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
 }
 
 sub EXPORT(|) {
-    my @routines_to_setup;
-    if $*W {
-        my $block := {
-            for @routines_to_setup {
-                .create-optimized-call;
-                CATCH { default { note $_ } }
-            }
-        };
-        $*W.add_object($block);
-        my $op := $*W.add_phaser(Mu, 'CHECK', $block, class :: { method cuid { (^2**128).pick }});
-    }
     # Specifies that the routine is actually a native call, into the
     # current executable (platform specific) or into a named library
     my $native_trait := multi trait_mod:<is>(Routine $r, :$native!) {
         check_routine_sanity($r);
         $r does NativeCall::Native[$r, $native === True ?? Str !! $native];
         $r.setup-nativecall;
-        @routines_to_setup.push: $r;
     };
     Map.new(
         '&trait_mod:<is>' => $native_trait.dispatcher,

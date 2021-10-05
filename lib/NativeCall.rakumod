@@ -503,9 +503,16 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                     $arglist.push: QAST::Op.new(
                         :op('if'),
                         QAST::Op.new(
-                            :op('istype'),
-                            QAST::Var.new(:scope<local>, :name($lowered_name)),
-                            QAST::WVal.new( :value(Code) ),
+                            :op('bitand_i'),
+                            QAST::Op.new(
+                                :op('isconcrete'),
+                                QAST::Var.new(:scope<local>, :name($lowered_name))
+                            ),
+                            QAST::Op.new(
+                                :op('istype'),
+                                QAST::Var.new(:scope<local>, :name($lowered_name)),
+                                QAST::WVal.new( :value(Code) ),
+                            )
                         ),
                         QAST::Op.new(
                             :op('getattr'),
@@ -619,7 +626,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                 my int $i = 0;
                 while $i < nqp::elems($args) {
                     my $arg := nqp::decont(nqp::atpos($args, $i));
-                    if nqp::istype_nd($arg, Code) {
+                    if nqp::isconcrete($arg) && nqp::istype_nd($arg, Code) {
                         nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
                     }
                     $i++;

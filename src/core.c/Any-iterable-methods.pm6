@@ -916,7 +916,7 @@ Consider using a block if any of these are necessary for your mapping code."
           ?? Rakudo::Iterator.OneValue(SELF)
           !! SELF.iterator;
 
-        Seq.new: &code.has-loop-phasers
+        Seq.new: &code.?has-loop-phasers
           ?? $count < 2 || $count == Inf
             ?? IterateOneWithPhasers.new(&code, $source, $label)
             !! IterateMoreWithPhasers.new(&code, $source, $count, $label)

@@ -74,6 +74,7 @@ BEGIN {
       &prefix:«|»,
       &prefix:«~»,
       &prefix:«~^»,
+      &prefix:<⚛>,
 
     # infixes
       &infix:«!=»,
@@ -175,6 +176,13 @@ BEGIN {
       &infix:«⊅»,  # U+2285 NOT A SUPERSET OF
       &infix:«⊈»,  # U+2288 NEITHER A SUBSET OF NOR EQUAL TO
       &infix:«⊉»,  # U+2289 NEITHER A SUPERSET OF NOR EQUAL TO
+      &infix:<⚛+=>,
+      &infix:<⚛-=>,
+      &infix:<⚛=>,
+      &prefix:<++⚛>,
+      &prefix:<--⚛>,
+      &postfix:<⚛++>,
+      &postfix:<⚛-->,
 
     # postfixes
       &postfix:«++»,

@@ -2493,9 +2493,17 @@ my class X::TypeCheck::Binding is X::TypeCheck {
 my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
     has Parameter $.parameter;
     has Bool $.constraint;
+    has Str $.what;
     method expectedn() {
         $.constraint && nqp::istype(self.expected, Code)
             ?? 'anonymous constraint to be met'
+            !! (nqp::istype($.expected, Signature)
+                ?? $.expected.raku
+                !! callsame())
+    }
+    method gotn() {
+        nqp::istype($.expected, Signature) && nqp::eqaddr($.got, Nil)
+            ?? "none"
             !! callsame()
     }
     method message() {
@@ -2505,7 +2513,7 @@ my class X::TypeCheck::Binding::Parameter is X::TypeCheck::Binding {
         my $expected = nqp::eqaddr(self.expected, self.got)
             ?? "expected type $.expectedn cannot be itself"
             !! "expected $.expectedn but got $.gotn";
-        my $what-check = $.constraint ?? 'Constraint type' !! 'Type';
+        my $what-check = $.what // ($.constraint ?? 'Constraint type' !! 'Type');
         self.priors() ~ "$what-check check failed in $.operation$to; $expected";
     }
 }

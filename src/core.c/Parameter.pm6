@@ -510,6 +510,15 @@ my class Parameter { # declared in BOOTSTRAP
             return False;
         }
 
+        my \osignature_constraint := nqp::getattr(o, Parameter, '$!signature_constraint');
+        if nqp::defined($!signature_constraint) {
+            return False unless nqp::defined(osignature_constraint)
+                                && $!signature_constraint.ACCEPTS(osignature_constraint);
+        }
+        else {
+            return False if nqp::defined(osignature_constraint);
+        }
+
         # we have a post constraint
         if nqp::islist(@!post_constraints) {
 
@@ -568,6 +577,9 @@ my class Parameter { # declared in BOOTSTRAP
         } else {
             $name ~= $sigil ~ $twigil ~ $usage-name;
         }
+        if nqp::isconcrete($!signature_constraint) {
+            $name ~= $!signature_constraint.raku;
+        }
         if nqp::isconcrete(@!named_names) {
             my $var-is-named = False;
             my @outer-names  = gather for @.named_names {
@@ -624,6 +636,10 @@ my class Parameter { # declared in BOOTSTRAP
 
     method sub_signature(Parameter:D: --> Signature:_) {
         nqp::isnull($!sub_signature) ?? Signature !! $!sub_signature
+    }
+
+    method signature_constraint(Parameter:D: --> Signature:_) {
+        nqp::isnull($!signature_constraint) ?? Signature !! $!signature_constraint
     }
 
     method set_why(Parameter:D: $why --> Nil) {

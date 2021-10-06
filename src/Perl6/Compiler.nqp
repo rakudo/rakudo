@@ -41,11 +41,11 @@ class Perl6::Compiler is HLL::Compiler {
         }
 
         if $no-unicode {
-            $raku   := "Raku(tm)";
+            $raku   := "Raku(R)";
             $rakudo := "Rakudo(tm)";
         }
         else {
-            $raku   := "Raku™";
+            $raku   := "Raku®";
             $rakudo := "Rakudo™";
         }
 

@@ -226,7 +226,7 @@ my class X::Method::NotFound is Exception {
                 );
                 if $dist <= $max_length {
                     $public_suggested = 1;
-                    %suggestions{$after} = $dist;
+                    %suggestions{$after} = $dist.Int;
                 }
             }
         }
@@ -261,7 +261,7 @@ my class X::Method::NotFound is Exception {
                 );
                 if $dist <= $max_length {
                     $private_suggested = 1;
-                    %suggestions{"!$method_name"} = $dist
+                    %suggestions{"!$method_name"} = $dist.Int
                         unless $indirect-method eq $method_name;
                 }
             }
@@ -272,13 +272,11 @@ my class X::Method::NotFound is Exception {
         }
 
         if %suggestions.sort(-> $a, $b {
-            my $aval := $a.value;
-            my $bval := $b.value;
-            $aval.Int cmp $bval.Int || $aval cmp $bval
+            $a.value cmp $b.value || $a.key cmp $b.key
         }) -> @!suggestions {
-            my $boundary := @!suggestions[@!suggestions.end min 3].value.Int;
+            my $boundary := @!suggestions[@!suggestions.end min 3].value;
             @!suggestions =
-              @!suggestions.grep(*.value.Int <= $boundary).map(*.key);
+              @!suggestions.grep(*.value <= $boundary).map(*.key);
 
             if @!suggestions == 1 {
                 @!tips.push: "Did you mean '@!suggestions[0]'?";

@@ -271,13 +271,19 @@ my class X::Method::NotFound is Exception {
             @!tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
         }
 
-        @!suggestions = %suggestions.sort(*.value).map(*.key).head(4);
+        if %suggestions.sort(*.value.Int) -> @!suggestions {
+            my $boundary := @!suggestions[@!suggestions.end min 3].value.Int;
+            @!suggestions =
+              @!suggestions.grep(*.value.Int <= $boundary).map(*.key);
 
-        if @!suggestions == 1 {
-            @!tips.push: "Did you mean '@!suggestions[0]'?";
-        }
-        elsif @!suggestions {
-            @!tips.push: "Did you mean any of these: { @!suggestions.map( { "'$_'" } ).join(", ") }?";
+            if @!suggestions == 1 {
+                @!tips.push: "Did you mean '@!suggestions[0]'?";
+            }
+            elsif @!suggestions {
+                @!tips.push: "Did you mean any of these: {
+                    @!suggestions.map( { "'$_'" } ).join(", ")
+                }?";
+            }
         }
 
         if !$indirect-method

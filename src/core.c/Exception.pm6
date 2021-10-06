@@ -271,7 +271,11 @@ my class X::Method::NotFound is Exception {
             @!tips.push: "Method name starts with '!', did you mean 'self!\"$indirect-method\"()'?";
         }
 
-        if %suggestions.sort(*.value.Int) -> @!suggestions {
+        if %suggestions.sort(-> $a, $b {
+            my $aval := $a.value;
+            my $bval := $b.value;
+            $aval.Int cmp $bval.Int || $aval cmp $bval
+        }) -> @!suggestions {
             my $boundary := @!suggestions[@!suggestions.end min 3].value.Int;
             @!suggestions =
               @!suggestions.grep(*.value.Int <= $boundary).map(*.key);

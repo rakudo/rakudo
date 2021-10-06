@@ -55,7 +55,7 @@ class Perl6::Compiler is HLL::Compiler {
           ~ $config-version
           ~ ".\nImplementing the "
           ~ $raku
-          ~ " programming language v"
+          ~ " Programming Language v"
           ~ self.language_version()
           ~ ".\nBuilt on "
           ~ $backend-version

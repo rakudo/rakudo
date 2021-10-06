@@ -54,6 +54,7 @@ BEGIN {
     # XXX TODO: https://github.com/rakudo/rakudo/issues/2433
     # my $perl := BEGIN Perl.new;
     Rakudo::Internals.REGISTER-DYNAMIC: '$*PERL', {
+        DEPRECATED('$*RAKU', :what<$*PERL>, :2up );
         PROCESS::<$PERL> := Raku.new;
     }
     Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKU', {

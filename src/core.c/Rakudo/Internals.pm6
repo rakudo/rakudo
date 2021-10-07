@@ -1103,37 +1103,48 @@ my class Rakudo::Internals {
 #nqp::print("running mainline\n");
 #method INITIALIZERS() { $initializers }
 
-    method REGISTER-DYNAMIC(Str:D \name, &code, Str $version = '6.c' --> Nil) {
-#nqp::say('Registering ' ~ name);
-        my str $with = nqp::concat($version, nqp::concat("\0", name));
+    method REGISTER-DYNAMIC(
+      str $name,
+      &code,
+      str $version = '6.c',
+      :$override
+    --> Nil) {
+#nqp::say("Registering $name");
+        $initializers := nqp::hash unless $initializers;
+        my str $with   = nqp::concat($version,nqp::concat("\0",$name));
 
         nqp::if(
-          nqp::existskey(
-            nqp::unless($initializers,$initializers := nqp::hash),
-            $with
+          $override,
+          nqp::stmts(
+            nqp::bindkey($initializers,$with,&code),
+            nqp::bindkey($initializers,$name,&code)
           ),
-          (die "Already have initializer for '{name}' ('$version')"),
-          nqp::bindkey($initializers,$with,&code)
-        );
-
-        nqp::unless(                                 # first come, first kept
-          nqp::existskey($initializers,nqp::unbox_s(name)),
-          nqp::bindkey($initializers,nqp::unbox_s(name),&code)
-        );
+          nqp::stmts(
+            nqp::if(
+              nqp::existskey($initializers,$with),
+              (die "Already have initializer for '$name' ('$version')"),
+              nqp::bindkey($initializers,$with,&code)
+            ),
+            nqp::unless(  # first come, first kept
+              nqp::existskey($initializers,$name),
+              nqp::bindkey($initializers,$name,&code)
+            )
+          )
+        )
     }
-    method INITIALIZE-DYNAMIC(str \name) is raw {
-#nqp::say('Initializing ' ~ name);
+    method INITIALIZE-DYNAMIC(str $name) is raw {
+#nqp::say("Initializing $name");
         nqp::ifnull(
           nqp::atkey(
             $initializers,
             nqp::concat(
               nqp::getcomp('Raku').language_version,
-              nqp::concat("\0",name)
+              nqp::concat("\0",$name)
             )
           ),
           nqp::ifnull(
-            nqp::atkey($initializers,name),
-            { Failure.new(X::Dynamic::NotFound.new(:name(name))) }
+            nqp::atkey($initializers,$name),
+            { Failure.new(X::Dynamic::NotFound.new(:$name)) }
           )
         )();
     }

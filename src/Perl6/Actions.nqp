@@ -9074,6 +9074,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # handling.
         if $need_full_binder {
             $block.custom_args(1);
+#?if !moar
+            $block[0].push(QAST::Op.new( :op('p6bindsig') ));
+#?endif
+#?if moar
             $block[0].push(QAST::Op.new(
                 :op('if'),
                 QAST::Op.new(
@@ -9087,6 +9091,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 ),
                 QAST::Op.new( :op('p6bindsig') )
             ));
+#?endif
         }
 
 #?if moar

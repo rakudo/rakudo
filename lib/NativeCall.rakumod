@@ -266,6 +266,9 @@ sub resolve-libname($libname) {
 use MONKEY-SEE-NO-EVAL;
 my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/CODE/;
     use nqp;
+    sub raku-native-dispatch-deproxy($callee, **@args) {
+        $callee(|@args) # implicitly fetches values from proxies
+    }
     my &raku-nativecall := -> $capture is raw {
         my $track_callee := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_callee);
@@ -277,7 +280,8 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
         my int $readonly = nqp::getattr_i($signature, Signature, '$!readonly');
         my int $pos-args = nqp::captureposelems($args);
         my int $i = 0;
-        while $i < $pos-args {
+        my int $continue = 1;
+        while $i < $pos-args and $continue {
             # If it should be passed read only, and it's an object...
             if nqp::captureposprimspec($args, $i) == 0 {
                 # If it's in a Scalar container...
@@ -321,15 +325,25 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                         $arg := nqp::decont($arg);
                     }
                 }
+                elsif nqp::isconcrete_nd($arg) && nqp::istype_nd($arg, Proxy) {
+                    $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $args, 0, $callee);
+                    $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $args, 0, &raku-native-dispatch-deproxy);
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $args);
+                    $continue = 0;
+                }
             }
             $i++;
         }
-        my $new_capture := nqp::dispatch('boot-syscall',
-            'dispatcher-insert-arg-literal-obj',
-            $args, 0, nqp::decont($callee.rettype));
-        my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-            $new_capture, 0, $callee.call);
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-foreign-code', $delegate_capture);
+        if $continue {
+            my $new_capture := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj',
+                $args, 0, nqp::decont($callee.rettype));
+            my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $new_capture, 0, $callee.call);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-foreign-code', $delegate_capture);
+        }
     };
     my $do := nqp::getattr(&raku-nativecall, Code, '$!do');
     nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));

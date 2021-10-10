@@ -43,6 +43,9 @@ my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
 
+role ExplicitlyManagedString {
+    has $.cstr is rw;
+}
 
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
@@ -301,6 +304,22 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                     $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                         nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
                         nqp::unbox_i($i), $track-value);
+                }
+                if nqp::isconcrete_nd($arg) && $arg.does(ExplicitlyManagedString) {
+                    $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                        $track-value, $arg.WHAT, '$!cstr');
+                    $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+                        nqp::unbox_i($i), $track-value);
+                    $arg := nqp::getattr($arg, $arg.WHAT, '$!cstr');
+                    if nqp::isconcrete_nd($arg) && nqp::what_nd($arg) =:= Scalar {
+                        $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $track-value, Scalar, '$!value');
+                        $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+                            nqp::unbox_i($i), $track-value);
+                        $arg := nqp::decont($arg);
+                    }
                 }
             }
             $i++;
@@ -771,10 +790,6 @@ multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
 
 multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
     $p does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
-}
-
-role ExplicitlyManagedString {
-    has $.cstr is rw;
 }
 
 multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,

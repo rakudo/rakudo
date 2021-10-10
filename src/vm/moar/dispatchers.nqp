@@ -396,6 +396,9 @@
                     }
                     else {
                         # Non-nominal or type check error.
+                        my $tracked-of := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                                $tracked-desc, ContainerDescriptor, '$!of');
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $tracked-of);
                         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
                             nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                                 $capture, 0, $assign-scalar-no-whence));

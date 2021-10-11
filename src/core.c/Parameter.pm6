@@ -498,29 +498,22 @@ my class Parameter { # declared in BOOTSTRAP
         }
 
         # we have sub sig and not the same
-        my \osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
-        if $!sub_signature {
+        if nqp::isconcrete($!sub_signature) {
+            my \osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
             return False
-              unless osub_signature
-              && $!sub_signature.ACCEPTS(osub_signature);
+              unless nqp::isconcrete(osub_signature)
+                && $!sub_signature.ACCEPTS(osub_signature);
         }
 
-        # no sub sig, but other has one
-        elsif osub_signature {
-            return False;
-        }
-
-        my \osignature_constraint := nqp::getattr(o, Parameter, '$!signature_constraint');
-        if nqp::defined($!signature_constraint) {
-            return False unless nqp::defined(osignature_constraint)
-                                && $!signature_constraint.ACCEPTS(osignature_constraint);
-        }
-        else {
-            return False if nqp::defined(osignature_constraint);
+        if nqp::isconcrete($!signature_constraint) {
+            my \osignature_constraint := nqp::getattr(o, Parameter, '$!signature_constraint');
+            return False
+              unless nqp::isconcrete(osignature_constraint)
+                && $!signature_constraint.ACCEPTS(osignature_constraint);
         }
 
         # we have a post constraint
-        if nqp::islist(@!post_constraints) {
+        if nqp::isconcrete(@!post_constraints) {
 
             # callable means runtime check, so no match
             return False
@@ -537,11 +530,6 @@ my class Parameter { # declared in BOOTSTRAP
             return False
               unless nqp::atpos(@!post_constraints,0).ACCEPTS(
                 nqp::atpos(opc,0));
-        }
-
-        # we don't, other *does* have a post constraint
-        elsif nqp::islist(nqp::getattr(o,Parameter,'@!post_constraints')) {
-            return False;
         }
 
         # it's a match!

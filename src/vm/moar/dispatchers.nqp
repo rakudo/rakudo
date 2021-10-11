@@ -836,8 +836,10 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-private', -> $ca
 });
 
 # A linked list is used to model the state of a dispatch that is deferring
-# through a set of methods, multi candidates, or wrappers. The Exhausted class
-# is used as a sentinel for the end of the chain. The current state of the
+# through a set of methods or wrappers (a similar approach is used for
+# multi dispatch, but it needs more types of node). The Exhausted class
+# is used as a sentinel for the end of the chain (or for dispatchers in
+# general that have nothing more to contribute). The current state of the
 # dispatch points into the linked list at the appropriate point; the chain
 # itself is immutable, and shared over (runtime) dispatches.
 my class DeferralChain {

@@ -724,6 +724,8 @@ class Perl6::World is HLL::World {
             self.pkg_compose($/, $*GLOBALish);
         }
 
+        nqp::bindhllsym('Raku', 'GLOBAL', $*GLOBALish);
+
         # Create or pull in existing EXPORT.
         if $!have_outer && $*UNIT_OUTER.symbol('EXPORT') {
             $*EXPORT :=

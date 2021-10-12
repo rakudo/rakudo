@@ -1069,11 +1069,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             '{'
             <!!{ $*VARIABLE := '' if $*VARIABLE; 1 }>
             <statementlist(1)>
+            { $*CURPAD := $*W.pop_lexpad() }
             [<.cheat_heredoc> || '}']
             <?ENDSTMT>
         || <.missing_block($borg, $has_mystery)>
         ]
-        { $*CURPAD := $*W.pop_lexpad() }
     }
 
     token unitstart { <?> }

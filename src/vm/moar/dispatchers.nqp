@@ -396,6 +396,7 @@
                     }
                     else {
                         # Non-nominal or type check error.
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-not-literal-obj', $tracked-value, Nil);
                         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
                             nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                                 $capture, 0, $assign-scalar-no-whence));

@@ -2582,9 +2582,6 @@ class Perl6::World is HLL::World {
         # we ever try to run it during compilation.
         my $precomp;
         my $compiler_thunk := {
-            # Fix up GLOBAL.
-            nqp::bindhllsym('Raku', 'GLOBAL', $*GLOBALish);
-
             # Compile the block.
             $precomp := self.compile_in_context($code_past, $code_type);
         };

@@ -630,6 +630,14 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!signature_constraint) ?? Signature !! $!signature_constraint
     }
 
+    method untyped(Parameter:D: --> Bool:D) {
+        nqp::hllbool(
+          nqp::eqaddr($!type, Mu) &&
+          nqp::isnull(@!post_constraints) &&
+          nqp::isnull($!sub_signature) &&
+          nqp::isnull($!signature_constraint))
+    }
+
     method set_why(Parameter:D: $why --> Nil) {
         $!why := $why;
     }

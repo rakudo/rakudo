@@ -1340,13 +1340,18 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $mainline[1] := QAST::Stmt.new(wrap_option_n_code($/, $mainline[1]));
         }
 
-        # We'll install our view of GLOBAL as the main one; any other
-        # compilation unit that is using this one will then replace it
-        # with its view later (or be in a position to restore it).
+        # We only install GLOBAL unless it is already there.
         my $global_install := QAST::Op.new(
-            :op('bindcurhllsym'),
-            QAST::SVal.new( :value('GLOBAL') ),
-            QAST::WVal.new( :value($*GLOBALish) )
+            :op<ifnull>,
+            QAST::Op.new(
+                :op<getcurhllsym>,
+                QAST::SVal.new(:value('GLOBAL'))
+            ),
+            QAST::Op.new(
+                :op('bindcurhllsym'),
+                QAST::SVal.new( :value('GLOBAL') ),
+                QAST::WVal.new( :value($*GLOBALish) )
+            )
         );
         $*W.add_fixup_task(:deserialize_ast($global_install), :fixup_ast($global_install));
 

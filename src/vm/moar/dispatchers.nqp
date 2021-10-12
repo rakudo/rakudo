@@ -2451,7 +2451,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
 
     # If it has a CALL-ME method then always use that (this means it being a
     # Code object, even).
-    elsif nqp::isconcrete(my $call-me := nqp::decont(nqp::how_nd($code).find_method($code, 'CALL-ME'))) {
+    elsif nqp::isconcrete(my $call-me := nqp::decont(nqp::how_nd($code).find_method($code, 'CALL-ME', :no_fallback))) {
         # A CALL-ME method is found; make a call to it. We use raku-call-simple
         # to avoid setting up any further deferrals, which may get us into the
         # situation where we set up multiple resumptions.

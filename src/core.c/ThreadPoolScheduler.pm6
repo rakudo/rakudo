@@ -642,8 +642,10 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # exhausted the system allotment of low level threads
                     if $exhausted {
-                        $exhausted = 0  # for next run of supervisor
-                          if ++$exhausted > EXHAUSTED_RETRY_AFTER;
+                        if ++$exhausted > EXHAUSTED_RETRY_AFTER {
+                            scheduler-debug "No more system threads";
+                            $exhausted = 0  # for next run of supervisor
+                        }
                     }
 
                     # we can still add threads if necessary

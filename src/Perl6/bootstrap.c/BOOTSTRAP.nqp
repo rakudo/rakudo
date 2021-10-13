@@ -1487,7 +1487,7 @@ BEGIN {
             nqp::bindattr_i($attr, Attribute, '$!is_built', $is_built);
             nqp::bindattr_i($attr, Attribute, '$!is_bound', $is_bound);
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
-            nqp::bindattr($attr, Attribute, '$!package', $package);
+            nqp::bindattr($attr, Attribute, '$!package', nqp::decont($package));
             nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
             nqp::bindattr($attr, Attribute, '$!original', $attr);
             if nqp::existskey(%other, 'auto_viv_primitive') {
@@ -1502,10 +1502,10 @@ BEGIN {
                 }
             }
             else {
-                my $cd := ContainerDescriptor.new(:of($type), :$name);
+                my $cd := ContainerDescriptor.new(:of(nqp::decont($type)), :$name);
                 my $scalar := nqp::create(Scalar);
                 nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
-                nqp::bindattr($scalar, Scalar, '$!value', $type);
+                nqp::bindattr($scalar, Scalar, '$!value', nqp::decont($type));
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
                 nqp::bindattr($attr, Attribute, '$!auto_viv_container', $scalar);
             }

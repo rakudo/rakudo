@@ -503,10 +503,8 @@ public final class RakOps {
     }
 
     public static SixModelObject p6setfirstflag(SixModelObject codeObj, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
         ThreadExt tcx = key.getTC(tc);
-        tcx.firstPhaserCodeBlock = codeObj.get_attribute_boxed(tc,
-            gcx.Code, "$!do", HINT_CODE_DO);
+        tcx.firstPhaserCodeBlock = codeObj;
         return codeObj;
     }
 

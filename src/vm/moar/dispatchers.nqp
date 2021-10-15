@@ -2868,11 +2868,15 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-wrapper-deferral',
         nqp::dispatch('boot-syscall', 'dispatcher-guard-literal', $track_code);
 
         # Extract the arguments and set the resume init args to be the next item
-        # in the chain prepended to the arguments.
+        # in the chain prepended to the arguments, so long as there is a next
+        # wrapper.
+        my $next := $cur_deferral.next;
         my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-n-args', $capture, 0, 2);
-        nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args',
-            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $args, 0, $cur_deferral.next));
+        if nqp::isconcrete($next) {
+            nqp::dispatch('boot-syscall', 'dispatcher-set-resume-init-args',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    $args, 0, $next));
+        }
 
         # Either invoke the wrapper directly, or via callwith propagation.
         my $code := $cur_deferral.code;

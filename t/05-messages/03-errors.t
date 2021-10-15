@@ -176,7 +176,7 @@ is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep(
 'Use placeholder variables in a method should yield a useful error message';
 
 # https://github.com/rakudo/rakudo/issues/2921
-is-run 'bleah:(0)', err => { .contains: 'adverb' }, :exitcode{.so},
+is-run 'bleah:(0)', err => { .contains: 'You can\'t adverb' }, :exitcode{.so},
 'Absurd adverbing results in a proper error message';
 
 # https://github.com/rakudo/rakudo/issues/4178

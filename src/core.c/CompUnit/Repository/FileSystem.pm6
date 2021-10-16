@@ -75,7 +75,7 @@ class CompUnit::Repository::FileSystem
 
         with self!matching-dist($spec) {
             my $name = $spec.short-name;
-            my $id   = self!comp-unit-id($_.id ~ $name);
+            my $id   = self!comp-unit-id(self.id ~ $name);
             my $*DISTRIBUTION  = $_;
             my $*RESOURCES     = Distribution::Resources.new(:repo(self), :dist-id(''));
             my $source-handle  = $_.content($_.meta<provides>{$name});

@@ -4264,7 +4264,7 @@ class Perl6::World is HLL::World {
         # discovered close to release, so only the Moar backend - that really
         # needs this - is being updated for now.
         my class FixupList {
-            has $!Code;        ## only used on MoarVM
+            has $!Code;
             has $!list;
             has $!resolved;
             has $!resolver;
@@ -4288,13 +4288,8 @@ class Perl6::World is HLL::World {
                         }
                     }
                     unless $added_update {
-#?if !moar
-                        nqp::p6captureouters2([$code], $!resolved);
-#?endif
-#?if moar
                         my $do := nqp::getattr($code, $!Code, '$!do');
                         nqp::p6captureouters2([$do], $!resolved);
-#?endif
                     }
                 }
             }
@@ -4302,10 +4297,6 @@ class Perl6::World is HLL::World {
                 nqp::scwbdisable();
                 $!resolved := $resolved;
                 nqp::scwbenable();
-#?if !moar
-                nqp::p6captureouters2($!list, $resolved);
-#?endif
-#?if moar
                 my $do-list := nqp::list();
                 my int $i := 0;
                 my int $n := nqp::elems($!list);
@@ -4314,17 +4305,11 @@ class Perl6::World is HLL::World {
                     $i++;
                 }
                 nqp::p6captureouters2($do-list, $resolved);
-#?endif
             }
             method update($code) {
                 if !nqp::isnull($!resolved) && !nqp::istype($!resolved, NQPMu) {
-#?if !moar
-                    nqp::p6captureouters2([$code],
-#?endif
-#?if moar
                     my $do := nqp::getattr($code, $!Code, '$!do');
                     nqp::p6captureouters2([$do],
-#?endif
                         nqp::getcomp('Raku').backend.name eq 'moar'
                             ?? nqp::getstaticcode($!resolved)
                             !! $!resolved);
@@ -4335,10 +4320,8 @@ class Perl6::World is HLL::World {
         # Create a list and put it in the SC.
         my $fixup_list := nqp::create(FixupList);
         self.add_object_if_no_sc($fixup_list);
-#?if moar
         nqp::bindattr($fixup_list, FixupList, '$!Code',
             self.find_single_symbol('Code', :setting-only));
-#?endif
         nqp::bindattr($fixup_list, FixupList, '$!list', nqp::list());
         nqp::bindattr($fixup_list, FixupList, '$!resolver', self.handle());
 

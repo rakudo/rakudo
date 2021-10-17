@@ -333,6 +333,26 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                     nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $args);
                     $continue = 0;
                 }
+
+                if $continue {
+                    my $param = $callee.signature.params[$i];
+                    unless $param.rw or nqp::isrwcont($arg) {
+                        if $param.type ~~ Int {
+                            if nqp::isconcrete_nd($arg) {
+                                $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-unbox-int',
+                                    $track-value);
+                                $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+                                    nqp::unbox_i($i), $track-value);
+                            }
+                            else {
+                                $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-int',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+                                    nqp::unbox_i($i), 0); # 0 or NULL for undefined args
+                            }
+                        }
+                    }
+                }
             }
             $i++;
         }

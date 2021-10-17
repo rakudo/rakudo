@@ -337,7 +337,7 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                 if $continue {
                     my $param = $callee.signature.params[$i];
                     unless $param.rw or nqp::isrwcont($arg) {
-                        if $param.type ~~ Int {
+                        if $param.type ~~ Int or $param.type.REPR eq 'CPointer' {
                             if nqp::isconcrete_nd($arg) {
                                 $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-unbox-int',
                                     $track-value);

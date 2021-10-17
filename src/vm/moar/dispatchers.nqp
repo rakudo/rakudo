@@ -2627,7 +2627,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
     }
 
     elsif nqp::isconcrete(
-        my $custom-dispatcher := nqp::decont(nqp::how_nd($code).find_method($code, 'CUSTOM-DISPATCHER'))
+        my $custom-dispatcher := nqp::decont(nqp::how_nd($code).find_method(nqp::decont($code), 'CUSTOM-DISPATCHER', :no_fallback))
     ) {
         nqp::dispatch('boot-syscall', 'dispatcher-delegate',
             nqp::unbox_s($custom-dispatcher($code)), $capture);

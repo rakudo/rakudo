@@ -290,6 +290,7 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-arg);
                 my $arg := nqp::captureposarg($args, $i);
                 my $track-value;
+                my $cstr = False;
                 if nqp::isconcrete_nd($arg) && nqp::istype_nd($arg, Scalar) {
                     # Read it from the container and pass it decontainerized.
                     $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
@@ -310,6 +311,7 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                         nqp::unbox_i($i), $track-value);
                 }
                 if nqp::isconcrete_nd($arg) && $arg.does(ExplicitlyManagedString) {
+                    $cstr = True;
                     $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                         $track-value, $arg.WHAT, '$!cstr');
                     $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
@@ -340,6 +342,20 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                         if $param.type ~~ Int or $param.type.REPR eq 'CPointer' {
                             if nqp::isconcrete_nd($arg) {
                                 $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-unbox-int',
+                                    $track-value);
+                                $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+                                    nqp::unbox_i($i), $track-value);
+                            }
+                            else {
+                                $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-int',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+                                    nqp::unbox_i($i), 0); # 0 or NULL for undefined args
+                            }
+                        }
+                        elsif $param.type ~~ Str and not $cstr {
+                            if nqp::isconcrete_nd($arg) {
+                                $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-unbox-str',
                                     $track-value);
                                 $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                                     nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),

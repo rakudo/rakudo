@@ -1723,6 +1723,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                 while $i < $type_check_count && !($type_mismatch +| $rwness_mismatch) {
                     # Obtain parameter properties.
                     my $type := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+                    my int $is-mu := nqp::eqaddr($type, Mu);
                     my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $definedness := $type_flags +& $DEFCON_MASK;
                     my int $rwness := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
@@ -1732,10 +1733,17 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                     my int $got_prim := nqp::captureposprimspec($capture, $i);
                     my int $want_prim := $type_flags +& $TYPE_NATIVE_MASK;
                     if $got_prim == 0 && $want_prim == 0 {
+                        # For a type that's exactly Mu we do not need a type
+                        # guard, however if it's got a definedness constraint
+                        # we do, since we might then wrongly accepted a Scalar
+                        # container that meets the definedness property.
+                        if $definedness || !$is-mu {
+                            nqp::bindpos_i($need_type_guard, $i, 1);
+                        }
+
                         # It's an object type. Obtain the value, and go by if it's a
                         # container or not.
                         my $value := nqp::captureposarg($capture, $i);
-                        nqp::bindpos_i($need_type_guard, $i, 1);
                         my int $promoted_primitive;
                         if nqp::iscont($value) && nqp::isconcrete_nd($value) {
                             # Containerized. Scalar we handle specially.
@@ -1780,7 +1788,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                         }
 
                         # Ensure the value meets the required type constraints.
-                        unless nqp::eqaddr($type, Mu) ||
+                        unless $is-mu ||
                                 nqp::istype_nd(nqp::hllizefor($value, 'Raku'), $type) {
                             if $type =:= $Positional {
                                 # Things like Seq can bind to an @ sigil.
@@ -2006,6 +2014,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
     # Install guards as required.
     $i := 0;
     while $i < $num_args {
+        my $tracked_value;
         if nqp::atpos_i($need_scalar_read, $i) {
             my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);
             if nqp::atpos_i($need_scalar_rw_check, $i) {
@@ -2013,19 +2022,18 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                         $tracked, Scalar, '$!descriptor');
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked_desc);
             }
-            my $tracked_value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $tracked_value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                     $tracked, Scalar, '$!value');
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked_value);
-            if nqp::atpos_i($need_conc_guard, $i) {
-                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked_value);
-            }
         }
-        elsif nqp::atpos_i($need_type_guard, $i) {
-            my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked);
-            if nqp::atpos_i($need_conc_guard, $i) {
-                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked);
-            }
+        else {
+            $tracked_value := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                    $capture, $i);
+        }
+        if nqp::atpos_i($need_type_guard, $i) {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked_value);
+        }
+        if nqp::atpos_i($need_conc_guard, $i) {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked_value);
         }
         $i++;
     }

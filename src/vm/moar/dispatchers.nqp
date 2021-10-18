@@ -1855,51 +1855,6 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                 unless $type_mismatch || $rwness_mismatch {
                     nqp::push(@possibles, $cur_candidate);
                 }
-#                            if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
-#                                # If we need a container but don't have one it clearly can't work.
-#                                $rwness_mismatch := 1;
-#                            }
-#                            elsif $type_flags +& $TYPE_NATIVE_MASK {
-#                                # Looking for a natively typed value. Did we get one?
-#                                if $got_prim == $BIND_VAL_OBJ {
-#                                    # Object, but could be a native container. If not, mismatch.
-#                                    my $contish := nqp::captureposarg($capture, $i);
-#                                    unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
-#                                           (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
-#                                           (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
-#                                        $type_mismatch := 1;
-#                                    }
-#                                }
-#                            }
-#                            else {
-#                                my $param;
-#                                if $got_prim == $BIND_VAL_OBJ {
-#                                    $param := nqp::captureposarg($capture, $i);
-#                                    if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
-#                                    elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
-#                                    elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
-#                                    else { $param := nqp::hllizefor($param, 'Raku') }
-#                                }
-#                                if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
-#                                    if $i == 0 && nqp::existskey($cur_candidate, 'exact_invocant') {
-#                                        unless $param.WHAT =:= $type_obj {
-#                                            $type_mismatch := 1;
-#                                        }
-#                                    }
-#                                }
-#                                else {
-#                                    if $type_obj =:= $Positional {
-#                                        my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
-#                                        unless nqp::istype($param, $PositionalBindFailover) {
-#                                            $type_mismatch := 1;
-#                                        }
-#                                    } else {
-#                                        $type_mismatch := 1;
-#                                    }
-#                                }
-#                            }
-#                            ++$i;
-#                        }
             }
         }
         else {

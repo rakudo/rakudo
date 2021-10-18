@@ -3112,6 +3112,86 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call-simple', -> $cap
     }
 });
 
+# Dispatcher to try to find a method, backing nqp::findmethod, nqp::tryfindmethod,
+# and nqp::can.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-find-meth', -> $capture {
+    # See if this callsite is going megamorphic and do a fallback if so. We only do
+    # this in the non-exceptional case.
+    my $obj := nqp::captureposarg($capture, 0);
+    my $how := nqp::how_nd($obj);
+    my int $cache-size := nqp::dispatch('boot-syscall', 'dispatcher-inline-cache-size');
+    my int $exceptional := nqp::captureposarg_i($capture, 2);
+    if $cache-size >= 8 && !$exceptional && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-find-meth-mega',
+            $capture);
+    }
+    else {
+        # Guard on the invocant type and method name.
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+            nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+            nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1));
+
+        # Try to find the method.
+        my str $name := nqp::captureposarg_s($capture, 1);
+        my $meth := $how.find_method($obj, $name);
+
+        # If it's found, evaluate to it.
+        if nqp::isconcrete($meth) {
+            my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $capture, 0, $meth);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant', $delegate);
+        }
+
+        # Otherwise, depends on exceptional flag whether we report the missing
+        # method or hand back a null.
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 2));
+            if $exceptional {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'lang-meth-not-found',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0));
+            }
+            else {
+                my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    $capture, 0, nqp::null());
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant', $delegate);
+            }
+        }
+    }
+});
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-find-meth-mega', -> $capture {
+    # Always guard on the exception mode (which should always be false, since we
+    # don't handle it here).
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 2));
+
+    # Make sure that we have a method table build for this type (but we don't
+    # actually need the table itself).
+    my $obj := nqp::captureposarg($capture, 0);
+    my $how := nqp::how_nd($obj);
+    unless nqp::isconcrete(nqp::getattr($how, Perl6::Metamodel::ClassHOW,
+            '$!cached_all_method_table')) {
+        nqp::dispatch('boot-syscall', 'dispatcher-do-not-install');
+    }
+    $how.all_method_table($obj);
+
+    # Track the HOW and then the attribute holding the table.
+    my $track-obj := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    my $track-how := nqp::dispatch('boot-syscall', 'dispatcher-track-how', $track-obj);
+    my $track-table := nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-how,
+        Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
+
+    # Do the lookup of the method in the table we found in the meta-object. If
+    # it's not found, the outcome will be a null, which is exactly what we want.
+    my $track-name := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
+    my $track-resolution := nqp::dispatch('boot-syscall',
+        'dispatcher-index-tracked-lookup-table', $track-table, $track-name);
+    my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+        $capture, 0, $track-resolution);
+    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $delegate);
+});
+
 # The dispatcher backing p6capturelex. If we are passed a code object, then
 # extracts the underlying handle and causes it to be captured.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-capture-lex', -> $capture {

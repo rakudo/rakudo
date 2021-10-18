@@ -4093,7 +4093,7 @@ nqp::sethllconfig('Raku', nqp::hash(
 #?if moar
     'call_dispatcher', 'raku-call',
     'method_call_dispatcher', 'raku-meth-call',
-    'find_method_dispatcher', 'nqp-find-meth',  # NQP one is probably good enough
+    'find_method_dispatcher', 'raku-find-meth',
     'resume_error_dispatcher', 'raku-resume-error',
     'hllize_dispatcher', 'raku-hllize',
     'istype_dispatcher', 'nqp-istype',  # Can write a Raku one later for more opts

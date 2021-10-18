@@ -113,7 +113,7 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
-        nqp::eqaddr((my $bless := nqp::findmethod(self,'bless')),
+        nqp::eqaddr((my $bless := nqp::tryfindmethod(self,'bless')),
                     nqp::findmethod(Mu,'bless'))
                 ?? nqp::create(self).BUILDALL(Empty, %attrinit)
                 !! $bless(self,|%attrinit)

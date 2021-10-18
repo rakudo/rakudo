@@ -28,74 +28,87 @@
     }
 
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-rv-decont', -> $capture {
-        # We always need to guard on type and concreteness.
-        my $rv := nqp::captureposarg($capture, 0);
-        my $rv_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
-                $capture, 0);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $rv_arg);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $rv_arg);
+        # If it's heading megamorphic, then we'll install the fallback, without
+        # any conditions, which is faster than over-filling the cache and running
+        # this dispatch logic every time.
+        my int $cache-size := nqp::dispatch('boot-syscall', 'dispatcher-inline-cache-size');
+        if $cache-size >= 16 {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $capture, 0, nqp::gethllsym('Raku', 'Iterable')),
+                    0, $container-fallback));
+        }
+        else {
+            # We always need to guard on type and concreteness.
+            my $rv := nqp::captureposarg($capture, 0);
+            my $rv_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                    $capture, 0);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $rv_arg);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $rv_arg);
 
-        # Is it a container?
-        if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
-            # It's a container. We have special cases for Scalar.
-            if nqp::istype_nd($rv, Scalar) {
-                # Check if the descriptor is undefined, in which case it's read-only.
-                my $desc := nqp::getattr($rv, Scalar, '$!descriptor');
-                my $desc_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                        $rv_arg, Scalar, '$!descriptor');
-                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $desc_arg);
-                if nqp::isconcrete($desc) {
-                    # Writeable, so we may need to recontainerize the value if
-                    # the type is iterable, otherwise we can decont it.
-                    my $value := nqp::getattr($rv, Scalar, '$!value');
-                    my $value_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                        $rv_arg, Scalar, '$!value');
-                    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $value_arg);
-                    if nqp::istype_nd($value, nqp::gethllsym('Raku', 'Iterable')) {
-                        # Need to recont in order to preserve item nature.
-                        # Shuffle in the recont code to invoke. We already
-                        # read the deconted value, so we insert that as the
-                        # arg so it needn't be dereferenced again.
-                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
-                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+            # Is it a container?
+            if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
+                # It's a container. We have special cases for Scalar.
+                if nqp::istype_nd($rv, Scalar) {
+                    # Check if the descriptor is undefined, in which case it's read-only.
+                    my $desc := nqp::getattr($rv, Scalar, '$!descriptor');
+                    my $desc_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $rv_arg, Scalar, '$!descriptor');
+                    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $desc_arg);
+                    if nqp::isconcrete($desc) {
+                        # Writeable, so we may need to recontainerize the value if
+                        # the type is iterable, otherwise we can decont it.
+                        my $value := nqp::getattr($rv, Scalar, '$!value');
+                        my $value_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $rv_arg, Scalar, '$!value');
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $value_arg);
+                        if nqp::istype_nd($value, nqp::gethllsym('Raku', 'Iterable')) {
+                            # Need to recont in order to preserve item nature.
+                            # Shuffle in the recont code to invoke. We already
+                            # read the deconted value, so we insert that as the
+                            # arg so it needn't be dereferenced again.
+                            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                                        nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
+                                            $capture, 0),
+                                        0, $value_arg),
+                                    0, $recont));
+                        }
+                        else {
+                            # Decont, so just evaluate to the read attr (boot-value
+                            # ignores all put the first argument).
+                            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
                                 nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
-                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg',
-                                        $capture, 0),
-                                    0, $value_arg),
-                                0, $recont));
+                                    $capture, 0, $value_arg));
+                        }
                     }
                     else {
-                        # Decont, so just evaluate to the read attr (boot-value
-                        # ignores all put the first argument).
-                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
-                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
-                                $capture, 0, $value_arg));
+                        # Read-only, so identity will do.
+                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
                     }
                 }
                 else {
-                    # Read-only, so identity will do.
-                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+                    # Delegate to non-Scalar container fallback.
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                $capture, 0, nqp::gethllsym('Raku', 'Iterable')),
+                            0, $container-fallback));
                 }
             }
             else {
-                # Delegate to non-Scalar container fallback.
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
-                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                # Not containerizied, so identity shall do,
+                # Unless it is null, then we map it to Mu.
+                if nqp::isnull($rv) {
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
                         nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                            $capture, 0, nqp::gethllsym('Raku', 'Iterable')),
-                        0, $container-fallback));
-            }
-        }
-        else {
-            # Not containerizied, so identity shall do,
-            # Unless it is null, then we map it to Mu.
-            if nqp::isnull($rv) {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                        $capture, 0, Mu));
-            }
-            else {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+                            $capture, 0, Mu));
+                }
+                else {
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+                }
             }
         }
     });

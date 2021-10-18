@@ -448,6 +448,8 @@ my class Cool { # declared in BOOTSTRAP
           ?? $numeric
           !! $numeric.Complex
     }
+
+    method Version() { self.Str.Version }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 

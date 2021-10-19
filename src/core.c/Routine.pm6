@@ -75,9 +75,9 @@ my class Routine { # declared in BOOTSTRAP
         $raku
     }
 
-    method soft( --> Nil ) { }
+    method soft(--> Nil) { }
 
-    method is_wrapped( --> False ) { }
+    method is-wrapped(--> False) { }
 
 #?if !moar
     method wrap(&wrapper) {
@@ -106,7 +106,7 @@ my class Routine { # declared in BOOTSTRAP
                 $!dispatcher.enter(|c);
             }
             method soft(--> True) { }
-            method is_wrapped( --> Bool ) { $!dispatcher.candidates > 1 }
+            method is-wrapped(--> Bool) { $!dispatcher.candidates > 1 }
         }
 
         # We can't wrap a hardened routine (that is, one that's been
@@ -159,7 +159,7 @@ my class Routine { # declared in BOOTSTRAP
             $!wrappers := $new-wrappers if $found;
             $found
         }
-        method is_wrapped( --> Bool ) { nqp::elems($!wrappers) > 1 }
+        method is-wrapped(--> Bool) { nqp::elems($!wrappers) > 1 }
     }
     my class WrapHandle {
         has &!routine;

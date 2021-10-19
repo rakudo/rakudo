@@ -324,7 +324,7 @@ sub REQUIRE_IMPORT(
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
-    nqp::gethllsym('Raku','ModuleLoader').merge_globals(
+    try nqp::gethllsym('Raku','ModuleLoader').merge_globals(
         $merge-globals-target.AT-KEY($stubname).WHO,
         $GLOBALish,
     ) if $stubname;

@@ -312,8 +312,6 @@ sub REQUIRE_IMPORT(
         $targetWHO := $block.AT-KEY($stubname).WHO;
         $sourceWHO := $GLOBALish.AT-KEY($stubname).WHO;
         $targetWHO.merge-symbols($sourceWHO);
-
-        try $targetWHO.merge-symbols($GLOBALish);
     }
     # Set the runtime values for compile time stub symbols
     for @syms {
@@ -326,6 +324,10 @@ sub REQUIRE_IMPORT(
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
+    nqp::gethllsym('Raku','ModuleLoader').merge_globals(
+        $merge-globals-target.AT-KEY($stubname).WHO,
+        $GLOBALish,
+    ) if $stubname;
     # Merge GLOBAL from compunit.
     nqp::gethllsym('Raku','ModuleLoader').merge_globals(
         $block<%REQUIRE_SYMBOLS>,

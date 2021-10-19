@@ -1,9 +1,12 @@
 my class X::Enum::NoValue {...};
+my class X::Constructor::BadType {...}
 # Method that we have on enumeration types.
 my role Enumeration {
     has $.key;
     has $.value;
     has int $!index;
+
+    method new { X::Constructor::BadType.new(type => self.WHAT).throw }
 
     method enums() { self.^enum_values.Map }
 

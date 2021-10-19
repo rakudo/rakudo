@@ -34,6 +34,8 @@ BEGIN {
     Bool.^add_method('pred',  my method pred() { Bool::False });
     Bool.^add_method('succ',  my method succ() { Bool::True });
 
+    Bool.^add_method('new',   my method new(|) { X::Constructor::BadType.new(type => self.WHAT).throw });
+
     Bool.^add_method('enums', my method enums() { self.^enum_values.Map });
 
     Bool.^compose;

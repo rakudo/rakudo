@@ -670,7 +670,12 @@ register_op_desugar('p6forstmt', -> $qast {
     my $block := QAST::Op.new(
         :op('bind'),
         QAST::Var.new( :name($block-name), :scope('local'), :decl('var') ),
-        $qast[1]
+        QAST::Op.new(
+            :op('getattr'),
+            $qast[1],
+            QAST::WVal.new( :value($qast.ann('Code')) ),
+            QAST::SVal.new( :value('$!do') )
+        )
     );
 
     my $iter-val-name := QAST::Node.unique('for_iterval');
@@ -1279,6 +1284,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $fornode.op('p6forstmt');
             $fornode.annotate('IterationEnd', $*W.find_single_symbol('IterationEnd'));
             $fornode.annotate('Nil', $*W.find_single_symbol('Nil'));
+            $fornode.annotate('Code', $*W.find_single_symbol('Code'));
         }
         return $fornode;
     }
@@ -1663,6 +1669,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $fornode.op('p6forstmt') if can-use-p6forstmt($fornode[1]);
                         $fornode.annotate('IterationEnd', $*W.find_single_symbol('IterationEnd'));
                         $fornode.annotate('Nil', $*W.find_single_symbol('Nil'));
+                        $fornode.annotate('Code', $*W.find_single_symbol('Code'));
                     });
                 }
                 else {
@@ -2057,6 +2064,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $fornode.op('p6forstmt');
                 $fornode.annotate('IterationEnd', $*W.find_single_symbol('IterationEnd'));
                 $fornode.annotate('Nil', $*W.find_single_symbol('Nil'));
+                $fornode.annotate('Code', $*W.find_single_symbol('Code'));
             }
         });
         make $past;

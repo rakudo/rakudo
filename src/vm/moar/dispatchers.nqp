@@ -1053,12 +1053,12 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-deferral',
     # that we already established guards on kind and similar, and that if we
     # have a lastcall we'll have handled it rather than sending it here.
     -> $capture {
-        # If the chain is Exhausted, then we will delegate to Nil.
+        # If the chain is Exhausted, then we will delegate to Nil or to
+        # the propagate callwith terminal.
         my $chain := nqp::captureposarg($capture, 0);
         if nqp::eqaddr($chain, Exhausted) {
-            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                    $capture, 0, Nil));
+            nil-or-callwith-propagation-terminal(nqp::dispatch('boot-syscall',
+                'dispatcher-drop-arg', $capture, 0));
         }
 
         # If we're propagating a callwith then we need to set the resume init args
@@ -2123,9 +2123,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-multi-core',
 
             # Now go by the kind of resumption we have.
             if $kind == nqp::const::DISP_CALLWITH {
-                # It's a callwith, so we'll use the resumption args, and
-                # rewrite it into a callsame for the non-trivial dispatch
-                # handler.
+                # It's a callwith, so we'll use the provided args (except
+                # for adding the invocant if it's a multi method), and then
+                # delegate to the non-trivial dispatch handler.
                 my $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
                 if nqp::istype($target, Method) {
                     my $track-invocant := nqp::dispatch('boot-syscall',

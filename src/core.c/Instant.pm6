@@ -125,10 +125,10 @@ sub term:<time>(--> Int:D) { nqp::time() div 1000000000 }
 # 37 is $initial-offset from Rakudo::Internals + # of years
 # that have had leap seconds so far. Will need to be incremented
 # when new leap seconds occur.
-my int constant \tai-offset-nanos = 37 * 1000000000;
 sub term:<now>(--> Instant:D) {
     # FIXME: During a leap second, the returned value is one
     # second greater than it should be.
+    my int constant \tai-offset-nanos = 37 * 1000000000;
     Instant.from-posix-nanos(nqp::add_i(nqp::time,tai-offset-nanos))
 }
 

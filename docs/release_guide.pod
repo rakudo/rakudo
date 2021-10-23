@@ -18,7 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2021-10-22   Rakudo #151 (Altai-man + Releasable)
+  2021-11-19   Rakudo #152 (Be the next release manager!)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 
@@ -533,6 +533,7 @@ Previous releases were bundled as part of monthly Parrot releases.
   2021-07-23   Rakudo #148 "2021.07"           (Altai-man + Releasable)
   2021-08-21   Rakudo #149 "2021.08"           (Altai-man + Releasable)
   2021-09-18   Rakudo #150 "2021.09"           (Altai-man + Releasable)
+  2021-10-23   Rakudo #151 "2021.10"           (Altai-man + Releasable)
 
 =head1 COPYRIGHT
 

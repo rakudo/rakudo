@@ -3187,7 +3187,8 @@ class Perl6::Optimizer {
     my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
     sub copy_returns($to, $from) {
         if nqp::can($from, 'returns') {
-            my $ret_type := $from.returns();
+            my $ret_type := $from.returns;
+            $to.returns($ret_type) unless nqp::can($from, 'rw') && $from.rw;
             if nqp::objprimspec($ret_type) -> $primspec {
                 $to := QAST::Want.new(
                     :named($to.named),

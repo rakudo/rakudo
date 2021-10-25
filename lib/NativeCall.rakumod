@@ -353,6 +353,20 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                                     nqp::unbox_i($i), 0); # 0 or NULL for undefined args
                             }
                         }
+                        elsif $param.type ~~ Num {
+                            if nqp::isconcrete_nd($arg) {
+                                $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-unbox-num',
+                                    $track-value);
+                                $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+                                    nqp::unbox_i($i), $track-value);
+                            }
+                            else {
+                                $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-num',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
+                                    nqp::unbox_i($i), NaN);
+                            }
+                        }
                         elsif $param.type ~~ Str and not $cstr {
                             if nqp::isconcrete_nd($arg) {
                                 $track-value := nqp::dispatch('boot-syscall', 'dispatcher-track-unbox-str',
@@ -364,7 +378,7 @@ my $use-dispatcher = so $*RAKU.compiler.?supports-op('dispatch_v') && EVAL q:to/
                             else {
                                 $args := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-int',
                                     nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $args, nqp::unbox_i($i)),
-                                    nqp::unbox_i($i), 0); # 0 or NULL for undefined args
+                                    nqp::unbox_i($i), 0); # NULL for undefined args
                             }
                         }
                     }

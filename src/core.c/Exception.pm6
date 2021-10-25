@@ -1369,12 +1369,17 @@ my class X::Parameter::MultipleTypeConstraints does X::Comp {
     }
 }
 
-my class X::Parameter::BadType does X::Comp {
+my role X::BadType {
     has Mu $.type;
+    method action() {...}
     method message() {
         my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
-        "$what '$!type.^name()' is insufficiently type-like to qualify a parameter.  Did you mean 'class'?".naive-word-wrapper
+        "$what '$!type.^name()' is insufficiently type-like to {self.action()}.  Did you mean 'class'?".naive-word-wrapper
     }
+}
+
+my class X::Parameter::BadType does X::Comp does X::BadType {
+    method action { 'qualify a parameter' }
 }
 
 my class X::Parameter::WrongOrder does X::Comp {
@@ -1631,12 +1636,8 @@ my class X::Syntax::Variable::IndirectDeclaration does X::Syntax {
     method message() { 'Cannot declare a variable by indirect name (use a hash instead?)' }
 }
 
-my class X::Syntax::Variable::BadType does X::Comp {
-    has Mu $.type;
-    method message() {
-        my $what = ~$!type.HOW.WHAT.^name.match(/ .* '::' <(.*)> HOW/) // 'Namespace';
-        "$what '$!type.^name()' is insufficiently type-like to qualify a variable.  Did you mean 'class'?".naive-word-wrapper
-    }
+my class X::Syntax::Variable::BadType does X::Comp does X::BadType {
+    method action { 'qualify a variable' }
 }
 
 my class X::Syntax::Variable::ConflictingTypes does X::Comp {
@@ -2125,6 +2126,10 @@ my class X::Routine::Unwrap is Exception {
 my class X::Constructor::Positional is Exception {
     has $.type;
     method message() { "Default constructor for '" ~ $.type.^name ~ "' only takes named arguments" }
+}
+
+my class X::Constructor::BadType is Exception does X::BadType {
+    method action { 'be instantiated' }
 }
 
 my class X::Hash::Store::OddNumber is Exception {

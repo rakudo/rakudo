@@ -162,7 +162,11 @@ static void p6invokeunder(MVMThreadContext *tc, MVMuint8 *cur_op) {
     /* Now we call the second code ref, thus meaning it'll appear to have been
      * called by the first. We set up a special return handler to properly
      * remove it. */
+#if MVM_CALLSTACK_SPECIAL_RETURN
+    MVM_callstack_allocate_special_return(tc, return_from_fake, NULL, NULL, 0);
+#else
     MVM_frame_special_return(tc, tc->cur_frame, return_from_fake, NULL, NULL, NULL);
+#endif
     tc->cur_frame->return_value = res;
     tc->cur_frame->return_type = MVM_RETURN_OBJ;
     MVM_frame_dispatch_zero_args(tc, (MVMCode *)code);

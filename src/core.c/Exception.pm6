@@ -2593,7 +2593,7 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 }
 
 my class X::Assignment::RO is Exception {
-    has Mu $.value is built(:bind) = "value";
+    has Mu $.value is built(:bind) is required;
     method message {
         my $what = $!value === Nil
                     ?? 'Nil value'

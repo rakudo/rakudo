@@ -360,10 +360,7 @@ my class Cool { # declared in BOOTSTRAP
     multi method words(Cool:D:)         { self.Str.words         }
     multi method words(Cool:D: $limit ) { self.Str.words($limit) }
 
-    proto method subst(|) {
-        $/ := nqp::getlexcaller('$/');
-        {*}
-    }
+    proto method subst(|) {*}
     multi method subst(Cool:D: $original, $replacement = "", *%options) {
         $/ := nqp::getlexcaller('$/');
         self.Str.subst($original, $replacement, |%options);

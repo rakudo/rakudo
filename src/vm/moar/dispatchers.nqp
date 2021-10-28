@@ -78,7 +78,7 @@
                         }
                         else {
                             # Decont, so just evaluate to the read attr (boot-value
-                            # ignores all put the first argument).
+                            # ignores all but the first argument).
                             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
                                 nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
                                     $capture, 0, $value_arg));

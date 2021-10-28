@@ -1,6 +1,6 @@
 role Perl6::Metamodel::MROBasedMethodDispatch {
     # If needed, a cached flattened method table accounting for all methods in
-    # this class and its parents. This is only needed in the sitaution that a
+    # this class and its parents. This is only needed in the situation that a
     # megamorphic callsite involves the class, so calculated and cached on
     # demand.
     has $!cached_all_method_table;

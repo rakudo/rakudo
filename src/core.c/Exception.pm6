@@ -2593,13 +2593,14 @@ my class X::TypeCheck::Splice is X::TypeCheck does X::Comp {
 }
 
 my class X::Assignment::RO is Exception {
-    has $.value = "value";
+    has Mu $.value is built(:bind) is required;
     method message {
-        nqp::isconcrete($!value)
-          ?? "Cannot modify an immutable {$!value.^name} ({
-                 Rakudo::Internals.SHORT-STRING: $!value
-             })"
-          !! "Cannot modify an immutable '{$!value.^name}' type object"
+        my $what = $!value === Nil
+                    ?? 'Nil value'
+                    !! nqp::isconcrete($!value)
+                        ?? "{$!value.^name} ({ Rakudo::Internals.SHORT-STRING: $!value })"
+                        !! "'{$!value.^name}' type object";
+      "Cannot modify an immutable " ~ $what
     }
     method typename { $.value.^name }
 }

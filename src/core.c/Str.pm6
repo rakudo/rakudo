@@ -1554,7 +1554,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
-    proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }
+    proto method match(|) {*}
     multi method match(Cool:D $pattern, |c) {
         $/ := nqp::getlexcaller('$/');
         self.match(/ "$pattern": /,|c)

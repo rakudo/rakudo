@@ -1110,7 +1110,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # iterate with post-processing
-    class POST-ITERATOR does Iterator {
+    my class POST-ITERATOR does Iterator {
         has Mu $!cursor; # cannot put these 3 lines in role
         has Mu $!move;
         has Mu $!post;
@@ -1148,7 +1148,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
     # iterate returning Matches
-    class CURSOR-ITERATOR does Iterator {
+    my class CURSOR-ITERATOR does Iterator {
         has Mu $!cursor;
         has Mu $!move;
         method !SET-SELF(\cursor,\move) {

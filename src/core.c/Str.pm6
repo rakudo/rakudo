@@ -1685,10 +1685,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
                $pattern($cursor-init(Match,self,:0c)))
     }
 
-    proto method subst-mutate(|) {
-        $/ := nqp::getlexcaller('$/');
-        {*}
-    }
+    proto method subst-mutate(|) {*}
     multi method subst-mutate(
       Str:D $self is rw: Any:D $matcher, $replacement,
       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options

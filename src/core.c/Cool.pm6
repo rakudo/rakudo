@@ -78,7 +78,7 @@ my class Cool { # declared in BOOTSTRAP
     proto method wordcase(*%) {*}
     multi method wordcase(Cool:D:) { self.Str.wordcase(|%_) }
 
-    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
+    proto method trans(|) {*}
     multi method trans(Cool:D: |c) { self.Str.trans(|c) }
 
     proto method indent($, *%) {*}

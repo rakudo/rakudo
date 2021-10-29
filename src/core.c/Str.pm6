@@ -1554,7 +1554,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
         ))
     }
 
+#?if moar
     proto method match(|) {*}
+#?endif
+#?if !moar
+    proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
     multi method match(Cool:D $pattern, |c) {
         $/ := nqp::getlexcaller('$/');
         self.match(/ "$pattern": /,|c)
@@ -1685,7 +1690,12 @@ my class Str does Stringy { # declared in BOOTSTRAP
                $pattern($cursor-init(Match,self,:0c)))
     }
 
+#?if moar
     proto method subst-mutate(|) {*}
+#?endif
+#?if !moar
+    proto method subst-mutate(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
     multi method subst-mutate(
       Str:D $self is rw: Any:D $matcher, $replacement,
       :ii(:$samecase), :ss(:$samespace), :mm(:$samemark), *%options

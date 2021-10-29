@@ -78,7 +78,12 @@ my class Cool { # declared in BOOTSTRAP
     proto method wordcase(*%) {*}
     multi method wordcase(Cool:D:) { self.Str.wordcase(|%_) }
 
+#?if moar
     proto method trans(|) {*}
+#?endif
+#?if !moar
+    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
     multi method trans(Cool:D: |c) { self.Str.trans(|c) }
 
     proto method indent($, *%) {*}
@@ -360,7 +365,12 @@ my class Cool { # declared in BOOTSTRAP
     multi method words(Cool:D:)         { self.Str.words         }
     multi method words(Cool:D: $limit ) { self.Str.words($limit) }
 
+#?if moar
     proto method subst(|) {*}
+#?endif
+#?if !moar
+    proto method subst(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
     multi method subst(Cool:D: $original, $replacement = "", *%options) {
         $/ := nqp::getlexcaller('$/');
         self.Str.subst($original, $replacement, |%options);

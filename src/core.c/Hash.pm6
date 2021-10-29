@@ -407,6 +407,42 @@ my class Hash { # declared in BOOTSTRAP
           !! (current = self.EXISTS-KEY($key) ?? [|current,|value] !! value)
     }
 
+    my class LTHandle {
+        has Mu $!storage;
+        has Mu $!descriptor;
+    }
+
+    method TEMP-LET-GET-HANDLE() is raw is implementation-detail {
+        my \handle = nqp::create(LTHandle);
+        nqp::bindattr(handle, LTHandle, '$!storage', nqp::getattr(self, Map, '$!storage'));
+        nqp::bindattr(handle, LTHandle, '$!descriptor', nqp::getattr(self, Hash, '$!descriptor'));
+        handle
+    }
+
+    method TEMP-LET-LOCALIZE() is raw is implementation-detail {
+        my \handle = self.TEMP-LET-GET-HANDLE;
+        # Re-initialize self from the original state by taking into account conterization status of keys.
+        my \iter = nqp::iterator(nqp::getattr(self, Map, '$!storage'));
+        nqp::bindattr(self, Map, '$!storage', my \new-storage = nqp::hash);
+        nqp::while(
+            iter,
+            nqp::stmts(
+                nqp::shift(iter),
+                (my \v = nqp::iterval(iter)),
+                nqp::bindkey(
+                    new-storage,
+                    nqp::iterkey_s(iter),
+                    nqp::if( nqp::iscont(v),
+                             nqp::p6assign(nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')), v),
+                             v ))));
+        handle
+    }
+
+    method TEMP-LET-RESTORE(\handle --> Nil) is implementation-detail {
+        nqp::bindattr(self, Hash, '$!descriptor', nqp::getattr(handle, LTHandle, '$!descriptor'));
+        nqp::bindattr(self, Map, '$!storage', nqp::getattr(handle, LTHandle, '$!storage'));
+    }
+
     method ^parameterize(Mu:U \hash, Mu \of, Mu \keyof = Str(Any)) {
 
         # fast path

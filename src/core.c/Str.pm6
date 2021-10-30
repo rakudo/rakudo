@@ -1322,29 +1322,30 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Match object at given position
     method !match-one(Mu \slash, \cursor) {
-        nqp::decont(
-          slash = nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
-            ?? cursor.MATCH
-            !! Nil
-        )
+        slash
+          = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
+          ?? cursor.MATCH
+          !! Nil;
+        $match
     }
 
     # Some object at given position
     method !match-as-one(Mu \slash, \cursor, \as) {
-        nqp::decont(slash = nqp::if(
+        slash = my $match := nqp::if(
           nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
           nqp::if(nqp::istype(as,Str), &POST-STR, &POST-MATCH)(cursor),
           Nil
-        ))
+        );
+        $match
     }
 
     # Create list from the appropriate Sequence given the move
     method !match-list(Mu \slash, \cursor, \move, \post) {
-        nqp::decont(
-          slash = nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
+        slash
+          = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
             ?? Seq.new(POST-ITERATOR.new(cursor, move, post)).list
-            !! List.new
-        )
+            !! List.new;
+        $match
     }
 
     # Handle matching of the nth match specification.
@@ -1393,53 +1394,45 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give back the nth match found
     method !match-nth-int(Mu \slash, \cursor, \move, \post, int $nth) {
-        nqp::decont(slash = nqp::if(
-          nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0),
-          nqp::if(
-            nqp::eqaddr(
+        slash
+          = my $match := nqp::isge_i(nqp::getattr_i(cursor,Match,'$!pos'),0)
+          ?? nqp::eqaddr(
               (my $pulled := POST-ITERATOR.new(cursor, move, post)
                 .skip-at-least-pull-one(nqp::sub_i($nth,1))),
               IterationEnd
-            ),
-            Nil,              # not enough matches
-            $pulled           # found it!
-          ),
-          Nil                 # no matches whatsoever
-        ))
+            )
+            ?? Nil              # not enough matches
+            !! $pulled          # found it!
+          !! Nil;               # no matches whatsoever
+        $match
     }
 
     # Give back the N-tail match found
     method !match-nth-tail(Mu \slash, \cursor, \move, int $tail) {
-        nqp::decont(slash = nqp::if(
-          nqp::eqaddr((my $pulled :=
-            Rakudo::Iterator.LastNValues(
-              CURSOR-ITERATOR.new(cursor, move),
-              $tail, 'match', 1).pull-one),
-            IterationEnd
-          ),
-          Nil,
-          $pulled.MATCH
-        ))
+        slash = my $match := nqp::eqaddr(
+          (my $pulled := Rakudo::Iterator.LastNValues(
+            CURSOR-ITERATOR.new(cursor, move), $tail, 'match', 1
+          ).pull-one),
+          IterationEnd
+        ) ?? Nil !! $pulled.MATCH;
+        $match
     }
 
     # Give last value of given iterator, or Nil if none
     method !match-last(Mu \slash, \cursor, \move) {
-        nqp::decont(slash = nqp::if(
-          nqp::eqaddr((my $pulled :=
-            Rakudo::Iterator.LastValue(
-              CURSOR-ITERATOR.new(cursor, move),
-              'match')),
-            IterationEnd
+        slash = my $match := nqp::eqaddr(
+          (my $pulled := Rakudo::Iterator.LastValue(
+            CURSOR-ITERATOR.new(cursor, move), 'match')
           ),
-          Nil,
-          $pulled.MATCH
-        ))
+          IterationEnd
+        ) ?? Nil !! $pulled.MATCH;
+        $match
     }
 
     # These !match methods take an iterator instead of a cursor.
     # Give list with matches found given a range with :nth
     method !match-nth-range(Mu \slash, \iterator, $min, $max) {
-        nqp::decont(slash = nqp::stmts(
+        slash = my $match := nqp::stmts(
           (my int $skip = $min),
           nqp::if(
             nqp::islt_i($skip,1),
@@ -1486,12 +1479,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
               )
             )
           )
-        ))
+        );
+        $match
     }
 
     # Give list with matches found given an iterator with :nth
     method !match-nth-iterator(Mu \slash, \source, \indexes) {
-        nqp::decont(slash = nqp::stmts(
+        slash = my $match := nqp::stmts(
           Seq.new(Rakudo::Iterator.MonotonicIndexes(
             source, indexes, 1,
             -> $got,$next {
@@ -1502,7 +1496,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
               )
             }
           )).list
-        ))
+        );
+        $match
     }
 
     # Give list with matches found given an iterator with :x
@@ -1538,7 +1533,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
 
     # Give list with matches found given a range with :x
     method !match-x-range(Mu \slash, $iterator, $min, $max) {
-        nqp::decont(slash = nqp::stmts(
+        slash = my $match := nqp::stmts(
           (my int $todo = nqp::if($max == Inf, 0x7fffffff, $max)),
           (my $matches := nqp::create(IterationBuffer)),
           nqp::until(
@@ -1551,7 +1546,8 @@ my class Str does Stringy { # declared in BOOTSTRAP
             $matches.List,
             ()
           )
-        ))
+        );
+        $match
     }
 
 #?if moar

@@ -171,6 +171,11 @@ my class Cool { # declared in BOOTSTRAP
         (SELF = self.Str).substr-rw(from, want)
     }
 
+    proto method substr-after(|) {*}
+    multi method substr-after(Cool:D: Cool:D $after, Int:D $pos = 0) {
+        self.Str.substr-after($after.Str, $pos)
+    }
+
     proto method substr-eq(|) {*}
     multi method substr-eq(Cool:D:
       Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Bool:D) {

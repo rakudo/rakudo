@@ -248,6 +248,13 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    multi method substr-after(Str:D: Str:D $after, Int:D $pos = 0) {
+        my int $right = nqp::index(self, $after, $pos);
+        $right > -1
+          ?? nqp::substr(self, $right + nqp::chars($after))
+          !! Nil
+    }
+
     multi method substr-eq(Str:D:
       Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {

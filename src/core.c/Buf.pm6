@@ -351,7 +351,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     multi method gist(Blob:D:) {
         # (u)int don't have a nativesize, so just assume 64-bit for them
-        my int $nativesize = nqp::div_i(T.^nativesize // int64.^nativesize, 4) || 1;
+        my int $nativesize = nqp::div_i(T.^nativesize // $?BITS, 4) || 1;
 
         my int $todo = nqp::elems(self) min nqp::div_i(200,$nativesize);
         my int $i   = -1;

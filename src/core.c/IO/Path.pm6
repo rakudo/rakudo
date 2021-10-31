@@ -585,54 +585,38 @@ my class IO::Path is Cool does IO {
         $blob
     }
 
-    # slurp STDIN in binary mode
-    sub slurp-stdin-bin() is raw { slurp-PIO(nqp::getstdin) }
 
-    # slurp given path in binary mode
-    sub slurp-path-bin(str $path) is raw {
-        my $PIO  := nqp::open($path,'r');
-        my $blob := slurp-PIO($PIO);
-        nqp::closefh($PIO);
-        $blob
-    }
-
-    # slurp STDIN with given normalized encoding
-    sub slurp-stdin-with-encoding(str $encoding) {
-        nqp::join("\n",
-          nqp::split("\r\n",nqp::decode(slurp-stdin-bin,$encoding))
-        )
-    }
-
-    # slurp given path with given normalized encoding
-    sub slurp-path-with-encoding(str $path, str $encoding) {
+    sub slurp-path(str:D $path, str:D :$enc, :$bin) {
         CATCH { return Failure.new($_) }
+        my \blob := do { my $PIO  := nqp::open($path,'r');
+                         my $blob := slurp-PIO($PIO);
+                         nqp::closefh($PIO);
+                         $blob };
+        if $bin { blob }
+        else {
+            nqp::elems(blob) ?? nqp::join("\n",nqp::split("\r\n",decode-raw-blob(blob,:$enc))) !! ""
+        }
+    }
 
-        nqp::elems(my $blob := slurp-path-bin($path))
-          ?? nqp::join("\n",nqp::split("\r\n",nqp::decode($blob,$encoding)))
-          !! ""
+    # like Blob.decode, but without creating a Blob
+    sub decode-raw-blob(\blob, str:D :$enc) {
+        with Rakudo::Internals.NORMALIZE_ENCODING($enc) {nqp::decode(blob, $_ )}
+        else {
+            my $decoder = CORE::Encoding::Registry.find($enc).decoder;
+               $decoder.add-bytes(blob);
+               $decoder.consume-all-chars
+        }
+    }
+
+    sub slurp-stdin(str:D :$enc, Bool() :$bin) {
+        $bin ?? slurp-PIO(nqp::getstdin)
+             !! nqp::join("\n", nqp::split("\r\n",decode-raw-blob(slurp-stdin(:bin:$enc),:$enc)))
     }
 
     proto method slurp() {*}
-    multi method slurp(IO::Path:D: :$bin!) {
-        nqp::iseq_s($!path,"-")
-          ?? $bin
-            ?? slurp-stdin-bin()
-            !! slurp-stdin-with-encoding('utf8')
-          !! $bin
-            ?? slurp-path-bin(self.absolute)
-            !! slurp-path-with-encoding(self.absolute,'utf8')
-    }
-    multi method slurp(IO::Path:D: :$enc!) {
-        nqp::iseq_s($!path,"-")
-          ?? slurp-stdin-with-encoding(
-               Rakudo::Internals.NORMALIZE_ENCODING($enc))
-          !! slurp-path-with-encoding(self.absolute,
-               Rakudo::Internals.NORMALIZE_ENCODING($enc))
-    }
-    multi method slurp(IO::Path:D:) {
-        nqp::iseq_s($!path,"-")
-          ?? slurp-stdin-with-encoding('utf8')
-          !! slurp-path-with-encoding(self.absolute,'utf8')
+    multi method slurp(IO::Path:D: Bool() :$bin, Str :$enc='utf8') {
+        nqp::iseq_s($!path,"-") ?? slurp-stdin(:$bin,:$enc)
+                                !! slurp-path(nqp::unbox_s(self.absolute), :$bin,:$enc)
     }
 
     # spurt data to given path and file mode
@@ -646,11 +630,17 @@ my class IO::Path is Cool does IO {
 
     # spurt text to given path and file mode with given encoding
     sub spurt-string(str $path, str $mode, str $text, $encoding --> True) {
-        my $blob := nqp::encode(
-          $text,
-          (my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding)),
-          nqp::create(buf8.^pun)
-        );
+        my str $enc;
+        my $blob := do with Rakudo::Internals.NORMALIZE_ENCODING($encoding) {
+            $enc = $_;
+            nqp::encode($text, $_, nqp::create(buf8.^pun));
+        }
+        else {
+            my $registered-encoding = CORE::Encoding::Registry.find($encoding);
+            $enc = $registered-encoding.name;
+            $registered-encoding.encoder.encode-chars($text)
+        };
+
 
         # check if we need a BOM
         if $enc eq 'utf16' {

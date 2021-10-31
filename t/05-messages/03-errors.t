@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 25;
+plan 26;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -175,4 +175,14 @@ cmp-ok X::OutOfRange.new(
 is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
 'Use placeholder variables in a method should yield a useful error message';
 
+# https://github.com/rakudo/rakudo/commit/0f44ab226a6a518f63c85a2825d13496acacb7e6
+subtest 'Attenpting to encode or decode with an unknown error throws a typed error', {
+    plan 3;
+    throws-like { Blob.new(65).decode('unknown-encoding') }, X::Encoding::Unknown,
+                'Attempting to decode using an unknows encoding throws a typed error';
+    throws-like { make-temp-file().spurt('foo', :enc<unknown-encoding>) }, X::Encoding::Unknown,
+                'Attempting to spurt using an unknown encoding throws a typed error';
+    throws-like { make-temp-file(:content<foo>).slurp(:enc<unknown-encoding>) }, X::Encoding::Unknown,
+                'Attempting to slurp a file using an unknown encoding throws a typed error';
+}
 # vim: expandtab shiftwidth=4

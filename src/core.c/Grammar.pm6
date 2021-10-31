@@ -38,7 +38,7 @@ my class Grammar is Match {
         )
       }
 
-    method parsefile(Str(Cool) $filename, :$enc) is raw {
+    method parsefile(Str(Cool) $filename, :$enc='utf8') is raw {
         nqp::decont(
           nqp::getlexcaller('$/') = nqp::elems(nqp::getattr(%_,Map,'$!storage'))
             ?? self.parse($filename.IO.slurp(:$enc), :$filename, |%_)

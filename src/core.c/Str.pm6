@@ -248,6 +248,15 @@ my class Str does Stringy { # declared in BOOTSTRAP
         )
     }
 
+    multi method rinse(Str:D: Str:D $dirt, Int:D $pos = 0) {
+        $pos
+          ?? nqp::concat(
+               nqp::substr(self,0,$pos),
+               nqp::join("",nqp::split($dirt,nqp::substr(self,$pos)))
+             )
+          !! nqp::join("",nqp::split($dirt,self))
+    }
+
     multi method substr-eq(Str:D:
       Str:D $needle, Int:D $pos, :i(:$ignorecase)!, :m(:$ignoremark)
     --> Bool:D) {

@@ -280,6 +280,27 @@ my role Hash::Object[::TValue, ::TKey] does Associative[TValue] {
           !! nqp::create(Capture)
     }
     method Map() { self.pairs.Map }
+
+    method TEMP-LET-LOCALIZE() is raw is implementation-detail {
+        my \handle = self.TEMP-LET-GET-HANDLE;
+        my \iter = nqp::iterator(nqp::getattr(self, Map, '$!storage'));
+        nqp::bindattr(self, Map, '$!storage', my \new-storage = nqp::hash);
+        nqp::while(
+            iter,
+            nqp::stmts(
+                nqp::shift(iter),
+                # What we do here is very much stripped down versions of ASSIGN-KEY and BIND-KEY.
+                (my \p = nqp::iterval(iter)),
+                nqp::bindkey(
+                    new-storage,
+                    nqp::iterkey_s(iter),
+                    Pair.new(
+                        p.key,
+                        nqp::if( nqp::iscont(my \v = p.value),
+                                 nqp::p6assign(nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')), v),
+                                 v )))));
+        handle
+    }
 }
 
 # vim: expandtab shiftwidth=4

@@ -2787,8 +2787,7 @@ class Perl6::World is HLL::World {
             QAST::Var.new( :name($value_stash), :scope('lexical'), :decl('var') ),
             QAST::Op.new(
               :op('create'),
-              QAST::WVal.new( :value(self.find_single_symbol('IterationBuffer', :setting-only))),
-            )));
+              QAST::WVal.new( :value(self.find_single_symbol('IterationBuffer', :setting-only))))));
         $block.symbol($value_stash, :scope('lexical'));
 
         # Create a phaser block that will do the restoration.
@@ -2798,18 +2797,32 @@ class Perl6::World is HLL::World {
             :op('while'),
             QAST::Op.new(
                 :op('elems'),
-                QAST::Var.new( :name($value_stash), :scope('lexical') )
-            ),
+                QAST::Var.new( :name($value_stash), :scope('lexical') )),
             QAST::Op.new(
-                :op('p6store'),
+                :op('if'),
                 QAST::Op.new(
-                    :op('shift'),
-                    QAST::Var.new( :name($value_stash), :scope('lexical') )
-                ),
-                QAST::Op.new(
-                    :op('shift'),
-                    QAST::Var.new( :name($value_stash), :scope('lexical') )
-                ))));
+                    :op('iscont'),
+                    QAST::Op.new(
+                        :op('atpos'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') ),
+                        QAST::IVal.new( :value(0) ))),
+                QAST::Op.new( # p6store is for Scalar
+                    :op('p6store'),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') )),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') ))),
+                QAST::Op.new( # Otherwise we restore by means of the container itself
+                    :op('callmethod'),
+                    :name('TEMP-LET-RESTORE'),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') )),
+                    QAST::Op.new(
+                        :op('shift'),
+                        QAST::Var.new( :name($value_stash), :scope('lexical') ))))));
 
         # Add as phaser.
         $block[0].push($phaser_block);

@@ -1,3 +1,8 @@
+# Some maximum cache sizes we allow at a callsite before we switch to a
+# megamorphic strategy.
+my int $MEGA-TYPE-CALLSITE-SIZE := 16;
+my int $MEGA-METH-CALLSITE-SIZE := 16;
+
 # Return value decontainerization dispatcher. Often we have nothing at all
 # to do, in which case we can make it identity. Other times, we need a
 # decont. In a few, we need to re-wrap it.
@@ -32,7 +37,7 @@
         # any conditions, which is faster than over-filling the cache and running
         # this dispatch logic every time.
         my int $cache-size := nqp::dispatch('boot-syscall', 'dispatcher-inline-cache-size');
-        if $cache-size >= 16 {
+        if $cache-size >= $MEGA-TYPE-CALLSITE-SIZE {
             nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
                 nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
                     nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
@@ -665,7 +670,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
     my str $name := nqp::captureposarg_s($capture, 1);
     my $how := nqp::how_nd($obj);
     my int $cache-size := nqp::dispatch('boot-syscall', 'dispatcher-inline-cache-size');
-    if $cache-size >= 16 && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+    if $cache-size >= $MEGA-METH-CALLSITE-SIZE && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call-mega',
             $capture);
     }
@@ -3084,7 +3089,8 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-find-meth', -> $captu
     my $how := nqp::how_nd($obj);
     my int $cache-size := nqp::dispatch('boot-syscall', 'dispatcher-inline-cache-size');
     my int $exceptional := nqp::captureposarg_i($capture, 2);
-    if $cache-size >= 8 && !$exceptional && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+    if $cache-size >= $MEGA-METH-CALLSITE-SIZE && !$exceptional &&
+            nqp::istype($how, Perl6::Metamodel::ClassHOW) {
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-find-meth-mega',
             $capture);
     }

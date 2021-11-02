@@ -44,7 +44,7 @@ $REPO.install(
     Distribution::Hash.new(
         {
             name     => 'CORE',
-            auth     => 'perl',
+            auth     => 'raku',
             ver      => $*RAKU.version.Str,
             provides => %provides,
         },

@@ -139,7 +139,6 @@ group-of 2 => 'collation experiment' => {
     is-run ｢$*COLLATION.set: :primary; print 'pass'｣,
         :out<pass>, '$*COLLATION.set no longer requires experimental pragma';
     is-run ｢
-        use experimental :collation;
         $*COLLATION.set: :primary;
         print 'pass'
     ｣, :out<pass>, :compiler-args[<-I lib>], 'we can still use the pragma (to support old code)';

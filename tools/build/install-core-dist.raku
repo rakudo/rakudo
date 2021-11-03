@@ -1,8 +1,8 @@
 use v6.d;
 
-use lib <lib>;
-use CompUnit::Repository::Staging;
-use Rakudo::CORE::META;
+use lib <tools/build>;
+use Staging;
+use META;
 
 my $prefix := @*ARGS[0];
 my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(

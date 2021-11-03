@@ -10,12 +10,12 @@ our %META = BEGIN {
       "Pod::To::Text"                 => "lib/Pod/To/Text.rakumod",
       "newline"                       => "lib/newline.rakumod",
       "experimental"                  => "lib/experimental.rakumod",
-      "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
       "Telemetry"                     => "lib/Telemetry.rakumod",
       "snapper"                       => "lib/snapper.rakumod",
       "safe-snapper"                  => "lib/safe-snapper.rakumod",
       "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
-      "Rakudo::CORE::META"            => "lib/Rakudo/CORE/META.rakumod",
+      "CompUnit::Repository::Staging" => "tools/build/Staging.rakumod",
+      "Rakudo::CORE::META"            => "tools/build/META.rakumod",
     ;
 
     if Compiler.backend eq 'moar' {

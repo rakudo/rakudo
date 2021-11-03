@@ -2,31 +2,7 @@ use v6.d;
 
 use lib <lib>;
 use CompUnit::Repository::Staging;
-
-my %provides = 
-    "Test"                          => "lib/Test.rakumod",
-    "NativeCall"                    => "lib/NativeCall.rakumod",
-    "NativeCall::Types"             => "lib/NativeCall/Types.rakumod",
-    "NativeCall::Compiler::GNU"     => "lib/NativeCall/Compiler/GNU.rakumod",
-    "NativeCall::Compiler::MSVC"    => "lib/NativeCall/Compiler/MSVC.rakumod",
-    "Pod::To::Text"                 => "lib/Pod/To/Text.rakumod",
-    "newline"                       => "lib/newline.rakumod",
-    "experimental"                  => "lib/experimental.rakumod",
-    "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
-    "Telemetry"                     => "lib/Telemetry.rakumod",
-    "snapper"                       => "lib/snapper.rakumod",
-    "safe-snapper"                  => "lib/safe-snapper.rakumod",
-    "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
-;
-
-if Compiler.backend eq 'moar' {
-    %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod";
-    %provides<MoarVM::Spesh>    = "lib/MoarVM/Spesh.rakumod";
-    %provides<MoarVM::SL>       = "lib/MoarVM/SL.rakumod";
-    %provides<SL>               = "lib/SL.rakumod";
-    %provides<MoarVM::SIL>      = "lib/MoarVM/SIL.rakumod";
-    %provides<SIL>              = "lib/SIL.rakumod";
-}
+use Rakudo::CORE::META;
 
 my $prefix := @*ARGS[0];
 my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
@@ -42,12 +18,7 @@ my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(
 );
 $REPO.install(
     Distribution::Hash.new(
-        {
-            name     => 'CORE',
-            auth     => 'perl',
-            ver      => $*RAKU.version.Str,
-            provides => %provides,
-        },
+        %Rakudo::CORE::META,
         prefix => $*CWD,
     ),
     :force,
@@ -64,6 +35,7 @@ my $source-id :=
 my $source      := $REPO.prefix.child('sources').child($source-id);
 my $source-file := $source.relative($REPO.prefix);
 
+
 $REPO.precomp-repository.precompile(
         $source,
         CompUnit::PrecompilationId.new($source-id),
@@ -71,6 +43,6 @@ $REPO.precomp-repository.precompile(
         :force,
 );
 
-note "    Installed {%provides.elems} core modules in {now - INIT now} seconds!";
+note "    Installed {%Rakudo::CORE::META<provides>.elems} core modules in {now - INIT now} seconds!";
 
 # vim: expandtab sw=4

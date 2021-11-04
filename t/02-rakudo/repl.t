@@ -8,7 +8,8 @@ plan 47;
 my $eof = $*DISTRO.is-win ?? "'^Z'" !! "'^D'";
 my $*REPL-SCRUBBER = -> $_ is copy {
     $_ = .lines.skip(4).join("\n");
-    s/^^ "You may want to `zef install Readline` or `zef install Linenoise`"
+    s/^^ "You may want to `zef install Readline`, `zef install Linenoise`,"
+        " or `zef install Terminal::LineEditor`"
         " or use rlwrap for a line editor\n\n"//;
     s/^^ "To exit type 'exit' or $eof\n"//;
     s:g/ ^^ "> "  //; # Strip out the prompts
@@ -164,12 +165,13 @@ is-run-repl ['Nil'], /Nil/, 'REPL outputs Nil as a Nil';
     skip 'Result differs on OSX';
     # is-run-repl ['say "hi"'], {
     #     .subst(:g, /\W+/, '') eq
-    #     'YoumaywanttozefinstallReadlineorzefinstallLinenoise'
+    #     'YoumaywanttozefinstallReadlinezefinstallLinenoise'
+    #     ~ 'orzefinstallTerminalLineEditor'
     #     ~ 'oruserlwrapforalineeditor' ~ 'ToexittypeexitorD' ~ 'hi'
     # }, 'REPL session does not have unexpected stuff';
 
-    ## XXX TODO: need to write tests that exercise the REPL with Linenoise
-    # and Readline installed. Particular things to check:
+    ## XXX TODO: need to write tests that exercise the REPL with Linenoise,
+    # Readline, and Terminal::LineEditor installed. Particular things to check:
     # 1. History file can be made on all OSes:
     #    https://github.com/rakudo/rakudo/commit/b4fa6d6792dd02424d2182b73c31a071cddc0b8e
     # 2. Test REPL does not show errors when $*HOME is not set:

@@ -100,6 +100,32 @@ do {
         }
     }
 
+    my role TerminalLineEditorBehavior[$WHO] {
+        my $cli = ::('Terminal::LineEditor::CLIInput').new;
+
+        # method completions-for-line(Str $line, int $cursor-index) { ... }
+
+        method history-file(--> Str:D) { ... }
+
+        method init-line-editor {
+            $cli.load-history($.history-file);
+        }
+
+        method teardown-line-editor {
+            $cli.save-history($.history-file);
+        }
+
+        method repl-read(Mu \prompt) {
+            my $line = $cli.prompt(prompt);
+
+            if $line.defined && $line.match(/\S/) {
+                $cli.add-history($line);
+            }
+
+            $line
+        }
+    }
+
     my role FallbackBehavior {
         method repl-read(Mu \prompt) {
             print prompt;
@@ -207,10 +233,16 @@ do {
             do-mixin($self, 'Linenoise', LinenoiseBehavior, |c)
         }
 
+        sub mixin-terminal-lineeditor($self, |c) {
+            do-mixin($self, 'Terminal::LineEditor::RawTerminalInput',
+                     TerminalLineEditorBehavior, |c)
+        }
+
         sub mixin-line-editor($self) {
             my %editor-to-mixin = (
                 :Linenoise(&mixin-linenoise),
                 :Readline(&mixin-readline),
+                :LineEditor(&mixin-terminal-lineeditor),
                 :none(-> $self { ( $self but FallbackBehavior, False ) }),
             );
 
@@ -231,7 +263,10 @@ do {
             my ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
             return $new-self if $new-self;
 
-            ( $new-self, $problem ) = mixin-linenoise($self);
+            ( $new-self, $problem ) = mixin-linenoise($self, :fallback<LineEditor>);
+            return $new-self if $new-self;
+
+            ( $new-self, $problem ) = mixin-terminal-lineeditor($self);
             return $new-self if $new-self;
 
             if $problem {
@@ -239,7 +274,7 @@ do {
                 say 'You may want to consider using rlwrap for simple line editor functionality';
             }
             elsif !Rakudo::Internals.IS-WIN and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
-                say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor';
+                say 'You may want to `zef install Readline`, `zef install Linenoise`, or `zef install Terminal::LineEditor` or use rlwrap for a line editor';
             }
             say '';
 

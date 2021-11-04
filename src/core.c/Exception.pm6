@@ -2356,6 +2356,14 @@ my class X::Sequence::Endpoint is Exception {
     }
 }
 
+my class X::Cannot::Junction is Exception {
+    has $.junction;
+    has $.for;
+    method message() {
+        "Cannot use Junction '$.junction' $.for."
+    }
+}
+
 my class X::Cannot::Map is Exception {
     has $.what   = "(<unknown type>)";
     has $.using  = "(<an unknown expression>)";

@@ -636,16 +636,17 @@ my class IO::Path is Cool does IO {
     }
 
     # spurt data to given path and file mode
-    sub spurt-blob(str $path, str $mode, Blob:D \data --> True) {
+    sub spurt-blob(str $path, str $mode, Blob:D \data) {
         CATCH { .fail }
 
         my $PIO := nqp::open($path,$mode);
         nqp::writefh($PIO,nqp::decont(data));
-        nqp::closefh($PIO)
+        nqp::closefh($PIO);
+        True
     }
 
     # spurt text to given path and file mode with given encoding
-    sub spurt-string(str $path, str $mode, str $text, $encoding --> True) {
+    sub spurt-string(str $path, str $mode, str $text, $encoding) {
         my $blob := nqp::encode(
           $text,
           (my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding)),

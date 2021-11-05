@@ -27,6 +27,10 @@ my class Mu { # declared in BOOTSTRAP
     # while preserving compatibility with existing code that has any ACCEPTS
     # candidates for Mu or Junction.
     multi method ACCEPTS(Mu:U \SELF: Junction:D \topic) is default {
+        DEPRECATED(
+          "hyper operators or reduction",
+          what => "calling .ACCEPTS with a Junction"
+        );
         topic.THREAD: { SELF.ACCEPTS: $_ }
     }
 
@@ -1173,13 +1177,29 @@ proto sub defined(Mu, *%) is pure {*}
 multi sub defined(Mu \x) { x.defined }
 
 proto sub infix:<~~>(Mu, Mu, *%) {*}
-multi sub infix:<~~>(Mu \topic, Mu \matcher) {
+multi sub infix:<~~>(Mu \topic, Mu \matcher --> Bool:D) {
     matcher.ACCEPTS(topic).Bool;
+}
+multi sub infix:<~~>(Junction:D \topic, Junction:U --> True) { }
+multi sub infix:<~~>(Junction:D \topic, Mu \matcher --> Bool:D) {
+    DEPRECATED(
+      "hyper operators or reduction",
+      what => "Smartmatching with a Junction"
+    );
+    topic.THREAD({ matcher.ACCEPTS: $_ }).Bool
 }
 
 proto sub infix:<!~~>(Mu, Mu, *%) {*}
-multi sub infix:<!~~>(Mu \topic, Mu \matcher) {
+multi sub infix:<!~~>(Mu \topic, Mu \matcher --> Bool:D) {
     matcher.ACCEPTS(topic).not;
+}
+multi sub infix:<!~~>(Junction:D \topic, Junction:U --> False) { }
+multi sub infix:<!~~>(Junction:D \topic, Mu \matcher --> Bool:D) {
+    DEPRECATED(
+      "hyper operators or reduction",
+      what => "Smartmatching with a Junction"
+    );
+    topic.THREAD({ matcher.ACCEPTS: $_ }).not
 }
 
 proto sub infix:<=:=>(Mu $?, Mu $?, *%) is pure {*}

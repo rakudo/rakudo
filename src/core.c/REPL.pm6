@@ -101,7 +101,8 @@ do {
     }
 
     my role TerminalLineEditorBehavior[$WHO] {
-        my $cli = ::('Terminal::LineEditor::CLIInput').new;
+        my $cli-input = $WHO<CLIInput>;
+        my $cli = $cli-input.new;
 
         # method completions-for-line(Str $line, int $cursor-index) { ... }
 
@@ -197,7 +198,7 @@ do {
         has $!need-more-input = {};
         has $!control-not-allowed = {};
 
-        sub do-mixin($self, Str $module-name, $behavior, Str :$fallback) {
+        sub do-mixin($self, Str $module-name, $behavior, Str :$fallback, Bool :$classlike) {
             my Bool $problem = False;
             try {
                 CATCH {
@@ -217,7 +218,8 @@ do {
                 }
 
                 my $module = do require ::($module-name);
-                my $new-self = $self but $behavior.^parameterize($module.WHO<EXPORT>.WHO<ALL>.WHO);
+                my $who = $classlike ?? $module.WHO !! $module.WHO<EXPORT>.WHO<ALL>.WHO;
+                my $new-self = $self but $behavior.^parameterize($who);
                 $new-self.?init-line-editor();
                 return ( $new-self, False );
             }
@@ -234,8 +236,10 @@ do {
         }
 
         sub mixin-terminal-lineeditor($self, |c) {
-            do-mixin($self, 'Terminal::LineEditor::RawTerminalInput',
-                     TerminalLineEditorBehavior, |c)
+            (try require ::('Terminal::LineEditor::RawTerminalInput')) === Nil
+                 and return ( Any, False );
+            do-mixin($self, 'Terminal::LineEditor',
+                     TerminalLineEditorBehavior, :classlike, |c)
         }
 
         sub mixin-line-editor($self) {

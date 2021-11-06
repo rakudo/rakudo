@@ -198,7 +198,8 @@ do {
         has $!need-more-input = {};
         has $!control-not-allowed = {};
 
-        sub do-mixin($self, Str $module-name, $behavior, Str :$fallback, Bool :$classlike) {
+        sub do-mixin($self, Str $module-name, $behavior, :@extra-modules,
+                     Str :$fallback, Bool :$classlike) {
             my Bool $problem = False;
             try {
                 CATCH {
@@ -217,6 +218,7 @@ do {
                     }
                 }
 
+                (require ::($_)) for @extra-modules;
                 my $module = do require ::($module-name);
                 my $who = $classlike ?? $module.WHO !! $module.WHO<EXPORT>.WHO<ALL>.WHO;
                 my $new-self = $self but $behavior.^parameterize($who);
@@ -236,10 +238,9 @@ do {
         }
 
         sub mixin-terminal-lineeditor($self, |c) {
-            (try require ::('Terminal::LineEditor::RawTerminalInput')) === Nil
-                 and return ( Any, False );
-            do-mixin($self, 'Terminal::LineEditor',
-                     TerminalLineEditorBehavior, :classlike, |c)
+            do-mixin($self, 'Terminal::LineEditor', TerminalLineEditorBehavior,
+                     :extra-modules('Terminal::LineEditor::RawTerminalInput',),
+                     :classlike, |c)
         }
 
         sub mixin-line-editor($self) {

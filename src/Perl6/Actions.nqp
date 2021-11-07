@@ -7540,7 +7540,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     $was_lexical := 1;
                 }
                 if $*W.is_lexical_marked_ro($target.name) || !$was_lexical {
-                    $*W.throw($/, ['X', 'Bind']);
+                    $*W.throw($/, ['X', 'Bind', 'Rebind'], target => $target.name);
                 }
             }
 
@@ -7589,8 +7589,19 @@ class Perl6::Actions is HLL::Actions does STDActions {
             $dynbind.nosink(1);
             make $dynbind;
         }
-        # XXX Several more cases to do...
-        else {
+        # Everything else is a (re)binding error.  Check the types to give a more specific msg
+        elsif nqp::istype($target, QAST::WVal)
+        && $target.value.raku eq $target.node {    # A type (class, role, etc)
+            $*W.throw($/, ['X', 'Bind', 'Rebind'], :target($target.value.raku), :is-type(1))
+        }
+        elsif nqp::istype($target, QAST::WVal) {   # A constant
+            $*W.throw($/, ['X', 'Bind', 'Rebind'], :target(nqp::escape($target.node)))
+        }
+        elsif nqp::istype($target, QAST::Op)
+        && $target.op eq 'ifnull' {                # Code (subs, regex, etc)
+            $*W.throw($/, ['X', 'Bind', 'Rebind'], target => nqp::escape($target[0].name));
+        }
+        else {             # Items that can never be bound (PsudoPackages, literals, etc)
             $*W.throw($/, ['X', 'Bind']);
         }
     }

@@ -89,8 +89,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     method Numeric(Uni:D:) { nqp::elems(self) }
     method Int(Uni:D:)     { nqp::elems(self) }
 
-    multi method ACCEPTS(Uni:D: Uni:D \other --> Bool:D) {
-        my $other := nqp::decont(other);
+    multi method ACCEPTS(Uni:D: Uni:D $other --> Bool:D) {
         nqp::hllbool(
           nqp::iseq_i(nqp::elems(self),nqp::elems($other))
             && nqp::stmts(
@@ -109,29 +108,28 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         )
     }
 
-    multi method EXISTS-POS(Uni:D: int \pos) {
+    multi method EXISTS-POS(Uni:D: int $pos) {
         nqp::hllbool(
-          nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
+          nqp::islt_i($pos,nqp::elems(self)) && nqp::isge_i($pos,0)
         );
     }
-    multi method EXISTS-POS(Uni:D: Int:D \pos) {
-        pos < nqp::elems(self) && pos >= 0;
+    multi method EXISTS-POS(Uni:D: Int:D $pos) {
+        $pos < nqp::elems(self) && $pos >= 0;
     }
 
-    multi method AT-POS(Uni:D: int \pos) {
-        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),
-               :got(pos),
-               :range("0..{nqp::elems(self)-1}")))
-          !! nqp::atpos_i(self, pos)
-    }
-    multi method AT-POS(Uni:D: Int:D \pos) {
-        my int $pos = nqp::unbox_i(pos);
+    multi method AT-POS(Uni:D: int $pos) {
         nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),
-               :got(pos),
+               :got($pos),
+               :range("0..{nqp::elems(self)-1}")))
+          !! nqp::atpos_i(self,$pos)
+    }
+    multi method AT-POS(Uni:D: Int:D $pos) {
+        nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),
+               :got($pos),
                :range("0..{nqp::elems(self)-1}")))
           !! nqp::atpos_i(self,$pos)
     }
@@ -178,15 +176,15 @@ my class NFKC is Uni {
     }
 }
 
-multi sub infix:<cmp>(Uni:D \a, Uni:D \b) {
-    my int $elems-a = nqp::elems(a);
-    my int $elems-b = nqp::elems(b);
+multi sub infix:<cmp>(Uni:D $a, Uni:D $b) {
+    my int $elems-a = nqp::elems($a);
+    my int $elems-b = nqp::elems($b);
     my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
 
     my int $i = -1;
     nqp::until(
       nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
-        || (my $res = nqp::cmp_i(nqp::atpos_i(a,$i),nqp::atpos_i(b,$i))),
+        || (my $res = nqp::cmp_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i))),
       nqp::null
     );
     ORDER($res || nqp::cmp_i($elems-a,$elems-b))

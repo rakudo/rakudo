@@ -60,14 +60,14 @@ my class ThreadPoolScheduler does Scheduler {
             else {
                 my $success;
                 my $result;
-                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, nqp::getattr(-> Mu \c {
                     $handle.subscribe-awaiter(-> \success, \result {
                         $success := success;
                         $result := result;
                         nqp::push($!queue, ContinuationWrapper.new(c));
                         Nil
                     });
-                });
+                }, Code, '$!do'));
                 $success
                     ?? $result
                     !! $result.rethrow
@@ -164,10 +164,10 @@ my class ThreadPoolScheduler does Scheduler {
                         $l.unlock();
                     }
                 }
-                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, nqp::getattr(-> Mu \c {
                     $continuation := c;
                     $l.unlock;
-                });
+                }, Code, '$!do'));
 
                 # If we got an exception, throw it.
                 $exception.rethrow if nqp::isconcrete($exception);
@@ -242,7 +242,7 @@ my class ThreadPoolScheduler does Scheduler {
                 nqp::continuationinvoke(task.cont, nqp::null());
             }
             else {
-                nqp::continuationreset(THREAD_POOL_PROMPT, {
+                nqp::continuationreset(THREAD_POOL_PROMPT, nqp::getattr({
                     if nqp::istype(task, List) {
                         my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
                         $code(|task);
@@ -261,7 +261,7 @@ my class ThreadPoolScheduler does Scheduler {
                             $!scheduler.handle_uncaught($_)
                         }
                     }
-                });
+                }, Code, '$!do'));
             }
             $!working = 0;
 #?if moar
@@ -642,8 +642,10 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # exhausted the system allotment of low level threads
                     if $exhausted {
-                        $exhausted = 0  # for next run of supervisor
-                          if ++$exhausted > EXHAUSTED_RETRY_AFTER;
+                        if ++$exhausted > EXHAUSTED_RETRY_AFTER {
+                            scheduler-debug "No more system threads";
+                            $exhausted = 0  # for next run of supervisor
+                        }
                     }
 
                     # we can still add threads if necessary

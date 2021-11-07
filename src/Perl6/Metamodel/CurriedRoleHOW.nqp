@@ -56,7 +56,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type($curried_role, *@pos_args, *%named_args) {
@@ -74,7 +74,9 @@ class Perl6::Metamodel::CurriedRoleHOW
             :named_args(%named_args), :name($name));
         my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
         $meta.set_name($type, $name);
+#?if !moar
         $meta.compose_invocation($type);
+#?endif
 
         nqp::settypecheckmode($type, 2);
     }

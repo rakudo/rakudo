@@ -693,10 +693,10 @@ my role Baggy does QuantHash {
     method RAW-HASH() is raw is implementation-detail { $!elems }
 }
 
-multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
+multi sub infix:<eqv>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a.ACCEPTS($b))
     )
 }
 

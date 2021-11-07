@@ -50,7 +50,7 @@ class Perl6::Metamodel::EnumHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type(:$name!, :$base_type?, :$repr = 'P6opaque', :$is_mixin) {
@@ -165,8 +165,10 @@ class Perl6::Metamodel::EnumHOW
             $!composed := 1;
         }
 
+#?if !moar
         # Compose invocation protocol.
         self.compose_invocation($obj);
+#?endif
 
         $obj
     }

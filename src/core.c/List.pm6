@@ -432,13 +432,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::while(                           # only a single %s
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::bindpos_s($strings,$i,
-                    nqp::join(nqp::atpos($list,$i).Str,$parts)
+                    nqp::if(
+                      nqp::istype((my $elem := nqp::atpos($list,$i)),List),
+                      $elem.fmt($format, $separator),
+                      nqp::join($elem.Str,$parts)
+                    )
                   )
                 ),
                 nqp::while(                           # something else
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::bindpos_s($strings,$i,
-                    nqp::atpos($list,$i).fmt($format)
+                    nqp::if(
+                      nqp::istype(($elem := nqp::atpos($list,$i)),List),
+                      $elem.fmt($format, $separator),
+                      $elem.fmt($format)
+                    )
                   )
                 )
               ),
@@ -476,19 +484,19 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! self!AT_POS_SLOW($pos)
     }
 
-    method !AT_POS_SLOW(\pos) is raw {
+    method !AT_POS_SLOW(int $pos) is raw {
         nqp::if(
-          nqp::islt_i(pos,0),
+          nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>)),
+            :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
           nqp::if(
             nqp::isconcrete($!reified),
             nqp::ifnull(
-              nqp::atpos($!reified,pos),
+              nqp::atpos($!reified,$pos),
               nqp::if(
                 nqp::isconcrete($!todo)
-                  && $!todo.reify-at-least(nqp::add_i(pos,1)),
-                nqp::ifnull(nqp::atpos($!reified,pos),Nil),
+                  && $!todo.reify-at-least(nqp::add_i($pos,1)),
+                nqp::ifnull(nqp::atpos($!reified,$pos),Nil),
                 Nil
               )
             ),
@@ -497,9 +505,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method ASSIGN-POS(List:D: Int:D \pos, \what) is raw {
-        nqp::iscont(self.AT-POS(pos))
-          ?? (nqp::atpos($!reified,nqp::unbox_i(pos)) = what)
+    method ASSIGN-POS(List:D: Int:D $pos, \what) is raw {
+        nqp::iscont(self.AT-POS($pos))
+          ?? (nqp::atpos($!reified,$pos) = what)
           !! X::Assignment::RO.new(value => self).throw
     }
 
@@ -940,13 +948,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         has int $!elems;
         has int $!number;
 
-        method !SET-SELF(\list,$!elems,\number) {
+        method !SET-SELF(\list, $!elems, $!number) {
             $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
-            $!number = number + 1;
             self
         }
-        method new(\list,\elems,\number) {
-            nqp::create(self)!SET-SELF(list,elems,number)
+        method new(\list, $elems, $number) {
+            nqp::create(self)!SET-SELF(list, $elems, $number + 1)
         }
         method pull-one() {
             nqp::if(
@@ -991,15 +998,18 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
         method is-deterministic(--> False) { }
     }
-    multi method pick(List:D: $number is copy) {
-        return self.fail-iterator-cannot-be-lazy('.pick from') if self.is-lazy;
-        my Int $elems = self.elems;
-        return () unless $elems;
-
-        $number = nqp::istype($number,Whatever) || $number == Inf
-          ?? $elems
-          !! $number.UInt min $elems;
-        Seq.new(PickN.new(self,$elems,$number))
+    multi method pick(List:D: $number) {
+        self.is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('.pick from')
+          !! (my Int $elems = self.elems)
+            ?? Seq.new(PickN.new(
+                 self,
+                 $elems,
+                 nqp::istype($number,Whatever) || $number == Inf
+                   ?? $elems
+                   !! $number.UInt min $elems
+               ))
+            !! ()
     }
 
     proto method roll(|) is nodal {*}
@@ -1031,14 +1041,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         has $!list;
         has int $!elems;
         has int $!todo;
-        method !SET-SELF(\list,\todo) {
+        method !SET-SELF(\list, $todo) {
             $!list := nqp::getattr(list,List,'$!reified');
             $!elems = nqp::elems($!list);
-            $!todo  = todo + 1;
+            $!todo  = $todo + 1;
             self
         }
-        method new(\list,\todo) {
-            nqp::create(self)!SET-SELF(list,todo)
+        method new(\list, $todo) {
+            nqp::create(self)!SET-SELF(list, $todo)
         }
         method pull-one() is raw {
             ($!todo = nqp::sub_i($!todo,1))
@@ -1061,13 +1071,13 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         }
         method is-deterministic(--> False) { }
     }
-    multi method roll(List:D: \number) {
-        number == Inf
+    multi method roll(List:D: $number) {
+        $number == Inf
           ?? self.roll(*)
           !! self.is-lazy
             ?? self.fail-iterator-cannot-be-lazy('.roll from').throw
             !! Seq.new(self.elems   # this allocates/reifies
-                 ?? RollN.new(self,number.Int)
+                 ?? RollN.new(self, $number.Int)
                  !! Rakudo::Iterator.Empty
                )
     }
@@ -1489,11 +1499,11 @@ multi sub infix:<,>(|) {
 }
 
 proto sub combinations($, $?, *%) {*}
-multi sub combinations(Int() \n, Int() \k --> Seq:D) {
-    Seq.new(Rakudo::Iterator.Combinations(n,k,0))
+multi sub combinations(Int() $n, Int() $k --> Seq:D) {
+    Seq.new: Rakudo::Iterator.Combinations($n, $k, 0)
 }
-multi sub combinations(Int() \n, Range:D \k --> Seq:D) {
-    ^n .combinations: k
+multi sub combinations(Int() $n, Range:D \k --> Seq:D) {
+    ^$n .combinations: k
 }
 multi sub combinations(Iterable \n, \k --> Seq:D) is default {
     n.combinations: k
@@ -1503,8 +1513,8 @@ multi sub combinations(\n  --> Seq:D) {
 }
 
 proto sub permutations($, *%) {*}
-multi sub permutations(Int() \n --> Seq:D) {
-    Seq.new(Rakudo::Iterator.Permutations(n,0))
+multi sub permutations(Int() $n --> Seq:D) {
+    Seq.new: Rakudo::Iterator.Permutations($n, 0)
 }
 multi sub permutations(Iterable \n --> Seq:D) {
     n.permutations

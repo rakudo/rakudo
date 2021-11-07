@@ -370,14 +370,14 @@ my class Date does Dateish {
     method Date() { self }
 }
 
-multi sub infix:<+>(Date:D \date, Int:D $x --> Date:D) {
-    date.MOVE-DAYS($x)
+multi sub infix:<+>(Date:D $date, Int:D $x --> Date:D) {
+    $date.MOVE-DAYS($x)
 }
-multi sub infix:<+>(Int:D $x, Date:D \date --> Date:D) {
-    date.MOVE-DAYS($x)
+multi sub infix:<+>(Int:D $x, Date:D $date --> Date:D) {
+    $date.MOVE-DAYS($x)
 }
-multi sub infix:<->(Date:D \date, Int:D $x --> Date:D) {
-    date.MOVE-DAYS(nqp::neg_i($x))
+multi sub infix:<->(Date:D $date, Int:D $x --> Date:D) {
+    $date.MOVE-DAYS(nqp::neg_i($x))
 }
 multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
     $a.daycount - $b.daycount;

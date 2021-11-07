@@ -98,6 +98,7 @@ sub MAIN(
             :$verbosity,
             :err('ignore'),
     );
+    temp %*ENV<RAKULIB> = 'lib';
     await $harness.run(@tfiles).waiter;
 
     sub batch(Int(Real) $size, @files) {
@@ -144,7 +145,7 @@ sub MAIN(
 #        ::('TAP::Harness::SourceHandler::Exec').new($perl5path, './eval-client.pl', 'TESTTOKEN', 'run');
 #    }
     multi sub get-handler(Any, :$rakupath) {
-       ::('TAP::Harness::SourceHandler::Perl6').new(:incdirs['lib'], :path($rakupath));
+       ::('TAP::Harness::SourceHandler::Raku').new(:path($rakupath));
     }
 }
 

@@ -46,7 +46,7 @@ role Perl6::Metamodel::MethodContainer {
         }
 
         # Adding a method means any cache is no longer authoritative.
-        nqp::setmethcacheauth($obj, 0);
+        try self.invalidate_method_caches($obj);
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
         @!method_names[+@!method_names] := $name;

@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan(8);
+plan(11);
 
 compile_test_lib('08-callbacks');
 
@@ -20,6 +20,7 @@ class Struct is repr('CStruct') {
 }
 
 sub TakeACallback(&cb ()) is native('./08-callbacks') { * }
+sub OptionallyTakeACallback(&cb ()) is native('./08-callbacks') { * }
 sub TakeIntCallback(&cb (int32)) is native('./08-callbacks') { * }
 sub TakeStringCallback(&cb (Str)) is native('./08-callbacks') { * }
 sub TakeStructCallback(&cb (Struct)) is native('./08-callbacks') { * }
@@ -60,6 +61,9 @@ sub return_struct() returns Struct {
 }
 
 TakeACallback(&simple_callback);
+OptionallyTakeACallback(&simple_callback);
+lives-ok { OptionallyTakeACallback(Code) }, "optional callback with Code type object";
+lives-ok { OptionallyTakeACallback(Pointer) }, "optional callback with Pointer type object";
 TakeIntCallback(&int_callback);
 TakeStringCallback(&str_callback);
 TakeStructCallback(&struct_callback);

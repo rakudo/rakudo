@@ -17,6 +17,11 @@ DLLEXPORT void TakeACallback(void (*cb)(void)) {
     cb();
 }
 
+DLLEXPORT void OptionallyTakeACallback(void (*cb)(void)) {
+       if ( cb )
+        cb();
+}
+
 DLLEXPORT void TakeIntCallback(void (*cb)(int)) {
     cb(17);
 }

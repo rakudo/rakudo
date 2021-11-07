@@ -1484,7 +1484,7 @@ class Rakudo::Iterator {
         has $!dots;  # JVM doesnt produce "." and "..", so we need to fake them
 #?endif
 
-        method !SET-SELF(\path, \tester) {
+        method !SET-SELF(\path, Mu \tester) {
             $!path      := path;
             $!prefix     = path.prefix-for-dir;
             $!CWD       := path.CWD.IO;
@@ -1497,7 +1497,7 @@ class Rakudo::Iterator {
             self
         }
 
-        method new(\path, \tester) { nqp::create(self)!SET-SELF(path, tester) }
+        method new(\path, Mu \tester) { nqp::create(self)!SET-SELF(path, tester) }
 
         method pull-one() {
             my str $entry;
@@ -1629,7 +1629,7 @@ class Rakudo::Iterator {
 
     proto method Dir(|) {*}
     multi method Dir(IO::Path:D \path)          {     Dir.new(path)         }
-    multi method Dir(IO::Path:D \path, \tester) { DirTest.new(path, tester) }
+    multi method Dir(IO::Path:D \path, Mu \tester) { DirTest.new(path, tester) }
 
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
@@ -1979,20 +1979,20 @@ class Rakudo::Iterator {
 
                 nqp::if(
                   nqp::iseq_i($wanted,0),
-                  nqp::continuationcontrol(0, PROMPT, -> Mu \c {
+                  nqp::continuationcontrol(0, PROMPT, nqp::getattr(-> Mu \c {
                       nqp::bindattr(iter, self, '&!resumption', c);
-                  })
+                  }, Code, '$!do'))
                 );
                 nqp::resume(nqp::exception())
             }
-            nqp::bindattr(iter, self, '&!resumption', {
+            nqp::bindattr(iter, self, '&!resumption', nqp::getattr({
                 nqp::stmts(  # doesn't sink
                   nqp::handle(&block(), 'TAKE', $taker()),
-                  nqp::continuationcontrol(0, PROMPT, -> | {
+                  nqp::continuationcontrol(0, PROMPT, nqp::getattr(-> | {
                       nqp::bindattr(iter, self, '&!resumption', Callable)
-                  })
+                  }, Code, '$!do'))
                 )
-            });
+            }, Code, '$!do'));
             iter
         }
 

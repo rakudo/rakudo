@@ -1,4 +1,4 @@
-#== Atomics available on all backends ============================================
+#== Atomics available on all backends ==========================================
 
 #-- fetching a value atomically
 proto sub atomic-fetch($, *%) {*}
@@ -35,7 +35,7 @@ multi sub cas(Mu $target is rw, &code) {
     $updated
 }
 
-#== Native integer atomics only available on MoarVM ==============================
+#== Native integer atomics only available on MoarVM ============================
 
 #?if !jvm
 my native atomicint is repr('P6int') is Int is ctype('atomic') { }

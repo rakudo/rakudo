@@ -728,30 +728,54 @@ multi sub infix:<eqv>(Range:D \a, Range:D \b --> Bool:D) {
     )
 }
 
-multi sub infix:<+>(Range:D \r, Real:D \v) {
-    r.new: r.min + v, r.max + v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<+>(Range:D \r, Real:D $v) {
+    r.new:
+      r.min + $v,
+      r.max + $v,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:<+>(Real:D \v, Range:D \r) {
-    r.new: v + r.min, v + r.max, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<+>(Real:D $v, Range:D \r) {
+    r.new:
+      $v + r.min,
+      $v + r.max,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:<->(Range:D \r, Real:D \v) {
-    r.new: r.min - v, r.max - v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<->(Range:D \r, Real:D $v) {
+    r.new:
+      r.min - $v,
+      r.max - $v,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:<*>(Range:D \r, Real:D \v) {
-    r.new: r.min * v, r.max * v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<*>(Range:D \r, Real:D $v) {
+    r.new:
+      r.min * $v,
+      r.max * $v,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:<*>(Real:D \v, Range:D \r) {
-    r.new: v * r.min, v * r.max, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<*>(Real:D $v, Range:D \r) {
+    r.new:
+      $v * r.min,
+      $v * r.max,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:</>(Range:D \r, Real:D \v) {
-    r.new: r.min / v, r.max / v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:</>(Range:D \r, Real:D $v) {
+    r.new:
+      r.min / $v,
+      r.max / $v,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
 
 multi sub infix:<cmp>(Range:D \a, Range:D \b) {
     a.min cmp b.min || a.excludes-min cmp b.excludes-min || a.max cmp b.max || b.excludes-max cmp a.excludes-max
 }
-multi sub infix:<cmp>(Num(Real) \a, Range:D \b) { (a..a) cmp b }
-multi sub infix:<cmp>(Range:D \a, Num(Real) \b) { a cmp (b..b) }
+multi sub infix:<cmp>(Num(Real) $a, Range:D \b) { ($a..$a) cmp b }
+multi sub infix:<cmp>(Range:D \a, Num(Real) $b) { a cmp ($b..$b) }
 
 multi sub infix:<cmp>(Positional \a, Range:D \b) { a cmp b.list }
 multi sub infix:<cmp>(Range:D \a, Positional \b) { a.list cmp b }

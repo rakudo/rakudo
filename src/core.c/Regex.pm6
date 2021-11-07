@@ -130,9 +130,9 @@ my class Regex { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<~~>(Mu \topic, Regex:D \matcher) {
+multi sub infix:<~~>(Mu \topic, Regex:D $matcher) {
     $/ := nqp::getlexrelcaller(nqp::ctxcallerskipthunks(nqp::ctx()),'$/');
-    matcher.ACCEPTS(topic)
+    $matcher.ACCEPTS(topic)
 }
 
 # vim: expandtab shiftwidth=4

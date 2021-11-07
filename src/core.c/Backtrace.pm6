@@ -13,8 +13,8 @@ my class Backtrace::Frame {
         $!code := code;
         self
     }
-    multi method new(Backtrace::Frame: \file,\line,\code,\subname) {
-        nqp::create(self)!SET-SELF(file,line,code,subname)
+    multi method new(Backtrace::Frame: $file, $line, $code, $subname) {
+        nqp::create(self)!SET-SELF($file, $line, $code, $subname)
     }
     multi method new(Backtrace::Frame: |c) {
         self.bless(|c)
@@ -114,18 +114,19 @@ my class Backtrace {
           1 + $offset)
 #?endif
     }
-    multi method new(Exception:D \ex) {
+    multi method new(Exception:D $ex) {
         nqp::create(self)!SET-SELF(
-          nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
-          0)
+          nqp::backtrace(nqp::getattr($ex,Exception,'$!ex')),
+          0
+        )
     }
     multi method new(Mu \ex) {
         # assume BOOTException
         nqp::create(self)!SET-SELF(nqp::backtrace(nqp::decont(ex)),0)
     }
-    multi method new(Exception:D \ex, Int:D $offset) {
+    multi method new(Exception:D $ex, Int:D $offset) {
         nqp::create(self)!SET-SELF(
-          nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
+          nqp::backtrace(nqp::getattr($ex,Exception,'$!ex')),
           $offset)
     }
     multi method new(Mu \ex, Int:D $offset) {

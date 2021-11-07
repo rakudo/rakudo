@@ -24,7 +24,7 @@ class CompUnit::Repository::FileSystem
     }
 
     method !comp-unit-id($name) {
-        CompUnit::PrecompilationId.new-from-string($name);
+        CompUnit::PrecompilationId.new-from-string(self!distribution.id ~ $name);
     }
 
     method !precomp-stores() {

@@ -2396,26 +2396,25 @@ class Perl6::Optimizer {
         }
 
         # If resolution didn't work out this way, and we're on the MoarVM
-        # backend, use a spesh plugin to help speed it up.
+        # backend, use a dispatcher to speed it up. Give it the package and
+        # name ahead of the invocant, as this makes the calling far more
+        # optimal.
         if nqp::getcomp('Raku').backend.name eq 'moar' {
             my $inv := $op.shift;
             my $name := $op.shift;
             my $pkg := $op.shift;
             $op.unshift($inv);
-            $op.unshift(QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('privmeth') ),
-                $pkg,
-                $name
-            ));
-            $op.op('call');
+            $op.unshift($name_node);
+            $op.unshift($pkg);
+            $op.unshift(QAST::SVal.new( :value('raku-meth-private') ));
+            $op.op('dispatch');
             $op.name(NQPMu);
             return 1;
         }
     }
 
     method optimize_qual_method_call($op) {
-        # Spesh plugins only available on MoarVM.
+        # Dispatch only available on MoarVM for now.
         return $op unless nqp::getcomp('Raku').backend.name eq 'moar';
 
         # We can only optimize if we have a compile-time-known name.
@@ -2425,8 +2424,8 @@ class Perl6::Optimizer {
         }
         return $op unless nqp::istype($name_node, QAST::SVal);
 
-        # We need to evaluate the invocant only once, so will bind it into
-        # a temporary.
+        # We need to evaluate the invocant only once, but pass it both as is
+        # and decontainerized, so will bind it into a temporary.
         my $inv := $op.shift;
         my $name := $op.shift;
         my $type := $op.shift;
@@ -2442,14 +2441,14 @@ class Perl6::Optimizer {
             $inv
         ));
         $op.push(QAST::Op.new(
-            :op('call'),
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-meth-call-qualified') ),
             QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('qualmeth') ),
+                :op('decont'),
                 QAST::Var.new( :name($temp), :scope('local') ),
-                $name,
-                $type
             ),
+            $name_node,
+            $type,
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args
         ));
@@ -2483,16 +2482,13 @@ class Perl6::Optimizer {
             $inv
         ));
         $op.push(QAST::Op.new(
-            :op('call'),
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-meth-call-me-maybe') ),
             QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('maybemeth') ),
-                QAST::Op.new(
-                    :op('decont'),
-                    QAST::Var.new( :name($temp), :scope('local') )
-                ),
-                $name,
+                :op('decont'),
+                QAST::Var.new( :name($temp), :scope('local') )
             ),
+            $name_node,
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args
         ));
@@ -3191,7 +3187,8 @@ class Perl6::Optimizer {
     my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
     sub copy_returns($to, $from) {
         if nqp::can($from, 'returns') {
-            my $ret_type := $from.returns();
+            my $ret_type := $from.returns;
+            $to.returns($ret_type) unless nqp::can($from, 'rw') && $from.rw;
             if nqp::objprimspec($ret_type) -> $primspec {
                 $to := QAST::Want.new(
                     :named($to.named),

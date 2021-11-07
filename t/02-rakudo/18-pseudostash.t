@@ -14,7 +14,7 @@ plan 3;
                 ~ q:to/TEST-CODE/,
                     my class C {
                         method COERCE(Int $v) {
-                            print CALLER::CLIENT::CLIENT::MY::<$foo>;
+                            print CALLER::CLIENT::MY::<$foo>;
                             C.new;
                         }
                     };

@@ -41,12 +41,12 @@ class Perl6::Compiler is HLL::Compiler {
         }
 
         if $no-unicode {
-            $raku   := "Raku(tm)";
+            $raku   := "Raku(R)";
             $rakudo := "Rakudo(tm)";
         }
         else {
-            $raku   := "𝐑𝐚𝐤𝐮™";
-            $rakudo := "𝐑𝐚𝐤𝐮𝐝𝐨™";
+            $raku   := "Raku®";
+            $rakudo := "Rakudo™";
         }
 
         "Welcome to "
@@ -55,7 +55,7 @@ class Perl6::Compiler is HLL::Compiler {
           ~ $config-version
           ~ ".\nImplementing the "
           ~ $raku
-          ~ " programming language v"
+          ~ " Programming Language v"
           ~ self.language_version()
           ~ ".\nBuilt on "
           ~ $backend-version

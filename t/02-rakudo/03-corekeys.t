@@ -686,6 +686,7 @@ my @allowed =
       Q{SOCK_STREAM},
       Q{Same},
       Q{Scalar},
+      Q{ScalarVAR},
       Q{Scheduler},
       Q{SeekFromBeginning},
       Q{SeekFromCurrent},
@@ -768,7 +769,6 @@ my @allowed =
       Q{π},
       Q{τ},
       Q{𝑒},
-      Q{tai-offset-nanos},
     ),
     d => (
         Q{$!},

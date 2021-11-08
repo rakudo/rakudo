@@ -7591,14 +7591,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
         # Everything else is a (re)binding error.  Check the types to give a more specific msg
         elsif nqp::istype($target, QAST::WVal)
-        && $target.value.raku eq $target.node {    # A type (class, role, etc)
+            && $target.value.raku eq $target.node {    # A type (class, role, etc)
             $*W.throw($/, ['X', 'Bind', 'Rebind'], :target($target.value.raku), :is-type(1))
         }
         elsif nqp::istype($target, QAST::WVal) {   # A constant
             $*W.throw($/, ['X', 'Bind', 'Rebind'], :target(nqp::escape($target.node)))
         }
         elsif nqp::istype($target, QAST::Op)
-        && $target.op eq 'ifnull' {                # Code (subs, regex, etc)
+            && $target.op eq 'ifnull' {                # Code (subs, regex, etc)
             $*W.throw($/, ['X', 'Bind', 'Rebind'], target => nqp::escape($target[0].name));
         }
         else {             # Items that can never be bound (PsudoPackages, literals, etc)

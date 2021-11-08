@@ -362,6 +362,31 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         }
     }
 
+    my $assign-scalar-uninit-no-typecheck := -> $cont, $value {
+        nqp::bindattr($cont, Scalar, '$!value', $value);
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        nqp::bindattr($cont, Scalar, '$!descriptor',
+            nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
+                '$!next-descriptor'));
+    }
+
+    my $assign-scalar-uninit := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        my $next := nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
+            '$!next-descriptor');
+        my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
+        if nqp::istype($value, $type) {
+            if nqp::how_nd($type).archetypes.coercive {
+                $value := nqp::how_nd($type).coerce($type, $value);
+            }
+            nqp::bindattr($cont, Scalar, '$!value', $value);
+            nqp::bindattr($cont, Scalar, '$!descriptor', $next);
+        }
+        else {
+            assign-type-error($next, $value);
+        }
+    }
+
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-assign', -> $capture {
         # Whatever we do, we'll guard on the type of the container and its
         # concreteness.
@@ -438,6 +463,39 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                     $optimized := 1;
                 }
             }
+            elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute)
+                    && nqp::isconcrete($desc) {
+                # First assignment to an attribute where we care about whether it
+                # was assigned to. We can produce a fast path for this, though
+                # should check what the ultimate descriptor is. It really should
+                # be a normal, boring, container descriptor.
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
+                my $next := nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
+                    '$!next-descriptor');
+                if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
+                    nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
+                    # Ensure we're not assigning Nil (not yet fast-pathed, but
+                    # probably not terribly likely).
+                    unless nqp::eqaddr($value.WHAT, Nil) {
+                        # Go by whether we can type check the target.
+                        my $tracked-next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $tracked-desc, ContainerDescriptor::UninitializedAttribute,
+                            '$!next-descriptor');
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                            $tracked-next);
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-value);
+                        my $of := $next.of;
+                        my $delegate := $of.HOW.archetypes.nominal &&
+                                (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
+                            ?? $assign-scalar-uninit-no-typecheck
+                            !! $assign-scalar-uninit;
+                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                $capture, 0, $delegate));
+                        $optimized := 1;
+                    }
+                }
+            }
             elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::BindArrayPos) {
                 # Bind into an array. We can produce a fast path for this, though
                 # should check what the ultimate descriptor is. It really should
@@ -445,7 +503,8 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
                 my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos,
                     '$!next-descriptor');
-                if nqp::eqaddr($next.WHAT, ContainerDescriptor) {
+                if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
+                    nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
                     # Ensure we're not assigning Nil. (This would be very odd, as
                     # a Scalar starts off with its default value, and if we are
                     # vivifying we'll likely have a new container).

@@ -1158,7 +1158,7 @@ my class Binder {
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
 
-# Container descriptors come here so that they can refer to Perl 6 types.
+# Container descriptors come here so that they can refer to Raku types.
 class ContainerDescriptor {
     has     $!of;
     has str $!name;
@@ -1403,6 +1403,31 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
             !! nqp::assign($target, Hash.new);
         $array.BIND-KEY($!key, $scalar);
     }
+}
+# Attributes that are either required or have a default need us to detect if
+# they have been initialized. We do this by starting them out with a descriptor
+# that indicates they are uninitialized, and then swapping it out for a the
+# underlying one upon assignment.
+class ContainerDescriptor::UninitializedAttribute {
+    has $!next-descriptor;
+
+    method new($next) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, ContainerDescriptor::UninitializedAttribute,
+            '$!next-descriptor', $next);
+        $obj
+    }
+
+    method next() {
+        my $next := $!next-descriptor;
+        nqp::isconcrete($next)
+            ?? $next
+            !! ($!next-descriptor := nqp::gethllsym('Raku', 'default_cont_spec'))
+    }
+    method name() { self.next.name }
+    method of() { self.next.of }
+    method default() { self.next.default }
+    method dynamic() { self.next.dynamic }
 }
 
 # We stick all the declarative bits inside of a BEGIN, so they get
@@ -1701,9 +1726,11 @@ BEGIN {
                         else {
                             nqp::bindattr($cont, Scalar, '$!value', $val);
                         }
-                        unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
-                               nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
-                            $desc.assigned($cont);
+                        my $what := $desc.WHAT;
+                        unless nqp::eqaddr($what, ContainerDescriptor) ||
+                               nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                            $desc.assigned($cont)
+                                unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
                             nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
                         }
                     }
@@ -1724,9 +1751,11 @@ BEGIN {
             'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
                 nqp::bindattr($cont, Scalar, '$!value', $val);
                 my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-                unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
-                       nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
-                    $desc.assigned($cont);
+                my $what := $desc.WHAT;
+                unless nqp::eqaddr($what, ContainerDescriptor) ||
+                       nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                    $desc.assigned($cont)
+                        unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
                     nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
                 }
             }),

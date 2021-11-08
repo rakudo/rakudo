@@ -227,19 +227,11 @@ my class Rakudo::Internals {
               nqp::iscont(cont),
               nqp::push(restore,nqp::decont(cont)),
               nqp::if(
-                nqp::istype(cont,Array),
-                nqp::push(restore,cont.clone),
-                nqp::if(
-                  nqp::istype(cont,Hash),
-                  nqp::push(restore,
-                    nqp::p6bindattrinvres(
-                      Hash.^parameterize(Mu,Mu).new,
-                      Hash, '$!descriptor',
-                      nqp::getattr(cont, Hash, '$!descriptor')).STORE: cont),
-                  nqp::stmts(
-                    nqp::pop(restore),  # lose the erroneously pushed value
-                    X::Localizer::NoContainer.new(:$localizer).throw
-                  )
+                nqp::can(cont,'TEMP-LET-LOCALIZE'),
+                nqp::push(restore,cont.TEMP-LET-LOCALIZE),
+                nqp::stmts(
+                  nqp::pop(restore),  # lose the erroneously pushed value
+                  X::Localizer::NoContainer.new(:$localizer).throw
                 )
               )
             )

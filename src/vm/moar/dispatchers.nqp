@@ -1,3 +1,8 @@
+# Some maximum cache sizes we allow at a callsite before we switch to a
+# megamorphic strategy.
+my int $MEGA-TYPE-CALLSITE-SIZE := 16;
+my int $MEGA-METH-CALLSITE-SIZE := 16;
+
 # Return value decontainerization dispatcher. Often we have nothing at all
 # to do, in which case we can make it identity. Other times, we need a
 # decont. In a few, we need to re-wrap it.
@@ -28,72 +33,85 @@
     }
 
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-rv-decont', -> $capture {
-        # We always need to guard on type and concreteness.
-        my $rv := nqp::captureposarg($capture, 0);
-        my $rv_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
-                $capture, 0);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $rv_arg);
-        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $rv_arg);
+        # If it's heading megamorphic, then we'll install the fallback, without
+        # any conditions, which is faster than over-filling the cache and running
+        # this dispatch logic every time.
+        my int $cache-size := nqp::dispatch('boot-syscall', 'dispatcher-inline-cache-size');
+        if $cache-size >= $MEGA-TYPE-CALLSITE-SIZE {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                        $capture, 0, nqp::gethllsym('Raku', 'Iterable')),
+                    0, $container-fallback));
+        }
+        else {
+            # We always need to guard on type and concreteness.
+            my $rv := nqp::captureposarg($capture, 0);
+            my $rv_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                    $capture, 0);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $rv_arg);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $rv_arg);
 
-        # Is it a container?
-        if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
-            # It's a container. We have special cases for Scalar.
-            if nqp::istype_nd($rv, Scalar) {
-                # Check if the descriptor is undefined, in which case it's read-only.
-                my $desc := nqp::getattr($rv, Scalar, '$!descriptor');
-                my $desc_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                        $rv_arg, Scalar, '$!descriptor');
-                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $desc_arg);
-                if nqp::isconcrete($desc) {
-                    # Writeable, so we may need to recontainerize the value if
-                    # the type is iterable, otherwise we can decont it.
-                    my $value := nqp::getattr($rv, Scalar, '$!value');
-                    my $value_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
-                        $rv_arg, Scalar, '$!value');
-                    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $value_arg);
-                    if nqp::istype_nd($value, nqp::gethllsym('Raku', 'Iterable')) {
-                        # Need to recont in order to preserve item nature.
-                        # Shuffle in the recont code to invoke. We already
-                        # read the deconted value, so we insert that as the
-                        # arg so it needn't be dereferenced again.
-                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
-                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                                nqp::dispatch('boot-syscall', 'dispatcher-replace-arg',
+            # Is it a container?
+            if nqp::isconcrete_nd($rv) && nqp::iscont($rv) {
+                # It's a container. We have special cases for Scalar.
+                if nqp::istype_nd($rv, Scalar) {
+                    # Check if the descriptor is undefined, in which case it's read-only.
+                    my $desc := nqp::getattr($rv, Scalar, '$!descriptor');
+                    my $desc_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $rv_arg, Scalar, '$!descriptor');
+                    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $desc_arg);
+                    if nqp::isconcrete($desc) {
+                        # Writeable, so we may need to recontainerize the value if
+                        # the type is iterable, otherwise we can decont it.
+                        my $value := nqp::getattr($rv, Scalar, '$!value');
+                        my $value_arg := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $rv_arg, Scalar, '$!value');
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $value_arg);
+                        if nqp::istype_nd($value, nqp::gethllsym('Raku', 'Iterable')) {
+                            # Need to recont in order to preserve item nature.
+                            # Shuffle in the recont code to invoke. We already
+                            # read the deconted value, so we insert that as the
+                            # arg so it needn't be dereferenced again.
+                            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                    nqp::dispatch('boot-syscall', 'dispatcher-replace-arg',
                                         $capture, 0, $value_arg),
-                                0, $recont));
+                                    0, $recont));
+                        }
+                        else {
+                            # Decont, so just evaluate to the read attr (boot-value
+                            # ignores all but the first argument).
+                            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
+                                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+                                    $capture, 0, $value_arg));
+                        }
                     }
                     else {
-                        # Decont, so just evaluate to the read attr (boot-value
-                        # ignores all put the first argument).
-                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value',
-                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
-                                $capture, 0, $value_arg));
+                        # Read-only, so identity will do.
+                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
                     }
                 }
                 else {
-                    # Read-only, so identity will do.
-                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+                    # Delegate to non-Scalar container fallback.
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                $capture, 0, nqp::gethllsym('Raku', 'Iterable')),
+                            0, $container-fallback));
                 }
             }
             else {
-                # Delegate to non-Scalar container fallback.
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
-                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                # Not containerizied, so identity shall do,
+                # Unless it is null, then we map it to Mu.
+                if nqp::isnull($rv) {
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
                         nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                            $capture, 0, nqp::gethllsym('Raku', 'Iterable')),
-                        0, $container-fallback));
-            }
-        }
-        else {
-            # Not containerizied, so identity shall do,
-            # Unless it is null, then we map it to Mu.
-            if nqp::isnull($rv) {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-                    nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                        $capture, 0, Mu));
-            }
-            else {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+                            $capture, 0, Mu));
+                }
+                else {
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+                }
             }
         }
     });
@@ -643,64 +661,128 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call', -> $capture {
 # the method name, and the the args (starting with the invocant including any
 # container).
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $capture {
-    # See if we're making the method lookup on a pun; if so, rewrite the args
-    # to do the call on the pun.
+    # See if this callsite is heading megamorphic due to loads of different
+    # method names or types; if so, we'll try to cope with that.
     my $obj := nqp::captureposarg($capture, 0);
     my str $name := nqp::captureposarg_s($capture, 1);
     my $how := nqp::how_nd($obj);
-    if nqp::istype($how, Perl6::Metamodel::RolePunning) &&
-            $how.is_method_call_punned($obj, $name) {
+    my int $cache-size := nqp::dispatch('boot-syscall', 'dispatcher-inline-cache-size');
+    if $cache-size >= $MEGA-METH-CALLSITE-SIZE && nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-meth-call-mega',
+            $capture);
+    }
+    else {
+        # See if we're making the method lookup on a pun; if so, rewrite the args
+        # to do the call on the pun.
+        if nqp::istype($how, Perl6::Metamodel::RolePunning) &&
+                $how.is_method_call_punned($obj, $name) {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+                nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+            $obj := $how.pun($obj);
+            $how := $obj.HOW;
+            $capture := nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
+                $capture, 0, $obj);
+            $capture := nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
+                $capture, 2, $obj);
+        }
+
+        # Try to resolve the method call.
+        # TODO Assorted optimizations are possible here later on to speed up some
+        # kinds of dispatch, including:
+        # * Using the dispatcher to directly rewrite args and invoke FALLBACK if
+        #   needed
+        # * Handling some forms of delegation via the dispatcher mechanism
+        my $meth := nqp::decont($how.find_method($obj, $name));
+
+        # Report an error if there is no such method.
+        unless nqp::isconcrete($meth) {
+            my $class := nqp::getlexcaller('$?CLASS');
+            report-method-not-found($obj, $name, $class, $how);
+        }
+
+        # Establish a guard on the invocant type and method name (however the name
+        # may well be a literal, in which case this is free).
         nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
             nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
-        $obj := $how.pun($obj);
-        $how := $obj.HOW;
-        $capture := nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-            $capture, 0, $obj);
-        $capture := nqp::dispatch('boot-syscall', 'dispatcher-replace-arg-literal-obj',
-            $capture, 2, $obj);
+
+        # Add the resolved method and delegate to the resolved method dispatcher.
+        my $capture_delegate := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg-literal-obj', $capture, 0, $meth);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+            'raku-meth-call-resolved', $capture_delegate);
     }
+});
+sub report-method-not-found($obj, $name, $class, $how) {
+    my $msg := "Method '$name' not found for invocant of class '{$how.name($obj)}'";
+    if $name eq 'STORE' {
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Assignment::RO', $msg, :value($obj));
+    }
+    else {
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Method::NotFound',
+            $msg,
+            :invocant($obj),
+            :method($name),
+            :typename($how.name($obj)),
+            :private(nqp::hllboolfor(0, 'Raku')),
+            :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku'))
+        );
+    }
+}
 
-    # Try to resolve the method call.
-    # TODO Assorted optimizations are possible here later on to speed up some
-    # kinds of dispatch, including:
-    # * Using the dispatcher to directly rewrite args and invoke FALLBACK if
-    #   needed
-    # * Handling some forms of delegation via the dispatcher mechanism
-    my $meth := nqp::decont($how.find_method($obj, $name));
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-mega', -> $capture {
+    # We're megamorphic in both type and name. Make sure the type has a lookup
+    # table, and ensure the method exists. If it does not have a method table
+    # then we will not install this dispatcher; we may already have a type
+    # megamorphic handler in place and only missed it because we temporarily
+    # lacked the calculated flattened method table. This avoids us stacking
+    # up the same program repeatedly at the callsite.
+    my $obj := nqp::captureposarg($capture, 0);
+    my $how := nqp::how_nd($obj);
+    unless nqp::isconcrete(nqp::getattr($how, Perl6::Metamodel::ClassHOW,
+            '$!cached_all_method_table')) {
+        nqp::dispatch('boot-syscall', 'dispatcher-do-not-install');
+    }
+    my %lookup := $how.all_method_table($obj);
+    my str $name := nqp::captureposarg_s($capture, 1);
+    if nqp::isconcrete(nqp::atkey(%lookup, $name)) {
+        # It exists. We'll set up a dispatch program that tracks the HOW of
+        # the type, looks up the cached method table on it, and then tracks
+        # the resolution of the method.
+        my $track-obj := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+        my $track-how := nqp::dispatch('boot-syscall', 'dispatcher-track-how', $track-obj);
+        my $track-table := nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-how,
+            Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
+        my $track-name := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
+        my $track-resolution := nqp::dispatch('boot-syscall',
+            'dispatcher-index-tracked-lookup-table', $track-table, $track-name);
 
-    # Report an error if there is no such method.
-    unless nqp::isconcrete($meth) {
-        my $class := nqp::getlexcaller('$?CLASS');
-        my $msg := "Method '$name' not found for invocant of class '{$how.name($obj)}'";
-        if $name eq 'STORE' {
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Assignment::RO', $msg, :value($obj));
+        # This is only a valid dispatch program if the method is found. (If
+        # not, we'll run this again to report the error.)
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-resolution);
+        # Add the resolved method and delegate to the resolved method dispatcher.
+        my $capture-delegate := nqp::dispatch('boot-syscall',
+            'dispatcher-insert-arg', $capture, 0, $track-resolution);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+            'raku-meth-call-resolved', $capture-delegate);
+    }
+    else {
+        # Probably method not found, but sometimes the cache ends up missing
+        # entries.
+        my $slowpath-found := $how.find_method($obj, $name);
+        if nqp::isconcrete($slowpath-found) {
+            nqp::dispatch('boot-syscall', 'dispatcher-do-not-install');
+            my $capture-delegate := nqp::dispatch('boot-syscall',
+                'dispatcher-insert-arg-literal-obj', $capture, 0, $slowpath-found);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate',
+                'raku-meth-call-resolved', $capture-delegate);
         }
         else {
-            Perl6::Metamodel::Configuration.throw_or_die(
-                'X::Method::NotFound',
-                $msg,
-                :invocant($obj),
-                :method($name),
-                :typename($how.name($obj)),
-                :private(nqp::hllboolfor(0, 'Raku')),
-                :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku'))
-            );
+            my $class := nqp::getlexcaller('$?CLASS');
+            report-method-not-found($obj, $name, $class, $how);
         }
     }
-
-    # Establish a guard on the invocant type and method name (however the name
-    # may well be a literal, in which case this is free).
-    nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
-        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
-    nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
-        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1));
-
-    # Add the resolved method and delegate to the resolved method dispatcher.
-    my $capture_delegate := nqp::dispatch('boot-syscall',
-        'dispatcher-insert-arg-literal-obj', $capture, 0, $meth);
-    nqp::dispatch('boot-syscall', 'dispatcher-delegate',
-        'raku-meth-call-resolved', $capture_delegate);
 });
 
 # Qualified method call dispatcher. This is used for calls of the form
@@ -919,6 +1001,13 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
         my $delegate_capture := nqp::dispatch('boot-syscall', 'dispatcher-drop-n-args',
             $capture, 1, 2);
         my $method := nqp::captureposarg($delegate_capture, 0);
+        my int $code-constant := nqp::dispatch('boot-syscall', 'dispatcher-is-arg-literal',
+            $capture, 0);
+        unless $code-constant {
+            # Need at least a type guard on the callee, if it's not constant.
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+                nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+        }
         if nqp::istype($method, Routine) {
             if nqp::can($method, 'WRAPPERS') {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke-wrapped',
@@ -927,11 +1016,19 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-resolved',
             elsif nqp::can($method, 'CALL-ME') {
                 nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
             }
-            elsif $method.is_dispatcher {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-multi', $delegate_capture);
-            }
             else {
-                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $delegate_capture);
+                # If it's not a constant, need a guard on whether it's a dispatcher,
+                # and if so on the candidate list. (Will want to move this when we
+                # have a megamorphic multi solution.)
+                unless $code-constant {
+                    nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                        nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0),
+                            Routine, '@!dispatchees'));
+                }
+                my str $dispatcher := $method.is_dispatcher ?? 'raku-multi' !! 'raku-invoke';
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', $dispatcher,
+                    $delegate_capture);
             }
         }
         else {
@@ -1622,6 +1719,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                 while $i < $type_check_count && !($type_mismatch +| $rwness_mismatch) {
                     # Obtain parameter properties.
                     my $type := nqp::atpos(nqp::atkey($cur_candidate, 'types'), $i);
+                    my int $is-mu := nqp::eqaddr($type, Mu);
                     my int $type_flags := nqp::atpos_i(nqp::atkey($cur_candidate, 'type_flags'), $i);
                     my int $definedness := $type_flags +& $DEFCON_MASK;
                     my int $rwness := nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i);
@@ -1631,10 +1729,17 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                     my int $got_prim := nqp::captureposprimspec($capture, $i);
                     my int $want_prim := $type_flags +& $TYPE_NATIVE_MASK;
                     if $got_prim == 0 && $want_prim == 0 {
+                        # For a type that's exactly Mu we do not need a type
+                        # guard, however if it's got a definedness constraint
+                        # we do, since we might then wrongly accepted a Scalar
+                        # container that meets the definedness property.
+                        if $definedness || !$is-mu {
+                            nqp::bindpos_i($need_type_guard, $i, 1);
+                        }
+
                         # It's an object type. Obtain the value, and go by if it's a
                         # container or not.
                         my $value := nqp::captureposarg($capture, $i);
-                        nqp::bindpos_i($need_type_guard, $i, 1);
                         my int $promoted_primitive;
                         if nqp::iscont($value) && nqp::isconcrete_nd($value) {
                             # Containerized. Scalar we handle specially.
@@ -1679,7 +1784,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                         }
 
                         # Ensure the value meets the required type constraints.
-                        unless nqp::eqaddr($type, Mu) ||
+                        unless $is-mu ||
                                 nqp::istype_nd(nqp::hllizefor($value, 'Raku'), $type) {
                             if $type =:= $Positional {
                                 # Things like Seq can bind to an @ sigil.
@@ -1746,51 +1851,6 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                 unless $type_mismatch || $rwness_mismatch {
                     nqp::push(@possibles, $cur_candidate);
                 }
-#                            if $rwness && !nqp::isrwcont(nqp::captureposarg($capture, $i)) {
-#                                # If we need a container but don't have one it clearly can't work.
-#                                $rwness_mismatch := 1;
-#                            }
-#                            elsif $type_flags +& $TYPE_NATIVE_MASK {
-#                                # Looking for a natively typed value. Did we get one?
-#                                if $got_prim == $BIND_VAL_OBJ {
-#                                    # Object, but could be a native container. If not, mismatch.
-#                                    my $contish := nqp::captureposarg($capture, $i);
-#                                    unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
-#                                           (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
-#                                           (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
-#                                        $type_mismatch := 1;
-#                                    }
-#                                }
-#                            }
-#                            else {
-#                                my $param;
-#                                if $got_prim == $BIND_VAL_OBJ {
-#                                    $param := nqp::captureposarg($capture, $i);
-#                                    if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
-#                                    elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
-#                                    elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
-#                                    else { $param := nqp::hllizefor($param, 'Raku') }
-#                                }
-#                                if nqp::eqaddr($type_obj, Mu) || nqp::istype($param, $type_obj) {
-#                                    if $i == 0 && nqp::existskey($cur_candidate, 'exact_invocant') {
-#                                        unless $param.WHAT =:= $type_obj {
-#                                            $type_mismatch := 1;
-#                                        }
-#                                    }
-#                                }
-#                                else {
-#                                    if $type_obj =:= $Positional {
-#                                        my $PositionalBindFailover := nqp::gethllsym('Raku', 'MD_PBF');
-#                                        unless nqp::istype($param, $PositionalBindFailover) {
-#                                            $type_mismatch := 1;
-#                                        }
-#                                    } else {
-#                                        $type_mismatch := 1;
-#                                    }
-#                                }
-#                            }
-#                            ++$i;
-#                        }
             }
         }
         else {
@@ -1905,6 +1965,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
     # Install guards as required.
     $i := 0;
     while $i < $num_args {
+        my $tracked_value;
         if nqp::atpos_i($need_scalar_read, $i) {
             my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);
             if nqp::atpos_i($need_scalar_rw_check, $i) {
@@ -1912,19 +1973,18 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                         $tracked, Scalar, '$!descriptor');
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked_desc);
             }
-            my $tracked_value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+            $tracked_value := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                     $tracked, Scalar, '$!value');
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked_value);
-            if nqp::atpos_i($need_conc_guard, $i) {
-                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked_value);
-            }
         }
-        elsif nqp::atpos_i($need_type_guard, $i) {
-            my $tracked := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, $i);
-            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked);
-            if nqp::atpos_i($need_conc_guard, $i) {
-                nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked);
-            }
+        else {
+            $tracked_value := nqp::dispatch('boot-syscall', 'dispatcher-track-arg',
+                    $capture, $i);
+        }
+        if nqp::atpos_i($need_type_guard, $i) {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked_value);
+        }
+        if nqp::atpos_i($need_conc_guard, $i) {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $tracked_value);
         }
         $i++;
     }
@@ -3003,6 +3063,87 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-call-simple', -> $cap
     else {
         nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-invoke', $capture);
     }
+});
+
+# Dispatcher to try to find a method, backing nqp::findmethod, nqp::tryfindmethod,
+# and nqp::can.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-find-meth', -> $capture {
+    # See if this callsite is going megamorphic and do a fallback if so. We only do
+    # this in the non-exceptional case.
+    my $obj := nqp::captureposarg($capture, 0);
+    my $how := nqp::how_nd($obj);
+    my int $cache-size := nqp::dispatch('boot-syscall', 'dispatcher-inline-cache-size');
+    my int $exceptional := nqp::captureposarg_i($capture, 2);
+    if $cache-size >= $MEGA-METH-CALLSITE-SIZE && !$exceptional &&
+            nqp::istype($how, Perl6::Metamodel::ClassHOW) {
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-find-meth-mega',
+            $capture);
+    }
+    else {
+        # Guard on the invocant type and method name.
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-type',
+            nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0));
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+            nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1));
+
+        # Try to find the method.
+        my str $name := nqp::captureposarg_s($capture, 1);
+        my $meth := $how.find_method($obj, $name);
+
+        # If it's found, evaluate to it.
+        if nqp::isconcrete($meth) {
+            my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $capture, 0, $meth);
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant', $delegate);
+        }
+
+        # Otherwise, depends on exceptional flag whether we report the missing
+        # method or hand back a null.
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 2));
+            if $exceptional {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'lang-meth-not-found',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0));
+            }
+            else {
+                my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    $capture, 0, nqp::null());
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant', $delegate);
+            }
+        }
+    }
+});
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-find-meth-mega', -> $capture {
+    # Always guard on the exception mode (which should always be false, since we
+    # don't handle it here).
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+        nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 2));
+
+    # Make sure that we have a method table build for this type (but we don't
+    # actually need the table itself).
+    my $obj := nqp::captureposarg($capture, 0);
+    my $how := nqp::how_nd($obj);
+    unless nqp::isconcrete(nqp::getattr($how, Perl6::Metamodel::ClassHOW,
+            '$!cached_all_method_table')) {
+        nqp::dispatch('boot-syscall', 'dispatcher-do-not-install');
+    }
+    $how.all_method_table($obj);
+
+    # Track the HOW and then the attribute holding the table.
+    my $track-obj := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    my $track-how := nqp::dispatch('boot-syscall', 'dispatcher-track-how', $track-obj);
+    my $track-table := nqp::dispatch('boot-syscall', 'dispatcher-track-attr', $track-how,
+        Perl6::Metamodel::ClassHOW, '$!cached_all_method_table');
+
+    # Do the lookup of the method in the table we found in the meta-object. If
+    # it's not found, the outcome will be a null, which is exactly what we want.
+    my $track-name := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 1);
+    my $track-resolution := nqp::dispatch('boot-syscall',
+        'dispatcher-index-tracked-lookup-table', $track-table, $track-name);
+    my $delegate := nqp::dispatch('boot-syscall', 'dispatcher-insert-arg',
+        $capture, 0, $track-resolution);
+    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $delegate);
 });
 
 # The dispatcher backing p6capturelex. If we are passed a code object, then

@@ -1,11 +1,17 @@
 role Perl6::Metamodel::MROBasedMethodDispatch {
-    # While we normally end up locating methods through the method cache,
-    # this is here as a fallback.
-    method find_method($obj, $name, :$no_fallback, *%adverbs) {
+    # If needed, a cached flattened method table accounting for all methods in
+    # this class and its parents. This is only needed in the situation that a
+    # megamorphic callsite involves the class, so calculated and cached on
+    # demand.
+    has $!cached_all_method_table;
 
-# uncomment line below for verbose information about uncached method lookups
-#nqp::say( "looking for " ~ $name ~ " in " ~ $obj.HOW.name($obj) );
-#
+    # Resolve a method. On MoarVM, with the generalized dispatch mechanism,
+    # this is called to bootstrap callsites. On backends without that, it
+    # is only called on a published cache miss.
+    method find_method($obj, $name, :$no_fallback, *%adverbs) {
+        # uncomment line below for verbose information about uncached method lookups
+        #nqp::say( "looking for " ~ $name ~ " in " ~ $obj.HOW.name($obj) );
+
         my $obj_how := nqp::how_nd($obj);
         if nqp::can($obj_how, 'submethod_table') {
             my %submethods := nqp::hllize($obj_how.submethod_table($obj));
@@ -86,6 +92,37 @@ role Perl6::Metamodel::MROBasedMethodDispatch {
         unless nqp::can(self, 'has_fallbacks') && self.has_fallbacks($obj) {
             nqp::setmethcacheauth($obj, $authable);
         }
+#?endif
+    }
+
+    method all_method_table($obj) {
+        my $table := $!cached_all_method_table;
+        unless nqp::isconcrete($table) {
+            $table := nqp::hash();
+            my @mro := self.mro($obj);
+            my int $i := nqp::elems(@mro);
+            while $i-- {
+                my $class := nqp::atpos(@mro, $i);
+                for nqp::hllize($class.HOW.method_table($class)) {
+                    $table{$_.key} := nqp::decont($_.value);
+                }
+            }
+            for nqp::hllize($obj.HOW.submethod_table($obj)) {
+                $table{$_.key} := nqp::decont($_.value);
+            }
+            nqp::scwbdisable();
+            $!cached_all_method_table := $table;
+            nqp::scwbenable();
+        }
+        $table
+    }
+
+    method invalidate_method_caches($obj) {
+        nqp::scwbdisable();
+        $!cached_all_method_table := nqp::null();
+        nqp::scwbenable();
+#?if !moar
+        nqp::setmethcacheauth($obj, 0);
 #?endif
     }
 }

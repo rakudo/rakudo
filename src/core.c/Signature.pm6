@@ -90,7 +90,7 @@ my class Signature { # declared in BOOTSTRAP
                     return False unless $l-param ~~ @r-pos-queue.shift;
                 }
                 else {
-                    return False unless $r-pos-sink or $l-param.optional;
+                    return False unless $r-pos-sink;
                 }
             }
             elsif $l-param.named {
@@ -110,20 +110,20 @@ my class Signature { # declared in BOOTSTRAP
                             $found := True;
                         }
                     }
-                    return False unless $found or $l-param.optional and $l-param.type =:= Mu;
+                    return False unless $found or $l-param.optional && $l-param.untyped;
                 }
                 else {
-                    return False unless $r-named-sink or $l-param.optional and $l-param.type =:= Mu;
+                    return False unless $r-named-sink;
                 }
             }
             else {
-                return False unless $r-pos-sink and $r-named-sink;
+                return False unless $r-pos-sink && $r-named-sink;
             }
         }
 
         return False unless .optional for @r-pos-queue;
 
-        return False unless .optional and .type =:= Mu for %r-named-queue.values;
+        return False unless .optional && .untyped for %r-named-queue.values;
 
         self.returns =:= $topic.returns
     }

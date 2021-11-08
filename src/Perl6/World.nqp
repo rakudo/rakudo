@@ -2737,7 +2737,7 @@ class Perl6::World is HLL::World {
         my $block_type := self.find_single_symbol('Block', :setting-only);
         if nqp::istype($code, $block_type) {
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
-            unless nqp::isnull(%phasers) {
+            if nqp::ishash(%phasers) {
                 if nqp::existskey(%phasers, 'PRE') {
                     $code_past[0].push(QAST::Op.new( :op('p6setpre') ));
                     $code_past[0].push(self.run_phasers_code($code, $code_past, $block_type, 'PRE'));

@@ -53,14 +53,10 @@ my class Mix does Mixy {
         )
     }
     method total(Mix:D: --> Real:D) {
-        nqp::attrinited(self,Mix,'$!total')
-          ?? $!total
-          !! ($!total := Rakudo::QuantHash.MIX-TOTAL($!elems))
+        $!total // ($!total := Rakudo::QuantHash.MIX-TOTAL($!elems))
     }
     method !total-positive(Mix:D: --> Real:D) {
-        nqp::attrinited(self,Mix,'$!total-positive')
-          ?? $!total-positive
-          !! ($!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems))
+        $!total-positive // ($!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems))
     }
 
 #--- selection methods

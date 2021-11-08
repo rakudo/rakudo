@@ -11,9 +11,8 @@ my class Capture { # declared in BOOTSTRAP
         nqp::bindattr(self, Capture, '@!list',
           nqp::getattr(nqp::decont(@list.list), List, '$!reified'))
             if $elems;
-        nqp::bindattr(self,Capture,'%!hash',
-          nqp::getattr(nqp::decont(%hash),Map,'$!storage'))
-            if nqp::attrinited(nqp::decont(%hash),Map,'$!storage')
+        my Mu $source-hash := nqp::getattr(nqp::decont(%hash), Map, '$!storage');
+        nqp::bindattr(self,Capture,'%!hash', $source-hash) if nqp::ishash($source-hash);
     }
 
     multi method WHICH (Capture:D: --> ValueObjAt:D) {

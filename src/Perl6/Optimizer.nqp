@@ -2565,7 +2565,7 @@ class Perl6::Optimizer {
           ?? nqp::getattr($code, $block, '$!phasers')
           !! nqp::null();
         if $count == 1
-          && nqp::isnull($phasers)
+          && !nqp::ishash($phasers)
           && %range_bounds{$c2.name}($c2) -> @fls {
             if $reverse {
                 my $tmp := @fls[0];

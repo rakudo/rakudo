@@ -1428,6 +1428,9 @@ class ContainerDescriptor::UninitializedAttribute {
     method of() { self.next.of }
     method default() { self.next.default }
     method dynamic() { self.next.dynamic }
+    method instantiate_generic($type_environment) {
+        self.new(self.next.instantiate_generic($type_environment))
+    }
 }
 
 # We stick all the declarative bits inside of a BEGIN, so they get
@@ -1558,8 +1561,20 @@ BEGIN {
                 Attribute, '$!container_descriptor');
         }));
     Attribute.HOW.add_method(Attribute, 'auto_viv_container', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!auto_viv_container');
+            my $dcself := nqp::decont($self);
+            my $cont := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
+            if nqp::isconcrete_nd($cont) && (
+                    nqp::getattr($dcself, Attribute, '$!required') ||
+                    nqp::isconcrete(nqp::getattr($dcself, Attribute, '$!build_closure'))) {
+                try {
+                    my $base := nqp::how_nd($cont).mixin_base($cont);
+                    my $desc := nqp::getattr($cont, $base, '$!descriptor');
+                    $cont := nqp::clone_nd($cont);
+                    nqp::bindattr($cont, $base, '$!descriptor',
+                        ContainerDescriptor::UninitializedAttribute.new($desc));
+                }
+            }
+            $cont
         }));
     Attribute.HOW.add_method(Attribute, 'is_built', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),

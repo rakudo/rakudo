@@ -102,13 +102,17 @@ do {
 
     my role TerminalLineEditorBehavior[$WHO] {
         my $cli-input = $WHO<CLIInput>;
-        my $cli = $cli-input.new;
+        my $cli;
 
-        # method completions-for-line(Str $line, int $cursor-index) { ... }
+        method completions-for-line(Str $line, int $cursor-index) { ... }
 
         method history-file(--> Str:D) { ... }
 
         method init-line-editor {
+            my sub get-completions($contents, $pos) {
+                eager self.completions-for-line($contents, $pos)
+            }
+            $cli = $cli-input.new(:&get-completions);
             $cli.load-history($.history-file);
         }
 
@@ -117,6 +121,7 @@ do {
         }
 
         method repl-read(Mu \prompt) {
+            self.update-completions;
             my $line = $cli.prompt(prompt);
 
             if $line.defined && $line.match(/\S/) {

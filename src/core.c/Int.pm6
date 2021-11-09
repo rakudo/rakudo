@@ -26,8 +26,8 @@ my class Int does Real { # declared in BOOTSTRAP
         )
     }
 
-    multi method ACCEPTS(Int:D: Int:D \other, --> Bool:D) {
-        nqp::hllbool(nqp::iseq_I(self, nqp::decont(other)))
+    multi method ACCEPTS(Int:D: Int:D $other, --> Bool:D) {
+        nqp::hllbool(nqp::iseq_I(self, $other))
     }
 
     proto method new(|) {*}

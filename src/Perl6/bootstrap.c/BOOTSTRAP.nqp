@@ -3663,9 +3663,11 @@ BEGIN {
 
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
-	#     has str $!longname;
+    #     has str $!longname;
+    #     has $!lock;
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
+    Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!lock>, :type(Any), :package(Stash)));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.

@@ -3734,17 +3734,14 @@ class Perl6::World is HLL::World {
                         # 4 = set opaque with default if not set yet
                         elsif $code == 4 || $code == 14 {
 
-# nqp::unless(
-#   nqp::attrinited(self,Foo,'$!a'),
-                            my $unless := QAST::Op.new( :op<unless>,
-                                QAST::Op.new( :op<attrinited>,
-                                  $!self, $class, $attr
-                                )
-                            );
-
 # nqp::getattr(self,Foo,'$!a')
                             my $getattr := QAST::Op.new( :op<getattr>,
                               $!self, $class, $attr
+                            );
+# nqp::unless(
+#   nqp::p6attrinited(nqp::getattr(self,Foo,'$!a')),
+                            my $unless := QAST::Op.new( :op<unless>,
+                                QAST::Op.new( :op<p6attrinited>, $getattr )
                             );
 
                             my $initializer := nqp::istype(

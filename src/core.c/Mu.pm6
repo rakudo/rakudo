@@ -192,9 +192,11 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::if(
                   nqp::iseq_i($code,4),
                   nqp::unless(                   # 4
-                    nqp::attrinited(self,
-                      nqp::atpos($task,1),
-                      nqp::atpos($task,2)
+                    nqp::p6attrinited(
+                      nqp::getattr(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      )
                     ),
                     nqp::if(
                       nqp::istype(nqp::atpos($task,3),Block),
@@ -330,9 +332,11 @@ my class Mu { # declared in BOOTSTRAP
                                 nqp::if(
                                   nqp::iseq_i($code,14),
                                   nqp::unless(   # 14
-                                    nqp::attrinited(self,
-                                      nqp::atpos($task,1),
-                                      nqp::atpos($task,2)
+                                    nqp::p6attrinited(
+                                      nqp::getattr(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      )
                                     ),
                                     nqp::bindattr(self,
                                       nqp::atpos($task,1),
@@ -430,9 +434,11 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::if(
                   nqp::iseq_i($code,4),
                   nqp::unless(                   # 4
-                    nqp::attrinited(self,
-                      nqp::atpos($task,1),
-                      nqp::atpos($task,2)
+                    nqp::p6attrinited(
+                      nqp::getattr(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      )
                     ),
                     nqp::if(
                       nqp::istype(nqp::atpos($task,3),Block),
@@ -590,9 +596,11 @@ my class Mu { # declared in BOOTSTRAP
                                   nqp::if(
                                     nqp::iseq_i($code,14),
                                     nqp::unless( # 14
-                                      nqp::attrinited(self,
-                                        nqp::atpos($task,1),
-                                        nqp::atpos($task,2)
+                                      nqp::p6attrinited(
+                                        nqp::getattr(self,
+                                          nqp::atpos($task,1),
+                                          nqp::atpos($task,2)
+                                        )
                                       ),
                                       nqp::bindattr(self,
                                         nqp::atpos($task,1),nqp::atpos($task,2),

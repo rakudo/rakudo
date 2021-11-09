@@ -980,6 +980,24 @@ register_op_desugar('time_n', -> $qast {
         }
     });
 }
+{
+    my $is_moar;
+    register_op_desugar('p6attrinited', -> $qast {
+        unless nqp::isconcrete($is_moar) {
+            $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
+        }
+        if $is_moar {
+            QAST::Op.new(
+                :op('dispatch'), :returns(int),
+                QAST::SVal.new( :value('raku-is-attr-inited') ),
+                $qast[0]
+            )
+        }
+        else {
+            nqp::die('TODO port to other backends');
+        }
+    });
+}
 
 sub can-use-p6forstmt($block) {
     my $past_block := $block.ann('past_block');

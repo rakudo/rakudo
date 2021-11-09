@@ -589,6 +589,58 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
     });
 }
 
+# Object construction time checking of if a container is initialized. Done as
+# a dispatcher primarily to intern .^mixin_type, but also for more compact
+# bytecode size in generated BUILDALL.
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-is-attr-inited', -> $capture {
+    # If there's a non-concrete object observed, then we bound a non-container
+    # in place, so trivially initialized.
+    my $attr := nqp::captureposarg($capture, 0);
+    my $track-attr := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    my int $inited := 0;
+    if !nqp::isconcrete_nd($attr) {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-attr);
+        $inited := 1;
+    }
+
+    # Otherwise, might be a container that was assigned.
+    else {
+        # Just try and read a descriptor.
+        my $desc;
+        my $track-desc;
+        try {
+            my $base := nqp::how_nd($attr).mixin_base($attr);
+            $desc := nqp::getattr($attr, $base, '$!descriptor');
+            $track-desc := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track-attr, $base, '$!descriptor');
+        }
+
+        # If we managed to track a descriptor, when we have a container to
+        # see if was uninitialized. The attribute tracking above will have
+        # established type/concreteness guards on the attribute, so don't
+        # repeat them.
+        if $track-desc {
+            # Guard on the descriptor type, then outcome is if it's an
+            # uninitialized attribute descriptor.
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-desc);
+            $inited := !nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute);
+        }
+
+        # Otherwise, bound concrete value. Guard on type and concreteness,
+        # outcome is that it's initialized.
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-attr);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-attr);
+            $inited := 1;
+        }
+    }
+
+    # Evaluate to result.
+    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-int',
+            $capture, 0, $inited));
+});
+
 # Sink dispatcher. Called in void context with the decontainerized value to sink.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {
     # Guard on the type and concreteness.

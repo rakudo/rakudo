@@ -796,7 +796,7 @@ my class BlockVarOptimizer {
                         for $type.HOW.mro($type) -> $mro_entry {
                             for $mro_entry.HOW.attributes($mro_entry, :local) -> $attr {
                                 my str $name := $attr.name;
-                                if nqp::attrinited($qv, $mro_entry, $name) {
+                                if $name eq '$!descriptor' || $name eq '$!value' {
                                     $setup := QAST::Op.new(
                                         :op('p6bindattrinvres'),
                                         $setup,

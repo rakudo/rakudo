@@ -2357,6 +2357,17 @@ Consider using a block if any of these are necessary for your mapping code."
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
 
+    proto method isa-any(|) {*}
+    multi method isa-any(Any:D: Mu $type --> Bool:D) {
+        my $iterator := self.iterator;
+        nqp::until(
+          nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd)
+            || nqp::istype($pulled.WHAT,$type),
+          nqp::null
+        );
+        nqp::hllbool(nqp::not_i(nqp::eqaddr($pulled,IterationEnd)))
+    }
+
     proto method nodemap(|) is nodal {*}
     multi method nodemap(Associative:D: &op) {
         self.new.STORE: self.keys, self.values.nodemap(&op), :INITIALIZE

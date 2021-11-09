@@ -266,6 +266,8 @@ my class Array { # declared in BOOTSTRAP
 
     proto method STORE(Array:D: |) {*}
     multi method STORE(Array:D: Iterable:D \iterable --> Array:D) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         my \buffer = nqp::create(IterationBuffer);
         nqp::if(
           nqp::iscont(iterable),
@@ -298,6 +300,8 @@ my class Array { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
     multi method STORE(Array:D: QuantHash:D \qh --> Array:D) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         my \buffer = nqp::create(IterationBuffer);
         nqp::iscont(qh)
           ?? nqp::push(buffer,nqp::p6scalarwithvalue($!descriptor,qh))
@@ -308,6 +312,8 @@ my class Array { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
     multi method STORE(Array:D: Mu \item --> Array:D) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         nqp::push(
           (my \buffer = nqp::create(IterationBuffer)),
           nqp::p6scalarwithvalue($!descriptor, item)

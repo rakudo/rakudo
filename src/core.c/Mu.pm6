@@ -943,9 +943,8 @@ my class Mu { # declared in BOOTSTRAP
                 my $package := $attr.package;
 
                 nqp::bindattr($cloned, $package, $name,
-                  nqp::clone(nqp::getattr($cloned, $package, $name).VAR)
-                ) if nqp::attrinited(self, $package, $name)
-                    and nqp::not_i(nqp::objprimspec($attr.type));
+                  nqp::clone_nd(nqp::getattr($cloned, $package, $name))
+                ) unless nqp::objprimspec($attr.type);
 
                 my $acc_name := substr($name,2);
                 nqp::getattr($cloned, $package, $name) =
@@ -958,12 +957,10 @@ my class Mu { # declared in BOOTSTRAP
                 unless nqp::objprimspec($attr.type) {
                     my $name     := $attr.name;
                     my $package  := $attr.package;
-                    if nqp::attrinited(self, $package, $name) {
-                        my $attr_val := nqp::getattr($cloned, $package, $name);
-                        nqp::bindattr($cloned,
-                          $package, $name, nqp::clone($attr_val.VAR))
-                            if nqp::iscont($attr_val);
-                    }
+                    my $attr_val := nqp::getattr($cloned, $package, $name);
+                    nqp::bindattr($cloned,
+                      $package, $name, nqp::clone_nd($attr_val))
+                        if nqp::iscont($attr_val);
                 }
             }
         }

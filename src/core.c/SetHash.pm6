@@ -155,7 +155,7 @@ my class SetHash does Setty {
         has $!elems is built(:bind);
         has $!keys  is built(:bind) is built(False) =
           Rakudo::Internals.IterationSet2keys($!elems);
-        method pull-one() is rw {
+        method pull-one() is raw {
             nqp::elems($!keys)
               ?? proxy(nqp::shift_s($!keys),$!elems)
               !! IterationEnd

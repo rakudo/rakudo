@@ -26,6 +26,10 @@ my class Int does Real { # declared in BOOTSTRAP
         )
     }
 
+    multi method ACCEPTS(Int:D: Int:D \other, --> Bool:D) {
+        nqp::hllbool(nqp::iseq_I(self, nqp::decont(other)))
+    }
+
     proto method new(|) {*}
     multi method new(Any:U $type) {
         die "Cannot create an Int from a '$type.^name()' type object";

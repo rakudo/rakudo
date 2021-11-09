@@ -269,9 +269,11 @@ my class Mu { # declared in BOOTSTRAP
                       nqp::if(
                         nqp::iseq_i($code,8),
                         nqp::unless(             # 8
-                          nqp::attrinited(self,
-                            nqp::atpos($task,1),
-                            nqp::atpos($task,2)
+                          nqp::p6attrinited(
+                            nqp::getattr(self,
+                              nqp::atpos($task,1),
+                              nqp::atpos($task,2)
+                            )
                           ),
                           X::Attribute::Required.new(
                             name => nqp::atpos($task,2),
@@ -511,9 +513,11 @@ my class Mu { # declared in BOOTSTRAP
                       nqp::if(
                         nqp::iseq_i($code,8),
                         nqp::unless(             # 8
-                          nqp::attrinited(self,
-                            nqp::atpos($task,1),
-                            nqp::atpos($task,2)
+                          nqp::p6attrinited(
+                            nqp::getattr(self,
+                              nqp::atpos($task,1),
+                              nqp::atpos($task,2)
+                            )
                           ),
                           X::Attribute::Required.new(
                             name => nqp::atpos($task,2),

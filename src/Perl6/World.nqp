@@ -3881,13 +3881,15 @@ class Perl6::World is HLL::World {
                         elsif $code == 8 {
 
 # nqp::unless(
-#   nqp::attrinited(self,Foo,'$!a'),
+#   nqp::p6attrinited(nqp::getattr(self,Foo,'$!a')),
 #   X::Attribute::Required.new(name => '$!a', why => (value))
 # ),
                             $stmts.push(
                               QAST::Op.new( :op<unless>,
-                                QAST::Op.new( :op<attrinited>,
-                                  $!self, $class, $attr
+                                QAST::Op.new( :op<p6attrinited>,
+                                  QAST::Op.new( :op<getattr>,
+                                    $!self, $class, $attr
+                                  )
                                 ),
                                 QAST::Op.new( :op<callmethod>, :name<throw>,
                                   QAST::Op.new( :op<callmethod>, :name<new>,

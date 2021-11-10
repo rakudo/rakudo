@@ -2381,8 +2381,8 @@ Consider using a block if any of these are necessary for your mapping code."
 
     method !slow-infer($iterator, Mu $type is copy, Mu $pulled is copy) {
         # set up types to check
-        my $mro   := nqp::clone(nqp::getattr($type.^mro,List,'$!reified'));
-        my $roles := nqp::clone(nqp::getattr($type.^roles,List,'$!reified'));
+        my $mro :=
+          nqp::clone(nqp::getattr($type.^mro(:roles),List,'$!reified'));
 
         nqp::repeat_until(
           nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd)
@@ -2392,21 +2392,6 @@ Consider using a block if any of these are necessary for your mapping code."
             nqp::stmts(                       # not the same base type
               nqp::shift($mro),
               ($type := nqp::atpos($mro,0)),  # assume next type for now
-              nqp::if(                        # check all roles, if any left
-                nqp::elems($roles),
-                nqp::stmts(
-                  (my $new-roles := nqp::list),
-                  nqp::while(
-                    nqp::elems($roles),
-                    nqp::if(
-                      nqp::istype((my $role := nqp::pop($roles)),$type)
-                        && nqp::istype($pulled,$role),
-                      ($type := nqp::unshift($new-roles,$role))
-                    )
-                  ),
-                  ($roles := $new-roles)
-                )
-              )
             )
           )
         );

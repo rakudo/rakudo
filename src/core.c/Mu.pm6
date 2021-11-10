@@ -1040,7 +1040,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method !batch-call(Mu \SELF: \name, Capture:D \c, :$throw = False, :$reverse = False, :$roles = False) {
-        my @mro := SELF.^mro(:$roles);
+        my @mro := SELF.^mro(concretizations => $roles);
         my $results := nqp::create(IterationBuffer);
         my int $mro_high = $reverse ?? 0 !! @mro.elems - 1;
         my int $i = @mro.elems;
@@ -1143,7 +1143,7 @@ my class Mu { # declared in BOOTSTRAP
         } else {
             # Canonical, the default (just whatever the meta-class says) with us
             # on the start.
-            @classes = self.^mro(:$roles);
+            @classes = self.^mro(concretizations => $roles);
         }
 
         # Now we have classes, build method list.

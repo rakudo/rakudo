@@ -259,7 +259,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         return $conc;
     }
 
-    method mro($obj, :$roles = 0, :$unhidden = 0) {
+    method mro($obj, :$roles, :$concretizations, :$unhidden) {
         [$obj]
     }
 }

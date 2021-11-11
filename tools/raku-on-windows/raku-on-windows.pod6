@@ -27,7 +27,7 @@ the Raku module installer 'zef'.
 
 To install "git", go to
 
- L<https://gitforwindows.org/>
+ L<https://gitforwindows.org>
 
 and scroll down from the top.
 

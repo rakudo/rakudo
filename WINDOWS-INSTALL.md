@@ -17,7 +17,7 @@ Windows installers do not come with a "spec file" to automatically download and 
 
 To install "git", go to
 
-    L<https://gitforwindows.org/>
+    L<https://gitforwindows.org>
 
 and scroll down from the top.
 

@@ -1435,6 +1435,43 @@ class ContainerDescriptor::UninitializedAttribute {
     method is_default_generic() { self.next.is_default_generic }
 }
 
+# On MoarVM we have a dispatcher for checking if an attribute is not
+# initialized, this is the portable fallback for other VMs.
+#?if !moar
+my class UninitializedAttributeChecker {
+    method check($attr) {
+        # If there's a non-concrete object observed, then we bound a non-container
+        # in place, so trivially initialized.
+        if !nqp::isconcrete_nd($attr) {
+            1
+        }
+
+        # Otherwise, might be a container that was assigned. Look for the
+        # descriptor.
+        else {
+            my $desc;
+            if nqp::istype_nd($attr, Scalar) {
+                $desc := nqp::getattr($attr, Scalar, '$!descriptor');
+            }
+            elsif nqp::istype_nd($attr, Array) {
+                $desc := nqp::getattr($attr, Array, '$!descriptor');
+            }
+            elsif nqp::istype_nd($attr, Hash) {
+                $desc := nqp::getattr($attr, Hash, '$!descriptor');
+            }
+            else {
+                try {
+                    my $base := nqp::how_nd($attr).mixin_base($attr);
+                    $desc := nqp::getattr($attr, $base, '$!descriptor');
+                }
+            }
+            !nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute);
+        }
+    }
+}
+nqp::bindhllsym('Raku', 'UninitializedAttributeChecker', UninitializedAttributeChecker);
+#?endif
+
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {

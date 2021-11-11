@@ -994,7 +994,13 @@ register_op_desugar('time_n', -> $qast {
             )
         }
         else {
-            nqp::die('TODO port to other backends');
+            QAST::Op.new(
+                :op('callmethod'), :name('check'),
+                QAST::WVal.new(
+                    :value(nqp::gethllsym('Raku', 'UninitializedAttributeChecker'))
+                ),
+                $qast[0]
+            )
         }
     });
 }

@@ -31,6 +31,24 @@ Note: to add git's UNIX (Linux) tools (ls, tar, curl, etc.) to the path. Accept 
            --> Path, Edit, add to the end
                     ;C:\Program Files\Git\usr\bin
 
+![Fig. 1](/tools/raku-on-windows/pics/Raku-WinInstall-fig-1-git-setup.png)
+
+![Fig. 2](/tools/raku-on-windows/pics/Raku-WinInstall-fig-2-releases.png)
+
+![Fig. 3](/tools/raku-on-windows/pics/Raku-WinInstall-fig-3-license.png)
+
+![Fig. 4](/tools/raku-on-windows/pics/Raku-WinInstall-fig-4-destination-folder.png)
+
+![Fig. 5](/tools/raku-on-windows/pics/Raku-WinInstall-fig-5-env-vars.png)
+
+![Fig. 6](/tools/raku-on-windows/pics/Raku-WinInstall-fig-6-ready2install.png)
+
+![Fig. 7](/tools/raku-on-windows/pics/Raku-WinInstall-fig-7-permission2install.png
+
+![Fig. 8](/tools/raku-on-windows/pics/Raku-WinInstall-fig-8-setup-complete.png
+
+
+
 Note: any command terminals opened before the installation will have to be reopened to update the path to the Git commands.
 
 ## Install Perl 6 / Raku:

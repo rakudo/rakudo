@@ -1431,6 +1431,8 @@ class ContainerDescriptor::UninitializedAttribute {
     method instantiate_generic($type_environment) {
         self.new(self.next.instantiate_generic($type_environment))
     }
+    method is_generic() { self.next.is_generic }
+    method is_default_generic() { self.next.is_default_generic }
 }
 
 # We stick all the declarative bits inside of a BEGIN, so they get

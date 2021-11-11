@@ -3877,20 +3877,45 @@ class Perl6::World is HLL::World {
                             $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
-                        # 8 = bail if opaque not yet initialized
-                        elsif $code == 8 {
-
+                        # 8 = die if opaque not yet initialized
+                        # 15 = die if int is 0
+                        # 16 = die if num is 0e0
+                        # 17 = die if str is null_s
+                        elsif $code == 8 || $code >= 15 && $code <= 17 {
 # nqp::unless(
 #   nqp::p6attrinited(nqp::getattr(self,Foo,'$!a')),
 #   X::Attribute::Required.new(name => '$!a', why => (value))
 # ),
-                            $stmts.push(
-                              QAST::Op.new( :op<unless>,
-                                QAST::Op.new( :op<p6attrinited>,
+                            my $check;
+                            if $code == 15 {
+                                $check := QAST::Op.new( :op<getattr_i>,
+                                  $!self, $class, $attr
+                                );
+                            }
+                            elsif $code == 16 {
+                                $check := QAST::Op.new( :op<getattr_n>,
+                                  $!self, $class, $attr
+                                );
+                            }
+                            elsif $code == 17 {
+                                $check := QAST::Op.new( :op<not_i>,
+                                  QAST::Op.new( :op<isnull_s>,
+                                    QAST::Op.new( :op<getattr_s>,
+                                      $!self, $class, $attr
+                                    )
+                                  )
+                                );
+                            }
+                            else {
+                                $check := QAST::Op.new( :op<p6attrinited>,
                                   QAST::Op.new( :op<getattr>,
                                     $!self, $class, $attr
                                   )
-                                ),
+                                );
+                            }
+                            $stmts.push(
+                              QAST::Op.new( :op<unless>,
+                                $check,
                                 QAST::Op.new( :op<callmethod>, :name<throw>,
                                   QAST::Op.new( :op<callmethod>, :name<new>,
                                     QAST::WVal.new(

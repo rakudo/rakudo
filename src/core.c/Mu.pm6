@@ -365,8 +365,48 @@ my class Mu { # declared in BOOTSTRAP
                                       )
                                     )
                                   ),
-                                  die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
-                  ))))))))))),
+
+                                  nqp::if(
+                                    nqp::iseq_i($code,15),
+                                    nqp::unless(   # 15
+                                      nqp::getattr_i(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      ),
+                                      X::Attribute::Required.new(
+                                        name => nqp::atpos($task,2),
+                                        why  => nqp::atpos($task,3)
+                                      ).throw
+                                    ),
+
+                                    nqp::if(
+                                      nqp::iseq_i($code,16),
+                                      nqp::unless(   # 16
+                                        nqp::getattr_n(self,
+                                          nqp::atpos($task,1),
+                                          nqp::atpos($task,2)
+                                        ),
+                                        X::Attribute::Required.new(
+                                          name => nqp::atpos($task,2),
+                                          why  => nqp::atpos($task,3)
+                                        ).throw
+                                      ),
+
+                                      nqp::if(
+                                        nqp::iseq_i($code,17),
+                                        nqp::if(   # 17
+                                          nqp::isnull_s(nqp::getattr_s(self,
+                                            nqp::atpos($task,1),
+                                            nqp::atpos($task,2)
+                                          )),
+                                          X::Attribute::Required.new(
+                                            name => nqp::atpos($task,2),
+                                            why  => nqp::atpos($task,3)
+                                          ).throw
+                                        ),
+
+                                        die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
+                  )))))))))))))),
 
                   nqp::if(                       # 0
                     nqp::existskey($init,nqp::atpos($task,3)),

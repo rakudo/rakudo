@@ -17,7 +17,7 @@ Windows installers do not come with a "spec file" to automatically download and 
 
 To install "git", go to
 
-    L<https://git-for-windows.github.io>
+    L<https://gitforwindows.org/>
 
 and scroll down from the top.
 
@@ -25,7 +25,7 @@ Note: to add git's UNIX (Linux) tools (ls, tar, curl, etc.) to the path. Accept 
 
 1. inside the installer, on the + Adjust your PATH environment (window name at top) - Use Git and optional Unix tools from the Command Prompt (bottom selection)
 
-file:./pics/Raku-WinInstall-fig-1-git-setup.png
+file:./tool/raku-on-windows/pics/Raku-WinInstall-fig-1-git-setup.png
 
     2) Or, after the fact:
        --> <win><r> sysdm.cpl

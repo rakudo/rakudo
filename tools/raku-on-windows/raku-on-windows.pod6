@@ -27,7 +27,7 @@ the Raku module installer 'zef'.
 
 To install "git", go to
 
- L<https://git-for-windows.github.io>
+ L<https://gitforwindows.org/>
 
 and scroll down from the top.
 
@@ -39,7 +39,7 @@ Note: to add git's UNIX (Linux) tools (ls, tar, curl, etc.)
          - Use Git and optional Unix tools from the Command
          Prompt (bottom selection)
 
-P<file:./pics/Raku-WinInstall-fig-1-git-setup.png>
+P<file:./tool/raku-on-windows/pics/Raku-WinInstall-fig-1-git-setup.png>
 
 =begin code
 2) Or, after the fact:

@@ -1,8 +1,12 @@
-# Raku / Perl 6 Installation Guide for Windows
+# Raku Installation Guide for Windows
+
+### Note 'Raku' was formerly known as 'Perl 6'.
 
 ## Step 1. Remove prior installation(s)
 
-If there exists a prior installation of Perl 6 / Raku on your computer, remove it. Current installers are not adept at removing prior installations so it is recommended to remove them manually.
+If there exists a prior installation of Raku (or Perl 6)
+on your computer, remove it. Current installers are not adept 
+at removing prior installations so it is recommended to remove them manually.
 
 Go into the **Control Panel, Programs and Features**, and remove prior installations
 
@@ -12,9 +16,9 @@ Go into the **Control Panel, Programs and Features**, and remove prior installat
 
 Windows installers do not come with a "spec file" to automatically download and install dependencies as does Linux packages, such as 'dnf/rpm'. If not included in the installer, it is up to the user to figure them out on his own. Perl 6 / Raku comes with such a dependency for 'git', which is required to comfortably install packages with the Raku module installer 'zef'.
 
-To install "git", go to
-
+To install 'git', go to
 [https://git-for-windows.github.io/](https://git-for-windows.github.io/)
+and download the '??' file.
 
 and scroll down from the top.
 

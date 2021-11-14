@@ -348,9 +348,8 @@ L<http://rakudo.org/downloads/rakudo>:
        rakudo-YYYY.MM.tar.gz.checksums.txt \
        rakudo.org@lavm-perl6infra-1.atikon.io:public_html/downloads/rakudo/
 
-If you do not have permissions for that, ask one of (jnthn,
-masak, tadzik, moritz, [Coke], lizmat, timotimo,
-AlexDaniel) on #raku or #raku-dev to do it for you.
+If you do not have permissions for that, ask one of ([Coke], jnthn, lizmat,
+moritz, rba, sena_kun, timo) on #raku or #raku-dev to do it for you.
 
 =item 19.
 

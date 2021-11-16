@@ -22,6 +22,11 @@ my class IterationBuffer {
         nqp::splice(self,$buffer,nqp::elems(self),0)
     }
 
+    method unshift(Mu \value) { nqp::unshift(self, value) }
+    method prepend(IterationBuffer:D $buffer) {
+        nqp::splice(self,$buffer,0,0)
+    }
+
     proto method AT-POS(|) {*}
     multi method AT-POS(IterationBuffer:D: int $pos) is raw {
         nqp::atpos(self, $pos)

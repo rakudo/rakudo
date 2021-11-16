@@ -18,9 +18,8 @@ my class IterationBuffer {
     method elems() { nqp::elems(self) }
 
     method push(Mu \value) { nqp::push(self, value) }
-
-    method append(IterationBuffer:D \buffer) {
-        nqp::splice(self,buffer,nqp::elems(self),0)
+    method append(IterationBuffer:D $buffer) {
+        nqp::splice(self,$buffer,nqp::elems(self),0)
     }
 
     proto method AT-POS(|) {*}

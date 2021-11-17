@@ -5,6 +5,10 @@ the development of the Raku Programming Language, but unfortunately have
 departed this existence.  We thank them for their contributions and hope
 to keep their memory alive here, as well as in other places.
 
+David H. Adler (dha)
+--------------------
+...
+
 Jonathan Scott Duff (perlpilot)
 -------------------------------
 In the early days of the Rakudo implementation, Jonathan Scott Duff

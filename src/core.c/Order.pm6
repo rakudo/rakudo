@@ -11,20 +11,6 @@ sub ORDER(int $i --> Order) is implementation-detail {
 }
 
 proto sub infix:<cmp>($, $, *% --> Order:D) is pure {*}
-# stub needed otherwise you get `Could not find symbol '&Junction' in 'X::Cannot'` at runtime
-my class X::Cannot::Junction { ... }
-multi sub infix:<cmp>(\a, Junction:D $b) {
-    X::Cannot::Junction.new(
-        junction => $b.raku,
-        for      => 'with cmp, Junctions are not comparable',
-    ).throw
-}
-multi sub infix:<cmp>(Junction:D $a, \b) {
-    X::Cannot::Junction.new(
-        junction => $a.raku,
-        for      => 'with cmp, Junctions are not comparable',
-    ).throw
-}
 multi sub infix:<cmp>(\a, \b) {
     nqp::eqaddr(nqp::decont(a), nqp::decont(b))
       ?? Same

@@ -10188,10 +10188,6 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Var.new( :scope('local'), :name($exceptionreg) )
                 )
             ),
-            QAST::Op.new( :op('p6store'),
-                QAST::Op.new( :op('getlexouter'), QAST::SVal.new( :value('$!') ) ),
-                WANTED(QAST::Var.new( :scope('lexical'), :name('$_') ),'set_block_handler'),
-            )
         ));
 
         # If the handler has a succeed handler, then make sure we sink

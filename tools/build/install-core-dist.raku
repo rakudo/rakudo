@@ -7,7 +7,6 @@ my %provides =
     "Test"                          => "lib/Test.rakumod",
     "NativeCall"                    => "lib/NativeCall.rakumod",
     "NativeCall::Types"             => "lib/NativeCall/Types.rakumod",
-    "NativeCall::Dispatcher"        => "lib/NativeCall/Dispatcher.rakumod",
     "NativeCall::Compiler::GNU"     => "lib/NativeCall/Compiler/GNU.rakumod",
     "NativeCall::Compiler::MSVC"    => "lib/NativeCall/Compiler/MSVC.rakumod",
     "Pod::To::Text"                 => "lib/Pod/To/Text.rakumod",

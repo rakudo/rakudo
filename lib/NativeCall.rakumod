@@ -27,7 +27,6 @@ my constant void          is export(:types, :DEFAULT) = NativeCall::Types::void;
 my constant CArray        is export(:types, :DEFAULT) = NativeCall::Types::CArray;
 my constant Pointer       is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
 my constant OpaquePointer is export(:types, :DEFAULT) = NativeCall::Types::Pointer;
-my constant ExplicitlyManagedString = NativeCall::Types::ExplicitlyManagedString;
 
 
 # Role for carrying extra calling convention information.
@@ -43,6 +42,7 @@ my role NativeCallEncoded[$name] {
 my role NativeCallMangled[$name] {
     method native_call_mangled() { $name }
 }
+
 
 # Throwaway type just to get us some way to get at the NativeCall
 # representation.
@@ -260,12 +260,6 @@ sub resolve-libname($libname) {
     $libname.platform-library-name.Str
 }
 
-my $use-dispatcher := BEGIN {
-    $*RAKU.compiler.?supports-op('dispatch_v')
-        ?? do { require NativeCall::Dispatcher; True }
-        !! False
-};
-
 # This role is mixed in to any routine that is marked as being a
 # native call.
 our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distribution::Resource] {
@@ -276,19 +270,9 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
     has int $!arity;
     has int $!any-optionals;
     has int $!any-callbacks;
+    has Mu $!optimized-body;
+    has Mu $!jit-optimized-body;
     has $!name;
-
-    method CUSTOM-DISPATCHER(--> str) {
-        'raku-nativecall'
-    }
-
-    method call() {
-        $!call
-    }
-
-    method rettype() {
-        $!rettype
-    }
 
     method !setup() {
         $setup-lock.protect: {
@@ -314,7 +298,7 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
             $!any-optionals = self!any-optionals;
             $!any-callbacks = self!any-callbacks;
 
-            nqp::buildnativecall(self,
+            my $jitted = nqp::buildnativecall(self,
                 nqp::unbox_s($guessed_libname),                           # library name
                 nqp::unbox_s(gen_native_symbol($r, $!name, :$!cpp-name-mangler)), # symbol to call
                 nqp::unbox_s($conv),        # calling convention
@@ -328,6 +312,17 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
                         :resolve-libname-arg($libname),
                     )
                     !! return_hash_for($r.signature, $r, :$!entry-point));
+
+            my $body := $jitted ?? $!jit-optimized-body !! $!optimized-body;
+            if $body {
+                nqp::bindattr(
+                    self,
+                    Code,
+                    '$!do',
+                    nqp::getattr(nqp::hllizefor($body, 'Raku'), ForeignCode, '$!do')
+                );
+            }
+
         }
     }
 
@@ -352,6 +347,257 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         !! 'decont';
     }
 
+    method !create-jit-compiled-function-body(Routine $r) {
+        my $block := QAST::Block.new(:name($!name), :arity($!arity), :blocktype('declaration_static'));
+        my $locals = 0;
+        my $args = 0;
+        my (@params, @assigns);
+        for $r.signature.params {
+            next if nqp::istype($r, Method) && ($_.name // '') eq '%_';
+            $args++;
+            my $name = $_.name || '__anonymous_param__' ~ $++;
+            my $lowered_param_name = '__lowered_param__' ~ $locals;
+            my $lowered_name = '__lowered__' ~ $locals++;
+            $block.push: QAST::Var.new(
+                :name($lowered_name),
+                :scope<local>,
+                :decl<var>,
+                :returns(
+                       $_.type ~~ Str ?? nqp::bootstr()
+                    !! $_.type ~~ Int ?? nqp::bootint()
+                    !! $_.type ~~ Num ?? nqp::bootnum()
+                    !! $_.type
+                ),
+            );
+            @params.push: QAST::Var.new(:scope<local>, :name($lowered_name));
+            $block.push: QAST::Var.new(
+                :name($lowered_param_name),
+                :scope<local>,
+                :decl<param>,
+                :slurpy($_.slurpy ?? 1 !! 0),
+            );
+            if $_.rw and nqp::objprimspec($_.type) > 0 {
+                $block.push: QAST::Var.new(
+                    :name($name),
+                    :scope<lexicalref>,
+                    :decl<var>,
+                    :returns($_.type),
+                );
+                $block.push:
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new(:scope<lexicalref>, :name($name)),
+                        QAST::Var.new(:scope<local>, :name($lowered_param_name)),
+                    );
+            }
+            $block.push: QAST::Op.new(
+                :op<if>,
+                QAST::Op.new(
+                    :op<isconcrete>,
+                    QAST::Var.new(:scope<local>, :name($lowered_param_name)),
+                ),
+                QAST::Op.new(
+                    :op<bind>,
+                    QAST::Var.new(:scope<local>, :name($lowered_name)),
+                    QAST::Op.new(
+                        :op(self!decont-for-type($_.type)),
+                        QAST::Var.new(:scope<local>, :name($lowered_param_name)),
+                    ),
+                ),
+                QAST::Op.new(
+                    :op<bind>,
+                    QAST::Var.new(:scope<local>, :name($lowered_name)),
+                       $_.type ~~ Str ?? Str
+                    !! $_.type ~~ Int ?? QAST::IVal.new(:value(0))
+                    !! $_.type ~~ Num ?? QAST::NVal.new(:value(0e0))
+                    !! QAST::IVal.new(:value(0))
+                ),
+            );
+
+            if $_.rw and nqp::objprimspec($_.type) > 0 {
+                @assigns.push: QAST::Op.new(
+                    :op<assign>,
+                    QAST::Var.new(:scope<lexicalref>, :name($name)),
+                    QAST::Op.new(:op<getarg_i>, QAST::IVal.new(:value($args - 1))),
+                );
+            }
+        }
+        $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
+        my $invoke_op := QAST::Op.new(
+            :op<nativeinvoke>,
+            QAST::WVal.new(:value(self)),
+            QAST::WVal.new(:value($!rettype)),
+        );
+        $invoke_op.push: nqp::decont($_) for @params;
+        if @assigns {
+            $block.push: QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new(
+                    :name<return_value>,
+                    :scope<local>,
+                    :decl<var>,
+                ),
+                $invoke_op
+            );
+            $block.push: nqp::decont($_) for @assigns;
+            $block.push: QAST::Var.new(:name<return_value>, :scope<local>);
+        }
+        else {
+            $block.push: $invoke_op;
+        }
+        $block
+    }
+
+    method !create-function-body(Routine $r) {
+        my $block := QAST::Block.new(:name($!name), :arity($!arity), :blocktype('declaration_static'));
+        my $arglist := QAST::Op.new(:op<list>);
+        my $locals = 0;
+        for $r.signature.params {
+            next if nqp::istype($r, Method) && ($_.name // '') eq '%_';
+            my $name = $_.name || '__anonymous_param__' ~ $++;
+            if $_.rw and nqp::objprimspec($_.type) > 0 {
+                $block.push: QAST::Var.new(
+                    :name($name),
+                    :scope<lexicalref>,
+                    :decl<var>,
+                    :returns($_.type),
+                );
+                my $lowered_name = '__lowered_param__' ~ $locals++;
+                $block.push: QAST::Var.new(
+                    :name($lowered_name),
+                    :scope<local>,
+                    :decl<param>,
+                    QAST::Op.new(
+                        :op<bind>,
+                        QAST::Var.new(:scope<lexicalref>, :name($name)),
+                        QAST::Var.new(:scope<local>, :name($lowered_name)),
+                    ),
+                );
+                $arglist.push: QAST::Var.new(:scope<lexicalref>, :name($name));
+            }
+            else {
+                my $lowered_name = '__lowered__' ~ $locals++;
+                $block.push: QAST::Var.new(
+                    :name($lowered_name),
+                    :scope<local>,
+                    :decl<param>,
+                    :slurpy($_.slurpy ?? 1 !! 0),
+                );
+                $block.push: QAST::Op.new(
+                    :op<bind>,
+                    QAST::Var.new(:scope<local>, :name($lowered_name)),
+                    QAST::Op.new(
+                        :op<if>,
+                        QAST::Op.new(
+                            :op<isconcrete_nd>,
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                        ),
+                        QAST::Op.new(
+                            :op(self!decont-for-type($_.type)),
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                        ),
+                        QAST::Var.new(:scope<local>, :name($lowered_name)),
+                    ),
+                );
+                if nqp::istype($_.type, Callable) {
+                    $arglist.push: QAST::Op.new(
+                        :op('if'),
+                        QAST::Op.new(
+                            :op('bitand_i'),
+                            QAST::Op.new(
+                                :op('isconcrete'),
+                                QAST::Var.new(:scope<local>, :name($lowered_name))
+                            ),
+                            QAST::Op.new(
+                                :op('istype'),
+                                QAST::Var.new(:scope<local>, :name($lowered_name)),
+                                QAST::WVal.new( :value(Code) ),
+                            )
+                        ),
+                        QAST::Op.new(
+                            :op('getattr'),
+                            QAST::Var.new(:scope<local>, :name($lowered_name)),
+                            QAST::WVal.new( :value(Code) ),
+                            QAST::SVal.new( :value('$!do') )
+                        ),
+                        QAST::Var.new(:scope<local>, :name($lowered_name)));
+                }
+                else {
+                    $arglist.push: QAST::Var.new(:scope<local>, :name($lowered_name));
+                }
+            }
+        }
+        $!rettype := nqp::decont(map_return_type($r.returns)) unless $!rettype;
+        $block.push: QAST::Op.new(
+            :op<nativecallinvoke>,
+            QAST::WVal.new(:value($!rettype)),
+            QAST::WVal.new(:value(self)),
+            $arglist,
+        );
+        $block
+    }
+
+    method !compile-function-body(Mu $block) {
+        my $compiler := nqp::getcomp("Raku");
+        my $body := $compiler.compile($block, :from<optimize>);
+
+        $*W.add_object($body) if $*W;
+
+        nqp::setcodename(nqp::getattr($body, ForeignCode, '$!do'), $!name);
+        $body
+    }
+
+    method create-optimized-call() {
+        unless $!optimized-body {
+            $setup-lock.protect: {
+                nqp::neverrepossess(self);
+                unless nqp::defined(nqp::getobjsc(self)) {
+                    if $*W {
+                        $*W.add_object(self);
+                    }
+                    else {
+                        my $sc := nqp::createsc('NativeCallSub' ~ nqp::objectid(self));
+                        nqp::setobjsc(self, $sc);
+                        my int $idx = nqp::scobjcount($sc);
+                        nqp::scsetobj($sc, $idx, self);
+                    }
+                }
+
+                my $optimized-body     := self!create-function-body($r);
+                $optimized-body.annotate('code_object', self);
+                $optimized-body.code_object(self);
+                my $stub := nqp::freshcoderef(nqp::getattr(sub (*@args, *%named) { die "stub called" }, Code, '$!do'));
+                nqp::setcodename($stub, self.name);
+                nqp::markcodestatic($stub);
+                nqp::markcodestub($stub);
+                nqp::bindattr(self, $?CLASS, '$!optimized-body', $stub);
+                my $jit-optimized-body := self!create-jit-compiled-function-body($r);
+                $jit-optimized-body.annotate('code_object', self);
+                $jit-optimized-body.code_object(self);
+                nqp::bindattr(self, $?CLASS, '$!jit-optimized-body', $stub);
+                my $fixups := QAST::Stmts.new();
+                if $*W {
+                    $*W.add_root_code_ref($stub, $optimized-body);
+                    $*W.add_root_code_ref($stub, $jit-optimized-body);
+                    $*W.add_object($?CLASS);
+                    $*UNIT.push($optimized-body);
+                    $*UNIT.push($jit-optimized-body);
+                    $fixups.push(QAST::Op.new(:op<neverrepossess>, QAST::WVal.new(:value(self))));
+                    $fixups.push($*W.set_attribute(self, $?CLASS, '$!optimized-body',
+                        QAST::BVal.new( :value($optimized-body) )));
+                    $fixups.push($*W.set_attribute(self, $?CLASS, '$!jit-optimized-body',
+                        QAST::BVal.new( :value($jit-optimized-body) )));
+                    $*W.add_fixup_task(:deserialize_ast($fixups), :fixup_ast($fixups));
+                    Nil
+                }
+                else {
+                    $!optimized-body     := self!compile-function-body(self!create-function-body($r));
+                    $!jit-optimized-body := self!compile-function-body(self!create-jit-compiled-function-body($r));
+                }
+            }
+        }
+    }
+
     method !arity-error(\args) {
         X::TypeCheck::Argument.new(
             :objname($.name),
@@ -360,39 +606,39 @@ our role Native[Routine $r, $libname where Str|Callable|List|IO::Path|Distributi
         ).throw
     }
 
-    method setup() {
-        self!setup() unless nqp::unbox_i($!call);
-    }
-
     method setup-nativecall() {
         $!name = self.name;
 
-        unless ($use-dispatcher) {
-            # finish compilation of the original routine so our changes won't
-            # become undone right afterwards
-            $*W.unstub_code_object(self, Code) if $*W;
+        # finish compilation of the original routine so our changes won't
+        # become undone right afterwards
+        $*W.unstub_code_object(self, Code) if $*W;
 
-            my $replacement := -> |args {
-                self!setup() unless nqp::unbox_i($!call);
+        my $replacement := -> |args {
+            self.create-optimized-call() unless
+                $!optimized-body # Already have the optimized body
+                or $!any-optionals # the compiled code doesn't support optional parameters yet
+                or try $*W;    # Avoid issues with compiling specialized version during BEGIN time
+            self!setup() unless nqp::unbox_i($!call);
 
-                my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
-                self!arity-error(args) if nqp::elems($args) != $!arity;
-                if $!any-callbacks {
-                    my int $i = 0;
-                    while $i < nqp::elems($args) {
-                        my $arg := nqp::decont(nqp::atpos($args, $i));
-                        if nqp::istype_nd($arg, Code) {
-                            nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
-                        }
-                        $i++;
+            my Mu $args := nqp::getattr(nqp::decont(args), Capture, '@!list');
+            self!arity-error(args) if nqp::elems($args) != $!arity;
+            if $!any-callbacks {
+                my int $i = 0;
+                while $i < nqp::elems($args) {
+                    my $arg := nqp::decont(nqp::atpos($args, $i));
+                    if nqp::isconcrete($arg) && nqp::istype_nd($arg, Code) {
+                        nqp::bindpos($args, $i, nqp::getattr($arg, Code, '$!do'));
                     }
+                    $i++;
                 }
-                nqp::nativecall($!rettype, self, $args)
-            };
-            my $do := nqp::getattr($replacement, Code, '$!do');
-            nqp::bindattr(self, Code, '$!do', $do);
-            nqp::setcodename($do, $!name);
-        }
+            }
+
+            nqp::nativecall($!rettype, self, $args)
+        };
+
+        my $do := nqp::getattr($replacement, Code, '$!do');
+        nqp::bindattr(self, Code, '$!do', $do);
+        nqp::setcodename($do, $!name);
     }
 
     method soft(--> True) {} # prevent inlining of the original function body
@@ -439,6 +685,10 @@ multi trait_mod:<is>(Routine $p, :$encoded!) is export(:DEFAULT, :traits) {
 
 multi trait_mod:<is>(Routine $p, :$mangled!) is export(:DEFAULT, :traits) {
     $p does NativeCallMangled[$mangled === True ?? 'C++' !! $mangled];
+}
+
+role ExplicitlyManagedString {
+    has $.cstr is rw;
 }
 
 multi explicitly-manage(Str $x, :$encoding = 'utf8') is export(:DEFAULT,
@@ -542,12 +792,24 @@ sub check_routine_sanity(Routine $r) is export(:TEST) {
 }
 
 sub EXPORT(|) {
+    my @routines_to_setup;
+    if $*W {
+        my $block := {
+            for @routines_to_setup {
+                .create-optimized-call;
+                CATCH { default { note $_ } }
+            }
+        };
+        $*W.add_object($block);
+        my $op := $*W.add_phaser(Mu, 'CHECK', $block, class :: { method cuid { (^2**128).pick }});
+    }
     # Specifies that the routine is actually a native call, into the
     # current executable (platform specific) or into a named library
     my $native_trait := multi trait_mod:<is>(Routine $r, :$native!) {
         check_routine_sanity($r);
         $r does NativeCall::Native[$r, $native === True ?? Str !! $native];
         $r.setup-nativecall;
+        @routines_to_setup.push: $r;
     };
     Map.new(
         '&trait_mod:<is>' => $native_trait.dispatcher,

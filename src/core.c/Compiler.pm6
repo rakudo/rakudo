@@ -85,10 +85,6 @@ class Compiler does Systemic {
             }
         }
     }
-
-    method supports-op($opname) {
-        nqp::getcomp("Raku").supports-op($opname)
-    }
 }
 
 # vim: expandtab shiftwidth=4

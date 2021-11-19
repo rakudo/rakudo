@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 17;
+plan 16;
 
 compile_test_lib('02-simple-args');
 
@@ -74,15 +74,5 @@ sub TakeSizeT(size_t) returns int32 is native('./02-simple-args') { * }
 is TakeSizeT(42),     13, 'passed size_t 42';
 sub TakeSSizeT(ssize_t --> int32) is native('./02-simple-args') { * }
 is TakeSSizeT(-42),   14, 'passed ssize_t -42';
-
-my $arg := Proxy.new(
-    FETCH => -> $ {
-        42
-    },
-    STORE => -> $, $val {
-        die "STORE NYI";
-    },
-);
-is TakeInt($arg), 1, 'Proxy works';
 
 # vim: expandtab shiftwidth=4

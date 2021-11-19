@@ -1,6 +1,11 @@
 my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash
     #     has str $!longname;
+    #     has $!lock;
+
+    multi method new(Stash: --> Map:D) {
+        nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock.new)
+    }
 
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
@@ -27,6 +32,34 @@ my class Stash { # declared in BOOTSTRAP
             )
           )
         )
+    }
+
+    multi method ASSIGN-KEY(Stash:D: Str:D $key, Mu \assignval) is raw {
+        my $storage := nqp::getattr(self,Map,'$!storage');
+        my \existing-key := nqp::atkey($storage, $key);
+        if nqp::isnull(existing-key) {
+            $!lock.protect: {
+                my \scalar := nqp::bindkey(
+                    ($storage := nqp::clone($storage)),
+                    $key,
+                    nqp::p6assign(
+                        nqp::p6bindattrinvres(
+                            nqp::create(Scalar),
+                            Scalar,
+                            '$!descriptor',
+                            nqp::getattr(self, Hash, '$!descriptor')),
+                        assignval)
+                );
+                nqp::bindattr(self, Map, '$!storage', $storage);
+                scalar
+            };
+        }
+        else {
+            nqp::p6assign(existing-key, assignval);
+        }
+    }
+    multi method ASSIGN-KEY(Stash:D: \key, Mu \assignval) is raw {
+        nextwith(key.Str, assignval)
     }
 
     method package_at_key(Stash:D: str $key) {

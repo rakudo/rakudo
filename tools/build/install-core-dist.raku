@@ -19,6 +19,9 @@ my %provides =
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
 ;
 
+%provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"
+    if $*RAKU.compiler.?supports-op('dispatch_v');
+
 if Compiler.backend eq 'moar' {
     %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod";
     %provides<MoarVM::Spesh>    = "lib/MoarVM/Spesh.rakumod";

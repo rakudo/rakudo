@@ -11,6 +11,12 @@
 # of Raku. Do NOT add any checks and validation to methods in here. They
 # need to remain trivially inlinable for performance reasons.
 my class IterationBuffer {
+
+    multi method new(IterationBuffer:U: Iterable:D \iterable) {
+        iterable.iterator.push-all(my \buffer := nqp::create(self));
+        buffer
+    }
+
     method clear(IterationBuffer:D: --> Nil) {
         nqp::setelems(self, 0)
     }
@@ -18,9 +24,8 @@ my class IterationBuffer {
     method elems() { nqp::elems(self) }
 
     method push(Mu \value) { nqp::push(self, value) }
-
-    method append(IterationBuffer:D \buffer) {
-        nqp::splice(self,buffer,nqp::elems(self),0)
+    method append(IterationBuffer:D $buffer) {
+        nqp::splice(self,$buffer,nqp::elems(self),0)
     }
 
     proto method AT-POS(|) {*}

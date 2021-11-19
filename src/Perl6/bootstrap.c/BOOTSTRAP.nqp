@@ -1965,7 +1965,7 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, scalar_attr('$!container_descriptor', Mu, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!why>, :type(Mu), :package(Parameter)));
-    Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!signature_constraint>, :type(Signature), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!signature_constraint', Signature, Parameter, :!auto_viv_container));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!type');
@@ -3663,9 +3663,11 @@ BEGIN {
 
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
-	#     has str $!longname;
+    #     has str $!longname;
+    #     has $!lock;
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
+    Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!lock>, :type(Any), :package(Stash)));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.

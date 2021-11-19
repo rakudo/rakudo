@@ -1,23 +1,6 @@
 class Perl6::Metamodel::DefiniteHOW
-    #~ does Perl6::Metamodel::Naming
     does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Nominalizable
-
-    #~ does Perl6::Metamodel::MethodDelegation
-    #~ does Perl6::Metamodel::TypePretense
-
-    #~ does Perl6::Metamodel::Stashing
-    #~ does Perl6::Metamodel::AttributeContainer
-    #~ does Perl6::Metamodel::MethodContainer
-    #~ does Perl6::Metamodel::MultiMethodContainer
-    #~ does Perl6::Metamodel::RoleContainer
-    #~ does Perl6::Metamodel::BaseType
-    #~ does Perl6::Metamodel::MROBasedMethodDispatch
-    #~ does Perl6::Metamodel::MROBasedTypeChecking
-    #~ does Perl6::Metamodel::BUILDPLAN
-    #~ does Perl6::Metamodel::BoolificationProtocol
-    #~ does Perl6::Metamodel::REPRComposeProtocol
-    #~ does Perl6::Metamodel::InvocationProtocol
 {
     my $archetypes := Perl6::Metamodel::Archetypes.new(:definite, :nominalizable(1));
     method archetypes() {
@@ -71,27 +54,6 @@ class Perl6::Metamodel::DefiniteHOW
         check_instantiated($definite_type);
         nqp::eqaddr(nqp::typeparameterat($definite_type, 1), Definite) ?? 1 !! 0
     }
-
-    #~ # Our MRO is just that of base type.
-    #~ method mro($obj) {
-        #~ unless @!mro {
-            #~ @!mro[0] := $obj;
-            #~ for $!base_type.HOW.mro($!base_type) {
-                #~ @!mro.push($_);
-            #~ }
-        #~ }
-        #~ @!mro
-    #~ }
-
-    #~ method parents($obj, :$local, :$excl, :$all) {
-        #~ my @parents := [$!base_type];
-        #~ unless $local {
-            #~ for $!base_type.HOW.parents($!base_type, :excl($excl), :all($all)) {
-                #~ @parents.push($_);
-            #~ }
-        #~ }
-        #~ @parents
-    #~ }
 
     method nominalize($obj) {
         my $base_type := $obj.HOW.base_type($obj);

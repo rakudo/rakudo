@@ -1500,6 +1500,20 @@ my class X::Bind is Exception {
             !! 'Cannot use bind operator with this left-hand side'
     }
 }
+my class X::Bind::Rebind is X::Bind {
+    has $.is-type;
+    method message() {
+        ("Cannot bind to '$.target' because " ~
+        do given $.target.comb[0] {
+            when <$ @ %>.any { "it was bound in a signature and variables bound
+                                in signatures cannot be rebound unless they were
+                                declared with the 'is rw' or 'is copy' traits"   }
+            when '&'         { "Code items cannot be rebound"                    }
+            when ?$.is-type  { "Types cannot be rebound"                         }
+            default          { "it is a term and terms cannot be rebound"        }
+        }).naive-word-wrapper
+    }
+}
 my class X::Bind::NativeType does X::Comp {
     has $.name;
     method message() {

@@ -100,6 +100,38 @@ do {
         }
     }
 
+    my role TerminalLineEditorBehavior[$WHO] {
+        my $cli-input = $WHO<CLIInput>;
+        my $cli;
+
+        method completions-for-line(Str $line, int $cursor-index) { ... }
+
+        method history-file(--> Str:D) { ... }
+
+        method init-line-editor {
+            my sub get-completions($contents, $pos) {
+                eager self.completions-for-line($contents, $pos)
+            }
+            $cli = $cli-input.new(:&get-completions);
+            $cli.load-history($.history-file);
+        }
+
+        method teardown-line-editor {
+            $cli.save-history($.history-file);
+        }
+
+        method repl-read(Mu \prompt) {
+            self.update-completions;
+            my $line = $cli.prompt(prompt);
+
+            if $line.defined && $line.match(/\S/) {
+                $cli.add-history($line);
+            }
+
+            $line
+        }
+    }
+
     my role FallbackBehavior {
         method repl-read(Mu \prompt) {
             print prompt;
@@ -171,7 +203,8 @@ do {
         has $!need-more-input = {};
         has $!control-not-allowed = {};
 
-        sub do-mixin($self, Str $module-name, $behavior, Str :$fallback) {
+        sub do-mixin($self, Str $module-name, $behavior, :@extra-modules,
+                     Str :$fallback, Bool :$classlike) {
             my Bool $problem = False;
             try {
                 CATCH {
@@ -190,8 +223,10 @@ do {
                     }
                 }
 
+                (require ::($_)) for @extra-modules;
                 my $module = do require ::($module-name);
-                my $new-self = $self but $behavior.^parameterize($module.WHO<EXPORT>.WHO<ALL>.WHO);
+                my $who = $classlike ?? $module.WHO !! $module.WHO<EXPORT>.WHO<ALL>.WHO;
+                my $new-self = $self but $behavior.^parameterize($who);
                 $new-self.?init-line-editor();
                 return ( $new-self, False );
             }
@@ -207,10 +242,17 @@ do {
             do-mixin($self, 'Linenoise', LinenoiseBehavior, |c)
         }
 
+        sub mixin-terminal-lineeditor($self, |c) {
+            do-mixin($self, 'Terminal::LineEditor', TerminalLineEditorBehavior,
+                     :extra-modules('Terminal::LineEditor::RawTerminalInput',),
+                     :classlike, |c)
+        }
+
         sub mixin-line-editor($self) {
             my %editor-to-mixin = (
                 :Linenoise(&mixin-linenoise),
                 :Readline(&mixin-readline),
+                :LineEditor(&mixin-terminal-lineeditor),
                 :none(-> $self { ( $self but FallbackBehavior, False ) }),
             );
 
@@ -231,7 +273,10 @@ do {
             my ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
             return $new-self if $new-self;
 
-            ( $new-self, $problem ) = mixin-linenoise($self);
+            ( $new-self, $problem ) = mixin-linenoise($self, :fallback<LineEditor>);
+            return $new-self if $new-self;
+
+            ( $new-self, $problem ) = mixin-terminal-lineeditor($self);
             return $new-self if $new-self;
 
             if $problem {
@@ -239,7 +284,7 @@ do {
                 say 'You may want to consider using rlwrap for simple line editor functionality';
             }
             elsif !Rakudo::Internals.IS-WIN and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
-                say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor';
+                say 'You may want to `zef install Readline`, `zef install Linenoise`, or `zef install Terminal::LineEditor` or use rlwrap for a line editor';
             }
             say '';
 

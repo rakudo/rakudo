@@ -1,10 +1,6 @@
 use nqp;
 unit module NativeCall::Types;
 
-role ExplicitlyManagedString {
-    has $.cstr is rw;
-}
-
 sub nativecast($target-type, $source) {
     nqp::nativecallcast(nqp::decont($target-type),
         nqp::decont(map_return_type($target-type)), nqp::decont($source));

@@ -2626,13 +2626,6 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
             $capture);
     }
 
-    elsif nqp::isconcrete(
-        my $custom-dispatcher := nqp::decont(nqp::how_nd($code).find_method(nqp::decont($code), 'CUSTOM-DISPATCHER', :no_fallback))
-    ) {
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate',
-            nqp::unbox_s($custom-dispatcher($code)), $capture);
-    }
-
     # If it has a CALL-ME method then always use that (this means it being a
     # Code object, even).
     elsif nqp::isconcrete(my $call-me := nqp::decont(nqp::how_nd($code).find_method($code, 'CALL-ME', :no_fallback))) {

@@ -940,10 +940,12 @@ my class X::NYI is Exception {
     has $.feature;
     has $.did-you-mean;
     has $.workaround;
+    has $.perhaps;
     method message() {
         my $msg = ($.feature ?? $.feature ~ " not" !! "Not") ~ " yet implemented. Sorry.";
-        $msg ~= "\nDid you mean: {$.did-you-mean.gist}?" if $.did-you-mean;
-        $msg ~= "\nWorkaround: $.workaround" if $.workaround;
+        $msg ~= "\nDid you mean: $_?" with $.did-you-mean;
+        $msg ~= "\nPerhaps $_?"       with $.perhaps;
+        $msg ~= "\nWorkaround: $_"    with $.workaround;
         $msg
     }
 }

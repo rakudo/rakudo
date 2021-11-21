@@ -339,8 +339,8 @@ role STD {
     method missing($what) {
         self.typed_panic('X::Syntax::Missing', :$what);
     }
-    method NYI($feature) {
-        self.typed_panic('X::Comp::NYI', :$feature)
+    method NYI($feature, *%opts) {
+        self.typed_panic('X::Comp::NYI', :$feature, |%opts)
     }
 
     token experimental($feature) {
@@ -3166,7 +3166,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             <.unsp>?
             [
                 <?[{]> <?{ $is_type }>
-                <whence=.postcircumfix> <.NYI('Autovivifying object closures')>
+                <whence=.postcircumfix> <.NYI(
+                  'Autovivifying object closures',
+                  perhaps => 'you forgot a space before the { '
+                )>
             ]?
             <.unsp>?
             [
@@ -3376,7 +3379,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             '[' ~ ']' <arglist>
             <.explain_mystery> <.cry_sorrows>
         ]?
-        <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
+        <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI(
+          'Autovivifying object closures',
+          perhaps => 'you forgot a space before the { '
+        )> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
         [

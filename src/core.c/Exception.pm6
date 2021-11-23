@@ -215,11 +215,7 @@ my class X::Method::NotFound is Exception {
 
         my $public_suggested = 0;
         sub find_public_suggestion($before, $after --> Nil) {
-            if $before.fc eq $after.fc {
-                $public_suggested = 1;
-                %suggestions{$after} = 0;  # assume identity
-            }
-            else {
+            if $before.fc ne $after.fc {
                 my $dist := StrDistance.new(
                   before => $before.fc,
                   after  => $after.fc

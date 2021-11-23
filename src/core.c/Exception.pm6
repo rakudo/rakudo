@@ -215,15 +215,13 @@ my class X::Method::NotFound is Exception {
 
         my $public_suggested = 0;
         sub find_public_suggestion($before, $after --> Nil) {
-            if $before.fc ne $after.fc {
-                my $dist := StrDistance.new(
-                  before => $before.fc,
-                  after  => $after.fc
-                );
-                if $dist <= $max_length {
-                    $public_suggested = 1;
-                    %suggestions{$after} = $dist.Int;
-                }
+            my $dist := StrDistance.new(
+              before => $before.fc,
+              after  => $after.fc
+            );
+            if $dist <= $max_length {
+                $public_suggested = 1;
+                %suggestions{$after} = $dist.Int;
             }
         }
 
@@ -232,6 +230,7 @@ my class X::Method::NotFound is Exception {
             my $invocant_methods :=
               Set.new: $!invocant.^methods(:local).map: { code-name($_) };
 
+            my $identity-found-already = False;
             for $!invocant.^methods(:all) -> $method_candidate {
                 my $method_name := code-name($method_candidate);
                 # GH#1758 do not suggest a submethod from a parent
@@ -239,7 +238,15 @@ my class X::Method::NotFound is Exception {
                   if $method_candidate.^name eq 'Submethod'  # a submethod
                   && !$invocant_methods{$method_name};       # unknown method
 
-                find_public_suggestion($.method, $method_name);
+                if $.method eq $method_name {
+                    unless $identity-found-already {
+                        @!tips.push: "Found a method of the same name on another type, perhaps you called it on a container?";
+                        $identity-found-already = True;
+                    }
+                }
+                else {
+                    find_public_suggestion($.method, $method_name);
+                }
             }
 
             # handle special unintrospectable cases
@@ -285,7 +292,7 @@ my class X::Method::NotFound is Exception {
         }
 
         if !$indirect-method
-           &&($private_suggested ^^ $public_suggested)
+           && ($private_suggested ^^ $public_suggested)
            && ($private_suggested ^^ $.private)
         {
             @!tips.push: "Perhaps a " ~ ($private_suggested ?? "private" !! "public") ~ " method call must be used."

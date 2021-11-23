@@ -240,7 +240,7 @@ my class X::Method::NotFound is Exception {
 
                 if $.method eq $method_name {
                     unless $identity-found-already {
-                        @!tips.push: "Found a method of the same name on another type, perhaps you called it on a container?";
+                        @!tips.push: "Found '$.method' on type '$!invocant.^name()', but perhaps you actually called it on a container?";
                         $identity-found-already = True;
                     }
                 }

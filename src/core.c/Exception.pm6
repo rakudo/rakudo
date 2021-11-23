@@ -245,7 +245,7 @@ my class X::Method::NotFound is Exception {
                     }
                 }
                 else {
-                    find_public_suggestion($.method, $method_name);
+                    find_public_suggestion($.method, $method_name) if nqp::can(::($.typename), $method_name);
                 }
             }
 

@@ -50,7 +50,7 @@ my class Instant is Cool does Real {
         'Instant.from-posix(' ~ $posix.raku ~ ($flag ?? ',True)' !! ')')
     }
     method Bridge(Instant:   --> Num:D) { self.defined ?? self.tai.Bridge !! self.Real::Bridge }
-    method Num   (Instant:D: --> Num:D) { self.tai.Num    }
+    method Num   (Instant:D: --> Num:D) { nqp::div_n(self.to-nanos.Num, 1000000000e0)          }
     method Rat   (Instant:D: --> Rat:D) { self.tai        }
     method Int   (Instant:D: --> Int:D) { self.tai.Int    }
     method narrow(Instant:D:          ) { self.tai.narrow }

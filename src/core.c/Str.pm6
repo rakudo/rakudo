@@ -1551,10 +1551,10 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 
 #?if moar
-    proto method match(|) {*}
+    proto method match(Any, |) {*}
 #?endif
 #?if !moar
-    proto method match(|) { $/ := nqp::getlexcaller('$/'); {*} }
+    proto method match(Any, |) { $/ := nqp::getlexcaller('$/'); {*} }
 #?endif
     multi method match(Cool:D $pattern, |c) {
         $/ := nqp::getlexcaller('$/');

@@ -1,5 +1,6 @@
 my class X::Immutable { ... }
 my class X::Range::InvalidArg { ... }
+my class X::Range::Incomparable { ... }
 
 my class Range is Cool does Iterable does Positional {
     has $.min;
@@ -401,9 +402,14 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.Str
     }
 
-    multi method ACCEPTS(Range:D: Mu \topic) {
-        (topic cmp $!min) > -(!$!excludes-min)
-          and (topic cmp $!max) < +(!$!excludes-max)
+    my sub IS-COMPARABLE(&client-cmp, Mu $topic, Mu $endpoint, $what-endpoint) {
+        unless &client-cmp.cando($topic, $endpoint) {
+            X::Range::Incomparable.new(:$topic, :$endpoint, :$what-endpoint).throw
+        }
+    }
+
+    multi method ACCEPTS(Range:D \SELF: Junction:D $topic) {
+        $topic.THREAD: { SELF.ACCEPTS($_) }
     }
     multi method ACCEPTS(Range:D: Cool:D \got) {
         nqp::if(
@@ -447,6 +453,22 @@ my class Range is Cool does Iterable does Positional {
                 (topic.max lt $!max
                  || topic.max eq $!max
                     && !(!topic.excludes-max && $!excludes-max))
+    }
+    multi method ACCEPTS(Range:D: Any \topic) {
+        (topic cmp $!min) > -(!$!excludes-min)
+            and (topic cmp $!max) < +(!$!excludes-max)
+    }
+    multi method ACCEPTS(Range:D: Mu \topic) {
+        # Generally speaking, Mu is not a comparable type. Neither any of its children unless specific multi-candidates
+        # of &infix:<cmp> are provided by user code. In this case try to go slow path.
+        # XXX This still doesn't work with junctions because with threading this method is invoked from Junction's
+        # namespace.
+        my &client-cmp := CLIENT::LEXICAL::{'&infix:<cmp>'};
+        IS-COMPARABLE(&client-cmp, topic, $!min, 'minimum');
+        IS-COMPARABLE(&client-cmp, topic, $!max, 'maximum');
+
+        (&client-cmp(topic, $!min) > -(!$!excludes-min)
+            and &client-cmp(topic, $!max) < +(!$!excludes-max))
     }
 
     method ASSIGN-POS(Range:D: |) { X::Assignment::RO.new(value => self).throw }

@@ -2401,11 +2401,30 @@ class Perl6::Actions is HLL::Actions does STDActions {
                   QAST::WVal.new( :value( $*W.find_single_symbol('False') ) ) );
         }
         # The fallback path that does a full smartmatch
-        else {
+        my $fallback_match :=
+            QAST::Op.new(
+                :op('callmethod'),
+                :name('Bool'),
+                QAST::Op.new(
+                    :op('callmethod'), :name('ACCEPTS'),
+                    $sm_exp,
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when')));
+
+        # If there is an optimized version of when-block then use it unless the topic is a Junction; otherwise  use
+        # unoptimized fallback.
+        if nqp::isconcrete($match_past) {
             $match_past :=
-              QAST::Op.new( :op('callmethod'), :name('ACCEPTS'),
-                $sm_exp,
-                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when') );
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        QAST::Var.new( :name('$_'), :scope('lexical') ),
+                        QAST::WVal.new( :value($*W.find_single_symbol('Junction', :setting-only)) )),
+                    $fallback_match,
+                    $match_past);
+        }
+        else {
+            $match_past := $fallback_match;
         }
 
         # Use the smartmatch result as the condition for running the block,
@@ -7446,16 +7465,48 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $old_topic_var := $lhs.unique('old_topic');
         my $result_var := $lhs.unique('sm_result');
         my $sm_call;
+        my $rhs_local := QAST::Node.unique('sm_rhs');
+        # Will we need to forcingly boolify ACCEPTS return value? No if it's going to be negated anyway or if RHS is a
+        # regex-ish code like m//, s///, or tr///
+        my $boolify := !($negated || $rhs.ann('regex_match_code'));
 
         # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
         $sm_call := QAST::Op.new(
-            :op('callmethod'), :name('ACCEPTS'),
-            $rhs,
-            WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm')
-        );
+                        :op('callmethod'), :name('ACCEPTS'),
+                        QAST::Op.new(
+                            :op('bind'),
+                            QAST::Var.new( :name($rhs_local), :scope('local'), :decl('var') ),
+                            $rhs ),
+                        WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm'));
 
         if $negated {
             $sm_call := QAST::Op.new( :op('call'), :name('&prefix:<!>'), $sm_call );
+        }
+
+        $sm_call := QAST::Op.new( :op('bind'),
+                QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
+                $sm_call
+            );
+
+        if $boolify {
+            my $rhs_var := QAST::Var.new( :name($rhs_local), :scope('local') );
+            my $rvar := QAST::Var.new( :name($result_var), :scope('local') );
+            $sm_call := QAST::Stmts.new(
+                $sm_call,
+                QAST::Op.new(
+                    :op('if'),
+                    QAST::Op.new(
+                        :op('istype'),
+                        $rhs_var,
+                        QAST::WVal.new( :value($*W.find_single_symbol('Regex', :setting-only)) )),
+                    $rvar,
+                    QAST::Op.new(
+                        :op('bind'),
+                        $rvar,
+                        QAST::Op.new(
+                            :op('callmethod'),
+                            :name('Bool'),
+                            $rvar ))));
         }
 
         QAST::Op.new(
@@ -7464,31 +7515,23 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 # Stash original $_.
                 QAST::Op.new( :op('bind'),
                     WANTED(QAST::Var.new( :name($old_topic_var), :scope('local'), :decl('var') ),'sm/ot'),
-                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm/ot')
-                ),
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm/ot')),
 
                 # Evaluate LHS and bind it to $_.
                 QAST::Op.new( :op('bind'),
                     WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm/eval'),
-                    $lhs
-                ),
+                    $lhs),
 
-                # Evaluate RHS and call ACCEPTS on it, passing in $_. Bind the
-                # return value to a result variable.
-                QAST::Op.new( :op('bind'),
-                    QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
-                    $sm_call
-                ),
+                # Do the smartmatch, as built above
+                $sm_call,
 
                 # Re-instate original $_.
                 QAST::Op.new( :op('bind'),
                     WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm/reinstate'),
-                    QAST::Var.new( :name($old_topic_var), :scope('local') )
-                ),
+                    QAST::Var.new( :name($old_topic_var), :scope('local') )),
 
                 # And finally evaluate to the smart-match result.
-                WANTED(QAST::Var.new( :name($result_var), :scope('local') ),'make_sm')
-            ),
+                WANTED(QAST::Var.new( :name($result_var), :scope('local') ),'make_sm')),
             $old_topic_var,
             $result_var,
         );
@@ -8740,16 +8783,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
             WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'m'),
             block_closure($coderef, :regex)
         );
-        if self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
-            # if this match returns a list of matches instead of a single
-            # match, don't assign to $/ (which imposes item context)
-            make $past;
-        } else {
-            make QAST::Op.new( :op('p6store'),
+        # if this match returns a list of matches instead of a single
+        # match, don't assign to $/ (which imposes item context)
+        unless self.handle_and_check_adverbs($/, %MATCH_ALLOWED_ADVERBS, 'm', $past) {
+            $past := QAST::Op.new( :op('p6store'),
                 QAST::Var.new(:name('$/'), :scope('lexical')),
-                $past
-            );
+                $past );
         }
+        $past.annotate('regex_match_code', 1);
+        make $past;
     }
 
     # returns 1 if the adverbs indicate that the return value of the
@@ -8802,7 +8844,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # ask for a unique name for our temp var
         my $original := $*W.cur_lexpad.unique: 'original_value_to_trans';
 
-        make QAST::Stmt.new:
+        make (QAST::Stmt.new:
             QAST::Op.new( # save original $_ into our temp var
                 QAST::Var.new(:name($original), :scope<lexical>, :decl<var>),
                 :op<bind>, QAST::Op.new: :op<decont>,
@@ -8821,7 +8863,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Var.new(
                       :named<before>, :name($original), :scope<lexical>),
                     QAST::Var.new:
-                      :named<after>,  :name<$_>, :scope<lexical>
+                      :named<after>,  :name<$_>, :scope<lexical>).annotate_self('regex_match_code', 1)
     }
 
     method quote:sym<s>($/) {
@@ -8998,7 +9040,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 !! QAST::Var.new( :name($S_result), :scope('local') ),
             ),
         );
-        $past.annotate('is_S', $<sym> eq 'S');
+        $past.annotate_self(
+            'is_S', $<sym> eq 'S'
+        ).annotate(
+            'regex_match_code', 1
+        );
         make WANTED($past, 's///');  # never carp about s/// in sink context
     }
 
@@ -10088,10 +10134,14 @@ class Perl6::Actions is HLL::Actions does STDActions {
             ),
             QAST::Stmts.new(
                 QAST::Op.new(
-                    :op('callmethod'), :name('ACCEPTS'),
-                    $expr,
-                    $operand,
-                ))).annotate_self: 'outer', $*W.cur_lexpad;
+                    :op('callmethod'),
+                    :name('Bool'),
+                    QAST::Op.new(
+                        :op('callmethod'), :name('ACCEPTS'),
+                        $expr,
+                        $operand )))
+        ).annotate_self: 'outer', $*W.cur_lexpad;
+        
         ($*W.cur_lexpad())[0].push($past);
 
         # Give it a signature and create code object.

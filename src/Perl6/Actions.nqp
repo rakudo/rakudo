@@ -2332,17 +2332,27 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Handle the smartmatch, but try to gen some more optimized code first.
         my $match_past;
 
+        my $when_kind;
+        my $Junction := $*W.find_single_symbol('Junction', :setting-only);
+        my $False := $*W.find_single_symbol('False', :setting-only);
+
         # Fast path for types, e.g., `when Int { ... }`
-        if nqp::istype($sm_exp, QAST::WVal) && !nqp::isconcrete($sm_exp.value) {
-            $match_past :=
-                QAST::Op.new( :op('istype'),
-                  WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when'),
-                  $sm_exp );
+        my $sm_type := nqp::null();
+        if nqp::istype($sm_exp, QAST::WVal) && !nqp::isconcrete($sm_type := $sm_exp.value) {
+            $when_kind := 'typematch';
+            $match_past:=
+                QAST::Op.new(
+                    :op('callmethod'),
+                    :name('ACCEPTS'),
+                    $sm_exp,
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ), 'when')
+                );
         }
         # Fast path for things like literals, e.g., `when 5 { ... }`
         elsif nqp::istype($sm_exp, QAST::Want) {
             my $op_type;
             my $method;
+            $when_kind := 'literal';
             if nqp::istype($sm_exp[2], QAST::IVal) {
                 $op_type := '==';
                 $method  := 'Numeric';
@@ -2398,7 +2408,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                   # On failure, just evaluate to False
                   'CATCH',
 
-                  QAST::WVal.new( :value( $*W.find_single_symbol('False') ) ) );
+                  QAST::WVal.new( :value( $False ) ) );
         }
         # The fallback path that does a full smartmatch
         my $fallback_match :=
@@ -2419,11 +2429,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                     QAST::Op.new(
                         :op('istype'),
                         QAST::Var.new( :name('$_'), :scope('lexical') ),
-                        QAST::WVal.new( :value($*W.find_single_symbol('Junction', :setting-only)) )),
+                        QAST::WVal.new( :value($Junction) )),
                     $fallback_match,
-                    $match_past);
+                    $match_past).annotate_self('fallback-if-junction', 1);
         }
         else {
+            $when_kind := 'fallback';
             $match_past := $fallback_match;
         }
 
@@ -2433,6 +2444,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
         $pblock := pblock_immediate($pblock);
         make QAST::Op.new( :op('if'), :node( $/ ),
             $match_past, when_handler_helper($pblock)
+        ).annotate_self(
+            'when_block', $when_kind
+        ).annotate_self(
+            'when_sm_type', $sm_type
         );
     }
 
@@ -10141,7 +10156,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         $expr,
                         $operand )))
         ).annotate_self: 'outer', $*W.cur_lexpad;
-        
+
         ($*W.cur_lexpad())[0].push($past);
 
         # Give it a signature and create code object.

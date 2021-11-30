@@ -1025,6 +1025,103 @@ my class JunctionOptimizer {
     }
 }
 
+my class SmartMatchOptimizer {
+    has $!symbols;
+    has $!debug;
+
+    my $Routine;
+
+    method new($symbols) {
+        my $obj := nqp::create(self);
+        $obj.BUILD($symbols);
+        $obj
+    }
+
+    method BUILD($symbols) {
+        $!symbols := $symbols;
+        $!debug   := nqp::getenvhash<RAKUDO_OPTIMIZER_DEBUG>;
+    }
+
+    # Tries to find out if non-core ACCEPTS is in use.
+    # With :$typematch only type matching candidates are considered.
+    method is_ACCEPTS_default($m, :$typematch = 0) {
+        return 0 unless nqp::index($m.file, 'SETTING::') == 0;
+        my @cand-lists;
+        nqp::push(@cand-lists, nqp::getattr($m, $Routine, '@!dispatchees')) if $m.is_dispatcher;
+        nqp::push(@cand-lists, $m.WRAPPERS) if $m.is-wrapped;
+        for @cand-lists -> @candidates {
+            for @candidates -> $cand {
+                my $invocant_type := $cand.signature.params.AT-POS(0).type;
+                # Skip candidates expecting a definite invocant. They wouldn't affect type matching.
+                next if $typematch
+                        && $invocant_type.HOW.archetypes.definite
+                        && $invocant_type.HOW.definite($invocant_type);
+                return 0 unless self.is_ACCEPTS_default($cand, :$typematch);
+            }
+        }
+        1
+    }
+
+    method optimize_when($op) {
+        my $when_kind := $op.ann('when_block');
+        my $sm_type := $op.ann('when_sm_type');
+        my $match_past := $op[0];
+        unless $Routine {
+            $Routine := $!symbols.find_in_setting("Routine");
+        }
+        if $!debug {
+            note("Optimizing ", $when_kind, ' `when`');
+            note("   matcher: ", $sm_type.HOW.name($sm_type), " is from core? ", $!symbols.is_from_core($sm_type.HOW.name($sm_type)));
+        }
+        if $when_kind eq 'typematch' {
+            # See if we can reduce a call to ACCEPTS into a basic `nqp::istype`. By doing so we must keep in mind that a
+            # user class may have their own ACCEPTS candidate(s) for this purpose. Therefore make sure that no candidate
+            # overrides CORE's methods.
+            my $sm_type_name := $sm_type.HOW.name($sm_type);
+            # All typematchng ACCEPTS in the core are basically `nqp::istype`.
+            my $is_default_ACCEPTS := $!symbols.is_from_core($sm_type_name);
+            unless $is_default_ACCEPTS {
+                my $meth := nqp::tryfindmethod($sm_type, 'ACCEPTS');
+
+                $is_default_ACCEPTS := nqp::defined($meth) && self.is_ACCEPTS_default($meth, :typematch);
+            }
+            if $is_default_ACCEPTS {
+                note(". 'when' can be reduced to nqp::istype") if $!debug;
+                # The condition op node whene the sought match op is located.
+                my $condition_op := $op;
+                my $match_op_idx := 0;
+                if $match_past.ann('fallback-if-junction') {
+                    $condition_op := $op[0];
+                    $match_op_idx := 2;
+                }
+                my $typematch_op := $condition_op[$match_op_idx];
+                unless nqp::istype($typematch_op, QAST::Op)
+                        && (nqp::iseq_s($typematch_op.op, 'callmethod')
+                            || nqp::iseq_s($typematch_op.op, 'p6fatalize'))
+                        && nqp::iseq_s($typematch_op.name, 'ACCEPTS')
+                {
+                    nqp::die("Unexpected " ~ $typematch_op.HOW.name($typematch_op)
+                                ~ " node when optimizing a 'when' statement: "
+                                ~ "expected an 'ACCEPTS' method call"
+                    );
+                }
+                my $callmethod_op := nqp::iseq_s($typematch_op.op, 'p6fatalize')
+                                        ?? $condition_op[$match_op_idx][0]
+                                        !! $condition_op[$match_op_idx];
+                my $sm_exp := $callmethod_op[0];
+                my $topic_exp := $callmethod_op[1];
+                $condition_op[$match_op_idx] :=
+                    QAST::Op.new(
+                        :op('istype'),
+                        $topic_exp,
+                        $sm_exp
+                    );
+            }
+        }
+        $op
+    }
+}
+
 # Drives the optimization process overall.
 class Perl6::Optimizer {
     # Symbols tracking object.
@@ -1035,6 +1132,9 @@ class Perl6::Optimizer {
 
     # Junction optimizer.
     has $!junc_opt;
+
+    # SmartMatch optimizer
+    has $!smartmatch_opt;
 
     # Track problems we encounter.
     has $!problems;
@@ -1069,6 +1169,7 @@ class Perl6::Optimizer {
         $!symbols                 := Symbols.new($past);
         @!block_var_stack         := [];
         $!junc_opt                := JunctionOptimizer.new(self, $!symbols);
+        $!smartmatch_opt          := SmartMatchOptimizer.new($!symbols);
         $!problems                := Problems.new($!symbols);
         $!chain_depth             := 0;
         $!in_declaration          := 0;
@@ -1499,6 +1600,10 @@ class Perl6::Optimizer {
             $optype := 'call' if $!chain_depth == 1 &&
                 !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
+        }
+
+        if $optype eq 'if' && $op.ann('when_block') {
+            $op := $!smartmatch_opt.optimize_when($op);
         }
 
         # We may be able to unfold a junction at compile time.
@@ -2595,6 +2700,7 @@ class Perl6::Optimizer {
         }
     }
 
+
     # Handles visiting a QAST::Op :op('handle').
     method visit_handle($op) {
         my int $orig_void := $!void_context;
@@ -2845,6 +2951,11 @@ class Perl6::Optimizer {
     method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default,
                           :$handle, :$block_structure) {
         note("method visit_children $!void_context\n" ~ $node.dump) if $!debug;
+        if $!debug {
+            if $node.has_ann('when_sm_type') {
+                note("  . to be continued!");
+            }
+        }
         my int $r := $resultchild // -1;
         my int $i := 0;
         my int $n := nqp::elems($node);

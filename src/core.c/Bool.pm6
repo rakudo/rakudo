@@ -24,7 +24,7 @@ BEGIN {
 }
 BEGIN {
     Bool.^add_multi_method('Bool',    my multi method Bool(Bool:U:)    { Bool::False });
-    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: \topic ) { nqp::istype(topic, Bool) });
+    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: \topic ) { nqp::hllbool(nqp::istype(topic, self)) });
     Bool.^add_multi_method('gist',    my multi method gist(Bool:U:)    { '(Bool)' });
     Bool.^add_multi_method('raku', my multi method raku(Bool:U:) { 'Bool' });
 

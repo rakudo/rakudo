@@ -781,10 +781,10 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     submethod BUILD(
-        Int :$!initial_threads = 0,
-        Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 64).Int
-        --> Nil
-    ) {
+      Int() :$!initial_threads = 0,
+      Int() :$!max_threads =
+        %*ENV<RAKUDO_MAX_THREADS> // (Kernel.cpu-cores * 8 max 64)
+    --> Nil) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
             if $!initial_threads > $!max_threads;
 

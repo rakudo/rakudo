@@ -1,4 +1,3 @@
-my class Kernel                 { ... }
 my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }

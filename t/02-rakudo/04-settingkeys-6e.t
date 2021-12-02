@@ -402,6 +402,7 @@ my %allowed = (
     Q{&return-rw},
     Q{&reverse},
     Q{&rindex},
+    Q{&rotor},
     Q{&rmdir},
     Q{&roll},
     Q{&roots},

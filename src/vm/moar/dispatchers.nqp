@@ -702,7 +702,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
         # Report an error if there is no such method.
         unless nqp::isconcrete($meth) {
             my $class := nqp::getlexcaller('$?CLASS');
-            report-method-not-found($obj, $name, $class, $how);
+            report-method-not-found($obj, $name, $class, $how, nqp::iscont($obj));
         }
 
         # Establish a guard on the invocant type and method name (however the name
@@ -719,7 +719,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call', -> $captu
             'raku-meth-call-resolved', $capture_delegate);
     }
 });
-sub report-method-not-found($obj, $name, $class, $how) {
+sub report-method-not-found($obj, $name, $class, $how, $containerized) {
     my $msg := "Method '$name' not found for invocant of class '{$how.name($obj)}'";
     if $name eq 'STORE' {
         Perl6::Metamodel::Configuration.throw_or_die(
@@ -733,7 +733,8 @@ sub report-method-not-found($obj, $name, $class, $how) {
             :method($name),
             :typename($how.name($obj)),
             :private(nqp::hllboolfor(0, 'Raku')),
-            :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku'))
+            :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku')),
+            :containerized(nqp::hllboolfor($containerized, 'Raku'))
         );
     }
 }
@@ -787,7 +788,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-meth-call-mega', -> $
         }
         else {
             my $class := nqp::getlexcaller('$?CLASS');
-            report-method-not-found($obj, $name, $class, $how);
+            report-method-not-found($obj, $name, $class, $how, nqp::iscont($obj));
         }
     }
 });
@@ -2838,13 +2839,9 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-invoke', -> $capture 
 
     # We can't invoke it; complain.
     else {
-        my $typename := nqp::how_nd($code).name($code);
-        Perl6::Metamodel::Configuration.throw_or_die(
-            'X::Method::NotFound',
-            "No such method 'CALL-ME' for invocant of type '$typename'",
-            :invocant($code), :method(nqp::hllizefor('CALL-ME', "Raku")),
-            :typename(nqp::hllizefor($typename, "Raku"))
-        );
+        my $how := nqp::how_nd($code);
+        my $class := nqp::getlexcaller('$?CLASS');
+        report-method-not-found($code, 'CALL-ME', $class, $how, nqp::iscont($code));
     }
 });
 

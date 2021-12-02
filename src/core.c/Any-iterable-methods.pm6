@@ -1183,6 +1183,7 @@ Consider using a block if any of these are necessary for your mapping code."
                      judge($result, params) ?? params !! Empty
                  },
                  self.iterator,
+                 $count,
                  Any
                )
     }

@@ -49,7 +49,7 @@ sub MAIN(
             say 'Inline::Perl5 not installed: not running Perl 5 integration tests';
             say 'You can install Inline::Perl5 into the build directory with';
             say '';
-            say "    zef --install-to=inst#{$*PROGRAM.parent}/../gen/build_rakudo_home/site install Inline::Perl5";
+            say "    zef --install-to=inst#{$*PROGRAM.parent}/../gen/build_rakudo_home/site install Inline::Perl5 --exclude='perl'";
             say '';
         }
 

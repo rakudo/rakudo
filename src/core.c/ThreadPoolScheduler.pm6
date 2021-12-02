@@ -536,6 +536,7 @@ my class ThreadPoolScheduler does Scheduler {
     my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
+            my int $cpu-cores = Kernel.cpu-cores-but-one;
             $!supervisor = Thread.start(:app_lifetime, :name<Supervisor>, {
                 sub add-general-worker(--> Nil) {
                     $!state-lock.protect: {
@@ -579,7 +580,6 @@ my class ThreadPoolScheduler does Scheduler {
                     + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
-                my int $cpu-cores = Kernel.cpu-cores-but-one;
 
                 # These definitions used to live inside the supervisor loop.
                 # Moving them out of the loop does not improve CPU usage

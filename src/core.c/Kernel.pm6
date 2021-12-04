@@ -164,20 +164,13 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }
     multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }
 
-    my int $cpu-cores;
-    proto method cpu-cores(|) {*}
-    multi method cpu-cores(--> Int) { $cpu-cores = nqp::cpucores }
-    multi method cpu-cores(:$cached! --> Int) {
-        $cached && $cpu-cores
-          ?? $cpu-cores
-          !! ($cpu-cores = nqp::cpucores)
-    }
+    method cpu-cores(--> Int) { nqp::cpucores }
 
     my $cpu-cores-but-one := nqp::null;
     method cpu-cores-but-one() is implementation-detail {
         nqp::ifnull(
           $cpu-cores-but-one,
-          $cpu-cores-but-one := max Kernel.cpu-cores(:cached) - 1, 1
+          $cpu-cores-but-one := max nqp::cpucores() - 1, 1
         )
     }
 

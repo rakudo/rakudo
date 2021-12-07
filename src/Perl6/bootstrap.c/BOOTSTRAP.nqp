@@ -1454,10 +1454,16 @@ my class UninitializedAttributeChecker {
                 $desc := nqp::getattr($attr, Scalar, '$!descriptor');
             }
             elsif nqp::istype_nd($attr, Array) {
-                $desc := nqp::getattr($attr, Array, '$!descriptor');
+                my $storage := nqp::getattr($attr, List, '$!reified');
+                unless nqp::isconcrete($storage) && nqp::elems($storage) {
+                    $desc := nqp::getattr($attr, Array, '$!descriptor');
+                }
             }
             elsif nqp::istype_nd($attr, Hash) {
-                $desc := nqp::getattr($attr, Hash, '$!descriptor');
+                my $storage := nqp::getattr($attr, Map, '$!storage');
+                unless nqp::isconcrete($storage) && nqp::elems($storage) {
+                    $desc := nqp::getattr($attr, Hash, '$!descriptor');
+                }
             }
             else {
                 try {

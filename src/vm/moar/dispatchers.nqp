@@ -592,12 +592,21 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
 # Object construction time checking of if a container is initialized. Done as
 # a dispatcher primarily to intern .^mixin_type, but also for more compact
 # bytecode size in generated BUILDALL.
+my $array-init-check := -> $arr {
+    my $storage := nqp::getattr($arr, List, '$!reified');
+    nqp::isconcrete($storage) && nqp::elems($storage)
+}
+my $hash-init-check := -> $hash {
+    my $storage := nqp::getattr($hash, Map, '$!storage');
+    nqp::isconcrete($storage) && nqp::elems($storage)
+}
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-is-attr-inited', -> $capture {
     # If there's a non-concrete object observed, then we bound a non-container
     # in place, so trivially initialized.
     my $attr := nqp::captureposarg($capture, 0);
     my $track-attr := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
     my int $inited := 0;
+    my $need-elem-check;
     if !nqp::isconcrete_nd($attr) {
         nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-attr);
         $inited := 1;
@@ -605,11 +614,14 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-is-attr-inited', -> $
 
     # Otherwise, might be a container that was assigned.
     else {
-        # Just try and read a descriptor.
+        # Just try and read a descriptor. Also see if we have an array or
+        # hash, which needs an additional element check to handle an
+        # assignment to an individual element during BUILD.
+        my $base;
         my $desc;
         my $track-desc;
         try {
-            my $base := nqp::how_nd($attr).mixin_base($attr);
+            $base := nqp::how_nd($attr).mixin_base($attr);
             $desc := nqp::getattr($attr, $base, '$!descriptor');
             $track-desc := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
                 $track-attr, $base, '$!descriptor');
@@ -620,10 +632,17 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-is-attr-inited', -> $
         # established type/concreteness guards on the attribute, so don't
         # repeat them.
         if $track-desc {
-            # Guard on the descriptor type, then outcome is if it's an
-            # uninitialized attribute descriptor.
+            # Guard on the descriptor type, then outcome depends on if if
+            # it's an uninitialized attribute descriptor. If it is, then
+            # for arrays and hashes we also need an extra check.
             nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-desc);
             $inited := !nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute);
+            if nqp::istype($base, Array) {
+                $need-elem-check := $array-init-check;
+            }
+            elsif nqp::istype($base, Hash) {
+                $need-elem-check := $hash-init-check;
+            }
         }
 
         # Otherwise, bound concrete value. Guard on type and concreteness,
@@ -636,9 +655,19 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-is-attr-inited', -> $
     }
 
     # Evaluate to result.
-    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
-        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-int',
-            $capture, 0, $inited));
+    if nqp::isconcrete($need-elem-check) && !$inited {
+        # The descriptor suggests it's not initialized by assignment to
+        # the entire array/hash, but individual elements may have been.
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $capture, 0, $need-elem-check));
+    }
+    else {
+        # It's certainly initialized per the descriptor, so we're done.
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-int',
+                $capture, 0, $inited));
+    }
 });
 
 # Sink dispatcher. Called in void context with the decontainerized value to sink.

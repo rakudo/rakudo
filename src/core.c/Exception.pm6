@@ -157,8 +157,9 @@ my class X::Method::NotFound is Exception {
     has @!tips;
     has $!message;
 
-    # This attribute is an implementation detail. Not to be documented.
+    # These attributes are an implementation detail. Not to be documented.
     has $.in-class-call;
+    has $.containerized;
 
     method of-type() {
         nqp::eqaddr(nqp::decont($!invocant),IterationEnd)
@@ -180,6 +181,8 @@ my class X::Method::NotFound is Exception {
         my @message = $.private
           ?? "No such private method '!$.method' for invocant $.of-type"
           !! "No such method '$.method' for invocant $.of-type";
+
+        @!tips.push: "You actually called '$.method' on a container, was that what you intended?" if $.containerized;
 
         @message.push: $.addendum if $.addendum;
 
@@ -215,19 +218,13 @@ my class X::Method::NotFound is Exception {
 
         my $public_suggested = 0;
         sub find_public_suggestion($before, $after --> Nil) {
-            if $before.fc eq $after.fc {
+            my $dist := StrDistance.new(
+              before => $before.fc,
+              after  => $after.fc
+            );
+            if $dist <= $max_length {
                 $public_suggested = 1;
-                %suggestions{$after} = 0;  # assume identity
-            }
-            else {
-                my $dist := StrDistance.new(
-                  before => $before.fc,
-                  after  => $after.fc
-                );
-                if $dist <= $max_length {
-                    $public_suggested = 1;
-                    %suggestions{$after} = $dist.Int;
-                }
+                %suggestions{$after} = $dist.Int;
             }
         }
 
@@ -236,6 +233,7 @@ my class X::Method::NotFound is Exception {
             my $invocant_methods :=
               Set.new: $!invocant.^methods(:local).map: { code-name($_) };
 
+            my $found-types := SetHash.new;
             for $!invocant.^methods(:all) -> $method_candidate {
                 my $method_name := code-name($method_candidate);
                 # GH#1758 do not suggest a submethod from a parent
@@ -243,7 +241,15 @@ my class X::Method::NotFound is Exception {
                   if $method_candidate.^name eq 'Submethod'  # a submethod
                   && !$invocant_methods{$method_name};       # unknown method
 
-                find_public_suggestion($.method, $method_name);
+                if $.method eq $method_name {
+                    $found-types.set($method_candidate.package.^name());
+                }
+                else {
+                    find_public_suggestion($.method, $method_name) if nqp::can(::($.typename), $method_name);
+                }
+            }
+            if $found-types.keys -> @types {
+                @!tips.push: "Found '$.method' on type{@types.elems > 1 ?? "s: " !! ""} '@types.join(q|', '|)'";
             }
 
             # handle special unintrospectable cases
@@ -289,7 +295,7 @@ my class X::Method::NotFound is Exception {
         }
 
         if !$indirect-method
-           &&($private_suggested ^^ $public_suggested)
+           && ($private_suggested ^^ $public_suggested)
            && ($private_suggested ^^ $.private)
         {
             @!tips.push: "Perhaps a " ~ ($private_suggested ?? "private" !! "public") ~ " method call must be used."
@@ -3070,8 +3076,8 @@ nqp::bindcurhllsym('P6EX', nqp::hash(
       X::ControlFlow::Return.new(:$out-of-dynamic-scope).throw;
   },
   'X::Method::NotFound',
-  -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False, :$in-class-call is raw = False {
-      X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private, :$in-class-call).throw
+  -> Mu $invocant is raw, $method is raw, $typename is raw, $private is raw = False, :$in-class-call is raw = False, :$containerized is raw = False {
+      X::Method::NotFound.new(:$invocant, :$method, :$typename, :$private, :$in-class-call, :$containerized).throw
   },
   'X::Method::InvalidQualifier',
   -> $method, Mu $invocant, Mu $qualifier-type {

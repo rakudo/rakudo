@@ -1025,6 +1025,7 @@ my class Mu { # declared in BOOTSTRAP
               typename => type.^name,
               :private,
               :in-class-call(nqp::eqaddr(nqp::what(SELF), nqp::getlexcaller('$?CLASS'))),
+              :containerized(nqp::iscont(SELF)),
             ).throw;
     }
 
@@ -1056,6 +1057,7 @@ my class Mu { # declared in BOOTSTRAP
               invocant => SELF,
               method   => name,
               typename => SELF.^name,
+              :containerized(nqp::iscont(SELF)),
             ).throw;
         }
         $results.List

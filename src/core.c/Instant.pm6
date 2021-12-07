@@ -3,7 +3,7 @@ my class DateTime { ... }
 my class Duration {... }
 
 my class Instant is Cool does Real {
-    has Real $.tai is default(0);
+    has Int $.tai is default(0);
       # A linear count of nanoseconds since 1970-01-01T00:00:00Z, plus
       # Rakudo::Internals.initial-offset. Thus, $.tai matches TAI from 1970
       # to the present.
@@ -19,7 +19,7 @@ my class Instant is Cool does Real {
     }
 
     method to-nanos(--> Int:D) {
-        $!tai.Int
+        $!tai
     }
 
     proto method from-posix(|) {*}
@@ -50,10 +50,10 @@ my class Instant is Cool does Real {
         'Instant.from-posix(' ~ $posix.raku ~ ($flag ?? ',True)' !! ')')
     }
     method Bridge(Instant:   --> Num:D) { self.defined ?? self.tai.Bridge !! self.Real::Bridge }
-    method Num   (Instant:D: --> Num:D) { self.tai.Num    }
-    method Rat   (Instant:D: --> Rat:D) { self.tai        }
-    method Int   (Instant:D: --> Int:D) { self.tai.Int    }
-    method narrow(Instant:D:          ) { self.tai.narrow }
+    method Num   (Instant:D: --> Num:D) { nqp::div_n(self.to-nanos.Num, 1000000000e0)          }
+    method Rat   (Instant:D: --> Rat:D) { self.tai                                             }
+    method Int   (Instant:D: --> Int:D) { self.to-nanos div 1000000000                         }
+    method narrow(Instant:D:          ) { self.tai.narrow                                      }
 
     method Date(Instant:D:     --> Date:D)     { Date.new(self)     }
     method DateTime(Instant:D: --> DateTime:D) { DateTime.new(self) }

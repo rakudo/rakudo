@@ -2329,126 +2329,22 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $pblock := $xblock.shift;
         check_smartmatch($<xblock>,$sm_exp);
 
-        # Handle the smartmatch, but try to gen some more optimized code first.
-        my $match_past;
-
-        my $when_kind;
-        my $Junction := $*W.find_single_symbol('Junction', :setting-only);
-        my $False := $*W.find_single_symbol('False', :setting-only);
-
-        # Fast path for types, e.g., `when Int { ... }`
-        my $sm_type := nqp::null();
-        if nqp::istype($sm_exp, QAST::WVal) && !nqp::isconcrete($sm_type := $sm_exp.value) {
-            $when_kind := 'typematch';
-            $match_past:=
-                QAST::Op.new(
-                    :op('callmethod'),
-                    :name('ACCEPTS'),
-                    $sm_exp,
-                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ), 'when')
-                );
-        }
-        # Fast path for things like literals, e.g., `when 5 { ... }`
-        elsif nqp::istype($sm_exp, QAST::Want) {
-            my $op_type;
-            my $method;
-            $when_kind := 'literal';
-            if nqp::istype($sm_exp[2], QAST::IVal) {
-                $op_type := '==';
-                $method  := 'Numeric';
-            }
-            elsif nqp::istype($sm_exp[2], QAST::SVal) {
-                $op_type := 'eq';
-                $method  := 'Stringy';
-            }
-            elsif nqp::istype($sm_exp[2], QAST::NVal) {
-                $op_type := '==';
-                $method  := 'Numeric';
-            }
-            else {
-                die("Unknown QAST::Want type " ~ $sm_exp[2].HOW.name($sm_exp[2]));
-            }
-
-            # Coercion method to call on the given value
-            my $method_call :=
-                QAST::Op.new( :op('callmethod'), :name($method),
-                  QAST::Var.new( :name('$_'), :scope('lexical') ) );
-
-            # We don't need/want `val()` to `fail()` if `Numeric()` ends up calling it
-            # and it doesn't succeed, that creates an expensive Backtrace that we just
-            # end up throwing away
-            if $method eq 'Numeric' {
-                my $fail-or-nil := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
-                $fail-or-nil.named('fail-or-nil');
-                $method_call.push($fail-or-nil);
-            }
-
-            # Make sure we're not comparing against a type object, since those could
-            # coerce to the value, so gen the equivalent of
-            # `isconcrete($_) && <literal> ==|eq $_."$method"`
-            my $is_eq :=
-                QAST::Op.new( :op('if'),
-                  QAST::Op.new( :op('isconcrete' ),
-                    QAST::Var.new( :name('$_'), :scope('lexical') ) ),
-                  QAST::Op.new( :op('call'), :name("&infix:<$op_type>"),
-                    $sm_exp[2],
-                    WANTED($method_call,'when') ) );
-
-            # Needed so we can `handle` the code below
-            fatalize($is_eq);
-
-            # This is the equivalent of sticking a `try` before the genned `iseq_*`, which is
-            # needed because otherwise it'll die with an error when the `$_` is a different type.
-            $match_past :=
-                QAST::Op.new( :op('handle'),
-
-                  # Success path evaluates to the block.
-                  $is_eq,
-
-                  # On failure, just evaluate to False
-                  'CATCH',
-
-                  QAST::WVal.new( :value( $False ) ) );
-        }
-        # The fallback path that does a full smartmatch
-        my $fallback_match :=
+        # Use the smartmatch result as the condition for running the block,
+        # and ensure continue/succeed handlers are in place and that a
+        # succeed happens after the block.
+        $pblock := pblock_immediate($pblock);
+        make QAST::Op.new(
+            :op('if'),
+            :node( $/ ),
             QAST::Op.new(
                 :op('callmethod'),
                 :name('Bool'),
                 QAST::Op.new(
                     :op('callmethod'), :name('ACCEPTS'),
                     $sm_exp,
-                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when')));
-
-        # If there is an optimized version of when-block then use it unless the topic is a Junction; otherwise  use
-        # unoptimized fallback.
-        if nqp::isconcrete($match_past) {
-            $match_past :=
-                QAST::Op.new(
-                    :op('if'),
-                    QAST::Op.new(
-                        :op('istype'),
-                        QAST::Var.new( :name('$_'), :scope('lexical') ),
-                        QAST::WVal.new( :value($Junction) )),
-                    $fallback_match,
-                    $match_past).annotate_self('fallback-if-junction', 1);
-        }
-        else {
-            $when_kind := 'fallback';
-            $match_past := $fallback_match;
-        }
-
-        # Use the smartmatch result as the condition for running the block,
-        # and ensure continue/succeed handlers are in place and that a
-        # succeed happens after the block.
-        $pblock := pblock_immediate($pblock);
-        make QAST::Op.new( :op('if'), :node( $/ ),
-            $match_past, when_handler_helper($pblock)
-        ).annotate_self(
-            'when_block', $when_kind
-        ).annotate_self(
-            'when_sm_type', $sm_type
-        );
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'when'))),
+            when_handler_helper($pblock)
+        ).annotate_self('when_block', 1);
     }
 
     method statement_control:sym<default>($/) {
@@ -7493,6 +7389,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             QAST::Var.new( :name($rhs_local), :scope('local'), :decl('var') ),
                             $rhs ),
                         WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm'));
+        $sm_call.annotate('smartmatch_accepts', 1);
 
         if $negated {
             $sm_call := QAST::Op.new( :op('call'), :name('&prefix:<!>'), $sm_call );
@@ -7549,7 +7446,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 WANTED(QAST::Var.new( :name($result_var), :scope('local') ),'make_sm')),
             $old_topic_var,
             $result_var,
-        );
+        ).annotate_self('smartmatch', 1);
     }
 
     sub bind_op($/, $target, $source, $sigish) {

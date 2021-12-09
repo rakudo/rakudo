@@ -18,7 +18,7 @@ Note that we are trying very hard to ensure there are no backward
 compatibility issues post version 6.c. As such, we may end up delaying
 some releases to ensure any compatibility issues are resolved.
 
-  2021-12-04   Rakudo #152 (Be the next release manager!)
+  2021-12-17   Rakudo #152 (jdv + Releasable)
 
 (More planned dates can be generated with F<tools/release-dates.p6>).
 

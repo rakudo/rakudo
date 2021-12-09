@@ -35,6 +35,11 @@ my class Thread {
       Str()  :$!name         = "<anon>"
       --> Nil
     ) {
+
+        # Make sure we have at least called nqp::cpucores once before
+        # we start any thread.  This to avoid issues on MacOS Monterey
+        Kernel.cpu-cores-but-one;
+
         constant THREAD_ERROR = 'Could not create a new Thread: ';
         my $entry := anon sub THREAD-ENTRY() {
             my $*THREAD = self;

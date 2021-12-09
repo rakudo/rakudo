@@ -535,8 +535,8 @@ my class ThreadPoolScheduler does Scheduler {
     my constant NUM_SAMPLES_NUM       = 5e0;
     my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {
-        my int $cpu-cores = max(nqp::cpucores() - 1,1);
         unless $!supervisor.DEFINITE {
+            my int $cpu-cores = Kernel.cpu-cores-but-one;
             $!supervisor = Thread.start(:app_lifetime, :name<Supervisor>, {
                 sub add-general-worker(--> Nil) {
                     $!state-lock.protect: {

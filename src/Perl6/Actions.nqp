@@ -2829,14 +2829,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
     }
 
-    sub make_pair($/,$key_str, $value) {
+    sub make_pair($/, $key_str, $value, :$no-sink = 1) {
         my $key := $*W.add_string_constant($key_str);
+        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
         my $pair := QAST::Op.new(
-            :op('callmethod'), :name('new'), :returns($*W.find_single_symbol('Pair')), :node($/),
-            WANTED(QAST::Var.new( :name('Pair'), :scope('lexical'), :node($/) ),'make_pair'),
+            :op('callmethod'), :name('new'), :returns($Pair), :node($/),
+            QAST::WVal.new( :value($Pair), :node($/) ),
             $key, WANTED($value, 'make_pair')
         );
-        $pair.nosink(1);
+        $pair.nosink(1) if $no-sink;
         $pair;
     }
 
@@ -5010,7 +5011,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         }
 
         # Get list of either values or pairs; fail if we can't.
-        my $Pair := $*W.find_single_symbol('Pair');
+        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
         my @values;
         my $term_ast := $<term>.ast;
 
@@ -6624,23 +6625,25 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     sub migrate_colonpairs($/, @qast) {
-        my $Pair := $*W.find_single_symbol('Pair');
+        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
         my $ridx1 := 0;
         my $sidx1 := 1;
         while $ridx1 < +@qast {
             my $ridx2 := 3;
             my $q := @qast[$ridx1];
-            if nqp::istype($q, QAST::Op) && $q.op eq 'callmethod' && $q.name eq 'new' && nqp::istype($q[0], QAST::Var) && $q[0].name eq 'Pair' {
+            if nqp::istype($q, QAST::Op)
+                && $q.op eq 'callmethod'
+                && $q.name eq 'new'
+                && nqp::istype($q[0], QAST::WVal)
+                && nqp::istype($q[0].value, $Pair)
+            {
                 while $ridx2 < +@(@qast[$ridx1]) {
                     my $clone := @(@qast[$ridx1])[$ridx2].shallow_clone;
                     nqp::splice(
                         @qast,
-                        nqp::list(wanted(QAST::Op.new(
-                            :op('callmethod'), :name('new'), :returns($Pair), :node($clone.node // $/),
-                            QAST::Var.new( :name('Pair'), :scope('lexical'), :node($clone.node // $/)),
-                            $*W.add_string_constant($clone.named),
-                            $clone
-                        ), 'circumfix()/pair')),
+                        nqp::list(
+                            wanted(make_pair($clone.node // $_, $clone.named, $clone, :!no-sink), 'circumfix()/pair')
+                        ),
                         $sidx1,
                         0);
                     $clone.named(NQPMu);
@@ -6665,7 +6668,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     method arglist($/) {
-        my $Pair := $*W.find_single_symbol('Pair');
+        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
         my $past := QAST::Op.new( :op('call'), :node($/) );
         my @names;
         if $<EXPR> {
@@ -6861,7 +6864,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # If it is completely empty or consists of a single list, the first
         # element of which is either a hash or a pair, it's a hash constructor.
         # Note that if it declares any symbols it is also not one.
-        my $Pair := $*W.find_single_symbol('Pair');
+        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
         my int $is_hash   := 0;
         my int $has_stuff := 1;
         my $stmts := nqp::elems($<pblock><blockoid><statementlist><statement>);
@@ -8731,15 +8734,15 @@ class Perl6::Actions is HLL::Actions does STDActions {
     method quote:sym<tr>($/) {
         # Prep our .trans() call QAST
         # $_.trans( Pair.new: left tribble, right tribble )
+        my $Pair := $*W.find_single_symbol('Pair', :setting-only);
         my $trans := QAST::Op.new: :node($/),
             WANTED(QAST::Var.new(:name<$_>, :scope<lexical>), 'tr/call'),
             :op<callmethod>, :name<trans>,
-                QAST::Op.new: :node($/),
-                    :returns($*W.find_symbol: ['Pair']),
-                    QAST::Var.new(:name<Pair>, :scope<lexical>),
-                    :op<callmethod>, :name<new>,
-                        $<tribble><left>.ast,  # key
-                        $<tribble><right>.ast; # value
+                QAST::Op.new:
+                    :op<callmethod>, :name<new>, :returns($Pair), :node($/),
+                    QAST::WVal.new( :value($Pair) ),
+                    $<tribble><left>.ast,  # key
+                    $<tribble><right>.ast; # value
 
         self.handle_and_check_adverbs:
             $/, %TRANS_ALLOWED_ADVERBS, 'transliteration', $trans

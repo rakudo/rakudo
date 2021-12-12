@@ -7390,6 +7390,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $rhs ),
                         WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm'));
         $sm_call.annotate('smartmatch_accepts', 1);
+        $sm_call.annotate('smartmatch_negated', $negated);
 
         if $negated {
             $sm_call := QAST::Op.new( :op('call'), :name('&prefix:<!>'), $sm_call );
@@ -7419,10 +7420,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             :op('callmethod'),
                             :name('Bool'),
                             $rvar ))));
+            $sm_call.annotate('smartmatch_boolified', 1);
         }
 
         QAST::Op.new(
             :op('locallifetime'),
+            :node($/),
             QAST::Stmt.new(
                 # Stash original $_.
                 QAST::Op.new( :op('bind'),

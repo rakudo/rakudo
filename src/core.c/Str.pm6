@@ -2098,20 +2098,21 @@ my class Str does Stringy { # declared in BOOTSTRAP
     # Helper path for parsing rats
     method !parse-rat(int $radix, Int:D $whole, int $offset --> Numeric:D) {
         my $fract := nqp::radix_I($radix,self,$offset,0,Int);
+        my $base  := nqp::pow_I(nqp::box_i($radix,Int),nqp::atpos($fract,1),Num,Int);
         nqp::atpos($fract,2) == nqp::chars(self)   # fraction parsed entirely?
           ?? DIVIDE_NUMBERS(
                nqp::islt_I($whole,0)
                  ?? nqp::sub_I(
-                      nqp::mul_I($whole,nqp::atpos($fract,1),Int),
+                      nqp::mul_I($whole,$base,Int),
                       nqp::atpos($fract,0),
                       Int
                     )
                  !! nqp::add_I(
-                      nqp::mul_I($whole,nqp::atpos($fract,1),Int),
+                      nqp::mul_I($whole,$base,Int),
                       nqp::atpos($fract,0),
                       Int
                     ),
-               nqp::atpos($fract,1),
+               $base,
                Rat,
                Rat
              )

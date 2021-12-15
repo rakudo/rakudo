@@ -54,7 +54,8 @@ my class Pair does Associative {
         $!value.ACCEPTS(%h.AT-KEY($!key));
     }
     multi method ACCEPTS(Pair:D: Pair:D $p) {
-        $!value.ACCEPTS(nqp::getattr($p,Pair,'$!value'));
+        $!key.ACCEPTS(nqp::getattr($p,Pair,'$!key'))
+          && $!value.ACCEPTS(nqp::getattr($p,Pair,'$!value'))
     }
     multi method ACCEPTS(Pair:D: Mu $other) {
         nqp::can($other,(my $method := $!key.Str))

@@ -35,6 +35,7 @@ if $*DISTRO.is-win {
     skip 'code too complex for Win32';
 }
 else {
+    todo 'Attach a profiler (e.g. JVisualVM) and press enter', 1 if $*VM.name eq 'jvm';
     is-run :compiler-args[
         '--profile', '--profile-filename=' ~ make-temp-path.absolute
     ], ｢
@@ -131,11 +132,13 @@ subtest 'postfix-to-prefix-inc-dec opt does not rewrite custom ops' => {
     multi sub foo($y where /{@res.push: $y}./) {}
     foo 'a';
     foo 'b';
+    todo 'JVM backend still does trial bind, giving [<a a b b>]', 1 if $*VM.name eq 'jvm';
     is-deeply @res, [<a b>],
         'regex blocks update their lexical variables right';
 }
 
 group-of 2 => 'collation experiment' => {
+    todo 'Dynamic variable $*COLLATION not found', 2 if $*VM.name eq 'jvm';
     is-run ｢$*COLLATION.set: :primary; print 'pass'｣,
         :out<pass>, '$*COLLATION.set no longer requires experimental pragma';
     is-run ｢

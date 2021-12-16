@@ -7,6 +7,10 @@ use Test;
 
 plan 2;
 
+BEGIN if $*VM.name eq 'jvm' {
+    plan :skip-all<NullPointerException in sub ReturnAStruct>;
+};
+
 compile_test_lib('22-method');
 
 class MyStruct is repr('CStruct') {

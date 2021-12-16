@@ -24,6 +24,7 @@ plan 42;
 my $T = T;
 isa-ok $T, Telemetry, 'did we get a Telemetry object from T';
 for <wallclock cpu max-rss> {
+    todo 'JVM gives zero for max-rss', 2 if $*VM.name eq 'jvm' and $_ eq 'max-rss';
     ok $T{$_}, "did we get a non-zero value for $_ using AT-KEY";
     ok $T."$_"(), "did we get a non-zero value for $_ with a method";
 }

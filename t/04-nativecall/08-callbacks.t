@@ -62,6 +62,7 @@ sub return_struct() returns Struct {
 
 TakeACallback(&simple_callback);
 OptionallyTakeACallback(&simple_callback);
+todo 'does not work yet on JVM', 1 if $*VM.name eq 'jvm';
 lives-ok { OptionallyTakeACallback(Code) }, "optional callback with Code type object";
 lives-ok { OptionallyTakeACallback(Pointer) }, "optional callback with Pointer type object";
 TakeIntCallback(&int_callback);

@@ -5,6 +5,7 @@ plan 4;
 
 my $p = run($*EXECUTABLE, '--target=optimize',
     '-e', 'my int $i = 1; for ^10 { $i = $i * 2 }', :out);
+todo 'no mul_i in output of --target=optimize', 1 if $*VM.name eq 'jvm';
 like $p.out.slurp(:close), /mul_i/,
     '$i * 2 inlines to mul_i when $i is declared as int';
 

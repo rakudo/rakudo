@@ -175,7 +175,6 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
 
 # https://github.com/Raku/old-issue-tracker/issues/6275
 {
-    todo 'no sub name mentioned yet (would require port of 7783fcab24)', 1 if $*VM.name eq 'jvm';
     throws-like { sub foo([$head, $tail]) {}; foo([3, 4], [3]) },
         Exception,
         message => /<<'foo'>>/,

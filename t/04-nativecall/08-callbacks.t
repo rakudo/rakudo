@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan(11);
+plan(13);
 
 compile_test_lib('08-callbacks');
 
@@ -28,6 +28,7 @@ sub TakeStructCallback(&cb (Struct)) is native('./08-callbacks') { * }
 sub CheckReturnsFloat(&cb (--> num64))   returns int32 is native('./08-callbacks') { * }
 sub CheckReturnsStr(&cb (--> Str))       returns int32 is native('./08-callbacks') { * }
 sub CheckReturnsStruct(&cb (--> Struct)) returns int32 is native('./08-callbacks') { * }
+sub CheckChangingCallback(&cb (--> int)) returns int32 is native('./08-callbacks') { * }
 
 sub simple_callback() {
     pass 'simple callback';
@@ -71,5 +72,9 @@ TakeStructCallback(&struct_callback);
 is CheckReturnsFloat(&return_float),   6, 'callback returned a float to C';
 is CheckReturnsStr(&return_str),       7, 'callback returned a string to C';
 is CheckReturnsStruct(&return_struct), 8, 'callback returned a struct to C';
+
+for -> { 0 }, -> { 1 } -> \callback {
+    is CheckChangingCallback(callback), 0 ;
+}
 
 # vim: expandtab shiftwidth=4

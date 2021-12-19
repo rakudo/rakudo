@@ -28,7 +28,7 @@ my sub raku-nativecall-deproxy-resume(Mu $capture is raw) {
         my $capture-delegate := nqp::dispatch('boot-syscall',
             'dispatcher-insert-arg-literal-obj',
             nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0), 0, $callee);
-        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-nativecall', $capture-delegate);
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-nativecall-core', $capture-delegate);
     }
 }
 
@@ -46,8 +46,6 @@ my sub raku-nativecall(Mu $capture is raw) {
     $callee.setup;
 
     my Mu $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
-    my $signature := nqp::getattr($callee, Code, '$!signature');
-    my int $readonly = nqp::getattr_i($signature, Signature, '$!readonly');
     my int $pos-args = nqp::captureposelems($args);
     my int $i = 0;
 
@@ -90,7 +88,18 @@ my sub raku-nativecall(Mu $capture is raw) {
         return;
     }
 
-    $i = 0;
+    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'raku-nativecall-core', $capture);
+}
+$do := nqp::getattr(&raku-nativecall, Code, '$!do');
+nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-nativecall', $do);
+
+my sub raku-nativecall-core(Mu $capture is raw) {
+    my $callee := nqp::captureposarg($capture, 0);
+
+    my Mu $args := nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0);
+    my int $pos-args = nqp::captureposelems($args);
+    my int $i = 0;
     while $i < $pos-args {
         # If it should be passed read only, and it's an object...
         if nqp::captureposprimspec($args, $i) == 0 {
@@ -195,6 +204,6 @@ my sub raku-nativecall(Mu $capture is raw) {
     nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-foreign-code', $delegate_capture);
 };
 
-$do := nqp::getattr(&raku-nativecall, Code, '$!do');
+$do := nqp::getattr(&raku-nativecall-core, Code, '$!do');
 nqp::forceouterctx($do, nqp::getattr(MY::, PseudoStash, '$!ctx'));
-nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-nativecall', $do);
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-nativecall-core', $do);

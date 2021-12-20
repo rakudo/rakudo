@@ -464,7 +464,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     # An equivalent of self.candidates($spec).head that caches the best match
     method !matching-dist(CompUnit::DependencySpecification $spec) {
-        return $_ with %!seen{~$spec};
+        $!lock.protect: {
+            return $_ with %!seen{~$spec};
+        }
 
         with self.candidates($spec).head {
             $!lock.protect: { return %!seen{~$spec} //= $_ }
@@ -570,7 +572,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 unless $source-file-name;
             my $loader = $.prefix.add('sources').add($source-file-name);
             my $id     = $loader.basename;
-            return $_ with %!loaded{$id};
+            $!lock.protect: {
+                return $_ with %!loaded{$id};
+            }
 
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($_, :repo(self), :dist-id(.dist-id));
             my $*RESOURCES  = Distribution::Resources.new(:repo(self), :dist-id(.dist-id));
@@ -625,7 +629,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method short-id() { 'inst' }
 
     method loaded(--> Iterable:D) {
-        return %!loaded.values;
+        $!lock.protect: {
+            return %!loaded.values;
+        }
     }
 
     method distribution(Str $id --> Distribution) {

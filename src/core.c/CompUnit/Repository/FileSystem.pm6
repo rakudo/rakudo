@@ -2,6 +2,7 @@ class CompUnit::Repository::FileSystem
   does CompUnit::Repository::Locally
   does CompUnit::Repository
 {
+    has $!lock = Lock.new;
     has %!loaded; # cache compunit lookup for self.need(...)
     has %!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
@@ -14,10 +15,14 @@ class CompUnit::Repository::FileSystem
     my constant @extensions = <.rakumod .pm6 .pm>;
 
     method !matching-dist(CompUnit::DependencySpecification $spec) {
-        return $_ with %!seen{~$spec};
+        $!lock.protect: {
+            return $_ with %!seen{~$spec};
+        }
 
         with self.candidates($spec).head {
-            return %!seen{~$spec} //= $_;
+            $!lock.protect: {
+                return %!seen{~$spec} //= $_;
+            }
         }
 
         Nil
@@ -71,7 +76,9 @@ class CompUnit::Repository::FileSystem
 
         --> CompUnit:D)
     {
-        return $_ with %!loaded{~$spec};
+        $!lock.protect: {
+            return $_ with %!loaded{~$spec};
+        }
 
         with self!matching-dist($spec) {
             my $name = $spec.short-name;
@@ -88,14 +95,16 @@ class CompUnit::Repository::FileSystem
                 :@precomp-stores,
             );
 
-            return %!loaded{~$spec} = CompUnit.new(
-                :short-name($name),
-                :handle($precomp-handle // CompUnit::Loader.load-source($source-handle.open(:bin).slurp(:close))),
-                :repo(self),
-                :repo-id($id.Str),
-                :precompiled($precomp-handle.defined),
-                :distribution($_),
-            );
+            $!lock.protect: {
+                return %!loaded{~$spec} = CompUnit.new(
+                    :short-name($name),
+                    :handle($precomp-handle // CompUnit::Loader.load-source($source-handle.open(:bin).slurp(:close))),
+                    :repo(self),
+                    :repo-id($id.Str),
+                    :precompiled($precomp-handle.defined),
+                    :distribution($_),
+                );
+            }
         }
 
         return self.next-repo.need($spec, $precomp, :@precomp-stores) if self.next-repo;
@@ -110,18 +119,20 @@ class CompUnit::Repository::FileSystem
             my $path = $!prefix.add($file);
 
             if $path.f {
-                return %!loaded{$file.Str} //= CompUnit.new(
-                    :handle(
-                        $precompiled
-                            ?? CompUnit::Loader.load-precompilation-file($path)
-                            !! CompUnit::Loader.load-source-file($path)
-                    ),
-                    :short-name($file.Str),
-                    :repo(self),
-                    :repo-id($file.Str),
-                    :$precompiled,
-                    :distribution(self!distribution),
-                );
+                $!lock.protect: {
+                    return %!loaded{$file.Str} //= CompUnit.new(
+                        :handle(
+                            $precompiled
+                                ?? CompUnit::Loader.load-precompilation-file($path)
+                                !! CompUnit::Loader.load-source-file($path)
+                        ),
+                        :short-name($file.Str),
+                        :repo(self),
+                        :repo-id($file.Str),
+                        :$precompiled,
+                        :distribution(self!distribution),
+                    );
+                }
             }
         }
 
@@ -132,7 +143,9 @@ class CompUnit::Repository::FileSystem
     method short-id() { 'file' }
 
     method loaded(--> Iterable:D) {
-        return %!loaded.values;
+        $!lock.protect: {
+            return %!loaded.values;
+        }
     }
 
     # This allows -Ilib to find resources/ ( and by extension bin/ ) for %?RESOURCES.

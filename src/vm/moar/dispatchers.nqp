@@ -1496,6 +1496,7 @@ class ProxyReaderFactory {
     }
 }
 my $PROXY-READERS := ProxyReaderFactory.new;
+nqp::bindhllsym('Raku', 'PROXY-READERS', $PROXY-READERS);
 
 # The core of multi dispatch. Once we are here, either there was a simple
 # proto that we don't need to inovke, or we already did invoke the proto.

@@ -1188,7 +1188,8 @@ my class Operand {
 
     method value-type() {
         self.value-analyze;
-        nqp::what($!value)
+        # We need this ternary for JVM where otherwise it may throw on VMNull in $!value
+        nqp::isnull($!value) ?? nqp::null() !! nqp::what($!value)
     }
 
     method value-kind() {

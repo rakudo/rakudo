@@ -36,6 +36,7 @@ my class Symbols {
     has $!Routine;
     has $!Method;
     has $!Signature;
+    has $!Pair;
     has $!Regex;
     has $!Nil;
     has $!Failure;
@@ -73,6 +74,7 @@ my class Symbols {
         $!Routine     := self.find_in_setting('Routine');
         $!Method      := self.find_in_setting('Method');
         $!Signature   := self.find_in_setting('Signature');
+        $!Pair        := self.find_in_setting('Pair');
         $!Regex       := self.find_in_setting('Regex');
         $!Nil         := self.find_in_setting('Nil');
         $!Failure     := self.find_in_setting('Failure');
@@ -123,6 +125,7 @@ my class Symbols {
     method Regex()       { $!Regex }
     method PseudoStash() { $!PseudoStash }
     method Code()        { $!Code }
+    method Pair()        { $!Pair }
     method Routine()     { $!Routine }
     method Method()      { $!Method }
     method Signature()   { $!Signature }
@@ -1062,13 +1065,16 @@ my class Operand {
     has $!symbols;
     has $!debug;
     has $!name;
+    has $!can-be-junction;
 
     # Localized version of operand stores its value in a local variable, so that when it's needed more than once
     # we don't call it again and again when it comes to non-Var or non-WVal QAST node types.
+    # This status is advisable. Methods orig-ast and localize ignore it though try to set appropriate mode. But
+    # method ast respect the mode and returns appropriate form of AST node.
     has $!local-var-name;
     has $!localizable;
 
-    method new($ast, $optimizer, $symbols, :$name = nqp::null(), :$localizable = 0) {
+    method new($ast, $optimizer, $symbols, :$name = nqp::null(), :$localizable = nqp::null()) {
         my $obj := nqp::create(self);
         $obj.BUILD($ast, $optimizer, $symbols, :$name, :$localizable);
         $obj
@@ -1089,12 +1095,25 @@ my class Operand {
         $!debug := nqp::getenvhash<RAKUDO_OPTIMIZER_DEBUG>;
         $!name := $name;
         $!localizable := $localizable;
+        $!can-be-junction := nqp::null();
     }
 
-    method orig-ast() { $!ast }
+    # $!localizable can be set only once.
+    method localizable($set = nqp::null()) {
+        $!localizable := nqp::istrue($set) if nqp::isnull($!localizable);
+        $!localizable
+    }
+
+    method orig-ast() {
+        # Set non-localizable mode unless set already.
+        self.localizable(0);
+        $!ast
+    }
     # Method ast() may return a QAST node of a localized variable bound to LHS.
-    method ast() {
-        $!localizable && self.can-be-junction ?? self.localized !! $!ast
+    method ast(:$decl = nqp::null()) {
+        self.localizable(nqp::defined($decl))
+            ?? self.localized(:$decl)
+            !! $!ast
      }
     method is-want() { $!is-want }
     method unwrapped() { $!unwrapped }
@@ -1110,13 +1129,18 @@ my class Operand {
                 $!value := $value unless nqp::isnull($value) || nqp::istype($value, NQPMu);
                 $!value-kind := $OPERAND_VALUE_VAR;
             }
-            elsif nqp::istype($!unwrapped, QAST::WVal) {
+            elsif nqp::istype($!unwrapped, QAST::WVal)
+                || nqp::istype($!unwrapped, QAST::IVal)
+                || nqp::istype($!unwrapped, QAST::SVal)
+                || nqp::istype($!unwrapped, QAST::NVal)
+            {
                 $!value := $!unwrapped.value;
-                # Whatever is in WVal – it is a value, even if it's not concrete.
+                # Whatever is in XVal – it is a value, even if it's not concrete.
                 $!value-kind := $OPERAND_VALUE_CONST;
             }
             elsif nqp::istype($!unwrapped, QAST::Op) {
-                if $!unwrapped.op eq 'call' || $!unwrapped.op eq 'callstatic' {
+                my $optype := $!unwrapped.op;
+                if $optype eq 'call' || $optype eq 'callstatic' {
                     # If for whatever reason routine is not there yet or we can't infer its return value then assume it
                     # can be anything.
                     $!value := $!symbols.Mu;
@@ -1125,7 +1149,7 @@ my class Operand {
                     $!routine := $!symbols.find_lexical($routine_name)
                         if nqp::isconcrete($routine_name) && nqp::chars($routine_name);
                 }
-                elsif $!unwrapped.op eq 'callmethod' {
+                elsif $optype eq 'callmethod' {
                     $!value := $!symbols.Mu;
                     $!value-kind := $OPERAND_VALUE_RETURN;
                     $!routine := $!unwrapped[0].HOW.find_method($!unwrapped[0], $!unwrapped.name);
@@ -1162,6 +1186,11 @@ my class Operand {
         $!value
     }
 
+    method value-type() {
+        self.value-analyze;
+        nqp::what($!value)
+    }
+
     method value-kind() {
         self.value-analyze;
         $!value-kind
@@ -1169,6 +1198,94 @@ my class Operand {
 
     method value-type-name() {
         $!value.HOW.name($!value)
+    }
+
+    method str() {
+        self.value-analyze;
+        if $!value-kind == $OPERAND_VALUE_CONST {
+            # A string constant
+            if nqp::istype($!ast, QAST::Want) && $!ast[1] eq 'Ss' {
+                return $!ast[2].value;
+            }
+            if nqp::objprimspec($!unwrapped.value) {
+                return nqp::stringify($!unwrapped.value);
+            }
+            if nqp::can($!unwrapped.value, 'Str') {
+                return nqp::unbox_s($!unwrapped.value.Str);
+            }
+        }
+        elsif $!value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($!value) {
+            return nqp::stringify($!value) if nqp::objprimspec($!value);
+            return nqp::unbox_s($!value.Str) if nqp::can($!value, 'Str');
+        }
+        return nqp::null();
+    }
+
+    method int() {
+        self.value-analyze;
+        if $!value-kind == $OPERAND_VALUE_CONST {
+            # A string constant
+            if nqp::istype($!ast, QAST::Want) && $!ast[1] eq 'Ii' {
+                return $!ast[2].value;
+            }
+            if nqp::objprimspec($!unwrapped.value) {
+                return nqp::intify($!unwrapped.value);
+            }
+            if nqp::can($!unwrapped.value, 'Int') {
+                return nqp::unbox_i($!unwrapped.value.Int);
+            }
+        }
+        elsif $!value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($!value) {
+            return nqp::intify($!value) if nqp::objprimspec($!value);
+            return nqp::unbox_i($!value.Int) if nqp::can($!value, 'Int');
+        }
+        elsif nqp::istype($!ast, QAST::Op) && $!ast.op eq 'hllbool' {
+            return self.new($!ast[0], $!optimizer, $!symbols).bool
+        }
+        return nqp::null();
+    }
+
+    # Produce a "native bool", i.e. 0/1 value.
+    method bool() {
+        self.value-analyze;
+        if $!value-kind == $OPERAND_VALUE_CONST {
+            # A string constant
+            if nqp::istype($!ast, QAST::Want) {
+                return nqp::istrue($!ast[2].value);
+            }
+            if nqp::objprimspec($!unwrapped.value) {
+                return nqp::istrue($!unwrapped.value);
+            }
+            if nqp::can($!unwrapped.value, 'Bool') {
+                return nqp::istrue($!unwrapped.value.Bool);
+            }
+        }
+        elsif $!value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($!value) {
+            return nqp::istrue($!value) if nqp::objprimspec($!value);
+            return nqp::istrue($!value.Bool) if nqp::can($!value, 'Bool');
+        }
+        elsif nqp::istype($!ast, QAST::Op) && $!ast.op eq 'hllbool' {
+            return self.new($!ast[0], $!optimizer, $!symbols).bool
+        }
+        return nqp::null();
+
+    }
+
+    # If operand has a concrete compile-time value then get a native out of it if possible.
+    method native-value() {
+        return nqp::null() unless self.is-literal && (my $spec := nqp::objprimspec($!value));
+        return nqp::unbox_i($!value) if $spec == 1;
+        return nqp::unbox_n($!value) if $spec == 2;
+        return nqp::unbox_s($!value);
+    }
+
+    method invocation-args() {
+        return nqp::null() unless self.is-invocation;
+        my @args;
+        for @($!ast) {
+            @args.push(self.new($_, $!optimizer, $!symbols));
+        }
+        @args
     }
 
     method is-junction-static() {
@@ -1188,8 +1305,14 @@ my class Operand {
     }
 
     method can-be-junction() {
+        nqp::ifnull(
+            $!can-be-junction,
+            ($!can-be-junction := self.can-be($!symbols.Junction)))
+    }
+
+    method can-be($type) {
         self.has-value
-            ?? (nqp::istype(self.value, $!symbols.Junction)
+            ?? (nqp::istype($type, self.value-type)
                 || (($!value-kind == $OPERAND_VALUE_VAR || $!value-kind == $OPERAND_VALUE_RETURN)
                     && nqp::eqaddr($!value, $!symbols.Mu)))
             !! 1
@@ -1204,6 +1327,19 @@ my class Operand {
         self.has-value && nqp::isconcrete($!routine)
     }
 
+    method is-instantiation($type = nqp::null()) {
+        self.is-invocation && $!ast.name eq 'new'
+            && (nqp::isnull($type)
+                || (nqp::istype($!ast[0], QAST::WVal)
+                    && nqp::eqaddr($!ast[0].value, $type)))
+    }
+
+    method instantiation-type() {
+        return nqp::null() unless self.is-instantiation;
+        my $invocant := self.invocation-args()[0];
+        return $invocant.value-kind == $OPERAND_VALUE_CONST ?? $invocant.value !! nqp::null();
+    }
+
     method is-literal() {
         self.has-value
             && ($!value-kind == $OPERAND_VALUE_CONST
@@ -1215,6 +1351,8 @@ my class Operand {
     }
 
     method localized(:$decl = 0) {
+        # If this method is invoked first then finalize localizable status unless it is set already.
+        self.localizable(1);
         # Var and WVal do not need localization
         return $!ast if nqp::istype($!unwrapped, QAST::Var) || nqp::istype($!unwrapped, QAST::WVal);
 
@@ -1500,6 +1638,212 @@ my class SmartmatchOptimizer {
             QAST::WVal.new( :value($!symbols.False) ))
     }
 
+    # If we do have a 'pair ~~ pair' case then we better always return some AST as this would signal the upstream code
+    # that no extra checks are needed and AST nodes like run-time checking for RHS to be a Regex can be dropped off.
+    method pair_to_pair($lhs, $rhs) {
+        my $lhs_type := $lhs.is-instantiation ?? $lhs.instantiation-type !! $lhs.value-type;
+
+        return nqp::null() unless nqp::istype($lhs_type, $!symbols.Pair);
+
+        my $rhs_type := $rhs.is-instantiation ?? $rhs.instantiation-type !! $rhs.value-type;
+
+        my sub default-ast() {
+            QAST::Op.new(
+                :op<callmethod>,
+                :name<Bool>,
+                QAST::Op.new(
+                    :op<callmethod>,
+                    :name<ACCEPTS>,
+                    $rhs.orig-ast,
+                    $lhs.orig-ast ))
+        }
+
+        unless self.is_ACCEPTS_default($lhs_type) && self.is_ACCEPTS_default($rhs_type) {
+            # With a user-defined ACCEPTS method no optimization is possible.
+            return default-ast();
+        }
+
+        # "Prefix" ast nodes.
+        my @past;
+
+        my $rhs_key;
+        my $rhs_value;
+        if $rhs.is-literal {
+            $rhs_key := $rhs.value.key;
+            $rhs_value := $rhs.value.value;
+        }
+        elsif $rhs.is-instantiation {
+            my @inst-args := $rhs.invocation-args;
+            $rhs_key := @inst-args[1].has-value ?? @inst-args[1].value !! @inst-args[1];
+            $rhs_value := @inst-args[2].has-value ?? @inst-args[2].value !! @inst-args[2];
+        }
+        else {
+            # For run-time only RHS values anything but the default ACCEPTS is an overcomplication of things.
+            return default-ast();
+        }
+
+        my $lhs_key;
+        my $lhs_value;
+        if $lhs.is-literal {
+            $lhs_key := $lhs.value.key;
+            $lhs_value := $lhs.value.value;
+        }
+        elsif $lhs.is-instantiation {
+            my @inst-args := $lhs.invocation-args;
+            $lhs_key := @inst-args[1].has-value ?? @inst-args[1].value !! @inst-args[1];
+            $lhs_value := @inst-args[2].has-value ?? @inst-args[2].value !! @inst-args[2];
+        }
+        else {
+            # See the note for RHS above.
+            return default-ast();
+        }
+
+        if nqp::objprimspec($rhs_key) && nqp::objprimspec($rhs_value)
+            && nqp::objprimspec($lhs_key) && nqp::objprimspec($lhs_value)
+        {
+            return QAST::WVal.new(
+                :value(
+                    nqp::iseq_s(nqp::stringify($rhs_key), nqp::stringify($lhs_key))
+                    && nqp::iseq_s(nqp::stringify($rhs_value), nqp::stringify($lhs_value))
+                        ?? $!symbols.True
+                        !! $!symbols.False
+                )
+            )
+        }
+    }
+
+    method maybe_pair($lhs, $rhs, $sm_accepts_ast) {
+        return nqp::null()
+            unless ($rhs.has-value && nqp::istype($rhs.value, $!symbols.Pair))
+                    || ($rhs.is-instantiation && nqp::istype($rhs.instantiation-type, $!symbols.Pair));
+
+        # Note that this method only uses $lhs for analysis. Since smartmatching on Pair is always topicalized we must
+        # use the topic. If all goes well it will later be lowered anyway.
+
+        my $res_ast;
+
+        # Pair ~~ Pair case
+        return $res_ast unless nqp::isnull($res_ast := self.pair_to_pair($lhs, $rhs));
+
+        my $rhs_ast := $rhs.orig-ast;
+
+        my $method_name := nqp::null();
+        my $bool_value;
+
+        my $pair_type_ast;
+
+        if $rhs.is-instantiation($!symbols.Pair) {
+            my @inst-args  := $rhs.invocation-args;
+            $pair_type_ast := @inst-args[0].ast;
+            my $key-arg    := @inst-args[1];
+            my $value-arg  := @inst-args[2];
+
+            $method_name := nqp::ifnull($key-arg.str, $key-arg);
+            $bool_value := nqp::ifnull($value-arg.bool, $value-arg);
+        }
+
+        if $rhs.is-literal {
+            $method_name := nqp::unbox_s($rhs.value.key.Str);
+            $bool_value := nqp::istrue($rhs.value.value.Bool);
+        }
+
+        unless nqp::isnull($method_name) {
+            my $method_ast;
+            my $bool_value_ast :=
+                nqp::objprimspec($bool_value)
+                    ?? QAST::Op.new( :op<hllbool>, QAST::IVal.new( :value($bool_value) ) )
+                    !! $bool_value.ast;
+
+            if nqp::objprimspec($method_name) {
+                # We have method name in clear text form. Now, if we know LHS concrete value and it doesn't have the
+                # method then no optimization makes sense as X::Method::NotFound will be thrown anyway.
+                return nqp::null() if $lhs.has-value
+                                        && $lhs.value-kind == $OPERAND_VALUE_CONST
+                                        && !nqp::can($lhs.value-type, $method_name);
+
+                $method_ast := QAST::Op.new(
+                    :op<callmethod>,
+                    :name($method_name),
+                    QAST::Var.new( :name('$_'), :scope<lexical> )
+                );
+            }
+            else {
+                # When we can't infer method name directly (i.e. it is most likely computed at run-time), we still can
+                # help the compiler by reducing the smartmatch code by one method call and one Pair allocation on when
+                # the topic can the requested method. Failure route becomes somewhat more expensive then, but  after
+                # all, exceptions are expensive anyway and throwing one is barely a hot path.
+                $method_ast := QAST::Op.new(
+                    :op<callmethod>,
+                    QAST::Var.new( :name('$_'), :scope<lexical> ),
+                    QAST::Op.new(
+                        :op<unbox_s>,
+                        QAST::Op.new( :op<callmethod>, :name<Stringy>, $method_name.localized )
+                    )
+                );
+
+                # If topic can the method then we invoke it. Otherwise fall back to ACCEPTS to throw an exception
+                $method_ast := QAST::Op.new(
+                    :op<if>,
+                    QAST::Op.new(
+                        :op<can>,
+                        QAST::Var.new( :name('$_'), :scope<lexical> ),
+                        $method_name.localized(:decl)
+                    ),
+                    $method_ast,
+                    QAST::Op.new(
+                        :op<callmethod>,
+                        :name<ACCEPTS>,
+                        QAST::Op.new(
+                            :op<callmethod>,
+                            :name<new>,
+                            $pair_type_ast,
+                            $method_name.localized,
+                            $bool_value_ast
+                        ),
+                        QAST::Var.new( :name('$_'), :scope<local> )
+                    )
+                )
+            }
+
+            if nqp::objprimspec($bool_value) {
+                my $boolify_method := $bool_value ?? "Bool" !! "not";
+                $res_ast := QAST::Op.new( :op<callmethod>, :name($boolify_method), $method_ast );
+            }
+            else {
+                $res_ast := QAST::Op.new(
+                    :op<hllbool>,
+                    QAST::Op.new(
+                        :op<iseq_i>,
+                        QAST::Op.new( :op<istrue>, $method_ast ),
+                        QAST::Op.new( :op<istrue>, $bool_value_ast )
+                    )
+                );
+            }
+
+            # If there is a chance that LHS can result in an Associative then a fallback to the default ACCEPTS+Bool
+            # must be provided.
+            if $lhs.can-be($!symbols.Pair) {
+                my $accepts_bool_method := $sm_accepts_ast.ann('smartmatch_negated') ?? 'not' !! 'Bool';
+                $res_ast := QAST::Op.new(
+                    :op<if>,
+                    QAST::Op.new(
+                        :op<istype>,
+                        QAST::Var.new( :name('$_'), :scope<lexical> ),
+                        QAST::WVal.new( :value($!symbols.find_in_setting('Associative')) )
+                    ),
+                    QAST::Op.new(
+                        :op<callmethod>,
+                        :name($accepts_bool_method),
+                        $sm_accepts_ast
+                    ),
+                    $res_ast
+                );
+            }
+        }
+
+        $res_ast
+    }
+
     method optimize_when($op) {
         return nqp::null() if nqp::getenvhash<RAKUDO_OPTIMIZE_NOSM>;
         note("Optimizing 'when':\n", $op.dump(4)) if $!debug;
@@ -1570,8 +1914,10 @@ my class SmartmatchOptimizer {
         $!optimizer.visit_op_children($op);
         $!optimizer.block_var_stack.exit-dry-run;
 
-        my $lhs := Operand.new($op[0], $!optimizer, $!symbols, :name<LHS>, :localizable);
+        my $lhs := Operand.new($op[0], $!optimizer, $!symbols, :name<LHS>);
         my $rhs := Operand.new($op[1], $!optimizer, $!symbols, :name<RHS>);
+
+        $lhs.localizable($lhs.can-be-junction);
 
         note("- LHS:\n", $lhs.dump(2), "- RHS:\n", $rhs.dump(2)) if $!debug;
 
@@ -1633,13 +1979,16 @@ my class SmartmatchOptimizer {
         my $result := nqp::null();
         my $still_locallifetime := 1;
 
-        # After we invoked visit_children we're have to return some kind of concrete AST node or it will result in
-        # a duplicate call to visit_children.
+        # After visit_children was invoked we have to return some kind of concrete AST node or it will result in a
+        # duplicate call to visit_children.
         if nqp::defined($sm_accepts) {
             # LHS, which becomes smartmatch topic, is used before the ACCEPTS call in statements passed to locallifetime op.
-            my $lhs := Operand.new($op[0][1][1], $!optimizer, $!symbols, :name<LHS>, :localizable);
+            my $lhs := Operand.new($op[0][1][1], $!optimizer, $!symbols, :name<LHS>);
             my $rhs := Operand.new($sm_accepts[0][1], $!optimizer, $!symbols, :name<RHS>);
             my $negated := $sm_accepts.ann('smartmatch_negated');
+            my $boolified := $op[0][2].ann('smartmatch_boolified');
+
+            $lhs.localizable($lhs.can-be-junction);
 
             note("Topicalized smartmatch:\n    TOPIC:\n", $lhs.dump(11), "\n      RHS:\n", $rhs.dump(11)) if $!debug;
 
@@ -1650,16 +1999,24 @@ my class SmartmatchOptimizer {
                 $still_locallifetime := 0;
             }
 
+            if nqp::isnull($result) && ($sm_op := self.maybe_pair($lhs, $rhs, $sm_accepts)) {
+                # When maybe_pair succeeds it means the RHS is certainly not a Regex. Hence we can remove the check and
+                # replace QAST::Stmts wrapper with the binding to sm_result_<n> local.
+                $op[0][2] := $op[0][2][0]; # Pull out the binding
+                $op[0][2][1] := $sm_op;    # And replace the second binding argument with the optimized AST.
+                $result := $op; # No further optimizations are possible
+            }
+
             # If we know variable or routine return type then we can possibly simplify the actual SM op withing
             # `locallifetime` to plain .ACCEPTS(...).Bool if the smartmatch is a no-Regexp.
             if nqp::isnull($result)
-                && (my $bool_ast := $op[0][2]).ann('smartmatch_boolified')
+                && $boolified
                 && $rhs.has-value
                 && ($rhs.value-kind == $OPERAND_VALUE_VAR || $rhs.value-kind == $OPERAND_VALUE_RETURN)
-                && !nqp::istype($!symbols.Regex, $rhs.value)
+                && !nqp::istype($rhs.value, $!symbols.Regex)
             {
                 # Drop the `boolify if not Regexp` statement
-                $bool_ast.pop();
+                (my $bool_ast := $op[0][2]).pop();
                 # Since ACCEPTS RHS would only be used by ACCEPTS alone now, we can also get rid of extra bind into
                 # sm_rhs local
                 $sm_accepts[0] := $rhs.orig-ast;

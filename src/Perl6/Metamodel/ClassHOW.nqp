@@ -121,9 +121,6 @@ class Perl6::Metamodel::ClassHOW
                     self.set_hidden($obj) if $ins.HOW.hidden($ins);
                     self.set_language_revision($obj, $ins.HOW.language-revision($ins), :force);
                 }
-                # Significant change of behavior on d/e revisions boundary; pre-6.e classes cannot consume 6.e roles.
-                self.check-type-compat($obj, $ins, ['e'])
-                    if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
                 self.add_concretization($obj, $r, $ins);
             }

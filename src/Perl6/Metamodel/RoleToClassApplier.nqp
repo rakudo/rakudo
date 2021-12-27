@@ -94,8 +94,10 @@ my class RoleToClassApplier {
     method apply() {
         my @stubs;
 
-        # Starting with v6.e submethods must not be composed in from roles.
-        my $with_submethods := $!target.HOW.lang-rev-before($!target, 'e');
+        # Only transfer submethods from pre-6.e roles into pre-6.e classes.
+        my $with_submethods := $!target.HOW.lang-rev-before($!target, 'e')
+                                && (!nqp::istype($!to_compose_meta, Perl6::Metamodel::LanguageRevision)
+                                    || $!to_compose.HOW.lang-rev-before($!to_compose, 'e'));
 
         # Compose in any methods.
         sub compose_method_table(@methods, @method_names) {

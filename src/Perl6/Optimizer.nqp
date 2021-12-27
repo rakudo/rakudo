@@ -1580,9 +1580,9 @@ my class SmartmatchOptimizer {
         # and it doesn't succeed, that creates an expensive Backtrace that we just
         # end up throwing away
         if $method eq 'Numeric' {
-            my $fail-or-mu := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
-            $fail-or-mu.named('fail-or-mu');
-            $method_call.push($fail-or-mu);
+            my $fail-or-nil := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
+            $fail-or-nil.named('fail-or-nil');
+            $method_call.push($fail-or-nil);
         }
 
         # Make sure we're not comparing against a type object, since those could
@@ -2605,7 +2605,7 @@ class Perl6::Optimizer {
 
         # Warn for something like `my $a = 2.rand.Int; say "a = " ~ $a ?? "true" !! "false";`, which
         # will just print 'true' because the entire expression `"a = " ~ $a` is being evaluated by the
-        # ternary instead of just the `$a` (the correct form is `"a = " ~ ($a ?? "true" !! "false"`)). 
+        # ternary instead of just the `$a` (the correct form is `"a = " ~ ($a ?? "true" !! "false"`)).
         if $optype eq 'if' && $op.name eq '&infix:<??>' &&
               nqp::istype($op[0], QAST::Op) && ($op[0].op eq 'call' || $op[0].op eq 'callstatic') &&
               nqp::index($op[0].name, '&infix:') == 0 && $!symbols.is_from_core($op[0].name) &&

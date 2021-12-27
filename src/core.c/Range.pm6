@@ -406,10 +406,23 @@ my class Range is Cool does Iterable does Positional {
           and (topic cmp $!max) < +(!$!excludes-max)
     }
     multi method ACCEPTS(Range:D: Cool:D \got) {
-        $!is-int && nqp::istype(got,Int)
-          ?? got >= $!min + $!excludes-min && got <= $!max - $!excludes-max
-          !! ($!excludes-min ?? got after $!min !! not got before $!min)
-               && ($!excludes-max ?? got before $!max !! not got after $!max)
+        nqp::if(
+            $!is-int && nqp::istype(got, Int),
+            nqp::if(got >= $!min + $!excludes-min,
+                    got <= $!max - $!excludes-max),
+            nqp::if(
+                (nqp::istype($!min, Numeric) && nqp::istype($!max, Numeric)),
+                nqp::stmts(
+                    (my \got-num = nqp::if(nqp::istype(got, Numeric), got, got.Numeric(:fail-or-nil))),
+                    nqp::if(
+                        nqp::istype(got-num, Nil),
+                        False,
+                        nqp::if(
+                            nqp::if($!excludes-min, got-num > $!min, got-num >= $!min),
+                            nqp::if($!excludes-max, got-num < $!max, got-num <= $!max)))),
+                nqp::if(
+                    nqp::if($!excludes-min, got after $!min, not got before $!min),
+                    nqp::if($!excludes-max, got before $!max, not got after $!max))))
     }
     multi method ACCEPTS(Range:D: Complex:D \got) {
         nqp::istype(($_ := got.Real), Failure) ?? False !! nextwith $_

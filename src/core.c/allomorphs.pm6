@@ -264,7 +264,7 @@ multi sub val(\one-thing) is raw {
     one-thing
 }
 
-multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-mu) {
+multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     # TODO:
     # * Additional numeric styles:
     #   + fractions in [] radix notation:  :100[10,'.',53]
@@ -288,8 +288,8 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-mu) {
     # string, or a failure if we're Str.Numeric
     my &parse_fail := -> \msg {
         $val-or-fail
-          ?? $fail-or-mu
-            ?? return Mu
+          ?? $fail-or-nil
+            ?? return Nil
             !! fail X::Str::Numeric.new(:source($MAYBEVAL),:reason(msg),:$pos)
           !! return $MAYBEVAL
     }

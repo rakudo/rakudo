@@ -2360,6 +2360,17 @@ my class X::Range::InvalidArg is Exception {
     }
 }
 
+my class X::Range::Incomparable is Exception {
+    has $.topic;
+    has $.endpoint;
+    has $.what-endpoint;
+    method message() {
+        "Value of type '" ~ $.topic.^name
+        ~ "' cannot be compared with range $.what-endpoint of type '"
+        ~ $.endpoint.^name ~ "'"
+    }
+}
+
 my class X::Sequence::Deduction is Exception {
     has $.from;
     method message() {

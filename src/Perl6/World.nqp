@@ -499,6 +499,7 @@ class Perl6::World is HLL::World {
     has int $!setting_loaded;
     has $!setting_name;
     has $!setting_revision;
+    has %!setting_symbols;
 
     # List of CHECK blocks to run.
     has @!CHECKs;
@@ -507,6 +508,7 @@ class Perl6::World is HLL::World {
         %!code_object_fixup_list := {};
         $!record_precompilation_dependencies := 1;
         %!quote_lang_cache := {};
+        %!setting_symbols := {};
         $!setting_loaded := 0;
         $!in_unit_parse := 0;
         @!CHECKs := [];
@@ -4946,19 +4948,26 @@ class Perl6::World is HLL::World {
     }
 
     method find_single_symbol_in_setting($name) {
+        if nqp::existskey(%!setting_symbols, $name) {
+            return %!setting_symbols{$name}
+        }
         my $setting_name := Perl6::ModuleLoader.transform_setting_name($!setting_name);
         my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
 
         while $ctx {
             my $pad := nqp::ctxlexpad($ctx);
             if nqp::existskey($pad, $name) {
-                return nqp::atkey($pad, $name);
+                return %!setting_symbols{$name} := nqp::atkey($pad, $name);
             }
             $ctx := nqp::ctxouter($ctx);
         }
         nqp::die("Cannot find symbol $name in $setting_name");
     }
     method find_symbol_in_setting(@name) {
+        my str $fullname := nqp::join("::", @name);
+        if nqp::existskey(%!setting_symbols, $fullname) {
+            return %!setting_symbols{$fullname}
+        }
         my $no-outers := 0; # If 'true' then don't look in the outer contexts
         my $setting_name := $!setting_name;
 
@@ -4979,7 +4988,6 @@ class Perl6::World is HLL::World {
         $setting_name := Perl6::ModuleLoader.transform_setting_name($setting_name);
         my $ctx := Perl6::ModuleLoader.load_setting($setting_name);
 
-        my str $fullname := nqp::join("::", @name);
         my $components := +@name;
 
         while $ctx {
@@ -4987,14 +4995,14 @@ class Perl6::World is HLL::World {
             if nqp::existskey($pad, @name[0]) {
                 my $val := nqp::atkey($pad, @name[0]);
                 if $components == 1 {
-                    return $val;
+                    return %!setting_symbols{$fullname} := $val;
                 }
                 my $i := 1;
                 while $i < $components {
                     if nqp::existskey($val.WHO, @name[$i]) {
                         $val := ($val.WHO){@name[$i++]};
                         if $i == $components {
-                            return $val;
+                            return %!setting_symbols{$fullname} := $val;
                         }
                     }
                     else {
@@ -5011,6 +5019,14 @@ class Perl6::World is HLL::World {
     # perspective of the current scope. Checks for lexicals, then if
     # that fails tries package lookup.
     method find_single_symbol(str $name, :$setting-only, :$upgrade_to_global, :$cur-package) {
+        if $setting-only && nqp::existskey(%!setting_symbols, $name) {
+            my $value := %!setting_symbols{$name};
+            if $upgrade_to_global {
+                ($*GLOBALish.WHO){$name} := $value;
+            }
+            return $value
+        }
+
         unless $!setting_loaded {
             return self.find_single_symbol_in_setting($name);
         }
@@ -5031,6 +5047,7 @@ class Perl6::World is HLL::World {
                     if $upgrade_to_global {
                         ($*GLOBALish.WHO){$name} := $value;
                     }
+                    %!setting_symbols{$name} := $value if $setting-only;
                     return $value;
                 }
                 $scope := $scope.ann('outer');
@@ -5051,6 +5068,7 @@ class Perl6::World is HLL::World {
                     if $upgrade_to_global {
                         ($*GLOBALish.WHO){$name} := $value;
                     }
+                    %!setting_symbols{$name} := $value if $setting-only;
                     return $value;
                 }
             }
@@ -5074,6 +5092,11 @@ class Perl6::World is HLL::World {
         $result;
     }
     method find_symbol(@name, :$setting-only, :$upgrade_to_global, :$cur-package) {
+        my $fullname := join("::", @name);
+        if $setting-only && nqp::existskey(%!setting_symbols, $fullname) && !$upgrade_to_global {
+            return %!setting_symbols{$fullname};
+        }
+
         # Make sure it's not an empty name.
         unless +@name { nqp::die("Cannot look up empty name"); }
 
@@ -5132,9 +5155,12 @@ class Perl6::World is HLL::World {
                 $result := ($result.WHO){$_};
             }
             else {
-                nqp::die("Could not locate compile-time value for symbol " ~
-                    join('::', @name));
+                nqp::die("Could not locate compile-time value for symbol $fullname");
             }
+        }
+
+        if $setting-only {
+            %!setting_symbols{$fullname} := $result;
         }
 
         $result;

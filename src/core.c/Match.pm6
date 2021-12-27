@@ -235,7 +235,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }
-    multi method ACCEPTS(Match:D: Any $) { self }
+    multi method ACCEPTS(Match:D: Mu) { self }
 
     method prematch(Match:D:) {
         nqp::substr(self.target,0,$!from)

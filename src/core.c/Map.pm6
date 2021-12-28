@@ -147,7 +147,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Map:D: Any $topic --> Bool:D) {
-        self.EXISTS-KEY($topic.any);
+        self.EXISTS-KEY($topic.any).Bool
     }
 
     multi method ACCEPTS(Map:D: Cool:D $topic --> Bool:D) {
@@ -155,11 +155,11 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Map:D: Positional $topic --> Bool:D) {
-        self.EXISTS-KEY($topic.any);
+        self.EXISTS-KEY($topic.any).Bool
     }
 
     multi method ACCEPTS(Map:D: Regex $topic --> Bool:D) {
-        so self.keys.any.match($topic);
+        self.keys.any.match($topic).Bool;
     }
 
     multi method ACCEPTS(Map:D: Map:D \m --> Bool:D) {

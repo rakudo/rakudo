@@ -12,6 +12,8 @@ my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool
     #     has bigint $!value is box_target;
 
+    method rand() { nqp::rand_I(self,Int) }
+
     multi method WHICH(Int:D: --> ValueObjAt:D) {
         nqp::box_s(
           nqp::concat(

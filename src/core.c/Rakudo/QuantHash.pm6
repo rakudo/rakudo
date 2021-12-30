@@ -1057,7 +1057,7 @@ my class Rakudo::QuantHash {
     # initialized IterationSet with at least 1 element in Mix format,
     # and the total value of values in the Mix.
     method MIX-ROLL(\elems, \total) {
-        my      $rand := total.rand;
+        my      $rand := total.Num.rand;
         my Real $seen := 0;
         my $iter := nqp::iterator(elems);
 

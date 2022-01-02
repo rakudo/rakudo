@@ -594,6 +594,7 @@ sub dd(|c) {  # is implementation-detail
             my $var  := nqp::shift($args);
             my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
             my $type := $var.WHAT.^name.split("::").tail;
+            $type := $type.chop if $name && $name.starts-with('@' | '%');
             my $what := nqp::can($var,'raku')
               ?? $var.raku
               !! nqp::can($var,'perl')

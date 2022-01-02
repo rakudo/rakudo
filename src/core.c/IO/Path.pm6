@@ -6,13 +6,14 @@ my class IO::Path is Cool does IO {
     has $!os-path;        # the absolute path associated with path/SPEC/CWD
     has $!parts;          # IO::Path::Parts object, if any
 
+    constant empty-path-message = "Must specify a non-empty string as a path";
+
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
     method !SET-SELF(Str:D \path, IO::Spec \SPEC, Str:D \CWD, \absolute) {
-        die "Must specify something as a path: did you mean '.' for the current directory?"
-          unless nqp::chars(path);
+        die empty-path-message unless nqp::chars(path);
 
         X::IO::Null.new.throw
           if nqp::isne_i(nqp::index(path, "\0"), -1)
@@ -56,7 +57,7 @@ my class IO::Path is Cool does IO {
           $SPEC.join($volume,$dirname,$basename), $SPEC, $CWD.Str, False)
     }
     multi method new(IO::Path:) {
-        die "Must specify something as a path: did you mean '.' for the current directory?";
+        die empty-path-message;
     }
 
     method is-absolute(--> Bool:D) {
@@ -147,7 +148,8 @@ my class IO::Path is Cool does IO {
     }
     multi method extension(IO::Path:D:
       Str $subst,
-      Int :$parts = 1, Str :$joiner = nqp::if(nqp::chars($subst), '.', '')
+      Int :$parts = 1,
+      Str :$joiner = nqp::chars($subst) ?? '.' !! ''
     ) {
       self.new: :dirname(self.dirname), :volume(self.volume),
        :$!SPEC, :$!CWD, basename => EXTENSION-SUBST
@@ -163,7 +165,8 @@ my class IO::Path is Cool does IO {
     }
     multi method extension(
       Str $subst,
-      Range :$parts, Str :$joiner = nqp::if(nqp::chars($subst), '.', '')
+      Range :$parts,
+      Str :$joiner = nqp::chars($subst) ?? '.' !! ''
     ) {
       my ($min, $max) := Rakudo::Internals.RANGE-AS-ints:
         $parts, "Can only use numeric, non-NaN Ranges as :parts";
@@ -374,20 +377,12 @@ my class IO::Path is Cool does IO {
           $!SPEC.join('', $!path, child.Str)
     }
 
-    method add (IO::Path:D: \child) {
+    method add (IO::Path:D: *@children) {
         nqp::clone(self).cloned-with-path:
-          $!SPEC.join('', $!path, child.Str)
+          $!SPEC.join: '', $!path, @children.join($!SPEC.dir-sep)
     }
 
     proto method chdir(|) {*}
-    multi method chdir(IO::Path:D: Str() $path, :$test!) {
-        Rakudo::Deprecations.DEPRECATED(
-            :what<:$test argument>,
-            'individual named parameters (e.g. :r, :w, :x)',
-            "v2017.03.101.ga.5800.a.1", "v6.d", :up(*),
-        );
-        self.chdir: $path, |$test.words.map(* => True).Hash;
-    }
     multi method chdir(IO::Path:D: IO $path, |c) {
         self.chdir: $path.absolute, |c
     }
@@ -415,7 +410,7 @@ my class IO::Path is Cool does IO {
             nqp::unless(
                 nqp::unless(nqp::isfalse($d), $dir.d),
                 fail X::IO::Chdir.new: :$path, :os-error(
-                    nqp::if($dir.e, 'is not a directory', 'does not exist')
+                    $dir.e ?? 'is not a directory' !! 'does not exist'
                 )
             ),
             nqp::unless(
@@ -448,6 +443,13 @@ my class IO::Path is Cool does IO {
     }
 
     method copy(IO::Path:D: IO() $to, :$createonly --> True) {
+        # add fix for issue #3971 where attempt to copy a dir
+        # to a file clobbers the file.
+        self.d and $to.f and fail X::IO::Copy.new:
+            :from($.absolute),
+            :to($to.absolute),
+            :os-error('cannot copy a directory to a file');
+
         $createonly and $to.e and fail X::IO::Copy.new:
             :from($.absolute),
             :to($to.absolute),
@@ -489,8 +491,8 @@ my class IO::Path is Cool does IO {
         }}
     }
 
-    method symlink(IO::Path:D: IO() $name --> True) {
-        nqp::symlink($.absolute, nqp::unbox_s($name.absolute));
+    method symlink(IO::Path:D: IO() $name, Bool :$absolute = True --> True) {
+        nqp::symlink($absolute ?? $.absolute !! ~self , nqp::unbox_s($name.absolute));
         CATCH { default {
             fail X::IO::Symlink.new:
                 :target($!os-path), :name($name.absolute), :os-error(.Str);
@@ -634,16 +636,17 @@ my class IO::Path is Cool does IO {
     }
 
     # spurt data to given path and file mode
-    sub spurt-blob(str $path, str $mode, Blob:D \data --> True) {
+    sub spurt-blob(str $path, str $mode, Blob:D \data) {
         CATCH { .fail }
 
         my $PIO := nqp::open($path,$mode);
         nqp::writefh($PIO,nqp::decont(data));
-        nqp::closefh($PIO)
+        nqp::closefh($PIO);
+        True
     }
 
     # spurt text to given path and file mode with given encoding
-    sub spurt-string(str $path, str $mode, str $text, $encoding --> True) {
+    sub spurt-string(str $path, str $mode, str $text, $encoding) {
         my $blob := nqp::encode(
           $text,
           (my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding)),
@@ -665,7 +668,22 @@ my class IO::Path is Cool does IO {
         spurt-blob($path, $mode, $blob)
     }
 
+    method user(IO::Path:D:) {
+        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
+          ?? nqp::stat($path,nqp::const::STAT_UID)
+          !! self!does-not-exist("user")
+    }
+
+    method group(IO::Path:D:) {
+        Rakudo::Internals.FILETEST-E(my str $path = self.absolute)
+          ?? nqp::stat($path,nqp::const::STAT_GID)
+          !! self!does-not-exist("group")
+    }
+
     proto method spurt(|) {*}
+    multi method spurt(IO::Path:D: --> Bool:D) {
+        self.open(:w).close
+    }
     multi method spurt(IO::Path:D: Blob:D \data, :$append! --> Bool:D) {
         spurt-blob(self.absolute, $append ?? 'wa' !! 'w', data)
     }
@@ -716,7 +734,7 @@ my class IO::Path is Cool does IO {
       Str:D $trying
     --> Failure) is hidden-from-backtrace {
         Failure.new(X::IO::DoesNotExist.new(:path($!os-path),:$trying))
-    } 
+    }
 
     method e(IO::Path:D: --> Bool:D) {
         nqp::hllbool(Rakudo::Internals.FILETEST-E(self.absolute))
@@ -803,10 +821,10 @@ my class IO::Path is Cool does IO {
         if Rakudo::Internals.FILETEST-E(self.absolute) {  # sets $!os-path
             my Int $mode := Rakudo::Internals.FILETEST-MODE($!os-path);
             my str $str   = nqp::base_I($mode,8);
-            IntStr.new( 
+            IntStr.new(
               $mode,
               nqp::concat(nqp::x('0',4 - nqp::chars($str)),$str)
-            ) 
+            )
         }
         else {
             self!does-not-exist("mode")

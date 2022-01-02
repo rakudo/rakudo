@@ -39,12 +39,6 @@ class CompUnit::PrecompilationRepository::Default
     my $compiler-id :=
       CompUnit::PrecompilationId.new-without-check(Compiler.id);
 
-    my $lle        := Rakudo::Internals.LL-EXCEPTION;
-    my $profile    := Rakudo::Internals.PROFILE;
-    my $optimize   := Rakudo::Internals.OPTIMIZE;
-    my $stagestats := Rakudo::Internals.STAGESTATS;
-    my $target     := "--target=" ~ Rakudo::Internals.PRECOMP-TARGET;
-
     method try-load(
       CompUnit::PrecompilationDependency::File:D $dependency,
       IO::Path:D :$source = $dependency.src.IO,
@@ -311,7 +305,7 @@ Need to re-check dependencies.")
             ~ ($bap ?? ' by another process' !! '')
         ) if $!RMD;
 
-        if $stagestats {
+        if Rakudo::Internals.STAGESTATS {
             my $err := $*ERR;
             $err.print("\n    load    $path.relative()\n");
             $err.flush;
@@ -339,6 +333,14 @@ Need to re-check dependencies.")
            :$precomp-stores,
     --> Bool:D) {
 
+        my $env := nqp::clone(nqp::getattr(%*ENV,Map,'$!storage'));
+        my $rpl := nqp::atkey($env,'RAKUDO_PRECOMP_LOADING');
+        if $rpl {
+            my @modules := Rakudo::Internals::JSON.from-json: $rpl;
+            die "Circular module loading detected trying to precompile $path"
+              if $path.Str (elem) @modules;
+        }
+
         # obtain destination, lock the store for other processes
         my $store := self.store;
         my $io    := $store.destination($compiler-id, $id);
@@ -359,18 +361,12 @@ Need to re-check dependencies.")
             return self!already-precompiled($path,$source-name,$io,0)
         }
 
-        # Local copy for us to tweak
-        my $env := nqp::clone(nqp::getattr(%*ENV,Map,'$!storage'));
-
         my $REPO := $*REPO;
         nqp::bindkey($env,'RAKUDO_PRECOMP_WITH',
           $REPO.repo-chain.map(*.path-spec).join(',')
         );
 
-        if nqp::atkey($env,'RAKUDO_PRECOMP_LOADING') -> $rpl {
-            my @modules := Rakudo::Internals::JSON.from-json: $rpl;
-            die "Circular module loading detected trying to precompile $path"
-              if $path.Str (elem) @modules;
+        if $rpl {
             nqp::bindkey($env,'RAKUDO_PRECOMP_LOADING',
               $rpl.chop
                 ~ ','
@@ -382,13 +378,19 @@ Need to re-check dependencies.")
               '[' ~ Rakudo::Internals::JSON.to-json($path.Str) ~ ']');
         }
 
+        my $stagestats   := Rakudo::Internals.STAGESTATS;
         my $distribution := $*DISTRIBUTION;
         nqp::bindkey($env,'RAKUDO_PRECOMP_DIST',
           $distribution ?? $distribution.serialize !! '{}');
 
         my $bc := "$io.bc".IO;
-        $!RMD("Precompiling $path into $bc ($lle $profile $optimize $stagestats)")
-          if $!RMD;
+        $!RMD("Precompiling $path into $bc ({
+          Rakudo::Internals.LL-EXCEPTION
+        } {
+          Rakudo::Internals.PROFILE
+        } {
+          Rakudo::Internals.OPTIMIZE
+        } $stagestats)") if $!RMD;
 
         my $raku := $*EXECUTABLE.absolute
             .subst('perl6-debug', 'perl6') # debugger would try to precompile it's UI
@@ -414,12 +416,12 @@ Need to re-check dependencies.")
         my $err := nqp::list_s;
         my $status;
         react {
-            my $proc = Proc::Async.new(
+            my $proc := Proc::Async.new(
                 $raku,
-                $lle,
-                $profile,
-                $optimize,
-                $target,
+                Rakudo::Internals.LL-EXCEPTION,
+                Rakudo::Internals.PROFILE,
+                Rakudo::Internals.OPTIMIZE,
+                Rakudo::Internals.TARGET,
                 $stagestats,
                 "--output=$bc",
                 "--source-name=$source-name",
@@ -506,6 +508,7 @@ Need to re-check dependencies.")
         $!RMD("Writing dependencies and byte code to $io.tmp for source checksum: $source-checksum")
           if $!RMD;
 
+        $store.store-repo-id($compiler-id, $id, :repo-id($REPO.id));
         $store.store-unit(
             $compiler-id,
             $id,
@@ -517,7 +520,6 @@ Need to re-check dependencies.")
             ),
         );
         $bc.unlink;
-        $store.store-repo-id($compiler-id, $id, :repo-id($REPO.id));
         $store.unlock;
         True
     }

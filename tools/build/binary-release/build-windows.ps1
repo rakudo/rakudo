@@ -45,7 +45,8 @@ nmake install
 CheckLastExitCode
 
 echo "========= Testing Rakudo"
-nmake test
+rm -r t\spec
+prove -e install\bin\raku -vlr t
 CheckLastExitCode
 
 echo "========= Cloning Zef"
@@ -54,15 +55,19 @@ CheckLastExitCode
 
 echo "========= Installing Zef"
 cd zef
-..\install\bin\raku.exe -I. bin\zef install .
+..\install\bin\raku -I. bin\zef install .
 CheckLastExitCode
 cd ..
 
 echo "========= Copying auxiliary files"
-cp -Force -r "tools\build\binary-release\Windows\*" install
+cp -Force -r "tools\build\binary-release\assets\Windows\*" install
 cp LICENSE install
 
 echo "========= Preparing archive"
-mv install rakudo-$Env:VERSION
-Compress-Archive -Path rakudo-$Env:VERSION -DestinationPath ..\rakudo-win.zip
+$FILE_NAME = "rakudo-moar-${Env:VERSION}-${Env:REVISION}-win-x86_64-msvc"
+mv install $FILE_NAME
+Compress-Archive -Path $FILE_NAME -DestinationPath ..\rakudo-win.zip
 
+echo "========= Trigger the MSI build"
+$buildMSIScript = (Join-Path -Path $repoPath -ChildPath "\tools\build\binary-release\msi\build-msi.ps1")
+& $buildMSIScript ${Env:VERSION} $FILE_NAME ..\rakudo-win.msi

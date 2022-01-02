@@ -2,6 +2,7 @@ class CompUnit::Handle {
     has Mu $!module_ctx;
     has Mu $!unit;
 
+    proto submethod new(|) {*}
     multi submethod new() {
         nqp::create(self)
     }
@@ -39,7 +40,7 @@ class CompUnit::Handle {
             my $EXPORT := nqp::atkey($module, 'EXPORT');
             nqp::istype($EXPORT.WHO, Stash)
                 ?? $EXPORT.WHO
-                !! nqp::p6bindattrinvres(nqp::create(Stash), Map, '$!storage', $EXPORT.WHO);
+                !! nqp::p6bindattrinvres(Stash.new, Map, '$!storage', $EXPORT.WHO);
         }
         else {
             Nil
@@ -55,7 +56,7 @@ class CompUnit::Handle {
             my $who := $EXPORTHOW.WHO;
             nqp::istype($who, Stash)
                 ?? $who
-                !! nqp::p6bindattrinvres(nqp::create(Stash), Map, '$!storage', $who);
+                !! nqp::p6bindattrinvres(Stash.new, Map, '$!storage', $who);
         }
         else {
             Nil

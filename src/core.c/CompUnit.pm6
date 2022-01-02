@@ -32,7 +32,7 @@ class CompUnit {
         nqp::push_s($parts,$!auth)             if $!auth;
         nqp::push_s($parts,$!distribution
           ?? CompUnit::Repository::Distribution.new(
-               :dist($!distribution),
+               $!distribution,
                :repo($!repo-id)
              ).Str
           !! $!repo-id

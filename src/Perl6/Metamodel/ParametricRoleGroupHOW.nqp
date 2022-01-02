@@ -17,6 +17,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::BoolificationProtocol
+    does Perl6::Metamodel::InvocationProtocol
 {
     has @!candidates;
     has $!selector;
@@ -29,7 +30,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     my $selector_creator;
@@ -45,6 +46,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $meta.set_pun_repr($meta, $repr) if $repr;
         $meta.set_boolification_mode($type_obj, 5);
         $meta.publish_boolification_spec($type_obj);
+        $meta.publish_type_cache($type_obj);
         self.add_stash($type_obj);
 
         # We use 6model parametrics to make this a parametric type on the
@@ -52,6 +54,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         nqp::setparameterizer($type_obj, sub ($type, @packed) {
             $type.HOW.'!produce_parameterization'($type, @packed);
         });
+
+#?if !moar
+        $meta.compose_invocation($type_obj);
+#?endif
 
         $type_obj
     }
@@ -63,11 +69,10 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     my class NO_NAMEDS { }
 
     method parameterize($obj, *@args, *%named_args) {
-        my int $i := 0;
         my int $n := nqp::elems(@args);
-        while $i < $n {
+        my int $i := -1;
+        while ++$i < $n {
             @args[$i] := nqp::decont(@args[$i]);
-            ++$i;
         }
         nqp::push(@args, %named_args || NO_NAMEDS);
         nqp::parameterizetype($obj, @args);
@@ -106,14 +111,18 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             $selected_body := try_select(|@pos_args, |%named_args);
             CATCH { $error := $! }
         }
+
         if $error {
-            my %ex := nqp::gethllsym('Raku', 'P6EX');
-            if nqp::existskey(%ex, 'X::Role::Parametric::NoSuchCandidate') {
-                %ex{'X::Role::Parametric::NoSuchCandidate'}($obj);
-            }
-            nqp::die("Could not find an appropriate parametric role variant for '" ~
-                self.name($obj) ~ "' using the arguments supplied.\n" ~
-                $error);
+            my $payload := nqp::getpayload($error);
+            my $hint := nqp::getmessage($error) || (nqp::defined($payload) ?? $payload.message !! "");
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Role::Parametric::NoSuchCandidate',
+                "Could not find an appropriate parametric role variant for '"
+                    ~ $obj.HOW.name($obj) ~ "' using the arguments supplied:\n    "
+                    ~ $hint
+                    ,
+                :role($obj), :$hint
+            );
         }
 
         # Locate the role that has that body block.
@@ -202,13 +211,37 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $c.HOW.auth($c)
     }
 
+    method language-revision($obj) {
+        my $c := self.'!get_default_candidate'($obj);
+        nqp::unless(nqp::isnull($c),
+                    $c.HOW.language-revision($c),
+                    nqp::null())
+    }
+
+    method is-implementation-detail($obj) {
+        my $c := self.'!get_default_candidate'($obj);
+        $c.HOW.is-implementation-detail($c)
+    }
+
     method !get_default_candidate($obj) {
-        self.'!get_nonsignatured_candidate'($obj) || @!candidates[0]
+        nqp::ifnull(self.'!get_nonsignatured_candidate'($obj),
+                    nqp::if(
+                        +@!candidates,
+                        @!candidates[0],
+                        nqp::null()))
     }
 
     method !get_nonsignatured_candidate($obj) {
         return nqp::null unless +@!nonsignatured;
         @!nonsignatured[0]
+    }
+
+    method publish_type_cache($obj) {
+        # We can at least include ourself and the types a role pretends to be.
+        my @tc := nqp::clone(self.pretending_to_be());
+        nqp::push(@tc, $obj.WHAT);
+        nqp::settypecache($obj, @tc);
+        nqp::settypecheckmode($obj, 1);
     }
 }
 

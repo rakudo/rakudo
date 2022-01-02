@@ -56,7 +56,7 @@ my class PseudoStash is Map {
           !! self.pairs.sort
     }
 
-    method elems(:$implementation-detail --> Int:D) {
+    method elems(:$implementation-detail) {
         $implementation-detail
           ?? (nextsame)
           !! self.values.elems
@@ -65,14 +65,14 @@ my class PseudoStash is Map {
     multi method WHICH(PseudoStash:D: --> ObjAt:D) { self.Mu::WHICH }
 
     my $pseudoers := nqp::hash(
-        'MY', sub ($cur) {
+        'MY', -> $cur {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', PRECISE_SCOPE);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('MY')),
                 $stash);
         },
-        'CORE', sub ($cur) {
+        'CORE', -> $cur {
             # In 6.c and 6.d implementations of rakudo CORE was always poiting at the outermost setting.
             # XXX If EVAL get :unit option we'd need to check for intermidiate CORE.setting. But for now this code
             # should be ok.
@@ -97,7 +97,7 @@ my class PseudoStash is Map {
                   Metamodel::ModuleHOW.new_type(:name('CORE')),
                     $stash)))
         },
-        'CALLER', sub ($cur) {
+        'CALLER', -> $cur {
             nqp::if(
               nqp::isnull(
                 my Mu $ctx := nqp::ctxcallerskipthunks(
@@ -112,7 +112,7 @@ my class PseudoStash is Map {
                     Metamodel::ModuleHOW.new_type(:name('CALLER')),
                     $stash)))
         },
-        'OUTER', sub ($cur) {
+        'OUTER', -> $cur {
             my Mu $ctx := nqp::ctxouterskipthunks(
               nqp::getattr(nqp::decont($cur),PseudoStash,'$!ctx'));
 
@@ -129,14 +129,14 @@ my class PseudoStash is Map {
                     $stash)
             }
         },
-        'LEXICAL', sub ($cur) {
+        'LEXICAL', -> $cur {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', STATIC_CHAIN);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('LEXICAL')),
                 $stash);
         },
-        'OUTERS', sub ($cur) {
+        'OUTERS', -> $cur {
             my Mu $ctx := nqp::ctxouterskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
 
@@ -153,14 +153,14 @@ my class PseudoStash is Map {
                     $stash)
             }
         },
-        'DYNAMIC', sub ($cur) {
+        'DYNAMIC', -> $cur {
             my $stash := nqp::clone($cur);
             nqp::bindattr_i($stash, PseudoStash, '$!mode', DYNAMIC_CHAIN);
             nqp::setwho(
                 Metamodel::ModuleHOW.new_type(:name('DYNAMIC')),
                 $stash);
         },
-        'CALLERS', sub ($cur) {
+        'CALLERS', -> $cur {
             nqp::if(
               nqp::isnull(
                 my Mu $ctx := nqp::ctxcallerskipthunks(
@@ -175,7 +175,7 @@ my class PseudoStash is Map {
                   Metamodel::ModuleHOW.new_type(:name('CALLERS')),
                   $stash)))
         },
-        'UNIT', sub ($cur) {
+        'UNIT', -> $cur {
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
             until nqp::isnull($ctx) || nqp::existskey(nqp::ctxlexpad($ctx), '!UNIT_MARKER') {
                 $ctx := nqp::ctxouterskipthunks($ctx);
@@ -192,7 +192,7 @@ my class PseudoStash is Map {
                   Metamodel::ModuleHOW.new_type(:name('UNIT')),
                   $stash)))
         },
-        'SETTING', sub ($cur) {
+        'SETTING', -> $cur {
             # Same as UNIT, but go a little further out (two steps, for
             # internals reasons).
             my Mu $ctx := nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx');
@@ -211,13 +211,13 @@ my class PseudoStash is Map {
                   Metamodel::ModuleHOW.new_type(:name('SETTING')),
                   $stash)))
         },
-        'CLIENT', sub ($cur) {
+        'CLIENT', -> $cur {
             my $pkg := nqp::getlexrel(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
                 '$?PACKAGE');
             my Mu $ctx := nqp::ctxcallerskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
-            while nqp::getlexrel($ctx, '$?PACKAGE') === $pkg {
+            while nqp::eqaddr(nqp::getlexrel($ctx, '$?PACKAGE'), $pkg) {
                 $ctx := nqp::ctxcallerskipthunks($ctx);
                 die "No client package found" unless $ctx;
             }
@@ -229,7 +229,7 @@ my class PseudoStash is Map {
                 Metamodel::ModuleHOW.new_type(:name('CLIENT')),
                 $stash);
         },
-        'OUR', sub ($cur) {
+        'OUR', -> $cur {
             nqp::getlexrel(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'),
                 '$?PACKAGE')

@@ -11,7 +11,8 @@ MOAR_PREFIX = @nfp(@moar::prefix@)@
 MOAR        = @nfpq(@moar::bindir@/moar@moar::exe@)@
 @bpv(NQP)@       = @nfpq(@m_nqp@)@
 @bpv(NQP_RR)@    = @bpm(NQP)@
-@bpv(RUN_RAKUDO)@ = $(MOAR) --libpath=@nfpq($(BASE_DIR)/blib)@ --libpath=@q(@bpm(NQP_LIBDIR)@)@ @bsm(RAKUDO)@ --nqp-lib=@nfpq($(BASE_DIR)/blib)@
+@bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-m-early-build
+@bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
 
 @bpv(RUNNER_SUFFIX)@ = @moar::exe@
 
@@ -19,19 +20,16 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(INCPATH)@ = @nfp($(MOAR_PREFIX)/include)@
 @bpv(MOAR_INC_PATHS)@ = \
-	@moar::cincludes@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/moar)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libatomic_ops)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/dyncall)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/moar)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/sha1)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/tinymt)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libtommath)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libuv)@
+    @insert_list(moar_includes)@
 
 @bpv(RAKU)@ = raku@moar::exe@
 @bpv(RAKU_DEBUG)@ = raku-debug@moar::exe@
+@if(platform==windows @bpv(RAKU)@ = raku@moar::exe@
+@bpv(INST_RAKU)@ = inst-raku@moar::exe@
+@bpv(RAKU_DEBUG)@ = raku-debug@moar::exe@
+@bpv(INST_RAKU_DEBUG)@ = inst-raku-debug@moar::exe@
+@bpv(RAKUW)@ = rakuw@moar::exe@
+@bpv(INST_RAKUW)@ = inst-rakuw@moar::exe@)@
 @for_langalias(
 @bpv(@uclangalias@)@ = @langalias@@moar::exe@
 @bpv(@uclangalias@_DEBUG)@ = @langalias@-debug@moar::exe@
@@ -40,7 +38,11 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(INST_@uclangalias@)@ = inst-@langalias@@moar::exe@
 @bpv(INST_@uclangalias@_DEBUG)@ = inst-@langalias@-debug@moar::exe@
 @bpv(INST_@uclangalias@_M)@ = inst-@langalias@-m@moar::exe@
-@bpv(INST_@uclangalias@_DEBUG_M)@ = inst-@langalias@-debug-m@moar::exe@)@
+@bpv(INST_@uclangalias@_DEBUG_M)@ = inst-@langalias@-debug-m@moar::exe@
+@if(platform==windows @bpv(@uclangalias@W)@ = @langalias@w@moar::exe@
+@bpv(@uclangalias@W_M)@ = @langalias@w-m@moar::exe@
+@bpv(INST_@uclangalias@W)@ = inst-@langalias@w@moar::exe@
+@bpv(INST_@uclangalias@W_M)@ = inst-@langalias@w-m@moar::exe@)@)@
 
 @bpv(RAKUDO_OPS_DIR)@  = dynext
 @bpv(RAKUDO_OPS_DLL)@  = @bpm(RAKUDO_OPS_DIR)@@nfp(/@perl6_ops_dll@)@
@@ -55,20 +57,36 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @tab@@bpm(INST_@uclangalias@_DEBUG)@ \
 @tab@@bpm(INST_@uclangalias@_M)@ \
 @tab@@bpm(INST_@uclangalias@_DEBUG_M)@ \
+@if(platform==windows @tab@@bpm(INST_@uclangalias@W)@ \
+@tab@@bpm(INST_@uclangalias@W_M)@ \
+)@)@@if(platform==windows @tab@@bpm(INST_RAKU)@ \
+@tab@@bpm(INST_RAKU_DEBUG)@ \
+@tab@@bpm(INST_RAKUW)@ \
 )@@for_langalias(@for_toolchain(@tab@@bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
 )@)@
 
 @bpv(CLEANUPS)@ = \
   $(R_SETTING_MOAR) \
-  inst-rakudo-m@moar::obj@ \
-  inst-rakudo-debug-m@moar::obj@ \
-  inst-rakudo@moar::obj@ \
-  inst-rakudo-debug@moar::obj@ \
-@for_langalias( @bpm(INST_@uclangalias@)@ \
+  @bpm(RUN_RAKUDO_SCRIPT)@ \
+@for_langalias(  @bpm(INST_@uclangalias@)@ \
   @bpm(INST_@uclangalias@_DEBUG)@ \
   @bpm(INST_@uclangalias@_M)@ \
   @bpm(INST_@uclangalias@_DEBUG_M)@ \
-)@  @bpm(RAKUDO_OPS_DLL)@ \
+  @bpm(INST_@uclangalias@W)@ \
+  @bpm(INST_@uclangalias@W_M)@ \
+  @bpm(INST_@uclangalias@)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_DEBUG)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_M)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_DEBUG_M)@@moar::obj@ \
+  @bpm(INST_@uclangalias@W)@@moar::obj@ \
+  @bpm(INST_@uclangalias@W_M)@@moar::obj@ \
+)@  @bpm(INST_RAKU)@ \
+  @bpm(INST_RAKU_DEBUG)@ \
+  @bpm(INST_RAKUW)@ \
+  @bpm(INST_RAKU)@@moar::obj@ \
+  @bpm(INST_RAKU_DEBUG)@@moar::obj@ \
+  @bpm(INST_RAKUW)@@moar::obj@ \
+  @bpm(RAKUDO_OPS_DLL)@ \
   @bpm(RAKUDO_OPS_OBJ)@ \
 @for_langalias(@for_toolchain(  @bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
 )@)@  rakudo-m.c \
@@ -76,9 +94,6 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   rakudo.c \
   rakudo@moar::obj@ \
   rakudo@moar::exe@ \
-  inst-perl6*@moar::obj@ \
-  inst-perl6*@moar::exe@ \
-  @bpm(INST_PERL6)@ \
   perl6@moar::exe@
 
 @bpv(RAKUDO_OPS_EXTRA)@ = @bpm(RAKUDO_OPS_DLL)@
@@ -92,6 +107,8 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(RUN_CLEAN_TARGET_FILES)@ = @nfp(@base_dir@/@bpm(RUNNER)@)@ @script(clean-target-files.raku)@ $(VERBOSE)
 
+@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/09-moar)@
+
 @include(Makefile-backend-common)@
 
 @bpm(RAKUDO_OPS_DLL)@: @bpm(RAKUDO_OPS_DLL_SRC)@
@@ -99,7 +116,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @moar::ccshared@ @bpm(CFLAGS)@ @bpm(MOAR_INC_PATHS)@ @moar::ccout@@bpm(RAKUDO_OPS_OBJ)@ @bpm(RAKUDO_OPS_DLL_SRC)@
 	$(NOECHO)@bpm(LD)@ @moar::ldswitch@ @moar::lddir@"@moar::libdir@" @moar::ldshared@ @bpm(LDFLAGS)@ @bpm(LDLIBS)@ @moar::ldout@@bpm(RAKUDO_OPS_DLL)@ @bpm(RAKUDO_OPS_OBJ)@ @moar_lib@
 
-$(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING_SRC)
+$(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTING_SRC) @bpm(RUN_RAKUDO_SCRIPT)@
 	$(NOECHO)@bpm(RUN_RAKUDO)@ --target=@btarget@ --ll-exception --output=$(R_SETTING_MOAR) $(R_SETTING_SRC)
 
 @backend_prefix@-runner-default: @bpm(INST_RAKUDO)@ @bpm(INST_RAKUDO_DEBUG)@
@@ -115,6 +132,14 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 	-$(NOECHO)$(CHMOD) 755 $@
 )@)@)@
 
+@bpm(RUN_RAKUDO_SCRIPT)@: @@nfp(@template(@backend_subdir@/rakudo-m-early-build.in)@)@@
+	$(NOECHO)$(RM_F) @q(@bpm(RUN_RAKUDO_SCRIPT)@)@
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/@bpm(RUN_RAKUDO_SCRIPT)@)@ --out @bpm(RUN_RAKUDO_SCRIPT)@ \
+		--set-var=base_dir=@nfpq(@base_dir@)@ \
+		--set-var=moar=$(MOAR) \
+		--set-var=nqp_libdir=@nfpq(@nqp::libdir@)@ \
+		--set-var=rakudo=@bsm(RAKUDO)@
+
 @bpm(RUNNER)@: @@configure_script@@ @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ @@nfp(@template(@backend_subdir@/rakudo-m-build.c.in)@)@@ @@nfp(@template(@backend_subdir@/rakudo-m-build.c.windows)@)@@
 	@echo(+++ Generating	$@)@
 	$(NOECHO)$(RM_F) @q(@bpm(RUNNER)@)@
@@ -123,7 +148,8 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 		--set-var=base_dir=@shquot(@nfp(@base_dir@)@)@ \
 		--set-var=nqp_lib_dir=@shquot(@nfp(@nqp::libdir@)@)@ \
 		--set-var=exec_name=@shquot(@nfp(@base_dir@/@bpm(RUNNER)@)@)@ \
-		--set-var=mbc=@bsm(RAKUDO)@
+		--set-var=mbc=@bsm(RAKUDO)@ \
+		--set-var=nqp_home=@shquot(@nfp(@nqp_home@)@)@
 	$(NOECHO)@bpm(CC)@ @moar::ccswitch@ @bpm(CFLAGS)@ @moar::ccout@rakudo-m@moar::obj@ rakudo-m.c
 	$(NOECHO)@bpm(LD)@ @moar::ldout@$@ @bpm(LDFLAGS)@ @bpm(MINGW_UNICODE)@ rakudo-m@moar::obj@
 
@@ -140,6 +166,15 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
         '@bpm(INST_RAKUDO_M)@'       => '@bpm(RAKUDO_M)@',
         '@bpm(INST_RAKUDO_DEBUG_M)@' => '@bpm(RAKUDO_DEBUG_M)@',
     );
+    if ($cfg->cfg('platform') eq 'windows') {
+		$execs{'@bpm(INST_PERL6W)@'}     = '@bpm(PERL6W)@';
+		$execs{'@bpm(INST_PERL6W_M)@'}   = '@bpm(PERL6W_M)@';
+		$execs{'@bpm(INST_RAKUDOW)@'}    = '@bpm(RAKUDOW)@';
+		$execs{'@bpm(INST_RAKUDOW_M)@'}  = '@bpm(RAKUDOW_M)@';
+		$execs{'@bpm(INST_RAKU)@'}       = '@bpm(RAKU)@';
+		$execs{'@bpm(INST_RAKU_DEBUG)@'} = '@bpm(RAKU_DEBUG)@';
+		$execs{'@bpm(INST_RAKUW)@'}      = '@bpm(RAKUW)@';
+	}
     for my $build (keys %execs) {
         my $installed = $macros->expand($execs{$build});
 		$build = $macros->expand($build);
@@ -152,6 +187,10 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
             '-DSTATIC_EXEC_PATH=' . $qchar . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed )) . $qchar
             if $config{relocatable} eq 'nonreloc';
         $vars{debug_flag} = '-DMOAR_RAKUDO_RUNNER_DEBUG' if $build =~ /DEBUG/;
+        if ($build !~ /RAKUW|RAKUDOW|PERL6W/) {
+            $vars{subsystem_win_ld_flags} = '';
+            $vars{subsystem_win_cc_flags} = '';
+        }
         $vars{obj_file} = $obj;
         my $scope = $cfg->push_config(%vars);
         $out .= $macros->expand('@insert(Makefile-gen-c-runner)@');
@@ -165,7 +204,7 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 @backend_prefix@-test6   : @backend_prefix@-coretest6
 
 @backend_prefix@-coretest6: @backend_prefix@-all
-	@bpm(HARNESS6)@ @nfpl(t/01-sanity t/02-rakudo t/04-nativecall t/05-messages t/06-telemetry t/07-pod-to-text t/08-performance t/09-moar t/10-qast)@
+	@bpm(HARNESS6)@ $(COMMON_TEST_DIRS) @bsm(SPECIFIC_TEST_DIRS)@
 
 # Run the spectests that we know work.
 @backend_prefix@-spectest6: @backend_prefix@-testable $(SPECTEST_DATA)
@@ -206,14 +245,13 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@ @for_specs($(SETTING_@ucspec@_MOAR) )@$(R_SETTING_MOAR)
 	$(NOECHO)@bpm(RUN_CLEAN_TARGET_FILES)@ @nfpq($(DESTDIR)$(PREFIX)/bin)@ @bsm(RAKUDO)@ @bsm(RAKUDO_DEBUG)@ @bsm(PERL6)@ @bsm(PERL6_DEBUG)@
 
-@backend_prefix@-install-main:: @@bpm(RAKUDO_OPS_DLL)@@ $(R_SETTING_MOAR) @@bpm(INST_RAKUDO_M)@@ @@bpm(INST_RAKUDO_DEBUG_M)@@
+@backend_prefix@-install-main:: @@bpm(RAKUDO_OPS_DLL)@@ $(R_SETTING_MOAR) @for_langalias(@@bpm(INST_@uclangalias@_M)@@ @@bpm(INST_@uclangalias@_DEBUG_M)@@ @if(platform==windows @@bpm(INST_@uclangalias@W_M)@@ )@)@
 	$(NOECHO)$(CP) @bpm(RAKUDO_OPS_DLL)@ @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime/dynext)@
 	$(NOECHO)$(CP) $(R_SETTING_MOAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
 @for_langalias(
 	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_M)@)@
 	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_DEBUG_M)@)@
-	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_M)@)@
-	$(NOECHO)$(CP) @bpm(INST_@uclangalias@_DEBUG_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@_DEBUG_M)@)@
+	@if(platform==windows $(NOECHO)$(CP) @bpm(INST_@uclangalias@W_M)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(@uclangalias@W_M)@)@)@
 )@@if(platform!=windows @for_langalias(@for_toolchain(@insert(Makefile-install)@)@)@
 )@@if(platform==windows @m_install@)@
 
@@ -224,15 +262,20 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
 	@echo(+++ Installing @uc(@backend@)@ launchers)@
 	$(NOECHO)$(CP) @bpm(INST_RAKUDO)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@
 	$(NOECHO)$(CP) @bpm(INST_RAKUDO_DEBUG)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6)@)@
-	$(NOECHO)$(CP) @bpm(INST_RAKUDO_DEBUG)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6_DEBUG)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6_DEBUG)@)@
+@if(platform==windows
+	$(NOECHO)$(CP) @bpm(INST_RAKUDOW)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDOW)@)@
+	$(NOECHO)$(CP) @bpm(INST_PERL6W)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(PERL6W)@)@
+)@
 @if(with_raku_alias==on @tab@@echo(+++ Creating Raku executable alias)@
 @if(platform!=windows
 	$(NOECHO)$(LN_S) @nfpq(./@bpm(RAKUDO)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
 	$(NOECHO)$(LN_S) @nfpq(./@bpm(RAKUDO_DEBUG)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
 )@@if(platform==windows
-	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
-	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUDO_DEBUG)@)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
+	$(NOECHO)$(CP) @bpm(INST_RAKU)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU)@)@
+	$(NOECHO)$(CP) @bpm(INST_RAKU_DEBUG)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKU_DEBUG)@)@
+	$(NOECHO)$(CP) @bpm(INST_RAKUW)@ @nfpq($(DESTDIR)$(PREFIX)/bin/@bpm(RAKUW)@)@
 )@
 )@
 manifest:
@@ -243,7 +286,7 @@ manifest:
 	@nowcho@find @nfp(t/spec)@ -type f | grep -v '\.git' >>MANIFEST
 	@nowcho@sort -u -o MANIFEST MANIFEST
 
-release: manifest
+release: manifest @bpm(RUN_RAKUDO_SCRIPT)@
 	$(NOECHO)[ -n "$(VERSION)" ] || ( echo "\nTry 'make release VERSION=yyyy.mm'\n\n"; exit 1 )
 	@echo(+++ Releasing $(VERSION))@
 	$(NOECHO)bash -c '[ "$$(cat VERSION)" == "$(VERSION)" ] || ( echo -e "\nVersion on command line and in VERSION file differ\n"; exit 1 )'

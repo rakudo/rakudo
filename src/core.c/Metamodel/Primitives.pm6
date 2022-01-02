@@ -1,8 +1,9 @@
 my class Metamodel::Primitives {
     method create_type(Mu $how, $repr = 'P6opaque', :$mixin = False) {
-        $mixin
+        my \type = $mixin
             ?? nqp::newmixintype($how, $repr.Str)
-            !! nqp::newtype($how, $repr.Str)
+            !! nqp::newtype($how, $repr.Str);
+        nqp::settypehll(type, 'Raku')
     }
 
     method set_package(Mu $type, $package) {
@@ -11,12 +12,14 @@ my class Metamodel::Primitives {
     }
 
     method install_method_cache(Mu $type, %cache, :$authoritative = True) {
+#?if !moar
         my Mu $cache := nqp::hash();
         for %cache.kv -> $name, $meth {
             nqp::bindkey($cache, $name, nqp::decont($meth));
         }
         nqp::setmethcache($type, $cache);
         nqp::setmethcacheauth($type, $authoritative ?? 1 !! 0);
+#?endif
         $type
     }
 
@@ -64,6 +67,29 @@ my class Metamodel::Primitives {
 
     method is_type(Mu \obj, Mu \type) {
         nqp::hllbool(nqp::istype(obj, type))
+    }
+
+    method set_parameterizer(Mu \obj, &parameterizer --> Nil) {
+        my $wrapper := -> |c { parameterizer(|c) }
+        nqp::setparameterizer(obj, nqp::getattr(nqp::decont($wrapper), Code, '$!do'))
+    }
+
+    method parameterize_type(Mu \obj, +parameters --> Mu) {
+        my Mu $parameters := nqp::list();
+        nqp::push($parameters, $_) for parameters;
+        nqp::parameterizetype(obj, $parameters)
+    }
+
+    method type_parameterized(Mu \obj --> Mu) {
+        nqp::typeparameterized(obj)
+    }
+
+    method type_parameters(Mu \obj --> List:D) {
+        nqp::hllize(nqp::typeparameters(obj))
+    }
+
+    method type_parameter_at(Mu \obj, Int:D $idx --> Mu) is raw {
+        nqp::typeparameterat(obj, nqp::decont_i($idx))
     }
 }
 

@@ -1,3 +1,5 @@
+# MoarVM uses new-disp instead of these
+#?if !moar
 class Perl6::Metamodel::BaseDispatcher {
     has @!candidates;
     has $!idx;
@@ -143,13 +145,12 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
 
     method remove($wrapper) {
         my @cands := self.candidates;
-        my $i := 0;
-        while $i < +@cands {
+        my int $i := -1;
+        while ++$i < +@cands {
             if nqp::decont(@cands[$i]) =:= nqp::decont($wrapper) {
                 nqp::splice(@cands, [], $i, 1);
                 return 1;
             }
-            $i := $i + 1;
         }
         return 0;
     }
@@ -176,5 +177,6 @@ class Perl6::Metamodel::WrapDispatcher is Perl6::Metamodel::BaseDispatcher {
         nqp::invokewithcapture($first, $capture);
     }
 }
+#?endif
 
 # vim: expandtab sw=4

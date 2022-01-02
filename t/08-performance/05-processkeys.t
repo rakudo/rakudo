@@ -6,6 +6,7 @@ my $allowed = (
   Q{$AWAITER},
   Q{$CWD},
   Q{$CORE-SETTING-REV},
+  Q{$DISTRO},
   Q{$ERR},
   Q{$IN},
   Q{$OUT},

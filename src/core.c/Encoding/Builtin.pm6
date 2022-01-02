@@ -7,11 +7,9 @@ class Encoding::Builtin does Encoding {
     }
 
     method SET-SELF(\name, \alternatives) is implementation-detail {
-        nqp::stmts(
-          ($!name := name),
-          ($!alternative-names := alternatives),
-          self
-        )
+        $!name := name;
+        $!alternative-names := alternatives;
+        self
     }
 
     method alternative-names() { $!alternative-names }
@@ -33,10 +31,10 @@ class Encoding::Builtin does Encoding {
             !! $encoder
     }
 
-#?if moar
+#?if !js
     my constant $enc_type = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $enc_type := nqp::hash(
 #?endif
       'utf8',utf8,'utf16',utf16,'utf32',utf32

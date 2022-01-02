@@ -14,6 +14,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
     does Perl6::Metamodel::ArrayType
+    does Perl6::Metamodel::InvocationProtocol
 {
     has $!composed;
     has $!body_block;
@@ -29,7 +30,7 @@ class Perl6::Metamodel::ParametricRoleHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     my $anon_id := 1;
@@ -82,12 +83,18 @@ class Perl6::Metamodel::ParametricRoleHOW
             @rtl.push($!group);
         }
         for self.roles_to_compose($obj) {
-            @rtl.push($_);
-            for $_.HOW.role_typecheck_list($_) {
+            my $how := $_.HOW;
+            if $how.archetypes.composable || $how.archetypes.composalizable {
                 @rtl.push($_);
+                for $_.HOW.role_typecheck_list($_) {
+                    @rtl.push($_);
+                }
             }
         }
         @!role_typecheck_list := @rtl;
+#?if !moar
+        self.compose_invocation($obj);
+#?endif
         $!composed := 1;
         $obj
     }
@@ -146,37 +153,37 @@ class Perl6::Metamodel::ParametricRoleHOW
             my $conc := nqp::if(nqp::can($class.HOW, 'get_cached_conc'),
                         $class.HOW.get_cached_conc($class, $obj, @pos_args, %named_args),
                         nqp::null());
-            return $conc unless nqp::isnull($conc);
+            if (nqp::isnull($conc)) {
+                # Pre-create a concrete role. We'll finalize it later, in specialize_with method. But for now we need it
+                # to initialize $?CONCRETIZATION by role's body block.
+                my $*MOP-ROLE-CONCRETIZATION := $conc :=
+                    $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
+                $conc.HOW.set_language_revision($conc, $obj.HOW.language-revision($obj));
+                $conc.HOW.set_hidden($conc) if $obj.HOW.hidden($obj);
 
-            # Pre-create a concrete role. We'll finalize it later, in specialize_with method. But for now we need it
-            # to initialize $?CONCRETIZATION by role's body block.
-            my $*MOP-ROLE-CONCRETIZATION := $conc :=
-                $concrete.new_type(:roles([$obj]), :name(self.name($obj)));
-            $conc.HOW.set_language_revision($conc, $obj.HOW.language-revision($obj));
-            $conc.HOW.set_hidden($conc) if $obj.HOW.hidden($obj);
-
-            # Run the body block to get the type environment (we know
-            # the role in this case).
-            my $type_env;
-            my $error;
-            try {
-                my @result := $!body_block(|@pos_args, |%named_args);
-                $type_env := @result[1];
-                CATCH {
-                    $error := $!
+                # Run the body block to get the type environment (we know
+                # the role in this case).
+                my $type_env;
+                my $error;
+                try {
+                    my @result := $!body_block(|@pos_args, |%named_args);
+                    $type_env := @result[1];
+                    CATCH {
+                        $error := $!
+                    }
                 }
-            }
-            if $error {
-                nqp::die("Could not instantiate role '" ~ self.name($obj)
-                         ~ "':\n" ~ (nqp::getpayload($error) || nqp::getmessage($error)))
-            }
+                if $error {
+                    nqp::die("Could not instantiate role '" ~ self.name($obj)
+                             ~ "':\n" ~ (nqp::getpayload($error) || nqp::getmessage($error)))
+                }
 
-            # Use it to build a concrete role.
-            $conc := self.specialize_with($obj, $conc, $type_env, @pos_args);
-            nqp::if(
-                nqp::can($class.HOW, 'add_conc_to_cache'),
-                $class.HOW.add_conc_to_cache($class, $obj, @pos_args, %named_args, $conc)
-            );
+                # Use it to build a concrete role.
+                $conc := self.specialize_with($obj, $conc, $type_env, @pos_args);
+                nqp::if(
+                    nqp::can($class.HOW, 'add_conc_to_cache'),
+                    $class.HOW.add_conc_to_cache($class, $obj, @pos_args, %named_args, $conc)
+                );
+            }
             $conc
         })
     }
@@ -211,6 +218,16 @@ class Perl6::Metamodel::ParametricRoleHOW
             my $ins := my $r := $_;
             if $_.HOW.archetypes.generic {
                 $ins := $ins.HOW.instantiate_generic($ins, $type_env);
+                unless $ins.HOW.archetypes.parametric {
+                    my $target-name := $obj.HOW.name($obj);
+                    my $role-name := $ins.HOW.name($ins);
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::Composition::NotComposable',
+                        $role-name ~ " is not composable, so " ~ $target-name ~ " cannot compose it",
+                        :$target-name,
+                        composer => $ins,
+                    )
+                }
                 $conc.HOW.add_to_role_typecheck_list($conc, $ins);
             }
             $ins := $ins.HOW.specialize($ins, @pos_args[0]);
@@ -222,7 +239,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         # the case they're generic (role Foo[::T] is T { })
         for self.parents($obj, :local(1)) {
             my $p := $_;
-            if $_.HOW.archetypes.generic {
+            if $p.HOW.archetypes.generic {
                 $p := $p.HOW.instantiate_generic($p, $type_env);
             }
             $conc.HOW.add_parent($conc, $p, :hides(self.hides_parent($obj, $_)));
@@ -242,7 +259,7 @@ class Perl6::Metamodel::ParametricRoleHOW
         return $conc;
     }
 
-    method mro($obj, :$roles = 0, :$unhidden = 0) {
+    method mro($obj, :$roles, :$concretizations, :$unhidden) {
         [$obj]
     }
 }

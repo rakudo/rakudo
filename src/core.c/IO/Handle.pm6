@@ -1,6 +1,3 @@
-my class IO::Path { ... }
-my class Proc { ... }
-
 my class IO::Handle {
     has $.path;
     has $!PIO;
@@ -13,10 +10,9 @@ my class IO::Handle {
     has int $!out-buffer;
 
     submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
-        nqp::if(
-          $bin,
-          nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
-          $!encoding = $encoding || 'utf8')
+        $bin
+          ?? nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw
+          !! ($!encoding = $encoding || 'utf8')
     }
 
 #?if moar
@@ -58,7 +54,7 @@ my class IO::Handle {
         }
     }
 #?endif
-#?if !moar    
+#?if !moar
     method do-not-close-automatically(IO::Handle:D: --> False) { }
 #?endif
 
@@ -257,10 +253,14 @@ my class IO::Handle {
         nqp::readfh($!PIO,nqp::create(buf8.^pun),$bytes)
     }
 
+    method !failed($trying) {
+        ($!PIO ?? X::IO::BinaryMode !! X::IO::Closed).new(:$trying).throw
+    }
+
     method get(IO::Handle:D:) {
         $!decoder
           ?? $!decoder.consume-line-chars(:$!chomp) // self!get-line-slow-path()
-          !! X::IO::BinaryMode.new(:trying<get>).throw
+          !! self!failed('get')
     }
 
     method !get-line-slow-path() {
@@ -285,20 +285,21 @@ my class IO::Handle {
 
     method getc(IO::Handle:D:) {
         $!decoder
-          ?? $!decoder.consume-exactly-chars(1) || (self!readchars-slow-path(1) || Nil)
-          !! X::IO::BinaryMode.new(:trying<getc>).throw
+          ?? $!decoder.consume-exactly-chars(1)
+               || (self!readchars-slow-path(1) || Nil)
+          !! self!failed('getc')
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type
     method comb (IO::Handle:D: :$close, |c) {
         $!decoder
           ?? self.slurp(:$close).comb( |c )
-          !! X::IO::BinaryMode.new(:trying<comb>).throw
+          !! self!failed('comb')
     }
     method split(IO::Handle:D: :$close, |c) {
         $!decoder
           ?? self.slurp(:$close).split( |c )
-          !! X::IO::BinaryMode.new(:trying<split>).throw
+          !! self!failed('split')
     }
 
     proto method words (|) {*}
@@ -310,26 +311,17 @@ my class IO::Handle {
               ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
                   self.words.iterator, $limit.Int, {SELF.close}))
               !! self.words.head($limit.Int)
-          !! X::IO::BinaryMode.new(:trying<words>).throw
+          !! self!failed('words')
     }
 
     my class Words does Iterator {
-        has $!handle;
-        has $!close;
-        has str $!str;
+        has $!handle is built(:bind);
+        has $!close  is built(:bind);
+        has str $!str= ""; # https://github.com/Raku/old-issue-tracker/issues/4690;
+        has int $!searching = 1;
         has int $!pos;
-        has int $!searching;
 
-        method !SET-SELF(\handle, $!close) {
-            $!handle   := handle;
-            $!searching = 1;
-            $!str       = ""; # https://github.com/Raku/old-issue-tracker/issues/4690
-            self!next-chunk;
-            self
-        }
-        method new(\handle, \close) {
-            nqp::create(self)!SET-SELF(handle, close);
-        }
+        method TWEAK() { self!next-chunk }
         method !next-chunk() {
             my int $chars = nqp::chars($!str);
             $!str = $!pos < $chars ?? nqp::substr($!str,$!pos) !! "";
@@ -403,8 +395,8 @@ my class IO::Handle {
     }
     multi method words(IO::Handle:D: :$close) {
         $!decoder
-          ?? Seq.new(Words.new(self,$close))
-          !! X::IO::BinaryMode.new(:trying<words>).throw
+          ?? Seq.new(Words.new(:handle(self), :$close))
+          !! self!failed('words')
     }
 
     my class GetLineFast does Iterator {
@@ -505,7 +497,7 @@ my class IO::Handle {
           ?? nqp::eqaddr(self.WHAT,IO::Handle)
             ?? GetLineFast.new(self,$close)   # exact type, can shortcircuit
             !! GetLineSlow.new(self,$close)   # can *NOT* shortcircuit .get
-          !! X::IO::BinaryMode.new(:trying<lines>).throw
+          !! self!failed('lines')
     }
 
     proto method lines (|) {*}
@@ -545,7 +537,7 @@ my class IO::Handle {
     method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
         $!decoder
           ?? $!decoder.consume-exactly-chars($chars) // self!readchars-slow-path($chars)
-          !! X::IO::BinaryMode.new(:trying<readchars>).throw
+          !! self!failed('readchars')
     }
 
     method !readchars-slow-path($chars) {
@@ -668,15 +660,15 @@ my class IO::Handle {
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(x))
-          !! X::IO::BinaryMode.new(:trying<print>).throw
+          !! self!failed('print')
     }
     multi method print(IO::Handle:D: \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(x.Str))
-          !! X::IO::BinaryMode.new(:trying<print>).throw
+          !! self!failed('print')
     }
     multi method print(IO::Handle:D: | --> True) {
-        X::IO::BinaryMode.new(:trying<print>).throw unless $!decoder;
+        self!failed('print') unless $!decoder;
 
         my Mu $args := nqp::p6argvmarray;
         nqp::shift($args);
@@ -690,15 +682,15 @@ my class IO::Handle {
     multi method put(IO::Handle:D: --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars($!nl-out))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
+          !! self!failed('say')
     }
     multi method put(IO::Handle:D: \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.Str, $!nl-out)))
-          !! X::IO::BinaryMode.new(:trying<put>).throw
+          !! self!failed('put')
     }
     multi method put(IO::Handle:D: | --> True) {
-        X::IO::BinaryMode.new(:trying<say>).throw unless $!decoder;
+        self!failed('put') unless $!decoder;
 
         my Mu $args := nqp::p6argvmarray;
         nqp::shift($args);
@@ -710,15 +702,15 @@ my class IO::Handle {
     multi method say(IO::Handle:D: --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars($!nl-out))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
+          !! self!failed('say')
     }
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.gist,$!nl-out)))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
+          !! self!failed('say')
     }
     multi method say(IO::Handle:D: | --> True) {
-        X::IO::BinaryMode.new(:trying<say>).throw unless $!decoder;
+        self!failed('say') unless $!decoder;
 
         my Mu $args := nqp::p6argvmarray;
         nqp::shift($args);
@@ -735,7 +727,7 @@ my class IO::Handle {
     method print-nl(IO::Handle:D: --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars($!nl-out))
-          !! X::IO::BinaryMode.new(:trying<print-nl>).throw
+          !! self!failed('print-nl')
     }
 
     proto method slurp-rest(|) {*}
@@ -753,10 +745,11 @@ my class IO::Handle {
         }
     }
     multi method slurp-rest(IO::Handle:D: :$enc, :$bin, :$close --> Str:D) {
+        self!failed('slurp-rest') unless $!decoder;
+
         # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
         # Testing of it in roast master has been removed and only kept in 6.c
         # If you're changing this code for whatever reason, test with 6.c-errata
-        $!decoder or X::IO::BinaryMode.new(:trying<slurp-rest>).throw;
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
         self!slurp-all-chars()

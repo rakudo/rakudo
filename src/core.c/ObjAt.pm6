@@ -29,10 +29,14 @@ my class ObjAt { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(ObjAt:D \a, ObjAt:D \b --> Bool:D) {
+my class ValueObjAt { # declared in BOOTSTRAP
+    # class ValueObjAt is ObjAt
+}
+
+multi sub infix:<eqv>(ObjAt:D $a, ObjAt:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && nqp::iseq_s(a,b))
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b))
+        || (nqp::eqaddr($a.WHAT,$b.WHAT) && nqp::iseq_s($a,$b))
     )
 }
 

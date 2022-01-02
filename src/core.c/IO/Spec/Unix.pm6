@@ -206,7 +206,7 @@ my class IO::Spec::Unix is IO::Spec {
         )
     }
     method splitdir(Cool:D $path) {
-        nqp::p6bindattrinvres((), List, '$!reified', nqp::split('/', $path.Str))
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', nqp::split('/', $path.Str))
         || ('',)
     }
     method catfile( |c )     { self.catdir(|c) }

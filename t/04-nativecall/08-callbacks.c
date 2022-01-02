@@ -17,6 +17,11 @@ DLLEXPORT void TakeACallback(void (*cb)(void)) {
     cb();
 }
 
+DLLEXPORT void OptionallyTakeACallback(void (*cb)(void)) {
+       if ( cb )
+        cb();
+}
+
 DLLEXPORT void TakeIntCallback(void (*cb)(int)) {
     cb(17);
 }
@@ -49,4 +54,9 @@ DLLEXPORT int CheckReturnsStruct(Struct *(*cb)()) {
     if(s->ival != 314) return 1;
     if(strcmp(s->str, "Tweedledum, tweedledee")) return 2;
     return 8;
+}
+
+static int pass = 0;
+DLLEXPORT int CheckChangingCallback(int (*cb)()) {
+    return cb() - pass++;
 }

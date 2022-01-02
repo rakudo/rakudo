@@ -1,13 +1,15 @@
 
 @bpv(NQP)@ = @js_nqp@
-@bpv(RUNTIME)@ = @nqp::libdir@@nfp(/nqp-js-on-js/node_modules/nqp-runtime)@
-@bpv(NQP_BASE_FLAGS)@ = --nqp-runtime @bpm(RUNTIME)@ --perl6-runtime @perl6_runtime@ --libpath "@bpm(BLIB)@|||@nqp::libdir@@nfp(/nqp-js-on-js/)@"
-@bpv(NQP_FLAGS)@ = @bpm(NQP_BASE_FLAGS)@ --substagestats --stagestats --source-map
+@bpv(NQP_RUNTIME)@ = @nfp(@nqp::libdir@/nqp-js-on-js/node_modules/nqp-runtime)@
+@bpv(PERL6_RUNTIME)@ = @perl6_runtime@
+@bpv(NQP_FLAGS)@ = --nqp-runtime @bpm(RUNTIME)@ --perl6-runtime @perl6_runtime@ --libpath "@bpm(BLIB)@|||@nqp::libdir@@nfp(/nqp-js-on-js/)@" --source-map --substagestats --stagestats
 @bpv(NQP_FLAGS_EXTRA)@ = --execname @bpm(RUNNER)@ --shebang
-@bpv(RUN_RAKUDO)@ = node --max-old-space-size=8192 rakudo.js @bpm(NQP_BASE_FLAGS)@ --source-map
+@bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-js-build
+@bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
 
 @bpv(CLEANUPS)@ = \
 	@bsm(RAKUDO)@ \
+	@bpm(RUN_RAKUDO_SCRIPT)@ \
 	@nfp(@base_dir@/*.js.map)@ \
 	@nfp(@bpm(BLIB)@/*.js.map)@ \
 	@bpm(BLIB_RAKUDO)@/load-compiler.js \
@@ -20,12 +22,23 @@
 	@echo(!!! Installing the js backend is not yet implemented.)@
 	$(NOECHO)exit 1
 
+@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/11-js)@
+
 @include(Makefile-backend-common)@
 
 # files we create
 
 @nfp(@bpm(BLIB)@/load-compiler.js)@: @nfp(src/vm/js/load-compiler.nqp)@ @bsm(RAKUDO_G)@ @bsm(RAKUDO_A)@ @bsm(RAKUDO_C)@ @bsm(RAKUDO_P)@
 	@$(JS_NQP) $(JS_NQP_FLAGS) --target=js --output=$@ $<
+
+@bpm(RUN_RAKUDO_SCRIPT)@: @@nfp(@template(@backend_subdir@/rakudo-js-build.in)@)@@
+	$(NOECHO)$(RM_F) @q(@bpm(RUN_RAKUDO_SCRIPT)@)@
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/@bpm(RUN_RAKUDO_SCRIPT)@)@ --out @bpm(RUN_RAKUDO_SCRIPT)@ \
+		--set-var=base_dir=@q(@base_dir@)@ \
+		--set-var=nqp_runtime=@q(@bpm(NQP_RUNTIME)@)@ \
+		--set-var=perl6_runtime=@q(@bpm(PERL6_RUNTIME)@)@ \
+		--set-var=libpath=@q(@bpm(BLIB)@|||@nfp(@nqp::libdir@/nqp-js-on-js/)@)@ \
+		--set-var=nqp_base_flags=@sh_quot(@bpm(NQP_BASE_FLAGS)@)@
 
 @bpm(RUNNER)@:
 	@echo(+++ Creating JS runner)@

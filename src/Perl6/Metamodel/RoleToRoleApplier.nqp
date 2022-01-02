@@ -21,8 +21,10 @@ my class RoleToRoleApplier {
                 my $meth_iterator := nqp::iterator(@methods);
                 for @meth_names -> $name {
                     my $meth := nqp::shift($meth_iterator);
-                    # Don't apply submethods for v6.e targets.
-                    next unless $with_submethods || !nqp::istype($meth, $submethod_type);
+                    # Only transfer submethods from pre-6.e roles into pre-6.e classes.
+                    next unless !nqp::istype($meth, $submethod_type)
+                                || ($with_submethods
+                                    && $role.HOW.lang-rev-before($role, 'e'));
                     my @meth_list;
                     my @meth_providers;
                     if nqp::existskey(%meth_info_to_use, $name) {
@@ -157,7 +159,9 @@ my class RoleToRoleApplier {
                 for $how.multi_methods_to_incorporate($role) {
                     my $name := $_.name;
                     my $to_add := $_.code;
-                    next if !$with_submethods && nqp::istype($to_add, $submethod_type);
+                    next unless nqp::istype($to_add, $submethod_type)
+                                || ($with_submethods
+                                    && $role.HOW.lang-rev-before($role, 'e'));
                     my $yada := 0;
                     try { $yada := $to_add.yada; }
                     if $yada {
@@ -190,7 +194,6 @@ my class RoleToRoleApplier {
         # Look for conflicts, and compose non-conflicting.
         for @multi_names -> $name {
             my @cands := %multis_by_name{$name};
-            my @collisions;
             for @cands -> $c1 {
                 my @collides;
                 for @cands -> $c2 {

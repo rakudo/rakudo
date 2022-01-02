@@ -13,8 +13,8 @@ my class Backtrace::Frame {
         $!code := code;
         self
     }
-    multi method new(Backtrace::Frame: \file,\line,\code,\subname) {
-        nqp::create(self)!SET-SELF(file,line,code,subname)
+    multi method new(Backtrace::Frame: $file, $line, $code, $subname) {
+        nqp::create(self)!SET-SELF($file, $line, $code, $subname)
     }
     multi method new(Backtrace::Frame: |c) {
         self.bless(|c)
@@ -51,11 +51,9 @@ my class Backtrace::Frame {
     }
 
     method is-hidden(Backtrace::Frame:D:) {
-        nqp::if(
-          nqp::can($!code,"is-hidden-from-backtrace"),
-          $!code.is-hidden-from-backtrace,
-          False
-        )
+        nqp::can($!code,"is-hidden-from-backtrace")
+          ?? $!code.is-hidden-from-backtrace
+          !! False
     }
     method is-routine(Backtrace::Frame:D:) {
         nqp::hllbool(nqp::istype($!code,Routine))
@@ -91,29 +89,44 @@ my class Backtrace {
         self
     }
     multi method new() {
+#?if !js
+        nqp::create(self)!SET-SELF(
+          nqp::backtrace(nqp::null),
+          0)
+#?endif
+#?if js
         try X::AdHoc.new(:payload("Died")).throw;
         nqp::create(self)!SET-SELF(
           nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
           1)
+#?endif
     }
     multi method new(Int:D $offset) {
+#?if !js
+        nqp::create(self)!SET-SELF(
+          nqp::backtrace(nqp::null),
+          $offset)
+#?endif
+#?if js
         try X::AdHoc.new(:payload("Died")).throw;
         nqp::create(self)!SET-SELF(
           nqp::backtrace(nqp::getattr(nqp::decont($!),Exception,'$!ex')),
           1 + $offset)
+#?endif
     }
-    multi method new(Exception:D \ex) {
+    multi method new(Exception:D $ex) {
         nqp::create(self)!SET-SELF(
-          nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
-          0)
+          nqp::backtrace(nqp::getattr($ex,Exception,'$!ex')),
+          0
+        )
     }
     multi method new(Mu \ex) {
         # assume BOOTException
         nqp::create(self)!SET-SELF(nqp::backtrace(nqp::decont(ex)),0)
     }
-    multi method new(Exception:D \ex, Int:D $offset) {
+    multi method new(Exception:D $ex, Int:D $offset) {
         nqp::create(self)!SET-SELF(
-          nqp::backtrace(nqp::getattr(nqp::decont(ex),Exception,'$!ex')),
+          nqp::backtrace(nqp::getattr($ex,Exception,'$!ex')),
           $offset)
     }
     multi method new(Mu \ex, Int:D $offset) {

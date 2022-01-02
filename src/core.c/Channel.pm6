@@ -173,16 +173,8 @@ my class Channel does Awaitable {
     my class Iterate { ... }
     trusts Iterate;
     my class Iterate does Iterator {
-        has $!queue;
-        has $!channel;
-        method !SET-SELF(\queue,\channel) {
-            $!queue := queue;
-            $!channel := channel;
-            self
-        }
-        method new(\queue,\channel) {
-            nqp::create(self)!SET-SELF(queue,channel);
-        }
+        has $!queue   is built(:bind);
+        has $!channel is built(:bind);
         method pull-one() {
             my \msg := nqp::shift($!queue);
             nqp::if(
@@ -205,7 +197,7 @@ my class Channel does Awaitable {
             )
         }
     }
-    method iterator(Channel:D:) { Iterate.new($!queue,self) }
+    method iterator(Channel:D:) { Iterate.new(:$!queue,:channel(self)) }
 
     method list(Channel:D:) { List.from-iterator: self.iterator }
 

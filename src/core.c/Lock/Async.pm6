@@ -54,11 +54,16 @@ my class Lock::Async {
     # The current holder record, with waiters queue, of the lock.
     has Holder $!holder = Holder;
 
-    # Singleton Promise to be used when there's no need to wait.
-    my \KEPT-PROMISE := Promise.kept;
+#?if js
+    # No actual locking on the Javascript backend (yet)
+    my \KEPT-PROMISE = Promise.kept;
+    method lock(Lock::Async:D: --> Promise) { KEPT-PROMISE }
+#?endif
 
-    method lock(Lock::Async:D: --> Promise) {
 #?if !js
+    # Singleton Promise to be used when there's no need to wait.
+    my $KEPT-PROMISE := nqp::null;
+    method lock(Lock::Async:D: --> Promise) {
         loop {
             my $holder := ⚛$!holder;
             if $holder.DEFINITE {
@@ -69,16 +74,11 @@ my class Lock::Async {
                     return $p;
                 }
             }
-            else {
-                if nqp::eqaddr(nqp::cas($!holder, NO_HOLDER, SINGLE_HOLDER),NO_HOLDER) {
-                    # Successfully acquired and we're the only holder
-                    return KEPT-PROMISE;
-                }
+            elsif nqp::eqaddr(nqp::cas($!holder, NO_HOLDER, SINGLE_HOLDER),NO_HOLDER) {
+                # Successfully acquired and we're the only holder
+                return nqp::ifnull($KEPT-PROMISE,$KEPT-PROMISE := Promise.kept);
             }
         }
-#?endif
-#?if js
-        return KEPT-PROMISE;
 #?endif
     }
 

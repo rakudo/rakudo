@@ -5,7 +5,8 @@ my role Numeric {
     multi method Numeric(Numeric:D:) { self }
     multi method Numeric(Numeric:U:) {
         self.Mu::Numeric; # issue a warning
-        self.new
+        # We need to be specific about coercions to make `Numeric() == 0` working as specced.
+        (self.HOW.archetypes.coercive ?? self.^nominalize !! self).new
     }
 
     multi method ACCEPTS(Numeric:D: Any:D \a) {
@@ -239,42 +240,19 @@ multi sub infix:<%>(\a, \b)    { a.Real % b.Real }
 proto sub infix:<%%>($?, $?, *%) is pure  {*}
 multi sub infix:<%%>() { Failure.new("No zero-arg meaning for infix:<%%>") }
 multi sub infix:<%%>($)         { Bool::True }
-multi sub infix:<%%>(Int:D \a, Int:D \b) {
-    nqp::if(
-      nqp::isbig_I(nqp::decont(a)) || nqp::isbig_I(nqp::decont(b)),
-      nqp::if(
-        b,
-        !nqp::mod_I(nqp::decont(a),nqp::decont(b),Int),
-        Failure.new(
-          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-        )
-      ),
-      nqp::if(
-        nqp::isne_i(b,0),
-        nqp::hllbool(nqp::not_i(nqp::mod_i(nqp::decont(a),nqp::decont(b)))),
-        Failure.new(
-          X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-        )
-      )
-    )
-}
 multi sub infix:<%%>(\a, \b) {
-    nqp::if(
-      b,
-      (a.Real % b.Real == 0),
-      Failure.new(
-        X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-      )
-    )
+    b
+      ?? (a.Real % b.Real == 0)
+      !! Failure.new(
+           X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+         )
 }
 
 proto sub infix:<lcm>($?, $?, *%) is pure  {*}
-multi sub infix:<lcm>(Int:D $x = 1) { $x }
 multi sub infix:<lcm>(\a, \b)   { a.Int lcm b.Int }
 
 proto sub infix:<gcd>($?, $?, *%) is pure {*}
 multi sub infix:<gcd>() { Failure.new('No zero-arg meaning for infix:<gcd>') }
-multi sub infix:<gcd>(Int:D $x)    { $x }
 multi sub infix:<gcd>(\a, \b)  { a.Int gcd b.Int }
 
 proto sub infix:<**>($?, $?, *%) is pure  {*}
@@ -286,12 +264,12 @@ multi sub postfix:<ⁿ>(\a, \b)  { a ** b }
 
 ## relational operators
 
-proto sub infix:«<=>»($, $, *%) is pure {*}
-multi sub infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
-
 proto sub infix:<==>($?, $?, *%) is pure {*}
 multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
+
+# U+2A75 TWO CONSECUTIVE EQUALS SIGNS
+my constant &infix:<⩵> = &infix:<==>;
 
 proto sub infix:<=~=>($?, $?, *%) {*}  # note, can't be pure due to dynvar
 multi sub infix:<=~=>($?) { Bool::True }

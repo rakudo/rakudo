@@ -1,16 +1,18 @@
 my role Signal::Signally {
     multi method CALL-ME(Int() $signum) { $signum ?? (nextsame) !! self }
 }
-my enum Signal does Signal::Signally ( |do {
-        my $res  := nqp::list;
-        my $iter := nqp::iterator(nqp::getsignals);
-        nqp::push(
-          $res,
-          Pair.new(nqp::shift($iter), nqp::abs_i(nqp::shift($iter)))
-        ) while $iter;
-        $res
-    }
-);
+my enum Signal does Signal::Signally ( BEGIN |do {
+    my $res     := nqp::list;
+    my $signals := nqp::clone(nqp::getsignals);
+    nqp::while(
+      nqp::elems($signals),
+      nqp::push(
+        $res,
+        Pair.new(nqp::shift($signals), nqp::abs_i(nqp::shift($signals)))
+      )
+    );
+    $res
+});
 
 proto sub signal(|) {*}
 multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
@@ -43,10 +45,24 @@ multi sub signal(*@signals, :$scheduler = $*SCHEDULER) {
             submethod BUILD(:$!scheduler, :$!signal) { }
 
             method tap(&emit, &, &, &tap) {
-                my $cancellation := nqp::signal($!scheduler.queue(:hint-time-sensitive),
+                my $queue := $!scheduler.queue(:hint-time-sensitive);
+#?if moar
+                my $setup-semaphore := Semaphore.new(0);
+                my $cancellation := nqp::signal(
+                    $queue,
+                    -> { $setup-semaphore.release },
+                    $queue,
                     -> $signum { emit(Signal($signum)) },
                     nqp::unbox_i($!signal),
                     SignalCancellation);
+                $setup-semaphore.acquire;
+#?endif
+#?if !moar
+                my $cancellation := nqp::signal($queue,
+                    -> $signum { emit(Signal($signum)) },
+                    nqp::unbox_i($!signal),
+                    SignalCancellation);
+#?endif
                 my $t = Tap.new({ nqp::cancel($cancellation) });
                 tap($t);
                 $t;

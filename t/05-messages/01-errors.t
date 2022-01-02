@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 50;
+plan 51;
 
 # https://github.com/Raku/old-issue-tracker/issues/5707
 throws-like '1++', X::Multi::NoMatch,
@@ -43,17 +43,21 @@ subtest 'chr with large codepoints throws useful error' => {
     plan +@tests;
     for @tests {
         throws-like $^code, Exception,
-            :message{ not .contains('negative') and .contains('codepoint') },
+          :message{
+            .contains('Codepoint')
+            && .contains('out of bounds')
+            && .contains('chr')
+        },
         "$code.raku()";
     }
 }
 
-# https://irclog.perlgeek.de/perl6/2017-03-14#i_14263417
+# https://colabti.org/irclogger/irclogger_log/perl6?date=2017-03-14#l1018
 throws-like ｢m: my @a = for 1..3 <-> { $_ }｣, Exception,
     :message(/«'do for'»/),
     '<-> does not prevent an error suggesting to use `do for`';
 
-# https://irclog.perlgeek.de/perl6-dev/2017-04-13#i_14425133
+# https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-04-14#l101
 # https://github.com/Raku/old-issue-tracker/issues/2262
 {
     my $param = '$bar';
@@ -141,6 +145,7 @@ for <fail die throw rethrow resume> -> $meth {
 subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
     plan 2;
 
+    todo "dies at compile time with: '୯' is not a valid number", 2 if $*VM.name eq 'jvm';
     with run $*EXECUTABLE, '-e', 'say 0୯', :err, :out {
         is   .out.slurp(:close), "9\n", 'STDOUT is right';
         like .err.slurp(:close), /'୯ is not a valid octal number'/,
@@ -170,6 +175,7 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
 
 # https://github.com/Raku/old-issue-tracker/issues/6275
 {
+    todo 'no sub name mentioned yet (would require port of 7783fcab24)', 1 if $*VM.name eq 'jvm';
     throws-like { sub foo([$head, $tail]) {}; foo([3, 4], [3]) },
         Exception,
         message => /<<'foo'>>/,
@@ -180,7 +186,8 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
         'wrong arity in a signature mentions the name of the method';
 }
 
-{ # https://irclog.perlgeek.de/perl6-dev/2017-05-31#i_14666102
+{ # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-31#l169
+    todo "X::Method::NotFound doesn't offer suggestions here", 2 if $*VM.name eq 'jvm';
     throws-like '42.length      ', Exception, '.length on non-List Cool',
         :message{ .contains: <chars codes>.all & none <elems graphs> };
 
@@ -212,6 +219,7 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
 # https://github.com/Raku/old-issue-tracker/issues/5093
 # https://github.com/Raku/old-issue-tracker/issues/3569
 {
+    todo "X::Method::NotFound doesn't offer suggestions here", 1 if $*VM.name eq 'jvm';
     throws-like q| class RT123078_1 { method foo { self.bar }; method !bar { }; method baz { } }; RT123078_1.new.foo |,
         X::Method::NotFound,
         message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_1'>>/, /\W '!bar'>>/, /<<'baz'>>/),
@@ -220,6 +228,13 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         X::Method::NotFound,
         message => all(/<<"No such private method '!bar'" \W/, /<<'RT123078_2'>>/, /<<'bar'>>/, /<<'baz'>>/),
         'a public method of the same name as the missing private method is suggested';
+
+    todo "X::Method::NotFound doesn't offer suggestions here", 3 if $*VM.name eq 'jvm';
+    throws-like q| class RT123078_3 { method !bar { }; method baz { } }; RT123078_3.new.bar |,
+        X::Method::NotFound,
+        message => all(/<<"No such method 'bar'" \W/, /<<'RT123078_3'>>/, /\s+ Did \s+ you \s+ mean/),
+        suggestions => <Bag baz>,
+        'a private method of the same name as the public missing method is not suggested for out-of-class call';
     throws-like q| <a a b>.uniq |,
         X::Method::NotFound,
         message => all(/<<"No such method 'uniq'" \W/, /<<'unique'>>/),
@@ -237,6 +252,7 @@ throws-like { Blob.splice }, X::Multi::NoMatch,
         :message{ !.contains: "Did you mean 'x'" },
         'Ancestor submethods should not be typo-suggested';
 
+    todo "X::Method::NotFound doesn't offer suggestions here", 1 if $*VM.name eq 'jvm';
     throws-like q| class GH1758_2 { submethod x { };}; GH1758_2.new._ |,
         X::Method::NotFound,
         message => /"Did you mean 'x'"/,

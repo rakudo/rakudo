@@ -30,7 +30,7 @@ This includes
 
 If you want to implement a new language feature or built-in of your own
 design, please discuss it first in the `#raku-dev` IRC channel on
-irc.freenode.org.
+irc.libera.chat.
 
 If you get no feedback on your pull request, feel free to nudge us in the
 IRC channel mentioned above.
@@ -50,7 +50,8 @@ adding/removing debug output.
 
 New features should be accompanied by test cases in the [roast
 repository](https://github.com/Raku/roast/). Please ask for direct push
-access in the `#raku-dev` or `#raku` IRC channels on freenode, or submit a
+access in the `#raku-dev` or `#raku` IRC channels on
+[Libera](https://libera.chat/), or submit a
 pull request.
 
 Bug fixes should also come with test cases (if practical), though we prefer
@@ -77,7 +78,7 @@ very basic guidelines:
 How to write [a good **and** useful commit message](https://chris.beams.io/posts/git-commit/).
 Commit messages are where you tell the what, why and how of your commit to others.
 
-The subject/title of a commit should 50 or less characters ideally. The absolute
+The subject/title of a commit should be 50 or less characters ideally. The absolute
 maximum is 72. Titles usually will tell what you did. You should almost always
 have a body except in the case of the most trivial changes. These style guidelines
 are best practices, but use your judgment. You may want to fit 100 characters
@@ -90,8 +91,9 @@ A good commit is one where months from now you be able to read
 this commit and understand what you did and why you did it.
 
 Don't make a commit that only says `Fix #130979` because when the time to do
-the release changelog comes, someone will need to look up the ticket and then usually wade through several replies on that ticket to figure out what
-the problem was and at the end I'm often unsure what the ACTUAL problem was
+the release changelog comes, someone will need to look up the ticket and then
+usually wade through several replies on that ticket to figure out what
+the problem was and at the end we're often unsure what the **actual** problem was
 that got fixed in the commit, not just the issue number.
 
 If somebody is trying to find a recent commit that affected, say, `infix:<xx>`,
@@ -112,7 +114,7 @@ This makes them look better and easier to read in shortlog/oneline form.
 
 If you fixed a ticket, or the commit relates to a specific ticket, please
 mention the ticket in the title or the body as `#12345` so that
-GitHub will automatically link to the corresponding issue. 
+GitHub will automatically link to the corresponding issue.
 If there was an IRC conversation that can give some background or useful information,
 you can link to it by visiting [the IRC logs](https://colabti.org/irclogger/irclogger_log/raku-dev) and
 linking the link provided by the timestamps on the left side of the page.

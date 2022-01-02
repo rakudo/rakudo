@@ -60,7 +60,6 @@ my %allowed = (
     Q{&METAOP_TEST_ASSIGN:<||>},
     Q{&METAOP_ZIP},
     Q{&ORDER},
-    Q{&POSITIONS},
     Q{&QX},
     Q{&REACT},
     Q{&REACT-ONE-WHENEVER},
@@ -68,9 +67,7 @@ my %allowed = (
     Q{&RETURN-LIST},
     Q{&RUN-MAIN},
     Q{&SLICE_MORE_HASH},
-    Q{&SLICE_MORE_LIST},
     Q{&SLICE_ONE_HASH},
-    Q{&SLICE_ONE_LIST},
     Q{&SUPPLY},
     Q{&SUPPLY-ONE-EMIT},
     Q{&SUPPLY-ONE-WHENEVER},
@@ -203,7 +200,9 @@ my %allowed = (
     Q{&infix:</>},
     Q{&infix:<=:=>},
     Q{&infix:<===>},
+    Q{&infix:<⩶>},
     Q{&infix:<==>},
+    Q{&infix:<⩵>},
     Q{&infix:<=>},
     Q{&infix:<=~=>},
     Q{&infix:<=~>},
@@ -262,8 +261,10 @@ my %allowed = (
     Q{&infix:<^…^>},
     Q{&infix:<∈>},
     Q{&infix:<∉>},
+    Q{&infix:<∊>},
     Q{&infix:<∋>},
     Q{&infix:<∌>},
+    Q{&infix:<∍>},
     Q{&infix:<−>},
     Q{&infix:<∖>},
     Q{&infix:<∘>},
@@ -396,6 +397,7 @@ my %allowed = (
     Q{&reduce},
     Q{&rename},
     Q{&repeated},
+    Q{&repl},
     Q{&return},
     Q{&return-rw},
     Q{&reverse},
@@ -485,6 +487,7 @@ my %allowed = (
     Q{&words},
     Q{&zip},
     Q{AST},
+    Q{Allomorph},
     Q{Any},
     Q{Array},
     Q{Associative},
@@ -608,6 +611,7 @@ my %allowed = (
     Q{PROTO_TCP},
     Q{PROTO_UDP},
     Q{Pair},
+    Q{ParallelSequence},
     Q{Parameter},
     Q{Perl},
     Q{PhasersList},
@@ -679,6 +683,7 @@ my %allowed = (
     Q{SOCK_STREAM},
     Q{Same},
     Q{Scalar},
+    Q{ScalarVAR},
     Q{Scheduler},
     Q{SeekFromBeginning},
     Q{SeekFromCurrent},
@@ -763,10 +768,44 @@ my %allowed = (
     Q{𝑒},
 ).map: { $_ => 1 };
 
+my %nyi-for-backend = (
+    'jvm' => (
+        Q{&atomic-add-fetch},
+        Q{&atomic-dec-fetch},
+        Q{&atomic-fetch-add},
+        Q{&atomic-fetch-dec},
+        Q{&atomic-fetch-inc},
+        Q{&atomic-fetch-sub},
+        Q{&atomic-inc-fetch},
+        Q{&atomic-sub-fetch},
+        Q{&full-barrier},
+        Q{&infix:<⚛+=>},
+        Q{&infix:<⚛-=>},
+        Q{&infix:<⚛=>},
+        Q{&infix:<⚛−=>},
+        Q{&postfix:<⚛++>},
+        Q{&postfix:<⚛-->},
+        Q{&prefix:<++⚛>},
+        Q{&prefix:<--⚛>},
+        Q{atomicint},
+        Q{Collation},
+        Q{NFC},
+        Q{NFD},
+        Q{NFKC},
+        Q{NFKD},
+        Q{Uni},
+        Q{𝑒},
+    ),
+    'moar' => (),
+    'js' => (),
+);
+
+my %allowed-and-implemented = %allowed (-) %nyi-for-backend{$*VM.name};
+
 my @unknown;
 my $known-count;
 my @missing;
-for %allowed.keys {
+for %allowed-and-implemented.keys {
     if SETTING::{$_}:exists  {
         $known-count++
     }
@@ -774,9 +813,9 @@ for %allowed.keys {
         @missing.push: $_;
     }
 }
-is %allowed.elems, $known-count, "all allowed symbols found";
+is %allowed-and-implemented.elems, $known-count, "all allowed symbols found";
 diag "Missing symbols: { @missing.sort }" if @missing;
-@unknown.push($_) unless %allowed{$_}:exists for SETTING::.keys;
+@unknown.push($_) unless %allowed-and-implemented{$_}:exists for SETTING::.keys;
 diag "Found {+@unknown} unexpected entries: { @unknown.sort }" if @unknown;
 ok @unknown == 0, "No unexpected entries in SETTING::";
 

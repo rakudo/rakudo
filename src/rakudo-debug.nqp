@@ -1,6 +1,7 @@
 use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
+use Perl6::SysConfig;
 
 class Perl6::DebugHooks {
     has %!hooks;
@@ -453,6 +454,10 @@ sub MAIN(*@ARGS) {
     # Initialize dynops.
     nqp::p6init();
 
+    my %rakudo-build-config := nqp::hash();
+    hll-config(%rakudo-build-config);
+    nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-config));
+
     # Create and configure compiler object.
     my $comp := Perl6::Debugger.new();
 
@@ -461,9 +466,6 @@ sub MAIN(*@ARGS) {
     $comp.parseactions(Perl6::HookActions);
     $comp.addstage('syntaxcheck', :before<ast>);
     $comp.addstage('optimize', :after<ast>);
-    hll-config($comp.config);
-    my $COMPILER_CONFIG := $comp.config;
-    nqp::bindhllsym('Raku', '$COMPILER_CONFIG', $comp.config);
 
     # Add extra command line options.
     my @clo := $comp.commandline_options();

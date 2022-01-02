@@ -9,6 +9,7 @@
 #  include <sys/stat.h>
 #  include <process.h>
 #  include <shlwapi.h>
+#  include <io.h>
 #  if defined(_MSC_VER)
 #    define strtoll _strtoi64
 #  endif
@@ -32,7 +33,9 @@ enum {
     FLAG_FULL_CLEANUP,
     FLAG_TRACING,
 
-    OPT_DEBUGPORT
+    OPT_DEBUGPORT,
+
+    OPT_RAKUDO_HOME
 };
 
 static const char *const FLAGS[] = {
@@ -66,6 +69,8 @@ static int parse_flag(const char *arg)
         return (int)(found - FLAGS);
     else if (starts_with(arg, "--debug-port="))
         return OPT_DEBUGPORT;
+    else if (starts_with(arg, "--rakudo-home="))
+        return OPT_RAKUDO_HOME;
     else
         return UNKNOWN_FLAG;
 }
@@ -107,14 +112,20 @@ int retrieve_home(
           char   *exec_dir_path,
           size_t  exec_dir_path_size,
     const char   *check_file,
-    const size_t  check_file_size
+    const size_t  check_file_size,
+          char   *static_home,
+          char   *options_home
 ) {
     char   *check_file_path;
     size_t  home_size;
     int     ret;
     char   *env_home         = getenv(env_var);
 
-    if (env_home) {
+    if (options_home) {
+        *out_home = options_home;
+        home_size = strlen(*out_home);
+    }
+    else if (env_home) {
         home_size = strlen(env_home);
         *out_home = (char*)malloc(home_size + 1);
         strcpy(*out_home, env_home);
@@ -126,6 +137,10 @@ int retrieve_home(
             *(*out_home + home_size - 1) = '\0';
             home_size--;
         }
+    }
+    else if (static_home) {
+        *out_home = static_home;
+        home_size = strlen(*out_home);
     }
     else {
         home_size = exec_dir_path_size + rel_home_size;
@@ -144,47 +159,88 @@ int retrieve_home(
     return ret;
 }
 
-#ifndef _WIN32
-int main(int argc, char *argv[])
-#else
-int wmain(int argc, wchar_t *wargv[])
+#if defined(_WIN32) && defined(SUBSYSTEM_WINDOWS)
+int set_std_handle_to_nul(FILE *file, int fd, BOOL read, int std_handle_type) {
+    /* Found on https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/get-osfhandle?view=vs-2019:
+       
+       "When stdin, stdout, and stderr aren't associated with a stream (for example, in a Windows
+       application without a console window), the file descriptor values for these streams are
+       returned from _fileno as the special value -2. Similarly, if you use a 0, 1, or 2 as the
+       file descriptor parameter instead of the result of a call to _fileno, _get_osfhandle also
+       returns the special value -2 when the file descriptor is not associated with a stream, and
+       does not set errno. However, this is not a valid file handle value, and subsequent calls
+       that attempt to use it are likely to fail."
+       
+       See https://jdebp.eu/FGA/redirecting-standard-io.html
+           https://stackoverflow.com/a/50358201 (Especially the comments of Eryk Sun)
+    */
+    FILE *stream;
+    HANDLE new_handle;
+
+    if (_fileno(file) != -2 || _get_osfhandle(fd) != -2)
+        // The handles are initialized. Don't touch!
+        return 1;
+    
+    /* FD 1 is in an error state (_get_osfhandle(1) == -2). Close it. The FD number is up for grabs
+       after this call. */
+    if (_close(fd) != 0)
+        return 0;
+    
+    /* FILE *stdout is in an error state (_fileno(stdout) == -2). Reopen it to a "NUL:" file. This
+       will take the next free FD number. So it's important to call this sequentially for FD 0, 1
+       and 2. */
+    if (freopen_s(&stream, "NUL:", read ? "r" : "w", file) != 0)
+        return 0;
+    
+    /* Set the underlying Windows handle as the STD handler. */
+    new_handle = (HANDLE)_get_osfhandle(fd);
+    if (!SetStdHandle(std_handle_type, new_handle))
+        return 0;
+    
+    return 1;
+}
 #endif
-{
+
+#if defined(_WIN32) && defined(SUBSYSTEM_WINDOWS)
+int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, INT nCmdShow) {
+    int argc;
+    LPWSTR *wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
+    char **argv = MVM_UnicodeToUTF8_argv(argc, wargv);
+    LocalFree(wargv);
+#elif defined(_WIN32) && !defined(SUBSYSTEM_WINDOWS)
+int wmain(int argc, wchar_t *wargv[]) {
+    char **argv = MVM_UnicodeToUTF8_argv(argc, wargv);
+#else
+int main(int argc, char *argv[]) {
+#endif
     MVMInstance *instance;
 
     char   *exec_path;
     size_t  exec_path_size;
 
     char   *exec_dir_path_temp;
-#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME)) || defined(_WIN32)
     char   *exec_dir_path;
     size_t  exec_dir_path_size;
-#endif
 
           char   *nqp_home;
           size_t  nqp_home_size;
-#ifndef STATIC_NQP_HOME
+          char   *static_nqp_home     = 0;
     const char    nqp_rel_path[14]    = "/../share/nqp";
     const size_t  nqp_rel_path_size   = 13;
     const char    nqp_check_path[28]  = "/lib/NQPCORE.setting.moarvm";
     const size_t  nqp_check_path_size = 27;
-#endif
 
           char   *rakudo_home;
           size_t  rakudo_home_size;
-#ifndef STATIC_RAKUDO_HOME
+          char   *static_rakudo_home    = 0;
+          char   *option_rakudo_home    = 0;
     const char    perl6_rel_path[16]    = "/../share/perl6";
     const size_t  perl6_rel_path_size   = 15;
     const char    perl6_check_path[22]  = "/runtime/perl6.moarvm";
     const size_t  perl6_check_path_size = 21;
-#endif
 
     char *lib_path[3];
     char *perl6_file;
-
-#ifdef _WIN32
-    char **argv = MVM_UnicodeToUTF8_argv(argc, wargv);
-#endif
 
     int full_cleanup = 0;
     int argi         = 1;
@@ -193,6 +249,25 @@ int wmain(int argc, wchar_t *wargv[])
 
     MVMuint32 debugserverport = 0;
     int start_suspended = 0;
+    
+#if defined(_WIN32) && defined(SUBSYSTEM_WINDOWS)
+    /* When using the 'windows' subsystem the standard IO handles are not
+       connected. This causes a program abort when accessing the handles. To
+       prevent these aborts, we redirect the handles to NUL in this case.
+    */
+    
+    /* Set our own handles. */
+    if (!set_std_handle_to_nul(stdin,  0, 1, STD_INPUT_HANDLE))  return EXIT_FAILURE;
+    if (!set_std_handle_to_nul(stdout, 1, 0, STD_OUTPUT_HANDLE)) return EXIT_FAILURE;
+    if (!set_std_handle_to_nul(stderr, 2, 0, STD_ERROR_HANDLE))  return EXIT_FAILURE;
+    
+    /* MoarVM - as a DLL, and the way it's compiled (/MT) has it's own CRT and thus it's own CRT STD handles.
+       So MoarVM also needs to fix up its CRT STD handles.
+       See: https://docs.microsoft.com/de-de/cpp/c-runtime-library/potential-errors-passing-crt-objects-across-dll-boundaries
+            https://docs.microsoft.com/en-us/cpp/c-runtime-library/crt-library-features
+    */
+    if (!MVM_set_std_handles_to_nul()) return EXIT_FAILURE;
+#endif
 
     /* Retrieve the executable directory path. */
 
@@ -250,6 +325,10 @@ int wmain(int argc, wchar_t *wargv[])
                 break;
             }
 
+            case OPT_RAKUDO_HOME:
+                option_rakudo_home = argv[argi] + strlen("--rakudo-home=");
+                break;
+
             default:
             argv[new_argc++] = argv[argi];
         }
@@ -287,7 +366,6 @@ int wmain(int argc, wchar_t *wargv[])
     /* The +1 is the trailing \0 terminating the string. */
     exec_dir_path_temp = (char*)malloc(exec_path_size + 1);
     memcpy(exec_dir_path_temp, exec_path, exec_path_size + 1);
-#if !(defined(STATIC_NQP_HOME) && defined(STATIC_RAKUDO_HOME)) || defined(_WIN32)
 #ifdef _WIN32
     PathRemoveFileSpecA(exec_dir_path_temp);
     exec_dir_path_size = strlen(exec_dir_path_temp);
@@ -297,40 +375,42 @@ int wmain(int argc, wchar_t *wargv[])
     exec_dir_path      = dirname(exec_dir_path_temp);
     exec_dir_path_size = strlen(exec_dir_path);
 #endif
-#endif
 
     /* Retrieve RAKUDO_HOME and NQP_HOME. */
 
 #ifdef STATIC_NQP_HOME
-    nqp_home = STRINGIFY(STATIC_NQP_HOME);
-#else
+    static_nqp_home = STRINGIFY(STATIC_NQP_HOME);
+#endif
     if (!retrieve_home(&nqp_home, nqp_rel_path, nqp_rel_path_size, "NQP_HOME",
-            exec_dir_path, exec_dir_path_size, nqp_check_path, nqp_check_path_size)) {
+            exec_dir_path, exec_dir_path_size, nqp_check_path,
+            nqp_check_path_size, static_nqp_home, 0)) {
         fprintf(stderr, "ERROR: NQP_HOME is invalid: %s\n", nqp_home);
         return EXIT_FAILURE;
     }
-#endif
     nqp_home_size = strlen(nqp_home);
 
 #ifdef STATIC_RAKUDO_HOME
-    rakudo_home = STRINGIFY(STATIC_RAKUDO_HOME);
-#else
+    static_rakudo_home = STRINGIFY(STATIC_RAKUDO_HOME);
+#endif
     /* XXX Isn't it time to move RAKUDO_HOME in front of PERL6_HOME?? */
     if (getenv("PERL6_HOME")) {
-        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size, "PERL6_HOME",
-                exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
+        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size,
+                "PERL6_HOME", exec_dir_path, exec_dir_path_size,
+                perl6_check_path, perl6_check_path_size, static_rakudo_home,
+                option_rakudo_home)) {
             fprintf(stderr, "ERROR: PERL6_HOME is invalid: %s\n", rakudo_home);
             return EXIT_FAILURE;
         }
     }
     else {
-        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size, "RAKUDO_HOME",
-                exec_dir_path, exec_dir_path_size, perl6_check_path, perl6_check_path_size)) {
+        if (!retrieve_home(&rakudo_home, perl6_rel_path, perl6_rel_path_size,
+                "RAKUDO_HOME", exec_dir_path, exec_dir_path_size,
+                perl6_check_path, perl6_check_path_size, static_rakudo_home,
+                option_rakudo_home)) {
             fprintf(stderr, "ERROR: RAKUDO_HOME is invalid: %s\n", rakudo_home);
             return EXIT_FAILURE;
         }
     }
-#endif
     rakudo_home_size = strlen(rakudo_home);
 
     /* Put together the lib paths and perl6_file path. */
@@ -389,6 +469,8 @@ int wmain(int argc, wchar_t *wargv[])
         }
     }
 
+    instance->full_cleanup = full_cleanup;
+
     MVM_vm_run_file(instance, perl6_file);
 
 #ifdef HAVE_TELEMEH
@@ -414,6 +496,9 @@ int wmain(int argc, wchar_t *wargv[])
     free(exec_dir_path_temp);
 #ifndef STATIC_RAKUDO_HOME
     free(rakudo_home);
+#else
+    if (getenv("PERL6_HOME") || getenv("RAKUDO_HOME"))
+        free(rakudo_home);
 #endif
 #ifndef STATIC_NQP_HOME
     free(nqp_home);

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 37;
+plan 47;
 
 # https://github.com/Raku/old-issue-tracker/issues/6613
 
@@ -118,6 +118,7 @@ is-run '(:::[])', :err(/"No such symbol ':<>'"/), :1exitcode,
 
 # https://github.com/rakudo/rakudo/issues/1333
 is-run 'use Test; cmp-ok 1, "!eqv", 2',
+    :compiler-args[<-I lib>],
     :out{.starts-with: 'not ok 1'},
     :err{.contains: '!eqv' & 'pass it as a Callable' }, :1exitcode,
     'cmp-ok with Str metaop comparator suggests a working alternative`';
@@ -134,18 +135,28 @@ throws-like {
 # https://github.com/Raku/old-issue-tracker/issues/3542
 # GH #3682
 throws-like { sprintf "%d" }, X::Str::Sprintf::Directives::Count,
-    :message('Your printf-style directives specify 1 argument, but no '
-      ~ "argument was supplied.\nAre you using an interpolated '\$'?"),
+    :args-used(1),
+    :args-have(0),
     'sprintf %d directive with one directive and no corresponding argument throws';
 
 { # https://github.com/perl6/roast/commit/20fe657466
-    my int @arr;
-    throws-like { @arr[0] := my $a }, Exception,
-        :message('Cannot bind to a natively typed array'),
-        'error message when binding to natively typed array';
-    throws-like { @arr[0]:delete   }, Exception,
-        :message('Cannot delete from a natively typed array'),
-        'error message when :deleting from natively typed array';
+    for int, "int", num, "num", str, "str" -> \type, $name {
+        my @array := array[type].new;
+        throws-like { @array[0] := my $a }, Exception,
+            :message("Cannot bind to a native $name array"),
+            "error message when binding to native $name array";
+        throws-like { @array[0]:delete   }, Exception,
+            :message("Cannot delete from a native $name array"),
+            "error message when :deleting from native $name array";
+
+        my @shaped := array[type].new(:shape(42));
+        throws-like { @shaped[0] := my $a }, Exception,
+            :message("Cannot bind to a native $name array"),
+            "error message when binding to native $name array";
+        throws-like { @shaped[0]:delete   }, Exception,
+            :message("Cannot delete from a native $name array"),
+            "error message when :deleting from shaped native $name array";
+    }
 }
 
 # https://github.com/rakudo/rakudo/issues/1346
@@ -158,23 +169,49 @@ subtest 'USAGE with subsets/where and variables with quotes' => {
     }
 
     group-of 3 => 'named params' => {
-        uhas ｢UInt :$x!｣,          '<UInt>', 'mentions subset name';
-        uhas ｢Int :$x! where 42｣,  '<Int where { ... }>',
+        uhas ｢UInt :$x!｣,          'UInt', 'mentions subset name';
+        uhas ｢Int :$x! where 42｣,  'Int where { ... }',
             'Type + where clauses shown sanely';
-        uhas ｢UInt :$x! where 42｣, '<UInt where { ... }>',
+        uhas ｢UInt :$x! where 42｣, 'UInt where { ... }',
             'subset + where clauses shown sanely';
     }
     group-of 3 => 'anon positional params' => {
         uhas ｢UInt $｣,          '<UInt>', 'mentions subset name';
-        uhas ｢Int $ where 42｣,  '<Int where { ... }>',
+        uhas ｢Int $ where 42｣,  'Int where { ... }',
             'where clauses shown sanely';
-        uhas ｢UInt $ where 42｣, '<UInt where { ... }>',
+        uhas ｢UInt $ where 42｣, 'UInt where { ... }',
             'subset + where clauses shown sanely';
     }
 
     uhas ｢$don't｣, ｢<don't>｣,
         'variable name does not get special quote treatment';
 }
+
+if $*DISTRO.is-win {
+    skip ｢is-run() routine doesn't quite work right on Windows｣;
+}
+else { subtest ':bundling and negation/explicit arguments'=> {
+    plan 6;
+
+    my $allows-bundling = q:to/EOF/;
+        my %*SUB-MAIN-OPTS = :bundling;
+        sub MAIN($pos, :$a, :$b, :$c) {}
+    EOF
+
+    is-run $allows-bundling, :err{.contains: 'combine bundling'}, :exitcode(1), :args<-abc=foo bar>,
+        'cannot combine bundling with explicit arguments';
+    is-run $allows-bundling, :err{.contains: 'combine bundling'}, :exitcode(1), :args<-abc='' bar>,
+        'cannot combine bundling with explicit arguments, even the empty string';
+    is-run $allows-bundling, :err{.contains: 'combine bundling'}, :exitcode(1), :args<-abc= bar>,
+        'cannot combine bundling with explicit arguments, even a nil argument';
+    is-run $allows-bundling, :exitcode(0), :args<-a=foo bar>,
+        'can pass explicit argument to a single option, even with bundling enabled';
+    is-run $allows-bundling, :err{.contains: 'combine bundling'}, :exitcode(1), :args<-/abc bar>,
+        'cannot combine bundling with negation';
+    is-run $allows-bundling, :exitcode(0), :args<-/a bar>,
+        'can negate single option, even with bundling enabled';
+}}
+
 
 # https://github.com/Raku/old-issue-tracker/issues/5282
 {
@@ -192,10 +229,6 @@ for ThreadPoolScheduler.new, CurrentThreadScheduler -> $*SCHEDULER {
         'Too many positionals' .+ 'expected 0 arguments but got 1'
     /), '.tap block with incorrect signature must fail';
 }
-
-# https://github.com/Raku/old-issue-tracker/issues/5290
-is-run ｢133742.print｣, :compiler-args[<--rxtrace>], :out{ .ends-with: 133742 },
-    '--rxtrace does not crash';
 
 # https://github.com/rakudo/rakudo/issues/1336
 throws-like ｢
@@ -215,46 +248,46 @@ subtest 'cannot use Int type object as an operand' => {
     plan 14;
 
     throws-like ｢(1/1)+Int｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'A Rational instance cannot be added by an Int type object';
     throws-like ｢Int+(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'An Int type object cannot be added by a Rational instance';
     throws-like ｢(1/1)-Int｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'A Rational instance cannot be subtracted by an Int type object';
     throws-like ｢Int-(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'An Int type object cannot be subtracted by a Rational instance';
     throws-like ｢(1/1)*Int｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'A Rational instance cannot be multiplied by an Int type object';
     throws-like ｢Int*(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'An Int type object cannot be multiplied by a Rational instance';
     throws-like ｢(1/1)/Int｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'A Rational instance cannot be divided by an Int type object';
     throws-like ｢Int/(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'An Int type object cannot be divided by a Rational instance';
     throws-like ｢Int/Int｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'An Int type object cannot be divided by an Int type object';
     throws-like ｢Int/1｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'An Int type object cannot be divided by an Int instance';
     throws-like ｢1/Int｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'An Int instance cannot be divided by an Int type object';
     throws-like ｢(1/1)%Int｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'A Rational instance modulo an Int type object is incalculable';
     throws-like ｢Int%(1/1)｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'An Int type object modulo a Rational instance is incalculable';
     throws-like ｢(1/1)**Int｣,
-        X::Parameter::InvalidConcreteness,
+        X::Numeric::Uninitialized,
         'A Rational instance cannot be powered by an Int type object';
 }
 

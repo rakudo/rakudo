@@ -54,12 +54,17 @@ role Perl6::Metamodel::LanguageRevision
 
     # Check if we're compatible with type object $type. I.e. it doesn't come from language version newer than we're
     # compatible with. For example, 6.c/d classes cannot consume 6.d roles.
-    # Because there could be more than one such boundary in the future they can be passed as an array.
+    # Because there could be more than one such boundary in the future they can be passed in as an array.
     method check-type-compat($obj, $type, @revs) {
         unless nqp::isnull(self.incompat-revisions($obj, $!lang_rev, $type.HOW.language-revision($type), @revs)) {
-            nqp::die("Type object " ~ $obj.HOW.name($obj) ~ " of v6." ~ $!lang_rev
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Language::IncompatRevisions',
+                "Type object " ~ $obj.HOW.name($obj) ~ " of v6." ~ $!lang_rev
                     ~ " is not compatible with " ~ $type.HOW.name($type)
-                    ~ " of v6." ~ $type.HOW.language-revision($type));
+                    ~ " of v6." ~ $type.HOW.language-revision($type),
+                :type-a($obj),
+                :type-b($type)
+            )
         }
     }
 
@@ -75,6 +80,10 @@ role Perl6::Metamodel::LanguageRevision
 
     method language-revision($obj) {
         $!lang_rev
+    }
+
+    method language-version($obj) {
+        '6.' ~ $!lang_rev
     }
 }
 

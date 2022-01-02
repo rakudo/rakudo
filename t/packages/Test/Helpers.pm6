@@ -7,7 +7,7 @@ sub group-of (
         Pair  :value((
             Str:D :key($desc),
                   :value(&tests))))
-) is export {
+) is export is test-assertion {
     subtest $desc => {
         plan $plan;
         tests
@@ -17,7 +17,7 @@ sub group-of (
 sub is-run (
     Str() $code, $desc = "$code runs",
     Stringy :$in, :@compiler-args, :@args, :$out = '', :$err = '', :$exitcode = 0
-) is export {
+) is export is test-assertion {
     my @proc-args = flat do if $*DISTRO.is-win {
         # $*EXECUTABLE is a batch file on Windows, that goes through cmd.exe
         # and chokes on standard quoting. We also need to remove any newlines
@@ -48,12 +48,13 @@ sub is-run (
     }
 }
 
-multi sub is-run-repl ($code, $out, $desc, |c) is export {
+proto sub is-run-repl(|) is export {*}
+multi sub is-run-repl($code, $out, $desc, |c) is test-assertion {
     is-run-repl $code, $desc, :$out, |c;
 }
-multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '',
-    :$line-editor = 'none'
-) is export {
+multi sub is-run-repl(
+  $code is copy, $desc, :$out = '', :$err = '', :$line-editor = 'none'
+) is test-assertion {
     $code .= join: "\n" if $code ~~ Positional|Seq;
     (temp %*ENV)<RAKUDO_ERROR_COLOR  RAKUDO_LINE_EDITOR> = 0, $line-editor;
     my $proc = run $*EXECUTABLE, '--repl-mode=interactive', :in, :out, :err;
@@ -79,8 +80,10 @@ multi sub is-run-repl ($code is copy, $desc, :$out = '', :$err = '',
     }, $desc;
 }
 
-multi sub doesn't-hang (Str $args, $desc, :$in, :$wait = 15, :$out, :$err)
-is export {
+proto sub doesn't-hang(|) is export {*}
+multi sub doesn't-hang(
+  Str $args, $desc, :$in, :$wait = 15, :$out, :$err
+) is test-assertion {
     doesn't-hang \($*EXECUTABLE.absolute, '-e', $args), $desc,
         :$in, :$wait, :$out, :$err;
 }
@@ -91,7 +94,7 @@ my $VM-time-scale-multiplier = $*VM.name eq 'jvm' ?? 20/3 !! 1;
 multi sub doesn't-hang (
     Capture $args, $desc = 'code does not hang',
     :$in, :$wait = 15, :$out, :$err,
-) is export {
+) is test-assertion {
     my $prog = Proc::Async.new: |$args;
     my ($stdout, $stderr) = '', '';
     $prog.stdout.tap: { $stdout ~= $^a };
@@ -157,7 +160,7 @@ sub make-temp-dir (Int $chmod? --> IO::Path:D) is export {
     p
 }
 
-sub has-symbols(%stash, @expected, Str:D $desc) is export {
+sub has-symbols(%stash, @expected, Str:D $desc) is export is test-assertion {
     subtest $desc, {
         plan 2;
         my @unknown;

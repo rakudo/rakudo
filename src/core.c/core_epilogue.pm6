@@ -1,5 +1,5 @@
-# Re-parent meta-objects so they appear to be under Any.
 BEGIN {
+    # Re-parent meta-objects so they appear to be under Any.
     Perl6::Metamodel::ClassHOW.HOW.reparent(Perl6::Metamodel::ClassHOW, Any);
     Perl6::Metamodel::ConcreteRoleHOW.HOW.reparent(Perl6::Metamodel::ConcreteRoleHOW, Any);
     Perl6::Metamodel::CurriedRoleHOW.HOW.reparent(Perl6::Metamodel::CurriedRoleHOW, Any);
@@ -12,10 +12,12 @@ BEGIN {
     Perl6::Metamodel::ParametricRoleHOW.HOW.reparent(Perl6::Metamodel::ParametricRoleHOW, Any);
     Perl6::Metamodel::SubsetHOW.HOW.reparent(Perl6::Metamodel::SubsetHOW, Any);
     Perl6::Metamodel::GrammarHOW.HOW.compose(Perl6::Metamodel::GrammarHOW);
+#?if !moar
     Perl6::Metamodel::BaseDispatcher.HOW.reparent(Perl6::Metamodel::BaseDispatcher, Any);
     Perl6::Metamodel::MethodDispatcher.HOW.compose(Perl6::Metamodel::MethodDispatcher);
     Perl6::Metamodel::MultiDispatcher.HOW.compose(Perl6::Metamodel::MultiDispatcher);
     Perl6::Metamodel::WrapDispatcher.HOW.compose(Perl6::Metamodel::WrapDispatcher);
+#?endif
 }
 
 BEGIN {
@@ -36,9 +38,7 @@ BEGIN {
       &DYNAMIC,
       &RETURN-LIST,
       &SLICE_MORE_HASH,
-      &SLICE_MORE_LIST,
       &SLICE_ONE_HASH,
-      &SLICE_ONE_LIST,
       &THROW,
       &THROW-NIL,
 
@@ -60,6 +60,73 @@ BEGIN {
         PROCESS::<$RAKU> := Raku.new;
     }
 }
+
+#?if moar
+# Cannot be added in the Uni class, as we don't have native arrays
+# then yet, so it must be done here as an augment.
+augment class Uni {
+    multi method new(Uni: array[uint32] \codepoints) {
+        my $uni      := nqp::create(self);
+        my int $elems = nqp::elems(codepoints);
+        my int $i = -1;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::push_i($uni,nqp::atpos_i(codepoints,$i))
+        );
+
+        $uni
+    }
+}
+#?endif
+
+# Subs that are DEPRECATED are moved here so that the "is DEPRECATED" trait
+# can be applied without bootstrapping issues.
+
+sub parse-names(Str:D \names) is DEPRECATED('uniparse') {
+    names.uniparse
+}
+
+sub to-json(|c)
+  is implementation-detail
+  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.raku.org/')
+{
+    Rakudo::Internals::JSON.to-json(|c);
+}
+
+sub from-json($text)
+  is implementation-detail
+  is DEPRECATED('JSON::Fast, JSON::Tiny or JSON::Pretty from https://modules.raku.org/')
+{
+    Rakudo::Internals::JSON.from-json($text);
+}
+
+proto sub gethostname(*%) is implementation-detail {*}
+multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
+    $*KERNEL.hostname
+}
+
+# Methods that are DEPRECATED are moved here and augmented into the classes
+# they belong to without bootstrapping issues.
+
+augment class Cool {
+    method parse-names(Cool:D: --> Str:D) is DEPRECATED('uniparse') {
+        self.uniparse
+    }
+    method path(Cool:D: --> IO::Path:D) is DEPRECATED('IO') {
+        self.IO
+    }
+}
+
+# Make sure all affected subclasses are aware of additions to their parents
+BEGIN .^compose for
+  Str, Int, Num, Rat, Complex,
+  IntStr, NumStr, RatStr, ComplexStr,
+  List, Array, Match, Range, Seq,
+  int, int8, int16, int32, int64,
+  uint, uint8, uint16, uint32, uint64,
+  byte, num, num32, num64, str,
+;
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 

@@ -173,7 +173,7 @@ Following is the start of a table to show the grammar tokens that have
 action methods and their resulting `.ast` values.
 
 | Actions method           | `made` (`ast`) value
-| ---                      | ---            
+| ---                      | ---
 | pod_textcontent          |
 | pod_block:sym\<delimited> | QAST node [instance of Pod::Heading]
 | pod_block:sym\<delimited> | QAST node [instance of Pod::Item]

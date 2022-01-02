@@ -118,8 +118,12 @@ class CompUnit::PrecompilationStore::File
     has IO::Path:D $.prefix is built(:bind) is required;
 
     has IO::Handle $!lock;
-    has int $!wont-lock;
+#?if moar
+    has atomicint $!lock-count;
+#?endif
+#?if !moar
     has int $!lock-count;
+#?endif
     has $!loaded;
     has $!dir-cache;
     has $!compiler-cache;
@@ -127,9 +131,6 @@ class CompUnit::PrecompilationStore::File
 
     submethod TWEAK(--> Nil) {
         $!update-lock := Lock.new;
-        if $*W -> $World {
-            $!wont-lock = 1 if $World.is_precompilation_mode;
-        }
         $!loaded         := nqp::hash;
         $!dir-cache      := nqp::hash;
         $!compiler-cache := nqp::hash;
@@ -168,31 +169,38 @@ class CompUnit::PrecompilationStore::File
         self!dir($compiler-id, $precomp-id).add($precomp-id ~ $extension)
     }
 
-    method !lock(--> Nil) {
-        unless $!wont-lock {
-            $!update-lock.lock;
-            $!lock := $.prefix.add('.lock').open(:create, :rw)
-              unless $!lock;
-            $!lock.lock if $!lock-count++ == 0;
-        }
+    method !lock($path --> Nil) {
+        $!update-lock.lock;
+        $!lock := "$path.lock".IO.open(:create, :rw)
+          unless $!lock;
+#?if moar
+        $!lock-count⚛++;
+        $!lock.lock if ⚛$!lock-count == 1;
+#?endif
+#?if !moar
+        $!lock.lock if $!lock-count++ == 0;
+#?endif
     }
 
     method unlock() {
-        if $!wont-lock {
-            Nil
-        }
-        else {
-            LEAVE $!update-lock.unlock;
-            die "unlock when we're not locked!" if $!lock-count == 0;
+        LEAVE $!update-lock.unlock;
+#?if moar
+        die "unlock when we're not locked!" if ⚛$!lock-count == 0;
 
-            $!lock-count-- if $!lock-count > 0;
-            if $!lock && $!lock-count == 0 {
-                $!lock.unlock;
-                $!lock.close;
-                $!lock := IO::Handle;
-            }
-            True
+        $!lock-count⚛-- if ⚛$!lock-count > 0;
+        if $!lock && ⚛$!lock-count == 0 {
+#?endif
+#?if !moar
+        die "unlock when we're not locked!" if $!lock-count == 0;
+
+        $!lock-count-- if $!lock-count > 0;
+        if $!lock && $!lock-count == 0 {
+#?endif
+            $!lock.unlock;
+            $!lock.close;
+            $!lock := IO::Handle;
         }
+        True
     }
 
     method load-unit(
@@ -205,7 +213,7 @@ class CompUnit::PrecompilationStore::File
               nqp::atkey($!loaded,$key),
               do {
                   my $path := self.path($compiler-id, $precomp-id);
-                  $path.e
+                  $path.s
                     ?? nqp::bindkey($!loaded,$key,
                          CompUnit::PrecompilationUnit::File.new(
                            :id($precomp-id), :$path, :store(self)))
@@ -220,7 +228,7 @@ class CompUnit::PrecompilationStore::File
       CompUnit::PrecompilationId:D $precomp-id
     ) {
         my $path := self.path($compiler-id, $precomp-id, :extension<.repo-id>);
-        $path.e
+        $path.s
           ?? $path.slurp
           !! Nil
     }
@@ -239,7 +247,7 @@ class CompUnit::PrecompilationStore::File
 
         # have a writable prefix, assume it's a directory
         if $!prefix.w {
-            self!lock();
+            self!lock(self!file($compiler-id, $precomp-id));
             self!file($compiler-id, $precomp-id, :$extension);
         }
 
@@ -277,13 +285,36 @@ class CompUnit::PrecompilationStore::File
         $dest.add($precomp-id ~ $extension)
     }
 
+    # File renaming can easily race and fail on Windows. There's no great solution,
+    # so instead just try 10 times catching a failure (and returning out of the
+    # loop and sub if it succeeds).
+    my sub try-rename-n-times(&rename-block, $n is copy --> Bool:D) {
+        while $n-- {
+            &rename-block();
+            CATCH {
+                when X::IO::Rename {
+                    sleep 0.1;
+                    next;
+                }
+            }
+            return True;
+        }
+        return False;
+    }
+
     method store-file(
       CompUnit::PrecompilationId:D $compiler-id,
       CompUnit::PrecompilationId:D $precomp-id,
       IO::Path:D $path,
       Str:D :$extension = ''
     ) {
-        $path.rename(self!file($compiler-id, $precomp-id, :$extension));
+        my &rename-block = { $path.rename(self!file($compiler-id, $precomp-id, :$extension)); };
+        if Rakudo::Internals.IS-WIN {
+            # If the rename attempts don't succeed, we'll end up
+            # trying again one more time but not catching any failures.
+            return if try-rename-n-times(&rename-block, 10);
+        }
+        &rename-block();
     }
 
     method store-unit(
@@ -293,8 +324,16 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $precomp-file := self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
-        $precomp-file.rename(self!file($compiler-id, $precomp-id));
-        self.remove-from-cache($precomp-id);
+        my &rename-block = {
+            $precomp-file.rename(self!file($compiler-id, $precomp-id));
+            self.remove-from-cache($precomp-id);
+        };
+        if Rakudo::Internals.IS-WIN {
+            # If the rename attempts don't succeed, we'll end up
+            # trying again one more time but not catching any failures.
+            return if try-rename-n-times(&rename-block, 10);
+        }
+        &rename-block();
     }
 
     method store-repo-id(
@@ -304,7 +343,13 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
         $repo-id-file.spurt($repo-id);
-        $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
+        my &rename-block = { $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>)); };
+        if Rakudo::Internals.IS-WIN {
+            # If the rename attempts don't succeed, we'll end up
+            # trying again one more time but not catching any failures.
+            return if try-rename-n-times(&rename-block, 10);
+        }
+        &rename-block();
     }
 
     method delete(

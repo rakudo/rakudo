@@ -161,6 +161,13 @@ sub configure_refine_vars {
         )
     );
 
+    $config->{nqp_home} = $self->nfp(
+        File::Spec->rel2abs(
+            $config->{nqp_home}
+              || File::Spec->catdir( $config->{'prefix'}, 'share', 'nqp' )
+        )
+    );
+
     $config->{static_rakudo_home} =
       $config->{relocatable} eq 'reloc'
       ? ''
@@ -383,6 +390,7 @@ sub configure_moar_backend {
           );
     }
     $nqp_config->{mingw_unicode} = '';
+    $nqp_config->{subsystem_windows_flag} = '';
 
     my @c_runner_libs;
     if ( $self->is_win ) {
@@ -402,7 +410,17 @@ sub configure_moar_backend {
         if ( $nqp_config->{'moar::os'} eq 'mingw32' ) {
             $nqp_config->{mingw_unicode} = '-municode';
         }
+
+        $nqp_config->{subsystem_win_cc_flags} = '-DSUBSYSTEM_WINDOWS';
+        if ( $nqp_config->{'moar::ld'} eq 'link' ) {
+            $nqp_config->{subsystem_win_ld_flags} = '/subsystem:windows';
+        }
+        else {
+            $nqp_config->{subsystem_win_ld_flags} = '-mwindows';
+        }
+
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
+        push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shell32' );
     }
     else {
         $imoar->{toolchains} = [qw<gdb lldb valgrind>];
@@ -636,18 +654,16 @@ sub gen_nqp {
 
         unless ( $force_rebuild
             || !$nqp_have
-            || $nqp_ver_ok
-            || $options->{'ignore-errors'} )
+            || $nqp_ok
+            || defined($gen_nqp))
         {
-            $self->note( "WARNING",
+            my $say_sub = $options->{'ignore-errors'} ? 'note' : 'sorry';
+            $self->$say_sub(
                 "$bin version $nqp_have is outdated, $nqp_want expected.\n" );
         }
 
         if ( !$force_rebuild and ( $nqp_ok or $options->{'ignore-errors'} ) ) {
             $impls->{$b}{ok} = 1;
-        }
-        elsif ( $self->opt('with-nqp') ) {
-            $self->sorry("$bin version cannot be used");
         }
         else {
             $need{$b} = 1;
@@ -658,8 +674,8 @@ sub gen_nqp {
 
     return unless defined($gen_nqp) || defined($gen_moar);
 
-    if ( defined $gen_nqp || defined $gen_moar ) {
-        my $user = $options->{'github-user'} // 'perl6';
+    {
+        my $user = $options->{'github-user'} // 'Raku';
 
         # Don't expect any specific default commit in nqp/ if the repo is
         # already checked out and we're force-rebuilding.
@@ -878,7 +894,7 @@ sub _m_for_langalias {
 
 sub _m_source_digest_files {
     my $self   = shift;
-    my $indent = " " x ( $self->cfg->{config}{filelist_indent} || 4 );
+    my $indent = " " x ( $self->cfg->{config}{list_indent} || 4 );
     return join( " \\\n$indent", _all_sources($self) );
 }
 

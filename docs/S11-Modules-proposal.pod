@@ -130,4 +130,4 @@ files with the same C<:ver>, will result in an arbitrary selection.
 There is a Perl stub implementation of the module finding algorithm in the
 rmp repository L<http://github.com/moritz/rmp> in the file
 C<loader-fulllist.pl>. Commit bits to that repo are handed out freely; just
-ask HUG-me on #raku https://webchat.freenode.net/?channels=#raku :-).
+ask HUG-me on #raku https://web.libera.chat/#raku :-).

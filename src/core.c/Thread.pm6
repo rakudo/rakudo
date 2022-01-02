@@ -35,30 +35,35 @@ my class Thread {
       Str()  :$!name         = "<anon>"
       --> Nil
     ) {
+
+        # Make sure we have at least called nqp::cpucores once before
+        # we start any thread.  This to avoid issues on MacOS Monterey
+        Kernel.cpu-cores-but-one;
+
         constant THREAD_ERROR = 'Could not create a new Thread: ';
-        $!vm_thread := nqp::newthread(
-            anon sub THREAD-ENTRY() {
-                my $*THREAD = self;
-                CONTROL {
-                    default {
+        my $entry := anon sub THREAD-ENTRY() {
+            my $*THREAD = self;
+            CONTROL {
+                default {
 #?if !jvm
-                        ++⚛$aborted;
+                    ++⚛$aborted;
 #?endif
 #?if jvm
-                        ++$aborted;
+                    ++$aborted;
 #?endif
-                        my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
-                        nqp::getcomp('Raku').handle-control($vm-ex);
-                    }
+                    my Mu $vm-ex := nqp::getattr(nqp::decont($_), Exception, '$!ex');
+                    nqp::getcomp('Raku').handle-control($vm-ex);
                 }
-                code();
+            }
+            code();
 #?if !jvm
-                ++⚛$completed;
+            ++⚛$completed;
 #?endif
 #?if jvm
-                ++$completed;
+            ++$completed;
 #?endif
-            },
+        }
+        $!vm_thread := nqp::newthread(nqp::getattr($entry, Code, '$!do'),
             $!app_lifetime ?? 1 !! 0);
 
 #?if !jvm

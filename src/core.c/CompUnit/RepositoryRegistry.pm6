@@ -128,7 +128,7 @@ class CompUnit::RepositoryRegistry {
         # set up and normalize $prefix if needed
         my str $prefix = nqp::ifnull(
           nqp::atkey($ENV,'RAKUDO_PREFIX'),
-          nqp::getcomp('Raku').rakudo-home()
+          nqp::gethllsym('default', 'SysConfig').rakudo-home()
         );
         $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
 
@@ -253,12 +253,9 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-    method repository-for-name(Str:D \name) {
+    method repository-for-name(str $name) {
         $*REPO; # initialize if not yet done
-        my str $name = nqp::unbox_s(name);
-        nqp::existskey($custom-lib,$name)
-          ?? nqp::atkey($custom-lib,$name)
-          !! Nil
+        nqp::ifnull(nqp::atkey($custom-lib,$name),Nil)
     }
 
     method register-name($name, CompUnit::Repository $repo) {
@@ -314,7 +311,7 @@ class CompUnit::RepositoryRegistry {
             exit 1;
         }
 
-        my $meta = @metas.sort(*.<ver>).reverse.head;
+        my $meta = @metas.sort(*.<ver>).sort(*.<api>).reverse.head;
         my $bin  = $meta<source>;
         require "$bin";
     }
@@ -366,10 +363,10 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-#?if moar
+#?if !js
     my constant $short-id2class = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $short-id2class := nqp::hash(
 #?endif
       'file',   CompUnit::Repository::FileSystem,

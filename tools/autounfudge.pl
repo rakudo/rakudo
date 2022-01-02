@@ -88,13 +88,15 @@ GetOptions  'impl=s'        => \$impl,
 
 my $path_sep = $^O eq 'MSWin32' ? ';' : ':';
 my $slash    = $^O eq 'MSWin32' ? '\\' : '/';
-$ENV{PERL6LIB} = join($path_sep, qw/lib ./) unless $keep_env;
+$ENV{RAKULIB} = join($path_sep, qw/lib ./) unless $keep_env;
 my $impl_re = quotemeta $impl;
+my $impl_bin;
 
 if ($impl eq 'rakudo') {
     my $postfix = $jvm  ? 'jvm'   :
                            'moar' ;
     $impl_re = qr{rakudo(?:\.$postfix)?(?=\s)};
+    $impl_bin = File::Spec->catdir('.', $jvm ? 'rakudo-j' : 'rakudo-m');
 }
 
 my %fh;
@@ -111,7 +113,7 @@ sub eval_server {
 
 my @files;
 
-$specfile = 't/spectest.data' if $auto;
+$specfile = 't/spec/spectest.data' if $auto;
 
 if ($specfile){
     @files = read_specfile($specfile);
@@ -240,8 +242,8 @@ Valid options:
     --debug             Enable debug output
     --impl impl         Specify a different implementation
     --specfile file     Specification file to read filenames from
-    --auto              use t/spectest.data for --specfile
-    --keep-env          Keep RAKUDOLIB environment variable.
+    --auto              use t/spec/spectest.data for --specfile
+    --keep-env          Keep RAKULIB environment variable.
     --exclude regex     Don't run the tests that match regex
     --section number    Run only on tests belonging to section <number>
     --unskip            Try to change 'skip' to 'todo' markers
@@ -296,7 +298,7 @@ sub get_harness {
     my $token = shift;
     return TAP::Harness->new({
             verbosity   => -2,
-            exec        => $jvm ? [$^X, "./eval-client.pl", $token, "run"] : [$^X, 'tools/rakudo-limited.pl'],
+            exec        => $jvm ? [$^X, "./eval-client.pl", $token, "run"] : [$^X, 'tools/rakudo-limited.pl', $impl_bin],
             merge       => 1,
     });
 }

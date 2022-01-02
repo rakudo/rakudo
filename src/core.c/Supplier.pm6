@@ -17,6 +17,11 @@ my class Supplier {
         # need lock on modification).
         has Mu $!tappers;
 
+        # Avoid auto-vivification of the Scalar container for the $!tappers
+        # attribute when reading. That could lead to a Mu overwriting the list
+        # in $!tappers after we've already set $added to True in method tap.
+        submethod BUILD() { $!tappers := Mu; }
+
         method tap(&emit, &done, &quit, &tap) {
             my $tle := TapListEntry.new(:&emit, :&done, :&quit);
             # Since we run `tap` before adding, there's a small chance of

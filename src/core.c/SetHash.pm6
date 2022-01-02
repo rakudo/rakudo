@@ -1,14 +1,14 @@
 my class SetHash does Setty {
 
-    method ^parameterize(Mu \base, Mu \type) { 
+    method ^parameterize(Mu \base, Mu \type) {
         Rakudo::Internals.PARAMETERIZE-KEYOF(base,type)
-    }  
+    }
 
 #--- selector methods
 
     multi method grab(SetHash:D:) {
         nqp::if(
-          $!elems,
+          $!elems && nqp::elems($!elems),
           nqp::stmts(
             (my $object := nqp::iterval(
               my $iter := Rakudo::QuantHash.ROLL($!elems)
@@ -85,53 +85,43 @@ my class SetHash does Setty {
         # logic is therefore basically the same as in AT-KEY,
         # except for tests for allocated storage and .WHICH
         # processing.
-        nqp::stmts(
-          # save object for potential recreation
-          (my $object := nqp::atkey(elems,$key)),
 
-          Proxy.new(
-            FETCH => {
-                nqp::hllbool(nqp::existskey(elems,$key))
-            },
-            STORE => -> $, $value {
-                nqp::stmts(
-                  nqp::if(
-                    $value,
-                    nqp::bindkey(elems,$key,$object),
-                    nqp::deletekey(elems,$key)
-                  ),
-                  $value.Bool
-                )
-            }
-          )
+        # save object for potential recreation
+        my $object := nqp::atkey(elems,$key);
+
+        Proxy.new(
+          FETCH => {
+              nqp::hllbool(nqp::existskey(elems,$key))
+          },
+          STORE => -> $, $value {
+              $value
+                ?? nqp::bindkey(elems,$key,$object)
+                !! nqp::deletekey(elems,$key);
+              $value.Bool
+          }
         )
     }
 
-    my class Iterate does Rakudo::Iterator::Mappy {
-        method !SET-SELF(\elems) {
-            nqp::bind($!hash,elems);
-            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
-            self
-        }
+    my class Iterate does Iterator {
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
         method pull-one() {
-          nqp::if(
-            $!iter,
-            Pair.new(
-              nqp::atkey($!hash,(my $key := nqp::shift($!iter))),
-              proxy($key,$!hash)
-            ),
-            IterationEnd
-          )
+            nqp::elems($!keys)
+              ?? Pair.new(
+                   nqp::atkey($!elems,(my $key := nqp::shift_s($!keys))),
+                   proxy($key,$!elems)
+                 )
+              !! IterationEnd
         }
     }
-    method iterator(SetHash:D:) { Iterate.new($!elems) }
+    method iterator(SetHash:D:) { Iterate.new(:$!elems) }
 
-    my class KV does Rakudo::QuantHash::Quanty-kv {
-        method !SET-SELF(Mu \elems) {
-            nqp::bind($!elems,elems);
-            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
-            self
-        }
+    my class KV does Iterator {
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
+        has str $!on;
         method pull-one() is raw {
             nqp::if(
               $!on,
@@ -141,58 +131,57 @@ my class SetHash does Setty {
                 $proxy
               ),
               nqp::if(
-                $!iter,
-                nqp::atkey($!elems,$!on = nqp::shift($!iter)),
+                nqp::elems($!keys),
+                nqp::atkey($!elems,$!on = nqp::shift_s($!keys)),
                 IterationEnd
               )
             )
         }
-        method skip-one() {  # the one provided by the role interferes
-            nqp::not_i(nqp::eqaddr(self.pull-one,IterationEnd))
-        }
         method push-all(\target --> IterationEnd) {
+            my $elems := $!elems;
+            my $keys  := $!keys;
             nqp::while(
-              $!iter,
+              nqp::elems($keys),
               nqp::stmts(  # doesn't sink
-                target.push(nqp::atkey($!elems,nqp::shift($!iter))),
+                target.push(nqp::atkey($elems,nqp::shift_s($keys))),
                 target.push(True)
               )
-            )
+            );
         }
     }
-    multi method kv(SetHash:D:) { Seq.new(KV.new($!elems)) }
+    multi method kv(SetHash:D:) { Seq.new(KV.new(:$!elems)) }
 
-    my class Values does Rakudo::Iterator::Mappy {
-        method !SET-SELF(\elems) {
-            nqp::bind($!hash,elems);
-            nqp::bind($!iter,Rakudo::Internals.ITERATIONSET2LISTITER(elems));
-            self
+    my class Values does Iterator {
+        has $!elems is built(:bind);
+        has $!keys  is built(:bind) is built(False) =
+          Rakudo::Internals.IterationSet2keys($!elems);
+        method pull-one() is raw {
+            nqp::elems($!keys)
+              ?? proxy(nqp::shift_s($!keys),$!elems)
+              !! IterationEnd
         }
-        method pull-one() is rw {
-          nqp::if(
-            $!iter,
-            proxy(nqp::shift($!iter),$!hash),
-            IterationEnd
-          )
+        method push-all(\target --> IterationEnd) {
+            my $elems := $!elems;
+            my $keys  := $!keys;
+            nqp::while(
+              nqp::elems($keys),
+              target.push(proxy(nqp::shift_s($keys),$elems))
+            );
         }
     }
-    multi method values(SetHash:D:) { Seq.new(Values.new($!elems)) }
+    multi method values(SetHash:D:) { Seq.new(Values.new(:$!elems)) }
 
 #--- coercion methods
     multi method Set(SetHash:D: :$view) {  # :view is implementation-detail
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(Set).SET-SELF(nqp::if($view,$!elems,nqp::clone($!elems))),
-          nqp::create(Set)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(Set).SET-SELF($view ?? $!elems !! nqp::clone($!elems))
+          !! nqp::create(Set)
     }
     multi method SetHash(SetHash:D:) { self }
     method clone() {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(self).SET-SELF(nqp::clone($!elems)),
-          nqp::create(self)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(self).SET-SELF(nqp::clone($!elems))
+          !! nqp::create(self)
     }
 
     multi method Setty(SetHash:U:) { SetHash }
@@ -203,16 +192,16 @@ my class SetHash does Setty {
     multi method Mixy (SetHash:D:) { self.MixHash }
 
 #--- interface methods
-    multi method STORE(SetHash:D: *@pairs --> SetHash:D) {
-        nqp::if(
-          (my \iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))),
-          self.SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
-            )
-          )
-        )
+    multi method STORE(SetHash:D: Iterable:D \iterable --> SetHash:D) {
+        (my \iterator := iterable.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('initialize')
+          !! self.SET-SELF(
+               Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 self.keyof
+               )
+             )
     }
     multi method STORE(SetHash:D: \objects, \bools --> SetHash:D) {
         my \iterobjs  := objects.iterator;
@@ -271,7 +260,7 @@ my class SetHash does Setty {
     }
 
 #--- convenience methods
-    method set(\to-set --> Nil) {
+    method set(SetHash:D: \to-set --> Nil) {
         nqp::bindattr(
           self,SetHash,'$!elems',nqp::create(Rakudo::Internals::IterationSet)
         ) unless $!elems;
@@ -280,7 +269,7 @@ my class SetHash does Setty {
         );
     }
 
-    method unset(\to-unset --> Nil) {
+    method unset(SetHash:D: \to-unset --> Nil) {
         my \iterator := to-unset.iterator;
         nqp::until(
           nqp::eqaddr((my \pulled := iterator.pull-one),IterationEnd),

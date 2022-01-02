@@ -15,11 +15,21 @@ my %provides =
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
     "Telemetry"                     => "lib/Telemetry.rakumod",
     "snapper"                       => "lib/snapper.rakumod",
+    "safe-snapper"                  => "lib/safe-snapper.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
 ;
 
-%provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod"
-  if Compiler.backend eq 'moar';
+%provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"
+    if $*RAKU.compiler.?supports-op('dispatch_v');
+
+if Compiler.backend eq 'moar' {
+    %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod";
+    %provides<MoarVM::Spesh>    = "lib/MoarVM/Spesh.rakumod";
+    %provides<MoarVM::SL>       = "lib/MoarVM/SL.rakumod";
+    %provides<SL>               = "lib/SL.rakumod";
+    %provides<MoarVM::SIL>      = "lib/MoarVM/SIL.rakumod";
+    %provides<SIL>              = "lib/SIL.rakumod";
+}
 
 my $prefix := @*ARGS[0];
 my $REPO := PROCESS::<$REPO> := CompUnit::Repository::Staging.new(

@@ -29,19 +29,16 @@ my class Bag does Baggy {
         )
     }
     method total(Bag:D: --> Int:D) {
-        nqp::if(
-          nqp::attrinited(self,Bag,'$!total'),
-          $!total,
-          $!total := Rakudo::QuantHash.BAG-TOTAL($!elems)
-        )
+        nqp::attrinited(self,Bag,'$!total')
+          ?? $!total
+          !! ($!total := Rakudo::QuantHash.BAG-TOTAL($!elems))
     }
 
+
 #--- interface methods
-    multi method STORE(Bag:D: *@pairs, :INITIALIZE($)! --> Bag:D) {
-        (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
-             )
+    multi method STORE(Bag:D: Iterable:D \iterable, :INITIALIZE($)! --> Bag:D) {
+        (my \iterator := iterable.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
              ))
@@ -69,25 +66,21 @@ my class Bag does Baggy {
 #--- coercion methods
     multi method Bag(Bag:D:) { self }
     multi method BagHash(Bag:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(BagHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(BagHash).SET-SELF(
+               Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! nqp::create(BagHash)
     }
     multi method Mix(Bag:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(Mix).SET-SELF($!elems),
-          mix()
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(Mix).SET-SELF($!elems)
+          !! mix()
     }
     multi method MixHash(Bag:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(MixHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(MixHash).SET-SELF(
+               Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! nqp::create(MixHash)
     }
 
     multi method Setty(Bag:U:) { Set      }

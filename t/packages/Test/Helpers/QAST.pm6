@@ -55,7 +55,7 @@ sub qast-descendable (Mu $qast --> Bool:D) is export {
 sub qast-is (Str:D $code is copy, &test, Str:D $desc,
     Bool:D :$full = False,
     Str:D  :$target where 'optimize'|'ast' = 'optimize',
-) is export {
+) is export is test-assertion {
     $code = "use nqp; nqp::qast_test_START_MARK;\n"
       ~ $code ~ "\n; nqp::qast_test_END_MARK;\n"
     unless $full;

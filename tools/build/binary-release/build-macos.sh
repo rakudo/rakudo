@@ -26,7 +26,8 @@ echo "========= Installing Rakudo"
 make install
 
 echo "========= Testing Rakudo"
-make test
+rm -r t/spec
+prove -e install/bin/raku -vlr t
 
 echo "========= Cloning Zef"
 git clone https://github.com/ugexe/zef.git
@@ -37,10 +38,11 @@ pushd zef
 popd
 
 echo "========= Copying auxiliary files"
-cp -r tools/build/binary-release/MacOS/* install
+cp -r tools/build/binary-release/assets/MacOS/* install
 cp LICENSE install
 
 echo "========= Preparing archive"
-mv install rakudo-$VERSION
-gtar -zcv --owner=0 --group=0 --numeric-owner -f ../rakudo-macos.tar.gz rakudo-$VERSION
+FILE_NAME=rakudo-moar-$VERSION-$REVISION-macos-x86_64-clang
+mv install $FILE_NAME
+gtar -zcv --owner=0 --group=0 --numeric-owner -f ../rakudo-macos.tar.gz $FILE_NAME
 

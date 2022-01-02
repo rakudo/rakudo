@@ -9,11 +9,59 @@ class Perl6::Compiler is HLL::Compiler {
     has $!can_language_versions; # List of valid language version
     has $!rakudo-home;
 
+    method config() {
+        nqp::gethllsym('default', 'SysConfig').rakudo-build-config();
+    }
+
     method compilation-id() {
         my class IDHolder { }
         BEGIN { (IDHolder.WHO)<$ID> := $*W.handle }
         $IDHolder::ID
     }
+
+    method version() {
+        nqp::say(self.version_string);
+        nqp::exit(0);
+    }
+
+    method version_string(:$shorten-versions, :$no-unicode) {
+        my $config-version  := self.config()<version>;
+        my $backend-version := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
+
+        my $raku;
+        my $rakudo;
+        if $shorten-versions {
+            my $index := nqp::index($config-version,"-");
+            $config-version := nqp::substr($config-version,0,$index)
+              unless $index == -1;
+
+            $index := nqp::index($backend-version,"-");
+            $backend-version := nqp::substr($backend-version,0,$index)
+              unless $index == -1;
+        }
+
+        if $no-unicode {
+            $raku   := "Raku(R)";
+            $rakudo := "Rakudo(tm)";
+        }
+        else {
+            $raku   := "Raku®";
+            $rakudo := "Rakudo™";
+        }
+
+        "Welcome to "
+          ~ $rakudo
+          ~ " v"
+          ~ $config-version
+          ~ ".\nImplementing the "
+          ~ $raku
+          ~ " Programming Language v"
+          ~ self.language_version()
+          ~ ".\nBuilt on "
+          ~ $backend-version
+          ~ "."
+    }
+
 
     method implementation()   { self.config<implementation> }
     method language_name()    { 'Raku' }
@@ -35,6 +83,9 @@ class Perl6::Compiler is HLL::Compiler {
             $!language_version := %*COMPILING<%?OPTIONS><language_version> || self.config<language-version>
         }
     }
+    method language_revision() {
+        nqp::substr(self.language_version,2,1)
+    }
     method language_modifier() {
         $!language_modifier
     }
@@ -52,6 +103,10 @@ class Perl6::Compiler is HLL::Compiler {
     method command_eval(*@args, *%options) {
         if nqp::existskey(%options, 'doc') && !%options<doc> {
             %options<doc> := 'Text';
+        }
+
+        if nqp::existskey(%options, 'nqp-lib') {
+            note('Option `--nqp-lib` is deprecated, has no effect and will be removed in 2021.06.');
         }
 
         my $argiter := nqp::iterator(@args);
@@ -97,33 +152,6 @@ class Perl6::Compiler is HLL::Compiler {
         my $stdin    := stdin();
 
         $p6repl.repl-loop(:interactive(1), |%adverbs)
-    }
-
-    method rakudo-home() {
-        if !$!rakudo-home {
-            # Determine Perl6 and NQP dirs.
-#?if jvm
-            my $sep := nqp::atkey(nqp::jvmgetproperties,'os.name') eq 'MSWin32' ?? '\\' !! '/';
-            my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname') // '';
-#?endif
-#?if !jvm
-            my $config := nqp::backendconfig();
-            my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
-            my $execname := nqp::execname();
-#?endif
-            my $install-dir := $execname eq ''
-                ?? self.config<prefix>
-                !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
-
-            $!rakudo-home := nqp::getenvhash()<RAKUDO_HOME>
-                // nqp::getenvhash()<PERL6_HOME>
-                // self.config<static-rakudo-home>
-                || $install-dir ~ '/share/perl6';
-            if nqp::substr($!rakudo-home, nqp::chars($!rakudo-home) - 1) eq $sep {
-                $!rakudo-home := nqp::substr($!rakudo-home, 0, nqp::chars($!rakudo-home) - 1);
-            }
-        }
-        $!rakudo-home;
     }
 
     method usage($name?, :$use-stderr = False) {
@@ -182,6 +210,7 @@ and, by default, also executes the compiled code.
   -M module            loads the module prior to running the program
   --target=stage       specify compilation stage to emit
   --optimize=level     use the given level of optimization (0..3)
+  --rakudo-home=path   Override the path of the Rakudo runtime files
   -o, --output=name    specify name of output file
   -v, --version        display version information
   -V                   print configuration summary

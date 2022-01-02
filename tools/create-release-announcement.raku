@@ -31,7 +31,7 @@ be incremental spec releases this year as well.
 
 If you would like to contribute or get more information, visit
 <https://raku.org>, <https://rakudo.org/community>, ask on the
-<perl6-compiler@perl.org> mailing list, or ask on IRC #raku on freenode.
+<perl6-compiler@perl.org> mailing list, or ask on IRC #raku on Libera.
 
 Additionally, we invite you to make a donation to The Perl Foundation
 to sponsor Raku development: <https://donate.perlfoundation.org/>

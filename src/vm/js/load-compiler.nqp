@@ -1,6 +1,11 @@
 use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
+use Perl6::SysConfig;
+
+my %rakudo-build-config := nqp::hash();
+hll-config(%rakudo-build-config);
+nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-config));
 
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
@@ -28,11 +33,6 @@ sub hll-config($config) {
     $config<libdir>           := '';
     $config<source-digest>    := '907e209148676a368121c7c2ca5cdab8b5c77c66';
 }
-
-hll-config($comp.config);
-
-nqp::bindhllsym('Raku', '$COMPILER_CONFIG', $comp.config);
-
 
 # Set up END block list, which we'll run at exit.
 nqp::bindhllsym('Raku', '@END_PHASERS', []);

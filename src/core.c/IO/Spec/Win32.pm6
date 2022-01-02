@@ -24,7 +24,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     method rootdir {  ｢\｣  }
     method splitdir(Cool:D $path) {
         nqp::p6bindattrinvres(
-          (), List, '$!reified',
+          nqp::create(List), List, '$!reified',
           nqp::split('/', nqp::join('/', nqp::split(｢\｣, $path.Str))))
         || ('',)
     }
@@ -54,10 +54,10 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         my $parts := nqp::split(";",%*ENV<PATH> // %*ENV<Path> // '');
         nqp::push((my $buffer := nqp::create(IterationBuffer)),".");
 
-        nqp::while( 
+        nqp::while(
           nqp::elems($parts),
           # unsure why old code removed all `"`, but keeping code same
-          # https://irclog.perlgeek.de/perl6-dev/2017-05-15#i_14585448
+          # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-15#l240
           nqp::if(
             ($_ := nqp::join('',nqp::split('"',nqp::shift($parts)))),
             nqp::push($buffer,$_)
@@ -66,7 +66,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
         $buffer.Seq
     }
 
-    method is-absolute ($path) {
+    method is-absolute ( Str() $path) {
         nqp::hllbool(
           nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
           || nqp::iseq_i($_, 47)                   # /^ ｢/｣ /

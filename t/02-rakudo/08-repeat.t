@@ -13,8 +13,10 @@ plan 5;
 }
 
 # https://github.com/Raku/old-issue-tracker/issues/5279
-#?rakudo.jvm skip 'OutOfMemoryError: Java heap space'
-{
+if $*VM.name eq 'jvm' {
+    skip-rest 'OutOfMemoryError: Java heap space';
+}
+else {
     my $a;
     lives-ok({ $a = 'a' x 1073741824 }, 'repeat count equal to the NQP limit works');
     is($a.chars, 1073741824, 'correct result for count equal to the NQP limit');

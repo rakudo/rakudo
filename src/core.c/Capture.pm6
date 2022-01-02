@@ -4,6 +4,7 @@ my class Capture { # declared in BOOTSTRAP
     #     has %!hash;   # named parameters
 
     method from-args(|c) { c }
+    method item() is raw { my $ = self }
 
     submethod BUILD(:@list, :%hash --> Nil) {
         my Int:D $elems = @list.elems; # force reification of all
@@ -19,13 +20,16 @@ my class Capture { # declared in BOOTSTRAP
         my Mu $WHICH := nqp::list_s(nqp::eqaddr(self.WHAT,Capture) ?? 'Capture' !! nqp::unbox_s(self.^name));
         if nqp::isconcrete(@!list) && nqp::elems(@!list) {
             nqp::push_s($WHICH, '|');
-            my Mu $iter := nqp::iterator(@!list);
-            while $iter {
-                my Mu \value = nqp::shift($iter);
-                nqp::push_s($WHICH, '(');
-                nqp::push_s($WHICH, nqp::unbox_s(value.VAR.WHICH));
-                nqp::push_s($WHICH, ')');
-            }
+            my Mu $list := nqp::clone(@!list);
+            nqp::while(
+              nqp::elems($list),
+              nqp::stmts(
+                (my Mu \value = nqp::shift($list)),
+                nqp::push_s($WHICH, '('),
+                nqp::push_s($WHICH, nqp::unbox_s(value.VAR.WHICH)),
+                nqp::push_s($WHICH, ')')
+              )
+            );
         }
         if nqp::isconcrete(%!hash) && nqp::elems(%!hash) {
             nqp::push_s($WHICH, '|');
@@ -40,16 +44,14 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     multi method AT-KEY(Capture:D: Str:D \key) is raw {
-        nqp::if(
-          nqp::isconcrete(%!hash),
-          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil),
-          Nil)
+        nqp::isconcrete(%!hash)
+          ?? nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key)), Nil)
+          !! Nil
     }
     multi method AT-KEY(Capture:D: \key) is raw {
-        nqp::if(
-          nqp::isconcrete(%!hash),
-          nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil),
-          Nil)
+        nqp::isconcrete(%!hash)
+          ?? nqp::ifnull(nqp::atkey(%!hash,nqp::unbox_s(key.Str)), Nil)
+          !! Nil
     }
 
     multi method AT-POS(Capture:D: Int:D \pos) is raw {
@@ -68,45 +70,37 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     method hash(Capture:D:) {
-        nqp::if(
-          (nqp::defined(%!hash) && nqp::elems(%!hash)),
-          nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',%!hash),
-          nqp::create(Map)
-        )
+        (nqp::defined(%!hash) && nqp::elems(%!hash))
+          ?? nqp::p6bindattrinvres(nqp::create(Map),Map,'$!storage',%!hash)
+          !! nqp::create(Map)
     }
 
     multi method EXISTS-KEY(Capture:D: Str:D \key) {
-        nqp::if(
-          nqp::isconcrete(%!hash),
-          nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key))),
-          False)
+        nqp::isconcrete(%!hash)
+          ?? nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key)))
+          !! False
     }
     multi method EXISTS-KEY(Capture:D: \key) {
-        nqp::if(
-          nqp::isconcrete(%!hash),
-          nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str))),
-          False)
+        nqp::isconcrete(%!hash)
+          ?? nqp::hllbool(nqp::existskey(%!hash, nqp::unbox_s(key.Str)))
+          !! False
     }
 
     multi method EXISTS-POS(Capture:D: Int:D \pos) {
-        nqp::if(
-          nqp::isconcrete(@!list),
-          nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos))),
-          False)
+        nqp::isconcrete(@!list)
+          ?? nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos)))
+          !! False
     }
     multi method EXISTS-POS(Capture:D: \pos) {
-        nqp::if(
-          nqp::isconcrete(@!list),
-          nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos.Int))),
-          False)
+        nqp::isconcrete(@!list)
+          ?? nqp::hllbool(nqp::existspos(@!list, nqp::unbox_i(pos.Int)))
+          !! False
     }
 
     method list(Capture:D:) {
-        nqp::if(
-          (nqp::defined(@!list) && nqp::elems(@!list)),
-          nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!list),
-          nqp::create(List)
-        )
+        nqp::defined(@!list) && nqp::elems(@!list)
+          ?? nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',@!list)
+          !! nqp::create(List)
     }
 
     method elems(Capture:D:) {
@@ -126,7 +120,7 @@ my class Capture { # declared in BOOTSTRAP
                 nqp::push_s($str, nqp::unbox_s((nqp::p6box_s(nqp::iterkey_s($kv)) => nqp::iterval($kv).Str).Str));
             }
         }
-        nqp::join(' ', $str)
+        nqp::p6box_s(nqp::join(' ', $str))
     }
 
     multi method gist(Capture:D:) { self.Capture::raku }
@@ -168,7 +162,7 @@ my class Capture { # declared in BOOTSTRAP
                 nqp::push_s($raku, ')');
             }
         }
-        nqp::join('', $raku)
+        nqp::p6box_s(nqp::join('', $raku))
     }
 
     multi method Bool(Capture:D:) {
@@ -186,10 +180,10 @@ my class Capture { # declared in BOOTSTRAP
     }
 
     method FLATTENABLE_LIST() is raw is implementation-detail {
-        nqp::if(nqp::isconcrete(@!list),@!list,nqp::list)
+        nqp::isconcrete(@!list) ?? @!list !! nqp::list
     }
     method FLATTENABLE_HASH() is raw is implementation-detail {
-        nqp::if(nqp::isconcrete(%!hash),%!hash,nqp::hash)
+        nqp::isconcrete(%!hash) ?? %!hash !! nqp::hash
     }
 
     multi method keys(Capture:D:) {
@@ -209,12 +203,12 @@ my class Capture { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Capture:D \a, Capture:D \b --> Bool:D) {
+multi sub infix:<eqv>(Capture:D $a, Capture:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT)
-             && a.Capture::list eqv b.Capture::list
-             && a.Capture::hash eqv b.Capture::hash)
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT)
+             && $a.Capture::list eqv $b.Capture::list
+             && $a.Capture::hash eqv $b.Capture::hash)
     )
 }
 

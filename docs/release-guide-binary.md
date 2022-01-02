@@ -19,14 +19,25 @@ The process of building is not started automatically, but has to be triggered ma
 - Verify all three archives have a size >10MB.
 - Verify all three archives decompress successfully.
 
-Sign the files:
+Sign the files and create checksum files:
 
-   gpg -b -u your@gpgkey.org --armor rakudo-moar-2020.01-01-linux-x86_64.tar.gz
-   gpg -b -u your@gpgkey.org --armor rakudo-moar-2020.01-01-macos-x86_64.tar.gz
-   gpg -b -u your@gpgkey.org --armor rakudo-moar-2020.01-01-win-x86_64.zip
+    gpg -u your@gpgkey.org --detach-sign --armor rakudo-moar-2020.01-01-linux-x86_64.tar.gz
 
-Upload the three archive files and corresponding `.asc` files to the <https://rakudo.org/> server.
+    md5sum    --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha1sum   --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha224sum --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha256sum --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha384sum --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha512sum --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
 
+    gpg -u your@gpgkey.org --clearsign --output rakudo-moar-2020.01-01-linux-x86_64.tar.gz.checksums.txt rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    rm rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+
+Do that for all three release archives and the MSI file.
+
+- Upload the three archive files, the MSI and the checksum files to the <https://rakudo.org/> server:
+
+    scp -P2222 rakudo-moar-2020.01-01-* rakudo.org@lavm-perl6infra-1.atikon.io:public_html/downloads/rakudo/
 
 Manual build
 ============
@@ -63,22 +74,24 @@ As of 2019-07-08 CentOS 6 (using glibc 2.12) is a good pick.
 - Use a 64 bit Linux.
 - Install docker.
 - `docker run -it --name=rakudo-build centos:6 bash`
-
-    yum -y update && yum clean all
-    yum install git perl perl-core gcc make
-    curl -L -o rakudo-2020.01.tar.gz https://rakudo.org/dl/rakudo/rakudo-2020.01.tar.gz
-    tar -xzf rakudo-2020.01.tar.gz
-    cd rakudo-2020.01
-    perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
-    make install
-    make test
-    git clone https://github.com/ugexe/zef.git
-    cd zef
-    /rakudo-2020.01/install/bin/raku -I. bin/zef install .
-    cd /rakudo-2020.01
-    cp -r tools/build/binary-release/Linux/* install
-    mv install rakudo-2020.01
-    tar -zcv --owner=0 --group=0 --numeric-owner -f /rakudo-moar-2020.01-01-linux-x86_64.tar.gz rakudo-2020.01
+- In the container
+```bash
+yum -y update && yum clean all
+yum install git perl perl-core gcc make
+curl -sSL -o rakudo.tar.gz https://rakudo.org/dl/rakudo/rakudo-2020.01.tar.gz
+tar -xzf rakudo.tar.gz
+cd rakudo-*
+perl Configure.pl --gen-moar --gen-nqp --backends=moar --relocatable
+make test
+make install
+git clone https://github.com/ugexe/zef.git
+cd zef
+/rakudo-*/install/bin/raku -I. bin/zef install .
+cd /rakudo-*
+cp -r tools/build/binary-release/Linux/* install
+mv install rakudo-2020.01
+tar -zcv --owner=0 --group=0 --numeric-owner -f /rakudo-moar-2020.01-01-linux-x86_64.tar.gz rakudo-2020.01
+```
 
 - On the host linux (not inside the container) run `docker cp rakudo-build:/rakudo-moar-2020.01-01-linux-x86_64.tar.gz .` to copy the archive out of the container. If you happended to stop the container by exitting the console, type `docker start rakudo-build` to start it again and allow copying files out.
 - Sign the tarball archive as described in `release_guide.pod`.

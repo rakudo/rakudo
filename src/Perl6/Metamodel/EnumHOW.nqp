@@ -25,7 +25,7 @@ class Perl6::Metamodel::EnumHOW
     has %!values;
 
     # Reverse mapping hash.
-    has %!value_to_enum;
+    has $!value_to_enum;
 
     # List of enum values (actual enum objects).
     has @!enum_value_list;
@@ -50,7 +50,7 @@ class Perl6::Metamodel::EnumHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type(:$name!, :$base_type?, :$repr = 'P6opaque', :$is_mixin) {
@@ -70,6 +70,9 @@ class Perl6::Metamodel::EnumHOW
     method add_enum_value($obj, $value) {
         %!values{nqp::unbox_s($value.key)} := $value.value;
         @!enum_value_list[+@!enum_value_list] := $value;
+        nqp::scwbdisable();
+        $!value_to_enum := NQPMu;
+        nqp::scwbenable();
     }
 
     method set_export_callback($obj, $callback) {
@@ -85,13 +88,18 @@ class Perl6::Metamodel::EnumHOW
     }
 
     method enum_from_value($obj, $value) {
-        unless %!value_to_enum {
+        my $value_to_enum := $!value_to_enum;
+        unless $value_to_enum {
+            $value_to_enum := nqp::hash;
             for @!enum_value_list {
-                %!value_to_enum{$_.value} := $_;
+                $value_to_enum{$_.value} := $_;
             }
+            nqp::scwbdisable();
+            $!value_to_enum := $value_to_enum;
+            nqp::scwbenable();
         }
-        nqp::existskey(%!value_to_enum, $value)
-            ?? %!value_to_enum{$value}
+        nqp::existskey($value_to_enum, $value)
+            ?? $value_to_enum{$value}
             !! nqp::null()
     }
 
@@ -165,8 +173,10 @@ class Perl6::Metamodel::EnumHOW
             $!composed := 1;
         }
 
+#?if !moar
         # Compose invocation protocol.
         self.compose_invocation($obj);
+#?endif
 
         $obj
     }

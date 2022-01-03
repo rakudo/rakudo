@@ -8,9 +8,10 @@ my class ForeignCode
     # class ForeignCode
     #     has Code $!do;                # Code object we delegate to
 
-    method arity() { self.signature.arity }
-
-    method count() { self.signature.count }
+    method arity(          --> 0) { }
+    method count(        --> Inf) { }
+    method has-phasers(--> False) { }
+    method has-loop-phasers(--> False) { }
 
     method signature(ForeignCode:D:) { (sub (|) { }).signature }
 
@@ -27,7 +28,7 @@ my class Rakudo::Internals::EvalIdSource {
 proto sub EVAL(
   $code is copy where Blob|Cool|Callable,
   Str()       :$lang is copy = 'Raku',
-  PseudoStash :$context,
+  PseudoStash :context($ctx),
   Str()       :$filename = Str,
   Bool()      :$check,
   *%_
@@ -52,7 +53,7 @@ $lang = 'Raku' if $lang eq 'perl6';
     }
     $code = nqp::istype($code,Blob) ?? $code.decode('utf8') !! $code.Str;
 
-    $context := CALLER:: unless nqp::defined($context);
+    my $context := nqp::defined($ctx) ?? $ctx !! CALLER::;
     my $eval_ctx := nqp::getattr(nqp::decont($context), PseudoStash, '$!ctx');
     my $?FILES   := $filename // 'EVAL_' ~ Rakudo::Internals::EvalIdSource.next-id;
     my $*CTXSAVE; # make sure we don't use the EVAL's MAIN context for the

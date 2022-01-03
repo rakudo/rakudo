@@ -2,10 +2,10 @@ my class Date does Dateish {
 
     method !formatter(--> Str:D) { self.yyyy-mm-dd }
 
-#?if moar
+#?if !js
     my constant $valid-units = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $valid-units := nqp::hash(
 #?endif
       'day',    1,
@@ -18,28 +18,40 @@ my class Date does Dateish {
       'years',  0,
     );
 
-    # fast object creation with sanity check on month/day
-    method !SET-SELF(\year,\month,\day,\formatter --> Date:D) {
-        self!oor("Month",month,"1..12")
-          unless 1 <= month <= 12;
-        self!oor("Day",day,"1..{self!DAYS-IN-MONTH(year,month)}")
-          unless 1 <= day <= self!DAYS-IN-MONTH(year,month);
-
-        nqp::bindattr_i(self,Date,'$!year',year);
-        nqp::bindattr_i(self,Date,'$!month',month);
-        nqp::bindattr_i(self,Date,'$!day',day);
-        nqp::bindattr(self,Date,'&!formatter',formatter);
-        self
+    # handler of error if an error was found
+    method !wrong-oor(int $year, int $month, int $day) {
+        self!oor("Month", $month, "1..12")
+          unless 1 <= $month <= 12;
+        self!oor("Day", $day, "1..{self!DAYS-IN-MONTH($year, $month)}")
+          unless 1 <= $day <= self!DAYS-IN-MONTH($year, $month);
     }
 
-    # object creation for subclasses, wit sanity check on month/day
-    method !bless($year, $month, $day, &formatter, %nameds) {
-        self!oor("Month",$month,"1..12")
-          unless 1 <= $month <= 12;
-        self!oor("Day",$day,"1..{self!DAYS-IN-MONTH($year,$month)}")
-          unless 1 <= $day <= self!DAYS-IN-MONTH($year,$month);
+    # fast object creation with sanity check on month/day
+    method !SET-SELF(int $year, int $month, int $day, $formatter --> Date:D) {
+        nqp::if(
+          nqp::isge_i($month,1)
+            && nqp::isle_i($month,12)
+            && nqp::isge_i($day,1)
+            && nqp::isle_i($day, self!DAYS-IN-MONTH($year, $month)),
+          nqp::stmts(
+            nqp::bindattr_i(self,Date,'$!year',$year),
+            nqp::bindattr_i(self,Date,'$!month',$month),
+            nqp::bindattr_i(self,Date,'$!day',$day),
+            nqp::bindattr(self,Date,'&!formatter',$formatter),
+            self
+          ),
+          self!wrong-oor($year, $month, $day)
+        )
+    }
 
-        self.bless(:$year,:$month,:$day,:&formatter,|%nameds)!SET-DAYCOUNT
+    # object creation for subclasses, with sanity check on month/day
+    method !bless($year, $month, $day, &formatter, %nameds) {
+        nqp::isge_i($month,1)
+          && nqp::isle_i($month,12)
+          && nqp::isge_i($day,1)
+          && nqp::isle_i($day, self!DAYS-IN-MONTH($year, $month))
+          ?? self.bless(:$year,:$month,:$day,:&formatter,|%nameds)!SET-DAYCOUNT
+          !! self!wrong-oor($year, $month, $day)
     }
 
     proto method new(|) {*}
@@ -370,14 +382,14 @@ my class Date does Dateish {
     method Date() { self }
 }
 
-multi sub infix:<+>(Date:D \date, Int:D $x --> Date:D) {
-    date.MOVE-DAYS($x)
+multi sub infix:<+>(Date:D $date, Int:D $x --> Date:D) {
+    $date.MOVE-DAYS($x)
 }
-multi sub infix:<+>(Int:D $x, Date:D \date --> Date:D) {
-    date.MOVE-DAYS($x)
+multi sub infix:<+>(Int:D $x, Date:D $date --> Date:D) {
+    $date.MOVE-DAYS($x)
 }
-multi sub infix:<->(Date:D \date, Int:D $x --> Date:D) {
-    date.MOVE-DAYS(nqp::neg_i($x))
+multi sub infix:<->(Date:D $date, Int:D $x --> Date:D) {
+    $date.MOVE-DAYS(nqp::neg_i($x))
 }
 multi sub infix:<->(Date:D $a, Date:D $b --> Int:D) {
     $a.daycount - $b.daycount;

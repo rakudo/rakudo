@@ -4,12 +4,12 @@
 #   ≢     is not identical to
 
 proto sub infix:<<(==)>>($, $, *% --> Bool:D) is pure {*}
-multi sub infix:<<(==)>>(Setty:D \a, Setty:D \b --> Bool:D) {
+multi sub infix:<<(==)>>(Setty:D $a, Setty:D $b --> Bool:D) {
     nqp::unless(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+      nqp::eqaddr($a,$b),
       nqp::stmts(                   # A and B not same object
-        (my \araw := a.RAW-HASH),
-        (my \braw := b.RAW-HASH),
+        (my \araw := $a.RAW-HASH),
+        (my \braw := $b.RAW-HASH),
         nqp::if(
           araw && braw,
           nqp::if(                  # A and B both allocated
@@ -36,27 +36,27 @@ multi sub infix:<<(==)>>(Setty:D \a, Setty:D \b --> Bool:D) {
 
     True
 }
-multi sub infix:<<(==)>>(Setty:D \a, Mixy:D  \b --> Bool:D) { a.Mix (==) b }
-multi sub infix:<<(==)>>(Setty:D \a, Baggy:D \b --> Bool:D) { a.Bag (==) b }
-multi sub infix:<<(==)>>(Setty:D \a, Any     \b --> Bool:D) { a (==) b.Set }
+multi sub infix:<<(==)>>(Setty:D $a, Mixy:D  $b --> Bool:D) { $a.Mix (==) $b }
+multi sub infix:<<(==)>>(Setty:D $a, Baggy:D $b --> Bool:D) { $a.Bag (==) $b }
+multi sub infix:<<(==)>>(Setty:D $a, Any     \b --> Bool:D) { $a (==) b.Set  }
 
-multi sub infix:<<(==)>>(Mixy:D \a, Mixy:D  \b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-EQUAL(a, b)
+multi sub infix:<<(==)>>(Mixy:D $a, Mixy:D  $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-EQUAL($a, $b)
 }
-multi sub infix:<<(==)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-EQUAL(a, b)
+multi sub infix:<<(==)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-EQUAL($a, $b)
 }
-multi sub infix:<<(==)>>(Mixy:D \a, Setty:D \b --> Bool:D) { a (==) b.Mix }
-multi sub infix:<<(==)>>(Mixy:D \a, Any     \b --> Bool:D) { a (==) b.Mix }
+multi sub infix:<<(==)>>(Mixy:D $a, Setty:D $b --> Bool:D) { $a (==) $b.Mix }
+multi sub infix:<<(==)>>(Mixy:D $a, Any     \b --> Bool:D) { $a (==)  b.Mix }
 
-multi sub infix:<<(==)>>(Baggy:D \a, Mixy:D \b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-EQUAL(a, b)
+multi sub infix:<<(==)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-EQUAL($a, $b)
 }
-multi sub infix:<<(==)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-EQUAL(a, b)
+multi sub infix:<<(==)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-EQUAL($a, $b)
 }
-multi sub infix:<<(==)>>(Baggy:D \a, Setty:D \b --> Bool:D) { a (==) b.Bag }
-multi sub infix:<<(==)>>(Baggy:D \a, Any     \b --> Bool:D) { a (==) b.Bag }
+multi sub infix:<<(==)>>(Baggy:D $a, Setty:D $b --> Bool:D) { $a (==) $b.Bag }
+multi sub infix:<<(==)>>(Baggy:D $a, Any     \b --> Bool:D) { $a (==)  b.Bag }
 
 multi sub infix:<<(==)>>(Map:D \a, Map:D \b --> Bool:D) {
     nqp::unless(
@@ -133,12 +133,12 @@ multi sub infix:<<(==)>>(Iterable:D \a, Map:D \b --> Bool:D) {
     nqp::hllbool(nqp::iseq_i(nqp::elems($seen),nqp::elems(braw)))
 }
 
-multi sub infix:<<(==)>>(Any \a, Mixy:D  \b --> Bool:D) { a.Mix (==) b     }
-multi sub infix:<<(==)>>(Any \a, Baggy:D \b --> Bool:D) { a.Bag (==) b     }
-multi sub infix:<<(==)>>(Any \a, Setty:D \b --> Bool:D) { a.Set (==) b     }
+multi sub infix:<<(==)>>(Any \a, Mixy:D  $b --> Bool:D) { a.Mix (==) $b }
+multi sub infix:<<(==)>>(Any \a, Baggy:D $b --> Bool:D) { a.Bag (==) $b }
+multi sub infix:<<(==)>>(Any \a, Setty:D $b --> Bool:D) { a.Set (==) $b }
 
-multi sub infix:<<(==)>>(Failure:D \a, Any $) { a.throw }
-multi sub infix:<<(==)>>(Any $, Failure:D \b) { b.throw }
+multi sub infix:<<(==)>>(Failure:D $a, Any) { $a.throw }
+multi sub infix:<<(==)>>(Any, Failure:D $b) { $b.throw }
 multi sub infix:<<(==)>>(Any \a, Any \b --> Bool:D) { a.Set (==) b.Set }
 
 # U+2261 IDENTICAL TO

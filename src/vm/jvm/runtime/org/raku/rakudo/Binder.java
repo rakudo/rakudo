@@ -740,7 +740,7 @@ public final class Binder {
             result = bind(tc, gcx, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);
             if (result != BIND_RESULT_OK)
             {
-                if (error != null) {
+                if (error != null && error[0] instanceof String) {
                     /* Note in the error message that we're in a sub-signature. */
                     error[0] += " in sub-signature";
 
@@ -749,7 +749,7 @@ public final class Binder {
                         error[0] += " of parameter " + varName;
                     }
                 }
-                return result;
+                return BIND_RESULT_FAIL;
             }
         }
 

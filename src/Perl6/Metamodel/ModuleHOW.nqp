@@ -14,7 +14,7 @@ class Perl6::Metamodel::ModuleHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type(:$name = '<anon>', :$repr, :$ver, :$auth, :$api) {

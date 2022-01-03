@@ -26,14 +26,16 @@ my class Hash { # declared in BOOTSTRAP
           Hash, '$!descriptor', nqp::clone($!descriptor))
     }
 
-    method !AT_KEY_CONTAINER(Str:D \key) is raw {
-        nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindHashPos.new($!descriptor, self, key))
+    method !AT_KEY_CONTAINER(Str:D $key) is raw {
+        nqp::p6scalarfromcertaindesc(
+          ContainerDescriptor::BindHashPos.new($!descriptor,self,$key)
+        )
     }
 
-    multi method AT-KEY(Hash:D: Str:D \key) is raw {
+    multi method AT-KEY(Hash:D: Str:D $key) is raw {
         nqp::ifnull(
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),key),
-          self!AT_KEY_CONTAINER(key)
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+          self!AT_KEY_CONTAINER($key)
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
@@ -44,18 +46,18 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method STORE_AT_KEY(|) is implementation-detail {*}
-    multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
+    multi method STORE_AT_KEY(Str:D $key, Mu \value --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
-          nqp::unbox_s(key),
-          nqp::p6scalarwithvalue($!descriptor, x),
+          $key,
+          nqp::p6scalarwithvalue($!descriptor,value),
         )
     }
-    multi method STORE_AT_KEY(\key, Mu \x --> Nil) {
+    multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
           nqp::unbox_s(key.Str),
-          nqp::p6scalarwithvalue($!descriptor, x),
+          nqp::p6scalarwithvalue($!descriptor,value),
         )
     }
     method !STORE_MAP(\map --> Nil) {
@@ -141,34 +143,23 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method BIND-KEY(|) {*}
-    multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
-        nqp::bindkey(
-          nqp::getattr(self,Map,'$!storage'),
-          key.Str,
-          bindval
-        )
+    multi method BIND-KEY(Hash:D: Str:D $key, Mu \bindval) is raw {
+        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$key,bindval)
     }
-    multi method BIND-KEY(Hash:D: Str:D \key, Mu \bindval) is raw {
-        nqp::bindkey(
-          nqp::getattr(self,Map,'$!storage'),
-          key,
-          bindval
-        )
+    multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
+        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),key.Str,bindval)
     }
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }
-    multi method DELETE-KEY(Hash:D: Str:D \key) {
+    multi method DELETE-KEY(Hash:D: Str:D $key) {
         nqp::if(
           nqp::isnull(my \value := nqp::atkey(
             nqp::getattr(self,Map,'$!storage'),
-            key
+            $key
           )),
           $!descriptor.default,
           nqp::stmts(
-            nqp::deletekey(
-              nqp::getattr(self,Map,'$!storage'),
-              key
-            ),
+            nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$key),
             value
           )
         )
@@ -414,6 +405,42 @@ my class Hash { # declared in BOOTSTRAP
         nqp::istype((my \current := self.AT-KEY($key)),Array)
           ?? current.append(|value)
           !! (current = self.EXISTS-KEY($key) ?? [|current,|value] !! value)
+    }
+
+    my class LTHandle {
+        has Mu $!storage;
+        has Mu $!descriptor;
+    }
+
+    method TEMP-LET-GET-HANDLE() is raw is implementation-detail {
+        my \handle = nqp::create(LTHandle);
+        nqp::bindattr(handle, LTHandle, '$!storage', nqp::getattr(self, Map, '$!storage'));
+        nqp::bindattr(handle, LTHandle, '$!descriptor', nqp::getattr(self, Hash, '$!descriptor'));
+        handle
+    }
+
+    method TEMP-LET-LOCALIZE() is raw is implementation-detail {
+        my \handle = self.TEMP-LET-GET-HANDLE;
+        # Re-initialize self from the original state by taking into account conterization status of keys.
+        my \iter = nqp::iterator(nqp::getattr(self, Map, '$!storage'));
+        nqp::bindattr(self, Map, '$!storage', my \new-storage = nqp::hash);
+        nqp::while(
+            iter,
+            nqp::stmts(
+                nqp::shift(iter),
+                (my \v = nqp::iterval(iter)),
+                nqp::bindkey(
+                    new-storage,
+                    nqp::iterkey_s(iter),
+                    nqp::if( nqp::iscont(v),
+                             nqp::p6assign(nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')), v),
+                             v ))));
+        handle
+    }
+
+    method TEMP-LET-RESTORE(\handle --> Nil) is implementation-detail {
+        nqp::bindattr(self, Hash, '$!descriptor', nqp::getattr(handle, LTHandle, '$!descriptor'));
+        nqp::bindattr(self, Map, '$!storage', nqp::getattr(handle, LTHandle, '$!storage'));
     }
 
     method ^parameterize(Mu:U \hash, Mu \of, Mu \keyof = Str(Any)) {

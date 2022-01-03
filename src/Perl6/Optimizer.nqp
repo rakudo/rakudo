@@ -7,6 +7,7 @@
 use NQPP6QRegex;
 use QAST;
 use Perl6::Ops;
+use Perl6::Metamodel;
 
 # A null QAST node, inserted when we want to eliminate something.
 my $NULL := QAST::Op.new( :op<null> );
@@ -27,13 +28,20 @@ my class Symbols {
 
     # Some interesting symbols.
     has $!Mu;
+    has $!Junction;
     has $!Any;
     has $!Block;
     has $!PseudoStash;
+    has $!Code;
     has $!Routine;
+    has $!Method;
+    has $!Signature;
+    has $!Pair;
     has $!Regex;
     has $!Nil;
     has $!Failure;
+    has $!False;
+    has $!True;
     has $!Seq;
     has $!AST;
     has $!LoweredAwayLexical;
@@ -57,16 +65,23 @@ my class Symbols {
             nqp::die("Optimizer could not find UNIT");
         }
         nqp::push(@!block_stack, $!UNIT);
-        $!Mu          := self.find_lexical('Mu');
-        $!Any         := self.find_lexical('Any');
-        $!Block       := self.find_lexical('Block');
-        $!PseudoStash := self.find_lexical('PseudoStash');
-        $!Routine     := self.find_lexical('Routine');
-        $!Regex       := self.find_lexical('Regex');
-        $!Nil         := self.find_lexical('Nil');
-        $!Failure     := self.find_lexical('Failure');
-        $!Seq         := self.find_lexical('Seq');
-        $!AST         := self.find_lexical('AST');
+        $!Mu          := self.find_in_setting('Mu');
+        $!Junction    := self.find_in_setting('Junction');
+        $!Any         := self.find_in_setting('Any');
+        $!Block       := self.find_in_setting('Block');
+        $!PseudoStash := self.find_in_setting('PseudoStash');
+        $!Code        := self.find_in_setting('Code');
+        $!Routine     := self.find_in_setting('Routine');
+        $!Method      := self.find_in_setting('Method');
+        $!Signature   := self.find_in_setting('Signature');
+        $!Pair        := self.find_in_setting('Pair');
+        $!Regex       := self.find_in_setting('Regex');
+        $!Nil         := self.find_in_setting('Nil');
+        $!Failure     := self.find_in_setting('Failure');
+        $!False       := self.find_in_setting('False');
+        $!True        := self.find_in_setting('True');
+        $!Seq         := self.find_in_setting('Seq');
+        $!AST         := self.find_in_setting('AST');
         $!LoweredAwayLexical := self.find_symbol(['Rakudo', 'Internals', 'LoweredAwayLexical']);
         nqp::pop(@!block_stack);
     }
@@ -104,12 +119,20 @@ my class Symbols {
     method GLOBALish()   { $!GLOBALish }
     method UNIT()        { $!UNIT }
     method Mu()          { $!Mu }
+    method Junction()    { $!Junction }
     method Any()         { $!Any }
     method Block()       { $!Block }
     method Regex()       { $!Regex }
     method PseudoStash() { $!PseudoStash }
+    method Code()        { $!Code }
+    method Pair()        { $!Pair }
+    method Routine()     { $!Routine }
+    method Method()      { $!Method }
+    method Signature()   { $!Signature }
     method Nil()         { $!Nil }
     method Failure()     { $!Failure }
+    method False()       { $!False }
+    method True()        { $!True }
     method Seq()         { $!Seq }
     method AST()         { $!AST }
     method LoweredAwayLexical() { $!LoweredAwayLexical }
@@ -262,6 +285,9 @@ my class Symbols {
     }
 
     method find_in_setting($symbol) {
+        if nqp::existskey(%!SETTING_CACHE, $symbol) {
+            return %!SETTING_CACHE{$symbol};
+        }
         if !nqp::elems(@!CORES) {
             my int $i := +@!block_stack;
             while $i > 0 {
@@ -274,10 +300,6 @@ my class Symbols {
             }
             if !nqp::elems(@!CORES) {
                 nqp::die("Optimizer couldn't find CORE while looking for $symbol.");
-            }
-        } else {
-            if nqp::existskey(%!SETTING_CACHE, $symbol) {
-                return %!SETTING_CACHE{$symbol};
             }
         }
         for @!CORES -> $core {
@@ -459,6 +481,8 @@ my class BlockVarOptimizer {
     # If p6return is used
     has int $!uses_p6return;
 
+    has $!debug;
+
     # If we're currently inside a handler argument of an nqp::handle. These
     # are code-gen'd with an implicit block around them, so we mustn't lower
     # lexicals referenced in them to locals.
@@ -543,7 +567,7 @@ my class BlockVarOptimizer {
 
     method is_poisoned() { $!poisoned }
 
-    method is_inlineable() {
+    method is_inlinable() {
         !($!poisoned || $!uses_p6return)
     }
 
@@ -897,8 +921,7 @@ my class JunctionOptimizer {
         if $found == 1 {
             my @candidates;
             if $obj.is_dispatcher {
-                my $Routine := $!symbols.find_in_setting("Routine");
-                @candidates := nqp::getattr($obj, $Routine, '@!dispatchees');
+                @candidates := nqp::getattr($obj, $!symbols.Routine, '@!dispatchees');
             }
             else {
                 @candidates := nqp::list($obj);
@@ -1025,16 +1048,1059 @@ my class JunctionOptimizer {
     }
 }
 
+# LHS/RHS operand classification by value
+my $OPERAND_VALUE_VAR      := 0;
+my $OPERAND_VALUE_CONST    := 1;
+my $OPERAND_VALUE_RETURN   := 2;
+
+my class Operand {
+    has $!ast;
+    has $!is-want;
+    has $!unwrapped;
+    has $!value;
+    has $!value-kind;
+    has $!routine;
+    has $!analyzed;
+    has $!optimizer;
+    has $!symbols;
+    has $!debug;
+    has $!name;
+    has $!can-be-junction;
+
+    # Localized version of operand stores its value in a local variable, so that when it's needed more than once
+    # we don't call it again and again when it comes to non-Var or non-WVal QAST node types.
+    # This status is advisable. Methods orig-ast and localize ignore it though try to set appropriate mode. But
+    # method ast respect the mode and returns appropriate form of AST node.
+    has $!local-var-name;
+    has $!localizable;
+
+    method new($ast, $optimizer, $symbols, :$name = nqp::null(), :$localizable = nqp::null()) {
+        my $obj := nqp::create(self);
+        $obj.BUILD($ast, $optimizer, $symbols, :$name, :$localizable);
+        $obj
+    }
+
+    method BUILD($ast, $optimizer, $symbols, :$name, :$localizable) {
+        $!ast := $ast;
+        $!unwrapped := ($!is-want := nqp::istype($ast, QAST::Want))
+                        ?? $ast[0]
+                        !! $ast;
+        $!analyzed := 0;
+        $!value := nqp::null();
+        $!value-kind := nqp::null();
+        $!routine := nqp::null();
+        $!local-var-name := nqp::null();
+        $!symbols := $symbols;
+        $!optimizer := $optimizer;
+        $!debug := nqp::getenvhash<RAKUDO_OPTIMIZER_DEBUG>;
+        $!name := $name;
+        $!localizable := $localizable;
+        $!can-be-junction := nqp::null();
+    }
+
+    # $!localizable can be set only once.
+    method localizable($set = nqp::null()) {
+        $!localizable := nqp::istrue($set) if nqp::isnull($!localizable);
+        $!localizable
+    }
+
+    method orig-ast() {
+        # Set non-localizable mode unless set already.
+        self.localizable(0);
+        $!ast
+    }
+    # Method ast() may return a QAST node of a localized variable bound to LHS.
+    method ast(:$decl = nqp::null()) {
+        self.localizable(nqp::defined($decl))
+            ?? self.localized(:$decl)
+            !! $!ast
+     }
+    method is-want() { $!is-want }
+    method unwrapped() { $!unwrapped }
+
+    method value-analyze() {
+        unless $!analyzed {
+            if nqp::istype($!unwrapped, QAST::Var) {
+                my $value := $!ast.returns;
+                if nqp::isnull($value) || nqp::istype($value, NQPMu) {
+                    my %sym := $!symbols.find_lexical_symbol($!unwrapped.name);
+                    $value := $!symbols.force_value(%sym, $!unwrapped.name, 0);
+                }
+                $!value := $value unless nqp::isnull($value) || nqp::istype($value, NQPMu);
+                $!value-kind := $OPERAND_VALUE_VAR;
+            }
+            elsif nqp::istype($!unwrapped, QAST::WVal)
+                || nqp::istype($!unwrapped, QAST::IVal)
+                || nqp::istype($!unwrapped, QAST::SVal)
+                || nqp::istype($!unwrapped, QAST::NVal)
+            {
+                $!value := $!unwrapped.value;
+                # Whatever is in XVal – it is a value, even if it's not concrete.
+                $!value-kind := $OPERAND_VALUE_CONST;
+            }
+            elsif nqp::istype($!unwrapped, QAST::Op) {
+                my $optype := $!unwrapped.op;
+                if $optype eq 'call' || $optype eq 'callstatic' {
+                    # If for whatever reason routine is not there yet or we can't infer its return value then assume it
+                    # can be anything.
+                    $!value := $!symbols.Mu;
+                    $!value-kind := $OPERAND_VALUE_RETURN;
+                    my $routine_name := $!unwrapped.name;
+                    $!routine := $!symbols.find_lexical($routine_name)
+                        if nqp::isconcrete($routine_name) && nqp::chars($routine_name);
+                }
+                elsif $optype eq 'callmethod' {
+                    $!value := $!symbols.Mu;
+                    $!value-kind := $OPERAND_VALUE_RETURN;
+                    $!routine := $!unwrapped[0].HOW.find_method($!unwrapped[0], $!unwrapped.name);
+                }
+                else {
+                    note("Unsupported op '", $!ast.op, "' for ", ($!name ?? $!name ~ " " !! ""), "operand") if $!debug;
+                    note($!ast.dump) if $!debug;
+                }
+                if nqp::isconcrete($!routine)
+                    && nqp::isconcrete($!routine.signature)
+                    && $!routine.signature.has_returns
+                {
+                    $!value := $!routine.signature.returns;
+                }
+            }
+            else {
+                note("Unsupported ", $!ast.HOW.name($!ast),
+                    " node for ",
+                    ($!name ?? $!name ~ " " !! ""),
+                    "operand"
+                ) if $!debug;
+            }
+            $!analyzed := 1;
+        }
+    }
+
+    method has-value() {
+        self.value-analyze;
+        nqp::not_i(nqp::isnull($!value))
+    }
+
+    method value() {
+        self.value-analyze;
+        $!value
+    }
+
+    method value-type() {
+        self.value-analyze;
+        # We need this ternary for JVM where otherwise it may throw on VMNull in $!value
+        nqp::isnull($!value) ?? nqp::null() !! nqp::what($!value)
+    }
+
+    method value-kind() {
+        self.value-analyze;
+        $!value-kind
+    }
+
+    method value-type-name() {
+        $!value.HOW.name($!value)
+    }
+
+    method str() {
+        self.value-analyze;
+        if $!value-kind == $OPERAND_VALUE_CONST {
+            # A string constant
+            if nqp::istype($!ast, QAST::Want) && $!ast[1] eq 'Ss' {
+                return $!ast[2].value;
+            }
+            if nqp::objprimspec($!unwrapped.value) {
+                return nqp::stringify($!unwrapped.value);
+            }
+            if nqp::can($!unwrapped.value, 'Str') {
+                return nqp::unbox_s($!unwrapped.value.Str);
+            }
+        }
+        elsif $!value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($!value) {
+            return nqp::stringify($!value) if nqp::objprimspec($!value);
+            return nqp::unbox_s($!value.Str) if nqp::can($!value, 'Str');
+        }
+        return nqp::null();
+    }
+
+    method int() {
+        self.value-analyze;
+        if $!value-kind == $OPERAND_VALUE_CONST {
+            # A string constant
+            if nqp::istype($!ast, QAST::Want) && $!ast[1] eq 'Ii' {
+                return $!ast[2].value;
+            }
+            if nqp::objprimspec($!unwrapped.value) {
+                return nqp::intify($!unwrapped.value);
+            }
+            if nqp::can($!unwrapped.value, 'Int') {
+                return nqp::unbox_i($!unwrapped.value.Int);
+            }
+        }
+        elsif $!value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($!value) {
+            return nqp::intify($!value) if nqp::objprimspec($!value);
+            return nqp::unbox_i($!value.Int) if nqp::can($!value, 'Int');
+        }
+        elsif nqp::istype($!ast, QAST::Op) && $!ast.op eq 'hllbool' {
+            return self.new($!ast[0], $!optimizer, $!symbols).bool
+        }
+        return nqp::null();
+    }
+
+    # Produce a "native bool", i.e. 0/1 value.
+    method bool() {
+        self.value-analyze;
+        if $!value-kind == $OPERAND_VALUE_CONST {
+            # A string constant
+            if nqp::istype($!ast, QAST::Want) {
+                return nqp::istrue($!ast[2].value);
+            }
+            if nqp::objprimspec($!unwrapped.value) {
+                return nqp::istrue($!unwrapped.value);
+            }
+            if nqp::can($!unwrapped.value, 'Bool') {
+                return nqp::istrue($!unwrapped.value.Bool);
+            }
+        }
+        elsif $!value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($!value) {
+            return nqp::istrue($!value) if nqp::objprimspec($!value);
+            return nqp::istrue($!value.Bool) if nqp::can($!value, 'Bool');
+        }
+        elsif nqp::istype($!ast, QAST::Op) && $!ast.op eq 'hllbool' {
+            return self.new($!ast[0], $!optimizer, $!symbols).bool
+        }
+        return nqp::null();
+
+    }
+
+    # If operand has a concrete compile-time value then get a native out of it if possible.
+    method native-value() {
+        return nqp::null() unless self.is-literal && (my $spec := nqp::objprimspec($!value));
+        return nqp::unbox_i($!value) if $spec == 1;
+        return nqp::unbox_n($!value) if $spec == 2;
+        return nqp::unbox_s($!value);
+    }
+
+    method invocation-args() {
+        return nqp::null() unless self.is-invocation;
+        my @args;
+        for @($!ast) {
+            @args.push(self.new($_, $!optimizer, $!symbols));
+        }
+        @args
+    }
+
+    method is-junction-static() {
+        self.has-value
+            && (nqp::isconcrete($!value) && nqp::istype($!value, $!symbols.Junction));
+    }
+
+    my %junction-routines := nqp::hash(
+        '&all', 1, '&any', 1, '&one', 1, '&none', 1,
+        '&infix:<&>', 1, '&infix:<|>', 1, '&infix:<^>', 1
+    );
+    method is-junction() {
+        self.is-junction-static
+            || (self.is-invocation
+                && nqp::existskey(%junction-routines, $!unwrapped.name)
+                && $!optimizer.is_routine_setting_only($!routine))
+    }
+
+    method can-be-junction() {
+        nqp::ifnull(
+            $!can-be-junction,
+            ($!can-be-junction := self.can-be($!symbols.Junction)))
+    }
+
+    method can-be($type) {
+        self.has-value
+            ?? (nqp::istype($type, self.value-type)
+                || (($!value-kind == $OPERAND_VALUE_VAR || $!value-kind == $OPERAND_VALUE_RETURN)
+                    && nqp::eqaddr($!value, $!symbols.Mu)))
+            !! 1
+    }
+
+    method routine() {
+        self.value-analyze;
+        $!routine
+    }
+
+    method is-invocation() {
+        self.has-value && nqp::isconcrete($!routine)
+    }
+
+    method is-instantiation($type = nqp::null()) {
+        self.is-invocation && $!ast.name eq 'new'
+            && (nqp::isnull($type)
+                || (nqp::istype($!ast[0], QAST::WVal)
+                    && nqp::eqaddr($!ast[0].value, $type)))
+    }
+
+    method instantiation-type() {
+        return nqp::null() unless self.is-instantiation;
+        my $invocant := self.invocation-args()[0];
+        return $invocant.value-kind == $OPERAND_VALUE_CONST ?? $invocant.value !! nqp::null();
+    }
+
+    method is-literal() {
+        self.has-value
+            && ($!value-kind == $OPERAND_VALUE_CONST
+                && nqp::defined($!value))
+    }
+
+    method dump($level = 0) {
+        $!ast.dump($level)
+    }
+
+    method localized(:$decl = 0) {
+        # If this method is invoked first then finalize localizable status unless it is set already.
+        self.localizable(1);
+        # Var and WVal do not need localization
+        return $!ast if nqp::istype($!unwrapped, QAST::Var) || nqp::istype($!unwrapped, QAST::WVal);
+
+        $!local-var-name := QAST::Node.unique('__local_sm_operand_') if nqp::isnull($!local-var-name);
+
+        return QAST::Op.new(
+            :op<bind>,
+            QAST::Var.new(:name($!local-var-name), :scope<local>, :decl<var>),
+            $!ast
+        ) if $decl;
+
+        QAST::Var.new(:name($!local-var-name), :scope<local>)
+    }
+}
+
+my class SmartmatchOptimizer {
+    has $!symbols;
+    has $!optimizer;
+    has $!debug;
+
+    # Don't try compile-time known literals optimization for types on this list. They may rely on lexical/dynamic outers.
+    my @literal-rhs-exceptions;
+
+    method new($optimizer, $symbols) {
+        my $obj := nqp::create(self);
+        $obj.BUILD($optimizer, $symbols);
+        $obj
+    }
+
+    method BUILD($optimizer, $symbols) {
+        $!symbols := $symbols;
+        $!optimizer := $optimizer;
+        $!debug   := nqp::getenvhash<RAKUDO_OPTIMIZER_DEBUG> || nqp::getenvhash<RAKUDO_OPTIMIZER_SM_DEBUG>;
+        @literal-rhs-exceptions := nqp::list($!symbols.Code, $!symbols.Signature) unless +@literal-rhs-exceptions;
+    }
+
+    method is_ACCEPTS_default($sm_type, :$u-invocant = 0) {
+        # All typematchng ACCEPTS in the core are basically `nqp::istype`.
+        unless $!symbols.is_from_core($sm_type.HOW.name($sm_type)) {
+            my $meth := nqp::tryfindmethod($sm_type, 'ACCEPTS');
+
+            return nqp::defined($meth) && $!optimizer.is_routine_setting_only($meth, :$u-invocant);
+        }
+        1
+    }
+
+    method respect_junctions($op, $fallback, $topic?) {
+        unless nqp::isconcrete($topic) {
+            $topic := QAST::Var.new( :name('$_'), :scope('lexical') ),
+        }
+        QAST::Op.new(
+            :op('if'),
+            QAST::Op.new(
+                :op('istype'),
+                $topic,
+                QAST::WVal.new( :value($!symbols.Junction) )),
+            $fallback,
+            $op
+        )
+    }
+
+    method maybe_respect_junctions($lhs, $rhs, $optimized_ast) {
+        return $optimized_ast unless $lhs.can-be-junction;
+        self.respect_junctions(
+            $optimized_ast,
+            QAST::Op.new(
+                :op<callmethod>,
+                :name<Bool>,
+                QAST::Op.new(
+                    :op<callmethod>,
+                    :name<ACCEPTS>,
+                    $rhs.ast,
+                    $lhs.localized
+                )
+            ),
+            $lhs.localized(:decl));
+    }
+
+    method maybe_typematch($lhs, $rhs, :$in-when = 0, :$negated = 0) {
+        my $sm_type;
+        # Don't try if RHS is not a compile-time known type object or it has user-defined ACCEPTS method. In the latter
+        # case we can't guarantee that method behavior is independent of run-tim conditions, contrary to core-provided
+        # versions of it.
+        return nqp::null()
+            unless $rhs.value-kind == $OPERAND_VALUE_CONST
+                    && !nqp::isconcrete($sm_type := $rhs.value)
+                    && self.is_ACCEPTS_default($sm_type, :u-invocant)
+                    && ($in-when || !$lhs.is-junction);
+
+        # We wouldn't be able to shortcut typematching for generics and it is barely possible against most of subsets.
+        return nqp::null()
+            if $sm_type.HOW.archetypes.generic
+                || $sm_type.HOW ~~ Perl6::Metamodel::SubsetHOW;
+
+        note("Try typematch over RHS ", $sm_type.HOW.name($sm_type)) if $!debug;
+
+        my $sm_ast;
+
+        # When ~~ LHS is known at compile time we sometimes can reduce down to a plain boolean constant.
+        # Doesn't work for 'when' statement.
+        if !$in-when && $lhs.has-value {
+            note("  . typematch: LHS has a value (",
+                $lhs.value-type-name, ", ",
+                (nqp::isconcrete($lhs.value) ?? "concrete" !! "undefined"),
+                ", ast returns: ", $lhs.ast.returns.HOW.name($lhs.ast.returns),
+                "), constant substitution is possible") if $!debug;
+
+            return nqp::null() if $lhs.value.HOW.archetypes.generic;
+
+            my $matches := nqp::istype($lhs.value, $rhs.value);
+            # If LHS is an invocation or a variable then we actually check their (return) type. In this case non-match
+            # means nothing because their eventual value could still match at runtime. Yet true means that any of their
+            # value will always match. Also, if routine returns a constant then we can always use it too.
+            if $matches
+                || $lhs.value-kind == $OPERAND_VALUE_CONST
+                || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value))
+            {
+                $matches := !$matches if $negated;
+                return QAST::WVal.new( :value($matches ?? $!symbols.True !! $!symbols.False) )
+            }
+        }
+
+        # See if we can reduce a call to ACCEPTS into a basic `nqp::istype`. By doing so we must keep in mind that a
+        # user class may have their own ACCEPTS candidate(s) for this purpose. Therefore make sure that no candidate
+        # overrides CORE's methods.
+        note("Typematch over ", $sm_type.HOW.name($sm_type), " can be reduced to nqp::istype") if $!debug;
+
+        # For 'when' statement it is sufficient to get native 0 or 1. Otherwise we need to boolilfy.
+        $sm_ast := QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast );
+        $sm_ast := QAST::Op.new( :op<not_i>, $sm_ast ) if $negated;
+        $in-when ?? $sm_ast !! QAST::Op.new( :op<hllbool>, $sm_ast )
+    }
+
+    method maybe_literal($lhs, $rhs, :$in-when = 0, :$negated) {
+        return nqp::null()
+            unless $rhs.is-literal && !$lhs.is-junction;
+
+        note("Try literal smartmatch") if $!debug;
+
+        # Both sides are literal values. Thus we can produce True/False right away.
+        # Doesn't work for 'when' statement.
+        if !$in-when
+            && self.is_ACCEPTS_default($rhs.value)
+            && ($lhs.is-literal
+                || ($lhs.value-kind == $OPERAND_VALUE_RETURN && nqp::isconcrete($lhs.value)))
+        {
+            my $try-it := 1;
+            my $rhs-type := nqp::what($rhs.value);
+            for @literal-rhs-exceptions {
+                last unless $try-it := $try-it && !nqp::istype($rhs-type, $_);
+                note($rhs-type.HOW.name($rhs-type), " is not ", $_.HOW.name($_)) if $!debug;
+            }
+            if $try-it {
+                note("Both sides are literal, try static match of ", $lhs.value-type-name, " vs. ", $rhs.value-type-name) if $!debug;
+                my $is_eq := nqp::null();
+                try {
+                    $is_eq := $rhs.value.ACCEPTS($lhs.value);
+                    $is_eq := $negated ?? $is_eq.not !! $is_eq.Bool;
+                }
+                note("  = is eq? ", (nqp::isnull($is_eq) ?? "match thrown" !! $is_eq.WHICH)) if $!debug;
+                # Fallback to dynamic path if try block failed.
+                return QAST::WVal.new( :value($is_eq) ) unless nqp::isnull($is_eq);
+            }
+        }
+
+        return nqp::null() unless $rhs.is-want;
+
+        my $op_type;
+        my $method;
+        my $rhs_val := $rhs.ast[2];
+        my $topic_name;
+        my $topic_scope;
+
+        if $in-when {
+            $topic_name := '$_';
+            $topic_scope := 'lexical';
+        }
+        else {
+            $topic_name := QAST::Node.unique('__local_sm_LHS_');
+            $topic_scope := 'local';
+        }
+
+        if nqp::istype($rhs_val, QAST::IVal) {
+            $op_type := '==';
+            $method  := 'Numeric';
+        }
+        elsif nqp::istype($rhs_val, QAST::SVal) {
+            $op_type := 'eq';
+            $method  := 'Stringy';
+        }
+        elsif nqp::istype($rhs_val, QAST::NVal) {
+            if nqp::isnanorinf($rhs_val.value) {
+                # If we know that RHS is NaN or Inf then the only time we can optimize is when LHS is a Num. Otherwise
+                # only the slow path is possible as, say, Complex cannot be equal to NaN.
+                return nqp::null()
+                    unless $lhs.has-value
+                            && nqp::istype($lhs.value, $!symbols.find_in_setting('Num'));
+                $op_type := '===';
+            }
+            else {
+                $op_type := '==';
+            }
+            $method  := 'Numeric';
+        }
+        else {
+            die("Unknown QAST::Want type " ~ $rhs_val.HOW.name($rhs_val));
+        }
+
+        my $op_name := "&infix:<$op_type>";
+
+        # Coercion method to call on the given value
+        my $method_call :=
+            QAST::Op.new(
+                :op<p6fatalize>,
+                :name($method),
+                :wanted(1),
+                QAST::Op.new(
+                    :op<callmethod>,
+                    :name($method),
+                    QAST::Var.new( :name($topic_name), :scope($topic_scope), :wanted(1) ) ),
+                    QAST::WVal.new( :value($!symbols.Failure) ));
+
+        # We don't need/want `val()` to `fail()` if `Numeric()` ends up calling it
+        # and it doesn't succeed, that creates an expensive Backtrace that we just
+        # end up throwing away
+        if $method eq 'Numeric' {
+            my $fail-or-nil := QAST::Op.new( :op('hllbool'), QAST::IVal.new( :value(1) ) );
+            $fail-or-nil.named('fail-or-nil');
+            $method_call.push($fail-or-nil);
+        }
+
+        # Make sure we're not comparing against a type object, since those could
+        # coerce to the value, so gen the equivalent of
+        # `isconcrete($_) && <literal> ==|eq $_."$method"`
+        my $topic_var;
+        # With 'when' statement we always have $_. But with smartmatch we don't need it, thus use LHS directly.
+        if $in-when {
+            $topic_var := QAST::Var.new( :name($topic_name), :scope($topic_scope) );
+        }
+        else {
+            $topic_var := QAST::Op.new(
+                :op<bind>,
+                QAST::Var.new( :name($topic_name), :scope($topic_scope), :decl<var> ),
+                $lhs.ast
+            );
+        }
+        my $is_eq_op;
+
+        if $op_type eq '===' {
+            $is_eq_op := QAST::Op.new(
+                            :op<eqaddr>,
+                            QAST::Op.new( :op<decont>, $method_call ),
+                            QAST::WVal.new( :value($rhs.value) ));
+            $is_eq_op := QAST::Op.new( :op<not_i>, $is_eq_op ) if $negated;
+            $is_eq_op := QAST::Op.new( :op<hllbool>, $is_eq_op );
+        }
+        else {
+            $is_eq_op := QAST::Op.new( :op<call>, :name($op_name), $rhs_val, $method_call );
+            $is_eq_op := QAST::Op.new( :op<call>, :name('&prefix:<!>'), $is_eq_op ) if $negated;
+        }
+
+        $is_eq_op :=
+            QAST::Op.new(
+                :op<if>,
+                QAST::Op.new( :op<isconcrete>, $topic_var ),
+                QAST::Op.new(
+                    :op<p6fatalize>,
+                    :name($op_name),
+                    $is_eq_op,
+                    QAST::WVal.new( :value($!symbols.Failure) )));
+
+        # For a ~~ we expect a Bool, not a native 0
+        $is_eq_op.push(QAST::WVal.new( :value($!symbols.False) )) unless $in-when;
+
+        # This is the equivalent of sticking a `try` before the genned `iseq_*`, which is
+        # needed because otherwise it'll die with an error when the `$_` is a different type.
+        QAST::Op.new(
+            :op('handle'),
+            # Success path evaluates to the block.
+            $is_eq_op,
+            # On failure, just evaluate to False
+            'CATCH',
+            QAST::WVal.new( :value($!symbols.False) ))
+    }
+
+    # If we do have a 'pair ~~ pair' case then we better always return some AST as this would signal the upstream code
+    # that no extra checks are needed and AST nodes like run-time checking for RHS to be a Regex can be dropped off.
+    method pair_to_pair($lhs, $rhs) {
+        my $lhs_type := $lhs.is-instantiation ?? $lhs.instantiation-type !! $lhs.value-type;
+
+        return nqp::null() unless nqp::istype($lhs_type, $!symbols.Pair);
+
+        my $rhs_type := $rhs.is-instantiation ?? $rhs.instantiation-type !! $rhs.value-type;
+
+        my sub default-ast() {
+            QAST::Op.new(
+                :op<callmethod>,
+                :name<Bool>,
+                QAST::Op.new(
+                    :op<callmethod>,
+                    :name<ACCEPTS>,
+                    $rhs.orig-ast,
+                    $lhs.orig-ast ))
+        }
+
+        unless self.is_ACCEPTS_default($lhs_type) && self.is_ACCEPTS_default($rhs_type) {
+            # With a user-defined ACCEPTS method no optimization is possible.
+            return default-ast();
+        }
+
+        # "Prefix" ast nodes.
+        my @past;
+
+        my $rhs_key;
+        my $rhs_value;
+        if $rhs.is-literal {
+            $rhs_key := $rhs.value.key;
+            $rhs_value := $rhs.value.value;
+        }
+        elsif $rhs.is-instantiation {
+            my @inst-args := $rhs.invocation-args;
+            $rhs_key := @inst-args[1].has-value ?? @inst-args[1].value !! @inst-args[1];
+            $rhs_value := @inst-args[2].has-value ?? @inst-args[2].value !! @inst-args[2];
+        }
+        else {
+            # For run-time only RHS values anything but the default ACCEPTS is an overcomplication of things.
+            return default-ast();
+        }
+
+        my $lhs_key;
+        my $lhs_value;
+        if $lhs.is-literal {
+            $lhs_key := $lhs.value.key;
+            $lhs_value := $lhs.value.value;
+        }
+        elsif $lhs.is-instantiation {
+            my @inst-args := $lhs.invocation-args;
+            $lhs_key := @inst-args[1].has-value ?? @inst-args[1].value !! @inst-args[1];
+            $lhs_value := @inst-args[2].has-value ?? @inst-args[2].value !! @inst-args[2];
+        }
+        else {
+            # See the note for RHS above.
+            return default-ast();
+        }
+
+        if nqp::objprimspec($rhs_key) && nqp::objprimspec($rhs_value)
+            && nqp::objprimspec($lhs_key) && nqp::objprimspec($lhs_value)
+        {
+            return QAST::WVal.new(
+                :value(
+                    nqp::iseq_s(nqp::stringify($rhs_key), nqp::stringify($lhs_key))
+                    && nqp::iseq_s(nqp::stringify($rhs_value), nqp::stringify($lhs_value))
+                        ?? $!symbols.True
+                        !! $!symbols.False
+                )
+            )
+        }
+    }
+
+    method maybe_pair($lhs, $rhs, $sm_accepts_ast) {
+        return nqp::null()
+            unless ($rhs.has-value && nqp::istype($rhs.value, $!symbols.Pair))
+                    || ($rhs.is-instantiation && nqp::istype($rhs.instantiation-type, $!symbols.Pair));
+
+        # Note that this method only uses $lhs for analysis. Since smartmatching on Pair is always topicalized we must
+        # use the topic. If all goes well it will later be lowered anyway.
+
+        my $res_ast;
+
+        # Pair ~~ Pair case
+        return $res_ast unless nqp::isnull($res_ast := self.pair_to_pair($lhs, $rhs));
+
+        my $rhs_ast := $rhs.orig-ast;
+
+        my $method_name := nqp::null();
+        my $bool_value;
+
+        my $pair_type_ast;
+
+        if $rhs.is-instantiation($!symbols.Pair) {
+            my @inst-args  := $rhs.invocation-args;
+            $pair_type_ast := @inst-args[0].ast;
+            my $key-arg    := @inst-args[1];
+            my $value-arg  := @inst-args[2];
+
+            $method_name := nqp::ifnull($key-arg.str, $key-arg);
+            $bool_value := nqp::ifnull($value-arg.bool, $value-arg);
+        }
+
+        if $rhs.is-literal {
+            $method_name := nqp::unbox_s($rhs.value.key.Str);
+            $bool_value := nqp::istrue($rhs.value.value.Bool);
+        }
+
+        unless nqp::isnull($method_name) {
+            my $method_ast;
+            my $bool_value_ast :=
+                nqp::objprimspec($bool_value)
+                    ?? QAST::Op.new( :op<hllbool>, QAST::IVal.new( :value($bool_value) ) )
+                    !! $bool_value.ast;
+
+            if nqp::objprimspec($method_name) {
+                # We have method name in clear text form. Now, if we know LHS concrete value and it doesn't have the
+                # method then no optimization makes sense as X::Method::NotFound will be thrown anyway.
+                return nqp::null() if $lhs.has-value
+                                        && $lhs.value-kind == $OPERAND_VALUE_CONST
+                                        && !nqp::can($lhs.value-type, $method_name);
+
+                $method_ast := QAST::Op.new(
+                    :op<callmethod>,
+                    :name($method_name),
+                    QAST::Var.new( :name('$_'), :scope<lexical> )
+                );
+            }
+            else {
+                # When we can't infer method name directly (i.e. it is most likely computed at run-time), we still can
+                # help the compiler by reducing the smartmatch code by one method call and one Pair allocation on when
+                # the topic can the requested method. Failure route becomes somewhat more expensive then, but  after
+                # all, exceptions are expensive anyway and throwing one is barely a hot path.
+                $method_ast := QAST::Op.new(
+                    :op<callmethod>,
+                    QAST::Var.new( :name('$_'), :scope<lexical> ),
+                    QAST::Op.new(
+                        :op<unbox_s>,
+                        QAST::Op.new( :op<callmethod>, :name<Stringy>, $method_name.localized )
+                    )
+                );
+
+                # If topic can the method then we invoke it. Otherwise fall back to ACCEPTS to throw an exception
+                $method_ast := QAST::Op.new(
+                    :op<if>,
+                    QAST::Op.new(
+                        :op<can>,
+                        QAST::Var.new( :name('$_'), :scope<lexical> ),
+                        $method_name.localized(:decl)
+                    ),
+                    $method_ast,
+                    QAST::Op.new(
+                        :op<callmethod>,
+                        :name<ACCEPTS>,
+                        QAST::Op.new(
+                            :op<callmethod>,
+                            :name<new>,
+                            $pair_type_ast,
+                            $method_name.localized,
+                            $bool_value_ast
+                        ),
+                        QAST::Var.new( :name('$_'), :scope<local> )
+                    )
+                )
+            }
+
+            if nqp::objprimspec($bool_value) {
+                my $boolify_method := $bool_value ?? "Bool" !! "not";
+                $res_ast := QAST::Op.new( :op<callmethod>, :name($boolify_method), $method_ast );
+            }
+            else {
+                $res_ast := QAST::Op.new(
+                    :op<hllbool>,
+                    QAST::Op.new(
+                        :op<iseq_i>,
+                        QAST::Op.new( :op<istrue>, $method_ast ),
+                        QAST::Op.new( :op<istrue>, $bool_value_ast )
+                    )
+                );
+            }
+
+            # If there is a chance that LHS can result in an Associative then a fallback to the default ACCEPTS+Bool
+            # must be provided.
+            if $lhs.can-be($!symbols.Pair) {
+                my $accepts_bool_method := $sm_accepts_ast.ann('smartmatch_negated') ?? 'not' !! 'Bool';
+                $res_ast := QAST::Op.new(
+                    :op<if>,
+                    QAST::Op.new(
+                        :op<istype>,
+                        QAST::Var.new( :name('$_'), :scope<lexical> ),
+                        QAST::WVal.new( :value($!symbols.find_in_setting('Associative')) )
+                    ),
+                    QAST::Op.new(
+                        :op<callmethod>,
+                        :name($accepts_bool_method),
+                        $sm_accepts_ast
+                    ),
+                    $res_ast
+                );
+            }
+        }
+
+        $res_ast
+    }
+
+    method optimize_when($op) {
+        return nqp::null() if nqp::getenvhash<RAKUDO_OPTIMIZE_NOSM>;
+        note("Optimizing 'when':\n", $op.dump(4)) if $!debug;
+        my $subop1;
+        my $accepts_op;
+        # Ensure integrity of the node we're about to modify.
+        #return $op
+        unless nqp::iseq_s($op.op, 'if')
+                && nqp::istype(($subop1 := $op[0]), QAST::Op)
+                && nqp::iseq_s($subop1.op, 'callmethod')
+                && nqp::iseq_s($subop1.name, 'Bool')
+                && nqp::istype(($accepts_op := $subop1[0]), QAST::Op)
+                && (nqp::iseq_s($accepts_op.op, 'callmethod')
+                    || nqp::iseq_s($accepts_op.op, 'p6fatalize'))
+                && nqp::iseq_s($accepts_op.name, 'ACCEPTS')
+        {
+            nqp::die("Unexpected structure of 'when' statement QAST node:\n" ~ $op.dump)
+        }
+
+        # Make sure we won't get into a deep recursion.
+        $op.annotate('when_block', 0);
+
+        # At this pass it is not safe to collect variable statistics because we may replace a whole block with var
+        # references. A second pass of visit_op_children will be needed to get all this fixed later.
+        $!optimizer.block_var_stack.enter-dry-run;
+        $!optimizer.visit_op_children($op);
+        $!optimizer.block_var_stack.exit-dry-run;
+
+        note("Post-visit 'when' AST:\n", $op.dump(4)) if $!debug;
+
+        if nqp::iseq_s($accepts_op.op, 'p6fatalize') {
+            $accepts_op := $accepts_op[0];
+        }
+
+        my $sm_exp := Operand.new($accepts_op[0], $!optimizer, $!symbols, :name('when expression'));
+        my $topic  := Operand.new($accepts_op[1], $!optimizer, $!symbols, :name('when topic'));
+
+        my $m_op;
+        if nqp::defined($m_op := self.maybe_typematch($topic, $sm_exp, :in-when)) {
+            $op[0] := $m_op;
+        }
+        elsif nqp::defined($m_op := self.maybe_literal($topic, $sm_exp, :in-when))
+        {
+            $op[0] := self.respect_junctions($m_op, $op[0]);
+        }
+
+        note("FINAL 'when':\n", $op.dump(4)) if $!debug;
+
+        $op
+    }
+
+    method is_chain($op) {
+        nqp::istype($op, QAST::Op) && ($op.op eq 'chain' || $op.op eq 'chainstatic')
+    }
+
+    method optimize_chain($op) {
+        return nqp::null()
+            if nqp::getenvhash<RAKUDO_OPTIMIZE_NOSM>
+                || $op.ann('smartmatch_optimized');
+        note("Try optimizing chained smartmatch:\n", $op.dump(2)) if $!debug;
+
+        return nqp::null() unless self.is_chain($op) && ($op.name eq '&infix:<~~>');
+
+        # Don't optimize long chains. If either we're in a chain, or the first child is a chain op then fall back.
+        return nqp::null() if $!optimizer.chain_depth > 1 || self.is_chain($op[0]);
+
+        $!optimizer.block_var_stack.enter-dry-run;
+        $!optimizer.visit_op_children($op);
+        $!optimizer.block_var_stack.exit-dry-run;
+
+        my $lhs := Operand.new($op[0], $!optimizer, $!symbols, :name<LHS>);
+        my $rhs := Operand.new($op[1], $!optimizer, $!symbols, :name<RHS>);
+
+        $lhs.localizable($lhs.can-be-junction);
+
+        note("- LHS:\n", $lhs.dump(2), "- RHS:\n", $rhs.dump(2)) if $!debug;
+
+        my $sm_ast;
+        my $result := $op;
+        if nqp::defined($sm_ast := self.maybe_typematch($lhs, $rhs))
+            || nqp::defined($sm_ast := self.maybe_literal($lhs, $rhs))
+        {
+            if $!debug {
+                note("Optimization possible, ensure we don't lose a junction");
+                note("  - LHS can be a junction? ", $lhs.can-be-junction,
+                    ", is junction? ", $lhs.is-junction,
+                    ", type: ", $lhs.value-type-name);
+                note($lhs.dump(2));
+            }
+            $result := self.maybe_respect_junctions($lhs, $rhs, $sm_ast);
+        }
+
+        $result.annotate('smartmatch_optimized', 1);
+        $!optimizer.visit_op($result) if nqp::istype($result, QAST::Op);
+
+        $result
+    }
+
+    method locate_smartmatch_ACCEPTS($ast) {
+        for @($ast) -> $child {
+            next if nqp::istype($child, QAST::Want);
+            return $child if nqp::istype($child, QAST::Op)
+                                && nqp::iseq_s($child.op, 'callmethod')
+                                && $child.ann('smartmatch_accepts');
+            note("AST child is not a QAST node! AST:\n", $ast.dump(4)) unless nqp::istype($child, QAST::Node);
+            my $found := self.locate_smartmatch_ACCEPTS($child);
+            return $found if nqp::defined($found);
+        }
+        return nqp::null();
+    }
+
+    # This method returns nqp::null() to indicate inability to optimize.
+    method optimize_topicalized($op) {
+        return nqp::null()
+            if nqp::getenvhash<RAKUDO_OPTIMIZE_NOSM>
+                || $op.ann('smartmatch_optimized');
+
+        note("Try optimizing topicalized smartmatch:\n",
+            (nqp::isconcrete($op.node) ?? "    " ~ $op.node[0] ~ " " ~ $op.node ~ " " ~ $op.node[1] ~ "\n" !! ""),
+            $op.dump(4)) if $!debug;
+        return nqp::null() unless nqp::istype($op, QAST::Op)
+                                    && nqp::iseq_s($op.op, 'locallifetime')
+                                    && $op.ann('smartmatch');
+
+        $!optimizer.block_var_stack.enter-dry-run;
+        $!optimizer.visit_children($op, :first);
+        $!optimizer.block_var_stack.exit-dry-run;
+
+        my $sm_accepts := self.locate_smartmatch_ACCEPTS($op[0][2]);
+
+        note("Located the ACCEPTS call in QAST tree? ", nqp::defined($sm_accepts)) if $!debug;
+
+        my $result := nqp::null();
+        my $still_locallifetime := 1;
+
+        # After visit_children was invoked we have to return some kind of concrete AST node or it will result in a
+        # duplicate call to visit_children.
+        if nqp::defined($sm_accepts) {
+            # LHS, which becomes smartmatch topic, is used before the ACCEPTS call in statements passed to locallifetime op.
+            my $lhs := Operand.new($op[0][1][1], $!optimizer, $!symbols, :name<LHS>);
+            my $rhs := Operand.new($sm_accepts[0][1], $!optimizer, $!symbols, :name<RHS>);
+            my $negated := $sm_accepts.ann('smartmatch_negated');
+            my $boolified := $op[0][2].ann('smartmatch_boolified');
+
+            $lhs.localizable($lhs.can-be-junction);
+
+            note("Topicalized smartmatch:\n    TOPIC:\n", $lhs.dump(11), "\n      RHS:\n", $rhs.dump(11)) if $!debug;
+
+            # We don't try literals optimization because they never make it into topicalized form of SM.
+            my $sm_op;
+            if nqp::defined($sm_op := self.maybe_typematch($lhs, $rhs, :$negated)) {
+                $result := self.maybe_respect_junctions($lhs, $rhs, $sm_op);
+                $still_locallifetime := 0;
+            }
+
+            if nqp::isnull($result) && ($sm_op := self.maybe_pair($lhs, $rhs, $sm_accepts)) {
+                # When maybe_pair succeeds it means the RHS is certainly not a Regex. Hence we can remove the check and
+                # replace QAST::Stmts wrapper with the binding to sm_result_<n> local.
+                $op[0][2] := $op[0][2][0]; # Pull out the binding
+                $op[0][2][1] := $sm_op;    # And replace the second binding argument with the optimized AST.
+                $result := $op; # No further optimizations are possible
+            }
+
+            # If we know variable or routine return type then we can possibly simplify the actual SM op withing
+            # `locallifetime` to plain .ACCEPTS(...).Bool if the smartmatch is a no-Regexp.
+            if nqp::isnull($result)
+                && $boolified
+                && $rhs.has-value
+                && ($rhs.value-kind == $OPERAND_VALUE_VAR || $rhs.value-kind == $OPERAND_VALUE_RETURN)
+                && !nqp::istype($rhs.value, $!symbols.Regex)
+            {
+                # Drop the `boolify if not Regexp` statement
+                (my $bool_ast := $op[0][2]).pop();
+                # Since ACCEPTS RHS would only be used by ACCEPTS alone now, we can also get rid of extra bind into
+                # sm_rhs local
+                $sm_accepts[0] := $rhs.orig-ast;
+                # Then pull in bind into sm_result_ local variable, and wrap it into unconditional boolification
+                $op[0][2] := QAST::Op.new(
+                    :op<callmethod>,
+                    :name<Bool>,
+                    $bool_ast.pop()
+                );
+            }
+        }
+
+        $result := $op unless nqp::defined($result);
+        $result.annotate('smartmatch_optimized', 1);
+
+        $!optimizer.visit_op($result);
+
+        note("FINAL topicalized:\n", $result.dump(4)) if $!debug;
+
+        $result
+    }
+}
+
 # Drives the optimization process overall.
 class Perl6::Optimizer {
+    my class BlockVarStack {
+        has $!debug;
+        has @!block_var_stack;
+        has $!top;
+        # If set then any request to the actual BlockVarOptimizer on the stack top would be ignored by method 'do'
+        has $!dry-run;
+
+        method push() {
+            $!top := BlockVarOptimizer.new(:$!debug);
+            @!block_var_stack.push($!top);
+            $!top
+        }
+
+        method pop() {
+            my $old-top := @!block_var_stack.pop();
+            my $count := +@!block_var_stack;
+            $!top := $count ?? @!block_var_stack[+@!block_var_stack - 1] !! nqp::null();
+            $old-top
+        }
+
+        method top() { $!top }
+
+        method enter-dry-run() {
+            $!dry-run := ($!dry-run // 0) + 1;
+        }
+
+        method exit-dry-run() {
+            nqp::die("Exiting block var stack dry run mode without a previous enter") unless $!dry-run;
+            --$!dry-run
+        }
+
+        method in-dry-run() { nqp::istrue($!dry-run) }
+
+        method do($method, *@pos, *%named) {
+            return nqp::null() if $!dry-run;
+            $!top."$method"(|@pos, |%named)
+        }
+
+        method elems() { +@!block_var_stack }
+
+        method poison-var-lowering() {
+            for @!block_var_stack {
+                $_.poison_lowering();
+            }
+        }
+    }
+
     # Symbols tracking object.
     has $!symbols;
 
     # Stack of block variable optimizers.
-    has @!block_var_stack;
+    has $!block_var_stack;
 
     # Junction optimizer.
     has $!junc_opt;
+
+    # Smartmatch optimizer
+    has $!smartmatch_opt;
 
     # Track problems we encounter.
     has $!problems;
@@ -1067,8 +2133,9 @@ class Perl6::Optimizer {
     method optimize($past, *%adverbs) {
         # Initialize.
         $!symbols                 := Symbols.new($past);
-        @!block_var_stack         := [];
+        $!block_var_stack         := BlockVarStack.new(:$!debug, :!dry-run);
         $!junc_opt                := JunctionOptimizer.new(self, $!symbols);
+        $!smartmatch_opt          := SmartmatchOptimizer.new(self, $!symbols);
         $!problems                := Problems.new($!symbols);
         $!chain_depth             := 0;
         $!in_declaration          := 0;
@@ -1104,7 +2171,7 @@ class Perl6::Optimizer {
     method visit_block($block) {
         # Push block onto block stack and create vars tracking.
         $!symbols.push_block($block);
-        @!block_var_stack.push(BlockVarOptimizer.new);
+        $!block_var_stack.push();
 
         # we don't want any "blah in sink context" warnings emitted here
         get_last_stmt($block[1]).annotate: 'sink-quietly', 1
@@ -1123,7 +2190,11 @@ class Perl6::Optimizer {
 
         # Pop block from block stack and get computed block var info.
         $!symbols.pop_block();
-        my $vars_info := @!block_var_stack.pop();
+        my $vars_info := $!block_var_stack.pop();
+
+        # If block var stack is in dry run mode no work on the data it provides is possible because all stats are
+        # incorrect at the best. Don't worry, there will be second pass done later on this very block.
+        return $block if $!block_var_stack.in-dry-run;
 
         # If this block is UNIT and we're in interactive mode, poison lexical
         # to local lowering, or else we may lose symbols we need to remember.
@@ -1150,7 +2221,7 @@ class Perl6::Optimizer {
         my int $flattened := 0;
         my $result := $block;
         if $!level >= 2 && $block.blocktype eq 'immediate' && $block.arity == 0
-                && $vars_info.is_inlineable && !$block.has_exit_handler {
+                && $vars_info.is_inlinable && !$block.has_exit_handler {
             # Scan symbols for any non-lowered ones.
             my $impossible := 0;
             for $block.symtable() {
@@ -1188,8 +2259,8 @@ class Perl6::Optimizer {
         }
 
         # Incorporate this block's info into outer block's info.
-        @!block_var_stack[nqp::elems(@!block_var_stack) - 1].incorporate_inner($vars_info, $flattened)
-            if @!block_var_stack;
+        $!block_var_stack.do('incorporate_inner', $vars_info, $flattened)
+            if $!block_var_stack.elems;
 
         $result
     }
@@ -1314,7 +2385,8 @@ class Perl6::Optimizer {
         # This is a hack to compensate for Test.pm6 using unspecified
         # behavior. The EVAL form of it should be deprecated and then
         # removed, at which point this can go away.
-        '&throws-like', NQPMu);
+        '&throws-like', NQPMu,
+        '&repl', NQPMu);
 
     # Called when we encounter a QAST::Op in the tree. Produces either
     # the op itself or some replacement opcode to put in the tree.
@@ -1325,8 +2397,26 @@ class Perl6::Optimizer {
         if $optype eq 'handle' || $optype eq 'handlepayload' {
             return self.visit_handle($op);
         }
-        elsif $optype eq 'locallifetime' {
+
+        my $visit_children_mode := 'default'; # Can also be 'sm_chain', or 'sm_when'
+
+        my $sm_ast;
+        if $optype eq 'locallifetime' {
+            note("ENCOUNTERED locallifetime, is smartmatch? ", ($op.ann('smartmatch') ?? "YES" !! "NO")) if $!debug;
+            if $!level >= 2
+                && $op.ann('smartmatch')
+                && nqp::defined($sm_ast := $!smartmatch_opt.optimize_topicalized($op))
+            {
+                return $sm_ast;
+            }
             return self.visit_children($op,:first);
+        }
+
+        if $!level >= 2
+            && ($optype eq 'chain' || $optype eq 'chainstatic')
+            && ($op.name eq '&infix:<~~>')
+        {
+            $visit_children_mode := 'sm_chain';
         }
 
         # If it's a for 1..1000000 { } we can simplify it to a while loop. We
@@ -1491,6 +2581,7 @@ class Perl6::Optimizer {
             }
         }
 
+
         if $optype eq 'chain' {
             $!chain_depth := $!chain_depth + 1;
 
@@ -1498,6 +2589,10 @@ class Perl6::Optimizer {
             $optype := 'call' if $!chain_depth == 1 &&
                 !(nqp::istype($op[0], QAST::Op) && $op[0].op eq 'chain') &&
                 !(nqp::istype($op[1], QAST::Op) && $op[1].op eq 'chain');
+        }
+
+        if $!level >= 2 && $optype eq 'if' && $op.ann('when_block') {
+            $visit_children_mode := 'sm_when';
         }
 
         # We may be able to unfold a junction at compile time.
@@ -1508,31 +2603,54 @@ class Perl6::Optimizer {
             }
         }
 
+        # Warn for something like `my $a = 2.rand.Int; say "a = " ~ $a ?? "true" !! "false";`, which
+        # will just print 'true' because the entire expression `"a = " ~ $a` is being evaluated by the
+        # ternary instead of just the `$a` (the correct form is `"a = " ~ ($a ?? "true" !! "false"`)).
+        if $optype eq 'if' && $op.name eq '&infix:<??>' &&
+              nqp::istype($op[0], QAST::Op) && ($op[0].op eq 'call' || $op[0].op eq 'callstatic') &&
+              nqp::index($op[0].name, '&infix:') == 0 && $!symbols.is_from_core($op[0].name) &&
+              (nqp::istype($op[0][0], QAST::Want) || nqp::istype($op[0][1], QAST::Want)) {
+            # See if we can staticalize the infix to determine whether it's 'iffy' (produces a boolean value),
+            # which is valid in this construct, so we wouldn't want to warn.
+            try {
+                my $obj := $!symbols.find_lexical($op[0].name);
+                if nqp::can($obj, 'prec') && !$obj.prec<iffy> {
+                    $!problems.add_worry($op, "Potential dead code, the '?? !!' is gobbling up the result of the '" ~ $op[0].name ~ "'");
+                }
+            }
+        }
+
         # Visit the children.
+        if ($visit_children_mode eq 'sm_chain' && nqp::defined(my $sm_op := $!smartmatch_opt.optimize_chain($op))) {
+            # Smartmatch in a chain is only optimizable if chain depth is 1.
+            $!chain_depth := 0;
+            return $sm_op;
+        }
+        $!smartmatch_opt.optimize_when($op) if $visit_children_mode eq 'sm_when';
         self.visit_op_children($op);
 
         # Some ops are significant for variable analysis/lowering.
         if $optype eq 'bind' {
             if nqp::istype($op[1], QAST::Op) && $op[1].op eq 'getlexouter' {
-                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_getlexouter_usage($op);
+                $!block_var_stack.do('register_getlexouter_usage', $op);
             }
             elsif nqp::istype($op[0], QAST::Var) && $op[0].name eq '%_' {
-                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_autoslurpy_bind($op);
+                $!block_var_stack.do('register_autoslurpy_bind', $op);
             }
             elsif $op.ann('autoslurpy') {
-                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_autoslurpy_setup($op);
+                $!block_var_stack.do('register_autoslurpy_setup', $op);
             }
         }
         elsif $optype eq 'p6bindsig' || $optype eq 'p6bindcaptosig' {
-            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].uses_bindsig();
+            $!block_var_stack.do('uses_bindsig');
         }
         elsif $optype eq 'p6return' {
-            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].uses_p6return();
+            $!block_var_stack.do('uses_p6return');
         }
         elsif $optype eq 'call' || $optype eq 'callmethod' || $optype eq 'chain' {
-            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_call();
+            $!block_var_stack.do('register_call');
             if nqp::existskey(%poison_calls, $op.name) {
-                self.poison_var_lowering();
+                $!block_var_stack.poison-var-lowering();
             }
         }
 
@@ -1616,7 +2734,7 @@ class Perl6::Optimizer {
 
         # May be able to simplify takedispatcher ops.
         elsif $optype eq 'takedispatcher' {
-            @!block_var_stack[nqp::elems(@!block_var_stack) - 1].register_takedispatcher($op);
+            $!block_var_stack.do('register_takedispatcher', $op);
         }
 
         # Make array variable initialization cheaper
@@ -2395,26 +3513,25 @@ class Perl6::Optimizer {
         }
 
         # If resolution didn't work out this way, and we're on the MoarVM
-        # backend, use a spesh plugin to help speed it up.
+        # backend, use a dispatcher to speed it up. Give it the package and
+        # name ahead of the invocant, as this makes the calling far more
+        # optimal.
         if nqp::getcomp('Raku').backend.name eq 'moar' {
             my $inv := $op.shift;
             my $name := $op.shift;
             my $pkg := $op.shift;
             $op.unshift($inv);
-            $op.unshift(QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('privmeth') ),
-                $pkg,
-                $name
-            ));
-            $op.op('call');
+            $op.unshift($name_node);
+            $op.unshift($pkg);
+            $op.unshift(QAST::SVal.new( :value('raku-meth-private') ));
+            $op.op('dispatch');
             $op.name(NQPMu);
             return 1;
         }
     }
 
     method optimize_qual_method_call($op) {
-        # Spesh plugins only available on MoarVM.
+        # Dispatch only available on MoarVM for now.
         return $op unless nqp::getcomp('Raku').backend.name eq 'moar';
 
         # We can only optimize if we have a compile-time-known name.
@@ -2424,8 +3541,8 @@ class Perl6::Optimizer {
         }
         return $op unless nqp::istype($name_node, QAST::SVal);
 
-        # We need to evaluate the invocant only once, so will bind it into
-        # a temporary.
+        # We need to evaluate the invocant only once, but pass it both as is
+        # and decontainerized, so will bind it into a temporary.
         my $inv := $op.shift;
         my $name := $op.shift;
         my $type := $op.shift;
@@ -2441,14 +3558,14 @@ class Perl6::Optimizer {
             $inv
         ));
         $op.push(QAST::Op.new(
-            :op('call'),
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-meth-call-qualified') ),
             QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('qualmeth') ),
+                :op('decont'),
                 QAST::Var.new( :name($temp), :scope('local') ),
-                $name,
-                $type
             ),
+            $name_node,
+            $type,
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args
         ));
@@ -2482,16 +3599,13 @@ class Perl6::Optimizer {
             $inv
         ));
         $op.push(QAST::Op.new(
-            :op('call'),
+            :op('dispatch'),
+            QAST::SVal.new( :value('raku-meth-call-me-maybe') ),
             QAST::Op.new(
-                :op('speshresolve'),
-                QAST::SVal.new( :value('maybemeth') ),
-                QAST::Op.new(
-                    :op('decont'),
-                    QAST::Var.new( :name($temp), :scope('local') )
-                ),
-                $name,
+                :op('decont'),
+                QAST::Var.new( :name($temp), :scope('local') )
             ),
+            $name_node,
             QAST::Var.new( :name($temp), :scope('local') ),
             |@args
         ));
@@ -2580,6 +3694,7 @@ class Perl6::Optimizer {
             self.generate_optimized_for($op,$callee,@fls[0],@fls[1],@fls[2])
         }
     }
+
 
     # Handles visiting a QAST::Op :op('handle').
     method visit_handle($op) {
@@ -2671,16 +3786,15 @@ class Perl6::Optimizer {
         if $scope eq 'attribute' || $scope eq 'attributeref' || $scope eq 'positional' || $scope eq 'associative' {
             self.visit_children($var);
         } else {
-            my int $top := nqp::elems(@!block_var_stack) - 1;
             if $decl {
-                @!block_var_stack[$top].add_decl($var);
+                $!block_var_stack.do('add_decl', $var);
                 if $decl eq 'param' {
                     self.visit_children($var);
                     my $default := $var.default;
                     if $default {
                         my $stmts_def := QAST::Stmts.new( $default );
                         if nqp::istype($default, QAST::Op) && $default.op eq 'getlexouter' {
-                            @!block_var_stack[$top].register_getlexouter_usage($stmts_def);
+                            $!block_var_stack.do('register_getlexouter_usage', $stmts_def);
                             $var.default($stmts_def);
                         }
                         else {
@@ -2691,7 +3805,7 @@ class Perl6::Optimizer {
                 }
             }
             else {
-                @!block_var_stack[$top].add_usage($var);
+                $!block_var_stack.do('add_usage', $var);
             }
         }
 
@@ -2830,7 +3944,7 @@ class Perl6::Optimizer {
     # Visits all of a node's children, and dispatches appropriately.
     method visit_children($node, :$skip_selectors, :$resultchild, :$first, :$void_default,
                           :$handle, :$block_structure) {
-        note("method visit_children $!void_context\n" ~ $node.dump) if $!debug;
+        note("method visit_children $!void_context\n" ~ $node.dump(4)) if $!debug;
         my int $r := $resultchild // -1;
         my int $i := 0;
         my int $n := nqp::elems($node);
@@ -2853,7 +3967,7 @@ class Perl6::Optimizer {
                     note("Non-QAST node visited " ~ $visit.HOW.name($visit)) if $!debug;
                 }
                 if $handle && $i > 0 {
-                    @!block_var_stack[nqp::elems(@!block_var_stack) - 1].entering_handle_handler();
+                    $!block_var_stack.do('entering_handle_handler');
                 }
                 if nqp::istype($visit, QAST::Op) {
                     $node[$i] := self.visit_op($visit)
@@ -2891,7 +4005,7 @@ class Perl6::Optimizer {
                     }
                 }
                 elsif nqp::istype($visit, QAST::Regex) {
-                    self.poison_var_lowering();
+                    $!block_var_stack.poison-var-lowering();
                     QRegex::Optimizer.new().optimize($visit, $!symbols.top_block, |%!adverbs);
                 }
                 elsif nqp::istype($visit, QAST::WVal) {
@@ -2917,13 +4031,13 @@ class Perl6::Optimizer {
                         }
                     }
                     if $visit.value =:= $!symbols.PseudoStash {
-                        self.poison_var_lowering();
+                        $!block_var_stack.poison-var-lowering();
                     }
                     elsif nqp::istype($visit.value, $!symbols.Regex) {
-                        @!block_var_stack[nqp::elems(@!block_var_stack) - 1].poison_topic_lowering();
+                        $!block_var_stack.do('poison_topic_lowering');
                     }
                     elsif nqp::istype($visit.value, $!symbols.AST) {
-                        @!block_var_stack[nqp::elems(@!block_var_stack) - 1].poison_lowering();
+                        $!block_var_stack.do('poison_lowering');
                     }
                 }
                 elsif nqp::istype($visit, QAST::ParamTypeCheck) {
@@ -2938,7 +4052,7 @@ class Perl6::Optimizer {
                     note("Weird node visited: " ~ $visit.HOW.name($visit)) if $!debug;
                 }
                 if $handle && $i > 0 {
-                    @!block_var_stack[nqp::elems(@!block_var_stack) - 1].leaving_handle_handler();
+                    $!block_var_stack.do('leaving_handle_handler');
                 }
             }
             $i               := $first ?? $n !! $i + 1;
@@ -3038,7 +4152,7 @@ class Perl6::Optimizer {
                 # the block we're flattening into and binding it to the inner
                 # lowered one.
                 $_[1] := QAST::Var.new( :name($_[1][0].value), :scope('lexical') );
-                @!block_var_stack[nqp::elems(@!block_var_stack) - 1].add_usage($_[1]);
+                $!block_var_stack.do('add_usage', $_[1]);
                 @copy_decls.push($_);
             }
             elsif nqp::istype($_, QAST::Var) && $_.scope eq 'lexical' {
@@ -3170,8 +4284,7 @@ class Perl6::Optimizer {
                         my int $lref  := $scope eq 'lexicalref';
                         my int $aref  := $scope eq 'attributeref';
                         if $lref || $aref {
-                            my $Signature := $!symbols.find_in_setting("Signature");
-                            my $param := nqp::getattr($sig, $Signature, '@!params')[$p];
+                            my $param := nqp::getattr($sig, $!symbols.Signature, '@!params')[$p];
                             if nqp::can($param, 'rw') {
                                 unless $param.rw {
                                     $arg.scope($lref ?? 'lexical' !! 'attribute');
@@ -3190,7 +4303,8 @@ class Perl6::Optimizer {
     my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
     sub copy_returns($to, $from) {
         if nqp::can($from, 'returns') {
-            my $ret_type := $from.returns();
+            my $ret_type := $from.returns;
+            $to.returns($ret_type) unless nqp::can($from, 'rw') && $from.rw;
             if nqp::objprimspec($ret_type) -> $primspec {
                 $to := QAST::Want.new(
                     :named($to.named),
@@ -3202,10 +4316,42 @@ class Perl6::Optimizer {
         $to
     }
 
-    method poison_var_lowering() {
-        for @!block_var_stack {
-            $_.poison_lowering();
+    method chain_depth() { $!chain_depth }
+
+    method block_var_stack() { $!block_var_stack }
+
+    # Find out if a routine belongs to the core. For a multi it means the proto and all its candidates are from the
+    # core.
+    # With $u-invocant only the candidates which are methods with :U invocant specification are taken into account
+    method is_routine_setting_only($routine, :$u-invocant = 0) {
+        return 0 unless nqp::istype($routine, NQPRoutine) || nqp::index($routine.file, 'SETTING::') == 0;
+        my @cand-lists;
+        if $routine.is_dispatcher {
+            nqp::push(@cand-lists,
+                nqp::istype($routine, NQPRoutine)
+                    ?? nqp::getattr($routine, NQPRoutine, '$!dispatchees')
+                    !! nqp::getattr($routine, $!symbols.Routine, '@!dispatchees'));
         }
+        nqp::push(@cand-lists, $routine.WRAPPERS) if nqp::can($routine, 'is-wrapped') && $routine.is-wrapped;
+        for @cand-lists -> @candidates {
+            for @candidates -> $cand {
+                if $u-invocant && nqp::istype($cand, $!symbols.Method) {
+                    my $signature := $cand.signature;
+
+                    # Skip NQP candidates as we consider them default by definition. The only reason we ever iterate
+                    # over NQPRoutine proto is if somehow Raku-land code would install its candidate.
+                    next if nqp::istype($signature, NQPSignature);
+
+                    my $invocant_type := $signature.params.AT-POS(0).type;
+                    # Skip a method with :D if requested
+                    next if $invocant_type.HOW.archetypes.definite
+                            && $invocant_type.HOW.definite($invocant_type);
+                }
+
+                return 0 unless self.is_routine_setting_only($cand, :$u-invocant);
+            }
+        }
+        1
     }
 }
 

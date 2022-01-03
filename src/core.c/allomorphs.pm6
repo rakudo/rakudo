@@ -12,7 +12,76 @@ my class Allomorph is Str {
     method succ(Allomorph:D:) { self.Numeric.succ }
     method pred(Allomorph:D:) { self.Numeric.pred }
 
-    multi method Str(Allomorph:D:) {
+    method comb(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').comb(|c)
+    }
+
+    method split(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').split(|c)
+    }
+
+    method subst(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').subst(|c)
+    }
+    method subst-mutate(Allomorph:D \SELF: |c) {
+        (SELF = nqp::getattr_s(self,Str,'$!value')).subst-mutate(|c)
+    }
+
+    method samecase(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samecase(|c)
+    }
+    method samemark(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samemark(|c)
+    }
+    method samespace(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samespace(|c)
+    }
+
+    method chop(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').chop(|c)
+    }
+    method chomp(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').chomp
+    }
+    method trim(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim
+    }
+    method trim-leading(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim-leading
+    }
+    method trim-trailing(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim-trailing
+    }
+    method lc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').lc
+    }
+    method uc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').uc
+    }
+    method tc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').tc
+    }
+    method tclc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').tclc
+    }
+    method fc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').fc
+    }
+    method flip(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').flip
+    }
+
+    method substr(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').substr(|c)
+    }
+    method substr-rw(Allomorph:D \SELF:
+      $start = 0,
+      $want  = Whatever
+    ) is rw {
+        (SELF = nqp::getattr_s(self,Str,'$!value')).substr-rw($start, $want)
+    }
+
+    method Str(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value')
     }
 
@@ -195,7 +264,7 @@ multi sub val(\one-thing) is raw {
     one-thing
 }
 
-multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-mu) {
+multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     # TODO:
     # * Additional numeric styles:
     #   + fractions in [] radix notation:  :100[10,'.',53]
@@ -219,8 +288,8 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-mu) {
     # string, or a failure if we're Str.Numeric
     my &parse_fail := -> \msg {
         $val-or-fail
-          ?? $fail-or-mu
-            ?? return Mu
+          ?? $fail-or-nil
+            ?? return Nil
             !! fail X::Str::Numeric.new(:source($MAYBEVAL),:reason(msg),:$pos)
           !! return $MAYBEVAL
     }

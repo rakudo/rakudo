@@ -59,52 +59,75 @@ my class Cool { # declared in BOOTSTRAP
 
     ## string methods
 
-    method chars(--> Int:D) {
-        self.Str.chars
-    }
-    method codes() {
-        self.Str.codes
-    }
+    proto method chars(*%) {*}
+    multi method chars(Cool:D: --> Int:D) { self.Str.chars }
 
-    method fmt($format = '%s') {
+    proto method codes(*%) {*}
+    multi method codes(Cool:D: --> Int:D) { self.Str.codes }
+
+    proto method encode($?, *%) {*}
+    multi method encode(Cool:D: |c) { self.Str.encode(|c) }
+
+    method fmt(Str(Cool) $format = '%s') {
         Rakudo::Internals.initialize-sprintf-handler;
         nqp::p6box_s(
-            nqp::sprintf(nqp::unbox_s($format.Stringy), nqp::list(self))
+            nqp::sprintf(nqp::unbox_s($format), nqp::list(self))
         )
     }
 
-    method uc() {
-        self.Str.uc
-    }
+    proto method wordcase(*%) {*}
+    multi method wordcase(Cool:D:) { self.Str.wordcase(|%_) }
 
-    method lc() {
-        self.Str.lc
-    }
+#?if moar
+    proto method trans(|) {*}
+#?endif
+#?if !moar
+    proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
+    multi method trans(Cool:D: |c) { self.Str.trans(|c) }
 
-    method tc() {
-        self.Str.tc
-    }
+    proto method indent($, *%) {*}
+    multi method indent(Cool:D: $steps) { self.Str.indent($steps) }
 
-    method fc() {
-        self.Str.fc
-    }
+    proto method uc(*%) {*}
+    multi method uc(Cool:D:) { self.Str.uc }
 
-    method tclc() {
-        self.Str.tclc
-    }
+    proto method lc(*%) {*}
+    multi method lc(Cool:D:) { self.Str.lc }
 
-    method wordcase()   { self.Str.wordcase }
+    proto method tc(*%) {*}
+    multi method tc(Cool:D:) { self.Str.tc }
 
-    method chomp(Cool:D:) { self.Str.chomp }
+    proto method fc(*%) {*}
+    multi method fc(Cool:D:) { self.Str.fc }
+
+    proto method tclc(*%) {*}
+    multi method tclc(Cool:D:) { self.Str.tclc }
+
+    proto method flip(*%) {*}
+    multi method flip(Cool:D:) { self.Str.flip }
+
+    proto method chomp(*%) {*}
+    multi method chomp(Cool:D:) { self.Str.chomp }
 
     proto method chop(|)                {*}
     multi method chop(Cool:D:)          { self.Str.chop }
     multi method chop(Cool:D: Int() $n) { self.Str.chop($n) }
 
-    method flip() {
-        self.Str.flip
+    proto method samecase($, *%) {*}
+    multi method samecase(Cool:D: Cool:D $pattern) {
+        self.Str.samecase($pattern)
     }
-    method trans(|c) { self.Str.trans(|c) }
+
+    proto method samemark($, *%) {*}
+    multi method samemark(Cool:D: Cool:D $pattern) {
+        self.Str.samemark($pattern)
+    }
+
+    proto method samespace($, *%) {*}
+    multi method samespace(Cool:D: Cool:D $pattern) {
+        self.Str.samespace($pattern)
+    }
 
     proto method starts-with(|) {*}
     multi method starts-with(Cool:D:
@@ -133,18 +156,19 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     proto method substr(|) {*}
-    multi method substr(\from)         { self.Str.substr(from)       }
-    multi method substr(\from, \chars) { self.Str.substr(from,chars) }
+    multi method substr(Cool:D:)               { self.Str.substr             }
+    multi method substr(Cool:D: \from)         { self.Str.substr(from)       }
+    multi method substr(Cool:D: \from, \chars) { self.Str.substr(from,chars) }
 
     proto method substr-rw(|) {*}
-    multi method substr-rw(\SELF:) is rw {
+    multi method substr-rw(Cool:D \SELF:) is rw {
         (SELF = self.Str).substr-rw
     }
-    multi method substr-rw(\SELF: \from) is rw {
+    multi method substr-rw(Cool:D \SELF: \from) is rw {
         (SELF = self.Str).substr-rw(from)
     }
-    multi method substr-rw(\SELF: \from, \chars) is rw {
-        (SELF = self.Str).substr-rw(from,chars)
+    multi method substr-rw(Cool:D \SELF: \from, \want) is rw {
+        (SELF = self.Str).substr-rw(from, want)
     }
 
     proto method substr-eq(|) {*}
@@ -295,12 +319,12 @@ my class Cool { # declared in BOOTSTRAP
     }
 
     method split(Cool: |c) {
-        self.Stringy.split(|c);
+        self.Str.split(|c);
     }
 
     method match(Cool:D: |c) {
         $/ := nqp::getlexcaller('$/');
-        self.Stringy.match(|c)
+        self.Str.match(|c)
     }
 
     proto method comb(|) {*}
@@ -341,13 +365,15 @@ my class Cool { # declared in BOOTSTRAP
     multi method words(Cool:D:)         { self.Str.words         }
     multi method words(Cool:D: $limit ) { self.Str.words($limit) }
 
-    proto method subst(|) {
-        $/ := nqp::getlexcaller('$/');
-        {*}
-    }
+#?if moar
+    proto method subst(|) {*}
+#?endif
+#?if !moar
+    proto method subst(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
     multi method subst(Cool:D: $original, $replacement = "", *%options) {
         $/ := nqp::getlexcaller('$/');
-        self.Stringy.subst($original, $replacement, |%options);
+        self.Str.subst($original, $replacement, |%options);
     }
 
     # `$value-to-subst-mutate` will show up in errors when called on non-rw
@@ -366,12 +392,15 @@ my class Cool { # declared in BOOTSTRAP
 
     method sprintf(*@args) { sprintf(self, @args) };
     method printf (*@args) {  printf(self, @args) };
-    method samecase(Cool:D: Cool $pattern) { self.Stringy.samecase($pattern) }
 
-    method path() { self.Stringy.IO }
-    method trim         () { self.Stringy.trim          };
-    method trim-leading () { self.Stringy.trim-leading  };
-    method trim-trailing() { self.Stringy.trim-trailing };
+    proto method trim(*%) {*}
+    multi method trim(Cool:D:) { self.Str.trim }
+
+    proto method trim-leading(*%) {*}
+    multi method trim-leading(Cool:D:) { self.Str.trim-leading }
+
+    proto method trim-trailing(*%) {*}
+    multi method trim-trailing(Cool:D:) { self.Str.trim-trailing }
 
     method EVAL(*%opts) {
         EVAL(self, context => CALLER::, |%opts);
@@ -426,6 +455,8 @@ my class Cool { # declared in BOOTSTRAP
           ?? $numeric
           !! $numeric.Complex
     }
+
+    method Version() { self.Str.Version }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
@@ -497,19 +528,19 @@ proto sub wordcase($, *%) is pure {*}
 multi sub wordcase($x) { $x.wordcase }
 
 proto sub sprintf($, |) {*}
-multi sub sprintf(Cool:D $format, *@args) {
+multi sub sprintf(Str(Cool) $format, *@args) {
     CATCH {
         when X::Cannot::Lazy {
             X::Cannot::Lazy.new(:action('(s)printf')).throw
         }
         default {
-            Rakudo::Internals.HANDLE-NQP-SPRINTF-ERRORS($_).throw
+            Rakudo::Internals.HANDLE-NQP-SPRINTF-ERRORS($_, $format).throw
         }
     }
     Rakudo::Internals.initialize-sprintf-handler;
     nqp::p6box_s(
       nqp::sprintf(
-        nqp::unbox_s($format.Stringy),
+        nqp::unbox_s($format),
         @args.elems
           ?? nqp::clone(nqp::getattr(@args,List,'$!reified'))
           !! nqp::create(IterationBuffer)

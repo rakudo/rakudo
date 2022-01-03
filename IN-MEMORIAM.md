@@ -5,6 +5,10 @@ the development of the Raku Programming Language, but unfortunately have
 departed this existence.  We thank them for their contributions and hope
 to keep their memory alive here, as well as in other places.
 
+David H. Adler (dha)
+--------------------
+...
+
 Jonathan Scott Duff (perlpilot)
 -------------------------------
 In the early days of the Rakudo implementation, Jonathan Scott Duff
@@ -35,6 +39,12 @@ From the obituary at: https://www.facebook.com/marcia.goff.5/posts/1021375569728
 > Throughout his career, Jeff worked as a senior computer programmer and engineer. He lived and worked in numerous cities in the United States and, for 10 years, lived and worked in Europe. He was often a presenter at international open source computer conferences. His passion was the continuing development and promotion of the Perl programming language. He loved to travel, experience new cultures and adventures, and challenge himself to learn new skills and develop new talents. Among his many hobbies were glassblowing, origami, juggling, photography, and writing articles and blogs to share with the Perl community.
 
 > He is survived by his parents; his brother and sister-in-law, Brandon and Rebecca Goff, St. Ignatius, MT; his aunt and uncle, Christine and Roger Sebby, Colorado Springs, CO; cousins Amber and Ed Shipp and family of Colorado Springs, and Chad and Renae Sebby and family of Olathe, KS; and many dear friends throughout the world.
+
+Robert Lemmen (ROBERTLE)
+------------------------
+In June 2020, Robert Lemmen passed away after a serious illness.  Among other contributions, he packaged modules for Raku (Perl6 at that time) and helped other contributors to get involved in the Raku Team.  Robert Lemmen further contributed to MoarVM, nqp and the Raku documentation, as well as being the author of several ecosystem modules.
+
+From the obituary at: https://www.debian.org/News/2021/20210812
 
 Final words
 -----------

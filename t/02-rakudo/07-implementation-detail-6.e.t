@@ -27,8 +27,8 @@ my @lower = ("",<<
   mkdir move msb next nextcallee nextsame nextwith nodemap none
   not note one open ord ords pair pairs parse-base parse-names
   permutations pick pop prepend print printf proceed produce
-  prompt push put rand redo reduce rename repeated return
-  return-rw reverse rindex rmdir roll roots rotate round roundrobin
+  prompt push put rand redo reduce rename repeated repl return
+  return-rw reverse rotor rindex rmdir roll roots rotate round roundrobin
   run samecase samemark samewith say sec sech set shell shift sign
   signal sin sinh sleep sleep-timer sleep-until slip slurp so sort
   splice split sprintf spurt sqrt squish srand subbuf-rw substr

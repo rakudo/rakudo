@@ -130,13 +130,13 @@ augment class Rakudo::Internals {
     # initialized here.
     my constant @pc-adverb-mapper = do {
         my int $i = -1;
-#?if moar
+#?if !js
         my uint16 @map;
 #?endif
-#?if !moar
+#?if js
         my @map;
 #?endif
-        
+
         # add the simple access version, e.g. with :!delete or :!v
         @map[SLICE_NO_ADVERBS]                               = ++$i;
 
@@ -296,10 +296,10 @@ augment class Rakudo::Internals {
         );
 
         # Perform the actual lookup and handling
-#?if moar
+#?if !js
         my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
 #?endif
-#?if !moar
+#?if js
         my $index = @pc-adverb-mapper[$bitmap];
 #?endif
         nqp::if(
@@ -404,10 +404,10 @@ augment class Rakudo::Internals {
         );
 
         # Perform the actual lookup and handling
-#?if moar
+#?if !js
         my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
 #?endif
-#?if !moar
+#?if js
         my $index = @pc-adverb-mapper[$bitmap];
 #?endif
         nqp::if(

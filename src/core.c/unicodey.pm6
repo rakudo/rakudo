@@ -77,7 +77,7 @@ my class Rakudo::Unicodey is implementation-detail {
         my $prop := nqp::unipropcode($propname);
         nqp::hllbool(
           nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname))
-        )
+        ) || uniprop($code, $propname) eq $pvalname
     }
 
     my constant $gcprop = nqp::unipropcode("General_Category");
@@ -377,6 +377,7 @@ augment class Cool {
     multi method ords(Cool:D:) { self.Str.ords }
 
     proto method unimatch($, $?, *%) is pure {*}
+
     multi method unimatch(Cool:D: Str:D $pvalname --> Bool:D) {
         self.Int.unimatch($pvalname)
     }
@@ -390,11 +391,8 @@ augment class Cool {
     proto method uninames(*%) is pure {*}
     multi method uninames(Cool:D: --> Str:D) { self.Str.uninames }
 
-    proto method unival(*%) is pure {*}
-    multi method unival(Cool:D:) { self.Int.unival }
-
-    proto method univals(*%) is pure {*}
-    multi method univals(Cool:D:) { self.Str.univals }
+    proto method uniparse(*%) is pure {*}
+    multi method uniparse(Cool:D: --> Str:D) { self.Str.uniparse }
 
     proto method uniprop($?, *%) is pure {*}
     multi method uniprop(Cool:D:) {
@@ -411,6 +409,16 @@ augment class Cool {
     multi method uniprops(Cool:D: Str:D $propname) {
         self.Str.uniprops($propname)
     }
+
+    proto method unival(*%) is pure {*}
+    multi method unival(Cool:D:) { self.Int.unival }
+
+    proto method univals(*%) is pure {*}
+    multi method univals(Cool:D:) { self.Str.univals }
+
+    method uniprop-int(|c)  { uniprop-int(self, |c) }
+    method uniprop-bool(|c) { uniprop-bool(self, |c) }
+    method uniprop-str(|c)  { uniprop-str(self, |c) }
 
     proto method NFC(*%) {*}
     multi method NFC(Cool:D:) { self.Str.NFC }
@@ -460,14 +468,14 @@ augment class Int {
             !! nqp::getuniname(self)
     }
 
-    multi method uniprop(Int:D:) { 
+    multi method uniprop(Int:D:) {
         nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('uniprop')
           !! nqp::isbig_I(self)
             ?? ""
             !! Rakudo::Unicodey.uniprop-general(self)
     }
-    multi method uniprop(Int:D: Str:D $propname) { 
+    multi method uniprop(Int:D: Str:D $propname) {
         nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('uniprop')
           !! nqp::isbig_I(self)
@@ -512,7 +520,7 @@ augment class Str {
         Seq.new(Rakudo::Unicodey.uninames(self))
     }
 
-    method uniparse(Str:D: --> Str:D) {
+    multi method uniparse(Str:D: --> Str:D) {
         my $names := nqp::split(',', self);
         my $parts := nqp::list_s;
 
@@ -530,12 +538,12 @@ augment class Str {
         nqp::join("",$parts)
     }
 
-    multi method uniprop(Str:D:) { 
+    multi method uniprop(Str:D:) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
           !! Rakudo::Unicodey.uniprop-general($ord)
     }
-    multi method uniprop(Str:D: Str:D $propname) { 
+    multi method uniprop(Str:D: Str:D $propname) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
           !! Rakudo::Unicodey.uniprop($ord, $propname)
@@ -602,13 +610,6 @@ augment class Nil {
     multi method chrs(Nil:) { self.Int.chrs }
 }
 
-# Make sure all affected subclasses are aware of additions to their parents
-BEGIN .^compose for
-  Array, Match, Range, Seq,
-  Int, Num, Rat, Complex,
-  IntStr, NumStr, RatStr, ComplexStr
-;
-
 # all proto's in one place so they're available on all (conditional) backends
 #-------------------------------------------------------------------------------
 proto sub chr($, *%) is pure {*}
@@ -621,6 +622,8 @@ proto sub unimatch($, $, $?, *%) is pure {*}
 
 proto sub uniname($, *%)  is pure {*}
 proto sub uninames($, *%) is pure {*}
+
+proto sub uniparse($, *%) {*}
 
 proto sub uniprop($, $?, *%)  is pure {*}
 proto sub uniprops($, $?, *%) is pure {*}
@@ -646,6 +649,8 @@ multi sub unimatch(\what, Str:D $pvalname, Str:D $propname) {
 multi sub uniname(\what) { what.uniname }
 multi sub uninames(\what) { what.uninames }
 
+multi sub uniparse(\what --> Str:D) { what.uniparse }
+
 multi sub uniprop(\what) { what.uniprop }
 multi sub uniprop(\what, Str:D $propname) { what.uniprop($propname) }
 
@@ -656,39 +661,27 @@ multi sub unival(\what) { what.unival }
 multi sub univals(\what) { what.univals }
 
 #?if !jvm
-multi sub infix:<unicmp>(Str:D \a, Str:D \b) {
-    ORDER(
-      nqp::unicmp_s(nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0)
-    )
+multi sub infix:<unicmp>(Str:D $a, Str:D $b) {
+    ORDER(nqp::unicmp_s($a,$b,85,0,0))
 }
-multi sub infix:<unicmp>(Cool:D \a, Cool:D \b) {
-    ORDER(
-      nqp::unicmp_s(nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), 85,0,0)
-    )
+multi sub infix:<unicmp>(Cool:D $a, Cool:D $b) {
+    ORDER(nqp::unicmp_s($a.Str,$b.Str,85,0,0))
 }
-multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
-    nqp::eqaddr((my $cmp := (a.key unicmp b.key)),Order::Same)
-      ?? (a.value unicmp b.value)
+multi sub infix:<unicmp>(Pair:D $a, Pair:D $b) {
+    nqp::eqaddr((my $cmp := ($a.key unicmp $b.key)),Order::Same)
+      ?? ($a.value unicmp $b.value)
       !! $cmp
 }
 
-multi sub infix:<coll>(Str:D \a, Str:D \b) {
-    ORDER(
-      nqp::unicmp_s(
-        nqp::unbox_s(a),nqp::unbox_s(b),$*COLLATION.collation-level,0,0
-      )
-    )
+multi sub infix:<coll>(Str:D $a, Str:D $b) {
+    ORDER(nqp::unicmp_s($a,$b,$*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Cool:D \a, Cool:D \b) {
-    ORDER(
-      nqp::unicmp_s(
-        nqp::unbox_s(a.Str),nqp::unbox_s(b.Str),$*COLLATION.collation-level,0,0
-      )
-    )
+multi sub infix:<coll>(Cool:D $a, Cool:D $b) {
+    ORDER(nqp::unicmp_s($a.Str,$b.Str,$*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
-    nqp::eqaddr((my $cmp := (a.key coll b.key)),Order::Same)
-      ?? (a.value coll b.value)
+multi sub infix:<coll>(Pair:D $a, Pair:D $b) {
+    nqp::eqaddr((my $cmp := ($a.key coll $b.key)),Order::Same)
+      ?? ($a.value coll $b.value)
       !! $cmp
 }
 #?endif
@@ -696,13 +689,10 @@ multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
 #?if jvm
 multi sub infix:<unicmp>($, $) {
     X::NYI.new(feature => "infix unicmp on JVM").throw
-}   
+}
 multi sub infix:<coll>($, $) {
     X::NYI.new(feature => "infix coll on JVM").throw
-}   
+}
 #?endif
-
-proto sub uniparse($, *%) {*}
-multi sub uniparse(Str:D \names --> Str:D) { names.uniparse }
 
 # vim: expandtab shiftwidth=4

@@ -164,8 +164,14 @@ class Kernel does Systemic {
     multi method signal(Kernel:D: Signal:D \signal --> Int:D) { signal.value }
     multi method signal(Kernel:D: Int:D    \signal --> Int:D) { signal       }
 
-    method cpu-cores(--> Int) is raw {
-        nqp::cpucores()
+    method cpu-cores(--> Int) { nqp::cpucores }
+
+    my $cpu-cores-but-one := nqp::null;
+    method cpu-cores-but-one() is implementation-detail {
+        nqp::ifnull(
+          $cpu-cores-but-one,
+          $cpu-cores-but-one := max nqp::cpucores() - 1, 1
+        )
     }
 
     method cpu-usage(--> Int) is raw {

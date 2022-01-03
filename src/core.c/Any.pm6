@@ -92,37 +92,37 @@ my class Any { # declared in BOOTSTRAP
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal {*}
-    multi method keys(Enumeration:) { self.enums.keys }
+    multi method keys(Enumeration:) is default { self.enums.keys }
     multi method keys(Bool:)        { self.enums.keys }
     multi method keys(Any:U:) { () }
     multi method keys(Any:D:) { self.list.keys }
 
     proto method kv(|) is nodal {*}
-    multi method kv(Enumeration:) { self.enums.kv }
+    multi method kv(Enumeration:) is default { self.enums.kv }
     multi method kv(Bool:)        { self.enums.kv }
     multi method kv(Any:U:) { () }
     multi method kv(Any:D:) { self.list.kv }
 
     proto method values(|) is nodal {*}
-    multi method values(Enumeration:) { self.enums.values }
+    multi method values(Enumeration:) is default { self.enums.values }
     multi method values(Bool:)        { self.enums.values }
     multi method values(Any:U:) { () }
     multi method values(Any:D:) { self.list }
 
     proto method pairs(|) is nodal {*}
-    multi method pairs(Enumeration:) { self.enums.pairs }
+    multi method pairs(Enumeration:) is default { self.enums.pairs }
     multi method pairs(Bool:)        { self.enums.pairs }
     multi method pairs(Any:U:) { () }
     multi method pairs(Any:D:) { self.list.pairs }
 
     proto method antipairs(|) is nodal {*}
-    multi method antipairs(Enumeration:) { self.enums.antipairs }
+    multi method antipairs(Enumeration:) is default { self.enums.antipairs }
     multi method antipairs(Bool:)        { self.enums.antipairs }
     multi method antipairs(Any:U:) { () }
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal {*}
-    multi method invert(Enumeration:) { self.enums.invert }
+    multi method invert(Enumeration:) is default { self.enums.invert }
     multi method invert(Bool:)        { self.enums.invert }
     multi method invert(Any:U:) { () }
     multi method invert(Any:D:) { self.list.invert }
@@ -132,6 +132,9 @@ my class Any { # declared in BOOTSTRAP
     proto method pick(|) is nodal {*}
     multi method pick()   { self.list.pick     }
     multi method pick($n) { self.list.pick($n) }
+    multi method pick(HyperWhatever) is default {
+        Seq.new: Rakudo::Iterator.Reiterate: { self.pick(Whatever).iterator }
+    }
 
     proto method roll(|) is nodal {*}
     multi method roll()   { self.list.roll     }
@@ -462,6 +465,8 @@ multi sub infix:<===>(\a, \b --> Bool:D) {
            && nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH)))
     )
 }
+# U+2A76 THREE CONSECUTIVE EQUALS SIGNS
+my constant &infix:<⩶> = &infix:<===>;
 
 proto sub prefix:<++>(Mu, *%)        {*}
 multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
@@ -589,6 +594,7 @@ sub dd(|c) {  # is implementation-detail
             my $var  := nqp::shift($args);
             my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
             my $type := $var.WHAT.^name.split("::").tail;
+            $type := $type.chop if $name && $name.starts-with('@' | '%');
             my $what := nqp::can($var,'raku')
               ?? $var.raku
               !! nqp::can($var,'perl')

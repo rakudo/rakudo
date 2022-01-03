@@ -1243,7 +1243,7 @@ my class Array { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method grab(Array:D: \count --> Seq:D) {
         Seq.new(
@@ -1334,6 +1334,27 @@ my class Array { # declared in BOOTSTRAP
               needed-dimensions => '',
             ).throw
         }
+    }
+
+    my class LTHandle {
+        has Mu $!reified;
+        has Mu $!todo;
+        has Mu $!descriptor;
+    }
+
+    method TEMP-LET-LOCALIZE() is raw is implementation-detail {
+        my \handle = nqp::create(LTHandle);
+        nqp::bindattr(handle, LTHandle, '$!reified', nqp::getattr(self, List, '$!reified'));
+        nqp::bindattr(handle, LTHandle, '$!todo', nqp::getattr(self, List, '$!todo'));
+        nqp::bindattr(handle, LTHandle, '$!descriptor', nqp::getattr(self, Array, '$!descriptor'));
+        self.STORE: self.clone;
+        handle
+    }
+
+    method TEMP-LET-RESTORE(\handle --> Nil) is implementation-detail {
+        nqp::bindattr(self, List, '$!reified', nqp::getattr(handle, LTHandle, '$!reified'));
+        nqp::bindattr(self, List, '$!todo', nqp::getattr(handle, LTHandle, '$!todo'));
+        nqp::bindattr(self, Array, '$!descriptor', nqp::getattr(handle, LTHandle, '$!descriptor'));
     }
 
     method ^parameterize(Mu:U \arr, Mu \of) {

@@ -12,10 +12,12 @@ BEGIN {
     Perl6::Metamodel::ParametricRoleHOW.HOW.reparent(Perl6::Metamodel::ParametricRoleHOW, Any);
     Perl6::Metamodel::SubsetHOW.HOW.reparent(Perl6::Metamodel::SubsetHOW, Any);
     Perl6::Metamodel::GrammarHOW.HOW.compose(Perl6::Metamodel::GrammarHOW);
+#?if !moar
     Perl6::Metamodel::BaseDispatcher.HOW.reparent(Perl6::Metamodel::BaseDispatcher, Any);
     Perl6::Metamodel::MethodDispatcher.HOW.compose(Perl6::Metamodel::MethodDispatcher);
     Perl6::Metamodel::MultiDispatcher.HOW.compose(Perl6::Metamodel::MultiDispatcher);
     Perl6::Metamodel::WrapDispatcher.HOW.compose(Perl6::Metamodel::WrapDispatcher);
+#?endif
 }
 
 BEGIN {
@@ -107,11 +109,24 @@ multi sub gethostname(--> Str:D) is DEPRECATED('$*KERNEL.hostname') {
 # Methods that are DEPRECATED are moved here and augmented into the classes
 # they belong to without bootstrapping issues.
 
-augment class Str {
-    method parse-names(Str:D: --> Str:D) is DEPRECATED('uniparse') {
+augment class Cool {
+    method parse-names(Cool:D: --> Str:D) is DEPRECATED('uniparse') {
         self.uniparse
     }
+    method path(Cool:D: --> IO::Path:D) is DEPRECATED('IO') {
+        self.IO
+    }
 }
+
+# Make sure all affected subclasses are aware of additions to their parents
+BEGIN .^compose for
+  Str, Int, Num, Rat, Complex,
+  IntStr, NumStr, RatStr, ComplexStr,
+  List, Array, Match, Range, Seq,
+  int, int8, int16, int32, int64,
+  uint, uint8, uint16, uint32, uint64,
+  byte, num, num32, num64, str,
+;
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);
 

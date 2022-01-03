@@ -147,7 +147,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Map:D: Any $topic --> Bool:D) {
-        self.EXISTS-KEY($topic.any);
+        self.EXISTS-KEY($topic.any).Bool
     }
 
     multi method ACCEPTS(Map:D: Cool:D $topic --> Bool:D) {
@@ -155,19 +155,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Map:D: Positional $topic --> Bool:D) {
-        self.EXISTS-KEY($topic.any);
+        self.EXISTS-KEY($topic.any).Bool
     }
 
     multi method ACCEPTS(Map:D: Regex $topic --> Bool:D) {
-        so self.keys.any.match($topic);
+        self.keys.any.match($topic).Bool;
     }
 
     multi method ACCEPTS(Map:D: Map:D \m --> Bool:D) {
         try {self eqv m} // False;
     }
 
-    multi method EXISTS-KEY(Map:D: Str:D \key --> Bool:D) {
-        nqp::hllbool(nqp::existskey($!storage,key))
+    multi method EXISTS-KEY(Map:D: Str:D $key --> Bool:D) {
+        nqp::hllbool(nqp::existskey($!storage,$key))
     }
     multi method EXISTS-KEY(Map:D: \key --> Bool:D) {
         nqp::hllbool(nqp::existskey($!storage,key.Str))
@@ -282,8 +282,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
-    multi method AT-KEY(Map:D: Str:D \key) is raw {
-        nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
+    multi method AT-KEY(Map:D: Str:D $key) is raw {
+        nqp::ifnull(nqp::atkey($!storage,$key),Nil)
     }
     multi method AT-KEY(Map:D: \key) is raw {
         nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
@@ -390,9 +390,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     # Store the contents of an iterator into the Map
-    method !STORE_MAP_FROM_ITERATOR_DECONT(\iter --> Map:D) is raw {
+    method !STORE_MAP_FROM_ITERATOR_DECONT($iterator --> Map:D) is raw {
         nqp::until(
-          nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
+          nqp::eqaddr((my Mu $x := $iterator.pull-one),IterationEnd),
           nqp::if(
             nqp::istype($x,Pair),
             nqp::bindkey(
@@ -404,7 +404,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
               self!STORE_MAP_DECONT($x),
               nqp::if(
-                nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
+                nqp::eqaddr((my Mu $y := $iterator.pull-one),IterationEnd),
                 nqp::if(
                   nqp::istype($x,Failure),
                   $x.throw,
@@ -420,9 +420,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         );
         self
     }
-    method !STORE_MAP_FROM_ITERATOR(\iter --> Map:D) is raw {
+    method !STORE_MAP_FROM_ITERATOR($iterator --> Map:D) is raw {
         nqp::until(
-          nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
+          nqp::eqaddr((my Mu $x := $iterator.pull-one),IterationEnd),
           nqp::if(
             nqp::istype($x,Pair),
             nqp::bindkey(
@@ -434,7 +434,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
               self!STORE_MAP($x),
               nqp::if(
-                nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
+                nqp::eqaddr((my Mu $y := $iterator.pull-one),IterationEnd),
                 nqp::if(
                   nqp::istype($x,Failure),
                   $x.throw,
@@ -452,7 +452,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
+    multi method STORE(Map:D:
+      Map:D \map, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
         nqp::if(
           nqp::istype(map,Hash::Object),
           self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map),
@@ -482,13 +484,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           )
         )
     }
-    multi method STORE(Map:D: Iterator:D \iter, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
-        self!STORE_MAP_FROM_ITERATOR_DECONT(iter)
+    multi method STORE(Map:D:
+      Iterator:D $iterator, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR_DECONT($iterator)
     }
-    multi method STORE(Map:D: Iterator:D \iter, :INITIALIZE($)! --> Map:D) {
-        self!STORE_MAP_FROM_ITERATOR(iter)
+    multi method STORE(Map:D:
+      Iterator:D $iterator, :INITIALIZE($)!
+    --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR($iterator)
     }
-    multi method STORE(Map:D: \to_store, :INITIALIZE($)!, :DECONT($)! --> Map:D) {
+    multi method STORE(Map:D:
+      \to_store, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
         self!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator)
     }
     multi method STORE(Map:D: \to_store, :INITIALIZE($)! --> Map:D) {
@@ -552,9 +560,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         has $!pairs;
         has $!count;
 
-        method !SET-SELF(\hash,\count) {
+        method !SET-SELF(\hash, $count) {
             $!storage := nqp::getattr(hash,Map,'$!storage');
-            $!count = count;
+            $!count = $count;
             my int $i = nqp::elems($!storage);
             my \iter := nqp::iterator($!storage);
             $!keys := nqp::setelems(nqp::list_s,$i);
@@ -567,7 +575,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             );
             self
         }
-        method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+        method new(\hash, $count) { nqp::create(self)!SET-SELF(hash, $count) }
         method pull-one() {
             nqp::if(
               $!count,
@@ -591,7 +599,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
         method is-lazy() { $!count == Inf }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method roll(Map:D: $count) {
         Seq.new(

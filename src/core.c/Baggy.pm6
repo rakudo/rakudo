@@ -24,13 +24,13 @@ my role Baggy does QuantHash {
         self (==) other.Bag
     }
 
+    my constant notfound =
+      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0);
+
     multi method AT-KEY(Baggy:D: \k) {  # exception: ro version for Bag/Mix
         $!elems
           ?? nqp::getattr(
-               nqp::ifnull(
-                 nqp::atkey($!elems,k.WHICH),
-                 BEGIN nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
-               ),
+               nqp::ifnull(nqp::atkey($!elems,k.WHICH),notfound),
                Pair,
                '$!value'
              )
@@ -389,7 +389,6 @@ my role Baggy does QuantHash {
         X::Immutable.new( method => 'grab', typename => self.^name ).throw;
     }
 
-    proto method pick(|) {*}
     multi method pick(Baggy:D:) { self.roll }
     multi method pick(Baggy:D: Callable:D $calculate) {
         self.pick( $calculate(self.total) )
@@ -694,10 +693,10 @@ my role Baggy does QuantHash {
     method RAW-HASH() is raw is implementation-detail { $!elems }
 }
 
-multi sub infix:<eqv>(Baggy:D \a, Baggy:D \b --> Bool:D) {
+multi sub infix:<eqv>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a.ACCEPTS($b))
     )
 }
 

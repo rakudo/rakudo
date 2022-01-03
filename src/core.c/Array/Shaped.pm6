@@ -241,7 +241,10 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
               nqp::atposnd($!list,$!indices),
               nqp::bindposnd($!list,$!indices,
                 nqp::p6scalarfromdesc($!desc))
-            ) = nqp::atposnd($!from,$!indices)
+            ) = nqp::ifnull(
+                  nqp::atposnd($!from,$!indices),
+                  nqp::p6scalarfromdesc($!desc)
+                )
         }
     }
     sub MEMCPY(Mu \to, Mu \from) { MemCopy.new(to,from).sink-all }
@@ -410,9 +413,9 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
             )
         }
     }
-    multi method STORE(::?CLASS:D: Iterator:D \iterator, :$INITIALIZE) {
+    multi method STORE(::?CLASS:D: Iterator:D $iterator, :$INITIALIZE) {
         self!RE-INITIALIZE unless $INITIALIZE;
-        StoreIterator.new(self,iterator).sink-all;
+        StoreIterator.new(self,$iterator).sink-all;
         self
     }
 

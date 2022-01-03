@@ -118,10 +118,10 @@ my class DateTime does Dateish {
         nqp::join('',$parts)
     }
 
-#?if moar
+#?if !js
     my constant $valid-units = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $valid-units := nqp::hash(
 #?endif
       'second',  0,
@@ -141,23 +141,23 @@ my class DateTime does Dateish {
     );
 
     method !SET-SELF(
-        int \year,
-        int \month,
-        int \day,
-        int \hour,
-        int \minute,
-            \second,
-        int \timezone,
+        int $year,
+        int $month,
+        int $day,
+        int $hour,
+        int $minute,
+            $second,
+        int $timezone,
             &formatter
     --> DateTime:D) {
-        nqp::bindattr_i(self,DateTime,'$!year',year);
-        nqp::bindattr_i(self,DateTime,'$!month',month);
-        nqp::bindattr_i(self,DateTime,'$!day',day);
-        nqp::bindattr_i(self,DateTime,'$!hour',hour);
-        nqp::bindattr_i(self,DateTime,'$!minute',minute);
-        nqp::bindattr(  self,DateTime,'$!second',second);
+        nqp::bindattr_i(self,DateTime,'$!year',$year);
+        nqp::bindattr_i(self,DateTime,'$!month',$month);
+        nqp::bindattr_i(self,DateTime,'$!day',$day);
+        nqp::bindattr_i(self,DateTime,'$!hour',$hour);
+        nqp::bindattr_i(self,DateTime,'$!minute',$minute);
+        nqp::bindattr(  self,DateTime,'$!second',$second);
         nqp::bindattr(  self,DateTime,'&!formatter',&formatter);
-        nqp::bindattr_i(self,DateTime,'$!timezone',timezone);
+        nqp::bindattr_i(self,DateTime,'$!timezone',$timezone);
         self
     }
 
@@ -224,9 +224,9 @@ my class DateTime does Dateish {
 
     proto method new(|) {*}
     multi method new(DateTime:
-      \y,\mo,\d,\h,\mi,\s,:$timezone = 0,:&formatter,*%_
+      $y,$mo,$d,$h,$mi,$s,:$timezone = 0,:&formatter,*%_
     --> DateTime:D) {
-        self!new-from-positional(y,mo,d,h,mi,s,$timezone,&formatter,%_)
+        self!new-from-positional($y,$mo,$d,$h,$mi,$s,$timezone,&formatter,%_)
     }
     multi method new(DateTime:
       :$year!,
@@ -392,6 +392,10 @@ my class DateTime does Dateish {
         )
     }
 
+    method Numeric(DateTime:D: --> Instant:D) {
+        self.Instant
+    }
+
     method Instant(DateTime:D: --> Instant:D) {
         Instant.from-posix: self.posix + $!second % 1, $!second >= 60;
     }
@@ -414,9 +418,13 @@ my class DateTime does Dateish {
         self.modified-julian-date + 2_400_000.5
     }
 
-    method posix(DateTime:D: $ignore-timezone? --> Int:D) {
-        return self.utc.posix if $!timezone && !$ignore-timezone;
-
+    proto method posix(|) {*}
+    multi method posix(DateTime:D: $ignore-timezone --> Real:D) {
+        $ignore-timezone
+          ?? (self.posix + $!timezone)
+          !! self.posix
+    }
+    multi method posix(DateTime:D: --> Real:D) {
         # algorithm from Claus Tøndering
         my int $a = (14 - $!month) div 12;
         my int $y = $!year + 4800 - $a;
@@ -426,6 +434,7 @@ my class DateTime does Dateish {
         ($jd - 2440588) * 86400
           + $!hour      * 3600
           + $!minute    * 60
+          - $!timezone
           + self.whole-second
     }
 
@@ -438,13 +447,13 @@ my class DateTime does Dateish {
     }
 
     # workhorse method of moving a DateTime
-    method move-by-unit(str $unit, \amount) is implementation-detail {
+    method move-by-unit(str $unit, $moving) is implementation-detail {
 
         # work on instant (tai)
-        return self.new(self.Instant + amount, :$!timezone, :&!formatter)
+        return self.new(self.Instant + $moving, :$!timezone, :&!formatter)
           if nqp::eqat($unit,'second',0);
 
-        my int $amount = amount.Int;
+        my int $amount = $moving.Int;
 
         # on a leap second and not moving by second
         if $!second >= 60 {
@@ -594,41 +603,53 @@ my class DateTime does Dateish {
     }
 }
 
-multi sub infix:«<»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant < b.Instant
+multi sub infix:«<»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant < $b.Instant
 }
-multi sub infix:«>»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant > b.Instant
+multi sub infix:«>»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant > $b.Instant
 }
-multi sub infix:«<=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant <= b.Instant
+multi sub infix:«<=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant <= $b.Instant
 }
-multi sub infix:«>=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant >= b.Instant
+multi sub infix:«>=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant >= $b.Instant
 }
-multi sub infix:«==»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant == b.Instant
+multi sub infix:«==»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant == $b.Instant
 }
-multi sub infix:«!=»(DateTime:D \a, DateTime:D \b --> Bool:D) {
-    a.Instant != b.Instant
+multi sub infix:«!=»(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    $a.Instant != $b.Instant
 }
-multi sub infix:«<=>»(DateTime:D \a, DateTime:D \b) {
-    a.Instant <=> b.Instant
+multi sub infix:«<=>»(DateTime:D $a, DateTime:D $b) {
+    $a.Instant <=> $b.Instant
 }
-multi sub infix:«cmp»(DateTime:D \a, DateTime:D \b) {
-    a.Instant cmp b.Instant
+multi sub infix:«cmp»(DateTime:D $a, DateTime:D $b) {
+    $a.Instant cmp $b.Instant
 }
-multi sub infix:<->(DateTime:D \a, DateTime:D \b --> Duration:D) {
-    a.Instant - b.Instant
+multi sub infix:<->(DateTime:D $a, Instant:D $b --> Duration:D) {
+    $a.Instant - $b
 }
-multi sub infix:<->(DateTime:D \a, Duration:D \b --> DateTime:D) {
-    a.new(a.Instant - b).in-timezone(a.timezone)
+multi sub infix:<->(Instant:D $a, DateTime:D $b --> Duration:D) {
+    $a - $b.Instant
 }
-multi sub infix:<+>(DateTime:D \a, Duration:D \b --> DateTime:D) {
-    a.new(a.Instant + b).in-timezone(a.timezone)
+multi sub infix:<->(DateTime:D $a, DateTime:D $b --> Duration:D) {
+    $a.Instant - $b.Instant
 }
-multi sub infix:<+>(Duration:D \a, DateTime:D \b --> DateTime:D) {
-    b.new(b.Instant + a).in-timezone(b.timezone)
+multi sub infix:<->(DateTime:D $a, Duration:D $b --> DateTime:D) {
+    $a.new($a.Instant - $b).in-timezone($a.timezone)
+}
+multi sub infix:<+>(DateTime:D $a, Duration:D $b --> DateTime:D) {
+    $a.new($a.Instant + $b).in-timezone($a.timezone)
+}
+multi sub infix:<+>(Duration:D $a, DateTime:D $b --> DateTime:D) {
+    $b.new($b.Instant + $a).in-timezone($b.timezone)
+}
+multi sub infix:<eqv>(DateTime:D $a, DateTime:D $b --> Bool:D) {
+    nqp::hllbool(
+          nqp::eqaddr(nqp::decont($a),nqp::decont($b))
+      || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a == $b)
+    )
 }
 
 # vim: expandtab shiftwidth=4

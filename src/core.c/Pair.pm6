@@ -4,10 +4,10 @@ my class Pair does Associative {
     has ObjAt $!WHICH;
 
     proto method new(|) {*}
-    # This candidate is needed because it currently JITS better
-    multi method new(Pair: Cool:D \key, Mu \value) {
+    # This candidate is needed because it currently JITs better
+    multi method new(Pair: Str:D $key, Mu \value) {
         my \p := nqp::p6bindattrinvres(
-          nqp::create(self),Pair,'$!key',nqp::decont(key));
+          nqp::create(self),Pair,'$!key',$key);
         nqp::bindattr(p,Pair,'$!value',value);
         p
     }
@@ -54,7 +54,7 @@ my class Pair does Associative {
         $!value.ACCEPTS(%h.AT-KEY($!key));
     }
     multi method ACCEPTS(Pair:D: Pair:D $p) {
-        $!value.ACCEPTS(nqp::getattr(nqp::decont($p),Pair,'$!value'));
+        $!value.ACCEPTS(nqp::getattr($p,Pair,'$!value'));
     }
     multi method ACCEPTS(Pair:D: Mu $other) {
         nqp::can($other,(my $method := $!key.Str))
@@ -105,25 +105,25 @@ my class Pair does Associative {
 
     proto sub allowed-as-bare-key(|) {*}
     multi sub allowed-as-bare-key(Mu \key --> False) { }
-    multi sub allowed-as-bare-key(Str:D \key) {
+    multi sub allowed-as-bare-key(Str:D $key) {
         my int $i;
         my int $pos;
 
-        while $i < nqp::chars(key) {
+        while $i < nqp::chars($key) {
             return False                            # starts with numeric
-              if nqp::iscclass(nqp::const::CCLASS_NUMERIC,key,$i);
+              if nqp::iscclass(nqp::const::CCLASS_NUMERIC,$key,$i);
 
             $pos = nqp::findnotcclass(
-              nqp::const::CCLASS_WORD,key,$i,nqp::chars(key)
+              nqp::const::CCLASS_WORD,$key,$i,nqp::chars($key)
             );
 
-            if $pos == nqp::chars(key) {
+            if $pos == nqp::chars($key) {
                 return True;                        # reached end ok
             }
-            elsif nqp::eqat(key,'-',$pos) || nqp::eqat(key,"'",$pos) {
+            elsif nqp::eqat($key,'-',$pos) || nqp::eqat($key,"'",$pos) {
                 return False
                   if $pos == $i                     # - or ' at start
-                  || $pos == nqp::chars(key) - 1;   # - or ' at end
+                  || $pos == nqp::chars($key) - 1;  # - or ' at end
             }
             else {
                 return False;                       # not a word char
@@ -188,18 +188,18 @@ my class Pair does Associative {
     }
 }
 
-multi sub infix:<eqv>(Pair:D \a, Pair:D \b --> Bool:D) {
+multi sub infix:<eqv>(Pair:D $a, Pair:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT)
-             && a.key   eqv b.key
-             && a.value eqv b.value)
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT)
+             && $a.key   eqv $b.key
+             && $a.value eqv $b.value)
     )
 }
 
-multi sub infix:<cmp>(Pair:D \a, Pair:D \b) {
-    nqp::eqaddr((my $cmp := a.key cmp b.key),Order::Same)
-      ?? (a.value cmp b.value)
+multi sub infix:<cmp>(Pair:D $a, Pair:D $b) {
+    nqp::eqaddr((my $cmp := $a.key cmp $b.key),Order::Same)
+      ?? ($a.value cmp $b.value)
       !! $cmp
 }
 

@@ -7,6 +7,10 @@ use Test;
 
 plan 7;
 
+BEGIN if $*VM.name eq 'jvm' {
+    plan :skip-all<NullPointerException in sub _deref>;
+};
+
 compile_test_lib('07-writebarrier');
 
 class IntPtr is repr('CPointer') {

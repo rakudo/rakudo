@@ -1,9 +1,7 @@
 # Implementations shared between HyperSeq and RaceSeq.
 class Rakudo::Internals::HyperRaceSharedImpl {
     my class Grep does Rakudo::Internals::HyperProcessor {
-        has $!matcher;
-
-        submethod TWEAK(:$!matcher) {}
+        has $!matcher is built;
 
         method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
             my $items := $batch.items;
@@ -51,9 +49,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
     }
 
     my class Map does Rakudo::Internals::HyperProcessor {
-        has &!mapper;
-
-        submethod TWEAK(:&!mapper) {}
+        has &!mapper is built;
 
         method process-batch(Rakudo::Internals::HyperWorkBatch $batch --> Nil) {
             my $result := nqp::create(IterationBuffer);

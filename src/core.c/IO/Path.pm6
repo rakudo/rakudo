@@ -7,7 +7,7 @@ my class IO::Path is Cool does IO {
     has $!parts;          # IO::Path::Parts object, if any
 
     constant empty-path-message = "Must specify a non-empty string as a path";
-    
+
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
@@ -377,9 +377,9 @@ my class IO::Path is Cool does IO {
           $!SPEC.join('', $!path, child.Str)
     }
 
-    method add (IO::Path:D: \child) {
+    method add (IO::Path:D: *@children) {
         nqp::clone(self).cloned-with-path:
-          $!SPEC.join('', $!path, child.Str)
+          $!SPEC.join: '', $!path, @children.join($!SPEC.dir-sep)
     }
 
     proto method chdir(|) {*}
@@ -636,16 +636,17 @@ my class IO::Path is Cool does IO {
     }
 
     # spurt data to given path and file mode
-    sub spurt-blob(str $path, str $mode, Blob:D \data --> True) {
+    sub spurt-blob(str $path, str $mode, Blob:D \data) {
         CATCH { .fail }
 
         my $PIO := nqp::open($path,$mode);
         nqp::writefh($PIO,nqp::decont(data));
-        nqp::closefh($PIO)
+        nqp::closefh($PIO);
+        True
     }
 
     # spurt text to given path and file mode with given encoding
-    sub spurt-string(str $path, str $mode, str $text, $encoding --> True) {
+    sub spurt-string(str $path, str $mode, str $text, $encoding) {
         my $blob := nqp::encode(
           $text,
           (my str $enc = Rakudo::Internals.NORMALIZE_ENCODING($encoding)),

@@ -416,10 +416,6 @@ augment class Cool {
     proto method univals(*%) is pure {*}
     multi method univals(Cool:D:) { self.Str.univals }
 
-    method uniprop-int(|c)  { uniprop-int(self, |c) }
-    method uniprop-bool(|c) { uniprop-bool(self, |c) }
-    method uniprop-str(|c)  { uniprop-str(self, |c) }
-
     proto method NFC(*%) {*}
     multi method NFC(Cool:D:) { self.Str.NFC }
 

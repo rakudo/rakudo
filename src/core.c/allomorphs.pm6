@@ -369,7 +369,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
                 $pos    = $p;
 
                 $frac  := nqp::atpos($parse, 0);
-                $base  := nqp::atpos($parse, 1);
+                $base  := nqp::pow_I(nqp::box_i($radix, Int), nqp::atpos($parse, 1), Num, Int);
                 $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
             }
 

@@ -8347,6 +8347,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
             make $*W.add_numeric_constant: $/, 'Num', nqp::numify($/);
         } else { # wants a Rat
             my $Int := $*W.find_single_symbol('Int');
+            my $Num := $*W.find_single_symbol('Num');
             my $parti;
             my $partf;
 
@@ -8360,10 +8361,11 @@ class Perl6::Actions is HLL::Actions does STDActions {
             if nqp::chars($<frac>) {
                 $partf := nqp::radix_I(10, $<frac>.Str, 0, 4, $Int);
 
-                $parti := nqp::mul_I($parti, $partf[1], $Int);
+                my $base := nqp::pow_I(nqp::box_i(10, $Int), $partf[1], $Num, $Int);
+                $parti := nqp::mul_I($parti, $base, $Int);
                 $parti := nqp::add_I($parti, $partf[0], $Int);
 
-                $partf := $partf[1];
+                $partf := $base;
             } else {
                 $partf := nqp::box_i(1, $Int);
             }
@@ -8386,6 +8388,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $*W.add_numeric_constant($/, 'Int', $radix), $<circumfix>.ast);
         } else { # the "string literal" case
             my $Int := $*W.find_single_symbol('Int');
+            my $Num := $*W.find_single_symbol('Num');
 
             $*W.throw($/, 'X::Syntax::Number::RadixOutOfRange', :$radix) unless (2 <= $radix) && ($radix <= 36);
 
@@ -8429,9 +8432,10 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 );
             }
 
-            $ipart := nqp::mul_I($ipart[0], $fpart[1], $Int);
+            my $base := nqp::pow_I(nqp::box_i($radix, $Int), $fpart[1], $Num, $Int);
+            $ipart := nqp::mul_I($ipart[0], $base, $Int);
             $ipart := nqp::add_I($ipart, $fpart[0], $Int);
-            $fpart := $fpart[1];
+            $fpart := $base;
 
             my $scientific := nqp::pow_n($bpart, $epart);
             $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);

@@ -4085,8 +4085,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<%>    { <sym>  <O(|%multiplicative)> }
     token infix:sym<mod>  { <sym> >> <O(|%multiplicative)> }
     token infix:sym<%%>   { <sym>  <O(|%multiplicative, :iffy(1))> }
-    token infix:sym<+&>   { <sym>  <O(|%multiplicative, :iffy(1))> }
-    token infix:sym<~&>   { <sym>  <O(|%multiplicative, :iffy(1))> }
+    token infix:sym<+&>   { <sym>  <O(|%multiplicative)> }
+    token infix:sym<~&>   { <sym>  <O(|%multiplicative)> }
     token infix:sym<?&>   { <sym>  <O(|%multiplicative, :iffy(1))> }
     token infix:sym«+<»   { <sym> [ <!{ $*IN_META }> || <?before '<<'> || <![<]> ] <O(|%multiplicative)> }
     token infix:sym«+>»   { <sym> [ <!{ $*IN_META }> || <?before '>>'> || <![>]> ] <O(|%multiplicative)> }

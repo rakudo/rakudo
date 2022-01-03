@@ -628,10 +628,6 @@ proto sub uniparse($, *%) {*}
 proto sub uniprop($, $?, *%)  is pure {*}
 proto sub uniprops($, $?, *%) is pure {*}
 
-proto sub uniprop-bool($, $, *%) is pure {*}
-proto sub uniprop-int($, $, *%)  is pure {*}
-proto sub uniprop-str($, $, *%)  is pure {*}
-
 proto sub unival($, *%)  is pure {*}
 proto sub univals($, *%) is pure {*}
 #-------------------------------------------------------------------------------
@@ -663,44 +659,6 @@ multi sub uniprops(\what, Str:D $propname) { what.uniprops($propname) }
 
 multi sub unival(\what) { what.unival }
 multi sub univals(\what) { what.univals }
-
-#?if jvm
-multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
-multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
-multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
-#?endif
-
-#?if js
-multi sub uniprop-int(|)  { die 'uniprop-int NYI on js backend' }
-multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
-multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_str($code,nqp::unipropcode($propname));
-}
-#?endif
-
-#?if moar
-
-# Unicode functions
-multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-int($str.ord, $propname) !! Nil }
-multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_int($code,nqp::unipropcode($propname));
-}
-
-multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-bool($str.ord, $propname) !! Nil
-}
-multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
-    nqp::hllbool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
-}
-
-multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-str($str.ord, $propname) !! Nil
-}
-multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_str($code,nqp::unipropcode($propname));
-}
-#?endif
 
 #?if !jvm
 multi sub infix:<unicmp>(Str:D $a, Str:D $b) {

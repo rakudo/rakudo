@@ -3,6 +3,8 @@ my class NFD is repr('VMArray') is array_type(uint32) { ... }
 my class NFKC is repr('VMArray') is array_type(uint32) { ... }
 my class NFKD is repr('VMArray') is array_type(uint32) { ... }
 
+my class X::InvalidCodepoint { ... }
+
 my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_type(uint32) {
 
     multi method new(Uni:) { nqp::create(self) }
@@ -10,11 +12,15 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         @codes.elems;  # reify and test for lazy sequences
         my $uni        := nqp::create(self);
         my $codepoints := nqp::getattr(@codes,List,'$!reified');
+        my $code;
 
         nqp::while(
           nqp::elems($codepoints),
-          nqp::push_i($uni,nqp::shift($codepoints))
-        );
+          nqp::if(nqp::isgt_i($code = nqp::shift($codepoints), 0x10ffff)
+                  || (nqp::isle_i(0xd800, $code) && nqp::isle_i($code, 0xdfff))
+                  || nqp::islt_i($code, 0),
+            X::InvalidCodepoint.new(:$code).throw,
+            nqp::push_i($uni,$code)));
 
         $uni
     }

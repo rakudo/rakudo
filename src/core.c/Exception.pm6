@@ -3382,6 +3382,15 @@ my class X::CompUnit::UnsatisfiedDependency is Exception {
     }
 }
 
+my class X::InvalidCodepoint is Exception {
+    has $.code;
+    method message() {
+        $.code > 0x10ffff
+        ?? "Invalid codepoint $.code; must not exceed 0x10ffff (1114111)"
+        !! "Invalid surrogate codepoint $.code"
+    }
+}
+
 my class Exceptions::JSON {
     method process($ex) {
         $*ERR.print: Rakudo::Internals::JSON.to-json($ex);

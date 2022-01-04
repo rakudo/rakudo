@@ -6,18 +6,24 @@ my class IO::Path is Cool does IO {
     has $!os-path;        # the absolute path associated with path/SPEC/CWD
     has $!parts;          # IO::Path::Parts object, if any
 
-    constant empty-path-message = "Must specify a non-empty string as a path";
+    sub empty-path-message() is hidden-from-backtrace {
+        die "Must specify a non-empty string as a path"
+    }
+    sub null-in-path() is hidden-from-backtrace {
+        X::IO::Null.new.throw
+    }
 
     multi method ACCEPTS(IO::Path:D: Cool:D \other) {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
-    method !SET-SELF(str $path, IO::Spec $SPEC, Str:D $CWD) {
-        die empty-path-message unless nqp::chars($path);
+    method !SET-SELF(str $path, IO::Spec $SPEC, $CWD) {
+        empty-path-message
+          unless nqp::chars($path);
 
-        X::IO::Null.new.throw
-          if nqp::isne_i(nqp::index($path, "\0"), -1)
-          || nqp::isne_i(nqp::index($CWD,  "\0"), -1);
+        null-in-path
+          if nqp::isne_i(nqp::index($path,"\0"),-1)
+          || nqp::isne_i(nqp::index($CWD, "\0"),-1);
 
         $!path := $path;
         $!SPEC := $SPEC;
@@ -54,9 +60,7 @@ my class IO::Path is Cool does IO {
         nqp::create(self)!SET-SELF(
           $SPEC.join($volume,$dirname,$basename), $SPEC, $CWD.Str)
     }
-    multi method new(IO::Path:) {
-        die empty-path-message;
-    }
+    multi method new(IO::Path:) { empty-path-message }
 
     method is-absolute(--> Bool:D) {
         nqp::ifnull(

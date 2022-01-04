@@ -16,7 +16,9 @@ multi sub circumfix:<[ ]>(Iterable:D \iterable) {
     )
 }
 multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
-    Rakudo::Internals.Array-with-one-elem(Mu, x)
+    nqp::eqaddr(nqp::decont(x),Nil)
+      ?? Array.new
+      !! Rakudo::Internals.Array-with-one-elem(Mu, x)
 }
 
 proto sub pop($, *%) {*}

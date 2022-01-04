@@ -3357,7 +3357,7 @@ class Rakudo::Iterator {
         }
         method new(\arr, Mu \des) { nqp::create(self)!SET-SELF(arr, des) }
 
-        method !hole(int $i) is raw {
+        method hole(int $i) is raw is implementation-detail {
             nqp::p6scalarfromdesc(ContainerDescriptor::BindArrayPos.new(
                 $!descriptor, $!reified, $i))
         }
@@ -3366,7 +3366,7 @@ class Rakudo::Iterator {
               nqp::atpos($!reified,$!i = nqp::add_i($!i,1)),
               nqp::if(
                 nqp::islt_i($!i,nqp::elems($!reified)), # found a hole
-                self!hole($!i),
+                self.hole($!i),
                 IterationEnd
               )
             )
@@ -3380,7 +3380,7 @@ class Rakudo::Iterator {
               ($todo = nqp::sub_i($todo,1))
                 && nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               target.push(
-                nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
+                nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
               )
             );
 
@@ -3396,7 +3396,7 @@ class Rakudo::Iterator {
             nqp::while(   # doesn't sink
               nqp::islt_i($i = nqp::add_i($i,1),$elems),
               target.push(
-                nqp::ifnull(nqp::atpos($!reified,$i),self!hole($i))
+                nqp::ifnull(nqp::atpos($!reified,$i),self.hole($i))
               )
             );
             $!i = $i;
@@ -3532,7 +3532,7 @@ class Rakudo::Iterator {
         }
         method new(\list, Mu \des) { nqp::create(self)!SET-SELF(list, des) }
 
-        method !hole(int $i) is raw {
+        method hole(int $i) is raw is implementation-detail {
             nqp::isnull($!descriptor)
               ?? Nil
               !! nqp::p6scalarfromdesc(
@@ -3544,7 +3544,7 @@ class Rakudo::Iterator {
 
         method pull-one() is raw {
             nqp::isge_i(($!i = nqp::sub_i($!i,1)),0)
-              ?? nqp::ifnull(nqp::atpos($!reified,$!i),self!hole($!i))
+              ?? nqp::ifnull(nqp::atpos($!reified,$!i),self.hole($!i))
               !! IterationEnd
         }
         method push-all(\target --> IterationEnd) {
@@ -3552,7 +3552,7 @@ class Rakudo::Iterator {
             my int $i    = $!i;
             nqp::while(  # doesn't sink
               nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-              target.push(nqp::ifnull(nqp::atpos($reified,$i),self!hole($i)))
+              target.push(nqp::ifnull(nqp::atpos($reified,$i),self.hole($i)))
             );
             $!i = $i;
         }
@@ -3598,7 +3598,7 @@ class Rakudo::Iterator {
             nqp::create(self)!SET-SELF(rotate, list, des)
         }
 
-        method !hole(int $i) is raw {
+        method hole(int $i) is raw is implementation-detail {
             nqp::isnull($!descriptor)
               ?? Nil
               !! nqp::p6scalarfromdesc(
@@ -3615,7 +3615,7 @@ class Rakudo::Iterator {
                      $!reified,
                      ($!i = nqp::mod_i(nqp::add_i($!i,1),nqp::elems($!reified)))
                    ),
-                   self!hole($!i)
+                   self.hole($!i)
                  )
               !! IterationEnd
         }
@@ -3633,7 +3633,7 @@ class Rakudo::Iterator {
                     $reified,
                     ($i = nqp::mod_i(nqp::add_i($i,1),$elems))
                   ),
-                  self!hole($i)
+                  self.hole($i)
                 )
               )
             );

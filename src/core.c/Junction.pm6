@@ -177,6 +177,9 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Junction:U: Junction:D --> True) { }
+    multi method ACCEPTS(Junction:D \SELF: Junction:D \topic) {
+        topic.BOOLIFY-ACCEPTS(self)
+    }
     multi method ACCEPTS(Junction:D: Mu \topic) {
         nqp::hllbool(
           nqp::stmts(
@@ -391,6 +394,70 @@ my class Junction { # declared in BOOTSTRAP
 
         # If we get here, wasn't actually anything to autothread.
         call(|args);
+    }
+
+    # BOOLIFY-ACCEPTS is kind of a reverse to ACCEPTS combined with short-circuitting THREAD. The idea is to optimize
+    # smartmatches  where a junction is on LHS and RHS ACCEPTS would auto-thread over it. In this case, instead of doing
+    # RHS.ACCEPTS(LHS).Bool, which is what smartmatches are all about, we can reverse the invocation by doing
+    # LHS.BOOLIFY-ACCEPTS(RHS). This wold invoke RHS.ACCEPTS.Bool only on particular eigenstates of LHS. Then, as soon
+    # as the outcome of the whole smartmatch is known, the remaining N eigenstates can be skipped, sparing at least N*2
+    # method invocations. Note that this can only be used with classes using the default ACCEPTS method from the core as
+    # only with it we can guarantee the default handling of junctions.
+    proto method BOOLIFY-ACCEPTS(|) is implementation-detail {*}
+    multi method BOOLIFY-ACCEPTS(Junction:U --> True) {}
+    multi method BOOLIFY-ACCEPTS(Mu \matcher) {
+        nqp::hllbool(
+          nqp::stmts(
+            (my int $elems = nqp::elems($!eigenstates)),
+            (my int $i),
+            nqp::if(
+              nqp::iseq_s($!type,'any'),
+              nqp::stmts(
+                nqp::while(
+                  nqp::islt_i($i,$elems)
+                    && matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).not,
+                  ($i = nqp::add_i($i,1))
+                ),
+                nqp::islt_i($i,$elems)
+              ),
+              nqp::if(
+                nqp::iseq_s($!type,'all'),
+                nqp::stmts(
+                  nqp::while(
+                    nqp::islt_i($i,$elems)
+                      && matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).Bool,
+                    ($i = nqp::add_i($i,1))
+                  ),
+                  nqp::iseq_i($i,$elems)
+                ),
+                nqp::if(
+                  nqp::iseq_s($!type,'none'),
+                  nqp::stmts(
+                    nqp::while(
+                      nqp::islt_i($i,$elems)
+                        && matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).not,
+                      ($i = nqp::add_i($i,1))
+                    ),
+                    nqp::iseq_i($i,$elems)
+                  ),
+                  nqp::stmts(    # $!type eq 'one'
+                    (my int $seen = 0),
+                    ($i = nqp::sub_i($i,1)),  # increment in condition
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::isle_i($seen,1),
+                      nqp::if(
+                        matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).Bool,
+                        ($seen = nqp::add_i($seen,1))
+                      )
+                    ),
+                    nqp::iseq_i($seen,1)
+                  )
+                )
+              )
+            )
+          )
+        )
     }
 }
 

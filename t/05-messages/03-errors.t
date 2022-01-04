@@ -22,6 +22,7 @@ throws-like ｢'x'.substr: /x/, 'x'｣, Exception,
             'using substr instead of subst';
 
 # https://github.com/Raku/old-issue-tracker/issues/6672
+todo 'no location of error, yet', 1 if $*VM.name eq 'jvm';
 throws-like ｢sprintf "%d", class Foo {}.new｣,
     X::Str::Sprintf::Directives::BadType, :gist(/«line\s+\d+$$/),
 'errors from sprintf include location of error';
@@ -153,7 +154,7 @@ subtest 'numeric backslash errors do not get accompanied by confusing others' =>
     plan 3;
     my &err = {.contains: 'backslash sequence' & none 'quantifies nothing' }
     is-run ｢"a" ~~ /(a)\1+$/｣, :&err, :exitcode, 'regex';
-    is-run ｢"\1"｣,             :&err, :exitcode, 'qouble quotes';
+    is-run ｢"\1"｣,             :&err, :exitcode, 'double quotes';
     is-run ｢Q:qq:cc/\1/｣,      :&err, :exitcode, ':qq:cc quoter';
 }
 

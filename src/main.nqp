@@ -54,7 +54,18 @@ sub MAIN(@ARGS) {
 sub MAIN(*@ARGS) {
 #?endif
     # Enter the compiler.
-    $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
+    my %defaults;
+    if nqp::existskey(nqp::getenvhash, 'RAKUDO_OPT') {
+        my @env-args := nqp::split(" ", nqp::getenvhash<RAKUDO_OPT>);
+        my $p := HLL::CommandLine::Parser.new($comp.commandline_options);
+        $p.add-stopper('-e');
+        $p.stop-after-first-arg;
+        my $res := $p.parse(@env-args);
+        if $res {
+            %defaults := $res.options;
+        }
+    }
+    $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'), |%defaults);
 
     # do all the necessary actions at the end, if any
     if nqp::gethllsym('Raku', '&THE_END') -> $THE_END {

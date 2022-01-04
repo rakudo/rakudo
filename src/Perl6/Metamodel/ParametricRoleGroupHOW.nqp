@@ -30,7 +30,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     my $selector_creator;
@@ -46,6 +46,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
         $meta.set_pun_repr($meta, $repr) if $repr;
         $meta.set_boolification_mode($type_obj, 5);
         $meta.publish_boolification_spec($type_obj);
+        $meta.publish_type_cache($type_obj);
         self.add_stash($type_obj);
 
         # We use 6model parametrics to make this a parametric type on the
@@ -54,7 +55,9 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
             $type.HOW.'!produce_parameterization'($type, @packed);
         });
 
+#?if !moar
         $meta.compose_invocation($type_obj);
+#?endif
 
         $type_obj
     }
@@ -231,6 +234,14 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method !get_nonsignatured_candidate($obj) {
         return nqp::null unless +@!nonsignatured;
         @!nonsignatured[0]
+    }
+
+    method publish_type_cache($obj) {
+        # We can at least include ourself and the types a role pretends to be.
+        my @tc := nqp::clone(self.pretending_to_be());
+        nqp::push(@tc, $obj.WHAT);
+        nqp::settypecache($obj, @tc);
+        nqp::settypecheckmode($obj, 1);
     }
 }
 

@@ -215,19 +215,18 @@ sub prefix:<let>(Mu \cont) is raw {
 
 # this implements the ::() indirect lookup
 sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
-    nqp::if(
-      # Note that each part of @chunks itself can contain double colons.
-      # That's why joining and re-splitting is necessary
-      (my str $name = @chunks.join('::')),
-      nqp::stmts(
-        (my $parts := nqp::split('::',$name)),
-        (my str $first = nqp::shift($parts)),
-        nqp::if( # move the sigil to the last part of the name if available
-          nqp::elems($parts),
-          nqp::stmts(
-            (my str $sigil = nqp::substr($first,0,1)),
+
+    sub not-found($symbol = "") { Failure.new(X::NoSuchSymbol.new(:$symbol)) }
+
+    # Note that each part of @chunks itself can contain double colons.
+    # That's why joining and re-splitting is necessary
+    if @chunks.join('::') -> str $name is copy {
+        my $parts := nqp::split('::',$name);
+        my str $first = nqp::shift($parts);
+        if nqp::elems($parts) { # move the sigil to the last part of the name if available
+            my str $sigil = nqp::substr($first,0,1);
             nqp::if(
-              nqp::iseq_s($sigil,'$')
+                   nqp::iseq_s($sigil,'$')
                 || nqp::iseq_s($sigil,'@')
                 || nqp::iseq_s($sigil,'%')
                 || nqp::iseq_s($sigil,'&'),
@@ -235,7 +234,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
                 nqp::push($parts,nqp::concat($sigil,nqp::pop($parts))),
                 ($first = nqp::substr($first,1))
               )
-            ),
+            );
             nqp::unless(
               $first,
               nqp::stmts(
@@ -243,39 +242,35 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
                 ($name  = nqp::join("::",$parts)),
               )
             )
-          )
-        ),
-        (my Mu $thing := nqp::if(
-          $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
-            && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
-            && $REQUIRE_SYMBOLS.EXISTS-KEY($first),
-          $REQUIRE_SYMBOLS.AT-KEY($first),
-          nqp::if(
-            $root.EXISTS-KEY($first),
-            $root.AT-KEY($first),
-            nqp::if(
-              GLOBAL::.EXISTS-KEY($first),
-              GLOBAL::.AT-KEY($first),
-              nqp::if(
-                nqp::iseq_s($first,'GLOBAL'),
-                GLOBAL,
-                X::NoSuchSymbol.new(symbol => $name).fail
-              )
-            )
-          )
-        )),
+        }
+
+        my Mu $thing := $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
+          && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
+          && $REQUIRE_SYMBOLS.EXISTS-KEY($first)
+          ?? $REQUIRE_SYMBOLS.AT-KEY($first)
+          !! $root.EXISTS-KEY($first)
+            ?? $root.AT-KEY($first)
+            !! GLOBAL::.EXISTS-KEY($first)
+              ?? GLOBAL::.AT-KEY($first)
+              !! nqp::iseq_s($first,'GLOBAL')
+                ?? GLOBAL
+                !! not-found($name);
+
         nqp::while(
-          nqp::elems($parts),
-          nqp::if(
+          nqp::elems($parts)
+            && nqp::not_i(nqp::istype($thing,Failure)),
+          $thing := nqp::if(
             $thing.WHO.EXISTS-KEY(my $part := nqp::shift($parts)),
-            ($thing := $thing.WHO.AT-KEY($part)),
-            X::NoSuchSymbol.new(symbol => $name).fail
+            $thing.WHO.AT-KEY($part),
+            not-found($name)
           )
-        ),
+        );
+
         $thing
-      ),
-      Failure.new(X::NoSuchSymbol.new(symbol => ""))
-    )
+    }
+    else {
+        not-found
+    }
 }
 
 sub REQUIRE_IMPORT(
@@ -329,7 +324,7 @@ sub REQUIRE_IMPORT(
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
-    nqp::gethllsym('Raku','ModuleLoader').merge_globals(
+    try nqp::gethllsym('Raku','ModuleLoader').merge_globals(
         $merge-globals-target.AT-KEY($stubname).WHO,
         $GLOBALish,
     ) if $stubname;

@@ -10,6 +10,7 @@
 my class HyperSeq { ... }
 my class RaceSeq { ... }
 my class Rakudo::Internals::HyperIteratorBatcher { ... }
+my class Kernel { ... }
 my role Iterable {
     method iterator() { ... }
 
@@ -29,8 +30,8 @@ my role Iterable {
     }
 
     method hyper(
-      Int(Cool) :$batch = 64,
-      Int(Cool) :$degree = max(nqp::cpucores() - 1,1)
+      Int(Cool) :$batch  = 64,
+      Int(Cool) :$degree = Kernel.cpu-cores-but-one,
     ) {
 #?if !js
         HyperSeq.new:
@@ -45,8 +46,8 @@ my role Iterable {
     }
 
     method race(
-      Int(Cool) :$batch = 64,
-      Int(Cool) :$degree = max(nqp::cpucores() - 1,1)
+      Int(Cool) :$batch  = 64,
+      Int(Cool) :$degree = Kernel.cpu-cores-but-one,
     ) {
 #?if !js
         RaceSeq.new:
@@ -110,51 +111,31 @@ multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
         nqp::if(                                 # not same object
           nqp::eqaddr(a.WHAT,b.WHAT),
           nqp::if(                               # same type
-            nqp::istype(a, Positional),
-            nqp::if(                             # Positional
-              a.is-lazy,
-              nqp::if(                           # a lazy
-                b.is-lazy,
-                Any.throw-iterator-cannot-be-lazy('eqv','') # a && b lazy
-              ),
-              nqp::if(                           # a NOT lazy
-                b.is-lazy,
-                0,                               # b lazy
-                nqp::if(                         # a && b NOT lazy
-                  nqp::iseq_i((my int $elems = a.elems),b.elems),
-                  nqp::stmts(                    # same # elems
-                    (my int $i = -1),
-                    nqp::while(
-                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems) # not exhausted
-                        && a.AT-POS($i) eqv b.AT-POS($i),         # still same
-                      nqp::null
-                    ),
-                    nqp::iseq_i($i,$elems)       # exhausted = success!
-                  )
-                )
-              )
+            nqp::iseq_i(
+              nqp::istrue(my \ial := (my \ia := a.iterator).is-lazy),
+              nqp::istrue(           (my \ib := b.iterator).is-lazy)
             ),
-            nqp::if(                             # NOT Positional
-              nqp::iseq_i(
-                (my \ia := a.iterator).is-lazy,
-                (my \ib := b.iterator).is-lazy
-              ),
-              nqp::if(
-                ia.is-lazy,
-                Any.throw-iterator-cannot-be-lazy('eqv',''),
-                nqp::stmts(
-                  nqp::until(
-                    nqp::stmts(
-                      (my \pa := ia.pull-one),
-                      (my \pb := ib.pull-one),
-                      nqp::eqaddr(pa,IterationEnd)
-                        || nqp::eqaddr(pb,IterationEnd)
-                        || nqp::not_i(pa eqv pb)
-                    ),
-                    nqp::null
+            nqp::if(
+              ial,
+              Any.throw-iterator-cannot-be-lazy('eqv',''),
+              nqp::stmts(
+                nqp::if(
+                  nqp::istype(ia,PredictiveIterator)
+                    && nqp::istype(ib,PredictiveIterator)
+                    && nqp::isne_i(ia.count-only,ib.count-only),
+                  (return False)
+                ),
+                nqp::until(
+                  nqp::stmts(
+                    (my \pa := ia.pull-one),
+                    (my \pb := ib.pull-one),
+                    nqp::eqaddr(pa,IterationEnd)
+                      || nqp::eqaddr(pb,IterationEnd)
+                      || nqp::isfalse(pa eqv pb)
                   ),
-                  nqp::eqaddr(pa,pb)     # both IterationEnd = success!
-                )
+                  nqp::null
+                ),
+                nqp::eqaddr(pa,pb)     # both IterationEnd = success!
               )
             )
           )

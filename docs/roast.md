@@ -21,7 +21,7 @@ More details could be found in Rakudo Makefile itself.
 
 ### `tools/update-passing-test-data.pl`
 
-This is a verification tool to control what tests are not included into the 
+This is a verification tool to control what tests are not included into the
 roast `spectest.data` file and their status. It tries to run all test files
 which are not included into `spectest.data` and reports back the status of each
 run.

@@ -38,7 +38,7 @@ my class Rakudo::QuantHash {
             )
         }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
 
     our role Pairs does Iterator {
@@ -57,7 +57,7 @@ my class Rakudo::QuantHash {
               ?? nqp::create(self)!SET-SELF(elems, $todo)
               !! Rakudo::Iterator.Empty
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
 
     # Return the iterator state of a randomly selected entry in a

@@ -66,10 +66,10 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
         $release := $_ with $lookup<BuildVersion>;
         $auth    := 'Apple Inc.'; # presumably
 
-#?if moar
+#?if !js
         my constant $names = nqp::hash(
 #?endif
-#?if !moar
+#?if js
         my $names := nqp::hash(
 #?endif
           '10.0',  'Cheetah',
@@ -88,7 +88,8 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DISTRO', {
           '10.13', 'High Sierra',
           '10.14', 'Mojave',
           '10.15', 'Catalina',
-          '11.0',  'Big Sur'
+          '11.0',  'Big Sur',
+          '12.0',  'Monterey',
         );
 
         if nqp::atkey($names,$version.split(".").head(2).join(".")) -> $nick {

@@ -711,7 +711,7 @@ multi sub snap(Str:D $message --> Nil) {
     $snaps.push(T);
 }
 my $snapshot-idx = 1;
-multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
+multi sub snap(Str $message = "taking heap snapshot...", :$heap!) {
     my $filename =
         $heap eqv True
             ?? "heapsnapshot-$($*PID)-$($snapshot-idx++).mvmheap"
@@ -735,6 +735,8 @@ multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
     my \T2 := Telemetry.new;
     T2.message = $filename;
     $snaps.push(T2);
+
+    $filename
 }
 multi sub snap(@s --> Nil) {
     @s.push(Telemetry.new);

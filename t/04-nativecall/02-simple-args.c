@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 
 #ifdef _WIN32
 #define DLLEXPORT __declspec(dllexport)
@@ -40,6 +41,13 @@ DLLEXPORT int TakeADouble(double x)
     return 0;
 }
 
+DLLEXPORT int TakeADoubleNaN(double x)
+{
+    if (isnan(x))
+        return 4;
+    return 0;
+}
+
 DLLEXPORT int TakeAFloat(float x)
 {
     if (4.2 - x < 0.001)
@@ -47,9 +55,27 @@ DLLEXPORT int TakeAFloat(float x)
     return 0;
 }
 
+DLLEXPORT int TakeAFloatNaN(float x)
+{
+    if (isnan(x))
+        return 5;
+    return 0;
+}
+
 DLLEXPORT int TakeAString(char *pass_msg)
 {
     if (0 == strcmp(pass_msg, "ok 6 - passed a string"))
+        return 6;
+    return 0;
+}
+
+static int pass = 0;
+DLLEXPORT int TakeAStringThenNull(int64_t dummy, char *pass_msg)
+{
+    pass++;
+    if ((pass % 2 == 0) && pass_msg != NULL && 0 == strcmp(pass_msg, "ok 6 - passed a string"))
+        return 6;
+    if ((pass % 2 == 1) && pass_msg == NULL)
         return 6;
     return 0;
 }

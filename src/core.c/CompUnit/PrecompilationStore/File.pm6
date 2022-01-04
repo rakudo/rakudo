@@ -285,13 +285,36 @@ class CompUnit::PrecompilationStore::File
         $dest.add($precomp-id ~ $extension)
     }
 
+    # File renaming can easily race and fail on Windows. There's no great solution,
+    # so instead just try 10 times catching a failure (and returning out of the
+    # loop and sub if it succeeds).
+    my sub try-rename-n-times(&rename-block, $n is copy --> Bool:D) {
+        while $n-- {
+            &rename-block();
+            CATCH {
+                when X::IO::Rename {
+                    sleep 0.1;
+                    next;
+                }
+            }
+            return True;
+        }
+        return False;
+    }
+
     method store-file(
       CompUnit::PrecompilationId:D $compiler-id,
       CompUnit::PrecompilationId:D $precomp-id,
       IO::Path:D $path,
       Str:D :$extension = ''
     ) {
-        $path.rename(self!file($compiler-id, $precomp-id, :$extension));
+        my &rename-block = { $path.rename(self!file($compiler-id, $precomp-id, :$extension)); };
+        if Rakudo::Internals.IS-WIN {
+            # If the rename attempts don't succeed, we'll end up
+            # trying again one more time but not catching any failures.
+            return if try-rename-n-times(&rename-block, 10);
+        }
+        &rename-block();
     }
 
     method store-unit(
@@ -301,8 +324,16 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $precomp-file := self!file($compiler-id, $precomp-id, :extension<.tmp>);
         $unit.save-to($precomp-file);
-        $precomp-file.rename(self!file($compiler-id, $precomp-id));
-        self.remove-from-cache($precomp-id);
+        my &rename-block = {
+            $precomp-file.rename(self!file($compiler-id, $precomp-id));
+            self.remove-from-cache($precomp-id);
+        };
+        if Rakudo::Internals.IS-WIN {
+            # If the rename attempts don't succeed, we'll end up
+            # trying again one more time but not catching any failures.
+            return if try-rename-n-times(&rename-block, 10);
+        }
+        &rename-block();
     }
 
     method store-repo-id(
@@ -312,7 +343,13 @@ class CompUnit::PrecompilationStore::File
     ) {
         my $repo-id-file := self!file($compiler-id, $precomp-id, :extension<.repo-id.tmp>);
         $repo-id-file.spurt($repo-id);
-        $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>));
+        my &rename-block = { $repo-id-file.rename(self!file($compiler-id, $precomp-id, :extension<.repo-id>)); };
+        if Rakudo::Internals.IS-WIN {
+            # If the rename attempts don't succeed, we'll end up
+            # trying again one more time but not catching any failures.
+            return if try-rename-n-times(&rename-block, 10);
+        }
+        &rename-block();
     }
 
     method delete(

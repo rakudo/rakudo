@@ -1,6 +1,10 @@
 use nqp;
 unit module NativeCall::Types;
 
+role ExplicitlyManagedString {
+    has $.cstr is rw;
+}
+
 sub nativecast($target-type, $source) {
     nqp::nativecallcast(nqp::decont($target-type),
         nqp::decont(map_return_type($target-type)), nqp::decont($source));
@@ -28,8 +32,13 @@ our class Pointer                               is repr('CPointer') {
         nqp::box_i(nqp::unbox_i(nqp::decont($addr)), ::?CLASS)
     }
 
-    method Numeric(::?CLASS:D:) { self.Int }
-    method Int(::?CLASS:D:) {
+    proto method Numeric() {*}
+    multi method Numeric(::?CLASS:U: --> 0) { }
+    multi method Numeric(::?CLASS:D:) { self.Int }
+
+    proto method Int() {*}
+    multi method Int(::?CLASS:U: --> 0) { }
+    multi method Int(::?CLASS:D:) {
         nqp::p6box_i(nqp::unbox_i(self))
     }
 

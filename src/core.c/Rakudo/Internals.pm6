@@ -39,6 +39,23 @@ my class Rakudo::Internals {
         ))
     }
 
+    method Array-with-one-elem(Mu \type, Mu \value) {
+        my \array := (nqp::eqaddr(type,Mu) ?? Array !! Array[type]).new;
+        nqp::p6bindattrinvres(array,List,'$!reified',
+          nqp::stmts(
+            nqp::bindpos(
+              (my \reified := nqp::create(IterationBuffer)),
+              0,
+              nqp::p6scalarwithvalue(
+                nqp::getattr(array,Array,'$!descriptor'),
+                nqp::decont(value)
+              )
+            ),
+            reified
+          )
+        )
+    }
+
     # for use in nqp::splice
     my $empty := nqp::list;
 
@@ -210,19 +227,11 @@ my class Rakudo::Internals {
               nqp::iscont(cont),
               nqp::push(restore,nqp::decont(cont)),
               nqp::if(
-                nqp::istype(cont,Array),
-                nqp::push(restore,cont.clone),
-                nqp::if(
-                  nqp::istype(cont,Hash),
-                  nqp::push(restore,
-                    nqp::p6bindattrinvres(
-                      Hash.^parameterize(Mu,Mu).new,
-                      Hash, '$!descriptor',
-                      nqp::getattr(cont, Hash, '$!descriptor')).STORE: cont),
-                  nqp::stmts(
-                    nqp::pop(restore),  # lose the erroneously pushed value
-                    X::Localizer::NoContainer.new(:$localizer).throw
-                  )
+                nqp::can(cont,'TEMP-LET-LOCALIZE'),
+                nqp::push(restore,cont.TEMP-LET-LOCALIZE),
+                nqp::stmts(
+                  nqp::pop(restore),  # lose the erroneously pushed value
+                  X::Localizer::NoContainer.new(:$localizer).throw
                 )
               )
             )
@@ -284,10 +293,10 @@ my class Rakudo::Internals {
     }
     # Fast mapping for identicals
     ### If updating encodings here, also update src/core.c/Encoding/Registry.pm6
-#?if moar
+#?if !js
     my constant $encodings = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $encodings := nqp::hash(
 #?endif
       # utf8
@@ -409,7 +418,7 @@ my class Rakudo::Internals {
         )
     }
 
-    method TRANSPOSE(Str:D $string, Str:D $original, Str:D $final) {
+    method TRANSPOSE(str $string, str $original, str $final) {
         nqp::join($final,nqp::split($original,$string))
     }
     method TRANSPOSE-ONE(Str:D $string, Str:D $original, Str:D $final) {
@@ -427,7 +436,7 @@ my class Rakudo::Internals {
     my constant \SHAPE-STORAGE-ROOT := do {
         my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
         nqp::setdebugtypename($root, 'MultiDimArray root');
-        nqp::setparameterizer($root, -> $, $key {
+        Metamodel::Primitives.set_parameterizer($root, -> $, $key {
             # We "steal" the meta-object for the multi-dim storage.
             my $dims := $key.elems.pred;
             my $meta := $key.AT-POS(0);
@@ -494,8 +503,7 @@ my class Rakudo::Internals {
     our role ImplementationDetail {
         method new(|) { die self.gist }
         method gist(--> Str:D) {
-            "The '{self.^name}' class is a Rakudo-specific
-implementation detail and has no serviceable parts inside"
+            "The '{self.^name}' class is a Rakudo-specific implementation detail and has no serviceable parts inside"
         }
         method Str( --> Str:D) { self.gist }
         method raku(--> Str:D) { self.gist }
@@ -921,7 +929,6 @@ implementation detail and has no serviceable parts inside"
 #?if js
     my $daycounts := nqp::list_i(
 #?endif
-        0,
         #BEGIN leap-second-daycount
         41498,
         41682,
@@ -953,25 +960,14 @@ implementation detail and has no serviceable parts inside"
         #END leap-second-daycount
     );
 
-    # For some reason, putting a negative integer value into an
-    # nqp::list_i this early in the setting, causes a:
-    #
-    #   Cannot invoke this object (REPR: Null; VMNull)
-    #
-    # error *during* setting compilation.  So we put in that value
-    # at startup instead, which is sub-optimal, but at least it works.
-    nqp::bindpos_i($daycounts,0,-9223372036854775808);
-
     method daycount-leapseconds(int $daycount) {
         my int $i = nqp::elems($daycounts);
-        nqp::while(  # will always terminate because of element #0
-          nqp::islt_i(
-            $daycount,
-            nqp::atpos_i($daycounts,$i = nqp::sub_i($i,1))
-          ),
+        nqp::while(
+          nqp::isge_i(($i = nqp::sub_i($i,1)),0)
+            && nqp::islt_i($daycount,nqp::atpos_i($daycounts,$i)),
           nqp::null
         );
-        nqp::iseq_i($daycount,nqp::atpos_i($daycounts,$i))
+        nqp::isge_i($i,0) && nqp::iseq_i($daycount,nqp::atpos_i($daycounts,$i))
     }
 
     # our %leap-seconds =
@@ -1099,37 +1095,48 @@ implementation detail and has no serviceable parts inside"
 #nqp::print("running mainline\n");
 #method INITIALIZERS() { $initializers }
 
-    method REGISTER-DYNAMIC(Str:D \name, &code, Str $version = '6.c' --> Nil) {
-#nqp::say('Registering ' ~ name);
-        my str $with = nqp::concat($version, nqp::concat("\0", name));
+    method REGISTER-DYNAMIC(
+      str $name,
+      &code,
+      str $version = '6.c',
+      :$override
+    --> Nil) {
+#nqp::say("Registering $name");
+        $initializers := nqp::hash unless $initializers;
+        my str $with   = nqp::concat($version,nqp::concat("\0",$name));
 
         nqp::if(
-          nqp::existskey(
-            nqp::unless($initializers,$initializers := nqp::hash),
-            $with
+          $override,
+          nqp::stmts(
+            nqp::bindkey($initializers,$with,&code),
+            nqp::bindkey($initializers,$name,&code)
           ),
-          (die "Already have initializer for '{name}' ('$version')"),
-          nqp::bindkey($initializers,$with,&code)
-        );
-
-        nqp::unless(                                 # first come, first kept
-          nqp::existskey($initializers,nqp::unbox_s(name)),
-          nqp::bindkey($initializers,nqp::unbox_s(name),&code)
-        );
+          nqp::stmts(
+            nqp::if(
+              nqp::existskey($initializers,$with),
+              (die "Already have initializer for '$name' ('$version')"),
+              nqp::bindkey($initializers,$with,&code)
+            ),
+            nqp::unless(  # first come, first kept
+              nqp::existskey($initializers,$name),
+              nqp::bindkey($initializers,$name,&code)
+            )
+          )
+        )
     }
-    method INITIALIZE-DYNAMIC(str \name) is raw {
-#nqp::say('Initializing ' ~ name);
+    method INITIALIZE-DYNAMIC(str $name) is raw {
+#nqp::say("Initializing $name");
         nqp::ifnull(
           nqp::atkey(
             $initializers,
             nqp::concat(
               nqp::getcomp('Raku').language_version,
-              nqp::concat("\0",name)
+              nqp::concat("\0",$name)
             )
           ),
           nqp::ifnull(
-            nqp::atkey($initializers,name),
-            { Failure.new(X::Dynamic::NotFound.new(:name(name))) }
+            nqp::atkey($initializers,$name),
+            { Failure.new(X::Dynamic::NotFound.new(:$name)) }
           )
         )();
     }
@@ -1209,10 +1216,10 @@ implementation detail and has no serviceable parts inside"
           !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
     }
 
-#?if moar
+#?if !js
     my constant $clean-parts-nul = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $clean-parts-nul := nqp::hash(
 #?endif
       '..', 1, '.', 1, '', 1
@@ -1456,7 +1463,7 @@ implementation detail and has no serviceable parts inside"
         nqp::bitand_i(nqp::stat(abspath,nqp::const::STAT_PLATFORM_MODE),0o7777)
     }
 
-    method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {
+    method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception, str $format) {
         my $vmex := nqp::getattr(nqp::decont(exception), Exception, '$!ex');
         my \payload := nqp::getpayload($vmex);
         if nqp::elems(payload) == 1 {
@@ -1465,6 +1472,7 @@ implementation detail and has no serviceable parts inside"
                     type      => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'TYPE'),
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'DIRECTIVE'),
                     value     => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'VALUE'),
+                    format    => $format,
             }
             elsif nqp::existskey(payload, 'BAD_DIRECTIVE') {
                 X::Str::Sprintf::Directives::Unsupported.new:
@@ -1475,6 +1483,7 @@ implementation detail and has no serviceable parts inside"
                 X::Str::Sprintf::Directives::Count.new:
                     args-have => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_HAVE'),
                     args-used => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_USED'),
+                    format    => $format,
             }
             else { exception }
         }
@@ -1521,7 +1530,7 @@ implementation detail and has no serviceable parts inside"
         $i
     }
 
-    # next logical string frontend, hopefully inlineable (pos >= 0)
+    # next logical string frontend, hopefully inlinable (pos >= 0)
     method SUCC(str \string, int \pos) {
         my int $at = nqp::index($succ-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)
@@ -1572,7 +1581,7 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
-    # previous logical string frontend, hopefully inlineable
+    # previous logical string frontend, hopefully inlinable
     method PRED(str \string, int \pos) {
         my int $at = nqp::index($pred-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)

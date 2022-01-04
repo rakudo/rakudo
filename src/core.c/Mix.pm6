@@ -26,7 +26,7 @@ my class Mix does Mixy {
         )
     }
 
-    multi method DELETE-KEY(Mix:D: \k) {
+    multi method DELETE-KEY(Mix:D: $) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 

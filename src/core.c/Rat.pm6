@@ -79,8 +79,8 @@ sub DIVIDE_NUMBERS(
     )
 }
 
-# Initialize the $*RAT-UPGRADE-POLICY dynamic var so that it can be used
-PROCESS::<$RAT-UPGRADE-POLICY> = Num;
+# Initialize the $*RAT-OVERFLOW dynamic var so that it can be used
+PROCESS::<$RAT-OVERFLOW> = Num;
 
 # ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot
 # ever get a non-normalized Rational, if we start with a normalized Rational.
@@ -93,8 +93,7 @@ multi sub CREATE_RATIONAL_FROM_INTS(Int:D $nu, Int:D $de, Any, Any) is raw {
            nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$nu),
            Rat,'$!denominator',$de
          )
-      !! $*RAT-UPGRADE-POLICY.UPGRADE-RAT(nu, de)
-      !! nqp::p6box_n(nqp::div_In($nu,$de))  # downgrade to float
+      !! $*RAT-OVERFLOW.UPGRADE-RAT($nu, $de)
 }
 
 # already a FatRat, so keep that

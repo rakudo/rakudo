@@ -264,12 +264,12 @@ multi sub postfix:<ⁿ>(\a, \b)  { a ** b }
 
 ## relational operators
 
-proto sub infix:«<=>»($, $, *%) is pure {*}
-multi sub infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
-
 proto sub infix:<==>($?, $?, *%) is pure {*}
 multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
+
+# U+2A75 TWO CONSECUTIVE EQUALS SIGNS
+my constant &infix:<⩵> = &infix:<==>;
 
 proto sub infix:<=~=>($?, $?, *%) {*}  # note, can't be pure due to dynvar
 multi sub infix:<=~=>($?) { Bool::True }

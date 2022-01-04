@@ -276,7 +276,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, *%_) is raw {
         return Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS($lookup)
           .new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))
     }
-    
+
     # fast path
     SELF.iterator.push-all(my $buffer := nqp::create(IterationBuffer));
     $buffer.List

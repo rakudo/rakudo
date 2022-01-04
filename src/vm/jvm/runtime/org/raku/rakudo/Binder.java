@@ -86,8 +86,8 @@ public final class Binder {
         }
     }
 
-    private static String arityFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject params,
-            int numParams, int numPosArgs, boolean tooMany) {
+    private static String arityFail(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf,
+            SixModelObject params, int numParams, int numPosArgs, boolean tooMany) {
         int arity = 0;
         int count = 0;
         String fail = tooMany ? "Too many" : "Too few";
@@ -116,19 +116,23 @@ public final class Binder {
             }
         }
 
+        String routineName = cf.codeRef.name;
+        if (routineName == null || routineName.isEmpty())
+            routineName = "<anon>";
+
         /* Now generate decent error. */
         if (arity == count)
             return String.format(
-                "%s positionals passed; expected %d arguments but got %d",
-                fail, arity, numPosArgs);
+                "%s positionals passed to '%s'; expected %d arguments but got %d",
+                fail, routineName, arity, numPosArgs);
         else if (count <= -1)
             return String.format(
-                "%s positionals passed; expected at least %d arguments but got only %d",
-                fail, arity, numPosArgs);
+                "%s positionals passed to '%s'; expected at least %d arguments but got only %d",
+                fail, routineName, arity, numPosArgs);
         else
             return String.format(
-                "%s positionals passed; expected %d %s %d arguments but got %d",
-                fail, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
+                "%s positionals passed to '%s'; expected %d %s %d arguments but got %d",
+                fail, routineName, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
     }
 
     /* Binds any type captures. */
@@ -431,12 +435,27 @@ public final class Binder {
                  */
                 if (paramType != gcx.Mu && !(isSlurpyNamed && paramType == gcx.Associative) && Ops.istype_nd(decontValue, paramType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
+
+                    /* Try to figure out the most helpful name for the expected. */
+                    SixModelObject expectedType = null;
+                    SixModelObject postConstraints = param.get_attribute_boxed(tc, gcx.Parameter,
+                            "$!post_contraints", HINT_post_constraints);
+                    if (postConstraints != null) {
+                        SixModelObject consType = postConstraints.at_pos_boxed(tc, 0);
+                        expectedType = (Ops.istype(consType, gcx.Code, tc) != 0)
+                            ? paramType.st.WHAT
+                            : consType.st.WHAT;
+                    }
+                    else {
+                        expectedType = paramType.st.WHAT;
+                    }
+
                     if (error != null) {
                         SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
                         if (thrower != null) {
                             error[0] = thrower;
                             error[1] = bindParamThrower;
-                            error[2] = new Object[] { decontValue, paramType.st.WHAT,
+                            error[2] = new Object[] { decontValue, expectedType.st.WHAT,
                                 varName, param, (long)0 };
                         }
                         else {
@@ -725,7 +744,7 @@ public final class Binder {
             result = bind(tc, gcx, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);
             if (result != BIND_RESULT_OK)
             {
-                if (error != null) {
+                if (error != null && error[0] instanceof String) {
                     /* Note in the error message that we're in a sub-signature. */
                     error[0] += " in sub-signature";
 
@@ -734,7 +753,7 @@ public final class Binder {
                         error[0] += " of parameter " + varName;
                     }
                 }
-                return result;
+                return BIND_RESULT_FAIL;
             }
         }
 
@@ -1003,7 +1022,7 @@ public final class Binder {
                         }
                         else {
                             if (error != null)
-                                error[0] = arityFail(tc, gcx, params, (int)numParams, numPosArgs, false);
+                                error[0] = arityFail(tc, gcx, cf, params, (int)numParams, numPosArgs, false);
                             return BIND_RESULT_FAIL;
                         }
                     }
@@ -1058,7 +1077,7 @@ public final class Binder {
         if (curPosArg < numPosArgs && !suppressArityFail) {
             /* Oh noes, too many positionals passed. */
             if (error != null)
-                error[0] = arityFail(tc, gcx, params, (int)numParams, numPosArgs, true);
+                error[0] = arityFail(tc, gcx, cf, params, (int)numParams, numPosArgs, true);
             return BIND_RESULT_FAIL;
         }
         if (namedArgsCopy != null && namedArgsCopy.size() > 0) {

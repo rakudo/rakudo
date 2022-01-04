@@ -10,7 +10,14 @@ my class Failure is Nil {
 
     method !SET-SELF(\exception) {
         $!exception := exception;
-        $!backtrace := exception.backtrace || Backtrace.new(3);
+        $!backtrace := exception.backtrace || Backtrace.new(
+#?if !js
+            4
+#?endif
+#?if js
+            5
+#?endif
+        );
         exception.reset-backtrace;
         self
     }
@@ -122,6 +129,9 @@ my class Failure is Nil {
     }
     method STORE(Failure:D: *@) {
         self!throw()
+    }
+    method UPGRADE-RAT(Int $nu, Int $de) {
+        Failure.new("Upgrading of Rat $nu / $de not allowed")
     }
 }
 

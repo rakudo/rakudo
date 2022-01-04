@@ -370,28 +370,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method to(List:D:)      { self.elems ?? self[self.end].to !! Nil }
     method from(List:D:)    { self.elems ?? self[0].from !! Nil }
 
-    method sum(List:D:) is nodal {
+    multi method sum(List:D:) {
         nqp::if(
           self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action('.sum'))),
+          self.fail-iterator-cannot-be-lazy('.sum'),
           nqp::if(
-            nqp::isconcrete($!reified) && (my int $elems = self.elems), # reify
-            nqp::if(
-              nqp::isgt_i($elems,2),
-              nqp::stmts(
-                (my $list := $!reified),
-                (my $sum = nqp::ifnull(nqp::atpos($list,0),0)),
-                (my int $i),
-                nqp::while(
-                  nqp::islt_i($i = nqp::add_i($i,1),$elems),
-                  ($sum = $sum + nqp::ifnull(nqp::atpos($list,$i),0))
-                ),
-                $sum
+            (my int $elems = self.elems), # reify
+            nqp::stmts(
+              (my $sum  := 0),
+              (my int $i = -1),
+              nqp::while(
+                nqp::islt_i($i = nqp::add_i($i,1),$elems),
+                ($sum := $sum + nqp::ifnull(nqp::atpos($!reified,$i),0))
               ),
-              nqp::ifnull(nqp::atpos($!reified,0),0)
-                + nqp::ifnull(nqp::atpos($!reified,1),0)
-            ),
-            0
+              $sum
+            )
           )
         )
     }
@@ -439,13 +432,21 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 nqp::while(                           # only a single %s
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::bindpos_s($strings,$i,
-                    nqp::join(nqp::atpos($list,$i).Str,$parts)
+                    nqp::if(
+                      nqp::istype((my $elem := nqp::atpos($list,$i)),List),
+                      $elem.fmt($format, $separator),
+                      nqp::join($elem.Str,$parts)
+                    )
                   )
                 ),
                 nqp::while(                           # something else
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
                   nqp::bindpos_s($strings,$i,
-                    nqp::atpos($list,$i).fmt($format)
+                    nqp::if(
+                      nqp::istype(($elem := nqp::atpos($list,$i)),List),
+                      $elem.fmt($format, $separator),
+                      $elem.fmt($format)
+                    )
                   )
                 )
               ),
@@ -467,7 +468,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 ($!todo := nqp::null),
                 nqp::elems($!reified)
               ),
-              Failure.new(X::Cannot::Lazy.new(:action('.elems')))
+              self.fail-iterator-cannot-be-lazy('.elems')
             )
           ),
           nqp::isconcrete($!reified) && nqp::elems($!reified),
@@ -483,19 +484,19 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
           !! self!AT_POS_SLOW($pos)
     }
 
-    method !AT_POS_SLOW(\pos) is raw {
+    method !AT_POS_SLOW(int $pos) is raw {
         nqp::if(
-          nqp::islt_i(pos,0),
+          nqp::islt_i($pos,0),
           Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'), :got(pos), :range<0..^Inf>)),
+            :what($*INDEX // 'Index'), :got($pos), :range<0..^Inf>)),
           nqp::if(
             nqp::isconcrete($!reified),
             nqp::ifnull(
-              nqp::atpos($!reified,pos),
+              nqp::atpos($!reified,$pos),
               nqp::if(
                 nqp::isconcrete($!todo)
-                  && $!todo.reify-at-least(nqp::add_i(pos,1)),
-                nqp::ifnull(nqp::atpos($!reified,pos),Nil),
+                  && $!todo.reify-at-least(nqp::add_i($pos,1)),
+                nqp::ifnull(nqp::atpos($!reified,$pos),Nil),
                 Nil
               )
             ),
@@ -504,9 +505,9 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    method ASSIGN-POS(List:D: Int:D \pos, \what) is raw {
-        nqp::iscont(self.AT-POS(pos))
-          ?? (nqp::atpos($!reified,nqp::unbox_i(pos)) = what)
+    method ASSIGN-POS(List:D: Int:D $pos, \what) is raw {
+        nqp::iscont(self.AT-POS($pos))
+          ?? (nqp::atpos($!reified,$pos) = what)
           !! X::Assignment::RO.new(value => self).throw
     }
 
@@ -865,11 +866,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     }
 
     method Capture(List:D: --> Capture:D) {
-        fail X::Cannot::Lazy.new(:action('create a Capture from'))
-            if self.is-lazy;
+
+        # too lazy
+        if self.is-lazy {
+            self.fail-iterator-cannot-be-lazy('create a Capture from');
+        }
 
         # we have something to work with
-        if nqp::isconcrete($!reified) && nqp::elems($!reified) -> int $elems {
+        elsif nqp::isconcrete($!reified) && nqp::elems($!reified) -> int $elems {
             my $capture := nqp::create(Capture);
             my $list := nqp::create(IterationBuffer);
             my $hash := nqp::hash;
@@ -926,17 +930,16 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         )
     }
 
-    proto method pick(|) is nodal {*}
     multi method pick(List:D:) {
         self.is-lazy
-         ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
+         ?? self.fail-iterator-cannot-be-lazy('.pick from')
          !! (my int $elems = self.elems)   # reifies
            ?? nqp::atpos($!reified,nqp::floor_n(nqp::rand_n($elems)))
            !! Nil
     }
     multi method pick(List:D: Callable:D $calculate) {
         self.is-lazy
-         ?? Failure.new(X::Cannot::Lazy.new(:action('.pick from')))
+         ?? self.fail-iterator-cannot-be-lazy('.pick from')
          !! self.pick( $calculate(self.elems) )
     }
 
@@ -945,13 +948,12 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         has int $!elems;
         has int $!number;
 
-        method !SET-SELF(\list,$!elems,\number) {
+        method !SET-SELF(\list, $!elems, $!number) {
             $!list  := nqp::clone(nqp::getattr(list,List,'$!reified'));
-            $!number = number + 1;
             self
         }
-        method new(\list,\elems,\number) {
-            nqp::create(self)!SET-SELF(list,elems,number)
+        method new(\list, $elems, $number) {
+            nqp::create(self)!SET-SELF(list, $elems, $number + 1)
         }
         method pull-one() {
             nqp::if(
@@ -994,23 +996,26 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               ($!elems  = $elems)
             )
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
-    multi method pick(List:D: $number is copy) {
-        fail X::Cannot::Lazy.new(:action('.pick from')) if self.is-lazy;
-        my Int $elems = self.elems;
-        return () unless $elems;
-
-        $number = nqp::istype($number,Whatever) || $number == Inf
-          ?? $elems
-          !! $number.UInt min $elems;
-        Seq.new(PickN.new(self,$elems,$number))
+    multi method pick(List:D: $number) {
+        self.is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('.pick from')
+          !! (my Int $elems = self.elems)
+            ?? Seq.new(PickN.new(
+                 self,
+                 $elems,
+                 nqp::istype($number,Whatever) || $number == Inf
+                   ?? $elems
+                   !! $number.UInt min $elems
+               ))
+            !! ()
     }
 
     proto method roll(|) is nodal {*}
     multi method roll(List:D:) {
         self.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action('.roll from')))
+          ?? self.fail-iterator-cannot-be-lazy('.roll from')
           !! (my int $elems = self.elems)    # reify
             ?? nqp::atpos($!reified,nqp::floor_n(nqp::rand_n($elems)))
             !! Nil
@@ -1018,7 +1023,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     multi method roll(List:D: Whatever) {
         nqp::if(
           self.is-lazy,
-          X::Cannot::Lazy.new(:action('.roll from')).throw,
+          self.fail-iterator-cannot-be-lazy('.roll from'),
           Seq.new(nqp::if(
             (my int $elems = self.elems),
             nqp::stmts(
@@ -1036,14 +1041,14 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
         has $!list;
         has int $!elems;
         has int $!todo;
-        method !SET-SELF(\list,\todo) {
+        method !SET-SELF(\list, $todo) {
             $!list := nqp::getattr(list,List,'$!reified');
             $!elems = nqp::elems($!list);
-            $!todo  = todo + 1;
+            $!todo  = $todo + 1;
             self
         }
-        method new(\list,\todo) {
-            nqp::create(self)!SET-SELF(list,todo)
+        method new(\list, $todo) {
+            nqp::create(self)!SET-SELF(list, $todo)
         }
         method pull-one() is raw {
             ($!todo = nqp::sub_i($!todo,1))
@@ -1064,22 +1069,22 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               ($!todo = $todo)
             )
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
-    multi method roll(List:D: \number) {
-        number == Inf
+    multi method roll(List:D: $number) {
+        $number == Inf
           ?? self.roll(*)
           !! self.is-lazy
-            ?? X::Cannot::Lazy.new(:action('.roll from')).throw
+            ?? self.fail-iterator-cannot-be-lazy('.roll from').throw
             !! Seq.new(self.elems   # this allocates/reifies
-                 ?? RollN.new(self,number.Int)
+                 ?? RollN.new(self, $number.Int)
                  !! Rakudo::Iterator.Empty
                )
     }
 
     method reverse(List:D: --> Seq:D) is nodal {
         self.is-lazy    # reifies
-          ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
+          ?? self.fail-iterator-cannot-be-lazy('reverse')
           !! Seq.new: $!reified
             ?? Rakudo::Iterator.ReifiedReverse(self, Mu)
             !! Rakudo::Iterator.Empty
@@ -1087,7 +1092,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     method rotate(List:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
         self.is-lazy    # reifies
-          ?? Failure.new(X::Cannot::Lazy.new(:action<rotate>))
+          ?? self.fail-iterator-cannot-be-lazy('rotate')
           !! Seq.new: $!reified
             ?? Rakudo::Iterator.ReifiedRotate($rotate, self, Mu)
             !! Rakudo::Iterator.Empty
@@ -1231,7 +1236,10 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
                 )
               ),
               nqp::if($infinite,nqp::push_s($strings,'...')),
-              nqp::p6box_s(nqp::join($separator,$strings))  # done
+              nqp::box_s(                            # done
+                nqp::join($separator,$strings),
+                Str
+              )
             ),
             nqp::if($infinite,'...','')          # nothing to join
           )
@@ -1321,7 +1329,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::if(
                 $!todo.fully-reified,
                 ($!todo := nqp::null),
-                X::Cannot::Lazy.new(:action('.sort')).throw
+                self.throw-iterator-cannot-be-lazy('.sort')
               )
             )
           ),
@@ -1350,7 +1358,7 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
               nqp::if(
                 $!todo.fully-reified,
                 ($!todo := nqp::null),
-                X::Cannot::Lazy.new(:action('.sort')).throw
+                self.throw-iterator-cannot-be-lazy('.sort')
               )
             )
           ),
@@ -1437,39 +1445,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
     method pop(|) is nodal {
         X::Immutable.new(:typename<List>, :method<pop>).throw
     }
-
-    multi method chrs(List:D: --> Str:D) {
-        nqp::if(
-          self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => 'chrs')),
-          nqp::stmts(
-            (my int $i     = -1),
-            (my int $elems = self.elems),    # reifies
-            (my $result   := nqp::setelems(nqp::list_s,$elems)),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-              nqp::if(
-                nqp::istype((my $value := nqp::atpos($!reified,$i)),Int),
-                nqp::bindpos_s($result,$i,nqp::chr($value)),
-                nqp::if(
-                  nqp::istype($value,Str),
-                  nqp::if(
-                    nqp::istype(($value := +$value),Failure),
-                    (return $value),
-                    nqp::bindpos_s($result,$i,nqp::chr($value))
-                  ),
-                  (return Failure.new(X::TypeCheck.new(
-                    operation => "converting element #$i to .chr",
-                    got       => $value,
-                    expected  => Int
-                  )))
-                )
-              )
-            ),
-            nqp::join("",$result)
-          )
-        )
-    }
 }
 
 # The , operator produces a List.
@@ -1524,11 +1499,11 @@ multi sub infix:<,>(|) {
 }
 
 proto sub combinations($, $?, *%) {*}
-multi sub combinations(Int() \n, Int() \k --> Seq:D) {
-    Seq.new(Rakudo::Iterator.Combinations(n,k,0))
+multi sub combinations(Int() $n, Int() $k --> Seq:D) {
+    Seq.new: Rakudo::Iterator.Combinations($n, $k, 0)
 }
-multi sub combinations(Int() \n, Range:D \k --> Seq:D) {
-    ^n .combinations: k
+multi sub combinations(Int() $n, Range:D \k --> Seq:D) {
+    ^$n .combinations: k
 }
 multi sub combinations(Iterable \n, \k --> Seq:D) is default {
     n.combinations: k
@@ -1538,8 +1513,8 @@ multi sub combinations(\n  --> Seq:D) {
 }
 
 proto sub permutations($, *%) {*}
-multi sub permutations(Int() \n --> Seq:D) {
-    Seq.new(Rakudo::Iterator.Permutations(n,0))
+multi sub permutations(Int() $n --> Seq:D) {
+    Seq.new: Rakudo::Iterator.Permutations($n, 0)
 }
 multi sub permutations(Iterable \n --> Seq:D) {
     n.permutations
@@ -1615,35 +1590,6 @@ multi sub rotate(@a, Int:D $n) { @a.rotate($n) }
 
 proto sub prefix:<|>($, *%) {*}
 multi sub prefix:<|>(\x --> Slip:D) { x.Slip }
-
-multi sub infix:<cmp>(@a, @b --> Order:D) {
-
-    sub CMP-SLOW(@a, @b) {
-        (@a Zcmp @b).first(&prefix:<?>) || &infix:<cmp>( |do .is-lazy for @a, @b ) || @a <=> @b
-    }
-
-    nqp::if(
-        @a.is-lazy || @b.is-lazy,
-        CMP-SLOW(@a, @b),
-        nqp::stmts(
-            ( my $a_r := nqp::getattr(@a, List, '$!reified') ),
-            ( my $b_r := nqp::getattr(@b, List, '$!reified') ),
-            ( my int $ord = nqp::cmp_i(
-                ( my int $n_a = nqp::elems($a_r) ), ( my int $n_b = nqp::elems($b_r) )
-            )),
-            ( my int $res = ( my int $i = 0) ),
-            ( my int $total_iters = nqp::islt_i($ord, 0) ?? $n_a !! $n_b ),
-            nqp::while(
-                nqp::not_i($res) && nqp::islt_i($i, $total_iters),
-                nqp::stmts(
-                    $res = &infix:<cmp>(nqp::atpos($a_r, $i), nqp::atpos($b_r, $i)),
-                    $i   = nqp::add_i($i, 1)
-                )
-            ),
-            ORDER( $res ?? $res !! $ord )
-        )
-    )
-}
 
 proto sub infix:<X>(|) is pure {*}
 multi sub infix:<X>(+lol, :$with! --> Seq:D) {

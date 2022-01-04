@@ -8,7 +8,7 @@ my class SetHash does Setty {
 
     multi method grab(SetHash:D:) {
         nqp::if(
-          $!elems,
+          $!elems && nqp::elems($!elems),
           nqp::stmts(
             (my $object := nqp::iterval(
               my $iter := Rakudo::QuantHash.ROLL($!elems)
@@ -155,7 +155,7 @@ my class SetHash does Setty {
         has $!elems is built(:bind);
         has $!keys  is built(:bind) is built(False) =
           Rakudo::Internals.IterationSet2keys($!elems);
-        method pull-one() is rw {
+        method pull-one() is raw {
             nqp::elems($!keys)
               ?? proxy(nqp::shift_s($!keys),$!elems)
               !! IterationEnd
@@ -192,11 +192,9 @@ my class SetHash does Setty {
     multi method Mixy (SetHash:D:) { self.MixHash }
 
 #--- interface methods
-    multi method STORE(SetHash:D: *@pairs --> SetHash:D) {
-        (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
-             )
+    multi method STORE(SetHash:D: Iterable:D \iterable --> SetHash:D) {
+        (my \iterator := iterable.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),

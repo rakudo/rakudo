@@ -21,9 +21,9 @@ my role Dateish {
       0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     );
     # This method is used by Date and DateTime:
-    method !DAYS-IN-MONTH(\year, \month --> Int:D) {
-        nqp::atpos_i($days-in-month,month) ||
-          ( month == 2 ?? 28 + IS-LEAP-YEAR(year) !! Nil );
+    method !DAYS-IN-MONTH(int $year, int $month --> Int:D) {
+        nqp::atpos_i($days-in-month,$month) ||
+          ($month == 2 ?? 28 + IS-LEAP-YEAR($year) !! Nil );
     }
     method days-in-month(Dateish:D: --> Int:D) {
         self!DAYS-IN-MONTH($!year,$!month)
@@ -65,11 +65,17 @@ my role Dateish {
     }
     method !calculate-daycount() {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        my int $d = $!day;
-        my int $m = $!month < 3 ?? $!month + 12 !! $!month;
-        my int $y = $!year - ($!month < 3);
+        my int $y = $!year;
+        my int $m = $!month;
+        nqp::if(
+          nqp::islt_i($m,3),
+          nqp::stmts(
+            ($y = nqp::sub_i($y,1)),
+            ($m = nqp::add_i($m,12))
+          )
+        );
 
-        -678973 + $d + (153 * $m - 2) div 5
+        -678973 + $!day + (153 * $m - 2) div 5
           + 365 * $y + $y div 4
           - $y div 100  + $y div 400
     }

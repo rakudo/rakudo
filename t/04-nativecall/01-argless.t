@@ -21,6 +21,11 @@ Nothing() for ^2;
 
 pass 'survived the call';
 
+if $*VM.name eq 'jvm' {
+    skip-rest 'RuntimeException: No such attribute $!call for this object';
+    exit;
+}
+
 is Argless(), 2, 'called argless function returning int32' for ^2;
 is ArglessChar(), 2, 'called argless function returning char' for ^2;
 is ArglessLongLong(), 2, 'called argless function returning long long' for ^2;

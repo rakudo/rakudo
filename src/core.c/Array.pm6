@@ -266,6 +266,8 @@ my class Array { # declared in BOOTSTRAP
 
     proto method STORE(Array:D: |) {*}
     multi method STORE(Array:D: Iterable:D \iterable --> Array:D) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         my \buffer = nqp::create(IterationBuffer);
         nqp::if(
           nqp::iscont(iterable),
@@ -298,6 +300,8 @@ my class Array { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
     multi method STORE(Array:D: QuantHash:D \qh --> Array:D) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         my \buffer = nqp::create(IterationBuffer);
         nqp::iscont(qh)
           ?? nqp::push(buffer,nqp::p6scalarwithvalue($!descriptor,qh))
@@ -308,6 +312,8 @@ my class Array { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,List,'$!reified',buffer)
     }
     multi method STORE(Array:D: Mu \item --> Array:D) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         nqp::push(
           (my \buffer = nqp::create(IterationBuffer)),
           nqp::p6scalarwithvalue($!descriptor, item)
@@ -406,7 +412,7 @@ my class Array { # declared in BOOTSTRAP
 
     method reverse(Array:D: --> Seq:D) is nodal {
         self.is-lazy    # reifies
-          ?? Failure.new(X::Cannot::Lazy.new(:action<reverse>))
+          ?? self.fail-iterator-cannot-be-lazy('.reverse')
           !! Seq.new: nqp::getattr(self,List,'$!reified')
             ?? Rakudo::Iterator.ReifiedReverse(self, $!descriptor)
             !! Rakudo::Iterator.Empty
@@ -414,7 +420,7 @@ my class Array { # declared in BOOTSTRAP
 
     method rotate(List:D: Int(Cool) $rotate = 1 --> Seq:D) is nodal {
         self.is-lazy    # reifies
-          ?? Failure.new(X::Cannot::Lazy.new(:action<rotate>))
+          ?? self.fail-iterator-cannot-be-lazy('.rotate')
           !! Seq.new: nqp::getattr(self,List,'$!reified')
             ?? Rakudo::Iterator.ReifiedRotate($rotate, self, $!descriptor)
             !! Rakudo::Iterator.Empty
@@ -423,7 +429,7 @@ my class Array { # declared in BOOTSTRAP
     multi method List(Array:D: :$view --> List:D) {  # :view is implementation-detail
         nqp::if(
           self.is-lazy,                           # can't make a List
-          X::Cannot::Lazy.new(:action<List>).throw,
+          self.throw-iterator-cannot-be-lazy('.List'),
 
           nqp::if(                                # all reified
             nqp::isconcrete(my $reified := nqp::getattr(self,List,'$!reified')),
@@ -639,13 +645,13 @@ my class Array { # declared in BOOTSTRAP
     # MUST have a separate Slip variant to have it slip
     multi method push(Array:D: Slip \value --> Array:D) {
         self.is-lazy
-          ?? X::Cannot::Lazy.new(action => 'push to').throw
+          ?? self.throw-iterator-cannot-be-lazy('push to')
           !! self!append-list(value)
     }
     multi method push(Array:D: \value --> Array:D) {
         nqp::if(
           self.is-lazy,
-          X::Cannot::Lazy.new(action => 'push to').throw,
+          self.throw-iterator-cannot-be-lazy('push to'),
           nqp::stmts(
             nqp::push(
               nqp::if(
@@ -662,14 +668,14 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method push(Array:D: **@values is raw --> Array:D) {
         self.is-lazy
-          ?? X::Cannot::Lazy.new(action => 'push to').throw
+          ?? self.throw-iterator-cannot-be-lazy('push to')
           !! self!append-list(@values)
     }
 
     multi method append(Array:D: \value --> Array:D) {
         nqp::if(
           self.is-lazy,
-          X::Cannot::Lazy.new(action => 'append to').throw,
+          self.throw-iterator-cannot-be-lazy('append to'),
           nqp::if(
             (nqp::iscont(value) || nqp::not_i(nqp::istype(value, Iterable))),
             nqp::stmts(
@@ -690,7 +696,7 @@ my class Array { # declared in BOOTSTRAP
     }
     multi method append(Array:D: **@values is raw --> Array:D) {
         self.is-lazy
-          ?? X::Cannot::Lazy.new(action => 'append to').throw
+          ?? self.throw-iterator-cannot-be-lazy('append to')
           !! self!append-list(@values)
     }
     method !append-list(Array:D: @values --> Array:D) {
@@ -710,7 +716,7 @@ my class Array { # declared in BOOTSTRAP
             IterationEnd
           ),
           self,
-          X::Cannot::Lazy.new(:action<push>,:what(self.^name)).throw
+          self.throw-iterator-cannot-be-lazy('push')
         )
     }
 
@@ -782,21 +788,13 @@ my class Array { # declared in BOOTSTRAP
         self
     }
 
-    # helper subs to reduce size of pop / shift
-    method !lazy($action) is hidden-from-backtrace {
-        Failure.new(X::Cannot::Lazy.new(:$action))
-    }
-    method !empty($action) is hidden-from-backtrace {
-        Failure.new(X::Cannot::Empty.new(:$action,:what(self.^name)))
-    }
-
     method pop(Array:D:) is nodal {
         self.is-lazy
-          ?? self!lazy('pop from')
+          ?? self.fail-iterator-cannot-be-lazy('pop from')
           !! nqp::isconcrete(nqp::getattr(self,List,'$!reified'))
                && nqp::elems(nqp::getattr(self,List,'$!reified'))
             ?? nqp::pop(nqp::getattr(self,List,'$!reified'))
-            !! self!empty('pop')
+            !! self.fail-cannot-be-empty('pop')
     }
 
     method shift(Array:D:) is nodal {
@@ -809,7 +807,7 @@ my class Array { # declared in BOOTSTRAP
           !! nqp::isconcrete(nqp::getattr(self,List,'$!todo'))
                && nqp::getattr(self,List,'$!todo').reify-at-least(1)
             ?? nqp::shift(nqp::getattr(self,List,'$!reified'))
-            !! self!empty('shift')
+            !! self.fail-cannot-be-empty('shift')
     }
 
     my $empty := nqp::create(IterationBuffer); # splicing in without values
@@ -1171,7 +1169,7 @@ my class Array { # declared in BOOTSTRAP
               )
             )
           ),
-          X::Cannot::Lazy.new(:action('splice in')).throw
+          self.throw-iterator-cannot-be-lazy('splice in')
         )
     }
 
@@ -1209,7 +1207,7 @@ my class Array { # declared in BOOTSTRAP
     proto method grab(|) {*}
     multi method grab(Array:D:) {
         self.is-lazy
-          ?? X::Cannot::Lazy.new(:action('.grab from')).throw  # can't make List
+          ?? self.throw-iterator-cannot-be-lazy('grab from')  # can't make List
           !! self.elems  # reifies
             ?? self.GRAB_ONE
             !! Nil
@@ -1251,7 +1249,7 @@ my class Array { # declared in BOOTSTRAP
               IterationEnd
             )
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
     multi method grab(Array:D: \count --> Seq:D) {
         Seq.new(
@@ -1277,7 +1275,7 @@ my class Array { # declared in BOOTSTRAP
     }
 
     proto method of() {*}
-    multi method of(Array:U: --> Mu) { }
+    multi method of(Array:U:) { Mu }
     multi method of(Array:D:) {
         nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
     }
@@ -1342,6 +1340,27 @@ my class Array { # declared in BOOTSTRAP
               needed-dimensions => '',
             ).throw
         }
+    }
+
+    my class LTHandle {
+        has Mu $!reified;
+        has Mu $!todo;
+        has Mu $!descriptor;
+    }
+
+    method TEMP-LET-LOCALIZE() is raw is implementation-detail {
+        my \handle = nqp::create(LTHandle);
+        nqp::bindattr(handle, LTHandle, '$!reified', nqp::getattr(self, List, '$!reified'));
+        nqp::bindattr(handle, LTHandle, '$!todo', nqp::getattr(self, List, '$!todo'));
+        nqp::bindattr(handle, LTHandle, '$!descriptor', nqp::getattr(self, Array, '$!descriptor'));
+        self.STORE: self.clone;
+        handle
+    }
+
+    method TEMP-LET-RESTORE(\handle --> Nil) is implementation-detail {
+        nqp::bindattr(self, List, '$!reified', nqp::getattr(handle, LTHandle, '$!reified'));
+        nqp::bindattr(self, List, '$!todo', nqp::getattr(handle, LTHandle, '$!todo'));
+        nqp::bindattr(self, Array, '$!descriptor', nqp::getattr(handle, LTHandle, '$!descriptor'));
     }
 
     method ^parameterize(Mu:U \arr, Mu \of) {

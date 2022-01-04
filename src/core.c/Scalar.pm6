@@ -5,13 +5,13 @@ my class Scalar { # declared in BOOTSTRAP
 
     method new(|) { X::Cannot::New.new(class => self.WHAT).throw }
 
-    multi method WHICH(Scalar:D: --> ValueObjAt:D) {
+    multi method WHICH(Scalar:D \SELF: --> ObjAt:D) {
         nqp::box_s(
           nqp::concat(
-            'Scalar|',
-            nqp::tostr_I(nqp::objectid($!descriptor))
+            nqp::concat(nqp::unbox_s(SELF.^name), '|'),
+            nqp::tostr_I(nqp::objectid(SELF))
           ),
-          ValueObjAt
+          ObjAt
         )
     }
     method name() {
@@ -20,7 +20,7 @@ my class Scalar { # declared in BOOTSTRAP
     }
 
     proto method of() {*}
-    multi method of(Scalar:U: --> Mu) { }
+    multi method of(Scalar:U:) { Mu }
     multi method of(Scalar:D:) {
         nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
     }

@@ -54,6 +54,7 @@ my stub Nil metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Cool metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Attribute metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Scalar metaclass Perl6::Metamodel::ClassHOW { ... };
+my stub ScalarVAR metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Proxy metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Signature metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Parameter metaclass Perl6::Metamodel::ClassHOW { ... };
@@ -318,15 +319,17 @@ my class Binder {
                     ) ?? nqp::atpos($post, 0) !! $param_type;
 
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('Raku', 'P6EX');
-                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
-                            $error[0] := "Nominal type check failed for parameter '" ~ $varname ~
-                                "'; expected " ~ $expected.HOW.name($expected) ~
-                                " but got " ~ $oval.HOW.name($oval);
-                        } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')($oval,
-                                $expected.WHAT, $varname, $param) };
-                        }
+                        $error[0] := {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::TypeCheck::Binding::Parameter',
+                                "Nominal type check failed for parameter '" ~ $varname
+                                    ~ "'; expected " ~ $expected.HOW.name($expected)
+                                    ~ " but got " ~ $oval.HOW.name($oval),
+                                :got($oval),
+                                :expected($expected.WHAT),
+                                :symbol(nqp::hllizefor($varname, 'Raku')),
+                                :parameter($param))
+                        };
                     }
 
                     # Report junction failure mode if it's a junction.
@@ -344,19 +347,25 @@ my class Binder {
                             my $method := nqp::getcodeobj(nqp::ctxcode($lexpad)).name;
                             my $class  := $param_type.HOW.name($param_type);
                             my $got    := $oval.HOW.name($oval);
-                            my %ex     := nqp::gethllsym('Raku', 'P6EX');
-                            if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
-                                $method   := '<anon>' if nqp::isnull_s($method) || $method eq '';
-                                $error[0] := $flags +& $SIG_ELEM_INVOCANT
+                            my $die_msg := $flags +& $SIG_ELEM_INVOCANT
                                   ?? $should_be_concrete
                                        ?? "Invocant of method '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
                                        !! "Invocant of method '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?"
                                   !! $should_be_concrete
                                        ?? "Parameter '$varname' of routine '$method' must be an object instance of type '$class', not a type object of type '$got'.  Did you forget a '.new'?"
                                        !! "Parameter '$varname' of routine '$method' must be a type object of type '$class', not an object instance of type '$got'.  Did you forget a 'multi'?";
-                            } else {
-                                $error[0] := { nqp::atkey(%ex, 'X::Parameter::InvalidConcreteness')($class, $got, $method, $varname, $should_be_concrete, $flags +& $SIG_ELEM_INVOCANT) };
-                            }
+                            $error[0] := {
+                                Perl6::Metamodel::Configuration.throw_or_die(
+                                    'X::Parameter::InvalidConcreteness',
+                                    $die_msg,
+                                    :expected($class),
+                                    :got($got),
+                                    :routine($method),
+                                    :param($varname),
+                                    :should-be-concrete(nqp::hllboolfor($should_be_concrete, 'Raku')),
+                                    :param-is-invocant(nqp::hllboolfor($flags +& $SIG_ELEM_INVOCANT, 'Raku'))
+                                );
+                            };
                         }
                         return $oval.WHAT =:= Junction && nqp::isconcrete($oval)
                             ?? $BIND_RESULT_JUNCTION
@@ -414,13 +423,15 @@ my class Binder {
                 }
                 else {
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('Raku', 'P6EX');
-                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Parameter::RW') {
-                            $error[0] := "Parameter '$varname' expected a writable container, but got an " ~
-                                ~ $oval.HOW.name($oval) ~ " value";
-                        } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::Parameter::RW')($oval, $varname) };
-                        }
+                        $error[0] := {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::Parameter::RW',
+                                "Parameter '$varname' expected a writable container, but got an " ~
+                                    ~ $oval.HOW.name($oval) ~ " value",
+                                :got($oval),
+                                :symbol($varname)
+                            )
+                        };
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -475,6 +486,33 @@ my class Binder {
             nqp::bindkey($lexpad, 'self', nqp::decont($oval));
         }
 
+        if nqp::defined(my $sigc := nqp::getattr($param, Parameter, '$!signature_constraint')) {
+            # Assume argument not passed if it is undefined and is the same as parameter default type
+            unless !nqp::isconcrete($oval) && nqp::eqaddr(nqp::decont($oval), nqp::getattr($param, Parameter, '$!type')) {
+                my $can_signature;
+                unless ($can_signature := nqp::can($oval, 'signature'))
+                        && ( $sigc.is_generic
+                                ?? ($sigc := $sigc.instantiate_generic($lexpad))
+                                !! $sigc ).ACCEPTS($oval.signature)
+                {
+                    if nqp::defined($error) {
+                        $error[0] := {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::TypeCheck::Binding::Parameter',
+                                "Signature check failed for parameter '$varname'",
+                                :got($can_signature ?? $oval.signature !! Nil),
+                                :expected($sigc),
+                                :symbol($varname),
+                                :parameter($param),
+                                :what("Signature constraint")
+                            )
+                        };
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
+        }
+
         # Handle any constraint types (note that they may refer to the parameter by
         # name, so we need to have bound it already).
         my $post_cons := nqp::getattr($param, Parameter, '@!post_constraints');
@@ -507,13 +545,17 @@ my class Binder {
                 }
                 unless $result {
                     if nqp::defined($error) {
-                        my %ex := nqp::gethllsym('Raku', 'P6EX');
-                        if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::TypeCheck::Binding::Parameter') {
-                            $error[0] := "Constraint type check failed for parameter '$varname'";
-                        } else {
-                            $error[0] := { nqp::atkey(%ex, 'X::TypeCheck::Binding::Parameter')(
-                                $bad_value, $cons_type, $varname, $param, 1) };
-                        }
+                        $error[0] := {
+                            Perl6::Metamodel::Configuration.throw_or_die(
+                                'X::TypeCheck::Binding::Parameter',
+                                "Constraint type check failed for parameter '$varname'",
+                                :got($bad_value),
+                                :expected($cons_type),
+                                :symbol($varname),
+                                :parameter($param),
+                                :constraint(nqp::hllboolfor(1, 'Raku'))
+                            )
+                        };
                     }
                     return $BIND_RESULT_FAIL;
                 }
@@ -590,7 +632,7 @@ my class Binder {
                         $error[0] := $error[0] ~ " of parameter " ~ $varname;
                     }
                 }
-                return $result;
+                return $BIND_RESULT_FAIL;
             }
         }
 
@@ -895,6 +937,16 @@ my class Binder {
         bind($capture, $sig, $lexpad, $no_param_type_check, $error);
     }
 
+    method try_bind_sig($capture) {
+        # Get signature and lexpad.
+        my $caller := nqp::getcodeobj(nqp::callercode());
+        my $sig    := nqp::getattr($caller, Code, '$!signature');
+        my $lexpad := nqp::ctxcaller(nqp::ctx());
+
+        # Call binder, and return non-zero if the bind is successful.
+        bind($capture, $sig, $lexpad, 0, NQPMu) == 0
+    }
+
     method bind_sig($capture) {
         # Get signature and lexpad.
         my $caller := nqp::getcodeobj(nqp::callercode());
@@ -947,12 +999,15 @@ my class Binder {
     }
 
     method is_bindable($sig, $capture) {
-        unless nqp::reprname($capture) eq 'MVMCallCapture' {
+        unless nqp::reprname($capture) eq 'MVMCapture' {
             $capture := make_vm_capture($capture);
         }
+        my $bind-test := -> {
+            bind($capture, $sig, nqp::ctxcaller(nqp::ctx()), 0, NQPMu) != $BIND_RESULT_FAIL
+        }
         nqp::p6invokeunder(
-            nqp::getattr($sig, Signature, '$!code'),
-            -> { bind($capture, $sig, nqp::ctxcaller(nqp::ctx()), 0, NQPMu) != $BIND_RESULT_FAIL })
+            nqp::getattr(nqp::getattr($sig, Signature, '$!code'), Code, '$!do'),
+            $bind-test)
     }
 
     method bind_cap_to_sig($sig, $cap) {
@@ -1103,7 +1158,7 @@ my class Binder {
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
 
-# Container descriptors come here so that they can refer to Perl 6 types.
+# Container descriptors come here so that they can refer to Raku types.
 class ContainerDescriptor {
     has     $!of;
     has str $!name;
@@ -1349,12 +1404,95 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
         $array.BIND-KEY($!key, $scalar);
     }
 }
+# Attributes that are either required or have a default need us to detect if
+# they have been initialized. We do this by starting them out with a descriptor
+# that indicates they are uninitialized, and then swapping it out for a the
+# underlying one upon assignment.
+class ContainerDescriptor::UninitializedAttribute {
+    has $!next-descriptor;
+
+    method new($next) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, ContainerDescriptor::UninitializedAttribute,
+            '$!next-descriptor', $next);
+        $obj
+    }
+
+    method next() {
+        my $next := $!next-descriptor;
+        nqp::isconcrete($next)
+            ?? $next
+            !! ($!next-descriptor := nqp::gethllsym('Raku', 'default_cont_spec'))
+    }
+    method name() { self.next.name }
+    method of() { self.next.of }
+    method default() { self.next.default }
+    method dynamic() { self.next.dynamic }
+    method instantiate_generic($type_environment) {
+        self.new(self.next.instantiate_generic($type_environment))
+    }
+    method is_generic() { self.next.is_generic }
+    method is_default_generic() { self.next.is_default_generic }
+}
+
+# On MoarVM we have a dispatcher for checking if an attribute is not
+# initialized, this is the portable fallback for other VMs.
+#?if !moar
+my class UninitializedAttributeChecker {
+    method check($attr) {
+        # If there's a non-concrete object observed, then we bound a non-container
+        # in place, so trivially initialized.
+        if !nqp::isconcrete_nd($attr) {
+            1
+        }
+
+        # Otherwise, might be a container that was assigned. Look for the
+        # descriptor.
+        else {
+            my $desc;
+            if nqp::istype_nd($attr, Scalar) {
+                $desc := nqp::getattr($attr, Scalar, '$!descriptor');
+            }
+            elsif nqp::istype_nd($attr, Array) {
+                my $storage := nqp::getattr($attr, List, '$!reified');
+                unless nqp::isconcrete($storage) && nqp::elems($storage) {
+                    $desc := nqp::getattr($attr, Array, '$!descriptor');
+                }
+            }
+            elsif nqp::istype_nd($attr, Hash) {
+                my $storage := nqp::getattr($attr, Map, '$!storage');
+                unless nqp::isconcrete($storage) && nqp::elems($storage) {
+                    $desc := nqp::getattr($attr, Hash, '$!descriptor');
+                }
+            }
+            else {
+                try {
+                    my $base := nqp::how_nd($attr).mixin_base($attr);
+                    $desc := nqp::getattr($attr, $base, '$!descriptor');
+                }
+            }
+            !nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute);
+        }
+    }
+}
+nqp::bindhllsym('Raku', 'UninitializedAttributeChecker', UninitializedAttributeChecker);
+#?endif
 
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
 BEGIN {
     # Ensure Rakudo runtime support is initialized.
     nqp::p6init();
+
+    # On MoarVM, to get us through the bootstrap, put the NQP dispatchers in place
+    # as the Raku ones; they will get replaced later in the bootstrap.
+#?if moar
+    nqp::sethllconfig('Raku', nqp::hash(
+        'call_dispatcher', 'nqp-call',
+        'method_call_dispatcher', 'nqp-meth-call',
+        'find_method_dispatcher', 'nqp-find-meth',
+    ));
+#?endif
 
     # class Mu { ... }
     Mu.HOW.compose_repr(Mu);
@@ -1422,7 +1560,7 @@ BEGIN {
             nqp::bindattr_i($attr, Attribute, '$!is_built', $is_built);
             nqp::bindattr_i($attr, Attribute, '$!is_bound', $is_bound);
             nqp::bindattr_i($attr, Attribute, '$!has_accessor', $has_accessor);
-            nqp::bindattr($attr, Attribute, '$!package', $package);
+            nqp::bindattr($attr, Attribute, '$!package', nqp::decont($package));
             nqp::bindattr_i($attr, Attribute, '$!inlined', $inlined);
             nqp::bindattr($attr, Attribute, '$!original', $attr);
             if nqp::existskey(%other, 'auto_viv_primitive') {
@@ -1437,10 +1575,10 @@ BEGIN {
                 }
             }
             else {
-                my $cd := ContainerDescriptor.new(:of($type), :$name);
+                my $cd := ContainerDescriptor.new(:of(nqp::decont($type)), :$name);
                 my $scalar := nqp::create(Scalar);
                 nqp::bindattr($scalar, Scalar, '$!descriptor', $cd);
-                nqp::bindattr($scalar, Scalar, '$!value', $type);
+                nqp::bindattr($scalar, Scalar, '$!value', nqp::decont($type));
                 nqp::bindattr($attr, Attribute, '$!container_descriptor', $cd);
                 nqp::bindattr($attr, Attribute, '$!auto_viv_container', $scalar);
             }
@@ -1468,8 +1606,20 @@ BEGIN {
                 Attribute, '$!container_descriptor');
         }));
     Attribute.HOW.add_method(Attribute, 'auto_viv_container', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!auto_viv_container');
+            my $dcself := nqp::decont($self);
+            my $cont := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
+            if nqp::isconcrete_nd($cont) && (
+                    nqp::getattr($dcself, Attribute, '$!required') ||
+                    nqp::isconcrete(nqp::getattr($dcself, Attribute, '$!build_closure'))) {
+                try {
+                    my $base := nqp::how_nd($cont).mixin_base($cont);
+                    my $desc := nqp::getattr($cont, $base, '$!descriptor');
+                    $cont := nqp::clone_nd($cont);
+                    nqp::bindattr($cont, $base, '$!descriptor',
+                        ContainerDescriptor::UninitializedAttribute.new($desc));
+                }
+            }
+            $cont
         }));
     Attribute.HOW.add_method(Attribute, 'is_built', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
@@ -1618,103 +1768,115 @@ BEGIN {
 
     # Scalar needs to be registered as a container type. Also provide the
     # slow-path implementation of various container operations.
-    nqp::setcontspec(Scalar, 'value_desc_cont', nqp::hash(
-        'attrs_class', Scalar,
-        'descriptor_attr', '$!descriptor',
-        'value_attr', '$!value',
-        'store', nqp::getstaticcode(sub ($cont, $val) {
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            if nqp::isconcrete($desc) {
-                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
-                my $type := $desc.of;
-                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
-                    if $type.HOW.archetypes.coercive {
-                        my $coercion_type := $type.HOW.wrappee($type, :coercion);
-                        nqp::bindattr($cont, Scalar, '$!value', $coercion_type.HOW.coerce($coercion_type, $val));
+    sub setup_scalar_contspec($type) {
+        nqp::setcontspec($type, 'value_desc_cont', nqp::hash(
+            'attrs_class', Scalar,
+            'descriptor_attr', '$!descriptor',
+            'value_attr', '$!value',
+            'store', nqp::getstaticcode(sub ($cont, $val) {
+                my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+                if nqp::isconcrete($desc) {
+                    $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                    my $type := $desc.of;
+                    if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                        if $type.HOW.archetypes.coercive {
+                            my $coercion_type := $type.HOW.wrappee($type, :coercion);
+                            nqp::bindattr($cont, Scalar, '$!value', $coercion_type.HOW.coerce($coercion_type, $val));
+                        }
+                        else {
+                            nqp::bindattr($cont, Scalar, '$!value', $val);
+                        }
+                        my $what := $desc.WHAT;
+                        unless nqp::eqaddr($what, ContainerDescriptor) ||
+                               nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                            $desc.assigned($cont)
+                                unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
+                            nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+                        }
                     }
                     else {
-                        nqp::bindattr($cont, Scalar, '$!value', $val);
-                    }
-                    unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
-                           nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
-                        $desc.assigned($cont);
-                        nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                            'X::TypeCheck::Assignment',
+                            "Type check failed in assignment",
+                            :symbol($desc.name),
+                            :got($val),
+                            :expected($type)
+                        );
                     }
                 }
                 else {
-                    my %x := nqp::gethllsym('Raku', 'P6EX');
-                    if nqp::ishash(%x) {
-                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
+                    nqp::die("Cannot assign to a readonly variable or a value");
+                }
+            }),
+            'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
+                nqp::bindattr($cont, Scalar, '$!value', $val);
+                my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+                my $what := $desc.WHAT;
+                unless nqp::eqaddr($what, ContainerDescriptor) ||
+                       nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                    $desc.assigned($cont)
+                        unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
+                    nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
+                }
+            }),
+            'cas', nqp::getstaticcode(sub ($cont, $expected, $val) {
+                my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+                if nqp::isconcrete($desc) {
+                    $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                    my $type := $desc.of;
+                    if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                        nqp::casattr($cont, Scalar, '$!value', $expected, $val);
                     }
                     else {
-                        nqp::die("Type check failed in assignment");
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                            'X::TypeCheck::Assignment',
+                            "Type check failed in assignment",
+                            :symbol($desc.name),
+                            :got($val),
+                            :expected($type)
+                        );
                     }
-                }
-            }
-            else {
-                nqp::die("Cannot assign to a readonly variable or a value");
-            }
-        }),
-        'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
-            nqp::bindattr($cont, Scalar, '$!value', $val);
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
-                   nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
-                $desc.assigned($cont);
-                nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
-            }
-        }),
-        'cas', nqp::getstaticcode(sub ($cont, $expected, $val) {
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            if nqp::isconcrete($desc) {
-                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
-                my $type := $desc.of;
-                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
-                    nqp::casattr($cont, Scalar, '$!value', $expected, $val);
                 }
                 else {
-                    my %x := nqp::gethllsym('Raku', 'P6EX');
-                    if nqp::ishash(%x) {
-                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
+                    nqp::die("Cannot assign to a readonly variable or a value");
+                }
+            }),
+            'atomic_store', nqp::getstaticcode(sub ($cont, $val) {
+                my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+                if nqp::isconcrete($desc) {
+                    $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
+                    my $type := $desc.of;
+                    if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
+                        nqp::atomicbindattr($cont, Scalar, '$!value', $val);
                     }
                     else {
-                        nqp::die("Type check failed in assignment");
+                        Perl6::Metamodel::Configuration.throw_or_die(
+                            'X::TypeCheck::Assignment',
+                            "Type check failed in assignment",
+                            :symbol($desc.name),
+                            :got($val),
+                            :expected($type)
+                        );
                     }
-                }
-            }
-            else {
-                nqp::die("Cannot assign to a readonly variable or a value");
-            }
-        }),
-        'atomic_store', nqp::getstaticcode(sub ($cont, $val) {
-            my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-            if nqp::isconcrete($desc) {
-                $val := $desc.default if nqp::eqaddr($val.WHAT, Nil);
-                my $type := $desc.of;
-                if nqp::eqaddr($type, Mu) || nqp::istype($val, $type) {
-                    nqp::atomicbindattr($cont, Scalar, '$!value', $val);
                 }
                 else {
-                    my %x := nqp::gethllsym('Raku', 'P6EX');
-                    if nqp::ishash(%x) {
-                        %x<X::TypeCheck::Assignment>($desc.name, $val, $type);
-                    }
-                    else {
-                        nqp::die("Type check failed in assignment");
-                    }
+                    nqp::die("Cannot assign to a readonly variable or a value");
                 }
-            }
-            else {
-                nqp::die("Cannot assign to a readonly variable or a value");
-            }
-        }),
-    ));
+            }),
+        ));
+    }
+    setup_scalar_contspec(Scalar);
 
     # Cache a single default Scalar container spec, to ensure we only get
     # one of them.
     Scalar.HOW.cache_add(Scalar, 'default_cont_spec',
         ContainerDescriptor::Untyped.new(
             :of(Mu), :default(Any), :name('element')));
+
+    # class ScalarVAR is Scalar {
+    ScalarVAR.HOW.add_parent(ScalarVAR, Scalar);
+    ScalarVAR.HOW.compose_repr(ScalarVAR);
+    setup_scalar_contspec(ScalarVAR);
 
     # Set up various native reference types.
     sub setup_native_ref_type($type, $primitive, $ref_kind) {
@@ -1808,12 +1970,14 @@ BEGIN {
     #    has int $!arity;
     #    has Num $!count;
     #    has Code $!code;
+    #    has int $!readonly;
     Signature.HOW.add_parent(Signature, Any);
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<@!params>, :type(List), :package(Signature)));
     Signature.HOW.add_attribute(Signature, scalar_attr('$!returns', Mu, Signature, :!auto_viv_container));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!arity>, :type(int), :package(Signature)));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!count>, :type(Num), :package(Signature)));
     Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!code>, :type(Code), :package(Signature)));
+    Signature.HOW.add_attribute(Signature, Attribute.new(:name<$!readonly>, :type(int), :package(Signature)));
     Signature.HOW.add_method(Signature, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If any parameter is generic, so are we.
             my @params := nqp::getattr($self, Signature, '@!params');
@@ -1890,12 +2054,17 @@ BEGIN {
     Parameter.HOW.add_attribute(Parameter, scalar_attr('$!container_descriptor', Mu, Parameter, :!auto_viv_container));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!attr_package>, :type(Mu), :package(Parameter)));
     Parameter.HOW.add_attribute(Parameter, Attribute.new(:name<$!why>, :type(Mu), :package(Parameter)));
+    Parameter.HOW.add_attribute(Parameter, scalar_attr('$!signature_constraint', Signature, Parameter, :!auto_viv_container));
     Parameter.HOW.add_method(Parameter, 'is_generic', nqp::getstaticcode(sub ($self) {
             # If nonimnal type or attr_package is generic, so are we.
             my $type := nqp::getattr($self, Parameter, '$!type');
             my $ap   := nqp::getattr($self, Parameter, '$!attr_package');
-            nqp::hllboolfor($type.HOW.archetypes.generic ||
-                (!nqp::isnull($ap) && $ap.HOW.archetypes.generic), "Raku")
+            my $sigc := nqp::getattr($self, Parameter, '$!signature_constraint');
+            nqp::hllboolfor(
+                $type.HOW.archetypes.generic
+                || (!nqp::isnull($ap) && $ap.HOW.archetypes.generic)
+                || (nqp::defined($sigc) && $sigc.is_generic),
+                "Raku")
         }));
     Parameter.HOW.add_method(Parameter, 'instantiate_generic', nqp::getstaticcode(sub ($self, $type_environment) {
             # Clone with the type instantiated.
@@ -1905,6 +2074,7 @@ BEGIN {
             my $type     := nqp::getattr($self, Parameter, '$!type');
             my $cd       := nqp::getattr($self, Parameter, '$!container_descriptor');
             my $ap       := nqp::getattr($self, Parameter, '$!attr_package');
+            my $sigc     := nqp::getattr($self, Parameter, '$!signature_constraint');
             my $ins_type := $type;
             my $ins_cd   := $cd;
             if $type.HOW.archetypes.generic {
@@ -1915,6 +2085,10 @@ BEGIN {
                 !nqp::isnull($ap) && $ap.HOW.archetypes.generic
                     ?? $ap.HOW.instantiate_generic($ap, $type_environment)
                     !! $ap;
+            my $ins_sigc :=
+                nqp::defined($sigc) && $sigc.is_generic
+                    ?? $sigc.instantiate_generic($type_environment)
+                    !! $sigc;
             my int $flags := nqp::getattr_i($ins, Parameter, '$!flags');
             unless $ins_type.HOW.archetypes.generic {
                 if $flags +& $SIG_ELEM_TYPE_GENERIC {
@@ -1928,6 +2102,7 @@ BEGIN {
             nqp::bindattr($ins, Parameter, '$!type', $ins_type);
             nqp::bindattr($ins, Parameter, '$!container_descriptor', $ins_cd);
             nqp::bindattr($ins, Parameter, '$!attr_package', $ins_ap);
+            nqp::bindattr($ins, Parameter, '$!signature_constraint', $ins_sigc);
             $ins
         }));
     Parameter.HOW.add_method(Parameter, 'set_rw', nqp::getstaticcode(sub ($self) {
@@ -1946,13 +2121,14 @@ BEGIN {
             }
             my int $flags := nqp::getattr_i($dcself, Parameter, '$!flags');
             if $flags +& $SIG_ELEM_IS_OPTIONAL {
-                my %ex := nqp::gethllsym('Raku', 'P6EX');
-                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Trait::Invalid') {
-                    nqp::die("Cannot use 'is rw' on optional parameter '$varname'");
-                }
-                else {
-                    nqp::atkey(%ex, 'X::Trait::Invalid')('is', 'rw', 'optional parameter', $varname);
-                }
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Trait::Invalid',
+                    "Cannot use 'is rw' on optional parameter '$varname'",
+                    :type('is'),
+                    :subtype('rw'),
+                    :declaring('optional parameter'),
+                    :name($varname)
+                );
             }
             nqp::bindattr_i($dcself, Parameter, '$!flags', $flags + $SIG_ELEM_IS_RW);
             $dcself
@@ -2068,16 +2244,18 @@ BEGIN {
         }));
     Code.HOW.compose_repr(Code);
 
+#?if !moar
     # Need to actually run the code block. Also need this available before we finish
     # up the stub.
     Code.HOW.set_invocation_attr(Code, Code, '$!do');
     Code.HOW.compose_invocation(Code);
+#?endif
 
     # class Block is Code {
     #     has Mu $!phasers;                # phasers for this block
     #     has Mu $!why;
     Block.HOW.add_parent(Block, Code);
-    Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
+    Block.HOW.add_attribute(Block, Attribute.new(:name<$!phasers>, :type(Mu), :package(Block), :auto_viv_primitive(nqp::null())));
     Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block, :!auto_viv_container));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);
@@ -2197,28 +2375,28 @@ BEGIN {
             $dcself
     }));
     Block.HOW.compose_repr(Block);
+#?if !moar
     Block.HOW.compose_invocation(Block);
+#?endif
 
     # class Routine is Block {
     #     has @!dispatchees;
-    #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
     #     has int $!flags;
     #     has Mu $!inline_info;
     #     has Mu $!package;
-    #     has int $!onlystar;
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
     Routine.HOW.add_parent(Routine, Block);
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<@!dispatchees>, :type(List), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher_cache>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher>, :type(Mu), :package(Routine)));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<@!dispatchees>, :type(List), :package(Routine), :auto_viv_primitive(nqp::null())));
+    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatcher>, :type(Mu), :package(Routine), :auto_viv_primitive(nqp::null())));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!flags>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!inline_info>, :type(Mu), :package(Routine)));
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!package>, :type(Mu), :package(Routine)));
-    Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!onlystar>, :type(int), :package(Routine)));
     Routine.HOW.add_attribute(Routine, scalar_attr('@!dispatch_order', List, Routine, :!auto_viv_container));
+#?if !moar
     Routine.HOW.add_attribute(Routine, Attribute.new(:name<$!dispatch_cache>, :type(Mu), :package(Routine)));
+#?endif
 
     Routine.HOW.add_method(Routine, 'is_dispatcher', nqp::getstaticcode(sub ($self) {
             my $dc_self   := nqp::decont($self);
@@ -2234,8 +2412,9 @@ BEGIN {
                     Routine, '$!dispatcher', $dc_self);
                 nqp::scwbdisable();
                 nqp::bindattr($dc_self, Routine, '@!dispatch_order', nqp::null());
+#?if !moar
                 nqp::bindattr($dc_self, Routine, '$!dispatch_cache', nqp::null());
-                nqp::bindattr($dc_self, Routine, '$!dispatcher_cache', nqp::null());
+#?endif
                 nqp::scwbenable();
                 $dc_self
             }
@@ -2414,29 +2593,46 @@ BEGIN {
                     # to check constraint on every dispatch. Same if it's got a
                     # `where` clause.
                     unless nqp::isnull(nqp::getattr($param, Parameter, '$!sub_signature')) &&
-                           nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
+                           nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) &&
+                           !nqp::defined(nqp::getattr($param, Parameter, '$!signature_constraint'))
+                    {
                         %info<bind_check> := 1;
                         %info<constrainty> := 1;
                     }
 
-                    # If it's a required named (and not slurpy) don't need its type info
-                    # but we will need a bindability check during the dispatch for it.
+                    # For named arguments:
+                    # * Under the legacy dispatcher (not on MoarVM, which uses new-disp)
+                    #   we leave named argument checking to be done via a bind check. We
+                    #   only set that if it's a required named.
+                    # * For the new-disp based dispatcher, we collect a list of required
+                    #   named arguments and allowed named arguments, and filter those out
+                    #   without the bind check.
                     my int $flags   := nqp::getattr_i($param, Parameter, '$!flags');
                     my $named_names := nqp::getattr($param, Parameter, '@!named_names');
                     unless nqp::isnull($named_names) {
                         if $flags +& $SIG_ELEM_MULTI_INVOCANT {
                             unless $flags +& $SIG_ELEM_IS_OPTIONAL {
+                                %info<required_names> := [] unless %info<required_names>;
+                                nqp::push(%info<required_names>, $named_names);
                                 if nqp::elems($named_names) == 1 {
                                     %info<req_named> := nqp::atpos_s($named_names, 0);
                                 }
                             }
                             %info<bind_check> := 1;
                         }
+                        %info<allowed_names> := nqp::hash() unless %info<allowed_names>;
+                        my int $i;
+                        my int $n := nqp::elems($named_names);
+                        while $i < $n {
+                            %info<allowed_names>{nqp::atpos_s($named_names, $i)} := NQPMu;
+                            $i++;
+                        }
                         next;
                     }
-
-                    # If it's named slurpy, we're done, also we don't need a bind
-                    # check on account of nameds since we take them all.
+                    if $flags +& ($SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_IS_CAPTURE) {
+                        %info<allows_all_names> := 1;
+                        nqp::deletekey(%info, 'allowed_names');
+                    }
                     if $flags +& $SIG_ELEM_SLURPY_NAMED {
                         last;
                     }
@@ -2469,7 +2665,8 @@ BEGIN {
                         }
                         %info<types>[$significant_param] := $ptype;
                     }
-                    unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints')) {
+                    unless nqp::isnull(nqp::getattr($param, Parameter, '@!post_constraints'))
+                            && !nqp::defined(nqp::getattr($param, Parameter, '$!signature_constraint')) {
                         %info<constraints>[$significant_param] := 1;
                     }
                     if $flags +& $SIG_ELEM_MULTI_INVOCANT {
@@ -2891,13 +3088,13 @@ BEGIN {
             sub add_to_cache($entry) {
 #?if !moar
                 return 0 if nqp::capturehasnameds($capture);
-#?endif
                 nqp::scwbdisable();
                 nqp::bindattr($dcself, Routine, '$!dispatch_cache',
                     nqp::multicacheadd(
                         nqp::getattr($dcself, Routine, '$!dispatch_cache'),
                         $capture, $entry));
                 nqp::scwbenable();
+#?endif
             }
             if nqp::elems(@possibles) == 1 && $pure_type_result {
                 add_to_cache(nqp::atkey(nqp::atpos(@possibles, 0), 'sub'));
@@ -2932,30 +3129,27 @@ BEGIN {
                 $junctional_res;
             }
             elsif nqp::elems(@possibles) == 0 {
-                my %ex := nqp::gethllsym('Raku', 'P6EX');
-                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Multi::NoMatch') {
-                    nqp::die("Cannot call " ~ $self.name() ~
-                        "; no signatures match");
-                }
-                else {
-                    nqp::atkey(%ex, 'X::Multi::NoMatch')($self, $self.'!p6capture'($capture))
-                }
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Multi::NoMatch',
+                    "Cannot call " ~ $self.name() ~ "; no signatures match",
+                    :dispatcher($self),
+                    :capture($self.'!p6capture'($capture)));
             }
             else {
-                my %ex := nqp::gethllsym('Raku', 'P6EX');
-                if nqp::isnull(%ex) || !nqp::existskey(%ex, 'X::Multi::Ambiguous') {
-                    nqp::die("Ambiguous call to " ~ $self.name());
+                my @ambiguous;
+                for @possibles {
+                    nqp::push(@ambiguous, $_<sub>);
                 }
-                else {
-                    my @ambig;
-                    for @possibles {
-                        nqp::push(@ambig, $_<sub>);
-                    }
-                    nqp::atkey(%ex, 'X::Multi::Ambiguous')($self, @ambig, $self.'!p6capture'($capture))
-                }
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Multi::Ambiguous',
+                    "Ambiguous call to " ~ $self.name(),
+                    :dispatcher($self),
+                    :@ambiguous,
+                    :capture($self.'!p6capture'($capture)));
             }
         }));
     Routine.HOW.add_method(Routine, '!p6capture', nqp::getstaticcode(sub ($self, $capture) {
+#?if !moar
         sub assemble_capture(*@pos, *%named) {
             my $c := nqp::create(Capture);
             nqp::bindattr($c, Capture, '@!list', @pos);
@@ -2963,6 +3157,15 @@ BEGIN {
             $c
         }
         nqp::invokewithcapture(&assemble_capture, $capture)
+#?endif
+#?if moar
+        my $raku-capture := nqp::create(Capture);
+        nqp::bindattr($raku-capture, Capture, '@!list',
+            nqp::dispatch('boot-syscall', 'capture-pos-args', $capture));
+        nqp::bindattr($raku-capture, Capture, '%!hash',
+            nqp::dispatch('boot-syscall', 'capture-named-args', $capture));
+        $raku-capture
+#?endif
     }));
     Routine.HOW.add_method(Routine, 'analyze_dispatch', nqp::getstaticcode(sub ($self, @args, @flags) {
             # Compile time dispatch result.
@@ -3202,28 +3405,36 @@ BEGIN {
             nqp::getattr($dcself, Routine, '$!inline_info')
         }));
     Routine.HOW.add_method(Routine, 'set_onlystar', nqp::getstaticcode(sub ($self) {
-            my $dcself := nqp::decont($self);
-            nqp::bindattr_i($dcself, Routine, '$!onlystar', 1);
-            $dcself
+            $self.set_flag(0x04)
+        }));
+    Routine.HOW.add_method(Routine, 'onlystar', nqp::getstaticcode(sub ($self) {
+            $self.get_flag(0x04)
         }));
     Routine.HOW.compose_repr(Routine);
-    Routine.HOW.set_multi_invocation_attrs(Routine, Routine, '$!onlystar', '$!dispatch_cache');
+#?if !moar
     Routine.HOW.compose_invocation(Routine);
+#?endif
 
     # class Sub is Routine {
     Sub.HOW.add_parent(Sub, Routine);
     Sub.HOW.compose_repr(Sub);
+#?if !moar
     Sub.HOW.compose_invocation(Sub);
+#?endif
 
     # class Method is Routine {
     Method.HOW.add_parent(Method, Routine);
     Method.HOW.compose_repr(Method);
+#?if !moar
     Method.HOW.compose_invocation(Method);
+#?endif
 
     # class Submethod is Routine {
     Submethod.HOW.add_parent(Submethod, Routine);
     Submethod.HOW.compose_repr(Submethod);
+#?if !moar
     Submethod.HOW.compose_invocation(Submethod);
+#?endif
 
     # Capture store for SET_CAPS.
     my class RegexCaptures {
@@ -3419,7 +3630,9 @@ BEGIN {
             }
         }));
     Regex.HOW.compose_repr(Regex);
+#?if !moar
     Regex.HOW.compose_invocation(Regex);
+#?endif
 
     # class Str is Cool {
     #     has str $!value is box_target;
@@ -3532,14 +3745,18 @@ BEGIN {
     ForeignCode.HOW.add_parent(ForeignCode, Any);
     ForeignCode.HOW.add_attribute(ForeignCode, Attribute.new(:name<$!do>, :type(Code), :package(ForeignCode)));
     ForeignCode.HOW.compose_repr(ForeignCode);
+#?if !moar
     ForeignCode.HOW.set_invocation_attr(ForeignCode, ForeignCode, '$!do');
     ForeignCode.HOW.compose_invocation(ForeignCode);
+#?endif
 
     # Set up Stash type, which is really just a hash with a name.
     # class Stash is Hash {
-	#     has str $!longname;
+    #     has str $!longname;
+    #     has $!lock;
     Stash.HOW.add_parent(Stash, Hash);
     Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!longname>, :type(str), :package(Stash)));
+    Stash.HOW.add_attribute(Stash, Attribute.new(:name<$!lock>, :type(Any), :package(Stash)));
     Stash.HOW.compose_repr(Stash);
 
     # Configure the stash type.
@@ -3552,6 +3769,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Cool);
     Perl6::Metamodel::ClassHOW.add_stash(Attribute);
     Perl6::Metamodel::ClassHOW.add_stash(Scalar);
+    Perl6::Metamodel::ClassHOW.add_stash(ScalarVAR);
     Perl6::Metamodel::ClassHOW.add_stash(Proxy);
     Perl6::Metamodel::ClassHOW.add_stash(Signature);
     Perl6::Metamodel::ClassHOW.add_stash(Parameter);
@@ -3597,6 +3815,7 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Junction);
     Perl6::Metamodel::ClassHOW.add_stash(ForeignCode);
 
+#?if !moar
     # Default invocation behavior delegates off to invoke.
     my $invoke_forwarder :=
         nqp::getstaticcode(sub ($self, *@pos, *%named) {
@@ -3639,6 +3858,7 @@ BEGIN {
         });
     Mu.HOW.set_invocation_handler(Mu, $invoke_forwarder);
     Mu.HOW.compose_invocation(Mu);
+#?endif
 
     # If we don't already have a PROCESS, set it up.
     my $PROCESS := nqp::gethllsym('Raku', 'PROCESS');
@@ -3702,6 +3922,7 @@ BEGIN {
     EXPORT::DEFAULT.WHO<ValueObjAt> := ValueObjAt;
     EXPORT::DEFAULT.WHO<Stash>      := Stash;
     EXPORT::DEFAULT.WHO<Scalar>     := Scalar;
+    EXPORT::DEFAULT.WHO<ScalarVAR>  := ScalarVAR;
     EXPORT::DEFAULT.WHO<IntLexRef>  := IntLexRef;
     EXPORT::DEFAULT.WHO<NumLexRef>  := NumLexRef;
     EXPORT::DEFAULT.WHO<StrLexRef>  := StrLexRef;
@@ -3846,10 +4067,11 @@ nqp::sethllconfig('Raku', nqp::hash(
 
             if @exceptions {
                 if nqp::elems(@exceptions) > 1 {
-                    my %ex := nqp::gethllsym('Raku', 'P6EX');
-                    if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::PhaserExceptions') {
-                        nqp::atkey(%ex, 'X::PhaserExceptions')(@exceptions);
-                    }
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::PhaserExceptions',
+                        "Multiple exceptions were thrown by LEAVE/POST phasers",
+                        :exceptions(@exceptions)
+                    );
                 }
                 nqp::rethrow(@exceptions[0]);
             }
@@ -3899,33 +4121,34 @@ nqp::sethllconfig('Raku', nqp::hash(
             nqp::die("Internal error: inconsistent bind result");
         }
     },
-    'method_not_found_error', -> $obj, str $name {
+    'method_not_found_error', -> $obj, str $name, *@pos, *%named {
         my $class := nqp::getlexcaller('$?CLASS');
-        if nqp::gethllsym('Raku', 'P6EX') -> %ex {
-            if $name eq 'STORE' {
-                if nqp::atkey(%ex,'X::Assignment::RO') -> $thrower {
-                    $thrower($obj);
-                }
-            }
-            elsif nqp::atkey(%ex,'X::Method::NotFound') -> $thrower {
-                $thrower($obj, $name, $obj.HOW.name($obj), :in-class-call(nqp::eqaddr(nqp::what($obj), $class)));
-            }
+        my $die_msg := "Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'";
+        if $name eq 'STORE' {
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Assignment::RO',
+                $die_msg,
+                :value($obj)
+            );
         }
-
-        # no thrower found
-        nqp::die("Method '$name' not found for invocant of class '{$obj.HOW.name($obj)}'");
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Method::NotFound',
+            $die_msg,
+            :invocant($obj),
+            :method($name),
+            :typename($obj.HOW.name($obj)),
+            :private(nqp::hllboolfor(0, 'Raku')),
+            :in-class-call(nqp::hllboolfor(nqp::eqaddr(nqp::what($obj), $class), 'Raku'))
+        );
     },
 #?endif
     'lexical_handler_not_found_error', -> int $cat, int $out_of_dyn_scope {
         if $cat == nqp::const::CONTROL_RETURN {
-            if nqp::gethllsym('Raku', 'P6EX') -> %ex {
-                if nqp::atkey(%ex,'X::ControlFlow::Return') -> $thrower {
-                    $thrower($out_of_dyn_scope);
-                }
-            }
-
-            # no thrower found
-            nqp::die('Attempt to return outside of any Routine');
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::ControlFlow::Return',
+                'Attempt to return outside of any Routine',
+                :out-of-dynamic-scope(nqp::hllboolfor($out_of_dyn_scope, 'Raku'))
+            );
         }
         else {
             my $ex := nqp::newexception();
@@ -3959,18 +4182,109 @@ nqp::sethllconfig('Raku', nqp::hash(
     'int64_multidim_ref', Int64MultidimRef,
 #?endif
 #?if moar
+    'call_dispatcher', 'raku-call',
+    'method_call_dispatcher', 'raku-meth-call',
+    'find_method_dispatcher', 'raku-find-meth',
+    'resume_error_dispatcher', 'raku-resume-error',
+    'hllize_dispatcher', 'raku-hllize',
+    'istype_dispatcher', 'nqp-istype',  # Can write a Raku one later for more opts
+    'isinvokable_dispatcher', 'raku-isinvokable',
     'max_inline_size', 384,
 #?endif
 ));
 
+#?if moar
+my @types_for_hll_role := nqp::list(Mu, Int, Num, Str, List, Hash, ForeignCode);
+my @transform_type := nqp::list(
+    Mu,
+    -> $int { nqp::box_i($int, Int) },
+    -> $num { nqp::box_n($num, Num) },
+    -> $str { nqp::box_s($str, Str) },
+    -> $farray {
+        my $list := nqp::create(List);
+        nqp::bindattr($list, List, '$!reified', $farray);
+        $list
+    },
+    -> $hash {
+        my $result := nqp::create(Hash);
+        nqp::bindattr($result, Map, '$!storage', $hash);
+        $result
+    },
+    -> $code {
+        my $result := nqp::create(ForeignCode);
+        nqp::bindattr($result, ForeignCode, '$!do', $code);
+        $result
+    },
+);
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-hllize', -> $capture {
+    my $arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $arg);
+    nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $arg);
+    my $spec := nqp::captureposprimspec($capture, 0);
+    if $spec {
+        nqp::dispatch(
+            'boot-syscall', 'dispatcher-delegate', 'lang-call',
+            nqp::dispatch(
+                'boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $capture, 0, @transform_type[$spec > 3 ?? 1 !! $spec]
+            )
+        )
+    }
+    else {
+        my $obj := nqp::captureposarg($capture, 0);
+
+        if nqp::isnull($obj) {
+            nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                    nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                    0, Mu
+                )
+            );
+        }
+        else {
+            my $role := nqp::gettypehllrole($obj);
+            if $role > 0 {
+                if nqp::isconcrete($obj) {
+                    nqp::dispatch(
+                        'boot-syscall', 'dispatcher-delegate', 'lang-call',
+                        nqp::dispatch(
+                            'boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            $capture, 0, @transform_type[$role]
+                        )
+                    )
+                }
+                else {
+                    nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+                        nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                            nqp::dispatch('boot-syscall', 'dispatcher-drop-arg', $capture, 0),
+                            0, @types_for_hll_role[$role]
+                        )
+                    );
+                }
+            }
+            else {
+                nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-value', $capture);
+            }
+        }
+    }
+});
+#?endif
+
 # Tell parametric role groups how to create a dispatcher.
 Perl6::Metamodel::ParametricRoleGroupHOW.set_selector_creator({
     my $sel := nqp::create(Sub);
+#?if moar
+    my $onlystar := sub (*@pos, *%named) {
+        nqp::dispatch('boot-resume', nqp::const::DISP_ONLYSTAR)
+    };
+#?endif
+#?if !moar
     my $onlystar := sub (*@pos, *%named) {
         nqp::invokewithcapture(
             nqp::getcodeobj(nqp::curcode()).find_best_dispatchee(nqp::usecapture()),
             nqp::usecapture())
     };
+#?endif
     nqp::setcodeobj($onlystar, $sel);
     nqp::bindattr($sel, Code, '$!do', $onlystar);
     nqp::bindattr($sel, Routine, '@!dispatchees', []);
@@ -4002,6 +4316,7 @@ Perl6::Metamodel::PackageHOW.delegate_methods_to(Any);
 Perl6::Metamodel::ModuleHOW.pretend_to_be([Any, Mu]);
 Perl6::Metamodel::ModuleHOW.delegate_methods_to(Any);
 
+#?if !moar
 # Make roles handle invocations.
 my $role_invoke_handler := nqp::getstaticcode(sub ($self, *@pos, *%named) {
     $self.HOW.pun($self)(|@pos, |%named)
@@ -4015,6 +4330,7 @@ Perl6::Metamodel::ClassHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
 Perl6::Metamodel::EnumHOW.set_default_invoke_handler(
     Mu.HOW.invocation_handler(Mu));
+#?endif
 
 # Configure the MOP (not persisted as it ends up in a lexical...)
 Perl6::Metamodel::Configuration.set_stash_type(Stash, Map);
@@ -4031,6 +4347,7 @@ nqp::bindhllsym('Raku', 'PROCESS', PROCESS);
 
 # Stash Scalar and a default container spec away in the HLL state.
 nqp::bindhllsym('Raku', 'Scalar', Scalar);
+nqp::bindhllsym('Raku', 'ScalarVAR', ScalarVAR);
 nqp::bindhllsym('Raku', 'default_cont_spec',
     Scalar.HOW.cache_get(Scalar, 'default_cont_spec'));
 nqp::bindhllsym('Raku', 'Capture', Capture);

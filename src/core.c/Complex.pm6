@@ -3,14 +3,25 @@ my class Complex is Cool does Numeric {
     has num $.re;
     has num $.im;
 
-    method !SET-SELF(Num() \re, Num() \im) {
-        $!re = re;
-        $!im = im;
-        self
-    }
     proto method new(|) {*}
-    multi method new() { self.new: 0, 0 }
-    multi method new(Real \re, Real \im) { nqp::create(self)!SET-SELF(re, im) }
+    multi method new() {
+        my $complex := nqp::create(self);
+        nqp::bindattr_n($complex,Complex,'$!re',0e0);
+        nqp::bindattr_n($complex,Complex,'$!im',0e0);
+        $complex
+    }
+    multi method new(Num:D $re, Num:D $im) {
+        my $complex := nqp::create(self);
+        nqp::bindattr_n($complex,Complex,'$!re',$re);
+        nqp::bindattr_n($complex,Complex,'$!im',$im);
+        $complex
+    }
+    multi method new(Real:D $re, Real:D $im) {
+        my $complex := nqp::create(self);
+        nqp::bindattr_n($complex,Complex,'$!re',$re.Num);
+        nqp::bindattr_n($complex,Complex,'$!im',$im.Num);
+        $complex
+    }
 
     multi method WHICH(Complex:D: --> ValueObjAt:D) {
         nqp::box_s(
@@ -245,242 +256,222 @@ my class Complex is Cool does Numeric {
     }
 }
 
-multi sub prefix:<->(Complex:D \a --> Complex:D) {
+multi sub prefix:<->(Complex:D $a --> Complex:D) {
     my $new := nqp::create(Complex);
-    nqp::bindattr_n( $new, Complex, '$!re',
-        nqp::neg_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!re')
-        )
+    nqp::bindattr_n($new,Complex,'$!re',
+      nqp::neg_n(nqp::getattr_n($a,Complex,'$!re'))
     );
-    nqp::bindattr_n( $new, Complex, '$!im',
-        nqp::neg_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!im')
-        )
+    nqp::bindattr_n($new,Complex,'$!im',
+      nqp::neg_n(nqp::getattr_n($a,Complex,'$!im'))
     );
-    $new;
+    $new
 }
 
-multi sub abs(Complex:D \a --> Num:D) {
-    my num $re = nqp::getattr_n(nqp::decont(a), Complex, '$!re');
-    my num $im = nqp::getattr_n(nqp::decont(a), Complex, '$!im');
-    nqp::p6box_n(nqp::sqrt_n(nqp::add_n(nqp::mul_n($re, $re), nqp::mul_n($im, $im))));
+multi sub abs(Complex:D $a --> Num:D) {
+    my num $re = nqp::getattr_n($a,Complex,'$!re');
+    my num $im = nqp::getattr_n($a,Complex,'$!im');
+    nqp::p6box_n(
+      nqp::sqrt_n(
+        nqp::add_n(nqp::mul_n($re,$re),nqp::mul_n($im,$im))
+      )
+    )
 }
 
-multi sub infix:<+>(Complex:D \a, Complex:D \b --> Complex:D) {
+multi sub infix:<+>(Complex:D $a, Complex:D $b --> Complex:D) {
     my $new := nqp::create(Complex);
-    nqp::bindattr_n( $new, Complex, '$!re',
+    nqp::bindattr_n($new,Complex,'$!re',
         nqp::add_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!re'),
-            nqp::getattr_n(nqp::decont(b), Complex, '$!re'),
+            nqp::getattr_n($a,Complex,'$!re'),
+            nqp::getattr_n($b,Complex,'$!re'),
         )
     );
-    nqp::bindattr_n( $new, Complex, '$!im',
+    nqp::bindattr_n($new,Complex,'$!im',
         nqp::add_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!im'),
-            nqp::getattr_n(nqp::decont(b), Complex, '$!im'),
+            nqp::getattr_n($a,Complex,'$!im'),
+            nqp::getattr_n($b,Complex,'$!im'),
         )
     );
-    $new;
+    $new
 }
 
-multi sub infix:<+>(Complex:D \a, Num(Real) \b --> Complex:D) {
+multi sub infix:<+>(Complex:D $a, Num(Real) $b --> Complex:D) {
     my $new := nqp::create(Complex);
-    nqp::bindattr_n( $new, Complex, '$!re',
+    nqp::bindattr_n($new,Complex,'$!re',
         nqp::add_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!re'),
-            nqp::unbox_n(b)
+            nqp::getattr_n($a,Complex,'$!re'),
+            nqp::unbox_n($b)
         )
     );
-    nqp::bindattr_n($new, Complex, '$!im',
-        nqp::getattr_n(nqp::decont(a), Complex, '$!im'),
+    nqp::bindattr_n($new,Complex,'$!im',
+        nqp::getattr_n($a,Complex,'$!im'),
     );
     $new
 }
 
-multi sub infix:<+>(Num(Real) \a, Complex:D \b --> Complex:D) {
+multi sub infix:<+>(Num(Real) $a, Complex:D $b --> Complex:D) {
     my $new := nqp::create(Complex);
-    nqp::bindattr_n($new, Complex, '$!re',
+    nqp::bindattr_n($new,Complex,'$!re',
         nqp::add_n(
-            nqp::unbox_n(a),
-            nqp::getattr_n(nqp::decont(b), Complex, '$!re'),
+            nqp::unbox_n($a),
+            nqp::getattr_n($b,Complex,'$!re'),
         )
     );
+    nqp::bindattr_n($new,Complex,'$!im',
+        nqp::getattr_n($b,Complex,'$!im'),
+    );
+    $new
+}
+
+multi sub infix:<->(Complex:D $a, Complex:D $b --> Complex:D) {
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n($new,Complex,'$!re',
+      nqp::sub_n(
+        nqp::getattr_n($a,Complex,'$!re'),
+        nqp::getattr_n($b,Complex,'$!re'),
+      )
+    );
+    nqp::bindattr_n($new,Complex,'$!im',
+      nqp::sub_n(
+        nqp::getattr_n($a,Complex,'$!im'),
+        nqp::getattr_n($b,Complex,'$!im'),
+      )
+    );
+    $new
+}
+
+multi sub infix:<->(Complex:D $a, Num(Real) $b --> Complex:D) {
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n($new,Complex,'$!re',
+      nqp::sub_n(nqp::getattr_n($a,Complex,'$!re'),$b)
+    );
+    nqp::bindattr_n($new,Complex,'$!im',
+      nqp::getattr_n($a,Complex,'$!im')
+    );
+    $new
+}
+
+multi sub infix:<->(Num(Real) $a, Complex:D $b --> Complex:D) {
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n($new,Complex,'$!re',
+      nqp::sub_n($a,nqp::getattr_n($b,Complex,'$!re'))
+    );
+    nqp::bindattr_n($new,Complex,'$!im',
+      nqp::neg_n(nqp::getattr_n($b,Complex,'$!im'))
+    );
+    $new
+}
+
+multi sub infix:<*>(Complex:D $a, Complex:D $b --> Complex:D) {
+    my num $a_re = nqp::getattr_n($a,Complex,'$!re');
+    my num $a_im = nqp::getattr_n($a,Complex,'$!im');
+    my num $b_re = nqp::getattr_n($b,Complex,'$!re');
+    my num $b_im = nqp::getattr_n($b,Complex,'$!im');
+
+    my $new := nqp::create(Complex);
+    nqp::bindattr_n($new,Complex,'$!re',
+      nqp::sub_n(nqp::mul_n($a_re,$b_re),nqp::mul_n($a_im,$b_im))
+    );
     nqp::bindattr_n($new, Complex, '$!im',
-        nqp::getattr_n(nqp::decont(b), Complex, '$!im'),
+      nqp::add_n(nqp::mul_n($a_re, $b_im), nqp::mul_n($a_im, $b_re))
     );
     $new;
 }
 
-multi sub infix:<->(Complex:D \a, Complex:D \b --> Complex:D) {
+multi sub infix:<*>(Complex:D $a, Num(Real) $b --> Complex:D) {
     my $new := nqp::create(Complex);
-    nqp::bindattr_n( $new, Complex, '$!re',
-        nqp::sub_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!re'),
-            nqp::getattr_n(nqp::decont(b), Complex, '$!re'),
-        )
+    my num $b_num = $b;
+    nqp::bindattr_n($new,Complex,'$!re',
+      nqp::mul_n(nqp::getattr_n($a,Complex,'$!re'),$b_num)
     );
-    nqp::bindattr_n($new, Complex, '$!im',
-        nqp::sub_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!im'),
-            nqp::getattr_n(nqp::decont(b), Complex, '$!im'),
-        )
+    nqp::bindattr_n($new,Complex,'$!im',
+      nqp::mul_n(nqp::getattr_n($a,Complex,'$!im'),$b_num)
     );
     $new
 }
 
-multi sub infix:<->(Complex:D \a, Num(Real) \b --> Complex:D) {
+multi sub infix:<*>(Num(Real) $a, Complex:D $b --> Complex:D) {
     my $new := nqp::create(Complex);
-    nqp::bindattr_n( $new, Complex, '$!re',
-        nqp::sub_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!re'),
-            b,
-        )
+    my num $a_num = $a;
+    nqp::bindattr_n($new,Complex,'$!re',
+      nqp::mul_n($a_num,nqp::getattr_n($b,Complex,'$!re'))
     );
-    nqp::bindattr_n($new, Complex, '$!im',
-        nqp::getattr_n(nqp::decont(a), Complex, '$!im')
+    nqp::bindattr_n($new,Complex,'$!im',
+      nqp::mul_n($a_num,nqp::getattr_n($b,Complex,'$!im'))
     );
     $new
 }
 
-multi sub infix:<->(Num(Real) \a, Complex:D \b --> Complex:D) {
+multi sub infix:</>(Complex:D $a, Complex:D $b --> Complex:D) {
+    my num $a_re = nqp::getattr_n($a,Complex,'$!re');
+    my num $a_im = nqp::getattr_n($a,Complex,'$!im');
+    my num $b_re = nqp::getattr_n($b,Complex,'$!re');
+    my num $b_im = nqp::getattr_n($b,Complex,'$!im');
+    my num $d = nqp::add_n(nqp::mul_n($b_re,$b_re),nqp::mul_n($b_im,$b_im));
+
     my $new := nqp::create(Complex);
-    nqp::bindattr_n( $new, Complex, '$!re',
-        nqp::sub_n(
-            a,
-            nqp::getattr_n(nqp::decont(b), Complex, '$!re'),
-        )
+    nqp::bindattr_n($new,Complex,'$!re',
+      nqp::div_n(
+        nqp::add_n(nqp::mul_n($a_re,$b_re),nqp::mul_n($a_im, $b_im)),
+        $d
+      )
     );
-    nqp::bindattr_n($new, Complex, '$!im',
-        nqp::neg_n(
-            nqp::getattr_n(nqp::decont(b), Complex, '$!im')
-        )
+    nqp::bindattr_n($new,Complex,'$!im',
+      nqp::div_n(
+        nqp::sub_n(nqp::mul_n($a_im,$b_re),nqp::mul_n($a_re,$b_im)),
+        $d
+      )
     );
     $new
 }
 
-multi sub infix:<*>(Complex:D \a, Complex:D \b --> Complex:D) {
-    my num $a_re = nqp::getattr_n(nqp::decont(a), Complex, '$!re');
-    my num $a_im = nqp::getattr_n(nqp::decont(a), Complex, '$!im');
-    my num $b_re = nqp::getattr_n(nqp::decont(b), Complex, '$!re');
-    my num $b_im = nqp::getattr_n(nqp::decont(b), Complex, '$!im');
-    my $new := nqp::create(Complex);
-    nqp::bindattr_n($new, Complex, '$!re',
-        nqp::sub_n(nqp::mul_n($a_re, $b_re), nqp::mul_n($a_im, $b_im)),
-    );
-    nqp::bindattr_n($new, Complex, '$!im',
-        nqp::add_n(nqp::mul_n($a_re, $b_im), nqp::mul_n($a_im, $b_re)),
-    );
-    $new;
+multi sub infix:</>(Complex:D $a, Real:D $b --> Complex:D) {
+    Complex.new($a.re / $b, $a.im / $b)
 }
 
-multi sub infix:<*>(Complex:D \a, Num(Real) \b --> Complex:D) {
-    my $new := nqp::create(Complex);
-    my num $b_num = b;
-    nqp::bindattr_n($new, Complex, '$!re',
-        nqp::mul_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!re'),
-            $b_num,
-        )
-    );
-    nqp::bindattr_n($new, Complex, '$!im',
-        nqp::mul_n(
-            nqp::getattr_n(nqp::decont(a), Complex, '$!im'),
-            $b_num,
-        )
-    );
-    $new
+multi sub infix:</>(Real:D $a, Complex:D $b --> Complex:D) {
+    Complex.new($a, 0e0) / $b;
 }
 
-multi sub infix:<*>(Num(Real) \a, Complex:D \b --> Complex:D) {
-    my $new := nqp::create(Complex);
-    my num $a_num = a;
-    nqp::bindattr_n($new, Complex, '$!re',
-        nqp::mul_n(
-            $a_num,
-            nqp::getattr_n(nqp::decont(b), Complex, '$!re'),
-        )
-    );
-    nqp::bindattr_n($new, Complex, '$!im',
-        nqp::mul_n(
-            $a_num,
-            nqp::getattr_n(nqp::decont(b), Complex, '$!im'),
-        )
-    );
-    $new
+multi sub infix:<**>(Complex:D $a, Complex:D $b --> Complex:D) {
+    $a.re == 0e0 && $a.im == 0e0
+      ?? $b.re == 0e0 && $b.im == 0e0
+        ?? Complex.new(1e0, 0e0)
+        !! Complex.new(0e0, 0e0)
+      !! ($b * $a.log).exp
 }
-
-multi sub infix:</>(Complex:D \a, Complex:D \b --> Complex:D) {
-    my num $a_re = nqp::getattr_n(nqp::decont(a), Complex, '$!re');
-    my num $a_im = nqp::getattr_n(nqp::decont(a), Complex, '$!im');
-    my num $b_re = nqp::getattr_n(nqp::decont(b), Complex, '$!re');
-    my num $b_im = nqp::getattr_n(nqp::decont(b), Complex, '$!im');
-    my num $d    = nqp::add_n(nqp::mul_n($b_re, $b_re), nqp::mul_n($b_im, $b_im));
-    my $new := nqp::create(Complex);
-    nqp::bindattr_n($new, Complex, '$!re',
-        nqp::div_n(
-            nqp::add_n(nqp::mul_n($a_re, $b_re), nqp::mul_n($a_im, $b_im)),
-            $d,
-        )
-    );
-    nqp::bindattr_n($new, Complex, '$!im',
-        nqp::div_n(
-            nqp::sub_n(nqp::mul_n($a_im, $b_re), nqp::mul_n($a_re, $b_im)),
-            $d,
-        )
-    );
-    $new;
-}
-
-multi sub infix:</>(Complex:D \a, Real \b --> Complex:D) {
-    Complex.new(a.re / b, a.im / b);
-}
-
-multi sub infix:</>(Real \a, Complex:D \b --> Complex:D) {
-    Complex.new(a, 0e0) / b;
-}
-
-multi sub infix:<**>(Complex:D \a, Complex:D \b --> Complex:D) {
-    (a.re == 0e0 && a.im == 0e0)
-        ?? ( b.re == 0e0 && b.im == 0e0
-                ?? Complex.new(1e0, 0e0)
-                !! Complex.new(0e0, 0e0)
-           )
-        !! (b * a.log).exp
-}
-multi sub infix:<**>(Num(Real) \a, Complex:D \b --> Complex:D) {
-    a == 0e0
-        ?? ( b.re == 0e0 && b.im == 0e0
-                ?? Complex.new(1e0, 0e0)
-                !! Complex.new(0e0, 0e0)
-           )
-        !! (b * a.log).exp
+multi sub infix:<**>(Num(Real) $a, Complex:D $b --> Complex:D) {
+    $a == 0e0
+      ?? $b.re == 0e0 && $b.im == 0e0
+        ?? Complex.new(1e0, 0e0)
+        !! Complex.new(0e0, 0e0)
+      !! ($b * $a.log).exp
 }
 multi sub infix:<**>(Complex:D \a, Num(Real) \b --> Complex:D) {
     a.isNaN || b.isNaN
-        ?? Complex.new(NaN, NaN)
-        !! b == Inf || b == -Inf
-            ?? b == Inf && a.abs < 1e0 || b == -Inf && a.abs > 1e0
-                ?? Complex.new(0e0, 0e0)
-                !! Complex.new(NaN, NaN)
-            !! (my $ib := b.Int) == b
-                ?? a ** $ib
-                !! (my $fb2 := b - $ib * 2) == 1e0
-                    ?? a ** $ib * a.sqrt
-                    !! $fb2 == -1e0
-                        ?? a ** $ib / a.sqrt
-                        !! (b * a.log).exp
+      ?? Complex.new(NaN, NaN)
+      !! b == Inf || b == -Inf
+        ?? b == Inf && a.abs < 1e0 || b == -Inf && a.abs > 1e0
+          ?? Complex.new(0e0, 0e0)
+          !! Complex.new(NaN, NaN)
+        !! (my $ib := b.Int) == b
+          ?? a ** $ib
+          !! (my $fb2 := b - $ib * 2) == 1e0
+            ?? a ** $ib * a.sqrt
+            !! $fb2 == -1e0
+              ?? a ** $ib / a.sqrt
+              !! (b * a.log).exp
 }
-multi sub infix:<**>(Complex:D \a, Int:D \b --> Complex:D) {
+multi sub infix:<**>(Complex:D $a, Int:D $b --> Complex:D) {
     my $r := Complex.new(1e0, 0e0);
     nqp::if(
-      b == 0,
+      $b == 0,
       $r,
       nqp::if(
-        a == $r || b == 1,
-        a,
+        $a == $r || $b == 1,
+        $a,
         nqp::stmts(
-          (my $u := b.abs),
-          (my $t := a),
+          (my $u := $b.abs),
+          (my $t := $a),
           nqp::while(
             $u  > 0,
             nqp::stmts(
@@ -493,7 +484,7 @@ multi sub infix:<**>(Complex:D \a, Int:D \b --> Complex:D) {
             )
           ),
           nqp::if(
-            b < 0,
+            $b < 0,
             1e0 / $r,
             $r
           )
@@ -502,40 +493,72 @@ multi sub infix:<**>(Complex:D \a, Int:D \b --> Complex:D) {
     )
 }
 
-multi sub infix:<==>(Complex:D \a, Complex:D \b --> Bool:D) { a.re == b.re && a.im == b.im }
-multi sub infix:<==>(Complex:D \a, Num(Real) \b --> Bool:D) { a.re == b    && a.im == 0e0  }
-multi sub infix:<==>(Num(Real) \a, Complex:D \b --> Bool:D) { a    == b.re && 0e0  == b.im }
-multi sub infix:<===>(Complex:D \a, Complex:D \b --> Bool:D) {
-    a.WHAT =:= b.WHAT && a.re === b.re && a.im === b.im
+multi sub infix:<==>(Complex:D $a, Complex:D $b --> Bool:D) {
+    $a.re == $b.re && $a.im == $b.im
+}
+multi sub infix:<==>(Complex:D $a, Num(Real) $b --> Bool:D) {
+    $a.re == $b && $a.im == 0e0
+}
+multi sub infix:<==>(Num(Real) $a, Complex:D $b --> Bool:D) {
+    $a == $b.re && 0e0 == $b.im
+}
+multi sub infix:<===>(Complex:D $a, Complex:D $b --> Bool:D) {
+    $a.WHAT =:= $b.WHAT && $a.re === $b.re && $a.im === $b.im
 }
 
-multi sub infix:<≅>(Complex:D \a, Complex:D \b --> Bool:D) { a.re ≅ b.re && a.im ≅ b.im || a <=> b =:= Same }
-multi sub infix:<≅>(Complex:D \a, Num(Real) \b --> Bool:D) { a ≅ b.Complex }
-multi sub infix:<≅>(Num(Real) \a, Complex:D \b --> Bool:D) { a.Complex ≅ b }
+multi sub infix:<≅>(Complex:D $a, Complex:D $b --> Bool:D) {
+    $a.re ≅ $b.re && $a.im ≅ $b.im || $a <=> $b =:= Same
+}
+multi sub infix:<≅>(Complex:D $a, Num(Real) $b --> Bool:D) {
+    $a ≅ $b.Complex
+}
+multi sub infix:<≅>(Num(Real) $a, Complex:D $b --> Bool:D) {
+    $a.Complex ≅ $b
+}
 
 # Meaningful only for sorting purposes, of course.
 # We delegate to Real::cmp rather than <=> because parts might be NaN.
-multi sub infix:<cmp>(Complex:D \a, Complex:D \b --> Order:D) { a.re cmp b.re || a.im cmp b.im }
-multi sub infix:<cmp>(Num(Real) \a, Complex:D \b --> Order:D) { a cmp b.re || 0 cmp b.im }
-multi sub infix:<cmp>(Complex:D \a, Num(Real) \b --> Order:D) { a.re cmp b || a.im cmp 0 }
-
-multi sub infix:«<=>»(Complex:D \a, Complex:D \b --> Order:D) {
-    my $tolerance = a && b
-        ?? (a.re.abs + b.re.abs) / 2 * $*TOLERANCE  # Scale slop to average real parts.
-        !! $*TOLERANCE;                             # Don't want tolerance 0 if either arg is 0.
-    # Fail unless imaginary parts are relatively negligible, compared to real parts.
-    infix:<≅>(a.im, 0e0, :$tolerance) && infix:<≅>(b.im, 0e0, :$tolerance)
-      ?? a.re <=> b.re
-      !! Failure.new(X::Numeric::Real.new(target => Real, reason => "Complex is not numerically orderable", source => "Complex"))
+multi sub infix:<cmp>(Complex:D $a, Complex:D $b) {
+    nqp::eqaddr((my $cmp := $a.re cmp $b.re),Order::Same)
+      ?? $a.im cmp $b.im
+      !! $cmp
 }
-multi sub infix:«<=>»(Num(Real) \a, Complex:D \b --> Order:D) { a.Complex <=> b }
-multi sub infix:«<=>»(Complex:D \a, Num(Real) \b --> Order:D) { a <=> b.Complex }
+multi sub infix:<cmp>(Num(Real) $a, Complex:D $b) {
+    nqp::eqaddr((my $cmp := $a cmp $b.re),Order::Same)
+      ?? 0 cmp $b.im
+      !! $cmp
+}
+multi sub infix:<cmp>(Complex:D $a, Num(Real) $b) {
+    nqp::eqaddr((my $cmp := $a.re cmp $b),Order::Same)
+      ?? $a.im cmp 0
+      !! $cmp
+}
+
+multi sub infix:«<=>»(Complex:D $a, Complex:D $b) {
+    my $tolerance := $a && $b
+      ?? ($a.re.abs + $b.re.abs) / 2 * $*TOLERANCE  # Scale slop to average real parts.
+      !! $*TOLERANCE;                               # Don't want tolerance 0 if either arg is 0.
+    # Fail unless imaginary parts are relatively negligible, compared to real parts.
+    infix:<≅>($a.im, 0e0, :$tolerance) && infix:<≅>($b.im, 0e0, :$tolerance)
+      ?? $a.re <=> $b.re
+      !! Failure.new(
+           X::Numeric::Real.new(
+             target => Real,
+             reason => "Complex is not numerically orderable",
+             source => "Complex"
+           )
+         )
+}
+multi sub infix:«<=>»(Num(Real) $a, Complex:D $b) { $a.Complex <=> $b }
+multi sub infix:«<=>»(Complex:D $a, Num(Real) $b) { $a <=> $b.Complex }
 
 proto sub postfix:<i>($, *%        --> Complex:D) is pure {*}
-multi sub postfix:<i>(Real      \a --> Complex:D) { Complex.new(0e0, a);     }
-multi sub postfix:<i>(Complex:D \a --> Complex:D) { Complex.new(-a.im, a.re) }
-multi sub postfix:<i>(Numeric   \a --> Complex:D) { a * Complex.new(0e0, 1e0) }
-multi sub postfix:<i>(Cool      \a --> Complex:D) { a.Numeric * Complex.new(0e0, 1e0) }
+multi sub postfix:<i>(Real      $a --> Complex:D) { Complex.new(0e0, $a)       }
+multi sub postfix:<i>(Complex:D $a --> Complex:D) { Complex.new(-$a.im, $a.re) }
+multi sub postfix:<i>(Numeric   $a --> Complex:D) { $a * Complex.new(0e0, 1e0) }
+multi sub postfix:<i>(Cool      $a --> Complex:D) {
+    $a.Numeric * Complex.new(0e0, 1e0)
+}
 
 constant i = Complex.new(0e0, 1e0);
 

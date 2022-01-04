@@ -60,14 +60,14 @@ my class ThreadPoolScheduler does Scheduler {
             else {
                 my $success;
                 my $result;
-                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, nqp::getattr(-> Mu \c {
                     $handle.subscribe-awaiter(-> \success, \result {
                         $success := success;
                         $result := result;
                         nqp::push($!queue, ContinuationWrapper.new(c));
                         Nil
                     });
-                });
+                }, Code, '$!do'));
                 $success
                     ?? $result
                     !! $result.rethrow
@@ -151,6 +151,8 @@ my class ThreadPoolScheduler does Scheduler {
                             }
                             if $resume {
                                 nqp::push($!queue, {
+                                    $l.lock; # lock gets released as soon as $continuation is initialized
+                                    $l.unlock; # no need to hold the lock while running the continuation - no one else is gonna take it
                                     nqp::continuationinvoke($continuation, nqp::null())
                                 });
                             }
@@ -162,10 +164,10 @@ my class ThreadPoolScheduler does Scheduler {
                         $l.unlock();
                     }
                 }
-                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, nqp::getattr(-> Mu \c {
                     $continuation := c;
                     $l.unlock;
-                });
+                }, Code, '$!do'));
 
                 # If we got an exception, throw it.
                 $exception.rethrow if nqp::isconcrete($exception);
@@ -240,7 +242,7 @@ my class ThreadPoolScheduler does Scheduler {
                 nqp::continuationinvoke(task.cont, nqp::null());
             }
             else {
-                nqp::continuationreset(THREAD_POOL_PROMPT, {
+                nqp::continuationreset(THREAD_POOL_PROMPT, nqp::getattr({
                     if nqp::istype(task, List) {
                         my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
                         $code(|task);
@@ -259,7 +261,7 @@ my class ThreadPoolScheduler does Scheduler {
                             $!scheduler.handle_uncaught($_)
                         }
                     }
-                });
+                }, Code, '$!do'));
             }
             $!working = 0;
 #?if moar
@@ -534,6 +536,7 @@ my class ThreadPoolScheduler does Scheduler {
     my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
+            my int $cpu-cores = Kernel.cpu-cores-but-one;
             $!supervisor = Thread.start(:app_lifetime, :name<Supervisor>, {
                 sub add-general-worker(--> Nil) {
                     $!state-lock.protect: {
@@ -562,8 +565,7 @@ my class ThreadPoolScheduler does Scheduler {
                 }
 
                 scheduler-debug "Supervisor started";
-                my num $last-rusage-time = nqp::time_n;
-#?if !jvm
+                my int $last-rusage-time = nqp::time;
                 my int @rusage;
                 nqp::getrusage(@rusage);
                 my int $last-usage =
@@ -578,22 +580,6 @@ my class ThreadPoolScheduler does Scheduler {
                     + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
-#?endif
-#?if jvm
-                ## dirty hack, that relies on rusage being a VMArrayInstance
-                ## instead of VMArrayInstance_i
-                ## see https://github.com/rakudo/rakudo/issues/1666
-                my int @rusage;
-                nqp::getrusage(@rusage);
-                my int $last-usage =
-                  1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
-                    + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
-                    + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
-                    + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-
-                my @last-utils = 0e0 xx NUM_SAMPLES;
-#?endif
-                my int $cpu-cores = max(nqp::cpucores() - 1,1);
 
                 # These definitions used to live inside the supervisor loop.
                 # Moving them out of the loop does not improve CPU usage
@@ -603,8 +589,8 @@ my class ThreadPoolScheduler does Scheduler {
                 # unclear until we have profiling options that also work
                 # when multiple threads are running.
                 my int $exhausted;
-                my num $now;
-                my num $rusage-period;
+                my int $now;
+                my int $rusage-period;
                 my int $current-usage;
                 my int $usage-delta;
                 my num $normalized-delta;
@@ -620,11 +606,10 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Work out the delta of CPU usage since last supervision
                     # and the time period that measurement spans.
-                    $now = nqp::time_n;
+                    $now = nqp::time;
                     $rusage-period = $now - $last-rusage-time;
                     $last-rusage-time = $now;
                     nqp::getrusage(@rusage);
-#?if !jvm
                     $current-usage =
                       nqp::mul_i(
                         nqp::atpos_i(@rusage,nqp::const::RUSAGE_UTIME_SEC),
@@ -635,17 +620,6 @@ my class ThreadPoolScheduler does Scheduler {
                             1000000
                           )
                         + nqp::atpos_i(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-#?endif
-#?if jvm
-                    ## dirty hack, that relies on rusage being a VMArrayInstance
-                    ## instead of VMArrayInstance_i
-                    ## see https://github.com/rakudo/rakudo/issues/1666
-                    $current-usage =
-                      1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_SEC)
-                        + nqp::atpos(@rusage,nqp::const::RUSAGE_UTIME_MSEC)
-                        + 1000000 * nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_SEC)
-                        + nqp::atpos(@rusage,nqp::const::RUSAGE_STIME_MSEC);
-#?endif
                     $usage-delta = $current-usage - $last-usage;
                     $last-usage = $current-usage;
 
@@ -660,23 +634,18 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # Since those values are noisy, average the last
                     # NUM_SAMPLES values to get a smoothed value.
-#?if !jvm
                     $smooth-per-core-util -= nqp::shift_n(@last-utils);
                     $smooth-per-core-util += $per-core-util;
                     nqp::push_n(@last-utils,$per-core-util);
-#?endif
-#?if jvm
-                    $smooth-per-core-util -= @last-utils.shift;
-                    $smooth-per-core-util += $per-core-util;
-                    @last-utils.push($per-core-util);
-#?endif
                     note "[SCHEDULER $pid] Per-core utilization (approx): $smooth-per-core-util%"
                       if $scheduler-debug-status;
 
                     # exhausted the system allotment of low level threads
                     if $exhausted {
-                        $exhausted = 0  # for next run of supervisor
-                          if ++$exhausted > EXHAUSTED_RETRY_AFTER;
+                        if ++$exhausted > EXHAUSTED_RETRY_AFTER {
+                            scheduler-debug "No more system threads";
+                            $exhausted = 0  # for next run of supervisor
+                        }
                     }
 
                     # we can still add threads if necessary
@@ -759,11 +728,22 @@ my class ThreadPoolScheduler does Scheduler {
             }
         }
 
-        # If we didn't complete anything, then consider adding more threads.
+        # Consider adding more worker threads when:
+        # 1. We didn't complete anything since the last supervision. This is
+        #    likely because some long-running tasks are holding onto the
+        #    workers. We should at least think about adding more (and the
+        #    code below will try to determine if that's beneficial).
+        # 2. The number of tasks in the queue is greater than the number of
+        #    workers. Such a situation suggests we are under-resourced, and
+        #    so liable to fall behind. Consider it like checkout lanes at a
+        #    supermarket: if 20 people are queueing and there are only 2 open
+        #    checkout lanes, it makes sense to open more, but if there are 20
+        #    people waiting and 30 open checkout lanes, there's little to be
+        #    won by opening another one at this point.
         my int $total-workers = nqp::elems($!general-workers)
           + nqp::elems($!timer-workers)
           + nqp::elems($!affinity-workers);
-        if $total-completed == 0 {
+        if $total-completed == 0 || nqp::elems(queue) > nqp::elems(worker-list) {
             if $total-workers < $!max_threads {
                 # There's something in the queue and we haven't completed it.
                 # If we are still below the CPU core count, just add a worker.
@@ -801,15 +781,10 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     submethod BUILD(
-        Int :$!initial_threads = 0,
-#?if jvm
-        Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 64).Int
-#?endif
-#?if !jvm
-        Int :$!max_threads = nqp::ifnull(nqp::atkey($ENV,'RAKUDO_MAX_THREADS'),64)
-#?endif
-        --> Nil
-    ) {
+      Int() :$!initial_threads = 0,
+      Int() :$!max_threads =
+        %*ENV<RAKUDO_MAX_THREADS> // (Kernel.cpu-cores * 8 max 64)
+    --> Nil) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
             if $!initial_threads > $!max_threads;
 
@@ -826,7 +801,7 @@ my class ThreadPoolScheduler does Scheduler {
               GeneralWorker.new(
                 queue => $!general-queue,
                 scheduler => self
-              )
+             )
             ) for ^$!initial_threads;
             scheduler-debug "Created scheduler with $!initial_threads initial general workers";
             self!maybe-start-supervisor();

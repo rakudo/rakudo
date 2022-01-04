@@ -92,6 +92,10 @@ BEGIN {
     trait_mod:<is>(&infix:<(-)>, :prec($junctive_or));
     trait_mod:<is>(&infix:<(^)>, :prec($junctive_or));
 
+    trait_mod:<is>(&infix:<< > >>,  :prec($chaining));
+    trait_mod:<is>(&infix:<< < >>,  :prec($chaining));
+    trait_mod:<is>(&infix:<< >= >>, :prec($chaining));
+    trait_mod:<is>(&infix:<< <= >>, :prec($chaining));
     trait_mod:<is>(&infix:<==>,     :prec($chaining));
     trait_mod:<is>(&infix:<!=>,     :prec($chaining));
     trait_mod:<is>(&infix:<eq>,     :prec($chaining));
@@ -130,16 +134,17 @@ BEGIN {
     trait_mod:<is>(&infix:<<(<+)>>, :prec($chaining));
     trait_mod:<is>(&infix:<<(>+)>>, :prec($chaining));
 
-    trait_mod:<is>(&infix:<..>,     :prec($structural));
-    trait_mod:<is>(&infix:<^..>,    :prec($structural));
-    trait_mod:<is>(&infix:<..^>,    :prec($structural));
-    trait_mod:<is>(&infix:<^..^>,   :prec($structural));
-    trait_mod:<is>(&infix:<leg>,    :prec($structural));
-    trait_mod:<is>(&infix:<cmp>,    :prec($structural));
-    trait_mod:<is>(&infix:<unicmp>, :prec($structural));
-    trait_mod:<is>(&infix:<coll>,   :prec($structural));
-    trait_mod:<is>(&infix:<but>,    :prec($structural));
-    trait_mod:<is>(&infix:<does>,   :prec($structural));
+    trait_mod:<is>(&infix:<..>,      :prec($structural));
+    trait_mod:<is>(&infix:<^..>,     :prec($structural));
+    trait_mod:<is>(&infix:<..^>,     :prec($structural));
+    trait_mod:<is>(&infix:<^..^>,    :prec($structural));
+    trait_mod:<is>(&infix:<< <=> >>, :prec($structural));
+    trait_mod:<is>(&infix:<leg>,     :prec($structural));
+    trait_mod:<is>(&infix:<cmp>,     :prec($structural));
+    trait_mod:<is>(&infix:<unicmp>,  :prec($structural));
+    trait_mod:<is>(&infix:<coll>,    :prec($structural));
+    trait_mod:<is>(&infix:<but>,     :prec($structural));
+    trait_mod:<is>(&infix:<does>,    :prec($structural));
 
     trait_mod:<is>(&infix:<&&>, :prec($tight_and));
 

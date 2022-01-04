@@ -344,7 +344,7 @@ role STD {
     }
 
     token experimental($feature) {
-        <?{ try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)) }>
+        <?{ $*COMPILING_CORE_SETTING || try $*W.find_single_symbol('EXPERIMENTAL-' ~ nqp::uc($feature)) }>
         || <.typed_panic('X::Experimental', :$feature)>
     }
 
@@ -1069,11 +1069,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             '{'
             <!!{ $*VARIABLE := '' if $*VARIABLE; 1 }>
             <statementlist(1)>
+            { $*CURPAD := $*W.pop_lexpad() }
             [<.cheat_heredoc> || '}']
             <?ENDSTMT>
         || <.missing_block($borg, $has_mystery)>
         ]
-        { $*CURPAD := $*W.pop_lexpad() }
     }
 
     token unitstart { <?> }
@@ -1340,14 +1340,10 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             self.LANG($langname, $regex, @args);
         }
         else {
-            my $Str := $*W.find_single_symbol('Str');
             my $actions := self.slang_actions($langname);
-            my $lang_cursor := $grammar.'!cursor_init'($Str.new( :value(self.orig())), :p(self.pos()));
+            my $lang_cursor := $grammar.'!cursor_init'(self.orig, :p(self.pos()));
             $lang_cursor.clone_braid_from(self);
             $lang_cursor.set_actions($actions);
-            if self.HOW.traced(self) {
-                $lang_cursor.HOW.trace-on($lang_cursor, self.HOW.trace_depth(self));
-            }
             my $ret := $lang_cursor."$regex"(|@args);
 
             # Build up something NQP-levelish we can return.
@@ -3656,6 +3652,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     ## Operators
 
     my %methodcall      := nqp::hash('prec', 'y=', 'assoc', 'unary', 'dba', 'methodcall', 'fiddly', 1);
+    my %named_unary     := nqp::hash('prec', 'x=', 'assoc', 'unary', 'dba', 'named unary');
     my %autoincrement   := nqp::hash('prec', 'x=', 'assoc', 'unary', 'dba', 'autoincrement');
     my %exponentiation  := nqp::hash('prec', 'w=', 'assoc', 'right', 'dba', 'exponentiation');
     my %symbolic_unary  := nqp::hash('prec', 'v=', 'assoc', 'unary', 'dba', 'symbolic unary');
@@ -3667,7 +3664,6 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     my %concatenation   := nqp::hash('prec', 'r=', 'assoc', 'left', 'dba', 'concatenation');
     my %junctive_and    := nqp::hash('prec', 'q=', 'assoc', 'list', 'dba', 'junctive and');
     my %junctive_or     := nqp::hash('prec', 'p=', 'assoc', 'list', 'dba', 'junctive or');
-    my %named_unary     := nqp::hash('prec', 'o=', 'assoc', 'unary', 'dba', 'named unary');
     my %structural      := nqp::hash('prec', 'n=', 'assoc', 'non', 'dba', 'structural infix', 'diffy', 1);
     my %chaining        := nqp::hash('prec', 'm=', 'assoc', 'left', 'dba', 'chaining', 'iffy', 1, 'diffy', 1, 'pasttype', 'chain');
     my %tight_and       := nqp::hash('prec', 'l=', 'assoc', 'left', 'dba', 'tight and', 'thunky', '.t');
@@ -4159,6 +4155,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«=~=»  { <sym>  <O(|%chaining)> }
     token infix:sym«≅»    { <sym>  <O(|%chaining)> }
     token infix:sym«==»   { <sym>  <O(|%chaining)> }
+    token infix:sym«⩵»   { <sym>  <O(|%chaining)> }
     token infix:sym«!=»   { <sym> <?before \s|']'> <O(|%chaining)> }
     token infix:sym«≠»    { <sym>  <O(|%chaining)> }
     token infix:sym«<=»   { <sym>  <O(|%chaining)> }
@@ -4175,6 +4172,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym«gt»   { <sym> >> <O(|%chaining)> }
     token infix:sym«=:=»  { <sym>  <O(|%chaining)> }
     token infix:sym<===>  { <sym>  <O(|%chaining)> }
+    token infix:sym<⩶>  { <sym>  <O(|%chaining)> }
     token infix:sym<eqv>    { <sym> >> <O(|%chaining)> }
     token infix:sym<before> { <sym> >> <O(|%chaining)> }
     token infix:sym<after>  { <sym> >> <O(|%chaining)> }
@@ -4182,9 +4180,11 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token infix:sym<!~~>  { <sym> <O(|%chaining)> }
     token infix:sym<(elem)> { <sym> <O(|%chaining)> }
     token infix:sym«∈»      { <sym> <O(|%chaining)> }
+    token infix:sym«∊»      { <sym> <O(|%chaining)> }
     token infix:sym«∉»      { <sym> <O(|%chaining)> }
     token infix:sym<(cont)> { <sym> <O(|%chaining)> }
     token infix:sym«∋»      { <sym> <O(|%chaining)> }
+    token infix:sym«∍»      { <sym> <O(|%chaining)> }
     token infix:sym«∌»      { <sym> <O(|%chaining)> }
     token infix:sym«(<)»    { <sym> <O(|%chaining)> }
     token infix:sym«⊂»      { <sym> <O(|%chaining)> }
@@ -4580,7 +4580,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             # If the sub is in the form of something:<blah>, then we assume
             # the user is trying to define a custom op for an unknown category
             # We also reserve something:sym<blah> form for future use
-            # (see https://irclog.perlgeek.de/perl6/2017-01-25#i_13988093)
+            # (see https://colabti.org/irclogger/irclogger_log/perl6?date=2017-01-25#l1011)
             # If it's neither of those cases, then it's just a sub with an
             # extended name like sub foo:bar<baz> {}; let the user use it.
             self.typed_panic(
@@ -5048,7 +5048,7 @@ if $*COMPILING_CORE_SETTING {
         | <?{$<code> eq 'L'}> \s* \| \s* $<meta>=[<!before $endtag>.]+
         | <?{$<code> eq 'X'}> \s* \| \s* ( [$<meta>=[<!before $endtag | <[,;]> >.]+] +%% \, ) +%% \;
         | <?{$<code> eq 'D'}> \s* \| \s* [$<meta>=[<!before $endtag | \; >.]+] +%% \;
-        | <?{$<code> eq 'E'}> ( <integer> | $<uni_name>=<[A..Z\s]>+ <![a..z]> || $<html_ref>=<[A..Za..z]>+ ) +%% \;
+        | <?{$<code> eq 'E'}> ( <integer> | $<uni_name>=<[A..Z\s]>+ <![a..z]> || $<html_ref>=<[A..Za..z0..9]>+ ) +%% \;
         ]?
         [ $endtag || <.worry: "Pod formatting code $<code> missing endtag '$endtag'."> ]
     }

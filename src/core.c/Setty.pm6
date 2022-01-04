@@ -1,12 +1,12 @@
 my role Setty does QuantHash {
     has Rakudo::Internals::IterationSet $!elems; # key.WHICH => key
 
-    method of(--> Bool) { }
+    method of() { Bool }
 
     # private method to create Set from iterator, check for laziness
     method !create-from-iterator(\type, \iterator --> Setty:D) {
         iterator.is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name)))
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(type).SET-SELF(
                Rakudo::QuantHash.ADD-ITERATOR-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
@@ -37,7 +37,7 @@ my role Setty does QuantHash {
 
     method new-from-pairs(*@pairs --> Setty:D) {
         (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name)))
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
           !! nqp::create(self).SET-SELF(
                Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                  nqp::create(Rakudo::Internals::IterationSet),
@@ -165,7 +165,6 @@ my role Setty does QuantHash {
     proto method grab(|) {*}
     proto method grabpairs(|) {*}
 
-    proto method pick(|) {*}
     multi method pick(Setty:D:) { self.roll }
     multi method pick(Setty:D: Callable:D $calculate) {
         self.pick( $calculate(self.elems) )
@@ -279,10 +278,10 @@ my role Setty does QuantHash {
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 
-multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
+multi sub infix:<eqv>(Setty:D $a, Setty:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a.ACCEPTS($b))
     )
 }
 

@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 25;
+plan 27;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -22,6 +22,7 @@ throws-like ｢'x'.substr: /x/, 'x'｣, Exception,
             'using substr instead of subst';
 
 # https://github.com/Raku/old-issue-tracker/issues/6672
+todo 'no location of error, yet', 1 if $*VM.name eq 'jvm';
 throws-like ｢sprintf "%d", class Foo {}.new｣,
     X::Str::Sprintf::Directives::BadType, :gist(/«line\s+\d+$$/),
 'errors from sprintf include location of error';
@@ -153,7 +154,7 @@ subtest 'numeric backslash errors do not get accompanied by confusing others' =>
     plan 3;
     my &err = {.contains: 'backslash sequence' & none 'quantifies nothing' }
     is-run ｢"a" ~~ /(a)\1+$/｣, :&err, :exitcode, 'regex';
-    is-run ｢"\1"｣,             :&err, :exitcode, 'qouble quotes';
+    is-run ｢"\1"｣,             :&err, :exitcode, 'double quotes';
     is-run ｢Q:qq:cc/\1/｣,      :&err, :exitcode, ':qq:cc quoter';
 }
 
@@ -174,5 +175,13 @@ cmp-ok X::OutOfRange.new(
 # https://github.com/rakudo/rakudo/issues/2320
 is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
 'Use placeholder variables in a method should yield a useful error message';
+
+# https://github.com/rakudo/rakudo/issues/2921
+is-run 'bleah:(0)', err => { .contains: 'You can\'t adverb' }, :exitcode{.so},
+'Absurd adverbing results in a proper error message';
+
+# https://github.com/rakudo/rakudo/issues/4178
+is-run 'close $*OUT; say "hi"', err => { .contains: 'closed handle' }, :exitcode{.so},
+'An attempt to use a closed handle results in a proper error message';
 
 # vim: expandtab shiftwidth=4

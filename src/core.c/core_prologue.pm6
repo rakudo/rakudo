@@ -33,6 +33,7 @@ my role Positional { ... }
 my role Associative { ... }
 my role Callable { ... }
 my role Iterable { ... }
+my role Enumeration { ... }
 my role PositionalBindFailover { ... }
 my role Hash::Typed { ... }
 my role Hash::Object { ... }

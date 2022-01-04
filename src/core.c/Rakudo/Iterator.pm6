@@ -10,6 +10,8 @@
 
 class Rakudo::Iterator {
     my $empty := nqp::list;   # an empty list for nqp::splice
+    sub always-IterationEnd(--> IterationEnd) { }
+    sub always-False(--> False) { }
 
 #-------------------------------------------------------------------------------
 # Roles that are used by iterators in the rest of the core settings, in
@@ -74,7 +76,7 @@ class Rakudo::Iterator {
         method new(\hash) { nqp::create(self)!SET-SELF(hash) }
         method skip-one() { nqp::if($!iter,nqp::stmts(nqp::shift($!iter),1)) }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
     }
 
     # Generic role for iterating over a Map / Hash that has pairs
@@ -139,7 +141,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> False) { }
+        method is-deterministic(--> False) { }
         method sink-all(--> IterationEnd) { $!iter := nqp::null }
     }
 
@@ -435,12 +437,12 @@ class Rakudo::Iterator {
         }
     }
     my class AllButLast does Iterator does AllButLastRole {
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     my class AllButLastPredictive does PredictiveIterator does AllButLastRole {
         method count-only() { ($!iterator.count-only || 1) - 1 }
         method bool-only()  {  $!iterator.count-only > 1       }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
 
     proto method AllButLast(|) {*}
@@ -501,7 +503,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method AllButLastNValues(\iterator, \n) {
         n == 1
@@ -532,7 +534,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method AntiPair(\iterator) { AntiPair.new(iterator) }
 
@@ -561,7 +563,7 @@ class Rakudo::Iterator {
               target.push(associative.AT-KEY(key))
             )
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method AssociativeIterableKeys(\asso, \iterable) {
         AssociativeIterableKeys.new(asso,iterable.iterator)
@@ -629,7 +631,7 @@ class Rakudo::Iterator {
           )
         }
         method is-lazy() { $!iterator.is-lazy }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Batch(\iterator,\size,\partial) { Batch.new(iterator,size,partial) }
 
@@ -1390,6 +1392,7 @@ class Rakudo::Iterator {
         has int $!seen-first;
 
         method !SET-SELF(\body,\cond,\afterwards,\label) {
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body := body;
             &!cond := cond;
             &!afterwards := afterwards;
@@ -1401,7 +1404,7 @@ class Rakudo::Iterator {
         }
 
         method pull-one() {
-            if $!slipping && nqp::not_i(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr((my $result := self.slip-one),IterationEnd)
             ) {
                 $result
@@ -1433,12 +1436,25 @@ class Rakudo::Iterator {
                             )
                           ),
                           'LABELED', $!label,
-                          'NEXT', nqp::stmts(
-                            &!afterwards(),
-                            ($stopped = nqp::if(&!cond(),0,1))
+                          'NEXT', nqp::if(
+                            nqp::eqaddr(
+                              ($result := self.control-payload),
+                              IterationEnd
+                            ),
+                            nqp::stmts(          # bare next or empty Slip
+                              &!afterwards(),
+                              ($stopped = nqp::if(&!cond(),0,1))
+                            )
                           ),
                           'REDO', ($stopped = 0),
-                          'LAST', ($result := IterationEnd)
+                          'LAST', nqp::if(
+                            nqp::eqaddr(
+                              ($result := self.control-payload),
+                              IterationEnd
+                            ),
+                            ($!seen-first = 0),  # bare 'last' or empty Slip
+                            (&!cond := &always-False)  # end later
+                          )
                         )
                       ),
                       :nohandler
@@ -1468,7 +1484,7 @@ class Rakudo::Iterator {
         has $!dots;  # JVM doesnt produce "." and "..", so we need to fake them
 #?endif
 
-        method !SET-SELF(\path, \tester) {
+        method !SET-SELF(\path, Mu \tester) {
             $!path      := path;
             $!prefix     = path.prefix-for-dir;
             $!CWD       := path.CWD.IO;
@@ -1481,7 +1497,7 @@ class Rakudo::Iterator {
             self
         }
 
-        method new(\path, \tester) { nqp::create(self)!SET-SELF(path, tester) }
+        method new(\path, Mu \tester) { nqp::create(self)!SET-SELF(path, tester) }
 
         method pull-one() {
             my str $entry;
@@ -1506,6 +1522,7 @@ class Rakudo::Iterator {
               )
             );
 
+            nqp::closedir($!dirhandle);
             IterationEnd
         }
 
@@ -1612,7 +1629,7 @@ class Rakudo::Iterator {
 
     proto method Dir(|) {*}
     multi method Dir(IO::Path:D \path)          {     Dir.new(path)         }
-    multi method Dir(IO::Path:D \path, \tester) { DirTest.new(path, tester) }
+    multi method Dir(IO::Path:D \path, Mu \tester) { DirTest.new(path, tester) }
 
     # Create an iterator from a source iterator that will repeat the
     # values of the source iterator indefinitely *unless* a Whatever
@@ -1696,7 +1713,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method DWIM(\source) { DWIM.new(source) }
 
@@ -1712,7 +1729,8 @@ class Rakudo::Iterator {
         method count-only(--> 0) { }
         method bool-only(--> False) { }
     }
-    method Empty() { BEGIN Empty.new }
+    my constant EmptyIterator = Empty.new;
+    method Empty() { EmptyIterator }
 
     # Returns at most N items, then calls .sink-all on source. Optionally,
     # executes a Callable when either N items were returned or original iterator
@@ -1744,7 +1762,7 @@ class Rakudo::Iterator {
                   IterationEnd),
                 got2))
         }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
         method sink-all(--> IterationEnd) { self.FINISH-UP }
         method new(\s,\n,\c) { nqp::create(self)!SET-SELF(s,n,c) }
         method !SET-SELF($!source,$!n,&!callable) { self }
@@ -1769,7 +1787,7 @@ class Rakudo::Iterator {
         }
         method new(\s,\c) { nqp::create(self)!SET-SELF(s,c) }
         method !SET-SELF($!source,&!callable) { self }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method FirstNThenSinkAll(\source,\n,&callable?) {
         # XXX TODO: Make this code DRYer by moving common bits to a role,
@@ -1847,7 +1865,7 @@ class Rakudo::Iterator {
             );
         }
         method is-lazy() { $!source.is-lazy }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method Flat(\iterator) { Flat.new(iterator) }
 
@@ -1924,7 +1942,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!source.is-lazy && $!indexes.is-lazy }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method FromIndexes(\source,\indexes,\offset,&out?) {
         FromIndexes.new(source,indexes,offset,&out)
@@ -1941,6 +1959,7 @@ class Rakudo::Iterator {
 
         method new(&block) {
             my \iter = nqp::create(self);
+            nqp::bindattr(iter, self, '$!slipper', nqp::null);
             my int $wanted;
             my $taken;
             my $taker := {
@@ -1960,26 +1979,26 @@ class Rakudo::Iterator {
 
                 nqp::if(
                   nqp::iseq_i($wanted,0),
-                  nqp::continuationcontrol(0, PROMPT, -> Mu \c {
+                  nqp::continuationcontrol(0, PROMPT, nqp::getattr(-> Mu \c {
                       nqp::bindattr(iter, self, '&!resumption', c);
-                  })
+                  }, Code, '$!do'))
                 );
                 nqp::resume(nqp::exception())
             }
-            nqp::bindattr(iter, self, '&!resumption', {
+            nqp::bindattr(iter, self, '&!resumption', nqp::getattr({
                 nqp::stmts(  # doesn't sink
                   nqp::handle(&block(), 'TAKE', $taker()),
-                  nqp::continuationcontrol(0, PROMPT, -> | {
+                  nqp::continuationcontrol(0, PROMPT, nqp::getattr(-> | {
                       nqp::bindattr(iter, self, '&!resumption', Callable)
-                  })
+                  }, Code, '$!do'))
                 )
-            });
+            }, Code, '$!do'));
             iter
         }
 
         method pull-one() is raw {
             nqp::if(
-              $!slipping && nqp::not_i(
+              nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr((my \result = self.slip-one),IterationEnd)
               ),
               result,
@@ -2006,7 +2025,7 @@ class Rakudo::Iterator {
                 ($!wanted = $n),
                 ($!push-target := target),
                 nqp::if(
-                  $!slipping && nqp::not_i(
+                  nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                     nqp::eqaddr(self!slip-wanted,IterationEnd)
                   ),
                   nqp::stmts(
@@ -2071,15 +2090,29 @@ class Rakudo::Iterator {
 
     # Return an iterator for the given low/high integer value (inclusive).
     # Has dedicated .push-all for those cases one needs to fill a list
-    # with consecutive numbers quickly.
+    # with consecutive numbers quickly.  Handle int ranges with an Inf as
+    # endpoint in separate Iterator class.
+    my class IntRangeUnending does Iterator {
+        has int $!i;
+
+        method !SET-SELF(int $i) { $!i = nqp::sub_i($i,1); self }
+        method new(int $from) { nqp::create(self)!SET-SELF($from) }
+
+        method pull-one() { $!i = nqp::add_i($!i,1) }
+        method push-exactly(\target, int $batch-size) {
+            target.push(self.pull-one) for ^$batch-size;
+            $batch-size
+        }
+        method is-lazy(--> True) { }
+        method sink-all(--> IterationEnd) { }
+    }
     my class IntRange does PredictiveIterator {
         has int $!i;
         has int $!last;
-        has $!is-lazy;
 
         method !SET-SELF(int $i, $last) {
             $!i    = nqp::sub_i($i,1);
-            $!last = ($!is-lazy := $last == Inf) ?? int.Range.max !! $last;
+            $!last = $last;
             self
         }
         method new(\f,\t) { nqp::create(self)!SET-SELF(f,t) }
@@ -2114,11 +2147,14 @@ class Rakudo::Iterator {
             );
             $!i = $i;                # make sure pull-one ends
         }
-        method is-lazy(--> Bool:D) { $!is-lazy }
         method count-only(--> Int:D) { $!last - $!i + nqp::isgt_i($!i,$!last) }
         method sink-all(--> IterationEnd) { $!i = $!last }
     }
-    method IntRange(\from,\to) { IntRange.new(from,to) }
+    method IntRange(\from,\to) {
+        to == Inf
+          ?? IntRangeUnending.new(from)
+          !! IntRange.new(from,to)
+    }
 
     # Return an iterator from a given iterator producing Pairs, in which
     # each .value is checked for iterability: if Iterable, produce Pairs
@@ -2180,7 +2216,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!iterator.is-lazy }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
         method sink-all(--> IterationEnd) {
             nqp::until(
               nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd),
@@ -2230,7 +2266,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method KeyValue(\iterator) { KeyValue.new(iterator) }
 
@@ -2255,7 +2291,7 @@ class Rakudo::Iterator {
         method new(\iterator,\n,\action,\f) {
             nqp::if(
               iterator.is-lazy,
-              X::Cannot::Lazy.new(:action(action)).throw,
+              Any.throw-iterator-cannot-be-lazy(action,''),
               nqp::if(
                 nqp::istype(n,Whatever),
                 iterator,                   # * just give back itself
@@ -2312,7 +2348,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method LastNValues(\iterator, \n, \action, $full = 0) {
         LastNValues.new(iterator, n, action, $full)
@@ -2324,7 +2360,7 @@ class Rakudo::Iterator {
     method LastValue(\iterator, $action) is raw {
         nqp::if(
           iterator.is-lazy,
-          X::Cannot::Lazy.new(:$action).throw,
+          Any.throw-iterator-cannot-be-lazy($action,''),
           nqp::stmts(
             (my $result := IterationEnd),
             nqp::if(
@@ -2374,7 +2410,7 @@ class Rakudo::Iterator {
         }
 
         method is-lazy(--> True) { }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Lazy(\iterable) { Lazy.new(iterable) }
 
@@ -2432,6 +2468,7 @@ class Rakudo::Iterator {
         has $!label;
 
         method !SET-SELF(\body,\label) {
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
             &!body := body;
             $!label := nqp::decont(label);
             self
@@ -2445,7 +2482,7 @@ class Rakudo::Iterator {
             my $result;
             my int $stopped;
             nqp::if(
-              $!slipping && nqp::not_i(
+              nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr(($result := self.slip-one),IterationEnd)
               ),
               $result,
@@ -2463,9 +2500,21 @@ class Rakudo::Iterator {
                         ))
                       ),
                       'LABELED', $!label,
-                      'NEXT', ($stopped = 0),
+                      'NEXT', nqp::if(
+                        nqp::eqaddr(
+                          ($result := self.control-payload),
+                          IterationEnd
+                        ),
+                        ($stopped = 0)           # bare next or empty Slip
+                      ),
                       'REDO', ($stopped = 0),
-                      'LAST', ($result := IterationEnd)
+                      'LAST', nqp::unless(
+                        nqp::eqaddr(
+                          ($result := self.control-payload),
+                          IterationEnd
+                        ),
+                        (&!body := &always-IterationEnd)  # end later
+                      )
                     )
                   ),
                   :nohandler
@@ -2640,6 +2689,7 @@ class Rakudo::Iterator {
     # generate strings for given regex, string and limit
     my class MatchStr does Iterator {
         has Mu $!iterator;
+        has Mu $!what;
 
         method new(\regex, \string, \limit) {
             my \iterator := nqp::istype(limit,Whatever) || limit == Inf
@@ -2648,21 +2698,25 @@ class Rakudo::Iterator {
                 ?? (return Rakudo::Iterator.Empty)
                 !! MatchCursorLimit.new(regex, string, limit.Int, 0);
 
-            nqp::p6bindattrinvres(nqp::create(self),self,'$!iterator',iterator)
+            my $self := nqp::create(self);
+            nqp::bindattr($self,self,'$!iterator',iterator);
+            nqp::bindattr($self,self,'$!what',string.WHAT);
+            $self
         }
         method pull-one() is raw {
             nqp::eqaddr((my $cursor := $!iterator.pull-one),IterationEnd)
               ?? IterationEnd
-              !! $cursor.MATCH.Str
+              !! nqp::box_s($cursor.MATCH.Str,$!what)
         }
         method skip-one() {
             nqp::not_i(nqp::eqaddr($!iterator.pull-one,IterationEnd))
         }
         method push-all(\target --> IterationEnd) {
             my $iterator := $!iterator;
+            my $what     := $!what;
             nqp::until(
               nqp::eqaddr((my $cursor := $iterator.pull-one),IterationEnd),
-              target.push($cursor.MATCH.Str)
+              target.push(nqp::box_s($cursor.MATCH.Str,$!what))
             );
         }
     }
@@ -2711,7 +2765,7 @@ class Rakudo::Iterator {
                     nqp::sub_i(nqp::getattr_i($cursor,Match,'$!from'),$!last-pos)
                   )),
                   ($!last-pos = nqp::getattr_i($cursor,Match,'$!pos')),
-                  $result
+                  nqp::box_s($result,$!string)
                 )
               )
             )
@@ -2736,7 +2790,10 @@ class Rakudo::Iterator {
                     ($last-pos = nqp::getattr_i($cursor,Match,'$!pos'))
                   )
                 );
-                target.push(nqp::substr($string,$last-pos));
+                target.push(nqp::box_s(
+                  nqp::substr($string,$last-pos),
+                  $string
+                ));
             }
         }
     }
@@ -2867,8 +2924,8 @@ class Rakudo::Iterator {
             );
             IterationEnd
         }
-        method deterministic(--> Bool:D) {
-            $!source.deterministic && $!indexes.deterministic
+        method is-deterministic(--> Bool:D) {
+            $!source.is-deterministic && $!indexes.is-deterministic
         }
     }
     method MonotonicIndexes(\source,\indexes,\offset,&out?) {
@@ -3063,7 +3120,7 @@ class Rakudo::Iterator {
               target.push(pulled)
             );
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method NextNValues(\iterator, \times) { NextNValues.new(iterator, times) }
 
@@ -3116,7 +3173,7 @@ class Rakudo::Iterator {
 
         method !SET-SELF(Mu \value,\times) {
             $!value := value;
-            $!times  = times;
+            $!times := times;
             $!is-lazy = nqp::isbig_I(nqp::decont(times));
             self
         }
@@ -3129,7 +3186,7 @@ class Rakudo::Iterator {
             nqp::if(
               $!times,
               nqp::stmts(
-                --$!times,
+                ($!times := nqp::sub_I($!times,1,Int)),
                 $!value
               ),
               IterationEnd
@@ -3139,17 +3196,26 @@ class Rakudo::Iterator {
             nqp::while(
               $!times,
               nqp::stmts(
-                --$!times,
+                ($!times := nqp::sub_I($!times,1,Int)),
                 target.push($!value)
               )
             )
         }
-        method skip-one() { nqp::if($!times,$!times--) }
+        method skip-one() {
+            nqp::if(
+              $!times,
+              nqp::stmts(
+                (my $times := $!times),
+                ($!times   := nqp::sub_I($!times,1,Int)),
+                $times
+              )
+            )
+        }
         method is-lazy() { nqp::hllbool($!is-lazy) }
         method count-only(--> Int:D) { $!times }
-        method sink-all(--> IterationEnd) { $!times = 0 }
+        method sink-all(--> IterationEnd) { $!times := 0 }
     }
-    method OneValueTimes(Mu \value,\times) { OneValueTimes.new(value,times) }
+    method OneValueTimes(Mu \value, Int() \times) { OneValueTimes.new(value,times) }
 
     # Return an iterator that will generate a pair with the index as the
     # key and as value the value of the given iterator, basically the
@@ -3175,7 +3241,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method Pairs(\iterator) { Pairs.new(iterator) }
 
@@ -3584,6 +3650,30 @@ class Rakudo::Iterator {
         ReifiedRotateIterator.new(rotate, list, descriptor)
     }
 
+    # Return a lazy iterator that takes a Callable that returns an iterator,
+    # produces the values of that iterator until it is exhausted, then gets
+    # an iterator by calling the Callable again, ad infinitum.
+    my class Reiterate does Iterator {
+        has &!reiterator;
+        has $!iterator;
+
+        method !SET-SELF(&reiterator) {
+            &!reiterator := &reiterator;
+            $!iterator   := reiterator();
+            self
+        }
+        method new(\reiterator) { nqp::create(self)!SET-SELF(reiterator) }
+        method pull-one() {
+            nqp::if(
+              nqp::eqaddr((my \pulled := $!iterator.pull-one),IterationEnd),
+              ($!iterator := &!reiterator()).pull-one,
+              pulled
+            )
+        }
+        method is-lazy(--> True) { }     # we're lazy, always
+    }
+    method Reiterate(\reiterator) { Reiterate.new(reiterator) }
+
     # Return a lazy iterator that will repeat the values of a given
     # source iterator indefinitely.  Even when given a lazy iterator,
     # it will cache the values seen to handle case that the iterator
@@ -3631,7 +3721,7 @@ class Rakudo::Iterator {
             )
         }
         method is-lazy(--> True) { }     # we're lazy, always
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Repeat(\iterator) { Repeat.new(iterator) }
 
@@ -3639,14 +3729,15 @@ class Rakudo::Iterator {
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition..
     my class RepeatLoop does Rakudo::SlippyIterator {
-        has $!body;
-        has $!cond;
+        has &!body;
+        has &!cond;
         has $!label;
         has int $!skip;
 
         method !SET-SELF(\body,\cond,\label) {
-            $!body  := body;
-            $!cond  := cond;
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
+            &!body  := body;
+            &!cond  := cond;
             $!label := nqp::decont(label);
             $!skip   = 1;
             self
@@ -3656,32 +3747,44 @@ class Rakudo::Iterator {
         }
 
         method pull-one() {
-            if $!slipping && nqp::not_i(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr((my $result := self.slip-one),IterationEnd)
             ) {
                 $result
             }
             else {
                 nqp::if(
-                  $!skip || $!cond(),
+                  $!skip || &!cond(),
                   nqp::stmts(
                     ($!skip = 0),
-                    nqp::until(
+                    nqp::until(   # XXX perhaps repeat_until?
                       (my int $stopped),
                       nqp::stmts(
                         ($stopped = 1),
                         nqp::handle(
                           nqp::if(
-                            nqp::istype(($result := $!body()),Slip),
+                            nqp::istype(($result := &!body()),Slip),
                             ($stopped = nqp::eqaddr(
                               ($result := self.start-slip($result)),
                               IterationEnd
-                            ) && nqp::if($!cond(),0,1))
+                            ) && nqp::if(&!cond(),0,1))
                           ),
                           'LABELED', $!label,
-                          'NEXT', ($stopped = nqp::if($!cond(),0,1)),
+                          'NEXT', nqp::if(
+                            nqp::eqaddr(
+                              ($result := self.control-payload),
+                              IterationEnd
+                            ),
+                            ($stopped = nqp::if(&!cond(),0,1))
+                          ),
                           'REDO', ($stopped = 0),
-                          'LAST', ($result := IterationEnd)
+                          'LAST', nqp::unless(
+                            nqp::eqaddr(
+                              ($result := self.control-payload),
+                              IterationEnd
+                            ),
+                            (&!cond  := &always-False)  # end later
+                          )
                         )
                       ),
                       :nohandler
@@ -3737,7 +3840,7 @@ class Rakudo::Iterator {
                 ?? self!exhausted()
                 !! pulled
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Rotate(\rotate, \iterator) {
         RotateIterator.new(rotate, iterator)
@@ -3909,7 +4012,7 @@ class Rakudo::Iterator {
           )
         }
         method is-lazy() { $!iterator.is-lazy }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Rotor(\iterator,\cycle,\partial) {
         Rotor.new(iterator,cycle,partial)
@@ -4330,7 +4433,7 @@ class Rakudo::Iterator {
             )
         }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
     }
     method Toggle(\iter, \conds, $on) { Toggle.new(iter, conds, $on) }
 
@@ -4351,7 +4454,7 @@ class Rakudo::Iterator {
             );
             IterationEnd
         }
-        method deterministic(--> Bool:D) { $!iterator.deterministic }
+        method is-deterministic(--> Bool:D) { $!iterator.is-deterministic }
     }
     method Truthy(\iterator) { Truthy.new(iterator) }
 
@@ -4414,7 +4517,7 @@ class Rakudo::Iterator {
 
     # Return a lazy iterator that will keep producing the given value.
     # Basically the functionality of 42 xx *
-    my class UnendingValue does PredictiveIterator {
+    my class UnendingValue does Iterator {
         has Mu $!value;
         method new(Mu \value) {
             nqp::p6bindattrinvres(nqp::create(self),self,'$!value',value)
@@ -4422,8 +4525,6 @@ class Rakudo::Iterator {
         method pull-one() is raw { $!value }
         method skip-one(--> True) { }
         method sink-all(--> IterationEnd) { }
-        method count-only(--> Inf) { }
-        method bool-only(--> True) { }
         method is-lazy(--> True) { }
     }
     method UnendingValue(Mu \value) { UnendingValue.new(value) }
@@ -4484,7 +4585,7 @@ class Rakudo::Iterator {
             IterationEnd
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method UniqueRepeatedAsWith(\iterator, \as, \with, \unique) {
@@ -4542,7 +4643,7 @@ class Rakudo::Iterator {
             IterationEnd
         }
         method is-lazy() { $!iter.is-lazy }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method UniqueRepeatedWith(\iterator, \with, \unique) {
@@ -4578,7 +4679,7 @@ class Rakudo::Iterator {
               $!iter.pull-one
             )
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method Until(\iter, &cond) { Until.new(iter, &cond) }
@@ -4637,7 +4738,7 @@ class Rakudo::Iterator {
               )
             )
         }
-        method deterministic(--> Bool:D) { $!source.deterministic }
+        method is-deterministic(--> Bool:D) { $!source.is-deterministic }
     }
     method Whatever(\source) { WhateverIterator.new(source) }
 
@@ -4647,28 +4748,21 @@ class Rakudo::Iterator {
     my class While does Iterator {
         has $!iter;
         has &!cond;
-        has $!done;
 
         method !SET-SELF(\iter, \cond) {
             $!iter := iter;
             &!cond := cond;
-            $!done := nqp::null;
             self
         }
         method new(\iter,\cond) { nqp::create(self)!SET-SELF(iter,cond) }
 
         method pull-one() is raw {
-            nqp::ifnull(
-              $!done,
-              nqp::if(
-                nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd)
-                  || nqp::isfalse(&!cond(pulled)),
-                ($!done := IterationEnd),
-                pulled
-              )
-            )
+            nqp::eqaddr((my \pulled := $!iter.pull-one),IterationEnd)
+              || nqp::isfalse(&!cond(pulled))
+              ?? IterationEnd
+              !! pulled
         }
-        method deterministic(--> Bool:D) { $!iter.deterministic }
+        method is-deterministic(--> Bool:D) { $!iter.is-deterministic }
         method sink-all(--> IterationEnd) { $!iter.sink-all }
     }
     method While(\iter, &cond) { While.new(iter, &cond) }
@@ -4677,13 +4771,14 @@ class Rakudo::Iterator {
     # a condition.  Takes a Callable to be considered the body of the loop,
     # and a Callable for the condition.
     my class WhileLoop does Rakudo::SlippyIterator {
-        has $!body;
-        has $!cond;
+        has &!body;
+        has &!cond;
         has $!label;
 
         method !SET-SELF(\body,\cond,\label) {
-            $!body := body;
-            $!cond := cond;
+            nqp::bindattr(self,self.WHAT,'$!slipper',nqp::null);
+            &!body := body;
+            &!cond := cond;
             $!label := nqp::decont(label);
             self
         }
@@ -4692,14 +4787,14 @@ class Rakudo::Iterator {
         }
 
         method pull-one() {
-            if $!slipping && nqp::not_i(
+            if nqp::not_i(nqp::isnull($!slipper)) && nqp::not_i(
                 nqp::eqaddr((my $result := self.slip-one),IterationEnd)
             ) {
                 $result
             }
             else {
                 nqp::if(
-                  $!cond(),
+                  &!cond(),
                   nqp::stmts(
                     nqp::until(
                       (my int $stopped),
@@ -4707,16 +4802,28 @@ class Rakudo::Iterator {
                         ($stopped = 1),
                         nqp::handle(
                           nqp::if(
-                            nqp::istype(($result := $!body()),Slip),
+                            nqp::istype(($result := &!body()),Slip),
                             ($stopped = nqp::eqaddr(
                               ($result := self.start-slip($result)),
                               IterationEnd
-                            ) && nqp::if($!cond(),0,1))
+                            ) && nqp::if(&!cond(),0,1))
                           ),
                           'LABELED', $!label,
-                          'NEXT', ($stopped = nqp::if($!cond(),0,1)),
+                          'NEXT', nqp::if(
+                            nqp::eqaddr(
+                              ($result := self.control-payload),
+                              IterationEnd
+                            ),
+                            ($stopped = nqp::if(&!cond(),0,1))
+                          ),
                           'REDO', ($stopped = 0),
-                          'LAST', ($result := IterationEnd)
+                          'LAST', nqp::unless(
+                            nqp::eqaddr(
+                              ($result := self.control-payload),
+                              IterationEnd
+                            ),
+                            (&!cond  := &always-False)  # end later
+                          )
                         )
                       ),
                       :nohandler

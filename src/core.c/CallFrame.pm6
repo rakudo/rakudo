@@ -21,7 +21,7 @@ my class CallFrame {
             )
           ),
           ($!my :=
-            nqp::p6bindattrinvres(nqp::create(Stash),Map,'$!storage',$ctx)),
+            nqp::p6bindattrinvres(Stash.new,Map,'$!storage',$ctx)),
           self
         )
     }

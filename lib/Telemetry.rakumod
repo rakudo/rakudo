@@ -217,7 +217,7 @@ HEADER
               nqp::bindpos_i(
                 @data,
                 WALLCLOCK,
-                nqp::sub_i(nqp::fromnum_I(nqp::time_n() * 1000000,Int),$start)
+                nqp::sub_i(nqp::div_i(nqp::time,1000),$start)
               ),
               @data
             )
@@ -711,7 +711,7 @@ multi sub snap(Str:D $message --> Nil) {
     $snaps.push(T);
 }
 my $snapshot-idx = 1;
-multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
+multi sub snap(Str $message = "taking heap snapshot...", :$heap!) {
     my $filename =
         $heap eqv True
             ?? "heapsnapshot-$($*PID)-$($snapshot-idx++).mvmheap"
@@ -735,6 +735,8 @@ multi sub snap(Str $message = "taking heap snapshot...", :$heap! --> Nil) {
     my \T2 := Telemetry.new;
     T2.message = $filename;
     $snaps.push(T2);
+
+    $filename
 }
 multi sub snap(@s --> Nil) {
     @s.push(Telemetry.new);
@@ -815,7 +817,7 @@ multi sub report(
 
     # set up basic header
     my $text := nqp::list_s(qq:to/HEADER/.chomp);
-Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::time_i).DateTime})
+Telemetry Report of Process #$*PID ({Instant.from-posix(nqp::div_i(nqp::time,1000000000)).DateTime})
 Number of Snapshots: {+@s}
 HEADER
 

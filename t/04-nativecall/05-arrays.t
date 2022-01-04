@@ -7,6 +7,10 @@ use Test;
 
 plan 46;
 
+BEGIN if $*VM.name eq 'jvm' {
+    plan :skip-all<NullPointerException in sub ReturnADoubleArray>;
+};
+
 compile_test_lib('05-arrays');
 
 {

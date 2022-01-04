@@ -83,7 +83,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                 if !$param.named { next }
                 for $param.named_names -> str $name {
                     my int $accepts-true = $param.type.ACCEPTS: True;
-                    for $param.constraint_list { $accepts-true++ if .ACCEPTS: True}
+                    for $param.constraint_list { $accepts-true++ if try .ACCEPTS: True}
                     if !$accepts-true { %options-with-req-arg.push($name => True) }
                 }
             }
@@ -264,7 +264,7 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                         elsif $type !=== Bool {
 
                             my int $accepts-true = $param.type.ACCEPTS: True;
-                            for $param.constraint_list { $accepts-true++ if .ACCEPTS: True}
+                            for $param.constraint_list { $accepts-true++ if try .ACCEPTS: True}
                             $argument ~= ($accepts-true ?? "[={$constraints || $type.^name}]"
                                                         !! "=<{$constraints || $type.^name}>");
                             if Metamodel::EnumHOW.ACCEPTS($type.HOW) {
@@ -302,7 +302,33 @@ my sub RUN-MAIN(&main, $mainline, :$in-as-argsfiles) {
                     }
                     @positional.push($argument);
                 }
-                @arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty;  # Use first defined
+            		#@arg-help.push($argument => $param.WHY.contents) if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty;  # Use first defined
+                if $param.WHY and (@arg-help.grep:{ .key eq $argument}) == Empty {
+                    my $why = $param.WHY.contents; # Use first defined
+                    if $param.default -> $d {
+                          constant MAXCHARS = 20;
+                          # $middle is for long integers and other argument types
+                          # that are better split in the middle.
+                          if ( my $def = $d() ).defined {
+                                  my ($middle, $q) = ($def ~~ Int, $def ~~ Str);
+                                  $def .= Str;
+                                  # Handle lengthy values
+                                  if $def.chars > MAXCHARS {
+                                    $def = do if $middle {
+                                      my $half = MAXCHARS div 2;
+
+                                      $def.substr(0, $half - 1) ~ '…' ~
+                                      $def.substr($def.chars - $half);
+                                    } else {
+                                      $def.substr(0, MAXCHARS - 1) ~ '…';
+                                    }
+                                  }
+                                  $def = "'{ $def }'" if $q;
+                                  $why ~= " [default: { $def }]";
+                          }
+                    }
+                    @arg-help.push($argument => $why);
+                }
             }
             if $sub.WHY {
                 $docs = '-- ' ~ $sub.WHY.contents

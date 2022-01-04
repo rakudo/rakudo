@@ -40,9 +40,10 @@ class Perl6::Metamodel::ClassHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
+    my $id_lock := NQPLock.new;
     my $anon_id := 1;
     method new_type(:$name, :$repr = 'P6opaque', :$ver, :$auth, :$api, :$is_mixin) {
         my $metaclass := self.new();
@@ -54,7 +55,9 @@ class Perl6::Metamodel::ClassHOW
             $new_type := nqp::newtype($metaclass, $repr);
         }
         my $obj := nqp::settypehll($new_type, 'Raku');
-        $metaclass.set_name($obj, $name // "<anon|{$anon_id++}>");
+        $metaclass.set_name($obj, $name // "<anon|{
+                $id_lock.protect: { $anon_id++ }
+            }>");
         self.add_stash($obj);
         $metaclass.set_ver($obj, $ver) if $ver;
         $metaclass.set_auth($obj, $auth) if $auth;
@@ -69,8 +72,10 @@ class Perl6::Metamodel::ClassHOW
     # and if it is calls $calculator with the object and method name to
     # calculate an invokable object.
     method add_fallback($obj, $condition, $calculator) {
+#?if !moar
         # Adding a fallback means any method cache is no longer authoritative.
         nqp::setmethcacheauth($obj, 0);
+#?endif
 
         # Add it.
         my %desc;
@@ -116,9 +121,6 @@ class Perl6::Metamodel::ClassHOW
                     self.set_hidden($obj) if $ins.HOW.hidden($ins);
                     self.set_language_revision($obj, $ins.HOW.language-revision($ins), :force);
                 }
-                # Significant change of behavior on d/e revisions boundary; pre-6.e classes cannot consume 6.e roles.
-                self.check-type-compat($obj, $ins, ['e'])
-                    if nqp::istype($ins.HOW, Perl6::Metamodel::LanguageRevision);
                 @ins_roles.push($ins);
                 self.add_concretization($obj, $r, $ins);
             }
@@ -245,8 +247,10 @@ class Perl6::Metamodel::ClassHOW
         # Compose the meta-methods.
         self.compose_meta_methods($obj);
 
+#?if !moar
         # Compose invocation protocol.
         self.compose_invocation($obj);
+#?endif
 
         $obj
     }
@@ -280,7 +284,9 @@ class Perl6::Metamodel::ClassHOW
     my $junction_type;
     my $junction_autothreader;
     method setup_junction_fallback($type, $autothreader) {
+#?if !moar
         nqp::setmethcacheauth($type, 0);
+#?endif
         $junction_type := $type;
         $junction_autothreader := $autothreader;
     }

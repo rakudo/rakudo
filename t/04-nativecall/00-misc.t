@@ -5,6 +5,10 @@ use Test::Helpers;
 use CompileTestLib;
 compile_test_lib '00-misc';
 
+if $*VM.name eq 'jvm' {
+    plan :skip-all<NullPointerException in sub NCstrlen>;
+}
+
 { # https://github.com/rakudo/rakudo/issues/3235
     role Foo {
         sub NCstrlen(Str --> int32) is native('./00-misc') { !!! };

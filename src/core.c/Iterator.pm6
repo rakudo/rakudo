@@ -109,7 +109,7 @@ my role Iterator {
     # the same for a given data source).  This is True for most iterators,
     # but *not* true for iterators that typically return keys and/or values
     # from a hash.
-    method deterministic(--> True) { }
+    method is-deterministic(--> True) { }
 }
 
 # The PredictiveIterator role is a refinement of the Iterator role for those
@@ -127,6 +127,10 @@ my role PredictiveIterator does Iterator {
     # to indicate whether the generator is (still) able to generate at least
     # one value, *without* actually generating that value.
     method bool-only(--> Bool:D) { self.count-only.Bool }
+
+    # Since PredictiveIterators are not supposed to be lazy, we can skip
+    # the step checking for laziness.
+    method push-until-lazy(\target) { self.push-all(target) }
 }
 
 # vim: expandtab shiftwidth=4

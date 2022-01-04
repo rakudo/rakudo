@@ -22,7 +22,6 @@ my role QuantHash does Associative {
 
     method Capture() { self.Hash.Capture }
 
-    multi method list(QuantHash:U:) { self.Any::list }
     multi method list(QuantHash:D:) { self.pairs.cache }
 
     method fmt(QuantHash: Cool $format = "%s\t\%s", $sep = "\n") {

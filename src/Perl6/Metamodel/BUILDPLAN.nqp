@@ -28,11 +28,16 @@ role Perl6::Metamodel::BUILDPLAN {
     #   12 same as 0, but init to nqp::hash if value absent (nqp only)
     #   13 same as 0 but *bind* the received value + optional type constraint
     #   14 same as 4 but *bind* the default value + optional type constraint
+    #   15 die if a required int attribute is 0
+    #   16 die if a required num attribute is 0e0
+    #   17 die if a required str attribute is null_s (will be '' in the future)
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
         my @attrs := $obj.HOW.attributes($obj, :local(1));
-        my $consider-roles := !self.lang-rev-before($obj, 'e') && nqp::can(self, 'roles');
+        # When adding role's BUILD/TWEAK into the buildplan for pre-6.e classes only roles of 6.e+ origin must be
+        # considered.
+        my $only_6e_roles := $obj.HOW.lang-rev-before($obj, 'e');
 
         # Emit any container initializers. Also build hash of attrs we
         # do not touch in any of the BUILDPLAN so we can spit out vivify
@@ -72,17 +77,20 @@ role Perl6::Metamodel::BUILDPLAN {
         }
 
         sub add_from_roles($name) {
-            my @ins_roles := self.ins_roles($obj, :with-submethods-only) unless +@ins_roles;
+            my @ins_roles := self.ins_roles($obj, :with-submethods-only);
             my $i := +@ins_roles;
             while --$i >= 0 {
-                my $submeth := nqp::atkey(@ins_roles[$i].HOW.submethod_table(@ins_roles[$i]), $name);
+                my $role := @ins_roles[$i];
+                # Skip any non-6.e+ role if the target is pre-6.e
+                next if $only_6e_roles && $role.HOW.lang-rev-before($role, 'e');
+                my $submeth := nqp::atkey($role.HOW.submethod_table($role), $name);
                 if !nqp::isnull($submeth) {
                     nqp::push(@plan, $submeth);
                 }
             }
         }
 
-        add_from_roles('BUILD') if $consider-roles;
+        add_from_roles('BUILD');
 
         # Does it have its own BUILD?
         my $build := $obj.HOW.find_method($obj, 'BUILD', :no_fallback(1));
@@ -128,7 +136,10 @@ role Perl6::Metamodel::BUILDPLAN {
         # Ensure that any required attributes are set
         for @attrs {
             if nqp::can($_, 'required') && $_.required {
-                nqp::push(@plan,[8, $obj, $_.name, $_.required]);
+                my $type := $_.type;
+                my int $primspec := nqp::objprimspec($type);
+                my int $op := $primspec ?? 14 + $primspec !! 8;
+                nqp::push(@plan,[$op, $obj, $_.name, $_.required]);
                 nqp::deletekey(%attrs_untouched, $_.name);
             }
         }
@@ -218,7 +229,7 @@ role Perl6::Metamodel::BUILDPLAN {
             }
         }
 
-        add_from_roles('TWEAK') if $consider-roles;
+        add_from_roles('TWEAK');
 
         # Does it have a TWEAK?
         my $TWEAK := $obj.HOW.find_method($obj, 'TWEAK', :no_fallback(1));

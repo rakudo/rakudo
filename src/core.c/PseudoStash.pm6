@@ -217,7 +217,7 @@ my class PseudoStash is Map {
                 '$?PACKAGE');
             my Mu $ctx := nqp::ctxcallerskipthunks(
                 nqp::getattr(nqp::decont($cur), PseudoStash, '$!ctx'));
-            while nqp::getlexrel($ctx, '$?PACKAGE') === $pkg {
+            while nqp::eqaddr(nqp::getlexrel($ctx, '$?PACKAGE'), $pkg) {
                 $ctx := nqp::ctxcallerskipthunks($ctx);
                 die "No client package found" unless $ctx;
             }

@@ -8,7 +8,6 @@ my class Proc { ... }
 my class Proc::Async { ... }
 
 my class X::Assignment::ToShaped { ... }
-my class X::Cannot::Lazy { ... }
 my class X::IllegalDimensionInShape { ... }
 my class X::IllegalOnFixedDimensionArray { ... }
 my class X::Localizer::NoContainer { ... }
@@ -38,6 +37,23 @@ my class Rakudo::Internals {
           :unexpected(%d.keys),
           :nogo(@nogo),
         ))
+    }
+
+    method Array-with-one-elem(Mu \type, Mu \value) {
+        my \array := (nqp::eqaddr(type,Mu) ?? Array !! Array[type]).new;
+        nqp::p6bindattrinvres(array,List,'$!reified',
+          nqp::stmts(
+            nqp::bindpos(
+              (my \reified := nqp::create(IterationBuffer)),
+              0,
+              nqp::p6scalarwithvalue(
+                nqp::getattr(array,Array,'$!descriptor'),
+                nqp::decont(value)
+              )
+            ),
+            reified
+          )
+        )
     }
 
     # for use in nqp::splice
@@ -211,19 +227,11 @@ my class Rakudo::Internals {
               nqp::iscont(cont),
               nqp::push(restore,nqp::decont(cont)),
               nqp::if(
-                nqp::istype(cont,Array),
-                nqp::push(restore,cont.clone),
-                nqp::if(
-                  nqp::istype(cont,Hash),
-                  nqp::push(restore,
-                    nqp::p6bindattrinvres(
-                      Hash.^parameterize(Mu,Mu).new,
-                      Hash, '$!descriptor',
-                      nqp::getattr(cont, Hash, '$!descriptor')).STORE: cont),
-                  nqp::stmts(
-                    nqp::pop(restore),  # lose the erroneously pushed value
-                    X::Localizer::NoContainer.new(:$localizer).throw
-                  )
+                nqp::can(cont,'TEMP-LET-LOCALIZE'),
+                nqp::push(restore,cont.TEMP-LET-LOCALIZE),
+                nqp::stmts(
+                  nqp::pop(restore),  # lose the erroneously pushed value
+                  X::Localizer::NoContainer.new(:$localizer).throw
                 )
               )
             )
@@ -285,10 +293,10 @@ my class Rakudo::Internals {
     }
     # Fast mapping for identicals
     ### If updating encodings here, also update src/core.c/Encoding/Registry.pm6
-#?if moar
+#?if !js
     my constant $encodings = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $encodings := nqp::hash(
 #?endif
       # utf8
@@ -311,9 +319,11 @@ my class Rakudo::Internals {
       'utf-16be',        'utf16be',
       'utf16-be',        'utf16be',
       'utf-16-be',       'utf16be',
+#?if !moar
       # utf32
       'utf32',           'utf32',
       'utf-32',          'utf32',
+#?endif
       # ascii
       'ascii',           'ascii',
       # iso-8859-1 according to http://de.wikipedia.org/wiki/ISO-8859-1
@@ -408,7 +418,7 @@ my class Rakudo::Internals {
         )
     }
 
-    method TRANSPOSE(Str:D $string, Str:D $original, Str:D $final) {
+    method TRANSPOSE(str $string, str $original, str $final) {
         nqp::join($final,nqp::split($original,$string))
     }
     method TRANSPOSE-ONE(Str:D $string, Str:D $original, Str:D $final) {
@@ -426,7 +436,7 @@ my class Rakudo::Internals {
     my constant \SHAPE-STORAGE-ROOT := do {
         my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
         nqp::setdebugtypename($root, 'MultiDimArray root');
-        nqp::setparameterizer($root, -> $, $key {
+        Metamodel::Primitives.set_parameterizer($root, -> $, $key {
             # We "steal" the meta-object for the multi-dim storage.
             my $dims := $key.elems.pred;
             my $meta := $key.AT-POS(0);
@@ -493,8 +503,7 @@ my class Rakudo::Internals {
     our role ImplementationDetail {
         method new(|) { die self.gist }
         method gist(--> Str:D) {
-            "The '{self.^name}' class is a Rakudo-specific
-implementation detail and has no serviceable parts inside"
+            "The '{self.^name}' class is a Rakudo-specific implementation detail and has no serviceable parts inside"
         }
         method Str( --> Str:D) { self.gist }
         method raku(--> Str:D) { self.gist }
@@ -753,7 +762,7 @@ implementation detail and has no serviceable parts inside"
           !! ("", "", "", "", "<HERE>");
     }
 
-    my num $init-time-num = nqp::time_n;
+    my num $init-time-num = nqp::div_n(nqp::time,1000000000e0);
     method INITTIME() is raw { $init-time-num }
 
 #?if moar
@@ -907,6 +916,59 @@ implementation detail and has no serviceable parts inside"
         '2016-12-31',
         #END leap-second-dates
     );
+#?if !js
+    my int constant $elems = nqp::elems($dates);
+#?endif
+#?if js
+    my int $elems = nqp::elems($dates);
+#?endif
+
+#?if !js
+    my constant $daycounts = nqp::list_i(
+#?endif
+#?if js
+    my $daycounts := nqp::list_i(
+#?endif
+        #BEGIN leap-second-daycount
+        41498,
+        41682,
+        42047,
+        42412,
+        42777,
+        43143,
+        43508,
+        43873,
+        44238,
+        44785,
+        45150,
+        45515,
+        46246,
+        47160,
+        47891,
+        48256,
+        48803,
+        49168,
+        49533,
+        50082,
+        50629,
+        51178,
+        53735,
+        54831,
+        56108,
+        57203,
+        57753,
+        #END leap-second-daycount
+    );
+
+    method daycount-leapseconds(int $daycount) {
+        my int $i = nqp::elems($daycounts);
+        nqp::while(
+          nqp::isge_i(($i = nqp::sub_i($i,1)),0)
+            && nqp::islt_i($daycount,nqp::atpos_i($daycounts,$i)),
+          nqp::null
+        );
+        nqp::isge_i($i,0) && nqp::iseq_i($daycount,nqp::atpos_i($daycounts,$i))
+    }
 
     # our %leap-seconds =
     #     @leap-second-dates Z=> $initial-offset + 1 .. *;
@@ -952,12 +1014,6 @@ implementation detail and has no serviceable parts inside"
         1483228800,
         #END leap-second-posix
     );
-#?if !js
-    my int constant $elems = nqp::elems($dates);
-#?endif
-#?if js
-    my int $elems = nqp::elems($dates);
-#?endif
 
     method is-leap-second-date(\date) {
         nqp::hllbool(
@@ -1039,37 +1095,48 @@ implementation detail and has no serviceable parts inside"
 #nqp::print("running mainline\n");
 #method INITIALIZERS() { $initializers }
 
-    method REGISTER-DYNAMIC(Str:D \name, &code, Str $version = '6.c' --> Nil) {
-#nqp::say('Registering ' ~ name);
-        my str $with = nqp::concat($version, nqp::concat("\0", name));
+    method REGISTER-DYNAMIC(
+      str $name,
+      &code,
+      str $version = '6.c',
+      :$override
+    --> Nil) {
+#nqp::say("Registering $name");
+        $initializers := nqp::hash unless $initializers;
+        my str $with   = nqp::concat($version,nqp::concat("\0",$name));
 
         nqp::if(
-          nqp::existskey(
-            nqp::unless($initializers,$initializers := nqp::hash),
-            $with
+          $override,
+          nqp::stmts(
+            nqp::bindkey($initializers,$with,&code),
+            nqp::bindkey($initializers,$name,&code)
           ),
-          (die "Already have initializer for '{name}' ('$version')"),
-          nqp::bindkey($initializers,$with,&code)
-        );
-
-        nqp::unless(                                 # first come, first kept
-          nqp::existskey($initializers,nqp::unbox_s(name)),
-          nqp::bindkey($initializers,nqp::unbox_s(name),&code)
-        );
+          nqp::stmts(
+            nqp::if(
+              nqp::existskey($initializers,$with),
+              (die "Already have initializer for '$name' ('$version')"),
+              nqp::bindkey($initializers,$with,&code)
+            ),
+            nqp::unless(  # first come, first kept
+              nqp::existskey($initializers,$name),
+              nqp::bindkey($initializers,$name,&code)
+            )
+          )
+        )
     }
-    method INITIALIZE-DYNAMIC(str \name) is raw {
-#nqp::say('Initializing ' ~ name);
+    method INITIALIZE-DYNAMIC(str $name) is raw {
+#nqp::say("Initializing $name");
         nqp::ifnull(
           nqp::atkey(
             $initializers,
             nqp::concat(
               nqp::getcomp('Raku').language_version,
-              nqp::concat("\0",name)
+              nqp::concat("\0",$name)
             )
           ),
           nqp::ifnull(
-            nqp::atkey($initializers,name),
-            { Failure.new(X::Dynamic::NotFound.new(:name(name))) }
+            nqp::atkey($initializers,$name),
+            { Failure.new(X::Dynamic::NotFound.new(:$name)) }
           )
         )();
     }
@@ -1149,10 +1216,10 @@ implementation detail and has no serviceable parts inside"
           !! nqp::p6box_s(nqp::substr($abspath,$offset + 1));
     }
 
-#?if moar
+#?if !js
     my constant $clean-parts-nul = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $clean-parts-nul := nqp::hash(
 #?endif
       '..', 1, '.', 1, '', 1
@@ -1396,7 +1463,7 @@ implementation detail and has no serviceable parts inside"
         nqp::bitand_i(nqp::stat(abspath,nqp::const::STAT_PLATFORM_MODE),0o7777)
     }
 
-    method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {
+    method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception, str $format) {
         my $vmex := nqp::getattr(nqp::decont(exception), Exception, '$!ex');
         my \payload := nqp::getpayload($vmex);
         if nqp::elems(payload) == 1 {
@@ -1405,6 +1472,7 @@ implementation detail and has no serviceable parts inside"
                     type      => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'TYPE'),
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'DIRECTIVE'),
                     value     => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'VALUE'),
+                    format    => $format,
             }
             elsif nqp::existskey(payload, 'BAD_DIRECTIVE') {
                 X::Str::Sprintf::Directives::Unsupported.new:
@@ -1415,6 +1483,7 @@ implementation detail and has no serviceable parts inside"
                 X::Str::Sprintf::Directives::Count.new:
                     args-have => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_HAVE'),
                     args-used => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_USED'),
+                    format    => $format,
             }
             else { exception }
         }
@@ -1461,7 +1530,7 @@ implementation detail and has no serviceable parts inside"
         $i
     }
 
-    # next logical string frontend, hopefully inlineable (pos >= 0)
+    # next logical string frontend, hopefully inlinable (pos >= 0)
     method SUCC(str \string, int \pos) {
         my int $at = nqp::index($succ-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)
@@ -1512,7 +1581,7 @@ implementation detail and has no serviceable parts inside"
         }
     }
 
-    # previous logical string frontend, hopefully inlineable
+    # previous logical string frontend, hopefully inlinable
     method PRED(str \string, int \pos) {
         my int $at = nqp::index($pred-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)
@@ -1570,95 +1639,6 @@ implementation detail and has no serviceable parts inside"
         $target := $target.AT-POS(nqp::atpos($indices,$i))
           while nqp::islt_i(++$i,$elems);
         $target
-    }
-
-    proto method coremap(|) {*}
-
-    multi method coremap(\op, Associative \h, Bool :$deep) {
-        my @keys = h.keys;
-        hash @keys Z self.coremap(op, h{@keys}, :$deep)
-    }
-
-    my class CoreMap does Rakudo::SlippyIterator {
-        has &!block;
-        has $!source;
-        has $!deep;
-
-        method new(&block, $source, $deep) {
-            my \iter := nqp::create(self);
-            nqp::bindattr(iter, self, '&!block', &block);
-            nqp::bindattr(iter, self, '$!source', $source);
-            nqp::bindattr(iter, self, '$!deep', $deep);
-            iter
-        }
-
-        method is-lazy() {
-            $!source.is-lazy
-        }
-
-        method pull-one() is raw {
-            my int $redo = 1;
-            nqp::if(
-              $!slipping && nqp::not_i(nqp::eqaddr((my $result := self.slip-one),IterationEnd)),
-              $result,
-              nqp::if(
-                nqp::eqaddr((my $value := $!source.pull-one),IterationEnd),
-                $value,
-                nqp::stmts(
-                  nqp::while(
-                    $redo,
-                    nqp::stmts(
-                        $redo = 0,
-                        nqp::handle(
-                            nqp::stmts(
-                                nqp::if(
-                                    $!deep,
-                                    nqp::if(
-                                        nqp::istype($value, Iterable) && $value.DEFINITE,
-                                        ($result := Rakudo::Internals.coremap(&!block, $value, :$!deep).item),
-                                        ($result := &!block($value))
-                                    ),
-                                    ($result := &!block($value))
-                                ),
-                                nqp::if(
-                                    nqp::istype($result, Slip),
-                                    nqp::stmts(
-                                        ($result := self.start-slip($result)),
-                                        nqp::if(
-                                            nqp::eqaddr($result, IterationEnd),
-                                            nqp::stmts(
-                                                ($value := $!source.pull-one()),
-                                                ($redo = 1 unless nqp::eqaddr($value, IterationEnd))
-                                        ))
-                                    ))
-                            ),
-                            'NEXT', nqp::stmts(
-                                ($value := $!source.pull-one()),
-                                nqp::eqaddr($value, IterationEnd)
-                                    ?? ($result := IterationEnd)
-                                    !! ($redo = 1)),
-                            'REDO', $redo = 1,
-                            'LAST', ($result := IterationEnd))),
-                    :nohandler
-                  ),
-                  $result
-                )
-              )
-            )
-        }
-    }
-    multi method coremap(\op, \obj, Bool :$deep) {
-        my \iterable := obj.DEFINITE && nqp::istype(obj, Iterable)
-          ?? obj
-          !! obj.list;
-
-        my \result := CoreMap.new(op, iterable.iterator, $deep);
-        my \type := nqp::istype(obj, List) ?? obj !! List; # keep subtypes of List
-        my \buffer := nqp::create(IterationBuffer);
-        result.push-all(buffer);
-        my \retval := type.new;
-        nqp::bindattr(retval, List, '$!reified', buffer);
-        nqp::iscont(obj) ?? retval.item !! retval;
     }
 
     method INFIX_COMMA_SLIP_HELPER(\reified, \future) {

@@ -20,14 +20,20 @@ role Perl6::Metamodel::MethodContainer {
         $name := nqp::decont_s($name);
         if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
             # XXX try within nqp::die() causes a hang. Pre-cache the result and use it later.
-            my $method_type := try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method';
-            nqp::die("Package '"
-              ~ self.name($obj)
-              ~ "' already has a "
-              ~ $method_type
-              ~ " '"
-              ~ $name
-              ~ "' (did you mean to declare a multi-method?)");
+            my $method-type := try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method';
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Method::Duplicate',
+                "Package '"
+                    ~ self.name($obj)
+                    ~ "' already has a "
+                    ~ $method-type
+                    ~ " '"
+                    ~ $name
+                    ~ "' (did you mean to declare a multi method?)",
+                :$method-type,
+                :method($name),
+                :typename(self.name($obj))
+            );
         }
 
         # Add to correct table depending on if it's a Submethod.
@@ -40,7 +46,7 @@ role Perl6::Metamodel::MethodContainer {
         }
 
         # Adding a method means any cache is no longer authoritative.
-        nqp::setmethcacheauth($obj, 0);
+        try self.invalidate_method_caches($obj);
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
         @!method_names[+@!method_names] := $name;

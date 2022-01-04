@@ -47,10 +47,10 @@ my class Parameter { # declared in BOOTSTRAP
                                          +| $SIG_ELEM_IS_COPY
                                          +| $SIG_ELEM_IS_RAW;
 
-#?if moar
+#?if !js
     my constant $sigils2bit = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $sigils2bit := nqp::hash(
 #?endif
       Q/@/, $SIG_ELEM_ARRAY_SIGIL,
@@ -498,20 +498,22 @@ my class Parameter { # declared in BOOTSTRAP
         }
 
         # we have sub sig and not the same
-        my \osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
-        if $!sub_signature {
+        if nqp::isconcrete($!sub_signature) {
+            my \osub_signature := nqp::getattr(o,Parameter,'$!sub_signature');
             return False
-              unless osub_signature
-              && $!sub_signature.ACCEPTS(osub_signature);
+              unless nqp::isconcrete(osub_signature)
+                && $!sub_signature.ACCEPTS(osub_signature);
         }
 
-        # no sub sig, but other has one
-        elsif osub_signature {
-            return False;
+        if nqp::isconcrete($!signature_constraint) {
+            my \osignature_constraint := nqp::getattr(o, Parameter, '$!signature_constraint');
+            return False
+              unless nqp::isconcrete(osignature_constraint)
+                && $!signature_constraint.ACCEPTS(osignature_constraint);
         }
 
         # we have a post constraint
-        if nqp::islist(@!post_constraints) {
+        if nqp::isconcrete(@!post_constraints) {
 
             # callable means runtime check, so no match
             return False
@@ -528,11 +530,6 @@ my class Parameter { # declared in BOOTSTRAP
             return False
               unless nqp::atpos(@!post_constraints,0).ACCEPTS(
                 nqp::atpos(opc,0));
-        }
-
-        # we don't, other *does* have a post constraint
-        elsif nqp::islist(nqp::getattr(o,Parameter,'@!post_constraints')) {
-            return False;
         }
 
         # it's a match!
@@ -567,6 +564,9 @@ my class Parameter { # declared in BOOTSTRAP
             $name ~= $usage-name;
         } else {
             $name ~= $sigil ~ $twigil ~ $usage-name;
+        }
+        if nqp::isconcrete($!signature_constraint) {
+            $name ~= $!signature_constraint.raku;
         }
         if nqp::isconcrete(@!named_names) {
             my $var-is-named = False;
@@ -626,6 +626,18 @@ my class Parameter { # declared in BOOTSTRAP
         nqp::isnull($!sub_signature) ?? Signature !! $!sub_signature
     }
 
+    method signature_constraint(Parameter:D: --> Signature:_) {
+        nqp::isnull($!signature_constraint) ?? Signature !! $!signature_constraint
+    }
+
+    method untyped(Parameter:D: --> Bool:D) {
+        nqp::hllbool(
+          nqp::eqaddr($!type, Mu) &&
+          nqp::isnull(@!post_constraints) &&
+          nqp::isnull($!sub_signature) &&
+          nqp::isnull($!signature_constraint))
+    }
+
     method set_why(Parameter:D: $why --> Nil) {
         $!why := $why;
     }
@@ -635,17 +647,17 @@ my class Parameter { # declared in BOOTSTRAP
     }
 }
 
-multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
+multi sub infix:<eqv>(Parameter:D $a, Parameter:D $b) {
 
     # we're us
-    return True if a =:= b;
+    return True if nqp::eqaddr($a,$b);
 
     # different container type
-    return False unless a.WHAT =:= b.WHAT;
+    return False unless $a.WHAT =:= $b.WHAT;
 
     # different nominal or coerce type
-    my \atype = nqp::getattr(a,Parameter,'$!type');
-    my \btype = nqp::getattr(b,Parameter,'$!type');
+    my \atype = nqp::getattr($a,Parameter,'$!type');
+    my \btype = nqp::getattr($b,Parameter,'$!type');
     # (atype is btype) && (btype is atype) ensures type equivalence. Works for different curryings of a parametric role
     # which are parameterized with the same argument. nqp::eqaddr is not applicable here because if coming from
     # different compunits the curryings would be different typeobject instances.
@@ -658,19 +670,31 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
     # different flags
     return False
       if nqp::isne_i(
-        nqp::getattr(a,Parameter,'$!flags'),
-        nqp::getattr(b,Parameter,'$!flags')
+        nqp::getattr($a,Parameter,'$!flags'),
+        nqp::getattr($b,Parameter,'$!flags')
       );
 
+    # only pass if both subsignatures are defined and equivalent
+    my \asub_signature := nqp::getattr($a,Parameter,'$!sub_signature');
+    my \bsub_signature := nqp::getattr($b,Parameter,'$!sub_signature');
+    if asub_signature {
+        return False
+          unless bsub_signature
+          && (asub_signature eqv bsub_signature);
+    }
+    elsif bsub_signature {
+        return False;
+    }
+
     # first is named
-    if a.named {
+    if $a.named {
 
         # other is not named
-        return False unless b.named;
+        return False unless $b.named;
 
         # not both actually have a name (e.g. *%_ doesn't)
-        my $anames := nqp::getattr(a.named_names,List,'$!reified');
-        my $bnames := nqp::getattr(b.named_names,List,'$!reified');
+        my $anames := nqp::getattr($a.named_names,List,'$!reified');
+        my $bnames := nqp::getattr($b.named_names,List,'$!reified');
         my int $adefined = nqp::defined($anames);
         return False if nqp::isne_i($adefined,nqp::defined($bnames));
 
@@ -681,19 +705,19 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
     }
 
     # unnamed vs named
-    elsif b.named {
+    elsif $b.named {
         return False;
     }
 
     # first has a post constraint
-    my Mu $pca := nqp::getattr(a,Parameter,'@!post_constraints');
+    my Mu $pca := nqp::getattr($a,Parameter,'@!post_constraints');
     if nqp::islist($pca) {
 
         # callable means runtime check, so no match
         return False if nqp::istype(nqp::atpos($pca,0),Callable);
 
         # second doesn't have a post constraint
-        my Mu $pcb := nqp::getattr(b,Parameter,'@!post_constraints');
+        my Mu $pcb := nqp::getattr($b,Parameter,'@!post_constraints');
         return False unless nqp::islist($pcb);
 
         # second is a Callable, so runtime check, so no match
@@ -704,7 +728,7 @@ multi sub infix:<eqv>(Parameter:D \a, Parameter:D \b) {
     }
 
     # first doesn't, second *does* have a post constraint
-    elsif nqp::islist(nqp::getattr(b,Parameter,'@!post_constraints')) {
+    elsif nqp::islist(nqp::getattr($b,Parameter,'@!post_constraints')) {
         return False;
     }
 

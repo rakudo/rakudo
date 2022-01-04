@@ -12,19 +12,17 @@ my class IO::Path is Cool does IO {
         nqp::hllbool(nqp::iseq_s($.absolute, nqp::unbox_s(other.IO.absolute)));
     }
 
-    method !SET-SELF(Str:D \path, IO::Spec \SPEC, Str:D \CWD, \absolute) {
-        die empty-path-message unless nqp::chars(path);
+    method !SET-SELF(str $path, IO::Spec $SPEC, Str:D $CWD) {
+        die empty-path-message unless nqp::chars($path);
 
         X::IO::Null.new.throw
-          if nqp::isne_i(nqp::index(path, "\0"), -1)
-          || nqp::isne_i(nqp::index(CWD,  "\0"), -1);
+          if nqp::isne_i(nqp::index($path, "\0"), -1)
+          || nqp::isne_i(nqp::index($CWD,  "\0"), -1);
 
-        $!path := path;
-        $!SPEC := SPEC;
-        $!CWD  := CWD;
-
-        $!is-absolute := absolute ?? True !! nqp::null;
-        $!os-path := $!parts := nqp::null;
+        $!path := $path;
+        $!SPEC := $SPEC;
+        $!CWD  := $CWD;
+        $!is-absolute := $!os-path := $!parts := nqp::null;
 
         self
     }
@@ -33,18 +31,18 @@ my class IO::Path is Cool does IO {
     multi method new(IO::Path:
       Str:D $path, :$CWD!, IO::Spec :$SPEC = $*SPEC
     --> IO::Path:D) {
-        nqp::create(self)!SET-SELF($path, $SPEC, $CWD.Str, False)
+        nqp::create(self)!SET-SELF($path, $SPEC, $CWD.Str)
     }
     multi method new(IO::Path: Str:D $path, IO::Spec :$SPEC! --> IO::Path:D) {
-        nqp::create(self)!SET-SELF($path, $SPEC, $*CWD.Str, False)
+        nqp::create(self)!SET-SELF($path, $SPEC, $*CWD.Str)
     }
     multi method new(IO::Path: Str:D $path --> IO::Path:D) {
-        nqp::create(self)!SET-SELF($path, $*SPEC, $*CWD.Str, False)
+        nqp::create(self)!SET-SELF($path, $*SPEC, $*CWD.Str)
     }
     multi method new(IO::Path:
       Cool:D $path, IO::Spec :$SPEC = $*SPEC, :$CWD = $*CWD
     --> IO::Path:D) {
-        nqp::create(self)!SET-SELF($path.Str, $SPEC, $CWD.Str, False)
+        nqp::create(self)!SET-SELF($path.Str, $SPEC, $CWD.Str)
     }
     multi method new(IO::Path:
       :$basename!,
@@ -54,7 +52,7 @@ my class IO::Path is Cool does IO {
       :$CWD      = $*CWD,
     ) {
         nqp::create(self)!SET-SELF(
-          $SPEC.join($volume,$dirname,$basename), $SPEC, $CWD.Str, False)
+          $SPEC.join($volume,$dirname,$basename), $SPEC, $CWD.Str)
     }
     multi method new(IO::Path:) {
         die empty-path-message;
@@ -334,8 +332,10 @@ my class IO::Path is Cool does IO {
             }
         }
         $resolved = $volume ~ $sep if $resolved eq $volume;
-        nqp::create(self)!SET-SELF(
-          $resolved, $!SPEC, $volume ~ $sep, True);
+        nqp::p6bindattrinvres(
+          nqp::create(self)!SET-SELF($resolved, $!SPEC, $volume ~ $sep),
+          IO::Path,'$!is-absolute',True
+        )
     }
 
     proto method parent(|) {*}
@@ -404,7 +404,10 @@ my class IO::Path is Cool does IO {
             @dirs.push('') if !@dirs;  # need at least the rootdir
             $path = join($!SPEC.dir-sep, $volume, @dirs);
         }
-        my $dir = nqp::create(self)!SET-SELF($path, $!SPEC, $!path, True);
+        my $dir := nqp::p6bindattrinvres(
+          nqp::create(self)!SET-SELF($path, $!SPEC, $!path),
+          IO::Path,'$!is-absolute',True
+        );
 
         nqp::stmts(
             nqp::unless(

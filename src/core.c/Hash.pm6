@@ -72,6 +72,8 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method STORE(|) {*}
     multi method STORE(Hash:D: \to_store) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         my $temp := nqp::p6bindattrinvres(
           nqp::clone(self),   # make sure we get a possible descriptor as well
           Map,
@@ -112,6 +114,8 @@ my class Hash { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
     multi method STORE(Hash:D: \keys, \values) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         my \iterkeys   := keys.iterator;
         my \itervalues := values.iterator;
         nqp::bindattr(self,Map,'$!storage',nqp::hash);

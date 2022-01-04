@@ -1158,7 +1158,7 @@ my class Binder {
 BEGIN { nqp::p6setbinder(Binder); } # We need it in for the next BEGIN block
 nqp::p6setbinder(Binder);           # The load-time case.
 
-# Container descriptors come here so that they can refer to Perl 6 types.
+# Container descriptors come here so that they can refer to Raku types.
 class ContainerDescriptor {
     has     $!of;
     has str $!name;
@@ -1404,6 +1404,79 @@ class ContainerDescriptor::VivifyHash does ContainerDescriptor::Whence {
         $array.BIND-KEY($!key, $scalar);
     }
 }
+# Attributes that are either required or have a default need us to detect if
+# they have been initialized. We do this by starting them out with a descriptor
+# that indicates they are uninitialized, and then swapping it out for a the
+# underlying one upon assignment.
+class ContainerDescriptor::UninitializedAttribute {
+    has $!next-descriptor;
+
+    method new($next) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, ContainerDescriptor::UninitializedAttribute,
+            '$!next-descriptor', $next);
+        $obj
+    }
+
+    method next() {
+        my $next := $!next-descriptor;
+        nqp::isconcrete($next)
+            ?? $next
+            !! ($!next-descriptor := nqp::gethllsym('Raku', 'default_cont_spec'))
+    }
+    method name() { self.next.name }
+    method of() { self.next.of }
+    method default() { self.next.default }
+    method dynamic() { self.next.dynamic }
+    method instantiate_generic($type_environment) {
+        self.new(self.next.instantiate_generic($type_environment))
+    }
+    method is_generic() { self.next.is_generic }
+    method is_default_generic() { self.next.is_default_generic }
+}
+
+# On MoarVM we have a dispatcher for checking if an attribute is not
+# initialized, this is the portable fallback for other VMs.
+#?if !moar
+my class UninitializedAttributeChecker {
+    method check($attr) {
+        # If there's a non-concrete object observed, then we bound a non-container
+        # in place, so trivially initialized.
+        if !nqp::isconcrete_nd($attr) {
+            1
+        }
+
+        # Otherwise, might be a container that was assigned. Look for the
+        # descriptor.
+        else {
+            my $desc;
+            if nqp::istype_nd($attr, Scalar) {
+                $desc := nqp::getattr($attr, Scalar, '$!descriptor');
+            }
+            elsif nqp::istype_nd($attr, Array) {
+                my $storage := nqp::getattr($attr, List, '$!reified');
+                unless nqp::isconcrete($storage) && nqp::elems($storage) {
+                    $desc := nqp::getattr($attr, Array, '$!descriptor');
+                }
+            }
+            elsif nqp::istype_nd($attr, Hash) {
+                my $storage := nqp::getattr($attr, Map, '$!storage');
+                unless nqp::isconcrete($storage) && nqp::elems($storage) {
+                    $desc := nqp::getattr($attr, Hash, '$!descriptor');
+                }
+            }
+            else {
+                try {
+                    my $base := nqp::how_nd($attr).mixin_base($attr);
+                    $desc := nqp::getattr($attr, $base, '$!descriptor');
+                }
+            }
+            !nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute);
+        }
+    }
+}
+nqp::bindhllsym('Raku', 'UninitializedAttributeChecker', UninitializedAttributeChecker);
+#?endif
 
 # We stick all the declarative bits inside of a BEGIN, so they get
 # serialized.
@@ -1533,8 +1606,20 @@ BEGIN {
                 Attribute, '$!container_descriptor');
         }));
     Attribute.HOW.add_method(Attribute, 'auto_viv_container', nqp::getstaticcode(sub ($self) {
-            nqp::getattr(nqp::decont($self),
-                Attribute, '$!auto_viv_container');
+            my $dcself := nqp::decont($self);
+            my $cont := nqp::getattr($dcself, Attribute, '$!auto_viv_container');
+            if nqp::isconcrete_nd($cont) && (
+                    nqp::getattr($dcself, Attribute, '$!required') ||
+                    nqp::isconcrete(nqp::getattr($dcself, Attribute, '$!build_closure'))) {
+                try {
+                    my $base := nqp::how_nd($cont).mixin_base($cont);
+                    my $desc := nqp::getattr($cont, $base, '$!descriptor');
+                    $cont := nqp::clone_nd($cont);
+                    nqp::bindattr($cont, $base, '$!descriptor',
+                        ContainerDescriptor::UninitializedAttribute.new($desc));
+                }
+            }
+            $cont
         }));
     Attribute.HOW.add_method(Attribute, 'is_built', nqp::getstaticcode(sub ($self) {
             nqp::hllboolfor(nqp::getattr_i(nqp::decont($self),
@@ -1701,9 +1786,11 @@ BEGIN {
                         else {
                             nqp::bindattr($cont, Scalar, '$!value', $val);
                         }
-                        unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
-                               nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
-                            $desc.assigned($cont);
+                        my $what := $desc.WHAT;
+                        unless nqp::eqaddr($what, ContainerDescriptor) ||
+                               nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                            $desc.assigned($cont)
+                                unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
                             nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
                         }
                     }
@@ -1724,9 +1811,11 @@ BEGIN {
             'store_unchecked', nqp::getstaticcode(sub ($cont, $val) {
                 nqp::bindattr($cont, Scalar, '$!value', $val);
                 my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
-                unless nqp::eqaddr($desc.WHAT, ContainerDescriptor) ||
-                       nqp::eqaddr($desc.WHAT, ContainerDescriptor::Untyped) {
-                    $desc.assigned($cont);
+                my $what := $desc.WHAT;
+                unless nqp::eqaddr($what, ContainerDescriptor) ||
+                       nqp::eqaddr($what, ContainerDescriptor::Untyped) {
+                    $desc.assigned($cont)
+                        unless nqp::eqaddr($what, ContainerDescriptor::UninitializedAttribute);
                     nqp::bindattr($cont, Scalar, '$!descriptor', $desc.next);
                 }
             }),
@@ -2166,7 +2255,7 @@ BEGIN {
     #     has Mu $!phasers;                # phasers for this block
     #     has Mu $!why;
     Block.HOW.add_parent(Block, Code);
-    Block.HOW.add_attribute(Block, BOOTSTRAPATTR.new(:name<$!phasers>, :type(Mu), :package(Block)));
+    Block.HOW.add_attribute(Block, Attribute.new(:name<$!phasers>, :type(Mu), :package(Block), :auto_viv_primitive(nqp::null())));
     Block.HOW.add_attribute(Block, scalar_attr('$!why', Mu, Block, :!auto_viv_container));
     Block.HOW.add_method(Block, 'clone', nqp::getstaticcode(sub ($self) {
             my $dcself := nqp::decont($self);

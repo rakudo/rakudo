@@ -28,6 +28,9 @@ role Perl6::Metamodel::BUILDPLAN {
     #   12 same as 0, but init to nqp::hash if value absent (nqp only)
     #   13 same as 0 but *bind* the received value + optional type constraint
     #   14 same as 4 but *bind* the default value + optional type constraint
+    #   15 die if a required int attribute is 0
+    #   16 die if a required num attribute is 0e0
+    #   17 die if a required str attribute is null_s (will be '' in the future)
     method create_BUILDPLAN($obj) {
         # First, we'll create the build plan for just this class.
         my @plan;
@@ -133,7 +136,10 @@ role Perl6::Metamodel::BUILDPLAN {
         # Ensure that any required attributes are set
         for @attrs {
             if nqp::can($_, 'required') && $_.required {
-                nqp::push(@plan,[8, $obj, $_.name, $_.required]);
+                my $type := $_.type;
+                my int $primspec := nqp::objprimspec($type);
+                my int $op := $primspec ?? 14 + $primspec !! 8;
+                nqp::push(@plan,[$op, $obj, $_.name, $_.required]);
                 nqp::deletekey(%attrs_untouched, $_.name);
             }
         }

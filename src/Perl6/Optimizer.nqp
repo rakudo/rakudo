@@ -820,7 +820,7 @@ my class BlockVarOptimizer {
                         for $type.HOW.mro($type) -> $mro_entry {
                             for $mro_entry.HOW.attributes($mro_entry, :local) -> $attr {
                                 my str $name := $attr.name;
-                                if nqp::attrinited($qv, $mro_entry, $name) {
+                                if $name eq '$!descriptor' || $name eq '$!value' {
                                     $setup := QAST::Op.new(
                                         :op('p6bindattrinvres'),
                                         $setup,
@@ -3682,7 +3682,7 @@ class Perl6::Optimizer {
           ?? nqp::getattr($code, $block, '$!phasers')
           !! nqp::null();
         if $count == 1
-          && nqp::isnull($phasers)
+          && !nqp::ishash($phasers)
           && %range_bounds{$c2.name}($c2) -> @fls {
             if $reverse {
                 my $tmp := @fls[0];

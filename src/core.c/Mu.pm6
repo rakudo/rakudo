@@ -192,9 +192,11 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::if(
                   nqp::iseq_i($code,4),
                   nqp::unless(                   # 4
-                    nqp::attrinited(self,
-                      nqp::atpos($task,1),
-                      nqp::atpos($task,2)
+                    nqp::p6attrinited(
+                      nqp::getattr(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      )
                     ),
                     nqp::if(
                       nqp::istype(nqp::atpos($task,3),Block),
@@ -267,9 +269,11 @@ my class Mu { # declared in BOOTSTRAP
                       nqp::if(
                         nqp::iseq_i($code,8),
                         nqp::unless(             # 8
-                          nqp::attrinited(self,
-                            nqp::atpos($task,1),
-                            nqp::atpos($task,2)
+                          nqp::p6attrinited(
+                            nqp::getattr(self,
+                              nqp::atpos($task,1),
+                              nqp::atpos($task,2)
+                            )
                           ),
                           X::Attribute::Required.new(
                             name => nqp::atpos($task,2),
@@ -330,9 +334,11 @@ my class Mu { # declared in BOOTSTRAP
                                 nqp::if(
                                   nqp::iseq_i($code,14),
                                   nqp::unless(   # 14
-                                    nqp::attrinited(self,
-                                      nqp::atpos($task,1),
-                                      nqp::atpos($task,2)
+                                    nqp::p6attrinited(
+                                      nqp::getattr(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      )
                                     ),
                                     nqp::bindattr(self,
                                       nqp::atpos($task,1),
@@ -359,8 +365,48 @@ my class Mu { # declared in BOOTSTRAP
                                       )
                                     )
                                   ),
-                                  die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
-                  ))))))))))),
+
+                                  nqp::if(
+                                    nqp::iseq_i($code,15),
+                                    nqp::unless(   # 15
+                                      nqp::getattr_i(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      ),
+                                      X::Attribute::Required.new(
+                                        name => nqp::atpos($task,2),
+                                        why  => nqp::atpos($task,3)
+                                      ).throw
+                                    ),
+
+                                    nqp::if(
+                                      nqp::iseq_i($code,16),
+                                      nqp::unless(   # 16
+                                        nqp::getattr_n(self,
+                                          nqp::atpos($task,1),
+                                          nqp::atpos($task,2)
+                                        ),
+                                        X::Attribute::Required.new(
+                                          name => nqp::atpos($task,2),
+                                          why  => nqp::atpos($task,3)
+                                        ).throw
+                                      ),
+
+                                      nqp::if(
+                                        nqp::iseq_i($code,17),
+                                        nqp::if(   # 17
+                                          nqp::isnull_s(nqp::getattr_s(self,
+                                            nqp::atpos($task,1),
+                                            nqp::atpos($task,2)
+                                          )),
+                                          X::Attribute::Required.new(
+                                            name => nqp::atpos($task,2),
+                                            why  => nqp::atpos($task,3)
+                                          ).throw
+                                        ),
+
+                                        die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
+                  )))))))))))))),
 
                   nqp::if(                       # 0
                     nqp::existskey($init,nqp::atpos($task,3)),
@@ -430,9 +476,11 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::if(
                   nqp::iseq_i($code,4),
                   nqp::unless(                   # 4
-                    nqp::attrinited(self,
-                      nqp::atpos($task,1),
-                      nqp::atpos($task,2)
+                    nqp::p6attrinited(
+                      nqp::getattr(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      )
                     ),
                     nqp::if(
                       nqp::istype(nqp::atpos($task,3),Block),
@@ -505,9 +553,11 @@ my class Mu { # declared in BOOTSTRAP
                       nqp::if(
                         nqp::iseq_i($code,8),
                         nqp::unless(             # 8
-                          nqp::attrinited(self,
-                            nqp::atpos($task,1),
-                            nqp::atpos($task,2)
+                          nqp::p6attrinited(
+                            nqp::getattr(self,
+                              nqp::atpos($task,1),
+                              nqp::atpos($task,2)
+                            )
                           ),
                           X::Attribute::Required.new(
                             name => nqp::atpos($task,2),
@@ -590,9 +640,11 @@ my class Mu { # declared in BOOTSTRAP
                                   nqp::if(
                                     nqp::iseq_i($code,14),
                                     nqp::unless( # 14
-                                      nqp::attrinited(self,
-                                        nqp::atpos($task,1),
-                                        nqp::atpos($task,2)
+                                      nqp::p6attrinited(
+                                        nqp::getattr(self,
+                                          nqp::atpos($task,1),
+                                          nqp::atpos($task,2)
+                                        )
                                       ),
                                       nqp::bindattr(self,
                                         nqp::atpos($task,1),nqp::atpos($task,2),
@@ -931,9 +983,8 @@ my class Mu { # declared in BOOTSTRAP
                 my $package := $attr.package;
 
                 nqp::bindattr($cloned, $package, $name,
-                  nqp::clone(nqp::getattr($cloned, $package, $name).VAR)
-                ) if nqp::attrinited(self, $package, $name)
-                    and nqp::not_i(nqp::objprimspec($attr.type));
+                  nqp::clone_nd(nqp::getattr($cloned, $package, $name))
+                ) unless nqp::objprimspec($attr.type);
 
                 my $acc_name := substr($name,2);
                 nqp::getattr($cloned, $package, $name) =
@@ -946,12 +997,10 @@ my class Mu { # declared in BOOTSTRAP
                 unless nqp::objprimspec($attr.type) {
                     my $name     := $attr.name;
                     my $package  := $attr.package;
-                    if nqp::attrinited(self, $package, $name) {
-                        my $attr_val := nqp::getattr($cloned, $package, $name);
-                        nqp::bindattr($cloned,
-                          $package, $name, nqp::clone($attr_val.VAR))
-                            if nqp::iscont($attr_val);
-                    }
+                    my $attr_val := nqp::getattr($cloned, $package, $name);
+                    nqp::bindattr($cloned,
+                      $package, $name, nqp::clone_nd($attr_val))
+                        if nqp::iscont($attr_val);
                 }
             }
         }

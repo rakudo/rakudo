@@ -980,6 +980,30 @@ register_op_desugar('time_n', -> $qast {
         }
     });
 }
+{
+    my $is_moar;
+    register_op_desugar('p6attrinited', -> $qast {
+        unless nqp::isconcrete($is_moar) {
+            $is_moar := nqp::getcomp('Raku').backend.name eq 'moar';
+        }
+        if $is_moar {
+            QAST::Op.new(
+                :op('dispatch'), :returns(int),
+                QAST::SVal.new( :value('raku-is-attr-inited') ),
+                $qast[0]
+            )
+        }
+        else {
+            QAST::Op.new(
+                :op('callmethod'), :name('check'),
+                QAST::WVal.new(
+                    :value(nqp::gethllsym('Raku', 'UninitializedAttributeChecker'))
+                ),
+                $qast[0]
+            )
+        }
+    });
+}
 
 sub can-use-p6forstmt($block) {
     my $past_block := $block.ann('past_block');
@@ -989,7 +1013,7 @@ sub can-use-p6forstmt($block) {
     my $block_type := $*W.find_single_symbol('Block', :setting-only);
     return 1 unless nqp::istype($code, $block_type);
     my $p := nqp::getattr($code, $block_type, '$!phasers');
-    nqp::isnull($p) ||
+    !nqp::ishash($p) ||
         !(nqp::existskey($p, 'FIRST') || nqp::existskey($p, 'LAST') || nqp::existskey($p, 'NEXT'))
 }
 
@@ -2107,7 +2131,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         my $code := $loop[1].ann('code_object');
         my $block_type := $*W.find_single_symbol('Block', :setting-only);
         my $phasers := nqp::getattr($code, $block_type, '$!phasers');
-        if nqp::isnull($phasers) {
+        if !nqp::ishash($phasers) {
             $loop[1] := pblock_immediate($loop[1]);
         }
         else {
@@ -4322,7 +4346,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # Cannot inline things with custom invocation handler or phasers.
         return 0 if nqp::can($code, 'CALL-ME');
         my $phasers := nqp::getattr($code,$*W.find_single_symbol('Block', :setting-only),'$!phasers');
-        return 0 unless nqp::isnull($phasers) || !$phasers;
+        return 0 unless !nqp::ishash($phasers) || !$phasers;
 
         # Make sure the block has the common structure we expect
         # (decls then statements).

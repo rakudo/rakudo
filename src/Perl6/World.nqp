@@ -2739,7 +2739,7 @@ class Perl6::World is HLL::World {
         my $block_type := self.find_single_symbol('Block', :setting-only);
         if nqp::istype($code, $block_type) {
             my %phasers := nqp::getattr($code, $block_type, '$!phasers');
-            unless nqp::isnull(%phasers) {
+            if nqp::ishash(%phasers) {
                 if nqp::existskey(%phasers, 'PRE') {
                     $code_past[0].push(QAST::Op.new( :op('p6setpre') ));
                     $code_past[0].push(self.run_phasers_code($code, $code_past, $block_type, 'PRE'));
@@ -3736,17 +3736,14 @@ class Perl6::World is HLL::World {
                         # 4 = set opaque with default if not set yet
                         elsif $code == 4 || $code == 14 {
 
-# nqp::unless(
-#   nqp::attrinited(self,Foo,'$!a'),
-                            my $unless := QAST::Op.new( :op<unless>,
-                                QAST::Op.new( :op<attrinited>,
-                                  $!self, $class, $attr
-                                )
-                            );
-
 # nqp::getattr(self,Foo,'$!a')
                             my $getattr := QAST::Op.new( :op<getattr>,
                               $!self, $class, $attr
+                            );
+# nqp::unless(
+#   nqp::p6attrinited(nqp::getattr(self,Foo,'$!a')),
+                            my $unless := QAST::Op.new( :op<unless>,
+                                QAST::Op.new( :op<p6attrinited>, $getattr )
                             );
 
                             my $initializer := nqp::istype(
@@ -3882,18 +3879,45 @@ class Perl6::World is HLL::World {
                             $!w.add_object_if_no_sc(nqp::atpos($task,3));
                         }
 
-                        # 8 = bail if opaque not yet initialized
-                        elsif $code == 8 {
-
+                        # 8 = die if opaque not yet initialized
+                        # 15 = die if int is 0
+                        # 16 = die if num is 0e0
+                        # 17 = die if str is null_s
+                        elsif $code == 8 || $code >= 15 && $code <= 17 {
 # nqp::unless(
-#   nqp::attrinited(self,Foo,'$!a'),
+#   nqp::p6attrinited(nqp::getattr(self,Foo,'$!a')),
 #   X::Attribute::Required.new(name => '$!a', why => (value))
 # ),
+                            my $check;
+                            if $code == 15 {
+                                $check := QAST::Op.new( :op<getattr_i>,
+                                  $!self, $class, $attr
+                                );
+                            }
+                            elsif $code == 16 {
+                                $check := QAST::Op.new( :op<getattr_n>,
+                                  $!self, $class, $attr
+                                );
+                            }
+                            elsif $code == 17 {
+                                $check := QAST::Op.new( :op<not_i>,
+                                  QAST::Op.new( :op<isnull_s>,
+                                    QAST::Op.new( :op<getattr_s>,
+                                      $!self, $class, $attr
+                                    )
+                                  )
+                                );
+                            }
+                            else {
+                                $check := QAST::Op.new( :op<p6attrinited>,
+                                  QAST::Op.new( :op<getattr>,
+                                    $!self, $class, $attr
+                                  )
+                                );
+                            }
                             $stmts.push(
                               QAST::Op.new( :op<unless>,
-                                QAST::Op.new( :op<attrinited>,
-                                  $!self, $class, $attr
-                                ),
+                                $check,
                                 QAST::Op.new( :op<callmethod>, :name<throw>,
                                   QAST::Op.new( :op<callmethod>, :name<new>,
                                     QAST::WVal.new(

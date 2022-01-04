@@ -362,6 +362,31 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         }
     }
 
+    my $assign-scalar-uninit-no-typecheck := -> $cont, $value {
+        nqp::bindattr($cont, Scalar, '$!value', $value);
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        nqp::bindattr($cont, Scalar, '$!descriptor',
+            nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
+                '$!next-descriptor'));
+    }
+
+    my $assign-scalar-uninit := -> $cont, $value {
+        my $desc := nqp::getattr($cont, Scalar, '$!descriptor');
+        my $next := nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
+            '$!next-descriptor');
+        my $type := nqp::getattr($next, ContainerDescriptor, '$!of');
+        if nqp::istype($value, $type) {
+            if nqp::how_nd($type).archetypes.coercive {
+                $value := nqp::how_nd($type).coerce($type, $value);
+            }
+            nqp::bindattr($cont, Scalar, '$!value', $value);
+            nqp::bindattr($cont, Scalar, '$!descriptor', $next);
+        }
+        else {
+            assign-type-error($next, $value);
+        }
+    }
+
     nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-assign', -> $capture {
         # Whatever we do, we'll guard on the type of the container and its
         # concreteness.
@@ -438,6 +463,39 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                     $optimized := 1;
                 }
             }
+            elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute)
+                    && nqp::isconcrete($desc) {
+                # First assignment to an attribute where we care about whether it
+                # was assigned to. We can produce a fast path for this, though
+                # should check what the ultimate descriptor is. It really should
+                # be a normal, boring, container descriptor.
+                nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
+                my $next := nqp::getattr($desc, ContainerDescriptor::UninitializedAttribute,
+                    '$!next-descriptor');
+                if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
+                    nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
+                    # Ensure we're not assigning Nil (not yet fast-pathed, but
+                    # probably not terribly likely).
+                    unless nqp::eqaddr($value.WHAT, Nil) {
+                        # Go by whether we can type check the target.
+                        my $tracked-next := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                            $tracked-desc, ContainerDescriptor::UninitializedAttribute,
+                            '$!next-descriptor');
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-literal',
+                            $tracked-next);
+                        nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-value);
+                        my $of := $next.of;
+                        my $delegate := $of.HOW.archetypes.nominal &&
+                                (nqp::eqaddr($of, Mu) || nqp::istype($value, $of))
+                            ?? $assign-scalar-uninit-no-typecheck
+                            !! $assign-scalar-uninit;
+                        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+                            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                                $capture, 0, $delegate));
+                        $optimized := 1;
+                    }
+                }
+            }
             elsif nqp::eqaddr($desc.WHAT, ContainerDescriptor::BindArrayPos) {
                 # Bind into an array. We can produce a fast path for this, though
                 # should check what the ultimate descriptor is. It really should
@@ -445,7 +503,8 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
                 nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $tracked-desc);
                 my $next := nqp::getattr($desc, ContainerDescriptor::BindArrayPos,
                     '$!next-descriptor');
-                if nqp::eqaddr($next.WHAT, ContainerDescriptor) {
+                if nqp::eqaddr($next.WHAT, ContainerDescriptor) ||
+                    nqp::eqaddr($next.WHAT, ContainerDescriptor::Untyped) {
                     # Ensure we're not assigning Nil. (This would be very odd, as
                     # a Scalar starts off with its default value, and if we are
                     # vivifying we'll likely have a new container).
@@ -529,6 +588,87 @@ my int $MEGA-METH-CALLSITE-SIZE := 16;
         }
     });
 }
+
+# Object construction time checking of if a container is initialized. Done as
+# a dispatcher primarily to intern .^mixin_type, but also for more compact
+# bytecode size in generated BUILDALL.
+my $array-init-check := -> $arr {
+    my $storage := nqp::getattr($arr, List, '$!reified');
+    nqp::isconcrete($storage) && nqp::elems($storage)
+}
+my $hash-init-check := -> $hash {
+    my $storage := nqp::getattr($hash, Map, '$!storage');
+    nqp::isconcrete($storage) && nqp::elems($storage)
+}
+nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-is-attr-inited', -> $capture {
+    # If there's a non-concrete object observed, then we bound a non-container
+    # in place, so trivially initialized.
+    my $attr := nqp::captureposarg($capture, 0);
+    my $track-attr := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
+    my int $inited := 0;
+    my $need-elem-check;
+    if !nqp::isconcrete_nd($attr) {
+        nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-attr);
+        $inited := 1;
+    }
+
+    # Otherwise, might be a container that was assigned.
+    else {
+        # Just try and read a descriptor. Also see if we have an array or
+        # hash, which needs an additional element check to handle an
+        # assignment to an individual element during BUILD.
+        my $base;
+        my $desc;
+        my $track-desc;
+        try {
+            $base := nqp::how_nd($attr).mixin_base($attr);
+            $desc := nqp::getattr($attr, $base, '$!descriptor');
+            $track-desc := nqp::dispatch('boot-syscall', 'dispatcher-track-attr',
+                $track-attr, $base, '$!descriptor');
+        }
+
+        # If we managed to track a descriptor, when we have a container to
+        # see if was uninitialized. The attribute tracking above will have
+        # established type/concreteness guards on the attribute, so don't
+        # repeat them.
+        if $track-desc {
+            # Guard on the descriptor type, then outcome depends on if if
+            # it's an uninitialized attribute descriptor. If it is, then
+            # for arrays and hashes we also need an extra check.
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-desc);
+            $inited := !nqp::eqaddr($desc.WHAT, ContainerDescriptor::UninitializedAttribute);
+            if nqp::istype($base, Array) {
+                $need-elem-check := $array-init-check;
+            }
+            elsif nqp::istype($base, Hash) {
+                $need-elem-check := $hash-init-check;
+            }
+        }
+
+        # Otherwise, bound concrete value. Guard on type and concreteness,
+        # outcome is that it's initialized.
+        else {
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-type', $track-attr);
+            nqp::dispatch('boot-syscall', 'dispatcher-guard-concreteness', $track-attr);
+            $inited := 1;
+        }
+    }
+
+    # Evaluate to result.
+    if nqp::isconcrete($need-elem-check) && !$inited {
+        # The descriptor suggests it's not initialized by assignment to
+        # the entire array/hash, but individual elements may have been.
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-code-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-obj',
+                $capture, 0, $need-elem-check));
+    }
+    else {
+        # It's certainly initialized per the descriptor, so we're done.
+        nqp::dispatch('boot-syscall', 'dispatcher-delegate', 'boot-constant',
+            nqp::dispatch('boot-syscall', 'dispatcher-insert-arg-literal-int',
+                $capture, 0, $inited));
+    }
+});
 
 # Sink dispatcher. Called in void context with the decontainerized value to sink.
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-sink', -> $capture {

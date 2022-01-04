@@ -29,9 +29,7 @@ my class Bag does Baggy {
         )
     }
     method total(Bag:D: --> Int:D) {
-        nqp::attrinited(self,Bag,'$!total')
-          ?? $!total
-          !! ($!total := Rakudo::QuantHash.BAG-TOTAL($!elems))
+        $!total // ($!total := Rakudo::QuantHash.BAG-TOTAL($!elems))
     }
 
 

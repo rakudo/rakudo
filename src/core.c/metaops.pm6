@@ -246,6 +246,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 method !SET-SELF(\op,\list,\count,\index) {
                     $!op := op;
                     $!reified := nqp::getattr(list,List,'$!reified');
+                    $!result := nqp::null;
                     $!count = count;
                     $!i = index;
                     self
@@ -255,7 +256,11 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 }
                 method pull-one() is raw {
                     nqp::if(
-                      nqp::attrinited(self,self.WHAT,'$!result'),
+                      nqp::isnull($!result),
+                      ($!result := nqp::atpos(
+                        $!reified,
+                        ($!i = nqp::sub_i($!i,1))
+                      )),
                       nqp::stmts(
                         (my $args := nqp::list($!result)),
                         nqp::until(
@@ -268,11 +273,7 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                           ($!result := op.(|nqp::hllize($args))),
                           IterationEnd
                         )
-                      ),
-                      ($!result := nqp::atpos(
-                        $!reified,
-                        ($!i = nqp::sub_i($!i,1))
-                      ))
+                      )
                     )
                 }
             }.new(op,$v,$count,$i),
@@ -298,22 +299,23 @@ multi sub METAOP_REDUCE_RIGHT(\op, \triangle) {
                 method !SET-SELF(\op,\list,\count) {
                     $!op := op;
                     $!reified := nqp::getattr(list,List,'$!reified');
+                    $!result := nqp::null;
                     $!i = count;
                     self
                 }
                 method new(\op,\li,\co) { nqp::create(self)!SET-SELF(op,li,co) }
                 method pull-one() is raw {
                     nqp::if(
-                      nqp::attrinited(self,self.WHAT,'$!result'),
+                      nqp::isnull($!result),
+                      ($!result := nqp::atpos(
+                        $!reified,
+                        ($!i = nqp::sub_i($!i,1))
+                      )),
                       nqp::if(
                         nqp::isge_i(($!i = nqp::sub_i($!i,1)),0),
                         ($!result := $!op.(nqp::atpos($!reified,$!i),$!result)),
                         IterationEnd
-                      ),
-                      ($!result := nqp::atpos(
-                        $!reified,
-                        ($!i = nqp::sub_i($!i,1))
-                      ))
+                      )
                     )
                 }
             }.new(op,$v,$i),

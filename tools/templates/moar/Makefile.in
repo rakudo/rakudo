@@ -20,16 +20,7 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 
 @bpv(INCPATH)@ = @nfp($(MOAR_PREFIX)/include)@
 @bpv(MOAR_INC_PATHS)@ = \
-	@moar::cincludes@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/moar)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libatomic_ops)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/dyncall)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/moar)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/sha1)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/tinymt)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libtommath)@ \
-	@bpm(CCINC)@@nfpq(@bpm(INCPATH)@/libuv)@
+    @insert_list(moar_includes)@
 
 @bpv(RAKU)@ = raku@moar::exe@
 @bpv(RAKU_DEBUG)@ = raku-debug@moar::exe@
@@ -77,19 +68,25 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
 @bpv(CLEANUPS)@ = \
   $(R_SETTING_MOAR) \
   @bpm(RUN_RAKUDO_SCRIPT)@ \
-  inst-rakudo-m@moar::obj@ \
-  inst-rakudo-debug-m@moar::obj@ \
-  inst-rakudo@moar::obj@ \
-  inst-rakudo-debug@moar::obj@ \
-  inst-rakudow-m@moar::obj@ \
-  inst-rakudow@moar::obj@ \
-@for_langalias( @bpm(INST_@uclangalias@)@ \
+@for_langalias(  @bpm(INST_@uclangalias@)@ \
   @bpm(INST_@uclangalias@_DEBUG)@ \
   @bpm(INST_@uclangalias@_M)@ \
   @bpm(INST_@uclangalias@_DEBUG_M)@ \
   @bpm(INST_@uclangalias@W)@ \
   @bpm(INST_@uclangalias@W_M)@ \
-)@  @bpm(RAKUDO_OPS_DLL)@ \
+  @bpm(INST_@uclangalias@)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_DEBUG)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_M)@@moar::obj@ \
+  @bpm(INST_@uclangalias@_DEBUG_M)@@moar::obj@ \
+  @bpm(INST_@uclangalias@W)@@moar::obj@ \
+  @bpm(INST_@uclangalias@W_M)@@moar::obj@ \
+)@  @bpm(INST_RAKU)@ \
+  @bpm(INST_RAKU_DEBUG)@ \
+  @bpm(INST_RAKUW)@ \
+  @bpm(INST_RAKU)@@moar::obj@ \
+  @bpm(INST_RAKU_DEBUG)@@moar::obj@ \
+  @bpm(INST_RAKUW)@@moar::obj@ \
+  @bpm(RAKUDO_OPS_DLL)@ \
   @bpm(RAKUDO_OPS_OBJ)@ \
 @for_langalias(@for_toolchain(  @bpm(@uclangalias@_@uctoolchain@_RUNNER)@ \
 )@)@  rakudo-m.c \
@@ -97,13 +94,6 @@ R_SETTING_MOAR = RESTRICTED.setting.moarvm
   rakudo.c \
   rakudo@moar::obj@ \
   rakudo@moar::exe@ \
-  inst-raku@moar::obj@ \
-  inst-raku@moar::exe@ \
-  inst-rakuw@moar::obj@ \
-  inst-rakuw@moar::exe@ \
-  inst-perl6*@moar::obj@ \
-  inst-perl6*@moar::exe@ \
-  @bpm(INST_PERL6)@ \
   perl6@moar::exe@
 
 @bpv(RAKUDO_OPS_EXTRA)@ = @bpm(RAKUDO_OPS_DLL)@
@@ -197,7 +187,7 @@ $(R_SETTING_MOAR): @bsm(RAKUDO)@@for_specs( @bsm(SETTING_@ucspec@)@)@ $(R_SETTIN
             '-DSTATIC_EXEC_PATH=' . $qchar . $cfg->c_escape_string($cfg->nfp($config{'prefix'} . '/bin/' . $installed )) . $qchar
             if $config{relocatable} eq 'nonreloc';
         $vars{debug_flag} = '-DMOAR_RAKUDO_RUNNER_DEBUG' if $build =~ /DEBUG/;
-        if ($build !~ /RAKUDOW|PERL6W/) {
+        if ($build !~ /RAKUW|RAKUDOW|PERL6W/) {
             $vars{subsystem_win_ld_flags} = '';
             $vars{subsystem_win_cc_flags} = '';
         }

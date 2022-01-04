@@ -77,7 +77,7 @@ my class Rakudo::Unicodey is implementation-detail {
         my $prop := nqp::unipropcode($propname);
         nqp::hllbool(
           nqp::matchuniprop($code,$prop,nqp::unipvalcode($prop,$pvalname))
-        )
+        ) || uniprop($code, $propname) eq $pvalname
     }
 
     my constant $gcprop = nqp::unipropcode("General_Category");
@@ -377,6 +377,7 @@ augment class Cool {
     multi method ords(Cool:D:) { self.Str.ords }
 
     proto method unimatch($, $?, *%) is pure {*}
+
     multi method unimatch(Cool:D: Str:D $pvalname --> Bool:D) {
         self.Int.unimatch($pvalname)
     }
@@ -414,10 +415,6 @@ augment class Cool {
 
     proto method univals(*%) is pure {*}
     multi method univals(Cool:D:) { self.Str.univals }
-
-    method uniprop-int(|c)  { uniprop-int(self, |c) }
-    method uniprop-bool(|c) { uniprop-bool(self, |c) }
-    method uniprop-str(|c)  { uniprop-str(self, |c) }
 
     proto method NFC(*%) {*}
     multi method NFC(Cool:D:) { self.Str.NFC }
@@ -467,14 +464,14 @@ augment class Int {
             !! nqp::getuniname(self)
     }
 
-    multi method uniprop(Int:D:) { 
+    multi method uniprop(Int:D:) {
         nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('uniprop')
           !! nqp::isbig_I(self)
             ?? ""
             !! Rakudo::Unicodey.uniprop-general(self)
     }
-    multi method uniprop(Int:D: Str:D $propname) { 
+    multi method uniprop(Int:D: Str:D $propname) {
         nqp::islt_I(self,0)
           ?? self!codepoint-out-of-bounds('uniprop')
           !! nqp::isbig_I(self)
@@ -537,12 +534,12 @@ augment class Str {
         nqp::join("",$parts)
     }
 
-    multi method uniprop(Str:D:) { 
+    multi method uniprop(Str:D:) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
           !! Rakudo::Unicodey.uniprop-general($ord)
     }
-    multi method uniprop(Str:D: Str:D $propname) { 
+    multi method uniprop(Str:D: Str:D $propname) {
         nqp::iseq_i((my int $ord = nqp::ord($!value)),-1)
           ?? Nil
           !! Rakudo::Unicodey.uniprop($ord, $propname)
@@ -627,10 +624,6 @@ proto sub uniparse($, *%) {*}
 proto sub uniprop($, $?, *%)  is pure {*}
 proto sub uniprops($, $?, *%) is pure {*}
 
-proto sub uniprop-bool($, $, *%) is pure {*}
-proto sub uniprop-int($, $, *%)  is pure {*}
-proto sub uniprop-str($, $, *%)  is pure {*}
-
 proto sub unival($, *%)  is pure {*}
 proto sub univals($, *%) is pure {*}
 #-------------------------------------------------------------------------------
@@ -663,78 +656,28 @@ multi sub uniprops(\what, Str:D $propname) { what.uniprops($propname) }
 multi sub unival(\what) { what.unival }
 multi sub univals(\what) { what.univals }
 
-#?if jvm
-multi sub uniprop-int(|)  { die 'uniprop-int NYI on jvm backend' }
-multi sub uniprop-bool(|) { die 'uniprop-bool NYI on jvm backend' }
-multi sub uniprop-str(|)  { die 'uniprop-str NYI on jvm backend' }
-#?endif
-
-#?if js
-multi sub uniprop-int(|)  { die 'uniprop-int NYI on js backend' }
-multi sub uniprop-bool(|) { die 'uniprop-bool NYI on js backend' }
-multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_str($code,nqp::unipropcode($propname));
-}
-#?endif
-
-#?if moar
-
-# Unicode functions
-multi sub uniprop-int(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-int($str.ord, $propname) !! Nil }
-multi sub uniprop-int(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_int($code,nqp::unipropcode($propname));
-}
-
-multi sub uniprop-bool(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-bool($str.ord, $propname) !! Nil
-}
-multi sub uniprop-bool(Int:D $code, Stringy:D $propname) {
-    nqp::hllbool(nqp::getuniprop_bool($code,nqp::unipropcode($propname)));
-}
-
-multi sub uniprop-str(Str:D $str, Stringy:D $propname) {
-    $str ?? uniprop-str($str.ord, $propname) !! Nil
-}
-multi sub uniprop-str(Int:D $code, Stringy:D $propname) {
-    nqp::getuniprop_str($code,nqp::unipropcode($propname));
-}
-#?endif
-
 #?if !jvm
-multi sub infix:<unicmp>(Str:D \a, Str:D \b) {
-    ORDER(
-      nqp::unicmp_s(nqp::unbox_s(a), nqp::unbox_s(b), 85,0,0)
-    )
+multi sub infix:<unicmp>(Str:D $a, Str:D $b) {
+    ORDER(nqp::unicmp_s($a,$b,85,0,0))
 }
-multi sub infix:<unicmp>(Cool:D \a, Cool:D \b) {
-    ORDER(
-      nqp::unicmp_s(nqp::unbox_s(a.Str), nqp::unbox_s(b.Str), 85,0,0)
-    )
+multi sub infix:<unicmp>(Cool:D $a, Cool:D $b) {
+    ORDER(nqp::unicmp_s($a.Str,$b.Str,85,0,0))
 }
-multi sub infix:<unicmp>(Pair:D \a, Pair:D \b) {
-    nqp::eqaddr((my $cmp := (a.key unicmp b.key)),Order::Same)
-      ?? (a.value unicmp b.value)
+multi sub infix:<unicmp>(Pair:D $a, Pair:D $b) {
+    nqp::eqaddr((my $cmp := ($a.key unicmp $b.key)),Order::Same)
+      ?? ($a.value unicmp $b.value)
       !! $cmp
 }
 
-multi sub infix:<coll>(Str:D \a, Str:D \b) {
-    ORDER(
-      nqp::unicmp_s(
-        nqp::unbox_s(a),nqp::unbox_s(b),$*COLLATION.collation-level,0,0
-      )
-    )
+multi sub infix:<coll>(Str:D $a, Str:D $b) {
+    ORDER(nqp::unicmp_s($a,$b,$*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Cool:D \a, Cool:D \b) {
-    ORDER(
-      nqp::unicmp_s(
-        nqp::unbox_s(a.Str),nqp::unbox_s(b.Str),$*COLLATION.collation-level,0,0
-      )
-    )
+multi sub infix:<coll>(Cool:D $a, Cool:D $b) {
+    ORDER(nqp::unicmp_s($a.Str,$b.Str,$*COLLATION.collation-level,0,0))
 }
-multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
-    nqp::eqaddr((my $cmp := (a.key coll b.key)),Order::Same)
-      ?? (a.value coll b.value)
+multi sub infix:<coll>(Pair:D $a, Pair:D $b) {
+    nqp::eqaddr((my $cmp := ($a.key coll $b.key)),Order::Same)
+      ?? ($a.value coll $b.value)
       !! $cmp
 }
 #?endif
@@ -742,10 +685,10 @@ multi sub infix:<coll>(Pair:D \a, Pair:D \b) {
 #?if jvm
 multi sub infix:<unicmp>($, $) {
     X::NYI.new(feature => "infix unicmp on JVM").throw
-}   
+}
 multi sub infix:<coll>($, $) {
     X::NYI.new(feature => "infix coll on JVM").throw
-}   
+}
 #?endif
 
 # vim: expandtab shiftwidth=4

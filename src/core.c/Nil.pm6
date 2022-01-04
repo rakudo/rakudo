@@ -14,7 +14,7 @@ my class Nil is Cool { # declared in BOOTSTRAP
     # core functionality
     method sink(--> Nil) { }     # required by RESTRICTED setting
     method FALLBACK(| --> Nil) { }
-    method STORE(|) { X::Assignment::RO.new(:value<Nil>).throw }
+    method STORE(|) { X::Assignment::RO.new(:value(Nil)).throw }
 
     # interface methods that should silently return Nil
     multi method new(Nil: *@ --> Nil) { }

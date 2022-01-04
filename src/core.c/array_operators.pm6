@@ -3,22 +3,11 @@ proto sub circumfix:<[ ]>(Mu $?, *%) {*}
 multi sub circumfix:<[ ]>() {
     nqp::create(Array)
 }
+
 multi sub circumfix:<[ ]>(Iterable:D \iterable) {
     nqp::if(
       nqp::iscont(iterable),
-      nqp::p6bindattrinvres(
-        nqp::create(Array),List,'$!reified',
-        nqp::stmts(
-          (my \scalar := nqp::create(Scalar)),
-          nqp::bindattr(
-            scalar, Scalar, '$!descriptor',
-            BEGIN nqp::getcurhllsym('default_cont_spec')
-          ),
-          nqp::bindattr(scalar,Scalar,'$!value',nqp::decont(iterable)),
-          nqp::bindpos((my \reified := nqp::create(IterationBuffer)),0,scalar),
-          reified
-        )
-      ),
+      Rakudo::Internals.Array-with-one-elem(Mu, iterable),
       nqp::if(
         nqp::istype(iterable,List) && nqp::isfalse(iterable.is-lazy),
         Array.from-list(iterable),
@@ -27,24 +16,9 @@ multi sub circumfix:<[ ]>(Iterable:D \iterable) {
     )
 }
 multi sub circumfix:<[ ]>(Mu \x) {   # really only for [$foo]
-    nqp::if(
-      nqp::eqaddr(nqp::decont(x),Nil),
-      Array.new,
-      nqp::p6bindattrinvres(
-        nqp::create(Array),List,'$!reified',
-        nqp::stmts(
-          nqp::bindpos(
-            (my \reified := nqp::create(IterationBuffer)),
-            0,
-            nqp::p6scalarwithvalue(
-              (BEGIN nqp::getcurhllsym('default_cont_spec')),
-              nqp::decont(x)
-            )
-          ),
-          reified
-        )
-      )
-    )
+    nqp::eqaddr(nqp::decont(x),Nil)
+      ?? Array.new
+      !! Rakudo::Internals.Array-with-one-elem(Mu, x)
 }
 
 proto sub pop($, *%) {*}

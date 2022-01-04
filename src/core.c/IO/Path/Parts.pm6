@@ -8,8 +8,8 @@ class IO::Path::Parts
     has str $.basename;
 
     method !SET-SELF($!volume, $!dirname, $!basename) { self }
-    method new(\volume, \dirname, \basename) {
-        nqp::create(self)!SET-SELF(volume, dirname, basename)
+    method new($volume, $dirname, $basename) {
+        nqp::create(self)!SET-SELF($volume, $dirname, $basename)
     }
 
     method raku() {

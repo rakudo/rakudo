@@ -200,7 +200,9 @@ my %allowed = (
     Q{&infix:</>},
     Q{&infix:<=:=>},
     Q{&infix:<===>},
+    Q{&infix:<⩶>},
     Q{&infix:<==>},
+    Q{&infix:<⩵>},
     Q{&infix:<=>},
     Q{&infix:<=~=>},
     Q{&infix:<=~>},
@@ -468,9 +470,6 @@ my %allowed = (
     Q{&uninames},
     Q{&uniparse},
     Q{&uniprop},
-    Q{&uniprop-bool},
-    Q{&uniprop-int},
-    Q{&uniprop-str},
     Q{&uniprops},
     Q{&unique},
     Q{&unival},
@@ -609,6 +608,7 @@ my %allowed = (
     Q{PROTO_TCP},
     Q{PROTO_UDP},
     Q{Pair},
+    Q{ParallelSequence},
     Q{Parameter},
     Q{Perl},
     Q{PhasersList},
@@ -680,6 +680,7 @@ my %allowed = (
     Q{SOCK_STREAM},
     Q{Same},
     Q{Scalar},
+    Q{ScalarVAR},
     Q{Scheduler},
     Q{SeekFromBeginning},
     Q{SeekFromCurrent},
@@ -762,7 +763,6 @@ my %allowed = (
     Q{π},
     Q{τ},
     Q{𝑒},
-    Q{tai-offset-nanos},
 ).map: { $_ => 1 };
 
 my %nyi-for-backend = (

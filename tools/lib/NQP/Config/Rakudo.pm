@@ -894,7 +894,7 @@ sub _m_for_langalias {
 
 sub _m_source_digest_files {
     my $self   = shift;
-    my $indent = " " x ( $self->cfg->{config}{filelist_indent} || 4 );
+    my $indent = " " x ( $self->cfg->{config}{list_indent} || 4 );
     return join( " \\\n$indent", _all_sources($self) );
 }
 

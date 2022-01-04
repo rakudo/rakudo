@@ -132,6 +132,9 @@ my class Any { # declared in BOOTSTRAP
     proto method pick(|) is nodal {*}
     multi method pick()   { self.list.pick     }
     multi method pick($n) { self.list.pick($n) }
+    multi method pick(HyperWhatever) is default {
+        Seq.new: Rakudo::Iterator.Reiterate: { self.pick(Whatever).iterator }
+    }
 
     proto method roll(|) is nodal {*}
     multi method roll()   { self.list.roll     }
@@ -462,6 +465,8 @@ multi sub infix:<===>(\a, \b --> Bool:D) {
            && nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH)))
     )
 }
+# U+2A76 THREE CONSECUTIVE EQUALS SIGNS
+my constant &infix:<⩶> = &infix:<===>;
 
 proto sub prefix:<++>(Mu, *%)        {*}
 multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
@@ -589,6 +594,7 @@ sub dd(|c) {  # is implementation-detail
             my $var  := nqp::shift($args);
             my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
             my $type := $var.WHAT.^name.split("::").tail;
+            $type := $type.chop if $name && $name.starts-with('@' | '%');
             my $what := nqp::can($var,'raku')
               ?? $var.raku
               !! nqp::can($var,'perl')

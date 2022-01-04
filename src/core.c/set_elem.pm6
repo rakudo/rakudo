@@ -7,7 +7,7 @@
 #   ∌       does NOT contain
 
 proto sub infix:<(elem)>($, $, *% --> Bool:D) is pure {*}
-multi sub infix:<(elem)>(Str:D \a, Map:D \b --> Bool:D) {
+multi sub infix:<(elem)>(Str:D $a, Map:D \b --> Bool:D) {
     nqp::hllbool(
       nqp::istrue(
         nqp::elems(my \storage := nqp::getattr(nqp::decont(b),Map,'$!storage'))
@@ -15,14 +15,14 @@ multi sub infix:<(elem)>(Str:D \a, Map:D \b --> Bool:D) {
                nqp::istype(b,Hash::Object),
                  nqp::getattr(                                # object hash
                    nqp::ifnull(
-                     nqp::atkey(storage,a.WHICH),
+                     nqp::atkey(storage,$a.WHICH),
                      BEGIN   # provide virtual value False    # did not exist
                        nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',False)
                    ),
                    Pair,
                   '$!value'
                  ),
-                 nqp::atkey(storage,a)                        # normal hash
+                 nqp::atkey(storage,$a)                       # normal hash
                )
       )
     )
@@ -45,27 +45,27 @@ multi sub infix:<(elem)>(Any \a, Map:D \b --> Bool:D) {
       )
     )
 }
-multi sub infix:<(elem)>(Str:D \a, array[str] \b --> Bool:D) {
+multi sub infix:<(elem)>(Str:D $a, array[str] \b --> Bool:D) {
     my int $i = -1;
     nqp::while(
       nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(b))
-        && nqp::isne_s(a, nqp::atpos_s(b,$i)),
+        && nqp::isne_s($a,nqp::atpos_s(b,$i)),
       nqp::null
     );
     nqp::hllbool(nqp::islt_i($i,nqp::elems(b)))
 }
 
-multi sub infix:<(elem)>(Int:D \a, array[int] \b --> Bool:D) {
+multi sub infix:<(elem)>(Int:D $a, array[int] \b --> Bool:D) {
     my int $i = -1;
     nqp::while(
       nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(b))
-        && nqp::isne_i(a, nqp::atpos_i(b,$i)),
+        && nqp::isne_i($a,nqp::atpos_i(b,$i)),
       nqp::null
     );
     nqp::hllbool(nqp::islt_i($i,nqp::elems(b)))
 }
-multi sub infix:<(elem)>(Int:D \a, Range:D \b --> Bool:D) {
-    b.is-int ?? b.ACCEPTS(a) !! a (elem) b.iterator
+multi sub infix:<(elem)>(Int:D $a, Range:D \b --> Bool:D) {
+    b.is-int ?? b.ACCEPTS($a) !! $a (elem) b.iterator
 }
 multi sub infix:<(elem)>(Any \a, Iterable:D \b --> Bool:D) {
     a (elem) b.iterator
@@ -90,14 +90,14 @@ multi sub infix:<(elem)>(Any \a, Iterator:D \b --> Bool:D) {
       )
     )
 }
-multi sub infix:<(elem)>(Any \a, QuantHash:D \b --> Bool:D) {
+multi sub infix:<(elem)>(Any \a, QuantHash:D $b --> Bool:D) {
     nqp::hllbool(
-      (my \elems := b.RAW-HASH) ?? nqp::existskey(elems,a.WHICH) !! 0
+      (my \elems := $b.RAW-HASH) ?? nqp::existskey(elems,a.WHICH) !! 0
     )
 }
 
-multi sub infix:<(elem)>(Any $, Failure:D \b) { b.throw }
-multi sub infix:<(elem)>(Failure:D \a, Any $) { a.throw }
+multi sub infix:<(elem)>(Any, Failure:D $b) { $b.throw }
+multi sub infix:<(elem)>(Failure:D $a, Any) { $a.throw }
 multi sub infix:<(elem)>(Any \a, Any \b) { a (elem) b.Set }
 
 # U+2208 ELEMENT OF

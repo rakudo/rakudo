@@ -40,6 +40,8 @@ my class Cool { # declared in BOOTSTRAP
     multi method log(Cool:D: )      { self.Numeric.log          }
     multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
 
+    method Order(Cool:D:) { ORDER(self.Int) }
+
     proto method exp(|) {*}
     multi method exp(Cool:D: )      { self.Numeric.exp          }
     multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }
@@ -78,7 +80,12 @@ my class Cool { # declared in BOOTSTRAP
     proto method wordcase(*%) {*}
     multi method wordcase(Cool:D:) { self.Str.wordcase(|%_) }
 
+#?if moar
+    proto method trans(|) {*}
+#?endif
+#?if !moar
     proto method trans(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
     multi method trans(Cool:D: |c) { self.Str.trans(|c) }
 
     proto method indent($, *%) {*}
@@ -360,10 +367,12 @@ my class Cool { # declared in BOOTSTRAP
     multi method words(Cool:D:)         { self.Str.words         }
     multi method words(Cool:D: $limit ) { self.Str.words($limit) }
 
-    proto method subst(|) {
-        $/ := nqp::getlexcaller('$/');
-        {*}
-    }
+#?if moar
+    proto method subst(|) {*}
+#?endif
+#?if !moar
+    proto method subst(|) { $/ := nqp::getlexcaller('$/'); {*} }
+#?endif
     multi method subst(Cool:D: $original, $replacement = "", *%options) {
         $/ := nqp::getlexcaller('$/');
         self.Str.subst($original, $replacement, |%options);
@@ -448,6 +457,8 @@ my class Cool { # declared in BOOTSTRAP
           ?? $numeric
           !! $numeric.Complex
     }
+
+    method Version() { self.Str.Version }
 }
 Metamodel::ClassHOW.exclude_parent(Cool);
 
@@ -525,7 +536,7 @@ multi sub sprintf(Str(Cool) $format, *@args) {
             X::Cannot::Lazy.new(:action('(s)printf')).throw
         }
         default {
-            Rakudo::Internals.HANDLE-NQP-SPRINTF-ERRORS($_).throw
+            Rakudo::Internals.HANDLE-NQP-SPRINTF-ERRORS($_, $format).throw
         }
     }
     Rakudo::Internals.initialize-sprintf-handler;

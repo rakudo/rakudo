@@ -39,6 +39,23 @@ my class Rakudo::Internals {
         ))
     }
 
+    method Array-with-one-elem(Mu \type, Mu \value) {
+        my \array := (nqp::eqaddr(type,Mu) ?? Array !! Array[type]).new;
+        nqp::p6bindattrinvres(array,List,'$!reified',
+          nqp::stmts(
+            nqp::bindpos(
+              (my \reified := nqp::create(IterationBuffer)),
+              0,
+              nqp::p6scalarwithvalue(
+                nqp::getattr(array,Array,'$!descriptor'),
+                nqp::decont(value)
+              )
+            ),
+            reified
+          )
+        )
+    }
+
     # for use in nqp::splice
     my $empty := nqp::list;
 
@@ -210,19 +227,11 @@ my class Rakudo::Internals {
               nqp::iscont(cont),
               nqp::push(restore,nqp::decont(cont)),
               nqp::if(
-                nqp::istype(cont,Array),
-                nqp::push(restore,cont.clone),
-                nqp::if(
-                  nqp::istype(cont,Hash),
-                  nqp::push(restore,
-                    nqp::p6bindattrinvres(
-                      Hash.^parameterize(Mu,Mu).new,
-                      Hash, '$!descriptor',
-                      nqp::getattr(cont, Hash, '$!descriptor')).STORE: cont),
-                  nqp::stmts(
-                    nqp::pop(restore),  # lose the erroneously pushed value
-                    X::Localizer::NoContainer.new(:$localizer).throw
-                  )
+                nqp::can(cont,'TEMP-LET-LOCALIZE'),
+                nqp::push(restore,cont.TEMP-LET-LOCALIZE),
+                nqp::stmts(
+                  nqp::pop(restore),  # lose the erroneously pushed value
+                  X::Localizer::NoContainer.new(:$localizer).throw
                 )
               )
             )
@@ -427,7 +436,7 @@ my class Rakudo::Internals {
     my constant \SHAPE-STORAGE-ROOT := do {
         my Mu $root := nqp::newtype(nqp::knowhow(), 'Uninstantiable');
         nqp::setdebugtypename($root, 'MultiDimArray root');
-        nqp::setparameterizer($root, -> $, $key {
+        Metamodel::Primitives.set_parameterizer($root, -> $, $key {
             # We "steal" the meta-object for the multi-dim storage.
             my $dims := $key.elems.pred;
             my $meta := $key.AT-POS(0);
@@ -1094,37 +1103,48 @@ my class Rakudo::Internals {
 #nqp::print("running mainline\n");
 #method INITIALIZERS() { $initializers }
 
-    method REGISTER-DYNAMIC(Str:D \name, &code, Str $version = '6.c' --> Nil) {
-#nqp::say('Registering ' ~ name);
-        my str $with = nqp::concat($version, nqp::concat("\0", name));
+    method REGISTER-DYNAMIC(
+      str $name,
+      &code,
+      str $version = '6.c',
+      :$override
+    --> Nil) {
+#nqp::say("Registering $name");
+        $initializers := nqp::hash unless $initializers;
+        my str $with   = nqp::concat($version,nqp::concat("\0",$name));
 
         nqp::if(
-          nqp::existskey(
-            nqp::unless($initializers,$initializers := nqp::hash),
-            $with
+          $override,
+          nqp::stmts(
+            nqp::bindkey($initializers,$with,&code),
+            nqp::bindkey($initializers,$name,&code)
           ),
-          (die "Already have initializer for '{name}' ('$version')"),
-          nqp::bindkey($initializers,$with,&code)
-        );
-
-        nqp::unless(                                 # first come, first kept
-          nqp::existskey($initializers,nqp::unbox_s(name)),
-          nqp::bindkey($initializers,nqp::unbox_s(name),&code)
-        );
+          nqp::stmts(
+            nqp::if(
+              nqp::existskey($initializers,$with),
+              (die "Already have initializer for '$name' ('$version')"),
+              nqp::bindkey($initializers,$with,&code)
+            ),
+            nqp::unless(  # first come, first kept
+              nqp::existskey($initializers,$name),
+              nqp::bindkey($initializers,$name,&code)
+            )
+          )
+        )
     }
-    method INITIALIZE-DYNAMIC(str \name) is raw {
-#nqp::say('Initializing ' ~ name);
+    method INITIALIZE-DYNAMIC(str $name) is raw {
+#nqp::say("Initializing $name");
         nqp::ifnull(
           nqp::atkey(
             $initializers,
             nqp::concat(
               nqp::getcomp('Raku').language_version,
-              nqp::concat("\0",name)
+              nqp::concat("\0",$name)
             )
           ),
           nqp::ifnull(
-            nqp::atkey($initializers,name),
-            { Failure.new(X::Dynamic::NotFound.new(:name(name))) }
+            nqp::atkey($initializers,$name),
+            { Failure.new(X::Dynamic::NotFound.new(:$name)) }
           )
         )();
     }
@@ -1451,7 +1471,7 @@ my class Rakudo::Internals {
         nqp::bitand_i(nqp::stat(abspath,nqp::const::STAT_PLATFORM_MODE),0o7777)
     }
 
-    method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception) {
+    method HANDLE-NQP-SPRINTF-ERRORS(Mu \exception, str $format) {
         my $vmex := nqp::getattr(nqp::decont(exception), Exception, '$!ex');
         my \payload := nqp::getpayload($vmex);
         if nqp::elems(payload) == 1 {
@@ -1460,6 +1480,7 @@ my class Rakudo::Internals {
                     type      => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'TYPE'),
                     directive => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'DIRECTIVE'),
                     value     => nqp::atkey(nqp::atkey(payload, 'BAD_TYPE_FOR_DIRECTIVE'), 'VALUE'),
+                    format    => $format,
             }
             elsif nqp::existskey(payload, 'BAD_DIRECTIVE') {
                 X::Str::Sprintf::Directives::Unsupported.new:
@@ -1470,6 +1491,7 @@ my class Rakudo::Internals {
                 X::Str::Sprintf::Directives::Count.new:
                     args-have => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_HAVE'),
                     args-used => nqp::atkey(nqp::atkey(payload, 'DIRECTIVES_COUNT'), 'ARGS_USED'),
+                    format    => $format,
             }
             else { exception }
         }
@@ -1516,7 +1538,7 @@ my class Rakudo::Internals {
         $i
     }
 
-    # next logical string frontend, hopefully inlineable (pos >= 0)
+    # next logical string frontend, hopefully inlinable (pos >= 0)
     method SUCC(str \string, int \pos) {
         my int $at = nqp::index($succ-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)
@@ -1567,7 +1589,7 @@ my class Rakudo::Internals {
         }
     }
 
-    # previous logical string frontend, hopefully inlineable
+    # previous logical string frontend, hopefully inlinable
     method PRED(str \string, int \pos) {
         my int $at = nqp::index($pred-nlook,nqp::substr(string,pos,1));
         nqp::iseq_i($at,-1)

@@ -11,7 +11,7 @@ class Perl6::Metamodel::GenericHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     # The name we're created with is both the name we'll claim

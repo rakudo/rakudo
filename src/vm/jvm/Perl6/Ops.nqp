@@ -69,7 +69,7 @@ proto sub trial_bind(*@args) {
 my $trial_bind := -> $qastcomp, $op {
     $qastcomp.as_jast(QAST::Op.new(
         :op('call'),
-        QAST::WVal.new( :value(nqp::getcodeobj(&trial_bind)) ),
+        QAST::WVal.new( :value(&trial_bind) ),
         |@($op)
     ));
 };
@@ -78,7 +78,7 @@ proto sub get_binder()   { $Binder }
 $ops.add_hll_op('nqp', 'p6setbinder', -> $qastcomp, $op {
     $qastcomp.as_jast(QAST::Op.new(
         :op('call'),
-        QAST::WVal.new( :value(nqp::getcodeobj(&set_binder)) ),
+        QAST::WVal.new( :value(&set_binder) ),
         |@($op)
     ));
 });

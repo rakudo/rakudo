@@ -52,22 +52,22 @@ my class Allomorph is Str {
     method trim-trailing(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').trim-trailing
     }
-    method lc(Allomorph:D:) { 
+    method lc(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').lc
     }
-    method uc(Allomorph:D:) { 
+    method uc(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').uc
     }
-    method tc(Allomorph:D:) { 
+    method tc(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').tc
     }
-    method tclc(Allomorph:D:) { 
+    method tclc(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').tclc
     }
-    method fc(Allomorph:D:) { 
+    method fc(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').fc
     }
-    method flip(Allomorph:D:) { 
+    method flip(Allomorph:D:) {
         nqp::getattr_s(self,Str,'$!value').flip
     }
 
@@ -264,7 +264,7 @@ multi sub val(\one-thing) is raw {
     one-thing
 }
 
-multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-mu) {
+multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     # TODO:
     # * Additional numeric styles:
     #   + fractions in [] radix notation:  :100[10,'.',53]
@@ -288,8 +288,8 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-mu) {
     # string, or a failure if we're Str.Numeric
     my &parse_fail := -> \msg {
         $val-or-fail
-          ?? $fail-or-mu
-            ?? return Mu
+          ?? $fail-or-nil
+            ?? return Nil
             !! fail X::Str::Numeric.new(:source($MAYBEVAL),:reason(msg),:$pos)
           !! return $MAYBEVAL
     }
@@ -369,7 +369,7 @@ multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-mu) {
                 $pos    = $p;
 
                 $frac  := nqp::atpos($parse, 0);
-                $base  := nqp::atpos($parse, 1);
+                $base  := nqp::pow_I(nqp::box_i($radix, Int), nqp::atpos($parse, 1), Num, Int);
                 $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
             }
 

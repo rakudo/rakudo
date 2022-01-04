@@ -7,7 +7,7 @@ my class StrDistance is Cool {
         $.before ne $.after
     }
 
-    method ACCEPTS(StrDistance:D: Mu \a) {
+    multi method ACCEPTS(StrDistance:D: Mu \a) {
         self
     }
 

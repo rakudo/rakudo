@@ -201,7 +201,9 @@ my @expected = (
   Q{&infix:</>},
   Q{&infix:<=:=>},
   Q{&infix:<===>},
+  Q{&infix:<⩶>},
   Q{&infix:<==>},
+  Q{&infix:<⩵>},
   Q{&infix:<=>},
   Q{&infix:<=~=>},
   Q{&infix:<=~>},
@@ -469,9 +471,6 @@ my @expected = (
   Q{&uninames},
   Q{&uniparse},
   Q{&uniprop},
-  Q{&uniprop-bool},
-  Q{&uniprop-int},
-  Q{&uniprop-str},
   Q{&uniprops},
   Q{&unique},
   Q{&unival},
@@ -609,6 +608,7 @@ my @expected = (
   Q{PROTO_TCP},
   Q{PROTO_UDP},
   Q{Pair},
+  Q{ParallelSequence},
   Q{Parameter},
   Q{Perl},
   Q{PhasersList},
@@ -680,6 +680,7 @@ my @expected = (
   Q{SOCK_STREAM},
   Q{Same},
   Q{Scalar},
+  Q{ScalarVAR},
   Q{Scheduler},
   Q{SeekFromBeginning},
   Q{SeekFromCurrent},
@@ -762,7 +763,6 @@ my @expected = (
   Q{π},
   Q{τ},
   Q{𝑒},
-  Q{tai-offset-nanos},
 );
 
 my %nyi-for-backend = (

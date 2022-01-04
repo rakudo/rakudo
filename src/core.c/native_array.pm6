@@ -3732,7 +3732,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2021-06-11T22:50:48+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-07-20T13:33:00+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3965,11 +3965,25 @@ multi sub postcircumfix:<[ ]>(
     nqp::decont(SELF)
 }
 
+multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
+    my int $elems-a = nqp::elems(a);
+    my int $elems-b = nqp::elems(b);
+    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+
+    my int $i = -1;
+    nqp::until(
+      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+        || (my $res = nqp::cmp_s(nqp::atpos_s(a,$i),nqp::atpos_s(b,$i))),
+      nqp::null
+    );
+    ORDER($res || nqp::cmp_i($elems-a,$elems-b))
+}
+
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2021-06-11T22:50:48+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-07-20T13:33:00+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4202,11 +4216,25 @@ multi sub postcircumfix:<[ ]>(
     nqp::decont(SELF)
 }
 
+multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
+    my int $elems-a = nqp::elems(a);
+    my int $elems-b = nqp::elems(b);
+    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+
+    my int $i = -1;
+    nqp::until(
+      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+        || (my $res = nqp::cmp_n(nqp::atpos_n(a,$i),nqp::atpos_n(b,$i))),
+      nqp::null
+    );
+    ORDER($res || nqp::cmp_i($elems-a,$elems-b))
+}
+
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2021-06-11T22:50:48+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-07-20T13:33:00+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4437,6 +4465,20 @@ multi sub postcircumfix:<[ ]>(
   array::intarray:D \SELF, Whatever
 ) {
     nqp::decont(SELF)
+}
+
+multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
+    my int $elems-a = nqp::elems(a);
+    my int $elems-b = nqp::elems(b);
+    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+
+    my int $i = -1;
+    nqp::until(
+      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+        || (my $res = nqp::cmp_i(nqp::atpos_i(a,$i),nqp::atpos_i(b,$i))),
+      nqp::null
+    );
+    ORDER($res || nqp::cmp_i($elems-a,$elems-b))
 }
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE

@@ -282,9 +282,16 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     method CALL-ME(|c) {
-        self.AUTOTHREAD(
-            -> $obj, |c { $obj(|c) },
-            self, |c);
+        my \storage     := nqp::getattr(self, Junction, '$!eigenstates');
+        my int $elems    = nqp::elems(storage);
+        my \result      := nqp::setelems(nqp::list, $elems);
+        my int $i        = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i, 1)), $elems),
+          nqp::bindpos(result, $i, nqp::atpos(storage, $i)(|c))
+        );
+        nqp::p6bindattrinvres(
+          nqp::clone(self), Junction, '$!eigenstates', result)
     }
 
     method sink(Junction:D: --> Nil) {
@@ -337,10 +344,17 @@ my class Junction { # declared in BOOTSTRAP
         my int $first_any_one = -1;
         my int $elems = nqp::elems(positionals);
         my int $i     = -1;
+        my @params := &call.signature.params;
         while nqp::islt_i(++$i,$elems) {
             # Junctional positional argument?
             my Mu $arg := nqp::atpos(positionals, $i);
-            if nqp::istype($arg,Junction) {
+            if nqp::istype($arg, Junction) and (
+                # No auto-threading for Mu or Junction parameters necessary
+                not nqp::istype(Junction, @params[$i].type)
+                # Can't handle protos yet because auto-generated protos
+                # will report Mu as parameter type
+                or &call.?is_dispatcher
+            ) {
                 my str $type = nqp::getattr_s(nqp::decont($arg),Junction,'$!type');
                 nqp::iseq_s($type,'any') || nqp::iseq_s($type,'one')
                   ?? $first_any_one == -1
@@ -542,9 +556,19 @@ nqp::p6setautothreader( -> |c {
     Junction.AUTOTHREAD(|c)
 } );
 Mu.HOW.setup_junction_fallback(Junction, -> $name, |c {
-    Junction.AUTOTHREAD(
-        -> \obj, |c { obj."$name"(|c) },
-        |c);
+    my \positionals := nqp::getattr(nqp::decont(c), Capture, '@!list');
+    my \junction    := nqp::decont(nqp::atpos(positionals, 0));
+    my \storage     := nqp::getattr(junction, Junction, '$!eigenstates');
+    my int $elems    = nqp::elems(storage);
+    my \result      := nqp::setelems(nqp::list, $elems);
+    my int $i        = -1;
+    nqp::shift(positionals); # remove Junction
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i, 1)), $elems),
+      nqp::bindpos(result, $i, nqp::atpos(storage, $i)."$name"(|c))
+    );
+    nqp::p6bindattrinvres(
+      nqp::clone(junction), Junction, '$!eigenstates', result)
 } );
 
 # vim: expandtab shiftwidth=4

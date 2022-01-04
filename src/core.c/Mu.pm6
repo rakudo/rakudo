@@ -65,7 +65,7 @@ my class Mu { # declared in BOOTSTRAP
     method take {
         take self;
     }
-    method return-rw(|) {  # same code as control.pm6's return-rw
+    method return-rw(Mu \SELF: |) {  # same code as control.pm6's return-rw
         my $list := RETURN-LIST(nqp::p6argvmarray());
         nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $list);
         $list;
@@ -113,7 +113,7 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
-        nqp::eqaddr((my $bless := nqp::findmethod(self,'bless')),
+        nqp::eqaddr((my $bless := nqp::tryfindmethod(self,'bless')),
                     nqp::findmethod(Mu,'bless'))
                 ?? nqp::create(self).BUILDALL(Empty, %attrinit)
                 !! $bless(self,|%attrinit)
@@ -985,8 +985,6 @@ my class Mu { # declared in BOOTSTRAP
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is raw {
         my $meth;
         my $ctx := nqp::ctxcaller(nqp::ctx());
-        # Bypass wrapping thunk if redirected from spesh plugin
-        $ctx := nqp::ctxcaller($ctx) if $*SPESH-THUNKED-DISPATCH;
         if nqp::istype(self, $type) {
             my $sym-found := 0;
             my $caller-type;
@@ -1027,6 +1025,7 @@ my class Mu { # declared in BOOTSTRAP
               typename => type.^name,
               :private,
               :in-class-call(nqp::eqaddr(nqp::what(SELF), nqp::getlexcaller('$?CLASS'))),
+              :containerized(nqp::iscont(SELF)),
             ).throw;
     }
 
@@ -1042,7 +1041,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method !batch-call(Mu \SELF: \name, Capture:D \c, :$throw = False, :$reverse = False, :$roles = False) {
-        my @mro := SELF.^mro(:$roles);
+        my @mro := SELF.^mro(concretizations => $roles);
         my $results := nqp::create(IterationBuffer);
         my int $mro_high = $reverse ?? 0 !! @mro.elems - 1;
         my int $i = @mro.elems;
@@ -1058,6 +1057,7 @@ my class Mu { # declared in BOOTSTRAP
               invocant => SELF,
               method   => name,
               typename => SELF.^name,
+              :containerized(nqp::iscont(SELF)),
             ).throw;
         }
         $results.List
@@ -1145,7 +1145,7 @@ my class Mu { # declared in BOOTSTRAP
         } else {
             # Canonical, the default (just whatever the meta-class says) with us
             # on the start.
-            @classes = self.^mro(:$roles);
+            @classes = self.^mro(concretizations => $roles);
         }
 
         # Now we have classes, build method list.

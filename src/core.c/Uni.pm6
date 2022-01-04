@@ -3,6 +3,8 @@ my class NFD is repr('VMArray') is array_type(uint32) { ... }
 my class NFKC is repr('VMArray') is array_type(uint32) { ... }
 my class NFKD is repr('VMArray') is array_type(uint32) { ... }
 
+my class X::InvalidCodepoint { ... }
+
 my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_type(uint32) {
 
     multi method new(Uni:) { nqp::create(self) }
@@ -10,11 +12,15 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         @codes.elems;  # reify and test for lazy sequences
         my $uni        := nqp::create(self);
         my $codepoints := nqp::getattr(@codes,List,'$!reified');
+        my $code;
 
         nqp::while(
           nqp::elems($codepoints),
-          nqp::push_i($uni,nqp::shift($codepoints))
-        );
+          nqp::if(nqp::isgt_i($code = nqp::shift($codepoints), 0x10ffff)
+                  || (nqp::isle_i(0xd800, $code) && nqp::isle_i($code, 0xdfff))
+                  || nqp::islt_i($code, 0),
+            X::InvalidCodepoint.new(:$code).throw,
+            nqp::push_i($uni,$code)));
 
         $uni
     }
@@ -89,29 +95,47 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
     method Numeric(Uni:D:) { nqp::elems(self) }
     method Int(Uni:D:)     { nqp::elems(self) }
 
-    multi method EXISTS-POS(Uni:D: int \pos) {
+    multi method ACCEPTS(Uni:D: Uni:D $other --> Bool:D) {
         nqp::hllbool(
-          nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
-        );
-    }
-    multi method EXISTS-POS(Uni:D: Int:D \pos) {
-        pos < nqp::elems(self) && pos >= 0;
+          nqp::iseq_i(nqp::elems(self),nqp::elems($other))
+            && nqp::stmts(
+                 (my int $i = -1),
+                 (my int $elems = nqp::elems(self)),
+                 nqp::while(
+                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                     && nqp::iseq_i(
+                          nqp::atpos_i(self,$i),
+                          nqp::atpos_i($other,$i)
+                        ),
+                   nqp::null
+                 ),
+                 nqp::iseq_i($i,$elems)
+               )
+        )
     }
 
-    multi method AT-POS(Uni:D: int \pos) {
-        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),
-               :got(pos),
-               :range("0..{nqp::elems(self)-1}")))
-          !! nqp::atpos_i(self, pos)
+    multi method EXISTS-POS(Uni:D: int $pos) {
+        nqp::hllbool(
+          nqp::islt_i($pos,nqp::elems(self)) && nqp::isge_i($pos,0)
+        );
     }
-    multi method AT-POS(Uni:D: Int:D \pos) {
-        my int $pos = nqp::unbox_i(pos);
+    multi method EXISTS-POS(Uni:D: Int:D $pos) {
+        $pos < nqp::elems(self) && $pos >= 0;
+    }
+
+    multi method AT-POS(Uni:D: int $pos) {
         nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
           ?? Failure.new(X::OutOfRange.new(
                :what($*INDEX // 'Index'),
-               :got(pos),
+               :got($pos),
+               :range("0..{nqp::elems(self)-1}")))
+          !! nqp::atpos_i(self,$pos)
+    }
+    multi method AT-POS(Uni:D: Int:D $pos) {
+        nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
+          ?? Failure.new(X::OutOfRange.new(
+               :what($*INDEX // 'Index'),
+               :got($pos),
                :range("0..{nqp::elems(self)-1}")))
           !! nqp::atpos_i(self,$pos)
     }
@@ -156,6 +180,20 @@ my class NFKC is Uni {
     method new(|) {
         die "Cannot create an NFKC directly"; # XXX typed, better message
     }
+}
+
+multi sub infix:<cmp>(Uni:D $a, Uni:D $b) {
+    my int $elems-a = nqp::elems($a);
+    my int $elems-b = nqp::elems($b);
+    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+
+    my int $i = -1;
+    nqp::until(
+      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+        || (my $res = nqp::cmp_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i))),
+      nqp::null
+    );
+    ORDER($res || nqp::cmp_i($elems-a,$elems-b))
 }
 
 # vim: expandtab shiftwidth=4

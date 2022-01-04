@@ -73,6 +73,10 @@ role Perl6::Metamodel::RolePunning {
             $!pun."$name"(|@pos, |%named)
         }
     }
+
+    method is_method_call_punned($obj, $name) {
+        !nqp::existskey(%exceptions, $name)
+    }
 }
 
 # vim: expandtab sw=4

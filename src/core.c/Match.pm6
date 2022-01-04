@@ -235,7 +235,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }
-    multi method ACCEPTS(Match:D: Any $) { self }
+    multi method ACCEPTS(Match:D: Mu) { self }
 
     method prematch(Match:D:) {
         nqp::substr(self.target,0,$!from)
@@ -311,16 +311,16 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 }
 
-multi sub infix:<eqv>(Match:D \a, Match:D \b) {
-    a =:= b
+multi sub infix:<eqv>(Match:D $a, Match:D $b) {
+    $a =:= $b
     ||
     [&&] (
-        a.pos  eqv b.pos,
-        a.from eqv b.from,
-        a.orig eqv b.orig,
-        (a.made // Any) eqv (b.made // Any),
-        (a.Capture::list // nqp::list ) eqv (b.Capture::list // nqp::list ),
-        (a.Capture::hash // nqp::hash ) eqv (b.Capture::hash // nqp::hash )
+        $a.pos  eqv $b.pos,
+        $a.from eqv $b.from,
+        $a.orig eqv $b.orig,
+        ($a.made // Any) eqv ($b.made // Any),
+        ($a.Capture::list // nqp::list ) eqv ($b.Capture::list // nqp::list ),
+        ($a.Capture::hash // nqp::hash ) eqv ($b.Capture::hash // nqp::hash )
     );
 }
 

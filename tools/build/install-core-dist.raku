@@ -15,8 +15,12 @@ my %provides =
     "CompUnit::Repository::Staging" => "lib/CompUnit/Repository/Staging.rakumod",
     "Telemetry"                     => "lib/Telemetry.rakumod",
     "snapper"                       => "lib/snapper.rakumod",
+    "safe-snapper"                  => "lib/safe-snapper.rakumod",
     "BUILDPLAN"                     => "lib/BUILDPLAN.rakumod",
 ;
+
+%provides<NativeCall::Dispatcher> = "lib/NativeCall/Dispatcher.rakumod"
+    if $*RAKU.compiler.?supports-op('dispatch_v');
 
 if Compiler.backend eq 'moar' {
     %provides<MoarVM::Profiler> = "lib/MoarVM/Profiler.rakumod";

@@ -282,6 +282,20 @@ multi sub postcircumfix:<[ ]>(
     nqp::decont(SELF)
 }
 
+multi sub infix:<cmp>(array::#type#array:D \a, array::#type#array:D \b) {
+    my int $elems-a = nqp::elems(a);
+    my int $elems-b = nqp::elems(b);
+    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+
+    my int $i = -1;
+    nqp::until(
+      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+        || (my $res = nqp::cmp_#postfix#(nqp::atpos_#postfix#(a,$i),nqp::atpos_#postfix#(b,$i))),
+      nqp::null
+    );
+    ORDER($res || nqp::cmp_i($elems-a,$elems-b))
+}
+
 SOURCE
 
     # we're done for this role

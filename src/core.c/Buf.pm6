@@ -1,4 +1,3 @@
-my class Kernel                 { ... }
 my class X::Assignment::RO      { ... }
 my class X::Buf::AsStr          { ... }
 my class X::Buf::Pack           { ... }
@@ -350,8 +349,10 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     );
 
     multi method gist(Blob:D:) {
-        my int $todo =
-          nqp::elems(self) min nqp::div_i(200,nqp::div_i(T.^nativesize,4) || 1);
+        # (u)int don't have a nativesize, so just assume 64-bit for them
+        my int $nativesize = nqp::div_i(T.^nativesize // $?BITS, 4) || 1;
+
+        my int $todo = nqp::elems(self) min nqp::div_i(200,$nativesize);
         my int $i   = -1;
         my $chunks := nqp::list_s;
 
@@ -360,7 +361,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           nqp::stmts(
             (my int $elem   = nqp::atpos_i(self,$i)),
             (my     $chunk := nqp::list_s),
-            (my int $size   = nqp::div_i(T.^nativesize,4) || 1),
+            (my int $size   = $nativesize),
             nqp::while(
               nqp::isgt_i($size,0),
               nqp::stmts(
@@ -1094,7 +1095,7 @@ multi sub prefix:<~>(Blob:D \a) {
     X::Buf::AsStr.new(object => a, method => '~' ).throw
 }
 
-multi sub infix:<~>(Blob:D \a) { a }
+multi sub infix:<~>(Blob:D $a) { $a }
 multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     my $res := nqp::create(nqp::eqaddr($a.WHAT,$b.WHAT) ?? $a !! Buf.^pun);
     my $adc := nqp::decont($a);
@@ -1107,23 +1108,20 @@ multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     nqp::splice($res, $bdc, $alen, $blen);
 }
 
-multi sub prefix:<~^>(Blob:D \a) {
-    my $a        := nqp::decont(a);
+multi sub prefix:<~^>(Blob:D $a) {
     my int $elems = nqp::elems($a);
 
     my $r := nqp::create($a);
     nqp::setelems($a,$elems);
 
-    my int    $i    = -1;
+    my int $i = -1;
     nqp::bindpos_i($r,$i,nqp::bitneg_i(nqp::atpos_i($a,$i)))
       while nqp::islt_i(++$i,$elems);
 
     $r
 }
 
-multi sub infix:<~&>(Blob:D \a, Blob:D \b) {
-    my $a := nqp::decont(a);
-    my $b := nqp::decont(b);
+multi sub infix:<~&>(Blob:D $a, Blob:D $b) {
     my int $elemsa = nqp::elems($a);
     my int $elemsb = nqp::elems($b);
     my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
@@ -1143,9 +1141,7 @@ multi sub infix:<~&>(Blob:D \a, Blob:D \b) {
     $r
 }
 
-multi sub infix:<~|>(Blob:D \a, Blob:D \b) {
-    my $a := nqp::decont(a);
-    my $b := nqp::decont(b);
+multi sub infix:<~|>(Blob:D $a, Blob:D $b) {
     my int $elemsa = nqp::elems($a);
     my int $elemsb = nqp::elems($b);
     my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
@@ -1167,9 +1163,7 @@ multi sub infix:<~|>(Blob:D \a, Blob:D \b) {
     $r
 }
 
-multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
-    my $a := nqp::decont(a);
-    my $b := nqp::decont(b);
+multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
     my int $elemsa = nqp::elems($a);
     my int $elemsb = nqp::elems($b);
     my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
@@ -1191,46 +1185,44 @@ multi sub infix:<~^>(Blob:D \a, Blob:D \b) {
     $r
 }
 
-multi sub infix:<eqv>(Blob:D \a, Blob:D \b --> Bool:D) {
+multi sub infix:<eqv>(Blob:D $a, Blob:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.SAME(b))
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a.SAME($b))
     )
 }
 
-multi sub infix:<cmp>(Blob:D \a, Blob:D \b) { ORDER(a.COMPARE(b))     }
-multi sub infix:<eq> (Blob:D \a, Blob:D \b --> Bool:D) {
+multi sub infix:<cmp>(Blob:D $a, Blob:D $b) { ORDER($a.COMPARE($b)) }
+multi sub infix:<eq> (Blob:D $a, Blob:D $b --> Bool:D) {
+    nqp::hllbool(nqp::eqaddr($a,$b) || $a.SAME($b))
+}
+multi sub infix:<ne> (Blob:D $a, Blob:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b)) || a.SAME(b)
+      nqp::not_i(nqp::eqaddr($a,$b) || $a.SAME($b))
     )
 }
-multi sub infix:<ne> (Blob:D \a, Blob:D \b --> Bool:D) {
-    nqp::hllbool(
-      nqp::not_i(nqp::eqaddr(nqp::decont(a),nqp::decont(b)) || a.SAME(b))
-    )
+multi sub infix:<lt> (Blob:D $a, Blob:D $b) {
+    nqp::hllbool(nqp::iseq_i($a.COMPARE($b),-1))
 }
-multi sub infix:<lt> (Blob:D \a, Blob:D \b) {
-    nqp::hllbool(nqp::iseq_i(a.COMPARE(b),-1))
+multi sub infix:<gt> (Blob:D $a, Blob:D $b) {
+    nqp::hllbool(nqp::iseq_i($a.COMPARE($b),1))
 }
-multi sub infix:<gt> (Blob:D \a, Blob:D \b) {
-    nqp::hllbool(nqp::iseq_i(a.COMPARE(b),1))
+multi sub infix:<le> (Blob:D $a, Blob:D $b) {
+    nqp::hllbool(nqp::isne_i($a.COMPARE($b),1))
 }
-multi sub infix:<le> (Blob:D \a, Blob:D \b) {
-    nqp::hllbool(nqp::isne_i(a.COMPARE(b),1))
-}
-multi sub infix:<ge> (Blob:D \a, Blob:D \b) {
-    nqp::hllbool(nqp::isne_i(a.COMPARE(b),-1))
+multi sub infix:<ge> (Blob:D $a, Blob:D $b) {
+    nqp::hllbool(nqp::isne_i($a.COMPARE($b),-1))
 }
 
 proto sub subbuf-rw($, $?, $?, *%) {*}
-multi sub subbuf-rw(Buf:D \b) is rw {
-    b.subbuf-rw(0, b.elems);
+multi sub subbuf-rw(Buf:D $b) is rw {
+    $b.subbuf-rw(0, $b.elems);
 }
-multi sub subbuf-rw(Buf:D \b, Int() $from) is rw {
-    b.subbuf-rw($from, b.elems - $from)
+multi sub subbuf-rw(Buf:D $b, Int() $from) is rw {
+    $b.subbuf-rw($from, $b.elems - $from)
 }
-multi sub subbuf-rw(Buf:D \b, $from, $elems) is rw {
-    b.subbuf-rw($from, $elems)
+multi sub subbuf-rw(Buf:D $b, $from, $elems) is rw {
+    $b.subbuf-rw($from, $elems)
 }
 
 # vim: expandtab shiftwidth=4

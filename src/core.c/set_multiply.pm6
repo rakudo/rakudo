@@ -3,46 +3,46 @@
 #   ⊍    set multiplication
 
 proto sub infix:<(.)>(|) is pure {*}
-multi sub infix:<(.)>()               { bag()   }
-multi sub infix:<(.)>(Setty:D \a)     { a.Baggy }
-multi sub infix:<(.)>(Baggy:D \a)     { a       }  # also Mixy
+multi sub infix:<(.)>()               { bag()    }
+multi sub infix:<(.)>(Setty:D $a)     { $a.Baggy }
+multi sub infix:<(.)>(Baggy:D $a)     { $a       }  # also Mixy
 
-multi sub infix:<(.)>(Setty:D \a, Setty:D \b) {
-    (my $elems := a.Bag.RAW-HASH) && nqp::elems($elems)
-      ?? nqp::create(a.WHAT.Baggy).SET-SELF(
-           Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($elems,b.RAW-HASH),
+multi sub infix:<(.)>(Setty:D $a, Setty:D $b) {
+    (my $elems := $a.Bag.RAW-HASH) && nqp::elems($elems)
+      ?? nqp::create($a.WHAT.Baggy).SET-SELF(
+           Rakudo::QuantHash.MULTIPLY-SET-TO-BAG($elems,$b.RAW-HASH),
          )
-      !! a.Baggy
+      !! $a.Baggy
 }
 
-multi sub infix:<(.)>(Mixy:D \a, Mixy:D \b) {
+multi sub infix:<(.)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW(a.RAW-HASH))
+      (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW($a.RAW-HASH))
         && nqp::elems($elems),
       nqp::stmts(
-        Rakudo::QuantHash.MULTIPLY-MIX-TO-MIX($elems,b.RAW-HASH),
-        nqp::create(a.WHAT).SET-SELF($elems)
+        Rakudo::QuantHash.MULTIPLY-MIX-TO-MIX($elems,$b.RAW-HASH),
+        nqp::create($a.WHAT).SET-SELF($elems)
       ),
-      a
+      $a
     )
 }
 
-multi sub infix:<(.)>(Mixy:D  \a, Baggy:D \b) { infix:<(.)>(a, b.Mix) }
-multi sub infix:<(.)>(Mixy:D  \a, Any     \b) { infix:<(.)>(a, b.Mix) }
-multi sub infix:<(.)>(Setty:D \a, Mixy:D  \b) { infix:<(.)>(a.Mixy, b) }
-multi sub infix:<(.)>(Baggy:D \a, Mixy:D  \b) { infix:<(.)>(a.Mixy, b) }
-multi sub infix:<(.)>(Any     \a, Mixy:D  \b) { infix:<(.)>(a.Mix, b) }
-multi sub infix:<(.)>(Baggy:D \a, Baggy:D \b) {
-    (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW(a.RAW-HASH))
+multi sub infix:<(.)>(Mixy:D  $a, Baggy:D $b) { infix:<(.)>($a, $b.Mix)  }
+multi sub infix:<(.)>(Mixy:D  $a, Any     \b) { infix:<(.)>($a,  b.Mix)  }
+multi sub infix:<(.)>(Setty:D $a, Mixy:D  $b) { infix:<(.)>($a.Mixy, $b) }
+multi sub infix:<(.)>(Baggy:D $a, Mixy:D  $b) { infix:<(.)>($a.Mixy, $b) }
+multi sub infix:<(.)>(Any     \a, Mixy:D  $b) { infix:<(.)>( a.Mix, $b)  }
+multi sub infix:<(.)>(Baggy:D $a, Baggy:D $b) {
+    (my $elems := Rakudo::QuantHash.BAGGY-CLONE-RAW($a.RAW-HASH))
       && nqp::elems($elems)
-      ?? nqp::create(a.WHAT).SET-SELF(
-           Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,b.RAW-HASH),
+      ?? nqp::create($a.WHAT).SET-SELF(
+           Rakudo::QuantHash.MULTIPLY-BAG-TO-BAG($elems,$b.RAW-HASH),
          )
-      !! a
+      !! $a
 }
 
-multi sub infix:<(.)>(Any $, Failure:D \b) { b.throw }
-multi sub infix:<(.)>(Failure:D \a, Any $) { a.throw }
+multi sub infix:<(.)>(Any, Failure:D $b) { $b.throw }
+multi sub infix:<(.)>(Failure:D $a, Any) { $a.throw }
 
 # Note that we cannot create a Setty|Baggy:D,Any candidate because that will
 # result in an ambiguous dispatch, so we need to hack a check for Setty|Baggy

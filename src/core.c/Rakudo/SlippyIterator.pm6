@@ -1,11 +1,8 @@
 # A SlippyIterator is one that comes with some infrastructure for handling
-# flattening a received Slip into its own stream of values.
+# flattening a received Slip into its own stream of values.  Please note
+# that the $!slipper attribute *must* be set to nqp::null upon object creation.
 my role Rakudo::SlippyIterator does Iterator {
-    # Flat set to non-zero if the iterator is currently consuming a Slip.
-    has int $!slipping;
-
-    # The current Slip we're iterating.
-    has $!slip-iter;
+    has Mu $!slipper;  # iterator of the Slip we're iterating, null if none
 
     proto method start-slip(|) {*}
     multi method start-slip(Slip:U $slip) {
@@ -15,29 +12,65 @@ my role Rakudo::SlippyIterator does Iterator {
         nqp::if(
           nqp::eqaddr($slip,Empty),
           IterationEnd,                  # we know there's nothing
-          nqp::if(
-            nqp::eqaddr(
-              (my \result := ($!slip-iter := $slip.iterator).pull-one),
-              IterationEnd
+          nqp::stmts(
+            nqp::if(
+              nqp::eqaddr(
+                (my $result := ($!slipper := $slip.iterator).pull-one),
+                IterationEnd
+              ),
+              ($!slipper := nqp::null)   # we've determined there's nothing
             ),
-            IterationEnd,                # we've determined there's nothing
-            nqp::stmts(                  # need to start a Slip
-              ($!slipping = 1),
-              result
-            )
+            $result
           )
         )
     }
 
     method slip-one() {
         nqp::if(
-          nqp::eqaddr((my \result := $!slip-iter.pull-one),IterationEnd),
-          nqp::stmts(
-            ($!slipping = 0),
-            ($!slip-iter := nqp::null)
-          )
+          nqp::eqaddr((my $result := $!slipper.pull-one),IterationEnd),
+          ($!slipper := nqp::null)
         );
-        result
+        $result
+    }
+
+    # Helper method for pushing the rest of the slipper into the target
+    method push-rest(\target --> Nil) {
+        $!slipper.push-all(target);
+        $!slipper := nqp::null;
+    }
+
+    # Helper method for sinking the rest of the slipper
+    method sink-rest( --> Nil) {
+        $!slipper.sink-all;
+        $!slipper := nqp::null;
+    }
+
+    # Helper method to handle control exception payloads.  Returns
+    # IterationEnd if there was no payload, otherwise the value that
+    # was obtained.  Handles Slips.
+    method control-payload() is raw {
+        nqp::if(
+          nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+          IterationEnd,
+          nqp::if(
+            nqp::istype($value,Slip),
+            self.start-slip($value),
+            $value
+          )
+        )
+    }
+
+    # Process the payload of a control exception and push it to the
+    # target while following Slip semantics.
+    method push-control-payload(\target --> Nil) {
+        nqp::unless(
+          nqp::isnull(my $value := nqp::getpayload(nqp::exception)),
+          nqp::if(
+            nqp::istype($value,Slip),
+            self.slip-all($value,target),
+            target.push($value)
+          )
+        )
     }
 
     proto method slip-all(|) {*}

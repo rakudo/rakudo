@@ -1,5 +1,6 @@
 my class X::Immutable { ... }
 my class X::Range::InvalidArg { ... }
+my class X::Range::Incomparable { ... }
 
 my class Range is Cool does Iterable does Positional {
     has $.min;
@@ -401,15 +402,33 @@ my class Range is Cool does Iterable does Positional {
               !! self.list.Str
     }
 
-    multi method ACCEPTS(Range:D: Mu \topic) {
-        (topic cmp $!min) > -(!$!excludes-min)
-          and (topic cmp $!max) < +(!$!excludes-max)
+    my sub IS-COMPARABLE(&client-cmp, Mu $topic, Mu $endpoint, $what-endpoint) {
+        unless &client-cmp.cando($topic, $endpoint) {
+            X::Range::Incomparable.new(:$topic, :$endpoint, :$what-endpoint).throw
+        }
+    }
+
+    multi method ACCEPTS(Range:D \SELF: Junction:D $topic) {
+        $topic.THREAD: { SELF.ACCEPTS($_) }
     }
     multi method ACCEPTS(Range:D: Cool:D \got) {
-        $!is-int && nqp::istype(got,Int)
-          ?? got >= $!min + $!excludes-min && got <= $!max - $!excludes-max
-          !! ($!excludes-min ?? got after $!min !! not got before $!min)
-               && ($!excludes-max ?? got before $!max !! not got after $!max)
+        nqp::if(
+            $!is-int && nqp::istype(got, Int),
+            nqp::if(got >= $!min + $!excludes-min,
+                    got <= $!max - $!excludes-max),
+            nqp::if(
+                (nqp::istype($!min, Numeric) && nqp::istype($!max, Numeric)),
+                nqp::stmts(
+                    (my \got-num = nqp::if(nqp::istype(got, Numeric), got, got.Numeric(:fail-or-nil))),
+                    nqp::if(
+                        nqp::istype(got-num, Nil),
+                        False,
+                        nqp::if(
+                            nqp::if($!excludes-min, got-num > $!min, got-num >= $!min),
+                            nqp::if($!excludes-max, got-num < $!max, got-num <= $!max)))),
+                nqp::if(
+                    nqp::if($!excludes-min, got after $!min, not got before $!min),
+                    nqp::if($!excludes-max, got before $!max, not got after $!max))))
     }
     multi method ACCEPTS(Range:D: Complex:D \got) {
         nqp::istype(($_ := got.Real), Failure) ?? False !! nextwith $_
@@ -434,6 +453,22 @@ my class Range is Cool does Iterable does Positional {
                 (topic.max lt $!max
                  || topic.max eq $!max
                     && !(!topic.excludes-max && $!excludes-max))
+    }
+    multi method ACCEPTS(Range:D: Any \topic) {
+        (topic cmp $!min) > -(!$!excludes-min)
+            and (topic cmp $!max) < +(!$!excludes-max)
+    }
+    multi method ACCEPTS(Range:D: Mu \topic) {
+        # Generally speaking, Mu is not a comparable type. Neither any of its children unless specific multi-candidates
+        # of &infix:<cmp> are provided by user code. In this case try to go slow path.
+        # XXX This still doesn't work with junctions because with threading this method is invoked from Junction's
+        # namespace.
+        my &client-cmp := CLIENT::LEXICAL::{'&infix:<cmp>'};
+        IS-COMPARABLE(&client-cmp, topic, $!min, 'minimum');
+        IS-COMPARABLE(&client-cmp, topic, $!max, 'maximum');
+
+        (&client-cmp(topic, $!min) > -(!$!excludes-min)
+            and &client-cmp(topic, $!max) < +(!$!excludes-max))
     }
 
     method ASSIGN-POS(Range:D: |) { X::Assignment::RO.new(value => self).throw }
@@ -535,8 +570,6 @@ my class Range is Cool does Iterable does Positional {
             !! self.list.roll($todo)
           !! Seq.new(Rakudo::Iterator.Empty)
     }
-
-    proto method pick(|)        {*}
 
     my class PickN does Iterator {
         has $!min;
@@ -730,30 +763,54 @@ multi sub infix:<eqv>(Range:D \a, Range:D \b --> Bool:D) {
     )
 }
 
-multi sub infix:<+>(Range:D \r, Real:D \v) {
-    r.new: r.min + v, r.max + v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<+>(Range:D \r, Real:D $v) {
+    r.new:
+      r.min + $v,
+      r.max + $v,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:<+>(Real:D \v, Range:D \r) {
-    r.new: v + r.min, v + r.max, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<+>(Real:D $v, Range:D \r) {
+    r.new:
+      $v + r.min,
+      $v + r.max,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:<->(Range:D \r, Real:D \v) {
-    r.new: r.min - v, r.max - v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<->(Range:D \r, Real:D $v) {
+    r.new:
+      r.min - $v,
+      r.max - $v,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:<*>(Range:D \r, Real:D \v) {
-    r.new: r.min * v, r.max * v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<*>(Range:D \r, Real:D $v) {
+    r.new:
+      r.min * $v,
+      r.max * $v,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:<*>(Real:D \v, Range:D \r) {
-    r.new: v * r.min, v * r.max, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:<*>(Real:D $v, Range:D \r) {
+    r.new:
+      $v * r.min,
+      $v * r.max,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
-multi sub infix:</>(Range:D \r, Real:D \v) {
-    r.new: r.min / v, r.max / v, :excludes-min(r.excludes-min), :excludes-max(r.excludes-max)
+multi sub infix:</>(Range:D \r, Real:D $v) {
+    r.new:
+      r.min / $v,
+      r.max / $v,
+      :excludes-min(r.excludes-min),
+      :excludes-max(r.excludes-max)
 }
 
 multi sub infix:<cmp>(Range:D \a, Range:D \b) {
     a.min cmp b.min || a.excludes-min cmp b.excludes-min || a.max cmp b.max || b.excludes-max cmp a.excludes-max
 }
-multi sub infix:<cmp>(Num(Real) \a, Range:D \b) { (a..a) cmp b }
-multi sub infix:<cmp>(Range:D \a, Num(Real) \b) { a cmp (b..b) }
+multi sub infix:<cmp>(Num(Real) $a, Range:D \b) { ($a..$a) cmp b }
+multi sub infix:<cmp>(Range:D \a, Num(Real) $b) { a cmp ($b..$b) }
 
 multi sub infix:<cmp>(Positional \a, Range:D \b) { a cmp b.list }
 multi sub infix:<cmp>(Range:D \a, Positional \b) { a.list cmp b }

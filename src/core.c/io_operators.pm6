@@ -153,10 +153,10 @@ multi sub prompt($msg) {
 }
 
 proto sub dir(|) {*}
-multi sub dir(IO() $path, :$test!) { $path.dir(:$test) }
-multi sub dir(IO() $path         ) { $path.dir         }
-multi sub dir(:$test!) { IO::Path.new($*SPEC.curdir).dir(:$test) }
-multi sub dir(       ) { IO::Path.new($*SPEC.curdir).dir         }
+multi sub dir(IO() $path, Mu :$test!) { $path.dir(:$test) }
+multi sub dir(IO() $path            ) { $path.dir         }
+multi sub dir(Mu :$test!) { IO::Path.new($*SPEC.curdir).dir(:$test) }
+multi sub dir(          ) { IO::Path.new($*SPEC.curdir).dir         }
 
 proto sub open($, |) {*}
 multi sub open(IO() $path, |c) { IO::Handle.new(:$path).open(|c) }

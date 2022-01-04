@@ -103,19 +103,19 @@ multi sub take(|) {
 }
 
 proto sub goto($, *%) {*}
-multi sub goto(Label:D \x --> Nil) { x.goto }
+multi sub goto(Label:D $x --> Nil) { $x.goto }
 
 proto sub last($?, *%) {*}
 multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
-multi sub last(Label:D \x --> Nil) { x.last }
+multi sub last(Label:D $x --> Nil) { $x.last }
 
 proto sub next($?, *%) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
-multi sub next(Label:D \x --> Nil) { x.next }
+multi sub next(Label:D $x --> Nil) { $x.next }
 
 proto sub redo($?, *%) {*}
 multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
-multi sub redo(Label:D \x --> Nil) { x.redo }
+multi sub redo(Label:D $x --> Nil) { $x.redo }
 
 proto sub succeed(|) {*}
 multi sub succeed(--> Nil) { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
@@ -128,42 +128,76 @@ sub proceed(--> Nil) { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 
 sub callwith(|c) is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('callwith');
-    $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_args(|c)
+#?if moar
+    # TODO Future mechanism to avoid having to flatten here
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLWITH, |c)
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('callwith')),
+        $dispatcher.exhausted ?? Nil !!
+            $dispatcher.call_with_args(|c))
+#?endif
 }
 
 sub nextwith(|c) is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
-        ?? Nil
-        !! $dispatcher.call_with_args(|c))
+#?if moar
+    # TODO Future mechanism to avoid having to flatten here
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN,
+        nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLWITH, |c))
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextwith')),
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
+            ?? Nil
+            !! $dispatcher.call_with_args(|c)))
+#?endif
 }
 
 sub callsame() is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('callsame');
-    $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_capture(
-            nqp::p6argsfordispatcher($dispatcher))
+#?if moar
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLSAME)
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('callsame')),
+        $dispatcher.exhausted ?? Nil !!
+            $dispatcher.call_with_capture(
+                nqp::p6argsfordispatcher($dispatcher)))
+#?endif
 }
 
 sub nextsame() is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
-        ?? Nil
-        !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher)))
+#?if moar
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN,
+        nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLSAME))
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextsame')),
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
+            ?? Nil
+            !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher))))
+#?endif
 }
 
 sub lastcall(--> True) {
+#?if moar
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_LASTCALL)
+#?endif
+#?if !moar
     nqp::p6finddispatcher('lastcall').last();
+#?endif
 }
 
 sub nextcallee() {
-    my Mu $dispatcher := nqp::p6finddispatcher('nextcallee');
-    $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
+#?if moar
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_NEXTCALLEE)
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextcallee')),
+        $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee())
+#?endif
 }
 
 sub samewith(|c) {
@@ -197,8 +231,13 @@ sub emit(Mu \value --> Nil) {
     nqp::setextype($ex,nqp::const::CONTROL_EMIT);
     nqp::throw($ex);
 }
-sub done(--> Nil) {
+proto sub done(|) {*}
+multi sub done(--> Nil) {
     THROW-NIL(nqp::const::CONTROL_DONE);
+}
+multi sub done(Mu \value --> Nil) {
+    emit value;
+    done;
 }
 
 proto sub die(|) {*};
@@ -230,7 +269,7 @@ multi sub warn(*@msg) {
     nqp::throw($ex);
     0;
 }
-multi sub warn(Junction:D \j) { j.THREAD: &warn }
+multi sub warn(Junction:D $j) { $j.THREAD: &warn }
 
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());

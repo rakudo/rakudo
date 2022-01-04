@@ -12,10 +12,12 @@ BEGIN {
     Perl6::Metamodel::ParametricRoleHOW.HOW.reparent(Perl6::Metamodel::ParametricRoleHOW, Any);
     Perl6::Metamodel::SubsetHOW.HOW.reparent(Perl6::Metamodel::SubsetHOW, Any);
     Perl6::Metamodel::GrammarHOW.HOW.compose(Perl6::Metamodel::GrammarHOW);
+#?if !moar
     Perl6::Metamodel::BaseDispatcher.HOW.reparent(Perl6::Metamodel::BaseDispatcher, Any);
     Perl6::Metamodel::MethodDispatcher.HOW.compose(Perl6::Metamodel::MethodDispatcher);
     Perl6::Metamodel::MultiDispatcher.HOW.compose(Perl6::Metamodel::MultiDispatcher);
     Perl6::Metamodel::WrapDispatcher.HOW.compose(Perl6::Metamodel::WrapDispatcher);
+#?endif
 }
 
 BEGIN {
@@ -67,10 +69,15 @@ augment class Uni {
         my $uni      := nqp::create(self);
         my int $elems = nqp::elems(codepoints);
         my int $i = -1;
+        my int $code;
 
         nqp::while(
           nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::push_i($uni,nqp::atpos_i(codepoints,$i))
+          nqp::if(nqp::isgt_i($code = nqp::atpos_i(codepoints,$i), 0x10ffff)
+                  || (nqp::isle_i(0xd800, $code) && nqp::isle_i($code, 0xdfff))
+                  || nqp::islt_i($code, 0),
+            X::InvalidCodepoint.new(:$code).throw,
+            nqp::push_i($uni,$code))
         );
 
         $uni
@@ -121,6 +128,9 @@ BEGIN .^compose for
   Str, Int, Num, Rat, Complex,
   IntStr, NumStr, RatStr, ComplexStr,
   List, Array, Match, Range, Seq,
+  int, int8, int16, int32, int64,
+  uint, uint8, uint16, uint32, uint64,
+  byte, num, num32, num64, str,
 ;
 
 BEGIN Metamodel::ClassHOW.exclude_parent(Mu);

@@ -165,7 +165,6 @@ my role Setty does QuantHash {
     proto method grab(|) {*}
     proto method grabpairs(|) {*}
 
-    proto method pick(|) {*}
     multi method pick(Setty:D:) { self.roll }
     multi method pick(Setty:D: Callable:D $calculate) {
         self.pick( $calculate(self.elems) )
@@ -279,10 +278,10 @@ my role Setty does QuantHash {
     # TODO: WHICH will require the capability for >1 pointer in ObjAt
 }
 
-multi sub infix:<eqv>(Setty:D \a, Setty:D \b --> Bool:D) {
+multi sub infix:<eqv>(Setty:D $a, Setty:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT) && a.ACCEPTS(b))
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT) && $a.ACCEPTS($b))
     )
 }
 

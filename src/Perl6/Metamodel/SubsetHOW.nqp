@@ -34,7 +34,7 @@ class Perl6::Metamodel::SubsetHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method BUILD(:$refinee, :$refinement) {

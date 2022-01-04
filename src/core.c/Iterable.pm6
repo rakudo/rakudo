@@ -10,6 +10,7 @@
 my class HyperSeq { ... }
 my class RaceSeq { ... }
 my class Rakudo::Internals::HyperIteratorBatcher { ... }
+my class Kernel { ... }
 my role Iterable {
     method iterator() { ... }
 
@@ -29,8 +30,8 @@ my role Iterable {
     }
 
     method hyper(
-      Int(Cool) :$batch = 64,
-      Int(Cool) :$degree = max(nqp::cpucores() - 1,1)
+      Int(Cool) :$batch  = 64,
+      Int(Cool) :$degree = Kernel.cpu-cores-but-one,
     ) {
 #?if !js
         HyperSeq.new:
@@ -45,8 +46,8 @@ my role Iterable {
     }
 
     method race(
-      Int(Cool) :$batch = 64,
-      Int(Cool) :$degree = max(nqp::cpucores() - 1,1)
+      Int(Cool) :$batch  = 64,
+      Int(Cool) :$degree = Kernel.cpu-cores-but-one,
     ) {
 #?if !js
         RaceSeq.new:

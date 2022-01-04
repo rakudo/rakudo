@@ -10,11 +10,12 @@ plan 3;
     # the chosen PseudoStash path `CALLER::CLIENT::CLIENT::` also depends on how COERCE method is invoked by Rakudo.
     # Therefore any changes related to coercion protocol implementation may require tweking of this test.
     for <c d e.PREVIEW> -> $rev {
+        todo 'JVM does not have simpler COERCE calling from new-disp', 1 if $*VM.name eq 'jvm';
         is-run "use v6.$rev;\nmy \$foo = q<This is 6.$rev>;\n"
                 ~ q:to/TEST-CODE/,
                     my class C {
                         method COERCE(Int $v) {
-                            print CALLER::CLIENT::CLIENT::MY::<$foo>;
+                            print CALLER::CLIENT::MY::<$foo>;
                             C.new;
                         }
                     };

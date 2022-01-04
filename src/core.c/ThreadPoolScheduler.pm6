@@ -60,14 +60,14 @@ my class ThreadPoolScheduler does Scheduler {
             else {
                 my $success;
                 my $result;
-                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, nqp::getattr(-> Mu \c {
                     $handle.subscribe-awaiter(-> \success, \result {
                         $success := success;
                         $result := result;
                         nqp::push($!queue, ContinuationWrapper.new(c));
                         Nil
                     });
-                });
+                }, Code, '$!do'));
                 $success
                     ?? $result
                     !! $result.rethrow
@@ -164,10 +164,10 @@ my class ThreadPoolScheduler does Scheduler {
                         $l.unlock();
                     }
                 }
-                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, -> Mu \c {
+                nqp::continuationcontrol(1, THREAD_POOL_PROMPT, nqp::getattr(-> Mu \c {
                     $continuation := c;
                     $l.unlock;
-                });
+                }, Code, '$!do'));
 
                 # If we got an exception, throw it.
                 $exception.rethrow if nqp::isconcrete($exception);
@@ -242,7 +242,7 @@ my class ThreadPoolScheduler does Scheduler {
                 nqp::continuationinvoke(task.cont, nqp::null());
             }
             else {
-                nqp::continuationreset(THREAD_POOL_PROMPT, {
+                nqp::continuationreset(THREAD_POOL_PROMPT, nqp::getattr({
                     if nqp::istype(task, List) {
                         my Mu $code := nqp::shift(nqp::getattr(task, List, '$!reified'));
                         $code(|task);
@@ -261,7 +261,7 @@ my class ThreadPoolScheduler does Scheduler {
                             $!scheduler.handle_uncaught($_)
                         }
                     }
-                });
+                }, Code, '$!do'));
             }
             $!working = 0;
 #?if moar
@@ -536,6 +536,7 @@ my class ThreadPoolScheduler does Scheduler {
     my constant EXHAUSTED_RETRY_AFTER = 100;
     method !maybe-start-supervisor(--> Nil) {
         unless $!supervisor.DEFINITE {
+            my int $cpu-cores = Kernel.cpu-cores-but-one;
             $!supervisor = Thread.start(:app_lifetime, :name<Supervisor>, {
                 sub add-general-worker(--> Nil) {
                     $!state-lock.protect: {
@@ -579,7 +580,6 @@ my class ThreadPoolScheduler does Scheduler {
                     + nqp::atpos_i(@rusage, nqp::const::RUSAGE_STIME_MSEC);
 
                 my num @last-utils = 0e0 xx NUM_SAMPLES;
-                my int $cpu-cores = max(nqp::cpucores() - 1,1);
 
                 # These definitions used to live inside the supervisor loop.
                 # Moving them out of the loop does not improve CPU usage
@@ -642,8 +642,10 @@ my class ThreadPoolScheduler does Scheduler {
 
                     # exhausted the system allotment of low level threads
                     if $exhausted {
-                        $exhausted = 0  # for next run of supervisor
-                          if ++$exhausted > EXHAUSTED_RETRY_AFTER;
+                        if ++$exhausted > EXHAUSTED_RETRY_AFTER {
+                            scheduler-debug "No more system threads";
+                            $exhausted = 0  # for next run of supervisor
+                        }
                     }
 
                     # we can still add threads if necessary
@@ -779,15 +781,10 @@ my class ThreadPoolScheduler does Scheduler {
     }
 
     submethod BUILD(
-        Int :$!initial_threads = 0,
-#?if jvm
-        Int :$!max_threads = (%*ENV<RAKUDO_MAX_THREADS> // 64).Int
-#?endif
-#?if !jvm
-        Int :$!max_threads = nqp::ifnull(nqp::atkey($ENV,'RAKUDO_MAX_THREADS'),64)
-#?endif
-        --> Nil
-    ) {
+      Int() :$!initial_threads = 0,
+      Int() :$!max_threads =
+        %*ENV<RAKUDO_MAX_THREADS> // (Kernel.cpu-cores * 8 max 64)
+    --> Nil) {
         die "Initial thread pool threads ($!initial_threads) must be less than or equal to maximum threads ($!max_threads)"
             if $!initial_threads > $!max_threads;
 
@@ -804,7 +801,7 @@ my class ThreadPoolScheduler does Scheduler {
               GeneralWorker.new(
                 queue => $!general-queue,
                 scheduler => self
-              )
+             )
             ) for ^$!initial_threads;
             scheduler-debug "Created scheduler with $!initial_threads initial general workers";
             self!maybe-start-supervisor();

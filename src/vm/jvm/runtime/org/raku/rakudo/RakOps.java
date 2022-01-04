@@ -408,7 +408,6 @@ public final class RakOps {
     }
 
     public static SixModelObject p6captureouters2(SixModelObject capList, SixModelObject target, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
         if (!(target instanceof CodeRef))
             ExceptionHandling.dieInternal(tc, "p6captureouters target must be a CodeRef");
         CallFrame cf = ((CodeRef)target).outer;
@@ -416,10 +415,8 @@ public final class RakOps {
             return capList;
         long elems = capList.elems(tc);
         for (long i = 0; i < elems; i++) {
-            SixModelObject codeObj = capList.at_pos_boxed(tc, i);
-            CodeRef closure = (CodeRef)codeObj.get_attribute_boxed(tc,
-                gcx.Code, "$!do", HINT_CODE_DO);
-            CallFrame ctxToDiddle = closure.outer;
+            SixModelObject closure = capList.at_pos_boxed(tc, i);
+            CallFrame ctxToDiddle = ((CodeRef)closure).outer;
             ctxToDiddle.outer = cf;
         }
         return capList;
@@ -503,10 +500,8 @@ public final class RakOps {
     }
 
     public static SixModelObject p6setfirstflag(SixModelObject codeObj, ThreadContext tc) {
-        GlobalExt gcx = key.getGC(tc);
         ThreadExt tcx = key.getTC(tc);
-        tcx.firstPhaserCodeBlock = codeObj.get_attribute_boxed(tc,
-            gcx.Code, "$!do", HINT_CODE_DO);
+        tcx.firstPhaserCodeBlock = codeObj;
         return codeObj;
     }
 

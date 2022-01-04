@@ -136,7 +136,7 @@ augment class Rakudo::Internals {
 #?if js
         my @map;
 #?endif
-        
+
         # add the simple access version, e.g. with :!delete or :!v
         @map[SLICE_NO_ADVERBS]                               = ++$i;
 

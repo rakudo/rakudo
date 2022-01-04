@@ -83,7 +83,7 @@ int file_exists(const char *path) {
     wchar_t * const wpath = (wchar_t *)malloc(len * sizeof(wchar_t));
     MultiByteToWideChar(CP_UTF8, 0, path, -1, (LPWSTR)wpath, len);
     res = _wstat(wpath, &sb);
-    MVM_free(wpath);
+    free(wpath);
     return res == 0;
 #else
     struct stat *sb = malloc(sizeof(struct stat));

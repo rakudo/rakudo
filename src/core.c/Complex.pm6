@@ -446,16 +446,20 @@ multi sub infix:<**>(Num(Real) $a, Complex:D $b --> Complex:D) {
         !! Complex.new(0e0, 0e0)
       !! ($b * $a.log).exp
 }
-multi sub infix:<**>(Complex:D $a, Num(Real) $b --> Complex:D) {
-    $b.isNaN || $b == Inf || $b == -Inf
+multi sub infix:<**>(Complex:D \a, Num(Real) \b --> Complex:D) {
+    a.isNaN || b.isNaN
       ?? Complex.new(NaN, NaN)
-      !! (my $ib := $b.Int) == $b
-        ?? $a ** $ib
-        !! (my $fb2 := $b - $ib * 2) == 1e0
-          ?? $a ** $ib * $a.sqrt
-          !! $fb2 == -1e0
-            ?? $a ** $ib / $a.sqrt
-            !! ($b * $a.log).exp
+      !! b == Inf || b == -Inf
+        ?? b == Inf && a.abs < 1e0 || b == -Inf && a.abs > 1e0
+          ?? Complex.new(0e0, 0e0)
+          !! Complex.new(NaN, NaN)
+        !! (my $ib := b.Int) == b
+          ?? a ** $ib
+          !! (my $fb2 := b - $ib * 2) == 1e0
+            ?? a ** $ib * a.sqrt
+            !! $fb2 == -1e0
+              ?? a ** $ib / a.sqrt
+              !! (b * a.log).exp
 }
 multi sub infix:<**>(Complex:D $a, Int:D $b --> Complex:D) {
     my $r := Complex.new(1e0, 0e0);

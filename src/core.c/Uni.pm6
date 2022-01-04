@@ -17,7 +17,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         nqp::while(
           nqp::elems($codepoints),
           nqp::if(nqp::isgt_i($code = nqp::shift($codepoints), 0x10ffff)
-                  || (nqp::isle_i(0xd800, $code) && nqp::isle_i($code, 0xdfff))
+                  || (nqp::islt_i(0xd800, $code) && nqp::isle_i($code, 0xdfff))
                   || nqp::islt_i($code, 0),
             X::InvalidCodepoint.new(:$code).throw,
             nqp::push_i($uni,$code)));

@@ -40,6 +40,8 @@ my class Cool { # declared in BOOTSTRAP
     multi method log(Cool:D: )      { self.Numeric.log          }
     multi method log(Cool:D: $base) { self.Numeric.log($base.Numeric) }
 
+    method Order(Cool:D:) { ORDER(self.Int) }
+
     proto method exp(|) {*}
     multi method exp(Cool:D: )      { self.Numeric.exp          }
     multi method exp(Cool:D: $base) { self.Numeric.exp($base.Numeric) }

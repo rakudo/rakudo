@@ -131,9 +131,21 @@ my class Capture { # declared in BOOTSTRAP
         if nqp::eqaddr(self.WHAT, Capture) {
             nqp::push_s($raku, '\(');
             if $has-list {
-                my Mu $iter := nqp::iterator(@!list);
-                nqp::push_s($raku, nqp::unbox_s(nqp::shift($iter).raku));
-                nqp::push_s($raku, nqp::concat(', ', nqp::unbox_s(nqp::shift($iter).raku))) while $iter;
+                my $positionals := nqp::clone(@!list);
+                nqp::push_s(
+                  $raku,
+                  nqp::unbox_s(nqp::shift($positionals).raku(:arglist))
+                );
+                nqp::while(
+                  nqp::elems($positionals),
+                  nqp::push_s(
+                    $raku,
+                    nqp::concat(
+                      ', ',
+                      nqp::unbox_s(nqp::shift($positionals).raku(:arglist))
+                    )
+                  )
+                );
                 nqp::push_s($raku, ', ') if $has-hash;
             }
             if $has-hash {
@@ -141,15 +153,28 @@ my class Capture { # declared in BOOTSTRAP
                     nqp::unbox_s(self.Capture::hash.sort.map(*.raku).join(', ')));
             }
             nqp::push_s($raku, ')');
-        } else {
+        }
+        else {
             nqp::push_s($raku, nqp::concat(nqp::unbox_s(self.^name), '.new'));
             if $has-list || $has-hash {
                 nqp::push_s($raku, '(');
                 if $has-list {
-                    my Mu $iter := nqp::iterator(@!list);
+                    my $positionals := nqp::clone(@!list);
                     nqp::push_s($raku, 'list => (');
-                    nqp::push_s($raku, nqp::unbox_s(nqp::shift($iter).raku));
-                    nqp::push_s($raku, nqp::concat(', ', nqp::unbox_s(nqp::shift($iter).raku))) while $iter;
+                    nqp::push_s(
+                      $raku,
+                      nqp::unbox_s(nqp::shift($positionals).raku(:arglist))
+                    );
+                    nqp::while(
+                      nqp::elems($positionals),
+                      nqp::push_s(
+                        $raku,
+                        nqp::concat(
+                          ', ',
+                          nqp::unbox_s(nqp::shift($positionals).raku(:arglist))
+                        )
+                      )
+                    );
                     nqp::push_s($raku, ')');
                     nqp::push_s($raku, ', ') if $has-hash;
                 }

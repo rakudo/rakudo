@@ -117,6 +117,9 @@ my class Proc::Async {
     has @!promises;
     has $!encoder;
     has @!close-after-exit;
+#?if !moar
+    has $!start-lock = Lock.new;
+#?endif
 
     proto method new(|) {*}
     multi method new(*@args where .so) {
@@ -307,16 +310,34 @@ my class Proc::Async {
     method start(Proc::Async:D:
       :$scheduler = $*SCHEDULER, :$ENV, :$cwd = $*CWD
     --> Promise) {
-        X::Proc::Async::AlreadyStarted.new(proc => self).throw
-          if $!started;
 
-        $!started := True;
-        nqp::istype($!stdin-fd,Promise)
-          ?? start {
-                 await $!stdin-fd.then({ $!stdin-fd := .result });
-                 await self!start-internal($scheduler, $ENV, $cwd);
-             }
-          !! self!start-internal($scheduler, $ENV, $cwd)
+        sub actually-start() {
+            nqp::istype($!stdin-fd,Promise)
+              ?? start {
+                     await $!stdin-fd.then({ $!stdin-fd := .result });
+                     await self!start-internal($scheduler, $ENV, $cwd);
+                 }
+              !! self!start-internal($scheduler, $ENV, $cwd)
+        }
+
+#?if moar
+        if nqp::eqaddr(cas($!started, False, True),False) {
+            actually-start
+        }
+        elsif $!started {
+            X::Proc::Async::AlreadyStarted.new(proc => self).throw
+        }
+#?endif
+
+#?if !moar
+        $!start-lock.protect: {
+            X::Proc::Async::AlreadyStarted.new(proc => self).throw
+              if $!started;
+
+            $!started := True;
+            actually-start
+        }
+#?endif
     }
 
     method !start-internal($scheduler, $ENV, $cwd --> Promise) {

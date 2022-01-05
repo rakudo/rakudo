@@ -1270,22 +1270,15 @@ my class Array { # declared in BOOTSTRAP
     }
 
     # introspection
-    method name() {
-        nqp::isnull($!descriptor) ?? Nil !! $!descriptor.name
-    }
+    method name() { $!descriptor.name }
 
     proto method of() {*}
     multi method of(Array:U:) { Mu }
-    multi method of(Array:D:) {
-        nqp::isnull($!descriptor) ?? Mu !! $!descriptor.of
-    }
+    multi method of(Array:D:) { $!descriptor.of }
 
-    method default() {
-        nqp::isnull($!descriptor) ?? Any !! $!descriptor.default
-    }
-    method dynamic() {
-        nqp::isnull($!descriptor) ?? False !! so $!descriptor.dynamic
-    }
+    method default() { $!descriptor.default      }
+    method dynamic() { $!descriptor.dynamic.Bool }
+
     multi method raku(Array:D \SELF: --> Str:D) {
         SELF.rakuseen('Array', {
              '$' x nqp::iscont(SELF)  # self is always deconted

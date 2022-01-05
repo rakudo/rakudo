@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 27;
+plan 28;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -175,6 +175,11 @@ cmp-ok X::OutOfRange.new(
 # https://github.com/rakudo/rakudo/issues/2320
 is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
 'Use placeholder variables in a method should yield a useful error message';
+
+# https://github.com/rakudo/rakudo/issues/2385
+is-run 'role R2385 { multi method r2385(--> Str) { ... } }; class C2385 does R2385 { multi method r2385(--> Int) { 1 } }',
+    'Role methods implemented by a class are checked for return type as well as for arguments',
+    :err(/ 'Multi method' .+? 'must be implemented' /), :exitcode(so *);
 
 # https://github.com/rakudo/rakudo/issues/2921
 is-run 'bleah:(0)', err => { .contains: 'You can\'t adverb' }, :exitcode{.so},

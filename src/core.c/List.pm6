@@ -911,10 +911,6 @@ my class List does Iterable does Positional { # declared in BOOTSTRAP
 
     multi method Supply(List:D: --> Supply:D) { Supply.from-list(self) }
 
-    method CALL-ME(List:U: |c) {
-        self.new(|c);
-    }
-
     multi method is-lazy(List:D: --> Bool:D) {
         nqp::if(
           nqp::isconcrete($!todo),

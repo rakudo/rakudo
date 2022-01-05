@@ -14,9 +14,9 @@ my class PseudoStash is CORE::v6c::PseudoStash {
 
     method new(Mu :$ctx is raw, :$mode = STATIC_CHAIN) {
         my $stash := nqp::create(self);
-        $ctx := nqp::decont($ctx);
-        $ctx := nqp::ctxcaller(nqp::ctx()) unless nqp::defined($ctx);
-        nqp::bindattr($stash, PseudoStash6c, '$!ctx', nqp::decont($ctx));
+        my Mu $dctx := nqp::decont($ctx);
+        $dctx := nqp::ctxcaller(nqp::ctx()) unless nqp::defined($dctx);
+        nqp::bindattr($stash, PseudoStash6c, '$!ctx', nqp::decont($dctx));
         nqp::bindattr_i($stash, PseudoStash6c, '$!mode', nqp::decont($mode));
         # $!storage maps symbol names into symbol information. The information can be one of:
         # - BOOTContext or BOOTHash (nqp::ctxlexpad, nqp::hash) for symbol tables obtained either from a context or

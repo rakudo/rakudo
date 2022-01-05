@@ -17,3 +17,5 @@ if $*KERNEL ~~ 'linux' {
 } else {
 	skip-rest;
 }
+
+# vim: expandtab shiftwidth=4

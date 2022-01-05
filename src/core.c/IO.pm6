@@ -9,6 +9,7 @@ enum SeekType (
   :SeekFromEnd(2),
 );
 enum ProtocolFamily (
+  :PF_UNSPEC(nqp::p6box_i(nqp::const::SOCKET_FAMILY_UNSPEC)),
   :PF_INET(nqp::p6box_i(nqp::const::SOCKET_FAMILY_INET)),
   :PF_INET6(nqp::p6box_i(nqp::const::SOCKET_FAMILY_INET6)),
   :PF_LOCAL(nqp::p6box_i(nqp::const::SOCKET_FAMILY_UNIX)),
@@ -29,4 +30,4 @@ enum ProtocolType (
   :PROTO_UDP(17),
 );
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

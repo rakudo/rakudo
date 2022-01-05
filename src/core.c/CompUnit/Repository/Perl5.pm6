@@ -52,4 +52,4 @@ class CompUnit::Repository::Perl5 does CompUnit::Repository {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -19,13 +19,21 @@ role Perl6::Metamodel::MethodContainer {
         $code_obj := nqp::decont($code_obj);
         $name := nqp::decont_s($name);
         if nqp::existskey(%!methods, $name) || nqp::existskey(%!submethods, $name) {
-            nqp::die("Package '"
-              ~ self.name($obj)
-              ~ "' already has a "
-              ~ (try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method')
-              ~ " '"
-              ~ $name
-              ~ "' (did you mean to declare a multi-method?)");
+            # XXX try within nqp::die() causes a hang. Pre-cache the result and use it later.
+            my $method-type := try { nqp::lc($code_obj.HOW.name($code_obj)) } // 'method';
+            Perl6::Metamodel::Configuration.throw_or_die(
+                'X::Method::Duplicate',
+                "Package '"
+                    ~ self.name($obj)
+                    ~ "' already has a "
+                    ~ $method-type
+                    ~ " '"
+                    ~ $name
+                    ~ "' (did you mean to declare a multi method?)",
+                :$method-type,
+                :method($name),
+                :typename(self.name($obj))
+            );
         }
 
         # Add to correct table depending on if it's a Submethod.
@@ -38,33 +46,44 @@ role Perl6::Metamodel::MethodContainer {
         }
 
         # Adding a method means any cache is no longer authoritative.
-        nqp::setmethcacheauth($obj, 0);
+        try self.invalidate_method_caches($obj);
         %!cache := {};
         @!method_order[+@!method_order] := $code_obj;
         @!method_names[+@!method_names] := $name;
     }
 
     # Gets the method hierarchy.
-    method methods($obj, :$local, :$excl, :$all) {
-        # Always need local methods on the list.
+    method methods($obj, :$local, :$excl, :$all, :$implementation-detail) {
         my @meths;
+
+        my $check-implementation-detail := !$implementation-detail;
+
+        # Always need local methods on the list.
         for @!method_order {
-            @meths.push(nqp::hllizefor($_, 'perl6'));
+            @meths.push(nqp::hllizefor($_,'Raku'))
+              unless $check-implementation-detail
+                && nqp::can($_,'is-implementation-detail')
+                && $_.is-implementation-detail;
         }
 
         # If local flag was not passed, include those from parents.
         unless $local {
             for self.parents($obj, :all($all), :excl($excl)) {
                 for nqp::hllize($_.HOW.method_table($_)) {
-                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value),'Raku'))
+                      unless $check-implementation-detail
+                        && nqp::can($_,'is-implementation-detail')
+                        && $_.is-implementation-detail;
                 }
                 for nqp::hllize($_.HOW.submethod_table($_)) {
-                    @meths.push(nqp::hllizefor(nqp::decont($_.value), 'perl6'));
+                    @meths.push(nqp::hllizefor(nqp::decont($_.value),'Raku'))
+                      unless $check-implementation-detail
+                        && nqp::can($_,'is-implementation-detail')
+                        && $_.is-implementation-detail;
                 }
             }
         }
 
-        # Return result list.
         @meths
     }
 
@@ -131,3 +150,5 @@ role Perl6::Metamodel::MethodContainer {
         $value
     }
 }
+
+# vim: expandtab sw=4

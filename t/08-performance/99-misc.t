@@ -1,6 +1,6 @@
 use Test;
 
-my $skip = %*ENV<RAKUDO_SKIP_TIMING_TESTS> ?? 1 !! 0;
+my $skip = %*ENV<RAKUDO_RUN_TIMING_TESTS> ?? 0 !! 3;
 
 plan 4 - $skip;
 
@@ -15,7 +15,7 @@ plan 4 - $skip;
     is-deeply $f cmp ($ = $f), Same, 'eqaddr optimization for cmp exists'
 }
 
-{
+unless $skip {
     my int @a = ^2_000_000;
     my $then = now;
     my $result1 = @a.sum;
@@ -36,3 +36,5 @@ unless $skip { # https://github.com/rakudo/rakudo/issues/1740
     cmp-ok $t-hyper, '≤', $t-plain*10,
         'hypered .grep .is-prime is not hugely slower than plain grep';
 }
+
+# vim: expandtab shiftwidth=4

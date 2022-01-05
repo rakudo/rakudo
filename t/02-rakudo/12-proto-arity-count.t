@@ -1,4 +1,9 @@
 use Test;
+
+BEGIN if $*VM.name eq 'jvm' {
+    plan :skip-all<some subs are not defined on JVM backend>;
+};
+
 plan +my @protos := all-the-protos;
 
 # https://github.com/rakudo/rakudo/issues/1739
@@ -119,7 +124,7 @@ sub all-the-protos {
     &deepmap,
     &defined,
     &die,
-    &dir,
+#    &dir,
     &duckmap,
     &elems,
     &end,
@@ -266,6 +271,7 @@ sub all-the-protos {
     &list,
     &log,
     &log10,
+    &log2,
     &lsb,
     &make,
     &map,
@@ -357,13 +363,13 @@ sub all-the-protos {
     &sleep-timer,
     &sleep-until,
     &slip,
-    &slurp,
+#    &slurp,
     &so,
     &sort,
     &splice,
     &split,
     &sprintf,
-    &spurt,
+#    &spurt,
     &sqrt,
     &squish,
     &srand,
@@ -399,10 +405,7 @@ sub all-the-protos {
     &uninames,
     &uniparse,
     &uniprop,
-    &uniprop-bool,
-    &uniprop-int,
     &uniprops,
-    &uniprop-str,
     &unique,
     &unival,
     &univals,
@@ -414,3 +417,5 @@ sub all-the-protos {
     &wordcase,
     &words,
 }
+
+# vim: expandtab shiftwidth=4

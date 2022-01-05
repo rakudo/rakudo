@@ -15,11 +15,17 @@ my class X::Does::TypeObject is Exception {
     has %.nameds;
     method message() {
         "Cannot use 'does' operator on a type object {$!type.^name}."
-          ~ ("\nAdditional named parameters: {%!nameds.perl}." if %!nameds)
+          ~ ("\nAdditional named parameters: {%!nameds.raku}." if %!nameds)
     }
 }
 
 proto sub infix:<does>(Mu, |) {*}
+multi sub infix:<does>(Int:D, |) {
+    die "Cannot use 'does' operator on an Int, did you mean 'but'?";
+}
+multi sub infix:<does>(Str:D, |) {
+    die "Cannot use 'does' operator on a Str, did you mean 'but'?";
+}
 multi sub infix:<does>(Mu:D \obj, Mu:U \rolish) is raw {
     # XXX Mutability check.
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
@@ -55,13 +61,6 @@ multi sub infix:<does>(Mu:U \obj, **@roles) is raw {
     X::Does::TypeObject.new(type => obj).throw
 }
 
-# we need this candidate tighter than infix:<cmp>(Real:D, Real:D)
-# but can't yet use `is default` at the place where that candidate
-# is defined because it uses `infix:<does>`
-multi sub infix:<cmp>(Rational:D \a, Rational:D \b) is default {
-    a.isNaN || b.isNaN ?? a.Num cmp b.Num !! a <=> b
-}
-
 proto sub infix:<but>(Mu, |) is pure {*}
 multi sub infix:<but>(Mu:D \obj, Mu:U \rolish) {
     my $role := rolish.HOW.archetypes.composable() ?? rolish !!
@@ -89,8 +88,10 @@ multi sub infix:<but>(Mu:U \obj, Mu:U \rolish) {
                 X::Mixin::NotComposable.new(:target(obj), :rolish(rolish)).throw;
     obj.^mixin($role);
 }
-sub GENERATE-ROLE-FROM-VALUE($val) {
+sub GENERATE-ROLE-FROM-VALUE($val) is implementation-detail {
     my $role := Metamodel::ParametricRoleHOW.new_type();
+    # The auto-generated role doesn't use any of 6.e features. Thus can safely be proclaimed as 6.c.
+    $role.^set_language_revision('c');
     my $meth := method () { $val };
     $meth.set_name($val.^name);
     $role.^add_method($meth.name, $meth);
@@ -120,365 +121,15 @@ multi sub infix:<but>(Mu:U \obj, **@roles) {
     obj.^mixin(|real-roles)
 }
 
-sub SEQUENCE(\left, Mu \right, :$exclude_end) {
-    my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
-    my $endpoint := righti.pull-one.self; # .self explodes Failures
-    $endpoint =:= IterationEnd and X::Cannot::Empty.new(
-        :action('get sequence endpoint'),
-        :what('list (use * or :!elems instead?)'),
-    ).throw;
-    my $infinite = nqp::istype($endpoint,Whatever) || $endpoint === Inf;
-    $endpoint := False if $infinite;
-
-    my $end_code_arity = 0;
-    if nqp::istype($endpoint,Code) && !nqp::istype($endpoint,Regex) {
-        $end_code_arity = $endpoint.arity;
-        $end_code_arity = $endpoint.count if $end_code_arity == 0;
-        $end_code_arity = -Inf if $end_code_arity == Inf;
-    }
-
-    my sub succpred($a,$b) {
-        my $cmp = $a cmp $b;
-        if $a.WHAT === $b.WHAT === $endpoint.WHAT {
-            $cmp < 0 && $a ~~ Stringy
-                ?? -> $x {
-                    my $new = $x.succ;
-                    last if $new       after $endpoint
-                         or $new.chars >     $endpoint.chars;
-                    $new;
-                }
-                !! $cmp < 0
-                    ?? -> $x {
-                        my $new = $x.succ;
-                        last if $new after $endpoint;
-                        $new;
-                    }
-                    !! $cmp > 0
-                        ?? -> $x {
-                            my $new = $x.pred;
-                            last if $x before $endpoint;
-                            $new;
-                        }
-                        !! { $_ }
-        }
-        else {
-               $cmp < 0 ?? { $^x.succ }
-            !! $cmp > 0 ?? { $^x.pred }
-            !!             { $^x      }
-        }
-    }
-    my sub unisuccpred($a,$b) {
-        my $cmp = $a.ord cmp $b.ord;
-           $cmp < 0 ?? { $^x.ord.succ.chr }
-        !! $cmp > 0 ?? { $^x.ord.pred.chr }
-        !!             { $^x              }
-    }
-
-    my \gathered = GATHER({
-        my \lefti := left.iterator;
-        my $value;
-        my $code;
-        my $stop;
-        my $looped;
-        my @tail;
-        my @end_tail;
-        while !((my \value := lefti.pull-one) =:= IterationEnd) {
-            $looped = True;
-            if nqp::istype(value,Code) { $code = value; last }
-            if $end_code_arity != 0 {
-                @end_tail.push(value);
-                if +@end_tail >= $end_code_arity {
-                    @end_tail.shift xx (@end_tail.elems - $end_code_arity)
-                        unless $end_code_arity ~~ -Inf;
-
-                    if $endpoint(|@end_tail) {
-                        $stop = 1;
-                        @tail.push(value) unless $exclude_end;
-                        last;
-                    }
-                }
-            }
-            elsif value ~~ $endpoint {
-                $stop = 1;
-                @tail.push(value) unless $exclude_end;
-                last;
-            }
-            @tail.push(value);
-        }
-        X::Cannot::Empty.new(
-            :action('get sequence start value'), :what('list')
-        ).throw unless $looped;
-
-        if $stop {
-            my $ = take $_ for @tail; # don't sink return of take()
-        }
-        else {
-            my $badseq;
-            my $a;
-            my $b;
-            my $c;
-            unless $code.defined {
-                my $ = take @tail.shift while @tail.elems > 3; # don't sink return of take()
-                $a = @tail[0];
-                $b = @tail[1];
-                $c = @tail[2];
-            }
-            if $code.defined { }
-            elsif @tail.grep(Real).elems != @tail.elems {
-                if @tail.elems > 1 {
-                    $code = @tail.tail.WHAT === $endpoint.WHAT
-                        ?? succpred(@tail.tail, $endpoint)
-                        !! succpred(@tail[*-2], @tail.tail);
-                }
-                elsif nqp::istype($endpoint, Stringy)
-                  and nqp::istype($a, Stringy)
-                  and nqp::isconcrete($endpoint) {
-                    if $a.codes == 1 && $endpoint.codes == 1 {
-                        $code = unisuccpred($a, $endpoint);
-                    }
-                    elsif $a.codes == $endpoint.codes {
-                        my @a = $a.comb;
-                        my @e = $endpoint.comb;
-                        my @ranges;
-                        for flat @a Z @e -> $from, $to {
-                            @ranges.push: $($from ... $to);
-                        }
-                        my $ = .take for flat [X~] @ranges; # don't sink return of take()
-                        $stop = 1;
-                    }
-                    elsif $a lt $endpoint {
-                        $stop = 1 if $a gt $endpoint;
-                        $code = -> $x {
-                            my $new = $x.succ;
-                            last if $new       gt $endpoint
-                                 or $new.chars >  $endpoint.chars;
-                            $new;
-                        }
-                    }
-                    else {
-                        $stop = 1 if $a lt $endpoint;
-                        $code = -> $x {
-                            my $new = $x.pred;
-                            last if $new lt $endpoint;
-                            $new;
-                        }
-                    }
-                }
-                elsif $infinite or nqp::istype($endpoint, Code) {
-                    $code = *.succ;
-                }
-                else {
-                    $code = succpred($a,$endpoint);
-                }
-            }
-            elsif @tail.elems == 3 {
-                my $ab = $b - $a;
-                if $ab == $c - $b {
-                    if $ab != 0
-                    || nqp::istype($a,Real)
-                    && nqp::istype($b,Real)
-                    && nqp::istype($c,Real) {
-                        if      nqp::istype($endpoint, Real)
-                        and not nqp::istype($endpoint, Bool)
-                        and     nqp::isconcrete($endpoint) {
-                            if $ab > 0 {
-                                $stop = 1 if $a > $endpoint;
-                                $code = -> $x {
-                                    my $new = $x + $ab;
-                                    last if $new > $endpoint;
-                                    $new;
-                                }
-                            }
-                            else {
-                                $stop = 1 if $a < $endpoint;
-                                $code = -> $x {
-                                    my $new = $x + $ab;
-                                    last if $new < $endpoint;
-                                    $new;
-                                }
-                            }
-                        }
-                        else {
-                            $code = { $^x + $ab }
-                        }
-                    }
-                    else {
-                        $code = succpred($b, $c)
-                    }
-                }
-                elsif $a != 0 && $b != 0 && $c != 0 {
-                    $ab = $b / $a;
-                    if $ab == $c / $b {
-                        # XXX TODO: this code likely has a 2 bugs:
-                        # 1) It should check Rational, not just Rat
-                        # 2) Currently Rats aren't guaranteed to be always
-                        #    normalized, so denominator might not be 1, even if
-                        #    it could be, if normalized
-                        $ab = $ab.Int
-                            if nqp::istype($ab, Rat) && $ab.denominator == 1;
-
-                        if      nqp::istype($endpoint, Real)
-                        and not nqp::istype($endpoint, Bool)
-                        and     nqp::isconcrete($endpoint) {
-                            if $ab > 0 {
-                                if $ab > 1  {
-                                    $stop = 1 if $a > $endpoint;
-                                    $code = -> $x {
-                                        my $new = $x * $ab;
-                                        last if $new > $endpoint;
-                                        $new;
-                                    }
-                                }
-                                else {
-                                    $stop = 1 if $a < $endpoint;
-                                    $code = -> $x {
-                                        my $new = $x * $ab;
-                                        last if $new < $endpoint;
-                                        $new;
-                                    }
-                                }
-                            }
-                            else {
-                                $code = -> $x {
-                                    my $new = $x * $ab;
-                                    my $absend = $endpoint.abs;
-                                    last if sign(  $x.abs - $absend)
-                                        == -sign($new.abs - $absend);
-                                    $new;
-                                }
-                            }
-                        }
-                        else {
-                            $code = { $^x * $ab }
-                        }
-                    }
-                }
-                if $code {
-                    @tail.pop;
-                    @tail.pop;
-                }
-                else {
-                    $badseq = "$a,$b,$c" unless $code;
-                }
-            }
-            elsif @tail.elems == 2 {
-                my $ab = $b - $a;
-                if $ab != 0 || nqp::istype($a,Real) && nqp::istype($b,Real) {
-                    if      nqp::istype($endpoint, Real)
-                    and not nqp::istype($endpoint, Bool)
-                    and     nqp::isconcrete($endpoint) {
-                        if $ab > 0 {
-                            $stop = 1 if $a > $endpoint;
-                            $code = -> $x {
-                                my $new = $x + $ab;
-                                last if $new > $endpoint;
-                                $new;
-                            }
-                        }
-                        else {
-                            $stop = 1 if $a < $endpoint;
-                            $code = -> $x {
-                                my $new = $x + $ab;
-                                last if $new < $endpoint;
-                                $new;
-                            }
-                        }
-                    }
-                    else {
-                        $code = { $^x + $ab }
-                    }
-                }
-                else {
-                    $code = succpred($a, $b)
-                }
-                @tail.pop;
-            }
-            elsif @tail.elems == 1 {
-                if     nqp::istype($endpoint,Code)
-                or not nqp::isconcrete($endpoint) {
-                    $code = { $^x.succ }
-                }
-                elsif   nqp::istype($endpoint, Real)
-                and not nqp::istype($endpoint, Bool)
-                and     nqp::istype($a, Real) {
-                    if $a < $endpoint {
-                        $code = -> $x {
-                            my $new = $x.succ;
-                            last if $new > $endpoint;
-                            $new;
-                        }
-                    }
-                    else {
-                        $code = -> $x {
-                            my $new = $x.pred;
-                            last if $new < $endpoint;
-                            $new;
-                        }
-                    }
-                }
-                else {
-                    $code = { $^x.succ }
-                }
-            }
-            elsif @tail.elems == 0 {
-                $code = {()}
-            }
-
-            if $stop { }
-            elsif $code.defined {
-                my $ = .take for @tail; # don't sink return of take()
-                my $count = $code.count;
-
-                until $stop {
-                    @tail.shift while @tail.elems > $count;
-                    my \value = $code(|@tail);
-
-                    if $end_code_arity != 0 {
-                        @end_tail.push(value);
-
-                        if @end_tail.elems >= $end_code_arity {
-                            @end_tail.shift xx (
-                                @end_tail.elems - $end_code_arity
-                            ) unless $end_code_arity == -Inf;
-
-                            if $endpoint(|@end_tail) {
-                                my $ = value.take unless $exclude_end; # don't sink return of take()
-                                $stop = 1;
-                            }
-                        }
-                    }
-                    elsif value ~~ $endpoint {
-                        my $ = value.take unless $exclude_end; # don't sink return of take()
-                        $stop = 1;
-                    }
-
-                    if $stop { }
-                    else {
-                        @tail.push(value);
-                        my $ = value.take; # don't sink return of take()
-                    }
-                }
-            }
-            elsif $badseq {
-                X::Sequence::Deduction.new(:from($badseq)).throw;
-            }
-            else {
-                X::Sequence::Deduction.new.throw;
-            }
-        }
-    });
-    $infinite
-        ?? (gathered.Slip, Slip.from-iterator(righti)).lazy
-        !! (gathered.Slip, Slip.from-iterator(righti))
-}
-
 # XXX Wants to be macros when we have them.
 only sub WHAT(Mu \x) { x.WHAT }
 only sub HOW (Mu \x) { x.HOW }
 only sub VAR (Mu \x) { x.VAR }
 
 proto sub infix:<...>(|) {*}
-multi sub infix:<...>(\a, Mu \b) { Seq.new(SEQUENCE(a, b).iterator) }
+multi sub infix:<...>(\a, Mu \b) {
+    Seq.new(SEQUENCE(a, b))
+}
 multi sub infix:<...>(|lol) {
     my @lol := lol.list;
     my @end;
@@ -501,11 +152,11 @@ multi sub infix:<...>(|lol) {
     $i = 0;
     while $i < $m {
         $ret := ($ret.Slip,
-            SEQUENCE(
+            Seq.new(SEQUENCE(
                 (Slip.from-iterator(@seq[$i]),),
                 @end[$i],
                 :exclude_end(so @excl[$i])
-            ).Slip
+            )).Slip
         );
         ++$i;
     }
@@ -517,14 +168,38 @@ multi sub infix:<...>(|lol) {
     }
 }
 
+# U+2026 HORIZONTAL ELLIPSIS
+my constant &infix:<…> := &infix:<...>;
+
 proto sub infix:<...^>($, Mu, *%) {*}
-multi sub infix:<...^>(\a, Mu \b) { Seq.new(SEQUENCE(a, b, :exclude_end(1)).iterator) }
+multi sub infix:<...^>(\a, Mu \b) {
+    Seq.new(SEQUENCE(a, b, :exclude_end))
+}
 
-proto sub infix:<…>(|) {*}
-multi sub infix:<…>(|c) { infix:<...>(|c) }
+# U+2026 HORIZONTAL ELLIPSIS, U+005E CIRCUMFLEX ACCENT
+my constant &infix:<…^> := &infix:<...^>;
 
-proto sub infix:<…^>(|) {*}
-multi sub infix:<…^>(|c) { infix:<...^>(|c) }
+proto sub infix:<^...>(|) {*}
+multi sub infix:<^...>(\a, Mu \b) {
+    Seq.new: Rakudo::Iterator.AllButFirst(SEQUENCE(a, b))
+}
+multi sub infix:<^...>(|lol) {
+    Seq.new: Rakudo::Iterator.AllButFirst(infix:<...>(|lol).iterator)
+}
+
+# U+005E CIRCUMFLEX ACCENT, U+2026 HORIZONTAL ELLIPSIS
+my constant &infix:<^…> := &infix:<^...>;
+
+proto sub infix:<^...^>(|) {*}
+multi sub infix:<^...^>(\a, Mu \b) {
+    Seq.new: Rakudo::Iterator.AllButFirst(SEQUENCE(a, b, :exclude_end))
+}
+multi sub infix:<^...^>(|lol) {
+    Seq.new: Rakudo::Iterator.AllButFirst(infix:<...>(|lol).iterator) # XXX
+}
+
+# U+005E CIRCUMFLEX ACCENT, U+2026 HORIZONTAL ELLIPSIS, U+005E CIRCUMFLEX ACCENT
+my constant &infix:<^…^> := &infix:<^...^>;
 
 proto sub undefine(Mu, *%) is raw {*}
 multi sub undefine(Mu \x) is raw { x = Nil }
@@ -539,20 +214,19 @@ sub prefix:<let>(Mu \cont) is raw {
 }
 
 # this implements the ::() indirect lookup
-sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
-    nqp::if(
-      # Note that each part of @chunks itself can contain double colons.
-      # That's why joining and re-splitting is necessary
-      (my str $name = @chunks.join('::')),
-      nqp::stmts(
-        (my $parts := nqp::split('::',$name)),
-        (my str $first = nqp::shift($parts)),
-        nqp::if( # move the sigil to the last part of the name if available
-          nqp::elems($parts),
-          nqp::stmts(
-            (my str $sigil = nqp::substr($first,0,1)),
+sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw is implementation-detail {
+
+    sub not-found($symbol = "") { Failure.new(X::NoSuchSymbol.new(:$symbol)) }
+
+    # Note that each part of @chunks itself can contain double colons.
+    # That's why joining and re-splitting is necessary
+    if @chunks.join('::') -> str $name is copy {
+        my $parts := nqp::split('::',$name);
+        my str $first = nqp::shift($parts);
+        if nqp::elems($parts) { # move the sigil to the last part of the name if available
+            my str $sigil = nqp::substr($first,0,1);
             nqp::if(
-              nqp::iseq_s($sigil,'$')
+                   nqp::iseq_s($sigil,'$')
                 || nqp::iseq_s($sigil,'@')
                 || nqp::iseq_s($sigil,'%')
                 || nqp::iseq_s($sigil,'&'),
@@ -560,7 +234,7 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
                 nqp::push($parts,nqp::concat($sigil,nqp::pop($parts))),
                 ($first = nqp::substr($first,1))
               )
-            ),
+            );
             nqp::unless(
               $first,
               nqp::stmts(
@@ -568,42 +242,40 @@ sub INDIRECT_NAME_LOOKUP($root, *@chunks) is raw {
                 ($name  = nqp::join("::",$parts)),
               )
             )
-          )
-        ),
-        (my Mu $thing := nqp::if(
-          $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
-            && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
-            && $REQUIRE_SYMBOLS.EXISTS-KEY($first),
-          $REQUIRE_SYMBOLS.AT-KEY($first),
-          nqp::if(
-            $root.EXISTS-KEY($first),
-            $root.AT-KEY($first),
-            nqp::if(
-              GLOBAL::.EXISTS-KEY($first),
-              GLOBAL::.AT-KEY($first),
-              nqp::if(
-                nqp::iseq_s($first,'GLOBAL'),
-                GLOBAL,
-                X::NoSuchSymbol.new(symbol => $name).fail
-              )
-            )
-          )
-        )),
+        }
+
+        my Mu $thing := $root.EXISTS-KEY('%REQUIRE_SYMBOLS')
+          && (my $REQUIRE_SYMBOLS := $root.AT-KEY('%REQUIRE_SYMBOLS'))
+          && $REQUIRE_SYMBOLS.EXISTS-KEY($first)
+          ?? $REQUIRE_SYMBOLS.AT-KEY($first)
+          !! $root.EXISTS-KEY($first)
+            ?? $root.AT-KEY($first)
+            !! GLOBAL::.EXISTS-KEY($first)
+              ?? GLOBAL::.AT-KEY($first)
+              !! nqp::iseq_s($first,'GLOBAL')
+                ?? GLOBAL
+                !! not-found($name);
+
         nqp::while(
-          nqp::elems($parts),
-          nqp::if(
+          nqp::elems($parts)
+            && nqp::not_i(nqp::istype($thing,Failure)),
+          $thing := nqp::if(
             $thing.WHO.EXISTS-KEY(my $part := nqp::shift($parts)),
-            ($thing := $thing.WHO.AT-KEY($part)),
-            X::NoSuchSymbol.new(symbol => $name).fail
+            $thing.WHO.AT-KEY($part),
+            not-found($name)
           )
-        ),
+        );
+
         $thing
-      ),
-      Failure.new(X::NoSuchSymbol.new(symbol => ""))
-    )
+    }
+    else {
+        not-found
+    }
 }
 
-sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms --> Nil) {
+sub REQUIRE_IMPORT(
+  $compunit, $existing-path,$top-existing-pkg,$stubname, *@syms --> Nil
+) is implementation-detail {
     my $handle := $compunit.handle;
     my $DEFAULT := $handle.export-package()<DEFAULT>.WHO;
     my $GLOBALish := $handle.globalish-package;
@@ -652,12 +324,12 @@ sub REQUIRE_IMPORT($compunit, $existing-path,$top-existing-pkg,$stubname, *@syms
     if @missing {
         X::Import::MissingSymbols.new(:from($compunit.short-name), :@missing).throw;
     }
-    nqp::gethllsym('perl6','ModuleLoader').merge_globals(
+    try nqp::gethllsym('Raku','ModuleLoader').merge_globals(
         $merge-globals-target.AT-KEY($stubname).WHO,
         $GLOBALish,
     ) if $stubname;
     # Merge GLOBAL from compunit.
-    nqp::gethllsym('perl6','ModuleLoader').merge_globals(
+    nqp::gethllsym('Raku','ModuleLoader').merge_globals(
         $block<%REQUIRE_SYMBOLS>,
         $GLOBALish,
     );
@@ -806,4 +478,4 @@ my constant &infix:<∘> := &infix:<o>;
 # to allow =~ to work with "no isms <Perl5>", otherwise caught in compilation
 sub infix:<=~>(\a,\b) { a = ~b }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

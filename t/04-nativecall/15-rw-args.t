@@ -75,4 +75,4 @@ my Pointer $ptr .= new;
 ok SetPtrToPtr($ptr), 'Can pass an instantiated pointer with rw-trait to C';
 is +$ptr, 42, 'Perl\'s rw variable was set by C (pointer)';
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

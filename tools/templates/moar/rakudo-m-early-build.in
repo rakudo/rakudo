@@ -1,0 +1,16 @@
+$ENV{RAKUDO_HOME} = '@sq_escape(@base_dir@/gen/build_rakudo_home)@';
+
+@if(platform!=windows exec {'@sq_escape(@moar@)@'} ('@sq_escape(@moar@)@', '--libpath=@sq_escape(@base_dir@/blib)@', '--libpath=@sq_escape(@nqp_libdir@)@', '@sq_escape(@rakudo@)@', @ARGV);)@
+@if(platform==windows my $exit = system {'@sq_escape(@moar@)@'} ('@sq_escape(@moar@)@', '--libpath=@sq_escape(@base_dir@/blib)@', '--libpath=@sq_escape(@nqp_libdir@)@', '@sq_escape(@rakudo@)@', @ARGV);
+if ($exit == -1) {
+    print STDERR "Failed to execute: $!\n";
+    exit(-2);
+}
+elsif ($exit & 127) {
+    printf STDERR "died with signal %d\n", ($? & 127);
+    exit(-3);
+}
+else {
+    exit($exit >> 8);
+}
+)@

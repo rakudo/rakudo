@@ -5,30 +5,38 @@ use Test::Helpers;
 use CompileTestLib;
 compile_test_lib '00-misc';
 
-plan 3;
+if $*VM.name eq 'jvm' {
+    plan :skip-all<NullPointerException in sub NCstrlen>;
+}
 
 { # https://github.com/rakudo/rakudo/issues/3235
     role Foo {
-        sub calloc(size_t, size_t --> Pointer) is native(Str) { !!! };
+        sub NCstrlen(Str --> int32) is native('./00-misc') { !!! };
         method test() {
-            calloc(1, 1)
+            NCstrlen '123'
         }
     };
 
-    isa-ok Foo.test, Pointer;
+    is Foo.test, 3, "body of a native sub declared in a role body replaced";
 
-    my &calloc := BEGIN {
-        sub calloc(size_t, size_t --> Pointer) is native(Str) { !!! };
+    my &NCstrlen := BEGIN {
+        sub NCstrlen(Str --> int32) is native('./00-misc') { !!! };
     };
 
-    isa-ok calloc(1, 1), Pointer;
+    is NCstrlen('123'), 3, "body of a native sub declared in a BEGIN block replaced";
+}
+
+unless $*DISTRO.is-win { # https://github.com/rakudo/rakudo/issues/3244
+    # Test needs native arguments, an "is native" without args and an empty body
+    sub abs(int32 --> int32) is native {};
+    is abs(-1), 1, "optimizer doesn't inline the native sub's original body";
 }
 
 { # https://github.com/rakudo/rakudo/issues/1576
     (my $dir := make-temp-dir).add('Foo.pm6').spurt: ｢
         use NativeCall;
         sub NCstrlen(Str --> int32) is native(｣
-          ~ './00-misc'.IO.absolute.perl
+          ~ './00-misc'.IO.absolute.raku
         ~ ｢) is export {}
         BEGIN say NCstrlen '123';
         say NCstrlen '12345';
@@ -37,3 +45,7 @@ plan 3;
         :compiler-args[«-I "$dir.absolute()" -MFoo»], :out("3\n5\n7\n9\n"),
     'no segfaults when using NC routine after using it during precomp';
 }
+
+done-testing();
+
+# vim: expandtab shiftwidth=4

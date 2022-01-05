@@ -16,7 +16,7 @@ try {
     }
 }
 
-plan 21;
+plan 22;
 
 #~ shell 'dumpbin /exports 11-cpp.dll';
 #~ shell 'clang --shared -fPIC -o 11-cpp.so t/04-nativecall/11-cpp.cpp';
@@ -42,13 +42,18 @@ class Derived1 is repr<CPPStruct> {
     has num64 $.cx;
     has num64 $.cy;
     has uint8 $.c;
-    method new()  is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
+    method new() returns Derived1 is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
 }
 
 sub SizeofDerived1() returns int32 is mangled is native("./11-cpp") { * }
 
 is nativesizeof(Derived1), SizeofDerived1(), 'sizeof(Derived1)';
+if $*VM.name eq 'jvm' {
+    skip-rest 'RuntimeException: No such attribute $!call for this object';
+    exit;
+}
 ok my $d1 = Derived1.new, 'can instantiate C++ class';
+ok my Derived1 $d1b .= new, 'can instantiate the same C++ class again using « .= »';
 is $d1.foo,   11,   'can read attribute foo';
 is $d1.bar,   42,   'can read attribute bar';
 is $d1.baz,   43,   'can read attribute baz';
@@ -65,7 +70,7 @@ class Derived2 is repr<CPPStruct> {
     has num64 $.cy;
     has uint8 $.c;
     has Pointer[int32] $.intptr;
-    method new()  is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
+    method new() returns Derived2 is native("./11-cpp") is nativeconv('thisgnu') { * } # const *
     method All_The_Things(int8, int16, int32, long, num32, num64) returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
 
     method ConstInt(int32 is cpp-const)          returns long is native("./11-cpp") is nativeconv('thisgnu') { * }
@@ -91,3 +96,5 @@ is $d2.ConstInt(123),         11, 'name mangling of parameter `const int`';
 my int32 $int_ptr = 123;
 is $d2.IntPtr($int_ptr),      12, 'name mangling of parameter `int *`';
 is $d2.ConstIntPtr($int_ptr), 13, 'name mangling of parameter `const int *`';
+
+# vim: expandtab shiftwidth=4

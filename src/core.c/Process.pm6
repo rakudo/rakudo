@@ -4,24 +4,34 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
             state $level = %*ENV<RAKUDO_MODULE_DEBUG>++;
             my $indent = (($level - 1) * 4) + 1;
             my $str = @str>>.indent(7 + $indent).join("\n").substr(7 + $indent);
-            note sprintf "%2d%sRMD: $str", $level, " " x $indent;
+            note sprintf "%2d%sRMD: %s", $level, " " x $indent, $str;
          }
-      !! False
+      !! ?%*ENV<RAKUDO_PRECOMPILATION_PROGRESS>
+        ?? -> $note --> Nil {
+              state $level = %*ENV<RAKUDO_PRECOMPILATION_PROGRESS>++ - 1;
+              state $module;
+              my $message := $note.trim-leading;
+              if $message.starts-with("Late loading '") {
+                  $module = $message.substr(14, *-1);
+              }
+              elsif $message.starts-with("Precompiling ") {
+                  note " " x $level ~ "Precompiling $module";
+              }
+           }
+        !! False
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {
     PROCESS::<$EXECUTABLE> := IO::Path.new(:CWD(INIT nqp::cwd()),
+      nqp::execname()
 #?if jvm
-      $*VM.properties<perl6.execname>
-      // $*VM.properties<perl6.prefix> ~ '/bin/perl6-j'
+      || $*VM.properties<perl6.prefix> ~ '/bin/perl6-j'
 #?endif
 #?if moar
-      nqp::execname()
       || ($*VM.config<prefix> ~ '/bin/'
         ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-m.exe' !! 'perl6-m'))
 #?endif
 #?if js
-      nqp::execname()
       // ($*VM.config<prefix> ~ '/bin/'
         ~ ($*VM.config<osname> eq 'MSWin32' ?? 'perl6-js.bat' !! 'perl6-js'))
 #?endif
@@ -33,7 +43,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE-NAME', {
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM-NAME', {
-    PROCESS::<$PROGRAM-NAME> := nqp::getcomp('perl6').user-progname;
+    PROCESS::<$PROGRAM-NAME> := nqp::getcomp('Raku').user-progname;
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*PROGRAM', {
@@ -50,10 +60,14 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*TOLERANCE', {
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*REPO', {
     my $repo := PROCESS::<$REPO> := CompUnit::RepositoryRegistry.setup-repositories;
-    my $world := $*W;
-    $world.suspend_recording_precompilation_dependencies if $world;
-    CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
-    $world.resume_recording_precompilation_dependencies if $world;
+    if $*W -> $world {
+        $world.suspend_recording_precompilation_dependencies;
+        CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
+        $world.resume_recording_precompilation_dependencies;
+    }
+    else {
+        CompUnit::RepositoryRegistry.resolve-unknown-repos($repo);
+    }
     PROCESS::<$REPO>
 }
 
@@ -75,7 +89,7 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
 
 {
     sub fetch($what) {
-        once if !Rakudo::Internals.IS-WIN && try { qx/id/ } -> $id {
+        once if !Rakudo::Internals.IS-WIN && try { qx/LC_MESSAGES=POSIX id/ } -> $id {
             if $id ~~ m/^
               [ uid "=" $<uid>=(\d+) ]
               [ "(" $<user>=(<-[ ) ]>+) ")" ]
@@ -100,4 +114,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*HOME', {
     Rakudo::Internals.REGISTER-DYNAMIC: '$*GROUP', { fetch('$GROUP') };
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

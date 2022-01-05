@@ -7,16 +7,12 @@ my class HyperConfiguration {
     has Int $.degree;
 
     submethod TWEAK(:$method) {
-        nqp::if(
-          $!batch <= 0,
-          X::Invalid::Value.new(:$method,:name<batch>,:value($!batch)).throw,
-          nqp::if(
-            $!degree <= 0,
-            X::Invalid::Value.new(:$method,:name<degree>,:value($!degree)).throw,
-            Nil
-          )
-        )
+        X::Invalid::Value.new(:$method,:name<batch>,:value($!batch)).throw
+          if $!batch <= 0;
+
+        X::Invalid::Value.new(:$method,:name<degree>,:value($!degree)).throw
+          if $!degree <= 0;
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -54,7 +54,7 @@ my class Encoding::Decoder::Builtin is repr('Decoder') does Encoding::Decoder {
     }
 
     method consume-exactly-bytes(int $bytes --> Blob) {
-        nqp::ifnull(nqp::decodertakebytes(self, buf8.new, $bytes), Blob)
+        nqp::ifnull(nqp::decodertakebytes(self, nqp::create(buf8.^pun), $bytes), Blob)
     }
 }
 
@@ -82,7 +82,7 @@ augment class Rakudo::Internals {
                     # anyway, we'll not worry about this case for now.
                     #
                     # --- or at least that was the the idea before we fixed
-                    # that bug: https://irclog.perlgeek.de/perl6/2016-12-07#i_13698178
+                    # that bug: https://colabti.org/irclogger/irclogger_log/perl6?date=2016-12-07#l1192
                     # and tried removing the `with` in 58cdfd8, but then the error
                     # `No such method 'consume-all-chars' for invocant of type 'Any`
                     # started popping up on Proc::Async tests, so...
@@ -99,4 +99,4 @@ augment class Rakudo::Internals {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

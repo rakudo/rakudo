@@ -18,4 +18,4 @@ subtest 'no SEGV with failed opens of MVM debug files' => {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -116,3 +116,5 @@ is nativesizeof(foo5),    SizeofFoo5(),  'sizeof(foo5)';
 is nativesizeof(foo6),    SizeofFoo6(),  'sizeof(foo6)';
 is nativesizeof(foo7),    SizeofFoo7(),  'sizeof(foo7)';
 is nativesizeof(foo8),    SizeofFoo8(),  'sizeof(foo8)';
+
+# vim: expandtab shiftwidth=4

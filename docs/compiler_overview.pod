@@ -5,10 +5,10 @@
 F<Please note: Parts of this overview are outdated since Rakudo does
 no longer run on the Parrot Virtual Machine.>
 
-=head2 How the Rakudo Perl 6 compiler works
+=head2 How the Rakudo compiler works
 
 This document describes the architecture and operation of the Rakudo
-Perl 6 (or simply Rakudo) compiler.  The F<README> describes how to
+Raku (or simply Rakudo) compiler.  The F<README> describes how to
 build and run Rakudo.
 
 Rakudo has six main parts summarized below.  Source code paths are
@@ -19,7 +19,7 @@ extensions such as F<.exe> are sometimes omitted for brevity.
 
 =item 1.
 
-Not Quite Perl builds Perl 6 source code parts into Rakudo
+Not Quite Perl builds Raku source code parts into Rakudo
 
 =item 2.
 
@@ -36,7 +36,7 @@ Action methods build a Parrot Abstract Syntax Tree (F<Perl6/Actions.nqp>)
 
 =item 5.
 
-Parrot extensions provide Perl 6 run time behavior (F<ops/perl6.ops>,
+Parrot extensions provide Raku run time behavior (F<Perl6/Ops.nqp>,
 F<pmc/*.pmc>, F<binder/*>)
 
 =item 6.
@@ -48,7 +48,7 @@ F<core/*.pm>, F<glue/*.pir>, F<metamodel/*>)
 
 The F<Makefile> (generated from F<../tools/build/Makefile.in> by
 F<../Configure.pl>) compiles all the parts to form the F<perl6.pbc>
-executable and the F<perl6> or F<perl6.exe> "fake executable".  We call
+executable and the F<perl6> or F<raku.exe> "fake executable".  We call
 it fake because it has only a small stub of code to start the Parrot
 virtual machine, and passes itself as a chunk of bytecode for Parrot to
 execute.  The source code of the "fakecutable" is generated as
@@ -59,17 +59,17 @@ string called C<program_code>.  What a hack!
 =head2 1. NQP
 
 The source files of Rakudo are preferably and increasingly written in
-Perl 6, the remainder in Parrot Intermediate Representation (PIR) or C.
+Perl, the remainder in Parrot Intermediate Representation (PIR) or C.
 Not Quite Perl (nqp) provides the bootstrap step of compiling compiler
-code (yes!) written in a subset of Perl 6, into PIR.
+code (yes!) written in a subset of Perl, into PIR.
 
 The latest version of NQP includes the I<6model> library, which is the
-building block for all Perl 6 object. It also comes with a regex engine
+building block for all Raku objects. It also comes with a regex engine
 that Rakudo uses.
 
 NQP is a bootstrapped compiler, it is mostly written in NQP.
 The source code of NQP is in a separate repository at
-L<http://github.com/perl6/nqp/>.  Note, NQPx only
+L<http://github.com/Raku/nqp/>.  Note, NQPx only
 I<builds> the Rakudo compiler, and does not compile or run user programs.
 
 =head3 Stages
@@ -83,14 +83,14 @@ The bare-bones compiler then loads the compiled metamodel, and compiles
 the I<core files> found in F<core/*.pm>. Those core files provide the runtime
 library (like the C<Array> and C<Complex> classes). But note that many
 of these classes are also used when the final compiler processes your
-Perl 6 scripts.
+Raku scripts.
 
 
 =head2 2. Compiler main program
 
 A subroutine called C<'MAIN'>, in F<main.nqp>, starts the
 source parsing and bytecode generation work.  It creates a
-C<Perl6::Compiler> object for the C<'perl6'> source type.
+C<Perl6::Compiler> object for the C<'raku'> source type.
 
 Before tracing Rakudo's execution further, a few words about Parrot
 process and library initialization.
@@ -119,16 +119,16 @@ between PCT, grammar and actions.
 =head2 3. Grammar
 
 Using C<parrot-nqp>, C<make> target C<PERL6_G> uses F<parrot-nqp> to
-compile F<Perl6/Grammar.pm> to F<gen/perl6-grammar.pir>.
+compile F<Perl6/Grammar.nqp> to F<gen/perl6-grammar.pir>.
 
-The compiler works by calling C<TOP> method in F<Perl6/Grammar.pm>.
+The compiler works by calling C<TOP> method in F<Perl6/Grammar.nqp>.
 After some initialization, TOP matches the user program to the comp_unit
 (meaning compilation unit) token.  That triggers a series of matches to
 other tokens and rules (two kinds of regex) depending on the source in
 the user program.
 
 For example, here's the parse rule for Rakudo's C<unless> statement
-(in F<Perl6/Grammar.pm>):
+(in F<Perl6/Grammar.nqp>):
 
  token statement_control:sym<unless> {
    <sym> :s
@@ -145,13 +145,13 @@ syntax is almost exactly the same as in F<STD.pm>, described below.
 
 Remember that for a match, not only must the C<< <sym> >> match the word
 C<unless>, the C<< <xblock> >> must also match the C<xblock> token.  If
-you read more of F<Perl6/Grammar.pm>, you will learn that C<xblock> in
+you read more of F<Perl6/Grammar.nqp>, you will learn that C<xblock> in
 turn tries to match an C<< <EXPR> >> and a C<< <pblock>  >>, which in
 turn tries to match .....
 
 That is why this parsing algorithm is called Recursive Descent.
 
-The top-level portion of the grammar is written using Perl 6 rules
+The top-level portion of the grammar is written using Raku rules
 (Synopsis 5) and is based on the STD.pm grammar in the C<perl6/std>
 repository (L<https://github.com/perl6/std/>).  There are a few
 places where Rakudo's grammar deviates from STD.pm, but the ultimate
@@ -178,7 +178,7 @@ matches a named regex in the grammar, it automatically invokes the same
 named method in the actions class.
 
 Back to the C<unless> example, here's the action method for the
-C<unless> statement (from F<Perl6/Actions.pm>):
+C<unless> statement (from F<Perl6/Actions.nqp>):
 
  method statement_control:sym<unless>($/) {
    my $past := xblock_immediate( $<xblock>.ast );
@@ -188,10 +188,10 @@ C<unless> statement (from F<Perl6/Actions.pm>):
 
 When the parser invokes this action method, the current match object
 containing the parsed statement is passed into the method as C<$/>.
-In Perl 6, this means that the expression C<< $<xblock> >> refers to
+In Raku, this means that the expression C<< $<xblock> >> refers to
 whatever the parser matched to the C<xblock> token.  Similarly there
 are C<< $<EXPR> >> and C<< $<pblock> >> objects etc until the end of the
-recursive descent.  By the way, C<< $<xblock> >> is Perl 6 syntactic
+recursive descent.  By the way, C<< $<xblock> >> is Raku syntactic
 sugar for C< $/{'xblock'} >.
 
 The magic occurs in the C<< $<xblock>.ast >> and C<make> expressions in
@@ -221,7 +221,7 @@ machine code instructions, and 9 dynamic PMCs ("dynpmcs") (PolyMorphic
 Container, remember?) which are are Parrot's equivalent of class
 definitions.
 
-The dynops source is in F<ops/perl6.ops>, which looks like C, apart from
+The dynops source is in F<Perl6/Ops.nqp>, which looks like C, apart from
 some Perlish syntactic sugar.
 A F<../parrot_install/bin/ops2c> desugars
 that to F<build/perl6.c> which your C compiler turns into a library.
@@ -280,7 +280,7 @@ in F<parrot/src/ops/math.ops>)
 =head2 6. Builtin functions and runtime support
 
 The last component of the compiler are the various builtin functions and
-libraries that a Perl 6 program expects to have available when it is
+libraries that a Raku program expects to have available when it is
 running.  These include functions for the basic operations
 (C<< infix:<+> >>, C<< prefix:<abs> >>) as well as common global
 functions such as C<say> and C<print>.

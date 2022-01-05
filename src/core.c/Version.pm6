@@ -3,6 +3,55 @@ class Version {
     has int $!plus;
     has int $!whatever;
     has str $!string;
+}
+
+augment class Version {
+
+    constant $v  = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list());
+        nqp::bindattr_s($version,Version,'$!string',"");
+        $version
+    }
+    constant $vw = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts',   nqp::list(*));
+        nqp::bindattr_i($version,Version,'$!plus',   -1);
+        nqp::bindattr_i($version,Version,'$!whatever',1);
+        nqp::bindattr_s($version,Version,'$!string', "*");
+        $version
+    }
+    constant $v6  = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6));
+        nqp::bindattr_s($version,Version,'$!string',"6");
+        $version
+    }
+    constant $v6c = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"c"));
+        nqp::bindattr_s($version,Version,'$!string',"6.c");
+        $version
+    }
+    constant $v6d = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"d"));
+        nqp::bindattr_s($version,Version,'$!string',"6.d");
+        $version
+    }
+    constant $v6e = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list(6,"e","PREVIEW"));
+        nqp::bindattr_s($version,Version,'$!string',"6.e.PREVIEW");
+        $version
+    }
+    constant $vplus = do {
+        my $version := nqp::create(Version);
+        nqp::bindattr(  $version,Version,'$!parts', nqp::list);
+        nqp::bindattr_i($version,Version,'$!plus',  1);
+        nqp::bindattr_s($version,Version,'$!string',"");
+        $version
+    }
 
     method !SET-SELF(\parts,\plus,\whatever,\string) {
         $!parts := nqp::getattr(parts,List,'$!reified');
@@ -12,14 +61,8 @@ class Version {
         self
     }
 
-    multi method new(Version:) {
-        # "v" highlander
-        INIT nqp::create(Version)!SET-SELF(nqp::list,0,0,"")      # should be once
-    }
-    multi method new(Version: Whatever) {
-        # "v*" highlander
-        INIT nqp::create(Version)!SET-SELF(nqp::list(*),-1,1,"*") # should be once
-    }
+    multi method new(Version:) { $v }
+    multi method new(Version: Whatever) { $vw }
     multi method new(Version: @parts, Str:D $string, Int() $plus = 0, Int() $whatever = 0) {
         nqp::create(self)!SET-SELF(@parts.eager,$plus,$whatever,$string)
     }
@@ -84,26 +127,37 @@ class Version {
               nqp::create(self)!SET-SELF($parts, $plus, $whatever,
                 nqp::concat(nqp::join('.', $strings), $plus ?? '+' !! '')))))
     }
-    # highlander cache
-    my $v6; my $v6c; my $vplus;
+
     multi method new(Version: Str() $s) {
         nqp::if(
-          nqp::iseq_s($s, '6'), # highlanderize most common
-          ($v6 //= nqp::create(Version)!SET-SELF(nqp::list(6),0,0,"6")),
+          nqp::iseq_s($s,'6.d'),
+          $v6d,
           nqp::if(
-            nqp::iseq_s($s, '6.c'),
-            ($v6c //= nqp::create(Version)!SET-SELF(nqp::list(6,"c"),0,0,"6.c")),
-            nqp::unless(
-              self!SLOW-NEW($s),
+            nqp::iseq_s($s,'6.c'),
+            $v6c,
+            nqp::if(
+              nqp::iseq_s($s,'6'),
+              $v6,
               nqp::if(
-                nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
-                ($vplus //= nqp::create(Version)!SET-SELF(nqp::list,1,0,"")),
-                self.new))))
+                nqp::iseq_s($s,'6.e.PREVIEW'),
+                $v6e,
+                nqp::unless(
+                  self!SLOW-NEW($s),
+                  nqp::if(
+                    nqp::eqat($s, '+', nqp::sub_i(nqp::chars($s),1)),
+                    $vplus,
+                    self.new
+                  )
+                )
+              )
+            )
+          )
+        )
     }
 
-    multi method Str(Version:D:)  { $!string }
+    multi method Str(Version:D:)  { nqp::p6box_s($!string) }
     multi method gist(Version:D:) { nqp::concat("v",$!string) }
-    multi method perl(Version:D:) {
+    multi method raku(Version:D:) {
         if nqp::chars($!string) {
             my int $first = nqp::ord($!string);
             nqp::isge_i($first,48) && nqp::isle_i($first,57) # "0" <= x <= "9"
@@ -118,24 +172,28 @@ class Version {
         my \oparts       := nqp::getattr(nqp::decont($other),Version,'$!parts');
         my int $oelems    = nqp::isnull(oparts) ?? 0 !! nqp::elems(oparts);
         my int $elems     = nqp::elems($!parts);
-        my int $max-elems = nqp::if(nqp::isge_i($oelems,$elems), $oelems, $elems);
+        my int $max-elems = nqp::isge_i($oelems,$elems) ?? $oelems !! $elems;
 
         my int $i = -1;
         while nqp::islt_i(++$i,$max-elems) {
-            my $v := nqp::if(nqp::isge_i($i,$elems), Whatever, nqp::atpos($!parts,$i));
+            my $v := nqp::isge_i($i,$elems)
+              ?? Whatever
+              !! nqp::atpos($!parts,$i);
 
             # if whatever here, no more check this iteration
             unless nqp::istype($v,Whatever) {
-                my $o := nqp::if(nqp::isge_i($i,$oelems), 0, nqp::atpos(oparts,$i));
+                my $o := nqp::isge_i($i,$oelems)
+                  ?? 0
+                  !! nqp::atpos(oparts,$i);
 
                 # if whatever there, no more to check this iteration
                 unless nqp::istype($o,Whatever) {
                     return nqp::hllbool($!plus) if $o after  $v;
-                    return False               if $o before $v;
+                    return False                if $o before $v;
                 }
             }
         }
-        True;
+        True
     }
 
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
@@ -157,27 +215,29 @@ class Version {
     method parts() { nqp::hllize($!parts) }
     method plus()  { nqp::hllbool($!plus) }
     method whatever() { nqp::hllbool($!whatever) }
+
+    method Version() { self }
 }
 
 
-multi sub infix:<eqv>(Version:D \a, Version:D \b) {
+multi sub infix:<eqv>(Version:D $a, Version:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b))
-        || (nqp::eqaddr(a.WHAT,b.WHAT)
+      nqp::eqaddr($a,$b)
+        || (nqp::eqaddr($a.WHAT,$b.WHAT)
              && nqp::iseq_s(
-               nqp::getattr_s(nqp::decont(a),Version,'$!string'),
-               nqp::getattr_s(nqp::decont(b),Version,'$!string')
+               nqp::getattr_s($a,Version,'$!string'),
+               nqp::getattr_s($b,Version,'$!string')
              ))
     )
 }
 
-multi sub infix:<cmp>(Version:D \a, Version:D \b) {
+multi sub infix:<cmp>(Version:D $a, Version:D $b) {
     nqp::if(
-      nqp::eqaddr(nqp::decont(a),nqp::decont(b)), # we're us
+      nqp::eqaddr($a,$b), # we're us
       Same,
       nqp::stmts(
-        (my \ia := nqp::iterator(nqp::getattr(nqp::decont(a),Version,'$!parts'))),
-        (my \ib := nqp::iterator(nqp::getattr(nqp::decont(b),Version,'$!parts'))),
+        (my \ia := nqp::clone(nqp::getattr($a,Version,'$!parts'))),
+        (my \ib := nqp::clone(nqp::getattr($b,Version,'$!parts'))),
         (my ($ret, $a-part, $b-part)),
         nqp::while(
           ia, # check from left
@@ -207,16 +267,16 @@ multi sub infix:<cmp>(Version:D \a, Version:D \b) {
                   More,
                   ($a-part cmp $b-part)))),
               return $ret))),
-        (     nqp::getattr_i(nqp::decont(a),Version,'$!plus')
-          cmp nqp::getattr_i(nqp::decont(b),Version,'$!plus'))))
+        (     nqp::getattr_i($a,Version,'$!plus')
+          cmp nqp::getattr_i($b,Version,'$!plus'))))
 }
 
-multi sub infix:«<=>»(Version:D \a, Version:D \b) { a cmp b }
-multi sub infix:«<»  (Version:D \a, Version:D \b) { a cmp b == Less }
-multi sub infix:«<=» (Version:D \a, Version:D \b) { a cmp b != More }
-multi sub infix:«==» (Version:D \a, Version:D \b) { a cmp b == Same }
-multi sub infix:«!=» (Version:D \a, Version:D \b) { a cmp b != Same }
-multi sub infix:«>=» (Version:D \a, Version:D \b) { a cmp b != Less }
-multi sub infix:«>»  (Version:D \a, Version:D \b) { a cmp b == More }
+multi sub infix:«<=>»(Version:D $a, Version:D $b) { $a cmp $b         }
+multi sub infix:«<»  (Version:D $a, Version:D $b) { $a cmp $b == Less }
+multi sub infix:«<=» (Version:D $a, Version:D $b) { $a cmp $b != More }
+multi sub infix:«==» (Version:D $a, Version:D $b) { $a cmp $b == Same }
+multi sub infix:«!=» (Version:D $a, Version:D $b) { $a cmp $b != Same }
+multi sub infix:«>=» (Version:D $a, Version:D $b) { $a cmp $b != Less }
+multi sub infix:«>»  (Version:D $a, Version:D $b) { $a cmp $b == More }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

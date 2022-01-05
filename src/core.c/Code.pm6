@@ -1,14 +1,18 @@
-my class Code does Callable { # declared in BOOTSTRAP
-    # class Code is Any
+my class Code { # declared in BOOTSTRAP
+    # class Code is Any does Callable
     #     has Code $!do;              # Low level code object
     #     has Signature $!signature;  # Signature object
     #     has @!compstuff;            # Place for the compiler to hang stuff
 
     multi method ACCEPTS(Code:D $self: Mu $topic is raw) {
-        $self.count ?? $self($topic) !! $self()
+        nqp::getattr($!signature,Signature,'$!count')
+          ?? $self($topic)
+          !! $self()
     }
 
-    proto method POSITIONS(|) {*}
+    method is-implementation-detail(--> False) { }
+
+    proto method POSITIONS(|) {*} #  is implementation-detail
 
     method arity(Code:D:) { nqp::getattr_i($!signature,Signature,'$!arity') }
 
@@ -22,7 +26,7 @@ my class Code does Callable { # declared in BOOTSTRAP
     multi method prec(Str:D $) { '' }
 
     multi method Str(Code:D:) {
-        warn( self.WHAT.perl ~ " object coerced to string (please use .gist or .perl to do that)"); self.name
+        warn( self.WHAT.raku ~ " object coerced to string (please use .gist or .raku to do that)"); self.name
     }
 
     method outer(Code:D:) {
@@ -45,62 +49,74 @@ my class Code does Callable { # declared in BOOTSTRAP
         nqp::getcodelocation($!do)<line>;
     }
 
-    multi method perl(Code:D:) { '{ ... }' }
-
     method assuming(Code:D $self: |primers) {
         my $sig = nqp::getattr(nqp::decont($self), Code, '$!signature');
 
         # A ::() that does not throw.  Also does not need to deal
         # with chunks or sigils.
         my sub soft_indirect_name_lookup($name) {
-            my @parts    = $name.split('::');
+            my @subtypes = ($name ~~ /^ (.*?) [ \( (.*) \) ]? $/).list;
+            for @subtypes -> $subtype {
+                my @parts    = $subtype.split('::');
 
-            my Mu $thing := ::.EXISTS-KEY(@parts[0]);
-            return False unless $thing;
-            $thing := ::.AT-KEY(@parts.shift);
-            for @parts {
-                return False unless $thing.WHO.EXISTS-KEY($_);
-                $thing := $thing.WHO{$_};
+                my Mu $thing := ::.EXISTS-KEY(@parts[0]);
+                return False unless $thing;
+                $thing := ::.AT-KEY(@parts.shift);
+                for @parts {
+                    return False unless $thing.WHO.EXISTS-KEY($_);
+                    $thing := $thing.WHO{$_};
+                }
             }
             True;
         }
 
         # sub strip-parm
-        # This is mostly a stripped-down version of Parameter.perl, removing
+        # This is mostly a stripped-down version of Parameter.raku, removing
         # where clauses, turning "= { ... }" from defaults into just
         # "?", removing type captures, subsignatures, and undeclared types
         # (e.g. types set to or parameterized by captured types.)
         my sub strip_parm (Parameter:D $parm, :$make_optional = False) {
-            my $type = $parm.type.^name;
-            my $perl = $type;
+            my $type := $parm.type;
+            my $type_coercive := $type.HOW.archetypes.coercive;
+            my @types = $type_coercive
+                            ?? ($type.^target_type.^name, $type.^constraint_type.^name)
+                            !! $type.^name;
+            my @raku_names;
+            my $raku;
             my $rest = '';
             my $sigil = $parm.sigil;
-            my $elide_agg_cont= so ($sigil eqv '@'
-                                    or $sigil eqv '%'
-                                    or $type ~~ /^^ Callable >> /);
+            for @types -> $type_name is copy {
+                my $out_name = $type_name;
+                my $elide_agg_cont = so ($sigil eqv '@'
+                                        or $sigil eqv '%'
+                                        or $type_name ~~ /^^ Callable >> /);
 
-            $perl = '' if $elide_agg_cont;
-            unless $type eq "Any" {
-                my int $FIRST = 1; # broken FIRST workaround
-                while $type ~~ / (.*?) \[ (.*) \] $$/ {
-#                   FIRST {  # seems broken in setting
-                    if $FIRST { # broken FIRST workaround
-                        $perl = $elide_agg_cont
-                          ?? ~$1
-                          !! ~$/;
-                        $FIRST = 0;
+                $out_name = '' if $elide_agg_cont;
+                unless $type_name eq "Any" {
+                    my int $FIRST = 1; # broken FIRST workaround
+                    while $type_name ~~ / (.*?) \[ (.*?) \] $$/ {
+    #                   FIRST {  # seems broken in setting
+                        if $FIRST { # broken FIRST workaround
+                            $out_name = $elide_agg_cont
+                              ?? ~$1
+                              !! ~$/;
+                            $FIRST = 0;
+                        }
+                        $type_name = ~$1;
+                        unless soft_indirect_name_lookup(~$0) {
+                            $out_name = '';
+                            last
+                        };
                     }
-                    $type = ~$1;
-                    unless soft_indirect_name_lookup(~$0) {
-                        $perl = '';
-                        last
-                    };
+                    $out_name = '' unless soft_indirect_name_lookup($type_name);
                 }
-                $perl = '' unless soft_indirect_name_lookup($type);
+                @raku_names.push: $out_name;
             }
-            $perl = $parm.coerce_type.^name ~ "($perl)"
-              unless nqp::eqaddr($parm.coerce_type,Mu);
-            $perl ~= $parm.modifier if $perl ne '';
+            $raku = @raku_names[0];
+            if $type_coercive {
+                $raku ~= "(" ~ @raku_names[1] ~ ")";
+            }
+            $raku ~= $parm.modifier if $raku ne '';
 
             my $name = $parm.name;
             if !$name and $parm.raw {
@@ -129,9 +145,9 @@ my class Code does Callable { # declared in BOOTSTRAP
                 $rest ~= ' is raw' unless $name.starts-with('\\');
             }
             if $name or $rest {
-                $perl ~= ($perl ?? ' ' !! '') ~ $name;
+                $raku ~= ($raku ?? ' ' !! '') ~ $name;
             }
-            $perl ~ $rest;
+            $raku ~ $rest;
         }
 
         # If we have only one parameter and it is a capture with a
@@ -254,7 +270,7 @@ my class Code does Callable { # declared in BOOTSTRAP
 
         # Normal Nameds.
         # I noted this:
-        # perl6 -e 'sub a (*%A, :$a?, *%B) { %A.say; %B.say }; a(:a(1));'
+        # raku -e 'sub a (*%A, :$a?, *%B) { %A.say; %B.say }; a(:a(1));'
         # {:a(1)}<>
         # {}<>
         # I am going to treat that as a feature and preserve the behavior.
@@ -296,7 +312,7 @@ my class Code does Callable { # declared in BOOTSTRAP
             '{ my $res = (my proto __PRIMED_ANON (%s) { {*} });
                my multi __PRIMED_ANON (|%s(%s)) {
                    my %%chash := %s.hash;
-                   $self(%s%s |{ %%ahash, %%chash }); # |{} workaround RT#77788
+                   $self(%s%s |{ %%ahash, %%chash }); # |{} workaround https://github.com/Raku/old-issue-tracker/issues/2157
                };
                $res }()',
             $primed_sig, $capwrap, $primed_sig, $capwrap,
@@ -308,4 +324,4 @@ my class Code does Callable { # declared in BOOTSTRAP
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

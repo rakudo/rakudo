@@ -41,15 +41,15 @@ my $document = EVAL(:lang<JavaScript>, 'return document')
 
 You can access attributes of those objects using postcircumfix:<{ }>
 (you should often use the <> shorcut)
-You can call methods on the the objects using regular Perl 6 syntax.
+You can call methods on the the objects using regular Raku syntax.
 
-```perl6
+```raku
 $document<body>.appendChild($document.createTextNode('Hello World'));
 ```
 
 Primitive JS data types are converted rather then wrapped
 
-| JavaScript   | Perl6 |
+| JavaScript   | Raku |
 | -------------|-------|
 | true         | True  |
 | false        | False |
@@ -59,19 +59,19 @@ Primitive JS data types are converted rather then wrapped
 | BigInt       | Int   |
 | Number       | Num   |
 
-A Perl 6 Mu when passed to JS land ends up as null
+A Raku Mu when passed to JS land ends up as null
 
-To pass values to Perl 6 land the executed code needs a return.
+To pass values to Raku land the executed code needs a return.
 
-```perl6
+```raku
 EVAL(:lang<JavaScript>, '123') # This returns Mu
 EVAL(:lang<JavaScript>, 'return 123') # This returns 123
 ```
 
 # Extra methods on wrapped JS objects
 
-In order to enable using wrapped objects in Perl 6 land wrapped objects
-offer some methods that Perl 6 expects.
+In order to enable using wrapped objects in Raku land wrapped objects
+offer some methods that Raku expects.
 
 * sink
 
@@ -79,11 +79,11 @@ offer some methods that Perl 6 expects.
 
 * defined
 
-  Always returns True  
+  Always returns True
 
 * Bool
 
-  Always returns True  
+  Always returns True
 
 * item
 
@@ -93,7 +93,7 @@ offer some methods that Perl 6 expects.
 
   Uses the JavaScript new operator to create an new instance
 
-  ```perl6
+  ```raku
   my $Date = EVAL(:lang<JavaScript>, 'return Date');
   my $instance = $Date.new('December 17, 1995 03:24:00');
   say($instance.getFullYear()); # 1995
@@ -102,7 +102,7 @@ offer some methods that Perl 6 expects.
 
 If the wrapped object has method of that same name you can use an :INTERNAL modifier to access it.
 
-```$obj.new(:INTERNAL, 123)``` 
+```$obj.new(:INTERNAL, 123)```
 | -------------|-------|
 
 This will call a js new method rather then doing ``new $obj(123)```

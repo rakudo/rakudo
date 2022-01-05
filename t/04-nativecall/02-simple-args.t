@@ -5,7 +5,7 @@ use CompileTestLib;
 use NativeCall;
 use Test;
 
-plan 14;
+plan 21;
 
 compile_test_lib('02-simple-args');
 
@@ -19,13 +19,22 @@ is AssortedIntArgs(101, 102, 103), 3, 'passed an int32, int16 and int8';
 
 # Float related
 sub TakeADouble(num64) returns int32 is native('./02-simple-args') { * }
+sub TakeADoubleNaN(num64) returns int32 is native('./02-simple-args') { * }
 sub TakeAFloat(num32)  returns int32 is native('./02-simple-args') { * }
+sub TakeAFloatNaN(num32)  returns int32 is native('./02-simple-args') { * }
 is TakeADouble(-6.9e0), 4, 'passed a double';
+is TakeADoubleNaN(NaN), 4, 'passed a NaN (double)';
 is TakeAFloat(4.2e0),   5, 'passed a float';
+is TakeAFloatNaN(NaN), 5, 'passed a NaN (float)';
 
 # String related
 sub TakeAString(Str) returns int32 is native('./02-simple-args') { * }
 is TakeAString('ok 6 - passed a string'), 6, 'passed a string';
+
+sub TakeAStringThenNull(int64, Str) returns int32 is native('./02-simple-args') { * }
+# Loop is important to test the dispatcher!
+is TakeAStringThenNull(0, $_), 6, 'defined/undefined works on the same callsite'
+    for Str, 'ok 6 - passed a string';
 
 # Explicitly managing strings
 sub SetString(Str) returns int32 is native('./02-simple-args') { * }
@@ -71,4 +80,25 @@ is TakeSizeT(42),     13, 'passed size_t 42';
 sub TakeSSizeT(ssize_t --> int32) is native('./02-simple-args') { * }
 is TakeSSizeT(-42),   14, 'passed ssize_t -42';
 
-# vim:ft=perl6
+multi foo(Int $i) {
+    TakeUint32(Proxy.new: FETCH => { 0xFFFFFFFE }, STORE => { ; });
+    42
+}
+multi foo(Str $s) {
+    "42"
+}
+
+my $arg := Proxy.new(
+    FETCH => -> $ {
+        foo(Int)
+    },
+    STORE => -> $, $val {
+        die "STORE NYI";
+    },
+);
+is TakeInt($arg), 1, 'Proxy works';
+
+is TakeAStringThenNull($arg, $_), 6, 'defined/undefined works after Proxy arg'
+    for Str, 'ok 6 - passed a string';
+
+# vim: expandtab shiftwidth=4

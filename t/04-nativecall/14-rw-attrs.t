@@ -52,4 +52,4 @@ is        GetCharOfStruct($s),   44,   'C confirms (char)';
 is-approx GetFloatOfStruct($s),  45.5, 'C confirms (float)';
 
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

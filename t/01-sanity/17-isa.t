@@ -16,3 +16,5 @@ say "1..3";
     my $code = { 42 };
     if $code.isa("Code")  { say "ok 3" } else { say "not ok 3" }
 }
+
+# vim: expandtab shiftwidth=4

@@ -3,7 +3,7 @@
 ## Overview
 
 This document contains my (jnthn) input to where implementation work for
-Perl 6 module/precomp stuff should head. While much has been converged on by
+Raku module/precomp stuff should head. While much has been converged on by
 existing work, some problems have also been consistently avoided or punted
 on; robust pre-compilation management is one such issue. Everything here is
 subject to course corrections as implementation takes place, but it should
@@ -18,18 +18,18 @@ input on an earlier private draft.
 To keep discussion precise, here are some definitions of the atoms under
 consideration:
 
-* A **compilation unit**, or **compunit** for short, is a piece of Perl 6 code
+* A **compilation unit**, or **compunit** for short, is a piece of Raku code
   that is analyzed and compiled as a single unit. Typically, this comes from a
   source file on disk, but what's inside an EVAL also counts as such.
 * **Compilation** is the process by which a compilation unit is parsed and
   analyzed, and turned into a set of objects representing its declarations
   ("meta-objects") and executable code representing its statements. Note that,
-  thanks to the many meta-programming features of Perl 6, compilation will
+  thanks to the many meta-programming features of Raku, compilation will
   involve the execution of code, some of which may come from the compilation
   unit being compiled (as happens with `BEGIN` blocks).
-* A **script** refers to a compilation unit that is provided to Perl 6 as the
-  entry point for execution. In an invocation like `perl6 foo.p6`, we say that
-  `foo.p6` is first compiled and then executed. In Rakudo Perl 6, in this case,
+* A **script** refers to a compilation unit that is provided to Raku as the
+  entry point for execution. In an invocation like `raku foo.raku`, we say that
+  `foo.raku` is first compiled and then executed. In Rakudo Raku, in this case,
   the results of the compilation only exist in memory.
 * A **module** refers to a compilation unit that is used by a script, or by
   another module used from a script. A module must also be compiled before it
@@ -96,10 +96,10 @@ the point they were formed.
 
 Furthermore, precompilations are statically linked against the precompilations
 of their transitive dependencies as well as against a particular compilation
-of the Perl 6 compiler and its `CORE.setting`. Therefore, the identify of the
-Perl 6 compiler - obtained through `$*PERL.compiler.id` - should also be
+of the Raku compiler and its `CORE.setting`. Therefore, the identity of the
+Raku compiler - obtained through `$*RAKU.compiler.id` - should also be
 considered part of the environment the precompilation was formed in. This will
-also support `rakudobrew` style tools, which enable switching between different
+also support `rakubrew` style tools, which enable switching between different
 versions and backends.
 
 In an ideal world, precompilation would always be possible for all compilation
@@ -129,12 +129,12 @@ to another. A repository can always provide its unique identity, which must
 incorporate the identity of any repository it refers to. In normal startup, the
 `PROCESS::<$REPO>` symbol will be set to a default repository that supports the
 installation of distributions (a `CompUnit::Repository::Installation`). Any
-`-I` includes, or any paths in a `PERL6LIB` environment variable, will cause
+`-I` includes, or any paths in a `RAKULIB` environment variable, will cause
 `PROCESS::<$REPO>` to instead point to a chain of repositories that ends with
 the default `CompUnit::Repository::Installation` that is normally there.
 
 A `use lib` installs a lexical `$*REPO` which takes precedence over that in
-`PROCESS`. Note that for Perl 6.christmas, we will only support the use of
+`PROCESS`. Note that for Raku.christmas, we will only support the use of
 `use lib` in scripts, not in modules, as its interaction with precompilation
 is more complex than we have time to reasonably consider (and it's better to
 wait until we've a good answer than to use a hacky one now).
@@ -171,7 +171,7 @@ design:
 
 The module management API can be broken up into:
 
-* **Guts** provided by a Perl 6 implementation (e.g. Rakudo) that do the
+* **Guts** provided by a Raku implementation (e.g. Rakudo) that do the
   various low-level tasks.
 * **Entities** that capture the information associated with concepts such as
   "dependency specification" and "compilation unit".
@@ -182,8 +182,8 @@ The module management API can be broken up into:
 * **Provided implementations** of those interfaces for a number of common use
   cases.
 
-Alternative implementations of the roles to handle use cases beyond what Perl
-6 provides direct support for are both expected and encouraged.
+Alternative implementations of the roles to handle use cases beyond what Raku
+provides direct support for are both expected and encouraged.
 
 ### Guts
 
@@ -193,7 +193,7 @@ The `CompUnit::Loader` is responsible for actually loading a compilation unit
 into memory, either from source or a precompiled representation. It can work
 with both files and in-memory byte buffers in either case. Implementations are
 free to efficiently `mmap` files into memory, allowing a single copy of a
-precompiled module to exist in memory and be shared by many Perl 6 processes.
+precompiled module to exist in memory and be shared by many Raku processes.
 The methods on this are all expected to be called on the `CompUnit::Loader`
 type object.
 
@@ -322,8 +322,8 @@ a way to reach any resources declared within it.
 
 A precompilation store provides storage of pre-compiled things. It is not
 concerned with precompilation validity, just storage. Most of the time, the
-Perl 6 built-in implementation that stores precompiled files on disk will be
-sufficient. However, a tool that wished to bundle a Perl 6 implementation
+Raku built-in implementation that stores precompiled files on disk will be
+sufficient. However, a tool that wished to bundle a Raku implementation
 together with a bunch of precompiled scripts/modules for distribution would
 do an alternative implementation of this role.
 
@@ -426,7 +426,7 @@ should implement the following role:
     role CompUnit::Repository::Installable does CompUnit::Repository {
         # Installs a distribution into the repository.
         method install(
-            # A Distribution object 
+            # A Distribution object
             Distribution $dist,
             # A hash mapping entries in `provides` to a disk location that
             # holds the source files; they will be copied (and may also be
@@ -438,11 +438,11 @@ should implement the following role:
             { ... }
 
         # Returns True if we can install modules (this will typically do a
-        # .w check on the module databaes).
+        # .w check on the module database).
         method can-install() returns Bool { ... }
 
         # Returns the Distribution objects for all installed distributions.
-        method installed() returns Iterable { }
+        method installed() returns Iterable { ... }
     }
 
 ### Implementations
@@ -494,7 +494,7 @@ establishes the following structure:
     repo.lock         # A lock file
     dist/[sha1]       # JSON-serialized distribution info (SHA-1 of dist ID)
     sources/[index]   # Module source files, by ascending ID
-    resources/[index] # Module resourece files, by ascending ID
+    resources/[index] # Module resource files, by ascending ID
     short/[sha1]      # Short-name quick lookup file by sha1 of the shortname
     precomp/...       # Precompilation store
     dependencies      # Pairs of short-name to short-name SHA-1s
@@ -560,17 +560,17 @@ versioning or authority.
 
     class CompUnit::Repository::FileSystem does CompUnit::Repository {
         has $.prefix is required;
-        
+
         ...
     }
 
 ## Questions and, if you're lucky, answers
 
-### Where libraries are installed?
+### Where are libraries installed?
 
 System-wide modules go in a path derived from the `--prefix` that Rakudo is
 built with. The `Configure.pl` script can also be given a `--module-prefix`,
-which will override this. Tools like rakudobrew will likely wish to specify
+which will override this. Tools like rakubrew will likely wish to specify
 a single common `--module-prefix` so modules are shared between the things
 they will switch between. This directory will be managed by an instance of
 `CompUnitRepo::Installation`.

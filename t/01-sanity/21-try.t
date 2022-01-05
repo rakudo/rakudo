@@ -13,3 +13,5 @@ if !$!           { say "ok 3" } else { say "not ok 3" }
 
 try { die "bar\n" };
 if $! eq "bar\n" { say "ok 4" } else { say "not ok 4" }
+
+# vim: expandtab shiftwidth=4

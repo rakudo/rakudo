@@ -1,0 +1,6 @@
+*.p6        diff=raku
+*.pl6       diff=raku
+*.pm6       diff=raku
+*.raku      diff=raku
+*.rakumod   diff=raku
+*.rakutest  diff=raku

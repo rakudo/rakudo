@@ -1,16 +1,19 @@
 my class Stash { # declared in BOOTSTRAP
     # class Stash is Hash
     #     has str $!longname;
+    #     has $!lock;
+
+    multi method new(Stash: --> Map:D) {
+        nqp::p6bindattrinvres(nqp::create(self), Stash, '$!lock', Lock.new)
+    }
 
     multi method AT-KEY(Stash:D: Str:D $key) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
-        nqp::if(
-          nqp::existskey(storage,$key),
-          nqp::atkey(storage,$key),
-          nqp::p6scalarfromdesc(
-            ContainerDescriptor::BindHashPos.new(Mu, self, $key)
-          )
-        )
+        nqp::existskey(storage,$key)
+          ?? nqp::atkey(storage,$key)
+          !! nqp::p6scalarfromdesc(
+               ContainerDescriptor::BindHashPos.new(Mu, self, $key)
+             )
     }
     multi method AT-KEY(Stash:D: Str() $key, :$global_fallback!) is raw {
         my \storage := nqp::getattr(self,Map,'$!storage');
@@ -22,7 +25,7 @@ my class Stash { # declared in BOOTSTRAP
             nqp::if(
               nqp::existskey(GLOBAL.WHO,$key),
               nqp::atkey(GLOBAL.WHO,$key),
-              Failure.new("Could not find symbol '$key'")
+              Failure.new("Could not find symbol '$key' in '{self}'")
             ),
             nqp::p6scalarfromdesc(
               ContainerDescriptor::BindHashPos.new(Mu, self, $key)
@@ -31,12 +34,40 @@ my class Stash { # declared in BOOTSTRAP
         )
     }
 
+    multi method ASSIGN-KEY(Stash:D: Str:D $key, Mu \assignval) is raw {
+        my $storage := nqp::getattr(self,Map,'$!storage');
+        my \existing-key := nqp::atkey($storage, $key);
+        if nqp::isnull(existing-key) {
+            $!lock.protect: {
+                my \scalar := nqp::bindkey(
+                    ($storage := nqp::clone($storage)),
+                    $key,
+                    nqp::p6assign(
+                        nqp::p6bindattrinvres(
+                            nqp::create(Scalar),
+                            Scalar,
+                            '$!descriptor',
+                            nqp::getattr(self, Hash, '$!descriptor')),
+                        assignval)
+                );
+                nqp::bindattr(self, Map, '$!storage', $storage);
+                scalar
+            };
+        }
+        else {
+            nqp::p6assign(existing-key, assignval);
+        }
+    }
+    multi method ASSIGN-KEY(Stash:D: \key, Mu \assignval) is raw {
+        nextwith(key.Str, assignval)
+    }
+
     method package_at_key(Stash:D: str $key) {
         my \storage := nqp::getattr(self,Map,'$!storage');
         nqp::ifnull(
           nqp::atkey(storage,$key),
           nqp::stmts(
-            (my $pkg := Metamodel::PackageHOW.new_type(:name($key))),
+            (my $pkg := Metamodel::PackageHOW.new_type(:name("{$!longname}::$key"))),
             $pkg.^compose,
             nqp::bindkey(storage,$key,$pkg)
           )
@@ -52,9 +83,9 @@ my class Stash { # declared in BOOTSTRAP
     }
 
     method merge-symbols(Stash:D: Hash $globalish) { # NQP gives a Hash, not a Stash
-        nqp::gethllsym('perl6','ModuleLoader').merge_globals(self,$globalish)
+        nqp::gethllsym('Raku','ModuleLoader').merge_globals(self,$globalish)
           if $globalish.defined;
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

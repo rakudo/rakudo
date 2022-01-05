@@ -1,7 +1,7 @@
 # A class to perform hyper operations of the form left op right
 
 class Hyper {
-    has $.operator;         # for some reason we cant make this a &.operator
+    has $.operator is built(:bind);  # for some reason this cant be &.operator
     has int8 $.dwim-left;   # left side wont end
     has int8 $.dwim-right;  # right side wont end
     has int8 $.assigns;     # assigns to left side
@@ -45,10 +45,10 @@ class Hyper {
             !! self!pair-mu(left,right)
           !! nqp::istype(right,Pair)
             ?? self!mu-pair(left,right)
-            !! nqp::eqaddr(left.keyof,Str(Any))
-              && nqp::eqaddr(right.keyof,Str(Any))
-              ?? self!str-associatives(left,right)
-              !! self!obj-associatives(left,right)
+            !! nqp::istype(left,Hash::Object)
+              || nqp::istype(right,Hash::Object)
+              ?? self!obj-associatives(left,right)
+              !! self!str-associatives(left,right)
     }
 
     # %x >>op<< ...
@@ -235,26 +235,22 @@ class Hyper {
     # :x >>op<< :y
     method !pair-pair(\left, \right) {
 #    multi method infix(Pair:D \left, Pair:D \right) {
-        nqp::if(
-          nqp::getattr(left,Pair,'$!key').WHICH
-            eq nqp::getattr(right,Pair,'$!key').WHICH,
-          nqp::p6bindattrinvres(
-            nqp::clone(left),Pair,'$!value',self.infix(
-              nqp::getattr(left, Pair,'$!value'),
-              nqp::getattr(right,Pair,'$!value')
-            )
-          ),
-          Nil
-        )
+        nqp::getattr(left,Pair,'$!key').WHICH
+          eq nqp::getattr(right,Pair,'$!key').WHICH
+          ?? nqp::p6bindattrinvres(
+               nqp::clone(left),Pair,'$!value',self.infix(
+                 nqp::getattr(left, Pair,'$!value'),
+                 nqp::getattr(right,Pair,'$!value')
+               )
+             )
+          !! Nil
     }
 
     # using an infix on a one element list in a meta op
     multi method infix(\object) {
-        nqp::if(
-          nqp::can($!operator,"nodal"),
-          nodemap($!operator,object),
-          deepmap($!operator,object)
-        )
+        nqp::can($!operator,"nodal")
+          ?? object.nodemap($!operator)
+          !! object.deepmap($!operator)
     }
 
 #--- Private helper methods ----------------------------------------------------
@@ -448,4 +444,4 @@ class Hyper {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

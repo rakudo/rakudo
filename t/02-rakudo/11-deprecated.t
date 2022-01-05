@@ -5,7 +5,7 @@ use Test::Helpers;
 plan 2;
 
 sub test-deprecation (Str:D $lang, Bool :$is-visible, |c) {
-    my $args = c.perl;
+    my $args = c.raku;
     is-run '
         use \qq[$lang];
         %*ENV<RAKUDO_NO_DEPRECATIONS>:delete;
@@ -18,3 +18,5 @@ sub isn't-deprecated (|c) { test-deprecation |c              }
 
 isn't-deprecated 'v6.c', v6.d, v6.e, :lang-vers;
 is-deprecated    'v6.d', v6.d, v6.e, :lang-vers;
+
+# vim: expandtab shiftwidth=4

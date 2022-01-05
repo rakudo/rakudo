@@ -1,0 +1,52 @@
+    ### Language
+    $config<implementation>   := 'Rakudo';
+    $config<version>          := '@version@';
+    $config<release-number>   := '@release@';
+    $config<codename>         := '@codename@';
+    $config<language-version> := '6.@lang_spec@';
+
+    # Though language-revisions key provides more information
+    # can-language-versions is used for speeding up and ordering
+    # Perl6::Compiler.can_langauge_versions method
+    $config<can-language-versions>
+        := nqp::list( '6.c'@for_specmods(, '6.@spec_with_mod@')@ );
+    $config<language-revisions> := nqp::hash( 
+@perl(
+    # This code is not re-usable, makes no sense to write a dedicated macro
+    for my $spec ( $cfg->raku_specs ) {
+        my $letter = $spec->[0];
+        my $pfx = "        ";
+        $out .= "$pfx'$letter', nqp::hash(\n";
+        my $require = '';
+        my $mods = "$pfx    'mods', nqp::hash(\n";
+        for my $mod ( @$spec[1..$#$spec] ) {
+            $mods .= "$pfx        '$mod->[0]', nqp::hash(\n";
+            if ( $mod->[1]{require} ) {
+                $require = "$pfx    'require', '$mod->[0]',\n";
+            }
+            for my $flag ( keys %{$mod->[1]} ) {
+                $mods .= "$pfx            '$flag',  " . ($mod->[1]{$flag} ? "1" : "0") . ",\n"
+            }
+            $mods .= "$pfx        ), # modificator $mod->[0]\n";
+        }
+        $mods .= "$pfx    ),\n";
+        $out .= "$require$mods$pfx), # revision $letter\n";
+    }
+)@
+    );
+
+    # This mapping is for handling custom settings
+    $config<prev-revision>      := nqp::hash(@for_specs(
+        '@lcspec@', '@lcprevspec@',)@
+    );
+    # This mapping is for quick-transforming of core setting name
+    $config<prev-setting-name>  := nqp::hash(@for_specs(
+        'NULL.@lcspec@', '@if(lcspec==c NULL)@@if(lcspec!=c CORE)@.@lcprevspec@',
+        'CORE.@lcspec@', 'CORE.@lcspec@',)@
+    );
+
+    ### Location
+    $config<prefix>             := '@prefix@';
+    $config<static-rakudo-home> := '@static_rakudo_home@';
+
+    $config<source-digest>      := '@source_digest()@';

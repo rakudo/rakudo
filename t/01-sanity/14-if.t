@@ -28,3 +28,5 @@ elsif 1 { say 'not ok 8' }
 else    { say 'not ok 8' }
 
 unless 0 { say    'ok 9' }
+
+# vim: expandtab shiftwidth=4

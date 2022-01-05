@@ -15,7 +15,9 @@ my class Encoding::Registry {
           nqp::list('utf16',   'utf-16'),
           nqp::list('utf16le', 'utf-16le', 'utf16-le', 'utf-16-le'),
           nqp::list('utf16be', 'utf-16be', 'utf16-be', 'utf-16-be'),
+#?if !moar
           nqp::list('utf32',   'utf-32'),
+#?endif
           nqp::list('ascii'),
           nqp::list('iso-8859-1','iso_8859-1:1987','iso_8859-1','iso-ir-100',
             'latin1','latin-1','csisolatin1','l1','ibm819','cp819'),
@@ -40,26 +42,21 @@ my class Encoding::Registry {
 
     method register(Encoding $enc --> Nil) {
         $lock.protect: {
-            nqp::stmts(
+            nqp::existskey($lookup,(my str $key = $enc.name.fc))
+              ?? X::Encoding::AlreadyRegistered.new(name => $enc.name).throw
+              !! nqp::bindkey($lookup,$key,$enc);
+            my $names := nqp::getattr($enc.alternative-names,List,'$!reified');
+            my int $elems = nqp::elems($names);
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::if(
-                nqp::existskey($lookup,(my str $key = $enc.name.fc)),
-                X::Encoding::AlreadyRegistered.new(name => $enc.name).throw,
+                nqp::existskey($lookup,($key = nqp::atpos($names,$i).fc)),
+                X::Encoding::AlreadyRegistered.new(
+                  name => nqp::atpos($names,$i)).throw,
                 nqp::bindkey($lookup,$key,$enc)
-              ),
-              (my $names :=
-                nqp::getattr($enc.alternative-names,List,'$!reified')),
-              (my int $elems = nqp::elems($names)),
-              (my int $i = -1),
-              nqp::while(
-                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::if(
-                  nqp::existskey($lookup,($key = nqp::atpos($names,$i).fc)),
-                  X::Encoding::AlreadyRegistered.new(
-                    name => nqp::atpos($names,$i)).throw,
-                  nqp::bindkey($lookup,$key,$enc)
-                )
               )
-            )
+            );
         }
     }
 
@@ -73,4 +70,4 @@ my class Encoding::Registry {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

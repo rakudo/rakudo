@@ -1,5 +1,5 @@
 # Waits for a promise to be kept or a channel to be able to receive a value
-# and, once it can, unwraps or returns the result. Under Perl 6.c, await will
+# and, once it can, unwraps or returns the result. Under Raku 6.c, await will
 # really block the calling thread. In 6.d, if the thread is on the thread pool
 # then a continuation will be taken, and the thread is freed up.
 
@@ -53,4 +53,4 @@ multi sub await(Supply:D $s) {
 multi sub await(Iterable:D $i) { eager $i.eager.map({ await $_ }) }
 multi sub await(*@awaitables)  { eager @awaitables.eager.map({await $_}) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

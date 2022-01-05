@@ -5,6 +5,7 @@ src/Perl6/Metamodel/Documenting.nqp
 src/Perl6/Metamodel/Stashing.nqp
 src/Perl6/Metamodel/Versioning.nqp
 src/Perl6/Metamodel/LanguageRevision.nqp
+src/Perl6/Metamodel/Nominalizable.nqp
 src/Perl6/Metamodel/TypePretense.nqp
 src/Perl6/Metamodel/MethodDelegation.nqp
 src/Perl6/Metamodel/BoolificationProtocol.nqp
@@ -34,6 +35,7 @@ src/Perl6/Metamodel/RolePunning.nqp
 src/Perl6/Metamodel/ArrayType.nqp
 src/Perl6/Metamodel/RoleToRoleApplier.nqp
 src/Perl6/Metamodel/Concretization.nqp
+src/Perl6/Metamodel/ConcretizationCache.nqp
 src/Perl6/Metamodel/ConcreteRoleHOW.nqp
 src/Perl6/Metamodel/CurriedRoleHOW.nqp
 src/Perl6/Metamodel/ParametricRoleHOW.nqp

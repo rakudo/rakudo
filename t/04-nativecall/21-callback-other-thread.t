@@ -17,6 +17,11 @@ sub the_callback(int32 $i --> int32) { 2 * $i }
 SetCallback(&the_callback);
 is CallCallback(1), 6, 'Sanity check: Calling callback on thread that set it works';
 
+if $*VM.name eq 'jvm' {
+    skip-rest 'Unhandled exception: VMNull representation does not support attributes';
+    exit;
+}
+
 my $tap-lock = Lock.new;
 my @threads = do for ^8 -> $i {
     Thread.start({
@@ -28,4 +33,4 @@ my @threads = do for ^8 -> $i {
 }
 @threads>>.join;
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

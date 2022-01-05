@@ -9,19 +9,19 @@ class CompUnit::Loader is repr('Uninstantiable') {
 
     # Decode the specified byte buffer as source code, and compile it
     method load-source(Blob:D $bytes --> CompUnit::Handle:D) {
-        my $preserve_global := nqp::ifnull(nqp::gethllsym('perl6', 'GLOBAL'), Mu);
+        my $preserve_global := nqp::ifnull(nqp::gethllsym('Raku', 'GLOBAL'), Mu);
 
         my $handle   := CompUnit::Handle.new;
         my $*CTXSAVE := $handle;
-        my $eval     := nqp::getcomp('perl6').compile($bytes.decode);
+        my $eval     := nqp::getcomp('Raku').compile($bytes.decode);
 
         $eval();
 
-        nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+        nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
 
         CATCH {
             default {
-                nqp::bindhllsym('perl6', 'GLOBAL', $preserve_global);
+                nqp::bindhllsym('Raku', 'GLOBAL', $preserve_global);
                 .throw;
             }
         }
@@ -34,8 +34,6 @@ class CompUnit::Loader is repr('Uninstantiable') {
     multi method load-precompilation-file(IO::Path $path --> CompUnit::Handle:D) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
-        # '%?OPTIONS' is expected by some code; mainly by the World object
-        my %*COMPILING := nqp::hash('%?OPTIONS', nqp::hash());
         nqp::loadbytecode($path.Str);
         $handle
     }
@@ -43,7 +41,6 @@ class CompUnit::Loader is repr('Uninstantiable') {
     multi method load-precompilation-file(IO::Handle $file --> CompUnit::Handle:D) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
-        my %*COMPILING := nqp::hash('%?OPTIONS', nqp::hash());
 #?if !jvm
         # Switch file handle to binary mode before passing it off to the VM,
         # so we don't lose things hanging around in the decoder.
@@ -58,10 +55,9 @@ class CompUnit::Loader is repr('Uninstantiable') {
     method load-precompilation(Blob:D $bytes --> CompUnit::Handle:D) {
         my $handle     := CompUnit::Handle.new;
         my $*CTXSAVE   := $handle;
-        my %*COMPILING := nqp::hash('%?OPTIONS', nqp::hash());
         nqp::loadbytecodebuffer($bytes);
         $handle
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

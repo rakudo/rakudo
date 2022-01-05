@@ -13,3 +13,5 @@ check-fail { is Mu, Mu.new }
 check-fail { is Mu.new, Mu }
 is Mu,     Mu,     'is(Mu:U, Mu:U) passes';
 is Mu.new, Mu.new, 'is(Mu:D, Mu:D) passes';
+
+# vim: expandtab shiftwidth=4

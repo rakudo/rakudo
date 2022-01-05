@@ -41,7 +41,7 @@ my $snap-class = $snap1.WHAT;
 isa-ok $snap-class, Telemetry::Instrument::ThreadPool::Snap;
 
 # Test snap roundtripping
-my $snap2 = $snap1.perl.EVAL;
+my $snap2 = $snap1.raku.EVAL;
 isa-ok $snap2, $snap-class, "Did we get a {$_.^name} after roundtripping";
 for @columns {
     is $snap2{$_}, $snap1{$_}, "did we get the same value for $_";
@@ -65,9 +65,9 @@ isa-ok $T1, Telemetry, 'did we get a Telemetry object from $S1';
 # Test all columns for sanity, we don't know which value winds up in which column
 for @columns {
     ok $T1{$_}:exists, "does $_ exist in $T1.^name()?";
-    diag $T1{$_}.perl unless
+    diag $T1{$_}.raku unless
       ok $T1{$_}, "did we get a non-zero value for $_ using AT-KEY";
-    diag $T1."$_"().perl unless
+    diag $T1."$_"().raku unless
       ok $T1."$_"(), "did we get a non-zero value for $_ with a method";
     is $T1{$_}, $T1."$_"(), 'did AT-KEY and method on T give the same value';
 }
@@ -89,4 +89,4 @@ for @columns {
     is $P1{$_}, $P1."$_"(), "did AT-KEY/method on T:P give same value for $_";
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -34,6 +34,7 @@ role Perl6::Metamodel::RolePunning {
             ?? $pun_meta.new_type(:name(self.name($obj)), :repr($!pun_repr))
             !! $pun_meta.new_type(:name(self.name($obj)));
         $pun.HOW.add_role($pun, $obj);
+        $pun.HOW.set_pun_source($pun, $obj);
         $pun.HOW.compose($pun);
         my $why := self.WHY;
         if $why {
@@ -57,7 +58,7 @@ role Perl6::Metamodel::RolePunning {
     }
 
     # Do a pun-based dispatch. If we pun, return a thunk that will delegate.
-    method find_method($obj, $name) {
+    method find_method($obj, $name, *%c) {
         if nqp::existskey(%exceptions, $name) {
             return nqp::findmethod(%exceptions{$name}, $name);
         }
@@ -72,4 +73,10 @@ role Perl6::Metamodel::RolePunning {
             $!pun."$name"(|@pos, |%named)
         }
     }
+
+    method is_method_call_punned($obj, $name) {
+        !nqp::existskey(%exceptions, $name)
+    }
 }
+
+# vim: expandtab sw=4

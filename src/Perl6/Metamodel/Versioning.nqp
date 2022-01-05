@@ -13,3 +13,5 @@ role Perl6::Metamodel::Versioning {
     method set_auth($obj, $auth) { $!auth := $auth }
     method set_api($obj, $api) { $!api := $api }
 }
+
+# vim: expandtab sw=4

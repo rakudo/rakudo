@@ -15,3 +15,5 @@ is-run ｢
     );
     my $foo\bar = "pass"; say $foo\bar;
 ｣, :out("pass\n"), 'no crash when giving an Actions class to .refine_slang';
+
+# vim: expandtab shiftwidth=4

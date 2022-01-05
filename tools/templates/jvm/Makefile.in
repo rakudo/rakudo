@@ -5,14 +5,15 @@ JAR     = jar
 NQP_PREFIX  = @nqp_prefix@
 @bpv(NQP)@       = @shquot(@j_nqp@)@
 @bpv(NQP_RR)@    = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ nqp
-@bpv(RUN_PERL6)@ = $(JAVA) -Xss1m -Xms500m -Xmx3000m -cp @q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@perl6.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@ perl6
+@bpv(RUN_RAKUDO_SCRIPT)@ = rakudo-j-build
+@bpv(RUN_RAKUDO)@ = @shquot(@perl@)@ @bpm(RUN_RAKUDO_SCRIPT)@
 
-@bpv(DEBUG_RUNNER)@ = perl6-debug-@backend_abbr@@bpm(RUNNER_SUFFIX)@
+@bpv(DEBUG_RUNNER)@ = rakudo-debug-@backend_abbr@@bpm(RUNNER_SUFFIX)@
 
 NQP_JARS = @nqp_jars@
 BLD_NQP_JARS = @bld_nqp_jars@
 
-RUNTIME_JAVAS = @nfp(src/vm/jvm/runtime/org/perl6/rakudo/*.java)@
+RUNTIME_JAVAS = @nfp(src/vm/jvm/runtime/org/raku/rakudo/*.java)@
 RUNTIME_JAR = rakudo-runtime.jar
 
 @bpv(BAT)@    = @runner_suffix@
@@ -24,41 +25,55 @@ RUNTIME_JAR = rakudo-runtime.jar
 
 @bpv(CLEANUPS)@ = \
   $(RUNTIME_JAR) \
+  @bpm(RUN_RAKUDO_SCRIPT)@ \
+  rakudo-eval-server \
   perl6-eval-server \
+  rakudo-jdb-server \
   perl6-jdb-server \
-  eval-client.pl
+  eval-client.pl \
+  perl6-j \
+  perl6-debug-j
 
 @bpv(ML_EXTRA)@ = @nfp(src/vm/jvm/Perl6/JavaModuleLoader.nqp)@
-@bpv(PERL6_DEPS_EXTRA)@ = $(RUNTIME_JAR)
+@bpv(RAKUDO_DEPS_EXTRA)@ = $(RUNTIME_JAR)
 
 @bpv(NQP_FLAGS_EXTRA)@ = --javaclass=perl6
 
 @bpv(HARNESS_TYPE)@ = 5
 
+@bsv(SPECIFIC_TEST_DIRS)@ = @nfp(t/03-jvm)@
+
 @include(Makefile-backend-common)@
 
 $(RUNTIME_JAR): $(RUNTIME_JAVAS)
 	@echo(+++ Generating	$@)@
-	@noecho@$(MKPATH) bin
-	@noecho@$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
-	@noecho@$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
+	$(NOECHO)$(MKPATH) bin
+	$(NOECHO)$(JAVAC) --release 9 -cp @q($(BLD_NQP_JARS))@ -g -d bin -encoding UTF8 $(RUNTIME_JAVAS)
+	$(NOECHO)$(JAR) cf0 rakudo-runtime.jar -C bin@slash@ .
 
-$(J_RUNNER):    @@script(create-jvm-runner.pl)@@
+@bpm(RUN_RAKUDO_SCRIPT)@: @@nfp(@template(@backend_subdir@/rakudo-j-build.in)@)@@
+	$(NOECHO)$(RM_F) @q(@bpm(RUN_RAKUDO_SCRIPT)@)@
+	$(NOECHO)$(CONFIGURE) --expand @nfpq(@backend_subdir@/@bpm(RUN_RAKUDO_SCRIPT)@)@ --out @bpm(RUN_RAKUDO_SCRIPT)@ \
+		--set-var=base_dir=@q($(BASE_DIR))@ \
+		--set-var=java=$(JAVA) \
+		--set-var=classpath=@q(@nfp(./blib)@@cpsep@@nop($(BLD_NQP_JARS))@@cpsep@rakudo-runtime.jar@cpsep@rakudo.jar@cpsep@@nop($(SYSROOT))@@abs2rel(@nqp_classpath@)@)@
+
+$(J_RUNNER): @@script(create-jvm-runner.pl)@@
 	@echo(+++ Setting up	$@)@
-	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev . . @q(@bpm(NQP_HOME)@)@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev @q($(BASE_DIR))@ . . @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
 
 @backend_prefix@-runner-default: @backend_prefix@-all
 	@echo(+++ Setting up @uc(@backend@)@ runner)@
-	@noecho@$(CP) $(J_RUNNER) perl6$(J_BAT)
-	@noecho@$(CHMOD) 755 perl6$(J_BAT)
+	$(NOECHO)$(CP) $(J_RUNNER) rakudo$(J_BAT)
+	$(NOECHO)$(CHMOD) 755 rakudo$(J_BAT)
 
-@bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(PERL6_DEBUG)@
+@bpm(DEBUG_RUNNER)@: @@script(create-jvm-runner.pl)@@ @bsm(RAKUDO_DEBUG)@
 	@echo(+++ Setting up	$@)@
-	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug . . @q(@bpm(NQP_HOME)@)@ @q($(PERL6_HOME))@ --nqp-lib=blib @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ dev-debug @q($(BASE_DIR))@ . . @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
 
 eval-client.pl:
 	@echo(+++ Setting up	$@)@
-	@noecho@$(CP) @nfpq($(SDKROOT)$(NQP_PREFIX)/bin/eval-client.pl)@ .
+	$(NOECHO)$(CP) @nfpq($(SDKROOT)$(NQP_PREFIX)/bin/eval-client.pl)@ .
 
 ##  testing targets
 
@@ -82,22 +97,22 @@ eval-client.pl:
 sometests: @backend_prefix@-all
 	@$(J_HARNESS5_WITH_FUDGE) $(TESTFILES)
 
-@backend_prefix@-runner-default-install: @backend_prefix@-install
+@backend_prefix@-runner-default-install: @backend_prefix@-install @@script(create-jvm-runner.pl)@@
 	@echo(+++ Installing @uc(@backend@)@ launcher)@
-	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q($(NQP_HOME))@ @q($(PERL6_HOME))@ "" @q($(NQP_JARS))@
-	@noecho@$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/perl6-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
-	@noecho@$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/perl6$(J_BAT))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
+	$(NOECHO)$(CP) @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo-j$(J_BAT))@ @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo$(J_BAT))@
+	$(NOECHO)$(CHMOD) 755 @nfpq($(DESTDIR)$(PREFIX)/bin/rakudo$(J_BAT))@
 
-@backend_prefix@-install-main:: @@script(install-core-dist.p6)@@@for_specs( @bsm(SETTING_@ucspec@)@)@
-	@noecho@$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(PERL6_HOME)/runtime)@
-	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
-	@noecho@$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(DESTDIR))@ @q($(PREFIX))@ @q(@bpm(NQP_HOME)@)@ @q($(NQP_PREFIX))@ "" @q($(NQP_JARS))@
+@backend_prefix@-install-main:: $(RUNTIME_JAR) @@script(create-jvm-runner.pl)@@
+	$(NOECHO)$(CP) $(RUNTIME_JAR) @nfpq($(DESTDIR)$(RAKUDO_HOME)/runtime)@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
+	$(NOECHO)$(PERL5) @shquot(@script(create-jvm-runner.pl)@)@ install-debug @q($(BASE_DIR))@ @q($(DESTDIR))@ @q($(PREFIX))@ @q(@nqp_home@)@ @q(@static_nqp_home@)@ @q(@static_rakudo_home@)@ @q($(NQP_JARS))@
 
 ##  cleaning
 @backend_prefix@-clean:
 	@echo(+++ Cleaning up @uc(@backend@)@)@
-	@noecho@$(RM_F) @bpm(CLEANUPS_ALL)@
-	@noecho@$(RM_RF) bin
+	$(NOECHO)$(RM_F) @bpm(CLEANUPS_ALL)@
+	$(NOECHO)$(RM_RF) bin
 
 @backend_prefix@-testclean:
 

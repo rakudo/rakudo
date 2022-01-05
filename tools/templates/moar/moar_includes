@@ -1,0 +1,5 @@
+@moar::cincludes@
+@moar::ccinc@@nfpq(@moar::prefix@/include)@
+@for(moar::hllincludes
+@moar::ccinc@@nfpq(@moar::prefix@/include/@_@)@
+)@

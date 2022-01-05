@@ -24,61 +24,49 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     method rootdir {  ｢\｣  }
     method splitdir(Cool:D $path) {
         nqp::p6bindattrinvres(
-          (), List, '$!reified',
+          nqp::create(List), List, '$!reified',
           nqp::split('/', nqp::join('/', nqp::split(｢\｣, $path.Str))))
         || ('',)
     }
 
-    method basename(\path) {
-        my str $str = nqp::unbox_s(path);
-        my int $indexf = nqp::rindex($str,'/');
-        my int $indexb = nqp::rindex($str,'\\');
-        nqp::hllbool($indexf == -1 && $indexb == -1)
+    method basename(str \path) {
+        my int $indexf = nqp::rindex(path,'/');
+        my int $indexb = nqp::rindex(path,'\\');
+        nqp::iseq_i($indexf,-1) && nqp::iseq_i($indexb,-1)
           ?? path
-          !! $indexf > $indexb
-             ?? substr(path,nqp::box_i($indexf + 1,Int) )
-             !! substr(path,nqp::box_i($indexb + 1,Int) );
+          !! nqp::substr(path,($indexf > $indexb ?? $indexf !! $indexb) + 1)
     }
 
     method tmpdir {
         my $ENV := %*ENV;
-        my $io;
-        first( {
+        for $ENV<TMPDIR>, $ENV<TEMP>, $ENV<TMP>,
+          'SYS:/temp', 'C:\system\temp', 'C:/temp', '/tmp', '/' {
             if .defined {
-                $io = .IO;
-                $io.d && $io.rwx;
+                my $io := IO::Path.new($_);
+                return $io if $io.d && $io.rwx
             }
-        },
-          $ENV<TMPDIR>,
-          $ENV<TEMP>,
-          $ENV<TMP>,
-          'SYS:/temp',
-          'C:\system\temp',
-          'C:/temp',
-          '/tmp',
-          '/',
-        ) ?? $io !! IO::Path.new(".");
+        }
+
+        IO::Path.new(".")
     }
 
     method path {
-        gather {
-          take '.';
-          my $p := %*ENV;
-          nqp::if(
-            ($p := nqp::if(nqp::defined($_ := $p<PATH>), $_, $p<Path>)),
-            nqp::stmts(
-              (my int $els = nqp::elems(my $parts := nqp::split(';', $p))),
-              (my int $i = -1),
-              nqp::until(
-                nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
-                ($_ := nqp::atpos($parts, $i))
-                  # unsure why old code removed all `"`, but keeping code same
-                  # https://irclog.perlgeek.de/perl6-dev/2017-05-15#i_14585448
-                  && take nqp::join('', nqp::split(｢"｣, $_)))))
-        }
-   }
+        my $parts := nqp::split(";",%*ENV<PATH> // %*ENV<Path> // '');
+        nqp::push((my $buffer := nqp::create(IterationBuffer)),".");
 
-    method is-absolute ($path) {
+        nqp::while(
+          nqp::elems($parts),
+          # unsure why old code removed all `"`, but keeping code same
+          # https://colabti.org/irclogger/irclogger_log/perl6-dev?date=2017-05-15#l240
+          nqp::if(
+            ($_ := nqp::join('',nqp::split('"',nqp::shift($parts)))),
+            nqp::push($buffer,$_)
+          )
+        );
+        $buffer.Seq
+    }
+
+    method is-absolute ( Str() $path) {
         nqp::hllbool(
           nqp::iseq_i(($_ := nqp::ord($path)), 92) # /^ ｢\｣ /
           || nqp::iseq_i($_, 47)                   # /^ ｢/｣ /
@@ -125,7 +113,7 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
             $basename && nqp::isfalse($dirname),
             $dirname = '.'));
 
-        (:$volume, :$dirname, :$basename)
+        IO::Path::Parts.new($volume, $dirname, $basename)
     }
 
     method join (Str \vol, Str $dir is copy, Str $file is copy) {
@@ -302,4 +290,4 @@ my class IO::Spec::Win32 is IO::Spec::Unix {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

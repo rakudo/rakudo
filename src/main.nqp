@@ -1,53 +1,24 @@
 use Perl6::Grammar;
 use Perl6::Actions;
 use Perl6::Compiler;
+use Perl6::SysConfig;
 
 
 # Initialize Rakudo runtime support.
 nqp::p6init();
 
+my %rakudo-build-config := nqp::hash();
+hll-config(%rakudo-build-config);
+nqp::bindhllsym('default', 'SysConfig', Perl6::SysConfig.new(%rakudo-build-config));
+
 # Create and configure compiler object.
 my $comp := Perl6::Compiler.new();
 
-$comp.language('perl6');
+$comp.language('Raku');
 $comp.parsegrammar(Perl6::Grammar);
 $comp.parseactions(Perl6::Actions);
 $comp.addstage('syntaxcheck', :before<ast>);
 $comp.addstage('optimize', :after<ast>);
-hll-config($comp.config);
-nqp::bindhllsym('perl6', '$COMPILER_CONFIG', $comp.config);
-
-
-# Determine Perl6 and NQP dirs.
-my $config := nqp::backendconfig();
-my $sep := $config<osname> eq 'MSWin32' ?? '\\' !! '/';
-#?if jvm
-my $execname := nqp::atkey(nqp::jvmgetproperties,'perl6.execname');
-#?endif
-#?if !jvm
-my $execname := nqp::execname();
-#?endif
-my $install-dir := $execname eq ''
-    ?? $comp.config<prefix>
-    !! nqp::substr($execname, 0, nqp::rindex($execname, $sep, nqp::rindex($execname, $sep) - 1));
-
-my $perl6-home := $comp.config<static_perl6_home>
-    // nqp::getenvhash()<PERL6_HOME>
-    // $install-dir ~ '/share/perl6';
-if nqp::substr($perl6-home, nqp::chars($perl6-home) - 1) eq $sep {
-    $perl6-home := nqp::substr($perl6-home, 0, nqp::chars($perl6-home) - 1);
-}
-
-my $nqp-home := $comp.config<static_nqp_home>
-    // nqp::getenvhash()<NQP_HOME>
-    // $install-dir ~ '/share/nqp';
-if nqp::substr($nqp-home, nqp::chars($nqp-home) - 1) eq $sep {
-    $nqp-home := nqp::substr($nqp-home, 0, nqp::chars($nqp-home) - 1);
-}
-
-nqp::bindhllsym('perl6', '$PERL6_HOME', $perl6-home);
-nqp::bindhllsym('perl6', '$NQP_HOME', $nqp-home);
-
 
 # Add extra command line options.
 my @clo := $comp.commandline_options();
@@ -61,16 +32,17 @@ my @clo := $comp.commandline_options();
 @clo.push('I=s');
 @clo.push('M=s');
 @clo.push('nqp-lib=s');
+@clo.push('rakudo-home=s');
 
 #?if js
 @clo.push('beautify');
 #?endif
 
 # Set up END block list, which we'll run at exit.
-nqp::bindhllsym('perl6', '@END_PHASERS', []);
+nqp::bindhllsym('Raku', '@END_PHASERS', []);
 
 # In an embedding environment, let @*ARGS be empty instead of crashing
-nqp::bindhllsym('perl6', '$!ARGITER', 0);
+nqp::bindhllsym('Raku', '$!ARGITER', 0);
 
 #?if jvm
 sub MAIN(*@ARGS) {
@@ -82,10 +54,23 @@ sub MAIN(@ARGS) {
 sub MAIN(*@ARGS) {
 #?endif
     # Enter the compiler.
-    $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'));
+    my %defaults;
+    if nqp::existskey(nqp::getenvhash, 'RAKUDO_OPT') {
+        my @env-args := nqp::split(" ", nqp::getenvhash<RAKUDO_OPT>);
+        my $p := HLL::CommandLine::Parser.new($comp.commandline_options);
+        $p.add-stopper('-e');
+        $p.stop-after-first-arg;
+        my $res := $p.parse(@env-args);
+        if $res {
+            %defaults := $res.options;
+        }
+    }
+    $comp.command_line(@ARGS, :encoding('utf8'), :transcode('ascii iso-8859-1'), |%defaults);
 
     # do all the necessary actions at the end, if any
-    if nqp::gethllsym('perl6', '&THE_END') -> $THE_END {
+    if nqp::gethllsym('Raku', '&THE_END') -> $THE_END {
         $THE_END()
     }
 }
+
+# vim: expandtab sw=4

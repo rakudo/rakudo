@@ -6,7 +6,7 @@ my class Rat is Cool does Rational[Int, Int] {
     method FatRat(Rat:D: Real $? --> FatRat:D) {
         FatRat.new($!numerator, $!denominator)
     }
-    multi method perl(Rat:D: --> Str:D) {
+    multi method raku(Rat:D: --> Str:D) {
         if $!denominator == 1 {
             $!numerator ~ '.0'
         }
@@ -37,8 +37,15 @@ my class FatRat is Cool does Rational[Int, Int] {
           ?? Rat.new($!numerator, $!denominator)
           !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
-    multi method perl(FatRat:D: --> Str:D) {
+    multi method raku(FatRat:D: --> Str:D) {
         "FatRat.new($!numerator, $!denominator)";
+    }
+
+    method UPGRADE-RAT(\nu, \de) is raw {
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
+          FatRat,'$!denominator',de
+        )
     }
 }
 
@@ -46,7 +53,9 @@ my class FatRat is Cool does Rational[Int, Int] {
 # Provide two types: if either of them is a FatRat, then a FatRat will be
 # returned.  If a Rat is to be created, then a check for denominator overflow
 # is done: if that is the case, then a float will be returned.
-sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) is raw {
+sub DIVIDE_NUMBERS(
+  Int:D $nu, Int:D $de, \t1, \t2
+) is raw is implementation-detail {
     nqp::if(
       $de,
       nqp::stmts(
@@ -70,465 +79,356 @@ sub DIVIDE_NUMBERS(Int:D $nu, Int:D $de, \t1, \t2) is raw {
     )
 }
 
+# Initialize the $*RAT-OVERFLOW dynamic var so that it can be used
+PROCESS::<$RAT-OVERFLOW> = Num;
+
 # ALL RATIONALS MUST BE NORMALIZED, however in some operations we cannot
 # ever get a non-normalized Rational, if we start with a normalized Rational.
 # For such cases, we can use this routine, to bypass normalization step,
 # which would be useless.  Also used when normalization *was* needed.
-proto sub CREATE_RATIONAL_FROM_INTS(|) {*}
-multi sub CREATE_RATIONAL_FROM_INTS(Int:D \nu, Int:D \de, \t1, \t2) is raw {
-    nqp::if(
-      nqp::islt_I(de,UINT64_UPPER),         # do we need to downgrade to float?
-      nqp::p6bindattrinvres(                # no, we need to keep a Rat
-        nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',nu),
-        Rat,'$!denominator',de
-      ),
-      nqp::p6box_n(nqp::div_In(nu,de))      # downgrade to float
-    )
+proto sub CREATE_RATIONAL_FROM_INTS(|) is implementation-detail {*}
+multi sub CREATE_RATIONAL_FROM_INTS(Int:D $nu, Int:D $de, Any, Any) is raw {
+    nqp::islt_I($de,UINT64_UPPER)            # do we need to downgrade to float?
+      ?? nqp::p6bindattrinvres(              # no, we need to keep a Rat
+           nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',$nu),
+           Rat,'$!denominator',$de
+         )
+      !! $*RAT-OVERFLOW.UPGRADE-RAT($nu, $de)
 }
 
 # already a FatRat, so keep that
 multi sub CREATE_RATIONAL_FROM_INTS(
-  Int:D \nu, Int:D \de, FatRat \t1, \t2
+  Int:D $nu, Int:D $de, FatRat, Any
 --> FatRat:D) is raw {
     nqp::p6bindattrinvres(
-      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
-      FatRat,'$!denominator',de
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
+      FatRat,'$!denominator',$de
     )
 }
 multi sub CREATE_RATIONAL_FROM_INTS(
-  Int:D \nu, Int:D \de, \t1, FatRat \t2
+  Int:D $nu, Int:D $de, Any, FatRat
 --> FatRat:D) is raw {
     nqp::p6bindattrinvres(
-      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
-      FatRat,'$!denominator',de
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
+      FatRat,'$!denominator',$de
     )
 }
 multi sub CREATE_RATIONAL_FROM_INTS(
-  Int:D \nu, Int:D \de, FatRat \t1, FatRat \t2
+  Int:D $nu, Int:D $de, FatRat, FatRat
 --> FatRat:D) is raw {
     nqp::p6bindattrinvres(
-      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',nu),
-      FatRat,'$!denominator',de
+      nqp::p6bindattrinvres(nqp::create(FatRat),FatRat,'$!numerator',$nu),
+      FatRat,'$!denominator',$de
     )
 }
 
-multi sub prefix:<->(Rat:D \a --> Rat:D) {
+multi sub prefix:<->(Rat:D $a --> Rat:D) {
 #    Rat.new(-a.numerator, a.denominator);
     nqp::p6bindattrinvres(
-      nqp::clone(nqp::decont(a)),
-      Rat,'$!numerator',nqp::neg_I(a.numerator,Int)
+      nqp::clone($a),
+      Rat,'$!numerator',nqp::neg_I($a.numerator,Int)
     )
 }
-multi sub prefix:<->(FatRat:D \a --> FatRat:D) {
+multi sub prefix:<->(FatRat:D $a --> FatRat:D) {
 #    FatRat.new(-a.numerator, a.denominator);
     nqp::p6bindattrinvres(
-      nqp::clone(nqp::decont(a)),
-      FatRat,'$!numerator',nqp::neg_I(a.numerator,Int)
+      nqp::clone($a),
+      FatRat,'$!numerator',nqp::neg_I($a.numerator,Int)
     )
 }
 
-multi sub infix:<+>(Rational:D \a, Rational:D \b) {
-    my \adenom := a.denominator;
-    my \bdenom := b.denominator;
+multi sub infix:<+>(Rational:D $a, Rational:D $b) {
+    my \adenom := $a.denominator;
+    my \bdenom := $b.denominator;
     DIVIDE_NUMBERS(
-      a.numerator * bdenom + b.numerator * adenom,
-      adenom * bdenom, a, b
+      $a.numerator * bdenom + $b.numerator * adenom,
+      adenom * bdenom, $a, $b
     )
 }
-multi sub infix:<+>(Rational:D \a, Int:D \b) {
-    my \adenom := a.denominator;
+multi sub infix:<+>(Rational:D $a, Int:D $b) {
+    my \adenom := $a.denominator;
     DIVIDE_NUMBERS(
-      a.numerator + b * adenom,
-      adenom, a, b
+      $a.numerator + $b * adenom,
+      adenom, $a, $b
     )
 }
-multi sub infix:<+>(Int:D \a, Rational:D \b) {
-    my \bdenom := b.denominator;
+multi sub infix:<+>(Int:D $a, Rational:D $b) {
+    my \bdenom := $b.denominator;
     DIVIDE_NUMBERS(
-      a * bdenom + b.numerator,
-      bdenom, a, b
+      $a * bdenom + $b.numerator,
+      bdenom, $a, $b
     )
 }
 
-multi sub infix:<->(Rational:D \a, Rational:D \b) {
-    my \adenom := a.denominator;
-    my \bdenom := b.denominator;
+multi sub infix:<->(Rational:D $a, Rational:D $b) {
+    my \adenom := $a.denominator;
+    my \bdenom := $b.denominator;
     DIVIDE_NUMBERS(
-      a.numerator * bdenom - b.numerator * adenom,
-      adenom * bdenom, a, b
+      $a.numerator * bdenom - $b.numerator * adenom,
+      adenom * bdenom, $a, $b
     )
 }
 
-multi sub infix:<->(Rational:D \a, Int:D \b) {
-    my \adenom := a.denominator;
+multi sub infix:<->(Rational:D $a, Int:D $b) {
+    my \adenom := $a.denominator;
     DIVIDE_NUMBERS(
-      a.numerator - b * adenom,
-      adenom, a, b
+      $a.numerator - $b * adenom,
+      adenom, $a, $b
     )
 }
 
-multi sub infix:<->(Int:D \a, Rational:D \b) {
-    my \bdenom := b.denominator;
+multi sub infix:<->(Int:D $a, Rational:D $b) {
+    my \bdenom := $b.denominator;
     DIVIDE_NUMBERS(
-      a * bdenom - b.numerator,
-      bdenom, a, b
+      $a * bdenom - $b.numerator,
+      bdenom, $a, $b
     )
 }
 
-multi sub infix:<*>(Rational:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
-        a.numerator * b.numerator,
-        a.denominator * b.denominator,
-        a,
-        b
+multi sub infix:<*>(Rational:D $a, Rational:D $b) {
+    DIVIDE_NUMBERS(
+      $a.numerator * $b.numerator,
+      $a.denominator * $b.denominator,
+      $a, $b
+    )
 }
 
-multi sub infix:<*>(Rational:D \a, Int:D \b) {
-    DIVIDE_NUMBERS
-        a.numerator * b,
-        a.denominator,
-        a,
-        b
+multi sub infix:<*>(Rational:D $a, Int:D $b) {
+    DIVIDE_NUMBERS(
+      $a.numerator * $b,
+      $a.denominator,
+      $a, $b
+    )
 }
 
-multi sub infix:<*>(Int:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
-        a * b.numerator,
-        b.denominator,
-        a,
-        b
+multi sub infix:<*>(Int:D $a, Rational:D $b) {
+    DIVIDE_NUMBERS(
+      $a * $b.numerator,
+      $b.denominator,
+      $a, $b
+    )
 }
 
-multi sub infix:</>(Rational:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
-        a.numerator * b.denominator,
-        a.denominator * b.numerator,
-        a,
-        b
+multi sub infix:</>(Rational:D $a, Rational:D $b) {
+    DIVIDE_NUMBERS(
+      $a.numerator * $b.denominator,
+      $a.denominator * $b.numerator,
+      $a, $b
+    )
 }
 
-multi sub infix:</>(Rational:D \a, Int:D \b) {
-    DIVIDE_NUMBERS
-        a.numerator,
-        a.denominator * b,
-        a,
-        b
+multi sub infix:</>(Rational:D $a, Int:D $b) {
+    DIVIDE_NUMBERS(
+      $a.numerator,
+      $a.denominator * $b,
+      $a, $b
+    )
 }
 
-multi sub infix:</>(Int:D \a, Rational:D \b) {
-    DIVIDE_NUMBERS
-        b.denominator * a,
-        b.numerator,
-        a,
-        b
+multi sub infix:</>(Int:D $a, Rational:D $b) {
+    DIVIDE_NUMBERS(
+      $b.denominator * $a,
+      $b.numerator,
+      $a, $b
+    )
 }
 
-multi sub infix:</>(Int:D \a, Int:D \b) {
-    DIVIDE_NUMBERS a, b, a, b
+multi sub infix:</>(Int:D $a, Int:D $b) {
+    DIVIDE_NUMBERS($a, $b, $a, $b)
 }
 
-multi sub infix:<%>(Rational:D \a, Int:D \b) {
-    a - floor(a / b) * b
+multi sub infix:<%>(Rational:D $a, Int:D $b) {
+    $a - floor($a / $b) * $b
 }
 
-multi sub infix:<%>(Int:D \a, Rational:D \b) {
-    a - floor(a / b) * b
+multi sub infix:<%>(Int:D $a, Rational:D $b) {
+    $a - floor($a / $b) * $b
 }
 
-multi sub infix:<%>(Rational:D \a, Rational:D \b) {
-    a - floor(a / b) * b
+multi sub infix:<%>(Rational:D $a, Rational:D $b) {
+    $a - floor($a / $b) * $b
 }
 
-multi sub infix:<**>(Rational:D \a, Int:D \b) {
+multi sub infix:<**>(Rational:D $a, Int:D $b) {
     my $nu;
     my $de;
     nqp::if(
-      nqp::isge_I(nqp::decont(b), 0),
+      nqp::isge_I($b,0),
+      nqp::if( # if we got Inf
+        nqp::istype(
+          ($nu := nqp::pow_I($a.numerator,$b,Num,Int)),
+          Num
+        ),
+        Failure.new(X::Numeric::Overflow.new),
         nqp::if( # if we got Inf
-          nqp::istype(($nu := nqp::pow_I(a.numerator, nqp::decont(b), Num, Int)), Num),
+          nqp::istype(
+            ($de := nqp::pow_I($a.denominator,$b,Num,Int)),
+            Num
+          ),
           Failure.new(X::Numeric::Overflow.new),
-          nqp::if( # if we got Inf
-            nqp::istype(($de := nqp::pow_I(a.denominator, nqp::decont(b), Num, Int)), Num),
-            Failure.new(X::Numeric::Overflow.new),
-            CREATE_RATIONAL_FROM_INTS $nu, $de, a, b)),
+          CREATE_RATIONAL_FROM_INTS($nu, $de, $a, $b)
+        )
+      ),
+      nqp::if( # if we got Inf
+        nqp::istype(
+          ($nu := nqp::pow_I($a.numerator,nqp::neg_I($b,Int),Num,Int)),
+          Num
+        ),
+        Failure.new(X::Numeric::Underflow.new),
         nqp::if( # if we got Inf
-          nqp::istype(($nu := nqp::pow_I(a.numerator,
-            nqp::neg_I(nqp::decont(b), Int), Num, Int)), Num),
+          nqp::istype(
+            ($de := nqp::pow_I($a.denominator,nqp::neg_I($b,Int),Num,Int)),
+            Num
+          ),
           Failure.new(X::Numeric::Underflow.new),
-          nqp::if( # if we got Inf
-            nqp::istype(($de := nqp::pow_I(a.denominator,
-              nqp::neg_I(nqp::decont(b), Int), Num, Int)), Num),
-            Failure.new(X::Numeric::Underflow.new),
-            CREATE_RATIONAL_FROM_INTS $de, $nu, a, b)))
+          CREATE_RATIONAL_FROM_INTS($de, $nu, $a, $b)
+        )
+      )
+    )
 }
 
-multi sub infix:<==>(Rational:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:<==>(Rational:D $a, Rational:D $b --> Bool:D) {
     nqp::hllbool(
       nqp::iseq_I(
-        (my \anum := a.numerator),
-        b.numerator
+        (my \anum := $a.numerator),
+        $b.numerator
       ) && nqp::iseq_I(
-             (my \adenom := a.denominator),
-             b.denominator
+             (my \adenom := $a.denominator),
+             $b.denominator
           ) && (                         # num/denom both same
                  nqp::istrue(anum)       # 1/X, Inf == Inf also true
                  || nqp::istrue(adenom)  # 0/1, NaN == NaN becomes false
                )
     )
 }
-multi sub infix:<==>(Rational:D \a, Int:D \b --> Bool:D) {
+multi sub infix:<==>(Rational:D $a, Int:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::iseq_I(
-        a.denominator,
-        1
-      ) && nqp::iseq_I(
-             a.numerator,
-             nqp::decont(b)
-           )
+      nqp::iseq_I($a.denominator,1)
+        && nqp::iseq_I($a.numerator,$b)
     )
 }
-multi sub infix:<==>(Int:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:<==>(Int:D $a, Rational:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::iseq_I(
-        b.denominator,
-        1
-      ) && nqp::iseq_I(
-             nqp::decont(a),
-             b.numerator
-           )
+      nqp::iseq_I($b.denominator,1)
+        && nqp::iseq_I($a,$b.numerator)
     )
 }
-multi sub infix:<===>(Rational:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:<===>(Rational:D $a, Rational:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr(a.WHAT, b.WHAT)
-        && nqp::iseq_I(
-             a.numerator,
-             b.numerator
-        ) && nqp::iseq_I(
-               a.denominator,
-               b.denominator
-            )
+      nqp::eqaddr($a.WHAT, $b.WHAT)
+        && nqp::iseq_I($a.numerator,  $b.numerator)
+        && nqp::iseq_I($a.denominator,$b.denominator)
     )
 }
 
-multi sub infix:«<»(Rational:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:«<»(Rational:D $a, Rational:D $b --> Bool:D) {
 #    a.numerator * b.denominator < b.numerator * a.denominator
     nqp::hllbool(
       nqp::islt_I(
-        nqp::mul_I(
-          a.numerator,
-          b.denominator,
-          Int
-        ),
-        nqp::mul_I(
-          b.numerator,
-          a.denominator,
-          Int
-        )
+        nqp::mul_I($a.numerator,$b.denominator,Int),
+        nqp::mul_I($b.numerator,$a.denominator,Int)
       )
     )
 }
-multi sub infix:«<»(Rational:D \a, Int:D \b --> Bool:D) {
+multi sub infix:«<»(Rational:D $a, Int:D $b --> Bool:D) {
 #    a.numerator  < b * a.denominator
     nqp::hllbool(
-      nqp::islt_I(
-        a.numerator,
-        nqp::mul_I(
-          nqp::decont(b),
-          a.denominator,
-          Int
-        )
-      )
+      nqp::islt_I($a.numerator,nqp::mul_I($b,$a.denominator,Int))
     )
 }
-multi sub infix:«<»(Int:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:«<»(Int:D $a, Rational:D $b --> Bool:D) {
 #    a * b.denominator < b.numerator
     nqp::hllbool(
-      nqp::islt_I(
-        nqp::mul_I(
-          nqp::decont(a),
-          b.denominator,
-          Int
-        ),
-        b.numerator
-      )
+      nqp::islt_I(nqp::mul_I($a,$b.denominator,Int),$b.numerator)
     )
 }
 
-multi sub infix:«<=»(Rational:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:«<=»(Rational:D $a, Rational:D $b --> Bool:D) {
 #    a.numerator * b.denominator <= b.numerator * a.denominator
     nqp::hllbool(
       nqp::isle_I(
-        nqp::mul_I(
-          a.numerator,
-          b.denominator,
-          Int
-        ),
-        nqp::mul_I(
-          b.numerator,
-          a.denominator,
-          Int
-        )
+        nqp::mul_I($a.numerator,$b.denominator,Int),
+        nqp::mul_I($b.numerator,$a.denominator,Int)
       )
     )
 }
-multi sub infix:«<=»(Rational:D \a, Int:D \b --> Bool:D) {
+multi sub infix:«<=»(Rational:D $a, Int:D $b --> Bool:D) {
 #    a.numerator  <= b * a.denominator
     nqp::hllbool(
-      nqp::isle_I(
-        a.numerator,
-        nqp::mul_I(
-          nqp::decont(b),
-          a.denominator,
-          Int
-        )
-      )
+      nqp::isle_I($a.numerator,nqp::mul_I($b,$a.denominator,Int))
     )
 }
-multi sub infix:«<=»(Int:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:«<=»(Int:D $a, Rational:D $b --> Bool:D) {
 #    a * b.denominator <= b.numerator
     nqp::hllbool(
-      nqp::isle_I(
-        nqp::mul_I(
-          nqp::decont(a),
-          b.denominator,
-          Int
-        ),
-        b.numerator
-      )
+      nqp::isle_I(nqp::mul_I($a,$b.denominator,Int),$b.numerator)
     )
 }
 
-multi sub infix:«>»(Rational:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:«>»(Rational:D $a, Rational:D $b --> Bool:D) {
 #    a.numerator * b.denominator > b.numerator * a.denominator
     nqp::hllbool(
       nqp::isgt_I(
-        nqp::mul_I(
-          a.numerator,
-          b.denominator,
-          Int
-        ),
-        nqp::mul_I(
-          b.numerator,
-          a.denominator,
-          Int
-        )
+        nqp::mul_I($a.numerator,$b.denominator,Int),
+        nqp::mul_I($b.numerator,$a.denominator,Int)
       )
     )
 }
-multi sub infix:«>»(Rational:D \a, Int:D \b --> Bool:D) {
+multi sub infix:«>»(Rational:D $a, Int:D $b --> Bool:D) {
 #    a.numerator  > b * a.denominator
     nqp::hllbool(
-      nqp::isgt_I(
-        a.numerator,
-        nqp::mul_I(
-          nqp::decont(b),
-          a.denominator,
-          Int
-        )
-      )
+      nqp::isgt_I($a.numerator,nqp::mul_I($b,$a.denominator,Int))
     )
 }
-multi sub infix:«>»(Int:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:«>»(Int:D $a, Rational:D $b --> Bool:D) {
 #    a * b.denominator > b.numerator
     nqp::hllbool(
-      nqp::isgt_I(
-        nqp::mul_I(
-          nqp::decont(a),
-          b.denominator,
-          Int
-        ),
-        b.numerator
-      )
+      nqp::isgt_I(nqp::mul_I($a,$b.denominator,Int),$b.numerator)
     )
 }
 
-multi sub infix:«>=»(Rational:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:«>=»(Rational:D $a, Rational:D $b --> Bool:D) {
 #    a.numerator * b.denominator >= b.numerator * a.denominator
     nqp::hllbool(
       nqp::isge_I(
-        nqp::mul_I(
-          a.numerator,
-          b.denominator,
-          Int
-        ),
-        nqp::mul_I(
-          b.numerator,
-          a.denominator,
-          Int
-        )
+        nqp::mul_I($a.numerator,$b.denominator,Int),
+        nqp::mul_I($b.numerator,$a.denominator,Int)
       )
     )
 }
-multi sub infix:«>=»(Rational:D \a, Int:D \b --> Bool:D) {
+multi sub infix:«>=»(Rational:D $a, Int:D $b --> Bool:D) {
 #    a.numerator  >= b * a.denominator
     nqp::hllbool(
-      nqp::isge_I(
-        a.numerator,
-        nqp::mul_I(
-          nqp::decont(b),
-          a.denominator,
-          Int
-        )
-      )
+      nqp::isge_I($a.numerator,nqp::mul_I($b,$a.denominator,Int))
     )
 }
-multi sub infix:«>=»(Int:D \a, Rational:D \b --> Bool:D) {
+multi sub infix:«>=»(Int:D $a, Rational:D $b --> Bool:D) {
 #    a * b.denominator >= b.numerator
     nqp::hllbool(
-      nqp::isge_I(
-        nqp::mul_I(
-          nqp::decont(a),
-          b.denominator,
-          Int
-        ),
-        b.numerator
-      )
+      nqp::isge_I(nqp::mul_I($a,$b.denominator,Int),$b.numerator)
     )
 }
 
-multi sub infix:«<=>»(Rational:D \a, Rational:D \b --> Order:D) {
+multi sub infix:«<=>»(Rational:D $a, Rational:D $b) {
 #    a.numerator * b.denominator <=> b.numerator * a.denominator
     ORDER(
       nqp::cmp_I(
-        nqp::mul_I(
-          a.numerator,
-          b.denominator,
-          Int
-        ),
-        nqp::mul_I(
-          b.numerator,
-          a.denominator,
-          Int
-        )
+        nqp::mul_I($a.numerator,$b.denominator,Int),
+        nqp::mul_I($b.numerator,$a.denominator,Int)
       )
     )
 }
-multi sub infix:«<=>»(Rational:D \a, Int:D \b --> Order:D) {
+multi sub infix:«<=>»(Rational:D $a, Int:D $b) {
 #    a.numerator  <=> b * a.denominator
     ORDER(
-      nqp::cmp_I(
-        a.numerator,
-        nqp::mul_I(
-          nqp::decont(b),
-          a.denominator,
-          Int
-        )
-      )
+      nqp::cmp_I($a.numerator,nqp::mul_I($b,$a.denominator,Int))
     )
 }
-multi sub infix:«<=>»(Int:D \a, Rational:D \b --> Order:D) {
+multi sub infix:«<=>»(Int:D $a, Rational:D $b) {
 #    a * b.denominator <=> b.numerator
     ORDER(
-      nqp::cmp_I(
-        nqp::mul_I(
-          nqp::decont(a),
-          b.denominator,
-          Int
-        ),
-        b.numerator
-      )
+      nqp::cmp_I(nqp::mul_I($a,$b.denominator,Int),$b.numerator)
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -60,37 +60,37 @@ my class IO::Spec::Unix is IO::Spec {
     method dir-sep  {  '/' } # NOTE: IO::Path.resolve assumes dir sep is 1 char
     method curdir   {  '.' }
     method updir    { '..' }
-    method curupdir { none('.','..') }
     method rootdir  { '/' }
     method devnull  { '/dev/null' }
 
-    method basename(\path) {
-        my str $str = nqp::unbox_s(path);
-        my int $index = nqp::rindex($str,'/');
-        nqp::hllbool($index == -1)
+    my $curupdir := -> str $dir {
+        nqp::hllbool(nqp::isne_s($dir,'.') && nqp::isne_s($dir,'..'))
+    }
+    method curupdir { $curupdir }
+
+    method basename(str \path) {
+        my int $index = nqp::rindex(path,'/');
+        nqp::iseq_i($index,-1)
           ?? path
-          !! substr(path,nqp::box_i($index + 1,Int) );
+          !! nqp::substr(path,$index + 1)
     }
 
-    method extension(\path) {
-        my str $str = nqp::unbox_s(path);
-        my int $index = nqp::rindex($str,'.');
-        nqp::hllbool($index == -1)
+    method extension(str \path) {
+        my int $index = nqp::rindex(path,'.');
+        nqp::iseq_i($index,-1)
           ?? ''
-          !! substr(path,nqp::box_i($index + 1,Int) );
+          !! nqp::substr(path,$index + 1)
     }
 
     method tmpdir {
-        my $io;
-        first( {
+        for %*ENV<TMPDIR>, '/tmp' {
             if .defined {
-                $io = .IO;
-                $io.d && $io.rwx;
+                my $io := IO::Path.new($_);
+                return $io if $io.d && $io.rwx
             }
-          },
-          %*ENV<TMPDIR>,
-          '/tmp',
-        ) ?? $io !! IO::Path.new(".");
+        }
+
+        IO::Path.new(".")
     }
 
     method is-absolute( Str() \path ) {
@@ -98,13 +98,13 @@ my class IO::Spec::Unix is IO::Spec {
     }
 
     method path {
-        (my $p := %*ENV<PATH>) ?? gather {
-            my int $els = nqp::elems(my $parts := nqp::split(':', $p));
-            my int $i = -1;
-            nqp::until(
-              nqp::iseq_i($els, $i = nqp::add_i($i, 1)),
-              take nqp::atpos($parts, $i) || '.')
-        } !! Seq.new(Rakudo::Iterator.Empty)
+        my $parts  := nqp::split(':',%*ENV<PATH>);
+        my $buffer := nqp::create(IterationBuffer);
+        nqp::while(
+          nqp::elems($parts),
+          nqp::push($buffer,nqp::shift($parts) || ".")
+        );
+        $buffer.Seq
     }
 
     method splitpath( $path, :$nofile = False ) {
@@ -169,7 +169,7 @@ my class IO::Spec::Unix is IO::Spec {
         );
 
         # shell dirname '' produces '.', but we don't because it's probably user error
-       (:volume(''), :$dirname, :$basename);
+       IO::Path::Parts.new('', $dirname, $basename)
     }
 
     method join ($, \dir, \file) {
@@ -206,7 +206,7 @@ my class IO::Spec::Unix is IO::Spec {
         )
     }
     method splitdir(Cool:D $path) {
-        nqp::p6bindattrinvres((), List, '$!reified', nqp::split('/', $path.Str))
+        nqp::p6bindattrinvres(nqp::create(List), List, '$!reified', nqp::split('/', $path.Str))
         || ('',)
     }
     method catfile( |c )     { self.catdir(|c) }
@@ -275,4 +275,4 @@ my class IO::Spec::Unix is IO::Spec {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

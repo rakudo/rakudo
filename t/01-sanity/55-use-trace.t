@@ -32,3 +32,5 @@ is $p.err.lines.join("\n"), qq:to/STDERR/.chomp, "is the trace ok?";
 10 ($filename line 10)
 \$a -= 1
 STDERR
+
+# vim: expandtab shiftwidth=4

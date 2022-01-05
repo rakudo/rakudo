@@ -1,3 +1,1615 @@
+New in 2021.12:
+
++ Deprecations:
+
++ Additions:
+    + Add is-wrapped method to Routine (#4579) [99bc766e]
+    + Introducing RAKUDO_PRECOMPILATION_PROGRESS [d88d1cc0]
+    + Add In Memoriam stub for David H. Adler [dba8dbb0]
+    + Add a IterationBuffer.new(iterable) candidate (#4599) [ad145b4c]
+    + Add IterationBuffer.unshift/prepend methods (#4641) [259d29b3]
+    + Add knowledge about MacOS Monterey [1fc8cce3]
+    + Add the ability to display any default values in sub MAIN to the default
+      USAGE message [0b286ed2]
+
++ Changes:
+    + Remove tai-offset-nanos from CORE::.keys [a8c579b6]
+    + Make .subst-mutate faster by simplifying proto [d619e026]
+    + Make .match faster by simplifying proto [2204c7cb]
+    + Make .subst upto 1.9x as fast [0dae67a6]
+    + Remove redundant multi method list(QuantHash:U:) [8fd65670]
+    + Replace some empty TWEAKs by "is built"s [82a9ca4f]
+    + Better cope with megamorphic callsites after new-disp [85df0ba1]
+      [3229ef12][2df1d01a][091005f3][9ad99eb9][441e103f][0d84699c][5de7faf4]
+      [e4b0ddf9][1fbeb4c6][f9aa1d65]
+    + Support Terminal::LineEditor in the Raku REPL [5db6a344][138aca10]
+      [694f648b][7b188795][15a13ffc]
+    + Change SetHash.values() from `is rw` to `is raw` [65987460]
+    + Very simple ACCEPTS for Int:D vs Int:D (#4625) [57387455]
+    + Get either parametric or concrete roles in MRO when requested [641a86d5]
+      [832a8476][bf2a07fb][856f1af0]
+    + Create checksums for release files [8cb674ac]
+    + Clean up list of people to ask for rakudo.org access [a31db709]
+    + Micro-optiize IterationBuffer.append(IterationBuffer:D) [92c490ee]
+    + Remove support for use experimental :collation (#4616) [eb837dee]
+    + New disp nativecall (#4629) [f67fb4ab][30a7e94e][889754d5][d46a826f]
+      [ad5cc86f][f20d448e][452781f3][624f3a7a][02539e96][3e3b5ca8][01470de8]
+      [a6633242][d5b98cf7]
+    + Update Release Guide to have actual information (#4639) [b3b4ca21]
+    + Make Date.new(year,month,day) about 40% faster [74c8c861]
+    + Make Telemetry::snap(:head) return the filename [ad1fddbb]
+    + Make the max number of threads depend on number of cores (#4652)
+      [afc56429]
+    + Make Inline::Perl5 installation suggestion complete [4e23452c]
+    + Speedup Instant.Num by manual inlining [4985f8a6][8642808e]
+    + Add "ceiling" as a suggestion for "ceil" [57adbb1e]
+    + Reduce number of nqp::cpucores calls (#4659) [c7e456d3]
+
++ Fixes:
+    + Make enums and Bool throw on .new [42738187]
+    + Use distribution specific comp unit ids in CURFS [7ab396a0]
+    + Fix X::Assignment::RO message when assignment to Nil is attempted
+      [1ea47322][15ed1566]
+    + Make sure return value of Str.match is threadsafe [1d0a903a]
+    + Fix gisting Buf or Blob parameterized with an unsized type [62c04646]
+    + Use better default for nativesize in Buf/Blob gist [e99e2742]
+    + Clarify let and temp operators [1fec0ef2]
+    + Make StrDistance.ACCEPTS also a multi [3ef09a72]
+    + Make sure IO::Path.slurp returns failures [ce0d31fb]
+    + Make sure ParallelSequence is included in shas [e98e17da]
+    + Fix handling of constrained Mu parameters in signature smartmatching
+      [4329a995][c6e24eba][034768de][e6a68a94][088e0c4e]
+    + Prevent rebinding for readonly parameters [PR #4536] [ea42b3df][5e1f25d9]
+      [32e307b6][90307035][aeaf6f5e]
+    + Fix segfaults when multiple threads initialize dynamics [db136bc5]
+    + Make concurrent access to an enum by value safe (#4634) [4c238bdc]
+    + Fix CATCH blocks setting $! leading to serialization errors with BEGIN
+      time exceptions [b994c6bb]
+    + Fix stupid copy-pasto, fixes #4660 [57801d59]
+    + Minimal change for fix on MacOS Monterey [f029ac83]
+    + Don't suggest method of the same name as "not found" [27082897][58c3d950]
+      [d4914edd][af0153df][545f8d0e]
+    + [JVM] Don't let signal(SIGINT) break the REPL [1ef7019b]
+    + [JVM] Skip or todo failing tests for JVM [d301860e]
+    + Restore larger limit for using string_to_int on 64bit systems [7772b737]
+    + Fix segfaults due to concurrent hash access in parallel module loading
+      [835d0f12]
+    + Fix removing proxies in native calls [f0713c42][a6fad879]
+
++ Internal:
+    + Lift $!do reading out of `for` loop body [560ff8c6]
+    + Fix unnecessary boxing by routines with native return types [6bd955e6]
+    + Prepare extops for a MoarVM internals change [3127861c]
+    + Reduce visibility of Str internal classes [380c7758]
+    + Only simplify protos on the MoarVM backend [c50bc998]
+    + Add a missing MVMROOT in extops [ab02205e]
+    + Remove an unnecessary decont on a hot path [24333b11]
+
+New in 2021.10:
+
+  + SPECIAL NOTES:
+    + Introduce a new dispatch mechanism, including more general
+      and efficient handling of various language constructs.
+      For more info see  [The new MoarVM dispatch mechanism is here!](https://6guts.wordpress.com/2021/09/29/the-new-moarvm-dispatch-mechanism-is-here/)
+      [d557f72b][3e086599][1f359956][959eaeab][dc456a1a][a114255c]
+      [055ca78b][4e5e5329][41de71cf][4ecb1995][83f66c59][482f2561]
+      [5c72c7b0][1023c381][8bd88c2e][d9b75e82][7d5f251c][10e5e32b]
+      [54c085e9][e20ee30f][54f2d5ec][34d48682][69d8d938][734ecd2f]
+      [b6359402][68aaeb1e][75a9cb65][52587136][38407083][d28a8aff]
+      [3c5193d1][db03d022][e598691a][39cc4ee7][2b189a51][074c5fc7]
+      [03b524dc][a42047fe][42b52ec9][997af70f][66dc358b][4302f94d]
+      [f146f705][306a9e02][b4bb83c2][0d2db69c][b42f34e9][8ba49228]
+      [868c05ff][90410697][753d269a][4f9ac059][8cc60acc][8845d57a]
+      [71086d4f][c58d69eb][1360ffe1][3dd4314d][4956784e][db543fc6]
+      [3aeb8e31][1ca8b728][417d17c5][8fc8a7f8][fba37c5b][85d4aaee]
+      [dda0ea03][2baa490b][50fcef71][419d21a6][6e4a5420][21680e1f]
+      [ccf7fa59][ca4d3f76][5973a1c6][5b4ee2e5][533978d0][192821f8]
+      [c34964b3][7f15f505][39eb6778][049d1300][6bd5a86b][7055e93c]
+      [df9c3939][26ee39e1][258610e8][fd9d62be][cff8e98f][9b39ae14]
+      [269d9394][610a6c81][5d93c2ea][8b52034d][7e9aa39b][ce7e94e6]
+      [29973253][13cae29b][b21bf9a8][7816de91][1c2b7149][c6342f8d]
+      [de24aac1][ddcaf413][67501437][1355f036][3ebee705][1ab7674b]
+      [8e760be0][4c14af68][25f0ef88][fa5b82af][dafb08cf][daa954fa]
+      [652079e7][7afa7bf6][dc070055][11e73132][4e0ceea0][cf46a3c6]
+      [8e20ea60][d17f00b5][5ba7cf0a][885f4ab5][84da856a][f8fa8844]
+      [25d2f634][5d07d600][1f172ecb][5dedf062][20a3ed03][79e5919b]
+      [605cd8e5][61f6984b][96e15cf5][439fc5bd][7583f21e][fa4efbf1]
+      [52338a0c][b8183107][84b1820c][f496be1d][edf17b3d][9d7d164c]
+      [c1a89bc0][1253f4bd][c0098e3f][ebd03058][3e5e217f][cee2053c]
+      [9e7499ed][a267025f][33a6655e][fd383374][1220a3ec][a638cf61]
+      [c1a89bc0][1253f4bd][c0098e3f][ebd03058][3e5e217f][cee2053c]
+      [9e7499ed][a267025f][33a6655e][fd383374][1220a3ec][a638cf61]
+      [c61d91a6][65b5b4a9][e7fee3ac][b63ff146][0400253c][6d05ce36]
+      [90e650cf][73b82cf2][02d4e74f][336d488b][34df830a][558dccc0]
+      [d2d21236][6d395816][72d9a0de][e8910a4e][e19bcbf2][d4062aa0]
+      [69fb2d79][9441ef4a][8668ebf0][a04fe6c0][fab8e646][39b60a2c]
+      [383a2fb2][36664650][2afbf2a2][7ff1a8a2][0805986b][a0c5c20e]
+      [009f4d39][1bc136ac][0d4ba023][4d25d5d9][4c2be058][2051e7e6]
+      [d9d30744][0da1bec2][41d478e8][45d642f6][0f323688][36738fac]
+      [2ee73dbf][dc2efba6][b8e55656][8504a9a9][dfb8446b][080f772c]
+      [19e0c985][4830a042][f488a6e8][305afb75][9a277af2][77a186f2]
+      [3513296b][3ad1a93f][ebe6682d][32f1e20e][0b6f3b33][c412cd76]
+      [de5ee1e8][0259d451][d2c88868][bfd8a36b][583a6da5][133807ca]
+      [9ea760d8][dd2b274f][38f6f873][21271aa5][cddcdb71][191fbba9]
+      [ff92bac5][aa728ef7][40bf3f3e][8d1f24f9][ca3355a8][d6d90f41]
+      [02c13fad][8fc643ec][b34ae24a]
+  + Deprecations:
+   + The `$*PERL` variable usage will warn starting from `6.e` language release,
+     using `$*RAKU` is preferred now [11fd2d70][3dc4aca2]
+  + Additions:
+    + Add Cool.Version coercer [dab7404c]
+  + Changes:
+    + De-unicodify `Raku` and `Rakudo` in the welcome message [ba15173f]
+  + Fixes:
+    + Fix a bug where using a signature constraint with a named callable parameter did not work
+      [e9a0b18c][9c2cc9c2][ffb587f2][51968148][d47185eb]
+    + Make sure name suggestions shown in the `X::Method::NotFound` exception are properly sorted
+      [0152e3c3][569f90ea]
+    + Fix a bug in module loading preventing the `Inline::Python` module to be loaded twice
+      from different locations [88862a9f]
+    + Ensure symbols installed into `GLOBAL` during loading of a compunit are not lost [0cb2cb50][bb607b6b]
+    + Fix loading wrong version of a module among ones with the same name happening in some cases [33296d40]
+    + Fix overwriting of the `.repo-id` file in some cases [fbb5228e][bc2cac13]
+    + Fix `require` of a package with globally existing class names [d4f7d174]
+    + Fix displaying a warning when using `is` routine from the `Test` module
+      when comparing objects where calling `.Str` is impossible [69aaa424]
+    + Prevent heredocs from improperly using block variables when continuing after the block [a78c9f0d]
+    + Fix a bug where calling `substr` method on a `Str` object without arguments led to infinite loop [93f0d86f]
+  + Internal:
+    + Log event of exhausting system threads when `RAKUDO_SCHEDULER_DEBUG` env var is enabled [ffaf453d]
+    + Pass `lib` in `RAKULIB` instead of `-I` in the `harness6` script [e09df02c]
+    + Rewrite `INDIRECT_NAME_LOOKUP` [431c3d6b]
+    + Use `$*RAKU` instead of `$*PERL` in more places [ff6951f5]
+    + Add `:override` parameter to `Rakudo::Internals.REGISTER-DYNAMIC` [4b8b566a]
+    + Consistently use a number for value in name suggestions hash [c99ffc51]
+
+New in 2021.09:
+
+  + Additions:
+    + Introduce the `safe-snapper` module. It is a shorthand
+      for loading `Telemetry` and starting a snapper with control-c
+      safety, allowing one to stop the script with control-c and
+      still get a report [87152eba]
+    + Add ability to subtract an `Instant` value from a `DateTime`
+      object and vice versa [9a4af4b6]
+    + Add `Numeric` coercer to `DateTime` [67138ec0]
+  + Changes:
+    + Make the `sprintf` method show its format string on error [ea8a95e5][57841911]
+    + The `test` named parameter of the `dir` routine now handles Junctions [21a7117d]
+    + Improve error message for the `X::Pragma::CannotPrecomp` exception [a52f1f62][fe461d17]
+  + Efficiency:
+    + Numerous small speed-ups and memory-related improvements
+      [94462dfa][3aba9707][3c1c709c]
+  + Fixes:
+    + Properly handle List of Lists in the `List.fmt` method [a86ec91e]
+    + Don't lose concurrent modifications to `%!conc_table` [72bc5623]
+    + Fix potential race in `Metamodel::Concretization` [d666dfe8]
+    + Make the default scheduler properly see `RAKUDO_MAX_THREADS` env variable [b14d404a]
+  + Internal:
+    + Support `ROAST_TIMING_SCALE` in telemetry tests [9681a093]
+    + Fix false positive in basic telemetry test [c0a6823b]
+    + Pass along whether the Rakudo runner was called with `--full-cleanup` [5492452b]
+    + Update the concretization table more sparingly [b236dcfd]
+
+New in 2021.08:
+
+  + Additions:
+    + Enable rendering of nested blocks in the `Pod::To::Text` module [07517164][27f7924e][36de39f6]
+  + Changes:
+    + Raise priority of `let` and `temp` operators compared to `.=`, `.` and
+      auto-increment, making `let $foo .= &{ Nil }` work more intuitively compared to
+      `(let $foo) .= &{ Nil }` as was necessary before [ca40fca0][723e7488]
+    + Change the `Scalar.WHICH` method implementation, fixing the semantics to reflect
+      that `Scalar` is not a value object [56fce9e7]
+  + Efficiency:
+    + Make the `&&`, `||` and `//` operators about 2x as fast for the `+@a` candidates [db441c2c]
+    + Improve performance of smartmatching between two `Signature` objects [66ae8612]
+  + Fixes:
+    + Fix some occurrences of hash-related concurrency issues [58ae9394]
+    + Fix the `List.reduce` method when used with `&infix:<&&>` [ea389d66][db441c2c]
+    + Fix matching of native types against roles `Numeric`, `Real` and `Stringy` [a8a78132]
+    + Make `Pointer.Numeric` and `Pointer.Int` methods return 0 instead of resulting in an error [681e3b5e]
+    + Fix a race in the `ClassHOW.new_type` method [08f5448d][83b0bca7]
+  + Internal:
+    + Make checking for Windows cheaper [89df7f4b]
+    + Simplify `Rakudo::Iterator::While` iterator code [ffde2ba2]
+    + Fix location of the `Proc.status` deprecation message [54f1b7a5]
+    + Add tests to make sure float and double `NaN` can be passed to native code
+      via NativeCall using the Raku `NaN` value [8ae6f394]
+
+New in 2021.07:
+
+  + Additions:
+    + Make `cmp` routine work properly on `Iterator`, `Seq`, `Uni`, native arrays and empty `List`s
+      [efb3116a][f3ff0621][76714ca4][39ba8884]
+    + Add the `ACCEPTS(Uni)` method on `Uni` candidate [6b6459f3]
+    + Implement `last` and `next` with a value for `6.e` language revision
+      [402ea056][2542a0ac][a5d81353][0761d4b2][47ebc86c][a2faac4b]
+      [e777fc4f][4f190875][21576423]
+    + Properly support nearly all HTML5 entities in Pod `E<>` formatting code [910179d7]
+    + Allow `Ctrl-C` to stop entry in REPL  [cf7b4f18]
+    + Add `⩶` and `⩵` as Unicode synonyms for `===` and `==` [eab780f3]
+  + Deprecations:
+    + Deprecate the `status` method on `Proc` in place of `exitcode` and `signal` methods
+      [249fdba2][2fd458cc]
+  + Build System:
+    + Tidy and improve cleanup rules [e771bd8a]
+    + Support creating an MSI installer [4e93b84e]
+  + Changes:
+    + Allow `add` method on `IO::Path` to take multiple values (e.g. `"foo".IO.add(<bar baz>)`) [b4d33982]
+  + Efficiency:
+    + Optimize calls to `map` [a8f144cc][38626c68]
+    + Optimize loops without phasers for one and two arguments case [265888ce]
+    + Make for / map with 2+ arguments up to 2x as fast [4c417f31][4f5fb9e6][bfa6b295]
+    + Make `List cmp List` about 25% faster [50bd1717]
+    + Reduce overhead of loops with phasers by at least 5% [5ecc8308][7a1b729b]
+    + Make the `grep(Callable)` method about 3% faster [52ffc125][bb09bbb8][71f6bada]
+  + Fixes:
+    + Fix `rakuw.exe` to be a non-console app [57885f66]
+    + Fix CURI probing and installation edge case issue on Windows [2839cef6][d668d992]
+    + Clean up sockets created by `IO::Socket::INET.new` on error [bee5c7af][271f17b0]
+    + Fix freezes caused by concurrently produced iterators
+      [8eae05b9][2d396ae7][6e66c2e5][24b0df8a]
+    + Fix `unimatch` for non-base properties [0a1256af]
+  + Internal:
+    + Implement support for `moar::hllincludes` config variable [a96bfdc2][552f2810]
+    + Fix binary release `set-env.*` scripts with space in path [a4a46e3c]
+    + `Rakudo::Iterator::UnendingValue` no longer a `PredictiveIterator` [917d674b]
+    + Separate `Rakudo::Iterator::IntRange` into two classes [03aef65c]
+    + `PredictiveIterator` provides own `push-until-lazy` [7cf3927d]
+    + Various internal fixes and improvements
+      [5976e30e][bdc5092f][1bd0411c][f2959ad5][ddc7c9ff][9c69b7d5]
+      [941349d0][eae82f09][2efe4302][7f5f60e8][22f78f4e][9bf1e1c2]
+
+New in 2021.06:
+
+  + Additions:
+    + Support generics with consumption and inheritance in roles [4b996568][6e1cfe4c]
+    + Introduce `done foo` syntax as a shortcut for `emit foo; done` [452e92ed]
+    + Implement `pick` method on `Any` taking HyperWhatever as an argument (`.pick(**)`),
+      which  produce all values of Foo.pick(*), and then produce all values
+      of Foo.pick(*) again, and again, ad infinitum [cd4a72b6]
+    + Add a `repl` sub to enter the REPL from within a program [4183cdaf]
+    + Add `Buf` and `Blob` coercers to `Blob` and `Buf` roles [f83e5511]
+  + Changes:
+    + No longer use Unicode in REPL on Windows [5e1c97ba]
+  + Efficiency:
+    + Tweak worker addition for many small tasks [39e5834d]
+    + Make `.grep(Regex)` and `.first(Regex)` about 40% faster [0de28ae7]
+    + Speed up setup of NativeCall subs and reduce memory usage [3b7fef2e]
+    + Micro-optimize `levenshtein` sub used to suggest alternatives in error messages [da0f561c]
+  + Fixes:
+    + Improve stability on Windows by trying to rename precomp files multiple times [a9510b8d][7dfed29c]
+    + Fix bogus "emit without supply or react" error when using `hyper` to process arrays [4953a299]
+    + Fix some edge cases with `(+)`, `(.)`, `(&)` and `(|)` set operators [89fd8a8d]
+    + Make signature destructuring with a `Junction` an error [15d372e2][57070f05]
+    + Make `Mu eqv Mu` work [750c5d04]
+    + Fix possible error when throwing an exception on JVM backend [9743035f]
+  + Internals:
+    + Provide support for `CORE::` namespace for the core itself [ea92934c][3fcf6f75][b03afef5]
+    + Remove a special case for native arrays on JVM [28ff12a8]
+    + Simplify `Iterable eqv Iterable` implementation [168da39a]
+    + Abstract single elem path of `[]` into `Rakudo::Internals` [db074a8b]
+
+New in 2021.05:
+
+  + Additions:
+    + Add support for `∊` and `∍` as aliases for `∈` and `∋` [d00c7e35]
+  + Changes:
+    + Make `lc`, `uc`, `tc`, `tclc`, `fc`, `flip` methods on `Allomorph` return `Str` instance
+      to make it consistent on subclassing [bb069a99]
+  + Efficiency:
+    + Make infix `(elem)` operator about 30x as fast on native arrays [e6a7bfe7]
+    + Make `DateTime.posix` about 12x as fast [17c55f3c,ec8b1ae7]
+  + Fixes:
+    + Fix `$*EXECUTABLE` with non `_m` suffix executables and on Windows with `raku`, `raku-debug`, `rakuw` [b13542e8,a37f9790]
+    + Fix copying of empty shaped array [0bf10e26,ede453e1]
+    + Fix `substr_rw` method on `Allomorph` [1d8d05f5]
+    + Improve error messages text [5c78fb7a,5331a1d8]
+  + Internals:
+    + Replace use of `P6EX` hllsym with `Metamodel::Configuration.throw_or_die` method [ca2753b7,a524c3de,8427afe9,2c4a0062]
+    + Remove special cases for hash constants for JVM [4dab8405]
+    + Move opening of standard handles into `Rakudo::Internals` [b1e4350f]
+    + Fix a test for reproducible builds [21a60e17]
+    + Use "#!/usr/bin/env rakudo" instead of `perl6` in module scripts [adc89e2a]
+    + Add tests for REPL correctly handling junctions and incomplete regexes [45e8e8d9,cbf12d22,21100c91]
+
+New in 2021.04:
+
+  + Additions:
+    + Make methods `keys`, `values`, `kv`, `pairs`, `antipairs`, `invert` work on `Enum`
+      [3a112938][615030d2][b1556cba]
+    + Make `uniname` method work on all `Cool` values such as `Num` or `Match` [31331a28]
+    + Add the `user` and `group` methods to `IO::Path` [2fa6413b]
+    + Add new methods `day-fraction`, `modified-julian-date` and `julian-date` to `DateTime`
+      [6841ed5e][457925e9][39260262][2689eac1]
+    + Allow `uniparse` to be called on `Cool` [075d6921]
+    + Add warnings on improper use of `contains` and `index` methods [39a3862b]
+  + Deprecations:
+    + Deprecate `Cool.path` method, use `Cool.IO` instead [c715b5cb]
+    + The NQP operators `time_i` and `time_n` were deprecated in favor of `time` which
+      returns integer nanoseconds since the epoch [b6448c7e][acaef290][c1f341cc]
+  + Build System:
+    * Properly handle signals (e.g. out of memory) during build phase
+      and provide a more informative output [03854ed7]
+  + Changes:
+    + Rename `deterministic` method on `Iterator` introduced in 2020.12 into
+     `is-deterministic` [596ccef3]
+    + Calling `ord` method on `Str:U` now throws an exception
+      instead of silently returning `Nil` [92dc60b7]
+    + The subroutine `subtest` from the `Test` module now outputs a test header
+      as a comment `Subtest` with an optional description provided [a7c57a01]
+    + Make `Int.chr` and `Int.unival` handling of negative values consistent [627cc406]
+  + Efficiency:
+    * Make `now` about 38x as fast [06658515]
+    + Make `Str.wordcase` about 5x as fast [5d058ea8]
+    + Make `Str.uniparse` about 10% faster [9cc65028]
+    + Make the `lines` and `words` subroutines up to 20x as fast [b954ef94]
+    + Make `my %h is QuantHash = ...`  about 5x as fast [ec73d6c9]
+    + Make `Int.unival` and `Str.unival` faster [fb19daa7][bcfa5489][504c89a9]
+    + Make `Str.ords` up to 2x as fast [74e449ec]
+    + Make `List.sum` faster [18c4c5d4][8f4db8b6]
+    + Make `Any.sum` about 40% faster and check for laziness [07aa4aea]
+    + Make `chrs` method faster for native int arrays [f75957dd]
+    + Make `uninames` method about 2x as fast [d14dda68]
+    + Make `Str.univals` about 50% faster [88921320]
+    + Make `Datish.daycount` calculation about 30% faster [c07639e6]
+    + Make `uniprop` method about 30x as fast [c9aceda4][54c95ebe][885d6390]
+    + Make `uniprops` method about 4x as fast [97b2b3f0]
+    + Make `Baggy.AT-KEY` about 60% faster [74af72de]
+    + Optimize various cases of iteration when `Iterator` produces no values [0bbeb2de]
+    + Micro-optimization of a for loop construct [23036f1d]
+    + Micro-optimization of startup [9ec3a128]
+  + Fixes:
+    + Fix a regression in command line arguments parser introduced
+      in the 2021.03 release, where certain complex default arguments
+      would throw errors when used in a pre-compiled module [10c3dbb9]
+    + Fix compilation failure with `EVAL` in precompiled module's mainline [c05b23f1]
+    + Make backtraces consistent on all back-ends [2e79780e][0b91b21a]
+    + Fix and edge case of sub-signature handling, making `say :([]) eqv :(@);`
+      properly result in `False` [41fd1d9f]
+    + Make signal handler setup synchronous to avoid race conditions [2d1f4904]
+    + Fix race condition in `ThreadPoolScheduler` [98839c80]
+    + [JVM] Properly show name of a subset in the error message
+      of `X::TypeCheck::Binding::Parameter` [b4367a8f]
+    + [JVM] Fix `Bag` objects behavior regression [dc50951e]
+    + [JVM] Fix a miscompilation of native arrays [e774e194]
+    + Fix a potential issue on subclassing from NQP classes or consuming NQP roles [5959a21c]
+    + Fix a potential issue during inlining [c0d7464a]
+    + Fix `Int.uniname` to handle big negative and big positive integers [af6662a3]
+    + Fix handling of holes in `raku` method for native str arrays [2d1510a9]
+    + Fix resource leak when iterating files using `dir` method on `IO::Path` [62c976a4]
+    + Fix an exception when `grab` was called on an empty `SetHash` that had contained entries before [e9e3b5fb]
+    + Fix `DateTime` equivalence check with `eqv` relying on `raku` representation [01a0c934]
+    + Fix methods `substr`, `substr-rw`, `chop`, `chomp`, `pred`, succ`, `comb`,
+     `lines`, `words`, `wordcase`, `trans`, `indent`, `uc`, `lc`, `tc`, `fc`,
+     `tclc`, `flip`, `split, `trim`, `trim-leading`, `trim-trailing`,
+      `samemark`, `samespace`, `samecase`, `subst`, `subst-mutate`
+      when called on a `Str` subclass
+      [da34b40a][f4bfeea6][813d4f1a][a26ff404][b4813bbd][3e43a729]
+      [a4a915ec][995d39c0][5ca26c2a][e2ec1607][c5057e86][1819caa1]
+      [ffcda845][fd037828][9398ae68]
+    + Make sure methods `comb`, `chop`, `chomp`, `substr`, `substr-rw`
+      called on a `Allomorph` return Str [7a77b397][ba814fde]
+    + Make sure `trim`, `trim-leading`, `trim-trailing`, `split`,
+     `samecase`, `samemark`, `samespace` methods handle `Allomorph` values
+      correctly [9a9a59c9][a2399ce9][7e87e20c][fb6441bc]
+  + Internal:
+    * Disable superseded CIs: Travis, AppVeyor and CircleCI [d272f4fd]
+    + Remove two five-year-old compatibility wrappers [1e94845b]
+    + Relax lots of Cool subs access checks [c993e33b]
+    + Allow for experimental features in the setting [cae44e51]
+    + Split history `src/core.c/Cool.pm6` to `src/core.c/unicodey.pm6`
+      [0156f521][2d615fcc][4a9098ae][082800c4]
+    + Re-organize Unicode related files [2d5e81b1][9f73552a][009d90b8][069c0b20]
+      [9d7279d5][2251b70c][dc74f081][496f986e][b88e1ca3][f2f1cda6][dcf1c506]
+      [5fd7d068][ee3fa379]
+    + Introduce a new private method `!lazy` on `List` [d99bd6b8]
+    + Introduce `throw-iterator-cannot-be-lazy` and `fail-iterator-cannot-be-lazy`
+      internal helper methods [8e56c8c8][6e5d742e][e592277f][d3c4ff30][057620c9]
+      [2cd963de][ec3c7bba][190dc553][28b2a953][3c178036][b1880263][b7b6230d]
+      [db778174][fe133c2b][9d1b4821][71960b16]
+    + Introduce `throw-iterator-cannot-be-empty` and `fail-iterator-cannot-be-empty`
+      internal helper methods [ac9f40d8]
+    + Abstract `unival` logic into separate class [504c89a9]
+    + Abstract `ords` logic into `Rakudo::Unicodey` [817d1130]
+    + Use a better approach to finding leap second days [5070ae3f]
+    + Make `CLIENT::` work for code invoked from NQP world [73638877][a6639356][f0a36d89]
+    + Re-organize `Nil` implementation code [5c6a80c2][32110eed][47a12a5e]
+    + Make `Cool` methods consistently use `.Str` coercion rather than a mix
+      with `Stringy` [a68d2579][8cad7d79]
+    + Various internal fixes and improvements, most notably making various
+      subroutines multi for the consistency
+      [f0a345df][2a972b24][6d03c78b][8668474d][e191266f][b0910d5b][bc8a0997]
+      [7dd80bb4][b988e763][30263075][e1c2d792][84eac183][e6823863][85e7e63d]
+      [bd900c9d][df324f1b][d9fcb759][da80b57c][57ffaf96][ad81b980][1c4577ae]
+
+New in 2021.03:
+
+  + Additions:
+    + Implement space-delimited command line interface arguments [54b6ff30][244abf6e][67143a6d]
+    + Add a predicated wait for `Lock::ConditionVariable` [b4980a1c][30e07901][94c562c4]
+    + The `Pod::To::Text` module's output supports rendering of multi-level lists now [76dab72f]
+  + Removals:
+    + Remove `utf32` from encodings lists for MoarVM, it was never supported before
+      and attempts to use it gave a confusing error message [9c603460]
+  + Build System:
+    + Avoid Azure CI failures on re-builds [58930cfb]
+    + Fix `ln -nfs` on AIX platform [91ce9a29]
+  + Changes:
+    + Make `printf` directive error more descriptive [171d3c46]
+  + Efficiency:
+    + Make sorting and related infix operators about 2x as fast [70a8e366][d61d9836][b2ae599a][0ad991e4][599b6ea5][afab11e6][9ad47170][7f2dba7a]
+    + Optimize coercive parameter typechecking [734e7f48][20e6f50e]
+    + Make `>>.` construct faster [412d7706][3d2940af]
+    + Make `BagHash.add` a few percent faster [7c0a556e]
+    + Make `xx` on a constant value about 5% faster [bf67b1f7]
+  + Fixes:
+    + Fix single item assignment at `List` creation (`my @l is List = 'foo'` now produces a correct result) [d40c8cd1]
+    + `Kernel.signals` no longer returns unwanted extraneous data [d3aab833]
+    + Fixed `.of` method on type objects [ee5244b2]
+    + Set up proper precedence info for a number of infix operators [ceac5217][affdd058]
+    + Fix hypering on `Map` [b21bb5ab]
+    + Fix hypering when using `next` [d18653c4]
+    + Fix containerization on hypering [722c2c97]
+    + Tweak some tests to work on JVM backend [08345f1d]
+    + Various internal documentation updates / fixes [7f0ababc][6c1b02ec][9b071642][0e957a66][9b22e51b][09d27c32]
+  + Internal:
+    + Update broken links to IRC logs [f395cc52]
+
+New in 2021.02.1:
+
+  + Fixes:
+    + Fix a regression of the 2021.02 release where a lazy iterable usage could suddenly
+      lead to a hang [5eeddd37][6d164158][7d6e4322]
+    + Fix calling `list` and `iterator` methods on `Map` and `Array` type objects [6b83135a]
+    + Fix a minor memory leak in Rakudo runner [18735ae9]
+  + Internal:
+    + Remove newly introduced, but unreliable inlining tests [a5ca53a8]
+
+New in 2021.02:
+
+  + Additions:
+    + Add support of the `is implementation-detail` trait
+      for classes and roles [4384fc5c]
+    + Introduce support for passing multiple time units
+      to `earlier` and `later` methods on `Dateish` [8a1f8f6f][10dea6ef]
+    + Add "Solaris" option to the list returned by `KERNELnames`
+      method on `$*RAKU` [f918f0fd]
+    + Introduce the `slice` method on `Seq` accepting indices
+      (e.g. `@a.Seq.slice(0, 2 ... *)`) [63be83d3]
+    + Implement `Map` method on `QuantHash` [110343d2]
+  + Changes:
+    + Add a way to set `arg0` (when specified, passed as first argument
+      to the process instead of the program name) for `Proc` objects [ce124551]
+    + Return to REPL implementation prior to 2020.12 release [d53a9273][39103199]
+    + Move to CentOS 7 in binary release GNU/Linux build [38e69d87]
+    + Provide single argument semantics for assigning
+      a `QuantHash` to an `Array` object [6cd50ab2]
+    + Conversion of a `Str` object to Enum now returns a
+      `Failure` object wrapping an `X::Enum::NoValue` instead
+      of returning the enum's type object
+      [e3a0c32d][28b95813][184079c9][5bc394f6][bcb9a2c9][e44b524e]
+    + Module installing at sorting now prefers API sorting over version sorting [43613ac5]
+    + Implement the `item` method for `QuantHash` and `Capture` types [8f6c7fe7]
+    + Throw a proper NYI error on attempt to parametrize a Hash with native types [5aec4aaa]
+  + Efficiency:
+    + Makes `DateTime.new(y,m,d,h,m,s)` about 25% faster [0c8d238a]
+    + Make `>>.` faster [8c3795e0]
+    + Make the `truncated-to` method implementation for `DateTime` and `Date`
+      a lot faster [e6c0b5e9][c9ac5d90]
+    + Improve startup time
+      [39d3f136][f993b345][43ccad29][82314883][7be4f5ef][d53d0308]
+    + Make `Array.ASSIGN-POS` about 15% faster [f623f1b6]
+    + Make `Hash` slice assignment about 2x as fast
+      [75c58168][09552ab5][281d9f3c]
+    + Make array slices on a `Hash` about 40% faster [c039b28f]
+    + Re-imagine array slicing, fixing issues, between 2x and 10x faster [ca7bc91e]
+    + Makes slice assignment on a native array from an `Iterable`
+      about 15x as fast [4d40e23e]
+    + Optimize (AT|ASSIGN|BIND|EXISTS|DELETE)-POS methods [4c91d743]
+    + Speedup the basic @a[*] (Whatever slice) [9ad80af2]
+  + Fixes:
+    + Fix segfault caused by repossession of native call site [8c63c54c]
+    + Make sure that calling `new` on a shaped array works correctly [623d4c12]
+    + Fix deleting colonpair with R-metaop in value by the Optimizer [18ae0df3]
+    + Improve error message on operation on closed handle [3865f1ca]
+    + Provide a more accurate implementation of `**` infix operator on `Complex` [12b49b83]
+    + Make sure that `.of` method of various types works on type objects [790240f6]
+    + Fix potential deadlock on specialization of roles [65a5cce1]
+    + Fix native `@a[*-4 .. *..2]` (Callable candidates of subscription taking
+      more than a single argument, and the ones returning something else than an Int) [8150a286]
+    + Throw on non-Int result in `Iterable` index on native array [8a3e983c]
+    + Throw on non-Int result in `Iterable` index on native array assignment [5eb55076]
+    + Fixes for building and testing on Solaris platform [ac10a7a8]
+    + Fix problem in `Compiler.verbose-config` [ed6e2c8b]
+    + Fix an obscure error in `&Perl6::Actions::lower_signature` [bef6b4f6]
+    + Fix calling programs with spaces in their path on Windows [570372f1][c3d3027d]
+    + Fix passing tests for `X::Adverb` on JVM backend [e6f49356]
+  + Internal:
+    + No longer use Travis for CI [53da2061]
+    + Add `MoarVM::SIL` helper module for developers to have better
+      interface to spesh results [7f90c71c][c8647ad4][b01320ad]
+      [1a03ce06][6793c551][842bbae3][842bbae3][1b45d0ad][7e970626]
+      [98b91f43][dfd604d8][1fb8caf3][3235f3e4]
+    + Resurrect `make test` on the JVM backend
+      [bad3621c][5dfdd35c][0b4332dd][3f1607f8]
+    + Make `Rakudo:Internals` method `SHORT-STRING` handle null str correctly [f2e324d5]
+    + Introduce `Rakudo::Internals.TARGET`, `Rakudo::Internals.E`,
+      `Rakudo::Internals.RERUN-WITH` methods [025448a6][467a931d][116c8e8e][164815f6]
+    + Implement the `repo-chain` method on `$*REPO` iteratively,
+      rather than recursively [50d1d86c]
+    + Make `RAKUDO_SCHEDULER_DEBUG_STATUS` logging leaner [aa9e849a]
+    + Remove a now unneeded `unimatch` method multi [6306f1e0]
+    + Improve the internal subroutine `proclaim` of `Test` module
+      [5133103d][297cba1a][446caae3]
+    + Implement `sec`, `asec` and `sech` in terms of other NQP trigonometric functions [c9d69dc6]
+    + Add support for native BOOT arrays for the `dd` routine [4e645ee5]
+    + Fix individual running of some test files [74e5212f]
+    + Add tests for inlining
+      [1fb058e6][87d7c5a3][5a402a14][d94d07e6][0536d039][a3c7d00d][9c7b5561]
+    + Various cleanup and micro-optimization changes
+      [336a2170][e14833bd][3c79db6c][e5f94a15][620fa7ad][fa648a59]
+
+New in 2020.12:
+
+  + Removals:
+    + Deprecated method candidates (`subbuf(Any:U)` on `Buf`, `chdir(Str(), :$!test)` on `IO::Path`)
+     and `indir(IO() $path, &what, :$test!)` subroutine candidate that were
+     throwing an exception instead of a deprecation warning for a long time
+     were removed from CORE [9040318c]
+  + Additions:
+    + Add new method `deterministic` to `Iterator` role [87fc041f][b83b1b34][b63c0e02][c37a88e8][96285afb]
+    + Introduce `%*SUB-MAIN-OPTS<coerce-allomorphs-to>` setting [bd5eba4b][49eecd68]
+    + Add a new candidate to `spurt` routine and method.
+     It does not have an argument taking content to write,
+     making it similar to the `touch` utility [f2ea0a65]
+    + Add `:emit-on-empty` and `:emit-once-on-empty` methods to `Supply.batch` method [cb8eb68a]
+    + Add `:emit-timed` to `Supply.batch` method [492651ea]
+    + Make `is DEPRECATED` trait introspectable on `Routine` instances [0d1c8a8e]
+  + Changes:
+    + Improve output of `Attribute` documentation when rendered with `Pod::To::Text` [a0a8a515]
+    + Increase sensitivity of `Supply.batch(:seconds)` x 1000 [aecfc9b3]
+    + The `cas` subroutine now accepts `Mu` as both its target and values [998cae57]
+    + Defined `List` instances no longer return `True` when calling `ACCEPT`
+      with an undefined `List` (i.e. `List ~~ ()` returns False now) [9fd79f9e]
+    + Mark the base native `array` class as `Positional` [d1d2546e]
+  + Efficiency:
+    + Implement metamodel transparency of nominalizables and fix handling of
+      definite parameters, gaining back some performance loss introduced with
+      the new coercion protocol in previous release
+      [d37906d0][ed16d6c1][b5465b17][e4816198]
+    + Fix a shaped array performance problem [f27e212b]
+    + Make execution of some kinds of `when` faster [c080e594][0006475a][b3a25580]
+    + Make `cas` subroutine about 10% faster [484f870c]
+    + Make `@a[*-1]` candidates about 60% faster [2d5d3bf4]
+    + Optimize some array operators [4ac0f737]
+    + Make array access `[$i]` with `$i` being a native int about 2x as fast [7c0956b8]
+    + Improve the performance of signature binding [b1f59a2f]
+    + Speed up various aspects of native 1-dim shaped arrays and
+      native arrays in general
+      [42fceb08][2c5b5457][3def3ced][705e6e62][a76e2b6e][60fa48ec]
+      [6792cc42][bd944e7c][2274aa85][392d8be2][1c43c46e]
+  + Fixes:
+    + Fix number of issues with REPL execution. e.g. it "forgetting" previous
+      multi sub declarations, calling `WHAT` on native type
+      [7c0a81f5][eae309a4][e46a1da2][f2851b90][e8ab5272][0d6278f3]
+      [6f7718ce][be455078]
+    + Fix roles not being auto-punned for `postcifcumfix:<( )>`, by
+      implementing an invocation protocol for roles [79d2aeab]
+      [5a22a7c5][77a7bd27][17223fc4][4009f401][538ad1b7][9f98595c]
+    + Fix concurrency issue in compilations with heredocs [147bae3b]
+    + Fix subsets of coercions [af43ef62]
+    + Fix an issue with `splitdir` method of `IO::Spec::Unix`
+      leading to action at a distance bugs [3d463419][f154244c]
+    + Fix argument of a coercion type not having a workable default value
+      [44cc88b5][856dfb2d]
+    + Fix error reporting for slurpy named parameters with type constraints [e1f09cfa]
+    + Fix behavior of postcircumfix `[ ]` called with Iterable on
+      native array [4304e250]
+    + Disallow calling  of postcircumfix `[ ]` with type objects [6c7044ec]
+    + Fix a bug in set symmetric difference logic [7b6de5c5]
+    + Make `Num` coercer demand definite invocant [a75b3fa8]
+    + Add missing handling of adverbs `:kv`, `:p`, `:k`, `:v` for
+      1-dim shaped native arrays, also support many adverbs at once
+      (e.g. `:exists:(kv|p)` [0f4970da][02e48d81]
+    + Give stub packages created by package_at_key a proper longname [aab4f55a]
+    + Fix `raku` method called on `CompUnit::Repository::Distribution` instance [7d0813c3]
+    + Fix proper reporting of the `X::Parameter::RW` exception message [17320542]
+    + Fix `RAKUDO_MODULE_DEBUG` output when the message contains meta characters [b58510ff]
+    + The `Test` module now correctly handles `RAKU_TEST_TIMES` environment variable,
+      previously called `PERL6_TEST_TIMES` [d84ed4e9]
+  + Internal:
+    + Remove deprecated functionality to core epilogue [7406f8c6]
+    + Introduce `Rakudo::Iterator.TailWith` [f6c7ddb2][9dbb52f9]
+    + Add `sink-all` method to a number of PredictiveIterators [cf0f2f2e]
+    + Make `Iterator.sink-all` default to using `skip-one` [f0ebdd09]
+    + Add `raku` method to `Rakudo::Internals::IterationSet` for easier debugging [0d301fab]
+    + Remove all easily removable `nqp::stmts` from Rakudo code [f2f2cf82]
+    + Another round of nqp::if -> ternaries [aba90b01]
+    + Fix unwanted references to other compilations by CompilerServices [d0de7664]
+    + Type IO::Socket::INET family/type/protocol values [534cc543]
+    + Add missing debug type names for easier debugging [a68b8ab4]
+    + Move "is test-assertion" to candidates [15ec4fe6]
+    + Adapt filenames in binary release scripts [3748884d]
+    + Various cleanup and micro-optimization changes [1801a5aa]
+      [eabdee48][45246aef][6852f40d][dce6804c][c663cc33][1712f03b]
+      [b525c4df][6ee47f03][912381b7][2ce5260e][80f92836][161325e0]
+      [65f24a8d][c02c9cdb][46e9468f][82d31e0d][137d49b0][53ad24af]
+      [1331ffdd][c4c4ba98]
+
+New in 2020.11:
+
+  + Additions:
+    + Introduce new coertion semantics. It includes coercions being first-class
+      type objects, a parameter being marked as `coercive` if its type is a coerce,
+      coercions redelegating method calls to their target type, coercions type checking
+      being more correct. Coercions are now nominalizable, they nominalize into
+      the target type. Aside from those changes, coercion protocol is introduced.
+      If `coerce` method of `Metamodel::CoercionHOW` is used for `Foo(Bar)`,
+      then the following methods are tried in the order of mentioning:
+      - the current standard of `Bar.Foo`
+      - `Bar.COERCE-INTO(Foo)`
+      - `Foo.COERCE-FROM(Bar)`
+      Also, nested coercions are supported now.
+      User code that depends heavily on compiler internals in this area can become incompatible,
+      so upgrade with caution if there is any of such sort.
+      [f2d73287][2675813f][81f3334a][27fb3ec0][39614955][841529a9][ea2fdd2f]
+      [3a7ae220][ebef668e][178c8535][dcfcda64][7429bfe3][32a8024b][42a0d131]
+      [0dc9664d][f4f5d2c1][e890ddf9][9725c2e9][58576c24][0edb1fcb][1dd99ef1]
+      [72984bfa][4efcdba2][43a81a2c][8a1ba7fd][cad80873][9f625326][34bc0b91]
+      [a3ed0204][b4525665][6dbce0ac][824c5adc][c015759b][efd8078f][2fb0f9fb]
+    + Implement the `prefix:<||>` operator in postcircumfixes for `6.e` and later,
+      originally described in Synopsis 09 [e6787d77][48b1b20f][7a2264b4][35213f66]
+    + Give `dd` (an internal Rakudo-specific routine for debugging purposes)
+      support for `BOOTThread` objects [59d140bf]
+    + Add a flag to `symlink` allowing creation of relative symlinks [089bd590]
+    + Implement binding of array-slices (e.g. `@A[1,2,3] := <a b c>`) [051e0361]
+    + Implement binding of hash-slices (e.g. `%h<a b c> := 1,2,3`) [87ef76ae]
+    + Give `raku -v` a pure ASCII version [329e47f4]
+    + Introduce `is test-assertion` trait for routines, improving behaving of
+      test assertions written by the user [585db59c][86a208e2][2436532f]
+    + Make Whatever slice work on 1-dim native shaped arrays [1cb2df80]
+    + Handle `:exists` and `:delete` on 1-dim native shaped arrays with int index [db3ca28e]
+    + Add Windows specific build instructions [07c95131][5b282cfc]
+  + Changes:
+    + Unicode support is updated to match with 13.0, 13.1 versions [bd803d5e][68196c99]
+    + Do not allow `infix:<does>` on Int or Str, print an error message saying
+      `but` should be used [2f3de2fa]
+    + `Datetime.local` now defaults to `$*TZ` [9443fba8]
+    + Values passed to sub form of `push` and `unshift` are not longer flattened [e78c53ba]
+  + Efficiency:
+    + Create common Version objects at setting compile time [18882bf6][7f9f9e96]
+    + Make `Str.raku` about 35% faster [97d473b9][5cbe14e8]
+    + Make `DateTime.now` 60% faster [53b558fe][fd5950f1]
+    + Simplify native shaped array `.shape` method [424ce71a]
+    + Constantize empty list / hash in `Match` [0447b15e]
+    + Constantize encoding and clean parts lookup [8af0c463]
+    + Simplify Hash parameterization [1321a853]
+    + Streamline handling of bind/delete on native arrays [adeff7de]
+    + Make simple native shaped array access about 5x as fast [3e6e15e6][75574bea][f6cdbd81]
+  + Fixes:
+    + Fix building on Windows with MinGW [200821cd]
+    + Fix a rare issue with precompilation [dd0a2a15]
+    + Improvements of `postcircumfix[;]` in 6.e language version [39c51595][03e1ba72][316902dd]
+    + Make auto-generated mixin role be of language revision `c`.
+      This fixes `$a but $b` under `use v6.e` pragma [6b87d3e5]
+    + Don't inherit mixin class language revision. This allows mixin of custom roles
+      under `v6.e.PREVIEW` pragma [2991016a]
+    + Fix some issues with `$*TZ` and long-running processes [613da571][78935ebd]
+    + Make MacOS nick lookup hash a constant, also improving build reproducibility
+      on MacOS [78f16451][2ad244b1]
+    + Add support for MacOS 11.0 nick [ccc50f7a]
+    + Use alternate test for DST change [89211e2e][ede52fb0]
+    + Make sure match processing can handle `$/` being a `Junction` [5b369181]
+    + Fix for `isa-ok` to handle test subjects not inheriting from `Mu`
+      (e.g. `isa-ok Any.HOW, Metamodel::ClassHOW`) [dbf53c05]
+    + Fix `IO::Path.absolute(IO::Path)` breakage on Windows [08f5d028]
+    + Fix regression in list handling of `take` / `take-rw` introduced back in 2020.01 release [3e10cc6f]
+    + Provide more improvements to language revision support and provide a better fix for mixins
+      [7de2b15b][9075c766][b21dd027][38bb2441][74faa0a2]
+  + Internal:
+    + Replace all simple `nqp::if(42,foo,bar)` with ternaries [b1912d9f]
+    + Strip excessive escaping in an internal script [857fbfd5]
+    + Update `docs/running.pod` [39eedacf]
+    + Make `sigils2bit` mapper a setting compiler time thing [a541aed8][0a4eaf31]
+    + Expose the `Array::Shaped` role, `Array::Shaped1|2|3` roles [ee089234][532b5423][cb95c653][e45bcd53][e45bcd53]
+    + Expose `Hash::Object` and `Hash::Typed` roles [1a6cf787]
+    + Make unicode property tests deterministic [151fd310]
+    + Pseudostash code doesn't need a sub [7b2d9af7]
+    + Refactor `Array::set-shape` a bit [18af3f44][417ad76c]
+    + Better check for subness of `MAIN` [e3352cdd]
+    + Don't use "perl" in identifiers unless needed [fa2013db]
+    + Prevent a compiler warning about an invalid cast [f0808da6]
+    + Make setting array shapes more alike [e612214c]
+
+New in 2020.10:
+
+  + Additions:
+    + Implement `MAIN` parameter bundling via the `%*SUB-MAIN-OPTS<bundling>`
+      option [75f92d2b][04164a0f]
+    + Generate a `rakuw.exe` executable on Windows which will not spawn
+      a console window (in contrast to the `raku.exe` executable) [0ea6902d][708d0ca6]
+    + Add 𝐑𝐚𝐤𝐮𝐝𝐨™ and 𝐑𝐚𝐤𝐮™ welcome message [80a4ada6][4e9178f8][bae905ef]
+  + Changes:
+    + Add a new implementation for multi-level Hash slicing,
+      not backward-compatible with `6.c` version and to be enabled since `6.e`
+       [551b577d][f106c231][6986ea1d][8a2d9a61][1c08e66b][1c08e66b]
+       [d08247db][94d89686][18f3808e][4b278bcb][f9b3f925][b1ec2489]
+       [d6e94aed][564faa64][93503c24][b60772fa][198f6030][ff2f2b0c]
+       [420cb1f4][c701a482][1971ba46][964f6e48][3ca1fede][54eb4314]
+       [d713e451]
+    + `False.truncate` returns `False` instead of 0 now [7192a99e]
+    + Make "is rw" on parameters of MAIN worry [d0854ffc]
+    + Change `IterationBuffer.raku` output.
+      Note that IterationBuffer.raku is a debugging tool: it does
+      *not* roundtrip, nor is it the intent that it ever will. [33bb6504]
+  + Efficiency:
+    + Adapt to simplified `nqp::isprime_I` [80bf1db1]
+    + Make `%a{a;b}` about 30% faster [a5774094]
+    + Further simplify `%h{a;b;c}` candidate [e435a087]
+    + Make `Hash.DELETE-KEY` on a non-existing key 40% faster
+      [3131ce25][fcabad44]
+    + Make making a `Uni` between 1.5x and 22x as fast [2999be32]
+    + Make `.grep/.first` on native arrays about 3.5x as fast
+      [240bc9eb][cf239477]
+    + Make `.unique/.repeated/.squish` on native arrays faster [c37ffe71]
+  + Fixes:
+    + Fix stub packages in multi part declarations only knowing
+      part of their name [51db5341]
+    + Build System: Add a check to prevent building a Rakudo with a
+      stale NQP version [4dbdcb8d][d8db03b5]
+    + Make BUILD(ALL)PLAN output a bit clearer [a26beb66]
+    + Make `$*USER` and `$*GROUP` return correct values on some non-English
+      locales [6a89d716]
+    + Fix possible race in multi-threaded precompilation [12946210]
+    + Produce a better error message for `my &MAIN = { }` [e0e24a8d]
+    + Fix issue with Z / X used with set operators [338c7439]
+    + Produce a better error message for incorrect code `infix:(&)` [4af961ed]
+    + Fix NativeCall/C++ to allow double instantiation [ecaf334c][f3ffb702]
+    + An attempt to copy a directory to a file does not remove the file
+      anymore [41a76cad]
+    + Fix a problem with multi submethods been treated as method [7cfca098]
+  + Internal:
+    + More fixes to the binary release scripts [bd029ae4][99acfa9c]
+    + Move `Int` candidates from Numeric.pm6 to Int.pm6 [bf799bae]
+    + Add `.gitattributes` file and specify file extensions [42e0434d]
+
+New in 2020.09:
+  + Additions:
+    + Introducing the `Allomorph` class
+      [716cacdc][4872c3f0][39bc2bdf][1b16da19][3cd51ae4]
+    + Add `cmp` candidates for `Code` [4a34b266]
+    + Add CAVEATS.md file [df68eb29][7e11234e][a1c7497f]
+  + Build System:
+    + Fix relocatable build-time NQP-home [eab3e1cb][5a40482d][077f8f97]
+    + Fix `RUN_RAKUDO` to use the dummy Rakudo home [a56ce834]
+    + Make `Perl6::SysConfig` depend on NQPs `HLL::SysConfig` [64eb6fcb]
+  + Changes:
+    + Method names that differ only in capitalization are now suggested
+      when the method is not found
+      [b7ff282f][30c4b6e5][bb7c617a][b054f9f0][df5b3d53][3703469d][8c015584]
+    + Make `IO::Notification::Change` a value type [17f352f5][ad927871]
+  + Deprecations:
+    + The `parse-names` subroutine is now explicitly deprecated in 6.d
+      to be be removed in 6.e, use `uniparse` subroutine instead [eef7383e]
+  + Fixes:
+    + Give a hint about missing provides in a META6.json when module
+      is not found in CURFS [b2d625b9]
+    + Make `Blob.gist` work for all sizes of `Blob` [f98861ad]
+    + Prevent parser bug for multiple `[` in reduce metaop [86bac5ad]
+    + Make JVM honor `PERL6_HOME` env variable [038fbc44][c9901246]
+    + The `set`/`unset` methods on `SetHash` and the `add`/`remove` methods
+      on `BagHash` give proper error message when called on a type object [b0b4459c]
+    + Fix behavior of `Supply.head($n)` [46a72998]
+    + Improve wording on `X::MultipleTypeSmiley` error [a9371749]
+    + Fix long standing race condition in precompilation causing
+      spurious test failures [3780c1d4]
+    + Fix `--rakudo-home` Configure.pl parameter
+  + Internal:
+    + Start to use `nqp::execname` on the JVM backend [3ba803d2]
+    + Test the install instead of the build runners [f2bf446c]
+    + Add missing files to the `make clean` target for the JVM backend [58e729f6]
+    + Tweak release-related scripts [d6e27314][ccb41617][a0c12cdd]
+    + Remove use of deprecated `undefine` [e59262f6]
+  + Efficiency:
+    + Allow for more paralellism when precompiling modules, making
+      parallel compilation faster [961a6535][86425339][0500ed3a]
+    + Streamline `X::Multi::Ambiguous` listing [999680e6][b8121cec]
+
+New in 2020.08.2:
+  + Fixes:
+    + Fix output of `--show-config` option [1a1fe7fb][f00c4198]
+
+New in 2020.08.1:
+  + Changes:
+    + Fix compiler version [1336e5f3]
+    + Method `invoke` of `WalkList` returns a lazy `Seq` instance now [fe40ee1e]
+  + Internal:
+    + `Seq` class now has its own proto for `new` method [a19996db]
+
+New in 2020.08:
+  + Changes:
+    + Methods `name` and `usage-name` of `Parameter` now return an empty `Str`,
+      when there is no name, instead of `Nil`. Method `default` returns `Code` type object,
+      when no default was provided instead of `Any` type object [c11f4b18]
+    + Remove redundant `(())` from `Map.new.raku` [491e1def]
+    + Routine `done-testing` of `Test` module returns `Bool` now,
+      indicating if the tests passed or not [337848fe]
+  + Deprecations:
+    + Deprecate `--nqp-lib` command line option,
+      which had no effect for more than a year [9071653e]
+  + Fixes:
+    + Make `X::Method::NotFound` exception more user-friendly
+      [b36afcb3][760034ef][eb0ca2a3][66adb771][acc5e64d][4546a603]
+    + Fix false positive typechecking exceptions for some generic types
+      [3d5fba7b][973b83de][8d40691d][1db17c46][1eb712d5]
+    + Ensure `Routine` subtypes are composed before performing mixins with
+      their instances [7f2ae26c][e3c2646e]
+    + Fix mixing in a role with attributes into a NQP class [1b5f6b98][9e51d01b]
+    + Make exceptions thrown by supply iterators don't claim to have
+      originally been thrown within the iterator itself [fcfc60b6]
+    + Fix `Baggy.pickpairs` called with a `Callable` [08f81f24]
+    + Fix a rare, yet possible data race [9d6d8dd7]
+  + Additions:
+    + Add `set_parameterizer`, `parameterize_type`, `type_parameterized`,
+      `type_parameters` and `type_parameter_at` methods for `Metamodel::Primitives` [2ab94429]
+  + Internal:
+    + Type `Parameter` methods [c11f4b18]
+    + Fix release pipeline to not delete the GNU/Linux build [4ad4bd30]
+    + Make `Rakudo::Internals::JSON` up to 4.4x as fast [b60e1636][43bd739f]
+    + Do roast-related cleanup, add `quicktest` make target
+      [1e20dfca][6fd09811][333ce78c][dd8cd411]
+    + Rework `tools/update-passing-test-data.pl` to support backends [ea0c98cf]
+    + Make `main-version.nqp` a backend-specific configuration file [80b0747a]
+    + Add a `Perl6::SysConfig` class [ace5e22f]
+    + Simplify binary release instructions a little [27eb5ea9]
+    + Add tests to make sure profilers can be invoked [d7aa7e66]
+    + Remove an outdated workaround from `Cool` implementation [a3af5833]
+    + Fix incorrect method call [02a83442]
+
+New in 2020.07:
+  + Fixes:
+    + Improve "Method not found" error message for some rare cases [0a86798f]
+    + Fix calling `.say`/`.put`/`.note` methods on Match objects [9f546ef6]
+    + Add word wrapping to numerous error messages, improve wording
+      [eb589c03][1b84e036][3cb29a03][6db1fb1d][80aaede3][42031860][f70a3ccd]
+      [3ffed2fb][a7a1fe24][cd8846ad][83a126b3][3add8615][3d9a9fc4][697596fd]
+      [56e5f7dc][88b0e7a3][7a93c907][f550c9f9][a4b982cd][93963433][58685eeb]
+      [5f423a7e][92f8c19b][5627e02b][5b7ecdc0][a7455050][f96a641f][1f93724f]
+      [98c7e512][248664c6][3bc4fa90]
+    + Wordwrap `Mu.WHY` [16d24a21]
+    + Fix check for valid Raku module extension to be an exact match instead of suffix-like one [d4eef8d4]
+    + Fix result of `.raku` method called on a generic typed array [90f86d4c]
+  + Additions:
+    + Set equality operators: `(==)` Unicode `≡` and `≢` which allow to check
+      for sameness of the operands using QuantHash semantics
+      (for example, `1,2,3 (==) 3,1,2` returns `True`) [701f4cfb][dbd69ba7]
+    + Add support for Supply.tail(*) and .tail(Inf) [9ccfc90e]
+    + Add support for Supply.tail(*-3) [eaa72afa]
+    + Make `Supply.head(*-3)` consistent with `List.head(*-3)` [5c8c7324][70e5cfb9]
+    + Rakudo now supports the `--rakudo-home` command line option to specify the path of the Rakudo home [914bcbad]
+  + Efficiency:
+    + Make <a b c d>.permutations between 23 and 85x faster [682a4d4f]
+    + Make IO::Handle.read(1) about 3x as fast and consuming less memory [2946ed64][252b9349]
+  + Internal:
+    + Micro-optimize `buf8.new` creation code in compiler [ed936c14]
+    + Give `Supply.tail` its own candidate [1a91af8c]
+    + Add `Str.naive-word-wrapper` (implementation detail)
+      [056d6a4e][9ea66e13][6db1fb1d][45893495][821f582f][3674f812]
+    + Make `IO::Path` use its own `.succ` / `.pred` logic [305fc7bd]
+    + Remove placeholder files [07009cc0]
+    + Re-imagine `CompUnit::Repository::FileSystem!distribution` [f3b1c8df]
+    + Change `perl6` to `Raku` in nqp-configure submodule URL [ddebab5a]
+    + Refactor `Rakudo home` and `NQP home` handling [e4f020ca]
+    + Do core setting name mapping via compiler config [6e087e13]
+    + Fix for spectest not seeing Inline::Perl5 [d5630720]
+
+New in 2020.06:
+  + SPECIAL NOTES:
+    + Results of `dir` routine called with dirty base path are presented
+      as cleaned up for some paths (like `///` or `a/../a`) unlike
+      before. While compatibility with most of other cases is preserved
+      and no ecosystem fallout was observed, be cautious of the possible
+      observable changes if the code does not clean dirty paths using `cleanup` method.
+    + Since this release, when you start Raku with "-" as a single positional parameter, it
+      will now check if STDIN is connected to a terminal.  If it is, then
+      the REPL will be started, rather than appearing to freeze waiting
+      for the user to enter something and issue an EOF.  If STDIN is *not*
+      connected to a terminal, then Raku will read from STDIN and process
+      that as the source of a program.
+    + The `run` routine, `Proc.spawn` and `Proc::Async.new` are
+      extended with a new argument `:$win-verbatim-args` defaulting to
+      `False`. If the argument is left off or set to False, the
+      arguments are quoted according to the Microsoft convention. This
+      is identical to Rakus previous behavior and thus backwards
+      compatible. When passing True the passed arguments are
+      concatenated with a single space. No other processing takes
+      place. This allows to manually quote the arguments as necessary.
+  + Changes:
+    + Support verbatim argument handling for `Proc` [709941c6][9a75738f]
+    + Signatures of `slurp` and `spurt` routines not accepting redundant arguments is
+      now compile time error rather than run-time one [22f43444]
+    + The `Distro.desc` method now states codename for MacOS [b4b2a5ec]
+    + The `gist` method output for multi-dimensional arrays is truncated now [cfc3e57f][4bfe5bd5]
+    + Parametrization a variable type in form `my $foo is Type[Foo, Bar]` works for all types now [de43f193]
+    + The `rotate` method now returns `Seq` instead of `List` [4b501bd4]
+    + Add CACHEDIR.TAG to mark cache dirs as cache [37646b86][c3bdb617][ef90599e]
+    + Improve GNU C++ name mangling [4f672c27]
+    + Make `Instant.raku` output simpler [c0b5fb28]
+    + Improve smartmatching against `Mu`/`Any`/`Junction` types
+      (`Mu.new ~~ Mu` does not die anymore, `any(Mu, Any) ~~ Mu` returns `True` now) [3b4794f4][840d3e81]
+  + Fixes:
+    + Fix code objects created BEGIN time EVAL getting lost in precompilation [537f8877][169f63d9]
+    + The `is` routine from `Test` module now handles types that cannot be stringified and
+      compares them using `raku` method now [c9e94623]
+    + Fix various JVM and JS backend issues [8e5b610a][2b81f978]
+      [12f8f1eb][5b86436c][1464b35e][a059373e][9fe471cf]
+    + Fix BEGIN time `EVAL` accidentally running CHECK phasers of the outer comp unit [eeb4f43f][b874c68e]
+    + Fix results o `"١٢٣".Numeric` and `"١٢٣".Int` [c2e8b22f]
+    + Fix race in `PIO` method of `IO::Handle` [f33ce01c]
+    + Fix `Date(now)` call [9dcbc5ff]
+    + Fix `.comb(Str)` to ensure non-overlapping results [8d5a0f70]
+    + Fix `Instant.raku` for Rational values [f506cc03]
+    + Fix sorting of 2 element native arrays [becb85eb]
+    + Make sure `push-all` does not push when exhausted when splitting using a regex [077300c5]
+    + Improve error message for method calls placed after white space [4278e4c2]
+    + Improve `X::Syntax::Variable::MissingInitializer` exception's error message [ee005d8b]
+    + Improve `X::Method::NotFound` exception's error message to only suggest a submethod if correct [b02a7413]
+    + Improve `malformed loop spec` related errors [d3c3e534]
+    + Improve error message for case of too many directives in routine `sprintf` [c988f832]
+    + Improve detection of a version control conflict marker to provide an error message [65e412f7]
+  + Additions:
+    + Add `IO::Handle.do-not-close-automatically` method [61046d76][999d04aa]
+    + Add `IO::Path::Parts` class [4387f280][187312b8][e9ea048b][30ae200f]
+    + Add support for `printf($format, Junction)` [110324d3]
+    + Add `Supply.rotate` method [9f7c9278]
+    + Add `Capture.EXIST-POS` method [6a4f79ec][b55ecdf0][3372352e]
+    + Add `RAKU_REPL_OUTPUT_METHOD` environment variable which sets
+      the method used to stringify a value of an expression in REPL, default is `gist` [285717a0]
+    + Add `:chomp` named argument to `Str.lines` similar to the same named argument of `IO::Handle.new` [1bcc5d73]
+  + Efficiency:
+    + Make creation of regex captures faster [15961f91][272c4636]
+      [ed65d733][e3fa44ab][7f47db80][0b48651c][537a6e41][f627d2c8][6f6b2dfe][219199bb]
+    + Make file test methods like `.d` or `.x` faster [c821bbc5]
+    + Make `Match.caps` about 35% faster [87e91def]
+    + Make `Str.split(Regex)` up to 2x faster [9c74d983]
+    + Make `Str.split(Regex, *%_)` up to 2x faster [a9796fe5]
+    + Make `dir` routine about 15% faster [700b7432]
+    + Make `Blob.join` between 4% and 11% faster [84ff64cf]
+    + Make `Blob.gist` about 2x as fast [b55667ef]
+    + Make `QuantHash` implementation a bit faster  [4a728f2a]
+    + Make `IO::Spec::Win32.basename` about 1.7x as fast [ecd06c9f]
+    + Make `IO::Spec::Win32.tmpdir` about 1.8x as fast [6d427d47]
+    + Make `IO::Spec::Win32.path` about 2x as fast [1a8e07c2]
+    + Make `IO::Spec::Unix.path` about 3.5x as fast [8dc58abf]
+    + Make `IO::Spec::Unix.basename` and `IO::Spec::Unic.extension` about 1.7x as fast [f89fad87]
+    + Make `IO::Spec::Unix.tmpdir` about 1.8x as fast [a2860ead]
+    + Make `WhateverCode.ACCEPTS` about 2x as fast [853e6227]
+    + Make `IO::Path.sibling` about 2x as fast [a5eb1d4a]
+    + Make `IO::Path.succ` and `IO::Path.pred` about 3x as fast [26b9f388][7238b094]
+    + Make `IO::Path.parent` about 2.7x as fast [71cb0c56]
+    + Make `IO::Path.parent(N)` about 2x as fast [f93ce875]
+    + Make `IO::Path.child` about 1.4x as fast [f5b2c240]
+    + Make `IO::Path.add` about 1.25x as fast [718d305b]
+    + Make `IO::Path.dir` between 1.5x and 2.2x as fast [b63976a8]
+      [6b22c1eb][7691742a][9b9d9f64]
+    + Make `IO::Path.is-absolute` a bit faster [fc88b9c2][bd7fcb28]
+    + Make `IO::Path.spurt` up to 35% faster [7571f65a]
+    + Make `IO::Path.slurp` up to 4.7x as fast [d03fa4b0][cde948ae][36d89cf6]
+    + Make `slurp` routine up to 40% faster [f3baa389][fc3e1aea]
+    + Make `spurt` routine a few % faster [da5825e6]
+    + Make `Str.Numeric` about 4.3x as fast [a0e58412]
+    + Make `.IO` method and `IO::Path.new` about 2x as fast [2a88990b]
+    + Make `IO::Spec.curupdir` about 25% faster [6a0eaabd][16d93e26]
+    + Make `"42".Int` about 4.3x faster [3ee1777a]
+    + Reduce overhead of `Code.ACCEPTS(value)` by 20% [2eec62fe]
+    + Make `so` and `not` routines faster [d8c26500][8a3c36f8][5c93ddac][cb69cfce]
+    + Optimize symbol lookup [c5f5d7ee][dc6594d6][5d61b3d0]
+    + Prevent `$*OUT` lookup for each eigenstate of Junction when calling `print` or `put` [4297cb05]
+    + Make `printf` routine up to 5% faster [e46d4590]
+    + Streamline variable `is` and `of` handling [5561669b]
+    + Make `Hash.sort` a tiny bit faster [cd617248]
+    + Various small optimizations [a9074977][b50fd8b5][65e17c40]
+  + Internal:
+    + Set up CI with Azure Pipelines [ae07d685][43213e49][55529de1]
+      [78fe25b8][42c37997][4085cfdc][5b4faed3][5587574e][fce783a1][adfa192b]
+    + Fix `main-version.nqp` dependencies [b71cb3ae]
+    + Improve `say`, `put`, `print`, `note` methods of `IO::Handle` [7a902b5e]
+      [88d98225][627b39b8][438c1d2f][483cac3a][2b38666f]
+    + Simplify `Shaped1Array.reverse` [de173a18]
+    + Simplify `EVAL(:check)` code [afe85110]
+    + Rework part of `Match` internals [0a84aa7f]
+    + Simplify `Kernel.signals` using `Signal` values [5644c709]
+    + Simplify `Grammar.parse` code [f10e5bce][8be24067][1402c1d1]
+    + Allow debuggers for Rakudo to be specified by environment variables [48e073e2]
+    + Default to using egdb when possible in rakudo-gdb-m which covers OpenBSD developer environments [b01b0120]
+    + Introduce INTERPOLATE [417a591a][777e7b65][3f9f23a9][638517da][05907227]
+    + Various internal improvements to the code base [ef0c457b][e71d3cb0]
+      [37533ee6][b3d933b4][4afaab73][3796405b][17bf5d5f][d9defb6c][2aac854f]
+      [799d627a][a56e62de][c1decf2a][a69465a7][26d88b9e][44b27019][95f7d34e]
+      [b5bf1bf4][285717a0][21c3ef82][4103a309][a616fe57][e645ff6a][ea8c04db]
+      [ad9b9f4f][9942ccc0][1c94538e][9f73351b][e9f80357][a431968e][519a5726]
+      [4ba70b7a][496e9166][d984e7c2][bf01f845][da9943a4][150af9a2][6f459456]
+      [92d01836][98dec90d][792a0f00][902401b7][4d1ef59e][2bfaab6c]
+    + Update `INSTALL.txt` for the latest changes [8bb0235b][e1db95e8][bd5e19e4]
+    + Various small improvements to compiler's user-facing documentation [dac68b27]
+      [302bc8ed][736ce715][10a8f6a2][627ffd42][3d6756b3][eab17e7a][18ecb604]
+      [2cff6dd9][77b2f2a5][197bba98][621577b4][d09cf9d8][8a8f62ca][a79efdef]
+      [797c96de][8c3f013d][11afa53b][fbb0abc1]
+    + Various changes to documentation related to renaming process
+      [6ead4ce1][142d03be][e0384ee0][0ccd4cfe][4d6031f6][d53a3b1a][de6ebd4e][b0032395]
+
+New in 2020.05.1:
+
+  + Fixes:
+    + Fix relocatable builds on the moar backend [46648b9b]
+
+New in 2020.05:
+
+  + Fixes:
+    + Decontainerize attribute default values [d71761e3]
+    + Fix `Cool` catchers for some `Str` methods
+      [a91d7d79][63a72659][af8788b4]
+    + Update some internal documentation to use Raku name [f2cc20c6]
+    + Add `Cool.contains(Regex)` candidates [c3c1e8c9]
+    + Make format of all `QuantHash`'s classes `.gist` uniform [cf01f7a2]
+    + `Method` objects that don't have `*%_` in their signature, `.gist` ok [ac5f353a]
+    + Fix `DateTime` default stringification when the second is 0 [95de7859]
+    + Make `Blob/Buf.list` non-lazy so they can be used in hypers [6d146b56][291aa580]
+    + Remove unnecessary parentheses from `Pair.raku` [35a827af]
+    + `IO::CatHandle.slurp` did not accept `:bin` parameter [42c4c3fc]
+    + Fixed some cases where `IO::Handle.slurp` was used without `:close` [efab398e]
+    + `run` routine with `out` named parameter being a `Handle` and `merge` flag
+      enabled now writes both stdout and stderr to the handle [1f838791]
+    + A single whenever react based on a signal is now serialized by default [8aa25bfb]
+    + `&cmp-ok` subroutine of `Test` module now works with objects without support for methods [fc0f78d5]
+    + Ensure meta-ops respect user-defined chain ops [ac012f18]
+    + Fix exception when mixing in roles that use `is built` at runtime [4c026ab8]
+    + Fix inconsistent match result when using a code block in a regex [1e0474d4]
+    + Fix error message related to `nextcallee` subroutine [136087e7]
+    + Fix regression in sequence operator [0a6456a4]
+    + Fix reflection for . twigilled parameters [296fbcf4]
+    + Fix `Parameter.raku` with `OUTER` default values [87d2ff95][2f8538ed]
+    + Fix `Capture.WHICH` for subclasses of `Capture` [8808401c]
+    + Fix `Capture.EXISTS-KEY` for some `Capture` values [2d18cdeb]
+    + Make (1..-Inf).reverse) work as intended [3983b4f8]
+    + Make (foo .. foo).reverse correctly [c588323e]
+    + Properly throw an exception on attempts to add a key to an immutable `Map` [1a10b63a]
+    + `INPUTRC` environment variable is now checked for a Readline config when using REPL [61a48362]
+    + Add missing label support for some loop constructs [66a2250a]
+    + Make `Real.sign` always return an `Int` [42a303ec]
+    + Result of `reverse` called on a `List` value with holes returns a
+      reverse of the list with `Nil` in place of holes instead of `Mu` now [e9468d6a][ca49c153]
+    + Various small JVM backend related improvements [945a4d81][b4819e7c][f6f8ac0d][25a1929c][717b3266]
+  + Additions:
+    + Added `docs/IN-MEMORIAM.md` to commemorate departed contributors [9b6d89b1][f9f3b662][170add26]
+    + Implement support of environment variables `RAKULIB` and `RAKUDOLIB`
+      to eventually replace deprecated `PERL6LIB`
+      [b3bb0d38][cc165a05][1fd660a9][00c0dec3][be9bb4b1][30a3186b][e8f7eb56][61124c35][013b47d2]
+    + Implement support for environment variables `RAKU_TEST_DIE_ON_FAIL` and `RAKU_TEST_TIMES`
+      to replace `PERL6_TEST_DIE_ON_FAIL` and `PERL6_TEST_TIMES` [30e7a67c][afff3b0b]
+    + Show timing information when installing core modules in build process [58e61356]
+    + Add multiple needles feature to `Str.index/rindex` [4cec44a3][cf02c2e9]
+    + `dd` can now also handle `BOOTContext` objects [8b70bfb8]
+    + `Str` now has `.Date` and `DateTime` coercers [d95d218f]
+    + `Date.yyyy-mm-dd` now takes a separator parameter, defaulting to `-` [3017cfea]
+    + Added `Date.dd-mm-yyyy` and `Date.mm-dd-yyyy` methods [70ac9b72]
+    + `IterationBuffer` now has a `.Slip` method for easier iteration [d68fe5eb]
+    + Add `is implementation-detail` trait and hide exposed internals with it
+      [12a33637][09c1b05a][2ae9fdf0][20c978e6][78371bb0][1d57d17d][0c36feb0]
+    + Introduce `^...` and `^...^` sequence generator operators [371590fa][bbed2255]
+    + Add `Date.last-date-in-month` and `Date.first-day-in-month` methods [2fb7198f][20ce5560]
+    + Add a `parents` metamethod to `Metamodel::ParametricRoleGroupHOW` [8dcfa849]
+  + Removals:
+    + Remove undocumented `Seq.new-consumed` [0f97a7f5]
+    + Move implementation detail to internals [aed658d6][b639221d][86bc3b3d]
+      [75f34c52][d3385e73][73c7ded2][9429728c][509a7f6e][439b8609][e152aa6a][ebb29499]
+    + Turn `infix:<…>` and `infix:<…^>` into aliases [bd4e119d]
+  + Build system:
+    + Fix CircleCI configuration [efba9639][ffcc6198]
+    + Be more robust when working with git reference directories that has spaces in path
+      [3ec58489][e6044dfc][2f0dd45e]
+    + Move prebuild archive scripts to scripts folder [e1114208]
+    + Change update-submodules.pl to not use the shell at all [0ae8b4e0]
+    + Fix installation of perl6 aliases [aeb418a5]
+    + Move RUN_CLEAN_TARGET_FILES to a separate script [ffad1024]
+    + Fix building non-moar backends on Windows [47650ebe]
+    + Fix `--nqp-home` Configure.pl parameter [94fdb3d5][59fe24bc]
+    + Make timing based performance tests opt in via `RAKUDO_RUN_TIMING_TESTS` environment variable [31ffc2bd]
+  + Efficiency:
+    + Speed up compilation of large projects [c9092582][6956c063]
+    + Make `raku -n` as fast as manual iteration with `.IO.lines` [be9c139f][5cad8fee]
+    + Improve behavior of default `ThreadPoolScheduler`,
+      increasing efficiency of multithreaded applications [77a2201e][750abe03]
+    + Make method lookup with the handles trait 13% faster in certain cases [af594925]
+    + Simplify "previous setting" logic [9f4a0f1c]
+    + Make creation of `Failure` objects faster [79ca396e]
+    + Make default `DateTime` stringification about 12% faster [0e872356][d95141ed]
+    + Make all `IO::Path` filetest methods a few percent faster [76c20d28][355b520b][bd9d7c1c]
+    + Make `IO::Path.mode` about 14x as fast [a093b7fa]
+    + Make `Date.yyyy-mm-dd` about 250x as fast [3017cfea][f9ecf6e8]
+    + Make accessing native shaped arrays about 15x faster [80f2aebf]
+    + Make `Seq.Numeric` and `Seq.Int` slightly faster [b7b9358f]
+    + Make a number of traits around 2% faster [4bbe308b]
+    + Make a minor optimization to a bunch of STORE methods [a4fbbfa3]
+    + Make `Capture.raku` 45% faster [5baa645b][d6298edc]
+    + Make `Capture.WHICH` 60% faster [688f6710]
+    + Make `Capture.AT-KEY` 2% faster [22c0a53d]
+    + Make `push(@a, foo)` about 20x as fast [385ab4cf]
+    + Make `append(@a, foo)` about 20x as fast [b98d2e00][1e4c7361]
+    + Make `unshift(@a, foo)` about 20x as fast [6541775c]
+    + Make `prepend(@a, foo)` about 20x as fast [9b735b76]
+    + Make `Num.Rat` faster [f987cdb0][2d1ba433]
+    + Make `Date.succ` faster for days 28-31 [285da3b8]
+    + Make `Str.tc` about 10% faster [5610416c]
+    + Make `Supply.grab` a few percent faster [e0336d52]
+    + `...` (SEQUENCE) optimizations [fc8c8281][935ee309][08545a33][d2ed7faa][fbf54e17][0fba27d7]
+      [8fe30b9c][58fa99b2][cf6177ef][75c6ac34][500dc662][9286def3][13559242][99cb2fa2]
+    + CompUnit::* optimizations [1dbb227c][0249f23e][28bd4247][b4cdccc1][cb7be78c][638c8955]
+      [c9d9a096][83fed554][2cc509c0][f1cdfb18][9d1b3f63][db6d2306][7c9951cc][83ddbaba]
+      [196db682][551c157f][07643d37][e56eddd8][20d3713c][b4d32c97][8ac2eecc][4e3e937b]
+      [6c7ffbdb][17c45d89][89503809][747a35ba][dedb7444][cbd75f72][81ac37f8][f54ad732]
+      [fae4d45d][d55146bd][e33fe878][b712789e][e756e622][199888ab][95e8906c][5271d122]
+      [f48b80c3][954e545c][ef2d7d84][778ce379][1a0cc947][11b186c8][dec40dc4][d38d76d5]
+      [f31bd5ba][e1af7407][33fc8950][a62da301][0736bf7d][437f9f46][6e95e1b0][6723d3ad]
+      [24fd100d][b3f7ad2f][c29a2bf0][b07224f6][7de42d4b][7b5e1434][68cadd79][f980898f]
+      [bec2ac4c][d66068c1][31197cd3][2899d737][d4231b1f][c2a1ee95][6d3f1c12][dceef85f]
+      [859d8f04][5ea1c346][2a58eb39][3d6e8d6d][ea4bdf94][38a0eb82][2075489e][13ca677e]
+    + Be better at inlining `any` Junction [76923bee]
+    + Optimize symbol lookup at compunit creation time [35832540][75da4cfe]
+    + Numerous small optimizations and improvements [014d493a][776ef800][87226876]
+      [49d1dcd3][d8366ff4][61b5e488][6793713b][2edce41b][d0e427dc][0b414c0a][88a9a36e]
+      [604085fb][f70d95e2][db6048e3][a66f5c29][80be7d19][a5535b2a][0d5f87cc][3c83ce75]
+      [3aaca26a][43c7e96f][dc7a7962][e78483ed][7bbf12d3][b9b46c0a][b0a720cb][fcda03ba]
+      [4339073b][cfc6cc3c][33f41966][0aa8b2a8][9cabea01][9b503292][6bb87106]
+  + Internal:
+    + Update Appveyor perl requirement on Windows to 5.22 [370956b9]
+    + Add optional "lazy" flag to `Rakudo::Iterator.SequentialIterators` [101a80f2]
+    + Give `IterationBuffer` its own `iterator` method [2b49d685]
+    + Adopt MoarVM-provided `value_desc_cont` [4221f822]
+    + Add `Rakudo::Iterator.AllButLast` iterator [77defa77][aa5154e0]
+    + Add `Rakudo::Iterator.AllButFirst` iterator [4fe18a48]
+    + Add and use `Rakudo::Iterator.ReifiedListReverse` iterator
+      [3ca38022][270cc275][cea0fc78][4025ca43][447b396f]
+    + Add `Exception.message` stub [2e605520]
+    + Make `Mu.iterator` use `Rakudo::Iterator.OneValue` [65fdea7d]
+    + Make `Rakudo:Iterator.OneValue` a `PredictiveIterator` [ec50b961]
+    + Rename `SlippyIterator` to `Rakudo::SlippyIterator` [50f13f03][fa3c0dba]
+    + Don't use named variables between internal methods [92750571]
+    + Implement `VM.request-garbage-collection` [e223be56]
+    + `Rakudo::Iterator.ReifiedList` now returns a `PredictiveIterator` [063bfa05]
+
+New in 2020.02.1:
+ + Fixes:
+    + Fix building on musl [979d384a9f]
+
+New in 2020.02:
+  + Changes:
+    + `throws-like` sub from `Test` module now throws an exception on
+      Bool:D matchers [f4ad0c2e][50f084d8][5696dbd1]
+    + `RAKUDOLIB` environment variable now mentioned in `--help` [f9b7de22]
+    + `Supply.repeated` now has `unique` rather than `squish` semantics [05213315]
+  + Fixes:
+    + Fix mixing in Raku-level code to the grammar [992f1b83]
+    + Fixed concurrency issue with re-checking a precomp file's dependencies [f5ce80e1]
+    + Ensure Rakudo can be located in a path with Unicode characters on Windows [4c6cd035]
+    + Smart matching a `Regex` no longer breaks if `$/` is not a container [b777d6ff]
+    + `raku -v` now mentions `Raku` as the languages [15621b8e]
+    + Fixed typecheck on bound attributes (`is built(:bind)`)
+      [4b64338a][89203438][8a46fca4][d75a703f]
+    + Fixed location of REPL history and made the `RAKUDO_HIST`
+      environment variable work [c5c98dea][94713af7]
+    + Fixed problem with `.rotor` when given a `Seq` [c7e0df64]
+    + Restored exact stringification behaviour of `index`, `indices`, `contains` on `List` [21762929]
+    + Improved invalid TypeSmiley error message [246f20db]
+    + Assume 1 core is always available in case `nqp::cpucores` fails [1a7f16bc]
+    + `Lock.protect` now allows return of a container [b90bebae]
+    + Fixed `Parameter.raku`'s handling of default values [21b80974][2aa4d095]
+    + Work around spurious error in `Lock::Async` that
+      could lead to crashing [d18d6e9a][28541444]
+    + Fixed handle leak when chaining `Proc::Async` [cdbd60c1]
+    + Restore creating a `Parameter` instance using named arguments [b2c809e4]
+    + Fixed behavior of `eqv` operator on two `Seq` objects [76187b57]
+    + Fixed variable declared by shape match in signature [ca78390e]
+    + Fixed calling of a module sub without `&` and parentheses [e1faa704]
+    + Fixed consuming of all `Channel` values which has prevented
+      reusing it in multiple react blocks [6fbfc4a0]
+    + Fixed usage of `$^a` withing a substitution regex [50ca2ed9][adb85e44]
+    + Fixed clonning of multi-dim arrays [4a954cbc]
+    + Fixed `$*USER` and other dynamic variables coercion for some buggy cases [3a86272e]
+    + Fixed internal compiler error on parameter re-declaration [3498c540]
+    + Fixed unhandled exceptions in REPL [6bf227d0]
+    + Fixed stringification if `Signature` for some edge cases [b2962b1f][56ccd132]
+    + Fixed `is rw` trait application to roles [4de852e4][85660c8f]
+    + Improved error message when putting a positional parameter after a named one [8dcf1a8e]
+    + Improved error message when referring to a non-existent class whose name contains a `::` [ca1e51c8]
+    + Improved error message for Buf stringification [539e96c2][3f637af9]
+    + Made sure `Version` objects can coerce themselves [5eb113b1]
+    + Various fixes for JVM backend [a08f0439][5984ce98]
+  + Additions:
+    + Enable user-defined chaining operators to work [d027ee0c]
+    + Added `prefix` and `suffix` methods to `Parameter` class which return
+      textual prefix and suffix of the parameter [bd68955b]
+    + Made an improperly typed default for an attribute a compile time error
+      [d8e859d0][05b5f81b][a8bb85a0][b6fa5f5d][13c9da97][4c0761a5][c592b80e]
+    + Added `SetHash.set` and `SetHash.unset` methods [6df78ca3]
+    + Added `BagHash.add` and `BagHash.remove` methods [c1b8ff60]
+    + `Str.contains` now also can take a `Regex` [c3c5dae1]
+    + Add `:i(ignorecase)` and `:m(ignoremark)` support to
+      `index`, `starts-with`, `ends-with`, `contains`, `substr-eq`, `indices`
+      [49aaa6ff][60b0d86a][84987742][0b2236a1][d91c773a][2e3c091c][46ef7f48]
+      [9f710029][19576d6c][90fc61bb][ec13c3d0][ea44c194][327c74a6][73c5a25e]
+      [d49a418e][5a716a39][7cb04813][0761a882][b140d7a9][c2e608b2][a6acfd0a]
+      [aefc851b][597288be][b32048df]
+    + The `IterationBuffer` class now has a `Seq` method [c87f5df9]
+    + The `Compiler` class now has a `backend` method [61b416ed]
+    + The `Match` class now has a `replace-with` method
+      [b43c839a][1ac3c5c0][7f3e852f][cd4ab4f3][930e5182]
+      [488feafc][b4e00120]
+    + `Cool.subst` doesn't need a replacement string anymore [dfb563af]
+    + `Supply.first` now also works without a matcher [57dbc358]
+    + Properly show enums, subsets and routine return type in `Pod::To::Text` output
+      [f60d9694][91f89435][0b0a1aad]
+    + Added `iterator` implementation for `Junction` (fixes e.g. calling `^name` on a Junction) [bceaeb1a]
+  + Removals:
+    + Remove deprecated support for implicit `Distribution::Builder` prefix [593db2d7]
+  + Build system:
+    + Implement an automated pipeline to create precompiled releases
+      [6504be7b][d01d4b26][aaf9a93e][8c995feb]
+    + Implement `--git-cache-dir` Configure.pl option.
+      It can save time and bandwidth when doing more than one build [322b095e][ac6c4379]
+    + Add a `--build-only` option for `install-dist.p6` script [4c6c0278]
+    + made building optional when installing in `install-dist.p6` script [411db10e]
+  + Efficiency:
+    + Simplify exception throwing in bootstrap [d18c69b2]
+    + Made `Seq.list` return cached list if present [8ccfa87e]
+    + Made `.List` and `.Slip` more efficient [d1d931a7]
+    + Made `Str.comb(Regex)` about 1.8x as fast [9e8adb65][4df7472d]
+    + Made `Str.split(Regex)` about 15% faster [931f5ae0][ba2c58a3]
+    + Made `Supply.unique` a few percent faster [32bd4ed8]
+    + Made internal `Match` stringification a few percent faster [495ddcc1]
+    + Made various aspects of `Date` and `DateTime` faster
+      [076ef98b][ced67b83][b086a9f2][99b67a4b][e979f173][af8cca77]
+      [65d0422b][b19c4eec][fa7d3bf7][16962c84][c0e8091e][0286904b]
+    + Made `Date.new(Str)` about 9.8x as fast [0408d6e4][497afdad]
+    + Made `Date.new(Instant)` about 12.5x as fast [f91a1616]
+    + Made `Date.today` about 4.5x as fast [1d7a9168][7a2d68f8][13444198][8876e035]
+    + Made `Date.earlier` / `Date.later` between 1.5x and 5.5x as fast [4ebbddfb][5943cbfe]
+    + Made `Date.succ` / `Date.pred` (used in ++ and --) about 2.8x as fast [9707384c]
+    + Made `Date` integer arithmetic about 2.3x as fast [cfe2cdc5]
+    + Made `Date.Str` about 250x as fast with the default formatter [67022d4c]
+    + Made `DateTime.new(Str)` about 30% faster [578935e6]
+    + Made `DateTime.Str` about 90x as fast with the default formatter [a331ac4d][2b7d5ffe]
+    + Made `Instant.new` a few percent faster [5b97ddef][bd948ba3]
+    + Made creation of a `Junction` about 3.5x as fast [470f7fd0]
+    + Made `Junction.defined` between 15% and 40% faster [7a561d63][423d9ad8][6844be9d]
+    + `Hash.DELETE-KEY` does one less hash lookup [9217b1c7]
+    + Made various aspects of `Proc::Async` faster [0c5a7075][ca49dcbd][1db41618][356bf3f7][05916efa]
+    + Made `Channel.list` around 16x faster [82bd76f1]
+  + Internal:
+    + Preparations for UNIX sockets support [7c7d3b96][1a5b2185][ed4226d7][ce5b5dea][62cb756d]
+    + Simplify leap date updating logic [25c84b3a][bdb00749]
+    + Removed perlcritic config file [5ac792ac]
+    + Add support for `use BUILDPLAN class` [8fdce756]
+    + Add support for nqp arrays to `dd` [255318ec]
+    + Change of `IO::Path!new-from-absolute-path` internal method signature [1d946e15]
+    + Correctly set up values for `$*DISTRO` initialization [22d5ffc3]
+    + Change file extensions to Raku format
+      [61821ffa][8c242d5e][582c14a8][5e9d98c2][ea1cb407][3b8104ec]
+      [4677f741][ac652c0e][e5723208][deac4407][7b679604][416fd513]
+      [ca99c7ca][54375179][82ea3292][4ec31e2c]
+    + Other internal changes related to Perl 6 -> Raku migration
+      [10e5390b][8fd7172c][af292586][81014e78][925e73df][dd7b4ce5]
+    + Tests added [21320191][ffabf8d5]
+    + Remove unused `nqp::p6decodelocaltime` as NQP has `nqp::decodelocaltime` [e2ba546f][663c427e]
+    + Rename the `Junction` `$!storage` attribute to `$!eigenstates` [1a6f83c6][911cac4e]
+    + Simplify fetching of the kept `Promise` sentinel in `Lock::Async` [e81e5162]
+    + Simplify `Parameter.raku` implementation and improve how it handles parametert names [3f6a2a22]
+    + Added `*_RUNNER_OPTS` variable to Makefiles [701c38df]
+    + Make `rakudo` binaries default ones and `perl6` to be aliases,
+      as well as include some other renaming-related changes
+      [f5f6f76f][23ca6952][519a741a][536a2d28]
+
+New in 2020.01:
+  + Changes:
+    + A big overhaul of role applying rules and behavior or
+      submethods, constructors and destructors
+      [38c72649][a8f61882][cddcd46a][61d3aef2][27147ed0][cbc4b839]
+      [3f7caf57][f242bcfa][cd74a3a7][51055d0e][9369c68e][ad92abc3]
+      [00fec7c3][6f0dd1ea][c9ac15cb][cb903667][d89a0c92][a08e1ff5]
+      [c674a1d3][0654d3e5][fffb5c9c][232382f8][b47be208][44648fbe]
+      [c2d5c20c][48fc44c2][7afffd61][17537ab5][b1e288c3][32e210cd]
+      [fc4a5a3b][1e166e41][7a94c4e0][3eb63b3d][a4ad1a8e][526d38d4]
+      [9e4087e1][aeb10ef5][c4f1cff0][1f620408][b83e069d][4d69fda5]
+      [c7a87053][13ae9298][0fb7a697][86b1ccbd][ca2cb4ab][e843fd20]
+      [a92ade48][bdcf3149][93d0575c][23191207][595e0ca3][2c4fa983]
+      [b51c1fc5][afcbeb59][eadc1582][548dea5f][1aad3481][4a962e07]
+      [0b6a9343][bb2600d9][5d10e91c][139d528b][f2a41613][262b6fc7]
+    + Smartmatching typed Arrays against same-typed Positionals now
+      returns True (e.g. `Array[Str:D] ~~ Positional[Str:D]`), which
+      returned False before [fb55ae29]
+    + Class attributes and methods are now prioritized over those from
+      roles [f19e2ee5][2fc87db1][4c265c7c][9357eddb][83d26ddd][9f2a2f6a][55b51a24]
+    + DateTime class now accepts picosecond precision [9eef0e63]
+    + Make default degree for hyper/batch utilize number of CPU cores better
+      [9fd29cd2][5def05c9][3f51728d]
+    + `$*ARGFILES` special variable now defaults to `$*IN` if no arguments [bde10698]
+    + An attempt to use methods `index`, `indiced`, `contains` on a `List`
+      now gives a warning [c9b02185]
+  + Fixes:
+    + Fix repository name lookup on windows [13c5d046]
+    + Fix leaking file handles when loading modules [1c467401]
+    + Fix Parameter.sigil for anonymous scalar params with default values [8c0a5d6b]
+    + Fix raw slurpy onearg parameter handling in Parameter.raku [33993023]
+    + Fix construction of Parameter object [68808c54]
+    + Fix error when calling Parameter.usage-name on unnamed parameters [81311a20]
+    + Fix hang when initializing `Int` with a type object [0e9f96ea]
+    + Fix missing dependency information when precompiling large dependency trees [9fa82b80]
+    + Fix off-by-one error in Supply.head(limit) [80f60c05]
+    + Fix for parameterized roles not found for FQN lookup if applied to a
+      parent class [27b3db27]
+    + Fix double execution of ENTER block in some cases [d8c7d879]
+    + Fixed compile-time subroutine candidate matching when `is rw`
+      trait is used on JVM [12d4514a][fae105b0][73d5e74d][d81212b2][5c65a126]
+    + Improved error message for invalid Pod6 leading and trailing
+      declarator blocks [26f63ff7]
+    + Prevented `ASSIGN-POS` method on `Any` from decontainerizing,
+      allowing its correct overloading in roles [ed8f5141]
+    + Prevent `name` MOP method from returning a `NQPMu` when no name
+      is set by returning an empty string instead [dabf83a2]
+    + Fixed relocatability of bundled native libraries
+      [55b3ed56][0e4f8351]
+    + Made `Range.int-bounds(from,to)` always return correct result
+      [8c3f2927]
+    + Fixed a precompilation bug related to determining class language
+      version [15a55801]
+    + Fix "expected IO::Handle:D but got IO::Handle" in parallel test
+      runs [efadff2a]
+    + Fix calling a qualified method from role on JVM backend [5648a4f3]
+    + Fix `roundrobin` method, cross and zip operators on a 1-element
+      lists [f602c02c][737dd1b1][87de5ee4]
+    + Fix MoarVM::Profiler.report [734047a0]
+  + Additions:
+    + Add `Version` type coercer to `Str` [e3cbd32c]
+    + Add `Supply.repeated` method [ff08697a]
+    + Add `Supply.decode($encoding)` method [59f6a031]
+    + Add `Supply.first` method [ace98531]
+    + Add `Supply.collate` method [40797028]
+    + Allow Supply.head(*-3) to be synonym of Supply.tail(3) [6d6318d4]
+    + Add `Supply.encode($encoding = "utf8")` method [5d6c0b6b]
+    + Add `Supply.comb` method [348d54df][3dd9edff][67ec4b2b]
+      [1331128f][07dce515][147ce39e][550bf097][a666e736][92d465db]
+      [622b20fb][f74e506f][f8724459]
+    + Add new `is built` attribute trait
+      [e76f8e4d][98abd6a7][e81b0b68][826c3ead][f1f690e0][ada7c365]
+      [ecf8a3f4][7bbb76da][8ab53027][3f0dca4f]
+    + Add `Supply.split` method
+      [cac64caa][4fa60ab5][c16a6484][9b29bcc4][2188f13b]
+    + Add `Supply.lines(:nl-in<foo>)` method [c63d8a87]
+    + Allow user to retain formatting of Pod6 leading declarator
+      blocks (`#|`) using RAKUDO_POD_DECL_BLOCK_USER_FORMAT env var,
+      instead of always collapsing them into a single string. The
+      latter remains the default behavior [9a4c83af]
+    + Made `.perl` (now `.raku`) method call on signature of {...} display `$_`
+      variable from outer scope [e7c20386]
+    + Add `$*RAKU` variable [a05e169e]
+    + `Raku` is now allowed to be used as a language in EVAL
+      [1c5d010f][632c0083]
+    + Add `:$match` named parameter to `comb` subroutine when called
+      on `Cool` object when the `$matcher` argument is a `Regex`
+      [dd2f072d][a9cd6404]
+    + Add `log2` subroutine, which accepts `Cool` and `Numeric`
+      arguments, as well as its method form (`Numeric.log2`)
+      [f6254be1]
+    + Allowed colon syntax on `$.foo` method, making `$.foo: 42` work
+      as well as equivalent `self.foo: 42`
+      does [4a1323ed][6abdf27a][0f86e49f]
+    + Add `RAKU_EXCEPTIONS_HANDLER` env variable,
+      which is not supported as an alias for `PERL6_EXCEPTIONS_HANDLER` [90408d18]
+  + Build system:
+    + Renamed `PERL6_HOME` env var into `RAKUDO_HOME`, preserving
+      backward compatibility. Rakudo `Configure.pl` now accepts
+      `--rakudo-home` in addition to `--perl6-home` [7cfdd598]
+    + Add `--force-rebuild` command line option. Together with
+      `--gen-*` options is causes corresponding components to
+      recompile irrelevant to their existence and version
+      conformance [15255b0a][2022b9cd][1945b9d2]
+    + Fix `set-env.sh` script [0b8ede6c]
+    + Fix `raku` symlinks relocability [a00628e0]
+    + Prevent silently swallowing errors on submodule update
+      [db43d134]
+    + Use Visual Studio 2017 in AppVeyor [7ecc5bfd][7ce49472]
+    + Various tweaks and small improvements
+      [75056dfa][8b7d0651][52a7bab9][d7d9a2f4][470c9b7e]
+    + Skip 'make test' on JVM backend [e5627b83]
+  + Efficiency:
+    + Make `StrDistance.new` about 30% faster [91a324a0]
+    + Make `Rational.Str` 10% faster [272b658a]
+    + Make `Rational.Str` a few % faster with 20% fewer allocations [73e98a6c]
+    + Make `Rational.base` at least 2.5x as fast [97e7cdbd]
+    + Make `Array[Int].raku` at least 5% faster [66cf6f81]
+    + Make `NumStr.raku` about 60% faster [e262da1d]
+    + Make `IntStr.raku` about 2x as fast [2261ef11]
+    + Optimize `Pair.raku` [0d96bedc][08aec410]
+    + Make `Mu.raku` about 40% faster [585227ee]
+    + Optimize `Str.raku` [09e66e50][a4b62fb1]
+    + Make `Str.rindex` a few percent faster [7ecc3e84]
+    + Make `Str.index` a few percent faster [d5719bbe]
+    + Make `Str.contains` a few percent faster [030ed10d]
+    + Make `Str.substr-eq` between 1.4x and 2.4x faster [276d0967]
+    + Made `Str.chomp` between 10x and 100x faster [b9c0196f]
+    + Made `Str.chop(N)` between 3x and 17x faster [b569e112]
+    + Made `Str.chop` between 1.8x and 30x faster [f1963623]
+    + Made `Str.trim-trailing` up to 2x as fast [657d36f1]
+    + Made `Str.trim` between 1.5x and 3x faster [0d0d419f]
+    + Made `Str.substr(N)` between 1.5 and 3x faster [4252a8c9]
+    + Made `Str.substr(N,M)` about 1.5x faster [908dd251]
+    + Made `Str.substr(N, Inf)` about 15% faster [25a29987]
+    + Made `Str.trim-leading` between 20x and 90x faster [3941fef0]
+    + Made `Str.parse-base` between 7x (with decimal point) and 12x
+      (without) faster, decreased its memory pressure
+      [74c8017c][3ce92453][9b8ce733]
+    + Made `Str.Numeric` a few percent faster and 13x faster for an
+      empty string [37474a7a]
+    + Made Str.Int a few percent faster [b42957cc]
+    + Made DateTime.new(epoch) about 20% faster [9d895914]
+    + Made DateTime.new($epoch) about 50% faster [cd321254]
+    + Made the decont operator about 20x faster [872cb7c0]
+    + Improved efficiency of JIT for `split` subroutine [3e2cfb4d]
+    + Fix regression in performance of async socket [4e9487ce]
+    + Micro-optimize `set_name` MOP method [88741d94]
+    + Make `lazy gather` up to 15% faster [971174f4]
+    + Make emit about 30% faster [aea2a36c]
+    + Make `take foo` about 20% faster [a91813d0]
+    + Make `take-rw foo` about 20% faster [533a2ad9]
+    + Make `take foo, bar` about 60% faster [e1aaa83c]
+    + Make `take-rw foo, bar` about 60% faster [bed716be]
+    + Make Supply.lines a few percent faster [0f4ef3cb]
+    + Numerous micro-optimizations [f5583de4]
+      [05aff922][488f21a6][9c15d717][6c85e691][60a9ff62][779b0a2e]
+      [fc8bfc2e][11a8d57f][392af08b][33266694]
+  + Internal:
+    + Add mechanism for seeding typename suggestions [b291fc78]
+    + Removed SUBSTR-(START|CHARS)-OOR from Rakudo::Internals, they
+      are now `Str` private methods [ab99c2dd]
+    + Simplify `Str.substr` implementation
+      [99a0610a][1a891062][e3426579][f79102fa]
+    + Fixed some regressions related to `v6.e.PREVIEW` usage
+      [6c251f27][8d03bdff][94b4ca96][466f7de4][65847f71][a59fec7f][755c8030][0d2eb1cb]
+    + Reflect Raku renaming on codebase [604ca34a][186c4ce6]
+    + Numerous small codebase improvements, including ones related to
+      renaming process
+      [8f30cc76][fc309419][540162c1][6a129499][1003bb93][68cee0dd]
+      [2652d9c5][f9e30a02][ee66a6b1][a04af365][11808277][0e2485a8]
+      [e8a9e07f][17d81160][d5a34f19][6bd0dd51][cfb655bc][b1a68be4]
+      [74aea829][80cbb3ef][83423ea0][d38cfef3][d406d834][62bd2743]
+      [6bf6d347][e4efccc6][6f527cea][b7888d79][7ce79f4d][5f335aa4]
+      [9a5579ff][784daae2][add2ec0d][abcf37f2][a51268a1][b9fa673b]
+      [3d432429][f06c2426][f1abe9c6][bd2e0c7a][22905592][8c4244f6]
+      [829f4ccb][4f48e3a5][27d1c4b5][5d8ef435][ccb92df2][8ad3d244]
+      [70f96d9b][276c06d3][d6970e96][3e332a1a][06292bc8][8cfa6590]
+      [f08cd00f][7b075188][b1e986c2][0e9792c7][43669806][7925bfd4]
+      [82913377][fa355a26][19b820d8][06ae7d61][86a771ac][aafa8ca2]
+      [25e6128c][fdffa474][77d8fa37][ed44f60a][666f95c1][56d2b23d]
+      [0d81a867][b7870953][37ddd598][87bc1171]
+
+New in 2019.11:
+  + SPECIAL NOTES:
+    + Perl 6 is now Raku! This release comes with initial changes
+      required for the language rename. For more info see
+      [Path to Raku](https://github.com/perl6/problem-solving/blob/master/solutions/language/Path-to-Raku.md)
+  + Fixes:
+    + Fixed the signature of `signal` [eb88e64e][fcf1f761][a46c414f]
+    + Fixed laziness propagation in KeyValue/Pair iterators [abbd1285]
+    + Fixed loading of `CORE`s allowing for defining new symbols for
+        new language releases [56af07bf]
+    + `die` and `fail` now use `$!` from the calling lexical scope if
+        called without arguments [56af07bf]
+    + Fixed a bug in `require` with incorrect installation of imported
+        submodules [56af07bf]
+    + Fixed outer signatures getting into string interpolation
+        [7cab810b]
+    + Fixed segfault when using meta ops in threaded code [60cfbb39]
+    + Fixed Maps to keep containers [2ee82afe][42d6e0bc][cb1fbf66]
+    + Made sure `Date.new-from-daycount` takes right candidate
+        [ac11774d]
+    + Fixed passing of formatter in operations on `Date` objects
+        [971d4bf6]
+    + Fixed `.wrap` when used with `callsame`/`nextsame`/etc. [da65fb5b]
+    + Fixed a bug when a wrapped method is called first [2e915d74]
+    + Fixed `:D` check when used with `where` [58c2d649]
+    + Made socket family handling portable [16607d3f][17f66039]
+        [39b04dc9][7e106265][d7d8d37e]
+    + Fixed RakuDoc parser to allow empty config values [7c3b2572]
+    + Fixed handling of `:every(Inf)` in `ThreadPoolScheduler.cue`
+        [74f2d3f4]
+    + Fixed exception propagation with race inside race [9d1505d1]
+    + Fixed Proc to return Failure with non-zero signals [89fc9f35]
+        [6b42d314]
+    + Made sure that doing keep/break on a vow more than once throws
+        [c7ec96aa][0f31d353][5aa998f1][f32b86a9][b8f92d25]
+    + Made sure that `Backtrace.list` lists all the frames [559c24f0]
+    + Made the `Buf.write-*` methods return self [dae981e8]
+    + Allowed type objects on `Buf.write-int/num/bits` [43b5e768]
+        [18ff9052]
+  + Changes:
+    + [6.e] Pseudo-packages now return `Failure` for a missing
+        symbol (was `Nil`) [56af07bf]
+    + `EVAL` no longer wraps evaluated code into own `CORE` context but
+        shares the one used by the calling scope. It also means that
+        `use v6.X` statement is not effective inside `EVAL`s anymore
+        [56af07bf]
+    + [6.e] Grammar now returns Failure when failing to parse
+        [b21a5776][daebcd26][4cdd2d10][d46a9084]
+  + Additions:
+    + [6.e] `LEXICAL::` pseudo-package includes all symbols visible in
+        the lexical scope, including dynamic symbols from caller
+        chain [56af07bf]
+    + [6.e] `SETTING::` pseudo-package includes all symbols from all
+        available `CORE`s [56af07bf]
+    + [6.e] `UNIT::` pseudo-package includes all lexicals visible at
+        unit level [56af07bf]
+    + [6.e] Symbol binding is now possible for all
+        pseudo-packages [56af07bf]
+    + Individual language-release `CORE`s are now accessible
+        via `CORE::v6<rev>` namespaces. [6a885908]
+    + Added GB2312 and GB18030 encodings [a95cb03b][4cee2c36]
+    + Added support for Unicode v12.1 [f5ef0b3c][7056a25a]
+  + Build system:
+    + Added `raku` and `rakudo` executables [5090206d][ab0a6d61]
+    + Added `--rakudo-home` alias to `--perl6-home` [dfeb7126]
+    + Added `--nqp-home` and `--perl6-home` configure options to set
+        custom home dirs [e16e61a8]
+    + Added `RAKUDO_HOME` environment variable [dfeb7126][24abab8a]
+    + Added support for `.rakumod` extension [daa16b9c]
+    + Added `--silent-build` option [f9ee6043]
+    + Fixed errors when building from a release archive [78c05c12]
+    + Fixed installation to `/usr` [1e0220ff]
+    + Fixed build in folders with spaces [93669907][abc072cd][f1170895]
+        [0365662e][f7f9b1fc][ceb457e1][12d9e34a]
+    + Created a process for making binary releases [34273916]
+        [1c764404][f7b4d71f]
+    + Fixed libffi include issue [98e0bb68]
+    + Removed `--libdir` configure option [cdd57cd0]
+    + Fixed the build to not create folders outside the build
+        directory [cbd1dc27]
+    + Minor build system fixes [165f3fbf][3d5c5517][579ac66e]
+        [d487cd85][c2808b32][cfb0a267]
+    + General build system cleanup [90de22f8][983c3985][4ce5b7c5]
+        [ff9272b1][608c6cdc][9fefa336]
+  + Efficiency:
+    + Made sure dependencies are not recompiled if another process
+        already did it [23cfe1c6]
+    + Many small internal optimizations [f44c14c3][82fc4e57][af108863]
+        [01b86fa8][c7056f20][0dd6573a][207b825e][e424248a][57f4a4c9]
+        [19e075ff][c3926928][44a6a0de][696eea2d][1d4c21d0][6f5232f4]
+        [3697325c][6297b0e4][519cfdeb][25abfe2b][1e2b0ec5]
+  + Internal:
+    + NQP vars and ops will now default to int instead of num [290cd792]
+        [5876d38a][62e2555e][1e4d3ac4][cf6f6d92]
+    + Optimizer: Don't use Int*Ref in first arg
+        of `if/unless/while/until` [84ee0c8c]
+    + Fixed `BYTE_SUPPLY_DECODER` breaking after exceptions [91624312]
+    + Reduced `.moarvm` size by replacing `die X::Foo.new` by
+        `X::Foo.new.throw` [6d8f4050][88dfe55c]
+    + Stagestats are now shown for dependent precompilation [238f8e57]
+        [960e5b4a]
+    + Added more tests for symbols in CORE and SETTING [5cd45f91]
+        [53bb28d0]
+    + Added `nqp::p6client*` family of ops for finding first Raku
+        caller from different package and determining its language
+        version [86525a3b]
+    + Added `nqp::p6getlexclient` op and `$*OPTIMIZER-SYMBOLS`
+        [cbce0edd][f8768ae5]
+    + Added `Sprintf.pm6` stub for development convenience [4bd25bf5]
+    + Fixed inconsistent state of NativeCall subs after
+        repossession [573f6a2f]
+    + Fixed native subs declared in BEGIN blocks and role
+        bodies [e45bb341]
+    + Fixed optimizer interfering with some native subs [d662912e]
+    + Fixed leaking an open file handle when re-precompiling [2dd570de]
+
 New in 2019.07.1:
   + Build system:
     + Fixed issues when installing into `/usr` [f41db044]

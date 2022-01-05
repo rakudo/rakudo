@@ -18,3 +18,5 @@ print $fh $preamble, "node perl6.js -Ilib --source-map", $postamble, "\n" or die
 close $fh or die "close: $!";
 
 chmod 0755, $install_to if $^O ne 'MSWin32';
+
+# vim: expandtab sw=4

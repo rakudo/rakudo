@@ -20,13 +20,13 @@ my role IO::Socket {
         fail('Socket not available') unless $!PIO;
         $limit = 65535 if !$limit.DEFINITE || $limit === Inf;
         if $bin {
-            nqp::readfh($!PIO, nqp::decont(buf8.new), $limit)
+            nqp::readfh($!PIO, nqp::create(buf8.^pun), $limit)
         }
         else {
             self!ensure-coders();
             my $result = $!decoder.consume-exactly-chars($limit);
             without $result {
-                $!decoder.add-bytes(nqp::readfh($!PIO, nqp::decont(buf8.new), 65535));
+                $!decoder.add-bytes(nqp::readfh($!PIO, nqp::create(buf8.^pun), 65535));
                 $result = $!decoder.consume-exactly-chars($limit);
                 without $result {
                     $result = $!decoder.consume-all-chars();
@@ -39,10 +39,10 @@ my role IO::Socket {
     method read(IO::Socket:D: Int(Cool) $bufsize) {
         fail('Socket not available') unless $!PIO;
         my int $toread = $bufsize;
-        my $res := nqp::readfh($!PIO,buf8.new,$toread);
+        my $res := nqp::readfh($!PIO,nqp::create(buf8.^pun),$toread);
 
         while nqp::elems($res) < $toread {
-            my $buf := nqp::readfh($!PIO,buf8.new,$toread - nqp::elems($res));
+            my $buf := nqp::readfh($!PIO,nqp::create(buf8.^pun),$toread - nqp::elems($res));
             nqp::elems($buf)
               ?? $res.append($buf)
               !! return $res
@@ -71,7 +71,7 @@ my role IO::Socket {
         }
         else {
             loop {
-                my $read = nqp::readfh($!PIO, nqp::decont(buf8.new), 65535);
+                my $read = nqp::readfh($!PIO, nqp::create(buf8.^pun), 65535);
                 $!decoder.add-bytes($read);
                 $line = $!decoder.consume-line-chars(:chomp);
                 last if $line.DEFINITE;
@@ -116,4 +116,4 @@ my role IO::Socket {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

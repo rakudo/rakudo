@@ -1,200 +1,231 @@
+my class Allomorph is Str {
+    multi method Bool(::?CLASS:D:) { self.Numeric.Bool }
+
+    multi method ACCEPTS(Allomorph:D: Any:D \a) is default {
+        nqp::istype(a, Numeric)
+          ?? self.Numeric.ACCEPTS(a)
+          !! nqp::istype(a, Str)
+            ?? self.Str.ACCEPTS(a)
+            !! self.Str.ACCEPTS(a) && self.Numeric.ACCEPTS(a)
+    }
+
+    method succ(Allomorph:D:) { self.Numeric.succ }
+    method pred(Allomorph:D:) { self.Numeric.pred }
+
+    method comb(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').comb(|c)
+    }
+
+    method split(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').split(|c)
+    }
+
+    method subst(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').subst(|c)
+    }
+    method subst-mutate(Allomorph:D \SELF: |c) {
+        (SELF = nqp::getattr_s(self,Str,'$!value')).subst-mutate(|c)
+    }
+
+    method samecase(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samecase(|c)
+    }
+    method samemark(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samemark(|c)
+    }
+    method samespace(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').samespace(|c)
+    }
+
+    method chop(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').chop(|c)
+    }
+    method chomp(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').chomp
+    }
+    method trim(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim
+    }
+    method trim-leading(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim-leading
+    }
+    method trim-trailing(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').trim-trailing
+    }
+    method lc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').lc
+    }
+    method uc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').uc
+    }
+    method tc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').tc
+    }
+    method tclc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').tclc
+    }
+    method fc(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').fc
+    }
+    method flip(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value').flip
+    }
+
+    method substr(Allomorph:D: |c) {
+        nqp::getattr_s(self,Str,'$!value').substr(|c)
+    }
+    method substr-rw(Allomorph:D \SELF:
+      $start = 0,
+      $want  = Whatever
+    ) is rw {
+        (SELF = nqp::getattr_s(self,Str,'$!value')).substr-rw($start, $want)
+    }
+
+    method Str(Allomorph:D:) {
+        nqp::getattr_s(self,Str,'$!value')
+    }
+
+    multi method WHICH(Allomorph:D:) {
+        nqp::box_s(
+          nqp::join('|',nqp::list_s(
+            self.^name,
+            self.Numeric.WHICH,
+            self.Str.WHICH
+          )),
+          ValueObjAt
+        )
+    }
+
+    multi method raku(Allomorph:D:) {
+        nqp::join("",nqp::list_s(
+          self.^name,'.new(',self.Numeric.raku,', ',self.Str.raku,')'
+        ))
+    }
+}
+
 # the uses of add_I in this class are a trick to make bigints work right
-my class IntStr is Int is Str {
+my class IntStr is Allomorph is Int {
     method new(Int:D $i, Str:D $s) {
         my \SELF = nqp::add_I($i, 0, self);
         nqp::bindattr_s(SELF, Str, '$!value', $s);
-        SELF;
+        SELF
     }
-    multi method ACCEPTS(IntStr:D: Any:D \a) {
-        nqp::if(
-          nqp::istype(a, Numeric),
-            self.Int.ACCEPTS(a),
-          nqp::if(
-            nqp::istype(a, Str),
-            self.Str.ACCEPTS(a),
-            self.Str.ACCEPTS(a) && self.Int.ACCEPTS(a)))
-    }
-    multi method Numeric(IntStr:D:) { self.Int }
-    multi method Numeric(IntStr:U:) {
-        self.Mu::Numeric; # issue warning;
-        0
-    }
-    multi method Real(IntStr:D:) { self.Int }
-    multi method Real(IntStr:U:) {
-        self.Mu::Real; # issue warning;
-        0
-    }
-    method Int(IntStr:D:) { nqp::add_I(self, 0, Int) }
-    multi method Str(IntStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(IntStr:D:) { self.^name ~ '.new(' ~ self.Int.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method Numeric(IntStr:U:) { self.Mu::Numeric }
+    multi method Numeric(IntStr:D:) { nqp::add_I(self,0,Int) }
+
+    multi method Real(IntStr:U:) { self.Mu::Real }
+    multi method Real(IntStr:D:) { nqp::add_I(self,0,Int) }
+
+    multi method Int(IntStr:D:) { nqp::add_I(self,0,Int) }
 }
 
-my class NumStr is Num is Str {
-    method new(Num $n, Str $s) {
-        my \SELF = nqp::create(self);
-        nqp::bindattr_n(SELF, Num, '$!value', $n);
-        nqp::bindattr_s(SELF, Str, '$!value', $s);
-        SELF;
+my class NumStr is Allomorph is Num {
+    method new(Num:D $n, Str:D $s) {
+        my \new = nqp::create(self);
+        nqp::bindattr_n(new,Num,'$!value',$n);
+        nqp::bindattr_s(new,Str,'$!value',$s);
+        new
     }
-    multi method ACCEPTS(NumStr:D: Any:D \a) {
-        nqp::if(
-          nqp::istype(a, Numeric),
-          self.Num.ACCEPTS(a),
-          nqp::if(
-            nqp::istype(a, Str),
-            self.Str.ACCEPTS(a),
-            self.Str.ACCEPTS(a) && self.Num.ACCEPTS(a)))
-    }
-    multi method Numeric(NumStr:D:) { self.Num }
-    multi method Numeric(NumStr:U:) {
-        self.Mu::Numeric; # issue warning;
-        0e0
-    }
-    multi method Real(NumStr:D:) { self.Num }
-    multi method Real(NumStr:U:) {
-        self.Mu::Real; # issue warning;
-        0e0
-    }
-    method Num(NumStr:D:) { nqp::getattr_n(self, Num, '$!value') }
-    multi method Str(NumStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(NumStr:D:) { self.^name ~ '.new(' ~ self.Num.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method Numeric(NumStr:U: --> 0e0) { self.Mu::Numeric }
+    multi method Numeric(NumStr:D:) { nqp::getattr_n(self,Num,'$!value') }
+
+    multi method Real(NumStr:U: --> 0e0) { self.Mu::Real }
+    multi method Real(NumStr:D:) { nqp::getattr_n(self,Num,'$!value') }
+
+    multi method Int(NumStr:D:)     { nqp::getattr_n(self,Num,'$!value').Int }
 }
 
-my class RatStr is Rat is Str {
-    method new(Rat $r, Str $s) {
-        my \SELF = nqp::create(self);
-        nqp::bindattr(SELF, Rat, '$!numerator', $r.numerator);
-        nqp::bindattr(SELF, Rat, '$!denominator', $r.denominator);
-        nqp::bindattr_s(SELF, Str, '$!value', $s);
-        SELF;
+my class RatStr is Allomorph is Rat {
+    method new(Rat:D $r, Str:D $s) {
+        my \new = nqp::create(self);  # no need to normalize, so don't call .new
+        nqp::bindattr(new,Rat,'$!numerator',
+          nqp::getattr($r,Rat,'$!numerator'));
+        nqp::bindattr(new,Rat,'$!denominator',
+          nqp::getattr($r,Rat,'$!denominator'));
+        nqp::bindattr_s(new,Str,'$!value',$s);
+        new
     }
-    multi method ACCEPTS(RatStr:D: Any:D \a) {
-        nqp::if(
-          nqp::istype(a, Numeric),
-          self.Rat.ACCEPTS(a),
-          nqp::if(
-            nqp::istype(a, Str),
-            self.Str.ACCEPTS(a),
-            self.Str.ACCEPTS(a) && self.Rat.ACCEPTS(a)))
-    }
-    method succ(RatStr:D: --> Rat:D) {
-        my \denominator := nqp::getattr(self,Rat,'$!denominator');
-        nqp::p6bindattrinvres(
-          nqp::p6bindattrinvres(nqp::create(Rat),Rat,'$!numerator',
-            nqp::add_I(nqp::getattr(self,Rat,'$!numerator'),denominator,Int)
-          ),
-          Rat, '$!denominator', denominator
-        )
-    }
-    method pred(RatStr:D: --> Rat:D) {
-        my \denominator := nqp::getattr(self,Rat,'$!denominator');
-        nqp::p6bindattrinvres(
-          nqp::p6bindattrinvres(nqp::create(Rat), Rat, '$!numerator',
-            nqp::sub_I(nqp::getattr(self,Rat,'$!numerator'),denominator,Int)
-          ),
-          Rat, '$!denominator', denominator
-        )
-    }
+
     method Capture(RatStr:D:) { self.Mu::Capture }
+
+    multi method Numeric(RatStr:U: --> 0.0) { self.Mu::Numeric }
     multi method Numeric(RatStr:D:) { self.Rat }
-    multi method Numeric(RatStr:U:) {
-        self.Mu::Numeric; # issue warning;
-        0.0
-    }
+
+    multi method Real(RatStr:U: --> 0.0) { self.Mu::Real }
     multi method Real(RatStr:D:) { self.Rat }
-    multi method Real(RatStr:U:) {
-        self.Mu::Real; # issue warning;
-        0.0
-    }
+
+    multi method Int(RatStr:D:) { self.Rat.Int }
+
     method Rat(RatStr:D:) {
-        Rat.new(
-          nqp::getattr(self, Rat, '$!numerator'),
-          nqp::getattr(self, Rat, '$!denominator')
-        )
+        my \new := nqp::create(Rat);  # no need to normalize, so don't call .new
+        nqp::bindattr(new,Rat,'$!numerator',
+          nqp::getattr(self,Rat,'$!numerator'));
+        nqp::bindattr(new,Rat,'$!denominator',
+          nqp::getattr(self,Rat,'$!denominator'));
+        new
     }
-    multi method Str(RatStr:D:) { nqp::getattr_s(self, Str, '$!value') }
-
-    multi method perl(RatStr:D:) { self.^name ~ '.new(' ~ self.Rat.perl ~ ', ' ~ self.Str.perl ~ ')' }
 }
 
-my class ComplexStr is Complex is Str {
-    method new(Complex $c, Str $s) {
-        my \SELF = nqp::create(self);
-        nqp::bindattr_n(SELF, Complex, '$!re', $c.re);
-        nqp::bindattr_n(SELF, Complex, '$!im', $c.im);
-        nqp::bindattr_s(SELF, Str, '$!value', $s);
-        SELF;
+my class ComplexStr is Allomorph is Complex {
+    method new(Complex:D $c, Str $s) {
+        my \new = nqp::create(self);
+        nqp::bindattr_n(new,Complex,'$!re',
+          nqp::getattr_n($c,Complex,'$!re'));
+        nqp::bindattr_n(new,Complex,'$!im',
+          nqp::getattr_n($c,Complex,'$!im'));
+        nqp::bindattr_s(new,Str,'$!value',$s);
+        new
     }
-    multi method ACCEPTS(ComplexStr:D: Any:D \a) {
-        nqp::if(
-          nqp::istype(a, Numeric),
-          self.Complex.ACCEPTS(a),
-          nqp::if(
-            nqp::istype(a, Str),
-            self.Str.ACCEPTS(a),
-            self.Str.ACCEPTS(a) && self.Complex.ACCEPTS(a)))
-    }
+
     method Capture(ComplexStr:D:) { self.Mu::Capture }
-    multi method Numeric(ComplexStr:D:) { self.Complex }
-    multi method Numeric(ComplexStr:U:) {
-        self.Mu::Numeric; # issue warning;
-        <0+0i>
-    }
-    multi method Real(ComplexStr:D:) { self.Complex.Real }
-    multi method Real(ComplexStr:U:) {
-        self.Mu::Real; # issue warning;
-        <0+0i>.Real
-    }
-    method Complex(ComplexStr:D:) { Complex.new(nqp::getattr_n(self, Complex, '$!re'), nqp::getattr_n(self, Complex, '$!im')) }
-    multi method Str(ComplexStr:D:) { nqp::getattr_s(self, Str, '$!value') }
 
-    multi method perl(ComplexStr:D:) { self.^name ~ '.new(' ~ self.Complex.perl ~ ', ' ~ self.Str.perl ~ ')' }
+    multi method Numeric(ComplexStr:U:) { self.Mu::Numeric; 0i }
+    multi method Numeric(ComplexStr:D:) { self.Complex }
+
+    method !has-imaginary($target) is hidden-from-backtrace {
+        X::Numeric::Real.new(
+          target => $target,
+          source => self,
+          reason => "imaginary part not zero"
+        ).throw
+    }
+
+    multi method Real(ComplexStr:U: --> 0e0) { self.Mu::Real }
+    multi method Real(ComplexStr:D:) {
+      nqp::getattr_n(self,Complex,'$!im')
+        ?? self!has-imaginary(Real)
+        !! nqp::getattr_n(self,Complex,'$!re')
+    }
+
+    multi method Int(ComplexStr:D:) {
+      nqp::getattr_n(self,Complex,'$!im')
+        ?? self!has-imaginary(Int)
+        !! nqp::getattr_n(self,Complex,'$!re')
+    }
+
+    method Complex(ComplexStr:D:) {
+        my \new = nqp::create(Complex);
+        nqp::bindattr_n(new,Complex,'$!re',
+          nqp::getattr_n(self,Complex,'$!re'));
+        nqp::bindattr_n(new,Complex,'$!im',
+          nqp::getattr_n(self,Complex,'$!im'));
+        new
+    }
 }
 
-# we define cmp ops for these allomorphic types as numeric first, then Str. If
-# you want just one half of the cmp, you'll need to coerce the args
-multi sub infix:<cmp>(IntStr:D     $a, IntStr:D     $b) { $a.Int     cmp $b.Int     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(IntStr:D     $a, RatStr:D     $b) { $a.Int     cmp $b.Rat     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(IntStr:D     $a, NumStr:D     $b) { $a.Int     cmp $b.Num     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(IntStr:D     $a, ComplexStr:D $b) { $a.Int     cmp $b.Complex || $a.Str cmp $b.Str }
+multi sub infix:<cmp>(Allomorph:D $a, Allomorph:D $b) is default {
+    nqp::eqaddr((my $cmp := $a.Numeric cmp $b.Numeric),Order::Same)
+      ?? $a.Str cmp $b.Str
+      !! $cmp
+}
 
-multi sub infix:<cmp>(RatStr:D     $a, IntStr:D     $b) { $a.Rat     cmp $b.Int     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(RatStr:D     $a, RatStr:D     $b) { $a.Rat     cmp $b.Rat     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(RatStr:D     $a, NumStr:D     $b) { $a.Rat     cmp $b.Num     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(RatStr:D     $a, ComplexStr:D $b) { $a.Rat     cmp $b.Complex || $a.Str cmp $b.Str }
-
-multi sub infix:<cmp>(NumStr:D     $a, IntStr:D     $b) { $a.Num     cmp $b.Int     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(NumStr:D     $a, RatStr:D     $b) { $a.Num     cmp $b.Rat     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(NumStr:D     $a, NumStr:D     $b) { $a.Num     cmp $b.Num     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(NumStr:D     $a, ComplexStr:D $b) { $a.Num     cmp $b.Complex || $a.Str cmp $b.Str }
-
-multi sub infix:<cmp>(ComplexStr:D $a, IntStr:D     $b) { $a.Complex cmp $b.Int     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(ComplexStr:D $a, RatStr:D     $b) { $a.Complex cmp $b.Rat     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(ComplexStr:D $a, NumStr:D     $b) { $a.Complex cmp $b.Num     || $a.Str cmp $b.Str }
-multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b) { $a.Complex cmp $b.Complex || $a.Str cmp $b.Str }
-
-
-multi sub infix:<eqv>(IntStr:D     $a, IntStr:D     $b) { $a.Int     eqv $b.Int     && $a.Str eqv $b.Str }
-multi sub infix:<eqv>(IntStr:D     $a, RatStr:D     $b --> False) {}
-multi sub infix:<eqv>(IntStr:D     $a, NumStr:D     $b --> False) {}
-multi sub infix:<eqv>(IntStr:D     $a, ComplexStr:D $b --> False) {}
-
-multi sub infix:<eqv>(RatStr:D     $a, IntStr:D     $b --> False) {}
-multi sub infix:<eqv>(RatStr:D     $a, RatStr:D     $b) { $a.Rat     eqv $b.Rat     && $a.Str eqv $b.Str }
-multi sub infix:<eqv>(RatStr:D     $a, NumStr:D     $b --> False) {}
-multi sub infix:<eqv>(RatStr:D     $a, ComplexStr:D $b --> False) {}
-
-multi sub infix:<eqv>(NumStr:D     $a, IntStr:D     $b --> False) {}
-multi sub infix:<eqv>(NumStr:D     $a, RatStr:D     $b --> False) {}
-multi sub infix:<eqv>(NumStr:D     $a, NumStr:D     $b) { $a.Num     eqv $b.Num     && $a.Str eqv $b.Str }
-multi sub infix:<eqv>(NumStr:D     $a, ComplexStr:D $b --> False) {}
-
-multi sub infix:<eqv>(ComplexStr:D $a, IntStr:D     $b --> False) {}
-multi sub infix:<eqv>(ComplexStr:D $a, RatStr:D     $b --> False) {}
-multi sub infix:<eqv>(ComplexStr:D $a, NumStr:D     $b --> False) {}
-multi sub infix:<eqv>(ComplexStr:D $a, ComplexStr:D $b) { $a.Complex eqv $b.Complex && $a.Str eqv $b.Str }
+multi sub infix:<eqv>(Allomorph:D $a, Allomorph:D $b --> Bool:D) is default {
+    nqp::eqaddr($a.WHAT,$b.WHAT)
+      ?? $a.Numeric eqv $b.Numeric && $a.Str eqv $b.Str
+      !! False
+}
 
 multi sub infix:<===>(IntStr:D $a, IntStr:D $b) {
     $a.Int === $b.Int && $a.Str === $b.Str
@@ -213,37 +244,27 @@ multi sub val(*@maybevals) {
     @maybevals.list.map({ val($_) }).eager;
 }
 
-multi sub val(Mu) {
-    warn "Value of type Mu uselessly passed to val()";
-    Mu
+multi sub val(Mu \mu) {
+    warn "{ mu.raku } uselessly passed to val()";
+    mu
 }
 
-# if Slip, preserve slipness
-multi sub val(List:D $maybevals) {
-    nqp::stmts(
-        (my $output := val(|$maybevals)),
-        nqp::if(
-            nqp::istype($maybevals, Slip),
-            $output.Slip,
-            $output
-        )
-    )
-}
+multi sub val(Slip:D \maybevals) { val(|maybevals).Slip }
+multi sub val(List:D \maybevals) { val(|maybevals)      }
 
 multi sub val(Pair:D \ww-thing) is raw {
     # this is a Pair object possible in «» constructs; just pass it through. We
     # capture this specially from the below sub to avoid emitting a warning
     # whenever an affected «» construct is being processed.
-
     ww-thing
 }
 
-multi sub val(\one-thing) {
-    warn "Value of type {one-thing.WHAT.perl} uselessly passed to val()";
-    one-thing;
+multi sub val(\one-thing) is raw {
+    warn "Value of type { one-thing.^name } uselessly passed to val()";
+    one-thing
 }
 
-multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
+multi sub val(Str:D $MAYBEVAL, Bool :$val-or-fail, Bool :$fail-or-nil) {
     # TODO:
     # * Additional numeric styles:
     #   + fractions in [] radix notation:  :100[10,'.',53]
@@ -267,7 +288,9 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
     # string, or a failure if we're Str.Numeric
     my &parse_fail := -> \msg {
         $val-or-fail
-          ?? fail X::Str::Numeric.new(:source($MAYBEVAL),:reason(msg),:$pos)
+          ?? $fail-or-nil
+            ?? return Nil
+            !! fail X::Str::Numeric.new(:source($MAYBEVAL),:reason(msg),:$pos)
           !! return $MAYBEVAL
     }
 
@@ -346,7 +369,7 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
                 $pos    = $p;
 
                 $frac  := nqp::atpos($parse, 0);
-                $base  := nqp::atpos($parse, 1);
+                $base  := nqp::pow_I(nqp::box_i($radix, Int), nqp::atpos($parse, 1), Num, Int);
                 $ch     = nqp::islt_i($pos, $eos) && nqp::ord($str, $pos);
             }
 
@@ -573,4 +596,4 @@ multi sub val(Str:D $MAYBEVAL, :$val-or-fail) {
     parse_win $result;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

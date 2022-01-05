@@ -15,13 +15,10 @@ my role  Numeric { ... }
 my class Any { # declared in BOOTSTRAP
     # my class Any is Mu
 
-    multi method ACCEPTS(Any:D: Mu:D \a) { self === a }
-    multi method ACCEPTS(Any:D: Mu:U $ --> False) { }
-
-    # use of Any on topic to force autothreading
-    # so that all(@foo) ~~ Type works as expected
-    multi method ACCEPTS(Any:U: Any \topic --> Bool:D) {
-        nqp::hllbool(nqp::istype(topic, self))
+    multi method ACCEPTS(Any:D: Mu:U --> False) { }
+    multi method ACCEPTS(Any:D: Mu:D \topic) {
+        # XXX: &[===] works with Any, not Mu!
+        self === topic
     }
 
     proto method EXISTS-KEY(|) is nodal {*}
@@ -95,26 +92,38 @@ my class Any { # declared in BOOTSTRAP
     multi method end(Any:D:) { self.list.end }
 
     proto method keys(|) is nodal {*}
+    multi method keys(Enumeration:) is default { self.enums.keys }
+    multi method keys(Bool:)        { self.enums.keys }
     multi method keys(Any:U:) { () }
     multi method keys(Any:D:) { self.list.keys }
 
     proto method kv(|) is nodal {*}
+    multi method kv(Enumeration:) is default { self.enums.kv }
+    multi method kv(Bool:)        { self.enums.kv }
     multi method kv(Any:U:) { () }
     multi method kv(Any:D:) { self.list.kv }
 
     proto method values(|) is nodal {*}
+    multi method values(Enumeration:) is default { self.enums.values }
+    multi method values(Bool:)        { self.enums.values }
     multi method values(Any:U:) { () }
     multi method values(Any:D:) { self.list }
 
     proto method pairs(|) is nodal {*}
+    multi method pairs(Enumeration:) is default { self.enums.pairs }
+    multi method pairs(Bool:)        { self.enums.pairs }
     multi method pairs(Any:U:) { () }
     multi method pairs(Any:D:) { self.list.pairs }
 
     proto method antipairs(|) is nodal {*}
+    multi method antipairs(Enumeration:) is default { self.enums.antipairs }
+    multi method antipairs(Bool:)        { self.enums.antipairs }
     multi method antipairs(Any:U:) { () }
     multi method antipairs(Any:D:) { self.list.antipairs }
 
     proto method invert(|) is nodal {*}
+    multi method invert(Enumeration:) is default { self.enums.invert }
+    multi method invert(Bool:)        { self.enums.invert }
     multi method invert(Any:U:) { () }
     multi method invert(Any:D:) { self.list.invert }
 
@@ -123,6 +132,9 @@ my class Any { # declared in BOOTSTRAP
     proto method pick(|) is nodal {*}
     multi method pick()   { self.list.pick     }
     multi method pick($n) { self.list.pick($n) }
+    multi method pick(HyperWhatever) is default {
+        Seq.new: Rakudo::Iterator.Reiterate: { self.pick(Whatever).iterator }
+    }
 
     proto method roll(|) is nodal {*}
     multi method roll()   { self.list.roll     }
@@ -164,11 +176,6 @@ my class Any { # declared in BOOTSTRAP
     method combinations(|c) is nodal { self.list.combinations(|c) }
     method permutations(|c) is nodal { self.list.permutations(|c) }
     method join($separator = '') is nodal { self.list.join($separator) }
-
-    # XXX GLR should move these
-    method nodemap(&block) is nodal { nodemap(&block, self) }
-    method duckmap(&block) is nodal { duckmap(&block, self) }
-    method deepmap(&block) is nodal { deepmap(&block, self) }
 
     # XXX GLR Do we need tree post-GLR?
     proto method tree(|) is nodal {*}
@@ -223,9 +230,6 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{$pos.^name}' as an index";
     }
 
-    multi method EXISTS-POS(Any:D: int \pos --> Bool:D) {
-        nqp::hllbool(nqp::iseq_i(pos,0));
-    }
     multi method EXISTS-POS(Any:D: Int:D \pos --> Bool:D) {
         pos == 0;
     }
@@ -242,19 +246,15 @@ my class Any { # declared in BOOTSTRAP
         die "Cannot use '{pos.^name}' as an index";
     }
     multi method EXISTS-POS(Any:D: \one, \two --> Bool:D) is raw {
-        nqp::if(
-          nqp::istype((my $one := self.AT-POS(one)),Failure),
-          False,
-          $one.EXISTS-POS(two)
-        )
+        nqp::istype((my $one := self.AT-POS(one)),Failure)
+          ?? False
+          !! $one.EXISTS-POS(two)
     }
     multi method EXISTS-POS(Any:D: \one, \two,\three --> Bool:D) is raw {
-        nqp::if(
-          nqp::istype((my $one := self.AT-POS(one)),Failure)
-            || nqp::istype((my $two := $one.AT-POS(two)),Failure),
-          False,
-          $two.EXISTS-POS(three)
-        )
+        nqp::istype((my $one := self.AT-POS(one)),Failure)
+          || nqp::istype((my $two := $one.AT-POS(two)),Failure)
+          ?? False
+          !! $two.EXISTS-POS(three)
     }
     multi method EXISTS-POS(Any:D: **@indices --> Bool:D) {
         my $final    := @indices.pop;  # also reifies
@@ -276,9 +276,6 @@ my class Any { # declared in BOOTSTRAP
     }
 
     proto method AT-POS(|) is nodal {*}
-    multi method AT-POS(Any:U \SELF: int \pos) is raw {
-        nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
-    }
     multi method AT-POS(Any:U \SELF: Int:D \pos) is raw {
         nqp::p6scalarfromcertaindesc(ContainerDescriptor::VivifyArray.new(SELF, pos))
     }
@@ -291,12 +288,6 @@ my class Any { # declared in BOOTSTRAP
         self.AT-POS(nqp::unbox_i(pos.Int));
     }
 
-    multi method AT-POS(Any:D: int \pos) is raw {
-        pos
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'), :got(pos), :range<0..0>))
-          !! self
-    }
     multi method AT-POS(Any:D: Int:D \pos) is raw {
         pos
           ?? Failure.new(X::OutOfRange.new(
@@ -325,58 +316,45 @@ my class Any { # declared in BOOTSTRAP
         Rakudo::Internals.WALK-AT-POS(self,@indices).AT-POS($final)
     }
 
-    proto method ZEN-POS(|) {*}
-    multi method ZEN-POS(*%unexpected) {
-        %unexpected
-          ?? Failure.new(X::Adverb.new(
-               :what('[] slice'),
-               :source(try { self.VAR.name } // self.WHAT.perl),
-               :unexpected(%unexpected.keys)))
-          !! self
-    }
-
     proto method ZEN-KEY(|) {*}
     multi method ZEN-KEY(*%unexpected) {
         %unexpected
           ?? Failure.new(X::Adverb.new(
                :what('{} slice'),
-               :source(try { self.VAR.name } // self.WHAT.perl),
+               :source(try { self.VAR.name } // self.WHAT.raku),
                :unexpected(%unexpected.keys)))
           !! self
     }
 
     proto method ASSIGN-POS(|) is nodal {*}
-    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) {
+    multi method ASSIGN-POS(Any:U \SELF: \pos, Mu \assignee) is raw {
        SELF.AT-POS(pos) = assignee;                     # defer < 0 check
     }
 
-    multi method ASSIGN-POS(Any:D: int \pos, Mu \assignee) {
-        self.AT-POS(pos) = assignee;                    # defer < 0 check
+    multi method ASSIGN-POS(Any:D \SELF: Int:D \pos, Mu \assignee) is raw {
+        SELF.AT-POS(pos) = assignee;                    # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Int:D \pos, Mu \assignee) {
-        self.AT-POS(pos) = assignee;                    # defer < 0 check
-    }
-    multi method ASSIGN-POS(Any:D: Num:D \pos, Mu \assignee) {
+    multi method ASSIGN-POS(Any:D \SELF: Num:D \pos, Mu \assignee) is raw {
         nqp::isnanorinf(pos)
-          ?? Failure.new(X::Item.new(aggregate => self, index => pos))
-          !! self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+          ?? Failure.new(X::Item.new(aggregate => SELF, index => pos))
+          !! SELF.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
-    multi method ASSIGN-POS(Any:D: Any:D \pos, Mu \assignee) {
-        self.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
+    multi method ASSIGN-POS(Any:D \SELF: Any:D \pos, Mu \assignee) is raw {
+        SELF.AT-POS(nqp::unbox_i(pos.Int)) = assignee;  # defer < 0 check
     }
     multi method ASSIGN-POS(Any:D: Any:U \pos, Mu \assignee) {
         die "Cannot use '{pos.^name}' as an index";
     }
-    multi method ASSIGN-POS(Any:D: \one, \two, Mu \assignee) is raw {
-        self.AT-POS(one).ASSIGN-POS(two, assignee)
+    multi method ASSIGN-POS(Any:D \SELF: \one, \two, Mu \assignee) is raw {
+        SELF.AT-POS(one).ASSIGN-POS(two, assignee)
     }
-    multi method ASSIGN-POS(Any:D: \one, \two, \three, Mu \assignee) is raw {
-        self.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
+    multi method ASSIGN-POS(Any:D \SELF: \one, \two, \three, Mu \assignee) is raw {
+        SELF.AT-POS(one).AT-POS(two).ASSIGN-POS(three, assignee)
     }
-    multi method ASSIGN-POS(Any:D: **@indices) {
+    multi method ASSIGN-POS(Any:D \SELF: **@indices) is raw {
         my \value := @indices.pop;
         my $final := @indices.pop;
-        Rakudo::Internals.WALK-AT-POS(self,@indices).ASSIGN-POS($final,value)
+        Rakudo::Internals.WALK-AT-POS(SELF,@indices).ASSIGN-POS($final,value)
     }
 
     proto method BIND-POS(|) {*}
@@ -406,8 +384,8 @@ my class Any { # declared in BOOTSTRAP
     proto method AT-KEY(|) is nodal {*}
     multi method AT-KEY(Any:D: $key) is raw {
         Failure.new( self ~~ Associative
-          ?? "Associative indexing implementation missing from type {self.WHAT.perl}"
-          !! "Type {self.WHAT.perl} does not support associative indexing."
+          ?? "Associative indexing implementation missing from type {self.WHAT.raku}"
+          !! "Type {self.WHAT.raku} does not support associative indexing."
         )
     }
     multi method AT-KEY(Any:U \SELF: \key) is raw {
@@ -474,17 +452,6 @@ my class Any { # declared in BOOTSTRAP
     method print-nl() { self.print(self.nl-out) }
 
     method lazy-if($flag) { self }  # no-op on non-Iterables
-
-    method sum() is nodal {
-        my \iter = self.iterator;
-        my $sum = 0;
-        my Mu $value;
-        nqp::until(
-          nqp::eqaddr(($value := iter.pull-one),IterationEnd),
-          ($sum = $sum + $value)
-        );
-        $sum;
-    }
 }
 Metamodel::ClassHOW.exclude_parent(Any);
 
@@ -498,14 +465,8 @@ multi sub infix:<===>(\a, \b --> Bool:D) {
            && nqp::iseq_s(nqp::unbox_s(a.WHICH), nqp::unbox_s(b.WHICH)))
     )
 }
-
-proto sub infix:<before>($?, $?, *%)  is pure {*}
-multi sub infix:<before>($? --> True) { }
-multi sub infix:<before>(\a, \b --> Bool:D) { (a cmp b) < 0 }
-
-proto sub infix:<after>($?, $?, *%) is pure {*}
-multi sub infix:<after>($x? --> True) { }
-multi sub infix:<after>(\a, \b --> Bool:D) { (a cmp b) > 0 }
+# U+2A76 THREE CONSECUTIVE EQUALS SIGNS
+my constant &infix:<⩶> = &infix:<===>;
 
 proto sub prefix:<++>(Mu, *%)        {*}
 multi sub prefix:<++>(Mu:D $a is rw) { $a = $a.succ }
@@ -571,36 +532,88 @@ multi sub item(\x)    { my $ = x }
 multi sub item(|c)    { my $ = c.list }
 multi sub item(Mu $a) { $a }
 
-sub SLICE_HUH(\SELF, @nogo, %d, %adv) {
-    @nogo.unshift('delete')  # recover any :delete if necessary
-      if @nogo && @nogo[0] ne 'delete' && %adv.EXISTS-KEY('delete');
-    for <delete exists kv p k v> -> $valid { # check all valid params
-        if nqp::existskey(%d,nqp::unbox_s($valid)) {
-            nqp::deletekey(%d,nqp::unbox_s($valid));
-            @nogo.push($valid);
+sub dd(|c) {  # is implementation-detail
+
+    # handler for BOOTxxxArrays
+    sub BOOTArray(Mu \array) {
+        my \buffer  := nqp::create(IterationBuffer);
+        my \clone   := nqp::clone(array);
+        my str $name = array.^name;
+        if $name eq 'BOOTIntArray' {
+            nqp::while(
+              clone,
+              nqp::push(buffer,nqp::shift_i(clone))
+            );
         }
+        elsif $name eq 'BOOTStrArray' {
+            nqp::while(
+              clone,
+              nqp::push(buffer,nqp::shift_s(clone))
+            );
+        }
+        elsif $name eq 'BOOTNumArray' {
+            nqp::while(
+              clone,
+              nqp::push(buffer,nqp::shift_n(clone))
+            );
+        }
+        else {
+            nqp::while(
+              clone,
+              nqp::push(buffer,nqp::shift(clone))
+            );
+        }
+        $name ~ buffer.List.raku
     }
 
-    Failure.new(X::Adverb.new(
-      :what<slice>,
-      :source(try { SELF.VAR.name } // SELF.WHAT.perl),
-      :unexpected(%d.keys),
-      :nogo(@nogo),
-    ))
-} #SLICE_HUH
+    # handler for BOOTContext
+    sub BOOTContext(Mu \context) {
+        my $hash := nqp::hash;
+        my \iterator := nqp::iterator(context);
+        nqp::while(
+          iterator,
+          nqp::bindkey(
+            $hash,
+            nqp::iterkey_s(nqp::shift(iterator)),
+            nqp::iterval(iterator)
+          )
+        );
+        context.^name ~ '(' ~ nqp::substr(nqp::hllize($hash).raku.chop,1) ~ ')'
+    }
 
-sub dd(|) {
+    # handler for BOOTThread
+    sub BOOTThread(Mu \thread) {
+        "VM thread object for thread #{
+            nqp::threadid(thread)
+        } with { nqp::threadlockcount(thread) } locks"
+    }
+
     my Mu $args := nqp::p6argvmarray();
     if nqp::elems($args) {
         while $args {
             my $var  := nqp::shift($args);
             my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
+            $name := '' if $name && ($name eq 'element' | '%');
             my $type := $var.WHAT.^name.split("::").tail;
-            my $what := nqp::can($var,'perl')
-              ?? $var.perl
-              !! "($var.^name() without .perl method)";
+            $type := $type.chop if $type.contains(/ \W $ /);
+            my $what := nqp::can($var,'raku')
+              ?? $var.raku
+              !! nqp::can($var,'perl')
+                ?? $var.perl
+                !! $var.^name.starts-with('BOOT')
+                  ?? $var.^name.ends-with('Array')
+                    ?? BOOTArray($var)
+                    !! $var.^name.ends-with('Context')
+                      ?? BOOTContext($var)
+                      !! $var.^name.ends-with('Thread')
+                        ?? BOOTThread($var)
+                        !! "($var.^name() without .raku or .perl method)"
+                !! "($var.^name() without .raku or .perl method)";
             note $name ?? "$type $name = $what" !! $what;
         }
+    }
+    elsif c.hash -> %named {
+        note .raku for %named.sort: { .key }
     }
     else { # tell where we are
         note .name
@@ -611,4 +624,4 @@ sub dd(|) {
     return
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -7,6 +7,7 @@ my class Signature { # declared in BOOTSTRAP
     #   has int $!arity;          # arity
     #   has Num $!count;          # count
     #   has Code $!code;
+    #   has int $!readonly;       # bit mask indicating read-only positionals
 
     multi method new(Signature:U:
             :@params,
@@ -18,7 +19,7 @@ my class Signature { # declared in BOOTSTRAP
     }
 
     method !SET-SELF(@params, Mu $returns, $arity, $count) {
-        nqp::bind(@!params,nqp::getattr(@params,List,'$!reified')),
+        nqp::bind(@!params,nqp::getattr(@params,List,'$!reified'));
         $!returns := $returns;
         $!arity    = $arity;
         $!count   := $count;
@@ -32,64 +33,99 @@ my class Signature { # declared in BOOTSTRAP
         nqp::hllbool(nqp::p6isbindable(self, nqp::decont($topic)));
     }
     multi method ACCEPTS(Signature:D: Signature:D $topic) {
-        my $sclass = self.params.classify({.named});
-        my $tclass = $topic.params.classify({.named});
-        my @spos := $sclass{False} // ();
-        my @tpos := $tclass{False} // ();
+        my @r-params := self.params;
+        my @l-params := $topic.params;
 
-        while @spos {
-            my $s;
-            my $t;
-            last unless @tpos && ($t = @tpos.shift);
-            $s=@spos.shift;
-            if $s.slurpy or $s.capture {
-                @spos=();
-                @tpos=();
-                last;
-            }
-            if $t.slurpy or $t.capture {
-                return False unless any(@spos) ~~ {.slurpy or .capture};
-                @spos=();
-                @tpos=();
-                last;
-            }
-            if not $s.optional {
-                return False if $t.optional
-            }
-            return False unless $t ~~ $s;
-        }
-        return False if @tpos;
-        if @spos {
-            return False unless @spos[0].optional or @spos[0].slurpy or @spos[0].capture;
-        }
+        my $l-params := @l-params.elems;
+        my $todo     := $l-params;
 
-        for flat ($sclass{True} // ()).grep({!.optional and !.slurpy}) -> $this {
-            my $other;
-            return False unless $other=($tclass{True} // ()).grep(
-                {!.optional and $_ ~~ $this });
-            return False unless +$other == 1;
-        }
+        my @r-pos-queue;
+        my %r-named-queue;
 
-        my $here=($sclass{True}:v).SetHash;
-        my $hasslurpy=($sclass{True} // ()).grep({.slurpy});
-        $here{@$hasslurpy} :delete;
-        $hasslurpy .= Bool;
-        for flat @($tclass{True} // ()) -> $other {
-            my $this;
+        my $r-pos-sink   := False;
+        my $r-named-sink := False;
 
-            if $other.slurpy {
-                return False if any($here.keys) ~~ -> Any $_ { !(.type =:= Mu) };
-                return $hasslurpy;
+        for @r-params -> $r-param is raw {
+            if $r-param.positional {
+                if $r-param.slurpy {
+                    $r-pos-sink := True;
+                }
+                elsif $todo {
+                    # When a required or optional positional parameter exists
+                    # in a signature, it will be prepended. Typechecks can be
+                    # predicted when such parameters exist in the topic too.
+                    my $l-param := @l-params[$l-params - $todo];
+                    if $l-param.positional and not $l-param.slurpy {
+                        return False unless $l-param ~~ $r-param;
+                        $todo := $todo - 1;
+                    }
+                    else {
+                        @r-pos-queue.push: $r-param;
+                    }
+                }
+                else {
+                    @r-pos-queue.push: $r-param;
+                }
             }
-            if $this=$here.keys.grep( -> $t { $other ~~ $t }) {
-                $here{$this[0]} :delete;
+            elsif $r-param.named {
+                if $r-param.slurpy {
+                    $r-named-sink := True;
+                }
+                else {
+                    %r-named-queue{$_} := $r-param for $r-param.named_names;
+                }
             }
             else {
-                return False unless $hasslurpy;
+                $r-pos-sink := $r-named-sink := True;
             }
         }
-        return False unless self.returns =:= $topic.returns;
-        True;
+
+        for @l-params.tail: $todo -> $l-param is raw {
+            state %r-to-l-named{Mu};
+            if $l-param.positional {
+                if $l-param.slurpy {
+                    return False unless $r-pos-sink;
+                }
+                elsif @r-pos-queue {
+                    return False unless $l-param ~~ @r-pos-queue.shift;
+                }
+                else {
+                    return False unless $r-pos-sink;
+                }
+            }
+            elsif $l-param.named {
+                if $l-param.slurpy {
+                    return False unless $r-named-sink;
+                }
+                elsif %r-named-queue {
+                    my $found := False;
+                    for $l-param.named_names -> $name is raw {
+                        if %r-named-queue{$name}:exists {
+                            my $r-param := %r-named-queue{$name}:delete;
+                            return False unless $l-param ~~ $r-param;
+                            return False
+                                if %r-to-l-named{$r-param}:exists and not
+                                   %r-to-l-named{$r-param} =:= $l-param;
+                            %r-to-l-named{$r-param} := $l-param;
+                            $found := True;
+                        }
+                    }
+                    return False unless $found or $l-param.optional && $l-param.untyped;
+                }
+                else {
+                    return False unless $r-named-sink;
+                }
+            }
+            else {
+                return False unless $r-pos-sink && $r-named-sink;
+            }
+        }
+
+        return False unless .optional for @r-pos-queue;
+
+        return False unless .optional && .untyped for %r-named-queue.values;
+
+        self.returns =:= $topic.returns
     }
 
     method Capture() { X::Cannot::Capture.new( :what(self) ).throw }
@@ -107,26 +143,25 @@ my class Signature { # declared in BOOTSTRAP
             nqp::clone(@!params));
     }
 
-    method !gistperl(Signature:D: $perl, Mu:U :$elide-type = Mu) {
+    method !gistraku(Signature:D: $raku, Mu:U :$elide-type = Mu) {
         # Opening.
-        my $text = $perl ?? ':(' !! '(';
+        my $text = $raku ?? ':(' !! '(';
 
         # Parameters.
         if self.params.Array -> @params {
             if @params[0].invocant {
-                my $invocant = @params.shift.perl(:$elide-type);
+                my $invocant = @params.shift.raku(:$elide-type);
                 $invocant .= chop(2) if $invocant.ends-with(' $');
                 $text ~= "$invocant: ";
             }
-            $text ~= ';; '
-                if !@params[0].multi-invocant;
+            $text ~= ';; ' if @params && !@params[0].multi-invocant;
 
             my $sep = '';
             for @params.kv -> $i, $param {
-                $text ~= $sep ~ $_ with $param.perl(:$elide-type);
+                $text ~= $sep ~ $_ with $param.raku(:$elide-type);
 
                 # Remove sigils from anon typed scalars, leaving type only
-                $text .= subst(/» ' $'$/,'') unless $perl;
+                $text .= subst(/» ' $'$/,'') unless $raku;
 
                 $sep = $param.multi-invocant && !@params[$i+1].?multi-invocant
                   ?? ';; '
@@ -134,7 +169,7 @@ my class Signature { # declared in BOOTSTRAP
             }
         }
         if !nqp::isnull($!returns) && !($!returns =:= Mu) {
-            $text = $text ~ ' --> ' ~ $!returns.perl
+            $text = $text ~ ' --> ' ~ (nqp::can($!returns, 'raku') ?? $!returns.raku !! $!returns.^name)
         }
         # Closer.
         $text ~ ')'
@@ -144,31 +179,31 @@ my class Signature { # declared in BOOTSTRAP
          !nqp::isnull($!code) && $!code ~~ Routine ?? Any !! Mu
     }
 
-    multi method perl(Signature:D:) {
-        self!gistperl(True, :elide-type(self!deftype))
+    multi method raku(Signature:D:) {
+        self!gistraku(True, :elide-type(self!deftype))
     }
     multi method gist(Signature:D:) {
-        self!gistperl(False, :elide-type(self!deftype))
+        self!gistraku(False, :elide-type(self!deftype))
     }
 }
 
-multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
+multi sub infix:<eqv>(Signature:D $a, Signature:D $b) {
 
     # we're us
-    return True if a =:= b;
+    return True if nqp::eqaddr($a,$b);
 
     # different container type
-    return False unless a.WHAT =:= b.WHAT;
+    return False unless nqp::eqaddr($a.WHAT,$b.WHAT);
 
     # different return
-    return False unless a.returns =:= b.returns;
+    return False unless nqp::eqaddr($a.returns,$b.returns);
 
     # arity or count mismatch
-    return False if a.arity != b.arity || a.count != b.count;
+    return False if $a.arity != $b.arity || $a.count != $b.count;
 
     # different number of parameters or no parameters
-    my $ap := nqp::getattr(a.params,List,'$!reified');
-    my $bp := nqp::getattr(b.params,List,'$!reified');
+    my $ap := nqp::getattr($a.params,List,'$!reified');
+    my $bp := nqp::getattr($b.params,List,'$!reified');
     my int $elems = nqp::elems($ap);
     return False if nqp::isne_i($elems,nqp::elems($bp));
     return True unless $elems;
@@ -196,7 +231,7 @@ multi sub infix:<eqv>(Signature:D \a, Signature:D \b) {
               nqp::isnull($nn) ?? '' !! nqp::elems($nn) ?? nqp::atpos_s($nn,0) !! '';
             die "Found named parameter '{
               nqp::chars($key) ?? $key !! '(unnamed)'
-            }' twice in signature {a.perl}: {$p.perl} vs {nqp::atkey($lookup,$key).perl}"
+            }' twice in signature {$a.raku}: {$p.raku} vs {nqp::atkey($lookup,$key).raku}"
               if nqp::existskey($lookup,$key);
             nqp::bindkey($lookup,$key,$p);
         }
@@ -224,4 +259,4 @@ Perl6::Metamodel::Configuration.set_multi_sig_comparator(
     -> \a, \b { a.signature eqv b.signature }
 );
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

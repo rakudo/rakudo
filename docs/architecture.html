@@ -1,12 +1,12 @@
 <html>
 <head>
-    <title>How Rakudo compiles a Perl 6 program</title>
+    <title>How Rakudo compiles a Raku program **OBSOLETE**</title>
 </head>
 <body style="margin:2ex">
 
-<h1>How Rakudo compiles a Perl 6 program</h1>
+<h1>How Rakudo compiles a Raku program <b>OBSOLETE</b></h1>
 
-<object 
+<object
     style="margin:2ex; float:left"
     data="architecture.svg"
     type="image/svg+xml"
@@ -17,11 +17,11 @@
 <a id="action-methods" />
 <h2 id="parser" >Parser and Action Methods</h2>
 
-<p>The Perl 6 source code is transformed in various stages, of which the first two are the Parser and Action Method stages. The Parser creates a parse tree out of the Perl 6 source code and then gives control to appropriate action methods that annotate the parse tree, incrementally turning it into an Abstract Syntax Tree (AST). When an action method is done annotating, control is handed back to the parser, which then continues parsing the Perl 6 code and "fire off" new action methods as it goes.</p>
+<p>The Raku source code is transformed in various stages, of which the first two are the Parser and Action Method stages. The Parser creates a parse tree out of the Raku source code and then gives control to appropriate action methods that annotate the parse tree, incrementally turning it into an Abstract Syntax Tree (AST). When an action method is done annotating, control is handed back to the parser, which then continues parsing the Raku code and "fire off" new action methods as it goes.</p>
 
 <p>The result of these two stages interacting is an "improved PAST" (Perl 6 Abstract Syntax Tree) called QAST. This tree is then passed on to the QAST compiler.</p>
 
-<p>The parser and action methods are implemented in "Not Quite Perl 6" (NQP) and are part of Rakudo and hosted in the Rakudo repository at <a href="../src/Perl6/Grammar.pm">src/Perl6/Grammar.pm</a> and <a href="../src/Perl6/Actions.pm">src/Perl6/Actions.pm</a>.</p>
+<p>The parser and action methods are implemented in "Not Quite Perl" (NQP) and are part of Rakudo and hosted in the Rakudo repository at <a href="../src/Perl6/Grammar.nqp">src/Perl6/Grammar.nqp</a> and <a href="../src/Perl6/Actions.nqp">src/Perl6/Actions.nqp</a>.</p>
 
 <h2 id="the-world">The World</h2>
 
@@ -54,17 +54,17 @@
 
 <h2 id="pmc-dynops">PMCs and dynops</h2>
 
-<p>There are also some supporting custom types and operations in Rakudo called <em>dynamic PMCs</em> and <em>dynamic ops</em> (dynops) which are written in C, and helper functions written in NQP and PIR. These supporting libraries exist for adding features to Parrot that are needed to handle special features in Perl 6.</p>
+<p>There are also some supporting custom types and operations in Rakudo called <em>dynamic PMCs</em> and <em>dynamic ops</em> (dynops) which are written in C, and helper functions written in NQP and PIR. These supporting libraries exist for adding features to Parrot that are needed to handle special features in Raku.</p>
 
 <h2 id="core-setting">Core setting library</h2>
 
-<p>The core settings library is the library containing the methods, classes and almost all other features that make up the Rakudo Perl 6 implementation. This library is tightly coupled with the <code>perl6</code> binary, and loaded by default every time <code>perl6</code> is run.</p>
+<p>The core settings library is the library containing the methods, classes and almost all other features that make up the Rakudo Raku implementation. This library is tightly coupled with the <code>raku</code> binary, and loaded by default every time <code>raku</code> is run.</p>
 
 <h2 id="glossary">Glossary</h2>
 
 <dl>
     <dt>NQP</dt>
-    <dd>Not Quite Perl 6, a small subset of Perl 6 that is used for tree transformations in compilers.</dd>
+    <dd>Not Quite Perl, a small subset of Raku that is used for tree transformations in compilers.</dd>
 
     <dt>PIR</dt>
     <dd>Parrot Intermediate Representation, the most commonly used for of parrot assembly (which is still high-level enough to be written by humans).</dd>
@@ -76,10 +76,10 @@
     <dd>Parrot Byte Code, the binary form to which all parrot programs are compiled in the end.</dd>
 
     <dt>Core setting</dt>
-    <dd>The core setting is the Perl 6 standard library. It is part of the perl6 executable, and contains all the standard features available in Perl 6.</dd>
+    <dd>The core setting is the Raku standard library. It is part of the raku executable, and contains all the standard features available in Raku.</dd>
 
     <dt>QAST</dt>
-    <dd>The "improved" Abstract Syntax Tree used in Rakudo Perl 6. It contains information about how the program is structured, and what it is supposed to do.</dd>
+    <dd>The "improved" Abstract Syntax Tree used in Rakudo. It contains information about how the program is structured, and what it is supposed to do.</dd>
 
     <dt>PIRT</dt>
     <dd>Parrot Intermediate Representation Tree.</dd>
@@ -88,6 +88,6 @@
 
 </body>
 </html>
-<!-- 
+<!--
     vim: ft=html spell sw=4 ts=4 expandtab tw=75
 -->

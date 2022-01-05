@@ -26,19 +26,15 @@ my role Iterator {
     # occur; you must be sure this is desired. Returns the number of things
     # pushed, or IterationEnd if it reached the end of the iteration.
     method push-exactly(\target, int $n) {
-        nqp::stmts(
-          (my int $todo = nqp::add_i($n,1)),
-          nqp::until(  # doesn't sink
-            nqp::not_i($todo = nqp::sub_i($todo,1))
-              || nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
-            target.push($pulled) # don't .sink $pulled here, it can be a Seq
-          ),
-          nqp::if(
-            nqp::eqaddr($pulled,IterationEnd),
-            IterationEnd,
-            $n
-          )
-        )
+        my int $todo = nqp::add_i($n,1);
+
+        nqp::until(  # doesn't sink
+          nqp::not_i($todo = nqp::sub_i($todo,1))
+            || nqp::eqaddr((my $pulled := self.pull-one),IterationEnd),
+          target.push($pulled) # don't .sink $pulled here, it can be a Seq
+        );
+
+        nqp::eqaddr($pulled,IterationEnd) ?? IterationEnd !! $n
     }
 
     # Has the iteration push at least a certain number of values into the
@@ -76,24 +72,20 @@ my role Iterator {
     # Skip the given number of values.  Return true if succesful in
     # skipping that many values.
     method skip-at-least(int $toskip) {
-        nqp::stmts(
-          (my int $left = $toskip),
-          nqp::while(
-            nqp::isge_i(($left = nqp::sub_i($left,1)),0) && self.skip-one,
-            nqp::null
-          ),
-          nqp::islt_i($left,0)
-        )
+        my int $left = $toskip;
+        nqp::while(
+          nqp::isge_i(($left = nqp::sub_i($left,1)),0) && self.skip-one,
+          nqp::null
+        );
+        nqp::islt_i($left,0)
     }
 
     # Skip the given number of values produced before returning the next
     # pulled value.  Given 0 it is an expensive way to do .pull-one
     method skip-at-least-pull-one(int $toskip) {
-        nqp::if(
-          self.skip-at-least($toskip),
-          self.pull-one,
-          IterationEnd
-        )
+        self.skip-at-least($toskip)
+          ?? self.pull-one
+          !! IterationEnd
     }
 
     # Consumes all of the values in the iterator for their side-effects only.
@@ -101,8 +93,8 @@ my role Iterator {
     # sink context that should not be used that way, or to process things in
     # a more efficient way when we know we don't need the results.
     method sink-all(--> IterationEnd) {
-        nqp::until(
-          nqp::eqaddr(self.pull-one,IterationEnd),
+        nqp::while(
+          self.skip-one,
           nqp::null
         )
     }
@@ -112,6 +104,12 @@ my role Iterator {
     # user absolutely asks for.  This has e.g. effect on the behaviour
     # on .STORE: a lazy iterator would not reify, a non-lazy would.
     method is-lazy(--> False) { }
+
+    # Whether the iterator will produce values in a deterministic way (always
+    # the same for a given data source).  This is True for most iterators,
+    # but *not* true for iterators that typically return keys and/or values
+    # from a hash.
+    method is-deterministic(--> True) { }
 }
 
 # The PredictiveIterator role is a refinement of the Iterator role for those
@@ -129,6 +127,10 @@ my role PredictiveIterator does Iterator {
     # to indicate whether the generator is (still) able to generate at least
     # one value, *without* actually generating that value.
     method bool-only(--> Bool:D) { self.count-only.Bool }
+
+    # Since PredictiveIterators are not supposed to be lazy, we can skip
+    # the step checking for laziness.
+    method push-until-lazy(\target) { self.push-all(target) }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

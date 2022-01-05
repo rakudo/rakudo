@@ -1,6 +1,3 @@
-my class IO::Path { ... }
-my class Proc { ... }
-
 my class IO::Handle {
     has $.path;
     has $!PIO;
@@ -13,46 +10,52 @@ my class IO::Handle {
     has int $!out-buffer;
 
     submethod TWEAK (:$encoding, :$bin, IO() :$!path = Nil) {
-        nqp::if(
-          $bin,
-          nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
-          $!encoding = $encoding || 'utf8')
+        $bin
+          ?? nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw
+          !! ($!encoding = $encoding || 'utf8')
     }
 
 #?if moar
     # Make sure we close any open files on exit
     my $opened := nqp::list;
-    my $opened-locker = Lock.new;
+    my $opened-locker := Lock.new;
     method !remember-to-close(--> Nil) {
         $opened-locker.protect: {
-            nqp::stmts(
-              nqp::if(
-                nqp::isge_i(
-                  (my int $fileno = nqp::filenofh($!PIO)),
-                  (my int $elems = nqp::elems($opened))
-                ),
-                nqp::setelems($opened,nqp::add_i($elems,1024))
-              ),
-              nqp::bindpos($opened,$fileno,$!PIO)
+            nqp::setelems($opened,nqp::elems($opened) + 1024)
+              if nqp::isge_i(nqp::filenofh($!PIO),nqp::elems($opened));
+            nqp::bindpos($opened,nqp::filenofh($!PIO),$!PIO);
+        }
+    }
+    method !forget-about-closing(--> Nil) {
+        $opened-locker.protect: {
+            nqp::bindpos($opened,nqp::filenofh($!PIO),nqp::null)
+        }
+    }
+    method !close-all-open-handles(--> Nil) {
+        if nqp::elems($opened) -> int $elems {
+            my int $i = 2;  # skip STDIN, STDOUT, STDERR
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::isnull(my $PIO := nqp::atpos($opened,$i)),
+                nqp::closefh($PIO)
+              )
             )
         }
     }
-    method !forget-about-closing(int $fileno --> Nil) {
-        $opened-locker.protect: {
-            nqp::bindpos($opened,$fileno,nqp::null)
+
+    method do-not-close-automatically(IO::Handle:D: --> Bool:D) {
+        if nqp::defined($!PIO) {
+            self!forget-about-closing;
+            True
+        }
+        else {
+            False
         }
     }
-    method !close-all-open-handles() {
-        my int $i = 2;
-        my int $elems = nqp::elems($opened);
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::unless(
-            nqp::isnull(my $PIO := nqp::atpos($opened,$i)),
-            nqp::closefh($PIO)
-          )
-        )
-    }
+#?endif
+#?if !moar
+    method do-not-close-automatically(IO::Handle:D: --> False) { }
 #?endif
 
     method open(IO::Handle:D:
@@ -223,17 +226,15 @@ my class IO::Handle {
         nqp::if(
           nqp::defined($!PIO),
           nqp::stmts(
-            $!decoder && ($!decoder := Encoding::Decoder),
-#?if !moar
-            nqp::closefh($!PIO), # TODO: catch errors
-            $!PIO := nqp::null
-#?endif
+            nqp::if(
+              nqp::isconcrete($!decoder),
+              ($!decoder := Encoding::Decoder)
+            ),
 #?if moar
-            (my int $fileno = nqp::filenofh($!PIO)),
-            nqp::closefh($!PIO), # TODO: catch errors
-            ($!PIO := nqp::null),
-            self!forget-about-closing($fileno)
+            self!forget-about-closing,  # mark as closed
 #?endif
+            nqp::closefh($!PIO),        # close, ignore errors
+            $!PIO := nqp::null          # mark HLL handle now also closed
           )
         )
     }
@@ -245,17 +246,21 @@ my class IO::Handle {
     }
 
     method EOF() {
-        nqp::isnull($!PIO) || nqp::eoffh($!PIO)
+        nqp::not_i(nqp::defined($!PIO)) || nqp::eoffh($!PIO)
     }
 
     method READ(Int:D $bytes) {
-        nqp::readfh($!PIO,buf8.new,nqp::unbox_i($bytes))
+        nqp::readfh($!PIO,nqp::create(buf8.^pun),$bytes)
+    }
+
+    method !failed($trying) {
+        ($!PIO ?? X::IO::BinaryMode !! X::IO::Closed).new(:$trying).throw
     }
 
     method get(IO::Handle:D:) {
         $!decoder
           ?? $!decoder.consume-line-chars(:$!chomp) // self!get-line-slow-path()
-          !! X::IO::BinaryMode.new(:trying<get>).throw
+          !! self!failed('get')
     }
 
     method !get-line-slow-path() {
@@ -280,20 +285,21 @@ my class IO::Handle {
 
     method getc(IO::Handle:D:) {
         $!decoder
-          ?? $!decoder.consume-exactly-chars(1) || (self!readchars-slow-path(1) || Nil)
-          !! X::IO::BinaryMode.new(:trying<getc>).throw
+          ?? $!decoder.consume-exactly-chars(1)
+               || (self!readchars-slow-path(1) || Nil)
+          !! self!failed('getc')
     }
 
     # XXX TODO: Make these routine read handle lazily when we have Cat type
     method comb (IO::Handle:D: :$close, |c) {
         $!decoder
           ?? self.slurp(:$close).comb( |c )
-          !! X::IO::BinaryMode.new(:trying<comb>).throw
+          !! self!failed('comb')
     }
     method split(IO::Handle:D: :$close, |c) {
         $!decoder
           ?? self.slurp(:$close).split( |c )
-          !! X::IO::BinaryMode.new(:trying<split>).throw
+          !! self!failed('split')
     }
 
     proto method words (|) {*}
@@ -305,26 +311,17 @@ my class IO::Handle {
               ?? Seq.new(Rakudo::Iterator.FirstNThenSinkAll(
                   self.words.iterator, $limit.Int, {SELF.close}))
               !! self.words.head($limit.Int)
-          !! X::IO::BinaryMode.new(:trying<words>).throw
+          !! self!failed('words')
     }
 
     my class Words does Iterator {
-        has $!handle;
-        has $!close;
-        has str $!str;
+        has $!handle is built(:bind);
+        has $!close  is built(:bind);
+        has str $!str= ""; # https://github.com/Raku/old-issue-tracker/issues/4690;
+        has int $!searching = 1;
         has int $!pos;
-        has int $!searching;
 
-        method !SET-SELF(\handle, $!close) {
-            $!handle   := handle;
-            $!searching = 1;
-            $!str       = ""; # RT #126492
-            self!next-chunk;
-            self
-        }
-        method new(\handle, \close) {
-            nqp::create(self)!SET-SELF(handle, close);
-        }
+        method TWEAK() { self!next-chunk }
         method !next-chunk() {
             my int $chars = nqp::chars($!str);
             $!str = $!pos < $chars ?? nqp::substr($!str,$!pos) !! "";
@@ -398,8 +395,8 @@ my class IO::Handle {
     }
     multi method words(IO::Handle:D: :$close) {
         $!decoder
-          ?? Seq.new(Words.new(self,$close))
-          !! X::IO::BinaryMode.new(:trying<words>).throw
+          ?? Seq.new(Words.new(:handle(self), :$close))
+          !! self!failed('words')
     }
 
     my class GetLineFast does Iterator {
@@ -500,7 +497,7 @@ my class IO::Handle {
           ?? nqp::eqaddr(self.WHAT,IO::Handle)
             ?? GetLineFast.new(self,$close)   # exact type, can shortcircuit
             !! GetLineSlow.new(self,$close)   # can *NOT* shortcircuit .get
-          !! X::IO::BinaryMode.new(:trying<lines>).throw
+          !! self!failed('lines')
     }
 
     proto method lines (|) {*}
@@ -520,25 +517,27 @@ my class IO::Handle {
         # If we have one, read bytes via. the decoder to support mixed-mode I/O.
         $!decoder
             ?? ($!decoder.consume-exactly-bytes($bytes) // self!read-slow-path($bytes))
-            !! self.READ($bytes)
+            !! nqp::eqaddr(nqp::what(self),IO::Handle)
+              ?? nqp::readfh($!PIO,nqp::create(buf8.^pun),$bytes)
+              !! self.READ($bytes)
     }
 
     method !read-slow-path($bytes) {
         if self.EOF && $!decoder.is-empty {
-            buf8.new
+            nqp::create(buf8.^pun)
         }
         else {
             $!decoder.add-bytes(self.READ($bytes max 0x100000));
             $!decoder.consume-exactly-bytes($bytes)
                 // $!decoder.consume-exactly-bytes($!decoder.bytes-available)
-                // buf8.new
+                // nqp::create(buf8.^pun)
         }
     }
 
     method readchars(Int(Cool:D) $chars = $*DEFAULT-READ-ELEMS) {
         $!decoder
           ?? $!decoder.consume-exactly-chars($chars) // self!readchars-slow-path($chars)
-          !! X::IO::BinaryMode.new(:trying<readchars>).throw
+          !! self!failed('readchars')
     }
 
     method !readchars-slow-path($chars) {
@@ -631,7 +630,7 @@ my class IO::Handle {
         Bool:D :$non-blocking = False, Bool:D :$shared = False --> True
     ) {
 #?if moar
-        self!forget-about-closing(nqp::filenofh($!PIO));
+        self!forget-about-closing;
 #?endif
         nqp::lockfh($!PIO, 0x10*$non-blocking + $shared);
         CATCH { default {
@@ -655,54 +654,80 @@ my class IO::Handle {
         self.print(sprintf |c);
     }
 
-    proto method print(|) {*}
+    multi method print(IO::Handle:D: Junction:D \j) {
+        j.THREAD: { self.print: $_ }
+    }
     multi method print(IO::Handle:D: Str:D \x --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars(x))
-          !! X::IO::BinaryMode.new(:trying<print>).throw
+          !! self!failed('print')
     }
-    multi method print(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
-        self.print(@list.join);
-    }
-    multi method print(Junction:D \j) { j.THREAD: {self.print: $_} }
-
-    proto method put(|) {*}
-    multi method put(IO::Handle:D: Str:D \x --> True) {
+    multi method print(IO::Handle:D: \x --> True) {
         $!decoder
-          ?? self.WRITE($!encoder.encode-chars(
-               nqp::concat(nqp::unbox_s(x), nqp::unbox_s($!nl-out))))
-          !! X::IO::BinaryMode.new(:trying<put>).throw
+          ?? self.WRITE($!encoder.encode-chars(x.Str))
+          !! self!failed('print')
     }
-    multi method put(IO::Handle:D: **@list is raw --> True) { # is raw gives List, which is cheaper
-        self.put(@list.join);
-    }
-    multi method put(Junction:D \j) { j.THREAD: {self.put: $_} }
+    multi method print(IO::Handle:D: | --> True) {
+        self!failed('print') unless $!decoder;
 
-    multi method say(IO::Handle:D: Str:D $x --> True) {
+        my Mu $args := nqp::p6argvmarray;
+        nqp::shift($args);
+        self.WRITE($!encoder.encode-chars(
+          nqp::join("",Rakudo::Internals.StrList2list_s($args))))
+    }
+
+    multi method put(IO::Handle:D: Junction:D \j) {
+        j.THREAD: { self.print: nqp::concat(.Str,$!nl-out) }
+    }
+    multi method put(IO::Handle:D: --> True) {
         $!decoder
-          ?? self.WRITE($!encoder.encode-chars(
-               nqp::concat(nqp::unbox_s($x), nqp::unbox_s($!nl-out))))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
+          ?? self.WRITE($!encoder.encode-chars($!nl-out))
+          !! self!failed('say')
+    }
+    multi method put(IO::Handle:D: \x --> True) {
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.Str, $!nl-out)))
+          !! self!failed('put')
+    }
+    multi method put(IO::Handle:D: | --> True) {
+        self!failed('put') unless $!decoder;
+
+        my Mu $args := nqp::p6argvmarray;
+        nqp::shift($args);
+        my $parts := Rakudo::Internals.StrList2list_s($args);
+        nqp::push_s($parts,$!nl-out);
+        self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
+    }
+
+    multi method say(IO::Handle:D: --> True) {
+        $!decoder
+          ?? self.WRITE($!encoder.encode-chars($!nl-out))
+          !! self!failed('say')
     }
     multi method say(IO::Handle:D: \x --> True) {
         $!decoder
-          ?? self.WRITE($!encoder.encode-chars(
-               nqp::concat(nqp::unbox_s(x.gist), nqp::unbox_s($!nl-out))))
-          !! X::IO::BinaryMode.new(:trying<say>).throw
+          ?? self.WRITE($!encoder.encode-chars(nqp::concat(x.gist,$!nl-out)))
+          !! self!failed('say')
     }
-    multi method say(IO::Handle:D: |) {
-        $!decoder or X::IO::BinaryMode.new(:trying<say>).throw;
-        my Mu $args := nqp::p6argvmarray();
+    multi method say(IO::Handle:D: | --> True) {
+        self!failed('say') unless $!decoder;
+
+        my Mu $args := nqp::p6argvmarray;
         nqp::shift($args);
-        my str $conc = '';
-        $conc = nqp::concat($conc, nqp::shift($args).gist) while $args;
-        self.print(nqp::concat($conc, $!nl-out));
+        my $parts := Rakudo::Internals.GistList2list_s($args);
+        nqp::push_s($parts,$!nl-out);
+        self.WRITE($!encoder.encode-chars(nqp::join("",$parts)))
     }
+
+    # there is no special handling, since it is supposed to give a
+    # human readable version of the Junction.  Leaving the method here
+    # so that future optimizers will not try to add it.
+    # multi method say(Junction:D \j) { j.THREAD: { self.say: $_ } }
 
     method print-nl(IO::Handle:D: --> True) {
         $!decoder
           ?? self.WRITE($!encoder.encode-chars($!nl-out))
-          !! X::IO::BinaryMode.new(:trying<print-nl>).throw
+          !! self!failed('print-nl')
     }
 
     proto method slurp-rest(|) {*}
@@ -711,7 +736,7 @@ my class IO::Handle {
         # Testing of it in roast master has been removed and only kept in 6.c
         # If you're changing this code for whatever reason, test with 6.c-errata
         LEAVE self.close if $close;
-        my $res := buf8.new;
+        my $res := nqp::create(buf8.^pun);
         loop {
             my $buf := self.read(0x100000);
             nqp::elems($buf)
@@ -720,38 +745,55 @@ my class IO::Handle {
         }
     }
     multi method slurp-rest(IO::Handle:D: :$enc, :$bin, :$close --> Str:D) {
+        self!failed('slurp-rest') unless $!decoder;
+
         # NOTE: THIS METHOD WILL BE DEPRECATED IN 6.d in favour of .slurp()
         # Testing of it in roast master has been removed and only kept in 6.c
         # If you're changing this code for whatever reason, test with 6.c-errata
-        $!decoder or X::IO::BinaryMode.new(:trying<slurp-rest>).throw;
         LEAVE self.close if $close;
         self.encoding($enc) if $enc.defined;
         self!slurp-all-chars()
     }
 
     method slurp(IO::Handle:D: :$close, :$bin) {
+        my $res;
+        nqp::if(
+          $!decoder,
+          nqp::if(
+            $bin,
+            nqp::stmts(
+              ($res := nqp::create(buf8.^pun)),
+              nqp::if(
+                $!decoder.bytes-available,
+                $res.append(
+                  $!decoder.consume-exactly-bytes($!decoder.bytes-available)
+                )
+              )
+            ),
+            ($res := self!slurp-all-chars)
+          ),
+          ($res := nqp::create(buf8.^pun))
+        );
+
+        nqp::if(
+          nqp::isfalse($!decoder) || $bin,
+          nqp::while(
+            nqp::elems(my $buf := self.READ(0x100000)),
+            $res.append($buf)
+          )
+        );
+
+        # don't sink result of .close; it might be a failed Proc
+#?if jvm
         nqp::stmts(
-          (my $res),
-          nqp::if(
-            $!decoder,
-            nqp::if(
-              $bin,
-              nqp::stmts(
-                ($res := buf8.new),
-                nqp::if(
-                  $!decoder.bytes-available,
-                  $res.append($!decoder.consume-exactly-bytes(
-                    $!decoder.bytes-available)))),
-              ($res := self!slurp-all-chars())),
-            ($res := buf8.new)),
-          nqp::if(
-            nqp::isfalse($!decoder) || $bin,
-            nqp::while(
-              nqp::elems(my $buf := self.READ(0x100000)),
-              $res.append($buf))),
-          # don't sink result of .close; it might be a failed Proc
           nqp::if($close, my $ = self.close),
-          $res)
+          $res
+        )
+#?endif
+#?if !jvm
+        my $ = self.close if $close;
+        $res
+#?endif
     }
 
     method !slurp-all-chars() {
@@ -836,24 +878,19 @@ my class IO::Handle {
         }
     }
 
-    submethod DESTROY(IO::Handle:D:) {
+    submethod DESTROY(IO::Handle:D: --> Nil) {
         # Close handles with any file descriptor larger than 2. Those below
         # are our $*IN, $*OUT, and $*ERR, and we don't want them closed
         # implicitly via DESTROY, since you can't get them back again.
-        nqp::if(
-          nqp::defined($!PIO)
-            && nqp::isgt_i((my int $fileno = nqp::filenofh($!PIO)), 2),
-          nqp::stmts(
-            nqp::closefh($!PIO),  # don't bother checking for errors
-#?if !moar
-            $!PIO := nqp::null
-#?endif
+
+        self.close
+          if nqp::defined($!PIO)                   # not closed yet
+          && nqp::isgt_i(nqp::filenofh($!PIO),2)   # not a standard handle
 #?if moar
-            ($!PIO := nqp::null),
-            self!forget-about-closing($fileno)
+          && nqp::not_i(                           # marked for closing
+               nqp::isnull(nqp::atpos($opened,nqp::filenofh($!PIO)))
+             )
 #?endif
-          )
-        )
     }
 
     method native-descriptor(IO::Handle:D:) {
@@ -867,4 +904,4 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*DEFAULT-READ-ELEMS', {
     PROCESS::<$DEFAULT-READ-ELEMS> := %*ENV<RAKUDO_DEFAULT_READ_ELEMS> // 65536;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

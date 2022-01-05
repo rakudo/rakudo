@@ -7,19 +7,19 @@ my class IO::CatHandle is IO::Handle {
     has Str $.encoding;
     has &.on-switch is rw;
 
-    multi method perl(::?CLASS:D:) {
+    multi method raku(::?CLASS:D:) {
         my @handles =
             ($!active-handle if $!active-handle),
-            |nqp::p6bindattrinvres((), List, '$!reified', $!handles);
+            |nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',$!handles);
 
         my $parts = join ', ',
-            (@handles.List.perl if @handles),
+            (@handles.List.raku if @handles),
             (':!chomp' if not $!chomp),
-            (":nl-in({$!nl-in.list.perl})" if $!nl-in !eqv ["\x0A", "\r\n"]),
+            (":nl-in({$!nl-in.list.raku})" if $!nl-in !eqv ["\x0A", "\r\n"]),
             (nqp::isconcrete($!encoding)
-                ?? ":encoding({$!encoding.perl})"
+                ?? ":encoding({$!encoding.raku})"
                 !! ':bin'),
-            (':&.on-switch({;})' if &!on-switch); # can't .perl Callables :(
+            (':&.on-switch({;})' if &!on-switch); # can't .raku Callables :(
 
         "{self.^name}.new($parts)"
     }
@@ -27,10 +27,9 @@ my class IO::CatHandle is IO::Handle {
     method !SET-SELF (
         @handles, &!on-switch, $!chomp, $!nl-in, $encoding, $bin
     ) {
-        nqp::if(
-          $bin,
-          nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw,
-          $!encoding = $encoding || 'utf8');
+        $bin
+          ?? nqp::isconcrete($encoding) && X::IO::BinaryAndEncoding.new.throw
+          !! ($!encoding = $encoding || 'utf8');
 
         @handles.elems; # reify
         $!handles := nqp::getattr(@handles || [], List, '$!reified');
@@ -96,11 +95,8 @@ my class IO::CatHandle is IO::Handle {
     }
 
     my class Handles does Iterator {
-        has $!cat;
+        has $!cat is built(:bind);
         has $!gave-active;
-
-        method !SET-SELF(\cat) { $!cat := cat; self }
-        method new(\cat) { nqp::create(self)!SET-SELF: cat }
 
         method pull-one {
             nqp::if(
@@ -116,7 +112,9 @@ my class IO::CatHandle is IO::Handle {
                 ?? $ah !! IterationEnd))
         }
     }
-    method handles(IO::Handle:D: --> Seq:D) { Seq.new(Handles.new(self)) }
+    method handles(IO::Handle:D: --> Seq:D) {
+        Seq.new(Handles.new(cat => self))
+    }
 
     method chomp (::?CLASS:D:) is rw {
         Proxy.new:
@@ -248,9 +246,9 @@ my class IO::CatHandle is IO::Handle {
         #       case we can read a zero-sized chunk and EOF would still be false
         nqp::unless(
           nqp::defined($!active-handle),
-          buf8.new,
+          nqp::create(buf8.^pun),
           nqp::stmts(
-            (my $ret := buf8.new),
+            (my $ret := nqp::create(buf8.^pun)),
             (my int $stop = 0),
             nqp::until(
               $stop,
@@ -284,16 +282,16 @@ my class IO::CatHandle is IO::Handle {
           '')
     }
 
-    method slurp (::?CLASS:D:) {
+    method slurp (::?CLASS:D: :$bin) {
         # we don't take a :close arg, because we close exhausted handles
         # and .slurp isn't lazy, so all handles will get exhausted
         nqp::if(
           nqp::defined($!active-handle),
           ([~] gather nqp::stmts( # the [~] takes care of both Str and Blobs
-            (take $!active-handle.slurp),
+            (take $!active-handle.slurp(:$bin, :close)),
             nqp::while(
               nqp::defined(self.next-handle),
-              take $!active-handle.slurp))),
+              take $!active-handle.slurp(:$bin, :close)))),
           Nil)
     }
     method slurp-rest (|) {
@@ -351,17 +349,17 @@ my class IO::CatHandle is IO::Handle {
         "{self.^name}({self.opened ?? "opened on {$.path.gist}" !! 'closed'})"
     }
     multi method Str (::?CLASS:D:) {
-        nqp::if($!active-handle, $.path.Str, '<closed IO::CatHandle>')
+        $!active-handle ?? $.path.Str !! '<closed IO::CatHandle>'
     }
     method IO (::?CLASS:D:) {
-        nqp::if($!active-handle, $!active-handle.IO, Nil)
+        $!active-handle ?? $!active-handle.IO !! Nil
     }
     method path (::?CLASS:D:) {
-        nqp::if($!active-handle, $!active-handle.path, Nil)
+        $!active-handle ?? $!active-handle.path !! Nil
     }
     method opened(::?CLASS:D: --> Bool:D) { nqp::hllbool(nqp::istrue($!active-handle)) }
     method lock(::?CLASS:D: |c) {
-        nqp::if($!active-handle, $!active-handle.lock(|c), Nil)
+        $!active-handle ?? $!active-handle.lock(|c) !! Nil
     }
     method nl-in (::?CLASS:D:) is rw {
         Proxy.new:
@@ -372,19 +370,19 @@ my class IO::CatHandle is IO::Handle {
           })
     }
     method seek(::?CLASS:D: |c) {
-        nqp::if($!active-handle, $!active-handle.seek(|c), Nil)
+        $!active-handle ?? $!active-handle.seek(|c) !! Nil
     }
     method tell(::?CLASS:D: --> Int:D) {
-        nqp::if($!active-handle, $!active-handle.tell, Nil)
+        $!active-handle ?? $!active-handle.tell !! Nil
     }
     method t (::?CLASS:D: --> Bool:D) {
-        nqp::if($!active-handle, $!active-handle.t, False)
+        $!active-handle ?? $!active-handle.t !! False
     }
     method unlock(::?CLASS:D:) {
-        nqp::if($!active-handle, $!active-handle.unlock, Nil)
+        $!active-handle ?? $!active-handle.unlock !! Nil
     }
     method native-descriptor (::?CLASS:D: --> Int:D) {
-        nqp::if($!active-handle, $!active-handle.native-descriptor, Nil)
+        $!active-handle ?? $!active-handle.native-descriptor !! Nil
     }
     method open (::?CLASS:D: --> ::?CLASS:D) {
         # The idea behind cat handle's open is to fake .open in code that
@@ -409,15 +407,12 @@ my class IO::CatHandle is IO::Handle {
     multi method flush      (|) { X::NYI.new(:feature<flush>).throw      }
     proto method out-buffer (|) {*}
     multi method out-buffer (|) { X::NYI.new(:feature<out-buffer>).throw }
-    proto method print      (|) {*}
     multi method print      (|) { X::NYI.new(:feature<print>).throw      }
     proto method printf     (|) {*}
     multi method printf     (|) { X::NYI.new(:feature<printf>).throw     }
     proto method print-nl   (|) {*}
     multi method print-nl   (|) { X::NYI.new(:feature<print-nl>).throw   }
-    proto method put        (|) {*}
     multi method put        (|) { X::NYI.new(:feature<put>).throw        }
-    proto method say        (|) {*}
     multi method say        (|) { X::NYI.new(:feature<say>).throw        }
     proto method write      (|) {*}
     multi method write      (|) { X::NYI.new(:feature<write>).throw      }
@@ -436,4 +431,4 @@ my class IO::CatHandle is IO::Handle {
     # }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

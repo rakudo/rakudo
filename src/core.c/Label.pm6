@@ -27,26 +27,26 @@ my class Label {
         "Label<$!name>(at $!file:$!line, '$green$!prematch$yellow$eject$red$!name$green$!postmatch$clear')"
     }
 
-    method Int() { nqp::where(nqp::decont(self)) }
+    method Int() { nqp::where(self) }
 
     method next() {
         my Mu $ex := nqp::newexception();
-        nqp::setpayload($ex, nqp::decont(self));
+        nqp::setpayload($ex, self);
         nqp::setextype($ex, nqp::const::CONTROL_NEXT + nqp::const::CONTROL_LABELED);
         nqp::throw($ex);
     }
     method redo() {
         my Mu $ex := nqp::newexception();
-        nqp::setpayload($ex, nqp::decont(self));
+        nqp::setpayload($ex, self);
         nqp::setextype($ex, nqp::const::CONTROL_REDO + nqp::const::CONTROL_LABELED);
         nqp::throw($ex);
     }
     method last() {
         my Mu $ex := nqp::newexception();
-        nqp::setpayload($ex, nqp::decont(self));
+        nqp::setpayload($ex, self);
         nqp::setextype($ex, nqp::const::CONTROL_LAST + nqp::const::CONTROL_LABELED);
         nqp::throw($ex);
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

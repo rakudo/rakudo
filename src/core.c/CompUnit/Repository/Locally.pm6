@@ -27,11 +27,13 @@ role CompUnit::Repository::Locally {
     multi method gist(CompUnit::Repository::Locally:D:) {
         self.path-spec
     }
-    multi method perl(CompUnit::Repository::Locally:D:) {
-        $?CLASS.^name ~ '.new(prefix => ' ~ $!abspath.perl ~ ')';
+    multi method raku(CompUnit::Repository::Locally:D:) {
+        $?CLASS.^name ~ '.new(prefix => ' ~ $!abspath.raku ~ ')';
     }
 
-    multi method WHICH(CompUnit::Repository::Locally:D:) { $!WHICH }
+    multi method WHICH(CompUnit::Repository::Locally:D: --> ValueObjAt:D) {
+        $!WHICH
+    }
 
     method path-spec(CompUnit::Repository::Locally:D:) {
         self.short-id ~ '#' ~ $!abspath
@@ -53,4 +55,4 @@ role CompUnit::Repository::Locally {
     method short-id(CompUnit::Repository::Locally:D:) { ... }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

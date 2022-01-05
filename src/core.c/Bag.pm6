@@ -8,45 +8,40 @@ my class Bag does Baggy {
 
 #--- introspection methods
     multi method WHICH(Bag:D: --> ValueObjAt:D)   {
-        nqp::if(
-          nqp::attrinited(self,Bag,'$!WHICH'),
-          $!WHICH,
-          $!WHICH := nqp::box_s(
-            nqp::concat(
-              nqp::if(
-                nqp::eqaddr(self.WHAT,Bag),
-                'Bag|',
-                nqp::concat(nqp::unbox_s(self.^name), '|')
-              ),
-              nqp::sha1(
-                nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
-                  Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
-                ))
-              )
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+
+    method !WHICH() {
+        $!WHICH := nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Bag),
+              'Bag|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ValueObjAt
-          )
+            nqp::sha1(
+              nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+              ))
+            )
+          ),
+          ValueObjAt
         )
     }
     method total(Bag:D: --> Int:D) {
-        nqp::if(
-          nqp::attrinited(self,Bag,'$!total'),
-          $!total,
-          $!total := Rakudo::QuantHash.BAG-TOTAL($!elems)
-        )
+        $!total // ($!total := Rakudo::QuantHash.BAG-TOTAL($!elems))
     }
 
+
 #--- interface methods
-    multi method STORE(Bag:D: *@pairs, :$INITIALIZE! --> Bag:D) {
-        (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name))
-             )
+    multi method STORE(Bag:D: Iterable:D \iterable, :INITIALIZE($)! --> Bag:D) {
+        (my \iterator := iterable.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
                nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
              ))
     }
-    multi method STORE(Bag:D: \objects, \values, :$INITIALIZE! --> Bag:D) {
+    multi method STORE(Bag:D: \objects, \values, :INITIALIZE($)! --> Bag:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-BAG(
             nqp::create(Rakudo::Internals::IterationSet),
@@ -69,25 +64,21 @@ my class Bag does Baggy {
 #--- coercion methods
     multi method Bag(Bag:D:) { self }
     multi method BagHash(Bag:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(BagHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(BagHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(BagHash).SET-SELF(
+               Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! nqp::create(BagHash)
     }
     multi method Mix(Bag:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(Mix).SET-SELF($!elems),
-          mix()
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(Mix).SET-SELF($!elems)
+          !! mix()
     }
     multi method MixHash(Bag:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(MixHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(MixHash).SET-SELF(
+               Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! nqp::create(MixHash)
     }
 
     multi method Setty(Bag:U:) { Set      }
@@ -106,4 +97,4 @@ my class Bag does Baggy {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

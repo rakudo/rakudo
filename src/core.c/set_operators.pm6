@@ -10,4 +10,4 @@ proto sub mix(|) is pure {*}
 multi sub mix() { BEGIN nqp::create(Mix) }
 multi sub mix(*@a --> Mix:D) { Mix.new(@a) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

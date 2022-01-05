@@ -9,16 +9,14 @@ my class Hash { # declared in BOOTSTRAP
         self
     }
     multi method Map(Hash:U:) { Map }
-    multi method Map(Hash:D: :$view) {
-        nqp::if(
-          $view,
-          # Agreeing that the Hash won't be changed after the .Map
-          nqp::p6bindattrinvres(
-            nqp::create(Map), Map, '$!storage',
-            nqp::getattr(self,Map,'$!storage')
-          ),
-          nqp::create(Map).STORE(self, :INITIALIZE, :DECONT)
-        )
+    multi method Map(Hash:D: :$view) {  # :view is implementation-detail
+        $view
+             # Agreeing that the Hash won't be changed after the .Map
+          ?? nqp::p6bindattrinvres(
+               nqp::create(Map), Map, '$!storage',
+               nqp::getattr(self,Map,'$!storage')
+             )
+          !! nqp::create(Map).STORE(self, :INITIALIZE, :DECONT)
     }
     method clone(Hash:D:) is raw {
         nqp::p6bindattrinvres(
@@ -28,14 +26,16 @@ my class Hash { # declared in BOOTSTRAP
           Hash, '$!descriptor', nqp::clone($!descriptor))
     }
 
-    method !AT_KEY_CONTAINER(Str:D \key) is raw {
-        nqp::p6scalarfromcertaindesc(ContainerDescriptor::BindHashPos.new($!descriptor, self, key))
+    method !AT_KEY_CONTAINER(Str:D $key) is raw {
+        nqp::p6scalarfromcertaindesc(
+          ContainerDescriptor::BindHashPos.new($!descriptor,self,$key)
+        )
     }
 
-    multi method AT-KEY(Hash:D: Str:D \key) is raw {
+    multi method AT-KEY(Hash:D: Str:D $key) is raw {
         nqp::ifnull(
-          nqp::atkey(nqp::getattr(self,Map,'$!storage'),key),
-          self!AT_KEY_CONTAINER(key)
+          nqp::atkey(nqp::getattr(self,Map,'$!storage'),$key),
+          self!AT_KEY_CONTAINER($key)
         )
     }
     multi method AT-KEY(Hash:D: \key) is raw {
@@ -45,35 +45,35 @@ my class Hash { # declared in BOOTSTRAP
         )
     }
 
-    proto method STORE_AT_KEY(|) {*}
-    multi method STORE_AT_KEY(Str:D \key, Mu \x --> Nil) {
+    proto method STORE_AT_KEY(|) is implementation-detail {*}
+    multi method STORE_AT_KEY(Str:D $key, Mu \value --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
-          nqp::unbox_s(key),
-          nqp::p6scalarwithvalue($!descriptor, x),
+          $key,
+          nqp::p6scalarwithvalue($!descriptor,value),
         )
     }
-    multi method STORE_AT_KEY(\key, Mu \x --> Nil) {
+    multi method STORE_AT_KEY(\key, Mu \value --> Nil) {
         nqp::bindkey(
           nqp::getattr(self,Map,'$!storage'),
           nqp::unbox_s(key.Str),
-          nqp::p6scalarwithvalue($!descriptor, x),
+          nqp::p6scalarwithvalue($!descriptor,value),
         )
     }
     method !STORE_MAP(\map --> Nil) {
-        nqp::stmts(
-          (my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'))),
-          nqp::while(
-            $iter,
-            self.STORE_AT_KEY(
-              nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
-            )
+        my $iter := nqp::iterator(nqp::getattr(map,Map,'$!storage'));
+        nqp::while(
+          $iter,
+          self.STORE_AT_KEY(
+            nqp::iterkey_s(nqp::shift($iter)),nqp::iterval($iter)
           )
-        )
+        );
     }
 
     proto method STORE(|) {*}
     multi method STORE(Hash:D: \to_store) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         my $temp := nqp::p6bindattrinvres(
           nqp::clone(self),   # make sure we get a possible descriptor as well
           Map,
@@ -114,6 +114,8 @@ my class Hash { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(self,Map,'$!storage',$storage)
     }
     multi method STORE(Hash:D: \keys, \values) {
+        $!descriptor := $!descriptor.next
+            if nqp::eqaddr($!descriptor.WHAT, ContainerDescriptor::UninitializedAttribute);
         my \iterkeys   := keys.iterator;
         my \itervalues := values.iterator;
         nqp::bindattr(self,Map,'$!storage',nqp::hash);
@@ -145,52 +147,33 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     proto method BIND-KEY(|) {*}
-    multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
-        nqp::bindkey(
-          nqp::getattr(self,Map,'$!storage'),
-          key.Str,
-          bindval
-        )
+    multi method BIND-KEY(Hash:D: Str:D $key, Mu \bindval) is raw {
+        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),$key,bindval)
     }
-    multi method BIND-KEY(Hash:D: Str:D \key, Mu \bindval) is raw {
-        nqp::bindkey(
-          nqp::getattr(self,Map,'$!storage'),
-          key,
-          bindval
-        )
+    multi method BIND-KEY(Hash:D: \key, Mu \bindval) is raw {
+        nqp::bindkey(nqp::getattr(self,Map,'$!storage'),key.Str,bindval)
     }
 
     multi method DELETE-KEY(Hash:U: --> Nil) { }
-    multi method DELETE-KEY(Hash:D: Str:D \key) {
-        my \storage := nqp::getattr(self, Map, '$!storage');
+    multi method DELETE-KEY(Hash:D: Str:D $key) {
         nqp::if(
-          nqp::existskey(storage, nqp::unbox_s(key)),
+          nqp::isnull(my \value := nqp::atkey(
+            nqp::getattr(self,Map,'$!storage'),
+            $key
+          )),
+          $!descriptor.default,
           nqp::stmts(
-            (my \value := nqp::atkey(storage,nqp::unbox_s(key))),
-            nqp::deletekey(storage,nqp::unbox_s(key)),
+            nqp::deletekey(nqp::getattr(self,Map,'$!storage'),$key),
             value
-          ),
-          nqp::p6scalarfromcertaindesc($!descriptor)
+          )
         )
     }
-    multi method DELETE-KEY(Hash:D: \key) {
-        my \storage := nqp::getattr(self, Map, '$!storage');
-        my str $key = nqp::unbox_s(key.Str);
-        nqp::if(
-          nqp::existskey(storage,$key),
-          nqp::stmts(
-            (my \value = nqp::atkey(storage,$key)),
-            nqp::deletekey(storage,$key),
-            value
-          ),
-          nqp::p6scalarfromcertaindesc($!descriptor)
-        )
-    }
+    multi method DELETE-KEY(Hash:D: \key) { self.DELETE-KEY(key.Str) }
 
-    multi method perl(Hash:D \SELF:) {
-        SELF.perlseen(self.^name, {
+    multi method raku(Hash:D \SELF:) {
+        SELF.rakuseen(self.^name, {
             '$' x nqp::iscont(SELF)  # self is always deconted
-            ~ '{' ~ self.sort.map({.perl}).join(', ') ~ '}'
+            ~ '{' ~ self.sort.map({.raku}).join(', ') ~ '}'
         })
     }
 
@@ -203,33 +186,34 @@ my class Hash { # declared in BOOTSTRAP
         }
     }
 
-    multi method DUMP(Hash:D: :$indent-step = 4, :%ctx) {
-        nqp::if(
-          %ctx,
-          self.DUMP-OBJECT-ATTRS(
-            nqp::list(
-              '$!descriptor',
-              $!descriptor,
-              '$!storage',
-              nqp::getattr(self,Map,'$!storage')
-            ),
-            :$indent-step,
-            :%ctx
-          ),
-          DUMP(self, :$indent-step)
-        )
+    multi method DUMP(
+      Hash:D: :$indent-step = 4, :%ctx
+    ) is implementation-detail {
+        %ctx
+          ?? self.DUMP-OBJECT-ATTRS(
+               nqp::list(
+                 '$!descriptor',$!descriptor,'$!storage',
+                 nqp::getattr(self,Map,'$!storage')
+               ),
+               :$indent-step,
+               :%ctx
+             )
+          !! DUMP(self, :$indent-step)
     }
 
     # introspection
-    method keyof() { Str(Any) }  # overridden by TypedHash
+    method keyof() { Str(Any) }  # overridden by Hash::Object
 
-    method of(Hash:D:)      { $!descriptor.of }
+    proto method of() {*}
+    multi method of(Hash:U:) { Mu }
+    multi method of(Hash:D:) { $!descriptor.of }
+
     method name(Hash:D:)    { $!descriptor.name }
     method default(Hash:D:) { $!descriptor.default }
     method dynamic(Hash:D:) { nqp::hllbool($!descriptor.dynamic) }
 
     method push(+values) {
-        fail X::Cannot::Lazy.new(:action<push>, :what(self.^name))
+        return self.fail-iterator-cannot-be-lazy('.push')
           if values.is-lazy;
 
         my $previous;
@@ -256,7 +240,7 @@ my class Hash { # declared in BOOTSTRAP
     }
 
     method append(+values) {
-        fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+        return self.fail-iterator-cannot-be-lazy('.append')
           if values.is-lazy;
 
         my $previous;
@@ -284,7 +268,9 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method classify-list(|) {*}
     multi method classify-list( &test, \list, :&as ) {
-        fail X::Cannot::Lazy.new(:action<classify>) if list.is-lazy;
+        return self.fail-iterator-cannot-be-lazy('classify')
+          if list.is-lazy;
+
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
         unless $value =:= IterationEnd {
@@ -344,7 +330,9 @@ my class Hash { # declared in BOOTSTRAP
 
     proto method categorize-list(|) {*}
     multi method categorize-list( &test, \list, :&as ) {
-       fail X::Cannot::Lazy.new(:action<categorize>) if list.is-lazy;
+        return self.fail-iterator-cannot-be-lazy('.categorize')
+          if list.is-lazy;
+
         my \iter = (nqp::istype(list, Iterable) ?? list !! list.list).iterator;
         my $value := iter.pull-one;
         unless $value =:= IterationEnd {
@@ -411,383 +399,94 @@ my class Hash { # declared in BOOTSTRAP
 
     # push a value onto a hash slot, constructing an array if necessary
     method !_push_construct(Mu $key, Mu \value --> Nil) {
-        nqp::if(
-          nqp::istype((my \current := self.AT-KEY($key)),Array),
-          current.push(value),
-          current = nqp::if(self.EXISTS-KEY($key),[current,value],value)
-        )
+        nqp::istype((my \current := self.AT-KEY($key)),Array)
+          ?? current.push(value)
+          !! (current = self.EXISTS-KEY($key) ?? [current,value] !! value)
     }
 
     # append values into a hash slot, constructing an array if necessary
     method !_append_construct(Mu $key, Mu \value --> Nil) {
-        nqp::if(
-          nqp::istype((my \current := self.AT-KEY($key)),Array),
-          current.append(|value),
-          current = nqp::if(self.EXISTS-KEY($key),[|current,|value],value)
-        )
+        nqp::istype((my \current := self.AT-KEY($key)),Array)
+          ?? current.append(|value)
+          !! (current = self.EXISTS-KEY($key) ?? [|current,|value] !! value)
     }
 
-    my role TypedHash[::TValue] does Associative[TValue] {
-
-        # make sure we get the right descriptor
-        multi method new(::?CLASS:) {
-            nqp::p6bindattrinvres(
-              nqp::create(self),Hash,'$!descriptor',
-              ContainerDescriptor.new(:of(TValue), :default(TValue))
-            )
-        }
-
-        method ASSIGN-KEY(::?CLASS:D: Mu \key, Mu \assignval) is raw {
-            my \storage  := nqp::getattr(self, Map, '$!storage');
-            my \which    := key.Str;
-            my \existing := nqp::atkey(storage,which);
-            nqp::if(
-              nqp::isnull(existing),
-              nqp::stmts(
-                ((my \scalar := nqp::p6scalarfromdesc(    # assign before
-                  nqp::getattr(self,Hash,'$!descriptor')  # binding to get
-                )) = assignval),                          # type check
-                nqp::bindkey(storage,which,scalar)
-              ),
-              (existing = assignval)
-            )
-        }
-        method BIND-KEY(\key, TValue \value) is raw {
-            nqp::bindkey(
-              nqp::getattr(self,Map,'$!storage'),
-              key.Str,
-              value
-            )
-        }
-        multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Hash', {
-                '$' x nqp::iscont(SELF)  # self is always deconted
-                ~ (self.elems
-                   ?? "(my {TValue.perl} % = {
-                        self.sort.map({.perl}).join(', ')
-                       })"
-                   !! "(my {TValue.perl} %)"
-                  )
-            })
-        }
+    my class LTHandle {
+        has Mu $!storage;
+        has Mu $!descriptor;
     }
-    my role TypedHash[::TValue, ::TKey] does Associative[TValue] {
 
-        # make sure we get the right descriptor
-        multi method new(::?CLASS:) {
-            nqp::p6bindattrinvres(
-              nqp::create(self),Hash,'$!descriptor',
-              ContainerDescriptor.new(:of(TValue), :default(TValue))
-            )
-        }
-        method keyof () { TKey }
-        method AT-KEY(::?CLASS:D: TKey \key) is raw {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            my str $which = nqp::unbox_s(key.WHICH);
-            nqp::if(
-              nqp::existskey(storage,$which),
-              nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value'),
-              nqp::p6scalarfromdesc(ContainerDescriptor::BindObjHashKey.new(
-                nqp::getattr(self,Hash,'$!descriptor'),self,key,$which,Pair)
-              )
-            )
-        }
+    method TEMP-LET-GET-HANDLE() is raw is implementation-detail {
+        my \handle = nqp::create(LTHandle);
+        nqp::bindattr(handle, LTHandle, '$!storage', nqp::getattr(self, Map, '$!storage'));
+        nqp::bindattr(handle, LTHandle, '$!descriptor', nqp::getattr(self, Hash, '$!descriptor'));
+        handle
+    }
 
-        method STORE_AT_KEY(::?CLASS:D: TKey \key, Mu \value --> Nil) {
-            nqp::bindkey(
-              nqp::getattr(self,Map,'$!storage'),
-              nqp::unbox_s(key.WHICH),
-              Pair.new(
-                key,
-                nqp::p6scalarfromdesc(nqp::getattr(self,Hash,'$!descriptor'))
-                = value
-              )
-            )
-        }
-
-        method ASSIGN-KEY(::?CLASS:D: TKey \key, Mu \assignval) is raw {
-            my \storage  := nqp::getattr(self, Map, '$!storage');
-            my \WHICH    := key.WHICH;
-            my \existing := nqp::atkey(storage,WHICH);
-            nqp::if(
-              nqp::isnull(existing),
-              nqp::stmts(
-                ((my \scalar := nqp::p6scalarfromdesc(    # assign before
-                  nqp::getattr(self,Hash,'$!descriptor')  # binding to get
-                )) = assignval),                          # type check
-                nqp::bindkey(storage,WHICH,Pair.new(key,scalar)),
-                scalar
-              ),
-              (nqp::getattr(existing,Pair,'$!value') = assignval)
-            )
-        }
-
-        method BIND-KEY(TKey \key, TValue \value) is raw {
-            nqp::getattr(
-              nqp::bindkey(
-                nqp::getattr(self,Map,'$!storage'),
-                key.WHICH,
-                Pair.new(key,value)
-              ),
-              Pair,
-              '$!value'
-            )
-        }
-
-        method EXISTS-KEY(TKey \key) {
-            nqp::hllbool(
-              nqp::existskey(nqp::getattr(self,Map,'$!storage'),key.WHICH)
-            )
-        }
-
-        method DELETE-KEY(TKey \key) {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            my str $which = key.WHICH;
-            nqp::if(
-              nqp::existskey(storage,$which),
-              nqp::stmts(
-                (my \value =
-                  nqp::getattr(nqp::atkey(storage,$which),Pair,'$!value')),
-                nqp::deletekey(storage,$which),
-                value
-              ),
-              TValue
-            )
-        }
-
-        method FLATTENABLE_HASH() {
+    method TEMP-LET-LOCALIZE() is raw is implementation-detail {
+        my \handle = self.TEMP-LET-GET-HANDLE;
+        # Re-initialize self from the original state by taking into account conterization status of keys.
+        my \iter = nqp::iterator(nqp::getattr(self, Map, '$!storage'));
+        nqp::bindattr(self, Map, '$!storage', my \new-storage = nqp::hash);
+        nqp::while(
+            iter,
             nqp::stmts(
-              (my $flattened := nqp::hash),
-              nqp::if(
-                (my $iter := nqp::iterator(nqp::getattr(self,Map,'$!storage'))),
-                nqp::while(
-                  $iter,
-                  nqp::bindkey(
-                    $flattened,
-                    nqp::if(
-                      nqp::istype(
-                        (my $key := nqp::getattr(
-                          nqp::iterval(nqp::shift($iter)),
-                          Pair,
-                          '$!key'
-                        )),
-                        Str,
-                      ),
-                      $key,
-                      $key.Str
-                    ),
-                    nqp::getattr(nqp::iterval($iter),Pair,'$!value')
-                  )
-                )
-              ),
-              $flattened
-            )
-        }
-
-        method IterationBuffer() {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            my \buffer  := nqp::create(IterationBuffer);
-            nqp::if(
-              nqp::elems(storage),
-              nqp::stmts(
-                (my \iterator := nqp::iterator(storage)),
-                nqp::setelems(buffer,nqp::elems(storage)),
-                (my int $i = -1),
-                nqp::while(
-                  iterator,
-                  nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
-                    nqp::iterval(nqp::shift(iterator)))
-                )
-              )
-            );
-            buffer
-        }
-
-        multi method head(::?CLASS:D:) {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            nqp::if(
-              nqp::elems(storage),
-              nqp::iterval(
-                nqp::shift(nqp::iterator(storage))
-              ),
-              Nil
-            )
-        }
-
-        multi method sort(::?CLASS:D: --> Seq:D) {
-            Seq.new(
-              Rakudo::Iterator.ReifiedList(
-                Rakudo::Sorting.MERGESORT-REIFIED-LIST-AS(
-                  self.IterationBuffer.List,
-                  { nqp::getattr(nqp::decont($^a),Pair,'$!key') }
-                )
-              )
-            )
-        }
-
-        my class Keys does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                nqp::if(
-                  $!iter,
-                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),
-                    Pair,'$!key'),
-                  IterationEnd
-                )
-             }
-        }
-        method keys() { Seq.new(Keys.new(self)) }
-
-        my class Values does Rakudo::Iterator::Mappy {
-            method pull-one() is raw {
-                nqp::if(
-                  $!iter,
-                  nqp::getattr(nqp::iterval(nqp::shift($!iter)),
-                    Pair,'$!value'),
-                  IterationEnd
-                )
-             }
-        }
-        method values() { Seq.new(Values.new(self)) }
-
-        method kv() {
-            Seq.new(Rakudo::Iterator.Mappy-kv-from-pairs(self))
-        }
-        method iterator() { Rakudo::Iterator.Mappy-values(self) }
-
-        my class AntiPairs does Rakudo::Iterator::Mappy {
-            method pull-one() {
-                nqp::if(
-                  $!iter,
-                  nqp::iterval(nqp::shift($!iter)).antipair,
-                  IterationEnd
-                )
-             }
-        }
-        method antipairs() { Seq.new(AntiPairs.new(self)) }
-
-        multi method roll(::?CLASS:D:) {
-            my \storage := nqp::getattr(self, Map, '$!storage');
-            nqp::if(
-              nqp::elems(storage),
-              nqp::stmts(
-                (my int $i =
-                  nqp::add_i(nqp::floor_n(nqp::rand_n(nqp::elems(storage))),1)),
-                (my \iter := nqp::iterator(storage)),
-                nqp::while(
-                  nqp::shift(iter) && ($i = nqp::sub_i($i,1)),
-                  nqp::null
-                ),
-                nqp::iterval(iter)
-              ),
-              Nil
-            )
-        }
-        multi method roll(::?CLASS:D: Callable:D $calculate) {
-            self.roll( $calculate(self.elems) )
-        }
-        multi method roll(::?CLASS:D: Whatever $) { self.roll(Inf) }
-
-        my class RollN does Iterator {
-            has $!storage;
-            has $!keys;
-            has $!count;
-
-            method !SET-SELF(\hash,\count) {
-                nqp::stmts(
-                  ($!storage := nqp::getattr(hash,Map,'$!storage')),
-                  ($!count = count),
-                  (my $iter := nqp::iterator($!storage)),
-                  ($!keys := nqp::list_s),
-                  nqp::while(
-                    $iter,
-                    nqp::push_s($!keys,nqp::iterkey_s(nqp::shift($iter)))
-                  ),
-                  self
-                )
-            }
-            method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
-            method pull-one() {
-                nqp::if(
-                  $!count,
-                  nqp::stmts(
-                    --$!count,  # must be HLL to handle Inf
-                    nqp::atkey(
-                      $!storage,
-                      nqp::atpos_s(
-                        $!keys,
-                        nqp::floor_n(nqp::rand_n(nqp::elems($!keys)))
-                      )
-                    )
-                  ),
-                  IterationEnd
-                )
-            }
-            method is-lazy() { $!count == Inf }
-        }
-        multi method roll(::?CLASS:D: $count) {
-            Seq.new(nqp::if(
-              $count > 0 && nqp::elems(nqp::getattr(self,Map,'$!storage')),
-              RollN.new(self,$count),
-              Rakudo::Iterator.Empty
-            ))
-        }
-
-        multi method perl(::?CLASS:D \SELF:) {
-            SELF.perlseen('Hash', {
-                my $TKey-perl   := TKey.perl;
-                my $TValue-perl := TValue.perl;
-                $TKey-perl eq 'Any' && $TValue-perl eq 'Mu'
-                  ?? ( '$(' x nqp::iscont(SELF)
-                        ~ ':{' ~ SELF.sort.map({.perl}).join(', ') ~ '}'
-                        ~ ')' x nqp::iscont(SELF)
-                     )
-                  !! '$' x nqp::iscont(SELF)
-                     ~ (self.elems
-                          ?? "(my $TValue-perl %\{$TKey-perl\} = {
-                                self.sort.map({.perl}).join(', ')
-                             })"
-                          !! "(my $TValue-perl %\{$TKey-perl\})"
-                     )
-            })
-        }
-
-        # gotta force capture keys to strings or binder fails
-        method Capture() {
-            nqp::elems(nqp::getattr(self,Map,'$!storage'))
-              ?? do {
-                     my $cap := nqp::create(Capture);
-                     my $h := nqp::hash();
-                     for self.kv -> \k, \v {
-                         nqp::bindkey($h,
-                           nqp::unbox_s(nqp::istype(k,Str) ?? k !! k.Str),
-                           v)
-                     }
-                     nqp::bindattr($cap,Capture,'%!hash',$h);
-                     $cap
-                 }
-              !! nqp::create(Capture)
-        }
-        method Map() { self.pairs.Map }
+                nqp::shift(iter),
+                (my \v = nqp::iterval(iter)),
+                nqp::bindkey(
+                    new-storage,
+                    nqp::iterkey_s(iter),
+                    nqp::if( nqp::iscont(v),
+                             nqp::p6assign(nqp::p6scalarfromdesc(nqp::getattr(self, Hash, '$!descriptor')), v),
+                             v ))));
+        handle
     }
 
-    method ^parameterize(Mu:U \hash, Mu \t, |c) {
-        if nqp::isconcrete(t) {
-            "Can not parameterize {hash.^name} with {t.perl}"
+    method TEMP-LET-RESTORE(\handle --> Nil) is implementation-detail {
+        nqp::bindattr(self, Hash, '$!descriptor', nqp::getattr(handle, LTHandle, '$!descriptor'));
+        nqp::bindattr(self, Map, '$!storage', nqp::getattr(handle, LTHandle, '$!storage'));
+    }
+
+    method ^parameterize(Mu:U \hash, Mu \of, Mu \keyof = Str(Any)) {
+
+        # fast path
+        if nqp::eqaddr(of,Mu) && nqp::eqaddr(keyof,Str(Any)) {
+            hash
         }
-        elsif c.elems == 0 {
-            my $what := hash.^mixin(TypedHash[t]);
-            # needs to be done in COMPOSE phaser when that works
-            $what.^set_name("{hash.^name}[{t.^name}]");
+
+        # error checking
+        elsif nqp::isconcrete(of) {
+            "Can not parameterize {hash.^name} with {of.raku}"
+        }
+
+        # only constraint on type
+        elsif nqp::eqaddr(keyof,Str(Any)) {
+            my $what := hash.^mixin(Hash::Typed[of]);
+             # needs to be done in COMPOSE phaser when that works
+            $what.^set_name:
+              hash.^name ~ '[' ~ of.^name ~ ']';
             $what
         }
-        elsif c.elems == 1 {
-            my $what := hash.^mixin(TypedHash[t, c[0].WHAT]);
-            # needs to be done in COMPOSE phaser when that works
-            $what.^set_name("{hash.^name}[{t.^name},{c[0].^name}]");
-            $what
+
+        # error checking
+        elsif nqp::isconcrete(keyof) {
+            "Can not parameterize {hash.^name} with {keyof.raku}"
         }
+
+        # no support for native types yet
+        elsif nqp::objprimspec(keyof) {
+            'Parameterization of hashes with native '
+              ~ keyof.raku
+              ~ ' not yet implemented. Sorry.'
+        }
+
+        # a true object hash
         else {
-            "Can only type-constrain Hash with [ValueType] or [ValueType,KeyType]"
+            my $what := hash.^mixin(Hash::Object[of, keyof]);
+            # needs to be done in COMPOSE phaser when that works
+            $what.^set_name:
+              hash.^name ~ '[' ~ of.^name ~ ',' ~ keyof.^name ~ ']';
+            $what
         }
     }
 }
@@ -804,4 +503,4 @@ proto sub hash(|) {*}
 multi sub hash(*%h) { %h }
 multi sub hash(*@a, *%h) { my % = flat @a, %h }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

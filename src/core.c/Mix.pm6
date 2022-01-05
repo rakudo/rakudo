@@ -8,15 +8,14 @@ my class Mix does Mixy {
     }
 
 #--- interface methods
-    multi method STORE(Mix:D: *@pairs, :$INITIALIZE! --> Mix:D) {
-        (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
+    multi method STORE(Mix:D: Iterable:D \iterable, :INITIALIZE($)! --> Mix:D) {
+        (my \iterator := iterable.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('.initialize')
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
                nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
              ))
     }
-    multi method STORE(Mix:D: \objects, \values, :$INITIALIZE! --> Mix:D) {
+    multi method STORE(Mix:D: \objects, \values, :INITIALIZE($)! --> Mix:D) {
         self.SET-SELF(
           Rakudo::QuantHash.ADD-OBJECTS-VALUES-TO-MIX(
             nqp::create(Rakudo::Internals::IterationSet),
@@ -27,45 +26,37 @@ my class Mix does Mixy {
         )
     }
 
-    multi method DELETE-KEY(Mix:D: \k) {
+    multi method DELETE-KEY(Mix:D: $) {
         X::Immutable.new(method => 'DELETE-KEY', typename => self.^name).throw;
     }
 
 #--- introspection methods
-    multi method WHICH(Mix:D: --> ValueObjAt:D)    {
-        nqp::if(
-          nqp::attrinited(self,Mix,'$!WHICH'),
-          $!WHICH,
-          $!WHICH := nqp::box_s(
-            nqp::concat(
-              nqp::if(
-                nqp::eqaddr(self.WHAT,Mix),
-                'Mix|',
-                nqp::concat(nqp::unbox_s(self.^name), '|')
-              ),
-              nqp::sha1(
-                nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
-                  Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
-                ))
-              )
+    multi method WHICH(Mix:D: --> ValueObjAt:D) {
+        nqp::isconcrete($!WHICH) ?? $!WHICH !! self!WHICH
+    }
+
+    method !WHICH() {
+        $!WHICH := nqp::box_s(
+          nqp::concat(
+            nqp::if(
+              nqp::eqaddr(self.WHAT,Mix),
+              'Mix|',
+              nqp::concat(nqp::unbox_s(self.^name), '|')
             ),
-            ValueObjAt
-          )
+            nqp::sha1(
+              nqp::join('\0',Rakudo::Sorting.MERGESORT-str(
+                Rakudo::QuantHash.BAGGY-RAW-KEY-VALUES(self)
+              ))
+            )
+          ),
+          ValueObjAt
         )
     }
     method total(Mix:D: --> Real:D) {
-        nqp::if(
-          nqp::attrinited(self,Mix,'$!total'),
-          $!total,
-          $!total := Rakudo::QuantHash.MIX-TOTAL($!elems)
-        )
+        $!total // ($!total := Rakudo::QuantHash.MIX-TOTAL($!elems))
     }
     method !total-positive(Mix:D: --> Real:D) {
-        nqp::if(
-          nqp::attrinited(self,Mix,'$!total-positive'),
-          $!total-positive,
-          $!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems)
-        )
+        $!total-positive // ($!total-positive := Rakudo::QuantHash.MIX-TOTAL-POSITIVE($!elems))
     }
 
 #--- selection methods
@@ -79,11 +70,10 @@ my class Mix does Mixy {
 #--- coercion methods
     multi method Mix(Mix:D:) { self }
     multi method MixHash(Mix:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::create(MixHash).SET-SELF(Rakudo::QuantHash.BAGGY-CLONE($!elems)),
-          nqp::create(MixHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::create(MixHash).SET-SELF(
+               Rakudo::QuantHash.BAGGY-CLONE($!elems))
+          !! nqp::create(MixHash)
     }
 
     multi method Setty(Mix:U:) { Set }
@@ -102,4 +92,4 @@ my class Mix does Mixy {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

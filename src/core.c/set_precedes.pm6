@@ -15,11 +15,11 @@ proto sub infix:<<(<+)>>($, $, *% --> Bool:D) is pure {
     ) unless $*INTERNAL;
     {*}
 }
-multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
+multi sub infix:<<(<+)>>(Setty:D $a, QuantHash:D $b --> Bool:D) {
     nqp::if(
-      (my \araw := a.RAW-HASH),
+      (my \araw := $a.RAW-HASH),
       nqp::if(
-        (my \braw := b.RAW-HASH)
+        (my \braw := $b.RAW-HASH)
           && nqp::isge_i(nqp::elems(braw),nqp::elems(araw)),
         nqp::stmts(
           (my \iter := nqp::iterator(araw)),
@@ -34,11 +34,11 @@ multi sub infix:<<(<+)>>(Setty:D \a, QuantHash:D \b --> Bool:D) {
       True
     )
 }
-multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
+multi sub infix:<<(<+)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
     nqp::if(
-      (my \araw := a.RAW-HASH),
+      (my \araw := $a.RAW-HASH),
       nqp::if(
-        (my \braw:= b.RAW-HASH)
+        (my \braw:= $b.RAW-HASH)
           && nqp::isge_i(nqp::elems(braw),nqp::elems(araw)),
         nqp::stmts(
           (my \iter := nqp::iterator(araw)),
@@ -61,11 +61,11 @@ multi sub infix:<<(<+)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
       True
     )
 }
-multi sub infix:<<(<+)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
+multi sub infix:<<(<+)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
     nqp::if(
-      (my \araw := a.RAW-HASH),
+      (my \araw := $a.RAW-HASH),
       nqp::if(
-        (my \braw := b.RAW-HASH)
+        (my \braw := $b.RAW-HASH)
           && nqp::isge_i(nqp::elems(braw),nqp::elems(araw)),
         nqp::stmts(
           (my \iter := nqp::iterator(araw)),
@@ -90,8 +90,8 @@ multi sub infix:<<(<+)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
       True
     )
 }
-multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:U $b --> True ) {}
-multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:D $b --> True ) {}
+multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:U $b --> True ) { }
+multi sub infix:<<(<+)>>(QuantHash:U $a, QuantHash:D $b --> True ) { }
 multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:U $b --> Bool:D ) {
     not $a.elems
 }
@@ -100,15 +100,13 @@ multi sub infix:<<(<+)>>(QuantHash:D $a, QuantHash:D $b --> Bool:D ) {
     True
 }
 
-multi sub infix:<<(<+)>>(Any $, Failure:D $b) { $b.throw }
-multi sub infix:<<(<+)>>(Failure:D $a, Any $) { $a.throw }
-multi sub infix:<<(<+)>>(Any $a, Any $b --> Bool:D) {
+multi sub infix:<<(<+)>>(Any, Failure:D $b) { $b.throw }
+multi sub infix:<<(<+)>>(Failure:D $a, Any) { $a.throw }
+multi sub infix:<<(<+)>>(Any \a, Any \b --> Bool:D) {
     my $*INTERNAL = 1;
-    nqp::if(
-      nqp::istype($a,Mixy) || nqp::istype($b,Mixy),
-      infix:<<(<+)>>($a.Mix, $b.Mix),
-      infix:<<(<+)>>($a.Bag, $b.Bag)
-    )
+    nqp::istype(a,Mixy) || nqp::istype(b,Mixy)
+      ?? infix:<<(<+)>>(a.Mix, b.Mix)
+      !! infix:<<(<+)>>(a.Bag, b.Bag)
 }
 
 # U+227C PRECEDES OR EQUAL TO
@@ -135,4 +133,4 @@ multi sub infix:<≽>($a, $b --> Bool:D) {
     infix:<<(<+)>>($b, $a)
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

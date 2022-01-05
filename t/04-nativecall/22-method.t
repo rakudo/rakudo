@@ -7,6 +7,10 @@ use Test;
 
 plan 2;
 
+BEGIN if $*VM.name eq 'jvm' {
+    plan :skip-all<NullPointerException in sub ReturnAStruct>;
+};
+
 compile_test_lib('22-method');
 
 class MyStruct is repr('CStruct') {
@@ -26,4 +30,4 @@ my $res;
 lives-ok { $res = $a.Add(2) }, "native sub as method";
 is $res, 44, "and got the result we expected";
 
-# vim:ft=perl6
+# vim: expandtab shiftwidth=4

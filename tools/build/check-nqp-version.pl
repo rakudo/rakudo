@@ -31,3 +31,5 @@ foreach (@$config) {
         exit;
     }
 }
+
+# vim: expandtab sw=4

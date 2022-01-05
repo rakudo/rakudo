@@ -54,7 +54,7 @@ afterwards).
 
 ## Spectests
 
-The Perl 6 language is defined by its test suite. A particular release of the
+The Raku language is defined by its test suite. A particular release of the
 language is, therefore, a release of the test suite. To make sure we don't
 regress on things that we decided are part of the 6.c language, we need to
 make sure that we don't unknowingly change such tests.
@@ -79,20 +79,20 @@ to pass this test any more).
 
 ## Language versioning
 
-The Perl 6 language has version numbers v6.c, v6.d, v6.e, and so forth. These
+The Raku language has version numbers v6.c, v6.d, v6.e, and so forth. These
 are very much like C has C89, C99, and C11. Each language version is defined
 by its test suite.
 
-Rakudo is a Perl 6 implementation, as GCC, Clang, and MSVC are implementations
+Rakudo is a Raku implementation, as GCC, Clang, and MSVC are implementations
 of the C language. Rakudo has monthly releases (2015.12, 2016.01, etc.) For
 the moment, we don't make any distinction between these releases; they are all
 equally "supported".
 
-Each Rakudo release must indicate the maximum version of Perl 6 it supports,
+Each Rakudo release must indicate the maximum version of Raku it supports,
 and this should be included prominently in the release announcement, for
-example in the title, such as: "Rakudo 2016.01 (implements Perl 6.c)".
+example in the title, such as: "Rakudo 2020.05.1 (implements Raku 6.d)".
 
-A Perl 6 source file without a "use v???" line will be run at the latest
+A Raku source file without a "use v???" line will be run at the latest
 language version that the current implementation supports (as will -e and
 the REPL). A source file with "use v6.X" (where X is meta) should be
 treated as follows:
@@ -120,7 +120,7 @@ we'll do something like this:
 
 To facilitate this, for now at least, we'll require that a "use v6.X" is the
 first non-comment, non-whitespace declaration in a file. Anything later will
-trigger a "too late to switch Perl 6 language version".
+trigger a "too late to switch Raku language version".
 
 ## Experimental features
 

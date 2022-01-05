@@ -1,11 +1,10 @@
 # Proc is a wrapper around Proc::Async, providing a synchronous API atop of
 # the asynchronous API.
-my class Proc::Async { ... }
 my class Proc {
     has IO::Pipe $.in;
     has IO::Pipe $.out;
     has IO::Pipe $.err;
-    has $.exitcode = -1;  # distinguish uninitialized from 0 status
+    has $.exitcode is default(Nil);
     has $.signal;
     has $.pid is default(Nil);
     has @.command;
@@ -49,16 +48,22 @@ my class Proc {
         }
 
         if $merge {
-            my $chan = Channel.new;
-            $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
-                :on-read({ (try $chan.receive) // buf8 }),
-                :on-close({ self!await-if-last-handle }));
-            ++$!active-handles;
-            @!pre-spawn.push({
-                $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
-                    done => { $chan.close },
-                    quit => { $chan.fail($_) }
-            });
+            if nqp::istype($out, IO::Handle) && $out.DEFINITE {
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $out.write($_) }
+                });
+            } else {
+                my $chan = Channel.new;
+                $!out = IO::Pipe.new(:proc(self), :$chomp, :$enc, :$bin, nl-in => $nl,
+                    :on-read({ (try $chan.receive) // buf8 }),
+                    :on-close({ self!await-if-last-handle }));
+                ++$!active-handles;
+                @!pre-spawn.push({
+                    $!proc.stdout(:bin).merge($!proc.stderr(:bin)).act: { $chan.send($_) },
+                        done => { $chan.close },
+                        quit => { $chan.fail($_) }
+                });
+            }
         }
         else {
             if $out === True {
@@ -155,12 +160,13 @@ my class Proc {
         CATCH { default { self!set-status(0x100) } }
         &!start-stdout() if &!start-stdout;
         &!start-stderr() if &!start-stderr;
-        self!set-status(await($!finished).status) if $!exitcode == -1;
+        self!set-status(await($!finished)!status)
+          if nqp::istype($!exitcode,Nil);
     }
 
-    method spawn(*@args where .so, :$cwd = $*CWD, :$env --> Bool:D) {
+    method spawn(*@args where .so, :$cwd = $*CWD, :$env, :$arg0, :$win-verbatim-args = False --> Bool:D) {
         @!command := @args.List;
-        self!spawn-internal(@args, $cwd, $env)
+        self!spawn-internal(@args, $cwd, $env, :$arg0, :$win-verbatim-args)
     }
 
     method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D) {
@@ -168,12 +174,12 @@ my class Proc {
         my @args := Rakudo::Internals.IS-WIN
             ?? (%*ENV<ComSpec>, '/c', $cmd)
             !! ('/bin/sh', '-c', $cmd);
-        self!spawn-internal(@args, $cwd, $env)
+        self!spawn-internal(@args, $cwd, $env, :win-verbatim-args)
     }
 
-    method !spawn-internal(@args, $cwd, $env --> Bool:D) {
+    method !spawn-internal(@args, $cwd, $env, :$arg0, :$win-verbatim-args --> Bool:D) {
         my %ENV := $env ?? $env.hash !! %*ENV;
-        $!proc := Proc::Async.new(|@args, :$!w);
+        $!proc := Proc::Async.new(|@args, :$!w, :$arg0, :$win-verbatim-args);
         .() for @!pre-spawn;
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         my $is-spawned := do {
@@ -198,11 +204,15 @@ my class Proc {
     # see https://github.com/rakudo/rakudo/issues/1366
     # should be deprecated and removed
     proto method status(|) {*}
-    multi method status($new_status) {
+    multi method status($new_status)
+      is DEPRECATED('exitcode and/or signal methods (status is to be removed in 2022.06)')
+    {
         $!exitcode = $new_status +> 8;
         $!signal   = $new_status +& 0xFF;
     }
-    multi method status(Proc:D:)  {
+    multi method status(Proc:D:)
+      is DEPRECATED('exitcode and/or signal methods (status is to be removed in 2022.06)')
+    {
         self!wait-for-finish;
         ($!exitcode +< 8) +| $!signal
     }
@@ -233,9 +243,9 @@ my class Proc {
 proto sub run(|) {*}
 multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    $proc.spawn(@args, :$cwd, :$env);
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env, :$arg0, :$win-verbatim-args = False) {
+    my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
+    $proc.spawn(@args, :$cwd, :$env, :$arg0, :$win-verbatim-args);
     $proc
 }
 
@@ -243,15 +253,15 @@ proto sub shell($, *%) {*}
 multi sub shell($cmd, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
         Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
+    my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
     $proc.shell($cmd, :$cwd, :$env);
     $proc
 }
 
-sub QX($cmd, :$cwd = $*CWD, :$env) {
-    my $proc = Proc.new(:out);
+sub QX($cmd, :$cwd = $*CWD, :$env) is implementation-detail {
+    my $proc := Proc.new(:out);
     $proc.shell($cmd, :$cwd, :$env);
     $proc.out.slurp(:close) // Failure.new("Unable to read from '$cmd'")
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

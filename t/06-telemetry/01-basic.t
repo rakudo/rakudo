@@ -24,12 +24,13 @@ plan 42;
 my $T = T;
 isa-ok $T, Telemetry, 'did we get a Telemetry object from T';
 for <wallclock cpu max-rss> {
+    todo 'JVM gives zero for max-rss', 2 if $*VM.name eq 'jvm' and $_ eq 'max-rss';
     ok $T{$_}, "did we get a non-zero value for $_ using AT-KEY";
     ok $T."$_"(), "did we get a non-zero value for $_ with a method";
 }
 
-my $T2 = $T.perl.EVAL;
-isa-ok $T2, Telemetry, 'did we get a Telemetry object from T.perl.EVAL';
+my $T2 = $T.raku.EVAL;
+isa-ok $T2, Telemetry, 'did we get a Telemetry object from T.raku.EVAL';
 is $T2{$_}, $T{$_}, "did $_ roundtrip ok in Telemetry?"
   for <wallclock cpu max-rss>;
 
@@ -40,9 +41,9 @@ for <wallclock cpu> {
     ok $P."$_"(), "did we get a non-zero value for $_ using AT-KEY";
 }
 
-my $P2 = $P.perl.EVAL;
+my $P2 = $P.raku.EVAL;
 isa-ok $P2, Telemetry::Period,
-  'did we get a Telemetry::Period object from period.perl.EVAL';
+  'did we get a Telemetry::Period object from period.raku.EVAL';
 is $P2{$_}, $P{$_}, "did $_ roundtrip ok in Telemetry::Period?"
   for <wallclock cpu max-rss>;
 
@@ -68,19 +69,19 @@ isa-ok @periods[0], Telemetry::Period, 'is it a Telemetry::Period';
 is +periods, 0, 'Did the call to periods remove all of the snaps?';
 
 is snapper, Nil, 'did the snapper return nothing';
-sleep 1;
+sleep 1 * (%*ENV<ROAST_TIMING_SCALE>//1);
 snapper(:stop);
-sleep .1;
+sleep .1 * (%*ENV<ROAST_TIMING_SCALE>//1);
 
 ok +periods() > 0, 'did the snapper start taking snaps';
-sleep .2;
+sleep .2 * (%*ENV<ROAST_TIMING_SCALE>//1);
 ok +periods() == 0, 'did the snapper actually stop';
 
 snapper(2);
-sleep .5;  # give snapper thread some time to start up
-is +periods(), 1, 'did the snapper start taking snaps';
+sleep .5 * (%*ENV<ROAST_TIMING_SCALE>//1);  # give snapper thread some time to start up
+ok +periods() >= 1, 'did the snapper start taking snaps';
 snapper(:stop);
-sleep 2;
+sleep 2 * (%*ENV<ROAST_TIMING_SCALE>//1);
 
 my @report = report.lines;
 is +@report, 2, 'did we only get the header of the report';
@@ -99,4 +100,4 @@ is @report[1], 'Number of Snapshots: 0', 'line 2 of report';
     'giving unknown column in RAKUDO_REPORT_COLUMNS warns instead of crashing'
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

@@ -144,7 +144,7 @@ my class IO::Socket::Async {
         method serial(--> True) { }
     }
 
-    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = buf8.new, :$datagram, :$enc, :$scheduler = $*SCHEDULER) {
+    multi method Supply(IO::Socket::Async:D: :$bin, :$buf = nqp::create(buf8.^pun), :$datagram, :$enc, :$scheduler = $*SCHEDULER) {
         if $bin {
             Supply.new: SocketReaderTappable.new:
                 :$!VMIO, :$scheduler, :$buf, :$!close-promise, udp => $!udp && $datagram
@@ -200,11 +200,9 @@ my class IO::Socket::Async {
     }
 
     class ListenSocket is Tap {
-        has Promise $!VMIO-tobe;
-        has Promise $.socket-host;
-        has Promise $.socket-port;
-
-        submethod TWEAK(Promise :$!VMIO-tobe, Promise :$!socket-host, Promise :$!socket-port) { }
+        has Promise $!VMIO-tobe   is built;
+        has Promise $.socket-host is built;
+        has Promise $.socket-port is built;
 
         method new(&on-close, Promise :$VMIO-tobe, Promise :$socket-host, Promise :$socket-port) {
             self.bless(:&on-close, :$VMIO-tobe, :$socket-host, :$socket-port);
@@ -400,4 +398,4 @@ my class IO::Socket::Async {
 #?endif
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

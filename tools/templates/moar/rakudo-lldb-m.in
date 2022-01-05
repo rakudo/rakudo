@@ -1,0 +1,9 @@
+@insert(sh-prelude)@
+
+@insert(rakudo-debug-notice)@
+
+LLDB="lldb"
+if [ -n "$RAKUDO_LLDB" ]; then
+    LLDB="$RAKUDO_LLDB"
+fi
+"$LLDB" -o run "@expand(@MOAR@)@" -- @expand(@runner_opts@)@ "$@"

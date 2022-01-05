@@ -1,6 +1,6 @@
 class CompUnit::Repository::Installation does CompUnit::Repository::Locally does CompUnit::Repository::Installable {
     has $!lock = Lock.new;
-    has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('perl6', '$COMPILER_CONFIG'), 'version'));
+    has $!cver = nqp::hllize(nqp::atkey(nqp::gethllsym('default', 'SysConfig').rakudo-build-config(), 'version'));
     has %!loaded; # cache compunit lookup for self.need(...)
     has %!seen;   # cache distribution lookup for self!matching-dist(...)
     has $!precomp;
@@ -9,6 +9,7 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     has %!dist-metas;
     has $!precomp-stores;
     has $!precomp-store;
+    has $!prefix-writeable-cache;
 
     my $verbose = nqp::getenvhash<RAKUDO_LOG_PRECOMP>;
 
@@ -23,8 +24,28 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
         }
     }
 
+    method !prefix-writeable {
+            if Rakudo::Internals.IS-WIN {
+                $!prefix-writeable-cache ||= do {
+                    my $writable = False;
+                    try {
+                        my $check-file = $.prefix.add('test-file');
+                        if my $handle = $check-file.open(:create, :w) {
+                            $handle.close;
+                            $check-file.unlink;
+                            $writable = True;
+                        }
+                    }
+                    $writable
+                }
+            }
+            else {
+                $.prefix.w;
+            }
+    }
+
     method writeable-path {
-        $.prefix.w ?? $.prefix !! IO::Path;
+        self!prefix-writeable ?? $.prefix !! IO::Path;
     }
 
     method !writeable-path {
@@ -32,25 +53,25 @@ class CompUnit::Repository::Installation does CompUnit::Repository::Locally does
     }
 
     method can-install() {
-        $.prefix.w || ?(!$.prefix.e && try { $.prefix.mkdir } && $.prefix.e);
+        self!prefix-writeable || ?(!$.prefix.e && try { $.prefix.mkdir } && $.prefix.e);
     }
 
     my $windows_wrapper = '@rem = \'--*-Perl-*--
 @echo off
 if "%OS%" == "Windows_NT" goto WinNT
-#perl# "%~dpn0" %1 %2 %3 %4 %5 %6 %7 %8 %9
-goto endofperl
+#raku# "%~dpn0" %1 %2 %3 %4 %5 %6 %7 %8 %9
+goto endofraku
 :WinNT
-#perl# "%~dpn0" %*
-if NOT "%COMSPEC%" == "%SystemRoot%\system32\cmd.exe" goto endofperl
-if %errorlevel% == 9009 echo You do not have Perl in your PATH.
+#raku# "%~dpn0" %*
+if NOT "%COMSPEC%" == "%SystemRoot%\system32\cmd.exe" goto endofraku
+if %errorlevel% == 9009 echo You do not have Rakudo in your PATH.
 if errorlevel 1 goto script_failed_so_exit_with_non_zero_val 2>nul
-goto endofperl
+goto endofraku
 @rem \';
 __END__
-:endofperl
+:endofraku
 ';
-    my $perl_wrapper = '#!/usr/bin/env #perl#
+    my $raku_wrapper = '#!/usr/bin/env #raku#
 sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     CompUnit::RepositoryRegistry.run-script("#name#", :$name, :$auth, :$ver);
 }';
@@ -81,7 +102,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
         for $short-dir.dir -> $dir {
             $dir.add($id).unlink;
-            $dir.rmdir unless $dir.dir;
+            $dir.rmdir unless $dir.dir.elems;
         }
     }
 
@@ -212,10 +233,10 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $withoutext  = $name-path.subst(/\.[exe|bat]$/, '');
             for '', '-j', '-m', '-js' -> $be {
                 $.prefix.add("$withoutext$be").IO.spurt:
-                    $perl_wrapper.subst('#name#', $name, :g).subst('#perl#', "perl6$be");
+                    $raku_wrapper.subst('#name#', $name, :g).subst('#raku#', "rakudo$be");
                 if $is-win {
                     $.prefix.add("$withoutext$be.bat").IO.spurt:
-                        $windows_wrapper.subst('#perl#', "perl6$be", :g);
+                        $windows_wrapper.subst('#raku#', "rakudo$be", :g);
                 }
                 else {
                     $.prefix.add("$withoutext$be").IO.chmod(0o755);
@@ -224,7 +245,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             self!add-short-name($name-path, $dist, $id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
-            my $content = $handle.open.slurp-rest(:bin,:close);
+            my $content = $handle.open.slurp(:bin,:close);
             $destination.spurt($content);
             $handle.close;
         }
@@ -237,7 +258,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $destination    = $resources-dir.add($id);
             %links{$name-path} = $id;
             my $handle  = $dist.content($file);
-            my $content = $handle.open.slurp-rest(:bin,:close);
+            my $content = $handle.open.slurp(:bin,:close);
             $destination.spurt($content);
             $handle.close;
         }
@@ -261,7 +282,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
             my $*RESOURCES = Distribution::Resources.new(:repo(self), :$dist-id);
             my %done;
 
-            my $compiler-id = CompUnit::PrecompilationId.new-without-check($*PERL.compiler.id);
+            my $compiler-id = CompUnit::PrecompilationId.new-without-check($*RAKU.compiler.id);
             for %provides.sort {
                 my $id = CompUnit::PrecompilationId.new-without-check($_.value.values[0]<file>);
                 $precomp.store.delete($compiler-id, $id);
@@ -429,7 +450,7 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
         }
 
         # Sort from highest to lowest by version and api
-        my $sorted-metas := $matching-metas.sort(*.value<api>).sort(*.value<ver>).reverse;
+        my $sorted-metas := $matching-metas.sort(*.value<ver>).sort(*.value<api>).reverse;
 
         # There is nothing left to do with the subset of meta data, so initialize a lazy distribution with it
         my $distributions := $sorted-metas.map(*.kv).map: -> ($dist-id, $meta) { self!lazy-distribution($dist-id, :$meta) }
@@ -443,7 +464,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
 
     # An equivalent of self.candidates($spec).head that caches the best match
     method !matching-dist(CompUnit::DependencySpecification $spec) {
-        return $_ with %!seen{~$spec};
+        $!lock.protect: {
+            return $_ with %!seen{~$spec};
+        }
 
         with self.candidates($spec).head {
             $!lock.protect: { return %!seen{~$spec} //= $_ }
@@ -549,7 +572,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
                 unless $source-file-name;
             my $loader = $.prefix.add('sources').add($source-file-name);
             my $id     = $loader.basename;
-            return $_ with %!loaded{$id};
+            $!lock.protect: {
+                return $_ with %!loaded{$id};
+            }
 
             my $*DISTRIBUTION = CompUnit::Repository::Distribution.new($_, :repo(self), :dist-id(.dist-id));
             my $*RESOURCES  = Distribution::Resources.new(:repo(self), :dist-id(.dist-id));
@@ -604,7 +629,9 @@ sub MAIN(:$name, :$auth, :$ver, *@, *%) {
     method short-id() { 'inst' }
 
     method loaded(--> Iterable:D) {
-        return %!loaded.values;
+        $!lock.protect: {
+            return %!loaded.values;
+        }
     }
 
     method distribution(Str $id --> Distribution) {
@@ -639,8 +666,8 @@ The distribution $name does not seem to have a \"provides\" section in its META6
 and so the packages will not be installed in the correct location.
 Please ask the author to add a \"provides\" section, mapping every exposed namespace to a
 file location in the distribution.
-See http://design.perl6.org/S22.html#provides for more information.\n";
+See http://design.raku.org/S22.html#provides for more information.\n";
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

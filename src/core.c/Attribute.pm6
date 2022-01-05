@@ -2,6 +2,8 @@ my class Attribute { # declared in BOOTSTRAP
     # class Attribute is Any
     #     has str $!name;
     #     has int $!rw;
+    #     has int $!is_built;
+    #     has int $!is_bound;
     #     has int $!has_accessor;
     #     has Mu $!type;
     #     has Mu $!container_descriptor;
@@ -15,14 +17,22 @@ my class Attribute { # declared in BOOTSTRAP
     #     has Mu $!why;
     #     has $!required;
     #     has Mu $!container_initializer;
+    #     has Attribute $!original;
+    #     has Attribute $!composed;
 
     method compose(Mu $package, :$compiler_services) {
+        return if $!composed;
+        my $dcpkg := nqp::decont($package);
+        nqp::bindattr(self, Attribute, '$!package', $dcpkg);
         # Generate accessor method, if we're meant to have one.
         if self.has_accessor {
             my str $name   = nqp::unbox_s(self.name);
             my $meth_name := nqp::substr($name, 2);
-            unless $package.^declares_method($meth_name) {
-                my $dcpkg := nqp::decont($package);
+            unless nqp::existskey($package.^method_table, $meth_name)
+                    || nqp::existskey($package.^submethod_table, $meth_name)
+                    || (nqp::can($package.HOW, 'has_multi_candidate')
+                        && $package.^has_multi_candidate($meth_name))
+            {
                 my $meth;
                 my int $attr_type = nqp::objprimspec($!type);
 
@@ -157,6 +167,8 @@ my class Attribute { # declared in BOOTSTRAP
             }
         }
 
+        nqp::bindattr_i(self, Attribute, '$!composed', 1);
+
         # Apply any handles trait we may have.
         self.apply_handles($package);
     }
@@ -166,35 +178,23 @@ my class Attribute { # declared in BOOTSTRAP
     }
 
     method get_value(Mu $obj) is raw {
-        nqp::if(
-          (my int $t = nqp::objprimspec($!type)),
-          nqp::if(
-            nqp::iseq_i($t,1),
-            nqp::getattr_i(nqp::decont($obj),$!package,$!name),
-            nqp::if(
-              nqp::iseq_i($t,2),
-              nqp::getattr_n(nqp::decont($obj),$!package,$!name),
-              nqp::getattr_s(nqp::decont($obj),$!package,$!name)  # assume 3
-            )
-          ),
-          nqp::getattr(nqp::decont($obj),$!package,$!name)
-        )
+        (my int $t = nqp::objprimspec($!type))
+          ?? nqp::iseq_i($t,1)
+            ?? nqp::getattr_i(nqp::decont($obj),$!package,$!name)
+            !! nqp::iseq_i($t,2)
+              ?? nqp::getattr_n(nqp::decont($obj),$!package,$!name)
+              !! nqp::getattr_s(nqp::decont($obj),$!package,$!name) # assume t=3
+          !! nqp::getattr(nqp::decont($obj),$!package,$!name)
     }
 
     method set_value(Mu $obj, Mu \value) is raw {
-        nqp::if(
-          (my int $t = nqp::objprimspec($!type)),
-          nqp::if(
-            nqp::iseq_i($t,1),
-            nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value),
-            nqp::if(
-              nqp::iseq_i($t,2),
-              nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value),
-              nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value)
-            )
-          ),
-          nqp::bindattr(nqp::decont($obj),$!package,$!name,value)
-        )
+        (my int $t = nqp::objprimspec($!type))
+          ?? nqp::iseq_i($t,1)
+            ?? nqp::bindattr_i(nqp::decont($obj),$!package,$!name,value)
+            !! nqp::iseq_i($t,2)
+              ?? nqp::bindattr_n(nqp::decont($obj),$!package,$!name,value)
+              !! nqp::bindattr_s(nqp::decont($obj),$!package,$!name,value) # t=3
+          !! nqp::bindattr(nqp::decont($obj),$!package,$!name,value)
     }
 
     method container() is raw { nqp::ifnull($!auto_viv_container,Nil) }
@@ -237,4 +237,22 @@ multi sub trait_mod:<does>(Attribute:D $a, Mu:U $role) {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+multi sub trait_mod:<is>(Attribute:D $a, :$built!) {
+    if nqp::istype($built,Bool) {
+        nqp::bindattr_i($a,Attribute,'$!is_built',+$built);
+    }
+    elsif nqp::istype($built,Pair) {
+        if $built.key eq 'bind' {
+            nqp::bindattr_i($a,Attribute,'$!is_built',1);
+            nqp::bindattr_i($a,Attribute,'$!is_bound',+$built.value);
+        }
+        else {
+            die "Don't know how to handle 'is built($built.raku())' trait";
+        }
+    }
+    else {
+        die "Don't know how to handle 'is built($built.raku())' trait";
+    }
+}
+
+# vim: expandtab shiftwidth=4

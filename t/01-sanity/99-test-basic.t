@@ -142,6 +142,14 @@ todo( 'failing is-deeply returns False' );
 my $is-deeply = is-deeply {a => 1}, {}, 'is-deeply with exta key fails';
 nok $is-deeply, 'failing is-deeply returns False';
 
+# Testing issue #3535
+is Buf.new(42), Buf.new(42), "Comparing eq Buf";
+lives-ok {
+    # NOT_TODO
+    todo("Comparing 2 not eq Buf, should not pass");
+    is Buf.new(42), Buf.new(43);
+}, "Comparing neq Buf";
+
 done-testing;
 
-# vim: ft=perl6
+# vim: expandtab shiftwidth=4

@@ -60,7 +60,7 @@ Language Features
 2 **    module versioning (lizmat,FROGGS)
 2 ***   new syntax/semantics for coercion (jnthn)
 3 ***   domain specific languages -- slang and grammar tweaks (FROGGS)
-3 ****  more advanced Perl 5 interop (lexical embedding, etc.) (FROGGS)
+3 ****  more advanced Perl interop (lexical embedding, etc.) (FROGGS)
 2 **    label handling using goto
 2 ?     leave for leading blocks
 

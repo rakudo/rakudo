@@ -6,12 +6,10 @@ class Encoding::Builtin does Encoding {
         X::Cannot::New.new(class => self.WHAT).throw
     }
 
-    method SET-SELF(\name, \alternatives) {
-        nqp::stmts(
-          ($!name := name),
-          ($!alternative-names := alternatives),
-          self
-        )
+    method SET-SELF(\name, \alternatives) is implementation-detail {
+        $!name := name;
+        $!alternative-names := alternatives;
+        self
     }
 
     method alternative-names() { $!alternative-names }
@@ -33,10 +31,10 @@ class Encoding::Builtin does Encoding {
             !! $encoder
     }
 
-#?if moar
+#?if !js
     my constant $enc_type = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $enc_type := nqp::hash(
 #?endif
       'utf8',utf8,'utf16',utf16,'utf32',utf32
@@ -53,4 +51,4 @@ class Encoding::Builtin does Encoding {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

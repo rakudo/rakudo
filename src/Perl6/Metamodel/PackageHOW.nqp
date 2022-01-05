@@ -13,13 +13,13 @@ class Perl6::Metamodel::PackageHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type(:$name = '<anon>', :$repr, :$ver, :$auth) {
         if $repr { nqp::die("'package' does not support custom representations") }
         my $metaclass := nqp::create(self);
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'perl6');
+        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'Uninstantiable'), 'Raku');
         $metaclass.set_name($obj, $name);
         self.add_stash($obj);
     }
@@ -32,3 +32,5 @@ class Perl6::Metamodel::PackageHOW
         $!composed
     }
 }
+
+# vim: expandtab sw=4

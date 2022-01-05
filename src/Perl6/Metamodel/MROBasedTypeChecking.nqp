@@ -8,7 +8,7 @@ role Perl6::Metamodel::MROBasedTypeChecking {
     }
 
     method does($obj, $type) {
-        nqp::hllboolfor(nqp::istype($obj, $type), "perl6")
+        nqp::hllboolfor(nqp::istype($obj, $type), "Raku")
     }
 
     method type_check($obj, $checkee) {
@@ -43,3 +43,5 @@ role Perl6::Metamodel::MROBasedTypeChecking {
         nqp::settypecache($obj, @tc)
     }
 }
+
+# vim: expandtab sw=4

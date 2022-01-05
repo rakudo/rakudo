@@ -19,12 +19,12 @@ class Perl6::Metamodel::NativeRefHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type(:$name = '<anon>', :$ver, :$auth, :$api) {
         my $metaclass := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'NativeRef'), 'perl6');
+        my $obj := nqp::settypehll(nqp::newtype($metaclass, 'NativeRef'), 'Raku');
         $metaclass.set_name($obj, $name);
         $metaclass.set_ver($obj, $ver);
         $metaclass.set_auth($obj, $auth) if $auth;
@@ -77,3 +77,5 @@ class Perl6::Metamodel::NativeRefHOW
     method method_table($obj) { nqp::hash() }
     method submethod_table($obj) { nqp::hash() }
 }
+
+# vim: expandtab sw=4

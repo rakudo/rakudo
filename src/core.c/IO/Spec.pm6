@@ -2,10 +2,10 @@ my class VM { ... }
 
 my class IO::Spec {
 
-#?if moar
+#?if !js
     my constant $module = nqp::hash( # only list the non-Unix ones in lowercase
 #?endif
-#?if !moar
+#?if js
     my $module := nqp::hash( # only list the non-Unix ones in lowercase
 #?endif
       'mswin32', 'Win32',
@@ -33,4 +33,4 @@ my class IO::Spec {
 # temporary non-lazy initialization of $*SPEC
 PROCESS::<$SPEC> = IO::Spec.select;
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

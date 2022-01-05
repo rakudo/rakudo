@@ -16,8 +16,8 @@ class CompUnit::Repository::NodeJs { ... }
 #?endif
 
 class CompUnit::RepositoryRegistry {
-    my $lock     = Lock.new;
-    my %include-spec2cur;
+    my $lock := Lock.new;
+    my $include-spec2cur := nqp::hash;
 
     proto method repository-for-spec(|) { * }
     multi method repository-for-spec(Str $spec, CompUnit::Repository :$next-repo) {
@@ -27,29 +27,39 @@ class CompUnit::RepositoryRegistry {
         my $short-id := $spec.short-id;
         my %options  := $spec.options;
         my $path     := $spec.path;
+        my $class    := short-id2class($short-id);
 
-        my $class := short-id2class($short-id);
-        return CompUnit::Repository::Unknown.new(:path-spec($spec), :short-name($short-id))
-            if so $class && nqp::istype($class, Failure) or !nqp::istype($class, CompUnit::Repository);
+        if nqp::istype($class,CompUnit::Repository) {
+            my $prefix := nqp::can($class,"absolutify")
+              ?? $class.absolutify($path)
+              !! $path;
+            %options<next-repo> = $next-repo if $next-repo;
 
-        my $abspath = nqp::can($class,"absolutify")
-          ?? $class.absolutify($path)
-          !! $path;
-        my $id      = "$short-id#$abspath";
-        %options<next-repo> = $next-repo if $next-repo;
-        $lock.protect( {
-            %include-spec2cur{$id}:exists
-              ?? %include-spec2cur{$id}
-              !! (%include-spec2cur{$id} := $class.new(:prefix($abspath), |%options));
-        } );
+            my str $id = "$short-id#$prefix";
+            $lock.protect: {
+                nqp::ifnull(
+                  nqp::atkey($include-spec2cur,$id),
+                  nqp::bindkey($include-spec2cur,$id,
+                    $class.new(:$prefix, |%options)
+                  )
+                )
+            }
+        }
+        else {
+            CompUnit::Repository::Unknown.new(
+              :path-spec($spec),
+              :short-name($short-id)
+            )
+        }
     }
 
-    method !register-repository($id, CompUnit::Repository $repo) {
-        $lock.protect( {
-            %include-spec2cur{$id}:exists
-              ?? %include-spec2cur{$id}
-              !! (%include-spec2cur{$id} := $repo);
-        } );
+    method !register-repository(str $id, CompUnit::Repository $repo) {
+        $lock.protect: {
+            nqp::ifnull(
+              nqp::atkey($include-spec2cur,$id),
+              nqp::bindkey($include-spec2cur,$id,$repo)
+            )
+        }
     }
 
     my $custom-lib := nqp::hash();
@@ -59,13 +69,15 @@ class CompUnit::RepositoryRegistry {
         my $ENV := nqp::getattr(%*ENV,Map,'$!storage');
         my $sep := $*SPEC.dir-sep;
 
+        my $precomp-specs :=
+          nqp::ifnull(nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH'),False);
+
+        my CompUnit::Repository $next-repo;
+
         # starting up for creating precomp
-        my $precomp-specs = nqp::existskey($ENV,'RAKUDO_PRECOMP_WITH')
-            ?? nqp::atkey($ENV,'RAKUDO_PRECOMP_WITH')
-            !! False;
         if $precomp-specs {
             # assume well formed strings
-            $raw-specs := nqp::split(',', $precomp-specs);
+            $raw-specs := nqp::split(',',$precomp-specs);
         }
 
         # normal start up
@@ -80,59 +92,32 @@ class CompUnit::RepositoryRegistry {
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'RAKUDOLIB'));
             }
+            if nqp::existskey($ENV,'RAKULIB') {
+                nqp::push($raw-specs,$_)
+                  for parse-include-specS(nqp::atkey($ENV,'RAKULIB'));
+            }
             if nqp::existskey($ENV,'PERL6LIB') {
                 nqp::push($raw-specs,$_)
                   for parse-include-specS(nqp::atkey($ENV,'PERL6LIB'));
             }
-        }
 
-        my str $prefix = nqp::existskey($ENV,'RAKUDO_PREFIX')
-          ?? nqp::atkey($ENV,'RAKUDO_PREFIX')
-          !! nqp::getcurhllsym('$PERL6_HOME');
-
-        # XXX Various issues with this stuff on JVM , TEMPORARY
-        my str $home;
-        my str $home-spec;
-        try {
-            if nqp::existskey($ENV,'HOME')
-              ?? nqp::atkey($ENV,'HOME')
-              !! nqp::concat(
-                   (nqp::existskey($ENV,'HOMEDRIVE')
-                     ?? nqp::atkey($ENV,'HOMEDRIVE') !! ''),
-                   (nqp::existskey($ENV,'HOMEPATH')
-                     ?? nqp::atkey($ENV,'HOMEPATH') !! '')
-                 ) -> $home-path {
-                $home = "{$home-path}{$sep}.perl6";
-                $home-spec = "inst#$home";
-            }
-        }
-
-        # set up custom libs
-        my str $site   = "inst#{$prefix}{$sep}site";
-        my str $vendor = "inst#{$prefix}{$sep}vendor";
-        my str $core   = "inst#{$prefix}{$sep}core";
-
-        # your basic repo chain
-        my CompUnit::Repository $next-repo :=
-            $precomp-specs
-            ?? CompUnit::Repository
-            !! CompUnit::Repository::AbsolutePath.new(
-                :next-repo( CompUnit::Repository::NQP.new(
-                    :next-repo(CompUnit::Repository::Perl5.new(
+            # your basic repo chain
+            $next-repo := CompUnit::Repository::AbsolutePath.new(
+              :next-repo(CompUnit::Repository::NQP.new(
+                :next-repo(CompUnit::Repository::Perl5.new(
 #?if jvm
-                        :next-repo(CompUnit::Repository::JavaRuntime.new)
+                  :next-repo(CompUnit::Repository::JavaRuntime.new)
 #?endif
-                    ))
-                )
-            )
-        );
+                ))
+              ))
+            );
+        }
 
         # create reverted, unique list of path-specs
-        my $iter   := nqp::iterator($raw-specs);
         my $unique := nqp::hash();
         my $specs  := nqp::list();
-        while $iter {
-            my $repo-spec := nqp::shift($iter);
+        while nqp::elems($raw-specs) {
+            my $repo-spec := nqp::shift($raw-specs);
             my str $path-spec = $repo-spec.Str;
             unless nqp::existskey($unique,$path-spec) {
                 nqp::bindkey($unique,$path-spec,1);
@@ -140,100 +125,137 @@ class CompUnit::RepositoryRegistry {
             }
         }
 
+        # set up and normalize $prefix if needed
+        my str $prefix = nqp::ifnull(
+          nqp::atkey($ENV,'RAKUDO_PREFIX'),
+          nqp::gethllsym('default', 'SysConfig').rakudo-home()
+        );
+        $prefix = $prefix.subst(:g, '/', $sep) if Rakudo::Internals.IS-WIN;
+
+        # set up custom libs
+        my str $core   = 'inst#' ~ $prefix ~ $sep ~ 'core';
+        my str $vendor = 'inst#' ~ $prefix ~ $sep ~ 'vendor';
+        my str $site   = 'inst#' ~ $prefix ~ $sep ~ 'site';
+
+        my str $home;
+        my str $home-spec;
+
+        if nqp::ifnull(
+             nqp::atkey($ENV,'HOME'),
+             nqp::concat(
+               nqp::ifnull(nqp::atkey($ENV,'HOMEDRIVE'),''),
+               nqp::ifnull(nqp::atkey($ENV,'HOMEPATH'),'')
+             )
+           ) -> $home-path {
+            $home = $home-path ~ $sep ~ '.raku';
+            $home-spec = 'inst#' ~ $home;
+        }
+
         unless $precomp-specs {
-            nqp::bindkey($custom-lib, 'core', $next-repo := self!register-repository(
+            nqp::bindkey($custom-lib,'core',
+              $next-repo := self!register-repository(
                 $core,
-                CompUnit::Repository::Installation.new(:prefix("$prefix/core"), :$next-repo)
-            )) unless nqp::existskey($unique, $core);
-            nqp::bindkey($custom-lib, 'vendor', $next-repo := self!register-repository(
+                CompUnit::Repository::Installation.new(
+                  :prefix("$prefix/core"),
+                  :$next-repo
+                )
+              )
+            ) unless nqp::existskey($unique,$core);
+
+            nqp::bindkey($custom-lib,'vendor',
+              $next-repo := self!register-repository(
                 $vendor,
-                CompUnit::Repository::Installation.new(:prefix("$prefix/vendor"), :$next-repo)
-            )) unless nqp::existskey($unique, $vendor);
-            nqp::bindkey($custom-lib, 'site', $next-repo := self!register-repository(
+                CompUnit::Repository::Installation.new(
+                  :prefix("$prefix/vendor"),
+                  :$next-repo
+                )
+              )
+            ) unless nqp::existskey($unique, $vendor);
+
+            nqp::bindkey($custom-lib,'site',
+              $next-repo := self!register-repository(
                 $site,
-                CompUnit::Repository::Installation.new(:prefix("$prefix/site"), :$next-repo)
-            )) unless nqp::existskey($unique, $site);
-            nqp::bindkey($custom-lib, 'home', $next-repo := self!register-repository(
+                CompUnit::Repository::Installation.new(
+                  :prefix("$prefix/site"),
+                  :$next-repo
+                )
+              )
+            ) unless nqp::existskey($unique, $site);
+
+            nqp::bindkey($custom-lib,'home',
+              $next-repo := self!register-repository(
                 $home-spec,
-                CompUnit::Repository::Installation.new(:prefix($home), :$next-repo)
-            )) if $home and not nqp::existskey($unique, $home-spec);
+                CompUnit::Repository::Installation.new(
+                  :prefix($home),
+                  :$next-repo
+                )
+              )
+            ) if $home-spec and nqp::not_i(nqp::existskey($unique,$home-spec));
         }
 
         # convert repo-specs to repos
         my $repos := nqp::hash();
-        $iter := nqp::iterator($specs);
-        while $iter {
-            my $spec = nqp::shift($iter);
+        while nqp::elems($specs) {
+            my $spec := nqp::shift($specs);
             $next-repo := self.use-repository(
               self.repository-for-spec($spec), :current($next-repo));
             nqp::bindkey($repos,$spec.Str,$next-repo);
         }
 
         # register manually set custom-lib repos
-        unless nqp::existskey($custom-lib, 'core') {
-            my $repo := nqp::atkey($repos, $core);
-            if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'core');
-            }
-            else {
-                nqp::bindkey($custom-lib, 'core', $repo);
-            }
+        unless nqp::existskey($custom-lib,'core') {
+            my \repo := nqp::atkey($repos,$core);
+            nqp::bindkey($custom-lib,'core',repo) if repo;
         }
-        unless nqp::existskey($custom-lib, 'vendor') {
-            my $repo := nqp::atkey($repos, $vendor);
-            if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'vendor');
-            }
-            else {
-                nqp::bindkey($custom-lib, 'vendor', $repo);
-            }
+        unless nqp::existskey($custom-lib,'vendor') {
+            my \repo := nqp::atkey($repos,$vendor);
+            nqp::bindkey($custom-lib,'vendor',repo) if repo;
         }
-        unless nqp::existskey($custom-lib, 'site') {
-            my $repo := nqp::atkey($repos, $site);
-            if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'site');
-            }
-            else {
-                nqp::bindkey($custom-lib, 'site', $repo);
-            }
+        unless nqp::existskey($custom-lib,'site') {
+            my \repo := nqp::atkey($repos,$site);
+            nqp::bindkey($custom-lib,'site',repo) if repo;
         }
-        unless nqp::existskey($custom-lib, 'home') {
-            my $repo := nqp::atkey($repos, $home-spec);
-            if nqp::isnull($repo) {
-                nqp::deletekey($custom-lib, 'home');
-            }
-            else {
-                nqp::bindkey($custom-lib, 'home', $repo);
+        unless nqp::existskey($custom-lib,'home') {
+            if $home-spec {
+                my \repo := nqp::atkey($repos,$home-spec);
+                nqp::bindkey($custom-lib,'home',repo) if repo;
             }
         }
 
         $next-repo
     }
 
-    method !remove-from-chain(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO) {
-        my $item = $current;
+    method !remove-from-chain(
+      CompUnit::Repository $repo,
+      CompUnit::Repository $current
+    --> Nil) {
+        my $item := $current;
         while $item {
             if $item.next-repo === $repo {
                 $item.next-repo = $repo.next-repo;
                 last;
             }
-            $item = $item.next-repo;
+            $item := $item.next-repo;
         }
     }
 
-    method use-repository(CompUnit::Repository $repo, CompUnit::Repository :$current = $*REPO) {
-        return $repo if $current === $repo;
-        self!remove-from-chain($repo, :$current);
-        $repo.next-repo = $current;
-        PROCESS::<$REPO> := $repo;
+    method use-repository(
+      CompUnit::Repository $repo,
+      CompUnit::Repository :$current = $*REPO
+    --> CompUnit::Repository:D) {
+        if $current === $repo {
+            $repo
+        }
+        else {
+            self!remove-from-chain($repo, $current);
+            $repo.next-repo = $current;
+            PROCESS::<$REPO> := $repo;
+        }
     }
 
-    method repository-for-name(Str:D \name) {
+    method repository-for-name(str $name) {
         $*REPO; # initialize if not yet done
-        my str $name = nqp::unbox_s(name);
-        nqp::existskey($custom-lib,$name)
-          ?? nqp::atkey($custom-lib,$name)
-          !! Nil
+        nqp::ifnull(nqp::atkey($custom-lib,$name),Nil)
     }
 
     method register-name($name, CompUnit::Repository $repo) {
@@ -289,7 +311,7 @@ class CompUnit::RepositoryRegistry {
             exit 1;
         }
 
-        my $meta = @metas.sort(*.<ver>).reverse.head;
+        my $meta = @metas.sort(*.<ver>).sort(*.<api>).reverse.head;
         my $bin  = $meta<source>;
         require "$bin";
     }
@@ -298,32 +320,32 @@ class CompUnit::RepositoryRegistry {
         $*REPO
     }
 
-    method resolve-unknown-repos($repo is copy) {
-        # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
-        my $global := nqp::list("GLOBAL");
+    method resolve-unknown-repos($first-repo --> Nil) {
+        my $repo := $first-repo;
         my $prev-repo;
-        while defined $repo {
-            if nqp::istype($repo, CompUnit::Repository::Unknown) {
+        while nqp::isconcrete($repo) {
+            if nqp::istype($repo,CompUnit::Repository::Unknown) {
                 my $next-repo := $repo.next-repo;
 
                 my $head := PROCESS<$REPO>;
                 PROCESS::<$REPO> := $next-repo;
-                my $comp_unit = $next-repo.need(
-                    CompUnit::DependencySpecification.new(:short-name($repo.short-name))
+                my $comp_unit := $next-repo.need(
+                  CompUnit::DependencySpecification.new(
+                    :short-name($repo.short-name))
                 );
                 PROCESS::<$REPO> := $head;
 
-                $*W.find_symbol($global).WHO.merge-symbols($comp_unit.handle.globalish-package);
-                $repo = self.repository-for-spec($repo.path-spec, :$next-repo);
-                if defined $prev-repo {
-                    $prev-repo.next-repo = $repo;
-                }
-                else {
-                    PROCESS::<$REPO> := nqp::decont($repo);
-                }
+                # Cannot just use GLOBAL.WHO here as that gives a BOOTHash
+                $*W.find_single_symbol("GLOBAL").WHO.merge-symbols(
+                  $comp_unit.handle.globalish-package);
+
+                $repo := self.repository-for-spec($repo.path-spec, :$next-repo);
+                nqp::isconcrete($prev-repo)
+                  ?? ($prev-repo.next-repo = $repo)
+                  !! (PROCESS::<$REPO> := $repo);
             }
-            $prev-repo = $repo;
-            $repo = $repo.next-repo;
+            $prev-repo := $repo;
+            $repo := $repo.next-repo;
         }
     }
 
@@ -341,10 +363,10 @@ class CompUnit::RepositoryRegistry {
         }
     }
 
-#?if moar
+#?if !js
     my constant $short-id2class = nqp::hash(
 #?endif
-#?if !moar
+#?if js
     my $short-id2class := nqp::hash(
 #?endif
       'file',   CompUnit::Repository::FileSystem,
@@ -397,27 +419,28 @@ class CompUnit::RepositoryRegistry {
         );
     }
 
-    sub parse-include-specS(Str:D $specs) {
-        my @found;
-        my $default-short-id = 'file';
+    sub parse-include-specS(Str:D $specs --> List:D) {
+        my $found := nqp::list();
+        my $default-short-id := 'file';
 
         if $*RAKUDO_MODULE_DEBUG -> $RMD { $RMD("Parsing specs: $specs") }
 
-        # for all possible specs
-        my $spec-list := nqp::split(',', $specs);
-        my $iter      := nqp::iterator($spec-list);
-        while $iter {
-            my $spec := nqp::shift($iter);
-            if CompUnit::Repository::Spec.from-string($spec.trim, :$default-short-id) -> $repo-spec {
-                @found.push: $repo-spec;
-                $default-short-id = $repo-spec.short-id;
-            }
-            elsif $spec {
-                die "Don't know how to handle $spec";
+        # for *all possible specs
+        my $spec-list := nqp::split(',',$specs);
+        while nqp::elems($spec-list) {
+            if nqp::shift($spec-list).trim -> $spec {
+                if CompUnit::Repository::Spec.from-string(
+                     $spec, :$default-short-id) -> $repo-spec {
+                    nqp::push($found,$repo-spec);
+                    $default-short-id := $repo-spec.short-id;
+                }
+                else {
+                    die "Don't know how to handle '$spec'";
+                }
             }
         }
-        @found;
+        nqp::hllize($found)
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

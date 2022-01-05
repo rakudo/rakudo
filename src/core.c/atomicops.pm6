@@ -1,4 +1,4 @@
-#== Atomics available on all backends ============================================
+#== Atomics available on all backends ==========================================
 
 #-- fetching a value atomically
 proto sub atomic-fetch($, *%) {*}
@@ -18,21 +18,24 @@ multi sub atomic-assign($target is rw, \value) {
 }
 
 #-- atomic compare and swap
-proto sub cas($, $, $?, *%) {*}
-multi sub cas($target is rw, \expected, \value) {
+proto sub cas(Mu $, Mu $, Mu $?, *%) {*}
+multi sub cas(Mu $target is rw, Mu \expected, Mu \value) {
     nqp::cas($target, expected, value)
 }
-multi sub cas($target is rw, &code) {
+multi sub cas(Mu $target is rw, &code) {
     my $current := nqp::atomicload($target);
-    loop {
-        my $updated := code($current);
-        my $seen := nqp::cas($target, $current, $updated);
-        return $updated if nqp::eqaddr($seen, $current);
-        $current := $seen;
-    }
+    nqp::until(
+      nqp::stmts(
+        (my $updated := code($current)),
+        (my $seen := nqp::cas($target, $current, $updated)),
+        nqp::eqaddr($seen, $current)
+      ),
+      $current := $seen
+    );
+    $updated
 }
 
-#== Native integer atomics only available on MoarVM ==============================
+#== Native integer atomics only available on MoarVM ============================
 
 #?if !jvm
 my native atomicint is repr('P6int') is Int is ctype('atomic') { }
@@ -217,4 +220,4 @@ multi sub cas(atomicint $target is rw, &code) {
 }
 #?endif
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

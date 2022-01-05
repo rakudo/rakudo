@@ -18,70 +18,65 @@ my role Mixy does Baggy  {
     }
 
     multi method roll(Mixy:D:) {
-        nqp::if(
-          (my \raw := self.RAW-HASH) && (my \total := self!total-positive),
-          nqp::getattr(
-            nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),Pair,'$!key'
-          ),
-          Nil
-        )
+        (my \raw := self.RAW-HASH) && (my \total := self!total-positive)
+          ?? nqp::getattr(
+               nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),Pair,'$!key'
+             )
+          !! Nil
     }
     multi method roll(Mixy:D: Whatever) {
-        Seq.new(nqp::if(
-          (my \raw := self.RAW-HASH) && (my \total := self!total-positive),
-          Rakudo::Iterator.Callable( {
-              nqp::getattr(
-                nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),Pair,'$!key'
-              )
-          }, True ),
-          Rakudo::Iterator.Empty
-        ))
+        Seq.new(
+          (my \raw := self.RAW-HASH) && (my \total := self!total-positive)
+            ?? Rakudo::Iterator.Callable( {
+                   nqp::getattr(
+                    nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),
+                    Pair,
+                    '$!key'
+                   )
+               }, True )
+            !! Rakudo::Iterator.Empty
+        )
     }
     multi method roll(Mixy:D: Callable:D $calculate) {
-      nqp::if(
-        (my $total := self!total-positive),
-        self.roll($calculate($total)),
-        Seq.new(Rakudo::Iterator.Empty)
-      )
+      (my $total := self!total-positive)
+        ?? self.roll($calculate($total))
+        !! Seq.new(Rakudo::Iterator.Empty)
     }
     multi method roll(Mixy:D: $count) {
-        nqp::if(
-          $count == Inf,
-          self.roll(*),                         # let Whatever handle it
-          Seq.new(nqp::if(                      # something else as count
-            (my $todo = $count.Int) < 1, # also handles NaN
-            Rakudo::Iterator.Empty,             # nothing to do
-            nqp::if(
-              (my \raw := self.RAW-HASH) && (my \total := self!total-positive)
-                && ++$todo,
-              Rakudo::Iterator.Callable( {      # need to do a number of times
-                  nqp::if(
-                    --$todo,
-                    nqp::getattr(
-                      nqp::iterval(Rakudo::QuantHash.MIX-ROLL(raw,total)),
-                      Pair,
-                      '$!key'
-                    ),
-                    IterationEnd
-                  )
-              }),
-              Rakudo::Iterator.Empty            # nothing to roll for
-            )
-          ))
-        )
+        $count == Inf
+          ?? self.roll(*)                        # let Whatever handle it
+          !! Seq.new(                            # something else as count
+               (my $todo = $count.Int) < 1       # also handles NaN
+               ?? Rakudo::Iterator.Empty         # nothing to do
+               !! (my \raw := self.RAW-HASH)
+                    && (my \total := self!total-positive)
+                    && ++$todo
+                 ?? Rakudo::Iterator.Callable( { # need to do a number of times
+                        --$todo
+                          ?? nqp::getattr(
+                               nqp::iterval(
+                                 Rakudo::QuantHash.MIX-ROLL(raw,total)
+                               ),
+                               Pair,
+                              '$!key'
+                             )
+                          !! IterationEnd
+                    } )
+                 !! Rakudo::Iterator.Empty       # nothing to roll for
+             )
     }
 
 #--- object creation methods
     method new-from-pairs(Mixy:_: *@pairs --> Mixy:D) {
-        nqp::if(
-          (my \iterator := @pairs.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(self.^name))),
-          nqp::create(self).SET-SELF(
-            Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,self.keyof
-            )
-          )
-        )
+        (my \iterator := @pairs.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('coerce')
+          !! nqp::create(self).SET-SELF(
+               Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+                 nqp::create(Rakudo::Internals::IterationSet),
+                 iterator,
+                 self.keyof
+               )
+             )
     }
 
 #--- coercion methods
@@ -150,4 +145,4 @@ my role Mixy does Baggy  {
     multi method BagHash(Baggy:D:) { BAGGIFY(self, BagHash) }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

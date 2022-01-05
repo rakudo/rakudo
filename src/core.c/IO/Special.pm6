@@ -20,9 +20,9 @@ class IO::Special does IO {
         )
     }
     multi method Str  (IO::Special:D:) {                    $!what         }
-    multi method perl (IO::Special:D:) { "{self.^name}.new({$!what.perl})" }
+    multi method raku (IO::Special:D:) { "{self.^name}.new({$!what.raku})" }
 
-    method IO(IO::Special:D: --> IO::Special:D) { self }
+    method IO(IO::Special:D:) { self }
 
     method e(IO::Special:D: --> True) { }
     method d(IO::Special:D: --> False) { }
@@ -42,4 +42,4 @@ class IO::Special does IO {
     method mode(IO::Special:D: --> Nil) { }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

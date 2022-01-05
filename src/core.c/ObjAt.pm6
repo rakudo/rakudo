@@ -24,16 +24,20 @@ my class ObjAt { # declared in BOOTSTRAP
     multi method gist(ObjAt:D:) {
         nqp::p6box_s(nqp::unbox_s(self));
     }
-    multi method perl(ObjAt:D:) {
-        self.^name ~ ".new(" ~ nqp::p6box_s(nqp::unbox_s(self)).perl ~ ")"
+    multi method raku(ObjAt:D:) {
+        self.^name ~ ".new(" ~ nqp::p6box_s(nqp::unbox_s(self)).raku ~ ")"
     }
 }
 
-multi sub infix:<eqv>(ObjAt:D $a, ObjAt:D $b) {
+my class ValueObjAt { # declared in BOOTSTRAP
+    # class ValueObjAt is ObjAt
+}
+
+multi sub infix:<eqv>(ObjAt:D $a, ObjAt:D $b --> Bool:D) {
     nqp::hllbool(
-      nqp::eqaddr($a.WHAT,$b.WHAT)
-        && nqp::iseq_s(nqp::unbox_s($a),nqp::unbox_s($b))
+      nqp::eqaddr(nqp::decont($a),nqp::decont($b))
+        || (nqp::eqaddr($a.WHAT,$b.WHAT) && nqp::iseq_s($a,$b))
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

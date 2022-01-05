@@ -10,6 +10,7 @@
 my class HyperSeq { ... }
 my class RaceSeq { ... }
 my class Rakudo::Internals::HyperIteratorBatcher { ... }
+my class Kernel { ... }
 my role Iterable {
     method iterator() { ... }
 
@@ -17,99 +18,21 @@ my role Iterable {
         nqp::p6bindattrinvres(nqp::create(Scalar), Scalar, '$!value', self)
     }
 
-    my class Flat does Iterator {
-        has Iterator $!source;
-        has Iterator $!nested;
-
-        method new(\source) {
-            nqp::p6bindattrinvres(nqp::create(self),self,'$!source',source)
-        }
-
-        method pull-one() is raw {
-            nqp::if(
-              $!nested,
-              nqp::if(
-                nqp::eqaddr((my \nested := $!nested.pull-one),IterationEnd),
-                nqp::stmts(
-                  ($!nested := Iterator),
-                  self.pull-one
-                ),
-                nested
-              ),
-              nqp::if(
-                nqp::iscont(my \got := $!source.pull-one),
-                got,
-                nqp::if(
-                  nqp::istype(got,Iterable),
-                  nqp::stmts(
-                    ($!nested := got.flat.iterator),
-                    self.pull-one
-                  ),
-                  got
-                )
-              )
-            )
-        }
-
-        method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              nqp::if(
-                $!nested,
-                nqp::stmts(
-                  $!nested.push-all(target),
-                  ($!nested := Iterator)
-                )
-              ),
-              nqp::until(
-                nqp::eqaddr((my \got := $!source.pull-one), IterationEnd),
-                nqp::if(
-                  nqp::iscont(got),
-                  target.push(got),
-                  nqp::if(
-                    nqp::istype(got,Iterable),
-                    got.flat.iterator.push-all(target),
-                    target.push(got)
-                  )
-                )
-              )
-            )
-        }
-        method is-lazy() { $!source.is-lazy }
-    }
-    method flat(Iterable:D:) { Seq.new(Flat.new(self.iterator)) }
+    method flat(Iterable:D:) { Seq.new(Rakudo::Iterator.Flat(self.iterator)) }
 
     method lazy-if($flag) { $flag ?? self.lazy !! self }
 
-    my class Lazy does Iterator {
-        has $!iterable;
-        has $!iterator;
-
-        method new(\iterable) {
-            nqp::p6bindattrinvres(
-              nqp::create(self),self,'$!iterable',iterable
-            )
-        }
-
-        method pull-one() is raw {
-            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.pull-one
-        }
-
-        method push-exactly(\target, int $n) {
-            $!iterator := $!iterable.iterator unless $!iterator.DEFINITE;
-            $!iterator.push-exactly(target, $n);
-        }
-
-        method is-lazy(--> True) { }
-    }
     method lazy() {
         # Return a Seq with an iterator wrapping this Iterable, claiming to
         # be lazy, and implicitly preventing working ahead (by hiding any
         # push-at-least-n of the source iterator).
-        Seq.new(Lazy.new(self))
+        Seq.new(Rakudo::Iterator.Lazy(self))
     }
 
-    method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+    method hyper(
+      Int(Cool) :$batch  = 64,
+      Int(Cool) :$degree = Kernel.cpu-cores-but-one,
+    ) {
 #?if !js
         HyperSeq.new:
           configuration =>
@@ -122,7 +45,10 @@ my role Iterable {
 #?endif
     }
 
-    method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4) {
+    method race(
+      Int(Cool) :$batch  = 64,
+      Int(Cool) :$degree = Kernel.cpu-cores-but-one,
+    ) {
 #?if !js
         RaceSeq.new:
           configuration =>
@@ -135,69 +61,91 @@ my role Iterable {
 #?endif
     }
 
-    sub MIXIFY(\iterable, \type) {
-        nqp::if(
-          (my \iterator := iterable.flat.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::if(
-            nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-            )),
-            nqp::create(type).SET-SELF(elems),
-            nqp::if(
-              nqp::eqaddr(type,Mix),
-              mix(),
-              nqp::create(type)
-            )
-          )
-        )
+    method !MIXIFY(\type) {
+        (my \iterator := self.flat.iterator).is-lazy
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
+          !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-MIX(
+               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
+             ))
+            ?? nqp::create(type).SET-SELF(elems)
+            !! nqp::eqaddr(type,Mix)
+              ?? mix()
+              !! nqp::create(type)
     }
-    multi method Mix(Iterable:D:)     { MIXIFY(self, Mix)     }
-    multi method MixHash(Iterable:D:) { MIXIFY(self, MixHash) }
+    multi method Mix(Iterable:D:)     { self!MIXIFY(Mix)     }
+    multi method MixHash(Iterable:D:) { self!MIXIFY(MixHash) }
 
-    sub BAGGIFY(\iterable, \type) {
-        nqp::if(
-          (my \iterator := iterable.flat.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::if(
-            nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-            )),
-            nqp::create(type).SET-SELF(elems),
-            nqp::if(
-              nqp::eqaddr(type,Bag),
-              bag(),
-              nqp::create(type)
-            )
-          )
-        )
+    method !BAGGIFY(\type) {
+        (my \iterator := self.flat.iterator).is-lazy
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
+          !! nqp::elems(my \elems := Rakudo::QuantHash.ADD-PAIRS-TO-BAG(
+               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
+             ))
+            ?? nqp::create(type).SET-SELF(elems)
+            !! nqp::eqaddr(type,Bag)
+              ?? bag()
+              !! nqp::create(type)
     }
-    multi method Bag(Iterable:D:)     { BAGGIFY(self, Bag)     }
-    multi method BagHash(Iterable:D:) { BAGGIFY(self, BagHash) }
+    multi method Bag(Iterable:D:)     { self!BAGGIFY(Bag)     }
+    multi method BagHash(Iterable:D:) { self!BAGGIFY(BagHash) }
 
-    sub SETIFY(\iterable, \type) {
-        nqp::if(
-          (my \iterator := iterable.flat.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<coerce>,:what(type.^name))),
-          nqp::if(
-            nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
-              nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
-            )),
-            nqp::create(type).SET-SELF($elems),
+    method !SETIFY(\type) {
+        (my \iterator := self.flat.iterator).is-lazy
+          ?? type.fail-iterator-cannot-be-lazy('coerce')
+          !! nqp::elems(my $elems := Rakudo::QuantHash.ADD-PAIRS-TO-SET(
+               nqp::create(Rakudo::Internals::IterationSet),iterator,Mu
+             ))
+            ?? nqp::create(type).SET-SELF($elems)
+            !! nqp::eqaddr(type,Set)
+              ?? set()
+              !! nqp::create(type)
+    }
+    multi method Set(Iterable:D:)     { self!SETIFY(Set)     }
+    multi method SetHash(Iterable:D:) { self!SETIFY(SetHash) }
+}
+
+multi sub infix:<eqv>(Iterable:D \a, Iterable:D \b) {
+    nqp::hllbool(
+      nqp::unless(
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
+        nqp::if(                                 # not same object
+          nqp::eqaddr(a.WHAT,b.WHAT),
+          nqp::if(                               # same type
+            nqp::iseq_i(
+              nqp::istrue(my \ial := (my \ia := a.iterator).is-lazy),
+              nqp::istrue(           (my \ib := b.iterator).is-lazy)
+            ),
             nqp::if(
-              nqp::eqaddr(type,Set),
-              set(),
-              nqp::create(type)
+              ial,
+              Any.throw-iterator-cannot-be-lazy('eqv',''),
+              nqp::stmts(
+                nqp::if(
+                  nqp::istype(ia,PredictiveIterator)
+                    && nqp::istype(ib,PredictiveIterator)
+                    && nqp::isne_i(ia.count-only,ib.count-only),
+                  (return False)
+                ),
+                nqp::until(
+                  nqp::stmts(
+                    (my \pa := ia.pull-one),
+                    (my \pb := ib.pull-one),
+                    nqp::eqaddr(pa,IterationEnd)
+                      || nqp::eqaddr(pb,IterationEnd)
+                      || nqp::isfalse(pa eqv pb)
+                  ),
+                  nqp::null
+                ),
+                nqp::eqaddr(pa,pb)     # both IterationEnd = success!
+              )
             )
           )
         )
-    }
-    multi method Set(Iterable:D:)     { SETIFY(self,Set)     }
-    multi method SetHash(Iterable:D:) { SETIFY(self,SetHash) }
+      )
+    )
 }
 
 #?if jvm
 nqp::p6setitertype(Iterable);
 #?endif
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

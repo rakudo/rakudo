@@ -1,8 +1,8 @@
 
-# Registers ops so they're availabe to both NQP for Metamodel and Perl6
+# Registers ops so they're availabe to both NQP for Metamodel and Raku
 sub _register_op_with_nqp($name, $desugar) {
     register_op_desugar($name, $desugar, :compiler<nqp>);
-    register_op_desugar($name, $desugar, :compiler<perl6>);
+    register_op_desugar($name, $desugar, :compiler<Raku>);
 }
 
 # Find the nearest caller from different package with CORE as its outer and returns its context
@@ -202,26 +202,6 @@ _register_op_with_nqp( 'p6getlexclient', -> $qast {
                 QAST::Var.new( :name($setting-only), :scope<local>, :decl<var> ),
                 (nqp::atpos($qast, 1) || QAST::IVal.new( :value(0) ))
             ),
-            # QAST::Op.new(
-            #     :op<if>,
-            #     QAST::Op.new(:op<atkey>, QAST::Op.new(:op<getenvhash>), QAST::SVal.new(:value<RAKUDO_DEBUG>)),
-            #     QAST::Op.new(
-            #         :op<say>,
-            #         QAST::Op.new(
-            #             :op<concat>,
-            #             QAST::SVal.new( value => "p6getlexclient: "),
-            #             QAST::Op.new(
-            #                 :op<concat>,
-            #                 $qast[0],
-            #                 QAST::Op.new(
-            #                     :op<concat>,
-            #                     QAST::SVal.new(:value<, >),
-            #                     $setting-only-var
-            #                 )
-            #             )
-            #         )
-            #     ),
-            # ),
             QAST::Op.new(
                 :op<if>,
                 QAST::Op.new(
@@ -377,3 +357,5 @@ _register_op_with_nqp( 'p6getlexclient', -> $qast {
         )
     }
 );
+
+# vim: expandtab sw=4

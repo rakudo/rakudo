@@ -8,9 +8,15 @@
 # Hot-paths are free to use the nqp:: op set directly on this, and do things
 # outside the scope of the method API it exposes. This type is engineered for
 # performance over friendliness, and should not be encountered in normal use
-# of Perl 6. Do NOT add any checks and validation to methods in here. They
-# need to remain trivially inlineable for performance reasons.
+# of Raku. Do NOT add any checks and validation to methods in here. They
+# need to remain trivially inlinable for performance reasons.
 my class IterationBuffer {
+
+    multi method new(IterationBuffer:U: Iterable:D \iterable) {
+        iterable.iterator.push-all(my \buffer := nqp::create(self));
+        buffer
+    }
+
     method clear(IterationBuffer:D: --> Nil) {
         nqp::setelems(self, 0)
     }
@@ -18,9 +24,13 @@ my class IterationBuffer {
     method elems() { nqp::elems(self) }
 
     method push(Mu \value) { nqp::push(self, value) }
+    method append(IterationBuffer:D $buffer) {
+        nqp::splice(self,$buffer,nqp::elems(self),0)
+    }
 
-    method append(IterationBuffer:D \buffer) {
-        nqp::splice(self,buffer,nqp::elems(self),0)
+    method unshift(Mu \value) { nqp::unshift(self, value) }
+    method prepend(IterationBuffer:D $buffer) {
+        nqp::splice(self,$buffer,0,0)
     }
 
     proto method AT-POS(|) {*}
@@ -40,19 +50,39 @@ my class IterationBuffer {
     }
 
     # For maintainability mainly, and possibly for creating smaller, more
-    # inlineable candidates
+    # inlinable candidates
+    method Slip(IterationBuffer:D:) {
+        nqp::p6bindattrinvres(nqp::create(Slip),List,'$!reified',self)
+    }
+
+    # For maintainability mainly, and possibly for creating smaller, more
+    # inlinable candidates
     method List(IterationBuffer:D:) {
         nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',self)
     }
 
+    # For maintainability mainly, and possibly for creating smaller, more
+    # inlinable candidates
+    method Seq(IterationBuffer:D:) {
+        Seq.new(Rakudo::Iterator.ReifiedList(self))
+    }
+
+    # For maintainability mainly, and possibly for creating smaller, more
+    # inlinable candidates
+    method iterator(IterationBuffer:D:) {
+        Rakudo::Iterator.ReifiedList(self)
+    }
+
     # For core debugging purposes only: basically warp the IterationBuffer
-    # into a full-fledged List and .perl that.  We don't care that it will
+    # into a full-fledged List and .raku that.  We don't care that it will
     # not round-trip.
-    multi method perl(IterationBuffer:D:) { self.List.perl }
+    multi method raku(IterationBuffer:D:) {
+        self.List.raku ~ '.IterationBuffer'
+    }
 }
 
 #?if jvm
 nqp::p6setiterbuftype(IterationBuffer);
 #?endif
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

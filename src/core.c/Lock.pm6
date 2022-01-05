@@ -9,7 +9,9 @@ my class Lock {
         method new() {
             X::Lock::ConditionVariable::New.new.throw
         }
-        method wait() { nqp::condwait(self) }
+        proto method wait(|) {*}
+        multi method wait(--> Nil) { nqp::condwait(self) }
+        multi method wait(&predicate --> Nil) { nqp::condwait(self) until predicate; }
         method signal() { nqp::condsignalone(self) }
         method signal_all() { nqp::condsignalall(self) }
     }
@@ -22,10 +24,10 @@ my class Lock {
 
     # use a multi to ensure LEAVE isn't run when bad args are given
     proto method protect(|) {*}
-    multi method protect(Lock:D: &code) {
+    multi method protect(Lock:D: &code) is raw {
         nqp::lock(self);
         LEAVE nqp::unlock(self);
-        nqp::decont(code())
+        code()
     }
 
     method condition(Lock:D:) {
@@ -33,4 +35,4 @@ my class Lock {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

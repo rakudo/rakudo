@@ -57,5 +57,4 @@ sub MAIN(*@ARGS) {
     say("\n# vim: set ft=perl6 nomodifiable :");
 }
 
-
-# vim: set ft=perl6 :
+# vim: expandtab sw=4

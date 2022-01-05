@@ -6,21 +6,21 @@ my class PseudoStash { ... }
 my class Label { ... }
 class CompUnit::DependencySpecification { ... }
 
-sub THROW(int $type, Mu \arg) is raw {
+sub THROW(int $type, Mu \arg) is raw {  # is implementation-detail
     my Mu $ex := nqp::newexception();
     nqp::setpayload($ex, arg);
     nqp::setextype($ex, $type);
     nqp::throw($ex);
     arg;
 }
-sub THROW-NIL(int $type --> Nil) {
+sub THROW-NIL(int $type --> Nil) {  # is implementation-detail
     my Mu $ex := nqp::newexception();
 #    nqp::setpayload($ex, Nil);
     nqp::setextype($ex, $type);
     nqp::throw($ex);
 }
 
-sub RETURN-LIST(Mu \list) is raw {
+sub RETURN-LIST(Mu \list) is raw {  # is implementation-detail
     my \reified := nqp::getattr(list, List, '$!reified');
     nqp::isgt_i(nqp::elems(reified),1)
       ?? list
@@ -52,37 +52,70 @@ multi sub return(**@x is raw --> Nil) {
 
 proto sub take-rw(|) {*}
 multi sub take-rw()   { die "take-rw without parameters doesn't make sense" }
-multi sub take-rw(\x) { THROW(nqp::const::CONTROL_TAKE, x) }
+multi sub take-rw(\value) {
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,value);
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    value
+}
 multi sub take-rw(|) {
-    THROW(nqp::const::CONTROL_TAKE,RETURN-LIST(nqp::p6argvmarray))
+    nqp::setpayload(
+      (my Mu $ex := nqp::newexception),
+      (my \out :=
+        nqp::isgt_i(nqp::elems(my $positionals := nqp::p6argvmarray),1)
+          ?? nqp::p6bindattrinvres(
+               nqp::create(List),List,'$!reified',$positionals)
+          !! nqp::elems($positionals)
+            ?? nqp::shift($positionals)
+            !! Nil
+      )
+    );
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    out
 }
 
 proto sub take(|) {*}
 multi sub take()   { die "take without parameters doesn't make sense" }
-multi sub take(\x) {
-    THROW(nqp::const::CONTROL_TAKE, nqp::p6recont_ro(x))
+multi sub take(\value) {
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,my \out := nqp::p6recont_ro(value));
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    out
 }
 multi sub take(|) {
-    THROW(
-      nqp::const::CONTROL_TAKE,
-      nqp::p6recont_ro(RETURN-LIST(nqp::p6argvmarray))
-    )
+    nqp::setpayload(
+      (my Mu $ex := nqp::newexception),
+      (my \out := nqp::p6recont_ro(
+        nqp::isgt_i(nqp::elems(my $positionals := nqp::p6argvmarray),1)
+          ?? nqp::p6bindattrinvres(
+               nqp::create(List),List,'$!reified',$positionals)
+          !! nqp::elems($positionals)
+            ?? nqp::shift($positionals)
+            !! Nil
+      ))
+    );
+    nqp::setextype($ex,nqp::const::CONTROL_TAKE);
+    nqp::throw($ex);
+    out
 }
 
 proto sub goto($, *%) {*}
-multi sub goto(Label:D \x --> Nil) { x.goto }
+multi sub goto(Label:D $x --> Nil) { $x.goto }
 
 proto sub last($?, *%) {*}
 multi sub last(--> Nil) { nqp::throwextype(nqp::const::CONTROL_LAST); Nil }
-multi sub last(Label:D \x --> Nil) { x.last }
+multi sub last(Label:D $x --> Nil) { $x.last }
 
 proto sub next($?, *%) {*}
 multi sub next(--> Nil) { nqp::throwextype(nqp::const::CONTROL_NEXT); Nil }
-multi sub next(Label:D \x --> Nil) { x.next }
+multi sub next(Label:D $x --> Nil) { $x.next }
 
 proto sub redo($?, *%) {*}
 multi sub redo(--> Nil) { nqp::throwextype(nqp::const::CONTROL_REDO); Nil }
-multi sub redo(Label:D \x --> Nil) { x.redo }
+multi sub redo(Label:D $x --> Nil) { $x.redo }
 
 proto sub succeed(|) {*}
 multi sub succeed(--> Nil) { THROW-NIL(nqp::const::CONTROL_SUCCEED) }
@@ -95,42 +128,76 @@ sub proceed(--> Nil) { THROW-NIL(nqp::const::CONTROL_PROCEED) }
 
 sub callwith(|c) is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('callwith');
-    $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_args(|c)
+#?if moar
+    # TODO Future mechanism to avoid having to flatten here
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLWITH, |c)
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('callwith')),
+        $dispatcher.exhausted ?? Nil !!
+            $dispatcher.call_with_args(|c))
+#?endif
 }
 
 sub nextwith(|c) is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('nextwith');
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
-        ?? Nil
-        !! $dispatcher.call_with_args(|c))
+#?if moar
+    # TODO Future mechanism to avoid having to flatten here
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN,
+        nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLWITH, |c))
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextwith')),
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
+            ?? Nil
+            !! $dispatcher.call_with_args(|c)))
+#?endif
 }
 
 sub callsame() is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('callsame');
-    $dispatcher.exhausted ?? Nil !!
-        $dispatcher.call_with_capture(
-            nqp::p6argsfordispatcher($dispatcher))
+#?if moar
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLSAME)
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('callsame')),
+        $dispatcher.exhausted ?? Nil !!
+            $dispatcher.call_with_capture(
+                nqp::p6argsfordispatcher($dispatcher)))
+#?endif
 }
 
 sub nextsame() is raw {
     $/ := nqp::getlexcaller('$/');
-    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
-        ?? Nil
-        !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher)))
+#?if moar
+    nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN,
+        nqp::dispatch('boot-resume-caller', nqp::const::DISP_CALLSAME))
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextsame')),
+        nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $dispatcher.exhausted
+            ?? Nil
+            !! $dispatcher.call_with_capture(nqp::p6argsfordispatcher($dispatcher))))
+#?endif
 }
 
 sub lastcall(--> True) {
+#?if moar
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_LASTCALL)
+#?endif
+#?if !moar
     nqp::p6finddispatcher('lastcall').last();
+#?endif
 }
 
 sub nextcallee() {
-    my Mu $dispatcher := nqp::p6finddispatcher('nextsame');
-    $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee()
+#?if moar
+    nqp::dispatch('boot-resume-caller', nqp::const::DISP_NEXTCALLEE)
+#?endif
+#?if !moar
+    nqp::stmts((my Mu $dispatcher := nqp::p6finddispatcher('nextcallee')),
+        $dispatcher.exhausted ?? Nil !! $dispatcher.shift_callee())
+#?endif
 }
 
 sub samewith(|c) {
@@ -159,10 +226,18 @@ sub samewith(|c) {
 sub leave(|) { X::NYI.new(feature => 'leave').throw }
 
 sub emit(Mu \value --> Nil) {
-    THROW(nqp::const::CONTROL_EMIT, nqp::p6recont_ro(value));
+    my Mu $ex := nqp::newexception();
+    nqp::setpayload($ex,nqp::p6recont_ro(value));
+    nqp::setextype($ex,nqp::const::CONTROL_EMIT);
+    nqp::throw($ex);
 }
-sub done(--> Nil) {
+proto sub done(|) {*}
+multi sub done(--> Nil) {
     THROW-NIL(nqp::const::CONTROL_DONE);
+}
+multi sub done(Mu \value --> Nil) {
+    emit value;
+    done;
 }
 
 proto sub die(|) {*};
@@ -194,36 +269,35 @@ multi sub warn(*@msg) {
     nqp::throw($ex);
     0;
 }
-multi sub warn(Junction:D \j) { j.THREAD: &warn }
+multi sub warn(Junction:D $j) { $j.THREAD: &warn }
 
 constant Inf = nqp::p6box_n(nqp::inf());
 constant NaN = nqp::p6box_n(nqp::nan());
 
 # For some reason, we cannot move this to Rakudo::Internals as a class
 # method, because then the return value is always HLLized :-(
-sub CLONE-HASH-DECONTAINERIZED(\hash) {
-    nqp::stmts(
-      (my \clone := nqp::hash),
-      (my \iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'))),
-      nqp::while(
-        iter,
-        nqp::bindkey(clone,
-          nqp::iterkey_s(nqp::shift(iter)),
-          nqp::if(
-            nqp::defined(nqp::iterval(iter)),
-            nqp::decont(nqp::iterval(iter)).Str,
-            ''
-          )
+sub CLONE-HASH-DECONTAINERIZED(\hash) {  # is implementation-detail
+    my \clone := nqp::hash;
+    my \iter  := nqp::iterator(nqp::getattr(hash,Map,'$!storage'));
+
+    nqp::while(
+      iter,
+      nqp::bindkey(clone,
+        nqp::iterkey_s(nqp::shift(iter)),
+        nqp::if(
+          nqp::defined(nqp::iterval(iter)),
+          nqp::decont(nqp::iterval(iter)).Str,
+          ''
         )
-      ),
-      clone
-    )
+      )
+    );
+    clone
 }
 
-sub CLONE-LIST-DECONTAINERIZED(*@list) {
+sub CLONE-LIST-DECONTAINERIZED(*@list) {  # is implementation-detail
     my Mu \list-without := nqp::list();
     nqp::push(list-without, nqp::decont(~$_)) for @list.eager;
     list-without;
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

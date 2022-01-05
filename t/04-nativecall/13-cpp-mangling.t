@@ -82,3 +82,5 @@ is $foo.TakeAUChar(1),                               22, 'uchar mangling';
 is $foo.TakeAInt64(1),                               23, 'int64 mangling';
 is $foo.TakeAULongLong(1),                           24, 'unsigned long long mangling';
 is $foo.TakeAUInt64(1),                              25, 'uint64 mangling';
+
+# vim: expandtab shiftwidth=4

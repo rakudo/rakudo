@@ -39,3 +39,5 @@ is nativecast(str, ReturnString()), "epic cuteness", 'casting to str works';
 
 sub ReturnNullString returns Pointer is native('./09-nativecast') { * }
 nok nativecast(str, ReturnNullString()).defined, 'casting null pointer to str';
+
+# vim: expandtab shiftwidth=4

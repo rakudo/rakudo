@@ -1,8 +1,8 @@
 my role Dateish {
-    has Int $.year;
-    has Int $.month;
-    has Int $.day;
-    has Int $.daycount;
+    has int $.year;
+    has int $.month;
+    has int $.day;
+    has int $.daycount;
     has     &.formatter;
 
     method IO(Dateish:D: --> IO::Path:D) {  # because Dateish is not Cool
@@ -19,9 +19,9 @@ my role Dateish {
       0, 31, 0, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     );
     # This method is used by Date and DateTime:
-    method !DAYS-IN-MONTH(\year, \month --> Int:D) {
-        nqp::atpos_i($days-in-month,month) ||
-          ( month == 2 ?? 28 + IS-LEAP-YEAR(year) !! Nil );
+    method !DAYS-IN-MONTH(int $year, int $month --> Int:D) {
+        nqp::atpos_i($days-in-month,$month) ||
+          ($month == 2 ?? 28 + IS-LEAP-YEAR($year) !! Nil );
     }
     method days-in-month(Dateish:D: --> Int:D) {
         self!DAYS-IN-MONTH($!year,$!month)
@@ -33,6 +33,16 @@ my role Dateish {
 
     # noop for subclasses
     method !SET-DAYCOUNT() { self }
+
+    # shortcut for out of range throwing
+    method !oor($what, $got, $range) {
+        X::OutOfRange.new(:$what, :$got, :$range).throw
+    }
+
+    # shortcut for invalid format throwing
+    method !tif($invalid-str, $target, $format) {
+        X::Temporal::InvalidFormat.new(:$invalid-str,:$target,:$format).throw
+    }
 
     multi method new(Dateish:) {
         Failure.new(
@@ -47,25 +57,30 @@ my role Dateish {
     multi method gist(Dateish:D: --> Str:D) { self.Str }
 
     method daycount(--> Int:D) {
-        nqp::if(
-          nqp::isconcrete($!daycount),
-          $!daycount,
-          $!daycount := self!calculate-daycount
-        )
+        $!daycount
+          ?? $!daycount
+          !! ($!daycount = self!calculate-daycount)
     }
-    method !calculate-daycount(--> Int:D) {
+    method !calculate-daycount() {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        my int $d = $!day;
-        my int $m = $!month < 3 ?? $!month + 12 !! $!month;
-        my int $y = $!year - ($!month < 3);
-        -678973 + $d + (153 * $m - 2) div 5
+        my int $y = $!year;
+        my int $m = $!month;
+        nqp::if(
+          nqp::islt_i($m,3),
+          nqp::stmts(
+            ($y = nqp::sub_i($y,1)),
+            ($m = nqp::add_i($m,12))
+          )
+        );
+
+        -678973 + $!day + (153 * $m - 2) div 5
           + 365 * $y + $y div 4
           - $y div 100  + $y div 400
     }
 
-    method !ymd-from-daycount($daycount,\year,\month,\day --> Nil) {
+    method !ymd-from-daycount(int $daycount, \year, \month, \day --> Nil) {
         # taken from <http://www.merlyn.demon.co.uk/daycount.htm>
-        my Int $dc = $daycount.Int + 678881;
+        my Int $dc = $daycount + 678881;
         my Int $ti = (4 * ($dc + 36525)) div 146097 - 1;
         my Int $year = 100 * $ti;
         my int $day = $dc - (36524 * $ti + ($ti div 4));
@@ -121,35 +136,127 @@ my role Dateish {
           + ($!month > 2 && IS-LEAP-YEAR($!year));
     }
 
-    method yyyy-mm-dd(--> Str:D) {
-        sprintf '%04d-%02d-%02d',$!year,$!month,$!day
+    method yyyy-mm-dd(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::join($sep,$parts)
     }
 
-    method earlier(*%unit) { self.later(:earlier, |%unit) }
+    method dd-mm-yyyy(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::join($sep,$parts)
+    }
 
-    method !truncate-ymd(Cool:D $unit, %parts? is copy) {
-        if $unit eq 'week' | 'weeks' {
-            my $new-dc = self.daycount - self.day-of-week + 1;
-            self!ymd-from-daycount($new-dc,
-              %parts<year>,%parts<month>,%parts<day>);
-        }
-        elsif $unit eq 'day' | 'days' {
-            # no-op
-        }
-        else { # $unit eq 'month' | 'months' | 'year' | 'years'
-            %parts<day>   = 1;
-            %parts<month> = 1 if $unit eq 'year' | 'years';
-        }
-        %parts;
+    method mm-dd-yyyy(str $sep = "-" --> Str:D) {
+        my $parts := nqp::list_s;
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!month,10)),$!month)
+        );
+        nqp::push_s($parts,
+          nqp::concat(nqp::x('0',nqp::islt_i($!day,10)),$!day)
+        );
+        nqp::push_s($parts, $!year < 1000 || $!year > 9999
+          ?? self!year-Str
+          !! nqp::tostr_I(nqp::getattr_i(self,$?CLASS,'$!year'))
+        );
+        nqp::join($sep,$parts)
+    }
+
+    proto method earlier(|) {*}
+    multi method earlier(Dateish:D: *%unit --> Dateish:D) {
+        my $units := nqp::getattr(%unit,Map,'$!storage');
+        nqp::iseq_i(nqp::elems($units),1)
+          ?? self.move-by-unit(
+               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
+               -nqp::atkey($units,$u)  # must be HLL negation
+             )
+          !! self!move-die(nqp::elems($units))
+    }
+    multi method earlier(Dateish:D: @pairs) {
+        my $dateish  := self;
+        my int $elems = @pairs.elems;   # reifies
+        my $reified  := nqp::getattr(@pairs,List,'$!reified');
+        my int $i     = -1;
+        nqp::while(
+          nqp::bitand_i(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::istype((my $pair := nqp::decont(nqp::atpos($reified,$i))),Pair)
+          ),
+          $dateish := $dateish.move-by-unit(
+            nqp::getattr($pair,Pair,'$!key'),
+            -nqp::getattr($pair,Pair,'$!value')  # must be HLL negation
+          )
+        );
+
+        nqp::islt_i($i,$elems)
+          ?? (die "Can not use a {$pair.raku} as a time unit")
+          !! $dateish
+    }
+
+    proto method later(|) {*}
+    multi method later(Dateish:D: *%unit --> Dateish:D) {
+        my $units := nqp::getattr(%unit,Map,'$!storage');
+        nqp::iseq_i(nqp::elems($units),1)
+          ?? self.move-by-unit(
+               (my str $u = nqp::iterkey_s(nqp::shift(nqp::iterator($units)))),
+               nqp::atkey($units,$u)
+             )
+          !! self!move-die(nqp::elems($units))
+    }
+    multi method later(Dateish:D: @pairs) {
+        my $dateish  := self;
+        my int $elems = @pairs.elems;   # reifies
+        my $reified  := nqp::getattr(@pairs,List,'$!reified');
+        my int $i     = -1;
+        nqp::while(
+          nqp::bitand_i(
+            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+            nqp::istype((my $pair := nqp::decont(nqp::atpos($reified,$i))),Pair)
+          ),
+          $dateish := $dateish.move-by-unit(
+            nqp::getattr($pair,Pair,'$!key'),
+            nqp::getattr($pair,Pair,'$!value')
+          )
+        );
+
+        nqp::islt_i($i,$elems)
+          ?? (die "Can not use a {$pair.raku} as a time unit")
+          !! $dateish
+    }
+
+    # die for improper number of units when moving a Dateish
+    method !move-die(int $elems) {
+        die $elems
+          ?? "More than one time unit supplied. Please provide these as a List of Pairs to indicate order of application if this is intended.".naive-word-wrapper
+          !! die "No time unit supplied";
     }
 }
 
 # =begin pod
 #
 # =head1 SEE ALSO
-# Perl 6 spec <S32-Temporal|http://design.perl6.org/S32/Temporal.html>.
-# The Perl 5 DateTime Project home page L<http://datetime.perl.org>.
-# Perl 5 perldoc L<doc:DateTime> and L<doc:Time::Local>.
+# Raku spec <S32-Temporal|https://design.raku.org/S32/Temporal.html>.
+# The Perl DateTime Project home page L<http://datetime.perl.org>.
+# Perl perldoc L<doc:DateTime> and L<doc:Time::Local>.
 #
 # The best yet seen explanation of calendars, by Claus Tøndering
 # L<Calendar FAQ|http://www.tondering.dk/claus/calendar.html>.
@@ -164,4 +271,4 @@ my role Dateish {
 #
 # =end pod
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

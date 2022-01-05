@@ -65,7 +65,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     method nude() { $!numerator, $!denominator }
 
-    method Num(--> Num:D) {
+    method Num(Rational:D: --> Num:D) {
         nqp::p6box_n(nqp::div_In($!numerator,$!denominator))
     }
 
@@ -105,8 +105,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     multi method Bool(::?CLASS:D:) { nqp::hllbool(nqp::istrue($!numerator)) }
 
-    method Bridge() { self.Num }
-
     method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
 
     method isNaN (--> Bool:D) {
@@ -114,153 +112,238 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method is-prime(--> Bool:D) {
-        nqp::if($!denominator == 1,$!numerator.is-prime)
+        $!denominator == 1 && $!numerator.is-prime
     }
 
     multi method Str(::?CLASS:D: --> Str:D) {
-        nqp::if(
-          $!denominator,
-          nqp::stmts(
-            (my $abs   := self.abs),
-            (my $whole := $abs.floor),
-            (my $fract := $abs - $whole),
-            nqp::if(
-              $fract,
-              self!SLOW-STR($whole,$fract),
-              nqp::if(
-                nqp::islt_I($!numerator,0),
-                nqp::concat("-",nqp::tostr_I($whole)),
-                nqp::tostr_I($whole)
-              )
-            )
-          ),
-          X::Numeric::DivideByZero.new(
-            :details('when coercing Rational to Str')
-          ).throw
-        )
-    }
-
-    method !SLOW-STR(\whole, \fract) {
-
-        # fight floating point noise issues RT#126016
-        fract.Num == 1e0 && nqp::eqaddr(self.WHAT,Rat)
-          ?? nqp::islt_I($!numerator,0)
-            ?? nqp::concat("-",nqp::tostr_I(whole + 1))
-            !! nqp::tostr_I(whole + 1)
-          !! self!STRINGIFY(
-               whole,
-               fract,
-               nqp::eqaddr(self.WHAT,Rat)
+        if $!denominator {
+            my \abs   := self.abs;                              # N / D
+            my \whole := abs.floor;
+            (my \fract := abs - whole)
+              # fight floating point noise issues https://github.com/Raku/old-issue-tracker/issues/4524
+              ?? fract.Num == 1e0 && nqp::eqaddr(self.WHAT,Rat)  # 42.666?
+                ?? nqp::islt_I($!numerator,0)                    # next Int
+                  ?? nqp::concat("-",nqp::tostr_I(whole + 1))    # < 0
+                  !! nqp::tostr_I(whole + 1)                     # >= 0
+                !! self!STRINGIFY(whole, fract,                  # 42.666
+                     nqp::eqaddr(self.WHAT,Rat)
         # Stringify Rats to at least 6 significant digits. There does not
         # appear to be any written spec for this but there are tests in
         # roast that specifically test for 6 digits.
-                 ?? $!denominator < 100_000
-                   ?? 6
-                   !! (nqp::chars($!denominator.Str) + 1)
+                       ?? nqp::islt_I($!denominator,100_000)
+                         ?? 6
+                         !! (nqp::chars(nqp::tostr_I($!denominator)) + 1)
         # TODO v6.d FatRats are tested in roast to have a minimum
         # precision pf 6 decimal places - mostly due to there being no
         # formal spec and the desire to test SOMETHING. With this
         # speed increase, 16 digits would work fine; but it isn't spec.
-        #        !! $!denominator < 1_000_000_000_000_000
-        #          ?? 16
-                 !! $!denominator < 100_000
-                   ?? 6
-                   !! (nqp::chars($!denominator.Str)
-                        + nqp::chars(whole.Str)
-                        + 1
-                      )
+        #              !! $!denominator < 1_000_000_000_000_000
+        #                ?? 16
+                       !! $!denominator < 100_000
+                         ?? 6
+                         !! (nqp::chars(nqp::tostr_I($!denominator))
+                              + nqp::chars(nqp::tostr_I(whole))
+                              + 1
+                            )
+                   )
+              !! nqp::islt_I($!numerator,0)                      # no fract val
+                ?? nqp::concat("-",nqp::tostr_I(whole))          # < 0
+                !! nqp::tostr_I(whole)                           # >= 0
+        }
+        else {                                                   # N / 0
+              X::Numeric::DivideByZero.new(
+                :details('when coercing Rational to Str')
+              ).throw
+        }
+    }
+
+    method !STRINGIFY(\whole, \fract, int $digits) {
+        my str $s = nqp::tostr_I(
+          (fract * nqp::pow_I(10,$digits,Num,Int)).round
+        );
+        $s = nqp::concat(nqp::x('0',$digits - nqp::chars($s)),$s)
+          if nqp::chars($s) < $digits;
+
+        my int $i = nqp::chars($s);
+        nqp::while(
+          nqp::eqat($s,'0',$i - 1) && --$i > 0,
+          nqp::null
+        );
+
+        $i
+          ?? nqp::concat(
+               nqp::isle_I($!numerator,0)
+                 ?? nqp::concat('-',nqp::tostr_I(whole))
+                 !! nqp::tostr_I(whole),
+               nqp::concat('.',nqp::substr($s,0,$i))
              )
+          !! nqp::isle_I($!numerator,0)
+            ?? nqp::concat('-',nqp::tostr_I(whole))
+            !! nqp::tostr_I(whole)
     }
 
-    method !STRINGIFY(\whole, \fract, Int:D $precision) {
-        my $f := (fract * nqp::pow_I(10, $precision, Num, Int)).round;
-        my $fc = nqp::chars($f.Str);
-        $f := $f div 10 while $f %% 10; # Remove trailing zeros
-        (nqp::isle_I($!numerator,0) ?? "-" !! "")
-          ~ whole
-          ~ '.'
-          ~ '0' x ($precision - $fc)
-          ~ $f
-    }
-
-    method base($base, Any $digits? is copy) {
-        # XXX TODO: this $base check can be delegated to Int.base once Num/0 gives Inf/NaN,
-        # instead of throwing (which happens in the .log() call before we reach Int.base
-        2 <= $base <= 36 or fail X::OutOfRange.new(
-            what => "base argument to base", :got($base), :range<2..36>);
-
-        my $prec;
-        if $digits ~~ Whatever {
-            $digits = Nil;
-            $prec = 2**63;
-        }
-        elsif $digits.defined {
-            $digits = $digits.Int;
-            if $digits > 0 {
-                $prec = $digits;
-            }
-            elsif $digits == 0 {
-                return self.round.base($base)
-            }
-            else {
-                fail X::OutOfRange.new(
-                    :what('digits argument to base'), :got($digits),
-                    :range<0..^Inf>,
-                )
-            }
-        }
-        else {
+    proto method base(|) {*}
+    # Convert to given base with sensible number of digits depending on value
+    multi method base(Rational:D: Int:D $base --> Str:D) {
+        if 2 <= $base <= 36 {
             # Limit log calculation to 10**307 or less.
             # log coerces to Num. When larger than 10**307, it overflows and
             # returns Inf.
-            my $lim = 10**307;
+            my constant $lim = 10**307;
             if $!denominator < $lim {
-                $prec = ($!denominator < $base**6 ?? 6 !! $!denominator.log($base).ceiling + 1);
+                self!base(
+                  $base,
+                  $!denominator < $base**6
+                    ?? 6
+                    !! $!denominator.log($base).ceiling + 1,
+                    0
+                )
             }
             else {
-                # If the internal log method is modified to handle larger numbers,
-                # this branch can be modified/removed.
+                # If the internal log method is modified to handle larger
+                # numbers, this branch can be modified/removed.
                 my $d = $!denominator;
                 my $exp = 0;
                 ++$exp while ($d div= $base) > $lim;
-                $prec = $exp + $d.log($base).ceiling + 2;
+                self!base($base, $exp + $d.log($base).ceiling + 2, 0)
+            }
+        }
+        else {
+            Failure.new(X::OutOfRange.new(
+              what => "base argument to base",
+              :got($base),
+              :range<2..36>
+            ))
+        }
+    }
+    # Convert to given base until no fraction left: **CAUTION** this will
+    # loop indefinitely for simple values such as 1/3
+    multi method base(Rational:D: Int:D $base, Whatever --> Str:D) {
+        2 <= $base <= 36
+          ?? self!base($base, 0, 0)
+          !! Failure.new(X::OutOfRange.new(
+               what => "base argument to base",
+               :got($base),
+               :range<2..36>
+             ))
+    }
+
+    # Convert to given base for given number of digits.  This will display
+    # trailing 0's if number of digits exceeds accuracy of value, unless
+    # inhibited with the :no-trailing-zeroes named argument.
+    multi method base(Rational:D:
+      Int:D $base,
+      Int() $digits,
+      Bool:D :$no-trailing-zeroes = False
+    --> Str:D) {
+        2 <= $base <= 36
+          ?? $digits > 0
+            ?? self!base($base, $digits, nqp::not_i($no-trailing-zeroes))
+            !! $digits == 0
+              ?? self.round.base($base)
+              !! Failure.new(X::OutOfRange.new(
+                   :what('digits argument to base'), :got($digits),
+                   :range<0..^Inf>
+                 ))
+          !! Failure.new(X::OutOfRange.new(
+               what => "base argument to base",
+               :got($base),
+               :range<2..36>
+             ))
+    }
+
+    # Lookup table for converting from numerical value to string digit
+    my str $num2digit = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    # Actual .base conversion workhorse.  Takes base, precision (0 for
+    # conversion until no fractional part left) and a flag indicating
+    # whether the preserve trailing zeroes
+    method !base(
+      Int:D $base,             # radix to output value in
+      int $digits,             # number of digits to generate, 0 = indefinite
+      int $trailing-zeroes,    # do not remove trailing zeroes
+    --> Str:D) {
+        my $result := nqp::list_s;
+
+        # set up initial values
+        my $abs;
+        if nqp::islt_I($!numerator,0) {
+            nqp::push_s($result,'-');
+            $abs := -self;
+        }
+        else {
+            $abs := self;
+        }
+        my $whole := $abs.floor;
+        my $fract := $abs - $whole;
+
+        # fight floating point noise issues https://github.com/Raku/old-issue-tracker/issues/4524
+        if $fract.Num == 1e0 {
+            $whole := $whole + 1;
+            $fract := 0;
+        }
+
+        # have something after the decimal point
+        if $fract {
+
+            # we have a specific precision in mind
+            if $digits {
+                my str $s = ($fract * $base**$digits).round.base($base);
+                my int $force-decimal;
+                if nqp::chars($s) > $digits {
+                    $whole := $whole + 1;
+                    $s = nqp::substr($s,1);
+                    $force-decimal = 1;
+                }
+                elsif nqp::chars($s) < $digits {
+                    $s = nqp::concat(nqp::x('0',$digits - nqp::chars($s)),$s);
+                }
+
+                my int $i = nqp::chars($s);
+                if $trailing-zeroes {                # we want trailing zeroes
+                    nqp::while(
+                      nqp::eqat($s,'0',--$i) && $i >= $digits,
+                      nqp::null
+                    );
+                    ++$i; # correct for premature decrement
+                }
+                else {                               # no trailing zeroes
+                    nqp::while(
+                      nqp::eqat($s,'0',$i - 1) && --$i > 0,
+                      nqp::null
+                    );
+                }
+
+                nqp::push_s($result,$whole.base($base));
+                if $i || $force-decimal {
+                    nqp::push_s($result,'.');
+                    nqp::push_s($result,nqp::substr($s,0,$i));
+                }
+            }
+
+            # no precision, go on until nothing left, possibly forever
+            else {
+                nqp::push_s($result,$whole.base($base));
+                nqp::push_s($result,'.');
+                while $fract {
+                    $fract    := $fract * $base;
+                    my $digit := $fract.floor;
+                    nqp::push_s($result,nqp::substr($num2digit,$digit,1));
+                    $fract := $fract - $digit;
+                }
             }
         }
 
-        my $sign  = nqp::if( nqp::islt_I($!numerator, 0), '-', '' );
-        my $whole = self.abs.floor;
-        my $fract = self.abs - $whole;
-
-        # fight floating point noise issues RT#126016
-        if $fract.Num == 1e0 { $whole++; $fract = 0 }
-
-        my $result = $sign ~ $whole.base($base);
-        my @conversion := <0 1 2 3 4 5 6 7 8 9
-                           A B C D E F G H I J
-                           K L M N O P Q R S T
-                           U V W X Y Z>;
-
-        my @fract-digits;
-        while @fract-digits < $prec and ($digits // $fract) {
-            $fract *= $base;
-            my $digit = $fract.floor;
-            push @fract-digits, $digit;
-            $fract -= $digit;
-        }
-
-        # Round the final number, based on the remaining fractional part
-        if 2*$fract >= 1 {
-            for @fract-digits - 1 ... 0 -> $n {
-                last if ++@fract-digits[$n] < $base;
-                @fract-digits[$n] = 0;
-                $result = $sign ~ ($whole+1).base($base) if $n == 0;
+        # nothing after decimal point
+        else {
+            nqp::push_s($result,$whole.base($base));
+            if $digits && $trailing-zeroes {
+                nqp::push_s($result,'.');
+                nqp::push_s($result,nqp::x('0',$digits))
             }
         }
 
-        $result ~
-        (@fract-digits ??
-         $base <= 10   ?? '.' ~ @fract-digits.join !!
-         '.' ~ @conversion[@fract-digits].join     !! '')
+        nqp::join('',$result)
     }
 
     method base-repeating($base = 10) {
@@ -314,4 +397,4 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

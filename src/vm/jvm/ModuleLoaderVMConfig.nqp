@@ -6,13 +6,13 @@ role Perl6::ModuleLoaderVMConfig {
         }
         @search_paths
     }
-    
+
     # Finds a setting to load.
     method find_setting($setting_name) {
         my $path := "$setting_name.setting.jar";
         my @prefixes := self.search_path();
         for @prefixes -> $prefix {
-            $prefix := nqp::gethllsym('perl6', 'ModuleLoader').absolute_path(~$prefix);
+            $prefix := nqp::gethllsym('Raku', 'ModuleLoader').absolute_path(~$prefix);
             if nqp::stat("$prefix/$path", 0) {
                 $path := "$prefix/$path";
                 last;
@@ -25,3 +25,5 @@ role Perl6::ModuleLoaderVMConfig {
         '.jar'
     }
 }
+
+# vim: expandtab sw=4

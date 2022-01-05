@@ -1,9 +1,10 @@
 my class Complex { ... }
+my class X::Numeric::Uninitialized { ... }
 
 my role Real does Numeric {
     method Rat(Real:D: Real $epsilon = 1.0e-6) { self.Bridge.Rat($epsilon) }
     method abs()  { self < 0 ?? -self !! self }
-    method sign(Real:D:) { self > 0 ?? 1 !! self < 0 ?? -1 !! +self }
+    method sign(Real:D:) { self > 0 ?? 1 !! self < 0 ?? -1 !! 0 }
     method conj(Real:D:) { self }
     method sqrt() { self.Bridge.sqrt }
     method rand() { self.Bridge.rand }
@@ -58,7 +59,7 @@ my role Real does Numeric {
     proto method exp(|) {*}
     multi method exp(Real:D: )           { self.Bridge.exp               }
     method truncate(Real:D:) {
-        self == 0 ?? 0 !! self < 0  ?? self.ceiling !! self.floor
+        self < 0  ?? self.ceiling !! self.floor
     }
     method isNaN { Bool::False }
 
@@ -125,7 +126,13 @@ my role Real does Numeric {
         self.Mu::Real; # issue a warning;
         self.new
     }
-    method Bridge(Real:D:) { self.Num }
+    method Bridge(Real: --> Num:D) {
+        self.defined
+            ?? self.Num
+            !! (self.HOW.archetypes.coercive
+                ?? self.Mu::Numeric.Num
+                !! X::Numeric::Uninitialized.new(:type(self)).throw)
+    }
     method Int(Real:D:) { self.Bridge.Int }
     method Num(Real:D:) { self.Bridge.Num }
     multi method Str(Real:D:) { self.Bridge.Str }
@@ -134,42 +141,26 @@ my role Real does Numeric {
 proto sub cis($, *%) {*}
 multi sub cis(Real $a) { $a.cis }
 
-multi sub infix:<+>(Real \a, Real \b)   { a.Bridge + b.Bridge }
+multi sub infix:<+>( Real $a, Real $b) { $a.Bridge  + $b.Bridge }
+multi sub infix:<->( Real $a, Real $b) { $a.Bridge  - $b.Bridge }
+multi sub infix:<*>( Real $a, Real $b) { $a.Bridge  * $b.Bridge }
+multi sub infix:</>( Real $a, Real $b) { $a.Bridge  / $b.Bridge }
+multi sub infix:<%>( Real $a, Real $b) { $a.Bridge  % $b.Bridge }
+multi sub infix:<**>(Real $a, Real $b) { $a.Bridge ** $b.Bridge }
+multi sub infix:<==>(Real $a, Real $b) { $a.Bridge == $b.Bridge }
+multi sub infix:«<»( Real $a, Real $b) { $a.Bridge  < $b.Bridge }
+multi sub infix:«<=»(Real $a, Real $b) { $a.Bridge <= $b.Bridge }
+multi sub infix:«>»( Real $a, Real $b) { $a.Bridge  > $b.Bridge }
+multi sub infix:«>=»(Real $a, Real $b) { $a.Bridge >= $b.Bridge }
 
-multi sub infix:<->(Real \a, Real \b)   { a.Bridge - b.Bridge }
-
-multi sub infix:<*>(Real \a, Real \b)   { a.Bridge * b.Bridge }
-
-multi sub infix:</>(Real \a, Real \b)   { a.Bridge / b.Bridge }
-
-multi sub infix:<%>(Real \a, Real \b)   { a.Bridge % b.Bridge }
-
-multi sub infix:<**>(Real \a, Real \b)  { a.Bridge ** b.Bridge }
-
-multi sub infix:«<=>»(Real \a, Real \b) { a.Bridge <=> b.Bridge }
-
-multi sub infix:<==>(Real \a, Real \b)  { a.Bridge == b.Bridge }
-
-multi sub infix:«<»(Real \a, Real \b)   { a.Bridge < b.Bridge }
-
-multi sub infix:«<=»(Real \a, Real \b)  { a.Bridge <= b.Bridge }
-
-multi sub infix:«>»(Real \a, Real \b)   { a.Bridge > b.Bridge }
-
-multi sub infix:«>=»(Real \a, Real \b)  { a.Bridge >= b.Bridge }
-
-multi sub prefix:<->(Real:D \a)            { -a.Bridge }
+multi sub prefix:<->(Real:D $a) { -$a.Bridge }
 
 # NOTE: According to the spec, infix:<mod> is "Not coercive,
 # so fails on differing types."  Thus no casts here.
 proto sub infix:<mod>($, $, *%) is pure {*}
-multi sub infix:<mod>(Real $a, Real $b) {
-    $a - ($a div $b) * $b;
-}
+multi sub infix:<mod>(Real:D $a, Real:D $b) { $a - ($a div $b) * $b }
 
-multi sub abs(Real \a) {
-    a < 0 ?? -a !! a;
-}
+multi sub abs(Real:D $a) { $a < 0 ?? -$a !! $a }
 
 proto sub truncate($, *%) {*}
 multi sub truncate(Real:D $x) { $x.truncate }
@@ -177,13 +168,13 @@ multi sub truncate(Cool:D $x) { $x.Numeric.truncate }
 
 
 proto sub atan2($, $?, *%)    {*}
-multi sub atan2(Real \a, Real \b = 1e0) { a.Bridge.atan2(b.Bridge) }
+multi sub atan2(Real:D $a, Real:D $b = 1e0) { $a.Bridge.atan2($b.Bridge) }
 # should really be (Cool, Cool), and then (Cool, Real) and (Real, Cool)
 # candidates, but since Int both conforms to Cool and Real, we'd get lots
 # of ambiguous dispatches. So just go with (Any, Any) for now.
-multi sub atan2(     \a,      \b = 1e0) { a.Numeric.atan2(b.Numeric) }
+multi sub atan2(\a, \b = 1e0) { a.Numeric.atan2(b.Numeric) }
 
 proto sub unpolar($, $, *%) {*}
 multi sub unpolar(Real $mag, Real $angle) { $mag.unpolar($angle) }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

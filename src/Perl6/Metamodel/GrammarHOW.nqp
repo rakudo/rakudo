@@ -3,3 +3,5 @@ class Perl6::Metamodel::GrammarHOW
     does Perl6::Metamodel::DefaultParent
 {
 }
+
+# vim: expandtab sw=4

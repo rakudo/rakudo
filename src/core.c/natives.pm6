@@ -17,4 +17,4 @@ my native num64 is repr('P6num') is Num is nativesize(64) { }
 
 my native   str is repr('P6str') is Str { }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

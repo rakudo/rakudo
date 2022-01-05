@@ -1,0 +1,16 @@
+$ENV{RAKUDO_HOME} = '@sq_escape(@base_dir@/gen/build_rakudo_home)@';
+
+@if(platform!=windows exec {'node'} ('node', '--max-old-space-size=8192', 'rakudo.js', '--nqp-runtime', '@sq_escape(@nqp_runtime@)@', '--perl6-runtime', '@sq_escape(@perl6_runtime@)@', '--libpath', '@sq_escape(@libpath@)@', '--source-map', @ARGV);)@
+@if(platform==windows my $exit = system {'node'} ('node', '--max-old-space-size=8192', 'rakudo.js', '--nqp-runtime', '@sq_escape(@nqp_runtime@)@', '--perl6-runtime', '@sq_escape(@perl6_runtime@)@', '--libpath', '@sq_escape(@libpath@)@', '--source-map', @ARGV);
+if ($exit == -1) {
+    print STDERR "Failed to execute: $!\n";
+    exit(-2);
+}
+elsif ($exit & 127) {
+    printf STDERR "died with signal %d\n", ($? & 127);
+    exit(-3);
+}
+else {
+    exit($exit >> 8);
+}
+)@

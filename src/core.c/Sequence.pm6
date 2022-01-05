@@ -22,14 +22,15 @@ my role PositionalBindFailover {
     has $!list;
 
     method cache() {
-        nqp::if(
-          nqp::isconcrete($!list),
-          $!list,
-          ($!list := List.from-iterator(self.iterator))
-        )
+        nqp::isconcrete($!list)
+          ?? $!list
+          !! ($!list := List.from-iterator(self.iterator))
     }
+
     multi method list(::?CLASS:D:) {
-        List.from-iterator(self.iterator)
+        nqp::isconcrete($!list)
+          ?? $!list
+          !! List.from-iterator(self.iterator)
     }
 
     method iterator() { ... }
@@ -39,8 +40,8 @@ Routine.'!configure_positional_bind_failover'(Positional, PositionalBindFailover
 
 my role Sequence does PositionalBindFailover {
     multi method Array(::?CLASS:D:) { Array.from-iterator(self.iterator) }
-    multi method List(::?CLASS:D:)  { List.from-iterator(self.iterator) }
-    multi method Slip(::?CLASS:D:)  { Slip.from-iterator(self.iterator) }
+    multi method List(::?CLASS:D:)  { self.list.List }
+    multi method Slip(::?CLASS:D:)  { self.list.Slip }
 
     multi method Str(::?CLASS:D:) {
         self.cache.Str
@@ -78,3 +79,5 @@ my role Sequence does PositionalBindFailover {
         self.cache.gist
     }
 }
+
+# vim: expandtab shiftwidth=4

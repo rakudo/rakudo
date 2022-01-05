@@ -91,17 +91,19 @@ my class Rakudo::Internals::ReactOneWheneverAwaitHandle does Awaitable::Handle {
             quit => { subscriber(False, $_) };
     }
 }
-sub REACT(&block --> Nil) {
+sub REACT(&block --> Nil) is implementation-detail {
     CATCH {
         ($_ but X::React::Died(Backtrace.new(5))).rethrow
     }
     $*AWAITER.await(Rakudo::Internals::ReactAwaitable.new(
         Rakudo::Internals::ReactAwaitHandle.not-ready(&block)));
 }
-sub REACT-ONE-WHENEVER(&block --> Nil) {
+sub REACT-ONE-WHENEVER(&block --> Nil) is implementation-detail {
     CATCH {
         ($_ but X::React::Died(Backtrace.new(5))).rethrow
     }
     $*AWAITER.await(Rakudo::Internals::ReactAwaitable.new(
         Rakudo::Internals::ReactOneWheneverAwaitHandle.not-ready(&block)));
 }
+
+# vim: expandtab shiftwidth=4

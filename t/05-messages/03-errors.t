@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 26;
+plan 28;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -16,12 +16,13 @@ subtest '.map does not explode in optimizer' => {
 throws-like ｢(lazy <a b c>).nodemap: {;}｣, X::Cannot::Lazy, :action<nodemap>,
   'nodemap mentions right action when throwing on lazies';
 
-# GH#1314
+# https://github.com/rakudo/rakudo/issues/1314
 throws-like ｢'x'.substr: /x/, 'x'｣, Exception,
             message => /｢did you mean 'subst'｣/,
             'using substr instead of subst';
 
-# RT #132846
+# https://github.com/Raku/old-issue-tracker/issues/6672
+todo 'no location of error, yet', 1 if $*VM.name eq 'jvm';
 throws-like ｢sprintf "%d", class Foo {}.new｣,
     X::Str::Sprintf::Directives::BadType, :gist(/«line\s+\d+$$/),
 'errors from sprintf include location of error';
@@ -51,10 +52,10 @@ subtest 'subsets get named in typecheck errors' => {
 subtest 'like/unlike failures give useful diagnostics' => {
     plan 2;
     is-run ｢use Test; plan 1; like 42, /43/｣,
-        :1exitcode, :out(*), :err{.contains: 'expected a match with'},
+        :1exitcode, :compiler-args[<-I lib>], :out(*), :err{.contains: 'expected a match with'},
     '`like` says it wanted a match, not just "expected"';
     is-run ｢use Test; plan 1; unlike 42, /42/｣,
-        :1exitcode, :out(*), :err{.contains: 'expected no match with'},
+        :1exitcode, :compiler-args[<-I lib>], :out(*), :err{.contains: 'expected no match with'},
     '`unlike` says it wanted no match, not just "expected"';
 }
 
@@ -67,7 +68,7 @@ throws-like {
 }, Exception, :message{.contains: 'handle not open'},
   'trying to bind Proc::Async to unopened handle gives useful error';
 
-# RT #132238
+# https://github.com/Raku/old-issue-tracker/issues/6580
 subtest 'unclosed hash quote index operator <> message' => {
     plan 2;
     throws-like "\n\nsay \$<\n\n", X::Comp::AdHoc,
@@ -75,19 +76,19 @@ subtest 'unclosed hash quote index operator <> message' => {
         gist => all(
             /:i:s<<unable to parse /, /<<find\h+\'\>\'/, /:s<<at line 3 /
         );
-    todo 'RT #132238 - remove "expecting any of:"';
+    todo 'remove "expecting any of:"';
     throws-like "say \$<", X::Comp::AdHoc,
         'better and shorter error message for unclosed <> hash operator',
         :gist{ not .match: /:i:s<<expecting any of: / };
 }
 
-# RT #122980
+# https://github.com/Raku/old-issue-tracker/issues/3553
 throws-like 'Int:erator:$;', X::InvalidTypeSmiley,
     ｢Don't report "missing semicolon" when semicolon present with complicated punctuation.｣,
     :message{ not .match: /:i:s<<missing semicolon/ };
 
 
-# RT #133107
+# https://github.com/Raku/old-issue-tracker/issues/6683
 is-run ｢use IO::Socket::Async::BlahBlahBlah｣, :exitcode(*.so),
     :err{.contains: 'Could not find' & none 'builtin type'},
 'non-found module in core namespace is not claimed to be built-in';
@@ -98,9 +99,9 @@ throws-like ｢
     (my $x := my class {}.new).^set_name: <Supercalifragilisticexpialidocious>;
     -> Supercalifragilisticexpialidocious {}($x)
 ｣, X::TypeCheck, :message{2 == +.comb: 'Supercalifragilisticexpialidocious'},
-    'X::TypeCheck does not prematurely chop off the .perl';
+    'X::TypeCheck does not prematurely chop off the .raku';
 
-#RT #128646
+# https://github.com/Raku/old-issue-tracker/issues/5458
 subtest '.polymod with zero divisor does not reference guts in error' => {
     plan 4;
     throws-like { 1.polymod: 0           }, X::Numeric::DivideByZero,
@@ -116,27 +117,27 @@ subtest '.polymod with zero divisor does not reference guts in error' => {
         gist => /^ [<!after 'CORE.setting.'> . ]+ $/, 'Real (lazy)';
 }
 
-# RT 126220
+# https://github.com/Raku/old-issue-tracker/issues/4607
 throws-like '++.++', X::Multi::NoMatch,
     '++.++ construct does not throw LTA errors';
 
-# RT #128830
+# https://github.com/Raku/old-issue-tracker/issues/5526
 throws-like 'while (0){}', X::Syntax::Missing,
     message => /'whitespace' .* 'before curlies' .* 'hash subscript'/,
 'lack of whitespace in while (0){} suggests misparse as hash subscript';
 
-# RT #128803
+# https://github.com/Raku/old-issue-tracker/issues/5510
 is-run '*...‘WAT’', :err{not .contains: 'SORRY'}, :out(''), :exitcode{.so},
     'runtime time errors do not contain ==SORRY==';
 
-# RT #124219
+# https://github.com/Raku/old-issue-tracker/issues/3766
 is-run ｢
     grammar Bug { token term { a }; token TOP { <term> % \n } }
     Bug.parse( 'a' );
 ｣, :err(/'token TOP { <term>'/), :exitcode{.so},
     '`quantifier with %` error includes the token it appears in';
 
-# RT #125181
+# https://github.com/Raku/old-issue-tracker/issues/4242
 is-run 'sub rt125181 returns Str returns Int {}',
     :err{ not $^o.contains: 'Unhandled exception' }, :exitcode{.so},
 'using two `returns` traits does not cry about unhandled CONTROl exceptions';
@@ -153,13 +154,13 @@ subtest 'numeric backslash errors do not get accompanied by confusing others' =>
     plan 3;
     my &err = {.contains: 'backslash sequence' & none 'quantifies nothing' }
     is-run ｢"a" ~~ /(a)\1+$/｣, :&err, :exitcode, 'regex';
-    is-run ｢"\1"｣,             :&err, :exitcode, 'qouble quotes';
+    is-run ｢"\1"｣,             :&err, :exitcode, 'double quotes';
     is-run ｢Q:qq:cc/\1/｣,      :&err, :exitcode, ':qq:cc quoter';
 }
 
-# RT #129838
+# https://github.com/Raku/old-issue-tracker/issues/5739
 if $*DISTRO.is-win {
-    skip ｢is-run() routine doesn't quite work right on Windows: RT#132258｣;
+    skip ｢is-run() routine doesn't quite work right on Windows｣;
 }
 else {
     is-run "my \$x = q:to/END/;\ny\n END", :err{ not .contains('Actions.nqp') },
@@ -180,4 +181,12 @@ is-run 'role R2385 { multi method r2385(--> Str) { ... } }; class C2385 does R23
     'Role methods implemented by a class are checked for return type as well as for arguments',
     :err(/ 'Multi method' .+? 'must be implemented' /), :exitcode(so *);
 
-# vim: ft=perl6 expandtab sw=4
+# https://github.com/rakudo/rakudo/issues/2921
+is-run 'bleah:(0)', err => { .contains: 'You can\'t adverb' }, :exitcode{.so},
+'Absurd adverbing results in a proper error message';
+
+# https://github.com/rakudo/rakudo/issues/4178
+is-run 'close $*OUT; say "hi"', err => { .contains: 'closed handle' }, :exitcode{.so},
+'An attempt to use a closed handle results in a proper error message';
+
+# vim: expandtab shiftwidth=4

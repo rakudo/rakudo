@@ -48,8 +48,14 @@ role CompUnit::Repository {
         { CompUnit::PrecompilationRepository::None }
 
     method repo-chain() {
-        ($.next-repo and $.next-repo.defined) ?? (self, |$.next-repo.repo-chain()) !! (self, );
+        my $buffer := nqp::create(IterationBuffer);
+        nqp::push($buffer,my $repo := self);
+        nqp::while(
+          (my $next := $repo.next-repo) && $next.defined,
+          nqp::push($buffer,$repo := $next)
+        );
+        $buffer.List
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

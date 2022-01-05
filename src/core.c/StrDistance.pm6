@@ -1,15 +1,13 @@
 my class StrDistance is Cool {
-    has Str $.before;
-    has Str $.after;
+    has Str $.before is built(:bind);
+    has Str $.after is built(:bind);
     has Int $!distance;
-
-    submethod BUILD(Str() :$!before, :$!after --> Nil) { }
 
     method Bool() {
         $.before ne $.after
     }
 
-    method ACCEPTS(StrDistance:D: Mu \a) {
+    multi method ACCEPTS(StrDistance:D: Mu \a) {
         self
     }
 
@@ -47,4 +45,4 @@ my class StrDistance is Cool {
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

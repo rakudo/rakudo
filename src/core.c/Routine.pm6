@@ -10,17 +10,12 @@ my role SoftRoutine {
 my class Routine { # declared in BOOTSTRAP
     # class Routine is Block
     #     has @!dispatchees;
-    #     has Mu $!dispatcher_cache;
     #     has Mu $!dispatcher;
-    #     has int $!rw;
+    #     has int $!flags;
     #     has Mu $!inline_info;
-    #     has int $!yada;
     #     has Mu $!package;
-    #     has int $!onlystar;
     #     has @!dispatch_order;
     #     has Mu $!dispatch_cache;
-
-    method onlystar() { nqp::hllbool($!onlystar) }
 
     method candidates() {
         self.is_dispatcher ??
@@ -28,7 +23,8 @@ my class Routine { # declared in BOOTSTRAP
             (self,)
     }
 
-    method cando(Capture:D $c) {
+    proto method cando(|) {*}
+    multi method cando(Capture:D $c) {
         my $disp;
         if self.is_dispatcher {
             $disp := self;
@@ -43,6 +39,7 @@ my class Routine { # declared in BOOTSTRAP
         }
         checker(|$c);
     }
+    multi method cando(|c) { self.cando(c) }
 
     method multi() {
         self.dispatcher.defined
@@ -57,29 +54,32 @@ my class Routine { # declared in BOOTSTRAP
         }
     }
 
-    multi method perl(Routine:D:) {
-        my $perl = ( self.^name ~~ m/^\w+/ ).lc;
+    multi method raku(Routine:D:) {
+        my $raku = ( self.^name ~~ m/^\w+/ ).lc;
         if self.is_dispatcher {
-            $perl = "proto $perl";
+            $raku = "proto $raku";
         }
         elsif self.multi {
-            $perl = "multi $perl";
+            $raku = "multi $raku";
         }
         if self.name() -> $n {
-            $perl ~= " $n";
+            $raku ~= " $n";
         }
-        my $sig := self.signature.perl;
-        $perl ~= " $sig.substr(1)" unless $sig eq ':()';
-        $perl ~= self.onlystar
+        my $sig := self.signature.raku;
+        $raku ~= " $sig.substr(1)" unless $sig eq ':()';
+        $raku ~= self.onlystar
           ?? ' {*}'
           !! self.yada
             ?? ' { ... }'
             !! ' { #`(' ~ self.WHICH ~ ') ... }';
-        $perl
+        $raku
     }
 
-    method soft( --> Nil ) { }
+    method soft(--> Nil) { }
 
+    method is-wrapped(--> False) { }
+
+#?if !moar
     method wrap(&wrapper) {
         my class WrapHandle {
             has $!dispatcher;
@@ -106,6 +106,7 @@ my class Routine { # declared in BOOTSTRAP
                 $!dispatcher.enter(|c);
             }
             method soft(--> True) { }
+            method is-wrapped(--> Bool) { $!dispatcher.candidates > 1 }
         }
 
         # We can't wrap a hardened routine (that is, one that's been
@@ -120,21 +121,83 @@ my class Routine { # declared in BOOTSTRAP
         unless nqp::istype(self, Wrapped) {
             my $orig = self.clone();
             self does Wrapped;
-            $!onlystar = 0; # disable optimization if no body there
             self.UNSHIFT_WRAPPER($orig);
         }
 
         # Add this wrapper.
         self.UNSHIFT_WRAPPER(&wrapper);
     }
+#?endif
+
+#?if moar
+    my role Wrapped {
+        has Mu $!wrappers;
+        has Routine $!wrapper-type;
+        method WRAPPERS() { $!wrappers }
+        method WRAPPER-TYPE() { $!wrapper-type }
+        method ADD-WRAPPER(&wrapper --> Nil) {
+            my $new-wrappers := nqp::isconcrete($!wrappers)
+                ?? nqp::clone($!wrappers)
+                !! IterationBuffer.new;
+            nqp::unshift($new-wrappers, &wrapper);
+            $!wrappers := $new-wrappers;
+        }
+        method REMOVE-WRAPPER(&wrapper --> Bool) {
+            my $new-wrappers := IterationBuffer.new;
+            my int $i = 0;
+            my Bool $found := False;
+            while $i < nqp::elems($!wrappers) {
+                my $wrapper := nqp::atpos($!wrappers, $i);
+                if nqp::eqaddr(&wrapper, $wrapper) {
+                    $found := True;
+                }
+                else {
+                    nqp::push($new-wrappers, $wrapper);
+                }
+                $i++;
+            }
+            $!wrappers := $new-wrappers if $found;
+            $found
+        }
+        method is-wrapped(--> Bool) { nqp::elems($!wrappers) > 1 }
+    }
+    my class WrapHandle {
+        has &!routine;
+        has $!wrapper;
+        method restore(--> Bool) {
+            nqp::can(&!routine, 'REMOVE-WRAPPER')
+                ?? &!routine.REMOVE-WRAPPER($!wrapper)
+                !! False
+        }
+    }
+    method wrap(&wrapper) {
+        # We can't wrap a hardened routine (that is, one that's been
+        # marked inlinable).
+        if nqp::istype(self, HardRoutine) {
+            die "Cannot wrap a HardRoutine, since it may have been inlined; " ~
+                "use the 'soft' pragma to avoid marking routines as hard.";
+        }
+
+        # Mix in the Wrapped role if needed and add the wrapper.
+        unless nqp::istype(self, Wrapped) {
+            my $orig := self.clone;
+            self does Wrapped;
+            nqp::bindattr(self, self.WHAT, '$!wrapper-type', self.WHAT);
+            self.ADD-WRAPPER($orig);
+        }
+        self.ADD-WRAPPER(&wrapper);
+
+        # Create and return a wrap handle
+        my $handle := nqp::create(WrapHandle);
+        nqp::bindattr($handle, WrapHandle, '&!routine', self);
+        nqp::bindattr($handle, WrapHandle, '$!wrapper', &wrapper);
+        $handle
+    }
+#?endif
 
     method unwrap($handle) {
         $handle.can('restore') && $handle.restore() ||
             X::Routine::Unwrap.new.throw
-    }
-
-    method yada() {
-        nqp::hllbool(nqp::getattr_i(self, Routine, '$!yada'))
     }
 
     method package() { $!package }
@@ -144,4 +207,4 @@ my class Routine { # declared in BOOTSTRAP
     }
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

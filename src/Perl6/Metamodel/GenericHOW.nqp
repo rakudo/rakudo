@@ -11,7 +11,7 @@ class Perl6::Metamodel::GenericHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     # The name we're created with is both the name we'll claim
@@ -20,7 +20,7 @@ class Perl6::Metamodel::GenericHOW
     # ourself.
     method new_type(:$name) {
         my $meta := self.new();
-        my $obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'perl6');
+        my $obj := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
         $meta.set_name($obj, $name);
         $obj
     }
@@ -42,3 +42,5 @@ class Perl6::Metamodel::GenericHOW
         0
     }
 }
+
+# vim: expandtab sw=4

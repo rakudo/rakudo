@@ -13,6 +13,18 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         self.new.STORE(@args, :INITIALIZE)
     }
 
+    multi method contains(Map:D: \needle) {
+        my $name := self.^name;
+        warn "Applying '.contains' to a $name will look at its .Str representation.  Did you mean '$name\{needle}:exists'?".naive-word-wrapper;
+        self.Str.contains(needle)
+    }
+
+    multi method index(Map:D: \needle) {
+        my $name := self.^name;
+        warn "Applying '.index' to a $name will look at its .Str representation.  Did you mean '$name\{needle}:exists'?".naive-word-wrapper;
+        self.Str.index(needle)
+    }
+
     multi method Map(Map:) { self }
 
     multi method Hash(Map:U:) { Hash }
@@ -40,51 +52,45 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     multi method Bool(Map:D: --> Bool:D) {
         nqp::hllbool(nqp::elems($!storage));
     }
-    method elems(Map:D: --> Int:D) {
-        nqp::p6box_i(nqp::elems($!storage));
-    }
+    method elems(Map:D:) { nqp::elems($!storage) }
     multi method Int(Map:D:     --> Int:D) { self.elems }
     multi method Numeric(Map:D: --> Int:D) { self.elems }
 
     multi method Str(Map:D: --> Str:D) { self.sort.join("\n") }
 
     method IterationBuffer(--> IterationBuffer:D) {
-        nqp::stmts(
-          (my \buffer := nqp::create(IterationBuffer)),
-          nqp::if(
-            nqp::elems($!storage),
-            nqp::stmts(
-              (my \iterator := nqp::iterator($!storage)),
-              nqp::setelems(buffer,nqp::elems($!storage)),
-              (my int $i = -1),
-              nqp::while(
-                iterator,
-                nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
-                  Pair.new(
-                    nqp::iterkey_s(nqp::shift(iterator)),
-                    nqp::iterval(iterator)
-                  )
+        my \buffer := nqp::create(IterationBuffer);
+        nqp::if(
+          nqp::elems($!storage),
+          nqp::stmts(
+            (my \iterator := nqp::iterator($!storage)),
+            nqp::setelems(buffer,nqp::elems($!storage)),
+            (my int $i = -1),
+            nqp::while(
+              iterator,
+              nqp::bindpos(buffer,($i = nqp::add_i($i,1)),
+                Pair.new(
+                  nqp::iterkey_s(nqp::shift(iterator)),
+                  nqp::iterval(iterator)
                 )
               )
             )
-          ),
-          buffer
-        )
+          )
+        );
+        buffer
     }
 
     method List(--> List:D) { self.IterationBuffer.List }
 
     multi method head(Map:D:) {
-        nqp::if(
-          nqp::elems($!storage),
-          Pair.new(
-            nqp::iterkey_s(
-              nqp::shift(my \iterator := nqp::iterator($!storage))
-            ),
-            nqp::iterval(iterator)
-          ),
-          Nil
-        )
+        nqp::elems($!storage)
+          ?? Pair.new(
+               nqp::iterkey_s(
+                 nqp::shift(my \iterator := nqp::iterator($!storage))
+               ),
+               nqp::iterval(iterator)
+             )
+          !! Nil
     }
 
     # Produce a native str array with all the keys
@@ -103,25 +109,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     # Iterator over a native string array holding the keys and producing
     # Pairs.
     my class Iterate-keys does Iterator {
-        has $!map;
-        has $!iter;
-        method new(Mu \map, Mu \keys) {
-            nqp::p6bindattrinvres(
-              nqp::p6bindattrinvres(
-                nqp::create(self),
-                self,
-                '$!map',nqp::getattr(map,Map,'$!storage')
-              ),
-              self,
-              '$!iter',
-              nqp::iterator(keys)
-            )
-        }
+        has $!map  is built(:bind);
+        has $!keys is built(:bind);
+        has int $!i = -1;
         method pull-one() {
             nqp::if(
-              $!iter,
+              nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!keys)),
               nqp::stmts(
-                (my \key := nqp::shift($!iter)),
+                (my \key := nqp::atpos_s($!keys,$!i)),
                 Pair.new(key,nqp::atkey($!map,key))
               ),
               IterationEnd
@@ -129,25 +124,30 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         }
         method push-all($target --> IterationEnd) {
             my \map  := $!map;
-            my \iter := $!iter;
+            my \keys := $!keys;
+            my int $i = $!i;
             nqp::while(
-              iter,
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(keys)),
               nqp::stmts(
-                (my \key := nqp::shift(iter)),
+                (my \key := nqp::atpos_s(keys,$i)),
                 $target.push(Pair.new(key,nqp::atkey(map,key)))
               )
-            )
+            );
+            $!i = $i;
         }
     }
 
     multi method sort(Map:D: --> Seq:D) {
         Seq.new(
-          Iterate-keys.new(self,Rakudo::Sorting.MERGESORT-str(self!keys-as-str))
+          Iterate-keys.new(
+            map  => self,
+            keys => Rakudo::Sorting.MERGESORT-str(self!keys-as-str)
+          )
         )
     }
 
     multi method ACCEPTS(Map:D: Any $topic --> Bool:D) {
-        self.EXISTS-KEY($topic.any);
+        self.EXISTS-KEY($topic.any).Bool
     }
 
     multi method ACCEPTS(Map:D: Cool:D $topic --> Bool:D) {
@@ -155,19 +155,19 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Map:D: Positional $topic --> Bool:D) {
-        self.EXISTS-KEY($topic.any);
+        self.EXISTS-KEY($topic.any).Bool
     }
 
     multi method ACCEPTS(Map:D: Regex $topic --> Bool:D) {
-        so self.keys.any.match($topic);
+        self.keys.any.match($topic).Bool;
     }
 
     multi method ACCEPTS(Map:D: Map:D \m --> Bool:D) {
         try {self eqv m} // False;
     }
 
-    multi method EXISTS-KEY(Map:D: Str:D \key --> Bool:D) {
-        nqp::hllbool(nqp::existskey($!storage,key))
+    multi method EXISTS-KEY(Map:D: Str:D $key --> Bool:D) {
+        nqp::hllbool(nqp::existskey($!storage,$key))
     }
     multi method EXISTS-KEY(Map:D: \key --> Bool:D) {
         nqp::hllbool(nqp::existskey($!storage,key.Str))
@@ -181,8 +181,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
           ~ '))'
     }
 
-    multi method perl(Map:D \SELF: --> Str:D) {
-        my $p = self.^name ~ '.new((' ~ self.sort.map({.perl}).join(',') ~ '))';
+    multi method raku(Map:D \SELF: --> Str:D) {
+        my $p := nqp::elems($!storage)
+          ?? self.^name ~ '.new((' ~ self.sort.map(*.raku).join(',') ~ '))'
+          !! self.^name ~ '.new';
         nqp::iscont(SELF) ?? '$(' ~ $p ~ ')' !! $p
     }
 
@@ -208,9 +210,9 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
     }
-    method iterator(Map:D: --> Iterator:D) { Iterate.new(self) }
 
-    method list(Map:D: --> List:D) { self.List }
+    multi method iterator(Map:D: --> Iterator:D) { Iterate.new(self) }
+    multi method list(Map:D: --> List:D) { self.List }
 
     multi method pairs(Map:D: --> Seq:D) {
         Seq.new(self.iterator)
@@ -280,8 +282,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         Seq.new(Rakudo::Iterator.Invert(self.iterator))
     }
 
-    multi method AT-KEY(Map:D: Str:D \key) is raw {
-        nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key)),Nil)
+    multi method AT-KEY(Map:D: Str:D $key) is raw {
+        nqp::ifnull(nqp::atkey($!storage,$key),Nil)
     }
     multi method AT-KEY(Map:D: \key) is raw {
         nqp::ifnull(nqp::atkey($!storage,nqp::unbox_s(key.Str)),Nil)
@@ -289,14 +291,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
 
     multi method ASSIGN-KEY(Map:D: \key, Mu \new) {
         nqp::isnull(my \old := nqp::atkey($!storage,key.Str))
-          ?? "Cannot add key '{key}' to an immutable {self.^name}"
+          ?? die("Cannot add key '{key}' to an immutable {self.^name}")
           !! nqp::iscont(old)
             ?? (old = new)
-            !! "Cannot change key '{key}' in an immutable {self.^name}"
+            !! die("Cannot change key '{key}' in an immutable {self.^name}")
     }
 
     # Directly copy from the other Map's internals.
-    method !STORE_MAP_FROM_MAP_DECONT(\map --> Nil) {
+    method !STORE_MAP_FROM_MAP_DECONT(\map --> Map:D) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -310,9 +312,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
           )
-        )
+        );
+        self
     }
-    method !STORE_MAP_FROM_MAP(\map --> Nil) {
+    method !STORE_MAP_FROM_MAP(\map --> Map:D) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -326,13 +329,14 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
           )
-        )
+        );
+        self
     }
 
     # Directly copy from the Object Hash's internals, but pay respect to the
     # fact that we're only interested in the values (which contain a Pair with
     # the object key and a value that we need to decontainerize.
-    method !STORE_MAP_FROM_OBJECT_HASH_DECONT(\map --> Nil) {
+    method !STORE_MAP_FROM_OBJECT_HASH_DECONT(\map --> Map:D) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -349,9 +353,10 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
           )
-        )
+        );
+        self
     }
-    method !STORE_MAP_FROM_OBJECT_HASH(\map --> Nil) {
+    method !STORE_MAP_FROM_OBJECT_HASH(\map --> Map:D) {
         nqp::if(
           nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
           nqp::stmts(
@@ -368,156 +373,136 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
               )
             )
           )
-        )
+        );
+        self
     }
 
     # Copy the contents of a Mappy thing that's not in a container.
-    method !STORE_MAP_DECONT(\map --> Nil) {
-        nqp::if(
-          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
-          self!STORE_MAP_FROM_MAP_DECONT(map),
-          self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
-        )
+    method !STORE_MAP_DECONT(\map --> Map:D) {
+        nqp::istype(map,Hash::Object)
+          ?? self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map)
+          !! self!STORE_MAP_FROM_MAP_DECONT(map)
     }
-    method !STORE_MAP(\map --> Nil) {
-        nqp::if(
-          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
-          self!STORE_MAP_FROM_MAP(map),
-          self!STORE_MAP_FROM_OBJECT_HASH(map)
-        )
+    method !STORE_MAP(\map --> Map:D) {
+        nqp::istype(map,Hash::Object)
+          ?? self!STORE_MAP_FROM_OBJECT_HASH(map)
+          !! self!STORE_MAP_FROM_MAP(map)
     }
 
     # Store the contents of an iterator into the Map
-    method !STORE_MAP_FROM_ITERATOR_DECONT(\iter --> Map:D) is raw {
-        nqp::stmts(
-            nqp::until(
-              nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
-              nqp::if(
-                nqp::istype($x,Pair),
-                nqp::bindkey(
-                  $!storage,
-                  nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
-                  nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
-                ),
-                nqp::if(
-                  (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
-                  self!STORE_MAP_DECONT($x),
-                  nqp::if(
-                    nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
-                    nqp::if(
-                      nqp::istype($x,Failure),
-                      $x.throw,
-                      X::Hash::Store::OddNumber.new(
-                        found => self.elems * 2 + 1,
-                        last  => $x
-                      ).throw
-                    ),
-                    nqp::bindkey($!storage,$x.Str,nqp::decont($y))
-                  )
-                )
-              )
+    method !STORE_MAP_FROM_ITERATOR_DECONT($iterator --> Map:D) is raw {
+        nqp::until(
+          nqp::eqaddr((my Mu $x := $iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype($x,Pair),
+            nqp::bindkey(
+              $!storage,
+              nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
+              nqp::decont(nqp::getattr(nqp::decont($x),Pair,'$!value'))
             ),
-            self
-        )
+            nqp::if(
+              (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+              self!STORE_MAP_DECONT($x),
+              nqp::if(
+                nqp::eqaddr((my Mu $y := $iterator.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::istype($x,Failure),
+                  $x.throw,
+                  X::Hash::Store::OddNumber.new(
+                    found => self.elems * 2 + 1,
+                    last  => $x
+                  ).throw
+                ),
+                nqp::bindkey($!storage,$x.Str,nqp::decont($y))
+              )
+            )
+          )
+        );
+        self
     }
-    method !STORE_MAP_FROM_ITERATOR(\iter --> Map:D) is raw {
-        nqp::stmts(
-            nqp::until(
-              nqp::eqaddr((my Mu $x := iter.pull-one),IterationEnd),
-              nqp::if(
-                nqp::istype($x,Pair),
-                nqp::bindkey(
-                  $!storage,
-                  nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
-                  nqp::getattr(nqp::decont($x),Pair,'$!value')
-                ),
-                nqp::if(
-                  (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
-                  self!STORE_MAP($x),
-                  nqp::if(
-                    nqp::eqaddr((my Mu $y := iter.pull-one),IterationEnd),
-                    nqp::if(
-                      nqp::istype($x,Failure),
-                      $x.throw,
-                      X::Hash::Store::OddNumber.new(
-                        found => self.elems * 2 + 1,
-                        last  => $x
-                      ).throw
-                    ),
-                    nqp::bindkey($!storage,$x.Str,$y)
-                  )
-                )
-              )
+    method !STORE_MAP_FROM_ITERATOR($iterator --> Map:D) is raw {
+        nqp::until(
+          nqp::eqaddr((my Mu $x := $iterator.pull-one),IterationEnd),
+          nqp::if(
+            nqp::istype($x,Pair),
+            nqp::bindkey(
+              $!storage,
+              nqp::getattr(nqp::decont($x),Pair,'$!key').Str,
+              nqp::getattr(nqp::decont($x),Pair,'$!value')
             ),
-            self
-        )
+            nqp::if(
+              (nqp::istype($x,Map) && nqp::not_i(nqp::iscont($x))),
+              self!STORE_MAP($x),
+              nqp::if(
+                nqp::eqaddr((my Mu $y := $iterator.pull-one),IterationEnd),
+                nqp::if(
+                  nqp::istype($x,Failure),
+                  $x.throw,
+                  X::Hash::Store::OddNumber.new(
+                    found => self.elems * 2 + 1,
+                    last  => $x
+                  ).throw
+                ),
+                nqp::bindkey($!storage,$x.Str,$y)
+              )
+            )
+          )
+        );
+        self
     }
 
     proto method STORE(Map:D: |) {*}
-    multi method STORE(Map:D: Map:D \map, :$INITIALIZE!, :$DECONT? --> Map:D) {
+    multi method STORE(Map:D:
+      Map:D \map, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
         nqp::if(
-          nqp::eqaddr(map.keyof,Str(Any)),  # is it not an Object Hash?
+          nqp::istype(map,Hash::Object),
+          self!STORE_MAP_FROM_OBJECT_HASH_DECONT(map),
           nqp::if(
             nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
             nqp::if(
               nqp::eqaddr(map.WHAT,Map),
               nqp::p6bindattrinvres(self,Map,'$!storage',other),
-              nqp::if(
-                $DECONT,
-                samewith(map.iterator, :INITIALIZE, :$DECONT),
-                nqp::p6bindattrinvres(
-                  self,Map,'$!storage',nqp::clone(other)
-                )
-              )
+              self.STORE(map.iterator, :INITIALIZE, :DECONT)
             ),
-            self                      # nothing to do
-          ),
-          nqp::stmts(
-            (my \new_map := nqp::p6bindattrinvres(nqp::create(self), Map, '$!storage', nqp::hash)),
-            nqp::p6bindattrinvres(
-              self, Map, '$!storage',
-              nqp::if(
-                $DECONT,
-                new_map!STORE_MAP_FROM_OBJECT_HASH_DECONT(map),
-                new_map!STORE_MAP_FROM_OBJECT_HASH(map)
-              )
-            )
+            self                        # nothing to do
           )
         )
     }
-    multi method STORE(Map:D: Iterator:D \iter, :$INITIALIZE!, :$DECONT? --> Map:D) {
-        nqp::p6bindattrinvres(
-          self, Map, '$!storage',
-          nqp::getattr(
-            nqp::stmts(
-                (my \new_map := nqp::p6bindattrinvres(nqp::create(self), Map, '$!storage', nqp::hash)),
-                nqp::if(
-                    $DECONT,
-                    new_map!STORE_MAP_FROM_ITERATOR_DECONT(iter),
-                    new_map!STORE_MAP_FROM_ITERATOR(iter)
-                )
+    multi method STORE(Map:D: Map:D \map, :INITIALIZE($)! --> Map:D) {
+        nqp::if(
+          nqp::istype(map,Hash::Object),
+          self!STORE_MAP_FROM_OBJECT_HASH(map),
+          nqp::if(
+            nqp::elems(my \other := nqp::getattr(map,Map,'$!storage')),
+            nqp::if(
+              nqp::eqaddr(map.WHAT,Map),
+              nqp::p6bindattrinvres(self,Map,'$!storage',other),
+              nqp::p6bindattrinvres(self,Map,'$!storage',nqp::clone(other))
             ),
-            Map, '$!storage'
+            self                        # nothing to do
           )
         )
     }
-    multi method STORE(Map:D: \to_store, :$INITIALIZE!, :$DECONT? --> Map:D) {
-        nqp::p6bindattrinvres(
-          self, Map, '$!storage',
-          nqp::getattr(
-            nqp::stmts(
-              (my \new_map := nqp::p6bindattrinvres(nqp::create(self), Map, '$!storage', nqp::hash)),
-              nqp::if(
-                  $DECONT,
-                  new_map!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator),
-                  new_map!STORE_MAP_FROM_ITERATOR(to_store.iterator)
-              )
-            ),
-            Map, '$!storage'
-          )
-        )
+    multi method STORE(Map:D:
+      Iterator:D $iterator, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR_DECONT($iterator)
     }
-    multi method STORE(Map:D: \keys, \values, :$INITIALIZE! --> Map:D) {
+    multi method STORE(Map:D:
+      Iterator:D $iterator, :INITIALIZE($)!
+    --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR($iterator)
+    }
+    multi method STORE(Map:D:
+      \to_store, :INITIALIZE($)!, :DECONT($)!
+    --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR_DECONT(to_store.iterator)
+    }
+    multi method STORE(Map:D: \to_store, :INITIALIZE($)! --> Map:D) {
+        self!STORE_MAP_FROM_ITERATOR(to_store.iterator)
+    }
+    multi method STORE(Map:D: \keys, \values, :INITIALIZE($)! --> Map:D) {
         my \iterkeys   := keys.iterator;
         my \itervalues := values.iterator;
         my \storage    := $!storage := nqp::hash;
@@ -537,10 +522,8 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         nqp::p6bindattrinvres(nqp::create(Capture),Capture,'%!hash',$!storage)
     }
 
-    method FLATTENABLE_LIST() { nqp::list() }
-    method FLATTENABLE_HASH() {
-        $!storage
-    }
+    method FLATTENABLE_LIST() is implementation-detail { nqp::list() }
+    method FLATTENABLE_HASH() is implementation-detail { $!storage }
 
     method fmt(Map: Cool $format = "%s\t\%s", $sep = "\n" --> Str:D) {
         nqp::iseq_i(nqp::sprintfdirectives( nqp::unbox_s($format.Stringy)),1)
@@ -549,7 +532,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
     }
 
     method hash() { self }
-    method clone(Map:D: --> Map:D) is raw { self }
+    method clone(Map:D:) { self }
 
     multi method roll(Map:D:) {
         nqp::if(
@@ -577,23 +560,22 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
         has $!pairs;
         has $!count;
 
-        method !SET-SELF(\hash,\count) {
-            nqp::stmts(
-              ($!storage := nqp::getattr(hash,Map,'$!storage')),
-              ($!count = count),
-              (my int $i = nqp::elems($!storage)),
-              (my \iter := nqp::iterator($!storage)),
-              ($!keys := nqp::setelems(nqp::list_s,$i)),
-              ($!pairs := nqp::setelems(nqp::list,$i)),
-              nqp::while(
-                nqp::isge_i(($i = nqp::sub_i($i,1)),0),
-                nqp::bindpos_s($!keys,$i,
-                  nqp::iterkey_s(nqp::shift(iter)))
-              ),
-              self
-            )
+        method !SET-SELF(\hash, $count) {
+            $!storage := nqp::getattr(hash,Map,'$!storage');
+            $!count = $count;
+            my int $i = nqp::elems($!storage);
+            my \iter := nqp::iterator($!storage);
+            $!keys := nqp::setelems(nqp::list_s,$i);
+            $!pairs := nqp::setelems(nqp::list,$i);
+
+            nqp::while(
+              nqp::isge_i(($i = nqp::sub_i($i,1)),0),
+              nqp::bindpos_s($!keys,$i,
+                nqp::iterkey_s(nqp::shift(iter)))
+            );
+            self
         }
-        method new(\h,\c) { nqp::create(self)!SET-SELF(h,c) }
+        method new(\hash, $count) { nqp::create(self)!SET-SELF(hash, $count) }
         method pull-one() {
             nqp::if(
               $!count,
@@ -617,6 +599,7 @@ my class Map does Iterable does Associative { # declared in BOOTSTRAP
             )
         }
         method is-lazy() { $!count == Inf }
+        method is-deterministic(--> False) { }
     }
     multi method roll(Map:D: $count) {
         Seq.new(
@@ -654,7 +637,7 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
 
     nqp::hllbool(
       nqp::unless(
-        nqp::eqaddr(a,b),
+        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
         nqp::if(                                 # not comparing with self
           nqp::eqaddr(a.WHAT,b.WHAT),
           nqp::if(                               # same types
@@ -686,4 +669,4 @@ multi sub infix:<eqv>(Map:D \a, Map:D \b --> Bool:D) {
     )
 }
 
-# vim: ft=perl6 expandtab sw=4
+# vim: expandtab shiftwidth=4

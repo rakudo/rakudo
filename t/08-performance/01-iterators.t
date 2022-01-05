@@ -18,3 +18,5 @@ is-deeply  ^20 .permutations.elems, 2432902008176640000,
   '.permutations() iterator implements efficient .count-only';
 is-deeply  ^20 .permutations.so, True,
   '.permutations() iterator implements efficient .bool-only';
+
+# vim: expandtab shiftwidth=4

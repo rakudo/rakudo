@@ -1,0 +1,17 @@
+@insert(sh-prelude)@
+
+@insert(rakudo-debug-notice)@
+
+GDB="gdb"
+if [ -n "$RAKUDO_GDB" ]; then
+    GDB="$RAKUDO_GDB"
+else
+    case "$(uname)" in
+        OpenBSD)
+            if which egdb >/dev/null; then
+                GDB="egdb"
+            fi
+    esac
+fi
+
+"$GDB" --quiet --ex=run --args "@expand(@MOAR@)@" @expand(@runner_opts@)@ "$@"

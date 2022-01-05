@@ -593,7 +593,7 @@ sub dd(|c) {  # is implementation-detail
         while $args {
             my $var  := nqp::shift($args);
             my $name := ! nqp::istype($var.VAR, Failure) && try $var.VAR.name;
-            $name := '@' if $name eq 'element';
+            $name := '@' if $name && $name eq 'element';
             my $type := $var.WHAT.^name.split("::").tail;
             $type := $type.chop if $type.contains(/ \W $ /);
             my $what := nqp::can($var,'raku')

@@ -193,7 +193,7 @@ subtest 'non-ASCII digits > 7 in leading-zero-octal warning' => {
     throws-like '[].length      ', Exception, '.length on List',
         :message{ .contains: 'elems' & none <chars codes graphs>     };
 
-    throws-like 'class {}.length', Exception, '.length on non-Cool',
+    throws-like 'bag(1).length  ', Exception, '.length on non-Cool',
         :message{ .contains: <elems chars codes>.all & none 'graphs' };
 
     throws-like 'length 42      ', Exception, '&length',

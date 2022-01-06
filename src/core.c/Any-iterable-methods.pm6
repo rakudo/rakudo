@@ -2358,6 +2358,47 @@ Consider using a block if any of these are necessary for your mapping code."
         Seq.new(Rakudo::Iterator.Rotor(self.iterator,@cycle,$partial))
     }
 
+    proto method infer(|) {*}
+    multi method infer(List:D:) {
+        my $iterator := self.iterator;
+        nqp::if(
+          nqp::eqaddr((my $pulled := $iterator.pull-one),IterationEnd),
+          Nil,                                            # nothing to check
+          nqp::stmts(
+            (my $type := $pulled.WHAT),                   # initial type
+            nqp::until(
+              nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd)
+                || nqp::not_i(nqp::eqaddr($pulled.WHAT,$type)),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::eqaddr($pulled,IterationEnd),
+              $type,                                      # all the same
+              self!slow-infer($iterator, $type, $pulled)  # find out what
+            )
+          )
+        )
+    }
+
+    method !slow-infer($iterator, Mu $type is copy, Mu $pulled is copy) {
+        # set up types to check
+        my $mro :=
+          nqp::clone(nqp::getattr($type.^mro(:roles),List,'$!reified'));
+
+        nqp::repeat_until(
+          nqp::eqaddr(($pulled := $iterator.pull-one),IterationEnd)
+            || nqp::eqaddr($type,Mu),
+          nqp::until(
+            nqp::istype($pulled,nqp::atpos($mro,0)),
+            nqp::stmts(                       # not the same base type
+              nqp::shift($mro),
+              ($type := nqp::atpos($mro,0)),  # assume next type for now
+            )
+          )
+        );
+        $type
+    }
+
     proto method nodemap(|) is nodal {*}
     multi method nodemap(Associative:D: &op) {
         self.new.STORE: self.keys, self.values.nodemap(&op), :INITIALIZE

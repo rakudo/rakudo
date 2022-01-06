@@ -2644,6 +2644,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         :my $*zone := 'posreq';
         :my $*multi_invocant := 1;
         :my @*seps := nqp::list();
+        :my $*PRECEDING_DECL; # for #= comments
+        :my $*PRECEDING_DECL_LINE := -1; # XXX update this when I see another comment like it?
         <.ws>
         [
         | <?before '-->' | ')' | ']' | '{' | ':'\s | ';;' >

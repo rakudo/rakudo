@@ -12,7 +12,6 @@
 # a particular candidate.
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
@@ -212,29 +211,39 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method language-revision($obj) {
-        my $c := self.'!get_default_candidate'();
-        nqp::unless(nqp::isnull($c),
-                    $c.HOW.language-revision($c),
-                    nqp::null())
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.language-revision($c)
     }
 
     method is-implementation-detail($obj) {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.is-implementation-detail($c)
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.is-implementation-detail($c)
     }
 
     method WHY() {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.WHY
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.WHY
+    }
+
+    method set_why($why) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Role::Group::Documenting',
+            "Parametric role group cannot be documented, use one of the candidates instead for '" ~ self.name ~ "'",
+            :role-name(self.name)
+        );
     }
 
     method !get_default_candidate() {
-        self.'!get_nonsignatured_candidate'() || @!candidates[0]
+        nqp::isnull(my $c := self.'!get_nonsignatured_candidate'())
+            ?? nqp::null()
+            !! $c
     }
 
     method !get_nonsignatured_candidate() {
-        return nqp::null unless +@!nonsignatured;
-        @!nonsignatured[0]
+        +@!nonsignatured ?? @!nonsignatured[0] !! nqp::null()
     }
 
     method publish_type_cache($obj) {

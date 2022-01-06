@@ -12,7 +12,6 @@
 # a particular candidate.
 class Perl6::Metamodel::ParametricRoleGroupHOW
     does Perl6::Metamodel::Naming
-    does Perl6::Metamodel::Documenting
     does Perl6::Metamodel::Stashing
     does Perl6::Metamodel::TypePretense
     does Perl6::Metamodel::RolePunning
@@ -146,7 +145,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     }
 
     method update_role_typecheck_list($obj) {
-        my $ns := self.'!get_nonsignatured_candidate'($obj);
+        my $ns := self.'!get_nonsignatured_candidate'();
         @!role_typecheck_list := $ns.HOW.role_typecheck_list($ns) unless nqp::isnull($ns);
     }
 
@@ -169,7 +168,7 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
                 return 1;
             }
         }
-        my $ns := self.'!get_nonsignatured_candidate'($obj);
+        my $ns := self.'!get_nonsignatured_candidate'();
         return $ns.HOW.type_check_parents($ns, $decont) unless nqp::isnull($ns);
         0;
     }
@@ -177,63 +176,74 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method candidates($obj) { nqp::clone(@!candidates) }
 
     method lookup($obj, $name) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.lookup($c, $name);
     }
 
     method methods($obj, *@pos, *%name) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.methods($c, |@pos, |%name);
     }
 
     method attributes($obj, *@pos, *%name) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.attributes($c, |@pos, |%name);
     }
 
     method parents($obj, *%named) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.parents($c, |%named)
     }
 
     method roles($obj, *%named) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.roles($c, |%named)
     }
 
     method ver($obj) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.ver($c)
     }
 
     method auth($obj) {
-        my $c := self.'!get_default_candidate'($obj);
+        my $c := self.'!get_default_candidate'();
         $c.HOW.auth($c)
     }
 
     method language-revision($obj) {
-        my $c := self.'!get_default_candidate'($obj);
-        nqp::unless(nqp::isnull($c),
-                    $c.HOW.language-revision($c),
-                    nqp::null())
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.language-revision($c)
     }
 
     method is-implementation-detail($obj) {
-        my $c := self.'!get_default_candidate'($obj);
-        $c.HOW.is-implementation-detail($c)
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.is-implementation-detail($c)
     }
 
-    method !get_default_candidate($obj) {
-        nqp::ifnull(self.'!get_nonsignatured_candidate'($obj),
-                    nqp::if(
-                        +@!candidates,
-                        @!candidates[0],
-                        nqp::null()))
+    method WHY() {
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.WHY
     }
 
-    method !get_nonsignatured_candidate($obj) {
-        return nqp::null unless +@!nonsignatured;
-        @!nonsignatured[0]
+    method set_why($why) {
+        Perl6::Metamodel::Configuration.throw_or_die(
+            'X::Role::Group::Documenting',
+            "Parametric role group cannot be documented, use one of the candidates instead for '" ~ self.name ~ "'",
+            :role-name(self.name)
+        );
+    }
+
+    method !get_default_candidate() {
+        nqp::isnull(my $c := self.'!get_nonsignatured_candidate'())
+            ?? nqp::null()
+            !! $c
+    }
+
+    method !get_nonsignatured_candidate() {
+        +@!nonsignatured ?? @!nonsignatured[0] !! nqp::null()
     }
 
     method publish_type_cache($obj) {

@@ -31,7 +31,6 @@ lib/Test.pir
 lib/Pod/To/Text.pir
 lib/lib.pir
 CORE.setting.pbc
-RESTRICTED.setting.pbc
 SAFE.setting.pbc
 perl6.class
 perl6.pbc

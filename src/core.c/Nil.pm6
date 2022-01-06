@@ -1,5 +1,4 @@
 my class Nil is Cool { # declared in BOOTSTRAP
-
     method !die(str $method) is hidden-from-backtrace {
         nqp::istype(self,Failure)
           ?? self.throw

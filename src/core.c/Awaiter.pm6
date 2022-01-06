@@ -92,13 +92,8 @@ my class Awaiter::Blocking does Awaiter {
                 });
             }
 
-            # Block until remaining is 0 (need the loop to cope with suprious
-            # wakeups).
-            loop {
-                $l.protect: {
-                    last if $remaining == 0;
-                    $ready.wait;
-                }
+            $l.protect: {
+                $ready.wait: { $remaining == 0 }
             }
 
             # If we got an exception, throw it.

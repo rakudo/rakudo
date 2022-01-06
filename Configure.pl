@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Copyright (C) 2009-2020 The Perl Foundation
+# Copyright (C) 2009-2021 The Perl Foundation
 
 use 5.10.1;
 use strict;
@@ -16,7 +16,7 @@ BEGIN {
     my $set_config = !qx{git config rakudo.initialized};
     if ( !-e '3rdparty/nqp-configure/LICENSE' ) {
         my $code = system($^X, 'tools/build/update-submodules.pl', Cwd::cwd(), @ARGV);
-        exit 1 if $code >> 8 != 0;
+        exit 1 if $code;
         $set_config = 1;
     }
     if ($set_config) {

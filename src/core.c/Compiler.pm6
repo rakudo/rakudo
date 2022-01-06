@@ -19,7 +19,7 @@ class Compiler does Systemic {
         nqp::bind($!auth,'The Perl Foundation');
 
         # looks like: 2018.01-50-g8afd791c1
-        nqp::bind($!version,Version.new(nqp::atkey($compiler,'version')))
+        nqp::bind($!version,Version.new(nqp::p6box_s(nqp::atkey($compiler,'version'))))
           unless $!version;
     }
 
@@ -72,9 +72,9 @@ class Compiler does Systemic {
         }
         else {
             my %config;
-            my $iter := nqp::iterator($items);
-            while $iter {
-                my ($main,$key,$value) = nqp::shift($iter).split(<:: =>);
+            my $clone := nqp::clone($items);
+            while $clone {
+                my ($main,$key,$value) = nqp::shift_s($clone).split(<:: =>);
                 %config.AT-KEY($main).AT-KEY($key) = $value
             }
 
@@ -84,6 +84,10 @@ class Compiler does Systemic {
                 proto method gist() { $!string }
             }
         }
+    }
+
+    method supports-op($opname) {
+        nqp::getcomp("Raku").supports-op($opname)
     }
 }
 

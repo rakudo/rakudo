@@ -19,14 +19,25 @@ The process of building is not started automatically, but has to be triggered ma
 - Verify all three archives have a size >10MB.
 - Verify all three archives decompress successfully.
 
-Sign the files:
+Sign the files and create checksum files:
 
-   gpg -b -u your@gpgkey.org --armor rakudo-moar-2020.01-01-linux-x86_64.tar.gz
-   gpg -b -u your@gpgkey.org --armor rakudo-moar-2020.01-01-macos-x86_64.tar.gz
-   gpg -b -u your@gpgkey.org --armor rakudo-moar-2020.01-01-win-x86_64.zip
+    gpg -u your@gpgkey.org --detach-sign --armor rakudo-moar-2020.01-01-linux-x86_64.tar.gz
 
-Upload the three archive files and corresponding `.asc` files to the <https://rakudo.org/> server.
+    md5sum    --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha1sum   --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha224sum --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha256sum --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha384sum --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    sha512sum --tag rakudo-moar-2020.01-01-linux-x86_64.tar.gz >> rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
 
+    gpg -u your@gpgkey.org --clearsign --output rakudo-moar-2020.01-01-linux-x86_64.tar.gz.checksums.txt rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+    rm rakudo-moar-2020.01-01-linux-x86_64.tar.gz.tmp
+
+Do that for all three release archives and the MSI file.
+
+- Upload the three archive files, the MSI and the checksum files to the <https://rakudo.org/> server:
+
+    scp -P2222 rakudo-moar-2020.01-01-* rakudo.org@lavm-perl6infra-1.atikon.io:public_html/downloads/rakudo/
 
 Manual build
 ============

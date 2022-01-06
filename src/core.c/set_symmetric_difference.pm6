@@ -4,13 +4,13 @@
 
 proto sub infix:<(^)>(|) is pure {*}
 multi sub infix:<(^)>()               { set() }
-multi sub infix:<(^)>(QuantHash:D \a) { a     } # Set/Bag/Mix
+multi sub infix:<(^)>(QuantHash:D $a) { $a    } # Set/Bag/Mix
 
-multi sub infix:<(^)>(Setty:D \a, Setty:D \b) {
+multi sub infix:<(^)>(Setty:D $a, Setty:D $b) {
     nqp::if(
-      (my \araw := a.RAW-HASH) && nqp::elems(araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(
-        (my \braw := b.RAW-HASH) && nqp::elems(braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
@@ -31,23 +31,23 @@ multi sub infix:<(^)>(Setty:D \a, Setty:D \b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::create(a.WHAT).SET-SELF($elems)
+          nqp::create($a.WHAT).SET-SELF($elems)
         ),
-        a                                      # b empty, so a
+        $a                                     # b empty, so a
       ),
       nqp::if(                                 # a empty, so b
-        nqp::istype(a,Set), b.Set, b.SetHash
+        nqp::istype($a,Set), $b.Set, $b.SetHash
       )
     )
 }
-multi sub infix:<(^)>(Setty:D \a, Mixy:D  \b) { a.Mixy  (^) b }
-multi sub infix:<(^)>(Setty:D \a, Baggy:D \b) { a.Baggy (^) b }
+multi sub infix:<(^)>(Setty:D $a, Mixy:D  $b) { $a.Mixy  (^) $b }
+multi sub infix:<(^)>(Setty:D $a, Baggy:D $b) { $a.Baggy (^) $b }
 
-multi sub infix:<(^)>(Mixy:D \a, Mixy:D \b) {
+multi sub infix:<(^)>(Mixy:D $a, Mixy:D $b) {
     nqp::if(
-      (my \araw := a.RAW-HASH) && nqp::elems(araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(
-        (my \braw := b.RAW-HASH) && nqp::elems(braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
@@ -88,30 +88,30 @@ multi sub infix:<(^)>(Mixy:D \a, Mixy:D \b) {
               )
             )
           ),
-          nqp::create(a.WHAT).SET-SELF($elems)
+          nqp::create($a.WHAT).SET-SELF($elems)
         ),
-        nqp::create(a.WHAT).SET-SELF(         # b empty, so a
+        nqp::create($a.WHAT).SET-SELF(        # b empty, so a
           Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE(araw)
         )
       ),
       nqp::if(
-        (my \raw := b.RAW-HASH) && nqp::elems(raw),
-        nqp::create(a.WHAT).SET-SELF(         # a empty, so b
+        (my \raw := $b.RAW-HASH) && nqp::elems(raw),
+        nqp::create($a.WHAT).SET-SELF(        # a empty, so b
           Rakudo::QuantHash.MIX-CLONE-ALL-POSITIVE(raw)
         ),
-        a                                     # a and b empty
+        $a                                    # a and b empty
       )
     )
 }
-multi sub infix:<(^)>(Mixy:D \a, Baggy:D \b) { a (^) b.Mix }
-multi sub infix:<(^)>(Mixy:D \a, Setty:D \b) { a (^) b.Mix }
+multi sub infix:<(^)>(Mixy:D $a, Baggy:D $b) { $a (^) $b.Mix }
+multi sub infix:<(^)>(Mixy:D $a, Setty:D $b) { $a (^) $b.Mix }
 
-multi sub infix:<(^)>(Baggy:D \a, Mixy:D \b) { a.Mixy (^) b }
-multi sub infix:<(^)>(Baggy:D \a, Baggy:D \b) {
+multi sub infix:<(^)>(Baggy:D $a, Mixy:D  $b) { $a.Mixy (^) $b }
+multi sub infix:<(^)>(Baggy:D $a, Baggy:D $b) {
     nqp::if(
-      (my \araw := a.RAW-HASH) && nqp::elems(araw),
+      (my \araw := $a.RAW-HASH) && nqp::elems(araw),
       nqp::if(
-        (my \braw := b.RAW-HASH) && nqp::elems(braw),
+        (my \braw := $b.RAW-HASH) && nqp::elems(braw),
         nqp::stmts(                            # both are initialized
           nqp::if(
             nqp::islt_i(nqp::elems(araw),nqp::elems(braw)),
@@ -152,16 +152,16 @@ multi sub infix:<(^)>(Baggy:D \a, Baggy:D \b) {
               nqp::bindkey($elems,nqp::iterkey_s($iter),nqp::iterval($iter))
             )
           ),
-          nqp::create(a.WHAT).SET-SELF($elems)
+          nqp::create($a.WHAT).SET-SELF($elems)
         ),
-        a                                      # b empty, so a
+        $a                                     # b empty, so a
       ),
       nqp::if(                                 # a empty, so b
-        nqp::istype(a,Bag), b.Bag, b.BagHash
+        nqp::istype($a,Bag), $b.Bag, $b.BagHash
       )
     )
 }
-multi sub infix:<(^)>(Baggy:D \a, Setty:D \b) { a (^) b.Bag }
+multi sub infix:<(^)>(Baggy:D $a, Setty:D $b) { $a (^) $b.Bag }
 
 multi sub infix:<(^)>(Map:D \a, Map:D \b) {
     nqp::if(
@@ -171,21 +171,7 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
           nqp::iterator(nqp::getattr(nqp::decont(b),Map,'$!storage'))),
         nqp::stmts(
           nqp::if(                                # both have elems
-            nqp::eqaddr(b.keyof,Str(Any)),
-            nqp::while(                           # ordinary hash
-              iter,
-              nqp::if(
-                nqp::iterval(nqp::shift(iter)),
-                nqp::if(                          # should be checked
-                  nqp::existskey(
-                    elems,
-                    (my \which := nqp::iterkey_s(iter).WHICH)
-                  ),
-                  nqp::deletekey(elems,which),    # remove existing
-                  nqp::bindkey(elems,which,nqp::iterkey_s(iter)) # add new
-                )
-              )
-            ),
+            nqp::istype(b,Hash::Object),
             nqp::while(                           # object hash
               iter,
               nqp::if(
@@ -200,6 +186,20 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
                   )
                 )
               )
+            ),
+            nqp::while(                           # ordinary hash
+              iter,
+              nqp::if(
+                nqp::iterval(nqp::shift(iter)),
+                nqp::if(                          # should be checked
+                  nqp::existskey(
+                    elems,
+                    (my \which := nqp::iterkey_s(iter).WHICH)
+                  ),
+                  nqp::deletekey(elems,which),    # remove existing
+                  nqp::bindkey(elems,which,nqp::iterkey_s(iter)) # add new
+                )
+              )
             )
           ),
           nqp::create(Set).SET-SELF(elems)        # done
@@ -210,8 +210,8 @@ multi sub infix:<(^)>(Map:D \a, Map:D \b) {
     )
 }
 
-multi sub infix:<(^)>(Failure:D \a, Any $) { a.throw }
-multi sub infix:<(^)>(Any $, Failure:D \b) { b.throw }
+multi sub infix:<(^)>(Failure:D $a, Any) { $a.throw }
+multi sub infix:<(^)>(Any, Failure:D $b) { $b.throw }
 multi sub infix:<(^)>(Any \a, Any \b) {
     nqp::istype(a,Mixy)
       ?? a (^) b.Mix
@@ -238,42 +238,39 @@ multi sub infix:<(^)>(+@p) {   # also Any
 
     # handle key that has been seen before for given value
     sub handle-existing(Mu \elems, Mu \iter, \value --> Nil) {
-        nqp::stmts(
-          (my \minmax := nqp::getattr(
-            nqp::atkey(elems,nqp::iterkey_s(iter)),Pair,'$!value')
+        my \minmax := nqp::getattr(
+          nqp::atkey(elems,nqp::iterkey_s(iter)),Pair,'$!value'
+        );
+        nqp::bindpos(minmax,COUNT,nqp::add_i(nqp::atpos(minmax,COUNT),1));
+
+        nqp::if(
+          value > nqp::atpos(minmax,HIGHEST),
+          nqp::stmts(
+            nqp::bindpos(minmax,LOWEST,nqp::atpos(minmax,HIGHEST)),
+            nqp::bindpos(minmax,HIGHEST,value)
           ),
-          nqp::bindpos(minmax,COUNT,nqp::add_i(nqp::atpos(minmax,COUNT),1)),
           nqp::if(
-            value > nqp::atpos(minmax,HIGHEST),
-            nqp::stmts(
-              nqp::bindpos(minmax,LOWEST,nqp::atpos(minmax,HIGHEST)),
-              nqp::bindpos(minmax,HIGHEST,value)
-            ),
-            nqp::if(
-              nqp::not_i(nqp::defined(nqp::atpos(minmax,LOWEST)))
-                || value > nqp::atpos(minmax,LOWEST),
-              nqp::bindpos(minmax,LOWEST,value)
-            )
+            nqp::not_i(nqp::defined(nqp::atpos(minmax,LOWEST)))
+              || value > nqp::atpos(minmax,LOWEST),
+            nqp::bindpos(minmax,LOWEST,value)
           )
-        )
+        );
     }
 
     # handle key that has not yet been seen
     sub handle-new(Mu \elems, Mu \iter, \pair, \value) {
-        nqp::stmts(
-          (my \minmax := nqp::clone($init-minmax)),
-          nqp::bindpos(minmax,HIGHEST,value),
-          nqp::bindkey(
-            elems,
-            nqp::iterkey_s(iter),
-            nqp::p6bindattrinvres(pair,Pair,'$!value',minmax)
-          )
+        my \minmax := nqp::clone($init-minmax);
+        nqp::bindpos(minmax,HIGHEST,value);
+        nqp::bindkey(
+          elems,
+          nqp::iterkey_s(iter),
+          nqp::p6bindattrinvres(pair,Pair,'$!value',minmax)
         )
     }
 
     nqp::if(
       (my $params := @p.iterator).is-lazy,
-      Failure.new(X::Cannot::Lazy.new(:action('symmetric diff'))),  # bye bye
+      Any.fail-iterator-cannot-be-lazy('symmetric diff',''), # bye bye
 
       nqp::stmts(                                # fixed list of things to diff
         (my \elems := nqp::create(Rakudo::Internals::IterationSet)),
@@ -338,14 +335,14 @@ multi sub infix:<(^)>(+@p) {   # also Any
                     handle-existing(             # seen this element before
                       elems,
                       $iter,
-                      nqp::istrue(nqp::iterval($iter))
+                      1
                     ),
                     handle-new(                  # new element
                       elems,
                       $iter,
                       nqp::p6bindattrinvres(
                         nqp::create(Pair),Pair,'$!key',nqp::iterval($iter)),
-                      nqp::istrue(nqp::iterval($iter))
+                      1
                     )
                   )
                 )

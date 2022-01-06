@@ -2,12 +2,12 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 6;
+plan 7;
 
 # https://github.com/rakudo/rakudo/issues/1534
 {
     (temp %*ENV)<MVM_SPESH_BLOCKING  MVM_SPESH_NODELAY> = 1, 1;
-    is-run ｢use Test; use Test; print "pass"｣, :out<pass>,
+    is-run ｢use Test; use Test; print "pass"｣, :out<pass>, :compiler-args[<-I lib>],
         'no SPESH crashes with duplicate `use Test`';
 }
 
@@ -35,5 +35,9 @@ lives-ok { class C { }; await start { for ^10_0000 { C.^set_name('B') } } xx 4 }
     is-deeply nqp::rand_n(100e0), $second,
       'does srand produce same rand_n values 2';
 }
+
+lives-ok
+    { my $l = Lock.new; for ^100_000 { try $l.clone } },
+    'Repeatedly trying to clone a Lock does not lead to a crash';
 
 # vim: expandtab shiftwidth=4

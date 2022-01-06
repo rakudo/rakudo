@@ -13,22 +13,28 @@ my class Match is Capture is Cool does NQPMatchRole {
 #    has $!match;     # flag indicating Match object set up (NQPdidMATCH)
 #    has str $!name;  # name if named capture
 
-    my Mu $EMPTY_LIST := nqp::list();
-    my Mu $EMPTY_HASH := nqp::hash();
+#?if !js
+    my constant $EMPTY_LIST = nqp::list();
+    my constant $EMPTY_HASH = nqp::hash();
+#?endif
+#?if js
+    my $EMPTY_LIST := nqp::list();
+    my $EMPTY_HASH := nqp::hash();
+#?endif
 
     # When nothing's `made`, we get an NQPMu that we'd like to replace
     # with Nil; all Rakudo objects typecheck as Mu, while NQPMu doesn't
-    method ast()  { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
-    method made() { nqp::if(nqp::istype($!made, Mu),$!made,Nil) }
+    method ast()  { nqp::istype($!made, Mu) ?? $!made !! Nil }
+    method made() { nqp::istype($!made, Mu) ?? $!made !! Nil }
 
     method Int(--> Int:D) { self.Str.Int }
 
+    method Str() is raw { self.NQPMatchRole::Str }
+
     method STR() is implementation-detail {
-        nqp::if(
-          nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH),
-          self.Str,
-          self.MATCH.Str
-        )
+        nqp::eqaddr(nqp::getattr(self,Match,'$!match'),NQPdidMATCH)
+          ?? self.Str
+          !! self.MATCH.Str
     }
 
     method MATCH() is implementation-detail {
@@ -229,7 +235,7 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }
-    multi method ACCEPTS(Match:D: Any $) { self }
+    multi method ACCEPTS(Match:D: Mu) { self }
 
     method prematch(Match:D:) {
         nqp::substr(self.target,0,$!from)
@@ -305,16 +311,16 @@ my class Match is Capture is Cool does NQPMatchRole {
     }
 }
 
-multi sub infix:<eqv>(Match:D \a, Match:D \b) {
-    a =:= b
+multi sub infix:<eqv>(Match:D $a, Match:D $b) {
+    $a =:= $b
     ||
     [&&] (
-        a.pos  eqv b.pos,
-        a.from eqv b.from,
-        a.orig eqv b.orig,
-        (a.made // Any) eqv (b.made // Any),
-        (a.Capture::list // nqp::list ) eqv (b.Capture::list // nqp::list ),
-        (a.Capture::hash // nqp::hash ) eqv (b.Capture::hash // nqp::hash )
+        $a.pos  eqv $b.pos,
+        $a.from eqv $b.from,
+        $a.orig eqv $b.orig,
+        ($a.made // Any) eqv ($b.made // Any),
+        ($a.Capture::list // nqp::list ) eqv ($b.Capture::list // nqp::list ),
+        ($a.Capture::hash // nqp::hash ) eqv ($b.Capture::hash // nqp::hash )
     );
 }
 

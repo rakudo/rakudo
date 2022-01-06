@@ -1,10 +1,11 @@
 #!/usr/bin/env raku
 
-# This script reads the native_array.pm file from STDIN, and generates the
+# This script reads the native_array.pm6 file, and generates the
 # shapedintarray, shapednumarray and shapedstrarray roles in it, and writes
-# it to STDOUT.
+# it back to the file.
 
-use v6;
+# always use highest version of Raku
+use v6.*;
 
 my $generator = $*PROGRAM-NAME;
 my $generated = DateTime.now.gist.subst(/\.\d+/,'');
@@ -12,9 +13,16 @@ my $start     = '#- start of generated part of shaped';
 my $idpos     = $start.chars;
 my $idchars   = 3;
 my $end       = '#- end of generated part of shaped';
+my %null = str => '""', int => "0", num => "0e0";
+
+# slurp the whole file and set up writing to it
+my $filename = "src/core.c/native_array.pm6";
+my @lines = $filename.IO.lines;
+$*OUT = $filename.IO.open(:w);
 
 # for all the lines in the source that don't need special handling
-for $*IN.lines -> $line {
+while @lines {
+    my $line := @lines.shift;
 
     # nothing to do yet
     unless $line.starts-with($start) {
@@ -30,8 +38,8 @@ for $*IN.lines -> $line {
     say "#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE";
 
     # skip the old version of the code
-    for $*IN.lines -> $line {
-        last if $line.starts-with($end);
+    while @lines {
+        last if @lines.shift.starts-with($end);
     }
 
     # set up template values
@@ -39,6 +47,7 @@ for $*IN.lines -> $line {
       postfix => $type.substr(0,1),
       type    => $type,
       Type    => $type.tclc,
+      null    => %null{$type},
     ;
 
     # spurt the roles
@@ -208,14 +217,12 @@ for $*IN.lines -> $line {
         }
 
         multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
-            nqp::if(
-              EQV_DIMENSIONS(self,from),
-              NATCPY(self,from),
-              X::Assignment::ArrayShapeMismatch.new(
-                source-shape => from.shape,
-                target-shape => self.shape
-              ).throw
-            )
+            EQV_DIMENSIONS(self,from)
+              ?? NATCPY(self,from)
+              !! X::Assignment::ArrayShapeMismatch.new(
+                   source-shape => from.shape,
+                   target-shape => self.shape
+                 ).throw
         }
         multi method STORE(::?CLASS:D: array:D \from) {
             nqp::if(
@@ -342,7 +349,7 @@ for $*IN.lines -> $line {
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  nqp::bindpos_#postfix#(self,$i,nqp::atpos_i(from,$i))
+                  nqp::bindpos_#postfix#(self,$i,nqp::atpos_#postfix#(from,$i))
                 ),
                 self
               ),
@@ -353,27 +360,19 @@ for $*IN.lines -> $line {
             )
         }
         multi method STORE(::?CLASS:D: Iterable:D \in) {
-            nqp::stmts(
-              (my \iter := in.iterator),
-              (my int $elems = nqp::elems(self)),
-              (my int $i = -1),
-              nqp::until(
-                nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
-                  || nqp::iseq_i(($i = nqp::add_i($i,1)),$elems),
-                nqp::bindpos_#postfix#(self,$i,pulled)
-              ),
-              nqp::unless(
-                nqp::islt_i($i,$elems) || iter.is-lazy,
-                nqp::atpos_#postfix#(list,$i) # too many values on non-lazy it
-              ),
-              self
-            )
+            my \iter := Rakudo::Iterator.TailWith(in.iterator,#null#);
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::bindpos_#postfix#(self,$i,iter.pull-one)
+            );
+            # too many values? then throw by just accessing out of range
+            nqp::atpos_#postfix#(list,$i) unless iter.exhausted;
+            self
         }
         multi method STORE(::?CLASS:D: #Type#:D \item) {
-            nqp::stmts(
-              nqp::bindpos_#postfix#(self,0,item),
-              self
-            )
+            nqp::bindpos_#postfix#(self,0,item);
+            self
         }
 
         my class Iterate-#type# does PredictiveIterator {
@@ -388,14 +387,9 @@ for $*IN.lines -> $line {
             }
             method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
             method pull-one() is raw {
-                nqp::if(
-                  nqp::islt_i(
-                    ($!pos = nqp::add_i($!pos,1)),
-                    nqp::elems($!list)
-                  ),
-                  nqp::atposref_#postfix#($!list,$!pos),
-                  IterationEnd
-                )
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                  ?? nqp::atposref_#postfix#($!list,$!pos)
+                  !! IterationEnd
             }
             method skip-one() {
                 nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
@@ -445,11 +439,9 @@ for $*IN.lines -> $line {
             my int $i = -1;
             my int $elems = nqp::elems(self);
             Seq.new(Rakudo::Iterator.Callable({
-                nqp::if(
-                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-                  Pair.new($i,nqp::atposref_#postfix#(self,$i)),
-                  IterationEnd
-                )
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  ?? Pair.new($i,nqp::atposref_#postfix#(self,$i))
+                  !! IterationEnd
             }))
         }
         multi method antipairs(::?CLASS:D: --> Seq:D) {
@@ -565,5 +557,8 @@ SOURCE
     say "#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE";
     say $end ~ $type ~ "array role -------------------------------";
 }
+
+# close the file properly
+$*OUT.close;
 
 # vim: expandtab sw=4

@@ -44,7 +44,7 @@ do {
         my &add_history = $WHO<&add_history>;
         my $Readline = try { require Readline }
         my $read = $Readline.new;
-        if ! $*DISTRO.is-win {
+        if !Rakudo::Internals.IS-WIN {
             $read.read-init-file("/etc/inputrc");
             $read.read-init-file(%*ENV<INPUTRC> // "~/.inputrc");
         }
@@ -94,6 +94,38 @@ do {
 
             if $line.defined && $line.match(/\S/) {
                 linenoiseHistoryAdd($line);
+            }
+
+            $line
+        }
+    }
+
+    my role TerminalLineEditorBehavior[$WHO] {
+        my $cli-input = $WHO<CLIInput>;
+        my $cli;
+
+        method completions-for-line(Str $line, int $cursor-index) { ... }
+
+        method history-file(--> Str:D) { ... }
+
+        method init-line-editor {
+            my sub get-completions($contents, $pos) {
+                eager self.completions-for-line($contents, $pos)
+            }
+            $cli = $cli-input.new(:&get-completions);
+            $cli.load-history($.history-file);
+        }
+
+        method teardown-line-editor {
+            $cli.save-history($.history-file);
+        }
+
+        method repl-read(Mu \prompt) {
+            self.update-completions;
+            my $line = $cli.prompt(prompt);
+
+            if $line.defined && $line.match(/\S/) {
+                $cli.add-history($line);
             }
 
             $line
@@ -171,7 +203,8 @@ do {
         has $!need-more-input = {};
         has $!control-not-allowed = {};
 
-        sub do-mixin($self, Str $module-name, $behavior, Str :$fallback) {
+        sub do-mixin($self, Str $module-name, $behavior, :@extra-modules,
+                     Str :$fallback, Bool :$classlike) {
             my Bool $problem = False;
             try {
                 CATCH {
@@ -190,8 +223,10 @@ do {
                     }
                 }
 
+                (require ::($_)) for @extra-modules;
                 my $module = do require ::($module-name);
-                my $new-self = $self but $behavior.^parameterize($module.WHO<EXPORT>.WHO<ALL>.WHO);
+                my $who = $classlike ?? $module.WHO !! $module.WHO<EXPORT>.WHO<ALL>.WHO;
+                my $new-self = $self but $behavior.^parameterize($who);
                 $new-self.?init-line-editor();
                 return ( $new-self, False );
             }
@@ -207,10 +242,17 @@ do {
             do-mixin($self, 'Linenoise', LinenoiseBehavior, |c)
         }
 
+        sub mixin-terminal-lineeditor($self, |c) {
+            do-mixin($self, 'Terminal::LineEditor', TerminalLineEditorBehavior,
+                     :extra-modules('Terminal::LineEditor::RawTerminalInput',),
+                     :classlike, |c)
+        }
+
         sub mixin-line-editor($self) {
             my %editor-to-mixin = (
                 :Linenoise(&mixin-linenoise),
                 :Readline(&mixin-readline),
+                :LineEditor(&mixin-terminal-lineeditor),
                 :none(-> $self { ( $self but FallbackBehavior, False ) }),
             );
 
@@ -231,22 +273,33 @@ do {
             my ( $new-self, $problem ) = mixin-readline($self, :fallback<Linenoise>);
             return $new-self if $new-self;
 
-            ( $new-self, $problem ) = mixin-linenoise($self);
+            ( $new-self, $problem ) = mixin-linenoise($self, :fallback<LineEditor>);
+            return $new-self if $new-self;
+
+            ( $new-self, $problem ) = mixin-terminal-lineeditor($self);
             return $new-self if $new-self;
 
             if $problem {
                 say 'Continuing without tab completions or line editor';
                 say 'You may want to consider using rlwrap for simple line editor functionality';
             }
-            elsif !$*DISTRO.is-win and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
-                say 'You may want to `zef install Readline` or `zef install Linenoise` or use rlwrap for a line editor';
+            elsif !Rakudo::Internals.IS-WIN and !( %*ENV<_>:exists and %*ENV<_>.ends-with: 'rlwrap' ) {
+                say 'You may want to `zef install Readline`, `zef install Linenoise`, or `zef install Terminal::LineEditor` or use rlwrap for a line editor';
             }
             say '';
 
             $self but FallbackBehavior
         }
 
-        method new(Mu \compiler, Mu \adverbs) {
+        method new(Mu \compiler, Mu \adverbs, $skip?) {
+            unless $skip {
+                say compiler.version_string(
+                  :shorten-versions,
+                  :no-unicode(Rakudo::Internals.IS-WIN)
+                );
+                say '';
+            }
+
             my $multi-line-enabled = !%*ENV<RAKUDO_DISABLE_MULTILINE>;
             my $self = self.bless();
             $self.init(compiler, $multi-line-enabled);
@@ -303,13 +356,21 @@ do {
 
         method interactive_prompt() { '> ' }
 
-        method repl-loop(*%adverbs) {
-
-            if $*DISTRO.is-win {
-                say "To exit type 'exit' or '^Z'";
-            } else {
-                say "To exit type 'exit' or '^D'";
+        method repl-loop(:$no-exit, *%adverbs) {
+            my int $stopped;   # did we press CTRL-c just now?
+#?if !jvm
+            signal(SIGINT).tap: {
+                exit if $stopped++;
+                say "Pressed CTRL-c, press CTRL-c again to exit";
+                print self.interactive_prompt;
             }
+#?endif
+
+            say $no-exit
+              ?? "Type 'exit' to leave"
+              !! Rakudo::Internals.IS-WIN
+                ?? "To exit type 'exit' or '^Z'"
+                !! "To exit type 'exit' or '^D'";
 
             my $prompt;
             my $code;
@@ -321,7 +382,9 @@ do {
 
             REPL: loop {
                 my $newcode = self.repl-read(~$prompt);
+                last if $no-exit and $newcode and $newcode eq 'exit';
 
+                $stopped = 0;
                 my $initial_out_position = $*OUT.tell;
 
                 # An undef $newcode implies ^D or similar
@@ -438,6 +501,12 @@ do {
             $!history-file.absolute
         }
     }
+}
+
+sub repl(*%_) {
+    my $repl := REPL.new(nqp::getcomp("Raku"), %_, True);
+    nqp::bindattr($repl,REPL,'$!save_ctx',nqp::ctxcaller(nqp::ctx));
+    $repl.repl-loop(:no-exit);
 }
 
 # vim: expandtab shiftwidth=4

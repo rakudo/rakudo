@@ -43,7 +43,7 @@ public final class Binder {
     private static final int SIG_ELEM_UNDEFINED_ONLY      = 65536;
     private static final int SIG_ELEM_DEFINED_ONLY        = 131072;
     private static final int SIG_ELEM_DEFINEDNES_CHECK    = (SIG_ELEM_UNDEFINED_ONLY | SIG_ELEM_DEFINED_ONLY);
-    private static final int SIG_ELEM_NOMINAL_GENERIC     = 524288;
+    private static final int SIG_ELEM_TYPE_GENERIC        = 524288;
     private static final int SIG_ELEM_DEFAULT_IS_LITERAL  = 1048576;
     private static final int SIG_ELEM_NATIVE_INT_VALUE    = 2097152;
     private static final int SIG_ELEM_NATIVE_NUM_VALUE    = 4194304;
@@ -51,20 +51,20 @@ public final class Binder {
     private static final int SIG_ELEM_NATIVE_VALUE        = (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE);
     private static final int SIG_ELEM_SLURPY_ONEARG       = 16777216;
     private static final int SIG_ELEM_SLURPY              = (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG);
+    private static final int SIG_ELEM_CODE_SIGIL          = 33554432;
+    private static final int SIG_ELEM_IS_COERCIVE         = 67108864;
 
     /* Hints for Parameter attributes. */
     private static final int HINT_variable_name = 0;
     private static final int HINT_named_names = 1;
     private static final int HINT_type_captures = 2;
     private static final int HINT_flags = 3;
-    private static final int HINT_nominal_type = 4;
+    private static final int HINT_type = 4;
     private static final int HINT_post_constraints = 5;
-    private static final int HINT_coerce_type = 6;
-    private static final int HINT_coerce_method = 7;
-    private static final int HINT_sub_signature = 8;
-    private static final int HINT_default_value = 9;
-    private static final int HINT_container_descriptor = 10;
-    private static final int HINT_attr_package = 11;
+    private static final int HINT_sub_signature = 6;
+    private static final int HINT_default_value = 7;
+    private static final int HINT_container_descriptor = 8;
+    private static final int HINT_attr_package = 9;
 
     /* Other hints. */
     private static final int HINT_ENUMMAP_storage = 0;
@@ -86,8 +86,8 @@ public final class Binder {
         }
     }
 
-    private static String arityFail(ThreadContext tc, RakOps.GlobalExt gcx, SixModelObject params,
-            int numParams, int numPosArgs, boolean tooMany) {
+    private static String arityFail(ThreadContext tc, RakOps.GlobalExt gcx, CallFrame cf,
+            SixModelObject params, int numParams, int numPosArgs, boolean tooMany) {
         int arity = 0;
         int count = 0;
         String fail = tooMany ? "Too many" : "Too few";
@@ -116,19 +116,23 @@ public final class Binder {
             }
         }
 
+        String routineName = cf.codeRef.name;
+        if (routineName == null || routineName.isEmpty())
+            routineName = "<anon>";
+
         /* Now generate decent error. */
         if (arity == count)
             return String.format(
-                "%s positionals passed; expected %d arguments but got %d",
-                fail, arity, numPosArgs);
+                "%s positionals passed to '%s'; expected %d arguments but got %d",
+                fail, routineName, arity, numPosArgs);
         else if (count <= -1)
             return String.format(
-                "%s positionals passed; expected at least %d arguments but got only %d",
-                fail, arity, numPosArgs);
+                "%s positionals passed to '%s'; expected at least %d arguments but got only %d",
+                fail, routineName, arity, numPosArgs);
         else
             return String.format(
-                "%s positionals passed; expected %d %s %d arguments but got %d",
-                fail, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
+                "%s positionals passed to '%s'; expected %d %s %d arguments but got %d",
+                fail, routineName, arity, arity + 1 == count ? "or" : "to" , count, numPosArgs);
     }
 
     /* Binds any type captures. */
@@ -218,6 +222,8 @@ public final class Binder {
      * re-enters the binder. Returns one of the BIND_RESULT_* codes. */
     private static final CallSiteDescriptor genIns = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
+    private static final CallSiteDescriptor targetType = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor ACCEPTS_o = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor ACCEPTS_i = new CallSiteDescriptor(
@@ -377,7 +383,7 @@ public final class Binder {
          * further checking. */
         SixModelObject decontValue = null;
         boolean didHLLTransform = false;
-        SixModelObject nomType = null;
+        SixModelObject paramType = param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
         SixModelObject ContextRef = null;
         SixModelObject HOW = null;
         if (flag == CallSiteDescriptor.ARG_OBJ && !(is_rw && desiredNative != 0)) {
@@ -395,23 +401,21 @@ public final class Binder {
                 /* Is the nominal type generic and in need of instantiation? (This
                  * can happen in (::T, T) where we didn't learn about the type until
                  * during the signature bind.) */
-                nomType = param.get_attribute_boxed(tc, gcx.Parameter,
-                    "$!nominal_type", HINT_nominal_type);
-                if ((paramFlags & SIG_ELEM_NOMINAL_GENERIC) != 0) {
-                    HOW = nomType.st.HOW;
+                if ((paramFlags & SIG_ELEM_TYPE_GENERIC) != 0) {
+                    HOW = paramType.st.HOW;
                     SixModelObject ig = Ops.findmethod(HOW,
                         "instantiate_generic", tc);
                     ContextRef = tc.gc.ContextRef;
                     SixModelObject cc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
                     ((ContextRefInstance)cc).context = cf;
                     Ops.invokeDirect(tc, ig, genIns,
-                        new Object[] { HOW, nomType, cc });
-                    nomType = Ops.result_o(tc.curFrame);
+                        new Object[] { HOW, paramType, cc });
+                    paramType = Ops.result_o(tc.curFrame);
                 }
 
                 /* If the expected type is Positional, see if we need to do the
                  * positional bind failover. */
-                if (nomType == gcx.Positional) {
+                if (paramType == gcx.Positional) {
                     if (Ops.istype_nd(arg_o, gcx.PositionalBindFailover, tc) != 0) {
                         SixModelObject ig = Ops.findmethod(arg_o, "cache", tc);
                         Ops.invokeDirect(tc, ig, Ops.invocantCallSite, new Object[] { arg_o });
@@ -429,14 +433,29 @@ public final class Binder {
                  * anything goes.
                  * When binding a slurpy named hash while compiling the setting don't check for Associative.
                  */
-                if (nomType != gcx.Mu && !(isSlurpyNamed && nomType == gcx.Associative) && Ops.istype_nd(decontValue, nomType, tc) == 0) {
+                if (paramType != gcx.Mu && !(isSlurpyNamed && paramType == gcx.Associative) && Ops.istype_nd(decontValue, paramType, tc) == 0) {
                     /* Type check failed; produce error if needed. */
+
+                    /* Try to figure out the most helpful name for the expected. */
+                    SixModelObject expectedType = null;
+                    SixModelObject postConstraints = param.get_attribute_boxed(tc, gcx.Parameter,
+                            "$!post_contraints", HINT_post_constraints);
+                    if (postConstraints != null) {
+                        SixModelObject consType = postConstraints.at_pos_boxed(tc, 0);
+                        expectedType = (Ops.istype(consType, gcx.Code, tc) != 0)
+                            ? paramType.st.WHAT
+                            : consType.st.WHAT;
+                    }
+                    else {
+                        expectedType = paramType.st.WHAT;
+                    }
+
                     if (error != null) {
                         SixModelObject thrower = RakOps.getThrower(tc, "X::TypeCheck::Binding::Parameter");
                         if (thrower != null) {
                             error[0] = thrower;
                             error[1] = bindParamThrower;
-                            error[2] = new Object[] { decontValue, nomType.st.WHAT,
+                            error[2] = new Object[] { decontValue, expectedType.st.WHAT,
                                 varName, param, (long)0 };
                         }
                         else {
@@ -459,7 +478,7 @@ public final class Binder {
                     if (shouldBeConcrete || ((paramFlags & SIG_ELEM_UNDEFINED_ONLY) != 0 && Ops.isconcrete(arg_o, tc) == 1)) {
                         if (error != null) {
                             String typeName = Ops.typeName(param.get_attribute_boxed(tc,
-                                gcx.Parameter, "$!nominal_type", HINT_nominal_type), tc);
+                                gcx.Parameter, "$!type", HINT_type), tc);
                             String argName = Ops.typeName(arg_o, tc);
                             String methodName = cf.codeRef.name;
                             SixModelObject thrower = RakOps.getThrower(tc, "X::Parameter::InvalidConcreteness");
@@ -503,56 +522,27 @@ public final class Binder {
             bindTypeCaptures(tc, typeCaps, cf, decontValue.st.WHAT);
 
         /* Do a coercion, if one is needed. */
-        SixModelObject coerceType = param.get_attribute_boxed(tc, gcx.Parameter,
-            "$!coerce_type", HINT_coerce_type);
-        if (coerceType != null) {
-            /* Coercing natives not possible - nothing to call a method on. */
-            if (flag != CallSiteDescriptor.ARG_OBJ) {
-                if (error != null)
-                    error[0] = String.format(
-                        "Unable to coerce natively typed parameter '%s'",
-                        varName);
-                return BIND_RESULT_FAIL;
-            }
-
-            /* Is the coercion target generic and in need of instantiation?
-             * (This can happen in (::T, T) where we didn't learn about the
-             * type until during the signature bind.) */
-            param.get_attribute_native(tc, gcx.Parameter, "$!coerce_method", HINT_coerce_method);
-            String methName = tc.native_s;
-            HOW = coerceType.st.HOW;
-            SixModelObject archetypesMeth = Ops.findmethod(HOW, "archetypes", tc);
-            Ops.invokeDirect(tc, archetypesMeth, Ops.invocantCallSite, new Object[] { HOW });
-            SixModelObject Archetypes = Ops.result_o(tc.curFrame);
-            SixModelObject genericMeth = Ops.findmethod(Archetypes, "generic", tc);
-            Ops.invokeDirect(tc, genericMeth, Ops.invocantCallSite, new Object[] { Archetypes });
+        HOW = paramType.st.HOW;
+        SixModelObject archetypesMeth = Ops.findmethod(HOW, "archetypes", tc);
+        Ops.invokeDirect(tc, archetypesMeth, Ops.invocantCallSite, new Object[] { HOW });
+        SixModelObject Archetypes = Ops.result_o(tc.curFrame);
+        SixModelObject coerciveMeth = Ops.findmethodNonFatal(Archetypes, "coercive", tc);
+        if (coerciveMeth != null) {
+            Ops.invokeDirect(tc, coerciveMeth, Ops.invocantCallSite, new Object[] { Archetypes });
             if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 1) {
-                ContextRef = tc.gc.ContextRef;
-                SixModelObject ctcc = ContextRef.st.REPR.allocate(tc, ContextRef.st);
-                ((ContextRefInstance)ctcc).context = cf;
-                SixModelObject ctig = Ops.findmethod(HOW, "instantiate_generic", tc);
-                Ops.invokeDirect(tc, ctig, genIns, new Object[] { HOW, coerceType, ctcc });
-                coerceType = Ops.result_o(tc.curFrame);
-                methName = Ops.typeName(coerceType, tc);
-            }
-
-            /* Only coerce if we don't already have the correct type. */
-            if (Ops.istype(decontValue, coerceType, tc) == 0) {
-                SixModelObject coerceMeth = Ops.findmethodNonFatal(decontValue, methName, tc);
-                if (coerceMeth != null) {
-                    Ops.invokeDirect(tc, coerceMeth,
-                        Ops.invocantCallSite,
-                        new Object[] { decontValue });
-                    arg_o = Ops.result_o(tc.curFrame);
-                    decontValue = Ops.decont(arg_o, tc);
-                }
-                else {
+                /* Coercing natives not possible - nothing to call a method on. */
+                if (flag != CallSiteDescriptor.ARG_OBJ) {
                     if (error != null)
                         error[0] = String.format(
-                            "Unable to coerce value for '%s' to %s; no coercion method defined",
-                            varName, methName);
+                            "Unable to coerce natively typed parameter '%s'",
+                            varName);
                     return BIND_RESULT_FAIL;
                 }
+
+                SixModelObject coerceMeth = Ops.findmethod(HOW, "coerce", tc);
+                Ops.invokeDirect(tc, coerceMeth, genIns, new Object[] { HOW, paramType, arg_o });
+                arg_o = Ops.result_o(tc.curFrame);
+                decontValue = Ops.decont(arg_o, tc);
             }
         }
 
@@ -634,9 +624,9 @@ public final class Binder {
                      * in the container descriptor takes care of the rest). */
                     else {
                         boolean wrap = (paramFlags & SIG_ELEM_IS_COPY) != 0;
-                        if (!wrap && nomType != null && gcx.Iterable != null) {
-                            wrap = Ops.istype(gcx.Iterable, nomType, tc) != 0
-                                || Ops.istype(nomType, gcx.Iterable, tc) != 0;
+                        if (!wrap && paramType != null && gcx.Iterable != null) {
+                            wrap = Ops.istype(gcx.Iterable, paramType, tc) != 0
+                                || Ops.istype(paramType, gcx.Iterable, tc) != 0;
                         }
                         if (wrap || varName.equals("$_")) {
                             STable stScalar = gcx.Scalar.st;
@@ -754,7 +744,7 @@ public final class Binder {
             result = bind(tc, gcx, cf, subParams, subCsd, tc.flatArgs, noNomTypeCheck, error);
             if (result != BIND_RESULT_OK)
             {
-                if (error != null) {
+                if (error != null && error[0] instanceof String) {
                     /* Note in the error message that we're in a sub-signature. */
                     error[0] += " in sub-signature";
 
@@ -763,7 +753,7 @@ public final class Binder {
                         error[0] += " of parameter " + varName;
                     }
                 }
-                return result;
+                return BIND_RESULT_FAIL;
             }
         }
 
@@ -843,7 +833,22 @@ public final class Binder {
                     case SIG_ELEM_NATIVE_STR_VALUE:
                         return createBox(tc, gcx, null, CallSiteDescriptor.ARG_STR);
                     default:
-                        return param.get_attribute_boxed(tc, gcx.Parameter, "$!nominal_type", HINT_nominal_type);
+                        /* Do a coercion, if one is needed. */
+                        SixModelObject paramType = param.get_attribute_boxed(tc, gcx.Parameter, "$!type", HINT_type);
+                        SixModelObject HOW = paramType.st.HOW;
+                        SixModelObject archetypesMeth = Ops.findmethod(HOW, "archetypes", tc);
+                        Ops.invokeDirect(tc, archetypesMeth, Ops.invocantCallSite, new Object[] { HOW });
+                        SixModelObject Archetypes = Ops.result_o(tc.curFrame);
+                        SixModelObject coerciveMeth = Ops.findmethodNonFatal(Archetypes, "coercive", tc);
+                        if (coerciveMeth != null) {
+                            Ops.invokeDirect(tc, coerciveMeth, Ops.invocantCallSite, new Object[] { Archetypes });
+                            if (Ops.istrue(Ops.result_o(tc.curFrame), tc) == 1) {
+                                SixModelObject targetTypeMeth = Ops.findmethod(HOW, "target_type", tc);
+                                Ops.invokeDirect(tc, targetTypeMeth, targetType, new Object[] { HOW, paramType });
+                                return Ops.result_o(tc.curFrame);
+                            }
+                        }
+                        return paramType;
                 }
             }
         }
@@ -1017,7 +1022,7 @@ public final class Binder {
                         }
                         else {
                             if (error != null)
-                                error[0] = arityFail(tc, gcx, params, (int)numParams, numPosArgs, false);
+                                error[0] = arityFail(tc, gcx, cf, params, (int)numParams, numPosArgs, false);
                             return BIND_RESULT_FAIL;
                         }
                     }
@@ -1072,7 +1077,7 @@ public final class Binder {
         if (curPosArg < numPosArgs && !suppressArityFail) {
             /* Oh noes, too many positionals passed. */
             if (error != null)
-                error[0] = arityFail(tc, gcx, params, (int)numParams, numPosArgs, true);
+                error[0] = arityFail(tc, gcx, cf, params, (int)numParams, numPosArgs, true);
             return BIND_RESULT_FAIL;
         }
         if (namedArgsCopy != null && namedArgsCopy.size() > 0) {

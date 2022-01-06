@@ -105,11 +105,22 @@ MoarVM monthly release.
 
 # Build/install problems
 
-Occasionally, there may be problems when building/installing Rakudo.  Make
+Occasionally, there may be problems when building or installing Rakudo.  Make
 sure you have a backup of any custom changes you have done to the source
 tree before performing the following steps:
 
-Try to remove the "install/" subdirectory:
+Before doing anything else, take a look at the many options available with *make*:
+
+    $ make --help
+    ...
+
+Get detailed output by trying:
+
+    $ make --trace
+
+which should help pinpoint source file problems.
+
+If you are still having problems, try to remove the "install/" subdirectory:
 
     $ cd rakudo
     $ rm -r install
@@ -133,8 +144,8 @@ Running "make spectest" will import the official Raku test suite from the
 "roast" repository <http://github.com/Raku/roast/> and run all of these
 tests that are currently known to pass.
 
-Roast is not planned and unlikely to ever be included into Rakudo
-distribution. Instead releases of Rakudo will fetch a snapshot of the roast
+Roast is not planned and unlikely to ever be included into the Rakudo
+distribution. Instead, releases of Rakudo will fetch a snapshot of the roast
 repository as of the time of the release.
 
 You can also use "make" to run an individual test from the command line:
@@ -161,4 +172,4 @@ recommend version 3.16 or newer).
 
 # SEE ALSO
 
-- CAVEATS.md 
+- CAVEATS.md

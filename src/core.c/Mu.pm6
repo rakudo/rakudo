@@ -1,4 +1,3 @@
-my class X::Cannot::Lazy             { ... }
 my class X::Constructor::Positional  { ... }
 my class X::Method::NotFound         { ... }
 my class X::Method::InvalidQualifier { ... }
@@ -66,7 +65,7 @@ my class Mu { # declared in BOOTSTRAP
     method take {
         take self;
     }
-    method return-rw(|) {  # same code as control.pm6's return-rw
+    method return-rw(Mu \SELF: |) {  # same code as control.pm6's return-rw
         my $list := RETURN-LIST(nqp::p6argvmarray());
         nqp::throwpayloadlexcaller(nqp::const::CONTROL_RETURN, $list);
         $list;
@@ -114,14 +113,10 @@ my class Mu { # declared in BOOTSTRAP
 
     proto method new(|) {*}
     multi method new(*%attrinit) {
-        nqp::if(
-          nqp::eqaddr(
-            (my $bless := nqp::findmethod(self,'bless')),
-            nqp::findmethod(Mu,'bless')
-          ),
-          nqp::create(self).BUILDALL(Empty, %attrinit),
-          $bless(self,|%attrinit)
-        )
+        nqp::eqaddr((my $bless := nqp::tryfindmethod(self,'bless')),
+                    nqp::findmethod(Mu,'bless'))
+                ?? nqp::create(self).BUILDALL(Empty, %attrinit)
+                !! $bless(self,|%attrinit)
     }
     multi method new($, *@) {
         X::Constructor::Positional.new(:type( self )).throw();
@@ -197,9 +192,11 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::if(
                   nqp::iseq_i($code,4),
                   nqp::unless(                   # 4
-                    nqp::attrinited(self,
-                      nqp::atpos($task,1),
-                      nqp::atpos($task,2)
+                    nqp::p6attrinited(
+                      nqp::getattr(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      )
                     ),
                     nqp::if(
                       nqp::istype(nqp::atpos($task,3),Block),
@@ -272,9 +269,11 @@ my class Mu { # declared in BOOTSTRAP
                       nqp::if(
                         nqp::iseq_i($code,8),
                         nqp::unless(             # 8
-                          nqp::attrinited(self,
-                            nqp::atpos($task,1),
-                            nqp::atpos($task,2)
+                          nqp::p6attrinited(
+                            nqp::getattr(self,
+                              nqp::atpos($task,1),
+                              nqp::atpos($task,2)
+                            )
                           ),
                           X::Attribute::Required.new(
                             name => nqp::atpos($task,2),
@@ -335,9 +334,11 @@ my class Mu { # declared in BOOTSTRAP
                                 nqp::if(
                                   nqp::iseq_i($code,14),
                                   nqp::unless(   # 14
-                                    nqp::attrinited(self,
-                                      nqp::atpos($task,1),
-                                      nqp::atpos($task,2)
+                                    nqp::p6attrinited(
+                                      nqp::getattr(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      )
                                     ),
                                     nqp::bindattr(self,
                                       nqp::atpos($task,1),
@@ -364,8 +365,48 @@ my class Mu { # declared in BOOTSTRAP
                                       )
                                     )
                                   ),
-                                  die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
-                  ))))))))))),
+
+                                  nqp::if(
+                                    nqp::iseq_i($code,15),
+                                    nqp::unless(   # 15
+                                      nqp::getattr_i(self,
+                                        nqp::atpos($task,1),
+                                        nqp::atpos($task,2)
+                                      ),
+                                      X::Attribute::Required.new(
+                                        name => nqp::atpos($task,2),
+                                        why  => nqp::atpos($task,3)
+                                      ).throw
+                                    ),
+
+                                    nqp::if(
+                                      nqp::iseq_i($code,16),
+                                      nqp::unless(   # 16
+                                        nqp::getattr_n(self,
+                                          nqp::atpos($task,1),
+                                          nqp::atpos($task,2)
+                                        ),
+                                        X::Attribute::Required.new(
+                                          name => nqp::atpos($task,2),
+                                          why  => nqp::atpos($task,3)
+                                        ).throw
+                                      ),
+
+                                      nqp::if(
+                                        nqp::iseq_i($code,17),
+                                        nqp::if(   # 17
+                                          nqp::isnull_s(nqp::getattr_s(self,
+                                            nqp::atpos($task,1),
+                                            nqp::atpos($task,2)
+                                          )),
+                                          X::Attribute::Required.new(
+                                            name => nqp::atpos($task,2),
+                                            why  => nqp::atpos($task,3)
+                                          ).throw
+                                        ),
+
+                                        die('Invalid ' ~ self.^name ~ ".BUILDALL plan: $code"),
+                  )))))))))))))),
 
                   nqp::if(                       # 0
                     nqp::existskey($init,nqp::atpos($task,3)),
@@ -435,9 +476,11 @@ my class Mu { # declared in BOOTSTRAP
                 nqp::if(
                   nqp::iseq_i($code,4),
                   nqp::unless(                   # 4
-                    nqp::attrinited(self,
-                      nqp::atpos($task,1),
-                      nqp::atpos($task,2)
+                    nqp::p6attrinited(
+                      nqp::getattr(self,
+                        nqp::atpos($task,1),
+                        nqp::atpos($task,2)
+                      )
                     ),
                     nqp::if(
                       nqp::istype(nqp::atpos($task,3),Block),
@@ -510,9 +553,11 @@ my class Mu { # declared in BOOTSTRAP
                       nqp::if(
                         nqp::iseq_i($code,8),
                         nqp::unless(             # 8
-                          nqp::attrinited(self,
-                            nqp::atpos($task,1),
-                            nqp::atpos($task,2)
+                          nqp::p6attrinited(
+                            nqp::getattr(self,
+                              nqp::atpos($task,1),
+                              nqp::atpos($task,2)
+                            )
                           ),
                           X::Attribute::Required.new(
                             name => nqp::atpos($task,2),
@@ -595,9 +640,11 @@ my class Mu { # declared in BOOTSTRAP
                                   nqp::if(
                                     nqp::iseq_i($code,14),
                                     nqp::unless( # 14
-                                      nqp::attrinited(self,
-                                        nqp::atpos($task,1),
-                                        nqp::atpos($task,2)
+                                      nqp::p6attrinited(
+                                        nqp::getattr(self,
+                                          nqp::atpos($task,1),
+                                          nqp::atpos($task,2)
+                                        )
                                       ),
                                       nqp::bindattr(self,
                                         nqp::atpos($task,1),nqp::atpos($task,2),
@@ -659,11 +706,9 @@ my class Mu { # declared in BOOTSTRAP
         ''
     }
     multi method Str(Mu:D:) {
-        nqp::if(
-          nqp::eqaddr(self,IterationEnd),
-          "IterationEnd",
-          self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
-        )
+        nqp::eqaddr(self,IterationEnd)
+          ?? "IterationEnd"
+          !! self.^name ~ '<' ~ nqp::tostr_I(nqp::objectid(self)) ~ '>'
     }
 
     proto method Stringy(|) {*}
@@ -787,7 +832,7 @@ my class Mu { # declared in BOOTSTRAP
     multi method gist(Mu:U:) { '(' ~ self.^shortname ~ ')' }
     multi method gist(Mu:D:) { self.raku }
 
-    method rakuseen(Mu:D \SELF: $id, $perl, *%named) {
+    method rakuseen(Mu:D \SELF: $id, $raku, *%named) {
         my $sigil = nqp::iseq_s($id, 'Array') ?? '@'
             !! nqp::iseq_s($id, 'Hash') ?? '%' !! '\\';
         if nqp::not_i(nqp::isnull(nqp::getlexdyn('$*rakuseen'))) {
@@ -799,7 +844,7 @@ my class Mu { # declared in BOOTSTRAP
             }
             else {
                 nqp::bindkey(sems,$WHICH,1);
-                my $result := $perl(|%named);
+                my $result := $raku(|%named);
                 my int $value = nqp::atkey(sems,$WHICH);
                 nqp::deletekey(sems,$WHICH);
                 $value == 2
@@ -811,7 +856,7 @@ my class Mu { # declared in BOOTSTRAP
         }
         else {
             my $*rakuseen := nqp::hash("TOP",1);
-            SELF.rakuseen($id,$perl,|%named)
+            SELF.rakuseen($id,$raku,|%named)
         }
     }
 
@@ -938,9 +983,8 @@ my class Mu { # declared in BOOTSTRAP
                 my $package := $attr.package;
 
                 nqp::bindattr($cloned, $package, $name,
-                  nqp::clone(nqp::getattr($cloned, $package, $name).VAR)
-                ) if nqp::attrinited(self, $package, $name)
-                    and nqp::not_i(nqp::objprimspec($attr.type));
+                  nqp::clone_nd(nqp::getattr($cloned, $package, $name))
+                ) unless nqp::objprimspec($attr.type);
 
                 my $acc_name := substr($name,2);
                 nqp::getattr($cloned, $package, $name) =
@@ -953,12 +997,10 @@ my class Mu { # declared in BOOTSTRAP
                 unless nqp::objprimspec($attr.type) {
                     my $name     := $attr.name;
                     my $package  := $attr.package;
-                    if nqp::attrinited(self, $package, $name) {
-                        my $attr_val := nqp::getattr($cloned, $package, $name);
-                        nqp::bindattr($cloned,
-                          $package, $name, nqp::clone($attr_val.VAR))
-                            if nqp::iscont($attr_val);
-                    }
+                    my $attr_val := nqp::getattr($cloned, $package, $name);
+                    nqp::bindattr($cloned,
+                      $package, $name, nqp::clone_nd($attr_val))
+                        if nqp::iscont($attr_val);
                 }
             }
         }
@@ -992,8 +1034,6 @@ my class Mu { # declared in BOOTSTRAP
     method dispatch:<::>(Mu \SELF: $name, Mu $type, |c) is raw {
         my $meth;
         my $ctx := nqp::ctxcaller(nqp::ctx());
-        # Bypass wrapping thunk if redirected from spesh plugin
-        $ctx := nqp::ctxcaller($ctx) if $*SPESH-THUNKED-DISPATCH;
         if nqp::istype(self, $type) {
             my $sym-found := 0;
             my $caller-type;
@@ -1034,6 +1074,7 @@ my class Mu { # declared in BOOTSTRAP
               typename => type.^name,
               :private,
               :in-class-call(nqp::eqaddr(nqp::what(SELF), nqp::getlexcaller('$?CLASS'))),
+              :containerized(nqp::iscont(SELF)),
             ).throw;
     }
 
@@ -1049,7 +1090,7 @@ my class Mu { # declared in BOOTSTRAP
     }
 
     method !batch-call(Mu \SELF: \name, Capture:D \c, :$throw = False, :$reverse = False, :$roles = False) {
-        my @mro := SELF.^mro(:$roles);
+        my @mro := SELF.^mro(concretizations => $roles);
         my $results := nqp::create(IterationBuffer);
         my int $mro_high = $reverse ?? 0 !! @mro.elems - 1;
         my int $i = @mro.elems;
@@ -1065,6 +1106,7 @@ my class Mu { # declared in BOOTSTRAP
               invocant => SELF,
               method   => name,
               typename => SELF.^name,
+              :containerized(nqp::iscont(SELF)),
             ).throw;
         }
         $results.List
@@ -1152,7 +1194,7 @@ my class Mu { # declared in BOOTSTRAP
         } else {
             # Canonical, the default (just whatever the meta-class says) with us
             # on the start.
-            @classes = self.^mro(:$roles);
+            @classes = self.^mro(concretizations => $roles);
         }
 
         # Now we have classes, build method list.
@@ -1163,7 +1205,7 @@ my class Mu { # declared in BOOTSTRAP
                 if $methods && !$class.HOW.archetypes.composable {
                     @methods.push: $_ with $class.^method_table{$name}
                 }
-                if $submethods {
+                if $submethods && nqp::can($class.HOW, 'submethod_table') {
                     @methods.push: $_ with $class.^submethod_table{$name}
                 }
             }
@@ -1197,7 +1239,10 @@ multi sub infix:<=:=>(Mu \a, Mu \b) {
     nqp::hllbool(nqp::eqaddr(a, b));
 }
 
-proto sub infix:<eqv>(Any $?, Any $?, *%) is pure {*}
+proto sub infix:<eqv>(Mu $?, Mu $?, *%) is pure {*}
+multi sub infix:<eqv>(Mu:U $, Any  $ --> False) { }
+multi sub infix:<eqv>(Any  $, Mu:U $ --> False) { }
+multi sub infix:<eqv>(Mu:U $, Mu:U $ -->  True) { }
 multi sub infix:<eqv>($?)            { Bool::True }
 
 # Last ditch snapshot semantics.  We shouldn't come here too often, so

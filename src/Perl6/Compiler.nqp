@@ -19,6 +19,50 @@ class Perl6::Compiler is HLL::Compiler {
         $IDHolder::ID
     }
 
+    method version() {
+        nqp::say(self.version_string);
+        nqp::exit(0);
+    }
+
+    method version_string(:$shorten-versions, :$no-unicode) {
+        my $config-version  := self.config()<version>;
+        my $backend-version := nqp::getattr(self,HLL::Compiler,'$!backend').version_string;
+
+        my $raku;
+        my $rakudo;
+        if $shorten-versions {
+            my $index := nqp::index($config-version,"-");
+            $config-version := nqp::substr($config-version,0,$index)
+              unless $index == -1;
+
+            $index := nqp::index($backend-version,"-");
+            $backend-version := nqp::substr($backend-version,0,$index)
+              unless $index == -1;
+        }
+
+        if $no-unicode {
+            $raku   := "Raku(R)";
+            $rakudo := "Rakudo(tm)";
+        }
+        else {
+            $raku   := "Raku®";
+            $rakudo := "Rakudo™";
+        }
+
+        "Welcome to "
+          ~ $rakudo
+          ~ " v"
+          ~ $config-version
+          ~ ".\nImplementing the "
+          ~ $raku
+          ~ " Programming Language v"
+          ~ self.language_version()
+          ~ ".\nBuilt on "
+          ~ $backend-version
+          ~ "."
+    }
+
+
     method implementation()   { self.config<implementation> }
     method language_name()    { 'Raku' }
     method reset_language_version() {
@@ -38,6 +82,9 @@ class Perl6::Compiler is HLL::Compiler {
         else {
             $!language_version := %*COMPILING<%?OPTIONS><language_version> || self.config<language-version>
         }
+    }
+    method language_revision() {
+        nqp::substr(self.language_version,2,1)
     }
     method language_modifier() {
         $!language_modifier

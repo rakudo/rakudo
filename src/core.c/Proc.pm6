@@ -1,6 +1,5 @@
 # Proc is a wrapper around Proc::Async, providing a synchronous API atop of
 # the asynchronous API.
-my class Proc::Async { ... }
 my class Proc {
     has IO::Pipe $.in;
     has IO::Pipe $.out;
@@ -161,13 +160,13 @@ my class Proc {
         CATCH { default { self!set-status(0x100) } }
         &!start-stdout() if &!start-stdout;
         &!start-stderr() if &!start-stderr;
-        self!set-status(await($!finished).status)
+        self!set-status(await($!finished)!status)
           if nqp::istype($!exitcode,Nil);
     }
 
-    method spawn(*@args where .so, :$cwd = $*CWD, :$env, :$win-verbatim-args = False --> Bool:D) {
+    method spawn(*@args where .so, :$cwd = $*CWD, :$env, :$arg0, :$win-verbatim-args = False --> Bool:D) {
         @!command := @args.List;
-        self!spawn-internal(@args, $cwd, $env, :$win-verbatim-args)
+        self!spawn-internal(@args, $cwd, $env, :$arg0, :$win-verbatim-args)
     }
 
     method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D) {
@@ -178,9 +177,9 @@ my class Proc {
         self!spawn-internal(@args, $cwd, $env, :win-verbatim-args)
     }
 
-    method !spawn-internal(@args, $cwd, $env, :$win-verbatim-args --> Bool:D) {
+    method !spawn-internal(@args, $cwd, $env, :$arg0, :$win-verbatim-args --> Bool:D) {
         my %ENV := $env ?? $env.hash !! %*ENV;
-        $!proc := Proc::Async.new(|@args, :$!w, :$win-verbatim-args);
+        $!proc := Proc::Async.new(|@args, :$!w, :$arg0, :$win-verbatim-args);
         .() for @!pre-spawn;
         $!finished = $!proc.start(:$cwd, :%ENV, scheduler => $PROCESS::SCHEDULER);
         my $is-spawned := do {
@@ -205,11 +204,15 @@ my class Proc {
     # see https://github.com/rakudo/rakudo/issues/1366
     # should be deprecated and removed
     proto method status(|) {*}
-    multi method status($new_status) {
+    multi method status($new_status)
+      is DEPRECATED('exitcode and/or signal methods (status is to be removed in 2022.06)')
+    {
         $!exitcode = $new_status +> 8;
         $!signal   = $new_status +& 0xFF;
     }
-    multi method status(Proc:D:)  {
+    multi method status(Proc:D:)
+      is DEPRECATED('exitcode and/or signal methods (status is to be removed in 2022.06)')
+    {
         self!wait-for-finish;
         ($!exitcode +< 8) +| $!signal
     }
@@ -240,9 +243,9 @@ my class Proc {
 proto sub run(|) {*}
 multi sub run(*@args where .so, :$in = '-', :$out = '-', :$err = '-',
         Bool :$bin, Bool :$chomp = True, Bool :$merge,
-        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env, :$win-verbatim-args = False) {
+        Str  :$enc, Str:D :$nl = "\n", :$cwd = $*CWD, :$env, :$arg0, :$win-verbatim-args = False) {
     my $proc := Proc.new(:$in, :$out, :$err, :$bin, :$chomp, :$merge, :$enc, :$nl);
-    $proc.spawn(@args, :$cwd, :$env, :$win-verbatim-args);
+    $proc.spawn(@args, :$cwd, :$env, :$arg0, :$win-verbatim-args);
     $proc
 }
 

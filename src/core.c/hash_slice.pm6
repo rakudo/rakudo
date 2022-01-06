@@ -13,13 +13,13 @@ multi sub postcircumfix:<{ }>(\SELF, \key, Mu :$BIND! is raw) is raw {
     SELF.BIND-KEY(key, $BIND);
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$delete! ) is raw {
-    nqp::if($delete,SELF.DELETE-KEY(key),SELF.AT-KEY(key))
+    $delete ?? SELF.DELETE-KEY(key) !! SELF.AT-KEY(key)
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$delete!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'delete', $delete, %other )
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$exists! ) is raw {
-    nqp::if($exists,SELF.EXISTS-KEY(key),!SELF.EXISTS-KEY(key))
+    $exists ?? SELF.EXISTS-KEY(key) !! !SELF.EXISTS-KEY(key)
 }
 multi sub postcircumfix:<{ }>( \SELF, \key, Bool() :$exists!, *%other ) is raw {
     SLICE_ONE_HASH( SELF, key, 'exists', $exists, %other )
@@ -59,19 +59,48 @@ multi sub postcircumfix:<{ }>( \SELF, Iterable \key ) is raw {
              )
            )
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, Mu \ASSIGN) is raw {
-    nqp::iscont(key)
-      ?? SELF.ASSIGN-KEY(key, ASSIGN)
-      !! (nqp::p6bindattrinvres(nqp::create(List),List,'$!reified',
-           nqp::stmts(
-             Rakudo::Iterator.AssociativeIterableKeys(SELF //= {},key)
-               .push-all(my \buffer := nqp::create(IterationBuffer)),
-             buffer
-           )
-         ) = ASSIGN)
+multi sub postcircumfix:<{ }>(\SELF, Iterable \keys, Mu \values) is raw {
+    return SELF.ASSIGN-KEY(keys, values) if nqp::iscont(keys);
+
+    my $result := nqp::create(IterationBuffer);
+    my $todo   := nqp::create(IterationBuffer);
+    my $keys   := keys.iterator;
+    my $values := Rakudo::Iterator.TailWith(values.iterator, Nil);
+
+    nqp::until(
+      nqp::eqaddr((my \key := $keys.pull-one),IterationEnd),
+      nqp::stmts(
+        nqp::push($todo,key),
+        nqp::push($todo,$values.pull-one)
+      )
+    );
+
+    nqp::while(
+      nqp::elems($todo),
+      nqp::push($result,SELF.ASSIGN-KEY(nqp::shift($todo),nqp::shift($todo)))
+    );
+
+    $result.List
 }
-multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND!) is raw {
-    X::Bind::Slice.new(type => SELF.WHAT).throw;
+multi sub postcircumfix:<{ }>(\SELF, Iterable \key, :$BIND! is raw) is raw {
+    return SELF.BIND-KEY(key, $BIND) if nqp::iscont(key);
+
+    my $result := nqp::create(IterationBuffer);
+    my $keys   := key.iterator;
+    my $binds  := $BIND.iterator;
+    nqp::until(
+      nqp::eqaddr((my $bind := $binds.pull-one),IterationEnd)
+        || nqp::eqaddr((my $key := $keys.pull-one),IterationEnd),
+      nqp::push($result, SELF.BIND-KEY($key, $bind))
+    );
+
+    # fill up if ran out of values to bind?
+    nqp::until(
+      nqp::eqaddr(($key := $keys.pull-one),IterationEnd),
+      nqp::push($result,SELF.ASSIGN-KEY($key,Nil))
+    ) if nqp::eqaddr($bind,IterationEnd);
+
+    $result.List
 }
 multi sub postcircumfix:<{ }>(\SELF,Iterable \key, Bool() :$delete!,*%other) is raw {
     nqp::iscont(key)

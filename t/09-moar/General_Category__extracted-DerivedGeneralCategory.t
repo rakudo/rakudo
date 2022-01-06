@@ -1,7 +1,7 @@
 use Test;
 use lib 't/09-moar';
 use UnipropCheck;
-# Please edit UnipropCheck.pm6 to change todo settings!
+# Please edit UnipropCheck.rakumod to change todo settings!
 sub MAIN (Str $folder?, Bool:D :$debug = False) {
     my $*DEBUG = $debug;
     my $name = $*PROGRAM.basename.subst(/".t"$/, "").trans("-" => "/");

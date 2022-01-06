@@ -31,6 +31,10 @@ my class Lock is repr('ReentrantMutex') { ... }
 my class Lock::Async { ... }
 
 sub DYNAMIC(\name) is raw {  # is implementation-detail
+# Please leave this code here to be enable only for tracing calls to
+# dynamic variables in the setting and during setting compilation.
+#my $frame := callframe(1);
+#nqp::say(name ~ ": " ~ $frame.file ~ "(" ~ $frame.line ~ ")");
     nqp::ifnull(
       nqp::getlexdyn(name),
       nqp::stmts(
@@ -61,9 +65,10 @@ sub DYNAMIC(\name) is raw {  # is implementation-detail
 # actually appear in the setting).
 {
     my class Dummy {
-        our proto method AUTOGEN(::T $: |) {*}
+        our proto method AUTOGEN-METHOD(::T $: |) {*}
+        our proto submethod AUTOGEN-SUBMETHOD(::T $: |) {*}
     }
-    Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN);
+    Dummy.HOW.set_autogen_proto(&Dummy::AUTOGEN-METHOD, &Dummy::AUTOGEN-SUBMETHOD);
 }
 
 # vim: expandtab shiftwidth=4

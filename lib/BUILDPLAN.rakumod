@@ -132,7 +132,7 @@ sub showop(@actions --> Str:D) {
         my $reason = @actions[3] === 1
           ?? "it is required"
           !! @actions[3];
-        qq/die "because $reason" unless nqp::attrinited(obj,$type,$attr)/
+        qq/die "because $reason" unless nqp::p6attrinited(nqp::getattr(obj,$type,$attr))/
     }
     elsif $op == 9 {
         "nqp::getattr(obj,$type,$attr) := initializer-code()"

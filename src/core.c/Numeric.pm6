@@ -5,7 +5,8 @@ my role Numeric {
     multi method Numeric(Numeric:D:) { self }
     multi method Numeric(Numeric:U:) {
         self.Mu::Numeric; # issue a warning
-        self.new
+        # We need to be specific about coercions to make `Numeric() == 0` working as specced.
+        (self.HOW.archetypes.coercive ?? self.^nominalize !! self).new
     }
 
     multi method ACCEPTS(Numeric:D: Any:D \a) {
@@ -240,13 +241,11 @@ proto sub infix:<%%>($?, $?, *%) is pure  {*}
 multi sub infix:<%%>() { Failure.new("No zero-arg meaning for infix:<%%>") }
 multi sub infix:<%%>($)         { Bool::True }
 multi sub infix:<%%>(\a, \b) {
-    nqp::if(
-      b,
-      (a.Real % b.Real == 0),
-      Failure.new(
-        X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
-      )
-    )
+    b
+      ?? (a.Real % b.Real == 0)
+      !! Failure.new(
+           X::Numeric::DivideByZero.new(using => 'infix:<%%>', numerator => a)
+         )
 }
 
 proto sub infix:<lcm>($?, $?, *%) is pure  {*}
@@ -265,12 +264,12 @@ multi sub postfix:<ⁿ>(\a, \b)  { a ** b }
 
 ## relational operators
 
-proto sub infix:«<=>»($, $, *%) is pure {*}
-multi sub infix:«<=>»(\a, \b)  { a.Real <=> b.Real }
-
 proto sub infix:<==>($?, $?, *%) is pure {*}
 multi sub infix:<==>($?)        { Bool::True }
 multi sub infix:<==>(\a, \b)   { a.Numeric == b.Numeric }
+
+# U+2A75 TWO CONSECUTIVE EQUALS SIGNS
+my constant &infix:<⩵> = &infix:<==>;
 
 proto sub infix:<=~=>($?, $?, *%) {*}  # note, can't be pure due to dynvar
 multi sub infix:<=~=>($?) { Bool::True }

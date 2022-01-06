@@ -177,6 +177,9 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method ACCEPTS(Junction:U: Junction:D --> True) { }
+    multi method ACCEPTS(Junction:D \SELF: Junction:D \topic) {
+        topic.BOOLIFY-ACCEPTS(self)
+    }
     multi method ACCEPTS(Junction:D: Mu \topic) {
         nqp::hllbool(
           nqp::stmts(
@@ -235,24 +238,24 @@ my class Junction { # declared in BOOTSTRAP
     }
 
     multi method Str(Junction:D:) {
-        nqp::stmts(
-          (my \storage := nqp::bindattr(
-            (my \junction := nqp::clone(self)),
-            Junction,
-            '$!eigenstates',
-            nqp::clone(nqp::getattr(self,Junction,'$!eigenstates'))
-          )),
-          (my int $elems = nqp::elems(storage)),
-          (my int $i = -1),
-          nqp::while(
-            nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-            nqp::unless(
-              nqp::istype(nqp::atpos(storage,$i),Str),
-              nqp::bindpos(storage,$i,nqp::atpos(storage,$i).Str)
-            )
-          ),
-          junction
-        )
+        my \storage := nqp::bindattr(
+          (my \junction := nqp::clone(self)),
+          Junction,
+          '$!eigenstates',
+          nqp::clone(nqp::getattr(self,Junction,'$!eigenstates'))
+        );
+        my int $elems = nqp::elems(storage);
+        my int $i = -1;
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::unless(
+            nqp::istype(nqp::atpos(storage,$i),Str),
+            nqp::bindpos(storage,$i,nqp::atpos(storage,$i).Str)
+          )
+        );
+
+        junction
     }
 
     multi method iterator(Junction:D:) {
@@ -275,16 +278,23 @@ my class Junction { # declared in BOOTSTRAP
     multi method raku(Junction:D:) {
         my int $elems = nqp::elems($!eigenstates);
         my int $i     = -1;
-        my $perls    := nqp::setelems(nqp::list_s,$elems);
-        nqp::bindpos_s($perls,$i,nqp::atpos($!eigenstates,$i).raku)
+        my $rakus    := nqp::setelems(nqp::list_s,$elems);
+        nqp::bindpos_s($rakus,$i,nqp::atpos($!eigenstates,$i).raku)
           while nqp::islt_i(++$i,$elems);
-        $!type ~ '(' ~ nqp::join(', ',$perls) ~ ')'
+        $!type ~ '(' ~ nqp::join(', ',$rakus) ~ ')'
     }
 
     method CALL-ME(|c) {
-        self.AUTOTHREAD(
-            -> $obj, |c { $obj(|c) },
-            self, |c);
+        my \storage     := nqp::getattr(self, Junction, '$!eigenstates');
+        my int $elems    = nqp::elems(storage);
+        my \result      := nqp::setelems(nqp::list, $elems);
+        my int $i        = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i, 1)), $elems),
+          nqp::bindpos(result, $i, nqp::atpos(storage, $i)(|c))
+        );
+        nqp::p6bindattrinvres(
+          nqp::clone(self), Junction, '$!eigenstates', result)
     }
 
     method sink(Junction:D: --> Nil) {
@@ -337,10 +347,17 @@ my class Junction { # declared in BOOTSTRAP
         my int $first_any_one = -1;
         my int $elems = nqp::elems(positionals);
         my int $i     = -1;
+        my @params := &call.signature.params;
         while nqp::islt_i(++$i,$elems) {
             # Junctional positional argument?
             my Mu $arg := nqp::atpos(positionals, $i);
-            if nqp::istype($arg,Junction) {
+            if nqp::istype($arg, Junction) and (
+                # No auto-threading for Mu or Junction parameters necessary
+                not nqp::istype(Junction, @params[$i].type)
+                # Can't handle protos yet because auto-generated protos
+                # will report Mu as parameter type
+                or &call.?is_dispatcher
+            ) {
                 my str $type = nqp::getattr_s(nqp::decont($arg),Junction,'$!type');
                 nqp::iseq_s($type,'any') || nqp::iseq_s($type,'one')
                   ?? $first_any_one == -1
@@ -377,6 +394,70 @@ my class Junction { # declared in BOOTSTRAP
 
         # If we get here, wasn't actually anything to autothread.
         call(|args);
+    }
+
+    # BOOLIFY-ACCEPTS is kind of a reverse to ACCEPTS combined with short-circuitting THREAD. The idea is to optimize
+    # smartmatches  where a junction is on LHS and RHS ACCEPTS would auto-thread over it. In this case, instead of doing
+    # RHS.ACCEPTS(LHS).Bool, which is what smartmatches are all about, we can reverse the invocation by doing
+    # LHS.BOOLIFY-ACCEPTS(RHS). This wold invoke RHS.ACCEPTS.Bool only on particular eigenstates of LHS. Then, as soon
+    # as the outcome of the whole smartmatch is known, the remaining N eigenstates can be skipped, sparing at least N*2
+    # method invocations. Note that this can only be used with classes using the default ACCEPTS method from the core as
+    # only with it we can guarantee the default handling of junctions.
+    proto method BOOLIFY-ACCEPTS(|) is implementation-detail {*}
+    multi method BOOLIFY-ACCEPTS(Junction:U --> True) {}
+    multi method BOOLIFY-ACCEPTS(Mu \matcher) {
+        nqp::hllbool(
+          nqp::stmts(
+            (my int $elems = nqp::elems($!eigenstates)),
+            (my int $i),
+            nqp::if(
+              nqp::iseq_s($!type,'any'),
+              nqp::stmts(
+                nqp::while(
+                  nqp::islt_i($i,$elems)
+                    && matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).not,
+                  ($i = nqp::add_i($i,1))
+                ),
+                nqp::islt_i($i,$elems)
+              ),
+              nqp::if(
+                nqp::iseq_s($!type,'all'),
+                nqp::stmts(
+                  nqp::while(
+                    nqp::islt_i($i,$elems)
+                      && matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).Bool,
+                    ($i = nqp::add_i($i,1))
+                  ),
+                  nqp::iseq_i($i,$elems)
+                ),
+                nqp::if(
+                  nqp::iseq_s($!type,'none'),
+                  nqp::stmts(
+                    nqp::while(
+                      nqp::islt_i($i,$elems)
+                        && matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).not,
+                      ($i = nqp::add_i($i,1))
+                    ),
+                    nqp::iseq_i($i,$elems)
+                  ),
+                  nqp::stmts(    # $!type eq 'one'
+                    (my int $seen = 0),
+                    ($i = nqp::sub_i($i,1)),  # increment in condition
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::isle_i($seen,1),
+                      nqp::if(
+                        matcher.ACCEPTS(nqp::atpos($!eigenstates,$i)).Bool,
+                        ($seen = nqp::add_i($seen,1))
+                      )
+                    ),
+                    nqp::iseq_i($seen,1)
+                  )
+                )
+              )
+            )
+          )
+        )
     }
 }
 
@@ -462,90 +543,99 @@ multi sub infix:<~>(Junction:D $a, Str:D $b) {
 }
 
 multi sub infix:<~>(Junction:D \a, Junction:D \b) {
-    nqp::stmts(                                  # basic setup
-      (my int $mergable = Junction.INFIX-TWO(my $a = a, my $b = b)),
-      (my \astor := nqp::getattr(nqp::decont($a),Junction,'$!eigenstates')),
-      (my \bstor := nqp::getattr(nqp::decont($b),Junction,'$!eigenstates')),
-      (my int $aelems = nqp::elems(astor)),
-      (my int $belems = nqp::elems(bstor)),
-      (my int $i = -1),
-      (my \seen := nqp::hash),
-      (my \outer := nqp::bindattr(               # outer eigenstates
-        (my \junction := nqp::clone(nqp::decont($a))),
-        Junction,
-        '$!eigenstates',
+    my int $mergable = Junction.INFIX-TWO(my $a = a, my $b = b);
+    my \astor := nqp::getattr(nqp::decont($a),Junction,'$!eigenstates');
+    my \bstor := nqp::getattr(nqp::decont($b),Junction,'$!eigenstates');
+    my int $aelems = nqp::elems(astor);
+    my int $belems = nqp::elems(bstor);
+    my int $i = -1;
+    my \seen := nqp::hash;
+    my \outer := nqp::bindattr(               # outer eigenstates
+      (my \junction := nqp::clone(nqp::decont($a))),
+      Junction,
+      '$!eigenstates',
+      nqp::if(
+        $mergable,
+        nqp::list,
+        nqp::setelems(nqp::list,$aelems)
+      )
+    );
+
+    nqp::while(                                # outer loop
+      nqp::islt_i(($i = nqp::add_i($i,1)),$aelems),
+      nqp::stmts(
+        (my \aval := nqp::if(
+          nqp::istype(nqp::atpos(astor,$i),Str),
+          nqp::atpos(astor,$i),
+          nqp::atpos(astor,$i).Str
+        )),
+        (my int $j = -1),
         nqp::if(
           $mergable,
-          nqp::list,
-          nqp::setelems(nqp::list,$aelems)
-        )
-      )),
-      nqp::while(                                # outer loop
-        nqp::islt_i(($i = nqp::add_i($i,1)),$aelems),
-        nqp::stmts(
-          (my \aval := nqp::if(
-            nqp::istype(nqp::atpos(astor,$i),Str),
-            nqp::atpos(astor,$i),
-            nqp::atpos(astor,$i).Str
-          )),
-          (my int $j = -1),
-          nqp::if(
-            $mergable,
-            nqp::while(                          # merge eigenstates
+          nqp::while(                          # merge eigenstates
+            nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
+            nqp::unless(
+              nqp::existskey(
+                seen,
+                (my \concat := nqp::concat(
+                  aval,
+                  nqp::if(
+                    nqp::istype(nqp::atpos(bstor,$j),Str),
+                    nqp::atpos(bstor,$j),
+                    nqp::atpos(bstor,$j).Str,
+                  )
+                ))
+              ),
+              nqp::bindkey(                    # new one, remember
+                seen,nqp::push(outer,concat),1)
+            )
+          ),
+          nqp::stmts(                          # cannot merge eigenstates
+            (my \inner := nqp::bindattr(
+              nqp::bindpos(outer,$i,nqp::clone(nqp::decont($b))),
+              Junction,
+              '$!eigenstates',
+              nqp::setelems(nqp::list,$belems)
+            )),
+            nqp::while(
               nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
-              nqp::unless(
-                nqp::existskey(
-                  seen,
-                  (my \concat := nqp::concat(
-                    aval,
-                    nqp::if(
-                      nqp::istype(nqp::atpos(bstor,$j),Str),
-                      nqp::atpos(bstor,$j),
-                      nqp::atpos(bstor,$j).Str,
-                    )
-                  ))
-                ),
-                nqp::bindkey(                    # new one, remember
-                  seen,nqp::push(outer,concat),1)
-              )
-            ),
-            nqp::stmts(                          # cannot merge eigenstates
-              (my \inner := nqp::bindattr(
-                nqp::bindpos(outer,$i,nqp::clone(nqp::decont($b))),
-                Junction,
-                '$!eigenstates',
-                nqp::setelems(nqp::list,$belems)
-              )),
-              nqp::while(
-                nqp::islt_i(($j = nqp::add_i($j,1)),$belems),
-                nqp::bindpos(
-                  inner,
-                  $j,
-                  nqp::concat(
-                    aval,
-                    nqp::if(
-                      nqp::istype(nqp::atpos(bstor,$j),Str),
-                      nqp::atpos(bstor,$j),
-                      nqp::atpos(bstor,$j).Str,
-                    )
+              nqp::bindpos(
+                inner,
+                $j,
+                nqp::concat(
+                  aval,
+                  nqp::if(
+                    nqp::istype(nqp::atpos(bstor,$j),Str),
+                    nqp::atpos(bstor,$j),
+                    nqp::atpos(bstor,$j).Str,
                   )
                 )
               )
             )
           )
         )
-      ),
-      junction
-    )
+      )
+    );
+    junction
 }
 
 nqp::p6setautothreader( -> |c {
     Junction.AUTOTHREAD(|c)
 } );
 Mu.HOW.setup_junction_fallback(Junction, -> $name, |c {
-    Junction.AUTOTHREAD(
-        -> \obj, |c { obj."$name"(|c) },
-        |c);
+    my \positionals := nqp::getattr(nqp::decont(c), Capture, '@!list');
+    my \junction    := nqp::decont(nqp::atpos(positionals, 0));
+    my \storage     := nqp::getattr(junction, Junction, '$!eigenstates');
+    my int $elems    = nqp::elems(storage);
+    my \result      := nqp::setelems(nqp::list, $elems);
+    my int $i        = -1;
+    nqp::shift(positionals); # remove Junction
+    nqp::while(
+      nqp::islt_i(($i = nqp::add_i($i, 1)), $elems),
+      nqp::bindpos(result, $i, nqp::atpos(storage, $i)."$name"(|c))
+    );
+    nqp::p6bindattrinvres(
+      nqp::clone(junction), Junction, '$!eigenstates', result)
 } );
 
 # vim: expandtab shiftwidth=4

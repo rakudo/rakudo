@@ -18,7 +18,7 @@ say qq:to/HEADER/;
 #===============================================================================
 HEADER
 
-for 1, 0 -> $array {  # 1 = [], 0 = {}
+for 0 -> $array {  # 1 = [], 0 = {}
 
 # Fill in these settings.  The ( is included here to prevent the interpolating
 # logic to get confused by seeing [](...) .
@@ -33,7 +33,7 @@ for 1, 0 -> $array {  # 1 = [], 0 = {}
 # by using the zen slice ([]).  Any other occurrences of @ will *not* be
 # interpolated because they lack the zen slice.
 
-    say Q:a:to/SOURCE/;
+    say Q:a:to/SOURCE/.chomp;
 # internal 1 element @TYPE[].chop.lc() access with adverbs
 sub SLICE_ONE_@TYPE[]\SELF,$one,$key,$value,%adv) { # is implementation-detail
     my Mu $d := nqp::clone(nqp::getattr(%adv,Map,'$!storage'));
@@ -478,6 +478,6 @@ sub SLICE_MORE_@TYPE[]\SELF,$more,$key,$value,%adv) { # is implementation-detail
 SOURCE
 }
 
-say "# vim: expandtab sw=4";
+say "# vim: expandtab shiftwidth=4";
 
 # vim: expandtab sw=4

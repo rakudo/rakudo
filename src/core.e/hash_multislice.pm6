@@ -1,6 +1,12 @@
 # all 6.e specific sub postcircumfix {;} candidates here please
 
 proto sub postcircumfix:<{; }>($, $, *%) is nodal {*}
+
+# handle the case of %h{|| "a"}
+multi sub postcircumfix:<{; }>(\initial-SELF, \value, *%_) is raw {
+    postcircumfix:<{; }>(initial-SELF, value.List, |%_)
+}
+
 multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
   :$exists, :$delete, :$k, :$kv, :$p, :$v
 ) is raw {
@@ -36,7 +42,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                     );
                 }
                 elsif $dim < $dims {
-                    ++$dim;  # going deeper
+                    ++$dim;  # going higher
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         my \next-idx := nqp::atpos($indices,$dim);
@@ -54,6 +60,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                           SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                         );
                     }
+                    --$dim;  # done at this level
                 }
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
@@ -99,7 +106,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                     );
                 }
                 elsif $dim < $dims {
-                    ++$dim;  # going deeper
+                    ++$dim;  # going higher
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         my \next-idx := nqp::atpos($indices,$dim);
@@ -117,6 +124,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                           SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                         );
                     }
+                    --$dim;  # done at this level
                 }
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
@@ -271,7 +279,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                     );
                 }
                 elsif $dim < $dims {
-                    ++$dim;  # going deeper
+                    ++$dim;  # going higher
                     if nqp::istype(idx,Whatever) {
                         $return-list = 1;
                         my $iterator := SELF.keys.iterator;
@@ -298,6 +306,7 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                         );
                         nqp::pop($keys);
                     }
+                    --$dim;  # done at this level
                 }
                 # $next-dim == $dims, reached leaves
                 elsif nqp::istype(idx,Whatever) {
@@ -334,11 +343,12 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                 );
             }
             elsif $dim < $dims {
-                $dim++;  # going deeper now
+                $dim++;  # going higher
                 if nqp::istype(idx,Whatever) {
-                    $return-list = $non-deterministic = 1;
+                    $return-list = 1;
                     my \next-idx := nqp::atpos($indices,$dim);
                     my $iterator := SELF.keys.iterator;
+                    $non-deterministic = 1 unless $iterator.is-deterministic;
                     nqp::until(
                       nqp::eqaddr(
                         (my \pulled := $iterator.pull-one),
@@ -352,11 +362,13 @@ multi sub postcircumfix:<{; }>(\initial-SELF, @indices,
                       SELF.AT-KEY(idx), nqp::atpos($indices,$dim)
                     );
                 }
+                --$dim;  # done at this level
             }
             # $next-dim == $dims, reached leaves
             elsif nqp::istype(idx,Whatever) {
-                $return-list = $non-deterministic = 1;
+                $return-list = 1;
                 my $iterator := SELF.keys.iterator;
+                $non-deterministic = 1 unless $iterator.is-deterministic;
                 nqp::until(
                   nqp::eqaddr((my \pulled := $iterator.pull-one),IterationEnd),
                   nqp::push(target,SELF.AT-KEY(pulled))

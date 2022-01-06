@@ -192,7 +192,7 @@
         }
     }
     method on-close(Supply:D: &on-close) {
-        return Supply.new(OnClose.new(source => self, :&on-close))
+        Supply.new(OnClose.new(source => self, :&on-close))
     }
 
     my class MapSupply does SimpleOpTappable {
@@ -396,8 +396,11 @@
         }
     }
     method stable(Supply:D: $time, :$scheduler = $*SCHEDULER) {
-        return self unless $time;
-        Supply.new(Stable.new(source => self.sanitize, :$time, :$scheduler))
+        $time
+          ?? Supply.new(
+               Stable.new(source => self.sanitize, :$time, :$scheduler)
+             )
+          !! self
     }
 
     my class Delayed does SimpleOpTappable {

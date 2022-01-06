@@ -1,8 +1,12 @@
+my class X::Enum::NoValue {...};
+my class X::Constructor::BadType {...}
 # Method that we have on enumeration types.
 my role Enumeration {
     has $.key;
     has $.value;
     has int $!index;
+
+    method new { X::Constructor::BadType.new(type => self.WHAT).throw }
 
     method enums() { self.^enum_values.Map }
 
@@ -30,41 +34,52 @@ my role Enumeration {
         )
     }
 
-    multi method ACCEPTS(::?CLASS:D: ::?CLASS:D \v) { self === v }
+    multi method ACCEPTS(::?CLASS:D: ::?CLASS:D $v) { self === $v }
 
-    proto method CALL-ME(|) {*}
-    multi method CALL-ME(|) {
-        my $x := nqp::atpos(nqp::p6argvmarray(), 1).AT-POS(0);
-        nqp::istype($x, ::?CLASS)
-            ?? $x
-            !! self.^enum_from_value($x)
+    method !FROM-VALUE(Mu \val) {
+        my $res := Nil;
+        my $dcval := nqp::decont(val);
+        # If value is a mixin of enum try to pull out the mixed in value first
+        if $dcval.^is_mixin {
+            my $attr_name := '$!' ~ self.^name;
+            if $dcval.^has_attribute($attr_name) {
+                my $mixin_value := nqp::getattr($dcval, $dcval.WHAT, $attr_name);
+                return $mixin_value if nqp::istype($mixin_value, ::?CLASS);
+            }
+        }
+        if nqp::istype($dcval, ::?CLASS) {
+            $res := $dcval;
+        }
+        elsif nqp::isconcrete($dcval) {
+            $res := self.^enum_from_value($dcval);
+        }
+        $res // Failure.new(X::Enum::NoValue.new(:type(self.WHAT), :value($dcval)))
     }
+
+    proto method CALL-ME(Mu) {*}
+    multi method CALL-ME(Mu \val) { self!FROM-VALUE(val) }
+
+    proto method COERCE(Mu) {*}
+    multi method COERCE(Mu \val) { self!FROM-VALUE(val) }
 
     method pred(::?CLASS:D:) {
-        nqp::if(
-          nqp::getattr_i(self,::?CLASS,'$!index'),
-          nqp::atpos(
-            nqp::getattr(self.^enum_value_list,List,'$!reified'),
-            nqp::sub_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
-          ),
-          self
-        )
+        nqp::getattr_i(self,::?CLASS,'$!index')
+          ?? nqp::atpos(
+               nqp::getattr(self.^enum_value_list,List,'$!reified'),
+               nqp::sub_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
+             )
+          !! self
     }
     method succ(::?CLASS:D:) {
-        nqp::stmts(
-          (my $values := nqp::getattr(self.^enum_value_list,List,'$!reified')),
-          nqp::if(
-            nqp::islt_i(
-              nqp::getattr_i(self,::?CLASS,'$!index'),
-              nqp::sub_i(nqp::elems($values),1),
-            ),
-            nqp::atpos(
+        my $values := nqp::getattr(self.^enum_value_list,List,'$!reified');
+        nqp::islt_i(
+          nqp::getattr_i(self,::?CLASS,'$!index'),
+          nqp::sub_i(nqp::elems($values),1)
+        ) ?? nqp::atpos(
                $values,
                nqp::add_i(nqp::getattr_i(self,::?CLASS,'$!index'),1)
-            ),
-            self
-          )
-        )
+             )
+          !! self
     }
 }
 
@@ -118,8 +133,8 @@ Metamodel::EnumHOW.set_composalizer(-> $type, $name, @enum_values {
 # We use this one because, for example, Int:D === Int:D, has an optimization
 # that simply unboxes the values. That's no good for us, since two different
 # Enumeration:Ds could have the same Int:D value.
-multi infix:<===> (Enumeration:D \a, Enumeration:D \b --> Bool:D) {
-    nqp::hllbool(nqp::eqaddr(nqp::decont(a), nqp::decont(b)))
+multi infix:<===> (Enumeration:D $a, Enumeration:D $b --> Bool:D) {
+    nqp::hllbool(nqp::eqaddr($a,$b))
 }
 
 # vim: expandtab shiftwidth=4

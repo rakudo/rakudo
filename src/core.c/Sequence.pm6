@@ -22,19 +22,15 @@ my role PositionalBindFailover {
     has $!list;
 
     method cache() {
-        nqp::if(
-          nqp::isconcrete($!list),
-          $!list,
-          ($!list := List.from-iterator(self.iterator))
-        )
+        nqp::isconcrete($!list)
+          ?? $!list
+          !! ($!list := List.from-iterator(self.iterator))
     }
 
     multi method list(::?CLASS:D:) {
-        nqp::if(
-          nqp::isconcrete($!list),
-          $!list,
-          List.from-iterator(self.iterator)
-        )
+        nqp::isconcrete($!list)
+          ?? $!list
+          !! List.from-iterator(self.iterator)
     }
 
     method iterator() { ... }

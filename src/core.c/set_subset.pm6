@@ -7,82 +7,78 @@
 #   ⊉     is NOT a superset of
 
 proto sub infix:<<(<=)>>($, $, *% --> Bool:D) is pure {*}
-multi sub infix:<<(<=)>>(Setty:D \a, Setty:D \b --> Bool:D) {
-    nqp::stmts(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-        nqp::if(
-          (my \araw := a.RAW-HASH) && nqp::elems(araw),
-          nqp::if(                # number of elems in B *always* >= A
-            (my \braw := b.RAW-HASH)
-              && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
-              && (my \iter := nqp::iterator(araw)),
-            nqp::while(           # number of elems in B >= A
-              iter,
-              nqp::unless(
-                nqp::existskey(braw,nqp::iterkey_s(nqp::shift(iter))),
-                return False      # elem in A doesn't exist in B
-              )
-            ),
-            return False          # number of elems in B smaller than A
-          )
+multi sub infix:<<(<=)>>(Setty:D $a, Setty:D $b --> Bool:D) {
+    nqp::unless(
+      nqp::eqaddr($a,$b),
+      nqp::if(
+        (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+        nqp::if(                # number of elems in B *always* >= A
+          (my \braw := $b.RAW-HASH)
+            && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
+            && (my \iter := nqp::iterator(araw)),
+          nqp::while(           # number of elems in B >= A
+            iter,
+            nqp::unless(
+              nqp::existskey(braw,nqp::iterkey_s(nqp::shift(iter))),
+              return False      # elem in A doesn't exist in B
+            )
+          ),
+          return False          # number of elems in B smaller than A
         )
-      ),
-      True
-    )
+      )
+    );
+    True
 }
-multi sub infix:<<(<=)>>(Setty:D \a, Mixy:D  \b --> Bool:D) { a.Mix (<=) b }
-multi sub infix:<<(<=)>>(Setty:D \a, Baggy:D \b --> Bool:D) { a.Bag (<=) b }
-multi sub infix:<<(<=)>>(Setty:D \a, Any     \b --> Bool:D) { a (<=) b.Set }
+multi sub infix:<<(<=)>>(Setty:D $a, Mixy:D  $b --> Bool:D) { $a.Mix (<=) $b }
+multi sub infix:<<(<=)>>(Setty:D $a, Baggy:D $b --> Bool:D) { $a.Bag (<=) $b }
+multi sub infix:<<(<=)>>(Setty:D $a, Any     \b --> Bool:D) { $a (<=)  b.Set }
 
-multi sub infix:<<(<=)>>(Mixy:D \a, Mixy:D  \b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-SUBSET(a, b)
+multi sub infix:<<(<=)>>(Mixy:D $a, Mixy:D  $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a, $b)
 }
-multi sub infix:<<(<=)>>(Mixy:D \a, Baggy:D \b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-SUBSET(a, b)
+multi sub infix:<<(<=)>>(Mixy:D $a, Baggy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a, $b)
 }
-multi sub infix:<<(<=)>>(Mixy:D \a, Setty:D \b --> Bool:D) { a (<=) b.Mix }
-multi sub infix:<<(<=)>>(Mixy:D \a, Any     \b --> Bool:D) { a (<=) b.Mix }
+multi sub infix:<<(<=)>>(Mixy:D $a, Setty:D $b --> Bool:D) { $a (<=) $b.Mix }
+multi sub infix:<<(<=)>>(Mixy:D $a, Any     \b --> Bool:D) { $a (<=)  b.Mix }
 
-multi sub infix:<<(<=)>>(Baggy:D \a, Mixy:D \b --> Bool:D) {
-    Rakudo::QuantHash.MIX-IS-SUBSET(a, b)
+multi sub infix:<<(<=)>>(Baggy:D $a, Mixy:D $b --> Bool:D) {
+    Rakudo::QuantHash.MIX-IS-SUBSET($a, $b)
 }
-multi sub infix:<<(<=)>>(Baggy:D \a, Baggy:D \b --> Bool:D) {
-    nqp::stmts(
-      nqp::unless(
-        nqp::eqaddr(nqp::decont(a),nqp::decont(b)),
-        nqp::if(
-          (my \araw := a.RAW-HASH) && nqp::elems(araw),
-          nqp::if(                # number of elems in B *always* >= A
-            (my \braw := b.RAW-HASH)
-              && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
-              && (my \iter := nqp::iterator(araw)),
-            nqp::while(           # number of elems in B >= A
-              iter,
-              nqp::unless(
-                nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!value')
-                  <=              # value in A should be less or equal than B
-                nqp::getattr(
-                  nqp::ifnull(
-                    nqp::atkey(braw,nqp::iterkey_s(iter)),
-                    BEGIN       # provide virtual value 0
-                      nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
-                  ),
-                  Pair,
-                  '$!value'
+multi sub infix:<<(<=)>>(Baggy:D $a, Baggy:D $b --> Bool:D) {
+    nqp::unless(
+      nqp::eqaddr($a,$b),
+      nqp::if(
+        (my \araw := $a.RAW-HASH) && nqp::elems(araw),
+        nqp::if(                # number of elems in B *always* >= A
+          (my \braw := $b.RAW-HASH)
+            && nqp::isle_i(nqp::elems(araw),nqp::elems(braw))
+            && (my \iter := nqp::iterator(araw)),
+          nqp::while(           # number of elems in B >= A
+            iter,
+            nqp::unless(
+              nqp::getattr(nqp::iterval(nqp::shift(iter)),Pair,'$!value')
+                <=              # value in A should be less or equal than B
+              nqp::getattr(
+                nqp::ifnull(
+                  nqp::atkey(braw,nqp::iterkey_s(iter)),
+                  BEGIN       # provide virtual value 0
+                    nqp::p6bindattrinvres(nqp::create(Pair),Pair,'$!value',0)
                 ),
-                return False
-              )
-            ),
-            return False          # number of elems in B smaller than A
-          )
+                Pair,
+                '$!value'
+              ),
+              return False
+            )
+          ),
+          return False          # number of elems in B smaller than A
         )
-      ),
-      True
-    )
+      )
+    );
+    True
 }
-multi sub infix:<<(<=)>>(Baggy:D \a, Setty:D \b --> Bool:D) { a (<=) b.Bag }
-multi sub infix:<<(<=)>>(Baggy:D \a, Any     \b --> Bool:D) { a (<=) b.Bag }
+multi sub infix:<<(<=)>>(Baggy:D $a, Setty:D $b --> Bool:D) { $a (<=) $b.Bag }
+multi sub infix:<<(<=)>>(Baggy:D $a, Any     \b --> Bool:D) { $a (<=)  b.Bag }
 
 multi sub infix:<<(<=)>>(Map:D \a, Map:D \b --> Bool:D) {
     nqp::if(
@@ -91,7 +87,8 @@ multi sub infix:<<(<=)>>(Map:D \a, Map:D \b --> Bool:D) {
       nqp::if(                    # A and B are different
         nqp::elems(my \araw := nqp::getattr(nqp::decont(a),Map,'$!storage')),
         nqp::if(                  # something in A
-          nqp::eqaddr(a.keyof,Str(Any)) && nqp::eqaddr(b.keyof,Str(Any)),
+          nqp::istype(a,Hash::Object) || nqp::istype(b,Hash::Object),
+          (a.Set (<=) b.Set),     # either is objectHash, so coerce
           nqp::if(                # both are normal Maps
             (my \iter := nqp::iterator(araw))
               && nqp::elems(
@@ -120,8 +117,7 @@ multi sub infix:<<(<=)>>(Map:D \a, Map:D \b --> Bool:D) {
               ),
               True                # no valid elems in A
             )
-          ),
-          a.Set (<=) b.Set      # either is objectHash, so coerce
+          )
         ),
         True                      # nothing in A
       )
@@ -132,18 +128,7 @@ multi sub infix:<<(<=)>>(Iterable:D \a, Map:D \b --> Bool:D) {
     my \iterator := a.iterator;
     my \braw := nqp::getattr(nqp::decont(b),Map,'$!storage');
 
-    if nqp::eqaddr(b.keyof,Str(Any)) {
-        nqp::until(
-          nqp::eqaddr((my \string := iterator.pull-one),IterationEnd),
-          nqp::unless(
-            nqp::existskey(braw,my str $key = string.Str)
-              && nqp::istrue(nqp::atkey(braw,$key)),
-            (return False)
-          )
-        );
-        True
-    }
-    else {
+    if nqp::istype(b,Hash::Object) {
         nqp::until(
           nqp::eqaddr((my \object := iterator.pull-one),IterationEnd),
           nqp::unless(
@@ -154,16 +139,26 @@ multi sub infix:<<(<=)>>(Iterable:D \a, Map:D \b --> Bool:D) {
             (return False)
           )
         );
-        True
     }
+    else {
+        nqp::until(
+          nqp::eqaddr((my \string := iterator.pull-one),IterationEnd),
+          nqp::unless(
+            nqp::existskey(braw,my str $key = string.Str)
+              && nqp::istrue(nqp::atkey(braw,$key)),
+            (return False)
+          )
+        );
+    }
+    True
 }
 
-multi sub infix:<<(<=)>>(Any \a, Mixy:D  \b --> Bool:D) { a.Mix (<=) b     }
-multi sub infix:<<(<=)>>(Any \a, Baggy:D \b --> Bool:D) { a.Bag (<=) b     }
-multi sub infix:<<(<=)>>(Any \a, Setty:D \b --> Bool:D) { a.Set (<=) b     }
+multi sub infix:<<(<=)>>(Any \a, Mixy:D  $b --> Bool:D) { a.Mix (<=) $b }
+multi sub infix:<<(<=)>>(Any \a, Baggy:D $b --> Bool:D) { a.Bag (<=) $b }
+multi sub infix:<<(<=)>>(Any \a, Setty:D $b --> Bool:D) { a.Set (<=) $b }
 
-multi sub infix:<<(<=)>>(Failure:D \a, Any $) { a.throw }
-multi sub infix:<<(<=)>>(Any $, Failure:D \b) { b.throw }
+multi sub infix:<<(<=)>>(Failure:D $a, Any $) { $a.throw }
+multi sub infix:<<(<=)>>(Any $, Failure:D $b) { $b.throw }
 multi sub infix:<<(<=)>>(Any \a, Any \b --> Bool:D) { a.Set (<=) b.Set }
 
 # U+2286 SUBSET OF OR EQUAL TO

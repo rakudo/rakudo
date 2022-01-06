@@ -11,7 +11,7 @@ set -o pipefail
 
 echo "========= Starting build"
 
-echo "========= Updating CentOS 6"
+echo "========= Updating CentOS 7"
 sudo yum -y update
 sudo yum clean all
 
@@ -47,10 +47,11 @@ pushd zef
 popd
 
 echo "========= Copying auxiliary files"
-cp -r tools/build/binary-release/Linux/* install
+cp -r tools/build/binary-release/assets/Linux/* install
 cp LICENSE install
 
 echo "========= Preparing archive"
-mv install rakudo-$VERSION
-tar -zcv --owner=0 --group=0 --numeric-owner -f ../rakudo-linux.tar.gz rakudo-$VERSION
+FILE_NAME=rakudo-moar-$VERSION-$REVISION-linux-x86_64-gcc
+mv install $FILE_NAME
+tar -zcv --owner=0 --group=0 --numeric-owner -f ../rakudo-linux.tar.gz $FILE_NAME
 

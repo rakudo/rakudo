@@ -20,10 +20,7 @@
         has $!queue;
         has $!exception;
 
-        method new($supply) {
-            nqp::create(self)!SET-SELF($supply)
-        }
-        method !SET-SELF($supply) {
+        method TWEAK(:$supply) {
             $!queue     := nqp::create(ConcQueue);
             $!exception := Nil;
             $supply.tap: {
@@ -38,32 +35,28 @@
         }
 
         method pull-one() is raw {
-            nqp::stmts(
-              (my $got := nqp::shift($!queue)),
-              nqp::if(
-                nqp::eqaddr($got,ConcQueue),
-                nqp::if(
-                  nqp::isconcrete($!exception),
-                  $!exception.rethrow,
-                  IterationEnd),
-                $got))
+            nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue)
+              ?? nqp::isconcrete($!exception)
+                ?? $!exception.rethrow
+                !! IterationEnd
+              !! $got
         }
 
         method push-all(\target --> IterationEnd) {
-            nqp::stmts(
-              nqp::until(
-                nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue),
-                target.push($got)),
-              nqp::if(
-                nqp::isconcrete($!exception),
-                $!exception.rethrow))
+            nqp::until(
+              nqp::eqaddr((my $got := nqp::shift($!queue)),ConcQueue),
+              target.push($got)
+            );
+
+            $!exception.rethrow
+              if nqp::isconcrete($!exception);
         }
 
         # method is-lazy(--> Bool:D) { ... }
     }
 
     multi method iterator(Supply:D:) {
-        SupplyIterator.new: self
+        SupplyIterator.new: supply => self
     }
     multi method list(Supply:D:) {
         List.from-iterator: self.iterator
@@ -382,46 +375,69 @@
         }
     }
 
-    method batch(Supply:D: Int(Cool) :$elems = 0, :$seconds) {
+    method batch(Supply:D:
+      Int(Cool) :$elems = 0, :$seconds, :$emit-timed
+    --> Supply:D) {
         supply {
             my int $max = $elems >= 0 ?? $elems !! 0;
             my $batched := nqp::list;
-            my $last_time;
             sub flush(--> Nil) {
                 emit($batched);
                 $batched := nqp::list;
             }
             sub final-flush(--> Nil) {
-                flush if nqp::elems($batched);
+                emit($batched) if nqp::elems($batched);
             }
 
             if $seconds {
-                $last_time = time div $seconds;
+                if $emit-timed {
+                    my $timer = Supply.interval($seconds);
 
-                if $elems > 0 { # and $seconds
-                    whenever self -> \val {
-                        my $this_time = time div $seconds;
-                        if $this_time != $last_time {
-                            flush if nqp::elems($batched);
-                            $last_time = $this_time;
-                            nqp::push($batched,val);
-                        }
-                        else {
+                    whenever $timer -> \tick {
+                        flush if nqp::elems($batched);
+                        LAST { final-flush; }
+                    }
+
+                    if $max > 0 {
+                        whenever self -> \val {
                             nqp::push($batched,val);
                             flush if nqp::iseq_i(nqp::elems($batched),$max);
                         }
-                        LAST { final-flush; }
                     }
                 }
-                else {
-                    whenever self -> \val {
-                        my $this_time = time div $seconds;
-                        if $this_time != $last_time {
-                            flush if nqp::elems($batched);
-                            $last_time = $this_time;
+
+                else {   # no emit-timed
+                    my int $msecs = ($seconds * 1000).Int;
+                    my int $last_time =
+                      nqp::div_i(nqp::mul_i(nqp::time,1000000),$msecs);
+
+                    if $max > 0 {
+                        whenever self -> \val {
+                            my int $this_time =
+                              nqp::div_i(nqp::time,nqp::mul_i($msecs,1000000));
+                            if $this_time != $last_time {
+                                flush if nqp::elems($batched);
+                                $last_time = $this_time;
+                                nqp::push($batched,val);
+                            }
+                            else {
+                                nqp::push($batched,val);
+                                flush if nqp::iseq_i(nqp::elems($batched),$max);
+                            }
+                            LAST { final-flush; }
                         }
-                        nqp::push($batched,val);
-                        LAST { final-flush; }
+                    }
+                    else {            # no max and $seconds
+                        whenever self -> \val {
+                            my int $this_time =
+                              nqp::div_i(nqp::time,nqp::mul_i($msecs,1000000));
+                            if $this_time != $last_time {
+                                flush if nqp::elems($batched);
+                                $last_time = $this_time;
+                            }
+                            nqp::push($batched,val);
+                            LAST { final-flush; }
+                        }
                     }
                 }
             }
@@ -548,7 +564,7 @@
     }
     multi method elems(Supply:D: $seconds ) {
         supply {
-            my $last-time := nqp::time_i() div $seconds;
+            my $last-time := nqp::div_i(nqp::time(),1000000000) div $seconds;
             my $this-time;
 
             my int $elems;
@@ -556,7 +572,7 @@
 
             whenever self {
                 $last-elems = ++$elems;
-                $this-time := nqp::time_i() div $seconds;
+                $this-time := nqp::div_i(nqp::time(),1000000000) div $seconds;
 
                 if $this-time != $last-time {
                     emit $elems;

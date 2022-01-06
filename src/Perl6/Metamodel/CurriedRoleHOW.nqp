@@ -21,12 +21,14 @@ class Perl6::Metamodel::CurriedRoleHOW
     does Perl6::Metamodel::Naming
     does Perl6::Metamodel::RoleContainer
     does Perl6::Metamodel::LanguageRevision
+    does Perl6::Metamodel::InvocationProtocol
 {
     has $!curried_role;
     has $!candidate;                # Will contain matching candidate from curried role group
     has @!pos_args;
     has %!named_args;
     has @!role_typecheck_list;
+    has @!parent_typecheck_list;    # Only for parents instantiated from generics
     has $!is_complete;
     has $!archetypes;
 
@@ -54,7 +56,7 @@ class Perl6::Metamodel::CurriedRoleHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     method new_type($curried_role, *@pos_args, *%named_args) {
@@ -71,6 +73,10 @@ class Perl6::Metamodel::CurriedRoleHOW
         my $meta := self.new(:curried_role($curried_role), :pos_args(@pos_args),
             :named_args(%named_args), :name($name));
         my $type := nqp::settypehll(nqp::newtype($meta, 'Uninstantiable'), 'Raku');
+        $meta.set_name($type, $name);
+#?if !moar
+        $meta.compose_invocation($type);
+#?endif
 
         nqp::settypecheckmode($type, 2);
     }
@@ -83,19 +89,40 @@ class Perl6::Metamodel::CurriedRoleHOW
         }
         if nqp::istype($!curried_role.HOW, Perl6::Metamodel::ParametricRoleGroupHOW) {
             $!candidate := $!curried_role.HOW.select_candidate($!curried_role, @pos_args, %!named_args);
+            my $candidate-how := $!candidate.HOW;
 
-            self.set_language_revision($obj, $!candidate.HOW.language-revision($!candidate));
+            self.set_language_revision($obj, $candidate-how.language-revision($!candidate));
 
             my $type_env;
             try {
-                my @result := $!candidate.HOW.body_block($!candidate)(|@pos_args, |%!named_args);
+                my @result := $candidate-how.body_block($!candidate)(|@pos_args, |%!named_args);
                 $type_env := @result[1];
             }
-            for $!candidate.HOW.roles($!candidate, :!transitive) -> $role {
-                if nqp::can($role.HOW, 'curried_role') && $role.HOW.archetypes.generic && $type_env {
+            for $candidate-how.roles($!candidate, :!transitive) -> $role {
+                if $role.HOW.archetypes.generic && $type_env {
                     $role := $role.HOW.instantiate_generic($role, $type_env);
                 }
+                unless $role.HOW.archetypes.generic || $role.HOW.archetypes.parametric {
+                    my $target-name := $obj.HOW.name($obj);
+                    my $role-name := $role.HOW.name($role);
+                    Perl6::Metamodel::Configuration.throw_or_die(
+                        'X::Composition::NotComposable',
+                        $role-name ~ " is not composable, so " ~ $target-name ~ " cannot compose it",
+                        :$target-name,
+                        composer => $role,
+                    )
+                }
                 self.add_role($obj, $role);
+            }
+            # Contrary to roles, we only consider generic parents. I.e. cases like:
+            # role R[::T] is T {}
+            if $type_env {
+                for $candidate-how.parents($!candidate, :local) -> $parent {
+                    if $parent.HOW.archetypes.generic {
+                        my $ins := $parent.HOW.instantiate_generic($parent, $type_env);
+                        nqp::push(@!parent_typecheck_list, $ins)
+                    }
+                }
             }
         }
         self.update_role_typecheck_list($obj);
@@ -108,10 +135,13 @@ class Perl6::Metamodel::CurriedRoleHOW
         # for $!curried_role.HOW.role_typecheck_list($obj) {
         #     nqp::push(@rtl, $_);
         # }
-        for self.roles_to_compose($obj) {
-            nqp::push(@rtl, $_);
-            for $_.HOW.role_typecheck_list($_) {
-                nqp::push(@rtl, $_);
+        for self.roles_to_compose($obj) -> $role {
+            my $how := $role.HOW;
+            if $how.archetypes.composable() || $how.archetypes.composalizable() {
+                nqp::push(@rtl, $role);
+                for $how.role_typecheck_list($role) {
+                    nqp::push(@rtl, $_);
+                }
             }
         }
         @!role_typecheck_list := @rtl;
@@ -181,6 +211,11 @@ class Perl6::Metamodel::CurriedRoleHOW
         if !($!candidate =:= NQPMu) && $!candidate.HOW.type_check_parents($!candidate, $decont) {
             return 1
         }
+        for @!parent_typecheck_list -> $parent {
+            if nqp::istype($decont, $parent) {
+                return 1
+            }
+        }
         for @!role_typecheck_list {
             my $dr := nqp::decont($_);
             if $decont =:= $dr {
@@ -245,6 +280,9 @@ class Perl6::Metamodel::CurriedRoleHOW
         $curried_role.HOW.name($curried_role);
     }
 
+    method is-implementation-detail($obj) {
+        $!curried_role.is-implementation-detail($obj)
+    }
 }
 
 # vim: expandtab sw=4

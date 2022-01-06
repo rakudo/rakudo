@@ -2,7 +2,7 @@ use lib <t/packages/>;
 use Test;
 use Test::Helpers;
 
-plan 25;
+plan 28;
 
 subtest '.map does not explode in optimizer' => {
     plan 3;
@@ -22,6 +22,7 @@ throws-like ｢'x'.substr: /x/, 'x'｣, Exception,
             'using substr instead of subst';
 
 # https://github.com/Raku/old-issue-tracker/issues/6672
+todo 'no location of error, yet', 1 if $*VM.name eq 'jvm';
 throws-like ｢sprintf "%d", class Foo {}.new｣,
     X::Str::Sprintf::Directives::BadType, :gist(/«line\s+\d+$$/),
 'errors from sprintf include location of error';
@@ -51,10 +52,10 @@ subtest 'subsets get named in typecheck errors' => {
 subtest 'like/unlike failures give useful diagnostics' => {
     plan 2;
     is-run ｢use Test; plan 1; like 42, /43/｣,
-        :1exitcode, :out(*), :err{.contains: 'expected a match with'},
+        :1exitcode, :compiler-args[<-I lib>], :out(*), :err{.contains: 'expected a match with'},
     '`like` says it wanted a match, not just "expected"';
     is-run ｢use Test; plan 1; unlike 42, /42/｣,
-        :1exitcode, :out(*), :err{.contains: 'expected no match with'},
+        :1exitcode, :compiler-args[<-I lib>], :out(*), :err{.contains: 'expected no match with'},
     '`unlike` says it wanted no match, not just "expected"';
 }
 
@@ -153,7 +154,7 @@ subtest 'numeric backslash errors do not get accompanied by confusing others' =>
     plan 3;
     my &err = {.contains: 'backslash sequence' & none 'quantifies nothing' }
     is-run ｢"a" ~~ /(a)\1+$/｣, :&err, :exitcode, 'regex';
-    is-run ｢"\1"｣,             :&err, :exitcode, 'qouble quotes';
+    is-run ｢"\1"｣,             :&err, :exitcode, 'double quotes';
     is-run ｢Q:qq:cc/\1/｣,      :&err, :exitcode, ':qq:cc quoter';
 }
 
@@ -174,5 +175,18 @@ cmp-ok X::OutOfRange.new(
 # https://github.com/rakudo/rakudo/issues/2320
 is-run 'class { method z { $^a } }', :err{ my @lines = $^msg.lines; @lines.grep({ !/'⏏'/ && .contains: '$^a' }) }, :exitcode{.so},
 'Use placeholder variables in a method should yield a useful error message';
+
+# https://github.com/rakudo/rakudo/issues/2385
+is-run 'role R2385 { multi method r2385(--> Str) { ... } }; class C2385 does R2385 { multi method r2385(--> Int) { 1 } }',
+    'Role methods implemented by a class are checked for return type as well as for arguments',
+    :err(/ 'Multi method' .+? 'must be implemented' /), :exitcode(so *);
+
+# https://github.com/rakudo/rakudo/issues/2921
+is-run 'bleah:(0)', err => { .contains: 'You can\'t adverb' }, :exitcode{.so},
+'Absurd adverbing results in a proper error message';
+
+# https://github.com/rakudo/rakudo/issues/4178
+is-run 'close $*OUT; say "hi"', err => { .contains: 'closed handle' }, :exitcode{.so},
+'An attempt to use a closed handle results in a proper error message';
 
 # vim: expandtab shiftwidth=4

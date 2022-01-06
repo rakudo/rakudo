@@ -411,14 +411,16 @@ sub configure_moar_backend {
             $nqp_config->{mingw_unicode} = '-municode';
         }
 
+        $nqp_config->{subsystem_win_cc_flags} = '-DSUBSYSTEM_WINDOWS';
         if ( $nqp_config->{'moar::ld'} eq 'link' ) {
-            $nqp_config->{subsystem_windows_flag} = '/subsystem:windows /entry:wmainCRTStartup';
+            $nqp_config->{subsystem_win_ld_flags} = '/subsystem:windows';
         }
         else {
-            $nqp_config->{subsystem_windows_flag} = '--subsystem=windows --entry=wmainCRTStartup';
+            $nqp_config->{subsystem_win_ld_flags} = '-mwindows';
         }
 
         push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shlwapi' );
+        push @c_runner_libs, sprintf( $nqp_config->{'moar::ldusr'}, 'Shell32' );
     }
     else {
         $imoar->{toolchains} = [qw<gdb lldb valgrind>];
@@ -652,7 +654,8 @@ sub gen_nqp {
 
         unless ( $force_rebuild
             || !$nqp_have
-            || $nqp_ver_ok )
+            || $nqp_ok
+            || defined($gen_nqp))
         {
             my $say_sub = $options->{'ignore-errors'} ? 'note' : 'sorry';
             $self->$say_sub(
@@ -891,7 +894,7 @@ sub _m_for_langalias {
 
 sub _m_source_digest_files {
     my $self   = shift;
-    my $indent = " " x ( $self->cfg->{config}{filelist_indent} || 4 );
+    my $indent = " " x ( $self->cfg->{config}{list_indent} || 4 );
     return join( " \\\n$indent", _all_sources($self) );
 }
 

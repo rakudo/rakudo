@@ -5,6 +5,7 @@ src/Perl6/Metamodel/Documenting.nqp
 src/Perl6/Metamodel/Stashing.nqp
 src/Perl6/Metamodel/Versioning.nqp
 src/Perl6/Metamodel/LanguageRevision.nqp
+src/Perl6/Metamodel/Nominalizable.nqp
 src/Perl6/Metamodel/TypePretense.nqp
 src/Perl6/Metamodel/MethodDelegation.nqp
 src/Perl6/Metamodel/BoolificationProtocol.nqp

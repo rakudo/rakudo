@@ -5,6 +5,7 @@ my class MixinCacheHOW {
         nqp::setparameterizer($type, sub ($type, @roles) {
             $class_type.HOW.generate_mixin($class_type, @roles);
         });
+        nqp::setdebugtypename($type, $class_type.HOW.name($class_type) ~ ' mixin cache');
         $type
     }
 }
@@ -26,26 +27,24 @@ role Perl6::Metamodel::Mixins {
 
     method mixin($obj, *@roles, :$need-mixin-attribute) {
         # Lookup mixin, generating it if needed.
-        my int $i := 0;
         my int $n := nqp::elems(@roles);
-        while $i < $n {
+        my int $i := -1;
+        while ++$i < $n {
             @roles[$i] := nqp::decont(@roles[$i]);
-            ++$i;
         }
         my $mixin_type := nqp::parameterizetype($!mixin_cache, @roles);
+        nqp::setdebugtypename($mixin_type, $mixin_type.HOW.name($mixin_type) ~ ' mixin');
 
         # Ensure there's a mixin attribute, if we need it.
         if $need-mixin-attribute {
             my $found := $mixin_type.HOW.mixin_attribute($mixin_type);
             unless $found {
-                my %ex := nqp::gethllsym('Raku', 'P6EX');
-                if !nqp::isnull(%ex) && nqp::existskey(%ex, 'X::Role::Initialization') {
-                    nqp::atkey(%ex, 'X::Role::Initialization')(@roles[0]);
-                }
-                else {
-                    my $name := @roles[0].HOW.name(@roles[0]);
-                    nqp::die("Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '$name'");
-                }
+                my $name := @roles[0].HOW.name(@roles[0]);
+                Perl6::Metamodel::Configuration.throw_or_die(
+                    'X::Role::Initialization',
+                    "Can only supply an initialization value for a role if it has a single public attribute, but this is not the case for '$name'",
+                    :role(@roles[0])
+                );
             }
         }
 
@@ -67,16 +66,22 @@ role Perl6::Metamodel::Mixins {
             nqp::join(',', @role_names) ~ '}';
 
         my @role_shortnames;
-        for @roles { my $cur := $_; @role_shortnames.push(~$_.HOW.shortname($_)); }
+        my $lang_rev := nqp::getcomp('Raku').language_revision;
+        for @roles {
+            my $cur := $_;
+            @role_shortnames.push(~$_.HOW.shortname($_));
+            my $role_lrev := $_.HOW.language-revision($_)
+                if nqp::can($_.HOW, 'language-revision');
+            $lang_rev := $role_lrev if $role_lrev && nqp::islt_s($lang_rev, $role_lrev);
+        }
         my $new_shortname := $obj.HOW.shortname($obj) ~ '+{' ~
             nqp::join(',', @role_shortnames) ~ '}';
 
         # Create new type, derive it from ourself and then add
         # all the roles we're mixing it.
         my $new_type := self.new_type(:name($new_name), :repr($obj.REPR), :is_mixin);
-        $new_type.HOW.set_language_revision($new_type, $obj.HOW.language-revision($obj))
-            if $obj.HOW.is_composed($obj);
         $new_type.HOW.set_is_mixin($new_type);
+        $new_type.HOW.set_language_revision($new_type, $lang_rev);
         $new_type.HOW.add_parent($new_type, $obj.WHAT);
         for @roles {
             $new_type.HOW.add_role($new_type, $_);

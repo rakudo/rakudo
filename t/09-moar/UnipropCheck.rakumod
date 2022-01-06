@@ -1,5 +1,6 @@
 #!/usr/bin/env perl6
 use Test;
+
 my %prop-data =
     NAME => 'name',
     Line_Break => 'str',
@@ -8,12 +9,14 @@ my %prop-data =
 my %expected-loses =
     "extracted/DerivedGeneralCategory.txt" => {
         General_Category => {
-            Cn => 78,
+            Cn => 27,
         },
     },
+    # Many codepoints return XX instead of ID. These codepoints are undefined, but unicode
+    # spec has specified that they should regardless be ID
     "LineBreak.txt" => {
         Line_Break => {
-            ID => 72079,
+            ID => 66841,
             PR => 16
         }
     }
@@ -27,7 +30,7 @@ use nqp;
 sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$answer-column is copy) is export {
     note "File: $file-name" if $*DEBUG;
     $answer-column = 1 if !defined $answer-column;
-    $folder = $*CWD.child("t/3rdparty/Unicode/12.1.0") if !$folder;
+    $folder = $*CWD.child("t/3rdparty/Unicode/13.0.0") if !$folder;
     %LOSE-NUM{$file-name}{$uniprop} = 0 if %LOSE-NUM{$file-name}{$uniprop}:!exists;
     %WIN-NUM{$file-name}{$uniprop}  = 0 if %WIN-NUM{$file-name}{$uniprop}:!exists;
     my IO::Path:D $file = $folder.child: $file-name;
@@ -52,7 +55,13 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
                     correct($value, $_, $uniprop, $file-name);
                 }
                 else {
-                    wrong($value, $_, $uniprop, $file-name);
+                    if $*DEBUG {
+                        my $actual = $call eq 'str' ?? nqp::getuniprop_str($_, $propcode) !! nqp::getuniprop_int($_, $propcode);
+                        wrong($value, "cp $_ expected $value actually $actual", $uniprop, $file-name);
+                    }
+                    else {
+                        wrong($value, $_, $uniprop, $file-name);
+                    }
                 }
             }
         }
@@ -62,21 +71,21 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
         CATCH { die "$_\nError: Line: $line\n\@array: @array.raku()" }
     }
     my Bool:D $has-tested = False;
-    for %LOSES{$file-name}{$uniprop}.keys -> $pvalue {
+    for %LOSES{$file-name}{$uniprop}.keys.sort -> $pvalue {
         $has-tested = True;
         %expected-loses{$file-name}{$uniprop}{$pvalue} = 0 if %expected-loses{$file-name}{$uniprop}:!exists or %expected-loses{$file-name}{$uniprop}{$pvalue}:!exists;
         todo "Expecting %expected-loses{$file-name}{$uniprop}{$pvalue} failures from $uniprop=$pvalue", 1
-            if %expected-loses{$file-name}{$uniprop}{$pvalue} >= %LOSES{$file-name}{$uniprop}{$pvalue};
-        ok %LOSES{$file-name}{$uniprop}{$pvalue} < %expected-loses{$file-name}{$uniprop}{$pvalue},
+            if %LOSES{$file-name}{$uniprop}{$pvalue} <  %expected-loses{$file-name}{$uniprop}{$pvalue};
+        ok %LOSES{$file-name}{$uniprop}{$pvalue} <= %expected-loses{$file-name}{$uniprop}{$pvalue},
         format-test-text($uniprop, $file-name, %WINS{$file-name}{$uniprop}{$pvalue}, %LOSES{$file-name}{$uniprop}{$pvalue}, $pvalue, %expected-loses{$file-name}{$uniprop}{$pvalue});
     }
-    for %expected-loses{$file-name}{$uniprop}.keys -> $pvalue {
+    for %expected-loses{$file-name}{$uniprop}.keys.sort -> $pvalue {
         next if %LOSES{$file-name}{$uniprop}{$pvalue}:exists;
         $has-tested = True;
         %LOSES{$file-name}{$uniprop}{$pvalue} = 0 if %LOSES{$file-name}{$uniprop}{$pvalue}:!exists;
         todo "Expecting %expected-loses{$file-name}{$uniprop}{$pvalue} failures from $uniprop=$pvalue", 1
-            if %expected-loses{$file-name}{$uniprop}{$pvalue} > %LOSES{$file-name}{$uniprop}{$pvalue};
-        ok(%LOSES{$file-name}{$uniprop}{$pvalue} < %expected-loses{$file-name}{$uniprop}{$pvalue},
+            if %LOSES{$file-name}{$uniprop}{$pvalue} < %expected-loses{$file-name}{$uniprop}{$pvalue};
+        ok(%LOSES{$file-name}{$uniprop}{$pvalue} <= %expected-loses{$file-name}{$uniprop}{$pvalue},
             format-test-text($uniprop, $file-name,
                 %WINS{$file-name}{$uniprop}{$pvalue},
                 %LOSES{$file-name}{$uniprop}{$pvalue}, $pvalue,
@@ -86,9 +95,12 @@ sub test-file (IO::Path $folder is copy, Str:D $file-name, Str:D $uniprop, :$ans
         ok True, format-test-text($uniprop, $file-name, %WIN-NUM{$file-name}{$uniprop}, %LOSE-NUM{$file-name}{$uniprop});
     }
     if $*DEBUG {
-        dd %FAILED{$file-name}{$uniprop};
-        #dd %LOSES{$file-name}{$uniprop};
-        #dd %WINS{$file-name}{$uniprop};
+        my @list = %FAILED{$file-name}{$uniprop}.list;
+        my @debug-out;
+        while @list {
+            @debug-out.push: @list.splice(0, 10).join(', ');
+        }
+        note "\%FAILED\{$file-name\}\{$uniprop\}:\n", @debug-out.join("\n").indent(4);
         note "Property: $uniprop win %WIN-NUM{$file-name}{$uniprop} lose %LOSE-NUM{$file-name}{$uniprop} percent: " ~ (%LOSE-NUM{$file-name}{$uniprop} == 0 ?? 1 !! %LOSE-NUM{$file-name}{$uniprop}/%WIN-NUM{$file-name}{$uniprop}) * 100;
     }
 }
@@ -96,7 +108,7 @@ sub format-test-text ($uniprop, $file-name, $correct, $wrong, Str:D $pvalue = ""
     "Property: $uniprop"
     ~ ($pvalue ?? "=$pvalue" !! "")
     ~ " from file: $file-name (Correct: $correct Wrong: $wrong)"
-    ~ ($looking-for ?? ". Todo'd if <= $looking-for failures." !! "")
+    ~ ($looking-for ?? ". Todo'd if < $looking-for failures." !! "")
 }
 sub ends-with (\a, \b) {
     nqp::eqat(a, b, nqp::chars(a) - nqp::chars(b))

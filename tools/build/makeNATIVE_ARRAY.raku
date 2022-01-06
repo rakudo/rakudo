@@ -1,9 +1,10 @@
 #!/usr/bin/env raku
 
-# This script reads the native_array.pm6 file from STDIN, and generates the
-# intarray, numarray and strarray roles in it, and writes it to STDOUT.
+# This script reads the native_array.pm6 file, and generates the intarray,
+# numarray and strarray roles in it, and writes it back to the file.
 
-use v6;
+# always use highest version of Raku
+use v6.*;
 
 my $generator = $*PROGRAM-NAME;
 my $generated = DateTime.now.gist.subst(/\.\d+/,'');
@@ -12,8 +13,14 @@ my $idpos     = $start.chars;
 my $idchars   = 3;
 my $end       = '#- end of generated part of ';
 
+# slurp the whole file and set up writing to it
+my $filename = "src/core.c/native_array.pm6";
+my @lines = $filename.IO.lines;
+$*OUT = $filename.IO.open(:w);
+
 # for all the lines in the source that don't need special handling
-for $*IN.lines -> $line {
+while @lines {
+    my $line := @lines.shift;
 
     # nothing to do yet
     unless $line.starts-with($start) {
@@ -35,8 +42,8 @@ for $*IN.lines -> $line {
     say "#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE";
 
     # skip the old version of the code
-    for $*IN.lines -> $line {
-        last if $line.starts-with($end);
+    while @lines {
+        last if @lines.shift.starts-with($end);
     }
 
     # set up template values
@@ -49,6 +56,133 @@ for $*IN.lines -> $line {
 
     # spurt the role
     say Q:to/SOURCE/.subst(/ '#' (\w+) '#' /, -> $/ { %mapper{$0} }, :g).chomp;
+
+        multi method grep(#type#array:D: #Type#:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result   := nqp::create(IterationBuffer);
+
+            if $k {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+                    nqp::push($result,nqp::clone($i))
+                  )
+                );
+            }
+            elsif $kv {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+                    nqp::stmts(
+                      nqp::push($result,nqp::clone($i)),
+                      nqp::push($result,$needle)
+                    )
+                  )
+                );
+            }
+            elsif $p {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+                    nqp::push($result,Pair.new($i,$needle))
+                  )
+                );
+            }
+            else {
+                my int $found;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+                    nqp::push($result,$needle)
+                  )
+                );
+            }
+            $result.Seq
+        }
+
+        multi method first(#type#array:D: #Type#:D $needle, :$k, :$kv, :$p, :$v) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::isne_#postfix#(nqp::atpos_#postfix#(self,$i),$needle),
+              nqp::null()
+            );
+
+            nqp::iseq_i($i,nqp::elems(self))
+              ?? Nil
+              !! $k
+                ?? $i
+                !! $kv
+                  ?? ($i,$needle)
+                  !! $p
+                    ?? Pair.new($i,$needle)
+                    !! $needle
+        }
+
+#        multi method unique(#type#array:D: --> Seq:D) {
+#            my int $i     = -1;
+#            my int $elems = nqp::elems(self);
+#            my $result := nqp::create(self);
+#            my $seen   := nqp::hash;
+#
+#            nqp::while(
+#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+#              nqp::unless(
+#                nqp::existskey($seen,nqp::atpos_#postfix#(self,$i)),
+#                nqp::stmts(
+#                  nqp::bindkey($seen,nqp::atpos_#postfix#(self,$i),1),
+#                  nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,$i))
+#                )
+#              )
+#            );
+#
+#            $result.Seq
+#        }
+#
+#        multi method repeated(#type#array:D: --> Seq:D) {
+#            my int $i     = -1;
+#            my int $elems = nqp::elems(self);
+#            my $result := nqp::create(self);
+#            my $seen   := nqp::hash;
+#
+#            nqp::while(
+#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+#              nqp::if(
+#                nqp::existskey($seen,nqp::atpos_#postfix#(self,$i)),
+#                nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,$i)),
+#                nqp::bindkey($seen,nqp::atpos_#postfix#(self,$i),1)
+#              )
+#            );
+#
+#            $result.Seq
+#        }
+#
+#        multi method squish(#type#array:D: --> Seq:D) {
+#            if nqp::elems(self) -> int $elems {
+#                my $result  := nqp::create(self);
+#                my #type# $last = nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,0));
+#                my int $i;
+#
+#                nqp::while(
+#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+#                  nqp::if(
+#                    nqp::isne_#postfix#(nqp::atpos_#postfix#(self,$i),$last),
+#                    nqp::push_#postfix#($result,$last = nqp::atpos_#postfix#(self,$i))
+#                  )
+#                );
+#                $result.Seq
+#            }
+#            else {
+#                self.Seq
+#            }
+#        }
 
         multi method AT-POS(#type#array:D: int $idx --> #type#) is raw {
             nqp::islt_i($idx,0)
@@ -101,9 +235,7 @@ for $*IN.lines -> $line {
         multi method STORE(#type#array:D: Seq:D \seq --> #type#array:D) {
             nqp::if(
               (my $iterator := seq.iterator).is-lazy,
-              X::Cannot::Lazy.new(
-                :action<store>, :what(self.^name)
-              ).throw,
+              self.throw-iterator-cannot-be-lazy('store'),
               nqp::stmts(
                 nqp::setelems(self,0),
                 $iterator.push-all(self),
@@ -169,7 +301,7 @@ for $*IN.lines -> $line {
             nqp::splice(self,$values,nqp::elems(self),0)
         }
         multi method append(#type#array:D: @values --> #type#array:D) {
-            fail X::Cannot::Lazy.new(:action<append>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.append')
               if @values.is-lazy;
             nqp::push_#postfix#(self, $_) for flat @values;
             self
@@ -178,13 +310,13 @@ for $*IN.lines -> $line {
         method pop(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::pop_#postfix#(self)
-              !! X::Cannot::Empty.new(:action<pop>, :what(self.^name)).throw;
+              !! self.throw-cannot-be-empty('pop')
         }
 
         method shift(#type#array:D: --> #type#) {
             nqp::elems(self)
               ?? nqp::shift_#postfix#(self)
-              !! X::Cannot::Empty.new(:action<shift>, :what(self.^name)).throw;
+              !! self.throw-cannot-be-empty('shift')
         }
 
         multi method unshift(#type#array:D: #type# $value --> #type#array:D) {
@@ -196,7 +328,7 @@ for $*IN.lines -> $line {
             self
         }
         multi method unshift(#type#array:D: @values --> #type#array:D) {
-            fail X::Cannot::Lazy.new(:action<unshift>, :what(self.^name))
+            return self.fail-iterator-cannot-be-lazy('.unshift')
               if @values.is-lazy;
             nqp::unshift_#postfix#(self, @values.pop) while @values;
             self
@@ -269,7 +401,7 @@ for $*IN.lines -> $line {
         multi method splice(#type#array:D: Int:D $offset, Int:D $size, Seq:D \seq --> #type#array:D) {
             nqp::if(
               seq.is-lazy,
-              X::Cannot::Lazy.new(:action<splice>, :what(self.^name)).throw,
+              self.throw-iterator-cannot-be-lazy('.splice'),
               nqp::stmts(
                 nqp::unless(
                   nqp::istype(
@@ -283,7 +415,7 @@ for $*IN.lines -> $line {
             )
         }
         multi method splice(#type#array:D: $offset=0, $size=Whatever, *@values --> #type#array:D) {
-            fail X::Cannot::Lazy.new(:action('splice in'))
+            return self.fail-iterator-cannot-be-lazy('splice in')
               if @values.is-lazy;
 
             my int $elems = nqp::elems(self);
@@ -371,6 +503,9 @@ for $*IN.lines -> $line {
         method iterator(#type#array:D: --> PredictiveIterator:D) {
             Rakudo::Iterator.native_#postfix#(self)
         }
+        method Seq(#type#array:D: --> Seq:D) {
+            Seq.new(Rakudo::Iterator.native_#postfix#(self))
+        }
 
         method reverse(#type#array:D: --> #type#array:D) is nodal {
             nqp::stmts(
@@ -436,7 +571,7 @@ for $*IN.lines -> $line {
         }
         proto method grab(|) {*}
         multi method grab(#type#array:D: --> #type#) {
-            nqp::if(nqp::elems(self),self.GRAB_ONE,Nil)
+            nqp::elems(self) ?? self.GRAB_ONE !! Nil
         }
         multi method grab(#type#array:D: Callable:D $calculate --> #type#) {
             self.grab($calculate(nqp::elems(self)))
@@ -474,13 +609,14 @@ for $*IN.lines -> $line {
                   IterationEnd
                 )
             }
+            method deterministic(--> False) { }
         }
         multi method grab(#type#array:D: \count --> Seq:D) {
-            Seq.new(nqp::if(
-              nqp::elems(self),
-              GrabN.new(self,count),
-              Rakudo::Iterator.Empty
-            ))
+            Seq.new(
+              nqp::elems(self)
+                ?? GrabN.new(self,count)
+                !! Rakudo::Iterator.Empty
+            )
         }
 
         method GRAB_ONE(#type#array:D: --> #type#) is implementation-detail {
@@ -499,5 +635,8 @@ SOURCE
     say "#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE";
     say $end ~ $type ~ "array role -------------------------------------";
 }
+
+# close the file properly
+$*OUT.close;
 
 # vim: expandtab sw=4

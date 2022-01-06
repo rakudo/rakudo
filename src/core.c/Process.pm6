@@ -4,9 +4,21 @@ Rakudo::Internals.REGISTER-DYNAMIC: '$*RAKUDO_MODULE_DEBUG', {
             state $level = %*ENV<RAKUDO_MODULE_DEBUG>++;
             my $indent = (($level - 1) * 4) + 1;
             my $str = @str>>.indent(7 + $indent).join("\n").substr(7 + $indent);
-            note sprintf "%2d%sRMD: $str", $level, " " x $indent;
+            note sprintf "%2d%sRMD: %s", $level, " " x $indent, $str;
          }
-      !! False
+      !! ?%*ENV<RAKUDO_PRECOMPILATION_PROGRESS>
+        ?? -> $note --> Nil {
+              state $level = %*ENV<RAKUDO_PRECOMPILATION_PROGRESS>++ - 1;
+              state $module;
+              my $message := $note.trim-leading;
+              if $message.starts-with("Late loading '") {
+                  $module = $message.substr(14, *-1);
+              }
+              elsif $message.starts-with("Precompiling ") {
+                  note " " x $level ~ "Precompiling $module";
+              }
+           }
+        !! False
 }
 
 Rakudo::Internals.REGISTER-DYNAMIC: '$*EXECUTABLE', {

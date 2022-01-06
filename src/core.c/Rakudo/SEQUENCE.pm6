@@ -5,10 +5,9 @@ sub SEQUENCE(
     my \righti := (nqp::iscont(right) ?? right !! [right]).iterator;
     my $endpoint := righti.pull-one;
     $endpoint.throw if nqp::istype($endpoint,Failure);
-    X::Cannot::Empty.new(
-        :action('get sequence endpoint'),
-        :what('list (use * or :!elems instead?)'),
-    ).throw if nqp::eqaddr($endpoint,IterationEnd);
+    Any.throw-cannot-be-empty(
+      'get sequence endpoint', 'list (use * or :!elems instead?)'
+    ) if nqp::eqaddr($endpoint,IterationEnd);
 
     my $infinite := nqp::istype($endpoint,Whatever) || $endpoint === Inf;
     $endpoint := False if $infinite;
@@ -88,9 +87,9 @@ sub SEQUENCE(
             }
             @tail.push(value);
         }
-        X::Cannot::Empty.new(
-            :action('get sequence start value'), :what('list')
-        ).throw unless $looped;
+        Any.throw-cannot-be-empty(
+          'get sequence start value', 'list'
+        ) unless $looped;
 
         if $stop {
             my $ = take $_ for @tail; # don't sink return of take()

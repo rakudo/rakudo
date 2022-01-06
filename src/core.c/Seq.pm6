@@ -31,15 +31,11 @@ my class Seq is Cool does Iterable does Sequence {
     }
 
     multi method is-lazy(Seq:D:) {
-        nqp::if(
-          nqp::isconcrete($!iter),
-          $!iter.is-lazy,
-          nqp::if(
-            nqp::isconcrete($!list),
-            $!list.is-lazy,
-            X::Seq::Consumed.new.throw
-          )
-        )
+        nqp::isconcrete($!iter)
+          ?? $!iter.is-lazy
+          !! nqp::isconcrete($!list)
+            ?? $!list.is-lazy
+            !! X::Seq::Consumed.new.throw
     }
 
     multi method Seq(Seq:D:)   { self }
@@ -49,41 +45,35 @@ my class Seq is Cool does Iterable does Sequence {
     }
 
     method elems() {
-        nqp::if(
-          self.is-lazy,
-          Failure.new(X::Cannot::Lazy.new(action => '.elems')),
-          nqp::if(
-            nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
-            $!iter.count-only,
-            self.cache.elems
-          )
-        )
+        self.is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('.elems')
+          !! nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator)
+            ?? $!iter.count-only
+            !! self.cache.elems
     }
 
     method Numeric() { self.elems }
     method Int()     { self.elems }
 
     method Bool(Seq:D:) {
-        nqp::if(
-          nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator),
-          $!iter.bool-only,
-          self.cache.Bool
-        )
+        nqp::isconcrete($!iter) && nqp::istype($!iter,PredictiveIterator)
+          ?? $!iter.bool-only
+          !! self.cache.Bool
     }
 
     multi method raku(Seq:D \SELF:) {
         # If we don't have an iterator, someone grabbed it already;
         # Check for cached $!list; if that's missing too, we're consumed
-        my $perl;
+        my $raku;
         if not $!iter.DEFINITE and not $!list.DEFINITE {
             # cannot call .cache on a Seq that's already been iterated,
             # so we need to produce a string that, when EVAL'd, reproduces
             # an already iterated Seq.
             # compare https://github.com/Raku/old-issue-tracker/issues/5124
-            $perl = self.^name ~ '.new()';
+            $raku = self.^name ~ '.new()';
         }
-        else { $perl = self.cache.raku ~ '.Seq' }
-        nqp::iscont(SELF) ?? '$(' ~ $perl ~ ')' !! $perl
+        else { $raku = self.cache.raku ~ '.Seq' }
+        nqp::iscont(SELF) ?? '$(' ~ $raku ~ ')' !! $raku
     }
 
     method join(Seq:D: $separator = '' --> Str:D) {
@@ -114,7 +104,7 @@ my class Seq is Cool does Iterable does Sequence {
     method reverse(--> Seq:D) is nodal {
         nqp::if(
           (my $iterator := self.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<reverse>)),
+          self.fail-iterator-cannot-be-lazy('.reverse'),
           nqp::stmts(
             $iterator.push-all(my \buffer := nqp::create(IterationBuffer)),
             Seq.new: Rakudo::Iterator.ReifiedReverse(buffer, Mu)
@@ -125,7 +115,7 @@ my class Seq is Cool does Iterable does Sequence {
     method rotate(Int(Cool) $rotate = 1 --> Seq:D) is nodal {
         nqp::if(
           (my $iterator := self.iterator).is-lazy,
-          Failure.new(X::Cannot::Lazy.new(:action<rotate>)),
+          self.fail-iterator-cannot-be-lazy('.rotate'),
           nqp::if(
             $rotate,
             Seq.new( nqp::if(
@@ -140,6 +130,20 @@ my class Seq is Cool does Iterable does Sequence {
           )
         )
     }
+
+    multi method slice(Seq:D: Iterable:D \iterable --> Seq:D) {
+        Seq.new(
+          Rakudo::Iterator.MonotonicIndexes(
+            self.iterator,
+            iterable.iterator,
+            0,
+            -> $index, $next {
+                die "Provided index $index, which is lower than $next";
+            }
+          )
+        )
+    }
+    multi method slice(Seq:D: *@indices --> Seq:D) { self.slice(@indices) }
 
     method sink(--> Nil) {
         nqp::if(

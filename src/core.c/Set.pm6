@@ -29,11 +29,9 @@ my class Set does Setty {
 
     my class Iterate does Rakudo::Iterator::Mappy {
         method pull-one() {
-          nqp::if(
-            $!iter,
-            Pair.new(nqp::iterval(nqp::shift($!iter)),True),
-            IterationEnd
-          )
+          $!iter
+            ?? Pair.new(nqp::iterval(nqp::shift($!iter)),True)
+            !! IterationEnd
         }
     }
     method iterator(Set:D:) { Iterate.new($!elems) }
@@ -79,13 +77,11 @@ my class Set does Setty {
 #--- coercion methods
     multi method Set(Set:D:) { self }
     multi method SetHash(Set:D:) {
-        nqp::if(
-          $!elems && nqp::elems($!elems),
-          nqp::p6bindattrinvres(
-            nqp::create(SetHash),SetHash,'$!elems',nqp::clone($!elems)
-          ),
-          nqp::create(SetHash)
-        )
+        $!elems && nqp::elems($!elems)
+          ?? nqp::p6bindattrinvres(
+               nqp::create(SetHash),SetHash,'$!elems',nqp::clone($!elems)
+             )
+          !! nqp::create(SetHash)
     }
 
     multi method Setty(Set:U:) { Set      }
@@ -96,10 +92,9 @@ my class Set does Setty {
     multi method Mixy (Set:D:) { self.Mix }
 
 #--- interface methods
-    multi method STORE(Set:D: *@pairs, :INITIALIZE($)! --> Set:D) {
-        (my \iterator := @pairs.iterator).is-lazy
-          ?? Failure.new(
-               X::Cannot::Lazy.new(:action<initialize>,:what(self.^name)))
+    multi method STORE(Set:D: Iterable:D \iterable, :INITIALIZE($)! --> Set:D) {
+        (my \iterator := iterable.iterator).is-lazy
+          ?? self.fail-iterator-cannot-be-lazy('initialize')
           !! self.SET-SELF(Rakudo::QuantHash.ADD-PAIRS-TO-SET(
                nqp::create(Rakudo::Internals::IterationSet),
                iterator,

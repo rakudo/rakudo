@@ -30,7 +30,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
     }
 
     method new(*%named) {
-        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), |%named)
+        nqp::findmethod(NQPMu, 'BUILDALL')(nqp::create(self), %named)
     }
 
     my class Collision {
@@ -91,7 +91,9 @@ class Perl6::Metamodel::ConcreteRoleHOW
 
     # It makes sense for concretizations to default to MRO order of roles.
     method roles($obj, :$transitive = 1, :$mro = 1) {
-        self.roles-ordered($obj, @!roles, :$transitive, :$mro);
+        $transitive
+            ?? self.roles-ordered($obj, @!roles, :transitive, :$mro)
+            !! @!roles
     }
 
     method add_to_role_typecheck_list($obj, $type) {
@@ -121,7 +123,7 @@ class Perl6::Metamodel::ConcreteRoleHOW
         nqp::settypecache($obj, @types)
     }
 
-    method mro($obj, :$roles = 0, :$unhidden = 0) {
+    method mro($obj, :$roles, :$concretizations, :$unhidden) {
         [$obj]
     }
 
@@ -159,6 +161,10 @@ class Perl6::Metamodel::ConcreteRoleHOW
         else {
             nqp::null()
         }
+    }
+
+    method is-implementation-detail($obj) {
+        @!roles[0].is-implementation-detail($obj)
     }
 }
 

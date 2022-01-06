@@ -65,7 +65,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     method nude() { $!numerator, $!denominator }
 
-    method Num(--> Num:D) {
+    method Num(Rational:D: --> Num:D) {
         nqp::p6box_n(nqp::div_In($!numerator,$!denominator))
     }
 
@@ -105,8 +105,6 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
 
     multi method Bool(::?CLASS:D:) { nqp::hllbool(nqp::istrue($!numerator)) }
 
-    method Bridge() { self.Num }
-
     method Range(::?CLASS:U:) { Range.new(-Inf, Inf) }
 
     method isNaN (--> Bool:D) {
@@ -114,7 +112,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     }
 
     method is-prime(--> Bool:D) {
-        nqp::if($!denominator == 1,$!numerator.is-prime)
+        $!denominator == 1 && $!numerator.is-prime
     }
 
     multi method Str(::?CLASS:D: --> Str:D) {

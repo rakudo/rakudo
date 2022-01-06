@@ -13,7 +13,9 @@ my class Pod::Block::Declarator { ... }
 
 proto sub trait_mod:<is>(Mu $, |) {*}
 multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent) {
-    if $parent.HOW.archetypes.inheritable() {
+    if $parent.HOW.archetypes.inheritable()
+        || ($child.HOW.archetypes.parametric && $parent.HOW.archetypes.generic)
+    {
         $child.^add_parent($parent);
     }
     elsif $parent.HOW.archetypes.inheritalizable() {
@@ -80,6 +82,13 @@ multi sub trait_mod:<is>(Mu:U $type, Mu:U $parent, Hash) {
       :what<Hash>
     ).throw;
 }
+multi sub trait_mod:<is>(Mu:U $type, :$implementation-detail!) {
+    my role is-implementation-detail {
+        method is-implementation-detail(Mu --> 1) { }
+    }
+    $type.HOW.^mixin(is-implementation-detail)
+      if $implementation-detail;
+}
 multi sub trait_mod:<is>(Mu:U $type, *%fail) {
     if %fail.keys[0] !eq $type.^name {
         X::Inheritance::UnknownParent.new(
@@ -129,7 +138,7 @@ multi sub trait_mod:<is>(Attribute:D $attr, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
-    role is-DEPRECATED { has $.DEPRECATED }
+    my role is-DEPRECATED { has $.DEPRECATED }
     $attr does is-DEPRECATED($new);
 }
 multi sub trait_mod:<is>(Attribute:D $attr, :$leading_docs!) {
@@ -155,8 +164,8 @@ multi sub trait_mod:<is>(Routine:D $r, |c ) {
         declaring  => ' ' ~ $r.^name.split('+').head.lc,
         highexpect => (
             'rw raw hidden-from-backtrace hidden-from-USAGE pure default',
-            'DEPRECATED inlinable nodal prec equiv tighter looser assoc',
-            'leading_docs trailing_docs',
+            'implementation-detail DEPRECATED inlinable nodal prec equiv',
+            'tighter looser assoc leading_docs trailing_docs',
             ('',"or did you forget to 'use NativeCall'?"
               if $subtype eq 'native').Slip
           ),
@@ -175,6 +184,8 @@ multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!) {
     my $new := nqp::istype($DEPRECATED,Bool)
       ?? "something else"
       !! $DEPRECATED;
+    my role is-DEPRECATED { has $.DEPRECATED }
+    $r does is-DEPRECATED($new);
     $r.add_phaser( 'ENTER', -> { Rakudo::Deprecations.DEPRECATED($new) } );
 }
 multi sub trait_mod:<is>(Routine:D $r, Mu :$inlinable!) {
@@ -280,8 +291,8 @@ my $!;
 my $/;
 my $_;
 
-multi sub trait_mod:<is>(Routine:D \r, :$export!, :$SYMBOL = '&' ~ r.name) {
-    my $to_export := r.multi ?? r.dispatcher !! r;
+multi sub trait_mod:<is>(Routine:D $r, :$export!, :$SYMBOL = '&' ~ $r.name) {
+    my $to_export := $r.multi ?? $r.dispatcher !! $r;
     my @tags = flat 'ALL', (
         nqp::istype($export,Pair)
             ?? $export.key()
@@ -362,11 +373,14 @@ multi sub trait_mod:<is>(Mu:U $docee, :$trailing_docs!) {
 
 proto sub trait_mod:<does>(Mu, Mu, *%) {*}
 multi sub trait_mod:<does>(Mu:U $doee, Mu:U $role) {
-    if $role.HOW.archetypes.composable() {
+    my $how := $role.HOW;
+    if $how.archetypes.parametric()
+        || ($doee.HOW.archetypes.parametric && $how.archetypes.generic)
+    {
         $doee.^add_role($role)
     }
-    elsif $role.HOW.archetypes.composalizable() {
-        $doee.^add_role($role.HOW.composalize($role))
+    elsif $how.archetypes.composalizable() {
+        $doee.^add_role($how.composalize($role))
     }
     else {
         X::Composition::NotComposable.new(

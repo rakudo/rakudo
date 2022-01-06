@@ -41,6 +41,9 @@ BOOTSTRAP_SOURCES = \
 COMMON_METAMODEL_SOURCES = \
     @insert_filelist(common_metamodel_sources)@
 
+COMMON_TEST_DIRS = \
+    @insert_filelist(common_test_dirs)@
+
 NQP_CONFIG_DIR = @nfp(3rdparty/nqp-configure/lib)@
 
 CONFIGURE_SOURCES = \

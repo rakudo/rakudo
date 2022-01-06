@@ -3,11 +3,10 @@ role Perl6::Metamodel::Concretization {
     has @!concretizations;
     has %!conc_table;
 
+    my $lock := NQPLock.new;
+
     method add_concretization($obj, $role, $concrete) {
         @!concretizations[+@!concretizations] := [$role, $concrete];
-        nqp::scwbdisable();
-        %!conc_table := nqp::hash(); # reset the cache
-        nqp::scwbenable();
     }
 
     method concretizations($obj, :$local = 0, :$transitive = 1) {
@@ -35,23 +34,41 @@ role Perl6::Metamodel::Concretization {
         @conc
     }
 
-    method !rebuild_table() {
-        for @!concretizations {
-            nqp::scwbdisable();
-            %!conc_table{~nqp::objectid(nqp::decont($_[0]))} := nqp::decont($_[1]);
-            nqp::scwbenable();
+    method !maybe_rebuild_table() {
+        # Capturing the concretization list is first and foremost because we
+        # depend on its size to know whether or not a rebuild is necessary, but
+        # there may be a wait before then. Try for more predictable output.
+        my int $captured := nqp::elems(@!concretizations);
+        $lock.protect: {
+            # The concretization table can be depended on outside a
+            # thread-safe context, e.g. MRO-based method dispatch. Parsing
+            # a grammar from a start block can lead to a concurrent access
+            # and modification, for instance.
+            my %conc_table := %!conc_table;
+            my int $cached := nqp::elems(%conc_table);
+            if $cached < $captured {
+                %conc_table := nqp::clone(%conc_table);
+                repeat { # Update.
+                    my @c := @!concretizations[$cached];
+                    %conc_table{~nqp::objectid(nqp::decont(@c[0]))} := nqp::decont(@c[1]);
+                } while ++$cached < $captured;
+                nqp::scwbdisable();
+                %!conc_table := %conc_table;
+                nqp::scwbenable();
+            }
+            %conc_table
         }
     }
 
     # Returns a list where the first element is the number of roles found and the rest are actual type objects.
     method concretization_lookup($obj, $ptype, :$local = 0, :$transitive = 1, :$relaxed = 0) {
-        self.'!rebuild_table'() if nqp::elems(%!conc_table) < nqp::elems(@!concretizations);
-        return [0] unless !$local || $transitive || nqp::elems(%!conc_table);
+        my %working_conc_table := self.'!maybe_rebuild_table'();
+        return [0] unless !$local || $transitive || nqp::elems(%working_conc_table);
         $ptype := nqp::decont($ptype);
         my $id := ~nqp::objectid($ptype);
         my @result;
-        if nqp::existskey(%!conc_table, $id) {
-            return [1, %!conc_table{$id}];
+        if nqp::existskey(%working_conc_table, $id) {
+            return [1, %working_conc_table{$id}];
         }
         if $relaxed {
             # Try search by role group for curryings. The first match is ok. Used by FQN method calls.

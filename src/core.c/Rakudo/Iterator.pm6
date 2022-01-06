@@ -4022,13 +4022,14 @@ class Rakudo::Iterator {
     # (with &[,]).  Basically the functionality of roundrobin(@a,@b)
     my class RoundrobinIterables does Iterator {
         has $!iters;
-        has int $!lazy;
+        has $.is-lazy;
         method !SET-SELF(\iterables) {
             my $iterables := nqp::getattr(iterables,List,'$!reified');
             my int $elems = nqp::elems($iterables);
-            $!iters := nqp::setelems(nqp::list,$elems);
-            my int $i = -1;
+            $!iters   := nqp::setelems(nqp::list,$elems);
+            $!is-lazy := False;
 
+            my int $i = -1;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::bindpos($!iters,$i,
@@ -4036,7 +4037,7 @@ class Rakudo::Iterator {
                   nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
                   Rakudo::Iterator.OneValue($elem),
                   nqp::stmts(
-                    nqp::if($elem.is-lazy,($!lazy = 1)),
+                    nqp::if($elem.is-lazy,($!is-lazy := True)),
                     $elem.iterator
                   )
                 )
@@ -4076,11 +4077,64 @@ class Rakudo::Iterator {
               )
             )
         }
-        method is-lazy() { nqp::hllbool($!lazy) }
     }
     method RoundrobinIterables(@iterables) {
         nqp::isgt_i(@iterables.elems,0)  # reifies
           ?? RoundrobinIterables.new(@iterables)
+          !! Rakudo::Iterator.Empty
+    }
+
+    # Return an iterator that will slip all values of the given iterables
+    # roundrobinly.  Basically the functionality of roundrobin(@a,@b, :slip)
+    my class RoundrobinIterablesSlipped does Iterator {
+        has $!iters;
+        has $.is-lazy;
+        has int $!i;
+        method !SET-SELF(\iterables) {
+            my $iterables := nqp::getattr(iterables,List,'$!reified');
+            my int $elems = nqp::elems($iterables);
+            $!iters   := nqp::setelems(nqp::list,$elems);
+            $!is-lazy := False;
+
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos($!iters,$i,
+                nqp::if(
+                  nqp::iscont(my $elem := nqp::atpos($iterables,$i)),
+                  Rakudo::Iterator.OneValue($elem),
+                  nqp::stmts(
+                    nqp::if($elem.is-lazy,($!is-lazy := True)),
+                    $elem.iterator
+                  )
+                )
+              )
+            );
+            self
+        }
+        method new(\iterables) { nqp::create(self)!SET-SELF(iterables) }
+        method pull-one() {
+            nqp::while(
+              nqp::islt_i($!i,nqp::elems($!iters))
+                && nqp::eqaddr(
+                     (my $pulled := nqp::atpos($!iters,$!i).pull-one),
+                     IterationEnd
+                   ),
+              nqp::stmts(
+                nqp::splice($!iters,$empty,$!i,1),       # remove exhausted
+                nqp::if(                                 # check at same index
+                  nqp::isge_i($!i,nqp::elems($!iters)),  # unless it was last
+                  ($!i = 0)
+                )
+              )
+            );
+            $!i = 0 if nqp::isge_i(++$!i,nqp::elems($!iters));
+            $pulled
+        }
+    }
+    method RoundrobinIterablesSlipped(@iterables) {
+        nqp::isgt_i(@iterables.elems,0)  # reifies
+          ?? RoundrobinIterablesSlipped.new(@iterables)
           !! Rakudo::Iterator.Empty
     }
 

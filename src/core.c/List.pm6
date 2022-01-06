@@ -1606,8 +1606,11 @@ multi sub infix:<Z>(+lol --> Seq:D) {
 my constant &zip := &infix:<Z>;
 
 proto sub roundrobin(|) {*}
-multi sub roundrobin(+lol --> Seq:D) {
-    Seq.new(Rakudo::Iterator.RoundrobinIterables(lol))
+multi sub roundrobin(+lol, :$slip --> Seq:D) {
+    Seq.new($slip
+      ?? Rakudo::Iterator.RoundrobinIterablesSlipped(lol)
+      !! Rakudo::Iterator.RoundrobinIterables(lol)
+    )
 }
 
 # vim: expandtab shiftwidth=4

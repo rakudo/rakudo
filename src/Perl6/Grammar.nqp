@@ -3039,7 +3039,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
         }
     }
     rule trait_mod:sym<hides>   { <sym> [ <typename> || <.bad_trait_typename>] }
-    rule trait_mod:sym<does>    { <sym> [ <typename> || <.bad_trait_typename>] }
+    rule trait_mod:sym<does>    { <sym> [ <typename(:needs-whitespace)> || <.bad_trait_typename>] }
     rule trait_mod:sym<will>    { <sym> [ <identifier> || <.panic: 'Invalid name'>] <pblock($PBLOCK_OPTIONAL_TOPIC)> }
     rule trait_mod:sym<of>      { <sym> [ <typename> || <.bad_trait_typename>] }
     rule trait_mod:sym<returns> { <sym> [ <typename> || <.bad_trait_typename>]
@@ -3357,7 +3357,7 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token complex_number { '<' <bare_complex_number> '>' }
     token bare_complex_number { <?before <.[-−+0..9<>:.eEboxdInfNa\\]>+? 'i'> <re=.signed-number> <?[-−+]> <im=.signed-number> \\? 'i' }
 
-    token typename {
+    token typename(:$needs-whitespace) {
         :my %colonpairs;
         [
         | '::?'<identifier> <colonpair>*    # parse ::?CLASS as special case
@@ -3376,7 +3376,14 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
             '[' ~ ']' <arglist>
             <.explain_mystery> <.cry_sorrows>
         ]?
-        <.unsp>? [ <?before '{'> <whence=.postcircumfix> <.NYI('Autovivifying object closures')> ]?
+        <.unsp>? [ <?before '{'> {
+            if $needs-whitespace {
+                $/.typed_panic('X::Syntax::Missing', what => "whitespace before '\{'");
+            }
+            else {
+                $/.typed_panic('X::NYI', feature => 'Autovivifying object closures');
+            }
+        } <whence=.postcircumfix> ]?
         <.unsp>? [ <?[(]> '(' ~ ')' [<.ws> [<accept=.typename> || $<accept_any>=<?>] <.ws>] ]?
         [<.ws> 'of' <.ws> <typename> ]?
         [

@@ -184,25 +184,24 @@ my class PseudoStash is CORE::v6c::PseudoStash {
     # Interface between GLOBAL and PROCESS and dynamic chain pseudos. Implements mapping of twigilled symbol names
     # into twigilless for atkey/bindkey
     my class CtxDynThunk {
-        has Mu $!storage;
+        has Mu $!stash;
 
         method !SET-SELF(\package) {
-            $!storage := nqp::getattr(package.WHO, Map, '$!storage');
+            $!stash := package.WHO;
             self
         }
         method new(\package) {
             nqp::create(self)!SET-SELF(package)
         }
         method atkey(\sym) is raw {
-            nqp::atkey($!storage, nqp::replace(sym, 1, 1, ''))
+            # nqp::atkey($!storage, nqp::replace(sym, 1, 1, ''))
+            $!stash.AT-KEY: nqp::replace(sym, 1, 1, '')
         }
         method bindkey(\sym, \val) {
-            nqp::bindkey($!storage, nqp::replace(sym, 1, 1, ''), val)
+            # nqp::bindkey($!storage, nqp::replace(sym, 1, 1, ''), val)
+            $!stash.BIND-KEY: nqp::replace(sym, 1, 1, ''), val
         }
     }
-    # We only need one of each globally and on demand only.
-    my CtxDynThunk $GLOBAL-thunk;
-    my CtxDynThunk $PROCESS-thunk;
 
     # Walks over contexts, respects combined chains (DYNAMIC_CHAIN +| STATIC_CHAIN). In the combined case the inital
     # context would be tried for each mode.
@@ -215,6 +214,9 @@ my class PseudoStash is CORE::v6c::PseudoStash {
         has $!cur-mode;
         has $!pick-fallback;
         has $.exhausted;
+
+        my CtxDynThunk $GLOBAL-thunk;
+        my CtxDynThunk $PROCESS-thunk;
 
         class Return {
             has Mu $.lexpad is built(:bind);
@@ -255,12 +257,12 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                                     nqp::isnull(my \promise = nqp::getlexreldyn($!start-ctx, '$*PROMISE')),
                                     nqp::push($!fallbacks, promise)),
                                 nqp::unless(
-                                    ($GLOBAL-thunk.defined),
-                                    nqp::cas($GLOBAL-thunk, CtxDynThunk, CtxDynThunk.new(GLOBAL))),
+                                    nqp::defined($GLOBAL-thunk),
+                                    nqp::cas($GLOBAL-thunk, CtxDynThunk, CtxDynThunk.new(nqp::getcurhllsym('GLOBAL')))),
                                 nqp::push($!fallbacks, nqp::decont($GLOBAL-thunk)),
                                 nqp::unless(
-                                    ($PROCESS-thunk.defined),
-                                    nqp::cas($PROCESS-thunk, CtxDynThunk, CtxDynThunk.new(PROCESS))),
+                                    nqp::defined($PROCESS-thunk),
+                                    nqp::cas($PROCESS-thunk, CtxDynThunk, CtxDynThunk.new(nqp::getcurhllsym('PROCESS')))),
                                 nqp::push($!fallbacks, nqp::decont($PROCESS-thunk))),
                             nqp::unless(
                                 nqp::iseq_i($!cur-mode, PRECISE_SCOPE),
@@ -283,7 +285,7 @@ my class PseudoStash is CORE::v6c::PseudoStash {
                         ($sym-info := nqp::getattr($!ctx, Map, '$!storage')),
                         nqp::if(
                             nqp::istype($!ctx, CtxDynThunk), # For dynamic chain mapping into GLOBAL/PROCESS
-                            nqp::getattr(($sym-info := $!ctx), CtxDynThunk, '$!storage'),
+                            nqp::getattr(nqp::getattr(($sym-info := $!ctx), CtxDynThunk, '$!stash'), Map, '$!storage'),
                             # At this point the only possible value is BOOTContext
                             ($sym-info := nqp::ctxlexpad($!ctx))))),
                 nqp::if(

@@ -27,6 +27,7 @@ my $SIG_ELEM_DEFINED_ONLY        := 131072;
 my $SIG_ELEM_TYPE_GENERIC        := 524288;
 my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
 my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+my $SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
 my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
 my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 my $SIG_ELEM_SLURPY_ONEARG       := 16777216;
@@ -2260,6 +2261,9 @@ class Perl6::World is HLL::World {
         }
         elsif $primspec == 3 {
             $flags := $flags + $SIG_ELEM_NATIVE_STR_VALUE;
+        }
+        elsif $primspec == 10 {
+            $flags := $flags + $SIG_ELEM_NATIVE_UINT_VALUE;
         }
 
         # Populate it.

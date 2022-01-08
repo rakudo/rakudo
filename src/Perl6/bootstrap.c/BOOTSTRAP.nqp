@@ -85,15 +85,19 @@ my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub IntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub UIntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub UIntAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub UIntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub UIntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 
@@ -1887,15 +1891,19 @@ BEGIN {
         nqp::setcontspec($type, 'native_ref', nqp::null());
     }
     setup_native_ref_type(IntLexRef, int, 'lexical');
+    setup_native_ref_type(UIntLexRef, uint, 'lexical');
     setup_native_ref_type(NumLexRef, num, 'lexical');
     setup_native_ref_type(StrLexRef, str, 'lexical');
     setup_native_ref_type(IntAttrRef, int, 'attribute');
+    setup_native_ref_type(UIntAttrRef, uint, 'attribute');
     setup_native_ref_type(NumAttrRef, num, 'attribute');
     setup_native_ref_type(StrAttrRef, str, 'attribute');
     setup_native_ref_type(IntPosRef, int, 'positional');
+    setup_native_ref_type(UIntPosRef, uint, 'positional');
     setup_native_ref_type(NumPosRef, num, 'positional');
     setup_native_ref_type(StrPosRef, str, 'positional');
     setup_native_ref_type(IntMultidimRef, int, 'multidim');
+    setup_native_ref_type(UIntMultidimRef, uint, 'multidim');
     setup_native_ref_type(NumMultidimRef, num, 'multidim');
     setup_native_ref_type(StrMultidimRef, str, 'multidim');
 
@@ -3784,15 +3792,19 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Int);
     Perl6::Metamodel::ClassHOW.add_stash(Num);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntLexRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(UIntLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntAttrRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(UIntAttrRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumAttrRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrAttrRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(UIntPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(UIntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
 #?if js
@@ -3924,12 +3936,15 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Scalar>     := Scalar;
     EXPORT::DEFAULT.WHO<ScalarVAR>  := ScalarVAR;
     EXPORT::DEFAULT.WHO<IntLexRef>  := IntLexRef;
+    EXPORT::DEFAULT.WHO<UIntLexRef> := UIntLexRef;
     EXPORT::DEFAULT.WHO<NumLexRef>  := NumLexRef;
     EXPORT::DEFAULT.WHO<StrLexRef>  := StrLexRef;
     EXPORT::DEFAULT.WHO<IntAttrRef> := IntAttrRef;
+    EXPORT::DEFAULT.WHO<UIntAttrRef> := UIntAttrRef;
     EXPORT::DEFAULT.WHO<NumAttrRef> := NumAttrRef;
     EXPORT::DEFAULT.WHO<StrAttrRef> := StrAttrRef;
     EXPORT::DEFAULT.WHO<IntPosRef>  := IntPosRef;
+    EXPORT::DEFAULT.WHO<UIntPosRef> := UIntPosRef;
     EXPORT::DEFAULT.WHO<NumPosRef>  := NumPosRef;
     EXPORT::DEFAULT.WHO<StrPosRef>  := StrPosRef;
 #?if js
@@ -4164,15 +4179,19 @@ nqp::sethllconfig('Raku', nqp::hash(
         }
     },
     'int_lex_ref', IntLexRef,
+    'uint_lex_ref', UIntLexRef,
     'num_lex_ref', NumLexRef,
     'str_lex_ref', StrLexRef,
     'int_attr_ref', IntAttrRef,
+    'uint_attr_ref', UIntAttrRef,
     'num_attr_ref', NumAttrRef,
     'str_attr_ref', StrAttrRef,
     'int_pos_ref', IntPosRef,
+    'uint_pos_ref', UIntPosRef,
     'num_pos_ref', NumPosRef,
     'str_pos_ref', StrPosRef,
     'int_multidim_ref', IntMultidimRef,
+    'uint_multidim_ref', UIntMultidimRef,
     'num_multidim_ref', NumMultidimRef,
     'str_multidim_ref', StrMultidimRef,
 #?if js

@@ -37,12 +37,15 @@ my class Scalar { # declared in BOOTSTRAP
 
 # Also compose native reference classes declared in BOOTSTRAP.
 my class IntLexRef  { }
+my class UIntLexRef  { }
 my class NumLexRef  { }
 my class StrLexRef  { }
 my class IntAttrRef { }
+my class UIntAttrRef { }
 my class NumAttrRef { }
 my class StrAttrRef { }
 my class IntPosRef  { }
+my class UIntPosRef  { }
 my class NumPosRef  { }
 my class StrPosRef  { }
 

@@ -3458,7 +3458,7 @@ class Perl6::Optimizer {
     }
 
     # The _i64 and _u64 are only used on backends that emulate int64/uint64
-    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i64', 'assign_u64'];
+    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i64', 'assign_u64', '', '', '', '', 'assign_u'];
 
     method optimize_nameless_call($op) {
       return NQPMu
@@ -3963,7 +3963,7 @@ class Perl6::Optimizer {
     # time analysis of the call.
     my @allo_map := ['', 'Ii', 'Nn', 'Ss'];
     my %allo_rev := nqp::hash('Ii', 1, 'Nn', 2, 'Ss', 3);
-    my @prim_names := ['', 'int', 'num', 'str'];
+    my @prim_names := ['', 'int', 'num', 'str', '', '', '', '', '', '', 'uint'];
     my int $ARG_IS_LITERAL := 32;
     method analyze_args_for_ct_call($op) {
         my @types;
@@ -4043,9 +4043,10 @@ class Perl6::Optimizer {
         my int $i := -1;
         while ++$i < +@types {
             @arg_names.push(
-                @flags[$i] == 1 ?? 'int' !!
-                @flags[$i] == 2 ?? 'num' !!
-                @flags[$i] == 3 ?? 'str' !!
+                @flags[$i] == 1  ?? 'int' !!
+                @flags[$i] == 2  ?? 'num' !!
+                @flags[$i] == 3  ?? 'str' !!
+                @flags[$i] == 10 ?? 'uint' !!
                 @types[$i].HOW.name(@types[$i]));
         }
 
@@ -4427,8 +4428,8 @@ class Perl6::Optimizer {
         }
     }
 
-    my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s'];
-    my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss'];
+    my @prim_spec_ops := ['', 'p6box_i', 'p6box_n', 'p6box_s', '', '', '', '', '', '', 'p6box_u'];
+    my @prim_spec_flags := ['', 'Ii', 'Nn', 'Ss', '', '', '', '', '', '', 'Ii']; #FIXME maybe need Iu or even Uu here?
     sub copy_returns($to, $from) {
         if nqp::can($from, 'returns') {
             my $ret_type := $from.returns;

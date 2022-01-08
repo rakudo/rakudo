@@ -39,7 +39,7 @@ RAKUDO_PATH0="$DIR/bin"
 RAKUDO_PATH1="$DIR/share/perl6/site/bin"
 STUFF_DONE=false
 for RPATH in $RAKUDO_PATH1 $RAKUDO_PATH0 ; do
-    if echo "$NEW_PATH" | /bin/grep -vEq "(^|:)$RPATH($|:)" ; then
+    if echo "$NEW_PATH" | grep -vEq "(^|:)$RPATH($|:)" ; then
         NEW_PATH="$RPATH:$NEW_PATH"
         STUFF_DONE=true
     fi

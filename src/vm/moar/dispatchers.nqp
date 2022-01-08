@@ -1741,11 +1741,13 @@ my int $DEFCON_DEFINED    := 1;
 my int $DEFCON_UNDEFINED  := 2;
 my int $DEFCON_MASK       := $DEFCON_DEFINED +| $DEFCON_UNDEFINED;
 my int $TYPE_NATIVE_INT   := 4;
+my int $TYPE_NATIVE_UINT  := 32;
 my int $TYPE_NATIVE_NUM   := 8;
 my int $TYPE_NATIVE_STR   := 16;
-my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
 my int $BIND_VAL_OBJ      := 0;
 my int $BIND_VAL_INT      := 1;
+my int $BIND_VAL_UINT     := 10;
 my int $BIND_VAL_NUM      := 2;
 my int $BIND_VAL_STR      := 3;
 sub has-named-args-mismatch($capture, %info) {
@@ -1967,6 +1969,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                         nqp::bindpos_i($need_type_guard, $i, 1);
                         my $contish := nqp::captureposarg($capture, $i);
                         unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
+                               (($type_flags +& $TYPE_NATIVE_UINT) && nqp::iscont_u($contish)) ||
                                (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
                                (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
                             $type_mismatch := 1;
@@ -1985,6 +1988,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                         # a mismatch.
                         elsif $want_prim {
                             if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
+                                    (($type_flags +& $TYPE_NATIVE_UINT) && $got_prim != $BIND_VAL_UINT) ||
                                     (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
                                     (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
                                 $type_mismatch := 1;
@@ -1993,9 +1997,10 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                         # Otherwise, we want an object type. Figure out the correct
                         # one that we shall box to.
                         else {
-                            my $test_type := $got_prim == $BIND_VAL_INT ?? Int !!
-                                             $got_prim == $BIND_VAL_NUM ?? Num !!
-                                                                           Str;
+                            my $test_type := $got_prim == $BIND_VAL_INT  ?? Int !!
+                                             $got_prim == $BIND_VAL_UINT ?? Int !!
+                                             $got_prim == $BIND_VAL_NUM  ?? Num !!
+                                                                            Str;
                             $type_mismatch := 1 unless nqp::istype($test_type, $type);
                         }
                     }

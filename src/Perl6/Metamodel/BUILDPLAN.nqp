@@ -112,7 +112,7 @@ role Perl6::Metamodel::BUILDPLAN {
                 if $_.is_built {
                     my $name := $_.name;
                     my $action := $primspec || !$_.is_bound
-                      ?? 0 + $primspec
+                      ?? $primspec == 10 ?? 1 !! 0 + $primspec
                       !! 13;
 
                     my $info := [$action,$obj,$name,nqp::substr($name,2)];
@@ -178,7 +178,7 @@ role Perl6::Metamodel::BUILDPLAN {
                             ?? "Num"
                             !! $primspec == 3
                               ?? "Str"
-                              !! "Int"  # 1,4,5
+                              !! "Int"  # 1,4,5,10
                         );
                         nqp::istype($default,$destination)
                           ?? ($check-at-runtime := 0)

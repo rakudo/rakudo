@@ -1768,7 +1768,7 @@ class Perl6::World is HLL::World {
         if $prim {
             if $scope eq 'state' { nqp::die("Natively typed state variables not yet implemented") }
             my $init;
-            if $prim == 1 || $prim == 4 || $prim == 5 {
+            if $prim == 1 || ($prim >= 4 && $prim <= 10) {
                 $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
                     QAST::IVal.new( :value(0) ) );
@@ -3530,12 +3530,20 @@ class Perl6::World is HLL::World {
         }
 
         # Mapping of primspec to attribute postfix
-        my @psp := ('','_i','_n','_s');
+        my @psp := ('','_i','_n','_s','','','','','','','_u');
 
         # Mapping of primspec to native numeric default value op
         my @psd := (nqp::null,
           QAST::IVal.new( :value(0) ),
-          QAST::NVal.new( :value(0e0) )
+          QAST::NVal.new( :value(0e0) ),
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          QAST::IVal.new( :value(0) ),
         );
 
         # signature configuration hash for ":(%init)"

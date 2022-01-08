@@ -732,6 +732,9 @@ my class Binder {
                         elsif $got_prim == 2 {
                             nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
                         }
+                        elsif $got_prim == 10 {
+                            nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_u($capture, $k), Int));
+                        }
                         else {
                             nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                         }
@@ -803,6 +806,9 @@ my class Binder {
                         elsif $got_prim == 2 {
                             nqp::push($temp, nqp::box_n(nqp::captureposarg_n($capture, $cur_pos_arg), Num));
                         }
+                        elsif $got_prim == 10 {
+                            nqp::push($temp, nqp::box_i(nqp::captureposarg_u($capture, $cur_pos_arg), Int));
+                        }
                         else {
                             nqp::push($temp, nqp::box_s(nqp::captureposarg_s($capture, $cur_pos_arg), Str));
                         }
@@ -836,6 +842,10 @@ my class Binder {
                         elsif $got_prim == 2 {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
                                 $SIG_ELEM_NATIVE_NUM_VALUE, nqp::null(), 0, nqp::captureposarg_n($capture, $cur_pos_arg), '');
+                        }
+                        elsif $got_prim == 10 {
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
+                                $SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_u($capture, $cur_pos_arg), 0.0, '');
                         }
                         else {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
@@ -976,6 +986,9 @@ my class Binder {
                     }
                     elsif $got_prim == 2 {
                         nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
+                    }
+                    elsif $got_prim == 10 {
+                        nqp::push(@pos_args, nqp::box_u(nqp::captureposarg_u($capture, $k), Int));
                     }
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
@@ -1123,6 +1136,7 @@ my class Binder {
                 else {
                     # Work out a parameter type to consider, and see if it matches.
                     my $arg := $got_prim == 1 ?? Int !!
+                               $got_prim == 10 ?? Int !!
                                $got_prim == 2 ?? Num !!
                                $got_prim == 3 ?? Str !!
                                $args[$cur_pos_arg];
@@ -4119,6 +4133,9 @@ nqp::sethllconfig('Raku', nqp::hash(
                     elsif $got_prim == 2 {
                         nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
                     }
+                    elsif $got_prim == 10 {
+                        nqp::push(@pos_args, nqp::box_u(nqp::captureposarg_u($capture, $k), Int));
+                    }
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
@@ -4234,6 +4251,7 @@ my @transform_type := nqp::list(
         nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
     },
+    -> $uint { nqp::box_u($uint, Int) },
 );
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-hllize', -> $capture {
     my $arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
@@ -4245,7 +4263,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-hllize', -> $capture 
             'boot-syscall', 'dispatcher-delegate', 'lang-call',
             nqp::dispatch(
                 'boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $capture, 0, @transform_type[$spec > 3 ?? 1 !! $spec]
+                $capture, 0, @transform_type[$spec == 10 ?? 7 !! $spec > 3 ?? 1 !! $spec]
             )
         )
     }

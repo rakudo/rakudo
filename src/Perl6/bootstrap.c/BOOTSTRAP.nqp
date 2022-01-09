@@ -2913,6 +2913,7 @@ BEGIN {
                                 if $got_prim == $BIND_VAL_OBJ {
                                     $param := nqp::captureposarg($capture, $i);
                                     if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
+                                    elsif nqp::iscont_u($param) { $param := Int; $primish := 1; }
                                     elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
                                     elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
                                     else { $param := nqp::hllizefor($param, 'Raku') }

@@ -55,7 +55,7 @@ my sub raku-nativecall(Mu $capture is raw) {
             my $value := nqp::captureposarg($args, $i);
             if nqp::isconcrete_nd($value) &&
                 nqp::iscont($value) && !nqp::istype_nd($value, Scalar) &&
-                !(nqp::iscont_i($value) || nqp::iscont_n($value) || nqp::iscont_s($value))
+                !(nqp::iscont_i($value) || nqp::iscont_u($value) || nqp::iscont_n($value) || nqp::iscont_s($value))
             {
                 nqp::push_i($non-scalar, nqp::unbox_i($i));
             }

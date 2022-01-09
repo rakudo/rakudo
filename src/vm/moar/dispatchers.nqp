@@ -1808,7 +1808,7 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
             my $value := nqp::captureposarg($capture, $i);
             if nqp::isconcrete_nd($value) &&
                 nqp::iscont($value) && !nqp::istype_nd($value, Scalar) &&
-                !(nqp::iscont_i($value) || nqp::iscont_n($value) || nqp::iscont_s($value)) {
+                !(nqp::iscont_i($value) || nqp::iscont_u($value) || nqp::iscont_n($value) || nqp::iscont_s($value)) {
                 nqp::push_i($non-scalar, $i);
             }
         }
@@ -1908,6 +1908,10 @@ sub raku-multi-plan(@candidates, $capture, int $stop-at-trivial, $orig-capture =
                             # Otherwise, it should be a native reference. We'll
                             # promote these to their boxed type.
                             elsif nqp::iscont_i($value) {
+                                $value := Int;
+                                $promoted_primitive := 1;
+                            }
+                            elsif nqp::iscont_u($value) {
                                 $value := Int;
                                 $promoted_primitive := 1;
                             }

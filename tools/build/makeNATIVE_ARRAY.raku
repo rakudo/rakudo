@@ -609,7 +609,7 @@ while @lines {
                   IterationEnd
                 )
             }
-            method deterministic(--> False) { }
+            method is-deterministic(--> False) { }
         }
         multi method grab(#type#array:D: \count --> Seq:D) {
             Seq.new(

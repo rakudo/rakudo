@@ -23,8 +23,11 @@ BEGIN {
     Bool.^add_multi_method('roll', my multi method roll(Bool:U:)    { nqp::hllbool(nqp::isge_n(nqp::rand_n(2e0), 1e0)) });
 }
 BEGIN {
+    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U \SELF: Junction:D \topic ) { topic.THREAD: { SELF.ACCEPTS: $_ } });
+}
+BEGIN {
     Bool.^add_multi_method('Bool',    my multi method Bool(Bool:U:)    { Bool::False });
-    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: \topic ) { nqp::hllbool(nqp::istype(topic, self)) });
+    Bool.^add_multi_method('ACCEPTS', my multi method ACCEPTS(Bool:U: Mu \topic ) { nqp::hllbool(nqp::istype(topic, self)) });
     Bool.^add_multi_method('gist',    my multi method gist(Bool:U:)    { '(Bool)' });
     Bool.^add_multi_method('raku', my multi method raku(Bool:U:) { 'Bool' });
 

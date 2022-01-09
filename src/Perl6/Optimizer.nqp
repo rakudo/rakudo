@@ -1578,7 +1578,9 @@ my class SmartmatchOptimizer {
 
             return nqp::null() if $lhs.value.HOW.archetypes.generic;
 
-            my $matches := nqp::istype($lhs.value, $rhs.value);
+            # Wrap into try because for if there a user-defined `where`-block involved into typematching it might throw.
+            # Consider this case a failed typematch and proceed further.
+            my $matches := try { nqp::istype($lhs.value, $rhs.value) };
             # If LHS is an invocation or a variable then we actually check their (return) type. In this case non-match
             # means nothing because their eventual value could still match at runtime. Yet true means that any of their
             # value will always match. Also, if routine returns a constant then we can always use it too.
@@ -1618,7 +1620,7 @@ my class SmartmatchOptimizer {
             my $try-it := 1;
             my $rhs-type := nqp::what($rhs.value);
             for @literal-rhs-exceptions {
-                last unless $try-it := $try-it && !nqp::istype($rhs-type, $_);
+                last unless $try-it := $try-it && !try { nqp::istype($rhs-type, $_) };
                 note($rhs-type.HOW.name($rhs-type), " is not ", $_.HOW.name($_)) if $!debug;
             }
             if $try-it {

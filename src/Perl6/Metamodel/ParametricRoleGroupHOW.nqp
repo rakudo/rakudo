@@ -176,38 +176,45 @@ class Perl6::Metamodel::ParametricRoleGroupHOW
     method candidates($obj) { nqp::clone(@!candidates) }
 
     method lookup($obj, $name) {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.lookup($c, $name);
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? []
+            !! $c.HOW.lookup($c, $name);
     }
 
     method methods($obj, *@pos, *%name) {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.methods($c, |@pos, |%name);
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? []
+            !! $c.HOW.methods($c, |@pos, |%name);
     }
 
     method attributes($obj, *@pos, *%name) {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.attributes($c, |@pos, |%name);
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? []
+            !! $c.HOW.attributes($c, |@pos, |%name);
     }
 
     method parents($obj, *%named) {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.parents($c, |%named)
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? []
+            !! $c.HOW.parents($c, |%named)
     }
 
     method roles($obj, *%named) {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.roles($c, |%named)
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? []
+            !! $c.HOW.roles($c, |%named)
     }
 
     method ver($obj) {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.ver($c)
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.ver($c)
     }
 
     method auth($obj) {
-        my $c := self.'!get_default_candidate'();
-        $c.HOW.auth($c)
+        nqp::isnull(my $c := self.'!get_default_candidate'())
+            ?? nqp::null()
+            !! $c.HOW.auth($c)
     }
 
     method language-revision($obj) {

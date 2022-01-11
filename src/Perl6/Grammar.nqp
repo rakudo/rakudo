@@ -3295,8 +3295,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     token dec_number {
         :dba('decimal number')
         [
-        | $<coeff> = [               '.' <frac=.decint> ] <escale>?
-        | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] <escale>?
+        | $<coeff> = [               '.' <frac=.decint> ] [ <escale> | <fatrattish> ]?
+        | $<coeff> = [ <int=.decint> '.' <frac=.decint> ] [ <escale> | <fatrattish> ]?
         | $<coeff> = [ <int=.decint>                    ] <escale>
         ]
     }
@@ -3350,6 +3350,8 @@ grammar Perl6::Grammar is HLL::Grammar does STD {
     }
 
     token escale { <[Ee]> <sign> <decint> }
+
+    token fatrattish { '.FatRat' }
 
     token sign { '+' | '-' | '−' | '' }
 

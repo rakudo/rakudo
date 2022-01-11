@@ -892,6 +892,20 @@ my class X::Comp::Group is Exception {
     }
 }
 
+my class X::Comp::Rat::Literal does X::Comp {
+    has $.literal is required;
+    has $.numerator;
+    has $.denominator;
+    method message() {
+        my $message = $.numerator
+          ?? $.denominator
+            ?? "Numerator and denominator are"
+            !! "Numerator is"
+          !! "Denominator is";
+        ($message ~ " too large in literal Rat definition and will lose precision. Please consider creating a Num ({$.literal}e0) for more performance and less precision, or to create a FatRat ($.literal.FatRat) for more precision and less performance.").naive-word-wrapper
+    }
+}
+
 my role X::MOP is Exception { }
 
 my class X::Comp::BeginTime does X::Comp {

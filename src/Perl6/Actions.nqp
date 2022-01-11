@@ -8394,7 +8394,17 @@ class Perl6::Actions is HLL::Actions does STDActions {
                 $partf := nqp::box_i(1, $Int);
             }
 
-            my $ast := $*W.add_constant('Rat', 'type_new', $parti, $partf, :nocache(1));
+            my $class := 'Rat';
+            if $<fatrattish> {
+                $class := 'FatRat';
+            } elsif nqp::isbig_I($parti) -> $numerator {
+                $/.typed_worry('X::Comp::Rat::Literal', :literal($/.Str),
+                  :$numerator, :denominator(nqp::isbig_I($partf)));
+            } elsif nqp::isbig_I($partf) {
+                $/.typed_worry('X::Comp::Rat::Literal', :literal($/.Str), :denominator);
+            }
+
+            my $ast := $*W.add_constant($class, 'type_new', $parti, $partf, :nocache(1));
             $ast.node($/);
             make $ast;
         }

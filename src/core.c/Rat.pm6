@@ -4,7 +4,12 @@ my class Rat is Cool does Rational[Int, Int] {
         self
     }
     method FatRat(Rat:D: Real $? --> FatRat:D) {
-        FatRat.new($!numerator, $!denominator)
+        nqp::p6bindattrinvres(
+          nqp::p6bindattrinvres(
+            nqp::create(FatRat),FatRat,'$!numerator',$!numerator
+          ),
+          FatRat,'$!denominator',$!denominator
+        )
     }
     multi method raku(Rat:D: --> Str:D) {
         if $!denominator == 1 {

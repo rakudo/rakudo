@@ -38,7 +38,8 @@ my class FatRat is Cool does Rational[Int, Int] {
           !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")
     }
     multi method raku(FatRat:D: --> Str:D) {
-        "FatRat.new($!numerator, $!denominator)";
+        (nqp::eqaddr(self.WHAT,FatRat) ?? 'FatRat' !! self.^name)
+          ~ ".new($!numerator, $!denominator)"
     }
 
     method UPGRADE-RAT(\nu, \de) is raw {

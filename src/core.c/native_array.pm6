@@ -60,22 +60,26 @@ my class array does Iterable does Positional {
         )
     }
 
+    sub SPLICE_OFFSET_OUT_OF_RANGE(int $got, int $end) {
+        Failure.new(X::OutOfRange.new(
+          :what("Offset argument to splice"), :$got, :range("0..$end")
+        ))
+    }
+
+    sub SPLICE_SIZE_OUT_OF_RANGE(int $got, int $end) {
+        Failure.new(X::OutOfRange.new(
+          :what("Size argument to splice"), :$got, :range("0..^$end")
+        ))
+    }
+
     sub CLONE_SLICE(\array, int $offset, int $size) {
         nqp::if(
-          nqp::islt_i($offset,0)
-            || nqp::isgt_i($offset,(my int $elems = nqp::elems(array))),
-          Failure.new(X::OutOfRange.new(
-            :what('Offset argument to splice'),
-            :got($offset),
-            :range("0..{nqp::elems(array)}")
-          )),
+          nqp::isgt_i($offset,(my int $elems = nqp::elems(array)))
+            || nqp::islt_i($offset,0),
+          SPLICE_OFFSET_OUT_OF_RANGE($offset, $elems),
           nqp::if(
             nqp::islt_i($size,0),
-            Failure.new(X::OutOfRange.new(
-              :what('Size argument to splice'),
-              :got($size),
-              :range("0..^{$elems - $offset}")
-            )),
+            SPLICE_SIZE_OUT_OF_RANGE($size, $elems - $offset),
             nqp::if(
               nqp::iseq_i($offset,$elems) || nqp::iseq_i($size,0),
               nqp::create(array),

@@ -444,11 +444,11 @@ augment class Rakudo::Internals {
              ).new(SELF).slice($positions.iterator)
     }
 
-    method SLICE_WHATEVER_WITH_ADVERBS(\SELF, %nameds) {
+    method SLICE_WITH_ADVERBS(\SELF, str $what, %nameds) {
         nqp::istype(
           (my $lookup := self.ADVERBS_TO_DISPATCH_INDEX(%nameds)),
             X::Adverb
-        ) ?? self.FAIL_X_ADVERB($lookup, 'whatever slice', SELF)
+        ) ?? self.FAIL_X_ADVERB($lookup, $what, SELF)
           !! self.ACCESS-SLICE-DISPATCH-CLASS(
                $lookup
              ).new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))

@@ -255,7 +255,7 @@ multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, *%_) is raw {
     nqp::if(
       nqp::isconcrete(my $storage := nqp::getattr(%_,Map,'$!storage'))
         && nqp::elems($storage),
-      Rakudo::Internals.SLICE_WHATEVER_WITH_ADVERBS(SELF, %_),
+      Rakudo::Internals.SLICE_WITH_ADVERBS(SELF, 'whatever slice', %_),
       nqp::stmts(  # fast path
         SELF.iterator.push-all(my $buffer := nqp::create(IterationBuffer)),
         $buffer.List
@@ -279,24 +279,10 @@ multi sub postcircumfix:<[ ]>(\SELF, HyperWhatever:D $, Mu \assignee) is raw {
 
 # @a[]
 multi sub postcircumfix:<[ ]>(\SELF, *%_) is raw {
-
-    # There are adverbs to check
-    if nqp::getattr(%_,Map,'$!storage') {
-        my $lookup := Rakudo::Internals.ADVERBS_TO_DISPATCH_INDEX(%_);
-        if nqp::istype($lookup,X::Adverb) {
-            $lookup.what   = "zen slice";
-            $lookup.source = try { SELF.VAR.name } // SELF.^name;
-            return Failure.new($lookup);
-        }
-        Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS(
-          $lookup
-        ).new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))
-    }
-
-    # Just the thing, please
-    else {
-        SELF<>
-    }
+    nqp::isconcrete(my $storage := nqp::getattr(%_,Map,'$!storage'))
+      && nqp::elems($storage)
+      ?? Rakudo::Internals.SLICE_WITH_ADVERBS(SELF, 'zen slice', %_)
+      !! nqp::decont(SELF)  # Just the thing, please
 }
 multi sub postcircumfix:<[ ]>(\SELF, :$BIND!) is raw {
     X::Bind::ZenSlice.new(type => SELF.WHAT).throw;

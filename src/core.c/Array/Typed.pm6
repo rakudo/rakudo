@@ -45,6 +45,12 @@ my role Array::Typed[::TValue] does Positional[TValue] {
         list
     }
 
+    method !out-of-range(int $got) {
+        Failure.new(
+          X::OutOfRange.new(:what($*INDEX // 'Index'),:$got,:range<0..^Inf>)
+        )
+    }
+
     # must have a proto here to hide the candidates in Array
     # otherwise we could bind any value to the Array
     proto method BIND-POS(|) {*}
@@ -53,21 +59,23 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     multi method BIND-POS(Array:D: int $pos, TValue \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
+          self!out-of-range($pos),
           nqp::stmts(
             nqp::if(
-              nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
+              nqp::isconcrete(
+                my $reified := nqp::getattr(self,List,'$!reified')
+              ),
               nqp::if(
-                nqp::isge_i(
-                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))
-                ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
+                nqp::isge_i($pos,nqp::elems($reified))
+                  && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
                 nqp::getattr(self,List,'$!todo').reify-at-least(
                   nqp::add_i($pos,1)),
               ),
-              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+              ($reified := nqp::bindattr(
+                self,List,'$!reified',nqp::create(IterationBuffer)
+              ))
             ),
-            nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,bindval)
+            nqp::bindpos($reified,$pos,bindval)
           )
         )
     }
@@ -75,21 +83,24 @@ my role Array::Typed[::TValue] does Positional[TValue] {
     multi method BIND-POS(Array:D: Int:D $pos, TValue \bindval) is raw {
         nqp::if(
           nqp::islt_i($pos,0),
-          Failure.new(X::OutOfRange.new(
-            :what($*INDEX // 'Index'),:got($pos),:range<0..^Inf>)),
+          self!out-of-range($pos),
           nqp::stmts(
             nqp::if(
-              nqp::isconcrete(nqp::getattr(self,List,'$!reified')),
-              nqp::if(
-                nqp::isge_i(
-                  $pos,nqp::elems(nqp::getattr(self,List,'$!reified'))
-                ) && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
-                nqp::getattr(self,List,'$!todo').reify-at-least(
-                  nqp::add_i($pos,1)),
+              nqp::isconcrete(
+                my $reified := nqp::getattr(self,List,'$!reified')
               ),
-              nqp::bindattr(self,List,'$!reified',nqp::create(IterationBuffer))
+              nqp::if(
+                nqp::isge_i($pos,nqp::elems($reified))
+                  && nqp::isconcrete(nqp::getattr(self,List,'$!todo')),
+                nqp::getattr(self,List,'$!todo').reify-at-least(
+                  nqp::add_i($pos,1)
+                )
+              ),
+              ($reified := nqp::bindattr(
+                self,List,'$!reified',nqp::create(IterationBuffer)
+              ))
             ),
-            nqp::bindpos(nqp::getattr(self,List,'$!reified'),$pos,bindval)
+            nqp::bindpos($reified,$pos,bindval)
           )
         )
     }

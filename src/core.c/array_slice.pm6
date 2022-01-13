@@ -117,28 +117,16 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$v!, *%_) is raw {
 
 # @a[@i]
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
-    # MMD is not behaving itself so we do this by hand.
-    return postcircumfix:<[ ]>(SELF, positions.Int, |%_)
-      if nqp::iscont(positions);
-
-    # Get the dispatch index
-    my int $index;
-    if nqp::getattr(%_,Map,'$!storage') {
-        my $lookup := Rakudo::Internals.ADVERBS_TO_DISPATCH_INDEX(%_);
-        if nqp::istype($lookup,X::Adverb) {
-            $lookup.what   = "slice";
-            $lookup.source = try { SELF.VAR.name } // SELF.^name;
-            return Failure.new($lookup);
-        }
-
-        # Good to go!
-        $index = $lookup;
-    }
-
-    # Do the correct processing for given dispatch index
-    Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS(
-      $index
-    ).new(SELF).slice(positions.iterator)
+    nqp::if(
+      nqp::iscont(positions), # MMD is not behaving itself so we do this by hand.
+      postcircumfix:<[ ]>(SELF, positions.Int, |%_),
+      nqp::if(
+        nqp::isconcrete(my $storage := nqp::getattr(%_,Map,'$!storage'))
+          && nqp::elems($storage),
+        Rakudo::Internals.SLICE_WITH_ADVERBS(SELF, positions, %_),
+        Array::Slice::Access::none.new(SELF).slice(positions.iterator)
+      )
+    )
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, \values) is raw {
     # MMD is not behaving itself so we do this by hand.

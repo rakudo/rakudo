@@ -94,26 +94,38 @@ my class Int does Real { # declared in BOOTSTRAP
         nqp::p6box_n(nqp::sqrt_n(nqp::tonum_I(self)))
     }
 
+    sub BASE_OUT_OF_RANGE(int $got) {
+        Failure.new(
+          X::OutOfRange.new(:what('base argument to base'),:$got,:range<2..36>)
+        )
+    }
+    sub DIGITS_OUT_OF_RANGE(int $got) {
+        Failure.new(
+          X::OutOfRange.new(:what('digits argument to base'),:$got,:range<2..36>)
+        )
+    }
+
     proto method base(|) {*}
     multi method base(Int:D: Int:D $base --> Str:D) {
         2 <= $base <= 36
-          ?? nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
-          !! Failure.new(X::OutOfRange.new(
-               what => "base argument to base", :got($base), :range<2..36>))
+          ?? nqp::base_I(self,nqp::unbox_i($base))
+          !! BASE_OUT_OF_RANGE($base)
     }
-    multi method base(Int:D: Int(Cool) $base, $digits? --> Str:D) {
+    multi method base(Int:D: Int(Cool) $base, Whatever --> Str:D) {
+        self.base($base)
+    }
+    multi method base(Int:D: Int(Cool) $base, Int:D $digits = 0 --> Str:D) {
         2 <= $base <= 36
-          ?? $digits && ! nqp::istype($digits, Whatever)
+          ?? $digits
             ?? $digits < 0
-              ?? Failure.new(X::OutOfRange.new(
-                   :what('digits argument to base'),:got($digits),:range<0..1073741824>))
-              !!  nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
-                    ~ '.'
-                    ~ '0' x $digits
-            !! nqp::p6box_s(nqp::base_I(self,nqp::unbox_i($base)))
-          !! Failure.new(X::OutOfRange.new(
-               :what('base argument to base'),:got($base),:range<2..36>))
+              ?? DIGITS_OUT_OF_RANGE($digits)
+              !! nqp::base_I(self,nqp::unbox_i($base))
+                   ~ '.'
+                   ~ nqp::x('0',nqp::unbox_i($digits))
+            !! nqp::base_I(self,nqp::unbox_i($base))
+          !! BASE_OUT_OF_RANGE($base)
     }
+
     method !eggify($egg --> Str:D) { self.base(2).trans("01" => $egg) }
     multi method base(Int:D: "camel" --> Str:D) { self!eggify: "🐪🐫" }
     multi method base(Int:D: "beer"  --> Str:D) { self!eggify: "🍺🍻" }

@@ -34,10 +34,10 @@ my class Rat is Cool does Rational[Int, Int] {
 my constant UINT64_UPPER = nqp::pow_I(2, 64, Num, Int);
 
 my class FatRat is Cool does Rational[Int, Int] {
-    method FatRat(FatRat:D: Real $? --> FatRat) {
+    method FatRat(FatRat:D: --> FatRat) {
         self
     }
-    method Rat(FatRat:D: Real $? --> Rat:D) {
+    method Rat(FatRat:D: --> Rat:D) {
         $!denominator < UINT64_UPPER
           ?? Rat.new($!numerator, $!denominator)
           !! Failure.new("Cannot convert from FatRat to Rat because denominator is too big")

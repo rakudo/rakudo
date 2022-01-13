@@ -121,7 +121,9 @@ multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
       ?? postcircumfix:<[ ]>(SELF, positions.Int, |%_)
       !! nqp::isconcrete(my $storage := nqp::getattr(%_,Map,'$!storage'))
            && nqp::elems($storage)
-        ?? Rakudo::Internals.SLICE_WITH_ADVERBS(SELF, positions, %_)
+        ?? Rakudo::Internals.SLICE_POSITIONS_WITH_ADVERBS(
+             SELF, positions, %_
+           )
         !! Array::Slice::Access::none.new(SELF).slice(positions.iterator)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, \values) is raw {
@@ -250,20 +252,15 @@ multi sub postcircumfix:<[ ]>(\SELF,Callable:D $block, :$v!, *%_) is raw {
 
 # @a[*]
 multi sub postcircumfix:<[ ]>(\SELF, Whatever:D, *%_) is raw {
-    if nqp::getattr(%_,Map,'$!storage') {
-        my $lookup := Rakudo::Internals.ADVERBS_TO_DISPATCH_INDEX(%_);
-        if nqp::istype($lookup,X::Adverb) {
-            $lookup.what   = "whatever slice";
-            $lookup.source = try { SELF.VAR.name } // SELF.^name;
-            return Failure.new($lookup);
-        }
-        return Rakudo::Internals.ACCESS-SLICE-DISPATCH-CLASS($lookup)
-          .new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))
-    }
-
-    # fast path
-    SELF.iterator.push-all(my $buffer := nqp::create(IterationBuffer));
-    $buffer.List
+    nqp::if(
+      nqp::isconcrete(my $storage := nqp::getattr(%_,Map,'$!storage'))
+        && nqp::elems($storage),
+      Rakudo::Internals.SLICE_WHATEVER_WITH_ADVERBS(SELF, %_),
+      nqp::stmts(  # fast path
+        SELF.iterator.push-all(my $buffer := nqp::create(IterationBuffer)),
+        $buffer.List
+      )
+    )
 }
 multi sub postcircumfix:<[ ]>( \SELF, Whatever:D, Mu \assignee ) is raw {
     SELF[^SELF.elems] = assignee;

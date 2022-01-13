@@ -434,17 +434,24 @@ augment class Rakudo::Internals {
         )
     }
 
-    method SLICE_WITH_ADVERBS(\SELF, Iterable:D $positions, %nameds) {
-        nqp::if(
-          nqp::istype(
-            (my $lookup := self.ADVERBS_TO_DISPATCH_INDEX(%nameds)),
-              X::Adverb
-          ),
-          self.FAIL_X_ADVERB($lookup, 'slice', SELF),
-          self.ACCESS-SLICE-DISPATCH-CLASS(
-            $lookup
-          ).new(SELF).slice($positions.iterator)
-        ) 
+    method SLICE_POSITIONS_WITH_ADVERBS(\SELF, Iterable:D $positions, %nameds) {
+        nqp::istype(
+          (my $lookup := self.ADVERBS_TO_DISPATCH_INDEX(%nameds)),
+            X::Adverb
+        ) ?? self.FAIL_X_ADVERB($lookup, 'slice', SELF)
+          !! self.ACCESS-SLICE-DISPATCH-CLASS(
+               $lookup
+             ).new(SELF).slice($positions.iterator)
+    }
+
+    method SLICE_WHATEVER_WITH_ADVERBS(\SELF, %nameds) {
+        nqp::istype(
+          (my $lookup := self.ADVERBS_TO_DISPATCH_INDEX(%nameds)),
+            X::Adverb
+        ) ?? self.FAIL_X_ADVERB($lookup, 'whatever slice', SELF)
+          !! self.ACCESS-SLICE-DISPATCH-CLASS(
+               $lookup
+             ).new(SELF).slice(Rakudo::Iterator.IntRange(0,SELF.end))
     }
 
     method FAIL_X_ADVERB(X::Adverb:D $x-adverb, str $what, \from) {

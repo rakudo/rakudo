@@ -69,16 +69,20 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         nqp::p6box_n(nqp::div_In($!numerator,$!denominator))
     }
 
+    method !divide-by-zero(Str:D $what) {
+        Failure.new(
+          X::Numeric::DivideByZero.new(
+            :details("when calling .$what on Rational")
+          )
+        )
+    }
+
     method floor(Rational:D: --> Int:D) {
       $!denominator
         ?? $!denominator == 1
           ?? $!numerator
           !! $!numerator div $!denominator
-        !! Failure.new(
-             X::Numeric::DivideByZero.new(
-               :details('when calling .floor on Rational')
-             )
-           )
+        !! self!divide-by-zero('floor')
     }
 
     method ceiling(Rational:D: --> Int:D) {
@@ -86,21 +90,13 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
         ?? $!denominator == 1
           ?? $!numerator
           !! ($!numerator div $!denominator + 1)
-        !! Failure.new(
-             X::Numeric::DivideByZero.new(
-               :details('when calling .ceiling on Rational')
-             )
-           )
+        !! self!divide-by-zero('ceiling')
     }
 
     method Int(--> Int:D) {
         $!denominator
           ?? self.truncate
-          !! Failure.new(
-               X::Numeric::DivideByZero.new(
-                 :details('when coercing Rational to Int')
-               )
-             )
+          !! self!divide-by-zero('Int')
     }
 
     multi method Bool(::?CLASS:D:) { nqp::hllbool(nqp::istrue($!numerator)) }
@@ -389,11 +385,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
                nqp::mul_I($!denominator, 2, Int),
                Int
              )
-          !! Failure.new(
-               X::Numeric::DivideByZero.new(
-                 :details('when calling .round on Rational')
-               )
-             )
+          !! self!divide-by-zero('round')
     }
 }
 

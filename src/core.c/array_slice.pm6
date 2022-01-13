@@ -117,16 +117,12 @@ multi sub postcircumfix:<[ ]>(\SELF, Int:D \pos, :$v!, *%_) is raw {
 
 # @a[@i]
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, *%_) is raw {
-    nqp::if(
-      nqp::iscont(positions), # MMD is not behaving itself so we do this by hand.
-      postcircumfix:<[ ]>(SELF, positions.Int, |%_),
-      nqp::if(
-        nqp::isconcrete(my $storage := nqp::getattr(%_,Map,'$!storage'))
-          && nqp::elems($storage),
-        Rakudo::Internals.SLICE_WITH_ADVERBS(SELF, positions, %_),
-        Array::Slice::Access::none.new(SELF).slice(positions.iterator)
-      )
-    )
+    nqp::iscont(positions)  # MMD is not behaving itself so we do this by hand
+      ?? postcircumfix:<[ ]>(SELF, positions.Int, |%_)
+      !! nqp::isconcrete(my $storage := nqp::getattr(%_,Map,'$!storage'))
+           && nqp::elems($storage)
+        ?? Rakudo::Internals.SLICE_WITH_ADVERBS(SELF, positions, %_)
+        !! Array::Slice::Access::none.new(SELF).slice(positions.iterator)
 }
 multi sub postcircumfix:<[ ]>(\SELF, Iterable:D \positions, \values) is raw {
     # MMD is not behaving itself so we do this by hand.

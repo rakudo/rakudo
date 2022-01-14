@@ -965,6 +965,9 @@ my class X::NYI is Exception {
         $msg
     }
 }
+
+sub NYI(str $feature) { Failure.new: X::NYI.new: :$feature }
+
 my class X::Comp::NYI is X::NYI does X::Comp { };
 my class X::NYI::Available is X::NYI {
     has @.available = die("Must give :available<modules> for installation. ");

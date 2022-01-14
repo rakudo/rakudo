@@ -178,6 +178,17 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             !! nqp::tostr_I(whole)
     }
 
+    sub BASE_OUT_OF_RANGE(int $got) {
+        Failure.new(
+          X::OutOfRange.new(:what('base argument to base'),:$got,:range<2..36>)
+        )
+    }
+    sub DIGITS_OUT_OF_RANGE(int $got) {
+        Failure.new(
+          X::OutOfRange.new(:what('digits argument to base'),:$got,:range<2..36>)
+        )
+    }
+
     proto method base(|) {*}
     # Convert to given base with sensible number of digits depending on value
     multi method base(Rational:D: Int:D $base --> Str:D) {
@@ -205,11 +216,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             }
         }
         else {
-            Failure.new(X::OutOfRange.new(
-              what => "base argument to base",
-              :got($base),
-              :range<2..36>
-            ))
+            BASE_OUT_OF_RANGE($base)
         }
     }
     # Convert to given base until no fraction left: **CAUTION** this will
@@ -217,11 +224,7 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
     multi method base(Rational:D: Int:D $base, Whatever --> Str:D) {
         2 <= $base <= 36
           ?? self!base($base, 0, 0)
-          !! Failure.new(X::OutOfRange.new(
-               what => "base argument to base",
-               :got($base),
-               :range<2..36>
-             ))
+          !! BASE_OUT_OF_RANGE($base)
     }
 
     # Convert to given base for given number of digits.  This will display
@@ -237,15 +240,8 @@ my role Rational[::NuT = Int, ::DeT = ::("NuT")] does Real {
             ?? self!base($base, $digits, nqp::not_i($no-trailing-zeroes))
             !! $digits == 0
               ?? self.round.base($base)
-              !! Failure.new(X::OutOfRange.new(
-                   :what('digits argument to base'), :got($digits),
-                   :range<0..^Inf>
-                 ))
-          !! Failure.new(X::OutOfRange.new(
-               what => "base argument to base",
-               :got($base),
-               :range<2..36>
-             ))
+              !! DIGITS_OUT_OF_RANGE($digits)
+          !! BASE_OUT_OF_RANGE($base)
     }
 
     # Lookup table for converting from numerical value to string digit

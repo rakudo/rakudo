@@ -76,9 +76,7 @@ while @lines {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                X::NYI.new(
-                  feature => "Partially dimensioned views of shaped arrays"
-                ).throw
+                NYI("Partially dimensioned views of shaped arrays").throw
               )
             )
         }

@@ -183,8 +183,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$delete!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          Failure.new(X::NYI.new(
-            feature => ':delete on multi-dimensional slices')),
+          NYI(':delete on multi-dimensional slices'),
           nqp::if(
             nqp::iseq_i($elems,2),
             SELF.DELETE-POS(
@@ -221,8 +220,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$exists!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          Failure.new(X::NYI.new(
-            feature => ':exists on multi-dimensional slices')),
+          NYI(':exists on multi-dimensional slices'),
           nqp::if(
             nqp::iseq_i($elems,2),
             SELF.EXISTS-POS(
@@ -259,8 +257,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$kv!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          Failure.new(X::NYI.new(
-            feature => ':kv on multi-dimensional slices')),
+          NYI(':kv on multi-dimensional slices'),
           nqp::if(
             nqp::iseq_i($elems,2),
             nqp::if(
@@ -316,8 +313,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$p!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          Failure.new(X::NYI.new(
-            feature => ':p on multi-dimensional slices')),
+          NYI(':p on multi-dimensional slices'),
           nqp::if(
             nqp::iseq_i($elems,2),
             nqp::if(
@@ -373,8 +369,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$k!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          Failure.new(X::NYI.new(
-            feature => ':k on multi-dimensional slices')),
+          NYI(':k on multi-dimensional slices'),
           nqp::if(
             nqp::iseq_i($elems,2),
             nqp::if(
@@ -423,8 +418,7 @@ multi sub postcircumfix:<[; ]>(\SELF, @indices, :$v!) is raw {
         ),
         nqp::if(
           nqp::islt_i($i,$elems),
-          Failure.new(X::NYI.new(
-            feature => ':v on multi-dimensional slices')),
+          NYI(':v on multi-dimensional slices'),
           nqp::if(
             nqp::iseq_i($elems,2),
             nqp::if(

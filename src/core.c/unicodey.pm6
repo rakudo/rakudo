@@ -3,7 +3,7 @@ my class Rakudo::Unicodey is implementation-detail {
 
 #?if jvm
     method unival() is hidden-from-backtrace {
-        X::NYI.new(:feature<unival>).throw
+        NYI('unival').throw;
     }
 
     method ords(str $str) {  # strtocodes NYI on JVM
@@ -20,31 +20,31 @@ my class Rakudo::Unicodey is implementation-detail {
     }
 
     method unimatch(int, str, str) is hidden-from-backtrace {
-        X::NYI.new(:feature<unimatch>).throw
+        NYI('unimatch').throw;
     }
 
     method uniprop-general(int) is hidden-from-backtrace {
-        X::NYI.new(:feature<uniprop>).throw
+        NYI('uniprop').throw;
     }
     method uniprop(int, str) is hidden-from-backtrace {
-        X::NYI.new(:feature<uniprop>).throw
+        NYI('uniprop').throw;
     }
 
     method uniprops(str, str) is hidden-from-backtrace {
-        X::NYI.new(:feature<uniprops>).throw
+        NYI('uniprops').throw;
     }
 
     method NFC(str) is hidden-from-backtrace {
-        X::NYI.new(:feature<NFC>).throw
+        NYI('NFC').throw;
     }
     method NFD(str)  is hidden-from-backtrace {
-        X::NYI.new(:feature<NFD>).throw
+        NYI('NFD').throw;
     }
     method NFKC(str) is hidden-from-backtrace {
-        X::NYI.new(:feature<NFKC>).throw
+        NYI('NFKC').throw;
     }
     method NFKD(str) is hidden-from-backtrace {
-        X::NYI.new(:feature<NFKD>).throw
+        NYI('NFKD').throw;
     }
 #?endif
 
@@ -684,10 +684,10 @@ multi sub infix:<coll>(Pair:D $a, Pair:D $b) {
 
 #?if jvm
 multi sub infix:<unicmp>($, $) {
-    X::NYI.new(feature => "infix unicmp on JVM").throw
+    NYI("infix unicmp on JVM").throw;
 }
 multi sub infix:<coll>($, $) {
-    X::NYI.new(feature => "infix coll on JVM").throw
+    NYI("infix coll on JVM").throw;
 }
 #?endif
 

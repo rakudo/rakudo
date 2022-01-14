@@ -202,9 +202,7 @@ my class Routine { # declared in BOOTSTRAP
 
     method package() { $!package }
 
-    method leave(*@) {
-        X::NYI.new(:feature("{self.^name}.leave()")).throw;
-    }
+    method leave(*@) { NYI("{self.^name}.leave()").throw; }
 }
 
 # vim: expandtab shiftwidth=4

@@ -223,7 +223,7 @@ sub samewith(|c) {
     die "Cannot use samewith outside of a routine";
 }
 
-sub leave(|) { X::NYI.new(feature => 'leave').throw }
+sub leave(|) { NYI('leave').throw; }
 
 sub emit(Mu \value --> Nil) {
     my Mu $ex := nqp::newexception();

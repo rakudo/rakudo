@@ -41,7 +41,7 @@ my class CallFrame {
         nqp::isnull(vm-code) ?? Nil !! nqp::getcodeobj(vm-code)
     }
     method callframe(Int:D $?) {
-        X::NYI.new(feature => 'Callframe.callframe').throw;
+        NYI('Callframe.callframe').throw;
     }
 
     multi method gist(CallFrame:D:) {

@@ -39,7 +39,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
             self.rehyper(hyper, hyper.Any::grep(matcher, |%options))
         }
         elsif nqp::istype(matcher,Block) && matcher.has-phasers {
-            X::NYI.new(feature => 'Phasers in hyper/race').throw
+            NYI('Phasers in hyper/race').throw;
         }
         else {
             hyper.bless:
@@ -71,7 +71,7 @@ class Rakudo::Internals::HyperRaceSharedImpl {
         }
     }
     multi method map(\hyper, $source, &mapper, %options) {
-        X::NYI.new(feature => 'Phasers in hyper/race').throw
+        NYI('Phasers in hyper/race').throw
           if nqp::istype(&mapper,Block) && &mapper.has-phasers;
 
         if %options || &mapper.count > 1 {

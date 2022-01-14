@@ -472,7 +472,7 @@ my class Rakudo::Internals {
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::if(
                 nqp::istype((my $dim := nqp::atpos($spec,$i)),Whatever),
-                X::NYI.new(feature => 'Jagged array shapes').throw,
+                NYI('Jagged array shapes').throw,
                 nqp::if(
                   nqp::istype(($dim := nqp::decont($dim.Int)),Failure),
                   $dim.throw,

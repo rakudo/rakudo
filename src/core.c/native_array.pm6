@@ -2032,7 +2032,7 @@ my class array does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2021-05-18T14:32:07+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-01-14T17:27:16+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2058,9 +2058,7 @@ my class array does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                X::NYI.new(
-                  feature => "Partially dimensioned views of shaped arrays"
-                ).throw
+                NYI("Partially dimensioned views of shaped arrays").throw
               )
             )
         }
@@ -2537,7 +2535,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapedintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
-#- Generated on 2021-05-18T14:32:07+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-01-14T17:27:16+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapednumarray does shapedarray {
@@ -2563,9 +2561,7 @@ my class array does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                X::NYI.new(
-                  feature => "Partially dimensioned views of shaped arrays"
-                ).throw
+                NYI("Partially dimensioned views of shaped arrays").throw
               )
             )
         }
@@ -3042,7 +3038,7 @@ my class array does Iterable does Positional {
 #- end of generated part of shapednumarray role -------------------------------
 
 #- start of generated part of shapedstrarray role -----------------------------
-#- Generated on 2021-05-18T14:32:07+02:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2022-01-14T17:27:16+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedstrarray does shapedarray {
@@ -3068,9 +3064,7 @@ my class array does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                X::NYI.new(
-                  feature => "Partially dimensioned views of shaped arrays"
-                ).throw
+                NYI("Partially dimensioned views of shaped arrays").throw
               )
             )
         }

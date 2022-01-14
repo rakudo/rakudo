@@ -323,7 +323,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
           nqp::decode(self, Rakudo::Internals.NORMALIZE_ENCODING($encoding)))
     }
     multi method decode(Blob:D: $encoding, Str:D :$replacement!, Bool:D :$strict = False) {
-        X::NYI.new(:feature<decode-with-replacement>).throw
+        NYI('decode-with-replacement').throw;
     }
 #?endif
 

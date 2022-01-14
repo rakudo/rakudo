@@ -1400,39 +1400,10 @@ Consider using a block if any of these are necessary for your mapping code."
           ?? self!first-regex-end($test,%a)
           !! self!first-regex($test,%a)
     }
-    multi method first(Callable:D $test, :$end, *%a is copy) is raw {
-        if $end {
-            my $elems = self.elems;
-            nqp::if(
-              ($elems && nqp::not_i($elems == Inf)),
-              nqp::stmts(
-                (my int $index = $elems),
-                nqp::while(
-                  nqp::isge_i(($index = nqp::sub_i($index,1)),0),
-                  nqp::if(
-                    $test(self.AT-POS($index)),
-                    return self!first-result(
-                      $index,self.AT-POS($index),'first :end',%a)
-                  )
-                ),
-                Nil
-              ),
-              Nil
-            )
-        }
-        else {
-            my $iter := self.iterator;
-            my int $index;
-            nqp::until(
-              (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
-                || $test($_)),
-              ($index = nqp::add_i($index,1))
-            );
-
-            nqp::eqaddr($_,IterationEnd)
-              ?? Nil
-              !! self!first-result($index,$_,'first',%a)
-        }
+    multi method first(Callable:D $test, :$end, *%a) is raw {
+        $end
+          ?? self!first-callable-end($test, %a)
+          !! self!first-callable($test, %a)
     }
     multi method first(Mu $test, :$end, *%a) is raw {
         $end
@@ -1447,6 +1418,38 @@ Consider using a block if any of these are necessary for your mapping code."
           !! $end
             ?? self.tail
             !! self.head
+    }
+    method !first-callable(Callable:D $test, %a) is raw {
+        my $iter := self.iterator;
+        my int $index;
+        nqp::until(
+          (nqp::eqaddr(($_ := $iter.pull-one),IterationEnd)
+            || $test($_)),
+          ($index = nqp::add_i($index,1))
+        );
+
+        nqp::eqaddr($_,IterationEnd)
+          ?? Nil
+          !! self!first-result($index,$_,'first',%a)
+    }
+    method !first-callable-end(Callable:D $test, %a) is raw {
+        my $elems := self.elems;
+        nqp::if(
+          ($elems && nqp::not_i($elems == Inf)),
+          nqp::stmts(
+            (my int $index = $elems),
+            nqp::while(
+              nqp::isge_i(($index = nqp::sub_i($index,1)),0),
+              nqp::if(
+                $test(self.AT-POS($index)),
+                return self!first-result(
+                  $index,self.AT-POS($index),'first :end',%a)
+              )
+            ),
+            Nil
+          ),
+          Nil
+        )
     }
     method !first-regex(Mu $test, %a) is raw {
         my $iter := self.iterator;

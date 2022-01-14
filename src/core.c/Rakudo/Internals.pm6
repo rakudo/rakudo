@@ -1124,21 +1124,24 @@ my class Rakudo::Internals {
           )
         )
     }
+    my $DYNAMIC-INITIALIZATION-LOCK := Lock.new;
     method INITIALIZE-DYNAMIC(str $name) is raw {
 #nqp::say("Initializing $name");
-        nqp::ifnull(
-          nqp::atkey(
-            $initializers,
-            nqp::concat(
-              nqp::getcomp('Raku').language_version,
-              nqp::concat("\0",$name)
-            )
-          ),
-          nqp::ifnull(
-            nqp::atkey($initializers,$name),
-            { Failure.new(X::Dynamic::NotFound.new(:$name)) }
-          )
-        )();
+        $DYNAMIC-INITIALIZATION-LOCK.protect: {
+            nqp::ifnull(
+              nqp::atkey(
+                $initializers,
+                nqp::concat(
+                  nqp::getcomp('Raku').language_version,
+                  nqp::concat("\0",$name)
+                )
+              ),
+              nqp::ifnull(
+                nqp::atkey($initializers,$name),
+                { Failure.new(X::Dynamic::NotFound.new(:$name)) }
+              )
+            )();
+        }
     }
 
     method EXPAND-LITERAL-RANGE(Str:D \x,$list) {

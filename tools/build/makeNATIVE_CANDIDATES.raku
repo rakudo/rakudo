@@ -66,7 +66,8 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
-      !! nqp::bindpos_#postfix#(nqp::decont(SELF),$pos,assignee)
+      !! nqp::bindpos_#postfix#(nqp::decont(SELF),$pos,assignee);
+    assignee
 }
 
 multi sub postcircumfix:<[ ]>(

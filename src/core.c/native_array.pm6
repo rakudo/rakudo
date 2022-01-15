@@ -4916,7 +4916,8 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
-      !! nqp::bindpos_s(nqp::decont(SELF),$pos,assignee)
+      !! nqp::bindpos_s(nqp::decont(SELF),$pos,assignee);
+    assignee
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -5167,7 +5168,8 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
-      !! nqp::bindpos_n(nqp::decont(SELF),$pos,assignee)
+      !! nqp::bindpos_n(nqp::decont(SELF),$pos,assignee);
+    assignee
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -5418,7 +5420,8 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
-      !! nqp::bindpos_i(nqp::decont(SELF),$pos,assignee)
+      !! nqp::bindpos_i(nqp::decont(SELF),$pos,assignee);
+    assignee
 }
 
 multi sub postcircumfix:<[ ]>(

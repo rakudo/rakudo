@@ -129,7 +129,7 @@ augment class Rakudo::Internals {
     # be initialized in the order in which these combinations are
     # initialized here.
     my constant @pc-adverb-mapper = do {
-        my int $i = -1;
+        my uint $i;
 #?if !js
         my uint16 @map;
 #?endif
@@ -138,50 +138,50 @@ augment class Rakudo::Internals {
 #?endif
 
         # add the simple access version, e.g. with :!delete or :!v
-        @map[SLICE_NO_ADVERBS]                               = ++$i;
+        @map[SLICE_NO_ADVERBS]                               = $i++;
 
         # simple filtering adverbs
-        @map[SLICE_KV]                                       = ++$i;
-        @map[SLICE_NOT_KV]                                   = ++$i;
-        @map[SLICE_P]                                        = ++$i;
-        @map[SLICE_NOT_P]                                    = ++$i;
-        @map[SLICE_K]                                        = ++$i;
-        @map[SLICE_NOT_K]                                    = ++$i;
-        @map[SLICE_V]                                        = ++$i;
+        @map[SLICE_KV]                                       = $i++;
+        @map[SLICE_NOT_KV]                                   = $i++;
+        @map[SLICE_P]                                        = $i++;
+        @map[SLICE_NOT_P]                                    = $i++;
+        @map[SLICE_K]                                        = $i++;
+        @map[SLICE_NOT_K]                                    = $i++;
+        @map[SLICE_V]                                        = $i++;
 
         # adverbs that return whether exists / existed
-        @map[SLICE_EXISTS]                                   = ++$i;
-        @map[SLICE_EXISTS + SLICE_KV]                        = ++$i;
-        @map[SLICE_EXISTS + SLICE_NOT_KV]                    = ++$i;
-        @map[SLICE_EXISTS + SLICE_P]                         = ++$i;
-        @map[SLICE_EXISTS + SLICE_NOT_P]                     = ++$i;
-        @map[SLICE_EXISTS + SLICE_DELETE]                    = ++$i;
-        @map[SLICE_EXISTS + SLICE_DELETE + SLICE_KV]         = ++$i;
-        @map[SLICE_EXISTS + SLICE_DELETE + SLICE_NOT_KV]     = ++$i;
-        @map[SLICE_EXISTS + SLICE_DELETE + SLICE_P]          = ++$i;
-        @map[SLICE_EXISTS + SLICE_DELETE + SLICE_NOT_P]      = ++$i;
+        @map[SLICE_EXISTS]                                   = $i++;
+        @map[SLICE_EXISTS + SLICE_KV]                        = $i++;
+        @map[SLICE_EXISTS + SLICE_NOT_KV]                    = $i++;
+        @map[SLICE_EXISTS + SLICE_P]                         = $i++;
+        @map[SLICE_EXISTS + SLICE_NOT_P]                     = $i++;
+        @map[SLICE_EXISTS + SLICE_DELETE]                    = $i++;
+        @map[SLICE_EXISTS + SLICE_DELETE + SLICE_KV]         = $i++;
+        @map[SLICE_EXISTS + SLICE_DELETE + SLICE_NOT_KV]     = $i++;
+        @map[SLICE_EXISTS + SLICE_DELETE + SLICE_P]          = $i++;
+        @map[SLICE_EXISTS + SLICE_DELETE + SLICE_NOT_P]      = $i++;
 
         # adverbs that return whether NOT exists / existed
-        @map[SLICE_NOT_EXISTS]                               = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_KV]                    = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_NOT_KV]                = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_P]                     = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_NOT_P]                 = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_DELETE]                = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_DELETE + SLICE_KV]     = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_DELETE + SLICE_NOT_KV] = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_DELETE + SLICE_P]      = ++$i;
-        @map[SLICE_NOT_EXISTS + SLICE_DELETE + SLICE_NOT_P]  = ++$i;
+        @map[SLICE_NOT_EXISTS]                               = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_KV]                    = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_NOT_KV]                = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_P]                     = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_NOT_P]                 = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_DELETE]                = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_DELETE + SLICE_KV]     = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_DELETE + SLICE_NOT_KV] = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_DELETE + SLICE_P]      = $i++;
+        @map[SLICE_NOT_EXISTS + SLICE_DELETE + SLICE_NOT_P]  = $i++;
 
         # adverbs that just delete
-        @map[SLICE_DELETE]                                   = ++$i;
-        @map[SLICE_DELETE + SLICE_KV]                        = ++$i;
-        @map[SLICE_DELETE + SLICE_NOT_KV]                    = ++$i;
-        @map[SLICE_DELETE + SLICE_P]                         = ++$i;
-        @map[SLICE_DELETE + SLICE_NOT_P]                     = ++$i;
-        @map[SLICE_DELETE + SLICE_K]                         = ++$i;
-        @map[SLICE_DELETE + SLICE_NOT_K]                     = ++$i;
-        @map[SLICE_DELETE + SLICE_V]                         = ++$i;
+        @map[SLICE_DELETE]                                   = $i++;
+        @map[SLICE_DELETE + SLICE_KV]                        = $i++;
+        @map[SLICE_DELETE + SLICE_NOT_KV]                    = $i++;
+        @map[SLICE_DELETE + SLICE_P]                         = $i++;
+        @map[SLICE_DELETE + SLICE_NOT_P]                     = $i++;
+        @map[SLICE_DELETE + SLICE_K]                         = $i++;
+        @map[SLICE_DELETE + SLICE_NOT_K]                     = $i++;
+        @map[SLICE_DELETE + SLICE_V]                         = $i++;
 
         @map
     }
@@ -297,7 +297,7 @@ augment class Rakudo::Internals {
 
         # Perform the actual lookup and handling
 #?if !js
-        my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
+        my int $index = nqp::atpos_u(@pc-adverb-mapper,$bitmap);
 #?endif
 #?if js
         my $index = @pc-adverb-mapper[$bitmap];
@@ -405,7 +405,7 @@ augment class Rakudo::Internals {
 
         # Perform the actual lookup and handling
 #?if !js
-        my int $index = nqp::atpos_i(@pc-adverb-mapper,$bitmap);
+        my int $index = nqp::atpos_u(@pc-adverb-mapper,$bitmap);
 #?endif
 #?if js
         my $index = @pc-adverb-mapper[$bitmap];

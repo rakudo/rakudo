@@ -39,7 +39,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
         method new (\uni) { nqp::create(self)!SET-SELF: uni }
         method pull-one {
             nqp::islt_i(($!i = nqp::add_i($!i, 1)), $!els)
-              ?? nqp::atpos_i($!uni, $!i)
+              ?? nqp::atpos_u($!uni, $!i)
               !! IterationEnd
         }
         method skip-one {
@@ -51,7 +51,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
             my int $i    = $!i;
             nqp::while(
               nqp::islt_i(($i = nqp::add_i($i, 1)), $els),
-              target.push: nqp::atpos_i($uni, $i)
+              target.push: nqp::atpos_u($uni, $i)
             );
             $!i = $i;
         }
@@ -104,8 +104,8 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
                  nqp::while(
                    nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
                      && nqp::iseq_i(
-                          nqp::atpos_i(self,$i),
-                          nqp::atpos_i($other,$i)
+                          nqp::atpos_u(self,$i),
+                          nqp::atpos_u($other,$i)
                         ),
                    nqp::null
                  ),
@@ -129,7 +129,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
                :what($*INDEX // 'Index'),
                :got($pos),
                :range("0..{nqp::elems(self)-1}")))
-          !! nqp::atpos_i(self,$pos)
+          !! nqp::atpos_u(self,$pos)
     }
     multi method AT-POS(Uni:D: Int:D $pos) {
         nqp::isge_i($pos,nqp::elems(self)) || nqp::islt_i($pos,0)
@@ -137,7 +137,7 @@ my class Uni does Positional[uint32] does Stringy is repr('VMArray') is array_ty
                :what($*INDEX // 'Index'),
                :got($pos),
                :range("0..{nqp::elems(self)-1}")))
-          !! nqp::atpos_i(self,$pos)
+          !! nqp::atpos_u(self,$pos)
     }
 
     multi method gist(Uni:D:) {
@@ -190,7 +190,7 @@ multi sub infix:<cmp>(Uni:D $a, Uni:D $b) {
     my int $i = -1;
     nqp::until(
       nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
-        || (my $res = nqp::cmp_i(nqp::atpos_i($a,$i),nqp::atpos_i($b,$i))),
+        || (my $res = nqp::cmp_i(nqp::atpos_u($a,$i),nqp::atpos_u($b,$i))),
       nqp::null
     );
     ORDER($res || nqp::cmp_i($elems-a,$elems-b))

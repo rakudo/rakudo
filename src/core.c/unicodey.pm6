@@ -147,7 +147,7 @@ my class Rakudo::Unicodey is implementation-detail {
     # helper sub to set prop value and representation preference for a
     # given code and propname
     my sub codename2proppref(
-      int $code, str $propname, $prop is rw, $pref is rw
+      uint $code, str $propname, $prop is rw, $pref is rw
     --> Nil) {
         $prop = nqp::unipropcode($propname);
         $pref = nqp::atpos_s($prop2pref,$prop) || nqp::ifnull(
@@ -164,7 +164,7 @@ my class Rakudo::Unicodey is implementation-detail {
         )
     }
 
-    method uniprop(int $code, str $propname) {
+    method uniprop(uint $code, str $propname) {
         codename2proppref($code, $propname, my int $prop, my str $pref);
 
         nqp::if(
@@ -214,7 +214,7 @@ my class Rakudo::Unicodey is implementation-detail {
             my $self  := nqp::create(self);
             my $codes := Rakudo::Unicodey.ords($str);
             codename2proppref(
-              nqp::atpos_i($codes,0), $propname, my int $prop, my str $pref
+              nqp::atpos_u($codes,0), $propname, my int $prop, my str $pref
             );
 
             nqp::bindattr($self,self,'$!codes',$codes);
@@ -578,7 +578,7 @@ augment class List {
               nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
               nqp::if(
                 nqp::istype((my $value := nqp::atpos($!reified,$i)),Int),
-                nqp::bindpos_s($result,$i,nqp::chr($value)),
+                nqp::bindpos_s($result,$i,nqp::chr(my uint $ = $value)),
                 nqp::if(
                   nqp::istype($value,Str),
                   nqp::if(

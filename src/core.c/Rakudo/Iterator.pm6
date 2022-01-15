@@ -3032,6 +3032,56 @@ class Rakudo::Iterator {
     }
     method native_i(Mu \list --> Iterator:D) { native_i.new(list) }
 
+    # Class for iterating native int arrays and nqp::list_u
+    my class native_u does PredictiveIterator {
+        has $!list;
+        has int $!i;
+
+        method !SET-SELF(Mu \list) {
+            $!list := nqp::decont(list);
+            $!i     = -1;
+            self
+        }
+        method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+
+        method pull-one() is raw {
+            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+              ?? nqp::atposref_u($!list,$!i)
+              !! IterationEnd
+        }
+
+        method push-all(\target --> IterationEnd) {
+            my $list := $!list;
+            my int $i = $!i;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems($list)),
+              target.push(nqp::atposref_u($list,$i))
+            );
+            $!i = $i;
+        }
+
+        method skip-one() {
+            nqp::islt_i(($!i = nqp::add_i($!i,1)),nqp::elems($!list))
+        }
+
+        method skip-at-least(int $toskip) {
+            nqp::unless(
+              nqp::islt_i(($!i = nqp::add_i($!i,$toskip)),nqp::elems($!list)),
+              nqp::stmts(
+                ($!i = nqp::elems($!list)),
+                0
+              )
+            )
+        }
+
+        method sink-all(--> IterationEnd) { $!i = nqp::elems($!list) }
+
+        method count-only(--> Int:D) {
+            nqp::elems($!list) - $!i - nqp::islt_i($!i,nqp::elems($!list))
+        }
+    }
+    method native_u(Mu \list --> Iterator:D) { native_u.new(list) }
+
     # Class for iterating native num arrays and nqp::list_n
     my class native_n does PredictiveIterator {
         has $!list;

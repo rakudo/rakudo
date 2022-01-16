@@ -232,6 +232,10 @@ my class Match is Capture is Cool does NQPMatchRole {
     multi method Bool(Match:U: --> False) { }
     multi method Bool(Match:D:) { nqp::hllbool($!pos >= $!from) }
 
+    proto method not(|) {*}
+    multi method not(Match:U: --> True) { }
+    multi method not(Match:D:) { nqp::hllbool($!pos < $!from) }
+
     multi method Numeric(Match:D:) {
         self.Str.Numeric
     }

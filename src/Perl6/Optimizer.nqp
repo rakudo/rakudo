@@ -1598,7 +1598,7 @@ my class SmartmatchOptimizer {
         # overrides CORE's methods.
         note("Typematch over ", $sm_type.HOW.name($sm_type), " can be reduced to nqp::istype") if $!debug;
 
-        # For 'when' statement it is sufficient to get native 0 or 1. Otherwise we need to boolilfy.
+        # For 'when' statement it is sufficient to get native 0 or 1. Otherwise we need to boolify.
         $sm_ast := QAST::Op.new( :op<istype>, $lhs.ast, $rhs.ast );
         $sm_ast := QAST::Op.new( :op<not_i>, $sm_ast ) if $negated;
         $in-when ?? $sm_ast !! QAST::Op.new( :op<hllbool>, $sm_ast )
@@ -1898,6 +1898,7 @@ my class SmartmatchOptimizer {
                 );
 
                 # If topic can the method then we invoke it. Otherwise fall back to ACCEPTS to throw an exception
+                # TODO Code for new-disp
                 $method_ast := QAST::Op.new(
                     :op<if>,
                     QAST::Op.new(
@@ -2072,9 +2073,7 @@ my class SmartmatchOptimizer {
     method locate_smartmatch_ACCEPTS($ast) {
         for @($ast) -> $child {
             next if nqp::istype($child, QAST::Want);
-            return $child if nqp::istype($child, QAST::Op)
-                                && nqp::iseq_s($child.op, 'callmethod')
-                                && $child.ann('smartmatch_accepts');
+            return $child if nqp::istype($child, QAST::Op) && $child.ann('smartmatch_accepts');
             note("AST child is not a QAST node! AST:\n", $ast.dump(4)) unless nqp::istype($child, QAST::Node);
             my $found := self.locate_smartmatch_ACCEPTS($child);
             return $found if nqp::defined($found);
@@ -2110,7 +2109,12 @@ my class SmartmatchOptimizer {
         if nqp::defined($sm_accepts) {
             # LHS, which becomes smartmatch topic, is used before the ACCEPTS call in statements passed to locallifetime op.
             my $lhs := Operand.new($op[0][1][1], $!optimizer, $!symbols, :name<LHS>);
+#?if !moar
             my $rhs := Operand.new($sm_accepts[0][1], $!optimizer, $!symbols, :name<RHS>);
+#?endif
+#?if moar
+            my $rhs := Operand.new($sm_accepts[2], $!optimizer, $!symbols, :name<RHS>);
+#?endif
             my $negated := $sm_accepts.ann('smartmatch_negated');
             my $boolified := $op[0][2].ann('smartmatch_boolified');
 
@@ -2127,14 +2131,17 @@ my class SmartmatchOptimizer {
             note("Post-typematch attempt result is ", $result.HOW.name($result)) if $!debug;
 
             if nqp::isnull($result) && ($sm_op := self.maybe_pair($lhs, $rhs, $sm_accepts, :$negated)) {
+#?if !moar
                 # When maybe_pair succeeds it means the RHS is certainly not a Regex. Hence we can remove the check and
                 # replace QAST::Stmts wrapper with the binding to sm_result_<n> local.
                 # Pull out the binding op and replace stmts; not needed in case of !~~
                 $op[0][2] := $op[0][2][0] unless $negated;
+#?endif
                 $op[0][2][1] := $sm_op;    # Replace the second binding argument with the optimized AST.
                 $result := $op; # No further optimizations are possible
             }
 
+#?if !moar
             # If we know RHS type then we can possibly simplify the actual SM op withing `locallifetime` to plain
             # .ACCEPTS(...).Bool unless RHS is or can be a Regex
             my $rhs_type := $rhs.infer-type(:guaranteed);
@@ -2156,6 +2163,7 @@ my class SmartmatchOptimizer {
                 $op[0][2] := $bind_ast;
                 $result := $op;
             }
+#?endif
         }
 
         $result := $op unless nqp::defined($result);

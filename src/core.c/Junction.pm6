@@ -404,9 +404,9 @@ my class Junction { # declared in BOOTSTRAP
     # method invocations. Note that this can only be used with classes using the default ACCEPTS method from the core as
     # only with it we can guarantee the default handling of junctions.
     proto method BOOLIFY-ACCEPTS(|) is implementation-detail {*}
-    multi method BOOLIFY-ACCEPTS(Junction:U --> True) {}
-    multi method BOOLIFY-ACCEPTS(Mu \matcher) {
-        nqp::hllbool(
+    multi method BOOLIFY-ACCEPTS(Junction:U, $negate?) { nqp::hllbool(nqp::isfalse($negate)) }
+    multi method BOOLIFY-ACCEPTS(Mu \matcher, $negate?) {
+        my $matches :=
           nqp::stmts(
             (my int $elems = nqp::elems($!eigenstates)),
             (my int $i),
@@ -456,8 +456,8 @@ my class Junction { # declared in BOOTSTRAP
                 )
               )
             )
-          )
-        )
+          );
+        nqp::hllbool(nqp::if($negate, nqp::not_i($matches), $matches))
     }
 }
 

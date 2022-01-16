@@ -21,13 +21,13 @@ my @lower = ("",<<
   chars chdir chmod chomp chop chr chrs cis classify close comb
   combinations copy cos cosec cosech cosh cotan cotanh deepmap defined
   die dir done duckmap elems emit end exit exp expmod fail fc first
-  flat flip floor full-barrier get getc gist goto grep hash index
+  flat flip floor full-barrier get getc gist goto grep hash hyper index
   indices indir is-prime item join keys kv last lastcall lc leave
   lines link list log log10 log2 lsb make map max min minmax mix
   mkdir move msb next nextcallee nextsame nextwith nodemap none
   not note one open ord ords pair pairs parse-base parse-names
   permutations pick pop prepend print printf proceed produce
-  prompt push put rand redo reduce rename repeated repl return
+  prompt push put race rand redo reduce rename repeated repl return
   return-rw reverse rotor rindex rmdir roll roots rotate round roundrobin
   run samecase samemark samewith say sec sech set shell shift sign
   signal sin sinh sleep sleep-timer sleep-until slip slurp so sort

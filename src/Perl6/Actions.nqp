@@ -7408,6 +7408,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # regex-ish code like m//, s///, or tr///
         my $boolify := !($negated || $rhs.ann('regex_match_code'));
 
+#?if !moar
         # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
         $sm_call := QAST::Op.new(
                         :op('callmethod'), :name('ACCEPTS'),
@@ -7449,6 +7450,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $rvar ))));
             $sm_call.annotate('smartmatch_boolified', 1);
         }
+#?endif
+#?if moar
+        $sm_call := QAST::Op.new(
+            :op<bind>,
+            QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
+            QAST::Op.new(
+                :op<dispatch>,
+                QAST::SVal.new( :value<raku-smartmatch-topicalized> ),
+                QAST::Op.new(
+                    :op<decont>,
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm')),
+                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm'),
+                QAST::Op.new(
+                    :op<decont>,
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($rhs_local), :scope('local'), :decl('var') ),
+                        $rhs )),
+                QAST::Var.new( :name($rhs_local), :scope('local') ),
+                QAST::IVal.new( :value( $negated ?? -1 !! $boolify ) )
+            )
+        );
+        $sm_call[1].annotate('smartmatch_accepts', 1);
+        $sm_call[1].annotate('smartmatch_negated', $negated);
+#?endif
 
         QAST::Op.new(
             :op('locallifetime'),

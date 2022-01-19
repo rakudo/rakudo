@@ -143,47 +143,81 @@ class Distribution::Resource {
     has $.dist-id;
     has $.key;
 
-    # IO::Path lookup **must** always be done at runtime, so that it can never
-    # be serialized at pre-compile time, and be referencing stale locations.
-    method IO(::?CLASS:D:) {
-        (self.repo-name
-          ?? CompUnit::RepositoryRegistry.repository-for-name: self.repo-name
-          !! CompUnit::RepositoryRegistry.repository-for-spec: self.repo
-        ).resource(self.dist-id, "resources/$.key")
+    method IO() {
+        my $repo := self.repo-name
+            ?? CompUnit::RepositoryRegistry.repository-for-name(self.repo-name)
+            !! CompUnit::RepositoryRegistry.repository-for-spec(self.repo);
+        $repo.resource(self.dist-id, "resources/$.key")
     }
 
     method platform-library-name() {
-        my $library := self.IO;
+        my $library = self.IO;
         ($library ~~ /\.<.alpha>+$/ or $library ~~ /\.so(\.<.digit>+)+$/) #Already a full name?
             ??  $library
             !!  $*VM.platform-library-name($library)
     }
 
     # delegate appropriate IO::Path methods to the resource IO::Path object
-    multi method Str(::?CLASS:D: |c)   { self.IO.Str(|c)         }
-    multi method gist(::?CLASS:D: |c)  { self.IO.gist(|c)        }
-    multi method raku(::?CLASS:D: |c)  { self.IO.raku(|c)        }
-    method absolute(::?CLASS:D: |c)    { self.IO.absolute(|c)    }
-    method is-absolute(::?CLASS:D: |c) { self.IO.is-absolute(|c) }
-    method relative(::?CLASS:D: |c)    { self.IO.relative(|c)    }
-    method is-relative(::?CLASS:D: |c) { self.IO.is-relative(|c) }
-    method parts(::?CLASS:D: |c)       { self.IO.parts(|c)       }
-    method volume(::?CLASS:D: |c)      { self.IO.volume(|c)      }
-    method dirname(::?CLASS:D: |c)     { self.IO.dirname(|c)     }
-    method basename(::?CLASS:D: |c)    { self.IO.basename(|c)    }
-    method extension(::?CLASS:D: |c)   { self.IO.extension(|c)   }
-    method open(::?CLASS:D: |c)        { self.IO.open(|c)        }
-    method resolve(::?CLASS:D: |c)     { self.IO.resolve(|c)     }
-    method slurp(::?CLASS:D: |c)       { self.IO.slurp(|c)       }
-    method lines(::?CLASS:D: |c)       { self.IO.lines(|c)       }
-    method comb(::?CLASS:D: |c)        { self.IO.comb(|c)        }
-    method split(::?CLASS:D: |c)       { self.IO.split(|c)       }
-    method words(::?CLASS:D: |c)       { self.IO.words(|c)       }
-    method copy(::?CLASS:D: |c)        { self.IO.copy(|c)        }
-    method modified(::?CLASS:D: |c)    { self.IO.modified(|c)    }
-    method accessed(::?CLASS:D: |c)    { self.IO.accessed(|c)    }
-    method changed(::?CLASS:D: |c)     { self.IO.changed(|c)     }
-    method mode(::?CLASS:D: |c)        { self.IO.mode(|c)        }
+    multi method Str(::?CLASS:D: |c) {
+        self.IO.Str(|c)
+    }
+    multi method gist(::?CLASS:D: |c) {
+        self.IO.gist(|c)
+    }
+    multi method raku(::?CLASS:D: |c) {
+        self.IO.raku(|c)
+    }
+    method absolute(|c) {
+        self.IO.absolute(|c)
+    }
+    method is-absolute(|c) {
+        self.IO.is-absolute(|c)
+    }
+    method relative(|c) {
+        self.IO.relative(|c)
+    }
+    method is-relative(|c) {
+        self.IO.is-relative(|c)
+    }
+    method parts(|c) {
+        self.IO.parts(|c)
+    }
+    method volume(|c) {
+        self.IO.volume(|c)
+    }
+    method dirname(|c) {
+        self.IO.dirname(|c)
+    }
+    method basename(|c) {
+        self.IO.basename(|c)
+    }
+    method extension(|c) {
+        self.IO.extension(|c)
+    }
+    method open(|c) {
+        self.IO.open(|c)
+    }
+    method resolve(|c) {
+        self.IO.resolve(|c)
+    }
+    method slurp(|c) {
+        self.IO.slurp(|c)
+    }
+    method lines(|c) {
+        self.IO.lines(|c)
+    }
+    method comb(|c) {
+        self.IO.comb(|c)
+    }
+    method split(|c) {
+        self.IO.split(|c)
+    }
+    method words(|c) {
+        self.IO.words(|c)
+    }
+    method copy(|c) {
+        self.IO.copy(|c)
+    }
 }
 
 class Distribution::Resources does Associative {

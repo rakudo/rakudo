@@ -164,6 +164,13 @@ public final class RakOps {
         return res;
     }
 
+    public static SixModelObject p6box_u(long value, ThreadContext tc) {
+        GlobalExt gcx = key.getGC(tc);
+        SixModelObject res = gcx.Int.st.REPR.allocate(tc, gcx.Int.st);
+        res.set_int(tc, value);
+        return res;
+    }
+
     public static SixModelObject p6box_n(double value, ThreadContext tc) {
         GlobalExt gcx = key.getGC(tc);
         SixModelObject res = gcx.Num.st.REPR.allocate(tc, gcx.Num.st);
@@ -186,6 +193,9 @@ public final class RakOps {
             switch (csd.argFlags[i]) {
                 case CallSiteDescriptor.ARG_INT:
                     toBind = p6box_i((long)args[i], tc);
+                    break;
+                case CallSiteDescriptor.ARG_UINT:
+                    toBind = p6box_u((long)args[i], tc);
                     break;
                 case CallSiteDescriptor.ARG_NUM:
                     toBind = p6box_n((double)args[i], tc);

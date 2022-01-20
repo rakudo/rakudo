@@ -143,24 +143,24 @@ while @lines {
             $result
         }
 
-#        multi method repeated(#type#array:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::if(
-#                nqp::existskey($seen,nqp::atpos_#postfix#(self,$i)),
-#                nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,$i)),
-#                nqp::bindkey($seen,nqp::atpos_#postfix#(self,$i),1)
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
+        multi method repeated(#type#array:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,(my #type# $key = nqp::atpos_#postfix#(self,$i))),
+                nqp::push_#postfix#($result,$key),
+                nqp::bindkey($seen,$key,1)
+              )
+            );
+
+            $result
+        }
+
 #        multi method squish(#type#array:D: --> Seq:D) {
 #            if nqp::elems(self) -> int $elems {
 #                my $result  := nqp::create(self);

@@ -161,25 +161,25 @@ while @lines {
             $result
         }
 
-#        multi method squish(#type#array:D: --> Seq:D) {
-#            if nqp::elems(self) -> int $elems {
-#                my $result  := nqp::create(self);
-#                my #type# $last = nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,0));
-#                my int $i;
-#
-#                nqp::while(
-#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#                  nqp::if(
-#                    nqp::isne_#postfix#(nqp::atpos_#postfix#(self,$i),$last),
-#                    nqp::push_#postfix#($result,$last = nqp::atpos_#postfix#(self,$i))
-#                  )
-#                );
-#                $result.Seq
-#            }
-#            else {
-#                self.Seq
-#            }
-#        }
+        multi method squish(#type#array:D:) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(array[self.of]);
+                my #type# $last = nqp::push_#postfix#($result,nqp::atpos_#postfix#(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_#postfix#(nqp::atpos_#postfix#(self,$i),$last),
+                    nqp::push_#postfix#($result,$last = nqp::atpos_#postfix#(self,$i))
+                  )
+                );
+                $result
+            }
+            else {
+                self
+            }
+        }
 
         multi method AT-POS(#type#array:D: int $idx --> #type#) is raw {
             nqp::islt_i($idx,0)

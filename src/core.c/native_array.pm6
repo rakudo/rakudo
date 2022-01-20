@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-01-20T19:50:24+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-01-20T20:06:51+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -205,25 +205,25 @@ my class array does Iterable does Positional {
             $result
         }
 
-#        multi method squish(strarray:D: --> Seq:D) {
-#            if nqp::elems(self) -> int $elems {
-#                my $result  := nqp::create(self);
-#                my str $last = nqp::push_s($result,nqp::atpos_s(self,0));
-#                my int $i;
-#
-#                nqp::while(
-#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#                  nqp::if(
-#                    nqp::isne_s(nqp::atpos_s(self,$i),$last),
-#                    nqp::push_s($result,$last = nqp::atpos_s(self,$i))
-#                  )
-#                );
-#                $result.Seq
-#            }
-#            else {
-#                self.Seq
-#            }
-#        }
+        multi method squish(strarray:D:) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(array[self.of]);
+                my str $last = nqp::push_s($result,nqp::atpos_s(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_s(nqp::atpos_s(self,$i),$last),
+                    nqp::push_s($result,$last = nqp::atpos_s(self,$i))
+                  )
+                );
+                $result
+            }
+            else {
+                self
+            }
+        }
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
             nqp::islt_i($idx,0)
@@ -709,7 +709,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-01-20T19:50:24+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-01-20T20:06:51+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -816,25 +816,25 @@ my class array does Iterable does Positional {
             $result
         }
 
-#        multi method squish(intarray:D: --> Seq:D) {
-#            if nqp::elems(self) -> int $elems {
-#                my $result  := nqp::create(self);
-#                my int $last = nqp::push_i($result,nqp::atpos_i(self,0));
-#                my int $i;
-#
-#                nqp::while(
-#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#                  nqp::if(
-#                    nqp::isne_i(nqp::atpos_i(self,$i),$last),
-#                    nqp::push_i($result,$last = nqp::atpos_i(self,$i))
-#                  )
-#                );
-#                $result.Seq
-#            }
-#            else {
-#                self.Seq
-#            }
-#        }
+        multi method squish(intarray:D:) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(array[self.of]);
+                my int $last = nqp::push_i($result,nqp::atpos_i(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_i(nqp::atpos_i(self,$i),$last),
+                    nqp::push_i($result,$last = nqp::atpos_i(self,$i))
+                  )
+                );
+                $result
+            }
+            else {
+                self
+            }
+        }
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
             nqp::islt_i($idx,0)
@@ -1362,7 +1362,7 @@ my class array does Iterable does Positional {
 
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-01-20T19:50:24+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2022-01-20T20:06:51+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1469,25 +1469,25 @@ my class array does Iterable does Positional {
             $result
         }
 
-#        multi method squish(numarray:D: --> Seq:D) {
-#            if nqp::elems(self) -> int $elems {
-#                my $result  := nqp::create(self);
-#                my num $last = nqp::push_n($result,nqp::atpos_n(self,0));
-#                my int $i;
-#
-#                nqp::while(
-#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#                  nqp::if(
-#                    nqp::isne_n(nqp::atpos_n(self,$i),$last),
-#                    nqp::push_n($result,$last = nqp::atpos_n(self,$i))
-#                  )
-#                );
-#                $result.Seq
-#            }
-#            else {
-#                self.Seq
-#            }
-#        }
+        multi method squish(numarray:D:) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(array[self.of]);
+                my num $last = nqp::push_n($result,nqp::atpos_n(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_n(nqp::atpos_n(self,$i),$last),
+                    nqp::push_n($result,$last = nqp::atpos_n(self,$i))
+                  )
+                );
+                $result
+            }
+            else {
+                self
+            }
+        }
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
             nqp::islt_i($idx,0)

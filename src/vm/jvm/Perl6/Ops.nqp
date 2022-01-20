@@ -20,6 +20,7 @@ my $RT_OBJ  := 0;
 my $RT_INT  := 1;
 my $RT_NUM  := 2;
 my $RT_STR  := 3;
+my $RT_UINT := 10;
 my $RT_VOID := -1;
 
 # Instruction constants.
@@ -156,7 +157,7 @@ my $p6bool := -> $qastcomp, $op {
     $*STACK.obtain($il, $exprres);
 
     my $cond_type := $exprres.type;
-    if $cond_type == $RT_INT {
+    if $cond_type == $RT_INT || $cond_type == $RT_UINT {
         $il.append(JAST::PushIVal.new( :value(0) ));
         $il.append(JAST::Instruction.new( :op('lcmp') ));
     }
@@ -264,6 +265,13 @@ $ops.add_hll_box('Raku', $RT_INT, -> $qastcomp {
         'p6box_i', $TYPE_SMO, 'Long', $TYPE_TC ));
     $il
 });
+$ops.add_hll_box('Raku', $RT_UINT, -> $qastcomp {
+    my $il := JAST::InstructionList.new();
+    $il.append($ALOAD_1);
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_P6OPS,
+        'p6box_u', $TYPE_SMO, 'Long', $TYPE_TC ));
+    $il
+});
 $ops.add_hll_box('Raku', $RT_NUM, -> $qastcomp {
     my $il := JAST::InstructionList.new();
     $il.append($ALOAD_1);
@@ -283,6 +291,13 @@ QAST::OperationsJAST.add_hll_unbox('Raku', $RT_INT, -> $qastcomp {
     $il.append($ALOAD_1);
     $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_OPS,
         'decont_i', 'Long', $TYPE_SMO, $TYPE_TC ));
+    $il
+});
+QAST::OperationsJAST.add_hll_unbox('Raku', $RT_UINT, -> $qastcomp {
+    my $il := JAST::InstructionList.new();
+    $il.append($ALOAD_1);
+    $il.append(JAST::Instruction.new( :op('invokestatic'), $TYPE_OPS,
+        'decont_u', 'Long', $TYPE_SMO, $TYPE_TC ));
     $il
 });
 QAST::OperationsJAST.add_hll_unbox('Raku', $RT_NUM, -> $qastcomp {

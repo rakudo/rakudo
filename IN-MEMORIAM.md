@@ -7,7 +7,21 @@ to keep their memory alive here, as well as in other places.
 
 David H. Adler (dha)
 --------------------
-...
+David had many hobbies, in which he all excelled (like knowledge about Monty
+Python, Doctor Who, really, really bad movies, to name but a few of them).
+The Perl / Raku community was only one of the communities he was part of.
+
+David was involved in the very early Raku development process. More recently,
+he was involved in documenting various features of the Raku Programming
+Language.  Attending many Perl and related Open Source Conferences, he was
+a familiar sight and a good person to spend time with. He is sorely missed
+
+See also:
+- [Family memorial](https://www.dignitymemorial.com/obituaries/forest-hills-ny/david-adler-10451028)
+- [FaceBook](https://www.facebook.com/ginarsnape/posts/10227412275758366)
+- [/r/perl](https://www.reddit.com/r/perl/comments/qvxdun/dha_rip/)
+- [blogs.perl.org](http://blogs.perl.org/users/damian_conway/2021/11/vale-david.html)
+- [Rakudo Weekly](https://rakudoweekly.blog/2021/11/23/2021-47-david-h-adler-rip/)
 
 Jonathan Scott Duff (perlpilot)
 -------------------------------

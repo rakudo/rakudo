@@ -40,7 +40,6 @@
     - [p6setpre](#p6setpre)
     - [p6settypes](#p6settypes)
     - [p6sink](#p6sink)
-    - [p6sort](#p6sort)
     - [p6stateinit](#p6stateinit)
     - [p6staticouter](#p6staticouter)
     - [p6store](#p6store)
@@ -229,9 +228,6 @@ Sets the "pre" flag on the current frame.
 
 ## p6sink
 * p6sink(Mu $past)
-
-## p6sort
-* p6sort(Mu @data, Mu &comparator)
 
 ## p6stateinit
 * p6stateinit()

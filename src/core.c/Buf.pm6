@@ -26,7 +26,7 @@ my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-de
                 nqp::while(
                   nqp::islt_i(++$i,$elems),
                   nqp::stmts(
-                    ($got := nqp::atpos($from,$i)),
+                    ($got = nqp::atpos($from,$i)),
                     nqp::istype(nqp::hllize($got),Int)
                       ?? nqp::bindpos_i(to,$j++,$got)
                       !! self!fail-typecheck-element(action,$i,$got).throw))
@@ -188,7 +188,7 @@ my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-
                 nqp::while(
                   nqp::islt_i(++$i,$elems),
                   nqp::stmts(
-                    ($got := nqp::atpos($from,$i)),
+                    ($got = nqp::atpos($from,$i)),
                     nqp::istype(nqp::hllize($got),Int)
                       ?? nqp::bindpos_u(to,$j++,$got)
                       !! self!fail-typecheck-element(action,$i,$got).throw))
@@ -803,7 +803,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
             my Mu $from := nqp::getattr(from,List,'$!reified');
             if nqp::defined($from) {
                 my int $i = nqp::elems($from);
-                nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+                nqp::istype((my $got = nqp::atpos($from,$i)),Int)
                   ?? nqp::unshift_i(to,$got)
                   !! self!fail-typecheck-element(action,$i,$got).throw
                   while nqp::isge_i(--$i,0);

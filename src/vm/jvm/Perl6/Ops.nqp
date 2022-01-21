@@ -150,40 +150,6 @@ $ops.map_classlib_hll_op('Raku', 'p6setautothreader', $TYPE_P6OPS, 'p6setautothr
 $ops.map_classlib_hll_op('Raku', 'tclc', $TYPE_P6OPS, 'tclc', [$RT_STR], $RT_STR, :tc);
 $ops.map_classlib_hll_op('Raku', 'p6sort', $TYPE_P6OPS, 'p6sort', [$RT_OBJ, $RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('Raku', 'p6staticouter', $TYPE_P6OPS, 'p6staticouter', [$RT_OBJ], $RT_OBJ, :tc);
-my $p6bool := -> $qastcomp, $op {
-    my $il := JAST::InstructionList.new();
-    my $exprres := $qastcomp.as_jast($op[0]);
-    $il.append($exprres.jast);
-    $*STACK.obtain($il, $exprres);
-
-    my $cond_type := $exprres.type;
-    if $cond_type == $RT_INT || $cond_type == $RT_UINT {
-        $il.append(JAST::PushIVal.new( :value(0) ));
-        $il.append(JAST::Instruction.new( :op('lcmp') ));
-    }
-    elsif $cond_type == $RT_NUM {
-        $il.append(JAST::PushNVal.new( :value(0.0) ));
-        $il.append(JAST::Instruction.new( :op('dcmpl') ));
-    }
-    elsif $cond_type == $RT_STR {
-        $il.append(JAST::Instruction.new( :op('invokestatic'),
-            $TYPE_OPS, 'istrue_s', 'Long', $TYPE_STR ));
-        $il.append(JAST::PushIVal.new( :value(0) ));
-        $il.append(JAST::Instruction.new( :op('lcmp') ));
-    }
-    else {
-        $il.append(JAST::Instruction.new( :op('aload_1') ));
-        $il.append(JAST::Instruction.new( :op('invokestatic'),
-            $TYPE_OPS, 'istrue', 'Long', $TYPE_SMO, $TYPE_TC ));
-        $il.append(JAST::PushIVal.new( :value(0) ));
-        $il.append(JAST::Instruction.new( :op('lcmp') ));
-    }
-    $il.append(JAST::Instruction.new( :op('aload'), 'tc' ));
-    $il.append(JAST::Instruction.new( :op('invokestatic'),
-        $TYPE_P6OPS, 'booleanize', $TYPE_SMO, 'I', $TYPE_TC ));
-    $ops.result($il, $RT_OBJ);
-};
-$ops.add_hll_op('Raku', 'p6bool', $p6bool);
 $ops.add_hll_op('Raku', 'p6invokehandler', -> $qastcomp, $op {
     $qastcomp.as_jast(QAST::Op.new( :op('call'), $op[0], $op[1] ));
 });
@@ -222,7 +188,6 @@ $ops.add_hll_op('Raku', 'p6sink', -> $qastcomp, $past {
 
 # Make some of them also available from NQP land, since we use them in the
 # metamodel and bootstrap.
-$ops.add_hll_op('nqp', 'p6bool', $p6bool);
 $ops.map_classlib_hll_op('nqp', 'p6init', $TYPE_P6OPS, 'p6init', [], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6settypes', $TYPE_P6OPS, 'p6settypes', [$RT_OBJ], $RT_OBJ, :tc);
 $ops.map_classlib_hll_op('nqp', 'p6setitertype', $TYPE_P6OPS, 'p6setitertype', [$RT_OBJ], $RT_OBJ, :tc);

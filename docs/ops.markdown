@@ -6,7 +6,6 @@
     - [p6bindattrinvres](#p6bindattrinvres)
     - [p6bindcaptosig](#p6bindcaptosig)
     - [p6bindsig](#p6bindsig)
-    - [p6bool](#p6bool)
     - [p6box_i](#p6box_i)
     - [p6box_n](#p6box_n)
     - [p6box_s](#p6box_s)
@@ -78,11 +77,6 @@ This desugars to:
 
 ## p6bindsig
 * p6bindsig()
-
-## p6bool
-* p6bool(Mu $value)
-
-Create a Raku Bool from $value.
 
 ## p6box_i
 * p6box_i(int $value)

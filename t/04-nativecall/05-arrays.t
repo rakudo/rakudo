@@ -159,7 +159,6 @@ compile_test_lib('05-arrays');
 # https://github.com/Raku/old-issue-tracker/issues/5859
 {
     my CArray[uint8] $a .= new(200 xx 16);
-    todo "RT #130267";
     is $a[0], 200, 'unsigned uint8 value';
 }
 

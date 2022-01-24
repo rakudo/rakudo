@@ -7459,18 +7459,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
             QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
             QAST::Op.new(
                 :op<dispatch>,
-                QAST::SVal.new( :value<raku-smartmatch-topicalized> ),
-                QAST::Op.new(
-                    :op<decont>,
-                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm')),
+                QAST::SVal.new( :value<raku-smartmatch> ),
                 WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm'),
-                QAST::Op.new(
-                    :op<decont>,
-                    QAST::Op.new(
-                        :op('bind'),
-                        QAST::Var.new( :name($rhs_local), :scope('local'), :decl('var') ),
-                        $rhs )),
-                QAST::Var.new( :name($rhs_local), :scope('local') ),
+                $rhs,
                 QAST::IVal.new( :value( $negated ?? -1 !! $boolify ) )
             )
         );

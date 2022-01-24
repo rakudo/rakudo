@@ -2062,7 +2062,20 @@ my class SmartmatchOptimizer {
             $result := self.maybe_respect_junctions($lhs, $rhs, $sm_ast);
         }
 
-        $result := $op if nqp::isnull($result);
+        if nqp::isnull($result) {
+#?if !moar
+        $result := $op;
+#?endif
+#?if moar
+        $result := QAST::Op.new(
+            :op<dispatch>,
+            QAST::SVal.new( :value<raku-smartmatch> ),
+            $lhs.orig-ast,
+            $rhs.orig-ast,
+            QAST::IVal.new( :value(1) )
+        );
+#?endif
+        }
 
         $result.annotate('smartmatch_optimized', 1);
         $!optimizer.visit_op($result) if nqp::istype($result, QAST::Op);
@@ -2074,7 +2087,7 @@ my class SmartmatchOptimizer {
         for @($ast) -> $child {
             next if nqp::istype($child, QAST::Want);
             return $child if nqp::istype($child, QAST::Op) && $child.ann('smartmatch_accepts');
-            note("AST child is not a QAST node! AST:\n", $ast.dump(4)) unless nqp::istype($child, QAST::Node);
+            nqp::die("AST child is not a QAST node! AST:\n" ~ $ast.dump(4)) unless nqp::istype($child, QAST::Node);
             my $found := self.locate_smartmatch_ACCEPTS($child);
             return $found if nqp::defined($found);
         }
@@ -2107,7 +2120,6 @@ my class SmartmatchOptimizer {
         # After visit_children was invoked we have to return some kind of concrete AST node or it will result in a
         # duplicate call to visit_children.
         if nqp::defined($sm_accepts) {
-            # LHS, which becomes smartmatch topic, is used before the ACCEPTS call in statements passed to locallifetime op.
             my $lhs := Operand.new($op[0][1][1], $!optimizer, $!symbols, :name<LHS>);
 #?if !moar
             my $rhs := Operand.new($sm_accepts[0][1], $!optimizer, $!symbols, :name<RHS>);

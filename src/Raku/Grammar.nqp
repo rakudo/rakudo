@@ -1824,7 +1824,7 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
         | 'NaN' >>
         | <integer>
         | <dec_number>
-#        | <rad_number>
+        | <rad_number>
         | <rat_number>
 #        | <complex_number>
         | 'Inf' >>
@@ -1862,6 +1862,26 @@ grammar Raku::Grammar is HLL::Grammar does Raku::Common {
     token escale { <[Ee]> <sign> <decint> }
 
     token sign { '+' | '-' | '−' | '' }
+
+    token rad_number {
+        ':' $<radix> = [\d+] <.unsp>?
+        :my $r := nqp::radix(10, $<radix>, 0, 0)[0];
+        {}           # don't recurse in lexer
+        :dba('number in radix notation')
+        :my $rad_digit  := token rad_digit  { \d | <[ a..z A..Z ａ..ｚ Ａ..Ｚ ]> };
+        :my $rad_digits := token rad_digits { <rad_digit>+ [ _ <rad_digit>+ ]* };
+        [
+        || '<'
+                $<ohradix>  = [ '0x' <?{ $r < 34 }> | '0o' <?{ $r < 25 }> | '0d' <?{ $r < 14 }> | '0b' <?{ $r < 12 }> ]**0..1
+                $<intpart>  = <rad_digits>
+                $<fracpart> = [ '.' <rad_digits> ]**0..1
+                [ '*' <base=.integer> '**' <exp=.integer> ]**0..1
+           '>'
+        || <?[[]> <bracket=circumfix>
+        || <?[(]> <circumfix>
+        || <.malformed: 'radix number'>
+        ]
+    }
 
     token rat_number { '<' <bare_rat_number> '>' }
     token bare_rat_number {

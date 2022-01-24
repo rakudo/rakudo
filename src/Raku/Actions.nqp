@@ -1195,6 +1195,9 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
         elsif $<dec_number> {
             self.attach: $/, $<dec_number>.ast;
         }
+        elsif $<rad_number> {
+            self.attach: $/, $<rad_number>.ast;
+        }
         elsif $<rat_number> {
             self.attach: $/, $<rat_number>.ast;
         }
@@ -1259,6 +1262,76 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             self.attach: $/, self.r('RatLiteral').new($*LITERALS.intern-rat(
                 $<int> ?? $<int>.ast !! NQPMu,
                 ~$<frac>));
+        }
+    }
+
+    method rad_number($/) {
+        my int $radix := nqp::radix(10, $<radix>, 0, 0)[0];
+        if $<bracket> {
+            nqp::die('nyi bracket radix')
+        }
+        elsif $<circumfix> {
+            nqp::die('nyi circumfix radix')
+        }
+        else {
+            # Check and override $radix if necessary.
+            $/.typed_panic('X::Syntax::Number::RadixOutOfRange', :$radix)
+                unless (2 <= $radix) && ($radix <= 36);
+            if nqp::chars($<ohradix>) {
+                my $ohradstr := $<ohradix>.Str;
+                if $ohradstr eq "0x" {
+                    $radix := 16;
+                } elsif $ohradstr eq "0o" {
+                    $radix := 8;
+                } elsif $ohradstr eq "0d" {
+                    $radix := 10;
+                } elsif $ohradstr eq "0b" {
+                    $radix := 2;
+                } else {
+                    $/.panic("Unknown radix prefix '$ohradstr'.");
+                }
+            }
+
+            # Parse and assemble number.
+            my $literals := $*LITERALS;
+            my $Int := $literals.int-type;
+            my $Num := $literals.num-type;
+            my $ipart := nqp::radix_I($radix, $<intpart>.Str, 0, 0, $Int);
+            my $fpart := nqp::radix_I($radix, nqp::chars($<fracpart>) ?? $<fracpart>.Str !! ".0", 1, 4, $Int);
+            my $bpart := $<base> ?? nqp::tonum_I($<base>[0].ast) !! $radix;
+            my $epart := $<exp> ?? nqp::tonum_I($<exp>[0].ast) !! 0;
+
+            if $ipart[2] < nqp::chars($<intpart>.Str) {
+                $/.typed_panic: 'X::Str::Numeric',
+                    :source($<intpart> ~ ($<fracpart> // '')),
+                    :pos($ipart[2] < 0 ?? 0 !! $ipart[2]),
+                    :reason("malformed base-$radix number");
+            }
+            if $fpart[2] < nqp::chars($<fracpart>.Str) {
+                $/.typed_panic: 'X::Str::Numeric',
+                    :source($<intpart> ~ ($<fracpart> // '')),
+                    :reason("malformed base-$radix number"),
+                    :pos( # the -1 dance is due to nqp::radix returning -1 for
+                        # failure to parse the first char, instead of 0;
+                        # we return `1` to cover the decimal dot in that case
+                        $ipart[2] + ($fpart[2] == -1 ?? 1 !! $fpart[2])
+                    );
+            }
+
+            my $base := nqp::pow_I(nqp::box_i($radix, $Int), $fpart[1], $Num, $Int);
+            $ipart := nqp::mul_I($ipart[0], $base, $Int);
+            $ipart := nqp::add_I($ipart, $fpart[0], $Int);
+            $fpart := $base;
+
+            my $scientific := nqp::pow_n($bpart, $epart);
+            $ipart := nqp::mul_I($ipart, nqp::fromnum_I($scientific, $Int), $Int);
+
+            if $fpart != 1 { # non-unit fractional part, wants Rat
+                self.attach: $/, self.r('RatLiteral').new($literals.intern-rat($ipart, $fpart));
+            }
+            else { # wants Int
+                self.attach: $/, self.r('IntLiteral').new($ipart);
+            }
         }
     }
 

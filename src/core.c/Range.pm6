@@ -730,15 +730,47 @@ my class Range is Cool does Iterable does Positional {
 }
 
 proto sub infix:<..>($, $, *%) is pure {*}
+multi sub infix:<..>(Int:D $min, Int:D $max) {
+    my $range := nqp::create(Range);
+    nqp::bindattr($range,Range,'$!min',$min);
+    nqp::bindattr($range,Range,'$!max',$max);
+    nqp::bindattr_i($range,Range,'$!is-int',1);
+    $range
+}
 multi sub infix:<..>($min, $max) { Range.new($min, $max) }
 
 proto sub infix:<^..>($, $, *%) is pure {*}
+multi sub infix:<^..>(Int:D $min, Int:D $max) {
+    my $range := nqp::create(Range);
+    nqp::bindattr($range,Range,'$!min',$min);
+    nqp::bindattr($range,Range,'$!max',$max);
+    nqp::bindattr_i($range,Range,'$!excludes-min',1);
+    nqp::bindattr_i($range,Range,'$!is-int',1);
+    $range
+}
 multi sub infix:<^..>($min, $max) { Range.new($min, $max, :excludes-min) }
 
 proto sub infix:<..^>($, $, *%) is pure {*}
+multi sub infix:<..^>(Int:D $min, Int:D $max) {
+    my $range := nqp::create(Range);
+    nqp::bindattr($range,Range,'$!min',$min);
+    nqp::bindattr($range,Range,'$!max',$max);
+    nqp::bindattr_i($range,Range,'$!excludes-max',1);
+    nqp::bindattr_i($range,Range,'$!is-int',1);
+    $range
+}
 multi sub infix:<..^>($min, $max) { Range.new($min, $max, :excludes-max) }
 
 proto sub infix:<^..^>($, $, *%) is pure {*}
+multi sub infix:<^..^>(Int:D $min, Int:D $max) {
+    my $range := nqp::create(Range);
+    nqp::bindattr($range,Range,'$!min',$min);
+    nqp::bindattr($range,Range,'$!max',$max);
+    nqp::bindattr_i($range,Range,'$!excludes-min',1);
+    nqp::bindattr_i($range,Range,'$!excludes-max',1);
+    nqp::bindattr_i($range,Range,'$!is-int',1);
+    $range
+}
 multi sub infix:<^..^>($min, $max) {
     Range.new($min, $max, :excludes-min, :excludes-max)
 }

@@ -744,6 +744,14 @@ multi sub infix:<^..^>($min, $max) {
 }
 
 proto sub prefix:<^>($, *%) is pure {*}
+multi sub prefix:<^>(Int:D $max) {
+    my $range := nqp::create(Range);
+    nqp::bindattr($range,Range,'$!min',0);
+    nqp::bindattr($range,Range,'$!max',$max);
+    nqp::bindattr_i($range,Range,'$!excludes-max',1);
+    nqp::bindattr_i($range,Range,'$!is-int',1);
+    $range
+}
 multi sub prefix:<^>($max) { Range.new(0, $max.Numeric, :excludes-max) }
 
 multi sub infix:<eqv>(Range:D \a, Range:D \b --> Bool:D) {

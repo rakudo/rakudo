@@ -2156,7 +2156,6 @@ my class SmartmatchOptimizer {
 #?if !moar
             # If we know RHS type then we can possibly simplify the actual SM op withing `locallifetime` to plain
             # .ACCEPTS(...).Bool unless RHS is or can be a Regex
-            my $rhs_type := $rhs.infer-type(:guaranteed);
             if nqp::isnull($result)
                 && $boolified
                 && !$rhs.can-be($!symbols.Regex)

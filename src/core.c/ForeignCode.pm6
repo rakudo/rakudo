@@ -90,7 +90,7 @@ multi sub EVAL(
   :$check,
 ) {
     if $check {
-        X::NYI.new(feature => ":check on EVAL :from<Perl5>").throw;
+        NYI(":check on EVAL :from<Perl5>").throw;
     }
     else {
         my $?FILES :=

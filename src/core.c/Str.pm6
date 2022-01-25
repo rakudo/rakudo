@@ -542,11 +542,9 @@ my class Str does Stringy { # declared in BOOTSTRAP
 #?if !moar
     # helper method for quitting if not supported
     method !die-named(str $named, $levels = 1) {
-        X.NYI.new(
-          feature => "Named parameter ':$named' on '{
-              callframe($levels + 1).code.name
-          }'"
-        ).throw
+        NYI("Named parameter ':$named' on '{
+            callframe($levels + 1).code.name
+        }'").throw
     }
 #?endif
 
@@ -2727,7 +2725,7 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
 #?endif
 #?if jvm
-    multi method samemark(Str:D: Str:D $pattern) { X::NYI.new(:feature<samemark>).throw }
+    multi method samemark(Str:D: Str:D $pattern) { NYI('samemark').throw }
 #?endif
 
     multi method samespace(Str:D: Str:D $pattern) { self!word-by-word($pattern, :samespace) }
@@ -3808,21 +3806,21 @@ multi sub infix:<~^>(Str:D $a, Str:D $b --> Str:D) {
 multi sub infix:<~^>(str $a, str $b --> str) { nqp::bitxor_s($a, $b) }
 
 multi sub prefix:<~^>(Str $) {
-    Failure.new("prefix:<~^> NYI")   # XXX
+    NYI "prefix:<~^>"   # XXX
 }
 
 # XXX: String-wise shifts NYI
 multi sub infix:«~>»(Str:D $, Int:D $) {
-    X::NYI.new(feature => "infix:«~>»").throw;
+    NYI("infix:«~>»").throw;
 }
 multi sub infix:«~>»(str $, int $) {
-    X::NYI.new(feature => "infix:«~>»").throw;
+    NYI("infix:«~>»").throw;
 }
 multi sub infix:«~<»(Str:D $, Int:D $ --> Str:D) {
-    X::NYI.new(feature => "infix:«~<»").throw;
+    NYI("infix:«~<»").throw;
 }
 multi sub infix:«~<»(str $, int $) {
-    X::NYI.new(feature => "infix:«~<»").throw;
+    NYI("infix:«~<»").throw;
 }
 
 proto sub trim($, *%) {*}

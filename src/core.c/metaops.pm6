@@ -480,7 +480,7 @@ multi sub METAOP_REDUCE_CHAIN(\op) {
 }
 
 sub METAOP_REDUCE_XOR(\op, $triangle?) is implementation-detail {
-    X::NYI.new(feature => 'xor reduce').throw;
+    NYI('xor reduce').throw;
 }
 
 sub METAOP_HYPER(\op, *%opt) is implementation-detail {

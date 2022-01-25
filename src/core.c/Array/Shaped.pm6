@@ -24,8 +24,7 @@ my role Array::Shaped does Rakudo::Internals::ShapedArrayCommon {
             @indices.elems,                    # reifies
             (my int $numdims = nqp::numdimensions(reified))
           ),
-          X::NYI.new(
-            feature => "Partially dimensioned views of shaped arrays").throw,
+          NYI("Partially dimensioned views of shaped arrays").throw,
           nqp::stmts(
             (my \indices := nqp::getattr(@indices,List,'$!reified')),
             (my \idxs := nqp::list_i),

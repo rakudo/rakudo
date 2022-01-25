@@ -404,24 +404,24 @@ my class IO::CatHandle is IO::Handle {
     #                         |/
     #                       (⛣)
     proto method flush      (|) {*}
-    multi method flush      (|) { X::NYI.new(:feature<flush>).throw      }
+    multi method flush      (|) { NYI('flush').throw      }
     proto method out-buffer (|) {*}
-    multi method out-buffer (|) { X::NYI.new(:feature<out-buffer>).throw }
-    multi method print      (|) { X::NYI.new(:feature<print>).throw      }
+    multi method out-buffer (|) { NYI('out-buffer').throw }
+    multi method print      (|) { NYI('print').throw      }
     proto method printf     (|) {*}
-    multi method printf     (|) { X::NYI.new(:feature<printf>).throw     }
+    multi method printf     (|) { NYI('printf').throw     }
     proto method print-nl   (|) {*}
-    multi method print-nl   (|) { X::NYI.new(:feature<print-nl>).throw   }
-    multi method put        (|) { X::NYI.new(:feature<put>).throw        }
-    multi method say        (|) { X::NYI.new(:feature<say>).throw        }
+    multi method print-nl   (|) { NYI('print-nl').throw   }
+    multi method put        (|) { NYI('put').throw        }
+    multi method say        (|) { NYI('say').throw        }
     proto method write      (|) {*}
-    multi method write      (|) { X::NYI.new(:feature<write>).throw      }
+    multi method write      (|) { NYI('write').throw      }
     proto method WRITE      (|) {*}
-    multi method WRITE      (|) { X::NYI.new(:feature<WRITE>).throw      }
+    multi method WRITE      (|) { NYI('WRITE').throw      }
     proto method READ       (|) {*}
-    multi method READ       (|) { X::NYI.new(:feature<READ>).throw       }
+    multi method READ       (|) { NYI('READ').throw       }
     proto method EOF        (|) {*}
-    multi method EOF        (|) { X::NYI.new(:feature<EOF>).throw        }
+    multi method EOF        (|) { NYI('EOF').throw        }
     #                       /|\
 
     # Don't die on this one, as doing so breaks .Capture

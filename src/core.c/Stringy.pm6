@@ -1,5 +1,3 @@
-my class X::NYI { ... }
-
 my role Stringy { }
 
 multi sub infix:<eqv>(Stringy:D \a, Stringy:D \b --> Bool:D) {
@@ -23,7 +21,7 @@ multi sub infix:<x>() { Failure.new("No zero-arg meaning for infix:<x>") }
 multi sub infix:<x>(\x)            { x.Stringy }
 multi sub infix:<x>($s, Num:D $n) {
     $n == Inf
-      ?? Failure.new(X::NYI.new(:feature('Cat object')))
+      ?? NYI('Cat object')
       !! $s.Stringy x $n.Int;
 }
 multi sub infix:<x>(\s, Any:D $n) { s.Stringy x $n.Int         }

@@ -19,8 +19,8 @@ my class Label {
         $!name
     }
 
-    method goto(*@)  { X::NYI.new(:feature("{self.^name}.goto()")).throw }
-    method leave(*@) { X::NYI.new(:feature("{self.^name}.leave()")).throw }
+    method goto(*@)  { NYI("{self.^name}.goto()").throw; }
+    method leave(*@) { NYI("{self.^name}.leave()").throw; }
 
     multi method gist(Label:D:) {
         my ($red,$clear,$green,$yellow,$eject) = Rakudo::Internals.error-rcgye;

@@ -12,7 +12,7 @@ package EXPORT::cached {
     }
 
     multi sub trait_mod:<is>(Method $m, :$cached!) {
-        X::NYI.new(:feature("'is cached' on methods")).throw;
+        NYI("'is cached' on methods").throw;
     }
 
     OUR::{'&trait_mod:<is>'} := &trait_mod:<is>;

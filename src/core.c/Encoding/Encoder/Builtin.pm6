@@ -13,8 +13,8 @@ my class Encoding::Encoder::Builtin does Encoding::Encoder {
         $!replacement = $replacement.defined ?? $replacement !! nqp::null_s();
         $!config = $strict ?? 0 !! 1;
 #?if jvm
-        X::NYI.new(feature => 'encoding with replacement').throw if $replacement.defined;
-        X::NYI.new(feature => 'encoding with strict').throw if $strict;
+        NYI('encoding with replacement').throw if $replacement.defined;
+        NYI('encoding with strict').throw if $strict;
 #?endif
         self
     }

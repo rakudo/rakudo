@@ -62,6 +62,7 @@ my @allowed =
       Q{&METAOP_TEST_ASSIGN:<orelse>},
       Q{&METAOP_TEST_ASSIGN:<||>},
       Q{&METAOP_ZIP},
+      Q{&NYI},
       Q{&ORDER},
       Q{&QX},
       Q{&REACT},

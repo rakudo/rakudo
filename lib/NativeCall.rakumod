@@ -417,7 +417,7 @@ multi sub postcircumfix:<[ ]>(CArray:D \array, Whatever:D) is export(:DEFAULT, :
     array[^array.elems]
 }
 multi sub postcircumfix:<[ ]>(CArray:D \array, HyperWhatever:D) is export(:DEFAULT, :types) {
-    X::NYI.new(feature => 'HyperWhatever in CArray index').throw;
+    NYI('HyperWhatever in CArray index').throw;
 }
 
 multi trait_mod:<is>(Routine $r, :$symbol!) is export(:DEFAULT, :traits) {

@@ -203,9 +203,7 @@ my class Routine { # declared in BOOTSTRAP
 
     method package() { $!package }
 
-    method leave(*@) {
-        X::NYI.new(:feature("{self.^name}.leave()")).throw;
-    }
+    method leave(*@) { NYI("{self.^name}.leave()").throw; }
 
     my class CandidateIterator does Iterator {
         has $!routine;

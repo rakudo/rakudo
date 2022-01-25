@@ -1187,14 +1187,16 @@ class Perl6::Actions is HLL::Actions does STDActions {
 
     sub string_to_int($src, int $base, int $chars) {
         my $res := nqp::radix($base, ~$src, 0, 2);
-        $src.panic("'$src' is not a valid number")
+        $src.panic("'$src' is not a valid number"
+                   ~ (nqp::iseq_i($base, 10) ?? '' !! " in base $base"))
             unless nqp::iseq_i(nqp::atpos($res, 2), $chars);
         nqp::box_i(nqp::atpos($res, 0), $*W.find_single_symbol('Int'));
     }
 
     sub string_to_bigint($src, int $base, int $chars) {
         my $res := nqp::radix_I($base, ~$src, 0, 2, $*W.find_single_symbol('Int'));
-        $src.panic("'$src' is not a valid number")
+        $src.panic("'$src' is not a valid number"
+                   ~ (nqp::iseq_i($base, 10) ?? '' !! " in base $base"))
             unless nqp::iseq_i(nqp::unbox_i(nqp::atpos($res, 2)), $chars);
         nqp::atpos($res, 0);
     }

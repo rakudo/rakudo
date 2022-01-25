@@ -2924,12 +2924,29 @@ my class Str does Stringy { # declared in BOOTSTRAP
     }
     multi method words(Str:D: --> Seq:D) { Seq.new(Words.new(self)) }
 
-    # Internal method, used in Actions.postprocess_words/postprocess_quotewords
+    # Internal method, used in RakuAST::QuotedString for word lists. Called
+    # either at compile time for literal lists or runtime otherwise.
+    my Mu $nbsp := nqp::hash(
+        "\x00A0", True,
+        "\x2007", True,
+        "\x202F", True,
+        "\xFEFF", True,
+    );
     method WORDS_AUTODEREF(Str:D:) is implementation-detail {
-        Words.new(self).push-all(my $words := nqp::create(IterationBuffer));
-        nqp::elems($words) == 1
-          ?? nqp::shift($words)
-          !! $words.List
+        my $result := nqp::list();
+        my int $pos = 0;
+        my int $eos = nqp::chars(self);
+        my int $ws;
+        while ($pos = nqp::findnotcclass(nqp::const::CCLASS_WHITESPACE, self, $pos, $eos)) < $eos {
+            # Search for another white space character as long as we hit non-breakable spaces.
+            $ws = $pos;
+            $ws++ while nqp::existskey($nbsp,
+                nqp::substr(self, $ws = nqp::findcclass(nqp::const::CCLASS_WHITESPACE,
+                    self, $ws, $eos), 1));
+            nqp::push($result, nqp::substr(self, $pos, $ws - $pos));
+            $pos = $ws;
+        }
+        nqp::hllize($result)
     }
 
     multi method encode(Str:D $encoding = 'utf8',

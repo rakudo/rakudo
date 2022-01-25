@@ -132,7 +132,7 @@ class RakuAST::ColonPair::False is RakuAST::QuotePair {
     }
 
     method value() {
-        RakuAST::Declaration::ResolvedConstant.new(compile-time-value => False),
+        RakuAST::Declaration::ResolvedConstant.new(compile-time-value => False)
     }
     
     method simple-compile-time-quote-value() { False }

@@ -266,3 +266,32 @@ class RakuAST::Term::Reduce is RakuAST::Term is RakuAST::ImplicitLookups {
         $visitor($!args);
     }
 }
+
+# A radix number, of the single-part form :10('foo') or the multi-part form
+# :8[3,4,5].
+class RakuAST::Term::RadixNumber is RakuAST::Term {
+    has Int $.radix;
+    has RakuAST::Circumfix $.value;
+    has Bool $.multi-part;
+
+    method new(Int :$radix!, RakuAST::Circumfix :$value!, Bool :$multi-part) {
+        my $obj := nqp::create(self);
+        nqp::bindattr($obj, RakuAST::Term::RadixNumber, '$!radix', $radix);
+        nqp::bindattr($obj, RakuAST::Term::RadixNumber, '$!value', $value);
+        nqp::bindattr($obj, RakuAST::Term::RadixNumber, '$!multi-part',
+            $multi-part ?? True !! False);
+        $obj
+    }
+
+    method IMPL-EXPR-QAST(RakuAST::IMPL::QASTContext $context) {
+        $context.ensure-sc($!radix);
+        QAST::Op.new:
+            :op('call'), :name($!multi-part ?? '&UNBASE_BRACKET' !! '&UNBASE'),
+            QAST::WVal.new( :value($!radix) ),
+            $!value.IMPL-TO-QAST($context)
+    }
+
+    method visit-children(Code $visitor) {
+        $visitor($!value);
+    }
+}

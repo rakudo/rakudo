@@ -1266,15 +1266,21 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
     }
 
     method rad_number($/) {
-        my int $radix := nqp::radix(10, $<radix>, 0, 0)[0];
+        my $literals := $*LITERALS;
         if $<bracket> {
-            nqp::die('nyi bracket radix')
+            self.attach: $/, self.r('Term', 'RadixNumber').new:
+                :radix($literals.intern-int(~$<radix>, 10)),
+                :value($<bracket>.ast),
+                :multi-part;
         }
         elsif $<circumfix> {
-            nqp::die('nyi circumfix radix')
+            self.attach: $/, self.r('Term', 'RadixNumber').new:
+                :radix($literals.intern-int(~$<radix>, 10)),
+                :value($<circumfix>.ast);
         }
         else {
             # Check and override $radix if necessary.
+            my int $radix := nqp::radix(10, $<radix>, 0, 0)[0];
             $/.typed_panic('X::Syntax::Number::RadixOutOfRange', :$radix)
                 unless (2 <= $radix) && ($radix <= 36);
             if nqp::chars($<ohradix>) {
@@ -1293,7 +1299,6 @@ class Raku::Actions is HLL::Actions does Raku::CommonActions {
             }
 
             # Parse and assemble number.
-            my $literals := $*LITERALS;
             my $Int := $literals.int-type;
             my $Num := $literals.num-type;
             my $ipart := nqp::radix_I($radix, $<intpart>.Str, 0, 0, $Int);

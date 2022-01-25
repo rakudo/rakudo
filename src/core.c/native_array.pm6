@@ -98,7 +98,7 @@ my class array does Iterable does Positional {
 
     role strarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of strarray role -----------------------------------
-#- Generated on 2022-01-09T13:09:42+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-12-05T16:43:05+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(strarray:D: Str:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -170,63 +170,60 @@ my class array does Iterable does Positional {
                     !! $needle
         }
 
-#        multi method unique(strarray:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::unless(
-#                nqp::existskey($seen,nqp::atpos_s(self,$i)),
-#                nqp::stmts(
-#                  nqp::bindkey($seen,nqp::atpos_s(self,$i),1),
-#                  nqp::push_s($result,nqp::atpos_s(self,$i))
-#                )
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
-#        multi method repeated(strarray:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::if(
-#                nqp::existskey($seen,nqp::atpos_s(self,$i)),
-#                nqp::push_s($result,nqp::atpos_s(self,$i)),
-#                nqp::bindkey($seen,nqp::atpos_s(self,$i),1)
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
-#        multi method squish(strarray:D: --> Seq:D) {
-#            if nqp::elems(self) -> int $elems {
-#                my $result  := nqp::create(self);
-#                my str $last = nqp::push_s($result,nqp::atpos_s(self,0));
-#                my int $i;
-#
-#                nqp::while(
-#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#                  nqp::if(
-#                    nqp::isne_s(nqp::atpos_s(self,$i),$last),
-#                    nqp::push_s($result,$last = nqp::atpos_s(self,$i))
-#                  )
-#                );
-#                $result.Seq
-#            }
-#            else {
-#                self.Seq
-#            }
-#        }
+        multi method unique(strarray:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::existskey($seen,nqp::atpos_s(self,$i)),
+                nqp::bindkey($seen,nqp::push_s($result,nqp::atpos_s(self,$i)),1)
+              )
+            );
+
+            $result
+        }
+
+        multi method repeated(strarray:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,(my str $key = nqp::atpos_s(self,$i))),
+                nqp::push_s($result,$key),
+                nqp::bindkey($seen,$key,1)
+              )
+            );
+
+            $result
+        }
+
+        multi method squish(strarray:D:) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(array[self.of]);
+                my str $last = nqp::push_s($result,nqp::atpos_s(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_s(nqp::atpos_s(self,$i),$last),
+                    nqp::push_s($result,$last = nqp::atpos_s(self,$i))
+                  )
+                );
+                $result
+            }
+            else {
+                self
+            }
+        }
 
         multi method AT-POS(strarray:D: int $idx --> str) is raw {
             nqp::islt_i($idx,0)
@@ -712,7 +709,7 @@ my class array does Iterable does Positional {
 
     role intarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of intarray role -----------------------------------
-#- Generated on 2022-01-09T13:09:42+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-12-05T16:43:05+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(intarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -784,63 +781,60 @@ my class array does Iterable does Positional {
                     !! $needle
         }
 
-#        multi method unique(intarray:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::unless(
-#                nqp::existskey($seen,nqp::atpos_i(self,$i)),
-#                nqp::stmts(
-#                  nqp::bindkey($seen,nqp::atpos_i(self,$i),1),
-#                  nqp::push_i($result,nqp::atpos_i(self,$i))
-#                )
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
-#        multi method repeated(intarray:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::if(
-#                nqp::existskey($seen,nqp::atpos_i(self,$i)),
-#                nqp::push_i($result,nqp::atpos_i(self,$i)),
-#                nqp::bindkey($seen,nqp::atpos_i(self,$i),1)
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
-#        multi method squish(intarray:D: --> Seq:D) {
-#            if nqp::elems(self) -> int $elems {
-#                my $result  := nqp::create(self);
-#                my int $last = nqp::push_i($result,nqp::atpos_i(self,0));
-#                my int $i;
-#
-#                nqp::while(
-#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#                  nqp::if(
-#                    nqp::isne_i(nqp::atpos_i(self,$i),$last),
-#                    nqp::push_i($result,$last = nqp::atpos_i(self,$i))
-#                  )
-#                );
-#                $result.Seq
-#            }
-#            else {
-#                self.Seq
-#            }
-#        }
+        multi method unique(intarray:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::existskey($seen,nqp::atpos_i(self,$i)),
+                nqp::bindkey($seen,nqp::push_i($result,nqp::atpos_i(self,$i)),1)
+              )
+            );
+
+            $result
+        }
+
+        multi method repeated(intarray:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,(my int $key = nqp::atpos_i(self,$i))),
+                nqp::push_i($result,$key),
+                nqp::bindkey($seen,$key,1)
+              )
+            );
+
+            $result
+        }
+
+        multi method squish(intarray:D:) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(array[self.of]);
+                my int $last = nqp::push_i($result,nqp::atpos_i(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_i(nqp::atpos_i(self,$i),$last),
+                    nqp::push_i($result,$last = nqp::atpos_i(self,$i))
+                  )
+                );
+                $result
+            }
+            else {
+                self
+            }
+        }
 
         multi method AT-POS(intarray:D: int $idx --> int) is raw {
             nqp::islt_i($idx,0)
@@ -1366,9 +1360,665 @@ my class array does Iterable does Positional {
         }
     }
 
+    role uintarray[::T] does Positional[T] is array_type(T) {
+#- start of generated part of uintarray role -----------------------------------
+#- Generated on 2021-12-05T16:43:05+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+        multi method grep(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result   := nqp::create(IterationBuffer);
+
+            if $k {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_i(nqp::atpos_u(self,$i),$needle),
+                    nqp::push($result,nqp::clone($i))
+                  )
+                );
+            }
+            elsif $kv {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_i(nqp::atpos_u(self,$i),$needle),
+                    nqp::stmts(
+                      nqp::push($result,nqp::clone($i)),
+                      nqp::push($result,$needle)
+                    )
+                  )
+                );
+            }
+            elsif $p {
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_i(nqp::atpos_u(self,$i),$needle),
+                    nqp::push($result,Pair.new($i,$needle))
+                  )
+                );
+            }
+            else {
+                my int $found;
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::iseq_i(nqp::atpos_u(self,$i),$needle),
+                    nqp::push($result,$needle)
+                  )
+                );
+            }
+            $result.Seq
+        }
+
+        multi method first(uintarray:D: Int:D $needle, :$k, :$kv, :$p, :$v) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::isne_i(nqp::atpos_u(self,$i),$needle),
+              nqp::null()
+            );
+
+            nqp::iseq_i($i,nqp::elems(self))
+              ?? Nil
+              !! $k
+                ?? $i
+                !! $kv
+                  ?? ($i,$needle)
+                  !! $p
+                    ?? Pair.new($i,$needle)
+                    !! $needle
+        }
+
+#        multi method unique(uintarray:D: --> Seq:D) {
+#            my int $i     = -1;
+#            my int $elems = nqp::elems(self);
+#            my $result := nqp::create(self);
+#            my $seen   := nqp::hash;
+#
+#            nqp::while(
+#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+#              nqp::unless(
+#                nqp::existskey($seen,nqp::atpos_u(self,$i)),
+#                nqp::stmts(
+#                  nqp::bindkey($seen,nqp::atpos_u(self,$i),1),
+#                  nqp::push_i($result,nqp::atpos_u(self,$i))
+#                )
+#              )
+#            );
+#
+#            $result.Seq
+#        }
+#
+#        multi method repeated(uintarray:D: --> Seq:D) {
+#            my int $i     = -1;
+#            my int $elems = nqp::elems(self);
+#            my $result := nqp::create(self);
+#            my $seen   := nqp::hash;
+#
+#            nqp::while(
+#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+#              nqp::if(
+#                nqp::existskey($seen,nqp::atpos_u(self,$i)),
+#                nqp::push_i($result,nqp::atpos_u(self,$i)),
+#                nqp::bindkey($seen,nqp::atpos_u(self,$i),1)
+#              )
+#            );
+#
+#            $result.Seq
+#        }
+#
+#        multi method squish(uintarray:D: --> Seq:D) {
+#            if nqp::elems(self) -> int $elems {
+#                my $result  := nqp::create(self);
+#                my uint $last = nqp::push_i($result,nqp::atpos_u(self,0));
+#                my int $i;
+#
+#                nqp::while(
+#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+#                  nqp::if(
+#                    nqp::isne_i(nqp::atpos_u(self,$i),$last),
+#                    nqp::push_i($result,$last = nqp::atpos_u(self,$i))
+#                  )
+#                );
+#                $result.Seq
+#            }
+#            else {
+#                self.Seq
+#            }
+#        }
+
+        multi method AT-POS(uintarray:D: int $idx --> uint) is raw {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_u(self,$idx)
+        }
+        multi method AT-POS(uintarray:D: Int:D $idx --> uint) is raw {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::atposref_u(self,$idx)
+        }
+
+        multi method ASSIGN-POS(uintarray:D: int $idx, uint $value --> uint) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_u(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(uintarray:D: Int:D $idx, uint $value --> uint) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_u(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(uintarray:D: int $idx, Int:D $value --> uint) {
+            nqp::islt_i($idx,0)
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_u(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(uintarray:D: Int:D $idx, Int:D $value --> uint) {
+            $idx < 0
+              ?? INDEX_OUT_OF_RANGE($idx)
+              !! nqp::bindpos_u(self, $idx, $value)
+        }
+        multi method ASSIGN-POS(uintarray:D: Any $idx, Mu \value --> Nil) {
+            X::TypeCheck.new(
+                operation => "assignment to uint array element #$idx",
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
+
+        multi method STORE(uintarray:D: $value --> uintarray:D) {
+            nqp::setelems(self,1);
+            nqp::bindpos_u(self, 0, nqp::unbox_u($value));
+            self
+        }
+        multi method STORE(uintarray:D: uintarray:D \values --> uintarray:D) {
+            nqp::setelems(self,nqp::elems(values));
+            nqp::splice(self,values,0,nqp::elems(values))
+        }
+        multi method STORE(uintarray:D: Seq:D \seq --> uintarray:D) {
+            nqp::if(
+              (my $iterator := seq.iterator).is-lazy,
+              self.throw-iterator-cannot-be-lazy('store'),
+              nqp::stmts(
+                nqp::setelems(self,0),
+                $iterator.push-all(self),
+                self
+              )
+            )
+        }
+        multi method STORE(uintarray:D: List:D \values --> uintarray:D) {
+            my int $elems = values.elems;    # reifies
+            my \reified := nqp::getattr(values,List,'$!reified');
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_u(self,$i,
+                nqp::if(
+                  nqp::isnull(nqp::atpos(reified,$i)),
+                  0,
+                  nqp::unbox_u(nqp::atpos(reified,$i))
+                )
+              )
+            );
+            self
+        }
+        multi method STORE(uintarray:D: @values --> uintarray:D) {
+            my int $elems = @values.elems;   # reifies
+            nqp::setelems(self, $elems);
+
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_u(self, $i,
+                nqp::unbox_u(@values.AT-POS($i)))
+            );
+            self
+        }
+
+        multi method push(uintarray:D: uint $value --> uintarray:D) {
+            nqp::push_i(self, $value);
+            self
+        }
+        multi method push(uintarray:D: Int:D $value --> uintarray:D) {
+            nqp::push_i(self, $value);
+            self
+        }
+        multi method push(uintarray:D: Mu \value --> Nil) {
+            X::TypeCheck.new(
+                operation => 'push to uint array',
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
+        multi method append(uintarray:D: uint $value --> uintarray:D) {
+            nqp::push_i(self, $value);
+            self
+        }
+        multi method append(uintarray:D: Int:D $value --> uintarray:D) {
+            nqp::push_i(self, $value);
+            self
+        }
+        multi method append(uintarray:D: uintarray:D $values --> uintarray:D) is default {
+            nqp::splice(self,$values,nqp::elems(self),0)
+        }
+        multi method append(uintarray:D: @values --> uintarray:D) {
+            return self.fail-iterator-cannot-be-lazy('.append')
+              if @values.is-lazy;
+            nqp::push_i(self, $_) for flat @values;
+            self
+        }
+
+        method pop(uintarray:D: --> uint) {
+            nqp::elems(self)
+              ?? nqp::pop_i(self)
+              !! self.throw-cannot-be-empty('pop')
+        }
+
+        method shift(uintarray:D: --> uint) {
+            nqp::elems(self)
+              ?? nqp::shift_i(self)
+              !! self.throw-cannot-be-empty('shift')
+        }
+
+        multi method unshift(uintarray:D: uint $value --> uintarray:D) {
+            nqp::unshift_i(self, $value);
+            self
+        }
+        multi method unshift(uintarray:D: Int:D $value --> uintarray:D) {
+            nqp::unshift_i(self, $value);
+            self
+        }
+        multi method unshift(uintarray:D: @values --> uintarray:D) {
+            return self.fail-iterator-cannot-be-lazy('.unshift')
+              if @values.is-lazy;
+            nqp::unshift_i(self, @values.pop) while @values;
+            self
+        }
+        multi method unshift(uintarray:D: Mu \value --> Nil) {
+            X::TypeCheck.new(
+                operation => 'unshift to uint array',
+                got       => value,
+                expected  => T,
+            ).throw;
+        }
+
+        my $empty_u := nqp::list_i;
+
+        multi method splice(uintarray:D: --> uintarray:D) {
+            my $splice := nqp::clone(self);
+            nqp::setelems(self,0);
+            $splice
+        }
+        multi method splice(uintarray:D: Int:D \offset --> uintarray:D) {
+            nqp::if(
+              nqp::islt_i((my int $offset = offset),0)
+                || nqp::isgt_i($offset,(my int $elems = nqp::elems(self))),
+              Failure.new(X::OutOfRange.new(
+                :what('Offset argument to splice'),
+                :got($offset),
+                :range("0..{nqp::elems(array)}")
+              )),
+              nqp::if(
+                nqp::iseq_i($offset,nqp::elems(self)),
+                nqp::create(self.WHAT),
+                nqp::stmts(
+                  (my $slice := nqp::slice(self,$offset,-1)),
+                  nqp::splice(
+                    self,
+                    $empty_u,
+                    $offset,
+                    nqp::sub_i(nqp::elems(self),$offset)
+                  ),
+                  $slice
+                )
+              )
+            )
+        }
+        multi method splice(uintarray:D: Int:D $offset, Int:D $size --> uintarray:D) {
+            nqp::unless(
+              nqp::istype(
+                (my $slice := CLONE_SLICE(self,$offset,$size)),
+                Failure
+              ),
+              nqp::splice(self,$empty_u,$offset,$size)
+            );
+            $slice
+        }
+        multi method splice(uintarray:D: Int:D $offset, Int:D $size, uintarray:D \values --> uintarray:D) {
+            nqp::unless(
+              nqp::istype(
+                (my $slice := CLONE_SLICE(self,$offset,$size)),
+                Failure
+              ),
+              nqp::splice(
+                self,
+                nqp::if(nqp::eqaddr(self,values),nqp::clone(values),values),
+                $offset,
+                $size
+              )
+            );
+            $slice
+        }
+        multi method splice(uintarray:D: Int:D $offset, Int:D $size, Seq:D \seq --> uintarray:D) {
+            nqp::if(
+              seq.is-lazy,
+              self.throw-iterator-cannot-be-lazy('.splice'),
+              nqp::stmts(
+                nqp::unless(
+                  nqp::istype(
+                    (my $slice := CLONE_SLICE(self,$offset,$size)),
+                    Failure
+                  ),
+                  nqp::splice(self,nqp::create(self).STORE(seq),$offset,$size)
+                ),
+                $slice
+              )
+            )
+        }
+        multi method splice(uintarray:D: $offset=0, $size=Whatever, *@values --> uintarray:D) {
+            return self.fail-iterator-cannot-be-lazy('splice in')
+              if @values.is-lazy;
+
+            my int $elems = nqp::elems(self);
+            my int $o = nqp::istype($offset,Callable)
+              ?? $offset($elems)
+              !! nqp::istype($offset,Whatever)
+                ?? $elems
+                !! $offset.Int;
+            my int $s = nqp::istype($size,Callable)
+              ?? $size($elems - $o)
+              !! !defined($size) || nqp::istype($size,Whatever)
+                 ?? $elems - ($o min $elems)
+                 !! $size.Int;
+
+            unless nqp::istype(
+              (my $splice := CLONE_SLICE(self,$o,$s)),
+              Failure
+            ) {
+                my $splicees := nqp::create(self);
+                nqp::push_i($splicees, @values.shift) while @values;
+                nqp::splice(self,$splicees,$o,$s);
+            }
+            $splice
+        }
+
+        multi method min(uintarray:D:) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my int $i),
+                (my uint $min = nqp::atpos_u(self,0)),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::islt_i(nqp::atpos_u(self,$i),$min),
+                    ($min = nqp::atpos_u(self,$i))
+                  )
+                ),
+                $min
+              ),
+              Inf
+            )
+        }
+        multi method max(uintarray:D:) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my int $i),
+                (my uint $max = nqp::atpos_u(self,0)),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isgt_i(nqp::atpos_u(self,$i),$max),
+                    ($max = nqp::atpos_u(self,$i))
+                  )
+                ),
+                $max
+              ),
+              -Inf
+            )
+        }
+        multi method minmax(uintarray:D: --> Range:D) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my int $i),
+                (my uint $min =
+                  my uint $max = nqp::atpos_u(self,0)),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::islt_i(nqp::atpos_u(self,$i),$min),
+                    ($min = nqp::atpos_u(self,$i)),
+                    nqp::if(
+                      nqp::isgt_i(nqp::atpos_u(self,$i),$max),
+                      ($max = nqp::atpos_u(self,$i))
+                    )
+                  )
+                ),
+                Range.new($min,$max)
+              ),
+              Range.new(Inf,-Inf)
+            )
+        }
+        method iterator(uintarray:D: --> PredictiveIterator:D) {
+            Rakudo::Iterator.native_u(self)
+        }
+        method Seq(uintarray:D: --> Seq:D) {
+            Seq.new(Rakudo::Iterator.native_u(self))
+        }
+
+        method reverse(uintarray:D: --> uintarray:D) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_u($to,nqp::sub_i($last,$i),
+                  nqp::atpos_u(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(uintarray:D: Int(Cool) $rotate = 1 --> uintarray:D) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_u(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_u(self,$i)
+                ),
+              ),
+              $to
+            )
+        }
+        multi method sort(uintarray:D: --> uintarray:D) {
+            Rakudo::Sorting.MERGESORT-uint(nqp::clone(self))
+        }
+
+        multi method ACCEPTS(uintarray:D: uintarray:D \o --> Bool:D) {
+            nqp::hllbool(
+              nqp::unless(
+                nqp::eqaddr(self,my \other := nqp::decont(o)),
+                nqp::if(
+                  nqp::iseq_i(
+                    (my int $elems = nqp::elems(self)),
+                    nqp::elems(other)
+                  ),
+                  nqp::stmts(
+                    (my int $i = -1),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                        && nqp::iseq_i(
+                             nqp::atpos_u(self,$i),
+                             nqp::atpos_u(other,$i)
+                           ),
+                      nqp::null
+                    ),
+                    nqp::iseq_i($i,$elems)
+                  )
+                )
+              )
+            )
+        }
+        proto method grab(|) {*}
+        multi method grab(uintarray:D: --> uint) {
+            nqp::elems(self) ?? self.GRAB_ONE !! Nil
+        }
+        multi method grab(uintarray:D: Callable:D $calculate --> uint) {
+            self.grab($calculate(nqp::elems(self)))
+        }
+        multi method grab(uintarray:D: Whatever --> Seq:D) { self.grab(Inf) }
+
+        my class GrabN does Iterator {
+            has $!array;
+            has int $!count;
+
+            method !SET-SELF(\array,\count) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems(array)),
+                  ($!array := array),
+                  nqp::if(
+                    count == Inf,
+                    ($!count = $elems),
+                    nqp::if(
+                      nqp::isgt_i(($!count = count.Int),$elems),
+                      ($!count = $elems)
+                    )
+                  ),
+                  self
+                )
+
+            }
+            method new(\a,\c) { nqp::create(self)!SET-SELF(a,c) }
+            method pull-one() {
+                nqp::if(
+                  $!count && nqp::elems($!array),
+                  nqp::stmts(
+                    ($!count = nqp::sub_i($!count,1)),
+                    $!array.GRAB_ONE
+                  ),
+                  IterationEnd
+                )
+            }
+            method is-deterministic(--> False) { }
+        }
+        multi method grab(uintarray:D: \count --> Seq:D) {
+            Seq.new(
+              nqp::elems(self)
+                ?? GrabN.new(self,count)
+                !! Rakudo::Iterator.Empty
+            )
+        }
+
+        method GRAB_ONE(uintarray:D: --> uint) is implementation-detail {
+            nqp::stmts(
+              (my $value := nqp::atpos_u(
+                self,
+                (my int $pos = nqp::floor_n(nqp::rand_n(nqp::elems(self))))
+              )),
+              nqp::splice(self,$empty_u,$pos,1),
+              $value
+            )
+        }
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of uintarray role -------------------------------------
+
+        multi method chrs(uintarray:D: --> Str:D) {
+            my int $i = -1;
+            my int $elems = nqp::elems(self);
+            my $result   := nqp::setelems(nqp::list_s,$elems);
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::bindpos_s($result,$i,nqp::chr(nqp::atpos_u(self,$i)))
+            );
+            nqp::join("",$result)
+        }
+
+        multi method sum(uintarray:D: :$wrap) {
+            nqp::if(
+              (my int $elems = nqp::elems(self)),
+              nqp::stmts(
+                (my int $i),
+                nqp::if(
+                  $wrap,
+                  nqp::stmts(
+                    (my int $sum = nqp::atpos_u(self,0)),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $sum = nqp::add_i($sum,nqp::atpos_u(self,$i))
+                    ),
+                    $sum
+                  ),
+                  nqp::stmts(
+                    (my Int $Sum = nqp::atpos_u(self,0)),
+                    nqp::while(
+                      nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                      $Sum = $Sum + nqp::atpos_u(self,$i)
+                    ),
+                    $Sum
+                  )
+                )
+              ),
+              0
+            )
+        }
+        method join(uintarray:D: $delim = '') {
+            my int $elems = nqp::elems(self);
+            my $list     := nqp::setelems(nqp::list_s,$elems);
+            my int $i     = -1;
+
+            nqp::bindpos_s($list,$i,
+              nqp::tostr_I(nqp::p6box_i(nqp::atpos_u(self,$i))))
+              while nqp::islt_i(++$i,$elems);
+
+            nqp::join($delim.Str,$list)
+        }
+
+        multi method STORE(uintarray:D: Range:D \range) {
+            nqp::if(
+              range.is-int,
+              nqp::stmts(
+                (my int $val = nqp::add_i(
+                  nqp::getattr(range,Range,'$!min'),
+                  nqp::getattr_i(range,Range,'$!excludes-min')
+                )),
+                (my int $max = nqp::sub_i(
+                  nqp::getattr(range,Range,'$!max'),
+                  nqp::getattr_i(range,Range,'$!excludes-max')
+                )),
+                nqp::setelems(self,0),  # make sure we start from scratch
+                ($val = nqp::sub_i($val,1)),
+                nqp::while(
+                  nqp::isle_i(($val = nqp::add_i($val,1)),$max),
+                  nqp::push_i(self,$val)
+                ),
+                self
+              ),
+              X::AdHoc.new( payload => "Can only initialize an int array with an int Range" ).throw
+            )
+        }
+    }
+
     role numarray[::T] does Positional[T] is array_type(T) {
 #- start of generated part of numarray role -----------------------------------
-#- Generated on 2022-01-09T13:09:42+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
+#- Generated on 2021-12-05T16:43:05+01:00 by ./tools/build/makeNATIVE_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
         multi method grep(numarray:D: Num:D $needle, :$k, :$kv, :$p, :$v --> Seq:D) {
@@ -1440,63 +2090,60 @@ my class array does Iterable does Positional {
                     !! $needle
         }
 
-#        multi method unique(numarray:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::unless(
-#                nqp::existskey($seen,nqp::atpos_n(self,$i)),
-#                nqp::stmts(
-#                  nqp::bindkey($seen,nqp::atpos_n(self,$i),1),
-#                  nqp::push_n($result,nqp::atpos_n(self,$i))
-#                )
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
-#        multi method repeated(numarray:D: --> Seq:D) {
-#            my int $i     = -1;
-#            my int $elems = nqp::elems(self);
-#            my $result := nqp::create(self);
-#            my $seen   := nqp::hash;
-#
-#            nqp::while(
-#              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#              nqp::if(
-#                nqp::existskey($seen,nqp::atpos_n(self,$i)),
-#                nqp::push_n($result,nqp::atpos_n(self,$i)),
-#                nqp::bindkey($seen,nqp::atpos_n(self,$i),1)
-#              )
-#            );
-#
-#            $result.Seq
-#        }
-#
-#        multi method squish(numarray:D: --> Seq:D) {
-#            if nqp::elems(self) -> int $elems {
-#                my $result  := nqp::create(self);
-#                my num $last = nqp::push_n($result,nqp::atpos_n(self,0));
-#                my int $i;
-#
-#                nqp::while(
-#                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-#                  nqp::if(
-#                    nqp::isne_n(nqp::atpos_n(self,$i),$last),
-#                    nqp::push_n($result,$last = nqp::atpos_n(self,$i))
-#                  )
-#                );
-#                $result.Seq
-#            }
-#            else {
-#                self.Seq
-#            }
-#        }
+        multi method unique(numarray:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::unless(
+                nqp::existskey($seen,nqp::atpos_n(self,$i)),
+                nqp::bindkey($seen,nqp::push_n($result,nqp::atpos_n(self,$i)),1)
+              )
+            );
+
+            $result
+        }
+
+        multi method repeated(numarray:D:) {
+            my int $i     = -1;
+            my int $elems = nqp::elems(self);
+            my $result := nqp::create(array[self.of]);
+            my $seen   := nqp::hash;
+
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+              nqp::if(
+                nqp::existskey($seen,(my num $key = nqp::atpos_n(self,$i))),
+                nqp::push_n($result,$key),
+                nqp::bindkey($seen,$key,1)
+              )
+            );
+
+            $result
+        }
+
+        multi method squish(numarray:D:) {
+            if nqp::elems(self) -> int $elems {
+                my $result  := nqp::create(array[self.of]);
+                my num $last = nqp::push_n($result,nqp::atpos_n(self,0));
+                my int $i;
+
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::isne_n(nqp::atpos_n(self,$i),$last),
+                    nqp::push_n($result,$last = nqp::atpos_n(self,$i))
+                  )
+                );
+                $result
+            }
+            else {
+                self
+            }
+        }
 
         multi method AT-POS(numarray:D: int $idx --> num) is raw {
             nqp::islt_i($idx,0)
@@ -2032,7 +2679,7 @@ my class array does Iterable does Positional {
     }
 
 #- start of generated part of shapedintarray role -----------------------------
-#- Generated on 2022-01-14T17:27:16+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- Generated on 2021-12-30T19:54:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
     role shapedintarray does shapedarray {
@@ -2058,7 +2705,9 @@ my class array does Iterable does Positional {
                   got-dimensions => $numind,
                   needed-dimensions => $numdims
                 ).throw,
-                NYI("Partially dimensioned views of shaped arrays").throw
+                X::NYI.new(
+                  feature => "Partially dimensioned views of shaped arrays"
+                ).throw
               )
             )
         }
@@ -2533,6 +3182,509 @@ my class array does Iterable does Positional {
     } # end of shaped3intarray role
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of generated part of shapedintarray role -------------------------------
+
+#- start of generated part of shapeduintarray role -----------------------------
+#- Generated on 2021-12-30T19:54:48+01:00 by tools/build/makeNATIVE_SHAPED_ARRAY.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+    role shapeduintarray does shapedarray {
+        multi method AT-POS(::?CLASS:D: **@indices --> uint) is raw {
+            nqp::if(
+              nqp::iseq_i(
+                (my int $numdims = nqp::numdimensions(self)),
+                (my int $numind  = @indices.elems),  # reifies
+              ),
+              nqp::stmts(
+                (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                (my $idxs := nqp::list_i),
+                nqp::while(                          # native index list
+                  nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                  nqp::push_i($idxs,nqp::shift($indices))
+                ),
+                nqp::multidimref_i(self,$idxs)
+              ),
+              nqp::if(
+                nqp::isgt_i($numind,$numdims),
+                X::TooManyDimensions.new(
+                  operation => 'access',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
+                ).throw,
+                NYI("Partially dimensioned views of shaped arrays").throw
+              )
+            )
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: **@indices --> uint) {
+            nqp::stmts(
+              (my uint $value = @indices.pop),
+              nqp::if(
+                nqp::iseq_i(
+                  (my int $numdims = nqp::numdimensions(self)),
+                  (my int $numind  = @indices.elems),  # reifies
+                ),
+                nqp::stmts(
+                  (my $indices := nqp::getattr(@indices,List,'$!reified')),
+                  (my $idxs := nqp::list_i),
+                  nqp::while(                          # native index list
+                    nqp::isge_i(($numdims = nqp::sub_i($numdims,1)),0),
+                    nqp::push_i($idxs,nqp::shift($indices))
+                  ),
+                  nqp::bindposnd_i(self, $idxs, $value)
+                ),
+                nqp::if(
+                  nqp::isgt_i($numind,$numdims),
+                  X::TooManyDimensions,
+                  X::NotEnoughDimensions
+                ).new(
+                  operation => 'assign to',
+                  got-dimensions => $numind,
+                  needed-dimensions => $numdims
+                ).throw
+              )
+            )
+        }
+
+        my class NATCPY-uint does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := from),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_i($!list,$!indices,
+                  nqp::multidimref_i($!from,$!indices))
+            }
+        }
+        sub NATCPY(Mu \to, Mu \from) is raw {
+            NATCPY-uint.new(to,from).sink-all;
+            to
+        }
+
+        my class OBJCPY-uint does Rakudo::Iterator::ShapeLeaf {
+            has Mu $!from;
+            method !INIT(Mu \to, Mu \from) {
+                nqp::stmts(
+                  ($!from := nqp::getattr(from,List,'$!reified')),
+                  self!SET-SELF(to)
+                )
+            }
+            method new(Mu \to, Mu \from) { nqp::create(self)!INIT(to,from) }
+            method result(--> Nil) {
+                nqp::bindposnd_i($!list,$!indices,
+                  nqp::atposnd($!from,$!indices))
+            }
+        }
+        sub OBJCPY(Mu \to, Mu \from) is raw {
+            OBJCPY-uint.new(to,from).sink-all;
+            to
+        }
+
+        my class ITERCPY-uint does Rakudo::Iterator::ShapeBranch {
+            has $!iterators;
+            method !INIT(\to,\from) {
+                nqp::stmts(
+                  self!SET-SELF(to),
+                  ($!iterators := nqp::setelems(
+                    nqp::list(from.iterator),
+                    nqp::add_i($!maxdim,1)
+                  )),
+                  self
+                )
+            }
+            method new(\to,\from) { nqp::create(self)!INIT(to,from) }
+            method done(--> Nil) {
+                nqp::unless(                        # verify lowest
+                  nqp::atpos($!iterators,0).is-lazy # finite iterator
+                    || nqp::eqaddr(                 # and something there
+                         nqp::atpos($!iterators,0).pull-one,IterationEnd),
+                  nqp::atposnd_i($!list,$!indices)    # boom!
+                )
+            }
+            method process(--> Nil) {
+                nqp::stmts(
+                  (my int $i = $!level),
+                  nqp::while(
+                    nqp::isle_i(($i = nqp::add_i($i,1)),$!maxdim),
+                    nqp::if(
+                      nqp::eqaddr((my \item :=      # exhausted ?
+                        nqp::atpos($!iterators,nqp::sub_i($i,1)).pull-one),
+                        IterationEnd
+                      ),
+                      nqp::bindpos($!iterators,$i,  # add an empty one
+                        Rakudo::Iterator.Empty),
+                      nqp::if(                      # is it an iterator?
+                        nqp::istype(item,Iterable) && nqp::isconcrete(item),
+                        nqp::bindpos($!iterators,$i,item.iterator),
+                        X::Assignment::ToShaped.new(shape => $!dims).throw
+                      )
+                    )
+                  ),
+                  (my \iter := nqp::atpos($!iterators,$!maxdim)),
+                  nqp::until(                       # loop over highest dim
+                    nqp::eqaddr((my \pulled := iter.pull-one),IterationEnd)
+                      || nqp::isgt_i(nqp::atpos_i($!indices,$!maxdim),$!maxind),
+                    nqp::stmts(
+                      nqp::bindposnd_i($!list,$!indices,pulled),
+                      nqp::bindpos_i($!indices,$!maxdim,  # increment index
+                        nqp::add_i(nqp::atpos_i($!indices,$!maxdim),1))
+                    )
+                  ),
+                  nqp::unless(
+                    nqp::eqaddr(pulled,IterationEnd) # if not exhausted
+                      || nqp::isle_i(                 # and index too high
+                           nqp::atpos_i($!indices,$!maxdim),$!maxind)
+                      || iter.is-lazy,                # and not lazy
+                    nqp::atposnd_i($!list,$!indices)  # boom!
+                  )
+                )
+            }
+        }
+        sub ITERCPY(Mu \to, Mu \from) is raw {
+            ITERCPY-uint.new(to,from).sink-all;
+            to
+        }
+
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
+            EQV_DIMENSIONS(self,from)
+              ?? NATCPY(self,from)
+              !! X::Assignment::ArrayShapeMismatch.new(
+                   source-shape => from.shape,
+                   target-shape => self.shape
+                 ).throw
+        }
+        multi method STORE(::?CLASS:D: array:D \from) {
+            nqp::if(
+              nqp::istype(from.of,UInt),
+              nqp::if(
+                EQV_DIMENSIONS(self,from),
+                NATCPY(self,from),
+                X::Assignment::ArrayShapeMismatch.new(
+                  source-shape => from.shape,
+                  target-shape => self.shape
+                ).throw
+              ),
+              X::TypeCheck::Assignment.new(
+                symbol   => self.^name ~ '[' ~ self.shape.join(';') ~ ']',
+                expected => UInt,
+                got      => from.of
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: Iterable:D \from) {
+            nqp::if(
+              nqp::can(from,'shape'),
+              nqp::if(
+                from.shape eqv self.shape,
+                OBJCPY(self,from),
+                X::Assignment::ArrayShapeMismatch.new(
+                    source-shape => from.shape,
+                    target-shape => self.shape
+                ).throw
+              ),
+              ITERCPY(self,from)
+            )
+        }
+
+        my class Iterate-uint does Rakudo::Iterator::ShapeLeaf {
+            method result() is raw {
+                nqp::multidimref_i($!list,nqp::clone($!indices))
+            }
+        }
+        method iterator(::?CLASS:D: --> Iterate-uint:D) {
+            Iterate-uint.new(self)
+        }
+
+        my class KV-uint does Rakudo::Iterator::ShapeLeaf {
+            has int $!on-key;
+            method result() is raw {
+                nqp::if(
+                  ($!on-key = nqp::not_i($!on-key)),
+                  nqp::stmts(
+                    (my \result := self.indices),
+                    (nqp::bindpos_i($!indices,$!maxdim,  # back 1 for next
+                      nqp::sub_i(nqp::atpos_i($!indices,$!maxdim),1))),
+                    result
+                  ),
+                  nqp::multidimref_i($!list,nqp::clone($!indices))
+                )
+            }
+            # needs its own push-all since it fiddles with $!indices
+            method push-all(\target --> IterationEnd) {
+                nqp::until(
+                  nqp::eqaddr((my \pulled := self.pull-one),IterationEnd),
+                  target.push(pulled)
+                )
+            }
+        }
+        multi method kv(::?CLASS:D: --> Seq:D) { Seq.new(KV-uint.new(self)) }
+
+        my class Pairs-uint does Rakudo::Iterator::ShapeLeaf {
+            method result() {
+                Pair.new(
+                  self.indices,
+                  nqp::multidimref_i($!list,nqp::clone($!indices))
+                )
+            }
+        }
+        multi method pairs(::?CLASS:D: --> Seq:D) { Seq.new(Pairs-uint.new(self)) }
+
+        my class Antipairs-uint does Rakudo::Iterator::ShapeLeaf {
+            method result() {
+                Pair.new(nqp::atposnd_i($!list,$!indices),self.indices)
+            }
+        }
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
+            Seq.new(Antipairs-uint.new(self))
+        }
+    }  # end of shapeduintarray role
+
+    role shaped1uintarray does shapeduintarray {
+        multi method AT-POS(::?CLASS:D: int \one --> uint) is raw {
+           nqp::atposref_u(self,one)
+        }
+        multi method AT-POS(::?CLASS:D: Int:D \one --> uint) is raw {
+           nqp::atposref_u(self,one)
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \one, uint \value --> uint) {
+            nqp::bindpos_u(self,one,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, uint \value --> uint) {
+            nqp::bindpos_u(self,one,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: int \one, UInt:D \value --> uint) {
+            nqp::bindpos_u(self,one,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, UInt:D \value --> uint) {
+            nqp::bindpos_u(self,one,value)
+        }
+
+        multi method EXISTS-POS(::?CLASS:D: int \one --> Bool:D) {
+            nqp::hllbool(
+              nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one --> Bool:D) {
+            nqp::hllbool(
+              nqp::isge_i(one,0) && nqp::islt_i(one,nqp::elems(self))
+            )
+        }
+
+        multi method STORE(::?CLASS:D: ::?CLASS:D \from) {
+            nqp::if(
+              nqp::iseq_i((my int $elems = nqp::elems(self)),nqp::elems(from)),
+              nqp::stmts(
+                (my int $i = -1),
+                nqp::while(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::bindpos_u(self,$i,nqp::atpos_i(from,$i))
+                ),
+                self
+              ),
+              X::Assignment::ArrayShapeMismatch.new(
+                source-shape => from.shape,
+                target-shape => self.shape
+              ).throw
+            )
+        }
+        multi method STORE(::?CLASS:D: Iterable:D \in) {
+            my \iter := Rakudo::Iterator.TailWith(in.iterator,0);
+            my uint $i = -1;
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),nqp::elems(self)),
+              nqp::bindpos_u(self,$i,iter.pull-one)
+            );
+            # too many values? then throw by just accessing out of range
+            nqp::atpos_u(list,$i) unless iter.exhausted;
+            self
+        }
+        multi method STORE(::?CLASS:D: UInt:D \item) {
+            nqp::bindpos_u(self,0,item);
+            self
+        }
+
+        my class Iterate-uint does PredictiveIterator {
+            has Mu $!list;
+            has int $!pos;
+            method !SET-SELF(Mu \list) {
+                nqp::stmts(
+                  ($!list := list),
+                  ($!pos = -1),
+                  self
+                )
+            }
+            method new(Mu \list) { nqp::create(self)!SET-SELF(list) }
+            method pull-one() is raw {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+                  ?? nqp::atposref_u($!list,$!pos)
+                  !! IterationEnd
+            }
+            method skip-one() {
+                nqp::islt_i(($!pos = nqp::add_i($!pos,1)),nqp::elems($!list))
+            }
+            method push-all(\target --> IterationEnd) {
+                nqp::stmts(
+                  (my int $elems = nqp::elems($!list)),
+                  (my int $pos = $!pos),
+                  nqp::while(
+                    nqp::islt_i(($pos = nqp::add_i($pos,1)),$elems),
+                    target.push(nqp::atpos_u($!list,$pos))
+                  ),
+                  ($!pos = $pos)
+                )
+            }
+            method count-only(--> Int:D) {
+                nqp::p6box_i(
+                  nqp::elems($!list)
+                    - $!pos
+                    - nqp::islt_i($!pos,nqp::elems($!list))
+                )
+            }
+            method sink-all(--> IterationEnd) {
+                $!pos = nqp::elems($!list)
+            }
+        }
+        method iterator(::?CLASS:D: --> Iterate-uint:D) {
+            Iterate-uint.new(self)
+        }
+
+        multi method kv(::?CLASS:D: --> Seq:D) {
+            my int $i = -1;
+            my int $elems = nqp::add_i(nqp::elems(self),nqp::elems(self));
+            Seq.new(Rakudo::Iterator.Callable({
+                nqp::if(
+                  nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                  nqp::if(
+                    nqp::bitand_i($i,1),
+                    nqp::atposref_u(self,nqp::bitshiftr_i($i,1)),
+                    nqp::bitshiftr_i($i,1)
+                  ),
+                  IterationEnd
+                )
+            }))
+        }
+        multi method pairs(::?CLASS:D: --> Seq:D) {
+            my int $i = -1;
+            my int $elems = nqp::elems(self);
+            Seq.new(Rakudo::Iterator.Callable({
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                  ?? Pair.new($i,nqp::atposref_u(self,$i))
+                  !! IterationEnd
+            }))
+        }
+        multi method antipairs(::?CLASS:D: --> Seq:D) {
+            Seq.new(Rakudo::Iterator.AntiPair(self.iterator))
+        }
+        method reverse(::?CLASS:D: --> ::?CLASS:D) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my int $last  = nqp::sub_i($elems,1)),
+              (my int $i     = -1),
+              (my $to := nqp::clone(self)),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_u($to,nqp::sub_i($last,$i),
+                  nqp::atpos_u(self,$i))
+              ),
+              $to
+            )
+        }
+        method rotate(::?CLASS:D: Int(Cool) $rotate = 1 --> ::?CLASS:D) is nodal {
+            nqp::stmts(
+              (my int $elems = nqp::elems(self)),
+              (my $to := nqp::clone(self)),
+              (my int $i = -1),
+              (my int $j =
+                nqp::mod_i(nqp::sub_i(nqp::sub_i($elems,1),$rotate),$elems)),
+              nqp::if(nqp::islt_i($j,0),($j = nqp::add_i($j,$elems))),
+              nqp::while(
+                nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+                nqp::bindpos_u(
+                  $to,
+                  ($j = nqp::mod_i(nqp::add_i($j,1),$elems)),
+                  nqp::atpos_u(self,$i)
+                ),
+              ),
+              $to
+            )
+        }
+    } # end of shaped1uintarray role
+
+    role shaped2uintarray does shapeduintarray {
+        multi method AT-POS(::?CLASS:D: int \one, int \two --> uint) is raw {
+            nqp::multidimref_i(self,nqp::list_i(one, two))
+        }
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two --> uint) is raw {
+            nqp::multidimref_i(self,nqp::list_i(one, two))
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, UInt:D \value --> uint) {
+            nqp::bindpos2d_i(self,one,two,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, UInt:D \value --> uint) {
+            nqp::bindpos2d_i(self,one,two,value)
+        }
+
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two --> Bool:D) {
+            nqp::hllbool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two --> Bool:D) {
+            nqp::hllbool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+            )
+        }
+    } # end of shaped2uintarray role
+
+    role shaped3uintarray does shapeduintarray {
+        multi method AT-POS(::?CLASS:D: int \one, int \two, int \three --> uint) is raw {
+            nqp::multidimref_i(self,nqp::list_i(one, two, three))
+        }
+        multi method AT-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> uint) is raw {
+            nqp::multidimref_i(self,nqp::list_i(one, two, three))
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \one, int \two, int \three, UInt:D \value --> uint) {
+            nqp::bindpos3d_i(self,one,two,three,value)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three, UInt:D \value --> uint) {
+            nqp::bindpos3d_i(self,one,two,three,value)
+        }
+
+        multi method EXISTS-POS(::?CLASS:D: int \one, int \two, int \three --> Bool:D) {
+            nqp::hllbool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+        multi method EXISTS-POS(::?CLASS:D: Int:D \one, Int:D \two, Int:D \three --> Bool:D) {
+            nqp::hllbool(
+              nqp::isge_i(one,0)
+                && nqp::isge_i(two,0)
+                && nqp::isge_i(three,0)
+                && nqp::islt_i(one,nqp::atpos_i(nqp::dimensions(self),0))
+                && nqp::islt_i(two,nqp::atpos_i(nqp::dimensions(self),1))
+                && nqp::islt_i(three,nqp::atpos_i(nqp::dimensions(self),2))
+            )
+        }
+    } # end of shaped3uintarray role
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of generated part of shapeduintarray role -------------------------------
 
 #- start of generated part of shapednumarray role -----------------------------
 #- Generated on 2022-01-14T17:27:16+01:00 by ./tools/build/makeNATIVE_SHAPED_ARRAY.raku
@@ -3557,11 +4709,12 @@ my class array does Iterable does Positional {
         elsif $kind == 3 {
             $what := arr.^mixin(strarray[$t]);
         }
-#?if js
-        elsif $kind == 4 || $kind == 5 {
+        elsif $kind >= 4 && $kind <= 6 {
             $what := arr.^mixin(intarray[$t]);
         }
-#?endif
+        elsif $kind >= 7 && $kind <= 10 {
+            $what := arr.^mixin(uintarray[$t]);
+        }
         else {
             return "Can only parameterize array with a native type, not {t.^name}";
         }
@@ -3574,7 +4727,9 @@ my class array does Iterable does Positional {
     constant typedim2role := nqp::list(nqp::null,
       nqp::list(shapedintarray,shaped1intarray,shaped2intarray,shaped3intarray),
       nqp::list(shapednumarray,shaped1numarray,shaped2numarray,shaped3numarray),
-      nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray)
+      nqp::list(shapedstrarray,shaped1strarray,shaped2strarray,shaped3strarray),
+      nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,nqp::null,
+      nqp::list(shapeduintarray,shaped1uintarray,shaped2uintarray,shaped3uintarray),
     );
 
     proto method set-shape(|) is implementation-detail {*}
@@ -3730,7 +4885,7 @@ multi sub postcircumfix:<[ ]>(array:D \SELF, Range:D \range ) is raw {
 }
 
 #- start of postcircumfix candidates of strarray -------------------------------
-#- Generated on 2021-07-20T13:33:00+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-12-31T11:00:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3746,7 +4901,8 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
-      !! nqp::bindpos_s(nqp::decont(SELF),$pos,assignee)
+      !! nqp::bindpos_s(nqp::decont(SELF),$pos,assignee);
+    assignee
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -3981,7 +5137,7 @@ multi sub infix:<cmp>(array::strarray:D \a, array::strarray:D \b) {
 #- end of postcircumfix candidates of strarray ---------------------------------
 
 #- start of postcircumfix candidates of numarray -------------------------------
-#- Generated on 2021-07-20T13:33:00+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-12-31T11:00:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -3997,7 +5153,8 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
-      !! nqp::bindpos_n(nqp::decont(SELF),$pos,assignee)
+      !! nqp::bindpos_n(nqp::decont(SELF),$pos,assignee);
+    assignee
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4232,7 +5389,7 @@ multi sub infix:<cmp>(array::numarray:D \a, array::numarray:D \b) {
 #- end of postcircumfix candidates of numarray ---------------------------------
 
 #- start of postcircumfix candidates of intarray -------------------------------
-#- Generated on 2021-07-20T13:33:00+02:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- Generated on 2021-12-31T11:00:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
 #- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
 
 multi sub postcircumfix:<[ ]>(
@@ -4248,7 +5405,8 @@ multi sub postcircumfix:<[ ]>(
 ) is raw {
     nqp::islt_i($pos,0)
       ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
-      !! nqp::bindpos_i(nqp::decont(SELF),$pos,assignee)
+      !! nqp::bindpos_i(nqp::decont(SELF),$pos,assignee);
+    assignee
 }
 
 multi sub postcircumfix:<[ ]>(
@@ -4481,6 +5639,258 @@ multi sub infix:<cmp>(array::intarray:D \a, array::intarray:D \b) {
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of postcircumfix candidates of intarray ---------------------------------
+
+#- start of postcircumfix candidates of uintarray -------------------------------
+#- Generated on 2021-12-31T11:00:17+01:00 by tools/build/makeNATIVE_CANDIDATES.raku
+#- PLEASE DON'T CHANGE ANYTHING BELOW THIS LINE
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Int:D $pos
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Int:D $pos, UInt:D \assignee
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! nqp::bindpos_u(nqp::decont(SELF),$pos,assignee);
+    assignee
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D, Int:D, :$BIND!
+) {
+    X::Bind.new(target => 'a native uint array').throw
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Int:D $pos, :$exists!, *%_
+) {
+    my int $state =
+      nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)));
+    my $value := nqp::hllbool($exists ?? $state !! nqp::not_i($state));
+
+    $state
+      ?? nqp::elems(my $adverbs := nqp::getattr(%_,Map,'$!storage'))
+        ?? nqp::atkey($adverbs,'kv')
+          ?? ($pos,$value)
+          !! nqp::atkey($adverbs,'p')
+            ?? Pair.new($pos,$value)
+            !! Failure.new(
+                 X::Adverb.new(
+                   what   => "slice",
+                   source => "a native uint array",
+                   nogo   => ('exists', |%_.keys).sort
+                 )
+               )
+        !! $value
+      !! $value
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Int:D $pos, :$delete!, *%_
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $delete
+        ?? X::Delete.new(target => 'a native uint array').throw
+        !! nqp::elems(nqp::getattr(%_,Map,'$!storage'))
+          ?? postcircumfix:<[ ]>(SELF, $pos, |%_)
+          !! nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Int:D $pos, :$kv!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $kv
+        ?? nqp::list($pos,nqp::atpos_u(nqp::decont(SELF),$pos))
+        !! nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Int:D $pos, :$p!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $p
+        ?? Pair.new($pos,nqp::atpos_u(nqp::decont(SELF),$pos))
+        !! nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Int:D $pos, :$k!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $k
+        ?? $pos
+        !! nqp::atposref_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Int:D $pos, :$v!
+) is raw {
+    nqp::islt_i($pos,0)
+      ?? X::OutOfRange.new(:what<Index>, :got($pos), :range<0..^Inf>).throw
+      !! $v
+        ?? nqp::isge_i($pos,0) && nqp::islt_i($pos,nqp::elems(nqp::decont(SELF)))
+          ?? nqp::list(nqp::atpos_u(nqp::decont(SELF),$pos))
+          !! ()
+        !! nqp::atpos_u(nqp::decont(SELF),$pos)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Callable:D $pos
+) is raw {
+    nqp::istype((my $got := $pos.POSITIONS(SELF)),Int)
+      ?? nqp::islt_i($got,0)
+        ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+        !! nqp::atposref_u(nqp::decont(SELF),$got)
+      !! postcircumfix:<[ ]>(SELF, $got)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Iterable:D $pos is rw
+) is raw {
+    nqp::islt_i((my int $got = $pos.Int),0)
+      ?? X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw
+      !! nqp::atposref_u(nqp::decont(SELF),$got)
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Iterable:D $pos
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my uint @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled.POSITIONS($self),
+            $pulled
+          )),
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_i(@result,nqp::atpos_u($self,$got)),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when slicing a native uint array".naive-word-wrapper)
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Iterable:D $pos, array::uintarray:D $values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my int $i    = -1;
+    my uint @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled.POSITIONS($self),
+            $pulled
+          )),
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_i(
+          @result,
+          nqp::bindpos_u(
+            $self,
+            $got,
+            nqp::atpos_u($values,$i = nqp::add_i($i,1))
+          )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native uint array slice".naive-word-wrapper)
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Iterable:D $pos, \values
+) is raw {
+    my $self    := nqp::decont(SELF);
+    my $indices := $pos.iterator;
+    my $values  := Rakudo::Iterator.TailWith(values.iterator,0);
+    my uint @result;
+
+    nqp::until(
+      nqp::eqaddr((my $pulled := $indices.pull-one),IterationEnd),
+      nqp::if(
+        nqp::istype(
+          (my $got := nqp::if(
+            nqp::istype($pulled,Callable),
+            $pulled.POSITIONS($self),
+            $pulled
+          )),
+          Int
+        ) && nqp::isge_i($got,0),
+        nqp::push_i(
+          @result,
+          nqp::bindpos_u(
+            $self,
+            $got,
+            $values.pull-one.UInt
+          )
+        ),
+        nqp::if(
+          nqp::istype($got,Int),
+          X::OutOfRange.new(:what<Index>, :$got, :range<0..^Inf>).throw,
+          (die "Cannot handle {$got.raku} as an index in an Iterable when assigning to a native uint array slice".naive-word-wrapper)
+        )
+      )
+    );
+
+    @result
+}
+
+multi sub postcircumfix:<[ ]>(
+  array::uintarray:D \SELF, Whatever
+) {
+    nqp::decont(SELF)
+}
+
+multi sub infix:<cmp>(array::uintarray:D \a, array::uintarray:D \b) {
+    my int $elems-a = nqp::elems(a);
+    my int $elems-b = nqp::elems(b);
+    my int $elems   = nqp::islt_i($elems-a,$elems-b) ?? $elems-a !! $elems-b;
+
+    my int $i = -1;
+    nqp::until(
+      nqp::isge_i(($i = nqp::add_i($i,1)),$elems)
+        || (my $res = nqp::cmp_i(nqp::atpos_u(a,$i),nqp::atpos_u(b,$i))),
+      nqp::null
+    );
+    ORDER($res || nqp::cmp_i($elems-a,$elems-b))
+}
+
+#- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
+#- end of postcircumfix candidates of uintarray ---------------------------------
 
 #- start of shaped1 postcircumfix candidates of strarray -----------------------
 #- Generated on 2021-06-11T22:51:08+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku
@@ -4765,6 +6175,9 @@ multi sub postcircumfix:<[ ]>(
 
 #- PLEASE DON'T CHANGE ANYTHING ABOVE THIS LINE
 #- end of shaped1 postcircumfix candidates of intarray -------------------------
+
+#- start of shaped1 postcircumfix candidates of uintarray -----------------------
+#- end of shaped1 postcircumfix candidates of uintarray -------------------------
 
 #- start of shaped1 postcircumfix candidates of numarray -----------------------
 #- Generated on 2021-06-11T22:51:08+02:00 by tools/build/makeNATIVE_SHAPED1_CANDIDATES.raku

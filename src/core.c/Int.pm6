@@ -7,6 +7,7 @@ my class Int { ... }
 my subset UInt of Int where {
     nqp::not_i(nqp::isconcrete($_)) || nqp::isge_I($_,0)
 }
+nqp::dispatch('boot-syscall', 'set-cur-hll-config-key', 'uint_box', UInt);
 
 my class Int does Real { # declared in BOOTSTRAP
     # class Int is Cool
@@ -280,6 +281,11 @@ multi sub postfix:<++>(int $a is rw --> int) {
     $a = nqp::add_i($b, 1);
     $b
 }
+multi sub postfix:<++>(uint $a is rw --> uint) {
+    my uint $b = $a;
+    $a = my uint $ = nqp::add_i($b, 1);
+    $b
+}
 multi sub postfix:<-->(Int:D $a is rw --> Int:D) {
     my \b := nqp::decont($a);
     $a = nqp::sub_I(b, 1, Int);
@@ -307,12 +313,15 @@ multi sub abs(int $a --> int) {
 
 multi sub infix:<+>(Int:D $a, Int:D $b --> Int:D) { nqp::add_I($a,$b,Int) }
 multi sub infix:<+>(int   $a, int   $b --> int)   { nqp::add_i($a,$b)     }
+multi sub infix:<+>(uint  $a, uint  $b --> uint)  { nqp::add_i($a,$b)     }
 
 multi sub infix:<->(Int:D $a, Int:D $b --> Int:D) { nqp::sub_I($a,$b,Int) }
 multi sub infix:<->(int   $a, int   $b --> int)   { nqp::sub_i($a,$b)     }
+multi sub infix:<->(uint  $a, uint  $b --> uint)  { nqp::sub_i($a,$b)     }
 
 multi sub infix:<*>(Int:D $a, Int:D $b --> Int:D) { nqp::mul_I($a,$b,Int) }
 multi sub infix:<*>(int   $a, int   $b --> int)   { nqp::mul_i($a,$b)     }
+multi sub infix:<*>(uint  $a, uint  $b --> uint)  { nqp::mul_i($a,$b)     }
 
 multi sub infix:<eqv>(Int:D $a, Int:D $b --> Bool:D) {
     nqp::hllbool(  # need to check types as enums such as Bool wind up here
@@ -329,6 +338,10 @@ multi sub infix:<div>(Int:D $a, Int:D $b --> Int:D) {
       !! Failure.new(X::Numeric::DivideByZero.new(:using<div>, :numerator($a)))
 }
 multi sub infix:<div>(int $a, int $b --> int) {
+    # relies on opcode or hardware to detect division by 0
+    nqp::div_i($a, $b)
+}
+multi sub infix:<div>(uint $a, uint $b --> uint) {
     # relies on opcode or hardware to detect division by 0
     nqp::div_i($a, $b)
 }

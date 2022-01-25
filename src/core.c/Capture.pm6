@@ -53,18 +53,20 @@ my class Capture { # declared in BOOTSTRAP
           !! Nil
     }
 
-    multi method AT-POS(Capture:D: Int:D \pos) is raw {
-        my int $pos = nqp::unbox_i(pos);
+    sub OUT_OF_RANGE(int $got) {
+        Failure.new(
+          X::OutOfRange.new(:what($*INDEX // 'Index'), :$got, :range<0..^Inf>)
+        )
+    }
+
+    multi method AT-POS(Capture:D: Int:D $pos) is raw {
         nqp::islt_i($pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          ?? OUT_OF_RANGE($pos)
           !! nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
     }
-    multi method AT-POS(Capture:D: \pos) is raw {
-        my int $pos = nqp::unbox_i(pos.Int);
+    multi method AT-POS(Capture:D: $pos) is raw {
         nqp::islt_i($pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+          ?? OUT_OF_RANGE($pos)
           !! nqp::ifnull(nqp::atpos(@!list,$pos),Nil)
     }
 

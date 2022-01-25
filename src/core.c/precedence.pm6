@@ -64,6 +64,10 @@ BEGIN {
     trait_mod:<is>(&infix:<+&>,  :prec($multiplicative));
     trait_mod:<is>(&infix:<~&>,  :prec($multiplicative));
     trait_mod:<is>(&infix:<?&>,  :prec($multiplicative));
+    trait_mod:<is>(&infix:«+<»,  :prec($multiplicative));
+    trait_mod:<is>(&infix:«+>»,  :prec($multiplicative));
+    trait_mod:<is>(&infix:«~<»,  :prec($multiplicative));
+    trait_mod:<is>(&infix:«~>»,  :prec($multiplicative));
 
     trait_mod:<is>(&infix:<%%>,  :prec($iffy));
 

@@ -11,9 +11,337 @@ enum Endian (
   BigEndian    => nqp::box_i(nqp::const::BINARY_ENDIAN_BIG,Int),
 );
 
+my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) { ... }
+
+my role SignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
+    method !push-list(\action,\to,\from) {
+        if nqp::istype(from,List) {
+            my Mu $from := nqp::getattr(from,List,'$!reified');
+            if nqp::defined($from) {
+                my int $elems = nqp::elems($from);
+                my int $j     = nqp::elems(to);
+                nqp::setelems(to, $j + $elems);  # presize for efficiency
+                my int $i = -1;
+                my $got;
+                nqp::while(
+                  nqp::islt_i(++$i,$elems),
+                  nqp::stmts(
+                    ($got = nqp::atpos($from,$i)),
+                    nqp::istype(nqp::hllize($got),Int)
+                      ?? nqp::bindpos_i(to,$j++,$got)
+                      !! self!fail-typecheck-element(action,$i,$got).throw))
+            }
+        }
+        else {
+            my $iter := from.iterator;
+            my int $i = 0;
+            nqp::until(
+              nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(nqp::hllize($got),Int),
+                nqp::stmts(
+                  nqp::push_i(to,$got),
+                  ($i = nqp::add_i($i,1))
+                ),
+                self!fail-typecheck-element(action,$i,$got).throw
+              )
+            )
+        }
+        to
+    }
+    method !spread(\to,\from) {
+        if nqp::elems(from) -> int $values { # something to init with
+            my int $elems = nqp::elems(to) - $values;
+            my int $i     = -$values;
+            nqp::splice(to,from,$i,$values)
+              while nqp::isle_i($i = $i + $values,$elems);
+
+            if nqp::isgt_i($i,$elems) {  # something left to init
+                --$i;                    # went one too far
+                $elems = $elems + $values;
+                my int $j = -1;
+                if from.^array_type.^unsigned {
+                    nqp::bindpos_i(to,$i,nqp::atpos_u(from, $j = ($j + 1) % $values))
+                      while nqp::islt_i(++$i,$elems);
+                }
+                else {
+                    nqp::bindpos_i(to,$i,nqp::atpos_i(from, $j = ($j + 1) % $values))
+                      while nqp::islt_i(++$i,$elems);
+                }
+            }
+        }
+        to
+    }
+    multi method allocate(::?CLASS:U: Int:D $elements, int $value) {
+        my int $elems = $elements;
+        my $blob     := nqp::setelems(nqp::create(self),$elems);
+        my int $i     = -1;
+        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i(++$i,$elems);
+        $blob;
+    }
+    multi method AT-POS(::?ROLE:D: int \pos) {
+        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
+          ?? self!fail-range(pos)
+          !! nqp::atpos_i(self,pos)
+    }
+    multi method AT-POS(::?ROLE:D: Int:D \pos) {
+        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
+          ?? self!fail-range(pos)
+          !! nqp::atpos_i(self,pos)
+    }
+
+    multi method list(::?ROLE:D:) {
+        my int $elems = nqp::elems(self);
+
+        # presize memory, but keep it empty, so we can just push
+        my $buffer := nqp::setelems(
+          nqp::setelems(nqp::create(IterationBuffer),$elems),
+          0
+        );
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::push($buffer,nqp::atpos_i(self,$i))
+        );
+        $buffer.List
+    }
+
+    method reverse(::?CLASS:D:) {
+        my int $elems = nqp::elems(self);
+        my int $last  = nqp::sub_i($elems,1);
+        my $reversed := nqp::setelems(nqp::create(self),$elems);
+        my int $i     = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos_i($reversed,nqp::sub_i($last,$i),
+            nqp::atpos_i(self,$i))
+        );
+        $reversed
+    }
+
+    method COMPARE(::?CLASS:D: ::?CLASS:D \other) is implementation-detail {
+        nqp::unless(
+          nqp::cmp_i(
+            (my int $elems = nqp::elems(self)),
+            nqp::elems(my $other := nqp::decont(other))
+          ),
+          nqp::stmts(                            # same number of elements
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::not_i(
+                     nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+                   ),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::isne_i($i,$elems),
+              nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
+            )
+          )
+        )
+    }
+
+    method SAME(::?CLASS:D: ::?CLASS:D \other) is implementation-detail {
+        nqp::if(
+          nqp::iseq_i(
+            (my int $elems = nqp::elems(self)),
+            nqp::elems(my $other := nqp::decont(other))
+          ),
+          nqp::stmts(                            # same number of elements
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i)),
+              nqp::null
+            ),
+            nqp::iseq_i($i,$elems)
+          )
+        )
+    }
+
+    method join(::?CLASS:D: $delim = '') {
+        my int $elems = nqp::elems(self);
+        my int $i     = -1;
+        my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::push_s($list,nqp::atpos_i(self,$i))
+        );
+
+        nqp::join($delim.Str,$list)
+    }
+}
+
+my role UnsignedBlob[::T] is repr('VMArray') is array_type(T) is implementation-detail {
+    method !push-list(\action,\to,\from) {
+        if nqp::istype(from,List) {
+            my Mu $from := nqp::getattr(from,List,'$!reified');
+            if nqp::defined($from) {
+                my int $elems = nqp::elems($from);
+                my int $j     = nqp::elems(to);
+                nqp::setelems(to, $j + $elems);  # presize for efficiency
+                my int $i = -1;
+                my $got;
+                nqp::while(
+                  nqp::islt_i(++$i,$elems),
+                  nqp::stmts(
+                    ($got = nqp::atpos($from,$i)),
+                    nqp::istype(nqp::hllize($got),Int)
+                      ?? nqp::bindpos_u(to,$j++,$got)
+                      !! self!fail-typecheck-element(action,$i,$got).throw))
+            }
+        }
+        else {
+            my $iter := from.iterator;
+            my int $i = 0;
+            nqp::until(
+              nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
+              nqp::if(
+                nqp::istype(nqp::hllize($got),Int),
+                nqp::stmts(
+                  nqp::push_i(to,$got),
+                  ($i = nqp::add_i($i,1))
+                ),
+                self!fail-typecheck-element(action,$i,$got).throw
+              )
+            )
+        }
+        to
+    }
+    method !spread(\to,\from) {
+        if nqp::elems(from) -> int $values { # something to init with
+            my int $elems = nqp::elems(to) - $values;
+            my int $i     = -$values;
+            nqp::splice(to,from,$i,$values)
+              while nqp::isle_i($i = $i + $values,$elems);
+
+            if nqp::isgt_i($i,$elems) {  # something left to init
+                --$i;                    # went one too far
+                $elems = $elems + $values;
+                my int $j = -1;
+                if from.^array_type.^unsigned {
+                    nqp::bindpos_u(to,$i,nqp::atpos_u(from, $j = ($j + 1) % $values))
+                      while nqp::islt_i(++$i,$elems);
+                }
+                else {
+                    nqp::bindpos_u(to,$i,nqp::atpos_i(from, $j = ($j + 1) % $values))
+                      while nqp::islt_i(++$i,$elems);
+                }
+            }
+        }
+        to
+    }
+    multi method allocate(::?CLASS:U: Int:D $elements, int $value) {
+        my int $elems = $elements;
+        my $blob     := nqp::setelems(nqp::create(self),$elems);
+        my int $i     = -1;
+        nqp::bindpos_u($blob,$i,$value) while nqp::islt_i(++$i,$elems);
+        $blob;
+    }
+    multi method AT-POS(::?ROLE:D: int \pos) {
+        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
+          ?? self!fail-range(pos)
+          !! nqp::atpos_u(self,pos)
+    }
+    multi method AT-POS(::?ROLE:D: Int:D \pos) {
+        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
+          ?? self!fail-range(pos)
+          !! nqp::atpos_u(self,pos)
+    }
+
+    multi method list(::?ROLE:D:) {
+        my int $elems = nqp::elems(self);
+
+        # presize memory, but keep it empty, so we can just push
+        my $buffer := nqp::setelems(
+          nqp::setelems(nqp::create(IterationBuffer),$elems),
+          0
+        );
+
+        my int $i = -1;
+        nqp::while(
+          nqp::islt_i(++$i,$elems),
+          nqp::push($buffer,nqp::atpos_u(self,$i))
+        );
+        $buffer.List
+    }
+
+    method reverse(::?CLASS:D:) {
+        my int $elems = nqp::elems(self);
+        my int $last  = nqp::sub_i($elems,1);
+        my $reversed := nqp::setelems(nqp::create(self),$elems);
+        my int $i     = -1;
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::bindpos_u($reversed,nqp::sub_i($last,$i),
+            nqp::atpos_u(self,$i))
+        );
+        $reversed
+    }
+
+    method COMPARE(::?CLASS:D: ::?CLASS:D \other) is implementation-detail {
+        nqp::unless(
+          nqp::cmp_i(
+            (my int $elems = nqp::elems(self)),
+            nqp::elems(my $other := nqp::decont(other))
+          ),
+          nqp::stmts(                            # same number of elements
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::not_i(
+                     nqp::cmp_i(nqp::atpos_u(self,$i),nqp::atpos_u($other,$i))
+                   ),
+              nqp::null
+            ),
+            nqp::if(
+              nqp::isne_i($i,$elems),
+              nqp::cmp_i(nqp::atpos_u(self,$i),nqp::atpos_u($other,$i))
+            )
+          )
+        )
+    }
+
+    method SAME(::?CLASS:D: Blob:D \other) is implementation-detail {
+        nqp::if(
+          nqp::iseq_i(
+            (my int $elems = nqp::elems(self)),
+            nqp::elems(my $other := nqp::decont(other))
+          ),
+          nqp::stmts(                            # same number of elements
+            (my int $i = -1),
+            nqp::while(
+              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
+                && nqp::iseq_i(nqp::atpos_u(self,$i),nqp::atpos_u($other,$i)),
+              nqp::null
+            ),
+            nqp::iseq_i($i,$elems)
+          )
+        )
+    }
+
+    method join(::?CLASS:D: $delim = '') {
+        my int $elems = nqp::elems(self);
+        my int $i     = -1;
+        my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
+
+        nqp::while(
+          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
+          nqp::push_s($list,nqp::atpos_u(self,$i))
+        );
+
+        nqp::join($delim.Str,$list)
+    }
+}
+
 my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is array_type(T) {
     die "Can only parameterize with native int types, not '{T.^name}'."
-      unless nqp::objprimspec(T) == 1 || nqp::objprimspec(T) == 4 || nqp::objprimspec(T) == 5;
+      unless nqp::objprimspec(T) == 1 || (nqp::objprimspec(T) >= 4 && nqp::objprimspec(T) <= 10);
+
+    $?CLASS.^add_role(T.^unsigned ?? UnsignedBlob.^parameterize(T) !! SignedBlob.^parameterize(T));
 
     # other then *8 not supported yet
     my int $bpe = try {
@@ -70,20 +398,13 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     multi method STORE(Blob:D: Any:D \non-iterable, :$INITIALIZE) {
         X::Assignment::RO.new(:value(self)).throw unless $INITIALIZE;
         my int $elems = non-iterable.elems;
-        nqp::push_i(self,non-iterable.AT-POS($_)) for ^$elems;
+        nqp::push_i(self,my $ = non-iterable.AT-POS($_)) for ^$elems; #FIXME needs to handle unsigned with push_u
         self
     }
 
     proto method allocate(|) {*}
     multi method allocate(Blob:U: Int:D $elements) {
         nqp::setelems(nqp::create(self),$elements)
-    }
-    multi method allocate(Blob:U: Int:D $elements, int $value) {
-        my int $elems = $elements;
-        my $blob     := nqp::setelems(nqp::create(self),$elems);
-        my int $i     = -1;
-        nqp::bindpos_i($blob,$i,$value) while nqp::islt_i(++$i,$elems);
-        $blob;
     }
     multi method allocate(Blob:U: Int:D $elements, Int:D \value) {
         my int $value = value;
@@ -111,17 +432,6 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         nqp::hllbool(
           nqp::islt_i(pos,nqp::elems(self)) && nqp::isge_i(pos,0)
         );
-    }
-
-    multi method AT-POS(Blob:D: int \pos) {
-        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
-          ?? self!fail-range(pos)
-          !! nqp::atpos_i(self,pos)
-    }
-    multi method AT-POS(Blob:D: Int:D \pos) {
-        nqp::isge_i(pos,nqp::elems(self)) || nqp::islt_i(pos,0)
-          ?? self!fail-range(pos)
-          !! nqp::atpos_i(self,pos)
     }
 
 #?if moar
@@ -253,14 +563,14 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
         nqp::if(
           nqp::iseq_i($first-byte,$last-byte),
-          (my $result := nqp::atpos_i(self,$first-byte)),
+          (my $result := self.AT-POS($first-byte)),
           nqp::stmts(
             ($result  := 0),
             (my int $i = $first-byte - 1),
             nqp::while(
               nqp::isle_i(++$i,$last-byte),
               ($result :=
-                nqp::bitshiftl_I($result,8,Int) +| nqp::atpos_i(self,$i))
+                nqp::bitshiftl_I($result,8,Int) +| self.AT-POS($i))
             )
           )
         );
@@ -327,23 +637,6 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
     }
 #?endif
 
-    multi method list(Blob:D:) {
-        my int $elems = nqp::elems(self);
-
-        # presize memory, but keep it empty, so we can just push
-        my $buffer := nqp::setelems(
-          nqp::setelems(nqp::create(IterationBuffer),$elems),
-          0
-        );
-
-        my int $i = -1;
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::push($buffer,nqp::atpos_i(self,$i))
-        );
-        $buffer.List
-    }
-
     my $char := nqp::list_s(
       '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
     );
@@ -355,11 +648,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         my int $todo = nqp::elems(self) min nqp::div_i(200,$nativesize);
         my int $i   = -1;
         my $chunks := nqp::list_s;
+        my int $unsigned = T.^unsigned;
 
         nqp::while(
           nqp::islt_i($i = nqp::add_i($i,1),$todo),
           nqp::stmts(
-            (my int $elem   = nqp::atpos_i(self,$i)),
+            (my int $elem   = $unsigned ?? nqp::atpos_u(self,$i) !! nqp::atpos_i(self,$i)),
             (my     $chunk := nqp::list_s),
             (my int $size   = $nativesize),
             nqp::while(
@@ -480,73 +774,6 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         length == Inf ?? self.subbuf(from) !! self.subbuf(from,length.Int)
     }
 
-    method reverse(Blob:D:) {
-        my int $elems = nqp::elems(self);
-        my int $last  = nqp::sub_i($elems,1);
-        my $reversed := nqp::setelems(nqp::create(self),$elems);
-        my int $i     = -1;
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::bindpos_i($reversed,nqp::sub_i($last,$i),
-            nqp::atpos_i(self,$i))
-        );
-        $reversed
-    }
-
-    method COMPARE(Blob:D: Blob:D \other) is implementation-detail {
-        nqp::unless(
-          nqp::cmp_i(
-            (my int $elems = nqp::elems(self)),
-            nqp::elems(my $other := nqp::decont(other))
-          ),
-          nqp::stmts(                            # same number of elements
-            (my int $i = -1),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                && nqp::not_i(
-                     nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-                   ),
-              nqp::null
-            ),
-            nqp::if(
-              nqp::isne_i($i,$elems),
-              nqp::cmp_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i))
-            )
-          )
-        )
-    }
-
-    method SAME(Blob:D: Blob:D \other) is implementation-detail {
-        nqp::if(
-          nqp::iseq_i(
-            (my int $elems = nqp::elems(self)),
-            nqp::elems(my $other := nqp::decont(other))
-          ),
-          nqp::stmts(                            # same number of elements
-            (my int $i = -1),
-            nqp::while(
-              nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i($other,$i)),
-              nqp::null
-            ),
-            nqp::iseq_i($i,$elems)
-          )
-        )
-    }
-
-    method join(Blob:D: $delim = '') {
-        my int $elems = nqp::elems(self);
-        my int $i     = -1;
-        my $list := nqp::setelems(nqp::setelems(nqp::list_s,$elems),0);
-
-        nqp::while(
-          nqp::islt_i(($i = nqp::add_i($i,1)),$elems),
-          nqp::push_s($list,nqp::atpos_i(self,$i))
-        );
-
-        nqp::join($delim.Str,$list)
-    }
-
     proto method unpack(|) {*}
     multi method unpack(Blob:D: Str:D $template) {
         nqp::isnull(nqp::getlexcaller('EXPERIMENTAL-PACK'))
@@ -571,47 +798,12 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
 
     method encoding() { Any }
 
-    method !push-list(\action,\to,\from) {
-        if nqp::istype(from,List) {
-            my Mu $from := nqp::getattr(from,List,'$!reified');
-            if nqp::defined($from) {
-                my int $elems = nqp::elems($from);
-                my int $j     = nqp::elems(to);
-                nqp::setelems(to, $j + $elems);  # presize for efficiency
-                my int $i = -1;
-                my $got;
-                nqp::while(
-                  nqp::islt_i(++$i,$elems),
-                  nqp::stmts(
-                    ($got := nqp::atpos($from,$i)),
-                    nqp::istype(nqp::hllize($got),Int)
-                      ?? nqp::bindpos_i(to,$j++,$got)
-                      !! self!fail-typecheck-element(action,$i,$got).throw))
-            }
-        }
-        else {
-            my $iter := from.iterator;
-            my int $i = 0;
-            nqp::until(
-              nqp::eqaddr((my $got := $iter.pull-one),IterationEnd),
-              nqp::if(
-                nqp::istype(nqp::hllize($got),Int),
-                nqp::stmts(
-                  nqp::push_i(to,$got),
-                  ($i = nqp::add_i($i,1))
-                ),
-                self!fail-typecheck-element(action,$i,$got).throw
-              )
-            )
-        }
-        to
-    }
     method !unshift-list(\action,\to,\from) {
         if nqp::istype(from,List) {
             my Mu $from := nqp::getattr(from,List,'$!reified');
             if nqp::defined($from) {
                 my int $i = nqp::elems($from);
-                nqp::istype((my $got := nqp::atpos($from,$i)),Int)
+                nqp::istype((my $got = nqp::atpos($from,$i)),Int)
                   ?? nqp::unshift_i(to,$got)
                   !! self!fail-typecheck-element(action,$i,$got).throw
                   while nqp::isge_i(--$i,0);
@@ -621,23 +813,6 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
         else {
             nqp::splice(to,self!push-list(action,nqp::create(self),from),0,0)
         }
-    }
-    method !spread(\to,\from) {
-        if nqp::elems(from) -> int $values { # something to init with
-            my int $elems = nqp::elems(to) - $values;
-            my int $i     = -$values;
-            nqp::splice(to,from,$i,$values)
-              while nqp::isle_i($i = $i + $values,$elems);
-
-            if nqp::isgt_i($i,$elems) {  # something left to init
-                --$i;                    # went one too far
-                $elems = $elems + $values;
-                my int $j = -1;
-                nqp::bindpos_i(to,$i,nqp::atpos_i(from,$j = ($j + 1) % $values))
-                  while nqp::islt_i(++$i,$elems);
-            }
-        }
-        to
     }
     method !fail-range($got) {
         Failure.new(X::OutOfRange.new(
@@ -669,8 +844,7 @@ my role Blob[::T = uint8] does Positional[T] does Stringy is repr('VMArray') is 
                 (my int $i = -1),
                 nqp::while(
                   nqp::islt_i(($i = nqp::add_i($i,1)),$elems)
-                    && nqp::iseq_i(nqp::atpos_i(self,$i),nqp::atpos_i(other,$i)
-                       ),
+                    && (self[$i] == other[$i]),
                   nqp::null
                 ),
                 nqp::iseq_i($i,$elems)
@@ -706,38 +880,236 @@ my class utf32 does Blob[uint32] is repr('VMArray') {
 
 my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
 
+    my role SignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
+        multi method AT-POS(::?ROLE:D: int \pos) is raw {
+            nqp::islt_i(pos,0)
+              ?? Failure.new(X::OutOfRange.new(
+                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              !! nqp::atposref_i(self, pos)
+        }
+        multi method AT-POS(::?ROLE:D: Int:D \pos) is raw {
+            my int $pos = nqp::unbox_i(pos);
+            nqp::islt_i($pos,0)
+              ?? Failure.new(X::OutOfRange.new(
+                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              !! nqp::atposref_i(self,$pos)
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \pos, Mu \assignee) {
+            nqp::islt_i(pos,0)
+              ?? Failure.new(X::OutOfRange.new(
+                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              !! nqp::bindpos_i(self,pos,assignee)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \pos, Mu \assignee) {
+            my int $pos = nqp::unbox_i(pos);
+            nqp::islt_i($pos,0)
+              ?? Failure.new(X::OutOfRange.new(
+                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              !! nqp::bindpos_i(self,$pos,assignee)
+        }
+
+        multi method list(::?ROLE:D:) is default {
+            my int $elems = nqp::elems(self);
+
+            # presize memory, but keep it empty, so we can just push
+            my $buffer := nqp::setelems(
+              nqp::setelems(nqp::create(IterationBuffer),$elems),
+              0
+            );
+
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::push($buffer,nqp::atposref_i(self,$i))
+            );
+            $buffer.List
+        }
+
+        method write-ubits(::?ROLE \SELF:
+          int $pos, Int:D $bits, UInt:D \value
+        ) is raw {
+
+            # sanity check
+            POS-OOR(SELF, $pos) if $pos < 0;
+            my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+
+            # set up basic info
+            my int $first-bit = $pos +& 7;
+            my int $last-bit  = ($pos + $bits) +& 7;
+            my int $first-byte = $pos +> 3;
+            my int $last-byte  = ($pos + $bits - 1) +> 3;
+
+            my $value := value +& (1 +< $bits - 1);            # mask valid part
+            $value := $value +< (8 - $last-bit) if $last-bit;  # move into position
+
+            my int $lmask = nqp::sub_i(1 +< $first-bit,1) +< (8 - $first-bit)
+              if $first-bit;
+            my int $rmask = 1 +< nqp::sub_i(8 - $last-bit,1)
+              if $last-bit;
+
+            # all done in a single byte
+            if $first-byte == $last-byte {
+                nqp::bindpos_i($self,$first-byte,
+                  $value +| (nqp::atpos_i($self,$first-byte) +& ($lmask +| $rmask))
+                );
+            }
+
+            # spread over multiple bytes
+            else {
+                my int $i = $last-byte;
+
+                # process last byte first if it is a partial
+                if $last-bit {
+                    nqp::bindpos_i($self,$i,
+                      ($value +& 255) +| (nqp::atpos_i($self,$i) +& $rmask)
+                    );
+                    $value := $value +> 8;
+                }
+
+                # not a partial, so make sure we process last byte later
+                else {
+                    ++$i;
+                }
+
+                # walk from right to left, exclude left-most is partial
+                my int $last = $first-byte + nqp::isgt_i($first-bit,0);
+                nqp::while(
+                  nqp::isge_i(--$i,$last),
+                  nqp::stmts(
+                    nqp::bindpos_i($self,$i,($value +& 255)),
+                    ($value := $value +> 8)
+                  )
+                );
+
+                # process last byte if it was a partial
+                nqp::bindpos_i($self,$i,($value +& 255)
+                  +| (nqp::atpos_i($self,$i) +& $lmask))
+                  if $first-bit;
+            }
+
+            $self
+        }
+    }
+
+    my role UnsignedBuf[::T] is repr('VMArray') is array_type(T) is implementation-detail {
+        multi method AT-POS(::?ROLE:D: int \pos) is raw is default {
+            nqp::islt_i(pos,0)
+              ?? Failure.new(X::OutOfRange.new(
+                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              !! nqp::atposref_u(self, pos)
+        }
+        multi method AT-POS(::?ROLE:D: Int:D \pos) is raw is default {
+            my int $pos = nqp::unbox_i(pos);
+            nqp::islt_i($pos,0)
+              ?? Failure.new(X::OutOfRange.new(
+                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              !! nqp::atposref_u(self,$pos)
+        }
+
+        multi method ASSIGN-POS(::?CLASS:D: int \pos, Mu \assignee) {
+            nqp::islt_i(pos,0)
+              ?? Failure.new(X::OutOfRange.new(
+                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              !! nqp::bindpos_u(self,pos,assignee)
+        }
+        multi method ASSIGN-POS(::?CLASS:D: Int:D \pos, Mu \assignee) {
+            my int $pos = nqp::unbox_i(pos);
+            nqp::islt_i($pos,0)
+              ?? Failure.new(X::OutOfRange.new(
+                   :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
+              !! nqp::bindpos_u(self,$pos,assignee)
+        }
+
+        multi method list(::?ROLE:D:) is default {
+            my int $elems = nqp::elems(self);
+
+            # presize memory, but keep it empty, so we can just push
+            my $buffer := nqp::setelems(
+              nqp::setelems(nqp::create(IterationBuffer),$elems),
+              0
+            );
+
+            my int $i = -1;
+            nqp::while(
+              nqp::islt_i(++$i,$elems),
+              nqp::push($buffer,nqp::atposref_u(self,$i))
+            );
+            $buffer.List
+        }
+
+        method write-ubits(::?ROLE \SELF:
+          int $pos, Int:D $bits, UInt:D \value
+        ) is raw {
+
+            # sanity check
+            POS-OOR(SELF, $pos) if $pos < 0;
+            my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
+
+            # set up basic info
+            my int $first-bit = $pos +& 7;
+            my int $last-bit  = ($pos + $bits) +& 7;
+            my int $first-byte = $pos +> 3;
+            my int $last-byte  = ($pos + $bits - 1) +> 3;
+
+            my $value := value +& (1 +< $bits - 1);            # mask valid part
+            $value := $value +< (8 - $last-bit) if $last-bit;  # move into position
+
+            my int $lmask = nqp::sub_i(1 +< $first-bit,1) +< (8 - $first-bit)
+              if $first-bit;
+            my int $rmask = 1 +< nqp::sub_i(8 - $last-bit,1)
+              if $last-bit;
+
+            # all done in a single byte
+            if $first-byte == $last-byte {
+                nqp::bindpos_u($self,$first-byte,
+                  $value +| (nqp::atpos_u($self,$first-byte) +& ($lmask +| $rmask))
+                );
+            }
+
+            # spread over multiple bytes
+            else {
+                my int $i = $last-byte;
+
+                # process last byte first if it is a partial
+                if $last-bit {
+                    nqp::bindpos_u($self,$i,
+                      ($value +& 255) +| (nqp::atpos_u($self,$i) +& $rmask)
+                    );
+                    $value := $value +> 8;
+                }
+
+                # not a partial, so make sure we process last byte later
+                else {
+                    ++$i;
+                }
+
+                # walk from right to left, exclude left-most is partial
+                my int $last = $first-byte + nqp::isgt_i($first-bit,0);
+                nqp::while(
+                  nqp::isge_i(--$i,$last),
+                  nqp::stmts(
+                    nqp::bindpos_u($self,$i,($value +& 255)),
+                    ($value := $value +> 8)
+                  )
+                );
+
+                # process last byte if it was a partial
+                nqp::bindpos_u($self,$i,($value +& 255)
+                  +| (nqp::atpos_u($self,$i) +& $lmask))
+                  if $first-bit;
+            }
+
+            $self
+        }
+    }
+
+    $?CLASS.^add_role(T.^unsigned ?? UnsignedBuf[T] !! SignedBuf[T]);
+
     multi method WHICH(Buf:D:) { self.Mu::WHICH }
 
     method Blob(Blob:D:) {
         (nqp::eqaddr(T,uint8) ?? Blob !! Blob.^parameterize(T)).new: self
-    }
-
-    multi method AT-POS(Buf:D: int \pos) is raw {
-        nqp::islt_i(pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-          !! nqp::atposref_i(self, pos)
-    }
-    multi method AT-POS(Buf:D: Int:D \pos) is raw {
-        my int $pos = nqp::unbox_i(pos);
-        nqp::islt_i($pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-          !! nqp::atposref_i(self,$pos)
-    }
-
-    multi method ASSIGN-POS(Buf:D: int \pos, Mu \assignee) {
-        nqp::islt_i(pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-          !! nqp::bindpos_i(self,pos,assignee)
-    }
-    multi method ASSIGN-POS(Buf:D: Int:D \pos, Mu \assignee) {
-        my int $pos = nqp::unbox_i(pos);
-        nqp::islt_i($pos,0)
-          ?? Failure.new(X::OutOfRange.new(
-               :what($*INDEX // 'Index'),:got(pos),:range<0..^Inf>))
-          !! nqp::bindpos_i(self,$pos,assignee)
     }
 
     multi method STORE(Buf:D: Blob:D $blob) {
@@ -755,7 +1127,7 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
     multi method STORE(Buf:D: Any:D \non-iterable) {
         my int $elems = non-iterable.elems;
         nqp::setelems(self,0);
-        nqp::push_i(self,non-iterable.AT-POS($_)) for ^$elems;
+        nqp::push_i(self,my $ = non-iterable.AT-POS($_)) for ^$elems; #FIXME needs to handle unsigned with push_u
         self
     }
 
@@ -803,8 +1175,8 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
           || ($endian == NativeEndian && Kernel.endian == BigEndian);
 
         my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
-        $self.write-int64($offset,     $be ?? $first !! $second, $endian);
-        $self.write-int64($offset + 8, $be ?? $second !! $first, $endian);
+        $self.write-uint64($offset,     $be ?? $first !! $second, $endian);
+        $self.write-uint64($offset + 8, $be ?? $second !! $first, $endian);
         $self
     }
     method write-uint8(::?ROLE:
@@ -880,88 +1252,6 @@ my role Buf[::T = uint8] does Blob[T] is repr('VMArray') is array_type(T) {
       int $pos, Int:D $bits, Int:D \value
     ) is raw {
         SELF.write-ubits($pos, $bits, value +& (1 +< $bits - 1))
-    }
-
-    method write-ubits(::?ROLE \SELF:
-      int $pos, Int:D $bits, UInt:D \value
-    ) is raw {
-
-        # sanity check
-        POS-OOR(SELF, $pos) if $pos < 0;
-        my $self := nqp::isconcrete(self) ?? self !! nqp::create(self);
-
-        # set up basic info
-        my int $first-bit = $pos +& 7;
-        my int $last-bit  = ($pos + $bits) +& 7;
-        my int $first-byte = $pos +> 3;
-        my int $last-byte  = ($pos + $bits - 1) +> 3;
-
-        my $value := value +& (1 +< $bits - 1);            # mask valid part
-        $value := $value +< (8 - $last-bit) if $last-bit;  # move into position
-
-        my int $lmask = nqp::sub_i(1 +< $first-bit,1) +< (8 - $first-bit)
-          if $first-bit;
-        my int $rmask = 1 +< nqp::sub_i(8 - $last-bit,1)
-          if $last-bit;
-
-        # all done in a single byte
-        if $first-byte == $last-byte {
-            nqp::bindpos_i($self,$first-byte,
-              $value +| (nqp::atpos_i($self,$first-byte) +& ($lmask +| $rmask))
-            );
-        }
-
-        # spread over multiple bytes
-        else {
-            my int $i = $last-byte;
-
-            # process last byte first if it is a partial
-            if $last-bit {
-                nqp::bindpos_i($self,$i,
-                  ($value +& 255) +| (nqp::atpos_i($self,$i) +& $rmask)
-                );
-                $value := $value +> 8;
-            }
-
-            # not a partial, so make sure we process last byte later
-            else {
-                ++$i;
-            }
-
-            # walk from right to left, exclude left-most is partial
-            my int $last = $first-byte + nqp::isgt_i($first-bit,0);
-            nqp::while(
-              nqp::isge_i(--$i,$last),
-              nqp::stmts(
-                nqp::bindpos_i($self,$i,($value +& 255)),
-                ($value := $value +> 8)
-              )
-            );
-
-            # process last byte if it was a partial
-            nqp::bindpos_i($self,$i,($value +& 255)
-              +| (nqp::atpos_i($self,$i) +& $lmask))
-              if $first-bit;
-        }
-
-        $self
-    }
-
-    multi method list(Buf:D:) {
-        my int $elems = nqp::elems(self);
-
-        # presize memory, but keep it empty, so we can just push
-        my $buffer := nqp::setelems(
-          nqp::setelems(nqp::create(IterationBuffer),$elems),
-          0
-        );
-
-        my int $i = -1;
-        nqp::while(
-          nqp::islt_i(++$i,$elems),
-          nqp::push($buffer,nqp::atposref_i(self,$i))
-        );
-        $buffer.List
     }
 
     proto method pop(|) { * }
@@ -1108,7 +1398,19 @@ multi sub infix:<~>(Blob:D $a, Blob:D $b) {
     nqp::splice($res, $bdc, $alen, $blen);
 }
 
-multi sub prefix:<~^>(Blob:D $a) {
+multi sub prefix:<~^>(UnsignedBlob:D $a) {
+    my int $elems = nqp::elems($a);
+
+    my $r := nqp::create($a);
+    nqp::setelems($a,$elems);
+
+    my int $i = -1;
+    nqp::bindpos_u($r,$i,nqp::bitneg_i(nqp::atpos_u($a,$i)))
+      while nqp::islt_i(++$i,$elems);
+
+    $r
+}
+multi sub prefix:<~^>(SignedBlob:D $a) {
     my int $elems = nqp::elems($a);
 
     my $r := nqp::create($a);
@@ -1121,7 +1423,64 @@ multi sub prefix:<~^>(Blob:D $a) {
     $r
 }
 
-multi sub infix:<~&>(Blob:D $a, Blob:D $b) {
+multi sub infix:<~&>(UnsignedBlob:D $a, UnsignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_u($r,$i,
+      nqp::bitand_i(nqp::atpos_u($a,$i),nqp::atpos_u($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    --$i;    # went one too far
+    nqp::bindpos_u($r,$i,0) while nqp::islt_i(++$i,$max);
+
+    $r
+}
+multi sub infix:<~&>(UnsignedBlob:D $a, SignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_u($r,$i,
+      nqp::bitand_i(nqp::atpos_u($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    --$i;    # went one too far
+    nqp::bindpos_u($r,$i,0) while nqp::islt_i(++$i,$max);
+
+    $r
+}
+multi sub infix:<~&>(SignedBlob:D $a, UnsignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitand_i(nqp::atpos_i($a,$i),nqp::atpos_u($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    --$i;    # went one too far
+    nqp::bindpos_u($r,$i,0) while nqp::islt_i(++$i,$max);
+
+    $r
+}
+multi sub infix:<~&>(SignedBlob:D $a, SignedBlob:D $b) {
     my int $elemsa = nqp::elems($a);
     my int $elemsb = nqp::elems($b);
     my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
@@ -1136,12 +1495,85 @@ multi sub infix:<~&>(Blob:D $a, Blob:D $b) {
       while nqp::islt_i(++$i,$do);
 
     --$i;    # went one too far
-    nqp::bindpos_i($r,$i,0) while nqp::islt_i(++$i,$max);
+    nqp::bindpos_u($r,$i,0) while nqp::islt_i(++$i,$max);
 
     $r
 }
 
-multi sub infix:<~|>(Blob:D $a, Blob:D $b) {
+multi sub infix:<~|>(UnsignedBlob:D $a, UnsignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+    my $from   := $elemsa > $elemsb ?? $a      !! $b;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_u($r,$i,
+      nqp::bitor_i(nqp::atpos_u($a,$i),nqp::atpos_u($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    $i = $i - 1;    # went one too far
+    nqp::bindpos_u($r,$i,nqp::atpos_u($from,$i))
+      while nqp::islt_i(++$i,$max);
+
+    $r
+}
+multi sub infix:<~|>(UnsignedBlob:D $a, SignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_u($r,$i,
+      nqp::bitor_i(nqp::atpos_u($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    $i = $i - 1;    # went one too far
+    if $elemsa > $elemsb {
+        nqp::bindpos_u($r,$i,nqp::atpos_u($a,$i))
+          while nqp::islt_i(++$i,$max);
+    }
+    else {
+        nqp::bindpos_u($r,$i,nqp::atpos_i($b,$i))
+          while nqp::islt_i(++$i,$max);
+    }
+
+    $r
+}
+multi sub infix:<~|>(SignedBlob:D $a, UnsignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitor_i(nqp::atpos_i($a,$i),nqp::atpos_u($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    $i = $i - 1;    # went one too far
+    if $elemsa > $elemsb {
+        nqp::bindpos_i($r,$i,nqp::atpos_i($a,$i))
+          while nqp::islt_i(++$i,$max);
+    }
+    else {
+        nqp::bindpos_i($r,$i,nqp::atpos_u($b,$i))
+          while nqp::islt_i(++$i,$max);
+    }
+
+    $r
+}
+multi sub infix:<~|>(SignedBlob:D $a, SignedBlob:D $b) {
     my int $elemsa = nqp::elems($a);
     my int $elemsb = nqp::elems($b);
     my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
@@ -1157,13 +1589,88 @@ multi sub infix:<~|>(Blob:D $a, Blob:D $b) {
       while nqp::islt_i(++$i,$do);
 
     $i = $i - 1;    # went one too far
-    nqp::bindpos_i($r,$i,nqp::atpos_i($from,$i))
+    nqp::bindpos_u($r,$i,nqp::atpos_i($from,$i))
       while nqp::islt_i(++$i,$max);
 
     $r
 }
 
-multi sub infix:<~^>(Blob:D $a, Blob:D $b) {
+multi sub infix:<~^>(UnsignedBlob:D $a, UnsignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+    my $from   := $elemsa > $elemsb ?? $a      !! $b;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_u($r,$i,
+      nqp::bitxor_i(nqp::atpos_u($a,$i),nqp::atpos_u($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    --$i;    # went one too far
+    nqp::bindpos_u($r,$i,nqp::atpos_u($from,$i))
+      while nqp::islt_i(++$i,$max);
+
+    $r
+}
+multi sub infix:<~^>(UnsignedBlob:D $a, SignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+    my $from   := $elemsa > $elemsb ?? $a      !! $b;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_u($r,$i,
+      nqp::bitxor_i(nqp::atpos_u($a,$i),nqp::atpos_i($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    --$i;    # went one too far
+    if $elemsa > $elemsb {
+        nqp::bindpos_u($r,$i,nqp::atpos_u($a,$i))
+          while nqp::islt_i(++$i,$max);
+    }
+    else {
+        nqp::bindpos_u($r,$i,nqp::atpos_i($b,$i))
+          while nqp::islt_i(++$i,$max);
+    }
+
+    $r
+}
+multi sub infix:<~^>(SignedBlob:D $a, UnsignedBlob:D $b) {
+    my int $elemsa = nqp::elems($a);
+    my int $elemsb = nqp::elems($b);
+    my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;
+    my int $max = $elemsa > $elemsb ?? $elemsa !! $elemsb;
+    my $from   := $elemsa > $elemsb ?? $a      !! $b;
+
+    my $r := nqp::create($a);
+    nqp::setelems($r,$max);
+
+    my int $i = -1;
+    nqp::bindpos_i($r,$i,
+      nqp::bitxor_i(nqp::atpos_i($a,$i),nqp::atpos_u($b,$i)))
+      while nqp::islt_i(++$i,$do);
+
+    --$i;    # went one too far
+    if $elemsa > $elemsb {
+        nqp::bindpos_i($r,$i,nqp::atpos_i($a,$i))
+          while nqp::islt_i(++$i,$max);
+    }
+    else {
+        nqp::bindpos_i($r,$i,nqp::atpos_u($b,$i))
+          while nqp::islt_i(++$i,$max);
+    }
+
+    $r
+}
+multi sub infix:<~^>(SignedBlob:D $a, SignedBlob:D $b) {
     my int $elemsa = nqp::elems($a);
     my int $elemsb = nqp::elems($b);
     my int $do  = $elemsa > $elemsb ?? $elemsb !! $elemsa;

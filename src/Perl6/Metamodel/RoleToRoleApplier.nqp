@@ -261,6 +261,14 @@ my class RoleToRoleApplier {
                     $target.HOW.add_parent($target, $p, :hides($how.hides_parent($r, $p)));
                 }
             }
+
+            if nqp::can($target.HOW, 'is_array_type') && !$target.HOW.is_array_type($target) {
+                if nqp::can($how, 'is_array_type') {
+                    if $how.is_array_type($r) {
+                        $target.HOW.set_array_type($target, $how.array_type($r));
+                    }
+                }
+            }
         }
 
         1;

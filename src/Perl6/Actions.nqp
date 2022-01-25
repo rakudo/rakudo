@@ -7408,6 +7408,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
         # regex-ish code like m//, s///, or tr///
         my $boolify := !($negated || $rhs.ann('regex_match_code'));
 
+#?if !moar
         # Call $rhs.ACCEPTS( $_ ), where $_ is $lhs.
         $sm_call := QAST::Op.new(
                         :op('callmethod'), :name('ACCEPTS'),
@@ -7449,6 +7450,31 @@ class Perl6::Actions is HLL::Actions does STDActions {
                             $rvar ))));
             $sm_call.annotate('smartmatch_boolified', 1);
         }
+#?endif
+#?if moar
+        $sm_call := QAST::Op.new(
+            :op<bind>,
+            QAST::Var.new( :name($result_var), :scope('local'), :decl('var') ),
+            QAST::Op.new(
+                :op<dispatch>,
+                QAST::SVal.new( :value<raku-smartmatch-topicalized> ),
+                QAST::Op.new(
+                    :op<decont>,
+                    WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm')),
+                WANTED(QAST::Var.new( :name('$_'), :scope('lexical') ),'sm'),
+                QAST::Op.new(
+                    :op<decont>,
+                    QAST::Op.new(
+                        :op('bind'),
+                        QAST::Var.new( :name($rhs_local), :scope('local'), :decl('var') ),
+                        $rhs )),
+                QAST::Var.new( :name($rhs_local), :scope('local') ),
+                QAST::IVal.new( :value( $negated ?? -1 !! $boolify ) )
+            )
+        );
+        $sm_call[1].annotate('smartmatch_accepts', 1);
+        $sm_call[1].annotate('smartmatch_negated', $negated);
+#?endif
 
         QAST::Op.new(
             :op('locallifetime'),
@@ -7592,7 +7618,12 @@ class Perl6::Actions is HLL::Actions does STDActions {
     }
 
     # The _i64 and _u64 are only used on backends that emulate int64/uint64
+#?if !js
+    my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i', 'assign_i', 'assign_i', 'assign_u', 'assign_u', 'assign_u', 'assign_u'];
+#?endif
+#?if js
     my @native_assign_ops := ['', 'assign_i', 'assign_n', 'assign_s', 'assign_i64', 'assign_u64'];
+#?endif
     sub assign_op($/, $lhs_ast, $rhs_ast, :$initialize) {
         my $past;
         my $var_sigil;
@@ -9140,7 +9171,7 @@ class Perl6::Actions is HLL::Actions does STDActions {
     my $SIG_ELEM_IS_RAW      := 1024;
     my $SIG_ELEM_IS_OPTIONAL := 2048;
     my $SIG_ELEM_IS_COERCIVE := 67108864;
-    my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s'];
+    my @iscont_ops := ['iscont', 'iscont_i', 'iscont_n', 'iscont_s', 'iscont_i', 'iscont_i', 'iscont_i', 'iscont_u', 'iscont_u', 'iscont_u', 'iscont_u'];
     sub lower_signature($block, $sig, @params) {
         my @result;
         my $clear_topic_bind;
@@ -9559,6 +9590,9 @@ class Perl6::Actions is HLL::Actions does STDActions {
                         }
                         elsif $spec == 3 {
                             $var.default(QAST::SVal.new( :value('') ));
+                        }
+                        elsif $spec == 10 {
+                            $var.default(QAST::IVal.new( :value(0) ));
                         }
                         else {
                             # XXX This fails for generics because a generic has to be instantiated. I don't get this

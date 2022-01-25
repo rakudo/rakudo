@@ -27,6 +27,7 @@ my $SIG_ELEM_DEFINED_ONLY        := 131072;
 my $SIG_ELEM_TYPE_GENERIC        := 524288;
 my $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
 my $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+my $SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
 my $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
 my $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
 my $SIG_ELEM_SLURPY_ONEARG       := 16777216;
@@ -1768,7 +1769,7 @@ class Perl6::World is HLL::World {
         if $prim {
             if $scope eq 'state' { nqp::die("Natively typed state variables not yet implemented") }
             my $init;
-            if $prim == 1 || $prim == 4 || $prim == 5 {
+            if $prim == 1 || ($prim >= 4 && $prim <= 10) {
                 $init := QAST::Op.new( :op('bind'),
                     QAST::Var.new( :scope('lexical'), :name($name) ),
                     QAST::IVal.new( :value(0) ) );
@@ -2260,6 +2261,9 @@ class Perl6::World is HLL::World {
         }
         elsif $primspec == 3 {
             $flags := $flags + $SIG_ELEM_NATIVE_STR_VALUE;
+        }
+        elsif $primspec == 10 {
+            $flags := $flags + $SIG_ELEM_NATIVE_UINT_VALUE;
         }
 
         # Populate it.
@@ -3530,12 +3534,20 @@ class Perl6::World is HLL::World {
         }
 
         # Mapping of primspec to attribute postfix
-        my @psp := ('','_i','_n','_s');
+        my @psp := ('','_i','_n','_s','','','','','','','_u');
 
         # Mapping of primspec to native numeric default value op
         my @psd := (nqp::null,
           QAST::IVal.new( :value(0) ),
-          QAST::NVal.new( :value(0e0) )
+          QAST::NVal.new( :value(0e0) ),
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          nqp::null,
+          QAST::IVal.new( :value(0) ),
         );
 
         # signature configuration hash for ":(%init)"

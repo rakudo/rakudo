@@ -81,7 +81,7 @@ my class Rakudo::Internals::JSON {
         nqp::while(
           nqp::islt_i(++$i,nqp::elems($codes)),
           nqp::if(
-            nqp::isle_i((my int $code = nqp::atpos_i($codes,$i)),92)
+            nqp::isle_i((my int $code = nqp::atpos_u($codes,$i)),92)
               || nqp::isge_i($code,128),
             nqp::if(                                       # not ascii
               nqp::isle_i($code,31),

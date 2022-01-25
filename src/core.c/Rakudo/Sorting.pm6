@@ -555,6 +555,94 @@ my class Rakudo::Sorting {
     }
 
     # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
+    # Sort a native uint array (or nqp::list_i) and return the result.
+    # Uses the given uint array as one of the buffers for performance reasons.
+    # Please nqp::clone first if you want to keep the original intact.
+    method MERGESORT-uint(Mu \sortable) {
+        nqp::if(
+          nqp::isgt_i((my int $n = nqp::elems(sortable)),2),
+
+          # $A has the items to sort; $B is a work array
+          nqp::stmts(
+            (my Mu $A := sortable),
+            (my Mu $B := nqp::setelems(nqp::create(nqp::what(sortable)),$n)),
+
+            # Each 1-element run in $A is already "sorted"
+            # Make successively longer sorted runs of length 2, 4, 8, 16...
+            # until $A is wholly sorted
+            (my int $width = 1),
+            nqp::while(
+              nqp::islt_i($width,$n),
+              nqp::stmts(
+                (my int $l = 0),
+
+                # $A is full of runs of length $width
+                nqp::while(
+                  nqp::islt_i($l,$n),
+
+                  nqp::stmts(
+                    (my int $left  = $l),
+                    (my int $right = nqp::add_i($l,$width)),
+                    nqp::if(nqp::isge_i($right,$n),($right = $n)),
+                    (my int $end =
+                      nqp::add_i($l,nqp::add_i($width,$width))),
+                    nqp::if(nqp::isge_i($end,$n),($end = $n)),
+
+                    (my int $i = $left),
+                    (my int $j = $right),
+                    (my int $k = nqp::sub_i($left,1)),
+
+                    # Merge two runs: $A[i       .. i+width-1] and
+                    #                 $A[i+width .. i+2*width-1]
+                    # to $B or copy $A[i..n-1] to $B[] ( if(i+width >= n) )
+                    nqp::while(
+                      nqp::islt_i(($k = nqp::add_i($k,1)),$end),
+                      nqp::if(
+                        nqp::islt_i($i,$right) && (
+                          nqp::isge_i($j,$end)
+                            || nqp::islt_i(
+                                 nqp::atpos_u($A,$i),
+                                 nqp::atpos_u($A,$j)
+                               )
+                        ),
+                        nqp::stmts(
+                          (nqp::bindpos_u($B,$k,nqp::atpos_u($A,$i))),
+                          ($i = nqp::add_i($i,1))
+                        ),
+                        nqp::stmts(
+                          (nqp::bindpos_u($B,$k,nqp::atpos_u($A,$j))),
+                          ($j = nqp::add_i($j,1))
+                        )
+                      )
+                    ),
+                    ($l = nqp::add_i($l,nqp::add_i($width,$width)))
+                  )
+                ),
+
+                # Now work array $B is full of runs of length 2*width.
+                # Copy array B to array A for next iteration.  A more
+                # efficient implementation would swap the roles of A and B.
+                (my Mu $temp := $B),($B := $A),($A := $temp),   # swap
+                # Now array $A is full of runs of length 2*width.
+
+                ($width = nqp::add_i($width,$width))
+              )
+            ),
+            $A
+          ),
+          nqp::stmts(   # 2 elements or less
+            (my \result := nqp::clone(sortable)),
+            nqp::unless(
+              nqp::islt_i($n,2)
+                || nqp::isle_i(nqp::atpos_u(result,0),nqp::atpos_u(result,1)),
+              nqp::push_i(result,nqp::shift_i(result))
+            ),
+            result
+          )
+        )
+    }
+
+    # https://en.wikipedia.org/wiki/Merge_sort#Bottom-up_implementation
     # Sort a native num array (or nqp::list_n) and return the result.
     # Uses the given num array as one of the buffers for performance reasons.
     # Please nqp::clone first if you want to keep the original intact.

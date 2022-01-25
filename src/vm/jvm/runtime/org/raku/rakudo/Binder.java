@@ -46,9 +46,10 @@ public final class Binder {
     private static final int SIG_ELEM_TYPE_GENERIC        = 524288;
     private static final int SIG_ELEM_DEFAULT_IS_LITERAL  = 1048576;
     private static final int SIG_ELEM_NATIVE_INT_VALUE    = 2097152;
+    private static final int SIG_ELEM_NATIVE_UINT_VALUE   = 134217728;
     private static final int SIG_ELEM_NATIVE_NUM_VALUE    = 4194304;
     private static final int SIG_ELEM_NATIVE_STR_VALUE    = 8388608;
-    private static final int SIG_ELEM_NATIVE_VALUE        = (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE);
+    private static final int SIG_ELEM_NATIVE_VALUE        = (SIG_ELEM_NATIVE_INT_VALUE | SIG_ELEM_NATIVE_UINT_VALUE | SIG_ELEM_NATIVE_NUM_VALUE | SIG_ELEM_NATIVE_STR_VALUE);
     private static final int SIG_ELEM_SLURPY_ONEARG       = 16777216;
     private static final int SIG_ELEM_SLURPY              = (SIG_ELEM_SLURPY_POS | SIG_ELEM_SLURPY_NAMED | SIG_ELEM_SLURPY_LOL | SIG_ELEM_SLURPY_ONEARG);
     private static final int SIG_ELEM_CODE_SIGIL          = 33554432;
@@ -77,6 +78,8 @@ public final class Binder {
         switch (flag) {
             case CallSiteDescriptor.ARG_INT:
                 return Ops.box_i((long)arg, gcx.Int, tc);
+            case CallSiteDescriptor.ARG_UINT:
+                return Ops.box_u((long)arg, gcx.Int, tc);
             case CallSiteDescriptor.ARG_NUM:
                 return Ops.box_n((double)arg, gcx.Num, tc);
             case CallSiteDescriptor.ARG_STR:
@@ -228,6 +231,8 @@ public final class Binder {
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_OBJ }, null);
     private static final CallSiteDescriptor ACCEPTS_i = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_INT }, null);
+    private static final CallSiteDescriptor ACCEPTS_u = new CallSiteDescriptor(
+        new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_UINT }, null);
     private static final CallSiteDescriptor ACCEPTS_n = new CallSiteDescriptor(
         new byte[] { CallSiteDescriptor.ARG_OBJ, CallSiteDescriptor.ARG_NUM }, null);
     private static final CallSiteDescriptor ACCEPTS_s = new CallSiteDescriptor(
@@ -270,7 +275,7 @@ public final class Binder {
         /* Check if boxed/unboxed expectations are met. */
         int desiredNative = paramFlags & SIG_ELEM_NATIVE_VALUE;
         boolean is_rw = (paramFlags & SIG_ELEM_IS_RW) != 0;
-        int gotNative = origFlag & (CallSiteDescriptor.ARG_INT | CallSiteDescriptor.ARG_NUM | CallSiteDescriptor.ARG_STR);
+        int gotNative = origFlag & (CallSiteDescriptor.ARG_INT | CallSiteDescriptor.ARG_UINT | CallSiteDescriptor.ARG_NUM | CallSiteDescriptor.ARG_STR);
         if (is_rw && desiredNative != 0) {
             switch (desiredNative) {
             case SIG_ELEM_NATIVE_INT_VALUE:
@@ -278,6 +283,15 @@ public final class Binder {
                     if (error != null)
                         error[0] = String.format(
                             "Expected a modifiable native int argument for '%s'",
+                            varName);
+                    return BIND_RESULT_FAIL;
+                }
+                break;
+            case SIG_ELEM_NATIVE_UINT_VALUE:
+                if (gotNative != 0 || Ops.iscont_u((SixModelObject)origArg) == 0) {
+                    if (error != null)
+                        error[0] = String.format(
+                            "Expected a modifiable native unsigned int argument for '%s'",
                             varName);
                     return BIND_RESULT_FAIL;
                 }
@@ -312,6 +326,10 @@ public final class Binder {
             flag = gotNative;
             arg_i = (long)origArg;
         }
+        else if (desiredNative == SIG_ELEM_NATIVE_UINT_VALUE && gotNative == CallSiteDescriptor.ARG_UINT) {
+            flag = gotNative;
+            arg_i = (long)origArg;
+        }
         else if (desiredNative == SIG_ELEM_NATIVE_NUM_VALUE && gotNative == CallSiteDescriptor.ARG_NUM) {
             flag = gotNative;
             arg_n = (double)origArg;
@@ -333,6 +351,19 @@ public final class Binder {
                 case SIG_ELEM_NATIVE_INT_VALUE:
                     if ((spec.can_box & StorageSpec.CAN_BOX_INT) != 0) {
                         flag = CallSiteDescriptor.ARG_INT;
+                        arg_i = decontValue.get_int(tc);
+                    }
+                    else {
+                        if (error != null)
+                            error[0] = String.format(
+                                "Cannot unbox argument to '%s' as a native int",
+                                varName);
+                        return BIND_RESULT_FAIL;
+                    }
+                    break;
+                case SIG_ELEM_NATIVE_UINT_VALUE:
+                    if ((spec.can_box & StorageSpec.CAN_BOX_INT) != 0) {
+                        flag = CallSiteDescriptor.ARG_UINT;
                         arg_i = decontValue.get_int(tc);
                     }
                     else {
@@ -557,6 +588,9 @@ public final class Binder {
                         case CallSiteDescriptor.ARG_INT:
                             cf.iLex[sci.iTryGetLexicalIdx(varName)] = arg_i;
                             break;
+                        case CallSiteDescriptor.ARG_UINT:
+                            cf.iLex[sci.uTryGetLexicalIdx(varName)] = arg_i;
+                            break;
                         case CallSiteDescriptor.ARG_NUM:
                             cf.nLex[sci.nTryGetLexicalIdx(varName)] = arg_n;
                             break;
@@ -667,6 +701,10 @@ public final class Binder {
                     case CallSiteDescriptor.ARG_INT:
                         Ops.invokeDirect(tc, acceptsMeth,
                             ACCEPTS_i, new Object[] { consType, arg_i });
+                        break;
+                    case CallSiteDescriptor.ARG_UINT:
+                        Ops.invokeDirect(tc, acceptsMeth,
+                            ACCEPTS_u, new Object[] { consType, arg_i });
                         break;
                     case CallSiteDescriptor.ARG_NUM:
                         Ops.invokeDirect(tc, acceptsMeth,
@@ -828,6 +866,8 @@ public final class Binder {
                 switch (paramFlags & SIG_ELEM_NATIVE_VALUE) {
                     case SIG_ELEM_NATIVE_INT_VALUE:
                         return createBox(tc, gcx, (long)0, CallSiteDescriptor.ARG_INT);
+                    case SIG_ELEM_NATIVE_UINT_VALUE:
+                        return createBox(tc, gcx, (long)0, CallSiteDescriptor.ARG_UINT);
                     case SIG_ELEM_NATIVE_NUM_VALUE:
                         return createBox(tc, gcx, (double)0.0, CallSiteDescriptor.ARG_NUM);
                     case SIG_ELEM_NATIVE_STR_VALUE:
@@ -908,6 +948,9 @@ public final class Binder {
                         case CallSiteDescriptor.ARG_INT:
                             posArgs.push_boxed(tc, RakOps.p6box_i((long)args[k], tc));
                             break;
+                        case CallSiteDescriptor.ARG_UINT:
+                            posArgs.push_boxed(tc, RakOps.p6box_u((long)args[k], tc));
+                            break;
                         case CallSiteDescriptor.ARG_NUM:
                             posArgs.push_boxed(tc, RakOps.p6box_n((double)args[k], tc));
                             break;
@@ -973,6 +1016,9 @@ public final class Binder {
                             break;
                         case CallSiteDescriptor.ARG_INT:
                             slurpy.push_boxed(tc, RakOps.p6box_i((long)args[curPosArg], tc));
+                            break;
+                        case CallSiteDescriptor.ARG_UINT:
+                            slurpy.push_boxed(tc, RakOps.p6box_u((long)args[curPosArg], tc));
                             break;
                         case CallSiteDescriptor.ARG_NUM:
                             slurpy.push_boxed(tc, RakOps.p6box_n((double)args[curPosArg], tc));
@@ -1063,7 +1109,7 @@ public final class Binder {
                     }
                 }
                 else {
-                    bindFail = bindOneParam(tc, gcx, cf, param, args[lookup >> 3],
+                    bindFail = bindOneParam(tc, gcx, cf, param, args[lookup >> 6],
                         (byte)(lookup & 7), noNomTypeCheck, false, error);
                 }
 
@@ -1118,16 +1164,19 @@ public final class Binder {
                 int lookup = namedArgsCopy.get(name);
                 switch (lookup & 7) {
                 case CallSiteDescriptor.ARG_OBJ:
-                    slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 3]);
+                    slurpy.bind_key_boxed(tc, name, (SixModelObject)args[lookup >> 6]);
                     break;
                 case CallSiteDescriptor.ARG_INT:
-                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_i((long)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_i((long)args[lookup >> 6], tc));
+                    break;
+                case CallSiteDescriptor.ARG_UINT:
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_u((long)args[lookup >> 6], tc));
                     break;
                 case CallSiteDescriptor.ARG_NUM:
-                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_n((double)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_n((double)args[lookup >> 6], tc));
                     break;
                 case CallSiteDescriptor.ARG_STR:
-                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_s((String)args[lookup >> 3], tc));
+                    slurpy.bind_key_boxed(tc, name, RakOps.p6box_s((String)args[lookup >> 6], tc));
                     break;
                 }
             }

@@ -85,15 +85,19 @@ my stub Junction metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub Metamodel metaclass Perl6::Metamodel::PackageHOW { ... };
 my stub ForeignCode metaclass Perl6::Metamodel::ClassHOW { ... };
 my stub IntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub UIntLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrLexRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub UIntAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrAttrRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub UIntPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrPosRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub IntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
+my stub UIntMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub NumMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 my stub StrMultidimRef metaclass Perl6::Metamodel::NativeRefHOW { ... };
 
@@ -132,9 +136,10 @@ my class Binder {
     my int $SIG_ELEM_TYPE_GENERIC        := 524288;
     my int $SIG_ELEM_DEFAULT_IS_LITERAL  := 1048576;
     my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+    my int $SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
     my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
     my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
-    my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
+    my int $SIG_ELEM_NATIVE_VALUE        := ($SIG_ELEM_NATIVE_UINT_VALUE +| $SIG_ELEM_NATIVE_INT_VALUE +| $SIG_ELEM_NATIVE_NUM_VALUE +| $SIG_ELEM_NATIVE_STR_VALUE);
     my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
     my int $SIG_ELEM_SLURPY              := ($SIG_ELEM_SLURPY_POS +| $SIG_ELEM_SLURPY_NAMED +| $SIG_ELEM_SLURPY_LOL +| $SIG_ELEM_SLURPY_ONEARG);
     my int $SIG_ELEM_CODE_SIGIL          := 33554432;
@@ -224,6 +229,14 @@ my class Binder {
                     return $BIND_RESULT_FAIL;
                 }
             }
+            elsif $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE {
+                unless !$got_native && nqp::iscont_u($oval) {
+                    if nqp::defined($error) {
+                        $error[0] := "Expected a modifiable native int argument for '$varname'";
+                    }
+                    return $BIND_RESULT_FAIL;
+                }
+            }
             elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                 unless !$got_native && nqp::iscont_n($oval) {
                     if nqp::defined($error) {
@@ -247,6 +260,9 @@ my class Binder {
                 if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     $oval := nqp::box_i($ival, Int);
                 }
+                elsif $got_native == $SIG_ELEM_NATIVE_UINT_VALUE {
+                    $oval := nqp::box_u($ival, Int);
+                }
                 elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     $oval := nqp::box_n($nval, Num);
                 }
@@ -263,6 +279,10 @@ my class Binder {
                 if $desired_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     $ival := nqp::unbox_i($oval);
                     $got_native := $SIG_ELEM_NATIVE_INT_VALUE;
+                }
+                elsif $desired_native == $SIG_ELEM_NATIVE_UINT_VALUE {
+                    $ival := nqp::unbox_u($oval);
+                    $got_native := $SIG_ELEM_NATIVE_UINT_VALUE;
                 }
                 elsif $desired_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     $nval := nqp::unbox_n($oval);
@@ -408,6 +428,9 @@ my class Binder {
                 if $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
                     nqp::bindkey_i($lexpad, $varname, $ival);
                 }
+                if $got_native == $SIG_ELEM_NATIVE_UINT_VALUE {
+                    nqp::bindkey_i($lexpad, $varname, $ival); #FIXME bindkey_u missing
+                }
                 elsif $got_native == $SIG_ELEM_NATIVE_NUM_VALUE {
                     nqp::bindkey_n($lexpad, $varname, $nval);
                 }
@@ -532,6 +555,10 @@ my class Binder {
                     $bad_value := $oval unless $result;
                 }
                 elsif $got_native == $SIG_ELEM_NATIVE_INT_VALUE {
+                    $result := $cons_type.ACCEPTS($ival);
+                    $bad_value := $ival unless $result;
+                }
+                elsif $got_native == $SIG_ELEM_NATIVE_UINT_VALUE {
                     $result := $cons_type.ACCEPTS($ival);
                     $bad_value := $ival unless $result;
                 }
@@ -728,6 +755,9 @@ my class Binder {
                         elsif $got_prim == 2 {
                             nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
                         }
+                        elsif $got_prim == 10 {
+                            nqp::push(@pos_args, nqp::box_i(nqp::captureposarg_u($capture, $k), Int));
+                        }
                         else {
                             nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                         }
@@ -799,6 +829,9 @@ my class Binder {
                         elsif $got_prim == 2 {
                             nqp::push($temp, nqp::box_n(nqp::captureposarg_n($capture, $cur_pos_arg), Num));
                         }
+                        elsif $got_prim == 10 {
+                            nqp::push($temp, nqp::box_i(nqp::captureposarg_u($capture, $cur_pos_arg), Int));
+                        }
                         else {
                             nqp::push($temp, nqp::box_s(nqp::captureposarg_s($capture, $cur_pos_arg), Str));
                         }
@@ -832,6 +865,10 @@ my class Binder {
                         elsif $got_prim == 2 {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
                                 $SIG_ELEM_NATIVE_NUM_VALUE, nqp::null(), 0, nqp::captureposarg_n($capture, $cur_pos_arg), '');
+                        }
+                        elsif $got_prim == 10 {
+                            $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
+                                $SIG_ELEM_NATIVE_INT_VALUE, nqp::null(), nqp::captureposarg_u($capture, $cur_pos_arg), 0.0, '');
                         }
                         else {
                             $bind_fail := bind_one_param($lexpad, $sig, $param, $no_param_type_check, $error,
@@ -973,6 +1010,9 @@ my class Binder {
                     elsif $got_prim == 2 {
                         nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
                     }
+                    elsif $got_prim == 10 {
+                        nqp::push(@pos_args, nqp::box_u(nqp::captureposarg_u($capture, $k), Int));
+                    }
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
@@ -1095,6 +1135,9 @@ my class Binder {
                         if $flags +& $SIG_ELEM_NATIVE_INT_VALUE {
                             return $TRIAL_BIND_NOT_SURE unless nqp::isint($args[$cur_pos_arg]);
                         }
+                        elsif $flags +& $SIG_ELEM_NATIVE_UINT_VALUE {
+                            return $TRIAL_BIND_NOT_SURE unless nqp::isint($args[$cur_pos_arg]);
+                        }
                         elsif $flags +& $SIG_ELEM_NATIVE_NUM_VALUE {
                             return $TRIAL_BIND_NOT_SURE unless nqp::isnum($args[$cur_pos_arg]);
                         }
@@ -1110,6 +1153,7 @@ my class Binder {
                         # If it's the wrong type of native, there's no way it
                         # can ever bind.
                         if (($flags +& $SIG_ELEM_NATIVE_INT_VALUE) && $got_prim != 1) ||
+                           (($flags +& $SIG_ELEM_NATIVE_UINT_VALUE) && $got_prim != 10 && $got_prim != 1) ||
                            (($flags +& $SIG_ELEM_NATIVE_NUM_VALUE) && $got_prim != 2) ||
                            (($flags +& $SIG_ELEM_NATIVE_STR_VALUE) && $got_prim != 3) {
                             return $TRIAL_BIND_NO_WAY;
@@ -1119,6 +1163,7 @@ my class Binder {
                 else {
                     # Work out a parameter type to consider, and see if it matches.
                     my $arg := $got_prim == 1 ?? Int !!
+                               $got_prim == 10 ?? Int !!
                                $got_prim == 2 ?? Num !!
                                $got_prim == 3 ?? Str !!
                                $args[$cur_pos_arg];
@@ -1887,15 +1932,19 @@ BEGIN {
         nqp::setcontspec($type, 'native_ref', nqp::null());
     }
     setup_native_ref_type(IntLexRef, int, 'lexical');
+    setup_native_ref_type(UIntLexRef, uint, 'lexical');
     setup_native_ref_type(NumLexRef, num, 'lexical');
     setup_native_ref_type(StrLexRef, str, 'lexical');
     setup_native_ref_type(IntAttrRef, int, 'attribute');
+    setup_native_ref_type(UIntAttrRef, uint, 'attribute');
     setup_native_ref_type(NumAttrRef, num, 'attribute');
     setup_native_ref_type(StrAttrRef, str, 'attribute');
     setup_native_ref_type(IntPosRef, int, 'positional');
+    setup_native_ref_type(UIntPosRef, uint, 'positional');
     setup_native_ref_type(NumPosRef, num, 'positional');
     setup_native_ref_type(StrPosRef, str, 'positional');
     setup_native_ref_type(IntMultidimRef, int, 'multidim');
+    setup_native_ref_type(UIntMultidimRef, uint, 'multidim');
     setup_native_ref_type(NumMultidimRef, num, 'multidim');
     setup_native_ref_type(StrMultidimRef, str, 'multidim');
 
@@ -2453,7 +2502,8 @@ BEGIN {
             my int $TYPE_NATIVE_INT   := 4;
             my int $TYPE_NATIVE_NUM   := 8;
             my int $TYPE_NATIVE_STR   := 16;
-            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+            my int $TYPE_NATIVE_UINT  := 32;
+            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
 
             my int $SIG_ELEM_SLURPY_POS          := 8;
             my int $SIG_ELEM_SLURPY_NAMED        := 16;
@@ -2466,6 +2516,7 @@ BEGIN {
             my int $SIG_ELEM_DEFINED_ONLY        := 131072;
             my int $SIG_ELEM_TYPE_GENERIC        := 524288;
             my int $SIG_ELEM_NATIVE_INT_VALUE    := 2097152;
+            my int $SIG_ELEM_NATIVE_UINT_VALUE   := 134217728;
             my int $SIG_ELEM_NATIVE_NUM_VALUE    := 4194304;
             my int $SIG_ELEM_NATIVE_STR_VALUE    := 8388608;
             my int $SIG_ELEM_SLURPY_ONEARG       := 16777216;
@@ -2685,6 +2736,10 @@ BEGIN {
                         nqp::bindpos_i(%info<type_flags>, $significant_param,
                             $TYPE_NATIVE_INT + nqp::atpos_i(%info<type_flags>, $significant_param));
                     }
+                    elsif $flags +& $SIG_ELEM_NATIVE_UINT_VALUE {
+                        nqp::bindpos_i(%info<type_flags>, $significant_param,
+                            $TYPE_NATIVE_UINT + nqp::atpos_i(%info<type_flags>, $significant_param));
+                    }
                     elsif $flags +& $SIG_ELEM_NATIVE_NUM_VALUE {
                         nqp::bindpos_i(%info<type_flags>, $significant_param,
                             $TYPE_NATIVE_NUM + nqp::atpos_i(%info<type_flags>, $significant_param));
@@ -2810,9 +2865,11 @@ BEGIN {
             my int $TYPE_NATIVE_INT   := 4;
             my int $TYPE_NATIVE_NUM   := 8;
             my int $TYPE_NATIVE_STR   := 16;
-            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+            my int $TYPE_NATIVE_UINT   := 32;
+            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
             my int $BIND_VAL_OBJ      := 0;
             my int $BIND_VAL_INT      := 1;
+            my int $BIND_VAL_UINT     := 10;
             my int $BIND_VAL_NUM      := 2;
             my int $BIND_VAL_STR      := 3;
 
@@ -2873,12 +2930,14 @@ BEGIN {
                                     # Object, but could be a native container. If not, mismatch.
                                     my $contish := nqp::captureposarg($capture, $i);
                                     unless (($type_flags +& $TYPE_NATIVE_INT) && nqp::iscont_i($contish)) ||
+                                           (($type_flags +& $TYPE_NATIVE_UINT) && nqp::iscont_u($contish)) ||
                                            (($type_flags +& $TYPE_NATIVE_NUM) && nqp::iscont_n($contish)) ||
                                            (($type_flags +& $TYPE_NATIVE_STR) && nqp::iscont_s($contish)) {
                                         $type_mismatch := 1;
                                     }
                                 }
                                 elsif (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT) ||
+                                   (($type_flags +& $TYPE_NATIVE_UINT) && $got_prim != $BIND_VAL_UINT) ||
                                    (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM) ||
                                    (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR) {
                                     # Mismatch.
@@ -2891,12 +2950,14 @@ BEGIN {
                                 if $got_prim == $BIND_VAL_OBJ {
                                     $param := nqp::captureposarg($capture, $i);
                                     if    nqp::iscont_i($param) { $param := Int; $primish := 1; }
+                                    elsif nqp::iscont_u($param) { $param := Int; $primish := 1; }
                                     elsif nqp::iscont_n($param) { $param := Num; $primish := 1; }
                                     elsif nqp::iscont_s($param) { $param := Str; $primish := 1; }
                                     else { $param := nqp::hllizefor($param, 'Raku') }
                                 }
                                 else {
                                     $param := $got_prim == $BIND_VAL_INT ?? Int !!
+                                              $got_prim == $BIND_VAL_UINT ?? Int !!
                                               $got_prim == $BIND_VAL_NUM ?? Num !!
                                                                             Str;
                                     $primish := 1;
@@ -3180,9 +3241,11 @@ BEGIN {
             my int $TYPE_NATIVE_INT   := 4;
             my int $TYPE_NATIVE_NUM   := 8;
             my int $TYPE_NATIVE_STR   := 16;
-            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
+            my int $TYPE_NATIVE_UINT  := 32;
+            my int $TYPE_NATIVE_MASK  := $TYPE_NATIVE_INT +| $TYPE_NATIVE_UINT +| $TYPE_NATIVE_NUM +| $TYPE_NATIVE_STR;
             my int $BIND_VAL_OBJ      := 0;
             my int $BIND_VAL_INT      := 1;
+            my int $BIND_VAL_UINT     := 10;
             my int $BIND_VAL_NUM      := 2;
             my int $BIND_VAL_STR      := 3;
             my int $ARG_IS_LITERAL    := 32;
@@ -3267,6 +3330,7 @@ BEGIN {
                         # Yes, but does it have the right type? Also look at rw-ness for literals.
                         my int $literal := nqp::atpos(@flags, $i) +& $ARG_IS_LITERAL;
                         if (($type_flags +& $TYPE_NATIVE_INT) && $got_prim != $BIND_VAL_INT)
+                        || (($type_flags +& $TYPE_NATIVE_UINT) && $got_prim != $BIND_VAL_UINT)
                         || (($type_flags +& $TYPE_NATIVE_NUM) && $got_prim != $BIND_VAL_NUM)
                         || (($type_flags +& $TYPE_NATIVE_STR) && $got_prim != $BIND_VAL_STR)
                         || ($literal && nqp::atpos_i(nqp::atkey($cur_candidate, 'rwness'), $i)) {
@@ -3283,6 +3347,7 @@ BEGIN {
                         my $param :=
                             $got_prim == $BIND_VAL_OBJ ?? nqp::atpos(@args, $i) !!
                             $got_prim == $BIND_VAL_INT ?? Int !!
+                            $got_prim == $BIND_VAL_UINT ?? Int !!
                             $got_prim == $BIND_VAL_NUM ?? Num !!
                                                           Str;
 
@@ -3784,15 +3849,19 @@ BEGIN {
     Perl6::Metamodel::ClassHOW.add_stash(Int);
     Perl6::Metamodel::ClassHOW.add_stash(Num);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntLexRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(UIntLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrLexRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntAttrRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(UIntAttrRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumAttrRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrAttrRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntPosRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(UIntPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrPosRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(IntMultidimRef);
+    Perl6::Metamodel::NativeRefHOW.add_stash(UIntMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(NumMultidimRef);
     Perl6::Metamodel::NativeRefHOW.add_stash(StrMultidimRef);
 #?if js
@@ -3924,12 +3993,15 @@ BEGIN {
     EXPORT::DEFAULT.WHO<Scalar>     := Scalar;
     EXPORT::DEFAULT.WHO<ScalarVAR>  := ScalarVAR;
     EXPORT::DEFAULT.WHO<IntLexRef>  := IntLexRef;
+    EXPORT::DEFAULT.WHO<UIntLexRef> := UIntLexRef;
     EXPORT::DEFAULT.WHO<NumLexRef>  := NumLexRef;
     EXPORT::DEFAULT.WHO<StrLexRef>  := StrLexRef;
     EXPORT::DEFAULT.WHO<IntAttrRef> := IntAttrRef;
+    EXPORT::DEFAULT.WHO<UIntAttrRef> := UIntAttrRef;
     EXPORT::DEFAULT.WHO<NumAttrRef> := NumAttrRef;
     EXPORT::DEFAULT.WHO<StrAttrRef> := StrAttrRef;
     EXPORT::DEFAULT.WHO<IntPosRef>  := IntPosRef;
+    EXPORT::DEFAULT.WHO<UIntPosRef> := UIntPosRef;
     EXPORT::DEFAULT.WHO<NumPosRef>  := NumPosRef;
     EXPORT::DEFAULT.WHO<StrPosRef>  := StrPosRef;
 #?if js
@@ -4104,6 +4176,9 @@ nqp::sethllconfig('Raku', nqp::hash(
                     elsif $got_prim == 2 {
                         nqp::push(@pos_args, nqp::box_n(nqp::captureposarg_n($capture, $k), Num));
                     }
+                    elsif $got_prim == 10 {
+                        nqp::push(@pos_args, nqp::box_u(nqp::captureposarg_u($capture, $k), Int));
+                    }
                     else {
                         nqp::push(@pos_args, nqp::box_s(nqp::captureposarg_s($capture, $k), Str));
                     }
@@ -4164,15 +4239,19 @@ nqp::sethllconfig('Raku', nqp::hash(
         }
     },
     'int_lex_ref', IntLexRef,
+    'uint_lex_ref', UIntLexRef,
     'num_lex_ref', NumLexRef,
     'str_lex_ref', StrLexRef,
     'int_attr_ref', IntAttrRef,
+    'uint_attr_ref', UIntAttrRef,
     'num_attr_ref', NumAttrRef,
     'str_attr_ref', StrAttrRef,
     'int_pos_ref', IntPosRef,
+    'uint_pos_ref', UIntPosRef,
     'num_pos_ref', NumPosRef,
     'str_pos_ref', StrPosRef,
     'int_multidim_ref', IntMultidimRef,
+    'uint_multidim_ref', UIntMultidimRef,
     'num_multidim_ref', NumMultidimRef,
     'str_multidim_ref', StrMultidimRef,
 #?if js
@@ -4215,6 +4294,7 @@ my @transform_type := nqp::list(
         nqp::bindattr($result, ForeignCode, '$!do', $code);
         $result
     },
+    -> $uint { nqp::box_u($uint, Int) },
 );
 nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-hllize', -> $capture {
     my $arg := nqp::dispatch('boot-syscall', 'dispatcher-track-arg', $capture, 0);
@@ -4226,7 +4306,7 @@ nqp::dispatch('boot-syscall', 'dispatcher-register', 'raku-hllize', -> $capture 
             'boot-syscall', 'dispatcher-delegate', 'lang-call',
             nqp::dispatch(
                 'boot-syscall', 'dispatcher-insert-arg-literal-obj',
-                $capture, 0, @transform_type[$spec > 3 ?? 1 !! $spec]
+                $capture, 0, @transform_type[$spec == 10 ?? 7 !! $spec > 3 ?? 1 !! $spec]
             )
         )
     }

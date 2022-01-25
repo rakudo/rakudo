@@ -127,6 +127,35 @@ our class CArray is repr('CArray') is array_type(Pointer) {
         }
     }
 
+    my role UIntTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
+        multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
+            nqp::atposref_u(nqp::decont(arr), $pos);
+        }
+        multi method AT-POS(::?CLASS:D \arr: Int $pos) is raw {
+            nqp::atposref_u(nqp::decont(arr), $pos);
+        }
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, int $assignee) {
+            nqp::bindpos_u(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
+        }
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, uint $assignee) {
+            nqp::bindpos_u(nqp::decont(arr), nqp::unbox_i($pos), $assignee);
+        }
+        multi method ASSIGN-POS(::?CLASS:D \arr: Int $pos, Int $assignee) {
+            nqp::bindpos_u(nqp::decont(arr), nqp::unbox_i($pos), nqp::unbox_u($assignee));
+        }
+
+        multi method allocate(::?CLASS:U \type: int $elems) {
+            my $arr := nqp::create(type);
+            nqp::bindpos_u($arr, $elems - 1, 0);
+            $arr;
+        }
+        multi method allocate(::?CLASS:U \type: Int:D $elems) {
+            my $arr := nqp::create(type);
+            nqp::bindpos_u($arr, $elems - 1, 0);
+            $arr;
+        }
+    }
+
     my role NumTypedCArray[::TValue] does Positional[TValue] is array_type(TValue) {
         multi method AT-POS(::?CLASS:D \arr: $pos) is raw {
             nqp::atposref_n(nqp::decont(arr), $pos);
@@ -194,7 +223,7 @@ our class CArray is repr('CArray') is array_type(Pointer) {
     method ^parameterize(Mu:U \arr, Mu:U \t) {
         my $mixin;
         if t ~~ Int {
-            $mixin := IntTypedCArray[t.WHAT];
+            $mixin := t.^unsigned ?? UIntTypedCArray[t.WHAT] !! IntTypedCArray[t.WHAT];
         }
         elsif t ~~ Num {
             $mixin := NumTypedCArray[t.WHAT];

@@ -272,8 +272,8 @@ my class IO::Path is Cool does IO {
           nqp::while(
             nqp::isne_i($els, $i = nqp::add_i($i, 1)),
             nqp::if(
-              nqp::iseq_i(nqp::atpos_i($p, $i), $ord-sep),
-              nqp::atposref_i($p, $i) = 0)),
+              nqp::iseq_i(nqp::atpos_u($p, $i), $ord-sep),
+              nqp::atposref_u($p, $i) = 0)),
           my $parts := nqp::split("\0", nqp::decode($p, 'utf8-c8')));
 #?endif
 

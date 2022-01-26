@@ -2796,8 +2796,8 @@ class Perl6::Optimizer {
             my $value := $op[1];
             return $value if $op[0].value.rw;
 
-            # Boolifications don't need it, nor do _I/_i/_n/_s ops, with
-            # the exception of native assignment, which can decont_[ins]
+            # Boolifications don't need it, nor do _I/_i/_n/_s/_u ops, with
+            # the exception of native assignment, which can decont_[insu]
             # as appropriate, which may avoid a boxing. Same for QAST::WVal
             # if we can see the value is not containerized.
             my $last_stmt := get_last_stmt($value);
@@ -2810,10 +2810,12 @@ class Perl6::Optimizer {
                     if    $last_op eq 'assign_i' { $op.op('decont_i') }
                     elsif $last_op eq 'assign_n' { $op.op('decont_n') }
                     elsif $last_op eq 'assign_s' { $op.op('decont_s') }
+                    elsif $last_op eq 'assign_u' { $op.op('decont_u') }
                     $op.shift; # The QAST::WVal of the routine
                     return $op;
                 }
                 if nqp::eqat($last_op, '_i', -2) ||
+                      nqp::eqat($last_op, '_u', -2) ||
                       nqp::eqat($last_op, '_n', -2) ||
                       nqp::eqat($last_op, '_s', -2) {
                     return $value;
